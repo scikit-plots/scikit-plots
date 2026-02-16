@@ -52,6 +52,15 @@ from sklearn.utils.validation import (
     validate_data,
 )
 
+from scikitplot import __version__
+from scikitplot.externals._packaging.version import parse as parse_version
+
+scikitplot_version = parse_version(__version__)
+if scikitplot_version.dev is None:
+    version_url = f"{scikitplot_version.major}.{scikitplot_version.minor}"
+else:
+    version_url = "dev"
+
 __all__ = [
     # "OneHotEncoder",
     # "OrdinalEncoder",
@@ -1106,6 +1115,13 @@ class DummyCodeEncoder(_BaseEncoder):
     >>> type(X_trans)
     pandas.core.frame.DataFrame
     """
+
+    # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/_repr_html/base.py#L11
+    _doc_link_module = "scikitplot"
+    _doc_link_template = (
+        f"https://scikit-plots.github.io/{version_url}/modules/generated/"
+        "{estimator_module}.{estimator_name}.html"
+    )
 
     _parameter_constraints: dict = {  # noqa: RUF012
         "columns": "no_validation",  # any object is valid

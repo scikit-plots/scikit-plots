@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "hard",
+  "requires_numpy": false,
+  "tags": [
+    "malloc",
+    "free",
+    "pointers"
+  ],
+  "title": "malloc/free demo"
+}

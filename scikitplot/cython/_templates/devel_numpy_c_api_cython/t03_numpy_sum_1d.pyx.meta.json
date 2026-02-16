@@ -1,0 +1,12 @@
+{
+  "kind": "cython",
+  "language": "c",
+  "level": "devel",
+  "requires_numpy": true,
+  "tags": [
+    "numpy",
+    "ndarray",
+    "sum"
+  ],
+  "title": "Sum NumPy 1D array"
+}

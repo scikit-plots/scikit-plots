@@ -17,7 +17,7 @@ This implementation is very similar to ``.. figure::``, except it also allows a
 resolution images.
 
 There is no particular reason this could not be used standalone, but is meant
-to be used with :doc:`/api/sphinxext_plot_directive_api`.
+to be used with :external+matplotlib:doc:`api/sphinxext_plot_directive_api`.
 
 Note that the directory organization is a bit different than ``.. figure::``.
 See the *FigureMpl* documentation below.

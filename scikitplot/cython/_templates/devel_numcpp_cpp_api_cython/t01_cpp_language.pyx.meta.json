@@ -1,0 +1,7 @@
+{
+  "title": "C++ language mode",
+  "description": "Cython template that compiles in C++ mode.",
+  "requires_numpy": false,
+  "kind": "cython",
+  "language": "c++"
+}

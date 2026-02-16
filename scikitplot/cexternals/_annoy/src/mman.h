@@ -1,8 +1,29 @@
-// scikitplot/cexternals/_annoy/src/mman.h
-// This is from https://code.google.com/p/mman-win32/
+// scikitplot/cexternals/_annoy/_mman/src/mman.h
+// Cross-platform memory mapping support
+//
+// This header provides a unified interface for memory mapping across platforms:
+// - Windows: Uses custom implementation wrapping CreateFileMapping/MapViewOfFile
+// - Unix/Linux/macOS: Uses standard POSIX <sys/mman.h>
 //
 // Licensed under MIT
+// Original Windows implementation from: https://code.google.com/p/mman-win32/
 
+#pragma once
+/*
+ * sys/mman.h
+ * mman-win32
+ */
+#include <sys/types.h>
+#include <errno.h>
+#include <stdint.h>
+
+// ===========================================================================
+// Platform Detection and Headers
+// ===========================================================================
+
+#if defined(_WIN32) || defined(_WIN64)
+
+/* =============================== Windows =============================== */
 #ifndef _MMAN_WIN32_H
 #define _MMAN_WIN32_H
 
@@ -10,11 +31,15 @@
 #define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
 #endif
 
-#include <sys/types.h>
+/* All the headers include this file. */
+#ifndef _MSC_VER
+#include <_mingw.h>
+#endif
+
 #include <windows.h>
-#include <errno.h>
 #include <io.h>
 
+// POSIX-compatible constants for Windows
 #define PROT_NONE       0
 #define PROT_READ       1
 #define PROT_WRITE      2
@@ -30,7 +55,7 @@
 
 #define MAP_FAILED      ((void *)-1)
 
-/* Flags for msync. */
+// Flags for msync
 #define MS_ASYNC        1
 #define MS_SYNC         2
 #define MS_INVALIDATE   4
@@ -39,6 +64,16 @@
 #define FILE_MAP_EXECUTE    0x0020
 #endif
 
+// ===========================================================================
+// Windows Helper Functions
+// ===========================================================================
+// void*   mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off);
+// int     munmap(void *addr, size_t len);
+// int     mprotect(void *addr, size_t len, int prot);
+// int     msync(void *addr, size_t len, int flags);
+// int     mlock(const void *addr, size_t len);
+// int     munlock(const void *addr, size_t len);
+
 static int __map_mman_error(const DWORD err, const int deferr)
 {
     if (err == 0)
@@ -46,6 +81,7 @@ static int __map_mman_error(const DWORD err, const int deferr)
 
     // return err;  // implemented
 
+    // Map Win32 error codes to POSIX errno values
     // Map Win32 GetLastError() values to POSIX errno codes.
     // For unknown errors, fall back to deferr (typically EPERM).
     switch (err) {
@@ -108,6 +144,10 @@ static DWORD __map_mmap_prot_file(const int prot)
 
     return desiredAccess;
 }
+
+// ===========================================================================
+// Windows Memory Mapping Functions
+// ===========================================================================
 
 inline void* mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off)
 {
@@ -244,6 +284,7 @@ inline int ftruncate(const int fd, const int64_t size) {
     LARGE_INTEGER li_start, li_size;
     li_start.QuadPart = static_cast<int64_t>(0);
     li_size.QuadPart = size;
+
     if (SetFilePointerEx(h, li_start, NULL, FILE_CURRENT) == ~0 ||
         SetFilePointerEx(h, li_size, NULL, FILE_BEGIN) == ~0 ||
         !SetEndOfFile(h)) {
@@ -263,4 +304,22 @@ inline int ftruncate(const int fd, const int64_t size) {
 }
 #endif
 
-#endif
+#endif  // _MMAN_WIN32_H
+
+#else  // Not Windows
+
+/* ============================== POSIX (Unix/Linux/macOS) =============================== */
+
+// Use standard POSIX headers - all functions already defined
+#include <sys/mman.h>
+#include <unistd.h>
+
+// POSIX already provides:
+// - Functions: mmap, munmap, mprotect, msync, mlock, munlock
+// - Constants: PROT_*, MAP_*, MS_*
+// - Types: off_t, size_t
+
+// Note: MAP_FAILED is defined as ((void *) -1) in POSIX
+// Note: ftruncate is also standard in POSIX (in <unistd.h>)
+
+#endif  // Platform detection

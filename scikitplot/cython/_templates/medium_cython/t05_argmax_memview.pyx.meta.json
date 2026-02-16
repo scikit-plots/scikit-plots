@@ -1,0 +1,10 @@
+{
+  "kind": "cython",
+  "level": "medium",
+  "requires_numpy": false,
+  "tags": [
+    "argmax",
+    "memoryview"
+  ],
+  "title": "Argmax on memoryview"
+}

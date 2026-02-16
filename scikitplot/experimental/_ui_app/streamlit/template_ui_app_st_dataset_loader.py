@@ -30,7 +30,7 @@ from sklearn.model_selection import (
 
 from scikitplot import logger
 from scikitplot._compat.optional_deps import LazyImport
-from scikitplot._datasets import (
+from scikitplot.datasets._data_loader import (
     EXTENSION_LOADERS,
     load_data_meta,
     # load_data,

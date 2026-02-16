@@ -14,6 +14,8 @@
 
 from __future__ import print_function
 import os
+import sys
+import pytest
 
 import h5py
 try:
@@ -26,6 +28,33 @@ from scikitplot.annoy import AnnoyIndex
 
 HERE = os.path.dirname(__file__)  # "tests"
 
+# np = pytest.importorskip("numpy")
+
+# Unconditional Skipping
+# # Skipping an Individual Test Function
+# pytest.skip("Skipping this test at runtime")
+# # Skipping All Tests in a Suite
+# pytest.skip("Skipping this test file", allow_module_level=True)
+# # Markers for Skipping Tests
+# @pytest.mark.skip(reason="This test is under development")
+# # Skipping a Test Class
+# @pytest.mark.skip(reason="Skipping all tests in this class")
+#
+# Conditional Skipping
+# # Skip Tests on Specific Platforms
+# @pytest.mark.skipif(sys.platform == "win32", reason="Does not work on Windows")
+# # Skip Based on Python Version
+# @pytest.mark.skipif(sys.version_info < (3, 8), reason="Requires Python 3.8 or higher")
+#
+# xfail (short for expected failure)
+# # Mark a Test as xfail on Python < 3.8
+# @pytest.mark.xfail(sys.version_info < (3, 8), reason="Fails on Python < 3.8")
+# # Test expected to fail
+# @pytest.mark.xfail(reason="Feature not implemented yet")
+# # Failing if a supposedly broken test passes
+# @pytest.mark.xfail(reason="Known bug in function", strict=True)
+# # Using pytest.xfail() Inside a Test Function
+# pytest.xfail("This test is currently broken")
 
 def _get_index(dataset, custom_distance=None, custom_dim=None):
     url = 'http://ann-benchmarks.com/%s.hdf5' % dataset
@@ -90,17 +119,22 @@ def _test_index(dataset, exp_accuracy, custom_metric=None, custom_dim=None):
     assert accuracy > exp_accuracy - 1.0  # should be within 1%
 
 
+@pytest.mark.xfail(reason="Test data unavailable.")
 def test_glove_25():
+    # with pytest.raises(Exception) as e:
     _test_index("glove-25-angular", 69.00)
 
 
+@pytest.mark.xfail(reason="Test data unavailable.")
 def test_nytimes_16():
     _test_index("nytimes-16-angular", 80.00)
 
 
+@pytest.mark.xfail(reason="Test data unavailable.")
 def test_lastfm_dot():
     _test_index('lastfm-64-dot', 60.00, 'dot', 64)
 
 
+@pytest.mark.xfail(reason="Test data unavailable.")
 def test_lastfm_angular():
     _test_index('lastfm-64-dot', 60.00, 'angular', 65)

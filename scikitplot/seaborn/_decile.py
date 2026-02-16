@@ -360,8 +360,8 @@ def print_labels(
     --------
     .. jupyter-execute::
 
-        >>> import scikitplot.seaborn as sp
-        >>> sp.print_labels()
+      >>> import scikitplot.seaborn as sp
+      >>> sp.print_labels()
     """
     labels = get_feature_infos()
 

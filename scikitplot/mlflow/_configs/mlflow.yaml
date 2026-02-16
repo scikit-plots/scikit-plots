@@ -1,0 +1,74 @@
+###############################################################################
+# scikitplot.mlflow — Beginner-friendly project config (YAML)
+#
+# YAML is great when:
+# - you want a lot of comments
+# - you want nested mappings like default_run_tags
+# - you want to export/write config easily
+#
+# Requires:
+#   pip install pyyaml
+###############################################################################
+
+profiles:
+  # ===========================================================================
+  # PROFILE 1: LOCAL (recommended for beginners)
+  # ===========================================================================
+  local:
+    start_server: true
+
+    session:
+      # One stable experiment name for the whole project
+      experiment_name: "scikitplot-project"
+      create_experiment_if_missing: true
+
+      # Used if you call `with mlflow.start_run():` without run_name
+      default_run_name: "train"
+
+      # Optional: default tags applied whenever a run starts
+      # This is VERY helpful for organizing runs later.
+      default_run_tags:
+        project: "scikitplot"
+        profile: "local"
+        # You can override per script, but beginners can start simple.
+        pipeline_step: "train"
+
+      # Optional UI URL override (does not affect internal tracking URI)
+      # public_tracking_uri: "http://localhost:5000"
+
+      # Optional: time to wait for server readiness
+      # startup_timeout_s: 30.0
+
+      # Optional: load .env for missing keys
+      # env_file: ".env"
+
+    server:
+      # host/port: where the local server listens.
+      # for docker need host: "0.0.0.0"
+      auto_host_in_docker: true
+      host: "127.0.0.1"
+      port: 5000
+
+      # sqlite backend store
+      backend_store_uri: "sqlite:///./.mlflow/mlflow.db"
+
+      # local artifact storage
+      default_artifact_root: "./.mlflow/artifacts"
+
+      serve_artifacts: true
+      strict_cli_compat: true
+
+  # ===========================================================================
+  # PROFILE 2: REMOTE (use when a team server exists)
+  # ===========================================================================
+  remote:
+    start_server: false
+
+    session:
+      tracking_uri: "http://mlflow.my.company:5000"
+      ensure_reachable: true
+      startup_timeout_s: 30.0
+
+      # Optional: keep experiment consistent
+      # experiment_name: "scikitplot-project"
+      # create_experiment_if_missing: false

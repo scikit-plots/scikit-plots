@@ -868,10 +868,11 @@ sp.metrics.plot_precision_recall(
 )
 ```
 
+<!-- "https://github.com/scikit-plots/scikit-plots.github.io/raw/main/dev/_static/plot_directive/introduction/quick_start_tf.png" -->
 <div align=center>
  <img
   src="https://raw.githubusercontent.com/scikit-plots/scikit-plots.github.io/refs/heads/main/dev/_static/plot_directive/introduction/quick_start_tf.png"
-  alt="quick_start_tf.png" width="60%" height="360px">
+  alt="quick_start_tf.png" width="62.5%" height="365.6px">
 </div>
 
 Pretty.
@@ -992,7 +993,7 @@ https://emojidb.org/
 ▲ △ ▴ ▵ ⟁ ⧋ ⧌ ⧍ ⧎ ⧏ ⩣ ⩤ ⩥
 ⚔︎ ⚒︎ ⚖ ⚙ ⚛ ⚡ ☄ ☈ ⛏ ⛓ ⛨ ⚒ ⚚ ⚖ ⚙ ⚔ ⚰ ☠
 ☢︎ ☣︎ ☠︎ ☤ ⚕ ⚕︎ ⚚ ☥ ☬ ☯
-❗ ‼ ⁉ ⁈ ⁉︎ ⁈︎ ⁇
+❓❗ ‼ ⁉ ⁈ ⁉︎ ⁈︎ ⁇ ❔ ⍰ ℹ ? ⓠ ⓘ 🛈 ⍰
 □ ▢ ▣ ▤ ▥ ▦ ▧ ▨ ▩ ▫ ▪ ◧ ◨ ◩ ◪
 ⚠︎ ☡ ☠︎ ☢︎ ☣︎ ⛔ ✖︎ ❗ ‼︎
 ☡ ⚠︎ ⚔︎ ☠︎ ✖︎ ❗
@@ -1011,8 +1012,9 @@ https://emojidb.org/
 
  𝄞 ✍︎ ✍🏻 ✍️ 🪶 ✎ᝰ.📓🗒 ˎˊ˗ 🖍 𓂃✍︎  𓂃🖌 ✒️ ⬇ ↓ 🖋  🖌 🗝 🕊
 
- 🔄 ➡️ ✏️ ✎ ☰ 🧾 📝 ⬜ ⃣ 🔍︎ 🔎 ⌕ ⌗ ⏱ 🏍 ⟳ 𓍝 ↳ ➥ ✐ᝰ. ➜] ↯  ⃢▸
+ 🔄 ➡️ ↖️ ⬇️ ✏️ ✎ ☰ 🧾 📝 ⬜ ⃣ 🔍︎ 🔎 ⌕ ⌗ ⏱ 🏍 ⟳ 𓍝 ↳ ➥ ✐ᝰ. ➜] ↯  ⃢▸
 
+🔗 🤖 ⚙️ 🇦🇮 🌐 ⭐ ✨ 💫 🧭 📍 🌍
 
 Core labels (most useful)
 

@@ -60,7 +60,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ANNoy Vector Index DB <./annoy/index.rst>
+            ANNoy <./annoy/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -71,6 +71,16 @@ User Guide
             :maxdepth: 3
 
             ./api/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
+        **cython realtime pkg/mod generation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Cython <./cython/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -100,7 +110,27 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./logging/index.rst
+            Logging <./logging/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **memory mapping**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            MemMap <./memmap/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **mlflow workflow automation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            MLflow <./mlflow/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -110,7 +140,7 @@ User Guide
         .. toctree::
             :maxdepth: 3
 
-            ./nc/index.rst
+            Nc <./nc/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -125,12 +155,22 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **random generator**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            ./random/index.rst
+
+    .. grid-item-card::
+        :padding: 3
+
         **seaborn**
         ^^^
         .. toctree::
             :maxdepth: 3
 
-            seaborn <./seaborn/index.rst>
+            Seaborn <./seaborn/index.rst>
 
     .. grid-item-card::
         :padding: 3

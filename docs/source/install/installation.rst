@@ -263,3 +263,13 @@ reference and troubleshooting.
          :maxdepth: 2
 
          dependencies.rst
+
+   .. grid-item-card::
+      :shadow: none
+
+      **Dependencies**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+         troubleshooting_faq.inc.rst

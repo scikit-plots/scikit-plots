@@ -1,0 +1,10 @@
+{
+  "kind": "cython",
+  "level": "complex",
+  "requires_numpy": false,
+  "tags": [
+    "nogil",
+    "performance"
+  ],
+  "title": "nogil sum of squares"
+}

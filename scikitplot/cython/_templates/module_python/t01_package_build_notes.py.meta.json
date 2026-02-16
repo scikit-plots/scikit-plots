@@ -1,0 +1,6 @@
+{
+  "title": "Module: package build",
+  "description": "Notes and example for build_package_from_code.",
+  "requires_numpy": false,
+  "language": null
+}

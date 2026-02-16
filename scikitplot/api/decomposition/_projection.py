@@ -119,42 +119,44 @@ def plot_pca_2d_projection(
     Examples
     --------
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: PCA 2D Projection
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: PCA 2D Projection
 
-        >>> from sklearn.decomposition import PCA
-        >>> from sklearn.datasets import load_iris as data_3_classes
-        >>> import scikitplot as skplt
-        >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
-        >>> pca = PCA(random_state=0).fit(X)
-        >>> skplt.decomposition.plot_pca_2d_projection(
-        ...     pca,
-        ...     X,
-        ...     y,
-        ...     biplot=True,
-        ...     feature_labels=X.columns.tolist(),
-        ... )
+      >>> from sklearn.decomposition import PCA
+      >>> from sklearn.datasets import load_iris as data_3_classes
+      >>> import scikitplot as skplt
+      >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
+      >>> pca = PCA(random_state=0).fit(X)
+      >>> skplt.decomposition.plot_pca_2d_projection(
+      ...     pca,
+      ...     X,
+      ...     y,
+      ...     biplot=True,
+      ...     feature_labels=X.columns.tolist(),
+      ... )
 
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: LDA 2D Projection
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: LDA 2D Projection
 
-        >>> from sklearn.discriminant_analysis import (
-        ...     LinearDiscriminantAnalysis,
-        ... )
-        >>> from sklearn.datasets import load_iris as data_3_classes
-        >>> import scikitplot as skplt
-        >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
-        >>> clf = LinearDiscriminantAnalysis().fit(X, y)
-        >>> skplt.decomposition.plot_pca_2d_projection(
-        ...     clf,
-        ...     X,
-        ...     y,
-        ...     biplot=True,
-        ...     feature_labels=X.columns.tolist(),
-        ... )
+      >>> from sklearn.discriminant_analysis import (
+      ...     LinearDiscriminantAnalysis,
+      ... )
+      >>> from sklearn.datasets import load_iris as data_3_classes
+      >>> import scikitplot as skplt
+      >>> X, y = data_3_classes(return_X_y=True, as_frame=True)
+      >>> clf = LinearDiscriminantAnalysis().fit(X, y)
+      >>> skplt.decomposition.plot_pca_2d_projection(
+      ...     clf,
+      ...     X,
+      ...     y,
+      ...     biplot=True,
+      ...     feature_labels=X.columns.tolist(),
+      ... )
 
     """
     ##################################################################

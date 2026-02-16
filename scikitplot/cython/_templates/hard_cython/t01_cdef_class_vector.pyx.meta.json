@@ -1,0 +1,6 @@
+{
+  "title": "Hard: cdef class",
+  "description": "cdef class with malloc/free.",
+  "requires_numpy": false,
+  "language": null
+}

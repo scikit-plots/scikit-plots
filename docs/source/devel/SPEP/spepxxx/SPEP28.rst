@@ -106,6 +106,7 @@ data are known to not fit a normal distribution.
 Below is an example of how ``Axes.boxplot`` classifies outliers of lognormal
 data differently depending one these types of transforms.
 
+.. .. code-block:: python
 .. plot::
    :include-source: true
 

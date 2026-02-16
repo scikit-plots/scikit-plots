@@ -14,6 +14,16 @@
 """
 :py:mod:`~.logging` (alias, :py:obj:`~.logger`) module provide unified both Python :py:mod:`logging` and :py:class:`logging.Logger` utilities.
 
+.. dropdown:: View aliases
+
+    **Main aliases**
+
+    `scikitplot.logging`
+
+    **Compat aliases**
+
+    `scikitplot.logger`
+
 Inspired by `"Tensorflow's logging system"
 <https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/platform/tf_logging.py#L94>`_ [1]_.
 
@@ -29,15 +39,8 @@ Scikit-plots logging helpers, supports vendoring.
 Module Dependencies:
 - Python standard library: :py:mod:`logging`
 
-.. dropdown:: View aliases
-
-    **Main aliases**
-
-    `scikitplot.logging`
-
-    **Compat aliases**
-
-    `scikitplot.logger`
+.. seealso::
+  * https://github.com/python/cpython/blob/main/Lib/logging/__init__.py
 
 References
 ----------
@@ -107,7 +110,7 @@ __all__ = [  # noqa: RUF022
     # Compatibility + helpers
     "AlwaysStdErrHandler",
     "GoogleLogFormatter",
-    "_default_log_level",
+    "_default_logging_level",
     "_get_thread_id",
     "_is_jupyter_notebook",
     "getEffectiveLevel",
@@ -154,7 +157,7 @@ _level_names = {
 
 # Environment variables (kept intentionally small and explicit).
 _ENV_VERBOSE = "SKPLT_VERBOSE"
-_ENV_LOG_LEVEL = "SKPLT_LOG_LEVEL"
+_ENV_LOGGING_LEVEL = "SKPLT_LOGGING_LEVEL"
 _ENV_AUTO_CONFIG = (
     "SKPLT_LOGGING_AUTO_CONFIG"  # if "1", configure() is called on first get_logger()
 )
@@ -211,9 +214,9 @@ CYAN = "\033[1;36m"  # ACTION / STATUS / QUERY
 #     def format(self, record):
 #         color = self.COLOR_MAP.get(record.levelname, RESET)
 #         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         log_level = f"{color}[{record.levelname}]{RESET}"
+#         logging_level = f"{color}[{record.levelname}]{RESET}"
 #         message = super().format(record)
-#         return f"{timestamp} {log_level} {message}"
+#         return f"{timestamp} {logging_level} {message}"
 
 # # ==============================
 # # Custom Logger Wrapper
@@ -416,7 +419,7 @@ def _coerce_level(level: int | str) -> int:
     raise ValueError(f"Unknown log level: {level!r}")
 
 
-def _default_log_level(verbose: bool = False) -> int:
+def _default_logging_level(verbose: bool = False) -> int:
     """
     Determine the default log level based on environment and verbosity.
 
@@ -437,23 +440,23 @@ def _default_log_level(verbose: bool = False) -> int:
 
     Notes
     -----
-    * If ``SKPLT_LOG_LEVEL`` is set, it wins (e.g. ``INFO``, ``DEBUG``, ``20``).
+    * If ``SKPLT_LOGGING_LEVEL`` is set, it wins (e.g. ``INFO``, ``DEBUG``, ``20``).
     * Else if ``SKPLT_VERBOSE`` is set, DEBUG is used.
     * Else the ``verbose`` argument controls DEBUG vs WARNING.
 
     Examples
     --------
-    >>> _default_log_level()
+    >>> _default_logging_level()
     30  # logging.WARNING
 
-    >>> _default_log_level(verbose=True)
+    >>> _default_logging_level(verbose=True)
     10  # logging.DEBUG
 
     >>> os.environ["SKPLT_VERBOSE"] = "1"
-    >>> _default_log_level()
+    >>> _default_logging_level()
     10  # logging.DEBUG
     """
-    raw = os.getenv(_ENV_LOG_LEVEL)
+    raw = os.getenv(_ENV_LOGGING_LEVEL)
     if raw:
         return _coerce_level(raw)
 
@@ -584,7 +587,7 @@ def _GetFileAndLine():  # noqa: N802
 ######################################################################
 
 
-def _get_default_log_level_name() -> str:
+def _get_default_logging_level_name() -> str:
     _level = _logging.getLogger().getEffectiveLevel()
     return _logging.getLevelName(_level)
 
@@ -606,7 +609,7 @@ def google2_log_prefix(level=None, timestamp=None, file_and_line=None):
 
     # Severity string
     severity = "I"
-    level = level or _get_default_log_level_name()
+    level = level or _get_default_logging_level_name()
     if level in _level_names:
         severity = _level_names[level][0]
 
@@ -669,7 +672,7 @@ class GoogleLogFormatter(_logging.Formatter):
     That formats log messages in a Google-style format::
 
       >>> # Google-style format
-      >>> `YYYY-MM-DD HH:MM:SS.mmmmmm logger_name log_level message`
+      >>> `YYYY-MM-DD HH:MM:SS.mmmmmm logger_name logging_level message`
 
     Parameters
     ----------
@@ -1152,23 +1155,19 @@ def get_logger() -> _logging.Logger:
     --------
     Get the root ``logger`` from ``module attr``:
 
-    .. jupyter-execute::
+    >>> from scikitplot import logger
+    >>> logger.setLevel(logger.INFO)  # default WARNING
+    >>> logger.info("This is a info message from the sp logger.")
 
-        >>> from scikitplot import logger
-        >>> logger.setLevel(logger.INFO)  # default WARNING
-        >>> logger.info("This is a info message from the sp logger.")
-
-        >>> import scikitplot as sp
-        >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
-        >>> sp.logger.info("This is a info message from the sp logger.")
+    >>> import scikitplot as sp
+    >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+    >>> sp.logger.info("This is a info message from the sp logger.")
 
     Get the root ``logger`` from ``func``:
 
-    .. jupyter-execute::
-
-        >>> import scikitplot as sp
-        >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
-        >>> sp.get_logger().info("This is a info message from the sp logger.")
+    >>> import scikitplot as sp
+    >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
+    >>> sp.get_logger().info("This is a info message from the sp logger.")
     """
     # Ensure the root logger is initialized
     # pylint: disable=global-statement
@@ -1232,7 +1231,7 @@ def get_logger() -> _logging.Logger:
         # _logging.basicConfig(
         #     format   = _logging.BASIC_FORMAT,
         #     datefmt  = None,
-        #     # level    = _logging.WARNING,  # _default_log_level()
+        #     # level    = _logging.WARNING,  # _default_logging_level()
         #     handlers = [_logging.StreamHandler(_logging_target)],
         # )
 
@@ -1257,19 +1256,6 @@ def get_logger() -> _logging.Logger:
 ######################################################################
 ## Exposed logging helpers
 ######################################################################
-
-
-# logging.TaskLevelStatusMessage
-def TaskLevelStatusMessage(msg):  # noqa: N802
-    """
-    Compatibility wrapper for legacy call sites.
-
-    Parameters
-    ----------
-    msg : str
-        Message to log.
-    """
-    error(msg)
 
 
 def getEffectiveLevel():  # noqa: N802
@@ -1374,7 +1360,7 @@ def critical(msg, *args, **kwargs):
 
 def fatal(msg, *args, **kwargs):
     """
-    Log a message at the FATAL - CRITICAL log level.
+    Log a message at the FATAL -> CRITICAL log level.
 
     Parameters
     ----------
@@ -1385,7 +1371,8 @@ def fatal(msg, *args, **kwargs):
     kwargs : any
         Additional keyword arguments for logging.
     """
-    get_logger().fatal(msg, *args, **kwargs)
+    # get_logger().fatal(msg, *args, **kwargs)
+    get_logger().critical(msg, *args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
@@ -1433,6 +1420,19 @@ def exception(msg, *args, exc_info=True, **kwargs):
     error(msg, *args, exc_info=exc_info, **kwargs)
 
 
+# logging.TaskLevelStatusMessage
+def TaskLevelStatusMessage(msg):  # noqa: N802
+    """
+    Compatibility wrapper for legacy call sites.
+
+    Parameters
+    ----------
+    msg : str
+        Message to log.
+    """
+    error(msg)
+
+
 def warning(msg, *args, **kwargs):
     """
     Log a message at the WARNING log level.
@@ -1451,7 +1451,7 @@ def warning(msg, *args, **kwargs):
 
 def warn(msg, *args, **kwargs):
     """
-    Log a message at the WARN - WARNING log level.
+    Log a message at the WARN -> WARNING log level.
 
     Parameters
     ----------

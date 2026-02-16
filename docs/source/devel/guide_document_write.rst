@@ -296,7 +296,7 @@ will render as:
 
   See the tutorial :ref:`quick_start`
 
-  See the example :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`
+  See the example :external+matplotlib:doc:`gallery/lines_bars_and_markers/simple_plot`
 
 Sections can also be given reference labels.  For instance from the
 :doc:`/install/index` link:
@@ -438,7 +438,7 @@ In rare cases we want the rendering of the mathematical text in the
 documentation html to exactly match with the rendering of the mathematical
 expression in the Matplotlib figure. In these cases, you can use the
 `matplotlib.sphinxext.mathmpl` Sphinx extension (See also the
-:external+matplotlib:doc:`/users/explain/text/mathtext` tutorial.)
+:external+matplotlib:doc:`users/explain/text/mathtext` tutorial.)
 
 .. _writing-docstrings:
 
@@ -890,7 +890,7 @@ Note that ``examples/text_labels_and_annotations/legend.py`` has been mapped to
 fixed in future re-organization of the docs.
 
 Plots can also be directly placed inside docstrings.  Details are in
-:external+matplotlib:doc:`/api/sphinxext_plot_directive_api`.  A short example is:
+:external+matplotlib:doc:`api/sphinxext_plot_directive_api`.  A short example is:
 
 .. code-block:: python
 
@@ -899,11 +899,11 @@ Plots can also be directly placed inside docstrings.  Details are in
 
     Examples
     --------
-
     .. plot::
-       import matplotlib.image as mpimg
-       img = mpimg.imread('_static/stinkbug.png')
-       imgplot = plt.imshow(img)
+
+      import matplotlib.image as mpimg
+      img = mpimg.imread('_static/stinkbug.png')
+      imgplot = plt.imshow(img)
     """
 
 An advantage of this style over referencing an example script is that the
@@ -946,7 +946,7 @@ displayed, and figures are put into the built page.  Matplotlib uses the
 ``# %%`` section separator so that IDEs will identify "code cells" to make
 it easy to re-run sub-sections of the example.
 
-For instance the example :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`
+For instance the example :external+matplotlib:doc:`gallery/lines_bars_and_markers/simple_plot`
 example is generated from
 :file:`/galleries/examples/lines_bars_and_markers/simple_plot.py`, which looks
 like:
@@ -978,7 +978,7 @@ like:
     plt.show()
 
 The first comment block is treated as |docutils| text.  The other comment blocks
-render as comments in :external+matplotlib:doc:`/gallery/lines_bars_and_markers/simple_plot`.
+render as comments in :external+matplotlib:doc:`gallery/lines_bars_and_markers/simple_plot`.
 
 Tutorials are made with the exact same mechanism, except they are longer and
 typically have more than one comment block (i.e. :ref:`quick_start`).  The
@@ -1139,15 +1139,15 @@ All :ref:`examples-index` should aim to follow these guidelines:
        doing. When more context or explanation is required, add a text paragraph before
        the code example.
 
-:external+matplotlib:doc:`/gallery/misc/bbox_intersect` demonstrates the point of visual examples.
+:external+matplotlib:doc:`gallery/misc/bbox_intersect` demonstrates the point of visual examples.
 This example is "messy" in that it's hard to categorize, but the gallery is the right
 spot for it because it makes sense to find it by visual search
 
-:external+matplotlib:doc:`/gallery/images_contours_and_fields/colormap_interactive_adjustment` is an
+:external+matplotlib:doc:`gallery/images_contours_and_fields/colormap_interactive_adjustment` is an
 example of a good descriptive title that briefly summarizes how the showcased
 library features are used to implement the demonstrated visualization technique.
 
-:external+matplotlib:doc:`/gallery/lines_bars_and_markers/lines_with_ticks_demo` is an example of having a
+:external+matplotlib:doc:`gallery/lines_bars_and_markers/lines_with_ticks_demo` is an example of having a
 minimal amount of code necessary to showcase the feature. The lack of extraneous code
 makes it easier for the reader to map which parts of code correspond to which parts of
 the plot.

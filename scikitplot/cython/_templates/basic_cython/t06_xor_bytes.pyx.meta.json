@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "basic",
+  "requires_numpy": false,
+  "tags": [
+    "bytes",
+    "bytearray",
+    "xor"
+  ],
+  "title": "XOR bytes (bytearray output)"
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Devel NumPy+C++: notes",
+  "description": "Notes for NumPy + C++ extension workflows.",
+  "requires_numpy": false,
+  "language": null
+}

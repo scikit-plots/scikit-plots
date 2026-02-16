@@ -1,0 +1,10 @@
+{
+  "kind": "cython",
+  "level": "medium",
+  "requires_numpy": false,
+  "tags": [
+    "fused",
+    "generic"
+  ],
+  "title": "Fused-type add"
+}

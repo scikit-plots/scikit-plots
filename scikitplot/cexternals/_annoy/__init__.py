@@ -79,3 +79,12 @@ __all__ = [
     # "__author_email__",
     # "__git_hash__",
 ]
+
+
+def __getattr__(attr):
+    if attr in __all__:
+        from importlib import import_module
+
+        return import_module("scikitplot.cexternals._annoy." + attr)
+
+    raise AttributeError(f"submodule '_annoy' has no attribute {attr!r}")

@@ -3,7 +3,42 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Append the last commit information (hash and date) to the development version string."""
+"""
+Append the last commit information (hash and date) to the development version string.
+
+https://www.gnu.org/software/coreutils/manual/html_node/Options-for-date.html
+https://en.wikipedia.org/wiki/ISO_8601
+
+Example: 2006-08-14T02:34:56-06:00
+
+Complete date : YYYY-MM-DD (2026-01-10)
+Date and time : YYYY-MM-DDThh:mm:ssTZD
+Week date     : YYYY-Www-D (2026-W02-1)
+Ordinal date  : YYYY-DDD (2026-010)
+Time interval : PnYnMnDTnHnMnS (P1Y2M3DT4H5M6S)
+
+date --help
+
+$ date --iso-8601=seconds
+$ date --iso-8601=ns
+2025-02-16T12:03:17,646296349+01:00
+
+$ date -u --rfc-3339=ns
+2025-02-16 10:58:44.966864492+00:00
+
+date +"%Y-%m-%dT%H:%M:%SZ"
+date +"%Y-%m-%dT%H:%M:%S.%N%:z"
+date +"%Y-%m-%dT%H:%M:%S%z" | sed -E 's/([+-][0-9]{2})([0-9]{2})$/\\1:\\2/'
+
+date -u +"%Y-%m-%dT%H:%M:%S.%NZ"
+date -u +"%Y-%m-%dT%H:%M:%S.%9NZ"
+date -u +"%Y-%m-%dT%H:%M:%S.%N%:z"
+date -u +"%Y-%m-%dT%H:%M:%S.%6N%:z"
+
+Note: The -u option sets the output to UTC time.
+The Z is not preceded by a % (or a colon) - so it is not a format directive; it is a literal 'Z' character.
+This is also fully compliant and works on macOS (BSD) and Linux.
+"""
 
 import os
 import subprocess
@@ -191,7 +226,7 @@ def toml_version():
 
 
 def git_version(
-    version: str,
+    version: str = "",
     format: str = "%H %aI",
     short: bool = True,
 ) -> Tuple[str, str]:
@@ -234,11 +269,14 @@ def git_version(
 
     Examples
     --------
+    >>> git_version()
+    ('+git.20260123.c591f8f', 'c591f8f93e2a6faafc106f0b79934d6bc45f734f', b'c591f8f93e2a6faafc106f0b79934d6bc45f734f 2026-01-23T14:45:43+03:00')
+
     >>> git_version('1.0.0.dev', format='%h %aI', short=True)
-    ('1.0.0.dev+git20240617.a1b2c3d', 'a1b2c3d')
+    ('1.0.0.dev+git.20260123.c591f8f', 'c591f8f9', b'c591f8f9 2026-01-23T14:45:43+03:00')
 
     >>> git_version('1.0.0', format='%H', short=False)
-    ('1.0.0', '')
+    ('1.0.0', '', b'c591f8f93e2a6faafc106f0b79934d6bc45f734f')
 
     """
     git_hash = ""
@@ -248,11 +286,14 @@ def git_version(
             "git",
             "log",
             "-1",
-            ## 9a1f3d7 - John Doe, 2 days ago : Update README file
+            # (hash and date)
+            # 9a1f3d7 - John Doe, 2 days ago : Update README file
             # f'--format={format}',
             # f'--pretty=format:"%h - %an, %ar : %s"',
             f"--pretty=format:{format}",
-            "--date=format:%Y-%m-%d %H:%M",
+            # date -u +"%Y-%m-%dT%H:%M:%S.%NZ"
+            # "--date=format:%Y-%m-%d %H:%M",
+            "--date=format:%Y-%m-%dT%H:%M:%S.%NZ",
         ]
 
         # Run the git command
@@ -280,9 +321,8 @@ def git_version(
                 out.decode("utf-8")
                 .strip()
                 .replace('"', "")
-                .split("T", maxsplit=1)[
-                    0
-                ]  # Ensure at least hash and date as YYYYMMDD are available
+                # Ensure at least hash and date as YYYYMMDD are available
+                .split("T", maxsplit=1)[0]
                 .replace("-", "")
                 .split()
             )
@@ -298,7 +338,7 @@ def git_version(
     except Exception:
         # Catch-all for other exceptions
         pass
-    return version, git_hash
+    return version, git_hash, out
 
 
 ######################################################################
@@ -394,7 +434,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    version, git_hash = git_version(init_version())
+    version, git_hash, raw = git_version(init_version())
 
     # For NumPy 2.0, this should only have one field: `version`
     template = textwrap.dedent(
@@ -406,6 +446,10 @@ if __name__ == "__main__":
     """
     Module to expose more detailed version info for the installed `scikitplot`.
     """
+
+    raw = "{raw}"
+    __version_iso_8601__ = raw.split(" ")[1].split("T")[0].replace("-", ".")
+
     # Syntax: 0.4.0rc4+git.20250114.96321ef
     # Syntax: 0.5.0.dev0+git.20250114.96321ef
     full_version = "{version}"

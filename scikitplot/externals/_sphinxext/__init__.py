@@ -10,9 +10,9 @@
 # https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
 
 """
-sphinxext [1]_.
+sphinxext.
 
-References
-----------
-.. [1] https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
+Notes
+-----
+* https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
 """

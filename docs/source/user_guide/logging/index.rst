@@ -40,23 +40,27 @@ Configuring the logging system
 
 Get the root ``logger`` from ``module attr``:
 
-.. jupyter-execute::
+.. code-block:: python
 
-    >>> from scikitplot import logger
-    >>> logger.setLevel(logger.INFO)  # default WARNING
-    >>> logger.info("This is a info message from the sp logger.")
+  >>> from scikitplot import logger
+  >>> logger.setLevel(logger.INFO)  # default WARNING
+  >>> logger.info("This is a info message from the sp logger.")
+  2026-01-23 11:06:27.180474: I scikitplot 140316325247872 3536182465.py:3:<module>] This is a info message from the sp logger.
 
-    >>> import scikitplot as sp
-    >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
-    >>> sp.logger.info("This is a info message from the sp logger.")
+  >>> import scikitplot as sp
+  >>> sp.logger.setLevel(sp.logger.INFO)  # default WARNING
+  >>> sp.logger.info("This is a info message from the sp logger.")
+  2026-01-23 11:06:27.181338: I scikitplot 140316325247872 3536182465.py:7:<module>] This is a info message from the sp logger.
 
 Get the root ``logger`` from ``func``:
 
-.. jupyter-execute::
+.. code-block:: python
 
-    >>> import scikitplot as sp
-    >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
-    >>> sp.get_logger().info("This is a info message from the sp logger.")
+  >>> import scikitplot as sp
+
+  >>> sp.get_logger().setLevel(sp.logging.INFO)  # default WARNING
+  >>> sp.get_logger().info("This is a info message from the sp logger.")
+  2026-01-23 11:06:27.186634: I scikitplot 140316325247872 interactiveshell.py:3701:run_code] This is a info message from the sp logger.
 
 .. note::
 

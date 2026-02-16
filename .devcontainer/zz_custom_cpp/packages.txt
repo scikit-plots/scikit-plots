@@ -1,0 +1,4 @@
+build-essential
+git
+cmake
+meson

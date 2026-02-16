@@ -1,0 +1,6 @@
+{
+  "title": "Devel: directives",
+  "description": "Explicit compiler directives + axpy.",
+  "requires_numpy": false,
+  "language": null
+}

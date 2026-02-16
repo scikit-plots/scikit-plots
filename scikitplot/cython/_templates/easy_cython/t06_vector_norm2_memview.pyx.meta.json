@@ -1,0 +1,12 @@
+{
+  "kind": "cython",
+  "level": "easy",
+  "requires_numpy": false,
+  "tags": [
+    "vector",
+    "norm",
+    "math",
+    "sqrt"
+  ],
+  "title": "L2 norm with memoryview"
+}

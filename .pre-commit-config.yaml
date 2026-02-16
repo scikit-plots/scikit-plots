@@ -30,6 +30,7 @@ repos:
           docs/source/logos/.*|\
           docs/source/_static/logos/.*|\
           docs/source/devel/sampledoc.pdf|\
+          docs/source/user_guide/random/GoodPracticeRNG.pdf|\
           docs/source/.jupyterlite.doit.db|\
           galleries/.*|\
           third_party/.*|\
@@ -116,7 +117,27 @@ repos:
           - --diff                    # Show a diff of what would change, without writing changes to disk. Often used with --check.
           ## Keep Sync: in YAML — pyproject.toml, Black uses pyproject.toml for configuration.
           - --force-exclude
-          - '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests|scikitplot/cexperimental|scikitplot/cexternals|scikitplot/experimental|scikitplot/externals|scikitplot/visualkeras)/'
+          - "/(\
+              \\.eggs\
+              |\\.git\
+              |\\.mypy_cache\
+              |\\.vscode\
+              |benchmarks\
+              |build\
+              |dist\
+              |docs/build\
+              |docs/source\
+              |galleries\
+              |third_party\
+              |tools\
+              |tests\
+              |scikitplot/cexperimental\
+              |scikitplot/cexternals\
+              |scikitplot/cython/_templates\
+              |scikitplot/experimental\
+              |scikitplot/externals\
+              |scikitplot/visualkeras\
+            )/"
         # verbose: true  # Force Black to show which files were modified
         # exclude: '/(\.eggs|\.git|\.mypy_cache|\.vscode|benchmarks|build|dist|docs/build|docs/source|galleries|third_party|tools|tests)/'
 
@@ -160,7 +181,8 @@ repos:
         # Use regex to specify the files to check
         files: scikitplot/externals/_seaborn/_(core|marks|stats)/
         # additional_dependencies: [pytest==6.2.4]
-        additional_dependencies: [numpy]
+        additional_dependencies: [pytest, numpy]
+        # exclude: utils
 
   # Documentation and Specialized Linting
   - repo: https://github.com/woodruffw/zizmor-pre-commit
@@ -181,7 +203,8 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words"
+        args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words" [--ignore-words-list=ser]
+        # files: \.(py|rst|md)$
         # If one configures codespell using the pyproject.toml file instead use:
         additional_dependencies:
           # pyproject.toml (only if the tomli library is available for Python < 3.11)
@@ -195,11 +218,12 @@ repos:
 
   # Optional: Cython Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.6
+    rev: v0.18.1
     hooks:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
       - id: cython-lint
+      - id: double-quote-cython-strings
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie
@@ -258,3 +282,9 @@ repos:
   #   rev: v2.8.0
   #   hooks:
   #   - id: setup-cfg-fmt
+
+  # - repo: https://github.com/pytest-dev/pytest
+  #   rev: main
+  #   hooks:
+  #     - id: pytest
+  #       name: Run pytest before commit

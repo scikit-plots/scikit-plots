@@ -1,0 +1,9 @@
+{
+  "kind": "python",
+  "level": "hard",
+  "tags": [
+    "math",
+    "softmax"
+  ],
+  "title": "Stable softmax (Python)"
+}

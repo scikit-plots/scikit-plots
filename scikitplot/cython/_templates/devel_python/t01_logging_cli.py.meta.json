@@ -1,0 +1,6 @@
+{
+  "title": "Devel: logging CLI",
+  "description": "Argparse + logging skeleton.",
+  "requires_numpy": false,
+  "language": null
+}

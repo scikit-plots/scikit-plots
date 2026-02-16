@@ -280,7 +280,7 @@ struct ScopedError {
 
 // Only use NULL (0) when maintaining legacy C code.
 // nullptr is std::nullptr_t, recommended in C++11 and later (not C).
-template class Annoy::AnnoyIndexInterface<int32_t, float>;
+template class Annoy::AnnoyIndexInterface<int32_t, float, u_int64_t>;
 
 // A raw string literal R"( ... )";
 static const char kAnnoyTypeDoc[] =
@@ -393,10 +393,17 @@ n_features_out_ : int
 feature_names_in_ : list-like
     Input feature names seen during fit.
     Set only when explicitly provided via fit(..., feature_names=...).
-y : dict | None, optional, default=None
-    If provided to fit(X, y), labels are stored here after a successful build.
-    You may also set this property manually. When possible, the setter enforces
-    that len(y) matches the current number of items (n_items).
+y : list-like | None, optional, default=None
+    Dense label cache aligned to item ids (``0 .. n_items-1``). This is a
+    convenience view for scikit-learn style APIs and may be derived from
+    ``y_map`` lazily.
+    The setter accepts sequences only (a dict is not allowed); when possible it
+    validates that ``len(y) == n_items`` and updates ``y_map`` deterministically.
+y_map : dict | None, optional, default=None
+    Canonical sparse mapping ``{item_id -> label}``. Keys must be non-negative
+    integers and (when an index exists) strictly less than ``n_items``.
+    Setting this property invalidates the dense ``y`` cache; ``y`` is
+    materialized lazily (missing keys become ``None``).
 
 See Also
 --------
@@ -407,7 +414,7 @@ get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
 save, load : Persist the index to/from disk.
 serialize, deserialize : Persist the index to/from bytes.
 set_seed : Set the random seed deterministically.
-verbose : Set verbosity level.
+set_verbose : Set verbosity level.
 info : Return a structured summary of the current index.
 
 Notes
@@ -549,7 +556,7 @@ depend on the vector dimension.
 
 For scikit-learn compatibility, assigning a different ``f`` (or ``None``) on
 an already initialized index will deterministically **reset** the index (drop
-all items, trees, and :attr:`y`). You must call :meth:`fit` (or
+all items, trees, and label metadata (:attr:`y_map` and :attr:`y`)). You must call :meth:`fit` (or
 :meth:`add_item` + :meth:`build`) again before querying.
 )FDOC";
 
@@ -591,7 +598,7 @@ the distance function.
 
 For scikit-learn compatibility, setting a different metric on an already
 initialized index will deterministically **reset** the index (drop all items,
-trees, and :attr:`y`). You must call :meth:`fit` (or :meth:`add_item` +
+trees, and label metadata (:attr:`y_map` and :attr:`y`). You must call :meth:`fit` (or :meth:`add_item` +
 :meth:`build`) again before querying.
 )METRIC";
 
@@ -660,7 +667,7 @@ Notes
 )SVDOC";
 
 // ---------------------------------------------------------------------
-// HammingWrapper
+// HammingWrapperIndex
 //
 // A thin adapter that exposes a float-based AnnoyIndexInterface
 // while internally using a binary (uint64_t) Hamming index.
@@ -677,7 +684,7 @@ Notes
 //   - Unpacks uint64_t → float[0,1] when returning vectors
 //   - Adds a small header around the raw Annoy index for robustness
 // ---------------------------------------------------------------------
-class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
+class HammingWrapperIndex : public AnnoyIndexInterface<int32_t, float, uint64_t> {
 private:
   // External binary dimension (number of Hamming bits)
   int32_t _f_external;  // number of bits in the user-facing embedding
@@ -744,17 +751,74 @@ public:
   // -------------------------------------------------------------------
   // Construction
   // -------------------------------------------------------------------
-  explicit HammingWrapper(int f)
+  explicit HammingWrapperIndex(int f)
     : _f_external(f),
       _f_internal((f + 63) / 64),
       _index((f + 63) / 64) {}
+
+  int get_f() const noexcept override {
+      return _index.get_f();
+  }
+
+  // bool set_f(int f, char** error = NULL) noexcept override {
+  //     return _index.set_f(f, error);
+  // }
+
+  // Set dimension (must be called before add_item if using default constructor)
+  bool set_f(int f, char** error = NULL) noexcept override {
+    if (_index.get_n_items() > 0) {
+      if (error != NULL) {
+        *error = dup_cstr("Cannot change dimension after items have been added");
+      }
+      return false;
+    }
+
+    if (f <= 0) {
+      if (error != NULL) {
+        *error = dup_cstr("Dimension must be positive");
+      }
+      return false;
+    }
+
+    // _f_external = static_cast<S>(f);
+    // _f_internal = static_cast<S>(
+    //   (_f_external + BITS_PER_WORD - 1) / BITS_PER_WORD
+    // );
+    // _f_inferred = true;
+
+    return _index.set_f(static_cast<int>(f), error);
+  }
+
+  bool get_params(
+      std::vector<std::pair<std::string, std::string>>& params
+  ) const noexcept override {
+      params.clear();
+      params.emplace_back("f", std::to_string(_f_external));
+      return true;
+  }
+  bool set_params(
+      const std::vector<std::pair<std::string, std::string>>& params,
+      char** error = NULL
+  ) noexcept override {
+      for (const auto& kv : params) {
+          if (kv.first == "f") {
+              int f = std::stoi(kv.second);
+              return set_f(f, error);
+          }
+      }
+
+      if (error) {
+          *error = strdup("missing parameter: f");
+      }
+      return false;
+  }
 
   // -------------------------------------------------------------------
   // Index operations (AnnoyIndexInterface)
   // -------------------------------------------------------------------
   bool add_item(int32_t indice,
                 const float* embedding,
-                char** error) override {
+                char** error) noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _pack(embedding, &packed[0]);
     return _index.add_item(indice, &packed[0], error);
@@ -762,7 +826,7 @@ public:
 
   bool build(int n_trees,
              int n_threads,
-             char** error) override {
+             char** error) noexcept override {
     return _index.build(n_trees, n_threads, error);
   }
 
@@ -771,7 +835,7 @@ public:
   bool deserialize(
     vector<uint8_t>* byte,
     bool prefault,
-    char** error) override {
+    char** error) noexcept override {
     if (!byte || byte->empty()) {
       // if (error) *error = strdup("Empty byte vector");
       if (error) *error = dup_cstr("Empty byte vector");
@@ -825,7 +889,7 @@ public:
   }
 
   float get_distance(int32_t i,
-                     int32_t j) const override {
+                     int32_t j) const noexcept override {
     // Underlying Hamming index returns an integer distance (uint64_t).
     // We convert to float and clip to [0, _f_external] for robustness.
     const uint64_t d_raw = _index.get_distance(i, j);
@@ -835,17 +899,17 @@ public:
   }
 
   void get_item(int32_t indice,
-                float* embedding) const override {
+                float* embedding) const noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _index.get_item(indice, &packed[0]);
     _unpack(&packed[0], embedding);
   }
 
-  int32_t get_n_items() const override {
+  int32_t get_n_items() const noexcept override {
     return _index.get_n_items();
   }
 
-  int32_t get_n_trees() const override {
+  int32_t get_n_trees() const noexcept override {
     return _index.get_n_trees();
   }
 
@@ -860,7 +924,7 @@ public:
                        size_t     n,
                        int        search_k,
                        vector<int32_t>*  result,
-                       vector<float>*    distances) const {
+                       vector<float>*    distances) const noexcept override {
     if (distances) {
       vector<uint64_t> internal_distances;
       _index.get_nns_by_item(query_indice,
@@ -889,7 +953,7 @@ public:
                          size_t             n,
                          int                search_k,
                          vector<int32_t>*   result,
-                         vector<float>*     distances) const {
+                         vector<float>*     distances) const noexcept override {
     vector<uint64_t> packed_query(_f_internal, 0ULL);
     _pack(query_embedding, &packed_query[0]);
 
@@ -922,29 +986,29 @@ public:
   // -------------------------------------------------------------------
   bool load(const char* filename,
             bool        prefault,
-            char**      error) override {
+            char**      error) noexcept override {
     return _index.load(filename, prefault, error);
   }
 
   bool on_disk_build(const char* filename,
-                     char**      error) override {
+                     char**      error) noexcept override {
     return _index.on_disk_build(filename, error);
   }
 
   bool save(const char* filename,
             bool        prefault,
-            char**      error) override {
+            char**      error) noexcept override {
     return _index.save(filename, prefault, error);
   }
 
-  void set_seed(uint64_t seed) override {
+  void set_seed(uint64_t seed) noexcept override {
     _index.set_seed(seed);
   }
 
   // -------------------------------------------------------------------
   // Serialization with HammingHeader in front of the raw index byte
   // -------------------------------------------------------------------
-  vector<uint8_t> serialize(char** error) const override {
+  vector<uint8_t> serialize(char** error) const noexcept override {
     vector<uint8_t> byte;
 
     HammingHeader hdr;
@@ -973,16 +1037,16 @@ public:
     return byte;
   }
 
-  bool unbuild(char** error) override {
+  bool unbuild(char** error) noexcept override {
     return _index.unbuild(error);
   }
 
-  void unload() override {
+  void unload() noexcept override {
     _index.unload();
   }
 
-  void verbose(bool v) override {
-    _index.verbose(v);
+  void set_verbose(bool v) noexcept override {
+    _index.set_verbose(v);
   }
 };
 
@@ -996,11 +1060,12 @@ public:
 //   * Dot       → negative dot product distance
 //   * Hamming   → bitwise Hamming distance on binary embeddings
 // -------------------------------------------------------------------------
-typedef AnnoyIndex<int32_t, float, Angular,   Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngular;
-typedef AnnoyIndex<int32_t, float, Euclidean, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclidean;
-typedef AnnoyIndex<int32_t, float, Manhattan, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattan;
-typedef AnnoyIndex<int32_t, float, DotProduct,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDot;
-typedef HammingWrapper AnnoyHamming;
+typedef AnnoyIndex<int32_t, float, Angular,    Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngularIndex;
+typedef AnnoyIndex<int32_t, float, Euclidean,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclideanIndex;
+typedef AnnoyIndex<int32_t, float, Manhattan,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattanIndex;
+typedef AnnoyIndex<int32_t, float, DotProduct ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDotIndex;
+// typedef AnnoyHamming<int32_t, float, Hamming  ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyHammingIndex;
+typedef HammingWrapperIndex AnnoyHammingIndex;
 
 // ======================= MetricId =========================================
 // ✅ Enum system: MetricId + metric_from_string() + ensure_index()
@@ -1079,11 +1144,20 @@ typedef struct {
   // NOTE: This is separate from the instance __dict__.
   PyObject* weakreflist;        // weakref list head, or NULL
 
-  AnnoyIndexInterface<int32_t, float>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
+  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngularIndex*>(ptr)
 
   // Optional labels / targets associated with vectors (set by fit or manually).
-  // Stored as a Python object (typically 1D array-like) and managed with ref-counting.
-  PyObject* y;                  // labels/targets (y / _y), or NULL
+  //
+  // Canonical representation:
+  //   * y_map : dict {item_id -> label} (sparse / gap-friendly)
+  // Dense cache:
+  //   * y     : sequence aligned to item ids; may be NULL when y_map is used
+  //
+  // Invariant:
+  //   - y_map is the authoritative storage when present
+  //   - y is an optional cache materialized from y_map on demand
+  PyObject* y;                  // dense labels cache (sequence), or NULL
+  PyObject* y_map;              // sparse labels mapping (dict), or NULL
 
   int f;                        // 0 means "unknown / lazy" (dimension inferred from first add_item)
   MetricId metric_id;           // METRIC_UNKNOWN means "unknown / lazy"
@@ -1143,11 +1217,11 @@ static bool ensure_index(py_annoy* self) {
   }
   try {
     switch (self->metric_id) {
-      case METRIC_ANGULAR:   self->ptr = new AnnoyAngular(self->f); break;
-      case METRIC_EUCLIDEAN: self->ptr = new AnnoyEuclidean(self->f); break;
-      case METRIC_MANHATTAN: self->ptr = new AnnoyManhattan(self->f); break;
-      case METRIC_DOT:       self->ptr = new AnnoyDot(self->f); break;
-      case METRIC_HAMMING:   self->ptr = new AnnoyHamming(self->f); break;
+      case METRIC_ANGULAR:   self->ptr = new AnnoyAngularIndex(self->f); break;
+      case METRIC_EUCLIDEAN: self->ptr = new AnnoyEuclideanIndex(self->f); break;
+      case METRIC_MANHATTAN: self->ptr = new AnnoyManhattanIndex(self->f); break;
+      case METRIC_DOT:       self->ptr = new AnnoyDotIndex(self->f); break;
+      case METRIC_HAMMING:   self->ptr = new AnnoyHammingIndex(self->f); break;
       default:
         PyErr_SetString(PyExc_RuntimeError, "Internal error: unknown metric");
         return false;
@@ -1160,7 +1234,7 @@ static bool ensure_index(py_annoy* self) {
     return false;
   }
   if (self->has_pending_seed)    self->ptr->set_seed(self->pending_seed);
-  if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
+  if (self->has_pending_verbose) self->ptr->set_verbose(self->pending_verbose >= 1);
 
   // STRICT disk equivalence (on_disk_path ↔ on_disk_build(on_disk_path)):
   //
@@ -1546,13 +1620,11 @@ static PyObject* py_an_new(
   // Reset estimator parameters (SLEP013).
   self->n_neighbors = 5;
 
+  // Python-owned fitted metadata (GC-tracked).
+  // Initialize to NULL; tp_alloc zeroes memory, but we set explicitly for clarity/safety.
   self->feature_names_in = NULL;
-  // Clear fitted feature names (SLEP007).
-  Py_CLEAR(self->feature_names_in);
-
   self->y = NULL;
-  // Clear fitted labels (if any) on re-init.
-  Py_CLEAR(self->y);
+  self->y_map = NULL;
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -1624,6 +1696,8 @@ static int py_an_init(
 
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+  // Clear fitted sparse labels mapping (if any) on re-init.
+  Py_CLEAR(self->y_map);
 
   // Clear fitted feature names (SLEP007).
   Py_CLEAR(self->feature_names_in);
@@ -1959,13 +2033,15 @@ static void py_an_dealloc(py_annoy* self) {
 
   // Clear fitted labels / targets (if any).
   Py_CLEAR(self->y);
+  // Clear fitted sparse labels mapping (if any).
+  Py_CLEAR(self->y_map);
 
   // Make the wrapper resilient to any finalizers triggered while clearing
   // Python references below.
   //
   // Important: set self->ptr to NULL *before* deleting to prevent any accidental
   // re-entrancy (or future code changes) from double-freeing the same pointer.
-  AnnoyIndexInterface<int32_t, float>* ptr = self->ptr;
+  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr = self->ptr;
 
   // 1) Release OS-backed / heap resources (C++).
   if (ptr) {
@@ -2174,7 +2250,7 @@ static PyObject* py_an_sklearn_is_fitted(
 // IMPORTANT
 // ---------
 // This helper must only be called while holding the GIL (it may emit warnings
-// and clears Python-owned metadata like y).
+// and clears Python-owned metadata like y/y_map).
 static bool reset_index_state(
   py_annoy* self,
   const char* warn_msg) {
@@ -2187,6 +2263,7 @@ static bool reset_index_state(
     self->on_disk_pending = false;
     Py_CLEAR(self->feature_names_in);
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
     return true;
   }
 
@@ -2209,6 +2286,7 @@ static bool reset_index_state(
   // Prevent stale label metadata from being queried against a new index.
   Py_CLEAR(self->feature_names_in);
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 
   return true;
 }
@@ -2267,22 +2345,138 @@ static PyMemberDef py_annoy_members[] = {
 // getter: PyObject* (py_annoy*, void*)
 // setter: int (py_annoy*, PyObject*, void*)
 
-// Optional sklearn-style fitted attribute: y (labels / targets)
+// Optional sklearn-style fitted attribute: y (dense labels cache) and y_map (sparse mapping)
 //
 // Notes
 // -----
-// scikit-learn estimators do not typically store `y`, but for Annoy it can be
-// useful to attach labels/metadata for downstream retrieval. We store :attr:`y` as a
-// Python object and validate basic shape constraints when possible.
-//
+// - Canonical storage is :attr:`y_map` (dict {item_id -> label}).
+// - :attr:`y` is a convenience cache: a 1D sequence aligned to item ids.
+// - Setting y replaces y_map, and vice versa.
+// - Backward compatibility: if a legacy pickle stored a dict in `y`, we
+//   migrate it to `y_map` lazily.
+static int annoy_migrate_legacy_y_dict(py_annoy* self) {
+  if (!self) return 0;
+  if (self->y && self->y != Py_None && PyDict_Check(self->y) && (!self->y_map || self->y_map == Py_None)) {
+    PyObject* cp = PyDict_Copy(self->y);
+    if (!cp) return -1;
+    Py_XDECREF(self->y_map);
+    self->y_map = cp;
+    // Clear dense cache: it will be materialized on demand.
+    Py_CLEAR(self->y);
+  }
+  return 0;
+}
+
+static int annoy_validate_y_map_keys(py_annoy* self, PyObject* d, const char* name) {
+  if (!d || d == Py_None) return 0;
+  if (!PyDict_Check(d)) {
+    PyErr_Format(PyExc_TypeError, "%s must be a dict or None", name);
+    return -1;
+  }
+  const int n_items = (self && self->ptr) ? self->ptr->get_n_items() : 0;
+  PyObject* key = NULL;
+  PyObject* val = NULL;
+  Py_ssize_t pos = 0;
+  while (PyDict_Next(d, &pos, &key, &val)) {
+    if (!PyLong_Check(key)) {
+      PyErr_Format(PyExc_TypeError, "%s dict keys must be integers (item ids)", name);
+      return -1;
+    }
+    long long kid = PyLong_AsLongLong(key);
+    if (kid == -1 && PyErr_Occurred()) return -1;
+    if (kid < 0) {
+      PyErr_Format(PyExc_ValueError, "%s dict keys must be >= 0", name);
+      return -1;
+    }
+    if (n_items > 0 && kid >= (long long)n_items) {
+      PyErr_Format(PyExc_ValueError,
+        "%s dict key %lld is out of range for current index size (n_items=%d)",
+        name, kid, n_items);
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static PyObject* annoy_build_y_map_from_sequence(PyObject* seq_fast) {
+  // seq_fast must be a sequence-fast object (PySequence_Fast) whose items are borrowed.
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq_fast);
+  PyObject* d = PyDict_New();
+  if (!d) return NULL;
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    PyObject* key = PyLong_FromSsize_t(i);
+    if (!key) { Py_DECREF(d); return NULL; }
+    PyObject* v = PySequence_Fast_GET_ITEM(seq_fast, i);  // borrowed
+    if (PyDict_SetItem(d, key, v) < 0) { Py_DECREF(key); Py_DECREF(d); return NULL; }
+    Py_DECREF(key);
+  }
+  return d;
+}
+
+static PyObject* annoy_materialize_dense_y_from_y_map(py_annoy* self) {
+  if (!self || !self->y_map || self->y_map == Py_None) {
+    Py_RETURN_NONE;
+  }
+  if (!PyDict_Check(self->y_map)) {
+    PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+    return NULL;
+  }
+  Py_ssize_t n = 0;
+  if (self->ptr) {
+    n = (Py_ssize_t)self->ptr->get_n_items();
+  } else {
+    // No live index: infer a deterministic length from max key + 1.
+    PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+    long long max_k = -1;
+    while (PyDict_Next(self->y_map, &pos, &key, &val)) {
+      if (!PyLong_Check(key)) {
+        PyErr_SetString(PyExc_TypeError, "y_map dict keys must be integers (item ids)");
+        return NULL;
+      }
+      long long kid = PyLong_AsLongLong(key);
+      if (kid == -1 && PyErr_Occurred()) return NULL;
+      if (kid > max_k) max_k = kid;
+    }
+    n = (max_k >= 0) ? (Py_ssize_t)(max_k + 1) : 0;
+  }
+  PyObject* lst = PyList_New(n);
+  if (!lst) return NULL;
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    Py_INCREF(Py_None);
+    PyList_SET_ITEM(lst, i, Py_None);
+  }
+  PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+  while (PyDict_Next(self->y_map, &pos, &key, &val)) {
+    long long kid = PyLong_AsLongLong(key);
+    if (kid == -1 && PyErr_Occurred()) { Py_DECREF(lst); return NULL; }
+    if (kid < 0 || kid >= (long long)n) continue;
+    Py_INCREF(val);
+    Py_DECREF(PyList_GET_ITEM(lst, (Py_ssize_t)kid));
+    PyList_SET_ITEM(lst, (Py_ssize_t)kid, val);  // steals
+  }
+  return lst;
+}
+
 static PyObject* py_annoy_get_y(
   py_annoy* self,
   void*) {
-  if (!self || !self->y) Py_RETURN_NONE;
-  Py_INCREF(self->y);
-  return self->y;
+  if (!self) Py_RETURN_NONE;
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    Py_INCREF(self->y);
+    return self->y;
+  }
+  if (self->y_map && self->y_map != Py_None) {
+    PyObject* dense = annoy_materialize_dense_y_from_y_map(self);
+    if (!dense) return NULL;
+    if (dense == Py_None) return dense;
+    Py_XDECREF(self->y);
+    self->y = dense;  // steal
+    Py_INCREF(self->y);
+    return self->y;
+  }
+  Py_RETURN_NONE;
 }
-
 
 static int py_annoy_set_y(
   py_annoy* self,
@@ -2298,67 +2492,103 @@ static int py_annoy_set_y(
   }
   if (value == Py_None) {
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
     return 0;
   }
-
-  // Accept either:
-  // - dict-like mapping {item_id -> label}, or
-  // - 1D array-like (sequence) aligned to item ids 0..len-1.
-  const bool is_dict = PyDict_Check(value);
-
-  if (!is_dict) {
-    // Require an array-like (sequence), but reject str/bytes which are sequences.
-    if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
-      PyErr_SetString(PyExc_TypeError,
-        "y must be a dict {item_id -> label}, a 1D array-like (sequence), or None");
-      return -1;
-    }
-    // If the index currently has items, enforce length equality deterministically.
-    if (self->ptr) {
-      const int n_items = self->ptr->get_n_items();
-      if (n_items > 0) {
-        const Py_ssize_t n = PySequence_Size(value);
-        if (n < 0) return -1;  // error already set
-        if ((int64_t)n != (int64_t)n_items) {
-          PyErr_Format(PyExc_ValueError,
-            "y must have length %d to match current index size (n_items)", n_items);
-          return -1;
-        }
-      }
-    }
-  } else {
-    // For dict input, validate keys when possible (deterministic safety check).
-    if (self->ptr) {
-      const int n_items = self->ptr->get_n_items();
-      PyObject* key = NULL;
-      PyObject* val = NULL;
-      Py_ssize_t pos = 0;
-      while (PyDict_Next(value, &pos, &key, &val)) {
-        if (!PyLong_Check(key)) {
-          PyErr_SetString(PyExc_TypeError,
-            "y dict keys must be integers (item ids)");
-          return -1;
-        }
-        long long kid = PyLong_AsLongLong(key);
-        if (kid == -1 && PyErr_Occurred()) return -1;
-        if (kid < 0) {
-          PyErr_SetString(PyExc_ValueError,
-            "y dict keys must be >= 0");
-          return -1;
-        }
-        if (n_items > 0 && kid >= (long long)n_items) {
-          PyErr_Format(PyExc_ValueError,
-            "y dict key %lld is out of range for current index size (n_items=%d)",
-            kid, n_items);
-          return -1;
-        }
+  if (PyDict_Check(value)) {
+    PyErr_SetString(PyExc_TypeError,
+      "y must be a 1D array-like (sequence). For dict mapping use y_map.");
+    return -1;
+  }
+  if (!PySequence_Check(value) || PyUnicode_Check(value) || PyBytes_Check(value)) {
+    PyErr_SetString(PyExc_TypeError,
+      "y must be a 1D array-like (sequence) or None");
+    return -1;
+  }
+  if (self->ptr) {
+    const int n_items = self->ptr->get_n_items();
+    if (n_items > 0) {
+      const Py_ssize_t n = PySequence_Size(value);
+      if (n < 0) return -1;
+      if ((int64_t)n != (int64_t)n_items) {
+        PyErr_Format(PyExc_ValueError,
+          "y must have length %d to match current index size (n_items)", n_items);
+        return -1;
       }
     }
   }
-
-  Py_INCREF(value);
+  PyObject* seq_fast = PySequence_Fast(value, "y must be a 1D array-like (sequence)");
+  if (!seq_fast) return -1;
+  PyObject* y_map_new = annoy_build_y_map_from_sequence(seq_fast);
+  if (!y_map_new) { Py_DECREF(seq_fast); return -1; }
+  // Store a list copy as dense cache to avoid aliasing/mutation surprises.
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq_fast);
+  PyObject* lst = PyList_New(n);
+  if (!lst) { Py_DECREF(seq_fast); Py_DECREF(y_map_new); return -1; }
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    PyObject* v = PySequence_Fast_GET_ITEM(seq_fast, i);  // borrowed
+    Py_INCREF(v);
+    PyList_SET_ITEM(lst, i, v);  // steals
+  }
+  Py_DECREF(seq_fast);
+  Py_XDECREF(self->y_map);
+  self->y_map = y_map_new;  // steal
   Py_XDECREF(self->y);
-  self->y = value;
+  self->y = lst;  // steal
+  return 0;
+}
+
+static PyObject* py_annoy_get_y_map(
+  py_annoy* self,
+  void*) {
+  if (!self) Py_RETURN_NONE;
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  if (self->y_map && self->y_map != Py_None) {
+    Py_INCREF(self->y_map);
+    return self->y_map;
+  }
+  if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    PyObject* seq_fast = PySequence_Fast(self->y, "y must be a 1D array-like (sequence)");
+    if (!seq_fast) return NULL;
+    PyObject* d = annoy_build_y_map_from_sequence(seq_fast);
+    Py_DECREF(seq_fast);
+    if (!d) return NULL;
+    Py_XDECREF(self->y_map);
+    self->y_map = d;  // steal
+    Py_INCREF(self->y_map);
+    return self->y_map;
+  }
+  Py_RETURN_NONE;
+}
+
+static int py_annoy_set_y_map(
+  py_annoy* self,
+  PyObject* value,
+  void*) {
+  if (!self) {
+    PyErr_SetString(PyExc_RuntimeError, "Annoy object is not initialized");
+    return -1;
+  }
+  if (value == NULL) {
+    PyErr_SetString(PyExc_TypeError, "Cannot delete attribute y_map");
+    return -1;
+  }
+  if (value == Py_None) {
+    Py_CLEAR(self->y_map);
+    Py_CLEAR(self->y);
+    return 0;
+  }
+  if (!PyDict_Check(value)) {
+    PyErr_SetString(PyExc_TypeError, "y_map must be a dict {item_id -> label} or None");
+    return -1;
+  }
+  if (annoy_validate_y_map_keys(self, value, "y_map") != 0) return -1;
+  PyObject* cp = PyDict_Copy(value);
+  if (!cp) return -1;
+  Py_XDECREF(self->y_map);
+  self->y_map = cp;  // steal
+  // Invalidate dense cache.
+  Py_CLEAR(self->y);
   return 0;
 }
 
@@ -2849,7 +3079,7 @@ static int py_annoy_set_verbose(
   if (value == Py_None) {
     self->pending_verbose     = 0;
     self->has_pending_verbose = false;
-    if (self->ptr) self->ptr->verbose(false);
+    if (self->ptr) self->ptr->set_verbose(false);
     return 0;
   }
   if (!PyLong_Check(value)) {
@@ -2869,7 +3099,7 @@ static int py_annoy_set_verbose(
   self->has_pending_verbose = true;
 
   if (self->ptr) {
-    self->ptr->verbose(level >= 1);
+    self->ptr->set_verbose(level >= 1);
   }
   return 0;
 }
@@ -3028,13 +3258,34 @@ static PyGetSetDef py_annoy_getset[] = {
     (getter)py_annoy_get_y,
     (setter)py_annoy_set_y,
     (char*)
-    "Labels / targets associated with the index items.\n"
+    "y : list[object] | None\n"
+    "    Dense labels/targets aligned to item ids ``0..n_items-1``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "y : list[object] | None\n"
+    "    A Python list of length ``n_items`` (missing labels are ``None``), or\n"
+    "    ``None`` if no label metadata is available.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If assigned a dict. Use :attr:`y_map` for dict mappings.\n"
+    "ValueError\n"
+    "    If assigned a sequence whose length does not match ``n_items`` when the\n"
+    "    index already contains items.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "y_map : Canonical sparse mapping of labels by item id.\n"
+    "fit, fit_transform : Set labels while fitting.\n"
     "\n"
     "Notes\n"
     "-----\n"
-    "If provided to fit(X, y), labels are stored here after a successful build.\n"
-    "You may also set this property manually. When possible, the setter enforces\n"
-    "that len(y) matches the current number of items (n_items).\n",
+    "- :attr:`y_map` is the canonical storage. :attr:`y` is a convenience cache\n"
+    "  that may be cleared and materialized from :attr:`y_map` on demand.\n"
+    "- Setting ``y`` replaces :attr:`y_map` deterministically.\n",
+
     NULL
   },
 
@@ -3045,6 +3296,50 @@ static PyGetSetDef py_annoy_getset[] = {
     NULL,  // read-only alias of on_disk_path (prevents bypassing validation)
     (char*)
     "Alias for :attr:`y`.\n",
+    NULL
+  },
+
+  {
+    (char*)"y_map",
+    (getter)py_annoy_get_y_map,
+    (setter)py_annoy_set_y_map,
+    (char*)
+    "y_map : dict[int, object] | None\n"
+    "    Sparse mapping ``{item_id -> label/target}``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "y_map : dict[int, object] | None\n"
+    "    Mapping of labels keyed by item id, or ``None`` if unset.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If assigned a non-dict (other than ``None``).\n"
+    "ValueError\n"
+    "    If any key is negative, not an integer, or (when the index already contains\n"
+    "    items) out of range.\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "y : Dense cache aligned to item ids.\n"
+    "fit, fit_transform : Set labels while fitting.\n"
+    "transform : Use ``return_labels=True`` to return labels.\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "- This is the canonical label metadata storage.\n"
+    "- Missing keys imply \"no label\"; when :attr:`y` is materialized, missing ids\n"
+    "  become ``None``.\n",
+
+    NULL
+  },
+
+  {
+    (char*)"_y_map",
+    (getter)py_annoy_get_y_map,
+    NULL,
+    (char*)"Alias for :attr:`y_map`.\n",
     NULL
   },
 
@@ -3102,7 +3397,7 @@ static PyObject* py_an_verbose(
   if (level_obj == Py_None) {
     self->pending_verbose     = 0;
     self->has_pending_verbose = false;
-    if (self->ptr) self->ptr->verbose(false);
+    if (self->ptr) self->ptr->set_verbose(false);
     PY_RETURN_SELF;
   }
 
@@ -3132,7 +3427,7 @@ static PyObject* py_an_verbose(
   }
 
   const bool verbose_flag = (level >= 1);
-  self->ptr->verbose(verbose_flag);
+  self->ptr->set_verbose(verbose_flag);
   PY_RETURN_SELF; // Py_RETURN_TRUE; // Chaining: a.build(...).save(...).info()
 }
 
@@ -4704,11 +4999,32 @@ static PyObject* py_an_rebuild(
     return NULL;
   }
 
-  // Copy labels/targets (y) if present. This is metadata keyed by item id.
-  if (self->y) {
-    Py_INCREF(self->y);
-    Py_XDECREF(out->y);
-    out->y = self->y;
+  // Copy label metadata (y_map/y) if present.
+  // Prefer y_map when available.
+  if (annoy_migrate_legacy_y_dict(self) != 0) { Py_DECREF(out_obj); return NULL; }
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      Py_DECREF(out_obj);
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      return NULL;
+    }
+    PyObject* cp = PyDict_Copy(self->y_map);
+    if (!cp) { Py_DECREF(out_obj); return NULL; }
+    Py_XDECREF(out->y_map);
+    out->y_map = cp;  // steal
+    Py_CLEAR(out->y);
+  } else if (self->y) {
+    if (PyDict_Check(self->y)) {
+      PyObject* cp = PyDict_Copy(self->y);
+      if (!cp) { Py_DECREF(out_obj); return NULL; }
+      Py_XDECREF(out->y_map);
+      out->y_map = cp;
+      Py_CLEAR(out->y);
+    } else {
+      Py_INCREF(self->y);
+      Py_XDECREF(out->y);
+      out->y = self->y;
+    }
   }
 
   // Rebuild forest deterministically.
@@ -5197,15 +5513,16 @@ static PyObject* py_an_build(
 //
 // Deterministic semantics:
 //
-// - fit(X=None, y=None, *, n_trees=-1, n_jobs=-1, reset=True, start_index=None)
+// - fit(X=None, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None)
 //   * If X is None and y is None: build the forest using previously-added items
 //     (equivalent to calling build(n_trees, n_jobs)).
 //   * If X is provided: add all rows in X via add_item and then build.
 //       - reset=True (default): clear existing items (fresh index) before adding.
 //       - reset=False: append items. If the index is currently built, we will
 //         unbuild() first and emit a warning (Annoy cannot add to a built index).
-//   * If y is provided alongside X: store labels to :attr:`y` (and alias `_y`) after a
-//     successful build. If y is None, `y` is cleared to avoid stale metadata.
+//   * If y or y_map is provided alongside X: store labels canonically to :attr:`y_map`
+//     (dict {item_id -> label}) after a successful build, and invalidate dense cache
+//     :attr:`y` to avoid stale metadata.
 //
 // Notes
 // -----
@@ -5229,6 +5546,7 @@ static PyObject* py_an_fit(
 
   PyObject* X = (nargs >= 1) ? PyTuple_GET_ITEM(args, 0) : Py_None;  // borrowed
   PyObject* y = (nargs >= 2) ? PyTuple_GET_ITEM(args, 1) : Py_None;  // borrowed
+  PyObject* y_map = Py_None;  // borrowed
 
   // Defaults
   int n_trees = 10;
@@ -5250,6 +5568,7 @@ static PyObject* py_an_fit(
 
     PyObject* x_kw = PyDict_GetItemString(kwargs, "X");  // borrowed
     PyObject* y_kw = PyDict_GetItemString(kwargs, "y");  // borrowed
+    PyObject* y_map_kw = PyDict_GetItemString(kwargs, "y_map");  // borrowed
     if (x_kw) {
       if (nargs >= 1 && X != Py_None) {
         PyErr_SetString(PyExc_TypeError,
@@ -5267,6 +5586,16 @@ static PyObject* py_an_fit(
       y = y_kw;
     }
 
+    if (y_map_kw) {
+      if (y != Py_None) {
+        PyErr_SetString(PyExc_TypeError,
+          "fit() got multiple values for argument 'y' (use y_map for mappings)"
+        );
+        return NULL;
+      }
+      y_map = y_map_kw;
+    }
+
     // Validate / parse supported keyword parameters.
     PyObject* key = NULL;
     PyObject* value = NULL;
@@ -5279,7 +5608,7 @@ static PyObject* py_an_fit(
       const char* k = PyUnicode_AsUTF8(key);
       if (!k) return NULL;
 
-      if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0) {
+      if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0 || std::strcmp(k, "y_map") == 0) {
         continue;  // handled above
       } else if (std::strcmp(k, "n_trees") == 0) {
         // None means "use the default" (handy when parameters come from config files).
@@ -5329,7 +5658,7 @@ static PyObject* py_an_fit(
       } else {
         PyErr_Format(PyExc_TypeError,
           "fit() got an unexpected keyword argument %R "
-          "(allowed: X, y, n_trees, n_jobs, reset, start_index, feature_names, missing_value)",
+          "(allowed: X, y, y_map, n_trees, n_jobs, reset, start_index, feature_names, missing_value)",
           key);
         return NULL;
       }
@@ -5340,9 +5669,14 @@ static PyObject* py_an_fit(
 
   const bool have_X = (X != Py_None);
   const bool have_y = (y != Py_None);
+  const bool have_y_map = (y_map != Py_None);
+  if (have_y && have_y_map) {
+    PyErr_SetString(PyExc_TypeError, "fit() received both y and y_map; provide only one");
+    return NULL;
+  }
 
   // Mode 1: build-only (manual add_item workflow)
-  if (!have_X && !have_y) {
+  if (!have_X && !have_y && !have_y_map) {
     PyObject* bargs = PyTuple_New(2);
     if (!bargs) return NULL;
 
@@ -5364,8 +5698,8 @@ static PyObject* py_an_fit(
   }
 
   // If y is provided, X must also be provided.
-  if (!have_X && have_y) {
-    PyErr_SetString(PyExc_TypeError, "fit() got y but X is None");
+  if (!have_X && (have_y || have_y_map)) {
+    PyErr_SetString(PyExc_TypeError, "fit() got y/y_map but X is None");
     return NULL;
   }
 
@@ -5397,6 +5731,14 @@ static PyObject* py_an_fit(
     }
   }
 
+  if (have_y_map) {
+    if (!PyDict_Check(y_map)) {
+      Py_DECREF(X_seq);
+      PyErr_SetString(PyExc_TypeError, "y_map must be a dict {item_id -> label}");
+      return NULL;
+    }
+  }
+
   // If reset=True: drop all items/trees (fresh index) deterministically.
   if (reset) {
     if (self->ptr) {
@@ -5409,6 +5751,7 @@ static PyObject* py_an_fit(
     Py_CLEAR(self->feature_names_in);
     // Clear any previously stored labels to prevent stale metadata.
     Py_CLEAR(self->y);
+    Py_CLEAR(self->y_map);
   } else {
     // Append mode: if built, unbuild first and warn.
     if (self->ptr && self->ptr->get_n_trees() > 0) {
@@ -5587,82 +5930,65 @@ static PyObject* py_an_fit(
 
 
 
-// Store y only after successful build.
+// Store label metadata only after successful build.
 //
-// We store labels as a dict mapping {item_id -> label} so that:
-// - gaps are representable,
-// - append mode can merge without ambiguity,
-// - callers can retrieve labels by the same ids used in add_item.
-if (have_y) {
-  PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
-  if (!y_seq) return NULL;
-
+// Canonical storage is y_map (dict {item_id -> label}). When provided as a
+// dense sequence y, we deterministically convert it to a mapping.
+if (have_y || have_y_map) {
   PyObject* y_dict = NULL;
 
-  if (!reset && self->y) {
-    if (PyDict_Check(self->y)) {
-      // Append mode: extend existing mapping in-place.
-      y_dict = self->y;
-      Py_INCREF(y_dict);
-    } else if (PySequence_Check(self->y) && !PyUnicode_Check(self->y) && !PyBytes_Check(self->y)) {
-      // Deterministic upgrade path: if an existing sequence aligns to current
-      // item ids (length == n_items_before), convert it to a dict mapping.
-      const Py_ssize_t n_old = PySequence_Size(self->y);
-      if (n_old < 0) { Py_DECREF(y_seq); return NULL; }
-      if ((int64_t)n_old == (int64_t)n_items_before) {
-        PyObject* old_seq = PySequence_Fast(self->y, "y must be a sequence");
-        if (!old_seq) { Py_DECREF(y_seq); return NULL; }
-
-        y_dict = PyDict_New();
-        if (!y_dict) { Py_DECREF(old_seq); Py_DECREF(y_seq); return NULL; }
-
-        for (Py_ssize_t i = 0; i < n_old; ++i) {
-          PyObject* key = PyLong_FromSsize_t(i);
-          if (!key) { Py_DECREF(old_seq); Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
-          PyObject* label = PySequence_Fast_GET_ITEM(old_seq, i);  // borrowed
-          if (PyDict_SetItem(y_dict, key, label) < 0) {
-            Py_DECREF(key);
-            Py_DECREF(old_seq);
-            Py_DECREF(y_seq);
-            Py_DECREF(y_dict);
-            return NULL;
-          }
-          Py_DECREF(key);
-        }
-        Py_DECREF(old_seq);
+  // Start from existing mapping in append mode when available.
+  if (!reset) {
+    if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+    if (self->y_map && self->y_map != Py_None) {
+      if (!PyDict_Check(self->y_map)) {
+        PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+        return NULL;
       }
+      y_dict = self->y_map;
+      Py_INCREF(y_dict);
     }
   }
 
   if (!y_dict) {
-    // Reset mode or no usable prior labels: create a fresh mapping.
     y_dict = PyDict_New();
-    if (!y_dict) { Py_DECREF(y_seq); return NULL; }
+    if (!y_dict) return NULL;
   }
 
-  for (Py_ssize_t i = 0; i < n_samples; ++i) {
-    const int32_t item_id = (int32_t)(start_index + (int64_t)i);
-    PyObject* key = PyLong_FromLong((long)item_id);
-    if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
-
-    PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
-    // PyDict_SetItem INCREFs key and value as needed.
-    if (PyDict_SetItem(y_dict, key, label) < 0) {
+  if (have_y) {
+    PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
+    if (!y_seq) { Py_DECREF(y_dict); return NULL; }
+    for (Py_ssize_t i = 0; i < n_samples; ++i) {
+      const int32_t item_id = (int32_t)(start_index + (int64_t)i);
+      PyObject* key = PyLong_FromLong((long)item_id);
+      if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
+      PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
+      if (PyDict_SetItem(y_dict, key, label) < 0) {
+        Py_DECREF(key);
+        Py_DECREF(y_seq);
+        Py_DECREF(y_dict);
+        return NULL;
+      }
       Py_DECREF(key);
-      Py_DECREF(y_seq);
-      Py_DECREF(y_dict);
-      return NULL;
     }
-    Py_DECREF(key);
+    Py_DECREF(y_seq);
+  } else {
+    // have_y_map: merge provided mapping.
+    if (annoy_validate_y_map_keys(self, y_map, "y_map") != 0) { Py_DECREF(y_dict); return NULL; }
+    PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
+    while (PyDict_Next(y_map, &pos, &key, &val)) {
+      if (PyDict_SetItem(y_dict, key, val) < 0) { Py_DECREF(y_dict); return NULL; }
+    }
   }
 
-  Py_DECREF(y_seq);
-
-  Py_XDECREF(self->y);
-  self->y = y_dict;  // already INCREF'ed above
+  Py_XDECREF(self->y_map);
+  self->y_map = y_dict;  // steal
+  // Invalidate dense cache; it will be rebuilt lazily.
+  Py_CLEAR(self->y);
 } else if (reset) {
   // Reset mode without labels: remove any prior labels to avoid stale metadata.
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 }
 
 PY_RETURN_SELF;
@@ -5757,12 +6083,43 @@ static PyObject* annoy_lookup_y(
   PyObject* y_fill_value) {
   if (!y_fill_value) y_fill_value = Py_None;
 
-  if (!self || !self->y || self->y == Py_None) {
+  if (!self) {
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+  }
+  if (annoy_migrate_legacy_y_dict(self) != 0) return NULL;
+  // Prefer canonical y_map when present.
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      return NULL;
+    }
+#if PY_VERSION_HEX >= 0x030A0000
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItemWithError(self->y_map, key);  // borrowed
+    Py_DECREF(key);
+    if (v) { Py_INCREF(v); return v; }
+    if (PyErr_Occurred()) return NULL;
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#else
+    PyObject* key = PyLong_FromLong((long)item_id);
+    if (!key) return NULL;
+    PyObject* v = PyDict_GetItem(self->y_map, key);  // borrowed
+    Py_DECREF(key);
+    if (v) { Py_INCREF(v); return v; }
+    Py_INCREF(y_fill_value);
+    return y_fill_value;
+#endif
+  }
+
+  if (!self->y || self->y == Py_None) {
     Py_INCREF(y_fill_value);
     return y_fill_value;
   }
 
-  // Dict mapping: {item_id -> label}
+  // Dict mapping: {item_id -> label} (legacy)
   if (PyDict_Check(self->y)) {
 #if PY_VERSION_HEX >= 0x030A0000
     PyObject* key = PyLong_FromLong((long)item_id);
@@ -6262,6 +6619,7 @@ static PyObject* py_an_fit_transform(
   PyObject* kwargs) {
   PyObject* X = NULL;
   PyObject* y = Py_None;
+  PyObject* y_map = Py_None;
 
   int n_trees = 10;
   int n_jobs = -1;
@@ -6291,12 +6649,13 @@ static PyObject* py_an_fit_transform(
     "include_distances",
     "return_labels",
     "y_fill_value",
+    "y_map",
     NULL
   };
 
   if (!PyArg_ParseTupleAndKeywords(
       args, kwargs,
-      "O|OiipOOOnippO",
+      "O|OiipOOOnippO$O",
       (char**)kwlist,
       &X,
       &y,
@@ -6310,7 +6669,13 @@ static PyObject* py_an_fit_transform(
       &search_k,
       &include_distances,
       &return_labels,
-      &y_fill_value)) {
+      &y_fill_value,
+      &y_map)) {
+    return NULL;
+  }
+
+  if (y != Py_None && y_map != Py_None) {
+    PyErr_SetString(PyExc_TypeError, "fit_transform() received both y and y_map; provide only one");
     return NULL;
   }
 
@@ -6376,6 +6741,12 @@ static PyObject* py_an_fit_transform(
 
   if (feature_names_provided) {
     if (PyDict_SetItemString(fit_kwargs, "feature_names", feature_names_obj ? feature_names_obj : Py_None) < 0) {
+      Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
+    }
+  }
+
+  if (y_map != Py_None) {
+    if (PyDict_SetItemString(fit_kwargs, "y_map", y_map) < 0) {
       Py_DECREF(fit_args); Py_DECREF(fit_kwargs); return NULL;
     }
   }
@@ -7265,6 +7636,42 @@ static PyObject* py_an_getstate(
   }
   Py_DECREF(v);
 
+  // Label metadata (optional, additive).
+  // Canonical: y_map; dense y is included only if y_map is absent.
+  if (annoy_migrate_legacy_y_dict(self) != 0) { Py_DECREF(state); return NULL; }
+  if (self->y_map && self->y_map != Py_None) {
+    if (!PyDict_Check(self->y_map)) {
+      PyErr_SetString(PyExc_RuntimeError, "Internal error: y_map must be a dict when set");
+      Py_DECREF(state);
+      return NULL;
+    }
+    v = PyDict_Copy(self->y_map);
+    if (!v || PyDict_SetItemString(state, "y_map", v) < 0) {
+      Py_XDECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  } else if (self->y && self->y != Py_None && !PyDict_Check(self->y)) {
+    Py_INCREF(self->y);
+    v = self->y;
+    if (PyDict_SetItemString(state, "y", v) < 0) {
+      Py_DECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  } else {
+    Py_INCREF(Py_None);
+    v = Py_None;
+    if (PyDict_SetItemString(state, "y_map", v) < 0) {
+      Py_DECREF(v);
+      Py_DECREF(state);
+      return NULL;
+    }
+    Py_DECREF(v);
+  }
+
   // Build metadata (sklearn-like): record compile/build info for warnings on load.
   v = PyUnicode_FromString(COMPILER_INFO ". " AVX_INFO);
   if (!v || PyDict_SetItemString(state, "_backend_build", v) < 0) {
@@ -7475,6 +7882,7 @@ static PyObject* py_an_setstate(
 
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
 
   self->f = 0;
   self->metric_id = METRIC_UNKNOWN;
@@ -7605,6 +8013,39 @@ static PyObject* py_an_setstate(
     self->feature_names_in = fn_tuple;  // steals
   } else {
     Py_CLEAR(self->feature_names_in);
+  }
+
+  // --------------------------
+  // Label metadata (optional)
+  // --------------------------
+  PyObject* ymap_obj = PyDict_GetItemString(state, "y_map");  // borrowed
+  PyObject* y_obj = PyDict_GetItemString(state, "y");          // borrowed
+
+  // Prefer y_map when present.
+  if (ymap_obj && ymap_obj != Py_None) {
+    if (!PyDict_Check(ymap_obj)) {
+      PyErr_SetString(PyExc_TypeError, "`y_map` in pickle state must be a dict or None");
+      return NULL;
+    }
+    PyObject* cp = PyDict_Copy(ymap_obj);
+    if (!cp) return NULL;
+    Py_XDECREF(self->y_map);
+    self->y_map = cp;
+    Py_CLEAR(self->y);
+  } else if (y_obj && y_obj != Py_None) {
+    // Backward-compat: allow dict stored under `y`.
+    if (PyDict_Check(y_obj)) {
+      PyObject* cp = PyDict_Copy(y_obj);
+      if (!cp) return NULL;
+      Py_XDECREF(self->y_map);
+      self->y_map = cp;
+      Py_CLEAR(self->y);
+    } else {
+      Py_INCREF(y_obj);
+      Py_XDECREF(self->y);
+      self->y = y_obj;
+      // y_map can be built lazily on first access.
+    }
   }
 
   // --------------------------
@@ -8117,7 +8558,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit(X=None, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
+    "fit(X=None, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None)\n"
     "\n"
     "Fit the Annoy index (scikit-learn compatible).\n"
     "\n"
@@ -8136,7 +8577,11 @@ static PyMethodDef py_annoy_methods[] = {
     "X : array-like of shape (n_samples, n_features), default=None\n"
     "    Vectors to add to the index. If None (and y is None), fit() only builds.\n"
     "y : array-like of shape (n_samples,), default=None\n"
-    "    Optional labels associated with X. Stored as :attr:`y` after successful build.\n"
+    "    Optional dense labels/targets associated with X. This must be a 1D\n"
+    "    sequence (dicts are not accepted; use ``y_map``).\n"
+    "y_map : dict[int, object] or None, default=None\n"
+    "    Optional sparse mapping ``{item_id -> label/target}``. This is the\n"
+    "    canonical label metadata storage. Provide only one of ``y`` or ``y_map``.\n"
     "n_trees : int, default=-1\n"
     "    Number of trees to build. Use -1 for Annoy's internal default.\n"
     "n_jobs : int, default=-1\n"
@@ -8167,7 +8612,7 @@ static PyMethodDef py_annoy_methods[] = {
     "build : Build the forest after manual calls to add_item.\n"
     "on_disk_build : Configure on-disk build mode.\n"
     "unbuild : Remove trees so items can be appended.\n"
-    "y : Stored labels :attr:`y` (if provided).\n"
+    "y_map, y : Stored label metadata (canonical mapping and dense cache).\n"
     "get_params, set_params : Estimator parameter API.\n"
     "\n"
     "Examples\n"
@@ -8194,15 +8639,33 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_fit_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "fit_transform(X, y=None, \\*, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None)\n"
+    "fit_transform(X, y=None, *, y_map=None, n_trees=-1, n_jobs=-1, reset=True, start_index=None, missing_value=None, feature_names=None, n_neighbors=None, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None)\n"
     "\n"
     "Fit the index and transform X in a single deterministic call.\n"
     "\n"
-    "This is equivalent to:\n"
+    "This is equivalent to calling :meth:`fit` followed by :meth:`transform`.\n"
     "\n"
-    "self.fit(X, y=y, n_trees=..., n_jobs=..., reset=..., start_index=..., missing_value=...)\n"
-    "self.transform(X, n_neighbors=..., search_k=..., include_distances=..., return_labels=...,\n"
-    "y_fill_value=..., missing_value=...)\n"
+    "Parameters\n"
+    "----------\n"
+    "X : array-like\n"
+    "    Training data / queries. See :meth:`fit` and :meth:`transform`.\n"
+    "y : array-like of shape (n_samples,), default=None\n"
+    "    Optional dense labels/targets aligned to rows of ``X``.\n"
+    "y_map : dict[int, object] or None, default=None\n"
+    "    Optional sparse mapping ``{item_id -> label/target}``. Provide only one\n"
+    "    of ``y`` or ``y_map``.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "neighbors : object\n"
+    "    The output of :meth:`transform` for ``X`` under the provided query options.\n"
+    "\n"
+    "Raises\n"
+    "------\n"
+    "TypeError\n"
+    "    If both ``y`` and ``y_map`` are provided, or if input types are invalid.\n"
+    "ValueError\n"
+    "    If the index cannot be built deterministically or query options are inconsistent.\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -8703,7 +9166,7 @@ static PyMethodDef py_annoy_methods[] = {
     "Returns\n"
     "-------\n"
     ":class:`~.Annoy`\n"
-    "    A new Annoy instance containing the same items (and :attr:`y` metadata if present).\n"
+    "    A new Annoy instance containing the same items (and label metadata if present).\n"
     "\n"
     "See Also\n"
     "--------\n"
@@ -8870,7 +9333,7 @@ static PyMethodDef py_annoy_methods[] = {
     "-----\n"
     "Changing structural parameters (notably ``metric``) on an already\n"
     "initialized index resets the index deterministically (drops all items,\n"
-    "trees, and :attr:`y`). Refit/rebuild is required before querying.\n"
+    "trees, and label metadata (:attr:`y_map` and :attr:`y`). Refit/rebuild is required before querying.\n"
     "\n"
     "This behavior matches scikit-learn expectations: ``set_params`` may be\n"
     "called at any time, but parameter changes that affect learned state\n"
@@ -8921,7 +9384,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_transform,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "transform(X, \\*, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, exclude_items=None, missing_value=None)\n"
+    "transform(X, *, n_neighbors=5, search_k=-1, include_distances=False, return_labels=False, y_fill_value=None, input_type='vector', output_type='vector', exclude_self=False, exclude_items=None, missing_value=None)\n"
     "\n"
     "Transform queries into nearest-neighbor results (ids or vectors; optional distances / labels).\n"
     "\n"
@@ -8941,9 +9404,9 @@ static PyMethodDef py_annoy_methods[] = {
     "include_distances : bool, default=False\n"
     "    If True, also return per-neighbor distances.\n"
     "return_labels : bool, default=False\n"
-    "    If True, also return per-neighbor labels resolved from :attr:`y` (as set via :meth:`fit`).\n"
+    "    If True, also return per-neighbor labels resolved from :attr:`y_map` (or :attr:`y` cache).\n"
     "y_fill_value : object, default=None\n"
-    "    Value used when :attr:`y` is unset or missing an entry for a neighbor id.\n"
+    "    Value used when label metadata is unset or missing an entry for a neighbor id.\n"
     "input_type : {'vector', 'item'}, default='vector'\n"
     "    Controls how X is interpreted.\n"
     "output_type : {'vector', 'item'}, default='vector'\n"
@@ -9058,7 +9521,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_verbose,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "set_verbose(level=1)\n"
+    "set_verbose(verbosity=1)\n"
     "\n"
     "Set the verbosity level (callable setter).\n"
     "\n"
@@ -9068,7 +9531,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Parameters\n"
     "----------\n"
-    "level : int, optional, default=1\n"
+    "verbosity : int, optional, default=1\n"
     "    Verbosity level. Values are clamped to the range ``[-2, 2]``.\n"
     "    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.\n"
     "    Logging level inspired by gradient-boosting libraries:\n"
@@ -9976,6 +10439,7 @@ static int py_an_traverse(
   Py_VISIT(self->dict);
   Py_VISIT(self->feature_names_in);
   Py_VISIT(self->y);
+  Py_VISIT(self->y_map);
   return 0;
 }
 
@@ -9986,6 +10450,7 @@ static int py_an_clear(
   Py_CLEAR(self->dict);
   Py_CLEAR(self->feature_names_in);
   Py_CLEAR(self->y);
+  Py_CLEAR(self->y_map);
   return 0;
 }
 

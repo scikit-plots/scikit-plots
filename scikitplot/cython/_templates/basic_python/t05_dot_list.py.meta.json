@@ -1,0 +1,9 @@
+{
+  "kind": "python",
+  "level": "basic",
+  "tags": [
+    "vector",
+    "dot"
+  ],
+  "title": "Dot product on sequences (Python)"
+}

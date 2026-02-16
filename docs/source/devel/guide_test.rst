@@ -91,7 +91,7 @@ pytest
 
 The test suite can also be run directly from the native ``pytest`` command, which is
 much faster than using ``tox`` for iterative development.  This assumes you are working
-in an :ref:`isolated development environment<create-isolated-env>`.
+in an :external+astropy:ref:`isolated development environment<create-isolated-env>`.
 
 In the uncommon situation that one or more compiled extensions have changed, you will
 need to rebuild them by re-running the usual editable install command::

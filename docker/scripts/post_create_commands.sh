@@ -317,7 +317,7 @@ pc_env_run() {
       ;;
     conda)
       if [[ "$conda_no_capture" == "1" ]]; then
-        conda run --no-capture-output -n "$env_name" -- "$@"
+        conda run --no-capture-output -n "$env_name" "$@"
       else
         conda run -n "$env_name" "$@"
       fi

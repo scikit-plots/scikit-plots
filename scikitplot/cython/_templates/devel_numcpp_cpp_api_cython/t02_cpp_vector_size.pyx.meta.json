@@ -1,0 +1,12 @@
+{
+  "kind": "cython",
+  "language": "c++",
+  "level": "devel",
+  "requires_numpy": false,
+  "tags": [
+    "c++",
+    "libcpp",
+    "vector"
+  ],
+  "title": "C++ std::vector demo"
+}

@@ -45,6 +45,59 @@ docker pull scikitplot/scikit-plots:latest
 docker run scikitplot/scikit-plots:latest
 ```
 
+---
+
+## Quickstart
+
+<!-- "https://github.com/scikit-plots/scikit-plots.github.io/raw/main/dev/_static/plot_directive/introduction/quick_start_tf.png" -->
+<div align=center>
+ <img
+  src="https://github.com/scikit-plots/scikit-plots/raw/main/docker/scripts/bash-screenshot.png"
+  alt="docker/scripts/bash-screenshot.png" width="62.5%" height="365.6px">
+</div>
+
+### Drop-in volume-mount examples
+```sh
+# Quickstart bash scikitplot/scikit-plots:latest
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891  scikitplot/scikit-plots:latest-python-3.11
+
+# POSIX shells (Git Bash / WSL / Linux / macOS)
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" image
+
+# PowerShell (man Resolve-Path)
+# docker run -v "$((Resolve-Path .).Path -replace '\\','/'):/work" image
+docker run -it -v "$(pwd):/work" image
+
+# CMD (help cd)
+docker run -it -v "%cd%:/work" image
+```
+
+| Shell          | Path Handling Tips                                           | CWD Syntax                                                              | Escape `\$()`, `\`               | Escape Newline (`\n`)             |
+|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------|-----------------------------------|
+| CMD            | Use full Windows paths like `C:\Users\Me\...` and quote them | `./`, `%cd%`                                                            | Use `^` to escape special chars  | Use `^` at end of line            |
+| PowerShell     | Wrap paths in `"`, use env vars like `$Env:VAR`              | `./`, `"$(pwd)"`, `"${PWD}"`, `"$PWD"`, `"$PWD.Path"`                   | Use backtick `` ` ``             | Use backtick `` ` `` at end       |
+| Git-Bash       | Defaults to `/c/Users/...`; use `$(pwd -W)` for Windows paths| `$(pwd -W)`, `$(pwd -P)`, `"$(cd ~/notebooks && pwd -W)"`               | Standard POSIX (`\`, `\$()`)     | Use `\` at end of line            |
+| WSL            | Use Linux-style paths like `/mnt/c/Users/...`                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
+| Linux/macOS    | Native POSIX paths work as-is                                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
+
+**Notes:**
+- In powershell `$(pwd)` == `$PWD` == `(Resolve-Path ./).Path -replace '\\','/'`
+  - In powershell `Resolve-Path .` (or simply `$PWD`) gives the absolute path; the `-replace` swaps backslashes for forward slashes
+- In Git Bash, the shell tries to behave like Linux (POSIX-style).
+  - `pwd`      # → /c/Users/you/project/notebooks (POSIX-style)
+  - `pwd -W`   # → C:/Users/you/project/notebooks (Windows-style)
+- In POSIX shells (Git Bash, WSL, Linux/macOS): `$(pwd)` == `$PWD` == `$(realpath ./)`
+  - `echo $( bash -c 'uname -sr' )`
+  - `echo $( bash -c '(uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd' )`
+  - `echo $( (uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || (wslpath >/dev/null 2>&1 && wslpath -w pwd) || pwd' )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || pwd' )`
+  - ✅ `echo $( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd )`
+
+---
+
+## Getting Started
+
 #### run interactive shell (default entrypoint bash)
 ```sh
 # docker run -it --rm scikitplot/scikit-plots:latest
@@ -150,45 +203,6 @@ docker run -it --rm \
 ```
 
 Run a Jupyter notebook server with your own notebook directory (assumed here to be `~/notebooks`). To use it, navigate to localhost:8888 in your browser.
-
----
-
-### Drop-in volume-mount examples
-```sh
-# POSIX shells (Git Bash / WSL / Linux / macOS)
-docker run -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" image
-
-# PowerShell (man Resolve-Path)
-# docker run -v "$((Resolve-Path .).Path -replace '\\','/'):/work" image
-docker run -v "$(pwd):/work" image
-
-# CMD (help cd)
-docker run -v "%cd%:/work" image
-```
-
-| Shell          | Path Handling Tips                                           | CWD Syntax                                                              | Escape `\$()`, `\`               | Escape Newline (`\n`)             |
-|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------|-----------------------------------|
-| CMD            | Use full Windows paths like `C:\Users\Me\...` and quote them | `./`, `%cd%`                                                            | Use `^` to escape special chars  | Use `^` at end of line            |
-| PowerShell     | Wrap paths in `"`, use env vars like `$Env:VAR`              | `./`, `"$(pwd)"`, `"${PWD}"`, `"$PWD"`, `"$PWD.Path"`                   | Use backtick `` ` ``             | Use backtick `` ` `` at end       |
-| Git-Bash       | Defaults to `/c/Users/...`; use `$(pwd -W)` for Windows paths| `$(pwd -W)`, `"$(cd ~/notebooks && pwd -W)"`                            | Standard POSIX (`\`, `\$()`)     | Use `\` at end of line            |
-| WSL            | Use Linux-style paths like `/mnt/c/Users/...`                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
-| Linux/macOS    | Native POSIX paths work as-is                                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
-
-**Notes:**
-- In powershell `$(pwd)` == `$PWD` == `(Resolve-Path ./).Path -replace '\\','/'`
-  - In powershell `Resolve-Path .` (or simply `$PWD`) gives the absolute path; the `-replace` swaps backslashes for forward slashes
-- In Git Bash, the shell tries to behave like Linux (POSIX-style).
-  - `pwd`      # → /c/Users/you/project/notebooks (POSIX-style)
-  - `pwd -W`   # → C:/Users/you/project/notebooks (Windows-style)
-- In POSIX shells (Git Bash, WSL, Linux/macOS): `$(pwd)` == `$PWD` == `$(realpath ./)`
-  - `echo $( bash -c 'uname -sr' )`
-  - `echo $( bash -c '(uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd' )`
-  - `echo $( (uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd )`
-  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || (wslpath >/dev/null 2>&1 && wslpath -w pwd) || pwd' )`
-  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || pwd' )`
-  - ✅ `echo $( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd )`
-
----
 
 ## ⚠️ For Development scikit-plots (Cloned and Mounted project folder)
 

@@ -1,0 +1,7 @@
+{
+  "title": "Dot product",
+  "description": "Dot product over two 1D memoryviews with strict shape checking.",
+  "requires_numpy": false,
+  "kind": "cython",
+  "language": "c"
+}

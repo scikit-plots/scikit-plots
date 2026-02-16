@@ -324,7 +324,7 @@ core = [
   'aggdraw>=1.3.11;sys_platform!="emscripten"',
   "pillow>=6.2.0",                          # Image processing matplotlib handle
 
-  # --- Visualkeras Dependency ---
+  # --- Impute Dependency ---
   "voyager>=1.2.5",                         # fast approximate nearest-neighbor searches on an in-memory collection of vectors.
 
   # --- Optional Web Interface Dependencies (commented out) ---
@@ -492,6 +492,11 @@ doc = [
 ## Maintenance tools
 maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
+]
+
+## Mlflow
+mlflow = [
+  "mlflow",                                 # Dependency lock files for Conda
 ]
 
 ## Specialized dependencies for specific hardware
@@ -730,6 +735,7 @@ exclude = [
   "scikitplot/cexperimental",
   "scikitplot/cexternals",
   "scikitplot/config",
+  "scikitplot/cython/_templates",
   "scikitplot/experimental",
   "scikitplot/externals",
   "scikitplot/visualkeras",
@@ -777,6 +783,7 @@ exclude = [
   "scikitplot/cexperimental",
   "scikitplot/cexternals",
   "scikitplot/config",
+  "scikitplot/cython/_templates",
   "scikitplot/experimental",
   "scikitplot/externals",
   "scikitplot/visualkeras",
@@ -1002,29 +1009,30 @@ target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
 
 preview = true                              # Enable Black's preview features
 
+# black --verbose --check .
 extend-exclude = '''
 # A regex preceded with ^/ will apply only to files and directories
 # in the root of the project.
-/(
-    \.eggs         # exclude a few common directories in the
-  | \.git          # root of the project
-  | \.mypy_cache
-  | \.vscode
-  | benchmarks
-  | build
-  | dist
-  | docs/build
-  | docs/source
-  | galleries
-  | third_party
-  | tools
-  | tests
-  | scikitplot/cexperimental
-  | scikitplot/cexternals
-  | scikitplot/experimental
-  | scikitplot/externals
-  | scikitplot/modelplotpy
-  | scikitplot/visualkeras
+/(\.eggs          # exclude a few common directories in the
+  |\.git          # root of the project
+  |\.mypy_cache
+  |\.vscode
+  |benchmarks
+  |build
+  |dist
+  |docs/build
+  |docs/source
+  |galleries
+  |third_party
+  |tools
+  |tests
+  |scikitplot/cexperimental
+  |scikitplot/cexternals
+  |scikitplot/cython/_templates
+  |scikitplot/experimental
+  |scikitplot/externals
+  |scikitplot/modelplotpy
+  |scikitplot/visualkeras
 )/
 '''
 
@@ -1052,11 +1060,16 @@ line_length = 88  # Matches Black and Flake8 line length
 
 ######################################################################
 ## Linters and Formatters
-## 6. cython-lint
+## 6. cython-lint (.cython-lint.toml)
 ## Lint for Cython files
 ######################################################################
 
+# https://github.com/MarcoGorelli/cython-lint
 [tool.cython-lint]
+
+# max-line-length = 88
+max-line-length = 110
+
 # Ignore the same error codes as ruff
 # + E501 (line too long) because keeping it < 88 in cython
 # often makes code less readable.
@@ -1080,11 +1093,12 @@ ignore = [
   # imported but unused
   # 'F401',
 ]
+
 # Exclude files are generated from tempita templates
 exclude= '''
 (
-    benchmarks/
-  | scikitplot/metrics/_dist_metrics.pyx
+  benchmarks/
+  |scikitplot/metrics/_dist_metrics.pyx
 )
 '''
 

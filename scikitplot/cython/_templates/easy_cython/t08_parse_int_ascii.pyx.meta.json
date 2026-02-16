@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "easy",
+  "requires_numpy": false,
+  "tags": [
+    "bytes",
+    "parsing",
+    "int"
+  ],
+  "title": "Parse unsigned int from ASCII bytes"
+}

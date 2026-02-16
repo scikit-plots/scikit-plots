@@ -10,8 +10,7 @@
 # https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
 
 r"""
-A role and directive to display mathtext in Sphinx
-==================================================
+A role and directive to display mathtext in Sphinx.
 
 The ``mathmpl`` Sphinx extension creates a mathtext image in Matplotlib and
 shows it in html output. Thus, it is a true and faithful representation of what
@@ -52,8 +51,7 @@ Mathtext may be included in two ways:
 
          \alpha > \beta
 
-Options
--------
+Options:
 
 The ``mathmpl`` role and directive both support the following options:
 
@@ -64,8 +62,7 @@ fontsize : float
     The font size, in points. Defaults to the value from the extension
     configuration option defined below.
 
-Configuration options
----------------------
+Configuration options:
 
 The mathtext extension has the following configuration options:
 
@@ -78,7 +75,6 @@ mathmpl_srcset : list of str, default: []
     <https://developer.mozilla.org/en-US/docs/Learn/HTML/Multimedia_and_embedding/Responsive_images>`__.
     The list should contain additional x-descriptors (``'1.5x'``, ``'2x'``,
     etc.) to generate (1x is the default and always included.)
-
 """
 
 import hashlib

@@ -82,6 +82,15 @@ except ImportError as e:  # noqa: N816
 else:
     _VOYAGER_IMPORT_ERROR = None
 
+from scikitplot import __version__
+from scikitplot.externals._packaging.version import parse as parse_version
+
+scikitplot_version = parse_version(__version__)
+if scikitplot_version.dev is None:
+    version_url = f"{scikitplot_version.major}.{scikitplot_version.minor}"
+else:
+    version_url = "dev"
+
 __all__ = [
     "ANNImputer",  # Unified Approximate KNN imputer
     "AnnoyKNNImputer",  # Annoy backend alias
@@ -409,12 +418,15 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
     See Also
     --------
+    sklearn.neighbors : The k-nearest neighbors algorithms.
+    sklearn.neighbors.NearestNeighbors : Unsupervised learner for implementing neighbor searches.
+    sklearn.neighbors.KNeighborsTransformer : Transform X into a (weighted) graph of k nearest neighbors.
     sklearn.impute.KNNImputer : Multivariate imputer that estimates missing features using
         nearest samples. Exact KNN-based imputer using brute-force search.
     sklearn_ann.kneighbors.annoy.AnnoyTransformer : Wrapper for using annoy.AnnoyIndex as
         sklearn's KNeighborsTransformer `AnnoyTransformer
         <https://sklearn-ann.readthedocs.io/en/latest/kneighbors.html#annoy>`_
-    PathNamer : Naming helper for external index file.
+    scikitplot.utils._path.PathNamer : Naming helper for external index file.
 
     References
     ----------
@@ -436,6 +448,13 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
            [4. , 6. , 5. ],
            [8. , 8. , 7. ]])
     """  # noqa: D301
+
+    # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/_repr_html/base.py#L11
+    _doc_link_module = "scikitplot"
+    _doc_link_template = (
+        f"https://scikit-plots.github.io/{version_url}/modules/generated/"
+        "{estimator_module}._ann.{estimator_name}.html"
+    )
 
     # ------------------------------------------------------------------ #
     # sklearn parameter constraints

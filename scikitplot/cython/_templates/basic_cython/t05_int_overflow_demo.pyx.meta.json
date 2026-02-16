@@ -1,0 +1,11 @@
+{
+  "kind": "cython",
+  "level": "basic",
+  "requires_numpy": false,
+  "tags": [
+    "int32_t",
+    "stdint",
+    "overflow"
+  ],
+  "title": "Fixed-width int32 wrap demo"
+}

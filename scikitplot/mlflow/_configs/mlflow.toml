@@ -1,0 +1,141 @@
+###############################################################################
+# scikitplot.mlflow — Beginner-friendly project config (TOML)
+#
+# What this file does
+# -------------------
+# You keep ALL MLflow settings in one place, and every script uses it:
+#   - train.py
+#   - hpo.py
+#   - predict.py
+#
+# Why this prevents headaches
+# ---------------------------
+# People often run scripts from different folders (CWD changes).
+# If you use relative paths (like ./mlflow.db), MLflow might write to different
+# locations depending on where you run the command.
+#
+# scikitplot.mlflow fixes that by:
+# - Finding "project root" = nearest folder containing:
+#     - pyproject.toml   OR   .git
+# - Resolving relative paths relative to that project root (always consistent)
+#
+# Notes about TOML
+# ---------------
+# - Reading TOML is built into Python 3.11+ (tomllib).
+# - Writing TOML is NOT built into Python.
+#   If you want easy read+write configs, use YAML instead.
+###############################################################################
+
+[project]
+# export SCIKITPLOT_PROJECT_MARKERS='["pyproject.toml",".git","configs/mlflow.toml"]'
+markers = ["pyproject.toml", ".git", "configs/mlflow.toml"]
+
+# =============================================================================
+# PROFILE 1: LOCAL (recommended for beginners)
+# =============================================================================
+[profiles.local]
+# start_server=true means:
+# - scikitplot.mlflow will run: python -m mlflow server ...
+# - it waits until the server is reachable
+# - inside the "with" block, MLflow is guaranteed reachable
+# - when you exit, the server is terminated automatically
+# Spawn + manage a local MLflow tracking server inside the with-block.
+start_server = true
+
+
+# -----------------------
+# Session (user behavior)
+# -----------------------
+[profiles.local.session]
+
+# Auto-select experiment name.
+# Beginners: start with one project experiment and keep it stable.
+experiment_name = "scikitplot-project"
+
+# create_experiment_if_missing=true means:
+# - if you run for the first time, the experiment will be created automatically
+# - if false, and experiment does not exist => raise KeyError (strict)
+create_experiment_if_missing = true
+
+# Default run name:
+# If you call `with mlflow.start_run():` without run_name, this name is used.
+# You can override it per script or per call:
+#   with mlflow.start_run(run_name="predict"):
+default_run_name = "train"
+
+# Optional UI URL override (does not affect internal tracking URI).
+# Useful in containers / remote notebooks when 127.0.0.1 is not your browser.
+# public_tracking_uri = "http://localhost:5000"
+
+# Optional:
+# Wait time (seconds) while starting local server or checking remote.
+# startup_timeout_s = 30.0
+
+# Optional:
+# ensure_reachable is usually only needed for remote profiles.
+# ensure_reachable = false
+
+# Optional `.env` support:
+# If you want to store secrets or env-only overrides (not recommended for beginners
+# unless you need it), you can set:
+# env_file = ".env"
+#
+# The `.env` file is loaded ONLY for missing keys (safe default behavior).
+
+
+# -----------------------
+# Server (how to launch)
+# -----------------------
+[profiles.local.server]
+
+# host/port: where the local server listens.
+# for docker need host = "0.0.0.0"
+auto_host_in_docker = true
+host = "127.0.0.1"
+port = 8891
+
+# Backend store = tracking database.
+# Beginners should use sqlite locally.
+#
+# IMPORTANT:
+# - Relative path here (./.mlflow/mlflow.db) will be normalized to an absolute
+#   path based on project root.
+# Local SQLite store (paths normalized to project root)
+backend_store_uri = "sqlite:///./.mlflow/mlflow.db"
+
+# Artifact root = where models, plots, files will be stored.
+# Also normalized to absolute path based on project root.
+default_artifact_root = "./.mlflow/artifacts"
+
+# serve_artifacts=true makes artifacts accessible via server.
+# Beginners: set true for convenience.
+serve_artifacts = true
+
+# strict_cli_compat=true means:
+# We validate your server flags against the installed MLflow version.
+# If MLflow changes flags in future versions, we fail early with a clear error.
+# Fail-fast if MLflow CLI flags changed between versions:
+strict_cli_compat = true
+
+
+# =============================================================================
+# PROFILE 2: REMOTE (use when company/team server exists)
+# =============================================================================
+[profiles.remote]
+# start_server=false means:
+# - do NOT spawn a server
+# - connect to existing server
+start_server = false
+
+[profiles.remote.session]
+# Replace with your real server:
+tracking_uri = "http://mlflow.my.company:5000"
+
+# Beginners: keep ensure_reachable=true so you get a clean error if server is down.
+ensure_reachable = true
+
+startup_timeout_s = 30.0
+
+# Optional: also set experiment defaults for remote usage
+# experiment_name = "scikitplot-project"
+# create_experiment_if_missing = false

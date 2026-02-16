@@ -44,3 +44,8 @@ Decile Plot (experimental)
 ----------------------------------------------------------------------
 
 Examples relevant to the :py:func:`~.decileplot` module.
+
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_seaborn_plot_decileplot_script.py`: Example usage of
+  :func:`~.decileplot` using template.

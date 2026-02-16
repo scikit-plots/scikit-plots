@@ -3,6 +3,8 @@
 plot_lift with examples
 =============================
 
+.. currentmodule:: scikitplot.decile
+
 An example showing the :py:func:`~scikitplot.decile.kds.plot_lift` function
 with a scikit-learn classifier (e.g., :py:class:`~sklearn.linear_model.LogisticRegression`) instance.
 """

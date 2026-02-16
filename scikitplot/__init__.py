@@ -1,9 +1,11 @@
+# scikitplot/__init__.py
+#
 # mypy: disallow-any-generics
 # ruff: noqa: D205,F401,F403,PLC0415
 # Flake8: noqa: F403
 # type: ignore[]
 # pylint: disable=import-error,unused-import,unused-variable,no-name-in-module,line-too-long,import-outside-toplevel
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,6 +75,7 @@ try:
         # use that instead so override version if any.
         __git_hash__,
         __version__,
+        __version_iso_8601__,
     )
 except (ImportError, ModuleNotFoundError):
     _BUILT_WITH_MESON = None
@@ -104,7 +107,6 @@ _submodules = sorted(
         "_api",
         "_build_utils",
         "_compat",
-        "_datasets",
         "_decorates",
         "_docstrings",
         "_factory_api",
@@ -116,13 +118,18 @@ _submodules = sorted(
         "cexperimental",
         "cexternals",
         "config",
+        "cython",
+        "datasets",
         "decile",
         "experimental",
         "externals",
         "impute",
         "misc",
+        "memmap",
+        "mlflow",
         "nc",
         "preprocessing",
+        "random",
         "seaborn",  # Seaborn-style Plotting.
         "stats",
         "utils",
@@ -144,6 +151,7 @@ _submodules = sorted(
         "__git_hash__",
         "__numpy_version__",
         "__version__",
+        "__version_iso_8601__",
         "get_logger",
         "logger",
         "online_help",

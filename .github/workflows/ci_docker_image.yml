@@ -46,7 +46,6 @@ name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push
 
 # Trigger the workflow on push to any branch or tag
 on:
-  workflow_dispatch: # Allows manual triggering of the workflow
   # push:
   #   branches:
   #     - '**'    # Matches all branches, including main, dev, feature/*
@@ -55,6 +54,16 @@ on:
   #   tags:
   #     - '*'     # Matches all Git tags (e.g., v1.0.0)
   #     - 'v*.*.*'
+  workflow_dispatch:  # Allows manual triggering of the workflow
+    inputs:
+      free_disk_space:                                  # Specify true/false
+        description: 'free_disk_space pkg source'
+        required: false                                 # 👈 This makes the input mandatory
+        type: choice                                    # choice, boolean,
+        default: false                                  # 👈 Default
+        options:
+          - true
+          - false                                       # Default
 
 
 ## simultaneity
@@ -143,6 +152,20 @@ jobs:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
+      # https://github.com/sagemath/sage/blob/develop/.github/workflows/docker.yml
+      - name: Github Maximize build disk space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c #v10
+        if: inputs.free_disk_space
+        continue-on-error: true
+        with:
+          # need space in /var for Docker images
+          root-reserve-mb:      30000
+          remove-dotnet:        true
+          remove-android:       true
+          remove-haskell:       true
+          remove-codeql:        true
+          remove-docker-images: true
+
       ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1

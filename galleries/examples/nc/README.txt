@@ -1,6 +1,6 @@
 .. _nc_examples:
 
-nc (NumCpp)
+Nc (NumCpp)
 ----------------------------------------------------------------------
 
 Examples related to the :py:mod:`~scikitplot.nc` submodule.

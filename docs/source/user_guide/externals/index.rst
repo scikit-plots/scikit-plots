@@ -28,6 +28,26 @@ Externals (experimental)
     .. grid-item-card::
         :padding: 3
 
+        **Data API Standards**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            array_api_compat <./array_api_compat/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **Data API Standards**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            array_api_extra <./array_api_extra/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **probscale**
         ^^^
         .. toctree::
@@ -64,23 +84,3 @@ Externals (experimental)
             :maxdepth: 3
 
             ./_tweedie/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Data API Standards**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            array_api_compat <./array_api_compat/index.rst>
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Data API Standards**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            array_api_extra <./array_api_extra/index.rst>

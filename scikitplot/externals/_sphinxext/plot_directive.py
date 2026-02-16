@@ -10,8 +10,7 @@
 # https://github.com/matplotlib/matplotlib/tree/main/lib/matplotlib/sphinxext
 
 """
-A directive for including a Matplotlib plot in a Sphinx document
-================================================================
+A directive for including a Matplotlib plot in a Sphinx document.
 
 This is a Sphinx extension providing a reStructuredText directive
 ``.. plot::`` for including a plot in a Sphinx document.
@@ -53,8 +52,7 @@ The plot content may be defined in one of three ways:
         >>> import matplotlib.pyplot as plt
         >>> plt.plot([1, 2, 3], [4, 5, 6])
 
-Options
--------
+Options:
 
 The ``.. plot::`` directive supports the following options:
 
@@ -100,8 +98,7 @@ Additionally, this directive supports all the options of the `image directive
 except for ``:target:`` (since plot will add its own target).  These include
 ``:alt:``, ``:height:``, ``:width:``, ``:scale:``, ``:align:`` and ``:class:``.
 
-Configuration options
----------------------
+Configuration options:
 
 The plot directive has the following configuration options:
 
@@ -163,13 +160,12 @@ plot_srcset
     e.g. ["2.0x", "1.5x"].  "2.0x" will create a png with the default "png"
     resolution from plot_formats, multiplied by 2. If plot_srcset is
     specified, the plot directive uses the
-    :doc:`/api/sphinxext_figmpl_directive_api` (instead of the usual figure
-    directive) in the intermediary rst file that is generated.
+    :external+matplotlib:doc:`api/sphinxext_figmpl_directive_api`
+    (instead of the usual figure directive) in the intermediary rst file that is generated.
     The plot_srcset option is incompatible with *singlehtml* builds, and an
     error will be raised.
 
-Notes on how it works
----------------------
+Notes on how it works:
 
 The plot directive runs the code it is given, either in the source file or the
 code under the directive. The figure created (if any) is saved in the sphinx
@@ -178,9 +174,8 @@ an intermediate rst file that calls a ``.. figure:`` directive (or
 ``.. figmpl::`` directive if ``plot_srcset`` is being used) and has links to
 the ``*.png`` files in the ``plot_directive`` directory.  These translations can
 be customized by changing the *plot_template*.  See the source of
-:doc:`/api/sphinxext_plot_directive_api` for the templates defined in *TEMPLATE*
-and *TEMPLATE_SRCSET*.
-
+:external+matplotlib:doc:`api/sphinxext_plot_directive_api`
+for the templates defined in *TEMPLATE* and *TEMPLATE_SRCSET*.
 """
 
 from collections import defaultdict

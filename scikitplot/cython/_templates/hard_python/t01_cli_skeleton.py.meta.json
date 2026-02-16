@@ -1,0 +1,6 @@
+{
+  "title": "CLI skeleton",
+  "description": "Executable-friendly Python CLI structure.",
+  "requires_numpy": false,
+  "kind": "python"
+}

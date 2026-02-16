@@ -1,0 +1,6 @@
+{
+  "title": "Dataclass Metrics",
+  "description": "Dataclass + small numeric methods with safe zero handling.",
+  "requires_numpy": false,
+  "kind": "python"
+}

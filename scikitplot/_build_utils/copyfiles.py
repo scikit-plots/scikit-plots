@@ -19,6 +19,11 @@ Cross-platform and customizable, usable as a script or importable module.
 Consistency with Unix tools like `cp`. In Unix as you saw:
 - cp -r my_folder dest/ → includes the folder itself
 - cp -r my_folder/ dest/ → only contents
+
+python -m shutil:
+
+* shutil.copy(src, dst)  # dst can be a folder; use shutil.copy2() to preserve timestamp
+* shutil.copyfile(src, dst)
 """
 
 import os

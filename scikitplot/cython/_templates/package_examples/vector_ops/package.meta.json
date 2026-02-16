@@ -1,0 +1,10 @@
+{
+  "modules": {
+    "reduce": "reduce.pyx",
+    "vector": "vector.pyx"
+  },
+  "package_name": "scikitplot_pkg_vector_ops",
+  "support_paths": [
+    "common.pxi"
+  ]
+}

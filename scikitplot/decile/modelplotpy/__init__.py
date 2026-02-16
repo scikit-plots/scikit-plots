@@ -14,7 +14,7 @@
 """
 Visualizing predictive model insights for enhanced business decision-making.
 
-The :py:mod:`~scikitplot.modelplotpy` module to build nice plots
+The :py:mod:`~scikitplot.decile.modelplotpy` module to build nice plots
 to explain your modelling efforts easily to business colleagues.
 
 Documentation is available in the docstrings and

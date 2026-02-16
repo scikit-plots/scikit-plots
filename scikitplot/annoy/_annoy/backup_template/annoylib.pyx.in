@@ -1,0 +1,2427 @@
+# cython: wraparound=False, nonecheck=False, boundscheck=False, cdivision=True
+# cython: language_level=3, binding=True, embedsignature=True, annotation_typing=True
+# distutils: language = c++
+# distutils: extra_compile_args = -std=c++14 -O3 -march=native -DNDEBUG
+# distutils: extra_link_args = -std=c++14
+
+"""
+Annoy Library Cython Implementation - Template Generator.
+
+This file uses NumPy-style Tempita templating to generate all type combinations
+for Annoy indices, eliminating code repetition and enabling centralized management.
+
+ALL INDEX METHODS with C-Level Method Dispatch:
+
+- add_item, build, save, load, unload
+- get_nns_by_item, get_nns_by_vector
+- get_item, get_distance
+- get_n_items, get_n_trees, get_f
+- unbuild, on_disk_build
+- serialize, deserialize
+- set_seed, verbose
+
+Uses static C function pointer tables for type-safe, zero-overhead dispatch.
+
+Based on:
+- annoymodule.cc (reference implementation)
+- NumPy's _bounded_integers.pyx.in pattern
+- Modern sklearn serialization patterns
+"""
+
+# ==============================================================================
+# annoylib.pxd
+# ==============================================================================
+# ==============================================================================
+# Python Imports
+# ==============================================================================
+# import numpy as np
+#
+# from cpython.pycapsule cimport PyCapsule_IsValid, PyCapsule_GetPointer
+# from cpython cimport (Py_INCREF, PyFloat_AsDouble)
+# cimport cython
+# cimport numpy as np
+
+import warnings
+import threading
+import json
+import pickle
+import tempfile
+import os
+from pathlib import Path
+from typing import Optional, Union, List, Dict, Any, Tuple
+
+import numpy as np
+cimport numpy as cnp
+
+# NumPy C API initialization
+cnp.import_array()
+
+# ==============================================================================
+# Cython Imports
+# ==============================================================================
+
+# https://gcc.gnu.org/onlinedocs/libstdc++/libstdc++-html-USERS-4.1/stl__tree_8h-source.html
+from libc cimport string as cstring
+from libc.stddef cimport size_t, ptrdiff_t
+from libc.stdlib cimport malloc, free
+from libc.stdlib cimport atoi
+from libc.stdint cimport (
+    int8_t, int16_t, int32_t, int64_t,
+    uint8_t, uint16_t, uint32_t, uint64_t,
+    intptr_t, uintptr_t
+)
+from libc.string cimport memcpy, memset, strcmp, strlen
+
+from libcpp cimport bool as cpp_bool
+from libcpp cimport bool as cbool, nullptr
+from libcpp.vector cimport vector
+from libcpp.vector cimport vector as cpp_vector
+from libcpp.string cimport string as cpp_string
+from libcpp.pair cimport pair
+from libc.stdlib cimport free
+
+cdef void _raise_if_error(bint ok, char* err=NULL):
+    if not ok:
+        if err != NULL:
+            msg = err.decode()
+            free(err)
+            raise RuntimeError(msg)
+        raise RuntimeError("Unknown C++ error")
+
+# ==============================================================================
+# Constants Configuration
+# ==============================================================================
+
+include "annoylib.pxi"
+
+# ==============================================================================
+# Version Information
+# ==============================================================================
+
+cdef inline tuple get_annoy_version():
+    # Get Annoy version as tuple (major, minor, patch).
+    return (ANNOY_VERSION_MAJOR, ANNOY_VERSION_MINOR, ANNOY_VERSION_PATCH)
+
+cdef inline bytes get_annoy_version_string():
+    return f"{ANNOY_VERSION_MAJOR}.{ANNOY_VERSION_MINOR}.{ANNOY_VERSION_PATCH}".encode('ascii')
+
+
+# ==============================================================================
+# Template Configuration - Single Source of Truth
+# ==============================================================================
+
+{{py:
+
+# -----------------------------------------------------------------------------
+# Type System Configuration (index, date, metric)
+# -----------------------------------------------------------------------------
+# AnnoyIndex<int32_t, float, Angular, Kiss64Random, AnnoyIndexThreadedBuildPolicy>
+#            └──S──┘  └─T─┘ └─Metric─┘└──Random──┘  └────ThreadedBuildPolicy────┘
+# -----------------------------------------------------------------------------
+
+# ✅ Index size types (S = int32_t or int64_t) It must NEVER be float or double. This is architecturally incorrect.
+index_types = [
+    {'name': 'int32', 'enum': 'INDEX_INT32', 'ctype': 'int32_t', 'cython': 'int32_t', 'numpy': 'int32', 'bits': 32, 'max_items': 2147483647},  # 2**31 -1
+    {'name': 'int64', 'enum': 'INDEX_INT64', 'ctype': 'int64_t', 'cython': 'int64_t', 'numpy': 'int64', 'bits': 64, 'max_items': 9223372036854775807},  # 2**63 -1
+]
+
+# ✅ Data precision types (T = float, double, or (unsigned internally) for Hamming)
+data_types = [
+    # cpp
+    {'name': 'float', 'enum': 'DATA_FLOAT32', 'ctype': 'float', 'ctype_internal': 'uint32_t', 'cython': 'float', 'numpy': 'float32', 'bits': 32, 'precision': 'single'},
+    {'name': 'double', 'enum': 'DATA_FLOAT64', 'ctype': 'double', 'ctype_internal': 'uint64_t', 'cython': 'double', 'numpy': 'float64', 'bits': 64, 'precision': 'double'},
+
+    # ⚠️ all data canonical, internal part for hamming bitwise
+    {'name': 'float32', 'enum': 'DATA_FLOAT32', 'ctype': 'float', 'ctype_internal': 'uint32_t', 'cython': 'float', 'numpy': 'float32', 'bits': 32, 'precision': 'single'},
+    {'name': 'float64', 'enum': 'DATA_FLOAT64', 'ctype': 'double', 'ctype_internal': 'uint64_t', 'cython': 'double', 'numpy': 'float64', 'bits': 64, 'precision': 'double'},
+]
+
+data_ctypes_uniq = reversed(list(set(d['ctype'] for d in data_types)))
+
+# Distance metrics
+metrics = [
+    {
+        'name': 'Angular',
+        'enum': 'METRIC_ANGULAR',
+        'value': 1,
+        'cpp_name': 'AnnoyIndex',
+        'cy_name': 'CAnnoyIndex',
+        'aliases': ['angular', 'cosine'],
+        'description': 'Cosine similarity (normalized dot product)',
+        'data_types': ['float32', 'float64'],  # Only float/double
+        'formula': '1 - (u·v)/(|u||v|)',
+    },
+    {
+        'name': 'Euclidean',
+        'enum': 'METRIC_EUCLIDEAN',
+        'value': 2,
+        'cpp_name': 'AnnoyIndex',
+        'cy_name': 'CAnnoyIndex',
+        'aliases': ['euclidean', 'l2', 'lstsq'],
+        'description': 'L2 distance (Euclidean norm)',
+        'data_types': ['float32', 'float64'],
+        'formula': 'sqrt(sum((u-v)^2))',
+    },
+    {
+        'name': 'Manhattan',
+        'enum': 'METRIC_MANHATTAN',
+        'value': 3,
+        'cpp_name': 'AnnoyIndex',
+        'cy_name': 'CAnnoyIndex',
+        'aliases': ['manhattan', 'l1', 'cityblock', 'taxicab'],
+        'description': 'L1 distance (Manhattan norm)',
+        'data_types': ['float32', 'float64'],
+        'formula': 'sum(|u-v|)',
+    },
+    {
+        'name': 'DotProduct',
+        'enum': 'METRIC_DOTPRODUCT',
+        'value': 4,
+        'cpp_name': 'AnnoyIndex',
+        'cy_name': 'CAnnoyIndex',
+        'aliases': ['dot', 'dotproduct', 'inner', 'innerproduct', '@', '.'],
+        'description': 'Negative dot product (for maximum inner product search)',
+        'data_types': ['float32', 'float64'],
+        'formula': '-u·v',
+    },
+    {
+        'name': 'Hamming',
+        'enum': 'METRIC_HAMMING',
+        'value': 5,
+        'cpp_name': 'HammingWrapper',
+        'cy_name': 'CHammingWrapper',
+        'aliases': ['hamming'],
+        'description': 'Hamming distance (bit differences)',
+        'data_types': ['float32', 'float64'],  # ✅ Only float/double internally metric calc bit 0/1
+        'formula': 'popcount(u XOR v)',
+    },
+]
+
+# Distance metric classes
+# dist_metrics = [
+#     {'name': 'Angular', 'class': 'Angular', 'metric': 'angular'},
+#     {'name': 'Euclidean', 'class': 'Euclidean', 'metric': 'euclidean'},
+#     {'name': 'Manhattan', 'class': 'Manhattan', 'metric': 'manhattan'},
+#     {'name': 'DotProduct', 'class': 'DotProduct', 'metric': 'dotproduct'},
+#     {'name': 'Hamming', 'class': 'Hamming', 'metric': 'hamming'},
+# ]
+
+# Random number generators
+rng_types = [
+    {'name': 'Kiss32', 'class': 'Kiss32Random', 'seed_type': 'uint32_t'},
+    {'name': 'Kiss64', 'class': 'Kiss64Random', 'seed_type': 'uint64_t'},
+]
+
+# -----------------------------------------------------------------------------
+# Generate All Valid Combinations
+# -----------------------------------------------------------------------------
+
+def generate_type_combinations(metrics, index_types, data_types):
+    """
+    Generate all valid (metric, index_type, data_type) combinations.
+
+    Returns list of dicts with keys:
+    - metric, metric_enum, metric_lower
+    - index_type, index_ctype
+    - data_type, data_ctype
+    - class_name, cy_concrete_type, cpp_concrete_type, description
+    """
+    combinations = []
+    # idx = 3  # before reserved
+
+    for metric in metrics:
+        for index_type in index_types:
+            for data_type in data_types:
+                if data_type['name'] not in metric['data_types']:
+                    continue
+
+                # Create combination descriptor
+                combo = {
+                    # 🟢 Total = 5 metrics 2 index types 2 data types = 20
+                    # key = metric * 4 + index_type * 2 + data_type
+                    # 'enum_num': idx,
+                    'metric': metric['name'],
+                    'metric_enum': metric['enum'],
+                    'metric_lower': metric['name'].lower(),
+                    'index_type': index_type['name'],
+                    'index_enum': index_type['enum'],
+                    'index_ctype': index_type['ctype'],
+                    'data_type': data_type['name'],
+                    'data_enum': data_type['enum'],
+                    'data_ctype': data_type['ctype'],  # all data canonical, internal part for hamming 0/1
+                    'data_ctype_internal': data_type.get('ctype_internal', data_type['ctype']),
+                    'factory_name': f"{metric['name'].lower()}_{index_type['name']}_{data_type['name']}",
+                    # unique class name (C AnnoyIndex Angular Int32 Float32)
+                    'class_name': (
+                        f"{metric['cpp_name']}"
+                        f"{metric['name']}"                    # metric
+                        f"{index_type['name'].capitalize()}"   # index
+                        f"{data_type['name'].capitalize()}"    # data
+                    ),
+                    # -----------------------------------------------------------------------------
+                    # [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+                    # -----------------------------------------------------------------------------
+                    # -----------------------------------------------------------------------------
+                    # [S, T, Distance, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy]
+                    # -----------------------------------------------------------------------------
+                    # -----------------------------------------------------------------------------
+                    # [S, T, InternalT, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DATA_DTYPE_HAMMING_INTERNAL, RANDOM_CLASS, ThreadedBuildPolicy]
+                    # -----------------------------------------------------------------------------
+                    'cy_concrete_type': (
+                        (
+                            f"["
+                            f"{index_type['ctype']}, "         # index
+                            f"{data_type['ctype']}, "          # data
+                        )+(                                    # metric or ctype internal
+                            f"{data_type['ctype_internal']}, "
+                            if metric['name'].lower() in ['hamming']
+                            else f"{metric['name']}, "
+                        )+(
+                            f"Kiss64Random, "                  # random uint64_t
+                            f"AnnoyIndexThreadedBuildPolicy"   # thread single or multi by header
+                            f"]"
+                        )
+                    ),
+                    # cpp typedef AnnoyIndex<int32_t, float, Angular, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngularIndex;
+                    'cpp_concrete_type': (
+                        (
+                            f"\"Annoy::{metric['cpp_name']}\""
+                            f"["
+                            f"{index_type['ctype']}, "         # index
+                            f"{data_type['ctype']}, "          # data
+                        )+(                                    # metric or ctype internal
+                            f"{data_type['ctype_internal']}, "
+                            if metric['name'].lower() in ['hamming']
+                            else f"{metric['name']}, "
+                        )+(
+                            f"Kiss64Random, "                  # random uint64_t
+                            f"AnnoyIndexThreadedBuildPolicy"   # thread single or multi by header
+                            f"]"
+                        )
+                    ),
+                    'description': (
+                        f"{metric['description']} with "
+                        f"{index_type['bits']}-bit indices and "
+                        f"{data_type['bits']}-bit "
+                        f"{data_type.get('precision', 'float')} data"
+                    ),
+                }
+                combinations.append(combo)
+                # idx += 1
+
+    return combinations
+
+# Generate all combinations
+# 2 × 2 × 2 × 6 × 2 = 96 concrete instantiations
+type_combinations = generate_type_combinations(
+    metrics=metrics,
+    index_types=index_types,
+    data_types=data_types,
+)
+type_combinations
+
+# Metric alias mapping for parsing
+metric_aliases = {}
+for metric in metrics:
+    for alias in metric['aliases']:
+        metric_aliases[alias] = metric['enum']
+}}
+
+# ==============================================================================
+# 🏗 C++ Standard Library Imports
+# ==============================================================================
+
+# https://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html#templates
+cdef extern from "<vector>" namespace "std" nogil:
+    # Already imported via libcpp.vector
+    pass
+
+cdef extern from "<utility>" namespace "std" nogil:
+    # Already imported via libcpp.pair
+    pass
+
+cdef extern from "<limits>" namespace "std" nogil:
+    cdef cppclass numeric_limits[T]:
+        @staticmethod
+        T max() nogil
+
+# ==============================================================================
+# https://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html#templates
+# C++ Generic	    Templates	Compile time (NO runtime overhead)
+# Cython Generic	Fused types	Compile time (C layer) (NO runtime overhead)
+# Fused types must map to C/C++ concrete types.
+# ℹ️ Minimal Working Example Logic cpp header to cython
+#
+# sample.hpp
+# template<typename T>
+# class sample {
+# public:
+#     T value;
+#     sample(T v) : value(v) {}
+#     T get() const { return value; }
+# };
+#
+# # sample.pxd
+# ctypedef fused numeric_t:
+#     int
+#     double
+#
+# cdef extern from "sample.hpp":
+#     cdef cppclass sample[numeric_t]:
+#         sample(numeric_t v)
+#         numeric_t get() const
+#
+# # sample.pyx
+# from sample cimport sample, numeric_t
+#
+# cpdef test_int():
+#     cdef sample
+#     return s.get()
+#
+# cpdef test_double():
+#     cdef sample[double] s = sample[double](3.14)
+#     return s.get()
+# ==============================================================================
+
+# ==============================================================================
+# 🏗 Concrete External C++ Declarations - Kiss Random Generator Common Components
+# ==============================================================================
+
+cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" nogil:
+
+    cdef cppclass Kiss32Random:
+        """
+        KISS32 random number generator.
+
+        Deterministic PRNG used for tree splitting. Setting the same seed
+        produces identical forests.
+
+        Methods:
+            normalize_seed(uint32_t) -> uint32_t: Ensures seed != 0
+        """
+        Kiss32Random() except +
+        Kiss32Random(uint32_t seed) except +
+
+cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" nogil:
+
+    cdef cppclass Kiss64Random:
+        """
+        KISS64 random number generator.
+
+        Deterministic PRNG used for tree splitting. Setting the same seed
+        produces identical forests.
+
+        Methods:
+            normalize_seed(uint64_t) -> uint64_t: Ensures seed != 0
+        """
+        Kiss64Random() except +
+        Kiss64Random(uint64_t seed) except +
+
+        @staticmethod
+        uint64_t get_default_seed() nogil
+
+        @staticmethod
+        uint64_t normalize_seed(uint64_t seed) nogil
+
+        void seed(uint64_t seed) nogil
+
+# ==============================================================================
+# Cython Annoy Index Templates → mirror C++ templates exactly
+# ==============================================================================
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+    # https://cython.readthedocs.io/en/latest/src/userguide/external_C_code.html#including-verbatim-c-code
+    # ℹ️ (Optionally) (C preprocessor #ifdef, #define) For C/C++ macro verbatim C/C++ code injection under top (cdef extern from ...)
+    # Cython copies that text directly into the generated C++ file. Use if not defined in header.
+    # Use `DEF` Cython compile-time constant (cython_compile_time_env) If Needed both are separate phases.
+    # ⚠️ Not use IF...ELSE (Derecated IF statement) like IF UNAME_SYSNAME != "Windows":
+    # --------------------------------------------------------------------------
+    # Build Policy Class Selection (Compile-Time) (Threading)
+    # --------------------------------------------------------------------------
+    # Normal declarations provided by the C header file:
+    # """
+    # /* This macro breaks stuff */
+    # #ifdef ANNOYLIB_MULTITHREADED_BUILD
+    # typedef AnnoyIndexMultiThreadedBuildPolicy AnnoyIndexThreadedBuildPolicy;
+    # #else
+    # typedef AnnoyIndexSingleThreadedBuildPolicy AnnoyIndexThreadedBuildPolicy;
+    # #endif
+    # """
+    # Special declarations conditionally provided above:
+    # bint ANNOYLIB_MULTITHREADED_BUILD
+
+    cdef cppclass ThreadedBuildPolicy:
+        pass
+
+    cdef cppclass AnnoyIndexSingleThreadedBuildPolicy:
+        """
+        Single-threaded build policy.
+
+        Always available. Guarantees deterministic builds given same seed.
+        """
+        pass
+
+    # Multithreaded policy only available when compiled with -DANNOYLIB_MULTITHREADED_BUILD typedef is already resolved in C++.
+    # pthread.h → std::thread → class ThreadedBuildPolicy
+    cdef cppclass AnnoyIndexThreadedBuildPolicy:
+        """
+        Multi-threaded build policy (POSIX systems only).
+
+        Requires: -DANNOYLIB_MULTITHREADED_BUILD -pthread
+        Not available on Windows (threading model incompatible).
+        """
+        pass
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # --------------------------------------------------------------------------
+    # Full structural binding of metric policies (Distance Functions)
+    # Base
+    #  ├─ Angular
+    #  │   └─ DotProduct
+    #  ├─ Hamming
+    #  └─ Minkowski
+    #      ├─ Euclidean
+    #      └─ Manhattan
+    # --------------------------------------------------------------------------
+    # 1️⃣ Base
+    cdef cppclass Base:
+        pass
+
+    # 3️⃣ Angular
+    cdef cppclass Angular(Base):
+        """
+        Angular (cosine) distance metric.
+
+        distance = 1 - cos(u, v) = 1 - (u·v) / (||u|| ||v||)
+
+        Normalized vectors have distance in [0, 2].
+        Used for: text embeddings, semantic similarity, recommendation
+        """
+        pass
+
+    # 4️⃣ DotProduct
+    cdef cppclass DotProduct (Angular):
+        """
+        Dot product distance metric.
+
+        distance = -u·v = -Σ(u_i * v_i)
+
+        Returns negative dot product (larger = more similar).
+        Used for: maximum inner product search (MIPS), scoring
+        """
+        pass
+
+    # 5️⃣ Hamming
+    cdef cppclass Hamming (Base):
+        """
+        Hamming distance metric.
+
+        distance = popcount(u XOR v)
+
+        Counts differing bits. Used for: binary embeddings, hashing,
+        locality-sensitive hashing (LSH)
+
+        Note: Exposes float API but internally uses uint64_t
+        """
+        pass
+
+    # 6️⃣ Minkowski
+    cdef cppclass Minkowski (Base):
+        pass
+
+    # ==============================================================
+    # 7️⃣ Euclidean
+    # ==============================================================
+    cdef cppclass Euclidean (Minkowski):
+        """
+        Euclidean (L2) distance metric.
+
+        distance = sqrt(Σ(u_i - v_i)²)
+
+        Used for: spatial data, image embeddings, general vector search
+        """
+        pass
+
+    # ==============================================================
+    # 8️⃣ Manhattan
+    # ==============================================================
+    cdef cppclass Manhattan (Minkowski):
+        """
+        Manhattan (L1) distance metric.
+
+        distance = Σ|u_i - v_i|
+
+        Used for: grid-based data, sparse features, taxi-cab distance
+        """
+        pass
+
+# ==============================================================================
+# Annoy C++ Core Header Template Declarations
+# ==============================================================================
+# pxd → mirror C++ templates exactly
+# -----------------------------------------------------------------------------
+# AnnoyIndexInterface<int32_t, float, Kiss64Random>
+#                     └──S──┘  └─T─┘  └────R──────┘
+# -----------------------------------------------------------------------------
+#
+# Base Generic interface (all metrics inherit from this via AnnoyIndex)
+# AnnoyIndexInterface[S, T, R]
+#     # S = IndexInt (int32_t or int64_t)
+#     # T = DataFloat (float or double)
+#     # R = Random seed type (uint32_t or uint64_t) for RNG
+#
+# -----------------------------------------------------------------------------
+# Type System Configuration (index, date, metric)
+# -----------------------------------------------------------------------------
+# AnnoyIndex<int32_t, float, Angular, Kiss64Random, AnnoyIndexThreadedBuildPolicy>
+#            └──S──┘  └─T─┘ └─Metric─┘└──Random──┘  └────ThreadedBuildPolicy────┘
+# -----------------------------------------------------------------------------
+#
+# # Concrete implementation all metrics one-by-one or fused types
+# # Cython cppclass Name "real::C++::Name"[TemplateArgs] by ctypedef fused TemplateArgs
+# # Inside [S, T, R], those names must be Cython type parameters, not arbitrary identifiers.
+# AnnoyIndex[S, T, Distance, Random, ThreadedBuildPolicy]
+#     # Distance = Angular | Euclidean | Manhattan | DotProduct
+#     # Random = Kiss32Random | Kiss64Random
+#     # ThreadedBuildPolicy = (Single | Multi) ThreadedBuildPolicy
+#
+# # Hamming wrapper exposes float API, internally uses InternalT (uint32_t, uint64_t) (special case)
+# HammingWrapper[S, T, InternalT, Random, ThreadedBuildPolicy]
+#     # InternalT = uint32_t | uint64_t
+#     # Random = Kiss32Random | Kiss64Random
+#     # ThreadedBuildPolicy = (Single | Multi) ThreadedBuildPolicy
+# ==============================================================================
+
+# ==============================================================================
+# 🧩 Cython Fused Types for Declare Cpp Template in Cython using [generic_type] (Compile-Time Genericity)
+# Concrete types only exist after instantiation.
+# Compile-time type families (Cython fused types)
+# ==============================================================================
+
+# -----------------------------------------------------------------------------
+# [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+# -----------------------------------------------------------------------------
+
+"""
+Index type for item IDs.
+
+Generates two compile-time specializations:
+- int32_t: Default, up to ~2B items
+- int64_t: Extended, up to ~9E18 items
+"""
+ctypedef fused INDEX_DTYPE:  # S
+    # ⚠️ docstringsnot allowed here, define multiline comment before it
+{{for index in index_types}}
+    {{index['ctype']}}
+{{endfor}}
+
+"""
+Data type for vector embeddings (continuous metrics).
+
+Generates two compile-time specializations:
+- float: 32-bit (default, most common)
+- double: 64-bit (higher precision)
+"""
+ctypedef fused DATA_DTYPE:  # T
+    # ⚠️ docstringsnot allowed here, define multiline comment before it
+{{for ctype in data_ctypes_uniq}}
+    {{ctype}}
+{{endfor}}
+
+ctypedef fused RANDOM_DTYPE:  # R
+    # ⚠️ docstringsnot allowed here, define multiline comment before it
+    uint32_t
+    uint64_t
+
+# -----------------------------------------------------------------------------
+# [S, T, Distance, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy]
+# -----------------------------------------------------------------------------
+
+ctypedef fused DISTANCE_CLASS:  # Distance
+    # AnnoyIndexSingleThreadedBuildPolicy
+    AnnoyIndexThreadedBuildPolicy
+
+ctypedef fused RANDOM_CLASS:  # Random
+    # ⚠️ docstringsnot allowed here, define multiline comment before it
+    Kiss32Random
+    Kiss64Random
+
+"""
+Data type for Hamming metric (binary embeddings).
+
+Internally uses uint for bitwise operations, but exposes float API.
+"""
+ctypedef fused DATA_DTYPE_HAMMING_INTERNAL:  # InternalT
+    # ⚠️ docstringsnot allowed here, define multiline comment before it
+    uint32_t
+    uint64_t
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # --------------------------------------------------------------------------
+    # AnnoyIndexInterface (Abstract Base Class)
+    # except + reacquires GIL You lose pure C++ boundary guarantee
+    # Const + nogil — Verified
+    # All const methods marked nogil.
+    # All non-const also marked nogil.
+    # Annoy core is pure C++
+    # No Python interaction
+    # No GIL needed
+    # --------------------------------------------------------------------------
+
+    cdef cppclass AnnoyIndexInterfaceBase:
+        """
+        Non-templated, type-erased abstract base for all Annoy index types.
+
+        This is the only C++ type visible to Cython.
+        All template specializations inherit from this class.
+
+        Invariants:
+            - All methods noexcept in C++
+            - No C++ exception may escape
+            - Error messages allocated via malloc / strdup
+            - Caller must free() error
+            - No Python interaction inside C++
+        """
+        pass
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # -----------------------------------------------------------------------------
+    # [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+    # -----------------------------------------------------------------------------
+    # Cython fused types → expanded combinations → concrete C++ template instantiations → compiled normally
+    cdef cppclass AnnoyIndexInterface \
+        [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE] \
+        (AnnoyIndexInterfaceBase) \
+        :
+        """
+        Abstract interface for all Annoy index types.
+
+        Template Parameters:
+            S: Index type (int32_t or int64_t) for item IDs
+            T: Data type (float, double, uint32_t, uint64_t) for vectors
+            R: Random seed type (uint32_t or uint64_t) for RNG
+
+        This is the base class that AnnoyIndex and HammingWrapper inherit from.
+        All methods are pure virtual in C++.
+
+        Thread Safety:
+            - Reads (get_nns_*, get_item, get_distance): Thread-safe after build()
+            - Writes (add_item, build, unbuild): Not thread-safe
+
+        Error Handling:
+            Methods that can fail accept char** error parameter.
+            On failure: return false/empty and set *error to malloc'd message.
+            Caller must free() the error message.
+        """
+        pass
+
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # --------------------------------------------------------------------------
+    # AnnoyIndex (Main Template Class)
+    # --------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+    # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, Distance, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy]
+    # -----------------------------------------------------------------------------
+    # Cython fused types → expanded combinations → concrete C++ template instantiations → compiled normally
+    cdef cppclass AnnoyIndex \
+        [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy] \
+        (AnnoyIndexInterface[INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]) \
+        :
+        """
+        Main Annoy index implementation.
+
+        Template Parameters:
+            S: Index type (int32_t | int64_t)
+            T: Data type (float | double | uint32_t | uint64_t)
+            Distance: Metric (Angular | Euclidean | Manhattan | DotProduct | Hamming)
+            R: Random: RNG (Kiss32Random | Kiss64Random)
+            ThreadedBuildPolicy: Build threading (Single | Multi)
+
+        Example Instantiation:
+            AnnoyIndex<int32_t, float, Angular, Kiss64Random, AnnoyIndexThreadedBuildPolicy>
+
+        Memory Layout:
+            - Items stored in compact array of Node structs
+            - Trees stored as binary search tree indices into nodes
+            - Total size ≈ (n_items * f * sizeof(T)) + (n_trees * tree_overhead)
+
+        Performance:
+            - build(): O(n_items * f * log(n_items) * n_trees)
+            - get_nns_by_*(): O(f * log(n_items) * search_k)
+            - Memory: Linear in n_items (compact storage)
+        """
+        pass
+
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # -----------------------------------------------------------------------------
+    # [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+    # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, Distance, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy]
+    # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, InternalT, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DATA_DTYPE_HAMMING_INTERNAL, RANDOM_CLASS, ThreadedBuildPolicy]
+    # -----------------------------------------------------------------------------
+    cdef cppclass HammingWrapper \
+        [INDEX_DTYPE, DATA_DTYPE, DATA_DTYPE_HAMMING_INTERNAL, RANDOM_CLASS, ThreadedBuildPolicy] \
+        (AnnoyIndexInterface[INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]):
+        """
+        Wrapper for Hamming metric with float API.
+
+        Design:
+            - Exposes float API (vectors of 0.0/1.0)
+            - Internally packs to uint64_t for bitwise operations
+            - Threshold: x > 0.5 → bit = 1, else bit = 0
+
+        Storage:
+            - External: f bits (user-facing dimension)
+            - Internal: ceil(f/64) uint64_t words
+            - Serialization includes HammingHeader for validation
+
+        Use Cases:
+            - Binary embeddings (SimHash, LSH)
+            - Boolean features
+            - Bloom filter-style similarity
+
+        Thread Safety: Same as AnnoyIndexInterface
+        """
+        pass
+
+# ==============================================================================
+# Factory System Generate Index C++ Class Declarations - All Type Combinations
+# ==============================================================================
+# Template: AnnoyIndex<S, T, Distance, Random, AnnoyIndexThreadedBuildPolicy>
+#          S = Index type (int32_t or int64_t)
+#          T = Data type (float, double, uint32_t, uint64_t)
+#          T = Data type (float, double, uint32_t, uint64_t)
+#
+# Angular+int32+float32:  S=int32_t, T=float    # S  Uses combo['index_ctype']
+# Angular+int32+float64:  S=int32_t, T=double   # T* Uses `combo['data_ctype']`*
+# Angular+int64+float32:  S=int64_t, T=float
+# Angular+int64+float64:  S=int64_t, T=double
+#
+# - Use `combo['index_ctype']` for S
+# - Use `combo['data_ctype']`* for T*
+# - Already casts `void*` to specific types
+# - Calls C++ with correct types
+# ==============================================================================
+{{for combo in type_combinations}}
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogil:
+
+    # -----------------------------------------------------------------------------
+    # [S, T, R] -> [INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]
+    # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, Distance, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DISTANCE_CLASS, RANDOM_CLASS, ThreadedBuildPolicy]
+    # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # [S, T, InternalT, Random, ThreadedBuildPolicy] -> [INDEX_DTYPE, DATA_DTYPE, DATA_DTYPE_HAMMING_INTERNAL, RANDOM_CLASS, ThreadedBuildPolicy]
+    # -----------------------------------------------------------------------------
+
+    # (Often Best) create concrete instantiations explicit each AnnoyIndex<metric, index_type, data_type> combinations in Many Cases
+    # cpp typedef AnnoyIndex<int32_t, float, Angular, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyIndexAngularInt32Float32;
+    # "AnnoyIndex<{{combo['index_ctype']}}, {{combo['data_ctype']}}, {{combo['metric']}}, Kiss64Random, AnnoyIndexThreadedBuildPolicy>"
+    cdef cppclass {{combo['class_name']}} \
+        {{combo['cpp_concrete_type']}} \
+        (AnnoyIndexInterface[INDEX_DTYPE, DATA_DTYPE, RANDOM_DTYPE]) \
+        :
+        pass
+
+{{endfor}}
+
+# ==============================================================================
+# Enums C-Level (Runtime Type Selection) - Centralized Type System Enumerations
+# ==============================================================================
+
+# Random enum
+cpdef enum RandomType:
+    KISS32 = 1
+    KISS64 = 2
+
+# Index size type enum
+cpdef enum IndexType:
+    """
+    Index size type (runtime dispatch).
+
+    Maps to C++ template parameter S in:
+        AnnoyIndex<S, T, Distance, Random, ThreadedBuildPolicy>
+    """
+    INDEX_INT32 = 1  # 32-bit indices (up to 2B items)
+    INDEX_INT64 = 2  # 64-bit indices (unlimited items)
+
+# Data precision enum
+cpdef enum DataType:
+    """
+    Data storage type (runtime dispatch).
+
+    Maps to C++ template parameter T in:
+        AnnoyIndex<S, T, Distance, Random, ThreadedBuildPolicy>
+    """
+    # cpp, canonical alias
+    DATA_FLOAT = 1        # 32-bit float (default)
+    DATA_FLOAT32 = 1      # Alias for DATA_FLOAT
+    DATA_DOUBLE = 2       # 64-bit double
+    DATA_FLOAT64 = 2      # Alias for DATA_DOUBLE
+    # hamming internal
+    DATA_UINT32 = 3       # 32-bit unsigned (Hamming only)
+    DATA_UINT64 = 4       # 64-bit unsigned (Hamming only)
+
+    # future
+    DATA_BOOL = 5
+    DATA_UINT8 = 6        # 8-bit signed (future)
+    DATA_INT8 = 7
+    DATA_INT16 = 8
+    DATA_INT32 = 9
+    DATA_INT64 = 10
+    DATA_FLOAT16 = 11     # 16-bit signed (future)
+    DATA_FLOAT128 = 12
+
+# Metric types enum (Runtime Type Selection)
+cpdef enum MetricType:
+    """
+    Distance metric selection (runtime dispatch).
+
+    Maps to C++ template parameter Distance in:
+        AnnoyIndex<S, T, Distance, Random, ThreadedBuildPolicy>
+
+    METRIC_UNKNOWN = 0
+    METRIC_ANGULAR = 1      # Cosine distance
+    METRIC_EUCLIDEAN = 2    # L2 distance
+    METRIC_MANHATTAN = 3    # L1 distance
+    METRIC_DOT = 4          # Negative dot product
+    METRIC_HAMMING = 5      # Bitwise Hamming distance
+    """
+    METRIC_UNKNOWN = 0
+{{for metric in metrics}}
+    {{metric['enum']}} = {{metric['value']}}
+{{endfor}}
+    METRIC_CUSTOM = 100  # User-defined C function
+    METRIC_SCIPY = 101   # scipy.spatial.distance metric
+    METRIC_NUMPY = 102   # NumPy callable
+
+# 🟢 Total = 5 metrics 2 index types 2 data types = 20
+# enum_num key = metric * 4 + index_type * 2 + data_type
+cdef enum IndexKind:
+{{for combo in type_combinations}}
+    {{combo['metric'].upper()}}_{{combo['index_type'].upper()}}_{{combo['data_ctype'].upper()}} = \
+        {{combo['metric_enum']}} * 4 + {{combo['index_enum']}} * 2 + {{combo['data_enum']}}
+{{endfor}}
+
+# ==============================================================================
+# Helper Functions (NO Python objects) - pure C function
+# ==============================================================================
+
+cdef inline DataType _normalize_data_type(DataType dt) noexcept nogil:
+    """
+    Normalize DataType aliases to canonical storage types.
+
+    Canonical forms:
+    - DATA_FLOAT32
+    - DATA_FLOAT64
+    - DATA_UINT32
+    - DATA_UINT64
+    """
+    if dt == DATA_FLOAT:
+        return DATA_FLOAT32
+    if dt == DATA_DOUBLE:
+        return DATA_FLOAT64
+    return dt
+
+# ==============================================================================
+# Struct C-Level Named tuple Factory System AnnoyIndex <-> bytes
+# ==============================================================================
+
+# C struct for factory lookup key (NO Python objects)
+# ctypedef struct ClassFactoryStructureKeys:
+#     MetricType metric
+#     IndexType index_type
+#     DataType data_type
+
+# ==============================================================================
+# annoylib.pyx
+# ==============================================================================
+
+# ==============================================================================
+# Helper Functions - Type Parsing and Validation - Python dict
+# ==============================================================================
+
+# IndexType enum -> canonical name
+_indextype2str_map = {
+{{for index in index_types}}
+    {{index['enum']}}: '{{index['name']}}',
+{{endfor}}
+}
+
+# Index type parsing -> IndexType enum mapping
+_str2indextype_map = {
+    'int32': INDEX_INT32, 'int32_t': INDEX_INT32, 'i4': INDEX_INT32,  # 'i4': INDEX_INT32,
+    'int64': INDEX_INT64, 'int64_t': INDEX_INT64, 'i8': INDEX_INT64,  # 'i8': INDEX_INT64,
+}
+
+# DataType enum -> canonical name
+_datatype2str_map = {
+{{for data in data_types}}
+    DATA_{{data['name'].upper()}}: '{{data['ctype']}}',
+{{endfor}}
+}
+
+# Data type parsing -> DataType enum mapping
+_str2datatype_map = {
+    'float': DATA_FLOAT32, 'float32': DATA_FLOAT32, 'f': DATA_FLOAT32,  # 'f': DATA_FLOAT32,
+    'double': DATA_FLOAT64, 'float64': DATA_FLOAT64, 'd': DATA_FLOAT64,  # 'd': DATA_FLOAT64,
+    'uint32': DATA_UINT32, 'u4': DATA_UINT32,
+    'uint64': DATA_UINT64, 'u8': DATA_UINT64,
+}
+
+# MetricType enum -> canonical name
+_metrictype2str_map = {
+{{for metric in metrics}}
+    {{metric['enum']}}: '{{metric['aliases'][0]}}',
+{{endfor}}
+}
+
+# Metric name -> MetricType enum mapping
+_str2metrictype_map = {
+{{for metric in metrics}}
+{{for alias in metric['aliases']}}
+    '{{alias}}': {{metric['enum']}},
+{{endfor}}
+{{endfor}}
+}
+
+# ==============================================================================
+# metric_type bytes Helper Functions (NO Python objects)
+# ==============================================================================
+
+cdef inline bytes metric_type_to_bytes(MetricType metric):
+{{for metric in metrics}}
+    if metric == {{metric['enum']}}:
+        return b'{{metric['name'].lower()}}'
+{{endfor}}
+    if metric == METRIC_CUSTOM:
+        return b'custom'
+    if metric == METRIC_SCIPY:
+        return b'scipy'
+    if metric == METRIC_NUMPY:
+        return b'numpy'
+    return b'unknown'
+
+cdef inline str metric_type_to_str(MetricType metric):
+    """Convert MetricType enum to canonical string."""
+    return metric_type_to_bytes(metric).decode('ascii')
+
+# ==============================================================================
+# metric_type bytes Helper Functions
+# ==============================================================================
+
+cdef inline MetricType bytes_to_metric_type(bytes metric_str) except METRIC_UNKNOWN:
+    # if strcmp(name, "angular") == 0 or strcmp(name, "cosine") == 0:
+    cdef bytes lower_str = metric_str.lower()
+{{for metric in metrics}}
+{{for alias in metric['aliases']}}
+    if lower_str == b'{{alias}}':
+        return {{metric['enum']}}
+{{endfor}}
+{{endfor}}
+    if lower_str == b'custom':
+        return METRIC_CUSTOM
+    if lower_str == b'scipy':
+        return METRIC_SCIPY
+    if lower_str == b'numpy':
+        return METRIC_NUMPY
+    raise ValueError(f"Unknown metric: {metric_str!r}")
+
+cdef inline MetricType str_to_metric_type(str metric_str) except METRIC_UNKNOWN:
+    """
+    Convert metric name string to MetricType enum.
+    Raises ValueError if unknown.
+    """
+    return bytes_to_metric_type(metric_str.encode('ascii'))
+
+# ==============================================================================
+# Helper Functions
+# ==============================================================================
+
+cdef inline cbool _validate_dimension(int f) except False:
+    """Validate vector dimension."""
+    if f <= 0:
+        raise ValueError(f"Dimension must be positive, got f={f}")
+    # if f > MAX_DIMENSION:
+    #     raise ValueError(f"Dimension too large: f={f} > MAX_DIMENSION={MAX_DIMENSION}")
+    return True
+
+# ==============================================================================
+# Module Metadata
+# ==============================================================================
+
+__version__ = "1.17.3"
+__author__ = "Annoy Contributors"
+__module__ = "scikitplot.annoy._annoy"
+
+SERIALIZATION_VERSION = 1
+
+# ==============================================================================
+# Exception Classes
+# ==============================================================================
+
+class AnnoyException(Exception):
+    """Base exception for Annoy errors."""
+    pass
+
+class AnnoyIndexException(AnnoyException):
+    """Exception raised for index operation errors."""
+    pass
+
+class AnnoyNotBuiltException(AnnoyIndexException):
+    """Exception raised when querying before building."""
+    pass
+
+class AnnoyDimensionException(AnnoyIndexException):
+    """Exception raised for dimension mismatches."""
+    pass
+
+class AnnoyMetricException(AnnoyIndexException):
+    """Exception raised for invalid metrics."""
+    pass
+
+class AnnoyMemoryException(AnnoyIndexException):
+    """Exception raised for memory allocation errors."""
+    pass
+
+class AnnoySerializationException(AnnoyException):
+    """Exception raised for serialization errors."""
+    pass
+
+# ==============================================================================
+# 1️⃣ What cdef Means:
+#     - Callable only from Cython
+#     - Not visible to Python
+#     - Fast C-level dispatch
+#     - Cannot be imported from Python
+#     - No Python wrapper generated
+# 2️⃣ What cpdef Means:
+# Cython generates:
+#     - One C-level function (fast path)
+#     - One Python wrapper function (visible in module)
+# So:
+#     - Cython code calls it directly (fast)
+#     - Python code can import and call it
+#     - Slightly larger compiled output
+#     - Small wrapper overhead for Python calls
+# ==============================================================================
+# -----------------------------------------------------------------------------
+# IndexType Helper
+# -----------------------------------------------------------------------------
+
+cdef IndexType _parse_index_dtype(index_dtype: Optional[Union[str, IndexType]]):
+    """
+    Parse index dtype input into an IndexType enum.
+
+    Parameters
+    ----------
+    index_dtype : str | IndexType | None
+
+    Returns
+    -------
+    IndexType
+
+    Raises
+    ------
+    TypeError
+        If index_dtype type is invalid.
+    ValueError
+        If index_dtype value is unknown.
+    """
+    if index_dtype is None:
+        return INDEX_INT32
+
+    if isinstance(index_dtype, IndexType):
+        return index_dtype
+
+    if not isinstance(index_dtype, str):
+        raise TypeError(
+            "index_dtype must be str, IndexType, or None "
+            f"(got {type(index_dtype).__name__})"
+        )
+
+    dtype_str = str(index_dtype).lower().strip()
+    if not dtype_str:
+        raise ValueError("index_dtype must be a non-empty string")
+
+    try:
+        # if dtype_str in _str2indextype_map:
+        return _str2indextype_map[dtype_str]
+    except KeyError as e:
+        valid = ", ".join(sorted(_str2indextype_map))
+        raise ValueError(
+            f"Unknown index_dtype '{index_dtype}'. Valid index dtypes: {valid}"
+        ) from e
+
+# -----------------------------------------------------------------------------
+# DataType Helper
+# -----------------------------------------------------------------------------
+
+cdef DataType _parse_dtype(dtype: Optional[Union[str, DataType]]):
+    """
+    Parse dtype input into a DataType enum.
+
+    Parameters
+    ----------
+    dtype : str | DataType | None
+
+    Returns
+    -------
+    DataType
+
+    Raises
+    ------
+    TypeError
+        If dtype type is invalid.
+    ValueError
+        If dtype value is unknown.
+    """
+    if dtype is None:
+        return DATA_FLOAT32
+
+    if isinstance(dtype, DataType):
+        return dtype
+
+    if not isinstance(dtype, str):
+        raise TypeError(
+            "dtype must be str, DataType, or None "
+            f"(got {type(dtype).__name__})"
+        )
+
+    dtype_str = str(dtype).lower().strip()
+    if not dtype_str:
+        raise ValueError("dtype must be a non-empty string")
+
+    try:
+        # if dtype_str in _str2datatype_map:
+        return _str2datatype_map[dtype_str]
+    except KeyError as e:
+        valid = ", ".join(sorted(_str2datatype_map))
+        raise ValueError(
+            f"Unknown dtype '{dtype}'. Valid dtypes: {valid}"
+        ) from e
+
+# -----------------------------------------------------------------------------
+# MetricType Helper
+# -----------------------------------------------------------------------------
+
+cdef MetricType _parse_metric(metric: Optional[Union[str, MetricType]]):
+    """
+    Parse metric input into a MetricType enum.
+
+    Parameters
+    ----------
+    metric : str | MetricType | None
+        Metric identifier. Strings are case-insensitive.
+
+    Returns
+    -------
+    MetricType
+        Parsed metric enum.
+
+    Raises
+    ------
+    TypeError
+        If metric type is invalid.
+    ValueError
+        If metric value is unknown.
+    """
+    if metric is None:
+        return METRIC_ANGULAR
+
+    if isinstance(metric, MetricType):
+        return metric
+
+    # Strict string handling (no implicit coercion)
+    if not isinstance(metric, str):
+        raise TypeError(
+            "metric must be str, MetricType, or None "
+            f"(got {type(metric).__name__})"
+        )
+    metric_lower = str(metric).lower().strip()
+
+    if not metric_lower:
+        raise ValueError("metric must be a non-empty string")
+
+    try:
+        # if metric_lower in _str2metrictype_map:
+        return _str2metrictype_map[metric_lower]
+    except KeyError as e:
+        valid = ", ".join(sorted(_str2metrictype_map))
+        raise AnnoyMetricException(
+            f"Unknown metric '{metric}'. Valid metrics: {valid}"
+        ) from e
+
+
+# ==============================================================================
+# Struct C-Level Named tuple Factory System AnnoyIndex <-> bytes
+# ==============================================================================
+# C function pointer array (C table dispatch) - One per Type Combination (Named tuple, named fields)
+# cdef AnnoyIndexInterfaceBase* _new_AngularInt32Float32(int f) nogil:
+#     return new AnnoyIndex[int32_t,
+#                            float,
+#                            Angular,
+#                            Kiss64Random,
+#                            AnnoyIndexSingleThreadedBuildPolicy](f)
+
+# -----------------------------------------------------------------------------
+# Pure C-level constructor
+# -----------------------------------------------------------------------------
+
+cdef inline AnnoyIndexInterfaceBase* _wrap_new(AnnoyIndexInterfaceBase* ptr):
+    if ptr == NULL:
+        raise MemoryError("Allocation failed")
+    return ptr
+{{for combo in type_combinations}}
+
+cdef AnnoyIndexInterfaceBase* _new_{{combo['factory_name']}}() nogil:
+    return new {{combo['class_name']}}()
+
+{{endfor}}
+
+# -----------------------------------------------------------------------------
+# C-level dispatch table
+# -----------------------------------------------------------------------------
+# (METRIC_ANGULAR, INDEX_INT32, DATA_FLOAT32): _py_new_AngularInt32Float32,
+
+# ctypedef AnnoyIndexInterfaceBase* (*index_constructor_func)(int f) nogil
+ctypedef AnnoyIndexInterfaceBase* (*index_constructor_func)() nogil
+
+# Keep 100 avoid index error
+# 🟢 Total = 5 metrics 2 index types 2 data types = 20
+# enum_num key = metric * 4 + index_type * 2 + data_type
+cdef index_constructor_func _CONSTRUCTORS[20]
+cdef bint _CTOR_INITIALIZED = False
+
+cdef int i
+for i in range(20):
+    _CONSTRUCTORS[i] = NULL
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h":
+
+    cdef int _init_constructors() nogil:
+    {{for combo in type_combinations}}
+        _CONSTRUCTORS[( {{combo['metric_enum']}} * 4 + {{combo['index_enum']}} * 2 + {{combo['data_enum']}} )] = \
+            _new_{{combo['factory_name']}}
+    {{endfor}}
+
+        # cdef size_t _CONSTRUCTORS_SIZE = sizeof(_CONSTRUCTORS) / sizeof(index_constructor_func)
+        return 0  # success
+
+if not _CTOR_INITIALIZED:
+    with nogil:
+        _init_constructors()
+    _CTOR_INITIALIZED = True
+
+# ==============================================================================
+# Main Index Class - User-Facing API
+# ==============================================================================
+#    AnnoyIndexInterfaceBase,
+#    AnnoyIndexInterface,
+#    AnnoyIndex,
+#    HammingWrapper,
+#
+# Python Index
+#     |
+#     |-- _ptr : AnnoyIndexInterfaceBase*
+#     |-- _kind : IndexKind
+#     |-- lazy factory dispatch
+#     |-- virtual destructor
+#     |
+#     +-- methods call virtual C++ methods
+
+
+cdef class Index:
+    """
+    Approximate Nearest Neighbor index with runtime type selection.
+
+    Complete implementation with all index methods using C-level dispatch.
+
+    This class provides a unified interface to Annoy's templated C++ index
+    classes, with lazy initialization and flexible dtype/index_dtype selection.
+
+    Follows modern sklearn patterns with serialization, context management,
+    and estimator API support.
+
+    Parameters
+    ----------
+    f : int or None, default=None
+        Vector dimension. If None, inferred from first vector.
+    metric : str or None, default=None
+        Distance metric: 'angular', 'euclidean', 'manhattan', 'dot', 'hamming'.
+        If None and f > 0, defaults to 'angular' with FutureWarning.
+    n_neighbors : int, default=5
+        Number of neighbors for sklearn-style transform().
+    seed : int or None, default=None
+        Random seed for reproducible builds.
+    verbose : bool, default=False
+        Enable verbose logging.
+    index_dtype : str or None, default='int32'
+        Index type: 'int32' or 'int64'.
+    dtype : str or None, default='float'
+        Data type: 'float', 'float32', 'double', 'float64'.
+        Hamming accepts float/double (converted to uint internally).
+    **kwargs
+        Additional parameters (on_disk_path, prefault, etc.).
+
+    Attributes
+    ----------
+    f : int
+        Vector dimension.
+    metric : str
+        Distance metric ('angular', 'euclidean', 'manhattan', 'dot', 'hamming').
+    n_neighbors : int
+        Number of neighbors for transform().
+    n_features_in_ : int
+        Number of features seen during fit (sklearn compat).
+    n_features_out_ : int
+        Number of output features (equals n_neighbors).
+    feature_names_in_ : tuple or None
+        Feature names if provided during fit.
+    y : list or None
+        Dense labels (sklearn compat).
+    y_map : dict or None
+        Sparse label mapping {item_id: label}.
+
+    Examples
+    --------
+    >>> # Basic usage
+    >>> index = Index(128, metric='angular')
+    >>> for i in range(1000):
+    ...     vec = np.random.randn(128).astype('float32')
+    ...     index.add_item(i, vec)
+    >>> index.build(10)
+    >>> neighbors = index.get_nns_by_item(0, 10)
+
+    >>> # With explicit dtype
+    >>> index = Index(128, metric='dot', dtype='double', index_dtype='int64')
+
+    >>> # Sklearn-style usage
+    >>> index = Index(n_neighbors=5)
+    >>> index.fit(X)
+    >>> neighbors = index.transform(X_query)
+
+    >>> # Context manager
+    >>> with Index(128, metric='angular') as index:
+    ...     index.add_item(0, vec)
+    ...     index.build(10)
+
+    >>> # Serialization
+    >>> state = index.get_state()
+    >>> index2 = Index()
+    >>> index2.set_state(state)
+    """
+
+    # Class attribute
+    __module__ = "scikitplot.annoy._annoy"
+
+    # C-level attributes (mirrors annoymodule.cc py_annoy struct)
+    cdef MetricType _metric_type
+    cdef IndexType _index_type
+    cdef DataType _data_type
+
+    cdef AnnoyIndexInterfaceBase* _ptr
+
+    # State flags
+    cdef cbool _index_created
+    cdef cbool _index_built
+
+    # Python attributes (public for sklearn compat)
+    cdef public int f
+    cdef public str metric
+    cdef public str dtype
+    cdef public str index_dtype
+    cdef public size_t n_neighbors
+    # Additional attributes
+    cdef public cbool prefault
+    cdef public int schema_version
+    cdef public object on_disk_path
+
+    # Pending configuration (applied on lazy init)
+    cdef cbool _has_pending_seed
+    cdef uint64_t _pending_seed
+    cdef cbool _has_pending_verbose
+    cdef cbool _pending_verbose
+
+    # Sklearn compatibility
+    cdef public object y  # Dense labels
+    cdef public object y_map  # Sparse label mapping {item_id -> label}
+    cdef public object feature_names_in_  # SLEP007
+
+    # Thread safety
+    cdef public object lock
+
+    def __cinit__(self):
+        """C-level initialization."""
+        # Type configuration
+        self._metric_type = METRIC_UNKNOWN
+        self._index_type = INDEX_INT32
+        self._data_type = DATA_FLOAT32
+
+        # C-level pointers - MUST ALL BE INITIALIZED TO NULL!
+        self._ptr = NULL  # initialized annoy_index
+
+        # State flags
+        self._index_created = False
+        self._index_built = False
+
+        # Python attributes
+        self.f = 0
+        self.metric = None
+        self.dtype = None
+        self.index_dtype = None
+        self.n_neighbors = DEFAULT_N_NEIGHBORS
+        # Additional attributes
+        self.prefault = DEFAULT_PREFAULT
+        self.schema_version = DEFAULT_SCHEMA_VERSION
+        self.on_disk_path = None
+
+        # Pending configuration
+        self._has_pending_seed = False
+        self._pending_seed = 0
+        self._has_pending_verbose = False
+        self._pending_verbose = False
+
+        # Sklearn compatibility
+        self.y = None
+        self.y_map = None
+        self.feature_names_in_ = None
+
+    def __dealloc__(self):
+        """C-level cleanup."""
+        if self._ptr != NULL:
+            del self._ptr
+            self._ptr = NULL
+            # Clear state flags
+            self._index_created = False
+            self._index_built = False
+
+    def __init__(
+        self,
+        f=None,
+        metric=None,
+        *,
+        n_neighbors=5,
+        seed=None,
+        verbose=False,
+        prefault=False,
+        schema_version=1,
+        on_disk_path=None,
+        index_dtype=None,
+        dtype=None,
+        **kwargs
+    ):
+        """
+        Initialize Annoy index with lazy construction.
+
+        The C++ index is NOT created immediately. It's created lazily
+        on first use (add_item, build, load, etc.).
+        """
+        # Parse and validate dimension
+        if f is not None:
+            if not isinstance(f, int) or f < 0:
+                raise ValueError(f"f must be non-negative integer, got {f}")
+            self.f = f
+
+        # Parse metric
+        if metric is not None:
+            self._metric_type = _parse_metric(metric)  # default METRIC_ANGULAR
+            self.metric = _metrictype2str_map.get(self._metric_type, 'angular')
+        elif self.f > 0:
+            # Lazy default with warning (annoymodule.cc behavior)
+            warnings.warn(
+                "The default metric will be removed in a future version. "
+                "Please specify metric='angular' explicitly.",
+                FutureWarning,
+                stacklevel=2
+            )
+            self._metric_type = METRIC_ANGULAR
+            self.metric = 'angular'
+
+        # Parse dtype
+        self._data_type = _parse_dtype(dtype)
+        self.dtype = _datatype2str_map.get(self._data_type, 'float32')
+
+        # Parse index_dtype
+        self._index_type = _parse_index_dtype(index_dtype)
+        self.index_dtype = _indextype2str_map.get(self._index_type, 'int32')
+
+        # Store configuration
+        self.n_neighbors = n_neighbors
+        self.prefault = prefault
+        self.schema_version = schema_version
+        self.on_disk_path = on_disk_path
+
+        # Pending configuration
+        if seed is not None:
+            self._pending_seed = seed
+            self._has_pending_seed = True
+
+        if verbose:
+            self._pending_verbose = True
+
+        # Create thread lock (like KissGenerator)
+        self.lock = threading.RLock()
+
+        # Index NOT created yet (lazy)
+        # self._index_created = False
+
+        # Thread safety
+        self.lock = threading.RLock()
+
+    # ==========================================================================
+    # Magic Methods - Modern sklearn patterns
+    # ==========================================================================
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"{self} at 0x{id(self):X}"
+
+    def __str__(self) -> str:
+        """Short string representation."""
+        return f"{self.__class__.__name__}"
+
+    def __enter__(self):
+        """Enter context manager (acquire lock)."""
+        self.lock.acquire()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager (release lock)."""
+        self.lock.release()
+        return False
+
+    def __len__(self) -> int:
+        """Return number of items (sklearn compat)."""
+        if not self._index_created:
+            return 0
+        return self.get_n_items()
+
+    # ==========================================================================
+    # Internal Helper Methods
+    # ==========================================================================
+
+    cdef bint _ensure_index(self) except False:
+        """
+        Create C++ index if not already created (lazy initialization).
+        """
+        if self._index_created:
+            return True
+
+        # ( METRIC_ANGULAR * 4 + INDEX_INT64 * 2 + DATA_FLOAT64 )
+        cdef int key = (
+            self._metric_type * 4 +
+            self._index_type * 2 +
+            self._data_type
+        )
+        try:
+            with nogil:
+                self._ptr = _CONSTRUCTORS[key]()
+        except KeyError:
+            raise ValueError(
+                f"Unsupported combination: "
+                f"metric={self._metric_type}, "
+                f"index={self._index_type}, "
+                f"data={self._data_type}"
+            )
+
+        if self._ptr == NULL:
+            raise MemoryError("Allocation failed")
+
+        if self.f <= 0:
+            raise AnnoyDimensionException("Dimension must be set")
+
+        # Apply pending configuration
+        if self._has_pending_seed:
+            self.set_seed(self._pending_seed)
+
+        if self._has_pending_verbose and self._pending_verbose:
+            self.set_verbose(True)
+
+        self._kind = None
+        self._index_created = True
+
+        return True
+
+    def ensure_index(self):
+        """python side."""
+        try:
+            # Ensure index exists (lazy creation)
+            self._ensure_index()
+        except Exception as e:
+            raise RuntimeError(f"Index not initialized: {e}") from e
+
+    # -----------------------------------------------------------------------------
+    # 1. Index Modification Methods
+    # -----------------------------------------------------------------------------
+
+    def add_item(self, item, vector, y=None):
+        """
+        Add item to index.
+
+        Parameters
+        ----------
+        item : int
+            Item index (non-negative).
+        vector : array-like
+            Vector of length f.
+        y : object, optional
+            Label for this item (sklearn compat).
+
+        Returns
+        -------
+        self : Index
+            For method chaining.
+        """
+        # Infer dimension from first vector if needed
+        if self.f == 0:
+            self.f = len(vector)
+
+        try:
+            # Ensure index exists (lazy creation)
+            self._ensure_index()
+        except Exception as e:
+            raise RuntimeError(f"Index not initialized: {e}") from e
+
+        cdef char* error = NULL
+        cdef cbool success = 0
+
+        if not success:
+            msg = error.decode("utf-8") if error else "Unknown error"
+            raise AnnoyIndexException(f"add_item failed: {msg}")
+
+        # Store label
+        if y is not None:
+            if self.y_map is None:
+                self.y_map = {}
+            self.y_map[item] = y
+
+        return self
+
+    def build(self, n_trees=DEFAULT_N_TREES, n_jobs=DEFAULT_N_THREADS):
+        """
+        Build index forest.
+
+        Parameters
+        ----------
+        n_trees : int, default=10
+            Number of trees to build.
+        n_jobs : int, default=-1
+            Number of threads (-1 = all cores).
+
+        Returns
+        -------
+        self : Index
+            For method chaining.
+        """
+        return self
+
+    def unbuild(self):
+        """Unload index from memory."""
+        cdef char* error = NULL
+        # We cannot use due to Object of type 'void' has no attribute 'unbuild'
+        # self._ptr.unbuild(&error)
+        return self
+
+    def save(self, filename, prefault=None):
+        """Save index to disk."""
+        if not self._index_built:
+            raise AnnoyNotBuiltException("Cannot save index before building")
+
+        prefault = self.prefault if prefault is None else prefault
+
+        cdef bytes filename_bytes = filename.encode('utf-8')
+        cdef char* error = NULL
+        cdef cbool success = 0
+
+        if not success:
+            err_msg = error.decode('utf-8') if error else "Unknown"
+            raise IOError(f"save failed: {err_msg}")
+
+        return self
+
+    def load(self, filename, prefault=None):
+        """Load index from disk."""
+        self._ensure_index()
+
+        prefault = self.prefault if prefault is None else prefault
+
+        cdef bytes filename_bytes = filename.encode('utf-8')
+        cdef char* error = NULL
+        cdef cbool success = 0
+
+        if not success:
+            err_msg = error.decode('utf-8') if error else "Unknown"
+            raise IOError(f"load failed: {err_msg}")
+
+        self._index_built = True
+        return self
+
+    # def on_disk_build(self, filename):
+    #     cdef char* error = NULL
+    #     cdef bytes filename_bytes = filename.encode('utf-8')
+    #
+    #     self._ptr.on_disk_build(filename_bytes, &error)
+    #     return self
+
+    # def unload(self):
+    #     """Unload index from memory."""
+    #     self._ptr.unload()
+    #     return self
+
+    def get_n_trees(self) -> int:
+        """Return number of trees."""
+        if not self._index_created:
+            return 0
+
+        cdef int n_trees = 0
+        return n_trees
+
+    def get_nns_by_item(self, item, n, search_k=DEFAULT_SEARCH_K, include_distances=False):
+        """Query nearest neighbors by item index."""
+        if not self._index_built:
+            raise AnnoyNotBuiltException("Index must be built before querying")
+
+        cdef char* error = NULL
+
+
+    def get_nns_by_vector(self, vector, n, search_k=DEFAULT_SEARCH_K, include_distances=False):
+        """Query nearest neighbors by vector."""
+        if not self._index_built:
+            raise AnnoyNotBuiltException("Index must be built before querying")
+
+        cdef char* error = NULL
+
+
+    def get_item_vector(self, item):
+        """Get vector for item."""
+        if not self._index_created:
+            raise AnnoyIndexException("Index not created")
+
+
+    def get_distance(self, i, j):
+        """Get distance between two items."""
+        if not self._index_created:
+            raise AnnoyIndexException("Index not created")
+
+
+    def get_n_items(self) -> int:
+        """Return number of items."""
+        if not self._index_created:
+            return 0
+
+
+    def get_n_trees(self) -> int:
+        """Get number of trees."""
+        if not self._index_created:
+            return 0
+
+
+    def get_f(self) -> int:
+        """Get dimension."""
+        return self.f
+
+    def set_seed(self, seed):
+        """Set random seed."""
+        return self
+
+    def set_verbose(self, v):
+        """Set verbose mode."""
+        return self
+
+    # ==========================================================================
+    # Sklearn-Style API
+    # ==========================================================================
+
+    def get_params(self, deep=True) -> Dict[str, Any]:
+        """
+        Get estimator parameters (sklearn-style).
+
+        Parameters
+        ----------
+        deep : bool, default=True
+            Included for sklearn API compatibility. Ignored because Annoy
+            does not contain nested estimators.
+
+        Returns
+        -------
+        dict
+            Parameter dictionary.
+        """
+        return {
+            'f': self.f,
+            'metric': self.metric,
+            'n_neighbors': self.n_neighbors,
+            'seed': self._pending_seed if self._has_pending_seed else None,
+            'verbose': self._pending_verbose if self._has_pending_verbose else False,
+            'prefault': self.prefault,
+            'schema_version': self.schema_version,
+            'on_disk_path': self.on_disk_path,
+            'index_dtype': self.index_dtype,
+            'dtype': self.dtype,
+        }
+
+    def set_params(self, **params):
+        """
+        Set estimator parameters (sklearn-style).
+
+        Parameters
+        ----------
+        **params : dict
+            Parameters to set.
+
+        Returns
+        -------
+        self : Index
+            For method chaining.
+
+        Notes
+        -----
+        Changing structural parameters (f, metric, dtype) resets the index.
+        """
+        for key, value in params.items():
+            if key == 'f':
+                if self._index_created and self.f != value:
+                    warnings.warn(
+                        "Changing f resets the index. Call fit() to rebuild.",
+                        UserWarning
+                    )
+                    self.__dealloc__()
+                    self._index_created = False
+                self.f = value
+
+            elif key == 'metric':
+                new_metric_type = _parse_metric(value)
+                if self._index_created and self._metric_type != new_metric_type:
+                    warnings.warn(
+                        "Changing metric resets the index. Call fit() to rebuild.",
+                        UserWarning
+                    )
+                    self.__dealloc__()
+                    self._index_created = False
+                self._metric_type = new_metric_type
+                self.metric = value
+
+            elif key == 'index_dtype':
+                new_index_type = _parse_index_dtype(value)
+                if self._index_created and self._index_type != new_index_type:
+                    warnings.warn(
+                        "Changing index_dtype resets the index. Call fit() to rebuild.",
+                        UserWarning
+                    )
+                    self.__dealloc__()
+                    self._index_created = False
+                self._index_type = new_index_type
+                self.index_dtype = _indextype2str_map.get(self._index_type)
+
+            elif key == 'dtype':
+                new_data_type = _parse_dtype(value)
+                if self._index_created and self._data_type != new_data_type:
+                    warnings.warn(
+                        "Changing dtype resets the index. Call fit() to rebuild.",
+                        UserWarning
+                    )
+                    self.__dealloc__()
+                    self._index_created = False
+                self._data_type = new_data_type
+                self.dtype = _datatype2str_map.get(self._data_type)
+
+            elif key == 'n_neighbors':
+                self.n_neighbors = value
+
+            elif key == 'seed':
+                if value is not None:
+                    self._pending_seed = value
+                    self._has_pending_seed = True
+                else:
+                    self._has_pending_seed = False
+
+            elif key == 'verbose':
+                if value is not None:
+                    self._pending_verbose = bool(value)
+                    self._has_pending_verbose = True
+                else:
+                    self._has_pending_verbose = False
+
+            elif key == 'prefault':
+                self.prefault = value
+
+            elif key == 'schema_version':
+                self.schema_version = value
+
+            elif key == 'on_disk_path':
+                self.on_disk_path = value
+
+            else:
+                raise ValueError(f"Unknown parameter: {key}")
+
+        return self
+
+    def fit(self, X, y=None, *, n_trees=DEFAULT_N_TREES, n_jobs=DEFAULT_N_THREADS):
+        """
+        Fit the index (sklearn-style).
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training vectors.
+        y : array-like of shape (n_samples,), optional
+            Target labels.
+        n_trees : int, default=10
+            Number of trees to build.
+        n_jobs : int, default=-1
+            Number of threads.
+
+        Returns
+        -------
+        self : Index
+            Fitted index.
+        """
+        X = np.asarray(X)
+
+        if X.ndim != 2:
+            raise ValueError(f"X must be 2D, got shape {X.shape}")
+
+        n_samples, n_features = X.shape
+
+        # Set dimension if not set
+        if self.f == 0:
+            self.f = n_features
+        elif self.f != n_features:
+            raise AnnoyDimensionException(
+                f"X has {n_features} features, but index expects {self.f}"
+            )
+
+        # Store feature metadata (sklearn SLEP007)
+        self.n_features_in_ = n_features
+
+        # Reset and add items
+        if self._index_created:
+            self.__dealloc__()
+            self._index_created = False
+
+        for i in range(n_samples):
+            label = y[i] if y is not None else None
+            self.add_item(i, X[i], label)
+
+        # Build
+        self.build(n_trees, n_jobs)
+
+        return self
+
+    def transform(
+        self,
+        X,
+        *,
+        n_neighbors=None,
+        search_k=DEFAULT_SEARCH_K,
+        include_distances=False,
+        return_labels=False
+    ):
+        """
+        Transform queries to neighbor indices (sklearn-style).
+
+        Parameters
+        ----------
+        X : array-like of shape (n_queries, n_features)
+            Query vectors.
+        n_neighbors : int or None
+            Number of neighbors. If None, uses self.n_neighbors.
+        search_k : int, default=-1
+            Search parameter.
+        include_distances : bool, default=False
+            Return distances.
+        return_labels : bool, default=False
+            Return labels from y_map.
+
+        Returns
+        -------
+        neighbors : ndarray of shape (n_queries, n_neighbors)
+            Neighbor indices.
+        distances : ndarray, optional
+            If include_distances=True.
+        labels : list, optional
+            If return_labels=True.
+        """
+        if not self._index_built:
+            raise AnnoyNotBuiltException("fit() must be called before transform()")
+
+        X = np.asarray(X)
+        if X.ndim == 1:
+            X = X.reshape(1, -1)
+
+        n_queries = X.shape[0]
+        k = n_neighbors if n_neighbors is not None else self.n_neighbors
+
+        results = []
+        distances_list = [] if include_distances else None
+        labels_list = [] if return_labels else None
+
+        for i in range(n_queries):
+            if include_distances:
+                neighb, dist = self.get_nns_by_vector(
+                    X[i], k, search_k, include_distances=True
+                )
+                results.append(neighb)
+                distances_list.append(dist)
+            else:
+                neighb = self.get_nns_by_vector(X[i], k, search_k)
+                results.append(neighb)
+
+            if return_labels and self.y_map:
+                labels = [self.y_map.get(idx, None) for idx in neighb]
+                labels_list.append(labels)
+
+        results = np.array(results)
+
+        # Return appropriate tuple
+        ret = [results]
+        if include_distances:
+            ret.append(np.array(distances_list))
+        if return_labels:
+            ret.append(labels_list)
+
+        return tuple(ret) if len(ret) > 1 else ret[0]
+
+    def fit_transform(self, X, y=None, **fit_params):
+        """Fit and transform in one call (sklearn-style)."""
+        return self.fit(X, y, **fit_params).transform(X)
+
+    @property
+    def n_features_in_(self) -> Optional[int]:
+        """Number of features seen during fit."""
+        return self.f if self.f > 0 else None
+
+    @property
+    def n_features_out_(self) -> int:
+        """Number of output features (equals n_neighbors)."""
+        if not self._index_built:
+            raise AttributeError(
+                "n_features_out_ is not available before fit()"
+            )
+        return self.n_neighbors
+
+    def __sklearn_is_fitted__(self) -> bool:
+        """Check if fitted (sklearn protocol hook)."""
+        return self._index_built
+
+    def __sklearn_clone__(self):
+        """Create unfitted clone (sklearn protocol hook)."""
+        params = self.get_params()
+        return self.__class__(**params)
+
+    # ==========================================================================
+    # Serialization Support (following KissGenerator pattern)
+    # ==========================================================================
+
+    def __getstate__(self):
+        """Return state for pickling."""
+        return self.get_state()
+
+    def __setstate__(self, state):
+        """Restore state from pickle."""
+        self.set_state(state)
+
+    def __reduce__(self):
+        """Custom pickle protocol."""
+        return (
+            self.__class__,
+            (),  # No args
+            self.__getstate__(),
+        )
+
+    def __reduce_ex__(self, protocol):
+        """Protocol-specific pickle."""
+        return self.__reduce__()
+
+    def get_state(self) -> Dict[str, Any]:
+        """
+        Get complete state dictionary.
+
+        Returns
+        -------
+        dict
+            State dictionary with all configuration and data.
+        """
+        state = {
+            '__version__': SERIALIZATION_VERSION,
+            '__class__': self.__class__.__name__,
+            '__module__': self.__module__,
+
+            # Configuration
+            'f': self.f,
+            'metric': self.metric,
+            'dtype': self.dtype,
+            'index_dtype': self.index_dtype,
+            'n_neighbors': self.n_neighbors,
+
+            # State flags
+            'index_created': self._index_created,
+            'index_built': self._index_built,
+
+            # Labels
+            'y_map': self.y_map,
+            'feature_names_in': self.feature_names_in_,
+
+            # Configuration
+            'seed': self._pending_seed if self._has_pending_seed else None,
+            'verbose': self._pending_verbose if self._has_pending_verbose else None,
+            'prefault': self.prefault,
+            'schema_version': self.schema_version,
+            'on_disk_path': self.on_disk_path,
+        }
+
+        # Serialize index data if built
+        if self._index_built:
+            # Use temporary file
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp_path = tmp.name
+
+            try:
+                self.save(tmp_path)
+                with open(tmp_path, 'rb') as f:
+                    state['index_data'] = f.read()
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+
+        return state
+
+    def set_state(self, state: Dict[str, Any]):
+        """
+        Restore state from dictionary.
+
+        Parameters
+        ----------
+        state : dict
+            State from get_state().
+        """
+        # Validate version
+        if state.get('__version__') != SERIALIZATION_VERSION:
+            warnings.warn(
+                f"State version mismatch: {state.get('__version__')} != {SERIALIZATION_VERSION}",
+                UserWarning
+            )
+
+        # Restore configuration
+        self.f = state['f']
+        self.metric = state['metric']
+        self._metric_type = _parse_metric(self.metric)
+        self._data_type = _parse_dtype(state.get('dtype', 'float32'))
+        self._index_type = _parse_index_dtype(state.get('index_dtype', 'int32'))
+
+        self.n_neighbors = state['n_neighbors']
+        self.y_map = state.get('y_map')
+        self.feature_names_in_ = state.get('feature_names_in')
+
+        if state.get('seed') is not None:
+            self._pending_seed = state['seed']
+            self._has_pending_seed = True
+
+        if state.get('verbose') is not None:
+            self._pending_verbose = state['verbose']
+            self._has_pending_verbose = True
+
+        self.prefault = state.get('prefault', False)
+        self.schema_version = state.get('schema_version', 1)
+        self.on_disk_path = state.get('on_disk_path')
+
+        # Restore index data if present
+        if 'index_data' in state and state['index_data']:
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                tmp.write(state['index_data'])
+                tmp_path = tmp.name
+
+            try:
+                self.load(tmp_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+
+    # ==========================================================================
+    # Serialization Helpers (JSON)
+    # ==========================================================================
+
+    def serialize(self) -> Dict[str, Any]:
+        """
+        Serialize to JSON-compatible dict.
+
+        Returns
+        -------
+        dict
+            JSON-serializable state.
+        """
+        state = self.get_state()
+
+        # Encode binary data as base64 for JSON
+        if 'index_data' in state and state['index_data']:
+            import base64
+            state['index_data'] = base64.b64encode(
+                state['index_data']
+            ).decode('ascii')
+
+        return state
+
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]):
+        """
+        Deserialize from JSON-compatible dict.
+
+        Parameters
+        ----------
+        data : dict
+            Serialized state.
+
+        Returns
+        -------
+        Index
+            Restored index.
+        """
+        # Decode base64 if present
+        if 'index_data' in data and data['index_data']:
+            import base64
+            data['index_data'] = base64.b64decode(data['index_data'])
+
+        instance = cls()
+        instance.set_state(data)
+        return instance
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Alias for serialize()."""
+        return self.serialize()
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]):
+        """Alias for deserialize()."""
+        return cls.deserialize(data)
+
+
+# ==============================================================================
+# Module-Level Functions
+# ==============================================================================
+
+def create_index(f, metric='angular', **kwargs):
+    """
+    Factory function to create an Annoy index.
+
+    Parameters
+    ----------
+    f : int
+        Vector dimension.
+    metric : str, default='angular'
+        Distance metric.
+    **kwargs
+        Additional parameters passed to Index.
+
+    Returns
+    -------
+    Index
+        New index instance.
+    """
+    return Index(f, metric, **kwargs)
+
+def load_index(filename, f=None, metric=None, **kwargs):
+    """
+    Load an Annoy index from disk.
+
+    Parameters
+    ----------
+    filename : str
+        Path to index file.
+    f : int or None
+        Vector dimension (inferred if None).
+    metric : str or None
+        Distance metric (inferred if None).
+    **kwargs
+        Additional parameters.
+
+    Returns
+    -------
+    Index
+        Loaded index.
+    """
+    index = Index(f, metric, **kwargs)
+    index.load(filename)
+    return index
+
+# ==============================================================================
+# Module Initialization
+# ==============================================================================
+
+# Module docstring
+__doc__ = """
+Annoy - Approximate Nearest Neighbors Oh Yeah!
+
+This is a Cython binding to the Annoy C++ library, providing fast approximate
+nearest neighbor search with configurable precision and memory usage.
+
+Main Classes:
+- Index: Primary user-facing index class
+
+Supported Metrics:
+{{for metric in metrics}}
+- {{metric['name']}}: {{metric['description']}}
+  Aliases: {{', '.join(metric['aliases'])}}
+{{endfor}}
+
+Examples:
+--------
+>>> import numpy as np
+>>> from annoylib import Index
+>>>
+>>> # Create index
+>>> index = Index(128, metric='angular')
+>>>
+>>> # Add vectors
+>>> for i in range(1000):
+...     vec = np.random.randn(128).astype('float32')
+...     index.add_item(i, vec)
+>>>
+>>> # Build trees
+>>> index.build(10)
+>>>
+>>> # Query
+>>> neighbors = index.get_nns_by_item(0, 10)
+>>>
+>>> # Sklearn-style API
+>>> X = np.random.randn(1000, 128)
+>>> index = Index(n_neighbors=10)
+>>> index.fit(X)
+>>> neighbors = index.transform(X[:10])
+"""
+
+# Expose main class and functions
+__all__ = [
+    'Index',
+    'create_index',
+    'load_index',
+
+    # Exceptions
+    'AnnoyException',
+    'AnnoyIndexException',
+    'AnnoyNotBuiltException',
+    'AnnoyDimensionException',
+    'AnnoyMetricException',
+    'AnnoyMemoryException',
+    'AnnoySerializationException',
+
+    # Metadata
+    '__version__',
+]
+
+# vim: syntax=python ts=4 sw=4 sts=4 et

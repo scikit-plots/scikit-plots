@@ -93,32 +93,34 @@ def plot_pca_component_variance(
     Examples
     --------
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: PCA Components Variances
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: PCA Components Variances
 
-        >>> from sklearn.decomposition import PCA
-        >>> from sklearn.datasets import load_digits as data_10_classes
-        >>> import scikitplot as skplt
-        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-        >>> pca = PCA(random_state=0).fit(X)
-        >>> skplt.decomposition.plot_pca_component_variance(
-        ...     pca, target_explained_variance=0.95
-        ... )
+      >>> from sklearn.decomposition import PCA
+      >>> from sklearn.datasets import load_digits as data_10_classes
+      >>> import scikitplot as skplt
+      >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+      >>> pca = PCA(random_state=0).fit(X)
+      >>> skplt.decomposition.plot_pca_component_variance(
+      ...     pca, target_explained_variance=0.95
+      ... )
 
     .. plot::
-       :context: close-figs
-       :align: center
-       :alt: LDA Components Variances
+      :include-source:
+      :align: center
+      :context: close-figs
+      :alt: LDA Components Variances
 
-        >>> from sklearn.discriminant_analysis import (
-        ...     LinearDiscriminantAnalysis,
-        ... )
-        >>> from sklearn.datasets import load_digits as data_10_classes
-        >>> import scikitplot as skplt
-        >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
-        >>> clf = LinearDiscriminantAnalysis().fit(X, y)
-        >>> skplt.decomposition.plot_pca_component_variance(clf)
+      >>> from sklearn.discriminant_analysis import (
+      ...     LinearDiscriminantAnalysis,
+      ... )
+      >>> from sklearn.datasets import load_digits as data_10_classes
+      >>> import scikitplot as skplt
+      >>> X, y = data_10_classes(return_X_y=True, as_frame=False)
+      >>> clf = LinearDiscriminantAnalysis().fit(X, y)
+      >>> skplt.decomposition.plot_pca_component_variance(clf)
 
     """
     ##################################################################

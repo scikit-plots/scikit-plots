@@ -28,8 +28,10 @@ import warnings
 from .. import logger as _logger
 from ._convertions import asbytes, asunicode
 
+SKPLT_API_NAME = "scikitplot"
 
-def set_module(module):
+
+def set_module(module=SKPLT_API_NAME):
     """Private decorator for overriding __module__ on a function or class.
 
     Example usage::

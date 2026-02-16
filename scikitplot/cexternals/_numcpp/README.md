@@ -7,8 +7,8 @@ Vendored repository information
 | Version (Ref Branch, Tag, or Commit SHA) : | 3bbce08329cda35655e154f3724c585d65c3c436 ||
 | Commit                                   : | 3bbce08329cda35655e154f3724c585d65c3c436 ||
 | Tree Mode                                : | bash-sha256sum ||
-| Tree Hash                                : | bb44ad7df6b7cf3d12b8171e33a6c05c9c98f7776679f5ed183820905ba3d254 ||
-| Retrieved                                : | 2026-01-22T12:48:15Z ||
+| Tree Hash                                : | 2e8cda7417befcac170ed0c33527008dc974b5938fd86bbfaccb7fbd634424f8 ||
+| Retrieved                                : | 2026-01-23T14:07:42Z ||
 
 To update (git clone), run:
 

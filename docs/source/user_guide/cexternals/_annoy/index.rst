@@ -34,7 +34,6 @@ This page documents the Annoy [1]_ user guide integration shipped with scikit-pl
 - Low-level bindings C-API: :py:mod:`~scikitplot.cexternals._annoy`
 - High-level Python-API: :py:mod:`~scikitplot.annoy`
 
-----------------------------------------------------------------------
 Python API
 ----------------------------------------------------------------------
 
@@ -92,6 +91,8 @@ TL;DR
 
 Quick start
 -----------
+
+.. rubric:: Examples
 
 .. .. jupyter-execute
 .. .. code-block:: python

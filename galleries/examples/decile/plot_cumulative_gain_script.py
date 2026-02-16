@@ -2,6 +2,8 @@
 plot_cumulative_gain with examples
 ==================================
 
+.. currentmodule:: scikitplot.decile
+
 An example showing the :py:func:`~scikitplot.decile.kds.plot_cumulative_gain` function
 with a scikit-learn classifier (e.g., :py:class:`~sklearn.linear_model.LogisticRegression`) instance.
 """

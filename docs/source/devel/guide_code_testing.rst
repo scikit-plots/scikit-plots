@@ -55,8 +55,8 @@ In the root directory of your development repository run::
    pytest
 
 
-``pytest`` can be configured via many :external+pytest:doc:`command-line parameters
-<how-to/usage>`. Some particularly useful ones are:
+``pytest`` can be configured via many :external+pytest:doc:`command-line parameters <how-to/usage>`.
+Some particularly useful ones are:
 
 =============================  ===========
 ``-v`` or ``--verbose``        Be more verbose
@@ -74,9 +74,8 @@ installed, but Matplotlib should be)::
 If you want to use ``pytest`` as a module (via ``python -m pytest``), then you will need
 to avoid clashes between ``pytest``'s import mode and Python's search path:
 
-- On more recent Python, you may :external+python:std:option:`disable "unsafe import
-  paths" <-P>` (i.e., stop adding the current directory to the import path) with the
-  ``-P`` argument::
+- On more recent Python, you may :external+python:std:option:`disable "unsafe import paths" <-P>`
+  (i.e., stop adding the current directory to the import path) with the ``-P`` argument::
 
       python -P -m pytest
 
@@ -86,8 +85,8 @@ to avoid clashes between ``pytest``'s import mode and Python's search path:
 
       python -I -m pytest
 
-- On any Python, set ``pytest``'s :external+pytest:doc:`import mode
-  <explanation/pythonpath>` to the older ``prepend`` mode (but note that this will break
+- On any Python, set ``pytest``'s :external+pytest:doc:`import mode <explanation/pythonpath>`
+  to the older ``prepend`` mode (but note that this will break
   ``pytest``'s assert rewriting)::
 
       python -m pytest --import-mode prepend

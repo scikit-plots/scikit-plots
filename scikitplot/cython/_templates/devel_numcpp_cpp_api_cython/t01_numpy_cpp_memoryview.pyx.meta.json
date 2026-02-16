@@ -1,0 +1,6 @@
+{
+  "title": "Devel NumPy+C++: memoryview",
+  "description": "C++ mode + memoryview + std::vector.",
+  "requires_numpy": false,
+  "language": "c++"
+}

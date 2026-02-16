@@ -2,7 +2,9 @@
 annoy impute with examples
 ==================================
 
-Examples related to the :py:class:`~scikitplot.impute.ANNImputer` class
+.. currentmodule:: scikitplot.impute
+
+Examples related to the :py:class:`~scikitplot.impute._ann.ANNImputer` class
 with a scikit-learn regressor (e.g., :py:class:`~sklearn.linear_model.LinearRegression`) instance.
 
 .. seealso::
@@ -293,7 +295,7 @@ time_data[5] = T
 # ANN-imputation of the missing values
 # ------------------------------------
 #
-# :class:`~scikitplot.impute.ANNImputer`
+# :class:`~scikitplot.impute._ann.ANNImputer`
 
 import scikitplot as sp
 # sp.get_logger().setLevel(sp.logging.WARNING)  # sp.logging == sp.logger
