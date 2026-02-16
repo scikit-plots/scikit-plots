@@ -322,24 +322,31 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $gitLink = "C:\Program Files\Git\usr\bin\link.exe"
-          if (Test-Path $gitLink) {
-              Rename-Item -Path $gitLink -NewName "link.exe.disabled"
-              Write-Host "Git link.exe disabled"
+          # The @() guarantees array wrapping. $links = @(where.exe link)
+          # $gitLink = "C:\Program Files\Git\usr\bin\link.exe"
+          # if (Test-Path $gitLink) {
+          #     Rename-Item -Path $gitLink -NewName "link.exe.disabled"
+          #     Write-Host "Git link.exe disabled"
+          # }
+          if (-not $env:VCToolsInstallDir) {
+              throw "MSVC environment not initialized"
           }
-          $links = where.exe link
-          if (-not $links) {
-              throw "No link.exe found in PATH"
+          $linkPath = Join-Path $env:VCToolsInstallDir "bin\HostX64\x64\link.exe"
+          if (-not (Test-Path $linkPath)) {
+              throw "MSVC linker not found at expected path: $linkPath"
           }
-          if ($links.Count -ne 1) {
-              Write-Host "Detected link.exe entries:"
-              $links | ForEach-Object { Write-Host $_ }
-              throw "Multiple link.exe detected in PATH — environment is ambiguous"
+          $msvcDir = Split-Path $linkPath
+          # Prepend once, idempotently
+          $pathEntries = $env:PATH -split ';'
+          if ($pathEntries[0] -ne $msvcDir) {
+              $env:PATH = "$msvcDir;$env:PATH"
           }
-          if ($links[0] -notmatch "Microsoft Visual Studio") {
-              throw "Resolved linker is not MSVC: $($links[0])"
+          # Verify executable identity
+          $versionOutput = & $linkPath 2>&1
+          if ($versionOutput -notmatch "Microsoft \(R\) Incremental Linker") {
+              throw "Resolved linker is not MSVC: $linkPath"
           }
-          Write-Host "Using MSVC linker: $($links[0])"
+          Write-Host "Using MSVC linker: $linkPath"
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC
