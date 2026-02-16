@@ -312,14 +312,44 @@ jobs:
       # gcc	      GCC style
       - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
+        # - uses: ilammy/msvc-dev-cmd@v1
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
+      - name: Ensure MSVC linker precedes Git link.exe (Git's link.exe shadowing MSVC's link.exe) (MSVC linker)
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
+        shell: pwsh
+        run: |
+          $allLinks = where.exe link
+
+          $msvcLink = $allLinks | Where-Object {
+            $_ -match 'Microsoft Visual Studio'
+          } | Select-Object -First 1
+
+          if (-not $msvcLink) {
+            Write-Error "MSVC link.exe not found in PATH"
+            exit 1
+          }
+
+          Write-Host "Using MSVC linker: $msvcLink"
+
+          $msvcDir = Split-Path $msvcLink
+
+          $paths = $env:PATH -split ';'
+          $paths = @($msvcDir) + ($paths | Where-Object { $_ -ne $msvcDir })
+          $newPath = ($paths -join ';')
+
+          echo "PATH=$newPath" >> $env:GITHUB_ENV
+
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
-      - name: "🛠️ Windows AMD64 Setup Configure MSVC (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
+      # ⚠️ Important: Do NOT Mix GCC + MSVC
+      # cl.exe      (MSVC compiler)
+      # link.exe    (MSVC linker)
+      - name: "🛠️ Windows AMD64 Setup Configure 🔍 Verify MSVC toolchain (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler 'msvc'
         run: |
+          # Meson will auto-detect MSVC once PATH is correct.
           # "CC=cl" >> $env:GITHUB_ENV
           # "CXX=cl" >> $env:GITHUB_ENV
           echo "CC=cl" >> "$env:GITHUB_ENV"
@@ -330,7 +360,7 @@ jobs:
           # echo gcc --version >> $GITHUB_OUTPUT
 
           where cl >> $GITHUB_OUTPUT
-          # cl /Bv >> $GITHUB_OUTPUT
+          where link >> $GITHUB_OUTPUT
 
       - name: "🛠️ Windows AMD64 Setup Configure MSVC (MinGW/GCC ← RTools) (32|64-bit)"  # R package compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler == 'gcc'
