@@ -205,7 +205,7 @@
     explicit float16_t(float f) {
       // IEEE 754 half-precision conversion
       uint32_t x;
-      std::memcpy(&x, &f, sizeof(float));
+      ::memcpy(&x, &f, sizeof(float));
       uint32_t sign = (x >> 31) << 15;
       uint32_t exp = ((x >> 23) & 0xFF);
       uint32_t frac = (x >> 13) & 0x3FF;
@@ -237,7 +237,7 @@
         result = sign | ((exp - 15 + 127) << 23) | frac;
       }
       float fresult;
-      std::memcpy(&fresult, &result, sizeof(float));
+      ::memcpy(&fresult, &result, sizeof(float));
       return fresult;
     }
     float16_t& operator=(float f) {
@@ -320,6 +320,11 @@ typedef double float64_t;
 #include <cstdlib>
 #include <cstring>
 
+// <string.h> can cause namespace inconsistencies depending on include order.
+#ifdef memcpy
+#undef memcpy
+#endif
+
 #include <vector>
 #include <algorithm>
 #include <queue>
@@ -368,7 +373,7 @@ typedef double float64_t;
 // #endif
 
 #ifdef _MSC_VER
-  // Needed for Visual Studio to disable runtime checks for std::memcpy / low-level memory ops
+  // Needed for Visual Studio to disable runtime checks for ::memcpy / low-level memory ops
   // ⚠️ NOTE: This header disables MSVC runtime checks for the entire translation unit.
   #pragma runtime_checks("s", off)
   // Disable specific warnings for cross-platform compatibility
@@ -495,7 +500,7 @@ inline char* dup_cstr(const char* str) {
   size_t len = std::strlen(str);
   char* copy = static_cast<char*>(std::malloc(len + 1));
   if (copy != NULL) {
-    std::memcpy(copy, str, len + 1);
+    ::memcpy(copy, str, len + 1);
   }
   return copy;
 }
@@ -516,7 +521,7 @@ namespace Annoy {
 // #ifdef ANNOY_HAS_SOFTWARE_FLOAT16
 // inline float16_t::float16_t(float f) {
 //   uint32_t x;
-//   std::memcpy(&x, &f, sizeof(float));
+//   ::memcpy(&x, &f, sizeof(float));
 //
 //   uint32_t sign = (x >> 31) & 0x1;
 //   uint32_t exp = (x >> 23) & 0xFF;
@@ -571,7 +576,7 @@ namespace Annoy {
 //
 //   uint32_t bits = f_sign | (f_exp << 23) | f_frac;
 //   float result;
-//   std::memcpy(&result, &bits, sizeof(float));
+//   ::memcpy(&result, &bits, sizeof(float));
 //   return result;
 // }
 // #endif
@@ -745,7 +750,7 @@ struct AnnoyParams {
 inline char* dup_error(const char* msg) {
   const size_t n = std::strlen(msg) + 1;
   char* p = static_cast<char*>(std::malloc(n));
-  if (p) std::memcpy(p, msg, n);
+  if (p) ::memcpy(p, msg, n);
   return p;
 }
 // Duplicate a C-style string (safe memory allocation)
@@ -754,7 +759,7 @@ inline char* dup_cstr(const char* s) {
   const size_t len = strlen(s);
   char* r = static_cast<char*>(malloc(len + 1));
   if (r == NULL) return NULL;
-  std::memcpy(r, s, len + 1);
+  ::memcpy(r, s, len + 1);
   return r;
 }
 // Set error from C-style string
@@ -1386,7 +1391,7 @@ struct Base {
   }
   template<typename T, typename Node>
   static inline void copy_node(Node* dest, const Node* source, const int f) {
-    std::memcpy(dest->v, source->v, f * sizeof(T));
+    ::memcpy(dest->v, source->v, f * sizeof(T));
   }
   template<typename T, typename Node>
   static inline T get_norm(Node* node, int f) {
@@ -1568,7 +1573,7 @@ struct DotProduct : Angular {
 
   template<typename T, typename Node>
   static inline void copy_node(Node* dest, const Node* source, const int f) {
-    std::memcpy(dest->v, source->v, f * sizeof(T));
+    ::memcpy(dest->v, source->v, f * sizeof(T));
     dest->dot_factor = source->dot_factor;
   }
 
@@ -2427,7 +2432,7 @@ public:
       return false;
     }
     for (size_t i = 0; i < _roots.size(); i++)
-      std::memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
+      ::memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
     _n_nodes += _roots.size();
 
     if (_verbose) annoylib_showUpdate("has %ld nodes\n", (long)_n_nodes);
@@ -2663,7 +2668,7 @@ public:
   void get_item(S item, T* v) const noexcept{
     // TODO: handle OOB
     Node* m = _get(item);
-    std::memcpy(v, m->v, (_f) * sizeof(T));
+    ::memcpy(v, m->v, (_f) * sizeof(T));
   }
 
   void set_seed(R seed) noexcept{
@@ -2774,7 +2779,7 @@ public:
           set_error_from_string(err, "Serialized data is truncated");
           return false;
         }
-        std::memcpy(out, p, sz);
+        ::memcpy(out, p, sz);
         p += sz;
         n -= sz;
         return true;
@@ -2821,7 +2826,7 @@ public:
       }
       _roots.clear();
       _roots.resize(roots_size);
-      std::memcpy(&_roots[0], bytes_buffer, roots_bytes);
+      ::memcpy(&_roots[0], bytes_buffer, roots_bytes);
       bytes_buffer += roots_bytes;
       remaining -= roots_bytes;
     } else {
@@ -2846,7 +2851,7 @@ public:
       return false;
     }
 
-    std::memcpy(_nodes, bytes_buffer, nodes_bytes);
+    ::memcpy(_nodes, bytes_buffer, nodes_bytes);
 
     _nodes_size = (S)nodes_size;
     _n_nodes = n_nodes;
@@ -3035,10 +3040,10 @@ protected:
 
       // Using std::copy instead of a loop seems to resolve issues #3 and #13,
       // probably because gcc 4.8 goes overboard with optimizations.
-      // Using std::memcpy instead of std::copy for MSVC compatibility. #235
+      // Using ::memcpy instead of std::copy for MSVC compatibility. #235
       // Only copy when necessary to avoid crash in MSVC 9. #293
       if (!indices.empty())
-        std::memcpy(m->children, &indices[0], indices.size() * sizeof(S));
+        ::memcpy(m->children, &indices[0], indices.size() * sizeof(S));
 
       threaded_build_policy.unlock_shared_nodes();
       return item;
@@ -3118,7 +3123,7 @@ protected:
     threaded_build_policy.unlock_n_nodes();
 
     threaded_build_policy.lock_shared_nodes();
-    std::memcpy(_get(item), m, _s);
+    ::memcpy(_get(item), m, _s);
     threaded_build_policy.unlock_shared_nodes();
 
     return item;
@@ -3127,7 +3132,7 @@ protected:
   void _get_all_nns(const T* v, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const {
     Node* v_node = (Node *)alloca(_s);
     D::template zero_value<Node>(v_node);
-    std::memcpy(v_node->v, v, sizeof(T) * _f);
+    ::memcpy(v_node->v, v, sizeof(T) * _f);
     D::init_node(v_node, _f);
 
     std::priority_queue<pair<T, S> > q;
@@ -3327,7 +3332,7 @@ private:
     const size_t len = strlen(s);
     char* r = static_cast<char*>(malloc(len + 1));
     if (r == NULL) return NULL;
-    std::memcpy(r, s, len + 1);
+    ::memcpy(r, s, len + 1);
     return r;
   }
 
@@ -3555,7 +3560,7 @@ public:
     hdr.reserved   = 0U;
 
     std::vector<uint8_t> out(sizeof(hdr));
-    std::memcpy(out.data(), &hdr, sizeof(hdr));
+    ::memcpy(out.data(), &hdr, sizeof(hdr));
 
     std::vector<uint8_t> payload = _index.serialize(error);
     if (payload.empty() && error != NULL && *error != NULL) {
@@ -3573,7 +3578,7 @@ public:
     }
 
     HammingHeader hdr;
-    std::memcpy(&hdr, bytes->data(), sizeof(hdr));
+    ::memcpy(&hdr, bytes->data(), sizeof(hdr));
 
     if (hdr.magic != HAMMING_MAGIC ||
         hdr.version != HAMMING_VERSION ||
