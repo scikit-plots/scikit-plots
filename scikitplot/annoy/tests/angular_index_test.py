@@ -56,7 +56,9 @@ def test_dist():
     i.add_item(0, [0, 1])
     i.add_item(1, [1, 1])
 
-    assert i.get_distance(0, 1) == pytest.approx((2 * (1.0 - 2**-0.5)) ** 0.5)
+    # 0.7653668522834778
+    dist = i.get_distance(0, 1)
+    assert i.get_distance(0, 1) == pytest.approx((2 * (1.0 - 2**-0.5)) ** 0.5)  # 0.7653668647301795
 
 
 def test_dist_2():
@@ -65,8 +67,8 @@ def test_dist_2():
     i.add_item(0, [1000, 0])
     i.add_item(1, [10, 0])
 
-    # 0.00022477599850390106
-    assert i.get_distance(0, 1) == pytest.approx(0.00022, rel=1e-5, abs=1e-5)
+    dist = i.get_distance(0, 1)
+    assert i.get_distance(0, 1) == pytest.approx(0)
 
 
 def test_dist_3():
@@ -86,6 +88,7 @@ def test_dist_degen():
     i.add_item(0, [1, 0])
     i.add_item(1, [0, 0])
 
+    dist = i.get_distance(0, 1)
     assert i.get_distance(0, 1) == pytest.approx(2.0**0.5)
 
 
@@ -197,7 +200,7 @@ def test_include_dists_check_ranges():
     i.build(10)
     indices, dists = i.get_nns_by_item(0, 100000, include_distances=True)
     assert max(dists) <= 2.0
-    assert min(dists) == pytest.approx(0.00027, abs=1e-5)  # 0.0002783618401736021
+    assert min(dists) == pytest.approx(0.0)  # 0.0002783618401736021
 
 
 def test_distance_consistency():

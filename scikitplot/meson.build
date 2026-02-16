@@ -119,37 +119,69 @@ inc_dir_numcpp_develop = include_directories(_numcpp_develop_inc_dir)
 inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 
 ######################################################################
-## NumCpp: Platform and Compiler Flags and Dependencies (replicating setup.py logic)
+## NumCpp / pybind / Boost / Compiler Feature Flags and Dep (replicating setup.py logic)
 ######################################################################
+# Optional disable all NumCpp features that require Boost
+# dpkg -s libboost-dev | grep 'Version'
+# Optional disable tbb Dependency
+
+# Base compile and link flags
+extra_compile_args = []
+extra_link_args = []
+
+extra_compile_args += [
+  # '-DNUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE',  # Use Boost
+  # '-DNUMCPP_USE_MULTITHREAD',  # Enable multithreading support
+  '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
+  '-DNUMCPP_NO_USE_BOOST',  # Disable Boost features
+]
+
+######################################################################
+## Optional NumCpp threading (disabled by default)
+######################################################################
+
+# Uncomment only if TBB or threading dependency is satisfied
+# if dependency('tbb', required: false).found()
+#   extra_compile_args += ['-DNUMCPP_USE_MULTITHREAD']
+# endif
+
+######################################################################
+## Compiler-specific flag handling
+######################################################################
+
+# -fpermissive equivalent handling
+if is_msvc or is_clang_cl
+  # MSVC does not support -fpermissive
+  # Closest strict/standard-conforming behavior toggle
+  if cc.has_argument('/permissive-')
+    extra_compile_args += ['/permissive-']
+  endif
+elif is_gcc or is_clang
+  if cc.has_argument('-fpermissive')
+    extra_compile_args += ['-fpermissive']
+  endif
+endif
+
+# --------------------------------------------------------------------
+# macOS Minimum Target
+# --------------------------------------------------------------------
 # Architecture-specific tuning
 os_name = host_machine.system()
 cpu_arch = host_machine.cpu_family()
-
-extra_compile_args = [
-  '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
-  # Optional disable all NumCpp features that require Boost
-  # dpkg -s libboost-dev | grep 'Version'
-  # '-DNUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE',
-  '-DNUMCPP_NO_USE_BOOST',        # Disable Boost features
-  # Optional disable tbb Dependency
-  # '-DNUMCPP_USE_MULTITHREAD',     # Enable multithreading support
-  '-fpermissive',
-]
-extra_link_args = []
-
-# Use at least C++17
-if cc.has_argument('-std=c++17')
-  extra_compile_args += ['-std=c++17']
-endif
 
 # #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
 # macOS minimum version and stdlib
 # std::filesystem::path is part of C++17's <filesystem> library.
 # On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
-if os_name == 'darwin'
+
+if os_name == 'darwin' and is_gnu_style
   if cc.has_argument('-mmacosx-version-min=10.15')
     extra_compile_args += ['-mmacosx-version-min=10.15']
-    extra_link_args += ['-stdlib=libc++', '-mmacosx-version-min=10.15']
+    extra_link_args += [
+      '-mmacosx-version-min=10.15',
+      '-stdlib=libc++',
+      # '-lomp',
+    ]
   endif
 endif
 

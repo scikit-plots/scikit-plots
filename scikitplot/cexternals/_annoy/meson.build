@@ -43,15 +43,21 @@ inc_dir_annoy = include_directories(_annoy_inc_dir)
 # meson introspect ./build/cp311/ --dependencies
 # meson introspect ./build/cp311/ --buildoptions | grep python
 ######################################################################
+
 _env = environment()
 
-# Define dependencies
+# --------------------------------------------------------------------
+# Dependencies
+# --------------------------------------------------------------------
+
 dep_list = dep_all
 # dep_list += [dep_annoy]
 
 if host_machine.system() != 'windows'
   readline_dep = cc.find_library('readline', required: false)
-	dep_list += [readline_dep]
+  if readline_dep.found()
+    dep_list += [readline_dep]
+  endif
 endif
 
 # https://mesonbuild.com/Release-notes-for-0-62-0.html#d-features-in-declare_dependency
@@ -64,6 +70,7 @@ foreach name : ['lua', 'lua53', 'lua5.3', 'lua-5.3']
   #   dep_lua = disabler()
   endif
 endforeach
+
 if not dep_lua.found()
   # error('Lua could not be found!')
   message(
@@ -76,36 +83,64 @@ endif
 ######################################################################
 ## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
 ######################################################################
+
+cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+
+cc_id = cc.get_id()
+arg_syntax = cc.get_argument_syntax()
+
+is_msvc_style = arg_syntax == 'msvc'     # MSVC and clang-cl
+is_gnu_style  = arg_syntax == 'gcc'      # GCC and Clang (Unix)
+is_clang      = cc_id == 'clang'
+is_gcc        = cc_id == 'gcc'
+
 # Architecture-specific tuning
-os_name = host_machine.system()
+os_name  = host_machine.system()
 cpu_arch = host_machine.cpu_family()
 
 # Base compile and link flags
+extra_compile_args = []
 extra_link_args = []
 
-if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
-  extra_compile_args = [
-    '/O3',
+# --------------------------------------------------------------------
+# Optimization + Floating Point (Deterministic & Safe)
+# --------------------------------------------------------------------
+
+# Multithreaded build flag (Python 3 or non-Windows Py2 equivalent)
+# We can safely always enable this — modern environments all support threads
+if is_msvc_style
+  extra_compile_args += [
+    '/O2',
+    '/fp:strict',                 # deterministic IEEE behavior
     '/D_CRT_SECURE_NO_WARNINGS',
-    '/ffast-math',  # we use infinity
-    '/fpermissive',
-    '/fno-associative-math',
+    '/permissive-',
+    # '/DANNOYLIB_MULTITHREADED_BUILD',
   ]
-elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-  extra_compile_args = [
+else
+  extra_compile_args += [
     '-O3',
-    '-D_CRT_SECURE_NO_WARNINGS',
-    '-ffast-math',  # we use infinity
-    '-fpermissive',
-    '-fno-associative-math',
+    '-fno-strict-aliasing',
+    # '-DANNOYLIB_MULTITHREADED_BUILD',
   ]
+
+  # Strict floating point only for Clang (Unix)
+  if is_clang and cc.has_argument('-ffp-model=strict')
+    extra_compile_args += ['-ffp-model=strict']
+  endif
 endif
 
 # https://stackoverflow.com/questions/22931147/stdisinf-does-not-work-with-ffast-math-how-to-check-for-infinity
 if host_machine.system() == 'windows' or cc.get_id() == 'intel'
-  extra_compile_args += [
-    '-fp:precise',  # can't use fp:fast because we use inf
-  ]
+  if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
+    extra_compile_args += [
+      '/fp:precise',  # can't use fp:fast because we use inf
+    ]
+  elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+    extra_compile_args += [
+      '-fp:precise',  # can't use fp:fast because we use inf
+    ]
+  endif
 endif
 
 # Make sure we have the right definition when compiling as a shared library on Windows.
@@ -119,44 +154,40 @@ if os_name != 'windows'
   extra_compile_args += []
 endif
 
-if cpu_arch == 'ppc64le'
-  extra_compile_args += ['-mcpu=native']
+# --------------------------------------------------------------------
+# Architecture tuning (portable-safe)
+# --------------------------------------------------------------------
+
+if cpu_arch == 'ppc64le' and is_gnu_style
+  if cc.has_argument('-mcpu=native')
+    extra_compile_args += ['-mcpu=native']
+  endif
 endif
 
-if cpu_arch == 'x86_64'
-  # do not apply march on Intel Darwin
+if cpu_arch == 'x86_64' and is_gnu_style
   if os_name != 'darwin'
     if cc.has_argument('-march=native')
-      # Not all CPUs have march as a tuning parameter
       extra_compile_args += ['-march=native']
     endif
   endif
 endif
 
-# Multithreaded build flag (Python 3 or non-Windows Py2 equivalent)
-# We can safely always enable this — modern environments all support threads
-extra_compile_args += [
-  '-DANNOYLIB_MULTITHREADED_BUILD',
-]
-
-# Use at least unix: "-std=c++14", win: "/std:c++14"
-if cc.has_argument('-std=c++17')
-  extra_compile_args += ['-std=c++17']
-endif
+# --------------------------------------------------------------------
+# macOS Minimum Target
+# --------------------------------------------------------------------
 
 # #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
 # macOS minimum version and stdlib
 # std::filesystem::path is part of C++17's <filesystem> library.
 # On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
-if os_name == 'darwin'
+
+if os_name == 'darwin' and is_gnu_style
   if cc.has_argument('-mmacosx-version-min=10.15')
-    extra_compile_args += [
-      '-mmacosx-version-min=10.15',
-    ]
+    extra_compile_args += ['-mmacosx-version-min=10.15']
     extra_link_args += [
-      '-lomp',
-      '-stdlib=libc++',
       '-mmacosx-version-min=10.15',
+      '-stdlib=libc++',
+      # '-lomp',
     ]
   endif
 endif
