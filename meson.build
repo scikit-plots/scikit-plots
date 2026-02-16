@@ -427,8 +427,13 @@ endif
 # Note that MSVC does not support strict aliasing at all, and neither do the
 # Intel compilers on Windows, so the `-fno` flavor of the flag should be fine.
 # -fno-strict-aliasing: Disable certain optimizations that assume pointer types don’t alias
-add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing']), language: 'c')
-add_project_arguments(cpp.get_supported_arguments(['-fno-strict-aliasing']), language: 'cpp')
+if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
+  add_project_arguments(cc.get_supported_arguments(['/fno-strict-aliasing']), language: 'c')
+  add_project_arguments(cpp.get_supported_arguments(['/fno-strict-aliasing']), language: 'cpp')
+elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+  add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing']), language: 'c')
+  add_project_arguments(cpp.get_supported_arguments(['-fno-strict-aliasing']), language: 'cpp')
+endif
 
 ######################################################################
 ## Compiler Flags: Clang trapping math flags

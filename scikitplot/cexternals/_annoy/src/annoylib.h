@@ -153,23 +153,25 @@
 // Float16 support (IEEE 754 half precision - 16 bits)
 #if defined(__F16C__) || defined(__ARM_FP16_FORMAT_IEEE)
   #if defined(__ARM_FP16_FORMAT_IEEE)
-    // Native ARM float16, Cython does not properly support __fp16.
-    // typedef __fp16 float16_t;
-    struct float16_t {
-        __fp16 data;
+    // TODO: Native ARM float16, Cython does not properly support __fp16.
+    // C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\ARM64\lib\clang\19\include\arm_vector_types.h
+    // arm_vector_types.h(18,16): error: typedef redefinition with different types ('__fp16' vs 'float16_t')
+    typedef __fp16 float16_t;
+    // struct float16_t {
+    //     __fp16 data;
 
-        float16_t() : data(0) {}
-        explicit float16_t(float f) : data(static_cast<__fp16>(f)) {}
+    //     float16_t() : data(0) {}
+    //     explicit float16_t(float f) : data(static_cast<__fp16>(f)) {}
 
-        operator float() const {
-            return static_cast<float>(data);
-        }
+    //     operator float() const {
+    //         return static_cast<float>(data);
+    //     }
 
-        float16_t& operator=(float f) {
-            data = static_cast<__fp16>(f);
-            return *this;
-        }
-    };
+    //     float16_t& operator=(float f) {
+    //         data = static_cast<__fp16>(f);
+    //         return *this;
+    //     }
+    // };
     #define ANNOY_HAS_NATIVE_FLOAT16 1
   #elif defined(__F16C__)
     // x86 F16C hardware acceleration
@@ -203,7 +205,7 @@
     explicit float16_t(float f) {
       // IEEE 754 half-precision conversion
       uint32_t x;
-      std::memcpy(&x, &f, sizeof(float));
+      memcpy(&x, &f, sizeof(float));
       uint32_t sign = (x >> 31) << 15;
       uint32_t exp = ((x >> 23) & 0xFF);
       uint32_t frac = (x >> 13) & 0x3FF;
@@ -235,7 +237,7 @@
         result = sign | ((exp - 15 + 127) << 23) | frac;
       }
       float fresult;
-      std::memcpy(&fresult, &result, sizeof(float));
+      memcpy(&fresult, &result, sizeof(float));
       return fresult;
     }
     float16_t& operator=(float f) {
@@ -488,7 +490,7 @@ inline char* dup_cstr(const char* str) {
   size_t len = std::strlen(str);
   char* copy = static_cast<char*>(std::malloc(len + 1));
   if (copy != NULL) {
-    std::memcpy(copy, str, len + 1);
+    memcpy(copy, str, len + 1);
   }
   return copy;
 }
@@ -509,7 +511,7 @@ namespace Annoy {
 // #ifdef ANNOY_HAS_SOFTWARE_FLOAT16
 // inline float16_t::float16_t(float f) {
 //   uint32_t x;
-//   std::memcpy(&x, &f, sizeof(float));
+//   memcpy(&x, &f, sizeof(float));
 //
 //   uint32_t sign = (x >> 31) & 0x1;
 //   uint32_t exp = (x >> 23) & 0xFF;
@@ -564,7 +566,7 @@ namespace Annoy {
 //
 //   uint32_t bits = f_sign | (f_exp << 23) | f_frac;
 //   float result;
-//   std::memcpy(&result, &bits, sizeof(float));
+//   memcpy(&result, &bits, sizeof(float));
 //   return result;
 // }
 // #endif
@@ -575,6 +577,7 @@ using annoy_off_t = int64_t;
 #endif
 using std::free;
 using std::malloc;
+using std::memcpy;
 using std::vector;
 using std::pair;
 using std::numeric_limits;
@@ -737,7 +740,7 @@ struct AnnoyParams {
 inline char* dup_error(const char* msg) {
   const size_t n = std::strlen(msg) + 1;
   char* p = static_cast<char*>(std::malloc(n));
-  if (p) std::memcpy(p, msg, n);
+  if (p) memcpy(p, msg, n);
   return p;
 }
 // Duplicate a C-style string (safe memory allocation)
@@ -3530,7 +3533,7 @@ public:
     hdr.reserved   = 0U;
 
     std::vector<uint8_t> out(sizeof(hdr));
-    std::memcpy(out.data(), &hdr, sizeof(hdr));
+    memcpy(out.data(), &hdr, sizeof(hdr));
 
     std::vector<uint8_t> payload = _index.serialize(error);
     if (payload.empty() && error != NULL && *error != NULL) {
@@ -3548,7 +3551,7 @@ public:
     }
 
     HammingHeader hdr;
-    std::memcpy(&hdr, bytes->data(), sizeof(hdr));
+    memcpy(&hdr, bytes->data(), sizeof(hdr));
 
     if (hdr.magic != HAMMING_MAGIC ||
         hdr.version != HAMMING_VERSION ||
