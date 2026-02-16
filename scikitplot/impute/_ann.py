@@ -82,6 +82,15 @@ except ImportError as e:  # noqa: N816
 else:
     _VOYAGER_IMPORT_ERROR = None
 
+from scikitplot import __version__
+from scikitplot.externals._packaging.version import parse as parse_version
+
+scikitplot_version = parse_version(__version__)
+if scikitplot_version.dev is None:
+    version_url = f"{scikitplot_version.major}.{scikitplot_version.minor}"
+else:
+    version_url = "dev"
+
 __all__ = [
     "ANNImputer",  # Unified Approximate KNN imputer
     "AnnoyKNNImputer",  # Annoy backend alias
@@ -439,6 +448,13 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
            [4. , 6. , 5. ],
            [8. , 8. , 7. ]])
     """  # noqa: D301
+
+    # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/_repr_html/base.py#L11
+    _doc_link_module = "scikitplot"
+    _doc_link_template = (
+        f"https://scikit-plots.github.io/{version_url}/modules/generated/"
+        "{estimator_module}._ann.{estimator_name}.html"
+    )
 
     # ------------------------------------------------------------------ #
     # sklearn parameter constraints
