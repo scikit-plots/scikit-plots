@@ -280,7 +280,7 @@ struct ScopedError {
 
 // Only use NULL (0) when maintaining legacy C code.
 // nullptr is std::nullptr_t, recommended in C++11 and later (not C).
-template class Annoy::AnnoyIndexInterface<int32_t, float>;
+template class Annoy::AnnoyIndexInterface<int32_t, float, u_int64_t>;
 
 // A raw string literal R"( ... )";
 static const char kAnnoyTypeDoc[] =
@@ -414,7 +414,7 @@ get_nns_by_item, get_nns_by_vector : Query nearest neighbours.
 save, load : Persist the index to/from disk.
 serialize, deserialize : Persist the index to/from bytes.
 set_seed : Set the random seed deterministically.
-verbose : Set verbosity level.
+set_verbose : Set verbosity level.
 info : Return a structured summary of the current index.
 
 Notes
@@ -667,7 +667,7 @@ Notes
 )SVDOC";
 
 // ---------------------------------------------------------------------
-// HammingWrapper
+// HammingWrapperIndex
 //
 // A thin adapter that exposes a float-based AnnoyIndexInterface
 // while internally using a binary (uint64_t) Hamming index.
@@ -684,7 +684,7 @@ Notes
 //   - Unpacks uint64_t → float[0,1] when returning vectors
 //   - Adds a small header around the raw Annoy index for robustness
 // ---------------------------------------------------------------------
-class HammingWrapper : public AnnoyIndexInterface<int32_t, float> {
+class HammingWrapperIndex : public AnnoyIndexInterface<int32_t, float, uint64_t> {
 private:
   // External binary dimension (number of Hamming bits)
   int32_t _f_external;  // number of bits in the user-facing embedding
@@ -751,17 +751,74 @@ public:
   // -------------------------------------------------------------------
   // Construction
   // -------------------------------------------------------------------
-  explicit HammingWrapper(int f)
+  explicit HammingWrapperIndex(int f)
     : _f_external(f),
       _f_internal((f + 63) / 64),
       _index((f + 63) / 64) {}
+
+  int get_f() const noexcept override {
+      return _index.get_f();
+  }
+
+  // bool set_f(int f, char** error = NULL) noexcept override {
+  //     return _index.set_f(f, error);
+  // }
+
+  // Set dimension (must be called before add_item if using default constructor)
+  bool set_f(int f, char** error = NULL) noexcept override {
+    if (_index.get_n_items() > 0) {
+      if (error != NULL) {
+        *error = dup_cstr("Cannot change dimension after items have been added");
+      }
+      return false;
+    }
+
+    if (f <= 0) {
+      if (error != NULL) {
+        *error = dup_cstr("Dimension must be positive");
+      }
+      return false;
+    }
+
+    // _f_external = static_cast<S>(f);
+    // _f_internal = static_cast<S>(
+    //   (_f_external + BITS_PER_WORD - 1) / BITS_PER_WORD
+    // );
+    // _f_inferred = true;
+
+    return _index.set_f(static_cast<int>(f), error);
+  }
+
+  bool get_params(
+      std::vector<std::pair<std::string, std::string>>& params
+  ) const noexcept override {
+      params.clear();
+      params.emplace_back("f", std::to_string(_f_external));
+      return true;
+  }
+  bool set_params(
+      const std::vector<std::pair<std::string, std::string>>& params,
+      char** error = NULL
+  ) noexcept override {
+      for (const auto& kv : params) {
+          if (kv.first == "f") {
+              int f = std::stoi(kv.second);
+              return set_f(f, error);
+          }
+      }
+
+      if (error) {
+          *error = strdup("missing parameter: f");
+      }
+      return false;
+  }
 
   // -------------------------------------------------------------------
   // Index operations (AnnoyIndexInterface)
   // -------------------------------------------------------------------
   bool add_item(int32_t indice,
                 const float* embedding,
-                char** error) override {
+                char** error) noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _pack(embedding, &packed[0]);
     return _index.add_item(indice, &packed[0], error);
@@ -769,7 +826,7 @@ public:
 
   bool build(int n_trees,
              int n_threads,
-             char** error) override {
+             char** error) noexcept override {
     return _index.build(n_trees, n_threads, error);
   }
 
@@ -778,7 +835,7 @@ public:
   bool deserialize(
     vector<uint8_t>* byte,
     bool prefault,
-    char** error) override {
+    char** error) noexcept override {
     if (!byte || byte->empty()) {
       // if (error) *error = strdup("Empty byte vector");
       if (error) *error = dup_cstr("Empty byte vector");
@@ -832,7 +889,7 @@ public:
   }
 
   float get_distance(int32_t i,
-                     int32_t j) const override {
+                     int32_t j) const noexcept override {
     // Underlying Hamming index returns an integer distance (uint64_t).
     // We convert to float and clip to [0, _f_external] for robustness.
     const uint64_t d_raw = _index.get_distance(i, j);
@@ -842,17 +899,17 @@ public:
   }
 
   void get_item(int32_t indice,
-                float* embedding) const override {
+                float* embedding) const noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _index.get_item(indice, &packed[0]);
     _unpack(&packed[0], embedding);
   }
 
-  int32_t get_n_items() const override {
+  int32_t get_n_items() const noexcept override {
     return _index.get_n_items();
   }
 
-  int32_t get_n_trees() const override {
+  int32_t get_n_trees() const noexcept override {
     return _index.get_n_trees();
   }
 
@@ -867,7 +924,7 @@ public:
                        size_t     n,
                        int        search_k,
                        vector<int32_t>*  result,
-                       vector<float>*    distances) const {
+                       vector<float>*    distances) const noexcept override {
     if (distances) {
       vector<uint64_t> internal_distances;
       _index.get_nns_by_item(query_indice,
@@ -896,7 +953,7 @@ public:
                          size_t             n,
                          int                search_k,
                          vector<int32_t>*   result,
-                         vector<float>*     distances) const {
+                         vector<float>*     distances) const noexcept override {
     vector<uint64_t> packed_query(_f_internal, 0ULL);
     _pack(query_embedding, &packed_query[0]);
 
@@ -929,29 +986,29 @@ public:
   // -------------------------------------------------------------------
   bool load(const char* filename,
             bool        prefault,
-            char**      error) override {
+            char**      error) noexcept override {
     return _index.load(filename, prefault, error);
   }
 
   bool on_disk_build(const char* filename,
-                     char**      error) override {
+                     char**      error) noexcept override {
     return _index.on_disk_build(filename, error);
   }
 
   bool save(const char* filename,
             bool        prefault,
-            char**      error) override {
+            char**      error) noexcept override {
     return _index.save(filename, prefault, error);
   }
 
-  void set_seed(uint64_t seed) override {
+  void set_seed(uint64_t seed) noexcept override {
     _index.set_seed(seed);
   }
 
   // -------------------------------------------------------------------
   // Serialization with HammingHeader in front of the raw index byte
   // -------------------------------------------------------------------
-  vector<uint8_t> serialize(char** error) const override {
+  vector<uint8_t> serialize(char** error) const noexcept override {
     vector<uint8_t> byte;
 
     HammingHeader hdr;
@@ -980,16 +1037,16 @@ public:
     return byte;
   }
 
-  bool unbuild(char** error) override {
+  bool unbuild(char** error) noexcept override {
     return _index.unbuild(error);
   }
 
-  void unload() override {
+  void unload() noexcept override {
     _index.unload();
   }
 
-  void verbose(bool v) override {
-    _index.verbose(v);
+  void set_verbose(bool v) noexcept override {
+    _index.set_verbose(v);
   }
 };
 
@@ -1003,11 +1060,12 @@ public:
 //   * Dot       → negative dot product distance
 //   * Hamming   → bitwise Hamming distance on binary embeddings
 // -------------------------------------------------------------------------
-typedef AnnoyIndex<int32_t, float, Angular,   Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngular;
-typedef AnnoyIndex<int32_t, float, Euclidean, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclidean;
-typedef AnnoyIndex<int32_t, float, Manhattan, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattan;
-typedef AnnoyIndex<int32_t, float, DotProduct,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDot;
-typedef HammingWrapper AnnoyHamming;
+typedef AnnoyIndex<int32_t, float, Angular,    Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngularIndex;
+typedef AnnoyIndex<int32_t, float, Euclidean,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclideanIndex;
+typedef AnnoyIndex<int32_t, float, Manhattan,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattanIndex;
+typedef AnnoyIndex<int32_t, float, DotProduct ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDotIndex;
+// typedef AnnoyHamming<int32_t, float, Hamming  ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyHammingIndex;
+typedef HammingWrapperIndex AnnoyHammingIndex;
 
 // ======================= MetricId =========================================
 // ✅ Enum system: MetricId + metric_from_string() + ensure_index()
@@ -1086,7 +1144,7 @@ typedef struct {
   // NOTE: This is separate from the instance __dict__.
   PyObject* weakreflist;        // weakref list head, or NULL
 
-  AnnoyIndexInterface<int32_t, float>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngular*>(ptr)
+  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngularIndex*>(ptr)
 
   // Optional labels / targets associated with vectors (set by fit or manually).
   //
@@ -1159,11 +1217,11 @@ static bool ensure_index(py_annoy* self) {
   }
   try {
     switch (self->metric_id) {
-      case METRIC_ANGULAR:   self->ptr = new AnnoyAngular(self->f); break;
-      case METRIC_EUCLIDEAN: self->ptr = new AnnoyEuclidean(self->f); break;
-      case METRIC_MANHATTAN: self->ptr = new AnnoyManhattan(self->f); break;
-      case METRIC_DOT:       self->ptr = new AnnoyDot(self->f); break;
-      case METRIC_HAMMING:   self->ptr = new AnnoyHamming(self->f); break;
+      case METRIC_ANGULAR:   self->ptr = new AnnoyAngularIndex(self->f); break;
+      case METRIC_EUCLIDEAN: self->ptr = new AnnoyEuclideanIndex(self->f); break;
+      case METRIC_MANHATTAN: self->ptr = new AnnoyManhattanIndex(self->f); break;
+      case METRIC_DOT:       self->ptr = new AnnoyDotIndex(self->f); break;
+      case METRIC_HAMMING:   self->ptr = new AnnoyHammingIndex(self->f); break;
       default:
         PyErr_SetString(PyExc_RuntimeError, "Internal error: unknown metric");
         return false;
@@ -1176,7 +1234,7 @@ static bool ensure_index(py_annoy* self) {
     return false;
   }
   if (self->has_pending_seed)    self->ptr->set_seed(self->pending_seed);
-  if (self->has_pending_verbose) self->ptr->verbose(self->pending_verbose >= 1);
+  if (self->has_pending_verbose) self->ptr->set_verbose(self->pending_verbose >= 1);
 
   // STRICT disk equivalence (on_disk_path ↔ on_disk_build(on_disk_path)):
   //
@@ -1983,7 +2041,7 @@ static void py_an_dealloc(py_annoy* self) {
   //
   // Important: set self->ptr to NULL *before* deleting to prevent any accidental
   // re-entrancy (or future code changes) from double-freeing the same pointer.
-  AnnoyIndexInterface<int32_t, float>* ptr = self->ptr;
+  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr = self->ptr;
 
   // 1) Release OS-backed / heap resources (C++).
   if (ptr) {
@@ -3021,7 +3079,7 @@ static int py_annoy_set_verbose(
   if (value == Py_None) {
     self->pending_verbose     = 0;
     self->has_pending_verbose = false;
-    if (self->ptr) self->ptr->verbose(false);
+    if (self->ptr) self->ptr->set_verbose(false);
     return 0;
   }
   if (!PyLong_Check(value)) {
@@ -3041,7 +3099,7 @@ static int py_annoy_set_verbose(
   self->has_pending_verbose = true;
 
   if (self->ptr) {
-    self->ptr->verbose(level >= 1);
+    self->ptr->set_verbose(level >= 1);
   }
   return 0;
 }
@@ -3339,7 +3397,7 @@ static PyObject* py_an_verbose(
   if (level_obj == Py_None) {
     self->pending_verbose     = 0;
     self->has_pending_verbose = false;
-    if (self->ptr) self->ptr->verbose(false);
+    if (self->ptr) self->ptr->set_verbose(false);
     PY_RETURN_SELF;
   }
 
@@ -3369,7 +3427,7 @@ static PyObject* py_an_verbose(
   }
 
   const bool verbose_flag = (level >= 1);
-  self->ptr->verbose(verbose_flag);
+  self->ptr->set_verbose(verbose_flag);
   PY_RETURN_SELF; // Py_RETURN_TRUE; // Chaining: a.build(...).save(...).info()
 }
 
@@ -9463,7 +9521,7 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_verbose,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "set_verbose(level=1)\n"
+    "set_verbose(verbosity=1)\n"
     "\n"
     "Set the verbosity level (callable setter).\n"
     "\n"
@@ -9473,7 +9531,7 @@ static PyMethodDef py_annoy_methods[] = {
     "\n"
     "Parameters\n"
     "----------\n"
-    "level : int, optional, default=1\n"
+    "verbosity : int, optional, default=1\n"
     "    Verbosity level. Values are clamped to the range ``[-2, 2]``.\n"
     "    ``level >= 1`` enables Annoy's verbose logging; ``level <= 0`` disables it.\n"
     "    Logging level inspired by gradient-boosting libraries:\n"

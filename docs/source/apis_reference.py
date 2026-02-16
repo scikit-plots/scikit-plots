@@ -267,8 +267,15 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("annoy-index"),
         "sections": [
             {
-                "title": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
-                "description": None,
+                "title": "ANNoy (:mod:`cython` based ``scikitplot/annoy/_annoy``)",
+                "description": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
+                "autosummary": [
+                    "_annoy.Index",
+                ],
+            },
+            {
+                "title": "ANNoy (cpp based ``scikitplot/cexternals/_annoy``)",
+                "description": "ANNoy (Approximate Nearest Neighbors Oh Yeah)",
                 "autosummary": [
                     # "get_include",
                     "Annoy",
@@ -277,7 +284,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "ANNoy :py:class:`~.scikitplot.annoy.Index` Mixins",
+                "title": "ANNoy (cpp based :py:class:`~.scikitplot.annoy.Index` Mixins)",
                 "description": None,
                 "autosummary": [
                     "CompressMode",

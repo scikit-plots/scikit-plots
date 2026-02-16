@@ -43,7 +43,14 @@ namespace Annoy {
 // ---------------------------------------------------------------------------
 // 32-bit KISS
 // ---------------------------------------------------------------------------
+/**
+ * @brief 32-bit KISS random number generator
+ *
+ * Fast, simple, and reliable pseudo-random number generator.
+ */
 struct Kiss32Random {
+
+  typedef uint32_t result_type;
 
 #if __cplusplus < 201103L
   typedef uint32_t seed_type;
@@ -73,7 +80,7 @@ struct Kiss32Random {
   // all-zero states are degenerate for these components, so we map seed==0
   // to a deterministic non-zero default seed.
   static inline uint32_t normalize_seed(uint32_t seed) {
-    return seed ? seed : default_seed;
+    return (seed > 0) ? seed : default_seed;
   }
 
   // Constructors: seed must be != 0 (seed=0 is normalized to default_seed)
@@ -81,7 +88,7 @@ struct Kiss32Random {
     reset(seed);
   }
 
-  inline void reset(uint32_t seed) {
+  inline void reset(uint32_t seed = default_seed) {
     seed = normalize_seed(seed);
     x = seed;
     y = default_y;
@@ -122,13 +129,23 @@ struct Kiss32Random {
     // Draw integer in [0, n-1]. Defined for all n; n==0 returns 0.
     return n ? (static_cast<size_t>(kiss()) % n) : 0u;
   }
+  // double uniform() {
+  //   return static_cast<double>((*this)()) / static_cast<double>(UINT32_MAX);
+  // }
 };
 
 // ---------------------------------------------------------------------------
 // 64-bit KISS
 // ---------------------------------------------------------------------------
 // Use this if you have more than about 2^24 data points ("big data" ;)).
+/**
+ * @brief 64-bit KISS random number generator
+ *
+ * Extended version for large-scale applications.
+ */
 struct Kiss64Random {
+
+  typedef uint64_t result_type;
 
 #if __cplusplus < 201103L
   typedef uint64_t seed_type;
@@ -154,7 +171,7 @@ struct Kiss64Random {
   // See Kiss32Random::normalize_seed for rationale.
   static inline uint64_t normalize_seed(uint64_t seed) {
     // bool ? truthy : falsy
-    return seed ? seed : default_seed;
+    return (seed > 0) ? seed : default_seed;
   }
 
   // Constructors: seed must be != 0 (seed=0 is normalized to default_seed)
@@ -162,7 +179,7 @@ struct Kiss64Random {
     reset(seed);
   }
 
-  inline void reset(uint64_t seed) {
+  inline void reset(uint64_t seed = default_seed) {
     seed = normalize_seed(seed);
     x = seed;
     y = default_y;
@@ -205,6 +222,10 @@ struct Kiss64Random {
     // Draw integer in [0, n-1]. Defined for all n; n==0 returns 0.
     return n ? (static_cast<size_t>(kiss() % static_cast<uint64_t>(n))) : 0u;
   }
+
+  // double uniform() {
+  //   return static_cast<double>((*this)()) / static_cast<double>(UINT64_MAX);
+  // }
 };
 
 }  // namespace Annoy

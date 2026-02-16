@@ -231,6 +231,7 @@ jobs:
     # Works in any shell, because it's replaced in the YAML itself.
     # run: echo "${{ env.IS_32_BIT }}"
     # use $GITHUB_ENV (bash) or $env:GITHUB_ENV (pwsh)
+    # echo "KEY=value" >> $env:GITHUB_ENV
     # +---------------------------------+-------------------------+----------------------------------------------+
     # | Syntax                          | Context                 | Description                                  |
     # +============================+=========================+===================================================+
@@ -304,14 +305,30 @@ jobs:
 
       # --- RUNNER_OS ---
 
-      - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧
+      - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d  # v1
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: "🛠️ Windows AMD64 Setup (MinGW/GCC ← RTools) (32|64-bit)"  # R package compilation
-        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
+      # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
+      - name: "🛠️ Windows AMD64 Setup Configure MSVC (MSVC/Clang ← Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler 'msvc'
+        run: |
+          # "CC=cl" >> $env:GITHUB_ENV
+          # "CXX=cl" >> $env:GITHUB_ENV
+          echo "CC=cl" >> "$env:GITHUB_ENV"
+          echo "CXX=cl" >> "$env:GITHUB_ENV"
+
+          ## Step outputs, Verify Tools
+          # echo cl /? >> $GITHUB_OUTPUT
+          # echo gcc --version >> $GITHUB_OUTPUT
+
+          where cl >> $GITHUB_OUTPUT
+          cl /Bv >> $GITHUB_OUTPUT
+
+      - name: "🛠️ Windows AMD64 Setup Configure MSVC (MinGW/GCC ← RTools) (32|64-bit)"  # R package compilation
+        if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler == 'gcc'
         run: |
           if ($env:IS_32_BIT -eq "true") {
             ## mingw-w32
@@ -327,9 +344,16 @@ jobs:
             ## Export for GitHub Actions all subsequent steps in the same job
             # echo "PKG_CONFIG_PATH=c:/rtools40/ucrt64/lib/pkgconfig" >> $env:GITHUB_ENV
           }
+
+          # "CC=gcc" >> $env:GITHUB_ENV
+          # "CXX=g++" >> $env:GITHUB_ENV
+          echo "CC=gcc" >> "$env:GITHUB_ENV"
+          echo "CXX=g++" >> "$env:GITHUB_ENV"
+          # echo "FC=gfortran" >> "$env:GITHUB_ENV"
+
           ## Step outputs, Verify Tools
-          # echo cl /? >> $GITHUB_OUTPUT
-          # echo gcc --version >> $GITHUB_OUTPUT
+          where gcc >> $GITHUB_OUTPUT
+          gcc --version
 
       - name: "🛠️ Windows AMD64 Setup (pkg-config ← Strawberry Perl) (32|64-bit)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}

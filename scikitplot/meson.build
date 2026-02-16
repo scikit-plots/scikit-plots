@@ -177,6 +177,7 @@ subdir('_lib')
 subdir('cexternals')
 subdir('memmap')
 subdir('random')
+subdir('annoy')
 
 subdir('nc')  # defined use in dep_numcpp
 

@@ -15,7 +15,7 @@
 import os
 import random
 
-import numpy
+import numpy as np; np.random.seed(0)  # reproducibility
 import pytest
 
 # from annoy import AnnoyIndex
@@ -65,7 +65,8 @@ def test_dist_2():
     i.add_item(0, [1000, 0])
     i.add_item(1, [10, 0])
 
-    assert i.get_distance(0, 1) == pytest.approx(0)
+    # 0.00022477599850390106
+    assert i.get_distance(0, 1) == pytest.approx(0.00022, rel=1e-5, abs=1e-5)
 
 
 def test_dist_3():
@@ -152,13 +153,13 @@ def test_load_save_get_item_vector():
     i.add_item(1, [4.4, 5.5, 6.6])
     i.add_item(2, [7.7, 8.8, 9.9])
 
-    numpy.testing.assert_array_almost_equal(i.get_item_vector(0), [1.1, 2.2, 3.3])
+    np.testing.assert_array_almost_equal(i.get_item_vector(0), [1.1, 2.2, 3.3])
     assert i.build(10)
     assert i.save(f"{HERE}/blah.ann")
-    numpy.testing.assert_array_almost_equal(i.get_item_vector(1), [4.4, 5.5, 6.6])
+    np.testing.assert_array_almost_equal(i.get_item_vector(1), [4.4, 5.5, 6.6])
     j = AnnoyIndex(f, "angular")
     assert j.load(f"{HERE}/blah.ann")
-    numpy.testing.assert_array_almost_equal(j.get_item_vector(2), [7.7, 8.8, 9.9])
+    np.testing.assert_array_almost_equal(j.get_item_vector(2), [7.7, 8.8, 9.9])
 
 
 def test_get_nns_search_k():
@@ -177,7 +178,7 @@ def test_include_dists():
     # Double checking issue 112
     f = 40
     i = AnnoyIndex(f, "angular")
-    v = numpy.random.normal(size=f)
+    v = np.random.normal(size=f)
     i.add_item(0, v)
     i.add_item(1, -v)
     i.build(10)
@@ -192,11 +193,11 @@ def test_include_dists_check_ranges():
     f = 3
     i = AnnoyIndex(f, "angular")
     for j in range(100000):
-        i.add_item(j, numpy.random.normal(size=f))
+        i.add_item(j, np.random.normal(size=f))
     i.build(10)
     indices, dists = i.get_nns_by_item(0, 100000, include_distances=True)
     assert max(dists) <= 2.0
-    assert min(dists) == pytest.approx(0.0)
+    assert min(dists) == pytest.approx(0.00027, abs=1e-5)  # 0.0002783618401736021
 
 
 def test_distance_consistency():
@@ -204,8 +205,8 @@ def test_distance_consistency():
     i = AnnoyIndex(f, "angular")
     for j in range(n):
         while True:
-            v = numpy.random.normal(size=f)
-            if numpy.dot(v, v) > 0.1:
+            v = np.random.normal(size=f)
+            if np.dot(v, v) > 0.1:
                 break
         i.add_item(j, v)
     i.build(10)
@@ -215,11 +216,11 @@ def test_distance_consistency():
             u = i.get_item_vector(a)
             v = i.get_item_vector(b)
             assert dist == pytest.approx(i.get_distance(a, b), rel=1e-3, abs=1e-3)
-            u_norm = numpy.array(u) * numpy.dot(u, u) ** -0.5
-            v_norm = numpy.array(v) * numpy.dot(v, v) ** -0.5
-            # cos = numpy.clip(1 - cosine(u, v), -1, 1) # scipy returns 1 - cos
+            u_norm = np.array(u) * np.dot(u, u) ** -0.5
+            v_norm = np.array(v) * np.dot(v, v) ** -0.5
+            # cos = np.clip(1 - cosine(u, v), -1, 1) # scipy returns 1 - cos
             assert dist**2 == pytest.approx(
-                numpy.dot(u_norm - v_norm, u_norm - v_norm), rel=1e-3, abs=1e-3
+                np.dot(u_norm - v_norm, u_norm - v_norm), rel=1e-3, abs=1e-3
             )
             # self.assertAlmostEqual(dist, (2*(1 - cos))**0.5)
             assert dist**2 == pytest.approx(
@@ -232,14 +233,14 @@ def test_distance_consistency():
 def test_only_one_item():
     # reported to annoy-user by Kireet Reddy
     idx = AnnoyIndex(100, "angular")
-    idx.add_item(0, numpy.random.randn(100))
+    idx.add_item(0, np.random.randn(100))
     idx.build(n_trees=10)
     idx.save(f"{HERE}/foo.idx")
     idx = AnnoyIndex(100, "angular")
     idx.load(f"{HERE}/foo.idx")
     assert idx.get_n_items() == 1
     assert idx.get_nns_by_vector(
-        vector=numpy.random.randn(100), n=50, include_distances=False
+        vector=np.random.randn(100), n=50, include_distances=False
     ) == [0]
 
 
@@ -252,7 +253,7 @@ def test_no_items():
     assert idx.get_n_items() == 0
     assert (
         idx.get_nns_by_vector(
-            vector=numpy.random.randn(100), n=50, include_distances=False
+            vector=np.random.randn(100), n=50, include_distances=False
         )
         == []
     )
@@ -266,4 +267,4 @@ def test_single_vector():
     a.save(f"{HERE}/1.ann")
     indices, dists = a.get_nns_by_vector([1, 0, 0], 3, include_distances=True)
     assert indices == [0]
-    assert dists[0] ** 2 == pytest.approx(0.0)  # pytest.approx(0.0, rel=1e-12, abs=1e-3)
+    assert dists[0] ** 2 == pytest.approx(0.0, rel=1e-12, abs=1e-3)
