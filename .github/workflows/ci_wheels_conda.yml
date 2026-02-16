@@ -317,30 +317,29 @@ jobs:
         with:
           architecture: ${{ env.IS_32_BIT == 'true' && 'x86' || 'x64' }}
 
-      - name: Ensure MSVC linker precedes Git link.exe (Git's link.exe shadowing MSVC's link.exe) (MSVC linker)
+      - name: 🛠️ Disable Git link.exe and verify MSVC linker (prevent MSVC shadowing) (MSVC linker)
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
         shell: pwsh
         run: |
-          $allLinks = where.exe link
-
-          $msvcLink = $allLinks | Where-Object {
-            $_ -match 'Microsoft Visual Studio'
-          } | Select-Object -First 1
-
-          if (-not $msvcLink) {
-            Write-Error "MSVC link.exe not found in PATH"
-            exit 1
+          $ErrorActionPreference = "Stop"
+          $gitLink = "C:\Program Files\Git\usr\bin\link.exe"
+          if (Test-Path $gitLink) {
+              Rename-Item -Path $gitLink -NewName "link.exe.disabled"
+              Write-Host "Git link.exe disabled"
           }
-
-          Write-Host "Using MSVC linker: $msvcLink"
-
-          $msvcDir = Split-Path $msvcLink
-
-          $paths = $env:PATH -split ';'
-          $paths = @($msvcDir) + ($paths | Where-Object { $_ -ne $msvcDir })
-          $newPath = ($paths -join ';')
-
-          echo "PATH=$newPath" >> $env:GITHUB_ENV
+          $links = where.exe link
+          if (-not $links) {
+              throw "No link.exe found in PATH"
+          }
+          if ($links.Count -ne 1) {
+              Write-Host "Detected link.exe entries:"
+              $links | ForEach-Object { Write-Host $_ }
+              throw "Multiple link.exe detected in PATH — environment is ambiguous"
+          }
+          if ($links[0] -notmatch "Microsoft Visual Studio") {
+              throw "Resolved linker is not MSVC: $($links[0])"
+          }
+          Write-Host "Using MSVC linker: $($links[0])"
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC

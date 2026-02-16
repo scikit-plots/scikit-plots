@@ -141,9 +141,11 @@
   #include <cstdint>
 #endif
 
-#ifndef _MSC_VER
+// only on non-Windows systems.
+#ifndef _WIN32
   #include <unistd.h>
 #endif
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -151,6 +153,8 @@
 /* =========================
  * Standard C/C++ library
  * ========================= */
+// C headers place symbols in global namespace
+// C++ headers place them in std::
 #include <errno.h>
 #include <math.h>
 #include <stddef.h>
@@ -164,6 +168,7 @@
 #include <cstdio>   // C++ correct fprintf, stderr
 #include <cstdlib>
 #include <cstring>
+#include <string>  // REQUIRED for std::to_string, std::stoi
 
 #include <vector>
 #include <algorithm>
@@ -212,7 +217,7 @@
   #error "Annoy requires at least C++11 or newer"
 #endif
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32 || defined(_MSC_VER) || defined(__MINGW32__)
   #ifndef NOMINMAX
     #define NOMINMAX
   #endif
