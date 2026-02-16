@@ -420,58 +420,145 @@ if host_machine.system() == 'linux' or host_machine.system() == 'darwin'
 endif
 
 ######################################################################
-## Compiler Feature Flags: C strict aliasing flags
+## Compiler Feature Flags: Strict Aliasing Control
 ######################################################################
 
-# Add default compile flags for any compiler that supports them.
-# Note that MSVC does not support strict aliasing at all, and neither do the
-# Intel compilers on Windows, so the `-fno` flavor of the flag should be fine.
-# -fno-strict-aliasing: Disable certain optimizations that assume pointer types don’t alias
-if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
-  add_project_arguments(cc.get_supported_arguments(['/fno-strict-aliasing']), language: 'c')
-  add_project_arguments(cpp.get_supported_arguments(['/fno-strict-aliasing']), language: 'cpp')
-elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-  add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing']), language: 'c')
-  add_project_arguments(cpp.get_supported_arguments(['-fno-strict-aliasing']), language: 'cpp')
+cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+
+cc_id = cc.get_id()
+arg_syntax = cc.get_argument_syntax()
+
+is_msvc_style = arg_syntax == 'msvc'
+is_gnu_style = arg_syntax == 'gcc'
+is_msvc = cc_id == 'msvc'
+is_clang_cl = cc_id == 'clang-cl'
+is_gcc = cc_id == 'gcc'
+is_clang = cc_id == 'clang'
+
+# --------------------------------------------------------------------
+# Strict aliasing control
+#
+# Rationale:
+#   - GCC / Clang enable strict aliasing at -O2+
+#   - -fno-strict-aliasing disables optimizations that assume
+#     non-aliasing pointer types
+#   - MSVC does not implement strict aliasing semantics
+#     and does not support this flag
+# --------------------------------------------------------------------
+
+if is_gcc or is_clang
+  c_alias_flags = cc.get_supported_arguments(['-fno-strict-aliasing'])
+  cpp_alias_flags = cpp.get_supported_arguments(['-fno-strict-aliasing'])
+
+  if c_alias_flags.length() > 0
+    add_project_arguments(c_alias_flags, language: 'c')
+  endif
+
+  if cpp_alias_flags.length() > 0
+    add_project_arguments(cpp_alias_flags, language: 'cpp')
+  endif
+
+elif is_msvc or is_clang_cl
+  # MSVC and clang-cl do not support strict aliasing flags.
+  # No action required.
 endif
 
 ######################################################################
 ## Compiler Flags: Clang trapping math flags
 ######################################################################
-
 # Clang defaults to a non-strict floating error point model, but we need strict
 # behavior. `-ftrapping-math` is equivalent to `-ffp-exception-behavior=strict`.
 # This flag is also required to prevent the activation of SIMD partial load workarounds.
 # For further clarification, refer to gh-24461.
+
+cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+
 cc_id = cc.get_id()
-if cc_id.startswith('clang')
-  # Determine the compiler flags for trapping math exceptions.
-  trapping_math = {
-    'clang-cl': '/clang:-ftrapping-math',
-  }.get(cc_id, '-ftrapping-math')
-  # Check if the compiler supports the trapping math flag.
-  if cc.has_argument(trapping_math)
-    # TODO: Consider upgrading the vendored Meson to 1.3.0 to support the parameter `werror`
-    # Detect whether the compiler actually supports strict handling of floating-point exceptions
-    # by treating warnings as errors.
-    if cc.compiles('int main() { return 0; }', args: [trapping_math, '-Werror'])
-      trapping_math = [trapping_math, '-DNPY_HAVE_CLANG_FPSTRICT']
+arg_syntax = cc.get_argument_syntax()
+
+is_unix_clang = cc_id == 'clang'
+is_msvc = cc_id == 'msvc'
+is_clang_cl = is_msvc and cc.has_argument('/clang:-ftrapping-math')
+
+trapping_math = []
+
+# ------------------------------------------------------------
+# UNIX CLANG
+# ------------------------------------------------------------
+if is_unix_clang
+  if cc.has_argument('-ftrapping-math')
+    if cc.compiles('int main() { return 0; }',
+                   args: ['-ftrapping-math', '-Werror'])
+      trapping_math = [
+        '-ftrapping-math',
+        '-DNPY_HAVE_CLANG_FPSTRICT'
+      ]
     else
-      # Suppress warnings about unsupported floating-point optimization.
-      trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
-      # Inform the user about the workaround.
+      trapping_math = [
+        '-ftrapping-math',
+        '-Wno-unsupported-floating-point-opt'
+      ]
       message(
-        '\n' +
-        BLUE + '[INFO]' + RESET +
-        ' Clang version does not strictly ' +
-        'enforce floating-point exception handling. ' +
-        'Performance may be impacted. Consider upgrading Clang.'
+        '\n[INFO] Clang does not strictly enforce floating-point exception handling. ' +
+        'Consider upgrading Clang.'
       )
     endif
-    add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
-    add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
   endif
+
+# ------------------------------------------------------------
+# CLANG-CL (MSVC FRONTEND)
+# ------------------------------------------------------------
+elif is_clang_cl
+  # Use proper MSVC semantic equivalent
+  if cc.has_argument('/fp:strict')
+    trapping_math = [
+      '/fp:strict',
+      '/DNPY_HAVE_CLANG_FPSTRICT'
+    ]
+  endif
+
 endif
+
+# Apply arguments if detected
+if trapping_math.length() > 0
+  add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
+  add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
+endif
+
+# if cc_id.startswith('clang')
+#   # Determine the compiler flags for trapping math exceptions.
+#   trapping_math = {
+#     'clang-cl': '/clang:-ftrapping-math',
+#   }.get(cc_id, '-ftrapping-math')
+#   # Check if the compiler supports the trapping math flag.
+#   if cc.has_argument(trapping_math)
+#     # TODO: Consider upgrading the vendored Meson to 1.3.0 to support the parameter `werror`
+#     # Detect whether the compiler actually supports strict handling of floating-point exceptions
+#     # by treating warnings as errors.
+#     if cc.compiles('int main() { return 0; }', args: [trapping_math, '-Werror'])
+#       if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
+#         trapping_math = [trapping_math, '/DNPY_HAVE_CLANG_FPSTRICT']
+#       elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
+#         trapping_math = [trapping_math, '-DNPY_HAVE_CLANG_FPSTRICT']
+#       endif
+#     else
+#       # Suppress warnings about unsupported floating-point optimization.
+#       trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
+#       # Inform the user about the workaround.
+#       message(
+#         '\n' +
+#         BLUE + '[INFO]' + RESET +
+#         ' Clang version does not strictly ' +
+#         'enforce floating-point exception handling. ' +
+#         'Performance may be impacted. Consider upgrading Clang.'
+#       )
+#     endif
+#     add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
+#     add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
+#   endif
+# endif
 
 ######################################################################
 ## C and C++ Global compiler flags/options argument
