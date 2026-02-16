@@ -141,6 +141,94 @@
   #include <cstdint>
 #endif
 
+#ifndef _MSC_VER
+  #include <unistd.h>
+#endif
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+/* =========================
+ * Standard C/C++ library
+ * ========================= */
+#include <errno.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>   // C legacy guarantees snprintf mapping
+#include <stdlib.h>
+#include <string.h>
+
+#include <cerrno>
+#include <cmath>
+#include <cstddef>
+#include <cstdio>   // C++ correct fprintf, stderr
+#include <cstdlib>
+#include <cstring>
+
+#include <vector>
+#include <algorithm>
+#include <queue>
+#include <limits>
+#include <stdexcept>
+#include <utility>
+
+// For 201103L "This library requires at least C++11 (-std=c++11)."
+// For 201402L "This library requires at least C++14 (-std=c++14)."
+// For 201703L "This library requires at least C++17 (-std=c++17)."
+#if __cplusplus >= 201103L
+  #include <type_traits>
+  #include <unordered_set>
+  // REQUIRED for std::atomic requires C++11 or newer.
+  #include <atomic>
+#endif
+
+#ifdef ANNOYLIB_MULTITHREADED_BUILD
+  // ThreadedBuildPolicy
+  #include <thread>
+  #include <functional>
+  #include <mutex>
+  #if __cplusplus >= 201402L
+    #include <shared_mutex>
+  #else
+    #include <shared_mutex>
+  #endif
+#endif
+
+/* =========================
+ * Compile-time assertions (C++11)
+ * ========================= */
+// #if __cplusplus >= 201103L
+//   static_assert(sizeof(uint8_t) == 1, "uint8_t must be 8-bit");
+//   static_assert(sizeof(uint16_t) == 2, "uint16_t must be 16-bit");
+//   static_assert(sizeof(uint32_t) == 4, "uint32_t must be 32-bit");
+//   static_assert(sizeof(uint64_t) == 8, "uint64_t must be 64-bit");
+//   static_assert(sizeof(int32_t) == 4, "int32_t must be 32-bit");
+//   static_assert(sizeof(int64_t) == 8, "int64_t must be 64-bit");
+//   static_assert(sizeof(float) == 4, "float must be 32-bit");
+//   static_assert(sizeof(double) == 8, "double must be 64-bit");
+// #endif
+
+#if __cplusplus < 201103L
+  #error "Annoy requires at least C++11 or newer"
+#endif
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+  #ifndef NOMINMAX
+    #define NOMINMAX
+  #endif
+  // ⚠️ Override some definitions to support 64-bit file offsets on Windows
+  // a bit hacky, but override some definitions to support 64 bit
+  // 64-bit file offset support on Windows
+  #define off_t int64_t
+  #define lseek_getsize(fd) _lseeki64(fd, 0, SEEK_END)
+  #include <windows.h>
+  #include <io.h>   // optional but safer for _lseeki64
+  #include "mman.h"
+#else
+ #include <sys/mman.h>
+ #define lseek_getsize(fd) lseek(fd, 0, SEEK_END)
+#endif
+
 /* =========================
  * Extended floating-point types
  * ========================= */
@@ -205,7 +293,7 @@
     explicit float16_t(float f) {
       // IEEE 754 half-precision conversion
       uint32_t x;
-      ::memcpy(&x, &f, sizeof(float));
+      std::memcpy(&x, &f, sizeof(float));
       uint32_t sign = (x >> 31) << 15;
       uint32_t exp = ((x >> 23) & 0xFF);
       uint32_t frac = (x >> 13) & 0x3FF;
@@ -237,7 +325,8 @@
         result = sign | ((exp - 15 + 127) << 23) | frac;
       }
       float fresult;
-      ::memcpy(&fresult, &result, sizeof(float));
+      // <cstring>   // must be before usage
+      std::memcpy(&fresult, &result, sizeof(float));
       return fresult;
     }
     float16_t& operator=(float f) {
@@ -279,101 +368,8 @@ typedef float  float32_t;
 typedef double float64_t;
 #endif // ANNOY_TYPE_ALIASES_DEFINED
 
-#ifndef _MSC_VER
-  #include <unistd.h>
-#endif
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#if defined(_MSC_VER) || defined(__MINGW32__)
-  #ifndef NOMINMAX
-    #define NOMINMAX
-  #endif
-  // ⚠️ Override some definitions to support 64-bit file offsets on Windows
-  // a bit hacky, but override some definitions to support 64 bit
-  // 64-bit file offset support on Windows
-  #define off_t int64_t
-  #define lseek_getsize(fd) _lseeki64(fd, 0, SEEK_END)
-  #include <windows.h>
-  #include <io.h>   // optional but safer for _lseeki64
-  #include "mman.h"
-#else
- #include <sys/mman.h>
- #define lseek_getsize(fd) lseek(fd, 0, SEEK_END)
-#endif
-
-/* =========================
- * Standard C/C++ library
- * ========================= */
-#include <errno.h>
-#include <math.h>
-#include <stddef.h>
-#include <stdio.h>   // guarantees snprintf mapping
-#include <stdlib.h>
-#include <string.h>
-
-#include <cerrno>
-#include <cmath>
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-// <string.h> can cause namespace inconsistencies depending on include order.
-#ifdef memcpy
-#undef memcpy
-#endif
-
-#include <vector>
-#include <algorithm>
-#include <queue>
-#include <limits>
-#include <stdexcept>
-#include <utility>
-
-#if __cplusplus < 201103L
-  #error "Annoy requires at least C++11 or newer"
-#endif
-
-// For 201103L "This library requires at least C++11 (-std=c++11)."
-// For 201402L "This library requires at least C++14 (-std=c++14)."
-// For 201703L "This library requires at least C++17 (-std=c++17)."
-#if __cplusplus >= 201103L
-  #include <type_traits>
-  #include <unordered_set>
-  // REQUIRED for std::atomic requires C++11 or newer.
-  #include <atomic>
-#endif
-
-#ifdef ANNOYLIB_MULTITHREADED_BUILD
-  // ThreadedBuildPolicy
-  #include <thread>
-  #include <functional>
-  #include <mutex>
-  #if __cplusplus >= 201402L
-    #include <shared_mutex>
-  #else
-    #include <shared_mutex>
-  #endif
-#endif
-
-/* =========================
- * Compile-time assertions (C++11)
- * ========================= */
-// #if __cplusplus >= 201103L
-//   static_assert(sizeof(uint8_t) == 1, "uint8_t must be 8-bit");
-//   static_assert(sizeof(uint16_t) == 2, "uint16_t must be 16-bit");
-//   static_assert(sizeof(uint32_t) == 4, "uint32_t must be 32-bit");
-//   static_assert(sizeof(uint64_t) == 8, "uint64_t must be 64-bit");
-//   static_assert(sizeof(int32_t) == 4, "int32_t must be 32-bit");
-//   static_assert(sizeof(int64_t) == 8, "int64_t must be 64-bit");
-//   static_assert(sizeof(float) == 4, "float must be 32-bit");
-//   static_assert(sizeof(double) == 8, "double must be 64-bit");
-// #endif
-
 #ifdef _MSC_VER
-  // Needed for Visual Studio to disable runtime checks for ::memcpy / low-level memory ops
+  // Needed for Visual Studio to disable runtime checks for std::memcpy / low-level memory ops
   // ⚠️ NOTE: This header disables MSVC runtime checks for the entire translation unit.
   #pragma runtime_checks("s", off)
   // Disable specific warnings for cross-platform compatibility
@@ -500,7 +496,7 @@ inline char* dup_cstr(const char* str) {
   size_t len = std::strlen(str);
   char* copy = static_cast<char*>(std::malloc(len + 1));
   if (copy != NULL) {
-    ::memcpy(copy, str, len + 1);
+    std::memcpy(copy, str, len + 1);
   }
   return copy;
 }
@@ -521,7 +517,7 @@ namespace Annoy {
 // #ifdef ANNOY_HAS_SOFTWARE_FLOAT16
 // inline float16_t::float16_t(float f) {
 //   uint32_t x;
-//   ::memcpy(&x, &f, sizeof(float));
+//   std::memcpy(&x, &f, sizeof(float));
 //
 //   uint32_t sign = (x >> 31) & 0x1;
 //   uint32_t exp = (x >> 23) & 0xFF;
@@ -576,7 +572,7 @@ namespace Annoy {
 //
 //   uint32_t bits = f_sign | (f_exp << 23) | f_frac;
 //   float result;
-//   ::memcpy(&result, &bits, sizeof(float));
+//   std::memcpy(&result, &bits, sizeof(float));
 //   return result;
 // }
 // #endif
@@ -587,7 +583,6 @@ using annoy_off_t = int64_t;
 #endif
 using std::free;
 using std::malloc;
-using std::memcpy;
 using std::vector;
 using std::pair;
 using std::numeric_limits;
@@ -750,7 +745,7 @@ struct AnnoyParams {
 inline char* dup_error(const char* msg) {
   const size_t n = std::strlen(msg) + 1;
   char* p = static_cast<char*>(std::malloc(n));
-  if (p) ::memcpy(p, msg, n);
+  if (p) std::memcpy(p, msg, n);
   return p;
 }
 // Duplicate a C-style string (safe memory allocation)
@@ -759,7 +754,7 @@ inline char* dup_cstr(const char* s) {
   const size_t len = strlen(s);
   char* r = static_cast<char*>(malloc(len + 1));
   if (r == NULL) return NULL;
-  ::memcpy(r, s, len + 1);
+  std::memcpy(r, s, len + 1);
   return r;
 }
 // Set error from C-style string
@@ -1391,7 +1386,7 @@ struct Base {
   }
   template<typename T, typename Node>
   static inline void copy_node(Node* dest, const Node* source, const int f) {
-    ::memcpy(dest->v, source->v, f * sizeof(T));
+    std::memcpy(dest->v, source->v, f * sizeof(T));
   }
   template<typename T, typename Node>
   static inline T get_norm(Node* node, int f) {
@@ -1573,7 +1568,7 @@ struct DotProduct : Angular {
 
   template<typename T, typename Node>
   static inline void copy_node(Node* dest, const Node* source, const int f) {
-    ::memcpy(dest->v, source->v, f * sizeof(T));
+    std::memcpy(dest->v, source->v, f * sizeof(T));
     dest->dot_factor = source->dot_factor;
   }
 
@@ -2432,7 +2427,7 @@ public:
       return false;
     }
     for (size_t i = 0; i < _roots.size(); i++)
-      ::memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
+      std::memcpy(_get(_n_nodes + (S)i), _get(_roots[i]), _s);
     _n_nodes += _roots.size();
 
     if (_verbose) annoylib_showUpdate("has %ld nodes\n", (long)_n_nodes);
@@ -2668,7 +2663,7 @@ public:
   void get_item(S item, T* v) const noexcept{
     // TODO: handle OOB
     Node* m = _get(item);
-    ::memcpy(v, m->v, (_f) * sizeof(T));
+    std::memcpy(v, m->v, (_f) * sizeof(T));
   }
 
   void set_seed(R seed) noexcept{
@@ -2779,7 +2774,7 @@ public:
           set_error_from_string(err, "Serialized data is truncated");
           return false;
         }
-        ::memcpy(out, p, sz);
+        std::memcpy(out, p, sz);
         p += sz;
         n -= sz;
         return true;
@@ -2826,7 +2821,7 @@ public:
       }
       _roots.clear();
       _roots.resize(roots_size);
-      ::memcpy(&_roots[0], bytes_buffer, roots_bytes);
+      std::memcpy(&_roots[0], bytes_buffer, roots_bytes);
       bytes_buffer += roots_bytes;
       remaining -= roots_bytes;
     } else {
@@ -2851,7 +2846,7 @@ public:
       return false;
     }
 
-    ::memcpy(_nodes, bytes_buffer, nodes_bytes);
+    std::memcpy(_nodes, bytes_buffer, nodes_bytes);
 
     _nodes_size = (S)nodes_size;
     _n_nodes = n_nodes;
@@ -3040,10 +3035,10 @@ protected:
 
       // Using std::copy instead of a loop seems to resolve issues #3 and #13,
       // probably because gcc 4.8 goes overboard with optimizations.
-      // Using ::memcpy instead of std::copy for MSVC compatibility. #235
+      // Using std::memcpy instead of std::copy for MSVC compatibility. #235
       // Only copy when necessary to avoid crash in MSVC 9. #293
       if (!indices.empty())
-        ::memcpy(m->children, &indices[0], indices.size() * sizeof(S));
+        std::memcpy(m->children, &indices[0], indices.size() * sizeof(S));
 
       threaded_build_policy.unlock_shared_nodes();
       return item;
@@ -3123,7 +3118,7 @@ protected:
     threaded_build_policy.unlock_n_nodes();
 
     threaded_build_policy.lock_shared_nodes();
-    ::memcpy(_get(item), m, _s);
+    std::memcpy(_get(item), m, _s);
     threaded_build_policy.unlock_shared_nodes();
 
     return item;
@@ -3132,7 +3127,7 @@ protected:
   void _get_all_nns(const T* v, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const {
     Node* v_node = (Node *)alloca(_s);
     D::template zero_value<Node>(v_node);
-    ::memcpy(v_node->v, v, sizeof(T) * _f);
+    std::memcpy(v_node->v, v, sizeof(T) * _f);
     D::init_node(v_node, _f);
 
     std::priority_queue<pair<T, S> > q;
@@ -3332,7 +3327,7 @@ private:
     const size_t len = strlen(s);
     char* r = static_cast<char*>(malloc(len + 1));
     if (r == NULL) return NULL;
-    ::memcpy(r, s, len + 1);
+    std::memcpy(r, s, len + 1);
     return r;
   }
 
@@ -3560,7 +3555,7 @@ public:
     hdr.reserved   = 0U;
 
     std::vector<uint8_t> out(sizeof(hdr));
-    ::memcpy(out.data(), &hdr, sizeof(hdr));
+    std::memcpy(out.data(), &hdr, sizeof(hdr));
 
     std::vector<uint8_t> payload = _index.serialize(error);
     if (payload.empty() && error != NULL && *error != NULL) {
@@ -3578,7 +3573,7 @@ public:
     }
 
     HammingHeader hdr;
-    ::memcpy(&hdr, bytes->data(), sizeof(hdr));
+    std::memcpy(&hdr, bytes->data(), sizeof(hdr));
 
     if (hdr.magic != HAMMING_MAGIC ||
         hdr.version != HAMMING_VERSION ||
