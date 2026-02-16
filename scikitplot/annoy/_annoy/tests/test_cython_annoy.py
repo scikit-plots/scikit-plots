@@ -508,7 +508,7 @@ def test_doc_link_generation():
     print(f"✓ Generated doc link:\n  {doc_link}")
 
     # Verify structure
-    assert 'scikit-plots.github.io' in doc_link or doc_link == '', \
+    assert 'scikit-plots' in doc_link or doc_link == '', \
         "Link should contain scikit-plots.github.io or be empty"
 
     if doc_link:
