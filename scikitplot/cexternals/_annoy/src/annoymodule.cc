@@ -280,7 +280,7 @@ struct ScopedError {
 
 // Only use NULL (0) when maintaining legacy C code.
 // nullptr is std::nullptr_t, recommended in C++11 and later (not C).
-template class Annoy::AnnoyIndexInterface<int32_t, float, u_int64_t>;
+template class Annoy::AnnoyIndexInterface<int32_t, float, uint64_t>;
 
 // A raw string literal R"( ... )";
 static const char kAnnoyTypeDoc[] =
@@ -1144,7 +1144,7 @@ typedef struct {
   // NOTE: This is separate from the instance __dict__.
   PyObject* weakreflist;        // weakref list head, or NULL
 
-  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngularIndex*>(ptr)
+  AnnoyIndexInterface<int32_t, float, uint64_t>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngularIndex*>(ptr)
 
   // Optional labels / targets associated with vectors (set by fit or manually).
   //
@@ -2041,7 +2041,7 @@ static void py_an_dealloc(py_annoy* self) {
   //
   // Important: set self->ptr to NULL *before* deleting to prevent any accidental
   // re-entrancy (or future code changes) from double-freeing the same pointer.
-  AnnoyIndexInterface<int32_t, float, u_int64_t>* ptr = self->ptr;
+  AnnoyIndexInterface<int32_t, float, uint64_t>* ptr = self->ptr;
 
   // 1) Release OS-backed / heap resources (C++).
   if (ptr) {

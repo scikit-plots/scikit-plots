@@ -352,8 +352,8 @@ jobs:
 
           # "CC=gcc" >> $env:GITHUB_ENV
           # "CXX=g++" >> $env:GITHUB_ENV
-          echo "CC=gcc" >> "$env:GITHUB_ENV"
-          echo "CXX=g++" >> "$env:GITHUB_ENV"
+          # echo "CC=gcc" >> "$env:GITHUB_ENV"
+          # echo "CXX=g++" >> "$env:GITHUB_ENV"
           # echo "FC=gfortran" >> "$env:GITHUB_ENV"
 
           ## Step outputs, Verify Tools
