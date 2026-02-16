@@ -325,7 +325,7 @@ jobs:
           # echo gcc --version >> $GITHUB_OUTPUT
 
           where cl >> $GITHUB_OUTPUT
-          cl /Bv >> $GITHUB_OUTPUT
+          # cl /Bv >> $GITHUB_OUTPUT
 
       - name: "🛠️ Windows AMD64 Setup Configure MSVC (MinGW/GCC ← RTools) (32|64-bit)"  # R package compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}  # compiler == 'gcc'
@@ -353,7 +353,7 @@ jobs:
 
           ## Step outputs, Verify Tools
           where gcc >> $GITHUB_OUTPUT
-          gcc --version
+          # gcc --version
 
       - name: "🛠️ Windows AMD64 Setup (pkg-config ← Strawberry Perl) (32|64-bit)"
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'AMD64' }}
