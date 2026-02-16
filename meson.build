@@ -600,6 +600,7 @@ _global_flags = [
   '-Wno-unused-parameter',                            # Suppress warnings about unused parameters
   '-Wno-unused-result',                               # Suppress warnings about unused results
   '-Wno-unused-variable',                             # Suppress warnings about unused variables
+  '-Wno-unused-but-set-variable',                     # Suppress warnings about unused variables
   '-Wno-write-strings',                               # Treat string literals as `const char[]`
   '-Wno-discarded-qualifiers',                        # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
   '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized

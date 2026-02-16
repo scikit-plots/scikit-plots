@@ -2278,12 +2278,12 @@ public:
    *
    * @return Dimension (0 if not set and not inferred)
    */
-  int get_f() const noexcept{
+  int get_f() const noexcept override {
     // return _f;
     return static_cast<int>(_f);
   }
 
-  bool set_f(int f, char** error = NULL) noexcept{
+  bool set_f(int f, char** error = NULL) noexcept override {
       if (f <= 0) {
           if (error) {
               *error = strdup("f must be > 0");
@@ -2294,13 +2294,13 @@ public:
       return true;
   }
 
-  bool add_item(S item, const T* w, char** error=NULL) noexcept{
+  bool add_item(S item, const T* w, char** error=NULL) noexcept override {
     return add_item_impl(item, w, error);
   }
 
     bool get_params(
         std::vector<std::pair<std::string, std::string>>& params
-    ) const noexcept{
+    ) const noexcept override {
         params.clear();
         params.emplace_back("f", std::to_string(_f));
         return true;
@@ -2309,7 +2309,7 @@ public:
     bool set_params(
         const std::vector<std::pair<std::string, std::string>>& params,
         char** error = NULL
-    ) noexcept{
+    ) noexcept override {
         for (const auto& kv : params) {
             if (kv.first == "f") {
                 return set_f(std::stoi(kv.second), error);
@@ -2352,7 +2352,7 @@ public:
     return true;
   }
 
-  bool on_disk_build(const char* file, char** error=NULL) noexcept{
+  bool on_disk_build(const char* file, char** error=NULL) noexcept override {
     _on_disk = true;
 #ifndef _MSC_VER
     _fd = open(file, O_RDWR | O_CREAT | O_TRUNC, (int) 0600);
@@ -2399,7 +2399,7 @@ public:
     return true;
   }
 
-  bool build(int q, int n_threads=-1, char** error=NULL) noexcept{
+  bool build(int q, int n_threads=-1, char** error=NULL) noexcept override {
     if (_loaded) {
       set_error_from_string(error, "You can't build a loaded index");
       return false;
@@ -2454,7 +2454,7 @@ public:
     return true;
   }
 
-  bool unbuild(char** error=NULL) noexcept{
+  bool unbuild(char** error=NULL) noexcept override {
     if (_loaded) {
       set_error_from_string(error, "You can't unbuild a loaded index");
       return false;
@@ -2467,7 +2467,7 @@ public:
     return true;
   }
 
-  bool save(const char* filename, bool prefault=false, char** error=NULL) noexcept{
+  bool save(const char* filename, bool prefault=false, char** error=NULL) noexcept override {
     if (!_built) {
       set_error_from_string(error, "You can't save an index that hasn't been built");
       return false;
@@ -2518,7 +2518,7 @@ public:
     _roots.clear();
   }
 
-  void unload() noexcept {
+  void unload() noexcept override {
     if (_on_disk && _fd) {
 #ifndef _MSC_VER
       close(_fd);
@@ -2544,7 +2544,7 @@ public:
     if (_verbose) annoylib_showUpdate("unloaded\n");
   }
 
-  bool load(const char* filename, bool prefault=false, char** error=NULL) noexcept{
+  bool load(const char* filename, bool prefault=false, char** error=NULL) noexcept override {
 #ifndef _MSC_VER
     _fd = open(filename, O_RDONLY, (int)0400);
 #else
@@ -2643,35 +2643,35 @@ public:
     return D::normalized_distance(D::distance(_get(i), _get(j), _f));
   }
 
-  void get_nns_by_item(S item, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const noexcept{
+  void get_nns_by_item(S item, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const noexcept override {
     // TODO: handle OOB
     const Node* m = _get(item);
     _get_all_nns(m->v, n, search_k, result, distances);
   }
 
-  void get_nns_by_vector(const T* w, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const noexcept{
+  void get_nns_by_vector(const T* w, size_t n, int search_k, std::vector<S>* result, std::vector<T>* distances) const noexcept override {
     _get_all_nns(w, n, search_k, result, distances);
   }
 
-  S get_n_items() const noexcept{
+  S get_n_items() const noexcept override {
     return _n_items;
   }
 
-  S get_n_trees() const noexcept{
+  S get_n_trees() const noexcept override {
     return (S)_roots.size();
   }
 
-  void set_verbose(bool v) noexcept{
+  void set_verbose(bool v) noexcept override {
     _verbose = v;
   }
 
-  void get_item(S item, T* v) const noexcept{
+  void get_item(S item, T* v) const noexcept override {
     // TODO: handle OOB
     Node* m = _get(item);
     std::memcpy(v, m->v, (_f) * sizeof(T));
   }
 
-  void set_seed(R seed) noexcept{
+  void set_seed(R seed) noexcept override {
     // _seed = seed;
     // kissrandom.h documents that seeds should be non-zero. For API stability,
     // normalize seed=0 to the RNG's default seed.
@@ -2683,7 +2683,7 @@ public:
     }
   }
 
-  std::vector<uint8_t> serialize(char** error=NULL) const noexcept{
+  std::vector<uint8_t> serialize(char** error=NULL) const noexcept override {
     if (!_built) {
       set_error_from_string(error, "Index cannot be serialized if it hasn't been built");
       return {};
@@ -2743,7 +2743,7 @@ public:
     return bytes;
   }
 
-  bool deserialize(std::vector<uint8_t>* bytes, bool prefault=false, char** error=NULL) noexcept{
+  bool deserialize(std::vector<uint8_t>* bytes, bool prefault=false, char** error=NULL) noexcept override {
 //     int flags = MAP_SHARED;
 //     if (prefault) {
 // #ifdef MAP_POPULATE
@@ -3455,7 +3455,7 @@ public:
   }
   virtual ~HammingWrapper() { unload(); }
 
-  int get_f() const noexcept{
+  int get_f() const noexcept override {
       return _index.get_f();
   }
 
@@ -3464,7 +3464,7 @@ public:
   // }
 
   // Set dimension (must be called before add_item if using default constructor)
-  bool set_f(int f, char** error = NULL) noexcept{
+  bool set_f(int f, char** error = NULL) noexcept override {
     if (_index.get_n_items() > 0) {
       if (error != NULL) {
         *error = dup_cstr("Cannot change dimension after items have been added");
@@ -3490,7 +3490,7 @@ public:
 
   bool get_params(
       std::vector<std::pair<std::string, std::string>>& params
-  ) const noexcept{
+  ) const noexcept override {
       params.clear();
       params.emplace_back("f", std::to_string(_f_external));
       return true;
@@ -3498,7 +3498,7 @@ public:
   bool set_params(
       const std::vector<std::pair<std::string, std::string>>& params,
       char** error = NULL
-  ) noexcept{
+  ) noexcept override {
       for (const auto& kv : params) {
           if (kv.first == "f") {
               int f = std::stoi(kv.second);
@@ -3513,7 +3513,7 @@ public:
   }
 
   // -------------------- AnnoyIndexInterface ------------------------
-  bool add_item(S item, const T* embedding, char** error = NULL) noexcept{
+  bool add_item(S item, const T* embedding, char** error = NULL) noexcept override {
     try {
       if (embedding == NULL) {
         if (error != NULL) {
@@ -3545,12 +3545,12 @@ public:
     }
   }
 
-  bool build(int n_trees = -1, int n_threads = -1, char** error = NULL) noexcept{
+  bool build(int n_trees = -1, int n_threads = -1, char** error = NULL) noexcept override {
     return _index.build(n_trees, n_threads, error);
   }
 
   // -------------------- Serialization ------------------------------
-  std::vector<uint8_t> serialize(char** error) const noexcept{
+  std::vector<uint8_t> serialize(char** error) const noexcept override {
     HammingHeader hdr{};
     hdr.magic      = HAMMING_MAGIC;
     hdr.version    = HAMMING_VERSION;
@@ -3571,7 +3571,7 @@ public:
     return out;
   }
 
-  bool deserialize(std::vector<uint8_t>* bytes, bool prefault = false, char** error = NULL) noexcept{
+  bool deserialize(std::vector<uint8_t>* bytes, bool prefault = false, char** error = NULL) noexcept override {
     if (!bytes || bytes->size() < sizeof(HammingHeader)) {
       if (error) *error = dup_cstr("Invalid or empty Hamming index");
       return false;
@@ -3603,23 +3603,23 @@ public:
   }
 
   // -------------------- Querying -----------------------------------
-  T get_distance(S i, S j) const noexcept{
+  T get_distance(S i, S j) const noexcept override {
     return static_cast<T>(
         _clip_distance(_index.get_distance(i, j)));
   }
 
   void get_item(S indice,
-                T* embedding) const noexcept{
+                T* embedding) const noexcept override {
     std::vector<InternalT> packed(_f_internal);
     _index.get_item(indice, packed.data());
     _unpack(packed.data(), embedding);
   }
 
-  S get_n_items() const noexcept{
+  S get_n_items() const noexcept override {
     return _index.get_n_items();
   }
 
-  S get_n_trees() const noexcept{
+  S get_n_trees() const noexcept override {
     return _index.get_n_trees();
   }
 
@@ -3687,22 +3687,22 @@ public:
   // -------------------- Disk I/O -----------------------------------
   bool load(const char* filename,
             bool prefault=false,
-            char** error = NULL) noexcept{
+            char** error = NULL) noexcept override {
     return _index.load(filename, prefault, error);
   }
 
   bool save(const char* filename,
             bool prefault=false,
-            char** error = NULL) noexcept{
+            char** error = NULL) noexcept override {
     return _index.save(filename, prefault, error);
   }
 
   bool on_disk_build(const char* filename,
-                     char** error = NULL) noexcept{
+                     char** error = NULL) noexcept override {
     return _index.on_disk_build(filename, error);
   }
 
-  bool unbuild(char** error = NULL) noexcept{
+  bool unbuild(char** error = NULL) noexcept override {
     return _index.unbuild(error);
   }
 
