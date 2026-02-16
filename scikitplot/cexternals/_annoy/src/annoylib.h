@@ -142,7 +142,7 @@
 #endif
 
 // only on non-Windows systems.
-#ifndef _WIN32
+#if !defined(_WIN32)
   #include <unistd.h>
 #endif
 
@@ -217,7 +217,7 @@
   #error "Annoy requires at least C++11 or newer"
 #endif
 
-#ifdef _WIN32 || defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_WIN32) || defined(_MSC_VER) || defined(__MINGW32__)
   #ifndef NOMINMAX
     #define NOMINMAX
   #endif
