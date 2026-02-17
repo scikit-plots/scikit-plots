@@ -343,10 +343,12 @@ jobs:
           }
           # Verify executable canonical identity verification Only /?" guarantees banner text.
           # $versionOutput = & $linkPath 2>&1
-          $versionOutput = & $linkPath /? 2>&1
-          if ($versionOutput -notmatch "Microsoft \(R\) Incremental Linker") {
+          $versionOutput = & $linkPath /? 2>&1 | Out-String
+          # if (-not ($versionOutput.Contains("Microsoft (R) Incremental Linker")))
+          if ($versionOutput -notmatch "Microsoft\s+\(R\)\s+Incremental\s+Linker") {
               throw "Resolved linker is not MSVC: $linkPath"
           }
+          # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
           # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
           Write-Host "MSVC linker verified and prioritized: $linkPath"
 
