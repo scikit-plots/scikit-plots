@@ -312,7 +312,11 @@ inline int ftruncate(const int fd, const int64_t size) {
 
 // Use standard POSIX headers - all functions already defined
 #include <sys/mman.h>
+
+// only on non-Windows systems.
+// #if !defined(_WIN32)
 #include <unistd.h>
+// #endif
 
 // POSIX already provides:
 // - Functions: mmap, munmap, mprotect, msync, mlock, munlock

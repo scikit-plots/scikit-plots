@@ -124,7 +124,7 @@ else
     # '-DANNOYLIB_MULTITHREADED_BUILD',
   ]
 
-  # Strict floating point only for Clang (Unix)
+  # Strict floating point only for Clang (Unix) For scientific reproducibility:
   if is_clang and cc.has_argument('-ffp-model=strict')
     extra_compile_args += ['-ffp-model=strict']
   endif
