@@ -180,8 +180,9 @@ from libc.errno cimport errno
 from libc.string cimport memcpy  # , memset
 
 # Python-level imports
-from typing import Final
 # import os
+# from sys import platform
+from typing import Final
 
 # MAP_FAILED: Final[int] = ((void *)-1)  # == -1 means “mmap failed”
 # Py_REFCNT and _Py_REFCNT are the same, except _Py_REFCNT takes
@@ -197,15 +198,39 @@ from scikitplot.memmap._memmap.mem_map cimport (
     get_page_size,
 )
 
+# ============================================================================
+# Platform-Specific System APIs (Correct Pattern)
+# ============================================================================
+
 # Import platform-specific types
-IF UNAME_SYSNAME == "Windows":
-    from scikitplot.memmap._memmap.mem_map cimport (
-        SYSTEM_INFO, GetSystemInfo, DWORD, DWORD_PTR
-    )
-ELSE:
-    from scikitplot.memmap._memmap.mem_map cimport (
-        sysconf, _SC_PAGESIZE,
-    )
+# IF UNAME_SYSNAME == "Windows":
+# cdef extern from *:
+# cdef extern from * nogil:
+cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
+    """
+    #include <stddef.h>
+    size_t cy_get_page_size(void);
+
+    #ifdef _WIN32
+        #include <windows.h>
+
+        size_t cy_get_page_size(void) {
+            SYSTEM_INFO si;
+            GetSystemInfo(&si);
+            return (size_t)si.dwPageSize;
+        }
+    #else
+        #include <unistd.h>
+
+        size_t cy_get_page_size(void) {
+            long tmp = sysconf(_SC_PAGESIZE);
+            if (tmp <= 0)
+                return 4096;
+            return (size_t)tmp;
+        }
+    #endif
+    """
+    size_t cy_get_page_size() nogil
 
 # ===========================================================================
 # Module metadata
@@ -314,6 +339,9 @@ PY_FILE_MAP_EXECUTE = 0x0020
 # ===========================================================================
 # Utility Functions Implementation (Thread-Safe, No Global State)
 # ===========================================================================
+# cdef size_t get_page_size() noexcept nogil:
+#     return cy_get_page_size()
+
 
 cdef size_t get_page_size() noexcept nogil:  # no-cython-lint
     """
@@ -356,15 +384,8 @@ cdef size_t get_page_size() noexcept nogil:  # no-cython-lint
     >>> assert page_size > 0
     >>> assert page_size in [4096, 8192, 16384, 65536]  # Common sizes
     """
-    IF UNAME_SYSNAME == "Windows":
-        cdef SYSTEM_INFO si
-        GetSystemInfo(&si)
-        return si.dwPageSize
-    ELSE:
-        cdef long tmp = sysconf(_SC_PAGESIZE)
-        if tmp <= 0:
-            return 4096  # Safe fallback for common architectures
-        return <size_t>tmp
+    return cy_get_page_size()
+
 
 def py_get_page_size():
     """

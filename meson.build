@@ -603,7 +603,8 @@ _global_flags = [
   '-Wno-unused-but-set-variable',                     # Suppress warnings about unused variables
   '-Wno-write-strings',                               # Treat string literals as `const char[]`
   '-Wno-discarded-qualifiers',                        # to suppress warnings about discarded qualifiers (like const, volatile, etc.).
-  '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized
+  '-Wno-maybe-uninitialized',                         # Suppress warnings about variables that might be used uninitialized
+  '-Wno-visibility',                                  # For typical Cython + CPython builds on Windows ARM64, these warnings are benign.
 ]
 _global_flags_c = _global_flags + [
   '-Wno-implicit-function-declaration'  # Suppress warnings about implicit function declarations

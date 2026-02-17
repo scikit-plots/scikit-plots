@@ -1,14 +1,11 @@
-# cython: language_level=3
-# distutils: language = c++
-
-# scikitplot/memmap/_memmap/mem_map.pxd
-
 # distutils: language = c++
 # cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
 # cython: nonecheck=False
+
+# scikitplot/memmap/_memmap/mem_map.pxd
 
 """
 Memory Mapping Interface Declarations
@@ -43,15 +40,11 @@ mem_map.pyx : Implementation of all declared functions
 mman.h : Underlying C/C++ cross-platform memory mapping header
 """
 
+from sys import platform
+
 from libc.stdint cimport uintptr_t, int64_t
 from libc.stddef cimport size_t
 from libc.errno cimport errno
-
-# ===========================================================================
-# Compile-time constants
-# ===========================================================================
-
-DEF CYTHON_LANGUAGE_LEVEL = 3
 
 # ===========================================================================
 # Platform-specific type definitions
@@ -65,64 +58,44 @@ DEF CYTHON_LANGUAGE_LEVEL = 3
 ctypedef int64_t off_t
 
 # ===========================================================================
-# Platform-Specific Type Definitions
+# Type aliases for clarity
 # ===========================================================================
 
-IF UNAME_SYSNAME == "Windows":
-    # Windows-specific types matching Win32 API
-    ctypedef unsigned long DWORD
-    ctypedef size_t DWORD_PTR  # More accurate than uintptr_t for 32-bit
+ctypedef void* mmap_addr_t
+ctypedef size_t mmap_size_t
+ctypedef off_t mmap_offset_t
 
-    ctypedef struct SYSTEM_INFO:
-        DWORD dwOemId
-        DWORD dwPageSize
-        void* lpMinimumApplicationAddress
-        void* lpMaximumApplicationAddress
-        DWORD_PTR dwActiveProcessorMask
-        DWORD dwNumberOfProcessors
-        DWORD dwProcessorType
-        DWORD dwAllocationGranularity
-        unsigned short wProcessorLevel
-        unsigned short wProcessorRevision
-
-    cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
-        void GetSystemInfo(SYSTEM_INFO* lpSystemInfo)
-
-ELSE:
-    # POSIX-specific (Unix/Linux/macOS)
-    cdef extern from "unistd.h" nogil:
-        long sysconf(int name)
-        int _SC_PAGESIZE
 
 # ===========================================================================
 # Cross-Platform Memory Mapping API
 # ===========================================================================
 
 cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
+
     # Memory protection flags
-    cdef int PROT_NONE
-    cdef int PROT_READ
-    cdef int PROT_WRITE
-    cdef int PROT_EXEC
+    int PROT_NONE
+    int PROT_READ
+    int PROT_WRITE
+    int PROT_EXEC
 
     # Memory mapping flags
-    cdef int MAP_FILE
-    cdef int MAP_SHARED
-    cdef int MAP_PRIVATE
-    cdef int MAP_TYPE
-    cdef int MAP_FIXED
-    cdef int MAP_ANONYMOUS
-    cdef int MAP_ANON
+    int MAP_FILE
+    int MAP_SHARED
+    int MAP_PRIVATE
+    int MAP_TYPE
+    int MAP_FIXED
+    int MAP_ANONYMOUS
+    int MAP_ANON
 
     # Memory sync flags
-    cdef int MS_ASYNC
-    cdef int MS_SYNC
-    cdef int MS_INVALIDATE
+    int MS_ASYNC
+    int MS_SYNC
+    int MS_INVALIDATE
 
     # Failed mapping sentinel
     # MAP_FAILED: Final[int] = ((void *)-1)
     void* MAP_FAILED
-    cdef int FILE_MAP_EXECUTE
+    int FILE_MAP_EXECUTE
 
     # Core memory mapping functions
     void* mmap(void* addr, size_t length, int prot, int flags,
@@ -132,14 +105,6 @@ cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
     int msync(void* addr, size_t length, int flags) nogil
     int mlock(void* addr, size_t length) nogil
     int munlock(void* addr, size_t length) nogil
-
-# ===========================================================================
-# Type aliases for clarity
-# ===========================================================================
-
-ctypedef void* mmap_addr_t
-ctypedef size_t mmap_size_t
-ctypedef off_t mmap_offset_t
 
 # ===========================================================================
 # Version information
