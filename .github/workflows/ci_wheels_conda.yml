@@ -343,14 +343,20 @@ jobs:
           }
           # Verify executable canonical identity verification Only /?" guarantees banner text.
           # $versionOutput = & $linkPath 2>&1
-          $versionOutput = & $linkPath /? 2>&1 | Out-String
+          # $versionOutput = & $linkPath /? 2>&1 | Out-String
+          try {
+              $versionOutput = & $linkPath /? 2>&1 | Out-String
+          } catch {
+              Write-Warning "link.exe returned an error code, captured output anyway."
+              $versionOutput = $_.Exception.Message
+          }
           # if (-not ($versionOutput.Contains("Microsoft (R) Incremental Linker")))
           if ($versionOutput -notmatch "Microsoft\s+\(R\)\s+Incremental\s+Linker") {
               throw "Resolved linker is not MSVC: $linkPath"
           }
           # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
-          # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
           Write-Host "MSVC linker verified and prioritized: $linkPath"
+          exit 0
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC
