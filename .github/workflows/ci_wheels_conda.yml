@@ -328,29 +328,38 @@ jobs:
           #     Rename-Item -Path $gitLink -NewName "link.exe.disabled"
           #     Write-Host "Git link.exe disabled"
           # }
+          # --- Validate MSVC environment is initialized ---
           if (-not $env:VCToolsInstallDir) {
-              throw "MSVC environment not initialized"
+            throw "MSVC environment not initialized. Run vcvarsall.bat or use a Visual Studio Developer shell."
           }
+          # --- Resolve canonical MSVC linker path from environment ---
           $linkPath = Join-Path $env:VCToolsInstallDir "bin\HostX64\x64\link.exe"
           if (-not (Test-Path $linkPath)) {
-              throw "MSVC linker not found at expected path: $linkPath"
+            throw "MSVC linker not found at expected path: $linkPath"
           }
+          # --- Prepend MSVC bin dir to PATH, idempotently ---
           $msvcDir = Split-Path $linkPath
-          # Prepend once, idempotently
           $pathEntries = $env:PATH -split ';'
           if ($pathEntries[0] -ne $msvcDir) {
-              $env:PATH = "$msvcDir;$env:PATH"
+            $env:PATH = "$msvcDir;$env:PATH"
           }
-          # Verify executable canonical identity verification Only /?" guarantees banner text.
-          # $versionOutput = & $linkPath 2>&1
-          $versionOutput = & $linkPath /? 2>&1 | Out-String
-          # if (-not ($versionOutput.Contains("Microsoft (R) Incremental Linker")))
-          if ($versionOutput -notmatch "Microsoft\s+\(R\)\s+Incremental\s+Linker") {
-              throw "Resolved linker is not MSVC: $linkPath"
+          # --- Capture linker identity banner ---
+          # link.exe /? writes the version banner to stdout and exits with code 1 by design.
+          # 2>&1 merges stderr into the pipeline in case output routing changes across versions.
+          # CRITICAL: link.exe /? always exits with code 1 (by design, not an error).
+          # Reset $LASTEXITCODE immediately so it cannot propagate as a script failure.
+          $versionOutput = & $linkPath /? 2>&1 | Out-String; $global:LASTEXITCODE = 0
+          # --- Verify identity: must be the genuine MSVC incremental linker ---
+          if ([string]::IsNullOrWhiteSpace($versionOutput)) {
+              throw "Linker at '$linkPath' produced no output. Binary may be corrupt or not executable."
           }
-          # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
-          # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
+          if ($versionOutput -notmatch 'Microsoft\s+\(R\)\s+Incremental\s+Linker') {
+              throw "Resolved linker is not MSVC link.exe.`nPath   : $linkPath`nBanner : $($versionOutput.Trim())"
+          }
           Write-Host "MSVC linker verified and prioritized: $linkPath"
+          # Explicitly exit 0 so the runner receives a clean success code
+          exit 0
+          # try {} catch {}
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC
