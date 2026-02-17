@@ -63,11 +63,11 @@ from typing import Generator
 try:
     from scikitplot import memmap
     from scikitplot.memmap import (
+        PY_PROT_NONE, PY_PROT_READ, PY_PROT_WRITE, PY_PROT_EXEC,
+        PY_MAP_SHARED, PY_MAP_PRIVATE, PY_MAP_ANONYMOUS, PY_MAP_ANON,
+        PY_MS_SYNC, PY_MS_ASYNC,
         MemoryMap,
         mmap_region,
-        PROT_NONE, PROT_READ, PROT_WRITE, PROT_EXEC,
-        MAP_SHARED, MAP_PRIVATE, MAP_ANONYMOUS, MAP_ANON,
-        MS_SYNC, MS_ASYNC,
         MMapError, MMapAllocationError,
     )
 except ImportError as e:
@@ -109,7 +109,7 @@ def temp_file() -> Generator[tuple[int, str], None, None]:
 @pytest.fixture
 def small_mapping() -> Generator[MemoryMap, None, None]:
     """Fixture providing a small anonymous memory mapping."""
-    mapping = MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE)
+    mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
     yield mapping
     if mapping.is_valid:
         mapping.close()
@@ -129,15 +129,15 @@ def small_mapping() -> Generator[MemoryMap, None, None]:
 def test_module_exports():
     """Test that module exports expected constants and classes."""
     # Protection flags
-    assert hasattr(memmap, 'PROT_NONE')
-    assert hasattr(memmap, 'PROT_READ')
-    assert hasattr(memmap, 'PROT_WRITE')
-    assert hasattr(memmap, 'PROT_EXEC')
+    assert hasattr(memmap, 'PY_PROT_NONE')
+    assert hasattr(memmap, 'PY_PROT_READ')
+    assert hasattr(memmap, 'PY_PROT_WRITE')
+    assert hasattr(memmap, 'PY_PROT_EXEC')
 
     # Mapping flags
-    assert hasattr(memmap, 'MAP_SHARED')
-    assert hasattr(memmap, 'MAP_PRIVATE')
-    assert hasattr(memmap, 'MAP_ANONYMOUS')
+    assert hasattr(memmap, 'PY_MAP_SHARED')
+    assert hasattr(memmap, 'PY_MAP_PRIVATE')
+    assert hasattr(memmap, 'PY_MAP_ANONYMOUS')
 
     # Classes
     assert hasattr(memmap, 'MemoryMap')
@@ -146,18 +146,18 @@ def test_module_exports():
 
 def test_protection_flag_values():
     """Test that protection flags have correct values."""
-    assert PROT_NONE == 0
-    assert PROT_READ == 1
-    assert PROT_WRITE == 2
-    assert PROT_EXEC == 4
+    assert PY_PROT_NONE == 0
+    assert PY_PROT_READ == 1
+    assert PY_PROT_WRITE == 2
+    assert PY_PROT_EXEC == 4
 
 
 def test_mapping_flag_values():
     """Test that mapping flags have correct values."""
-    assert MAP_SHARED == 1
-    assert MAP_PRIVATE == 2
-    assert MAP_ANONYMOUS == 0x20
-    assert MAP_ANON == MAP_ANONYMOUS
+    assert PY_MAP_SHARED == 1
+    assert PY_MAP_PRIVATE == 2
+    assert PY_MAP_ANONYMOUS == 0x20
+    assert PY_MAP_ANON == PY_MAP_ANONYMOUS
 
 
 # ===========================================================================
@@ -169,7 +169,7 @@ class TestAnonymousMapping:
 
     def test_create_basic(self):
         """Test basic anonymous mapping creation."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
         assert mapping is not None
         assert mapping.is_valid
         assert mapping.size == 4096
@@ -184,7 +184,7 @@ class TestAnonymousMapping:
 
     def test_create_read_only(self):
         """Test creation with read-only protection."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ)
         assert mapping.is_valid
         mapping.close()
 
@@ -262,7 +262,7 @@ class TestReadWrite:
 
     def test_write_read_only_fails(self):
         """Test that writing to read-only mapping fails."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ)
         with pytest.raises(ValueError, match="not writable"):
             mapping.write(b"test")
         mapping.close()
@@ -303,7 +303,7 @@ class TestFileBacked:
     def test_create_file_mapping(self, temp_file):
         """Test creating file-backed mapping."""
         fd, path = temp_file
-        mapping = MemoryMap.create_file_mapping(fd, 0, 4096, PROT_READ)
+        mapping = MemoryMap.create_file_mapping(fd, 0, 4096, PY_PROT_READ)
         assert mapping.is_valid
         assert mapping.size == 4096
         mapping.close()
@@ -311,7 +311,7 @@ class TestFileBacked:
     def test_read_from_file_mapping(self, temp_file):
         """Test reading from file-backed mapping."""
         fd, path = temp_file
-        mapping = MemoryMap.create_file_mapping(fd, 0, 100, PROT_READ)
+        mapping = MemoryMap.create_file_mapping(fd, 0, 100, PY_PROT_READ)
 
         data = mapping.read(13)  # "Hello, World!"
         assert data == b"Hello, World!"
@@ -322,7 +322,7 @@ class TestFileBacked:
         """Test creating mapping with file offset."""
         fd, path = temp_file
         # Note: offset should be page-aligned in real usage
-        mapping = MemoryMap.create_file_mapping(fd, 0, 100, PROT_READ)
+        mapping = MemoryMap.create_file_mapping(fd, 0, 100, PY_PROT_READ)
         assert mapping.is_valid
         mapping.close()
 
@@ -347,14 +347,14 @@ class TestMemoryProtection:
 
     def test_mprotect_add_write(self):
         """Test adding write permission."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ)
 
         # Initially can't write
         with pytest.raises(ValueError, match="not writable"):
             mapping.write(b"test")
 
         # Add write permission
-        mapping.mprotect(PROT_READ | PROT_WRITE)
+        mapping.mprotect(PY_PROT_READ | PY_PROT_WRITE)
 
         # Now can write
         n = mapping.write(b"test")
@@ -364,13 +364,13 @@ class TestMemoryProtection:
 
     def test_mprotect_remove_write(self):
         """Test removing write permission."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
 
         # Initially can write
         mapping.write(b"test")
 
         # Remove write permission
-        mapping.mprotect(PROT_READ)
+        mapping.mprotect(PY_PROT_READ)
 
         # Now can't write
         with pytest.raises(ValueError, match="not writable"):
@@ -384,7 +384,7 @@ class TestMemoryProtection:
         mapping.close()
 
         with pytest.raises(ValueError, match="closed"):
-            mapping.mprotect(PROT_READ)
+            mapping.mprotect(PY_PROT_READ)
 
 
 # ===========================================================================
@@ -398,14 +398,14 @@ class TestSync:
         """Test basic msync operation."""
         fd, path = temp_file
         mapping = MemoryMap.create_file_mapping(
-            fd, 0, 4096, PROT_READ | PROT_WRITE, MAP_SHARED
+            fd, 0, 4096, PY_PROT_READ | PY_PROT_WRITE, PY_MAP_SHARED
         )
 
         # Write some data
         mapping.write(b"Modified")
 
         # Sync to disk
-        mapping.msync(MS_SYNC)  # Should not raise
+        mapping.msync(PY_MS_SYNC)  # Should not raise
 
         mapping.close()
 
@@ -413,11 +413,11 @@ class TestSync:
         """Test async msync."""
         fd, path = temp_file
         mapping = MemoryMap.create_file_mapping(
-            fd, 0, 4096, PROT_READ | PROT_WRITE, MAP_SHARED
+            fd, 0, 4096, PY_PROT_READ | PY_PROT_WRITE, PY_MAP_SHARED
         )
 
         mapping.write(b"Data")
-        mapping.msync(MS_ASYNC)  # Should return immediately
+        mapping.msync(PY_MS_ASYNC)  # Should return immediately
 
         mapping.close()
 
@@ -464,7 +464,7 @@ class TestContextManager:
         """Test read/write within context manager."""
         test_data = b"Context manager test"
 
-        with MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE) as m:
+        with MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE) as m:
             m.write(test_data)
             read_data = m.read(len(test_data))
             assert read_data == test_data
@@ -488,8 +488,8 @@ class TestModuleFunctions:
         """Test mmap_region with custom flags."""
         mapping = mmap_region(
             4096,
-            prot=PROT_READ | PROT_WRITE,
-            flags=MAP_PRIVATE | MAP_ANONYMOUS
+            prot=PY_PROT_READ | PY_PROT_WRITE,
+            flags=PY_MAP_PRIVATE | PY_MAP_ANONYMOUS
         )
         assert mapping.is_valid
         mapping.close()
@@ -510,7 +510,7 @@ class TestErrorHandling:
 
     def test_access_after_close_fails(self):
         """Test that accessing closed mapping fails."""
-        mapping = MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE)
+        mapping = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
         mapping.write(b"test")
         mapping.close()
 
@@ -574,7 +574,7 @@ class TestIntegration:
         size = 1024 * 1024  # 1 MB
         test_data = b"x" * size
 
-        with MemoryMap.create_anonymous(size, PROT_READ | PROT_WRITE) as m:
+        with MemoryMap.create_anonymous(size, PY_PROT_READ | PY_PROT_WRITE) as m:
             m.write(test_data)
             read_data = m.read(size)
             assert read_data == test_data
@@ -584,7 +584,7 @@ class TestIntegration:
         mappings = []
         try:
             for i in range(10):
-                m = MemoryMap.create_anonymous(4096, PROT_READ | PROT_WRITE)
+                m = MemoryMap.create_anonymous(4096, PY_PROT_READ | PY_PROT_WRITE)
                 m.write(f"Mapping {i}".encode())
                 mappings.append(m)
 
@@ -597,6 +597,112 @@ class TestIntegration:
             for m in mappings:
                 if m.is_valid:
                     m.close()
+
+
+class TestEnhancedFlagValidation:
+    """Test enhanced flag validation with unknown bit detection."""
+
+    def test_prot_unknown_bits_detected(self):
+        """Unknown protection bits should raise ValueError."""
+
+        # Test high bit
+        with pytest.raises(ValueError, match="Unknown bits"):
+            memmap.py_validate_prot_flags(0x100)
+
+        # Test bit 3
+        with pytest.raises(ValueError, match="Unknown bits"):
+            memmap.py_validate_prot_flags(8)
+
+        # Test bit 4
+        with pytest.raises(ValueError, match="Unknown bits"):
+            memmap.py_validate_prot_flags(16)
+
+    def test_prot_negative_rejected(self):
+        """Negative protection flags should raise ValueError."""
+
+        with pytest.raises(ValueError, match="negative"):
+            memmap.py_validate_prot_flags(-1)
+
+        with pytest.raises(ValueError, match="negative"):
+            memmap.py_validate_prot_flags(-100)
+
+    def test_map_unknown_bits_detected(self):
+        """Unknown mapping bits should raise ValueError."""
+
+        # Test high bit
+        with pytest.raises(ValueError, match="Unknown bits"):
+            memmap.py_validate_map_flags(memmap.PY_MAP_PRIVATE | 0x1000)
+
+        # Test multiple unknown bits
+        with pytest.raises(ValueError, match="Unknown bits"):
+            memmap.py_validate_map_flags(memmap.PY_MAP_SHARED | 0x8000 | 0x10000)
+
+    def test_valid_flags_still_pass(self):
+        """Valid flags should still be accepted."""
+
+        # Valid protection flags
+        memmap.py_validate_prot_flags(memmap.PY_PROT_NONE)
+        memmap.py_validate_prot_flags(memmap.PY_PROT_READ)
+        memmap.py_validate_prot_flags(memmap.PY_PROT_READ | memmap.PY_PROT_WRITE)
+
+        # Valid mapping flags
+        memmap.py_validate_map_flags(memmap.PY_MAP_SHARED)
+        memmap.py_validate_map_flags(memmap.PY_MAP_PRIVATE | memmap.PY_MAP_ANONYMOUS)
+
+
+class TestThreadSafety:
+    """Test thread safety of utility functions."""
+
+    def test_get_page_size_concurrent_access(self):
+        """get_page_size() should be thread-safe under concurrent access."""
+        import threading
+
+        results = []
+
+        def worker():
+            for _ in range(100):
+                results.append(memmap.py_get_page_size())
+
+        # Launch 10 threads
+        threads = [threading.Thread(target=worker) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # All results should be identical (no races)
+        unique_results = set(results)
+        assert len(unique_results) == 1, \
+            f"get_page_size() returned different values: {unique_results}"
+
+        # Result should be valid
+        page_size = results[0]
+        assert page_size > 0
+        assert page_size in [4096, 8192, 16384, 65536]
+
+    def test_is_page_aligned_concurrent(self):
+        """is_page_aligned() should be thread-safe."""
+        import threading
+
+        results = []
+        page_size = memmap.py_get_page_size()
+
+        def worker():
+            for _ in range(100):
+                results.append(memmap.py_is_page_aligned(0))
+                results.append(memmap.py_is_page_aligned(page_size))
+                results.append(memmap.py_is_page_aligned(1))
+
+        threads = [threading.Thread(target=worker) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Count should be deterministic
+        true_count = sum(results)
+        expected = 10 * 100 * 2  # 10 threads * 100 iterations * 2 aligned values
+        assert true_count == expected
 
 
 if __name__ == "__main__":

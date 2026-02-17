@@ -341,12 +341,14 @@ jobs:
           if ($pathEntries[0] -ne $msvcDir) {
               $env:PATH = "$msvcDir;$env:PATH"
           }
-          # Verify executable identity
-          $versionOutput = & $linkPath 2>&1
+          # Verify executable canonical identity verification Only /?" guarantees banner text.
+          # $versionOutput = & $linkPath 2>&1
+          $versionOutput = & $linkPath /? 2>&1
           if ($versionOutput -notmatch "Microsoft \(R\) Incremental Linker") {
               throw "Resolved linker is not MSVC: $linkPath"
           }
-          Write-Host "Using MSVC linker: $linkPath"
+          # Resolved linker is not MSVC: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe
+          Write-Host "MSVC linker verified and prioritized: $linkPath"
 
       # compiler: [msvc, gcc] MSVC environment + GCC compiler That creates ABI conflicts (CRT mismatch, linking failures, NumPy build breakage).
       # ⚠️ Important: Do NOT Mix GCC + MSVC

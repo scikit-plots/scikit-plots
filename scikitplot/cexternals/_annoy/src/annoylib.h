@@ -2639,7 +2639,7 @@ public:
     return true;
   }
 
-  T get_distance(S i, S j) const noexcept{
+  T get_distance(S i, S j) const noexcept override {
     return D::normalized_distance(D::distance(_get(i), _get(j), _f));
   }
 
@@ -3706,7 +3706,7 @@ public:
     return _index.unbuild(error);
   }
 
-  void unload() noexcept{
+  void unload() noexcept override {
     _index.unload();
   }
 
