@@ -507,7 +507,7 @@ pc_write_tutorial() {
     printf '\n'
     printf '%s\n' "Install modes:"
     printf '%s\n' "  - Local editable: POST_CREATE_PACKAGE_MODE=local-editable"
-    printf '%s\n' "  - PyPI pinned:    SCIKITPLOT_VERSION=0.4.0.post1 (or POST_CREATE_PACKAGE_MODE=pypi)"
+    printf '%s\n' "  - PyPI pinned:    SCIKITPLOT_VERSION=0.4.0.post10 (or POST_CREATE_PACKAGE_MODE=pypi)"
     printf '\n'
     printf '%s\n' "Conda-family runner:"
     printf '%s\n' "  POST_CREATE_CONDA_RUNNER=auto  # uses mamba if available"

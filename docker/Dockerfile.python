@@ -5,7 +5,7 @@
 
 ## ✅ Declare default only once before FROM if you want a default.
 # ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
-ARG SCIKITPLOT_VERSION=0.4.0.post9
+ARG SCIKITPLOT_VERSION=0.4.0.post10
 ARG PY_VERSION=3.11
 ARG ENV_NAME
 
