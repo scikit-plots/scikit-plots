@@ -348,14 +348,14 @@ jobs:
           # $env:PATH mutations are process-local and die with this step.
           # Writing to $GITHUB_PATH is the only mechanism that survives step boundaries.
           $msvcDir = Split-Path $linkPath
-          # --- Prepend MSVC bin dir to PATH, idempotently ---
           # $pathEntries = $env:PATH -split ';'
+          # --- Prepend MSVC bin dir to All subsequent steps not Current process only, idempotently ---
           # if ($pathEntries[0] -ne $msvcDir) { $env:PATH = "$msvcDir;$env:PATH"; }
           Add-Content -Path $env:GITHUB_PATH -Value $msvcDir -Encoding utf8
           Write-Host "MSVC linker verified. '$msvcDir' prepended to GITHUB_PATH."
           Write-Host "Effective for all subsequent steps — not this step."
           # Disable Git's link.exe so it can never shadow MSVC regardless of PATH order.
-          # Rename rather than delete: reversible, and avoids permission errors on locked files.
+          # Rename entire job filesystem rather than delete: reversible, and avoids permission errors on locked files.
           $gitLink = "C:\Program Files\Git\usr\bin\link.exe"
           if (Test-Path $gitLink) {
               Rename-Item -Path $gitLink -NewName "link.exe.bak_msvc_priority" -Force
