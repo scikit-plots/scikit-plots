@@ -4,7 +4,7 @@ URL = (
     "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/{v}/"
     "scikit_plots-{v}-cp312-cp312-pyodide_2024_0_wasm32.whl"
 )
-candidates = ["0.5.dev0", "0.4.0.post9"]
+candidates = ["0.5.dev0", "0.4.0.post10"]
 for v in candidates:
     try:
         await micropip.install(URL.format(v=v), keep_going=True)
@@ -40,7 +40,7 @@ URL = (
 )
 await install_first_working(
     URL.format(v="0.5.dev0"),
-    URL.format(v="0.4.0.post9"),
+    URL.format(v="0.4.0.post10"),
     fallback="scikit-plots==0.3.9rc3",
     keep_going=True,
 )

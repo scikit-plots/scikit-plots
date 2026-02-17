@@ -3,7 +3,7 @@ URL = (
     # "https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/{v}/download/"
     "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/{v}/"
     "scikit_plots-{v}-cp312-cp312-pyodide_2024_0_wasm32.whl")
-for v in ["0.5.dev0", "0.4.0.post9"]:
+for v in ["0.5.dev0", "0.4.0.post10"]:
     try:
         await micropip.install(URL.format(v=v), keep_going=True)
         break  # success -> stop trying

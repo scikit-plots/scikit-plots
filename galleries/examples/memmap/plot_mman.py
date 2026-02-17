@@ -41,10 +41,10 @@ import matplotlib.pyplot as plt
 
 from scikitplot.memmap import (
     MemoryMap,
-    PROT_READ,
-    PROT_WRITE,
-    MAP_SHARED,
-    MS_SYNC,
+    PY_PROT_READ,
+    PY_PROT_WRITE,
+    PY_MAP_SHARED,
+    PY_MS_SYNC,
 )
 
 # %%
@@ -56,7 +56,7 @@ from scikitplot.memmap import (
 
 # --- 1. allocate 4 KB anonymous region ------------------------------------
 PAGE: int = 4096                          # one page on most platforms
-with MemoryMap.create_anonymous(PAGE, PROT_READ | PROT_WRITE) as m:
+with MemoryMap.create_anonymous(PAGE, PY_PROT_READ | PY_PROT_WRITE) as m:
 
     # --- 2. write a greeting ----------------------------------------------
     message: bytes = b"Hello from mman!"
@@ -84,7 +84,7 @@ print("[BASIC] mapping closed automatically by context manager.\n")
 # MEDIUM – file-backed mapping: write, sync, read back, visualise
 # ===========================================================================
 # A *file-backed* mapping lets you read/write a file as if it were an array
-# in RAM.  With ``MAP_SHARED`` + ``msync`` every modification is flushed to
+# in RAM.  With ``PY_MAP_SHARED`` + ``msync`` every modification is flushed to
 # disk.  We then re-read the raw file to prove the bytes made it.
 
 # --------------------------------------------------------------------------
@@ -107,17 +107,17 @@ os.write(tmp_fd, b"\x00" * FILE_SIZE)    # pre-allocate
 os.close(tmp_fd)
 
 # --------------------------------------------------------------------------
-# 2. open, map with MAP_SHARED, write structured data, sync
+# 2. open, map with PY_MAP_SHARED, write structured data, sync
 # --------------------------------------------------------------------------
 with open(tmp_path, "r+b") as f:
     fd: int = f.fileno()
     with MemoryMap.create_file_mapping(
-        fd, 0, FILE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED
+        fd, 0, FILE_SIZE, PY_PROT_READ | PY_PROT_WRITE, PY_MAP_SHARED
     ) as m:
         for i in range(N_ROWS):
             row: bytes = _pack_row(i, float(i) * 1.5)
             m.write(row, offset=i * ROW_SIZE)
-        m.msync(MS_SYNC)                 # guarantee flush to disk
+        m.msync(PY_MS_SYNC)                 # guarantee flush to disk
         print(f"[MEDIUM] wrote {N_ROWS} records via mmap and synced.")
 
 # --------------------------------------------------------------------------
@@ -185,7 +185,7 @@ N_ITER:     int  = 200                   # iterations per benchmark leg
 # --------------------------------------------------------------------------
 # 1. allocate, fill via NumPy, read back via .read()
 # --------------------------------------------------------------------------
-with MemoryMap.create_anonymous(BENCH_SIZE, PROT_READ | PROT_WRITE) as m:
+with MemoryMap.create_anonymous(BENCH_SIZE, PY_PROT_READ | PY_PROT_WRITE) as m:
 
     arr = m.as_numpy_array(dtype=np.uint8)   # zero-copy view
     print(f"[ADVANCED] array shape={arr.shape}, dtype={arr.dtype}, "
@@ -203,13 +203,13 @@ with MemoryMap.create_anonymous(BENCH_SIZE, PROT_READ | PROT_WRITE) as m:
     # --------------------------------------------------------------------------
     # 2. mprotect lifecycle – make read-only, confirm write blocked, restore
     # --------------------------------------------------------------------------
-    m.mprotect(PROT_READ)                    # → read-only
-    print(f"[ADVANCED] after mprotect(PROT_READ): mapping is read-only")
+    m.mprotect(PY_PROT_READ)                    # → read-only
+    print(f"[ADVANCED] after mprotect(PY_PROT_READ): mapping is read-only")
     # The array flags are unchanged (we do not auto-sync them); the kernel
     # will SIGSEGV / raise on an actual write attempt.  We only *read* here.
     _ = m.read(64)                           # safe
-    m.mprotect(PROT_READ | PROT_WRITE)       # restore
-    print("[ADVANCED] mprotect(PROT_READ | PROT_WRITE) restored.")
+    m.mprotect(PY_PROT_READ | PY_PROT_WRITE)       # restore
+    print("[ADVANCED] mprotect(PY_PROT_READ | PY_PROT_WRITE) restored.")
 
     # --------------------------------------------------------------------------
     # 3. micro-benchmark: .read() vs NumPy slice copy
