@@ -152,6 +152,17 @@ jobs:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
+      - name: Disk space report
+        shell: bash
+        run: |
+          echo "Memory and swap:"
+          sudo free -h
+          echo
+          sudo swapon --show
+          echo
+          echo "Available storage:"
+          sudo df -h
+
       ## https://github.com/sagemath/sage/blob/develop/.github/workflows/docker.yml
       ## https://github.com/jlumbroso/free-disk-space
       # - name: Free Disk Space (Ubuntu)
@@ -176,7 +187,6 @@ jobs:
       #     large-packages: false
       #     docker-images: false
       #     swap-storage: false
-
       ## https://github.com/easimon/maximize-build-space
       - name: Github Maximize build disk space (Ubuntu)
         uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c #v10
@@ -184,23 +194,12 @@ jobs:
         continue-on-error: true
         with:
           # need space in /var for Docker images
-          root-reserve-mb:      30000
+          # root-reserve-mb:      30000
           remove-dotnet:        true   # (frees ~17 GB)
           remove-android:       true   # (frees ~11 GB)
           remove-haskell:       true   # (frees ~2.7 GB)
           remove-codeql:        false  # (frees ~5.4 GB)
           remove-docker-images: false  # (frees ~3 GB)
-
-      # - name: Disk space report after modification
-      #   shell: bash
-      #   run: |
-      #     echo "Memory and swap:"
-      #     sudo free -h
-      #     echo
-      #     sudo swapon --show
-      #     echo
-      #     echo "Available storage:"
-      #     sudo df -h
 
       ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
