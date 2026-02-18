@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-
+# scikitplot/_build_utils/fix_submodule_import.py
+#
 # pylint: disable=broad-exception-caught
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,88 +42,6 @@ def get_relative_import_level(file_path, root):
     root = os.path.abspath(root)
     depth = os.path.relpath(file_path, root).count(os.sep)
     return "." * (depth + 1) if depth > 0 else "."
-
-
-# def replace_quantity(match):
-#     """
-#     Replace unquoted Quantity with a quoted version "Quantity" in type hints.
-
-#     This avoids NameError issues when type hints reference types not in scope.
-
-#     Parameters
-#     ----------
-#     match : re.Match
-#         A regex match object containing the type hint.
-
-#     Returns
-#     -------
-#     str
-#         The type hint with Quantity replaced by "Quantity".
-#     """
-#     return re.sub(r'\b(?<!["\'])Quantity(?!["\'])\b', "'Quantity'", match.group(0))
-
-# def replace_quantity(match, raw_types_pattern):
-#     """
-#     Replace unquoted type hints matching specific types with quoted versions.
-
-#     This function wraps specific type hints (such as "Quantity" or "Optional[Quantity]")
-#     with double quotes in function signatures. It avoids quoting already quoted types
-#     and targets both parameter and return type hints.
-
-#     Useful for making type hints valid at runtime (e.g., for forward references)
-#     to avoid NameError when types are not yet imported.
-
-#     Parameters
-#     ----------
-#     match : re.Match
-#         A regex match object containing the portion of function signature
-#         (parameter or return type) that potentially includes types to be quoted.
-
-#     Returns
-#     -------
-#     str
-#         The modified string with matched types wrapped in double quotes.
-#         If an error occurs, returns the original matched string unchanged.
-
-#     Notes
-#     -----
-#     - Only types listed in `raw_types` (and built into `raw_types_pattern`) are processed.
-#     - Already-quoted types are skipped (i.e., no double quoting).
-#     - The matching respects nested generics like `Optional[Quantity]` or `List[Quantity]`.
-#     - Errors during processing are caught and ignored safely.
-
-#     Examples
-#     --------
-#     Given `raw_types = ['Quantity', 'Optional[Quantity]']`:
-
-#     Before:
-#         def foo(x: Quantity, y: Optional[Quantity]) -> Quantity:
-#             pass
-
-#     After:
-#         def foo(x: "Quantity", y: "Optional[Quantity]") -> "Quantity":
-#             pass
-
-#     """
-#     text = match.group(0)
-
-#     try:
-#         def replacer(m):
-#             type_text = m.group(1)
-#             return f'"{type_text}"'  # wrap matched type in quotes
-
-#         ## Do the replacement
-#         return re.sub(
-#             rf'(?<!["\'])({raw_types_pattern})(?!["\'])',
-#             replacer,
-#             text
-#         )
-#     except Exception:
-#         # Optional: log the error if you want
-#         # print(f"Error processing type hint: {e}")
-
-#         # Fail safely: return original text unchanged
-#         return text
 
 
 def replace_type_to_str(match, type_matcher):
@@ -312,3 +231,91 @@ if __name__ == "__main__":
     TARGET_MODULE = args.module
 
     convert_to_relative_imports(ROOT, TARGET_MODULE, fix_type_hints=args.fix_type_hints)
+
+
+######################################################################
+## End of File
+######################################################################
+
+
+# Like astropy specialized Quantity type
+# def replace_quantity(match):
+#     """
+#     Replace unquoted Quantity with a quoted version "Quantity" in type hints.
+
+#     This avoids NameError issues when type hints reference types not in scope.
+
+#     Parameters
+#     ----------
+#     match : re.Match
+#         A regex match object containing the type hint.
+
+#     Returns
+#     -------
+#     str
+#         The type hint with Quantity replaced by "Quantity".
+#     """
+#     return re.sub(r'\b(?<!["\'])Quantity(?!["\'])\b', "'Quantity'", match.group(0))
+
+# def replace_quantity(match, raw_types_pattern):
+#     """
+#     Replace unquoted type hints matching specific types with quoted versions.
+
+#     This function wraps specific type hints (such as "Quantity" or "Optional[Quantity]")
+#     with double quotes in function signatures. It avoids quoting already quoted types
+#     and targets both parameter and return type hints.
+
+#     Useful for making type hints valid at runtime (e.g., for forward references)
+#     to avoid NameError when types are not yet imported.
+
+#     Parameters
+#     ----------
+#     match : re.Match
+#         A regex match object containing the portion of function signature
+#         (parameter or return type) that potentially includes types to be quoted.
+
+#     Returns
+#     -------
+#     str
+#         The modified string with matched types wrapped in double quotes.
+#         If an error occurs, returns the original matched string unchanged.
+
+#     Notes
+#     -----
+#     - Only types listed in `raw_types` (and built into `raw_types_pattern`) are processed.
+#     - Already-quoted types are skipped (i.e., no double quoting).
+#     - The matching respects nested generics like `Optional[Quantity]` or `List[Quantity]`.
+#     - Errors during processing are caught and ignored safely.
+
+#     Examples
+#     --------
+#     Given `raw_types = ['Quantity', 'Optional[Quantity]']`:
+
+#     Before:
+#         def foo(x: Quantity, y: Optional[Quantity]) -> Quantity:
+#             pass
+
+#     After:
+#         def foo(x: "Quantity", y: "Optional[Quantity]") -> "Quantity":
+#             pass
+
+#     """
+#     text = match.group(0)
+
+#     try:
+#         def replacer(m):
+#             type_text = m.group(1)
+#             return f'"{type_text}"'  # wrap matched type in quotes
+
+#         ## Do the replacement
+#         return re.sub(
+#             rf'(?<!["\'])({raw_types_pattern})(?!["\'])',
+#             replacer,
+#             text
+#         )
+#     except Exception:
+#         # Optional: log the error if you want
+#         # print(f"Error processing type hint: {e}")
+
+#         # Fail safely: return original text unchanged
+#         return text
