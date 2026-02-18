@@ -273,7 +273,7 @@ def add_safe_directory(repo_path: Optional[str] = None) -> Tuple[int, str, str]:
                 stderr_str = stderr_bytes.decode("utf-8", errors="replace").strip()
                 # Log result
                 if p.returncode == 0:
-                    # 💥 all print() calls used for errors to stderr
+                    # ⚠️💥 all print() calls used for errors to stderr
                     print(
                         f"Successfully added {repo_path} as a safe directory.",
                         file=sys.stderr,
@@ -630,7 +630,10 @@ def git_version(
         pass
     except Exception as e:
         # Catch-all for other exceptions
-        print(f"Error in git_version: {e}")
+        print(
+            f"Error in git_version: {e}",
+            file=sys.stderr,
+        )
         pass
     return info  # no prints  # version, git_hash, out
 
@@ -921,7 +924,7 @@ if __name__ == "__main__":
             )
             sys.exit(1)
     else:
-        # Print version without git metadata (for package version)
+        # ✅🔎 Print version without git metadata (for package version)🎯📌
         print(info.full_version.split("+")[0])
 
 
