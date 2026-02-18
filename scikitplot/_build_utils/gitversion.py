@@ -259,36 +259,48 @@ def add_safe_directory(repo_path: Optional[str] = None) -> Tuple[int, str, str]:
 
         # Execute command with proper encoding handling
         def run_command():
-            p = subprocess.Popen(
-                git_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                # cwd=os.path.dirname(__file__),
-                cwd=repo_path,
-            )
-            stdout_bytes, stderr_bytes = p.communicate()
-            # Decode output with UTF-8, handling errors gracefully
-            stdout_str = stdout_bytes.decode("utf-8", errors="replace").strip()
-            stderr_str = stderr_bytes.decode("utf-8", errors="replace").strip()
-            # Log result
-            if p.returncode == 0:
-                print(f"Successfully added {repo_path} as a safe directory.")
-            else:
-                print(f"Failed to add {repo_path} as a safe directory: {stderr_str}")
-            return (
-                p.returncode,
-                # Decoded output - CRITICAL FIX: decode bytes to string
-                stdout_str,
-                stderr_str,
-            )
+            try:
+                p = subprocess.Popen(
+                    git_command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    # cwd=os.path.dirname(__file__),
+                    cwd=repo_path,
+                )
+                stdout_bytes, stderr_bytes = p.communicate()
+                # Decode output with UTF-8, handling errors gracefully
+                stdout_str = stdout_bytes.decode("utf-8", errors="replace").strip()
+                stderr_str = stderr_bytes.decode("utf-8", errors="replace").strip()
+                # Log result
+                if p.returncode == 0:
+                    print(f"Successfully added {repo_path} as a safe directory.")
+                else:
+                    print(
+                        f"Failed to add {repo_path} as a safe directory: {stderr_str}"
+                    )
+                return (
+                    p.returncode,
+                    # Decoded output - CRITICAL FIX: decode bytes to string
+                    stdout_str,
+                    stderr_str,
+                )
+            # subprocess.CalledProcessError
+            except Exception as e:
+                print(
+                    "Error in add_safe_directory: "
+                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+                )
+                pass
+            return (0, "", str(e))
 
         return run_command()
     except ValueError as ve:
         print(f"ValueError: {ve}")
-        raise
+        # raise
+        return (0, "", str(e))
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return (1, "", str(e))
+        return (0, "", str(e))
 
 
 ######################################################################
@@ -494,22 +506,31 @@ def git_version(
 
         # Execute command with proper encoding handling process
         def run_command():
-            p = subprocess.Popen(
-                git_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                # cwd=os.path.dirname(__file__),
-                cwd=git_dir,
-            )
-            # Use communicate() when you only care about the final output.
-            # Use stdout.readline() when you need real-time updates.
-            stdout_bytes, stderr_bytes = p.communicate()
-            return (
-                p.returncode,
-                # Decode output - CRITICAL FIX: decode bytes to string
-                stdout_bytes.decode("utf-8", errors="replace").strip(),
-                stderr_bytes.decode("utf-8", errors="replace").strip(),
-            )
+            try:
+                p = subprocess.Popen(
+                    git_command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    # cwd=os.path.dirname(__file__),
+                    cwd=git_dir,
+                )
+                # Use communicate() when you only care about the final output.
+                # Use stdout.readline() when you need real-time updates.
+                stdout_bytes, stderr_bytes = p.communicate()
+                return (
+                    p.returncode,
+                    # Decode output - CRITICAL FIX: decode bytes to string
+                    stdout_bytes.decode("utf-8", errors="replace").strip(),
+                    stderr_bytes.decode("utf-8", errors="replace").strip(),
+                )
+            # subprocess.CalledProcessError
+            except Exception as e:
+                print(
+                    "Error in git_version: "
+                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+                )
+                pass
+            return (0, "", str(e))
 
         # First attempt
         returncode, raw_output, stderr_str = run_command()
@@ -663,8 +684,12 @@ def git_remote_version(
         # Return short hash if requested
         if short and len(commit_hash) >= 7:
             commit_hash = commit_hash[:7]
+            # subprocess.CalledProcessError
     except Exception as e:
-        print(f"Error in git_remote_version: {e}")
+        print(
+            "Error in git_remote_version: "
+            f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+        )
         # Silently handle any exceptions and return empty strings
         pass
     return commit_hash, branch_name
