@@ -181,7 +181,7 @@ classifiers = [
 ## https://github.com/mesonbuild/meson-python/blob/main/mesonpy/__init__.py#L743
 ## https://github.com/pypa/setuptools/blob/646c71f9af7e9ba6677203acde4ccd0a478dfbf8/setuptools/config/expand.py#L62-L86
 dynamic = [
-  "version",                                # Determined dynamically by build-backend, inside one of (meson.build, setup.cfg, setuptools.dynamic)
+  "version",  # Determined dynamically by build-backend, inside one of (meson.build, setup.cfg, setuptools.dynamic)
   # "license",
   # "license-files",
 ]
