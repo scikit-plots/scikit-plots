@@ -273,10 +273,15 @@ def add_safe_directory(repo_path: Optional[str] = None) -> Tuple[int, str, str]:
                 stderr_str = stderr_bytes.decode("utf-8", errors="replace").strip()
                 # Log result
                 if p.returncode == 0:
-                    print(f"Successfully added {repo_path} as a safe directory.")
+                    # 💥 all print() calls used for errors to stderr
+                    print(
+                        f"Successfully added {repo_path} as a safe directory.",
+                        file=sys.stderr,
+                    )
                 else:
                     print(
-                        f"Failed to add {repo_path} as a safe directory: {stderr_str}"
+                        f"Failed to add {repo_path} as a safe directory: {stderr_str}",
+                        file=sys.stderr,
                     )
                 return (
                     p.returncode,
@@ -288,18 +293,25 @@ def add_safe_directory(repo_path: Optional[str] = None) -> Tuple[int, str, str]:
             except Exception as e:
                 print(
                     "Error in add_safe_directory: "
-                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}",
+                    file=sys.stderr,
                 )
                 pass
             return (0, "", str(e))
 
         return run_command()
     except ValueError as ve:
-        print(f"ValueError: {ve}")
+        print(
+            f"ValueError: {ve}",
+            file=sys.stderr,
+        )
         # raise
         return (0, "", str(e))
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(
+            f"An unexpected error occurred: {e}",
+            file=sys.stderr,
+        )
         return (0, "", str(e))
 
 
@@ -352,7 +364,10 @@ def init_version() -> str:
             raise ValueError("Empty version string in __init__.py")
         return version
     except Exception as e:
-        print(f"Error extracting version from __init__.py: {e}")
+        print(
+            f"Error extracting version from __init__.py: {e}",
+            file=sys.stderr,
+        )
         raise
 
 
@@ -400,7 +415,10 @@ def toml_version() -> str:
             raise ValueError("Empty version string in pyproject.toml")
         return version
     except Exception as e:
-        print(f"Error extracting version from pyproject.toml: {e}")
+        print(
+            f"Error extracting version from pyproject.toml: {e}",
+            file=sys.stderr,
+        )
         raise
 
 
@@ -527,7 +545,8 @@ def git_version(
             except Exception as e:
                 print(
                     "Error in git_version: "
-                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+                    f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}",
+                    file=sys.stderr,
                 )
                 pass
             return (0, "", str(e))
@@ -541,12 +560,18 @@ def git_version(
             returncode, raw_output, stderr_str = run_command()
         # Check if git command succeeded
         if returncode != 0:
-            print(f"Git command failed: {stderr_str}")
+            print(
+                f"Git command failed: {stderr_str}",
+                file=sys.stderr,
+            )
             return info  # Return base version
         # if returncode == 0:
         info.raw_output = raw_output
         if not raw_output:
-            print("Git command returned empty output")
+            print(
+                "Git command returned empty output",
+                file=sys.stderr,
+            )
             return info
         # Append git hash information to development versions
         # Provide Git Development Edition, Git Deployment Environment, or simply a custom build identifier
@@ -554,8 +579,11 @@ def git_version(
         # Example: "abc1234567890def 2026-02-17T05:48:32+00:00"
         parts = raw_output.split(None, 1)  # Split on whitespace, max 2 parts
         if len(parts) != 2:
-            print(f"Unexpected git output format: {raw_output}")
-            return info
+            print(
+                f"Unexpected git output format: {raw_output}",
+                file=sys.stderr,
+            )
+            return info  # no prints
         # Extract commit hash and date based on the format
         # git_hash, git_date = (
         #     raw_output
@@ -570,12 +598,18 @@ def git_version(
         git_hash, git_timestamp = parts
         # Validate hash (should be hexadecimal)
         if not all(c in "0123456789abcdef" for c in git_hash.lower()):
-            print(f"Invalid git hash format: {git_hash}")
-            return info
+            print(
+                f"Invalid git hash format: {git_hash}",
+                file=sys.stderr,
+            )
+            return info  # no prints
         # Validate timestamp (should contain 'T')
         if "T" not in git_timestamp:
-            print(f"Invalid timestamp format: {git_timestamp}")
-            return info
+            print(
+                f"Invalid timestamp format: {git_timestamp}",
+                file=sys.stderr,
+            )
+            return info  # no prints
         # Create version info with parsed data
         info = GitVersionInfo(
             base_version=version,
@@ -587,15 +621,18 @@ def git_version(
         #     version += f"+git.{git_date}.{git_hash[:7] if short else git_hash}"
         # else:
         #     version += f"+git.{git_date}.{git_hash[:7] if short else git_hash}"
-    except FileNotFoundError:
+    except FileNotFoundError as fe:
         # Git command not found or not in a git repository
-        print("Git command not found")
+        print(
+            f"Git command not found: {fe}",
+            file=sys.stderr,
+        )
         pass
     except Exception as e:
         # Catch-all for other exceptions
         print(f"Error in git_version: {e}")
         pass
-    return info  # version, git_hash, out
+    return info  # no prints  # version, git_hash, out
 
 
 ######################################################################
@@ -688,7 +725,8 @@ def git_remote_version(
     except Exception as e:
         print(
             "Error in git_remote_version: "
-            f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}"
+            f"Git command failed: fatal: not a git repository (or any of the parent directories) {e}",
+            file=sys.stderr,
         )
         # Silently handle any exceptions and return empty strings
         pass
@@ -837,7 +875,10 @@ if __name__ == "__main__":
             print(f"Raw output: {info.raw_output}")
 
     except Exception as e:
-        print(f"Error extracting version: {e}", file=sys.stderr)
+        print(
+            f"Error extracting version: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Generate template
@@ -868,10 +909,16 @@ if __name__ == "__main__":
             if relpath.startswith("."):
                 relpath = outfile
 
-            print(f"Saved version to {relpath}")
+            print(
+                f"Saved version to {relpath}",
+                file=sys.stderr,
+            )
 
         except Exception as e:
-            print(f"Error writing version file: {e}", file=sys.stderr)
+            print(
+                f"Error writing version file: {e}",
+                file=sys.stderr,
+            )
             sys.exit(1)
     else:
         # Print version without git metadata (for package version)
