@@ -24,6 +24,14 @@
 ANNoy Vector Database (Approximate Nearest Neighbors)
 ======================================================================
 
+ANNOY (Approximate Nearest Neighbors Oh Yeah): The core data structure are random projection trees,
+a set of binary trees where each non-leaf node represents a hyperplane splitting the input space into half
+and each leaf stores one data point. Trees are built independently and at random, so to some extent,
+it mimics a hashing function. ANNOY search happens in all the trees to iteratively search through the half
+that is closest to the query and then aggregates the results.
+The idea is quite related to KD tree but a lot more scalable.
+`LLM Powered Autonomous Agents <https://lilianweng.github.io/posts/2023-06-23-agent/>`
+
 ANNoy helps you find *similar items* fast.
 
 You give your data as **vectors** (arrays of numbers). Then you can search for

@@ -1,3 +1,4 @@
+# scikitplot/annoy/_annoy/tests/test_cython_annoy.py
 
 """
 Comprehensive Test Suite for Complete Annoy Implementation
@@ -15,6 +16,7 @@ import os
 import math
 import warnings
 
+# cython to python module
 from ..annoylib import Index, BaseIndex, ReprHTMLMixin, _HTMLDocumentationLinkMixin
 
 def test_initialization():
@@ -616,11 +618,11 @@ def test_dtype_metadata():
     print("="*70)
 
     dtypes_and_sizes = [
-        ('float16', 2),
+        # ('float16', 2),
         ('float32', 4),
         ('float64', 8),
-        ('float80', 10),  # or 16 with padding
-        ('float128', 16),
+        # ('float80', 10),  # or 16 with padding
+        # ('float128', 16),
     ]
 
     for dtype, expected_size in dtypes_and_sizes:

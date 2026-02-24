@@ -1431,13 +1431,31 @@ f2py_gen = generator(generate_f2pymod,
 )
 
 ######################################################################
-## py tempita
+## Tempita template generator
+## Generates annoylib.pxd and annoylib.pyx from .in templates.
+##
+## Two usage patterns:
+##   generator : for .pyx/.pxd files processed inline during the build
+##   custom_target : when the generated .pxd must also be installed
+##
+## The CLI is:  python tempita.py <infile.in> -o <outfile>
 ######################################################################
-
 # Usage: custom_target(command: [py, cli_tempita, '@INPUT@', '-o', '@OUTDIR@'],
 # Usage: custom_target(command: [cli_tempita, '@INPUT@', '-o', '@OUTPUT@'],
-cli_tempita = find_program('scikitplot/_build_utils/tempita.py')
+# Path to the Tempita CLI helper (ships alongside this meson.build)
+cli_tempita = find_program(
+  # meson.current_source_dir() + '/../../_build_utils/tempita.py',
+  'scikitplot/_build_utils/tempita.py',
+  required: true,
+)
 
+# ---------------------------------------------------------------------------
+# Generate annoylib.pxd from annoylib.pxd.in
+#
+# We use custom_target here (rather than generator) because the generated
+# .pxd file must be copied to the build directory *before* the .pyx is
+# compiled, so that Cython's cimport resolution works correctly.
+# ---------------------------------------------------------------------------
 # Usage: tempita_gen.process('__config__.py.in')
 # Used for templated py/C/Cpp/pyx/pxd code
 gen_tempita = generator(cli_tempita,

@@ -78,10 +78,7 @@ except ImportError:
         sys.exit(1)
 
 
-def validate_template_content(
-    content: str,
-    filepath: Path,
-) -> Tuple[bool, Optional[str]]:
+def validate_template_content(content: str, filepath: Path) -> Tuple[bool, Optional[str]]:
     """
     Perform lightweight sanity checks on a template file before processing.
 
@@ -168,9 +165,13 @@ def process_template(
     The output directory is created automatically if it does not exist.
     """
     if not template_path.exists():
-        raise FileNotFoundError(f"Template file not found: {template_path}")
+        raise FileNotFoundError(
+            f"Template file not found: {template_path}"
+        )
     if not template_path.is_file():
-        raise ValueError(f"Template path is not a regular file: {template_path}")
+        raise ValueError(
+            f"Template path is not a regular file: {template_path}"
+        )
 
     if verbose:
         print(f"  Processing : {template_path}")
@@ -180,9 +181,13 @@ def process_template(
     try:
         template_content = template_path.read_text(encoding="utf-8")
     except PermissionError as exc:
-        raise PermissionError(f"Cannot read template {template_path}: {exc}") from exc
+        raise PermissionError(
+            f"Cannot read template {template_path}: {exc}"
+        ) from exc
     except OSError as exc:
-        raise RuntimeError(f"Failed to read template {template_path}: {exc}") from exc
+        raise RuntimeError(
+            f"Failed to read template {template_path}: {exc}"
+        ) from exc
 
     template_lines = template_content.count("\n")
 
@@ -206,10 +211,16 @@ def process_template(
         if debug:
             print("  Substituted: ok")
     except Exception as exc:
-        raise RuntimeError(f"Tempita failed for {template_path}: {exc}") from exc
+        import traceback
+        traceback.print_exc()
+        raise RuntimeError(
+            f"Tempita failed for {template_path}: {exc}"
+        ) from exc
 
     if not generated_content.strip():
-        raise RuntimeError(f"Template produced empty output for {template_path}")
+        raise RuntimeError(
+            f"Template produced empty output for {template_path}"
+        )
 
     generated_lines = generated_content.count("\n")
 
@@ -218,9 +229,13 @@ def process_template(
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(generated_content, encoding="utf-8")
     except PermissionError as exc:
-        raise PermissionError(f"Cannot write output {output_path}: {exc}") from exc
+        raise PermissionError(
+            f"Cannot write output {output_path}: {exc}"
+        ) from exc
     except OSError as exc:
-        raise RuntimeError(f"Failed to write output {output_path}: {exc}") from exc
+        raise RuntimeError(
+            f"Failed to write output {output_path}: {exc}"
+        ) from exc
 
     if verbose:
         ratio = generated_lines / template_lines if template_lines else float("nan")
@@ -294,7 +309,9 @@ def generate_all(
         If ``src_dir`` does not exist.
     """
     if not src_dir.exists():
-        raise FileNotFoundError(f"Source directory not found: {src_dir}")
+        raise FileNotFoundError(
+            f"Source directory not found: {src_dir}"
+        )
 
     template_files = find_template_files(src_dir)
 
@@ -351,9 +368,7 @@ def generate_all(
         if total_template_lines > 0:
             ratio = total_generated_lines / total_template_lines
             reduction = (1 - total_template_lines / total_generated_lines) * 100
-            print(
-                f"  Expansion  : {ratio:.1f}x  ({reduction:.0f}% less hand-written code)"
-            )
+            print(f"  Expansion  : {ratio:.1f}x  ({reduction:.0f}% less hand-written code)")
 
     if errors:
         print(f"\n  ⚠  {len(errors)} error(s):", file=sys.stderr)
@@ -571,7 +586,6 @@ Examples:
         print(f"FATAL ERROR: {exc}", file=sys.stderr)
         if args.debug:
             import traceback
-
             traceback.print_exc()
         sys.exit(1)
 

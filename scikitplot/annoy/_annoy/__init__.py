@@ -6,6 +6,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# python tools/cython/cython_generate_v3.py  --src-dir scikitplot/annoy/_annoy/
 """
 Random.
 """

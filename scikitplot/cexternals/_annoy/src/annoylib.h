@@ -17,6 +17,15 @@
  * ENHANCED ANNOYLIB - COMPREHENSIVE TYPE SUPPORT & PARAMETER MANAGEMENT
  * =========================================================================================
  *
+ * fully support:
+ *
+ *   * 32-bit ID
+ *   * 64-bit ID
+ *   * 32-bit OS
+ *   * 64-bit OS
+ *   * Linux / Windows / macOS
+ *   * GCC / Clang / MSVC
+ *
  * Canonical semantics:
  *
  *   * "indice"        : integer ID returned by Annoy
@@ -1881,6 +1890,66 @@ struct Manhattan : Minkowski {
     return "manhattan";
   }
 };
+// These are fundamentally different mechanisms.
+// Templates are compile-time polymorphism.
+// Base-class pointers are runtime polymorphism.
+//
+// Non-templated base + virtual functions (most practical)
+// Introduce a Non-Templated Polymorphic Base Then your concrete class derives from it.
+// std::unique_ptr<AnnoyIndexInterfaceBase> ptr; std::make_unique<...>;  // Now the pointer is type-erased and works for all combinations.
+// AnnoyIndexInterface<int32_t, float, uint64_t>* ptr = self->ptr;       // switch types manually. That is unsafe, non-extensible, and breaks type safety.
+//
+// pattern:
+//   enum class → finite runtime configuration
+//   std::unique_ptr → RAII ownership
+//   std::make_unique → exception-safe allocation
+//   Non-templated base with virtual destructor → safe polymorphic deletion
+//
+// Non-templated base
+// +
+// Factory
+// +
+// unique_ptr
+// +
+// Explicit supported combinations
+//
+// Step 1 — Define strict runtime type set
+// If you support only specific combinations:
+// enum class IndexKind {
+//     Int32Float,
+//     Int64Double
+// };
+// struct IndexConfig {
+//     std::string type;  // "int32_float"
+//     int f;
+// };
+// // Step 2 — Factory Function
+// std::unique_ptr<AnnoyIndexInterfaceBase>
+// create_index(IndexKind kind, int f) {
+//     switch (kind) {
+//         case IndexKind::Int32Float:
+//             return std::make_unique<
+//                 AnnoyIndex<int32_t, float, Angular,
+//                            Kiss64Random,
+//                            AnnoyIndexThreadedBuildPolicy>
+//             >(f);
+//         case IndexKind::Int64Double:
+//             return std::make_unique<
+//                 AnnoyIndex<int64_t, double, Angular,
+//                            Kiss64Random,
+//                            AnnoyIndexThreadedBuildPolicy>
+//             >(f);
+//         default:
+//             throw std::invalid_argument("Unsupported index kind");
+//     }
+// }
+// // Now:
+// self->ptr = create_index(IndexKind::Int32Float, self->f);
+//
+// 🧩 Alternative Few known combinations: std::variant (If No Virtual overhead Functions) And use std::visit.
+// std::unique_ptr<Base> in C++ ✅ Better for pure-C++ usage  Adds RAII in C++; unnecessary complexity for Cython which owns the pointer itself
+// std::variant + std::visit    ⚠️ Over-engineering           20 types × 5 template params → variant is unwieldy; virtual dispatch is cleaner and already in place
+//
 // Python
 //    ↓
 // Cython wrapper (stores Base*)
@@ -1931,16 +2000,75 @@ public:
   virtual std::vector<uint8_t> serialize(char** error = NULL) const noexcept = 0;
   // virtual bool deserialize(const std::vector<uint8_t>& bytes, ...)
   // Pointer allows null Pointer implies ownership ambiguity
-  virtual bool deserialize(std::vector<uint8_t>* bytes, bool prefault = false, char** error = NULL) noexcept = 0;
+  virtual bool deserialize(
+    std::vector<uint8_t>* bytes,
+    bool prefault = false,
+    char** error = NULL
+  ) noexcept = 0;
 
   // sklearn compatibility
   virtual bool get_params(
-    std::vector<std::pair<std::string, std::string>>& params
+    std::vector<std::pair<std::string,
+    std::string>>& params
   ) const noexcept = 0;
   virtual bool set_params(
-    const std::vector<std::pair<std::string, std::string>>& params,
+    const std::vector<std::pair<std::string,
+    std::string>>& params,
     char** error = NULL
   ) noexcept = 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Widened-type virtual API  (suffix _w = "widened wire types")
+  //
+  // Problem
+  // -------
+  // AnnoyIndexInterfaceBase is non-templated so it cannot declare virtuals
+  // whose signatures contain the template parameters S, T, or R of the
+  // derived AnnoyIndexInterface<S,T,R>.  Cython stores the pointer as
+  // AnnoyIndexInterfaceBase* (the only type-safe owner for all 20 concrete
+  // index types); it therefore cannot reach any S/T/R-typed method without
+  // a dangerous reinterpret-cast.
+  //
+  // Solution: "widened wire types"
+  // --------------------------------
+  // Declare every type-dependent method here using the *widest* fixed types
+  // that safely cover all supported S / T / R combinations:
+  //
+  //   S → int64_t   covers int32_t  (values ≤ 2^31-1 always fit)
+  //   T → double    covers float    (Python floats are 64-bit; the caller
+  //                                  already rounded to float64 precision)
+  //   R → uint64_t  covers uint32_t (uint64 truncated to uint32 on call)
+  //
+  // Concrete bridge implementations in AnnoyIndexInterface<S,T,R> (below)
+  // perform the safe narrowing casts and delegate to the typed S/T/R methods.
+  //
+  // Naming: _w suffix avoids C++ overload ambiguity with the identically
+  // named typed virtuals on AnnoyIndexInterface<S,T,R>.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Configuration
+  virtual void set_seed_w(uint64_t seed) noexcept = 0;
+
+  // Core operations
+  virtual bool add_item_w(int64_t item, const double* embedding,
+                          char** error = NULL) noexcept = 0;
+
+  // Accessors
+  virtual int64_t get_n_items_w()   const noexcept = 0;
+  virtual int64_t get_n_trees_w()   const noexcept = 0;
+  virtual void    get_item_w(int64_t item, double* embedding) const noexcept = 0;
+  virtual double  get_distance_w(int64_t i, int64_t j) const noexcept = 0;
+
+  // Querying
+  virtual void get_nns_by_item_w(
+    int64_t item, size_t n, int search_k,
+    std::vector<int64_t>* result,
+    std::vector<double>*  distances) const noexcept = 0;
+
+  virtual void get_nns_by_vector_w(
+    const double* vec, size_t n, int search_k,
+    std::vector<int64_t>* result,
+    std::vector<double>*  distances) const noexcept = 0;
 };
 /* =========================================================================================
  * MAIN ANNOY INDEX INTERFACE
@@ -2003,6 +2131,10 @@ class AnnoyIndexInterface
   // virtual ~AnnoyIndexInterface() {};
   virtual ~AnnoyIndexInterface() noexcept = default;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Typed abstract methods — implemented by AnnoyIndex / HammingWrapper
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Dimension management
   virtual int get_f() const noexcept = 0;
   virtual bool set_f(int f, char** error = NULL) noexcept = 0;
@@ -2038,16 +2170,120 @@ class AnnoyIndexInterface
   virtual std::vector<uint8_t> serialize(char** error = NULL) const noexcept = 0;
   // virtual bool deserialize(const std::vector<uint8_t>& bytes, ...)
   // Pointer allows null Pointer implies ownership ambiguity
-  virtual bool deserialize(std::vector<uint8_t>* bytes, bool prefault = false, char** error = NULL) noexcept = 0;
+  virtual bool deserialize(
+    std::vector<uint8_t>* bytes,
+    bool prefault = false,
+    char** error = NULL
+  ) noexcept = 0;
 
   // sklearn compatibility
   virtual bool get_params(
-    std::vector<std::pair<std::string, std::string>>& params
+    std::vector<std::pair<std::string,
+    std::string>>& params
   ) const noexcept = 0;
   virtual bool set_params(
-    const std::vector<std::pair<std::string, std::string>>& params,
+    const std::vector<std::pair<std::string,
+    std::string>>& params,
     char** error = NULL
   ) noexcept = 0;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Bridge implementations of AnnoyIndexInterfaceBase widened API (_w)
+  //
+  // These are non-abstract `final` overrides that convert from the fixed wire
+  // types (int64_t / double / uint64_t) to S / T / R and delegate to the
+  // typed pure-virtual methods declared below.
+  //
+  // `final` prevents derived classes from overriding the bridges; they
+  // override only the typed S/T/R methods.
+  //
+  // All bridges are noexcept and catch std::bad_alloc (from temporary
+  // std::vector allocations) routing it through the char** error convention
+  // that the rest of the API uses.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  void set_seed_w(uint64_t seed) noexcept override final {
+    set_seed(static_cast<R>(seed));
+  }
+
+  bool add_item_w(int64_t item, const double* embedding,
+                  char** error = NULL) noexcept override final {
+    try {
+      const int f = get_f();
+      std::vector<T> tmp(static_cast<size_t>(f));
+      for (int i = 0; i < f; ++i) tmp[i] = static_cast<T>(embedding[i]);
+      return add_item(static_cast<S>(item), tmp.data(), error);
+    } catch (const std::bad_alloc&) {
+      if (error) *error = dup_cstr("out of memory in add_item_w");
+      return false;
+    }
+  }
+
+  int64_t get_n_items_w() const noexcept override final {
+    return static_cast<int64_t>(get_n_items());
+  }
+
+  int64_t get_n_trees_w() const noexcept override final {
+    return static_cast<int64_t>(get_n_trees());
+  }
+
+  void get_item_w(int64_t item, double* embedding) const noexcept override final {
+    try {
+      const int f = get_f();
+      std::vector<T> tmp(static_cast<size_t>(f));
+      get_item(static_cast<S>(item), tmp.data());
+      for (int i = 0; i < f; ++i) embedding[i] = static_cast<double>(tmp[i]);
+    } catch (...) {}
+  }
+
+  double get_distance_w(int64_t i, int64_t j) const noexcept override final {
+    return static_cast<double>(get_distance(static_cast<S>(i), static_cast<S>(j)));
+  }
+
+  void get_nns_by_item_w(
+      int64_t item, size_t n, int search_k,
+      std::vector<int64_t>* result,
+      std::vector<double>*  distances) const noexcept override final {
+    try {
+      std::vector<S> sr;
+      if (distances) {
+        std::vector<T> sd;
+        get_nns_by_item(static_cast<S>(item), n, search_k, &sr, &sd);
+        result->resize(sr.size());
+        distances->resize(sd.size());
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sd.size(); ++k) (*distances)[k] = static_cast<double>(sd[k]);
+      } else {
+        get_nns_by_item(static_cast<S>(item), n, search_k, &sr, NULL);
+        result->resize(sr.size());
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<int64_t>(sr[k]);
+      }
+    } catch (...) {}
+  }
+
+  void get_nns_by_vector_w(
+      const double* vec, size_t n, int search_k,
+      std::vector<int64_t>* result,
+      std::vector<double>*  distances) const noexcept override final {
+    try {
+      const int f = get_f();
+      std::vector<T> query(static_cast<size_t>(f));
+      for (int i = 0; i < f; ++i) query[i] = static_cast<T>(vec[i]);
+      std::vector<S> sr;
+      if (distances) {
+        std::vector<T> sd;
+        get_nns_by_vector(query.data(), n, search_k, &sr, &sd);
+        result->resize(sr.size());
+        distances->resize(sd.size());
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sd.size(); ++k) (*distances)[k] = static_cast<double>(sd[k]);
+      } else {
+        get_nns_by_vector(query.data(), n, search_k, &sr, NULL);
+        result->resize(sr.size());
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<int64_t>(sr[k]);
+      }
+    } catch (...) {}
+  }
 };
 // Without this, noexcept will call std::terminate().
 // bool build(...) noexcept override {
@@ -3456,7 +3692,23 @@ public:
   virtual ~HammingWrapper() { unload(); }
 
   int get_f() const noexcept override {
-      return _index.get_f();
+    // Return the user-visible external dimension (number of bits/bools the user
+    // works with), NOT the internal packed-word dimension (_f_internal).
+    //
+    // Rationale: The _w bridge methods in AnnoyIndexInterface (add_item_w,
+    // get_item_w, get_nns_by_vector_w) call get_f() to size temporary float/
+    // double vectors before calling the typed add_item / get_item /
+    // get_nns_by_vector.  HammingWrapper's typed methods expect vectors of
+    // length _f_external (the bit count), so get_f() MUST return _f_external.
+    //
+    // Previously this returned _index.get_f() == _f_internal (the packed-word
+    // count, e.g. 1 for 8 bits packed into uint64_t).  That caused the bridge
+    // to allocate a 1-element vector, write only embedding[0] into it, and
+    // pass the 1-element array to add_item / get_nns_by_vector_w, which then
+    // read _f_external elements -- 7 of them garbage -- corrupting all stored
+    // Hamming data and producing wrong distances (e.g. dist=0 for different
+    // vectors, wrong self-nearest-neighbor results).
+    return static_cast<int>(_f_external);
   }
 
   // bool set_f(int f, char** error = NULL) noexcept{
@@ -3628,7 +3880,7 @@ public:
                        size_t          n,
                        int             search_k,
                        std::vector<S>* result,
-                       std::vector<float>* distances) const noexcept override {
+                       std::vector<T>* distances) const noexcept override {
     if (distances) {
       vector<InternalT> internal_distances;
       _index.get_nns_by_item(query_indice,
@@ -3642,7 +3894,7 @@ public:
         InternalT d = internal_distances[i];
         const InternalT max_d = static_cast<InternalT>(_f_external);
         if (d > max_d) d = max_d;
-        (*distances)[i] = static_cast<float>(d);
+        (*distances)[i] = static_cast<T>(d);
     }
     } else {
       _index.get_nns_by_item(query_indice,
@@ -3652,11 +3904,11 @@ public:
                              NULL);
     }
   }
-  void get_nns_by_vector(const T*           query_embedding,
-                         size_t             n,
-                         int                search_k,
-                         vector<int32_t>*   result,
-                         vector<T>*         distances) const noexcept override {
+  void get_nns_by_vector(const T*        query_embedding,
+                         size_t          n,
+                         int             search_k,
+                         std::vector<S>* result,
+                         std::vector<T>* distances) const noexcept override {
     vector<InternalT> packed_query(_f_internal, 0ULL);
     _pack(query_embedding, &packed_query[0]);
 
@@ -3673,7 +3925,7 @@ public:
         InternalT d = internal_distances[i];
         const InternalT max_d = static_cast<InternalT>(_f_external);
         if (d > max_d) d = max_d;
-        (*distances)[i] = static_cast<float>(d);
+        (*distances)[i] = static_cast<T>(d);
     }
     } else {
       _index.get_nns_by_vector(&packed_query[0],

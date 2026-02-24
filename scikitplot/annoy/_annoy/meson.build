@@ -1,6 +1,50 @@
 ## scikitplot/annoy/_annoy/meson.build
 
 ######################################################################
+## Tempita template generator
+## Generates annoylib.pxd and annoylib.pyx from .in templates.
+##
+## Two usage patterns:
+##   generator : for .pyx/.pxd files processed inline during the build
+##   custom_target : when the generated .pxd must also be installed
+##
+## The CLI is:  python tempita.py <infile.in> -o <outfile>
+######################################################################
+
+# Path to the Tempita CLI helper (ships alongside this meson.build)
+cli_tempita = find_program(
+  meson.current_source_dir() + '/../../_build_utils/tempita.py',
+  required: true,
+)
+
+# ---------------------------------------------------------------------------
+# Generate annoylib.pxd from annoylib.pxd.in
+#
+# We use custom_target here (rather than generator) because the generated
+# .pxd file must be copied to the build directory *before* the .pyx is
+# compiled, so that Cython's cimport resolution works correctly.
+# ---------------------------------------------------------------------------
+_annoylib_pxd = custom_target('annoylib_pxd',
+  output  : 'annoylib.pxd',
+  input   : 'annoylib.pxd.in',
+  command : [cli_tempita, '@INPUT@', '-o', '@OUTPUT@'],
+  # Install the .pxd so downstream packages can cimport from us.
+  install     : true,
+  # install_dir : get_option('prefix') / get_option('python.install_dir') / 'scikitplot/annoy/_annoy',
+  install_dir: py.get_install_dir() / 'scikitplot/annoy/_annoy',  # Folder relative to site-packages to install to
+  install_tag : 'devel',
+)
+
+# ---------------------------------------------------------------------------
+# Generate annoylib.pyx from annoylib.pyx.in
+# ---------------------------------------------------------------------------
+_annoylib_pyx = custom_target('annoylib_pyx',
+  output  : 'annoylib.pyx',
+  input   : 'annoylib.pyx.in',
+  command : [cli_tempita, '@INPUT@', '-o', '@OUTPUT@'],
+)
+
+######################################################################
 ## cython tree
 ######################################################################
 
@@ -12,8 +56,10 @@ _annoylib_cython_tree = [
   fs.copyfile('__init__.py'),      # Ensure __init__.py is copied early
 
   # fs.copyfile('annoylib.pyi'),     # Cython definition file for C/C++ code
-  fs.copyfile('annoylib.pxi'),
-  fs.copyfile('annoylib.pxd'),
+  fs.copyfile('annoylib.pxi'),     # Cython include file (static)
+
+  # fs.copyfile('annoylib.pxd'),
+  _annoylib_pxd,                # Generated .pxd from template
 ]
 
 
@@ -55,7 +101,8 @@ annoylib_extension_metadata = {
   {
     # Ceyton bindings source .pyx extension with C/C++ support
     'sources': [
-      'annoylib.pyx',  # (Cython binding)
+      # 'annoylib.pyx',  # (Cython binding)
+      _annoylib_pyx,        # Generated from annoylib.pyx.in via Tempita
     ],
     'include_directories': [                      # Include dirs for compilation
       inc_dir_annoylib,
@@ -67,8 +114,8 @@ annoylib_extension_metadata = {
       # annoy_static,
     ],
     'override_options': [
-      # 'cython_language=c',                        # Ensure Cython knows to generate C code
-      'cython_language=cpp',                        # Ensure Cython knows to generate C code
+      # 'cython_language=c',                      # Ensure Cython knows to generate C code
+      'cython_language=cpp',                      # Ensure Cython knows to generate C code
       'optimization=3',                           # Optimization level '-O3'
     ],
     'cython_args': cython_cpp_args,
@@ -82,7 +129,7 @@ annoylib_extension_metadata = {
       # extra_link_args
     ],
     'install': true,                              # Whether to install the .so file executable after building
-    'subdir': 'scikitplot/annoy/_annoy',     # Path where the module is located
+    'subdir': 'scikitplot/annoy/_annoy',          # Path where the module is located
   },
 }
 # https://mesonbuild.com/Syntax.html#foreach-with-a-dictionary
