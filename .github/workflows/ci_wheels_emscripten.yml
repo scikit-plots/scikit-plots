@@ -83,7 +83,7 @@ jobs:
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Wheel-cp312-pyodide_wasm32
           path: ./wheelhouse/*.whl
@@ -160,7 +160,7 @@ jobs:
   #         CIBW_PLATFORM: pyodide
 
   #     - name: Upload wheel artifact(s)
-  #       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+  #       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
   #       with:
   #         name: cp312-pyodide_wasm32
   #         path: ./wheelhouse/*.whl
