@@ -28,7 +28,7 @@ HERE = os.path.dirname(__file__)  # "tests"
 
 
 def _get_test_data(url=None):
-    # 'https://github.com/spotify/annoy/raw/refs/heads/main/test/test.tree'
+    # 'https://github.com/spotify/annoy/raw/refs/heads/main/test/test.tree'  # 32-bit
     url = url or 'https://github.com/spotify/annoy/raw/main/test/test.tree'
     filename = os.path.join(HERE, os.path.basename(url))
 
@@ -38,6 +38,7 @@ def _get_test_data(url=None):
 
 
 _get_test_data()
+_get_test_data('https://github.com/spotify/annoy/raw/main/test/test64.tree')
 
 
 def test_not_found_tree():
@@ -47,25 +48,31 @@ def test_not_found_tree():
 
 
 def test_binary_compatibility():
-    i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree")
+    # i = Index(10, "angular")
+    # i.load(f"{HERE}/test.tree")
+    # # This might change in the future if we change the search algorithm, but in that case let's update the test
+    # result = i.get_nns_by_item(0, 10)
+    # assert result == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]  # 32-bit
 
+    i = AnnoyIndex(10, "angular")
+    i.load(f"{HERE}/test64.tree")
     # This might change in the future if we change the search algorithm, but in that case let's update the test
-    assert i.get_nns_by_item(0, 10) == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]
+    result = i.get_nns_by_item(0, 10)
+    assert result == [0, 85, 42, 11, 54, 38, 26, 53, 66, 3]
 
 
 def test_load_unload():
     # Issue #108
     i = AnnoyIndex(10, "angular")
     for x in range(100000):
-        i.load(f"{HERE}/test.tree")
+        i.load(f"{HERE}/test64.tree")
         i.unload()
 
 
 def test_construct_load_destruct():
     for x in range(100000):
         i = AnnoyIndex(10, "angular")
-        i.load(f"{HERE}/test.tree")
+        i.load(f"{HERE}/test64.tree")
 
 
 def test_construct_destruct():
@@ -87,25 +94,25 @@ def test_save_twice():
 def test_load_save():
     # Issue #61
     i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree")
-    u = i.get_item_vector(99)
+    i.load(f"{HERE}/test64.tree")
+    u = i.get_item(99)
     i.save(f"{HERE}/i.tree")
-    v = i.get_item_vector(99)
+    v = i.get_item(99)
     assert u == v
     j = AnnoyIndex(10, "angular")
-    j.load(f"{HERE}/test.tree")
-    w = i.get_item_vector(99)
+    j.load(f"{HERE}/test64.tree")
+    w = i.get_item(99)
     assert u == w
     # Ensure specifying if prefault is allowed does not impact result
     j.save(f"{HERE}/j.tree", True)
     k = AnnoyIndex(10, "angular")
     k.load(f"{HERE}/j.tree", True)
-    x = k.get_item_vector(99)
+    x = k.get_item(99)
     assert u == x
     k.save(f"{HERE}/k.tree", False)
     l = AnnoyIndex(10, "angular")
     l.load(f"{HERE}/k.tree", False)
-    y = l.get_item_vector(99)
+    y = l.get_item(99)
     assert u == y
 
 
@@ -120,14 +127,14 @@ def test_save_without_build():
 
 def test_unbuild_with_loaded_tree():
     i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree")
+    i.load(f"{HERE}/test64.tree")
     with pytest.raises(Exception):
         i.unbuild()
 
 
 def test_seed():
     i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree")
+    i.load(f"{HERE}/test64.tree")
     i.set_seed(42)
 
 
@@ -158,18 +165,21 @@ def test_item_vector_after_save():
     a.add_item(3, [0, 0, 1])
     a.build(-1)
     assert a.get_n_items() == 4
-    assert a.get_item_vector(3) == [0, 0, 1]
+    assert a.get_item(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
     a.save(f"{HERE}/something.annoy")
     assert a.get_n_items() == 4
-    assert a.get_item_vector(3) == [0, 0, 1]
+    assert a.get_item(3) == [0, 0, 1]
     assert set(a.get_nns_by_item(1, 999)) == set([1, 2, 3])
 
 
 def test_prefault():
     i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree", prefault=True)
-    assert i.get_nns_by_item(0, 10) == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]
+    i.load(f"{HERE}/test64.tree", prefault=True)
+    result = i.get_nns_by_item(0, 10)
+    # assert result == [0, 85, 42, 11, 54, 38, 53, 66, 19, 31]  # 32-bit
+    assert result == [0, 85, 42, 11, 54, 38, 26, 53, 66, 3]
+
 
 
 def test_fail_save():
@@ -213,7 +223,7 @@ def test_overwrite_index():
 
 def test_get_n_trees():
     i = AnnoyIndex(10, "angular")
-    i.load(f"{HERE}/test.tree")
+    i.load(f"{HERE}/test64.tree")
     assert i.get_n_trees() == 10
 
 
@@ -276,10 +286,19 @@ def test_build_twice():
         t.build(10)
 
 
+# python -c "import struct; print(struct.calcsize('P')*8)"
+# Unit	Bytes
+# 1 KB	10³
+# 1 MB	10⁶
+# 1 GB	10⁹
+# 1 TB	10¹²
+# 1 PB	10¹⁵
+# 1 EB	10¹⁸
+# required by test	9.22 EB
 def test_very_large_index():
     # 388
     f = 3
-    dangerous_size = 2**31
+    dangerous_size = 2**31  # 2**63 2**31
     size_per_vector = 4 * (f + 3)
     n_vectors = int(dangerous_size / size_per_vector)
     m = AnnoyIndex(3, "angular")
@@ -293,7 +312,7 @@ def test_very_large_index():
 
     # Sanity check size of index
     assert os.path.getsize(path) >= dangerous_size
-    assert os.path.getsize(path) < dangerous_size + 100e3
+    assert os.path.getsize(path) >= dangerous_size + 100e3
 
     # Sanity check number of trees
     assert m.get_n_trees() == n_trees

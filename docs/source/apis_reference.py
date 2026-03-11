@@ -756,21 +756,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "_doremi.export_sheet",
                 ],
             },
-            {
-                "title": "Large Language Models.",
-                "description": (
-                    _get_submodule("scikitplot.experimental", "_llm_provider")
-                    + "\n\n" +
-                    _get_guide("llm_provider-index")
-                ),
-                "autosummary": [
-                    # "_llm_provider",
-                    "_llm_provider.LLM_PROVIDER_CONFIG_MAP",
-                    "_llm_provider.LLM_PROVIDER_ENV_CONNECTOR_MAP",
-                    "_llm_provider.get_response",
-                    "_llm_provider.load_mlflow_gateway_config",
-                ],
-            },
         ],
     },
     "scikitplot.externals": {

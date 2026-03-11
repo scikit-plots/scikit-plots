@@ -13,7 +13,7 @@ implement:
 - ``get_nns_by_item(item: int, n: int, search_k: int = -1, include_distances: bool = False)``
 - ``get_nns_by_vector(vector: Sequence[float], n: int, search_k: int = -1, include_distances: bool = False)``
 
-- ``get_item_vector(item: int) -> Sequence[float]`` (only for ``*_vectors`` helpers)
+- ``get_item(item: int) -> Sequence[float]`` (only for ``*_vectors`` helpers)
 
 Optional backend surface:
 
@@ -415,7 +415,7 @@ class VectorOpsMixin:
         Query neighbor vectors by stored item id.
 
         This is a convenience wrapper over :meth:`query_by_item` that materializes
-        vectors using the backend's ``get_item_vector``.
+        vectors using the backend's ``get_item``.
 
         Parameters
         ----------
@@ -459,7 +459,7 @@ class VectorOpsMixin:
         with lock_for(self):
             if output_type == "vector":
                 idx = np.asarray(
-                    [backend.get_item_vector(int(i)) for i in idx],
+                    [backend.get_item(int(i)) for i in idx],
                     dtype=dtype,
                 )
             else:
@@ -645,7 +645,7 @@ class VectorOpsMixin:
             if output_type == "vector":
                 if output_type == "vector":
                     idx = np.asarray(
-                        [backend.get_item_vector(int(i)) for i in idx],
+                        [backend.get_item(int(i)) for i in idx],
                         dtype=dtype,
                     )
                 else:

@@ -274,9 +274,8 @@ def st2(argv: list[str] | None = None) -> None:
 
         localhostforwarding=true
     """
-    from ._ui_app.streamlit.run_ui_app_st import run_ui_app_st
-
-    run_ui_app_st(argv)
+    # from ._ui_app.streamlit.run_ui_app_st import run_ui_app_st
+    # run_ui_app_st(argv)
 
 
 @cli.command()
@@ -320,23 +319,22 @@ def st(file_path, address, port, dark_theme, lib_sample):
 
         localhostforwarding=true
     """
-    from ._ui_app.streamlit.run_ui_app_st import launch_streamlit  # run_ui_app_st
-
-    try:
-        click.echo(f"Launching {file_path} on port {port}")
-        launch_streamlit(
-            file_path=file_path,
-            address=address,
-            port=port,
-            dark_theme=dark_theme,
-            lib_sample=lib_sample,
-        )
-    except ShellCommandException:
-        eprint(
-            "Running the scikitplot streamlit UI app failed. "
-            "Please see the logs above for details."
-        )
-        sys.exit(1)
+    # from ._ui_app.streamlit.run_ui_app_st import launch_streamlit  # run_ui_app_st
+    # try:
+    #     click.echo(f"Launching {file_path} on port {port}")
+    #     launch_streamlit(
+    #         file_path=file_path,
+    #         address=address,
+    #         port=port,
+    #         dark_theme=dark_theme,
+    #         lib_sample=lib_sample,
+    #     )
+    # except ShellCommandException:
+    #     eprint(
+    #         "Running the scikitplot streamlit UI app failed. "
+    #         "Please see the logs above for details."
+    #     )
+    #     sys.exit(1)
 
 
 ######################################################################
@@ -364,16 +362,15 @@ def gr(share):
 
         localhostforwarding=true
     """
-    from ._ui_app.gradio.template_ui_app_gr import ui_app_gr
-
-    try:
-        ui_app_gr.launch(share=True)
-    except ShellCommandException:
-        eprint(
-            "Running the scikitplot gradio UI app failed. "
-            "Please see the logs above for details."
-        )
-        sys.exit(1)
+    # from ._ui_app.gradio.template_ui_app_gr import ui_app_gr
+    # try:
+    #     ui_app_gr.launch(share=True)
+    # except ShellCommandException:
+    #     eprint(
+    #         "Running the scikitplot gradio UI app failed. "
+    #         "Please see the logs above for details."
+    #     )
+    #     sys.exit(1)
 
 
 ######################################################################

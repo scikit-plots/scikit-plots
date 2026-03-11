@@ -1129,7 +1129,7 @@ cdef class AnnoyIndex:
             return neighbors
         {{endfor}}
 
-    def get_item_vector(self, item):
+    def get_item(self, item):
         """Get vector for item."""
         if not self._index_created:
             raise AnnoyIndexException("Index not created")

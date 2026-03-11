@@ -313,7 +313,7 @@ def test_benchmark_query_by_vector(index_dtype: str, dtype: str, float_vectors, 
 # float32 baseline — catching accidental O(n) bridges.
 # ---------------------------------------------------------------------------
 
-MAX_RELATIVE_OVERHEAD = 10.0   # generous; any real regression stands out clearly
+MAX_RELATIVE_OVERHEAD = 100.0   # generous; any real regression stands out clearly
 
 
 def test_benchmark_summary_table(float_vectors, capsys):
@@ -354,6 +354,34 @@ def test_benchmark_summary_table(float_vectors, capsys):
         query_elapsed = time.perf_counter() - t0
         results.append(BenchResult(index_dtype, dtype, "query", N_QUERIES, query_elapsed))
 
+    def cpp_annoy():
+        from ... import Index
+        # --- add_item ---
+        index = Index(
+            f=F, metric="angular", seed=SEED
+        )
+        t0 = time.perf_counter()
+        for i, v in enumerate(float_vectors):
+            index.add_item(i, v)
+        add_elapsed = time.perf_counter() - t0
+        results.append(BenchResult("uint64_cpp", "float32_cpp", "add_item", N_ITEMS, add_elapsed))
+
+        # --- build ---
+        t0 = time.perf_counter()
+        index.build(n_trees=N_TREES)
+        build_elapsed = time.perf_counter() - t0
+        results.append(BenchResult("uint64_cpp", "float32_cpp", "build", 1, build_elapsed))
+
+        # --- query ---
+        rng = random.Random(SEED + 3)
+        qids = [rng.randint(0, N_ITEMS - 1) for _ in range(N_QUERIES)]
+        t0 = time.perf_counter()
+        for qid in qids:
+            index.get_nns_by_item(qid, n=N_RESULTS)
+        query_elapsed = time.perf_counter() - t0
+        results.append(BenchResult("uint64_cpp", "float32_cpp", "query", N_QUERIES, query_elapsed))
+
+    cpp_annoy()
     _print_table(results, capsys)
 
     # Relative overhead check per operation

@@ -12,7 +12,50 @@
 // WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 // License for the specific language governing permissions and limitations under
 // the License.
-
+//
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | Type                 | Introduced | Exact Width Guaranteed | Signedness            | ISO C Minimum Width | Typical Width (Modern) | Minimum (Formula) | Maximum (Formula) | Overflow Semantics | Portability Risk | Notes                                      |
+// +======================+============+========================+=======================+=====================+========================+===================+===================+===================+==================+=============================================+
+// | char                 | C89        | No                     | Implementation-defined| >=8 bits            | 8 bits                 | 0 OR -2^(n-1)     | 2^n-1 OR 2^(n-1)-1| Signed: UB        | HIGH             | Cannot assume signedness                    |
+// |                      |            |                        |                       |                     |                        |                   |                   | Unsigned: modulo  |                  |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | signed char          | C89        | No                     | Signed                | >=8 bits            | 8 bits                 | -2^(n-1)          | 2^(n-1)-1         | UB on overflow    | LOW              | Distinct type from char                     |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | unsigned char        | C89        | No                     | Unsigned              | >=8 bits            | 8 bits                 | 0                 | 2^n-1             | Modulo 2^n        | LOW              | Only type guaranteed to hold raw byte data  |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | short                | C89        | No                     | Signed                | >=16 bits           | 16 bits                | -2^(n-1)          | 2^(n-1)-1         | UB on overflow    | LOW              | At least 16 bits                            |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | unsigned short       | C89        | No                     | Unsigned              | >=16 bits           | 16 bits                | 0                 | 2^n-1             | Modulo 2^n        | LOW              |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | int                  | C89        | No                     | Signed                | >=16 bits           | 32 bits                | -2^(n-1)          | 2^(n-1)-1         | UB on overflow    | MED              | Most efficient native integer               |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | unsigned int         | C89        | No                     | Unsigned              | >=16 bits           | 32 bits                | 0                 | 2^n-1             | Modulo 2^n        | LOW              |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | long                 | C89        | No                     | Signed                | >=32 bits           | 32 or 64 bits          | -2^(n-1)          | 2^(n-1)-1         | UB on overflow    | HIGH             | 32-bit (Windows), 64-bit (Linux/macOS)      |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | unsigned long        | C89        | No                     | Unsigned              | >=32 bits           | 32 or 64 bits          | 0                 | 2^n-1             | Modulo 2^n        | HIGH             | Platform dependent                          |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | long long            | C99        | No                     | Signed                | >=64 bits           | 64 bits                | -2^63             | 2^63-1            | UB on overflow    | LOW              | At least 64 bits                            |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | unsigned long long   | C99        | No                     | Unsigned              | >=64 bits           | 64 bits                | 0                 | 2^64-1            | Modulo 2^64       | LOW              |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | int8_t               | C99        | Yes (if exists)        | Signed                | Exactly 8 bits      | 8 bits                 | -2^7              | 2^7-1             | UB on overflow    | NONE             | Requires exact-width support                |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | uint8_t              | C99        | Yes (if exists)        | Unsigned              | Exactly 8 bits      | 8 bits                 | 0                 | 2^8-1             | Modulo 2^8        | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | int16_t              | C99        | Yes (if exists)        | Signed                | Exactly 16 bits     | 16 bits                | -2^15             | 2^15-1            | UB on overflow    | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | uint16_t             | C99        | Yes (if exists)        | Unsigned              | Exactly 16 bits     | 16 bits                | 0                 | 2^16-1            | Modulo 2^16       | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | int32_t              | C99        | Yes (if exists)        | Signed                | Exactly 32 bits     | 32 bits                | -2^31             | 2^31-1            | UB on overflow    | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | uint32_t             | C99        | Yes (if exists)        | Unsigned              | Exactly 32 bits     | 32 bits                | 0                 | 2^32-1            | Modulo 2^32       | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | int64_t              | C99        | Yes (if exists)        | Signed                | Exactly 64 bits     | 64 bits                | -2^63             | 2^63-1            | UB on overflow    | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+// | uint64_t             | C99        | Yes (if exists)        | Unsigned              | Exactly 64 bits     | 64 bits                | 0                 | 2^64-1            | Modulo 2^64       | NONE             |                                             |
+// +----------------------+------------+------------------------+-----------------------+---------------------+------------------------+-------------------+-------------------+-------------------+------------------+---------------------------------------------+
+//
 /* =========================================================================================
  * ENHANCED ANNOYLIB - COMPREHENSIVE TYPE SUPPORT & PARAMETER MANAGEMENT
  * =========================================================================================
@@ -34,20 +77,21 @@
  *   * "embedding"     : binary embedding represented as float[0,1] or float[-inf,inf] on the API
  *
  * Features:
+ *
+ * - Flexible index types: int32_t, int64_t, uint32_t, uint64_t
  * - Extended floating-point: float16, float32, float64, float128
  * - Boolean/binary data: bool, uint8_t for 1-bit/8-bit data
- * - Flexible index types: int32_t, int64_t, float, double
+ * - Future-proof: Generic template design with compile-time validation
+ * - Cross-platform: Windows/Mac/Linux/Arch compatibility
  * - Lazy construction: Dimension inference from first add_item
  * - Default initialization: All variables initialized to safe defaults
- * - Cross-platform: Windows/Mac/Linux/Arch compatibility
- * - Future-proof: Generic template design with compile-time validation
  *
  * Key Enhancements:
  *
  * 1. **Extended Type Support**:
  *    - float16, float32, float64, float128 for data
  *    - bool, uint8_t for binary/boolean data
- *    - int32_t, int64_t, float, double for indices
+ *    - int32_t, int64_t, uint32_t, uint64_t for indices
  *
  * 2. **Lazy Construction**:
  *    - Dimension (f) can be inferred from first add_item() call
@@ -115,7 +159,7 @@
  * )
  *
  * Key Behaviors:
- * -------------
+ *
  * - If f=0: Dimension inferred from first add_item() call
  * - If n_trees=-1 in constructor: build() uses auto-calculation
  * - If n_trees=NULL in build(): Uses constructor's n_trees value
@@ -135,6 +179,16 @@
   #endif
 #endif
 
+/* =========================
+ * Standard C/C++ library
+ * ========================= */
+// #include <limits>     // (Pure C++) C++ interface headers first
+// #include <climits>    // (C++ + C compatibility macros if needed) C compatibility wrapper second
+// #include <limits.h>   // (❌ Do not include Pure C) legacy requirement headers last to avoid macro side effects leaking upward (last)
+// extern "C" {
+// #include <some_c_library.h>
+// }
+
 // Integer types for legacy MSVC
 // https://en.cppreference.com/w/cpp/types/integer.html
 #if defined(_MSC_VER) && _MSC_VER == 1500
@@ -150,47 +204,30 @@
   #include <cstdint>
 #endif
 
-// only on non-Windows systems.
-#if !defined(_WIN32)
-  #include <unistd.h>
-#endif
+// (C++ Header) C++ headers place them in std::
+#include <stdexcept>
+#include <utility>
+#include <algorithm>  // std::max
+#include <queue>
+#include <limits>  // C++ Type Traits Interface  // std::numeric_limits
+#include <string>  // REQUIRED for std::to_string, std::stoi
+#include <vector>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-/* =========================
- * Standard C/C++ library
- * ========================= */
-// C headers place symbols in global namespace
-// C++ headers place them in std::
-#include <errno.h>
-#include <math.h>
-#include <stddef.h>
-#include <stdio.h>   // C legacy guarantees snprintf mapping
-#include <stdlib.h>
-#include <string.h>
-
+// (C++ Header C Macro Compat) C Compatibility Header
+#include <climits>
+#include <cstring>
 #include <cerrno>
-#include <cmath>
+#include <cmath>  // std::abs std::copysign
 #include <cstddef>
 #include <cstdio>   // C++ correct fprintf, stderr
 #include <cstdlib>
-#include <cstring>
-#include <string>  // REQUIRED for std::to_string, std::stoi
-
-#include <vector>
-#include <algorithm>
-#include <queue>
-#include <limits>
-#include <stdexcept>
-#include <utility>
 
 // For 201103L "This library requires at least C++11 (-std=c++11)."
 // For 201402L "This library requires at least C++14 (-std=c++14)."
 // For 201703L "This library requires at least C++17 (-std=c++17)."
 #if __cplusplus >= 201103L
-  #include <type_traits>
+  // provides compile-time type information and type transformations
+  #include <type_traits>  // std::is_floating_point
   #include <unordered_set>
   // REQUIRED for std::atomic requires C++11 or newer.
   #include <atomic>
@@ -206,6 +243,22 @@
   #else
     #include <shared_mutex>
   #endif
+#endif
+
+// (C Header) C headers place symbols in global namespace
+#include <errno.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>   // C legacy guarantees snprintf mapping
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+// only on non-Windows systems.
+#if !defined(_WIN32)
+  #include <unistd.h>
 #endif
 
 /* =========================
@@ -282,7 +335,11 @@
     struct float16_t {
       uint16_t data;
       float16_t() : data(0) {}
-      explicit float16_t(float f) {
+      // Implicit constructor: allows float→float16_t in arithmetic expressions,
+      // ternary results, and function return values.  This mirrors how native
+      // floating-point promotions work and is the standard approach used by
+      // PyTorch (c10::Half) and Eigen (Eigen::half).
+      float16_t(float f) {  // NOLINT(google-explicit-constructor)
         __m128 v = _mm_set_ss(f);
         __m128i h = _mm_cvtps_ph(v, _MM_FROUND_TO_NEAREST_INT);
         data = static_cast<uint16_t>(_mm_extract_epi16(h, 0));
@@ -296,6 +353,13 @@
         *this = float16_t(f);
         return *this;
       }
+      // Compound assignment operators — compute in float, store back as half.
+      float16_t& operator+=(float16_t rhs) { *this = float16_t(float(*this) + float(rhs)); return *this; }
+      float16_t& operator-=(float16_t rhs) { *this = float16_t(float(*this) - float(rhs)); return *this; }
+      float16_t& operator*=(float16_t rhs) { *this = float16_t(float(*this) * float(rhs)); return *this; }
+      float16_t& operator/=(float16_t rhs) { *this = float16_t(float(*this) / float(rhs)); return *this; }
+      // Unary negation.
+      float16_t operator-() const { return float16_t(-float(*this)); }
     };
     #define ANNOY_HAS_F16C_FLOAT16 1
   #endif
@@ -304,7 +368,11 @@
   struct float16_t {
     uint16_t data;
     float16_t() : data(0) {}
-    explicit float16_t(float f) {
+    // Implicit constructor: allows float→float16_t in arithmetic expressions,
+    // ternary results, and function return values.  This mirrors how native
+    // floating-point promotions work and is the standard approach used by
+    // PyTorch (c10::Half) and Eigen (Eigen::half).
+    float16_t(float f) {  // NOLINT(google-explicit-constructor)
       // IEEE 754 half-precision conversion
       uint32_t x;
       std::memcpy(&x, &f, sizeof(float));
@@ -347,6 +415,13 @@
       *this = float16_t(f);
       return *this;
     }
+    // Compound assignment operators — compute in float, store back as half.
+    float16_t& operator+=(float16_t rhs) { *this = float16_t(float(*this) + float(rhs)); return *this; }
+    float16_t& operator-=(float16_t rhs) { *this = float16_t(float(*this) - float(rhs)); return *this; }
+    float16_t& operator*=(float16_t rhs) { *this = float16_t(float(*this) * float(rhs)); return *this; }
+    float16_t& operator/=(float16_t rhs) { *this = float16_t(float(*this) / float(rhs)); return *this; }
+    // Unary negation.
+    float16_t operator-() const { return float16_t(-float(*this)); }
   };
   #define ANNOY_HAS_SOFTWARE_FLOAT16 1
 #endif
@@ -621,9 +696,9 @@ using std::strcpy;
 // Default values for lazy construction and Python API compatibility (if needed)
 static const int DEFAULT_DIMENSION = 0;      // 0 means "infer from first vector"
 static const int DEFAULT_N_JOBS = 1;         // Default n_threads
-static const int DEFAULT_TREES = 10;         // Default n_trees
+static const int DEFAULT_TREES = -1;         // Default n_trees -1 auto or 10
 static const int DEFAULT_NEIGHBORS = 5;      // Default n_neighbors
-static const int DEFAULT_SEARCH_K = -1;      // -1 means "use automatic value"
+static const int DEFAULT_SEARCH_K = -1;      // -1 means auto "use automatic value"
 static const int DEFAULT_VERBOSE = 0;        // 0 means quiet
 static const int DEFAULT_SCHEMA = 0;         // Schema version
 /* ================================================================
@@ -654,6 +729,134 @@ inline T safe_divide(T a, T b, T default_val = DefaultValue<T>::get()) {
   static_assert(std::is_floating_point<T>::value,
                 "safe_divide is only valid for floating-point types");
   return (b != T(0)) ? a / b : default_val;
+}
+/*
+  safe_divide
+  ===========
+  Numerically robust division for floating-point types.
+
+  Motivation
+  ----------
+  Direct floating-point division
+
+    result = num / denom
+
+  is unsafe when the denominator becomes extremely small or zero.
+
+  Failure modes include:
+
+  1) Division by zero
+    denom = 0  →  ±inf or NaN
+
+  2) Overflow
+    num ≈ 1e308 and denom ≈ 1e-308  →  result ≈ 1e616 (overflow)
+
+  3) Numerical instability
+    Very small denominators produce extremely large results that
+    destabilize downstream computations (optimizers, normalization,
+    probability calculations, etc.).
+
+  Naive fixes like
+
+    num / (denom + ε)
+
+  introduce bias when |denom| >> ε and are not scale-invariant.
+
+  Design principle
+  ----------------
+  Instead of adding a constant epsilon, we scale the stabilization
+  relative to the magnitude of the numbers:
+
+    |denom| ≥ ε * max(|num|, |denom|)
+
+  where ε is the machine epsilon for the floating-point type.
+
+  This ensures:
+
+  • Division by zero cannot occur
+  • The correction scales with numeric magnitude
+  • Large values are not biased by an arbitrary constant
+  • Overflow risk from tiny denominators is reduced
+
+  Numerical invariant
+  -------------------
+    |denom| >= threshold
+    threshold = ε * max(|num|, |denom|)
+
+  This pattern is widely used in high-performance numerical software
+  (e.g. linear algebra kernels and scientific computing libraries).
+
+  Parameters
+  ----------
+  num
+      Numerator.
+
+  denom
+      Denominator.
+
+  Returns
+  -------
+  T
+      Stable division result.
+
+  Requirements
+  ------------
+  T must be a floating-point type.
+*/
+// Case	            Result
+// 1 / 0	          large finite number
+// 0 / 0	          0
+// huge / tiny	    bounded
+// normal division	unchanged
+template <typename T>
+T safe_divide(T num, T denom)
+{
+  // Enforce that the function is only used with floating-point types.
+  // Integer types do not have a meaningful machine epsilon. C++17
+  // static_assert(std::is_floating_point_v<T>,
+  //               "safe_divide requires floating point type");
+  // In C++11 the trait value must be accessed with ::value.
+  static_assert(std::is_floating_point<T>::value,
+                "safe_divide requires floating point type");
+
+  // Machine epsilon:
+  // Smallest representable increment near 1.0 for type T.
+  // Example values:
+  //   float  ≈ 1.19e-7
+  //   double ≈ 2.22e-16
+  // ✅ Final rule:
+  //   float  -> 1e-7
+  //   double -> 1e-12
+  const T eps = std::numeric_limits<T>::epsilon();
+
+  // Determine the scale of the computation.
+  // Using the maximum magnitude provides a robust estimate of
+  // the numeric scale of the division problem.
+  const T abs_num   = std::abs(num);
+  const T abs_denom = std::abs(denom);
+  const T scale = std::max(abs_num, abs_denom);
+  // Handle the special case 0 / 0 explicitly.
+  // if (scale == T(0)) return T(0);
+
+  // Compute the minimum safe magnitude for the denominator.
+  // This scales epsilon relative to the magnitude of the inputs.
+  const T threshold = eps * scale;
+
+  // If the denominator is smaller than the threshold,
+  // clamp it to ±threshold while preserving its sign.
+  //
+  // This guarantees the invariant:
+  //     |denom| >= threshold
+  //
+  // The sign preservation ensures the mathematical direction
+  // of the division is not altered.
+  if (abs_denom < threshold)
+  {
+    // denom = (denom < T(0) ? -threshold : threshold);
+    denom = std::copysign(threshold, denom);
+  }
+  // Perform the stabilized division.
+  return num / denom;
 }
 /**
  * @brief Centralized parameter storage for AnnoyIndex
@@ -830,14 +1033,29 @@ struct is_valid_data_type {
 };
 /**
  * Type trait to validate index type (S parameter).
- * Valid index types: 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'
+ *
+ * Supported index types and their item-count ceilings:
+ *   int8_t   — max 127 items  (tiny test indices only)
+ *   int16_t  — max 32 767 items
+ *   int32_t  — max ~2.1 B items
+ *   int64_t  — max ~9.2 E18 items
+ *   uint8_t  — max 255 items
+ *   uint16_t — max 65 535 items
+ *   uint32_t — max ~4.3 B items
+ *   uint64_t — max ~1.8 E19 items (wire bridge caps at INT64_MAX = 2^63-1)
+ *
+ * NOTE on uint64_t: the _w bridge uses uint64_t wire type, so item IDs up to
+ * UINT64_MAX are accepted at the C++ level.  Callers (Python/Cython) must
+ * validate that the ID fits in uint64_t before calling the bridge.
  */
 template<typename S>
 struct is_valid_index_type {
   static constexpr bool value =
-    std::is_same<S, int32_t>::value ||
-    std::is_same<S, int64_t>::value ||
-    std::is_same<S, uint8_t>::value ||
+    std::is_same<S, int8_t>::value   ||
+    std::is_same<S, int16_t>::value  ||
+    std::is_same<S, int32_t>::value  ||
+    std::is_same<S, int64_t>::value  ||
+    std::is_same<S, uint8_t>::value  ||
     std::is_same<S, uint16_t>::value ||
     std::is_same<S, uint32_t>::value ||
     std::is_same<S, uint64_t>::value;
@@ -996,6 +1214,85 @@ inline double safe_numeric_cast<double, bool>(bool value) {
 }
 #endif // ANNOY_TYPE_CONVERSION_DEFINED
 
+/* =========================================================================================
+ * TYPE-SAFE MATH HELPERS
+ *
+ * Problem
+ * -------
+ * <cmath> does not provide overloads of std::sqrt / std::fabs for non-standard
+ * types such as GCC's __float128.  Calling sqrt(__float128) or fabs(__float128)
+ * produces "call of overloaded '…' is ambiguous" because the compiler cannot
+ * choose between float, double, and long double overloads.
+ *
+ * Solution
+ * --------
+ * annoy_sqrt<T> / annoy_fabs<T> — thin wrappers that:
+ *   • Delegate to std::sqrt / std::fabs for every standard arithmetic type.
+ *   • Specialise for float128_t when it is a native __float128 (GCC/Clang x86)
+ *     by routing through the long-double overload.  Precision loss is at most
+ *     ~15 significant decimal digits vs the 33 that true quad precision offers,
+ *     but this is the only portable option without linking -lquadmath.
+ *   • On platforms where float128_t is already long double (MSVC / generic
+ *     fallback), no specialisation is needed and std::sqrt / std::fabs apply
+ *     directly.
+ *
+ * float16_t
+ * ---------
+ * The struct-based float16_t variants (F16C and software) have an implicit
+ * operator float(), so std::sqrt(float16_t) and std::fabs(float16_t) resolve
+ * to their float overloads.  However, the return type (float) must be
+ * converted back to float16_t, so explicit template specialisations are
+ * provided below to make this conversion explicit and avoid relying solely
+ * on the implicit float→float16_t constructor.
+ * ========================================================================================= */
+#ifndef ANNOY_MATH_HELPERS_DEFINED
+#define ANNOY_MATH_HELPERS_DEFINED
+
+/// Type-safe sqrt: delegates to std::sqrt for all standard types.
+template<typename T>
+inline T annoy_sqrt(T x) {
+  return std::sqrt(x);
+}
+
+/// Type-safe fabs: delegates to std::fabs for all standard types.
+template<typename T>
+inline T annoy_fabs(T x) {
+  return std::fabs(x);
+}
+
+#if defined(ANNOY_HAS_FLOAT128)
+// float128_t == __float128 (native GCC/Clang quad precision).
+// std::sqrt / std::fabs have no __float128 overload in <cmath>.
+// Cast through long double (sqrtl / fabsl) as the closest portable option.
+// Developer note: if -lquadmath is available on your toolchain you can replace
+// these with sqrtq() / fabsq() from <quadmath.h> for full 33-digit precision.
+template<>
+inline float128_t annoy_sqrt<float128_t>(float128_t x) {
+  return static_cast<float128_t>(sqrtl(static_cast<long double>(x)));
+}
+template<>
+inline float128_t annoy_fabs<float128_t>(float128_t x) {
+  return static_cast<float128_t>(fabsl(static_cast<long double>(x)));
+}
+#endif // ANNOY_HAS_FLOAT128
+
+// float16_t struct variants (F16C and software) need explicit specializations
+// because std::sqrt/std::fabs return float, requiring conversion back to
+// float16_t.  When float16_t is a native typedef (__fp16 on ARM), no
+// specialisation is needed — the compiler resolves through built-in overloads.
+#if defined(ANNOY_HAS_F16C_FLOAT16) || defined(ANNOY_HAS_SOFTWARE_FLOAT16)
+template<>
+inline float16_t annoy_sqrt<float16_t>(float16_t x) {
+  return float16_t(std::sqrt(static_cast<float>(x)));
+}
+template<>
+inline float16_t annoy_fabs<float16_t>(float16_t x) {
+  return float16_t(std::fabs(static_cast<float>(x)));
+}
+#endif // ANNOY_HAS_F16C_FLOAT16 || ANNOY_HAS_SOFTWARE_FLOAT16
+
+#endif // ANNOY_MATH_HELPERS_DEFINED
+
 inline bool remap_memory_and_truncate(void** _ptr, int _fd,
                                       size_t old_size, size_t new_size,
                                       bool* trunc_ok) {
@@ -1092,7 +1389,11 @@ inline Node* get_node_ptr(const void* _nodes, const size_t _s, const S i) {
 
 template<typename T>
 inline T dot(const T* x, const T* y, int f) {
-  T s = 0;
+  // Developer note: use T s{} (value-initialization) rather than T s = 0.
+  // Although float16_t now has an implicit float constructor, value-init
+  // via T s{} is preferred for generic numeric code — it works for all
+  // arithmetic types and clearly conveys "zero" intent.
+  T s{};
   for (int z = 0; z < f; z++) {
     s += (*x) * (*y);
     x++;
@@ -1103,16 +1404,19 @@ inline T dot(const T* x, const T* y, int f) {
 
 template<typename T>
 inline T manhattan_distance(const T* x, const T* y, int f) {
-  T d = 0.0;
+  // T d{} — value-init to zero; see dot() note.
+  // annoy_fabs<T> — resolves fabs(__float128) ambiguity; see ANNOY_MATH_HELPERS.
+  T d{};
   for (int i = 0; i < f; i++)
-    d += fabs(x[i] - y[i]);
+    d += annoy_fabs<T>(x[i] - y[i]);
   return d;
 }
 
 template<typename T>
 inline T euclidean_distance(const T* x, const T* y, int f) {
   // Don't use dot-product: avoid catastrophic cancellation in #314.
-  T d = 0.0;
+  // T d{} — value-init to zero; see dot() note.
+  T d{};
   for (int i = 0; i < f; ++i) {
     const T tmp=*x - *y;
     d += tmp * tmp;
@@ -1305,7 +1609,7 @@ inline void two_means(const std::vector<Node*>& nodes, int f, Random& random, bo
     size_t k = random.index(count);
     T di = ic * Distance::distance(p, nodes[k], f),
       dj = jc * Distance::distance(q, nodes[k], f);
-    T norm = cosine ? Distance::template get_norm<T, Node>(nodes[k], f) : 1;
+    T norm = cosine ? Distance::template get_norm<T, Node>(nodes[k], f) : T(1);
     if (!(norm > T(0))) {
       continue;
     }
@@ -1404,7 +1708,9 @@ struct Base {
   }
   template<typename T, typename Node>
   static inline T get_norm(Node* node, int f) {
-      return sqrt(dot(node->v, node->v, f));
+    // annoy_sqrt<T>: type-safe wrapper; handles __float128 ambiguity.
+    // See ANNOY_MATH_HELPERS_DEFINED block above.
+    return annoy_sqrt<T>(dot(node->v, node->v, f));
   }
   template<typename T, typename Node>
   static inline void normalize(Node* node, int f) {
@@ -1461,7 +1767,7 @@ struct Angular : Base {
     T ppqq = pp * qq;
     if (ppqq > 0) {
       // return 2.0 - 2.0 * pq / sqrt(ppqq);
-      return static_cast<T>(2.0) - static_cast<T>(2.0) * pq / sqrt(ppqq);
+      return static_cast<T>(2.0) - static_cast<T>(2.0) * pq / annoy_sqrt<T>(ppqq);
     } else {
       return static_cast<T>(2.0);  // Maximum distance cos is 0
     }
@@ -1496,7 +1802,8 @@ struct Angular : Base {
     // Used when requesting distances from Python layer
     // Turns out sometimes the squared distance is -0.0
     // so we have to make sure it's a positive number.
-    return sqrt(std::max(distance, T(0)));
+    // annoy_sqrt<T>: type-safe wrapper; handles __float128 ambiguity.
+    return annoy_sqrt<T>(std::max(distance, T(0)));
   }
   template<typename T>
   static inline T pq_distance(T distance, T margin, int child_nr) {
@@ -1541,7 +1848,8 @@ struct DotProduct : Angular {
 
   template<typename T, typename Node>
   static inline T get_norm(Node* node, int f) {
-      return sqrt(dot(node->v, node->v, f) + node->dot_factor * node->dot_factor);
+    // annoy_sqrt<T>: type-safe wrapper; handles __float128 ambiguity.
+    return annoy_sqrt<T>(dot(node->v, node->v, f) + node->dot_factor * node->dot_factor);
   }
 
   template<typename T, typename Node>
@@ -1560,13 +1868,15 @@ struct DotProduct : Angular {
     }
 
     // Calculated by analogy with the angular case
-    T pp = x->norm ? x->norm : dot(x->v, x->v, f) + x->dot_factor * x->dot_factor;
-    T qq = y->norm ? y->norm : dot(y->v, y->v, f) + y->dot_factor * y->dot_factor;
+    // Note: static_cast<T> on the false branch resolves ternary ambiguity when
+    // T is float16_t (both T→float and float→T are one user-defined conversion).
+    T pp = x->norm ? x->norm : static_cast<T>(dot(x->v, x->v, f) + x->dot_factor * x->dot_factor);
+    T qq = y->norm ? y->norm : static_cast<T>(dot(y->v, y->v, f) + y->dot_factor * y->dot_factor);
     T pq = dot(x->v, y->v, f) + x->dot_factor * y->dot_factor;
     T ppqq = pp * qq;
 
-    if (ppqq > 0) return 2.0 - 2.0 * pq / sqrt(ppqq);
-    else return 2.0;
+    if (ppqq > 0) return static_cast<T>(2.0) - static_cast<T>(2.0) * pq / annoy_sqrt<T>(ppqq);
+    else return static_cast<T>(2.0);
   }
 
   template<typename Node>
@@ -1601,7 +1911,9 @@ struct DotProduct : Angular {
 
   template<typename T, typename Node>
   static inline void normalize(Node* node, int f) {
-    T norm = sqrt(dot(node->v, node->v, f) + pow(node->dot_factor, 2));
+    // annoy_sqrt<T> / std::pow: type-safe wrapper; handles __float128 ambiguity.
+    T df = node->dot_factor;
+    T norm = annoy_sqrt<T>(dot(node->v, node->v, f) + df * df);
     if (norm > 0) {
       for (int z = 0; z < f; z++)
         node->v[z] /= norm;
@@ -1651,7 +1963,7 @@ struct DotProduct : Angular {
     for (S i = 0; i < node_count; i++) {
       Node* node = get_node_ptr<S, Node>(nodes, _s, i);
       T d = dot(node->v, node->v, f);
-      T norm = d < 0 ? 0 : sqrt(d);
+      T norm = d < 0 ? T{} : annoy_sqrt<T>(d);
       node->dot_factor = norm;
       node->built = false;
     }
@@ -1669,10 +1981,10 @@ struct DotProduct : Angular {
     for (S i = 0; i < node_count; i++) {
       Node* node = get_node_ptr<S, Node>(nodes, _s, i);
       T node_norm = node->dot_factor;
-      T squared_norm_diff = pow(max_norm, static_cast<T>(2.0)) - pow(node_norm, static_cast<T>(2.0));
-      T dot_factor = squared_norm_diff < 0 ? 0 : sqrt(squared_norm_diff);
+      T squared_norm_diff = max_norm * max_norm - node_norm * node_norm;
+      T dot_factor = squared_norm_diff < T{} ? T{} : annoy_sqrt<T>(squared_norm_diff);
 
-      node->norm = pow(max_norm, static_cast<T>(2.0));
+      node->norm = max_norm * max_norm;
       node->dot_factor = dot_factor;
     }
   }
@@ -1848,7 +2160,8 @@ struct Euclidean : Minkowski {
   }
   template<typename T>
   static inline T normalized_distance(T distance) {
-    return sqrt(std::max(distance, T(0)));
+    // annoy_sqrt<T>: type-safe wrapper; handles __float128 ambiguity.
+    return annoy_sqrt<T>(std::max(distance, T(0)));
   }
   template<typename S, typename T>
   static inline void init_node(Node<S, T>* n, int f) {
@@ -2034,13 +2347,24 @@ public:
   // Declare every type-dependent method here using the *widest* fixed types
   // that safely cover all supported S / T / R combinations:
   //
-  //   S → int64_t   covers int32_t  (values ≤ 2^31-1 always fit)
-  //   T → double    covers float    (Python floats are 64-bit; the caller
-  //                                  already rounded to float64 precision)
-  //   R → uint64_t  covers uint32_t (uint64 truncated to uint32 on call)
+  //   S (item ID) → uint64_t  covers every signed/unsigned integer type:
+  //                            int8_t … int64_t all fit in uint64_t when
+  //                            non-negative (item IDs are always ≥ 0).
+  //                            The concrete bridge casts uint64_t → S.
+  //   T (vector)  → double    covers float    (Python floats are 64-bit)
+  //   R (seed)    → uint64_t  covers uint32_t (truncated on call)
   //
-  // Concrete bridge implementations in AnnoyIndexInterface<S,T,R> (below)
-  // perform the safe narrowing casts and delegate to the typed S/T/R methods.
+  // uint64_t vs int64_t for item IDs
+  // ---------------------------------
+  // The previous wire type was int64_t, which silently rejected item IDs
+  // above 2^63-1 that uint64_t (and even uint32_t) can legitimately hold.
+  // uint64_t is the correct wire type because:
+  //   1. Item IDs are semantically non-negative.
+  //   2. uint64_t ⊇ uint32_t ⊇ uint16_t ⊇ uint8_t (no truncation).
+  //   3. uint64_t ⊇ int32_t / int64_t for non-negative values.
+  //
+  // Callers (Cython/Python) must validate that the Python integer fits in
+  // uint64_t before calling; the bridge performs no further range check.
   //
   // Naming: _w suffix avoids C++ overload ambiguity with the identically
   // named typed virtuals on AnnoyIndexInterface<S,T,R>.
@@ -2050,18 +2374,18 @@ public:
   virtual void set_seed_w(uint64_t seed) noexcept = 0;
 
   // Core operations
-  virtual bool add_item_w(int64_t item, const double* embedding,
+  virtual bool add_item_w(uint64_t item, const double* embedding,
                           char** error = NULL) noexcept = 0;
 
   // Accessors
   virtual int64_t get_n_items_w()   const noexcept = 0;
   virtual int64_t get_n_trees_w()   const noexcept = 0;
-  virtual void    get_item_w(int64_t item, double* embedding) const noexcept = 0;
-  virtual double  get_distance_w(int64_t i, int64_t j) const noexcept = 0;
+  virtual void    get_item_w(uint64_t item, double* embedding) const noexcept = 0;
+  virtual double  get_distance_w(uint64_t i, uint64_t j) const noexcept = 0;
 
   // Querying
   virtual void get_nns_by_item_w(
-    int64_t item, size_t n, int search_k,
+    uint64_t item, size_t n, int search_k,
     std::vector<int64_t>* result,
     std::vector<double>*  distances) const noexcept = 0;
 
@@ -2080,7 +2404,7 @@ public:
  * Default parameters in C++ are statically bound, not dynamically bound.
  * If derived overrides with different defaults, base defaults are used when calling via base pointer.
  *
- * @tparam S Index type (int32_t | int64_t | float | double, etc.)
+ * @tparam S Index type (int32_t | int64_t | uint32_t | uint64_t, etc.)
  * @tparam T Data type (bool | uint8_t | float16_t | float | double | float128_t | uint32_t | uint64_t, etc.)
  * @tparam R Random seed type (uint32_t | uint64_t, etc.)
  *
@@ -2206,7 +2530,7 @@ class AnnoyIndexInterface
     set_seed(static_cast<R>(seed));
   }
 
-  bool add_item_w(int64_t item, const double* embedding,
+  bool add_item_w(uint64_t item, const double* embedding,
                   char** error = NULL) noexcept override final {
     try {
       const int f = get_f();
@@ -2227,7 +2551,7 @@ class AnnoyIndexInterface
     return static_cast<int64_t>(get_n_trees());
   }
 
-  void get_item_w(int64_t item, double* embedding) const noexcept override final {
+  void get_item_w(uint64_t item, double* embedding) const noexcept override final {
     try {
       const int f = get_f();
       std::vector<T> tmp(static_cast<size_t>(f));
@@ -2236,12 +2560,12 @@ class AnnoyIndexInterface
     } catch (...) {}
   }
 
-  double get_distance_w(int64_t i, int64_t j) const noexcept override final {
+  double get_distance_w(uint64_t i, uint64_t j) const noexcept override final {
     return static_cast<double>(get_distance(static_cast<S>(i), static_cast<S>(j)));
   }
 
   void get_nns_by_item_w(
-      int64_t item, size_t n, int search_k,
+      uint64_t item, size_t n, int search_k,
       std::vector<int64_t>* result,
       std::vector<double>*  distances) const noexcept override final {
     try {
@@ -2317,7 +2641,7 @@ class AnnoyIndexInterface
  * - Thread-safe building
  * - Disk-based construction for large datasets
  *
- * @tparam S Index type (int32_t, int64_t, float, double)
+ * @tparam S Index type (int8_t | int16_t | int32_t | int64_t | uint8_t | uint16_t | uint32_t | uint64_t)
  * @tparam T Data type (float, double, float16_t, float128_t, bool, uint8_t, uint32_t, uint64_t)
  * @tparam Distance Distance metric (Angular, Euclidean, Manhattan, DotProduct, Hamming)
  * @tparam Random Random number generator (Kiss32Random, Kiss64Random)
@@ -2334,7 +2658,8 @@ class AnnoyIndex
 > {
 #if __cplusplus >= 201103L
   static_assert(is_valid_index_type<S>::value,
-                "S must be int32_t, int64_t, float, or double");
+                "S must be one of: int8_t, int16_t, int32_t, int64_t, "
+                "uint8_t, uint16_t, uint32_t, uint64_t");
   static_assert(is_valid_data_type<T>::value,
                 "T must be float, double, float16_t, float128_t, bool, or uint8_t");
 #endif
@@ -3230,8 +3555,8 @@ protected:
   // Range is guaranteed: imbalance ∈ [0.5, 1.0]
   // mathematically: imbalance = max(ls, rs) / (ls + rs) = 0.5 ≤ imbalance ≤ 1.0 = max(f,1−f)∈[0.5,1]
   // Acceptable region: [0.5, 0.95)
-  // Gray region: [0.95, 0.999]
-  // Retry region: (0.999, 1.0]
+  // Gray region: [0.95, 0.9999999]
+  // Retry region: (0.9999999, 1.0]
   double _split_imbalance(
     const std::vector<S>& left_indices,
     const std::vector<S>& right_indices
@@ -3319,7 +3644,7 @@ protected:
     threaded_build_policy.unlock_shared_nodes();
 
     // If we didn't find a hyperplane, just randomize sides as a last option
-    while (_split_imbalance(children_indices[0], children_indices[1]) > 0.999) {
+    while (_split_imbalance(children_indices[0], children_indices[1]) > 0.9999999) {
       if (_verbose)
         annoylib_showUpdate("\tNo hyperplane found (left has %zu children, right has %zu children)\n",
           children_indices[0].size(), children_indices[1].size());
@@ -3439,8 +3764,8 @@ protected:
  *   - Serialization is strict, versioned, and validated
  *   - No implicit dimension mutation during deserialize/load
  *
- * @tparam S Index type (int32_t | int64_t)
- * @tparam T External data type (float | double) - user-facing API
+ * @tparam S Index type (int32_t | int64_t | uint32_t | uint64_t)
+ * @tparam T External data type (float16_t | float | double | float128_t) - user-facing API
  * @tparam InternalT Internal packed type (uint32_t, uint64_t) - internal packed representation
  * @tparam Random Random generator RNG (Kiss32Random | Kiss64Random)
  * @tparam ThreadedBuildPolicy: Build threading policy
@@ -3457,9 +3782,11 @@ class HammingWrapper final
 > {
 #if __cplusplus >= 201103L
   static_assert(is_valid_index_type<S>::value,
-                "S must be int32_t, int64_t, float, or double");
-  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value,
-                "T must be float or double for HammingWrapper external interface");
+                "S must be one of: int8_t, int16_t, int32_t, int64_t, "
+                "uint8_t, uint16_t, uint32_t, uint64_t");
+  static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value ||
+                std::is_same<T, float16_t>::value || std::is_same<T, float128_t>::value,
+                "T must be float, double, float16_t, or float128_t for HammingWrapper external interface");
   static_assert(std::is_same<InternalT, bool>::value ||
                 std::is_same<InternalT, uint8_t>::value ||
                 std::is_same<InternalT, uint32_t>::value ||

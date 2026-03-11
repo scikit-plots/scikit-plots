@@ -400,11 +400,11 @@ a.info(), a.get_n_items(), a.get_n_trees()
 
 # %%
 
-np.array_equal(a.get_item_vector(0), idx2.get_item_vector(0))
+np.array_equal(a.get_item(0), idx2.get_item(0))
 
 # %%
 
-np.array_equal(a.get_item_vector(0), idx.get_item_vector(0))
+np.array_equal(a.get_item(0), idx.get_item(0))
 
 # %%
 
@@ -476,7 +476,7 @@ idx
 
 # %%
 
-idx.get_nns_by_item(0, 10), len(idx.get_item_vector(0))
+idx.get_nns_by_item(0, 10), len(idx.get_item(0))
 
 # %%
 

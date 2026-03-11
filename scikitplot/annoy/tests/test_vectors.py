@@ -46,7 +46,7 @@ class DummyIndex(VectorOpsMixin):
     def calls(self):
         return list(self._calls)
 
-    def get_item_vector(self, item: int):
+    def get_item(self, item: int):
         if item not in self._vectors:
             raise KeyError(f"Vector for item {item} not provided in test dummy.")
         return self._vectors[item]

@@ -44,13 +44,3 @@ Experimental (experimental)
             :maxdepth: 3
 
             ./_doremi/index.rst
-
-    .. grid-item-card::
-        :padding: 3
-
-        **Large Language Models**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            ./_llm_provider/index.rst

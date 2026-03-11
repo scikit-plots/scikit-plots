@@ -161,7 +161,7 @@ class PlottingMixin:
     Mixin that adds convenient plotting methods to high-level Annoy wrappers.
 
     The mixin assumes the *host class* is Annoy-like (implements
-    ``get_n_items()``, ``get_item_vector(i)``, and ``get_nns_by_item(...)``).
+    ``get_n_items()``, ``get_item(i)``, and ``get_nns_by_item(...)``).
     If your wrapper delegates to an internal Annoy instance, override
     :meth:`_plotting_backend` to return that backend.
 

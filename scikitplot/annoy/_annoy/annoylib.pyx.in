@@ -67,6 +67,8 @@ Supports multiple float types:
 * float128 (quadruple precision)
 """
 
+from __future__ import annotations
+
 # ==============================================================================
 # Cython Imports
 # ==============================================================================
@@ -77,9 +79,10 @@ from libc.stdint cimport int8_t, int16_t, int32_t, int64_t  # no-cython-lint
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t  # no-cython-lint
 
 # https://gemfury.com/agriconnect/python:asyncpg/asyncpg-0.18.2-cp36-cp36m-linux_x86_64.whl/content/pgproto/pgproto.pyx
-from libc.stdint cimport INT16_MIN, INT16_MAX, \
+from libc.stdint cimport INT8_MIN, INT8_MAX, \
+                         INT16_MIN, INT16_MAX, \
                          INT32_MIN, INT32_MAX, UINT32_MAX, \
-                         INT64_MIN, INT64_MAX
+                         INT64_MIN, INT64_MAX, UINT64_MAX
 
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string as cpp_string
@@ -104,15 +107,81 @@ from threading import RLock
 
 {{py:
 
+# ===========================================================================
 # Type configuration for template generation
+# Must match annoylib.pxd.in configuration exactly
+# ===========================================================================
+#
+# index_types — S parameter
+# -------------------------
+# max_item is the highest valid non-negative item ID for this type.
+# For unsigned types, max_item is the full type maximum EXCEPT uint64_t:
+# the _w bridge passes item IDs as int64_t, so the hard ceiling is INT64_MAX
+# (2^63-1) regardless of the type's own maximum.
+#
+# data_types — T parameter
+# ------------------------
+# All data flows through the double-precision widened bridge (_w methods).
+# float16_t: double→float16 narrowing on add_item; float16→double on get_item.
+# float128_t: double→float128 widening on add_item (no precision gain on input
+#   side); internal arithmetic and storage at full float128 / long-double precision.
+#
 index_types = [
-    {'name': 'Int32', 'ctype': 'int32_t', 'description': '32-bit signed integer (max 2^31-1 items)', 'enum': 'INDEX_INT32'},
-    {'name': 'Int64', 'ctype': 'int64_t', 'description': '64-bit signed integer (max 2^63-1 items)', 'enum': 'INDEX_INT64'},
+    # ── Signed integer types ──────────────────────────────────────────────
+    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 127,
+     'enum': 'INDEX_INT8',
+     'description': '8-bit signed integer (max 127 items)'},
+    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 32767,
+     'enum': 'INDEX_INT16',
+     'description': '16-bit signed integer (max 32767 items)'},
+    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2147483647,
+     'enum': 'INDEX_INT32',
+     'description': '32-bit signed integer (max 2^31-1 items)'},
+    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 9223372036854775807,
+     'enum': 'INDEX_INT64',
+     'description': '64-bit signed integer (max 2^63-1 items)'},
+    # ── Unsigned integer types ────────────────────────────────────────────
+    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 255,
+     'enum': 'INDEX_UINT8',
+     'description': '8-bit unsigned integer (max 255 items)'},
+    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 65535,
+     'enum': 'INDEX_UINT16',
+     'description': '16-bit unsigned integer (max 65535 items)'},
+    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 4294967295,
+     'enum': 'INDEX_UINT32',
+     'description': '32-bit unsigned integer (max 4294967295 items)'},
+    # uint64_t: bridge ceiling = INT64_MAX (int64_t wire type)
+    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 9223372036854775807,
+     'enum': 'INDEX_UINT64',
+     'description': '64-bit unsigned integer (bridge-limited to 2^63-1 items)'},
 ]
 
 data_types = [
-    {'name': 'Float', 'ctype': 'float', 'numpy_dtype': 'float32', 'bits': 32, 'description': 'Single precision (32-bit)', 'enum': 'DATA_FLOAT'},
-    {'name': 'Double', 'ctype': 'double', 'numpy_dtype': 'float64', 'bits': 64, 'description': 'Double precision (64-bit)', 'enum': 'DATA_DOUBLE'},
+    # ── Float types (ordered by precision) ───────────────────────────────
+    # float16_t: half precision — defined in global C++ namespace (not Annoy::)
+    # Platform: native __fp16 on ARM; F16C hardware or software IEEE-754 on x86.
+    {'name': 'Float16',  'ctype': 'float16_t',  'numpy_dtype': 'float16',  'bits': 16,
+     'enum': 'DATA_FLOAT16',
+     'aliases': ('float16_t', 'float16', 'half', 'fp16', 'f16'),
+     'description': 'Half precision (16-bit); input/output via double bridge'},
+    # float (float32): standard single precision
+    {'name': 'Float',    'ctype': 'float',       'numpy_dtype': 'float32',  'bits': 32,
+     'enum': 'DATA_FLOAT',
+     'aliases': ('float', 'float32', 'single', 'fp32', 'f32'),
+     'description': 'Single precision (32-bit)'},
+    # double (float64): standard double precision
+    {'name': 'Double',   'ctype': 'double',      'numpy_dtype': 'float64',  'bits': 64,
+     'enum': 'DATA_DOUBLE',
+     'aliases': ('double', 'float64', 'fp64', 'f64'),
+     'description': 'Double precision (64-bit)'},
+    # float128_t: quad/extended precision — defined in global C++ namespace.
+    # Platform: __float128 (true 128-bit) on GCC/Clang; long double (80-bit) on MSVC.
+    # Input precision is limited to double via the _w bridge; internal arithmetic
+    # and storage benefit from the higher precision on GCC/Clang.
+    {'name': 'Float128', 'ctype': 'float128_t',  'numpy_dtype': 'float128', 'bits': 128,
+     'enum': 'DATA_FLOAT128',
+     'aliases': ('float128_t', 'float128', 'quad', 'fp128', 'f128', 'quadruple'),
+     'description': 'Quad/extended precision (128-bit GCC/Clang or long double fallback)'},
 ]
 
 annoy_metrics = [
@@ -162,6 +231,9 @@ from .annoylib cimport (
     # AnnoyIndexInterface NOT imported — all runtime calls go through
     # AnnoyIndexInterfaceBase._w widened API; no typed casts needed.
     AnnoyIndexInterface,
+    # Extended floating-point types (global C++ namespace, used as template args only)
+    float16_t,   # half precision — ARM native __fp16 or x86 struct
+    float128_t,  # quad/extended precision — __float128 or long double fallback
     # Metric types
     Angular,
     Euclidean,
@@ -213,7 +285,13 @@ cpdef enum FloatType:
     FLOAT80 : 3
         Extended precision (80-bit, x87)
     FLOAT128 : 4
-        Quadruple precision (128-bit)
+        Quadruple precision (128-bit GCC/Clang or long double fallback)
+
+    Notes
+    -----
+    * FLOAT16 is supported via the double widened bridge with narrowing to float16_t.
+    * FLOAT128 benefits from higher-precision internal arithmetic on GCC/Clang;
+      on MSVC and generic fallback it maps to long double (80-bit extended).
     """
     FLOAT16 = 0
     FLOAT32 = 1
@@ -531,6 +609,11 @@ cdef IndexTypeId parse_index_dtype(str dtype_str) except? INDEX_UNKNOWN:
     {{for index_type in index_types}}
     * '{{index_type['ctype']}}', '{{index_type['name'].lower()}}' - {{index_type['description']}}
     {{endfor}}
+
+    Notes
+    -----
+    * For uint64_t: item IDs are limited to [0, 2^63-1] due to the int64_t
+      widened bridge.  Items >= 2^63 will raise OverflowError at runtime.
     """
     dtype_lower = dtype_str.lower().strip()
     {{for index_type in index_types}}
@@ -562,21 +645,89 @@ cdef DataTypeId parse_data_dtype(str dtype_str) except? DATA_UNKNOWN:
     ValueError
         If dtype_str is not a supported data type
 
-    Supported Values
-    ----------------
+    Supported Values and Aliases
+    ----------------------------
     {{for data_type in data_types}}
-    * '{{data_type['ctype']}}', '{{data_type['numpy_dtype']}}', '{{data_type['name'].lower()}}' - {{data_type['description']}}
+    * {{data_type['description']}}: {{', '.join("'" + a + "'" for a in data_type['aliases'])}}
     {{endfor}}
+
+    Notes
+    -----
+    * float16_t: stored at half precision; data flows through double bridge.
+    * float128_t: __float128 on GCC/Clang; long double fallback on MSVC.
+      Input precision is limited to double via the _w bridge regardless.
     """
     dtype_lower = dtype_str.lower().strip()
     {{for data_type in data_types}}
-    if dtype_lower in ('{{data_type['ctype']}}', '{{data_type['numpy_dtype']}}', '{{data_type['name'].lower()}}'):
+    if dtype_lower in ({{', '.join("'" + a + "'" for a in data_type['aliases'])}}):
         return {{data_type['enum']}}
     {{endfor}}
     raise ValueError(
         f"Unsupported dtype '{dtype_str}'. "
-        "Supported: {{', '.join(t['ctype'] + ' / ' + t['numpy_dtype'] for t in data_types)}}"
+        "Supported: {{', '.join(t['numpy_dtype'] + ' (' + t['description'] + ')' for t in data_types)}}"
     )
+
+
+
+# =============================================================================
+# Item ID Bounds Validation - TEMPLATE GENERATED
+# =============================================================================
+
+cdef inline void _validate_item_id(IndexTypeId type_id, int64_t item) except *:
+    """
+    Validate that a non-negative item ID fits within the target index type's range.
+
+    Parameters
+    ----------
+    type_id : IndexTypeId
+        The index type enum value identifying the target C++ index type.
+    item : int64_t
+        Non-negative item ID to validate.  A negative value must already be
+        caught by the caller before this function is invoked.
+
+    Raises
+    ------
+    OverflowError
+        If ``item`` exceeds the maximum representable ID for ``type_id``.
+        The error message names the type, the actual value, and the ceiling,
+        and suggests a wider type when applicable.
+
+    Notes
+    -----
+    * The _w bridge passes item IDs as ``int64_t``.  Any Python integer that
+      does not fit in ``int64_t`` is rejected by Cython before the call body
+      runs, so no upper-bound check for ``int64_t`` / ``uint64_t`` is needed
+      (the bridge ceiling IS INT64_MAX for both).
+    * For small signed types the valid non-negative range is [0, TYPE_MAX].
+    * For unsigned types the valid range is [0, TYPE_MAX] — except uint64_t
+      which is additionally limited to [0, INT64_MAX] by the bridge.
+
+    Generated combinations ({{len(index_types)}} index types):
+    {{for index_type in index_types}}
+    * {{index_type['enum']}} ({{index_type['ctype']}}): max_item = {{index_type['max_item']}}
+    {{endfor}}
+    """
+    # TEMPLATE GENERATED: one branch per IndexTypeId
+    {{for loop, index_type in looper(index_types)}}
+    {{if loop.first}}if{{else}}elif{{endif}} type_id == {{index_type['enum']}}:
+        if item > {{index_type['max_item']}}:
+            raise OverflowError(
+                f"item id '{item}' exceeds {{index_type['ctype']}} capacity "
+                f"[0, {{index_type['max_item']}}]. "
+                {{if index_type['name'] == 'Int8' or index_type['name'] == 'Uint8'}}
+                f"Use a wider index_dtype (e.g. 'int32') for larger item IDs."
+                {{elif index_type['name'] == 'Int16' or index_type['name'] == 'Uint16'}}
+                f"Use a wider index_dtype (e.g. 'int32' or 'int64') for larger item IDs."
+                {{elif index_type['name'] == 'Int32' or index_type['name'] == 'Uint32'}}
+                f"Use index_dtype='int64' to support item IDs up to 2^63-1."
+                {{elif index_type['name'] == 'Uint64'}}
+                f"uint64_t item IDs above 2^63-1 are not supported via the int64_t bridge."
+                {{else}}
+                f""  # int64_t: Cython rejects overflow before we reach here
+                {{endif}}
+            )
+    {{endfor}}
+    # INDEX_UNKNOWN or unrecognized: no action (caller should have validated type_id)
 
 
 # =============================================================================
@@ -1038,6 +1189,9 @@ cdef class Index(BaseIndex):
         * "dot", "@", ".", "dotproduct", "inner", "innerproduct" → negative dot product
         * "hamming" → bitwise Hamming distance
         If None and f > 0, defaults to "angular" with FutureWarning.
+    n_trees : int, default=-1
+        Number of trees to build. If -1, auto-selects based on dimension.
+        More trees = better accuracy but slower queries and more memory.
     n_neighbors : int, default=5
         Default number of neighbors for queries (estimator parameter).
     on_disk_path : str or None, default=None
@@ -1052,14 +1206,32 @@ cdef class Index(BaseIndex):
         Verbosity level (clamped to [-2, 2]). Level >= 1 enables logging.
     schema_version : int, default=0
         Pickle schema version marker (does not affect on-disk format).
-    dtype : str, default='float32'
-        Data type: float16, float32, float64, float80, float128
-    index_dtype : str, default='int32'
-        Index type: int32, int64
-    wrapper_dtype : str, default='uint64'
-        Wrapper type (for Hamming): uint32, uint64
-    random_dtype : str, default='uint64'
-        Random seed type
+    dtype : str, default="float32"
+        Data type for embeddings. Supported values:
+        * "float16" / "half" / "fp16"   → float16_t (16-bit half precision)
+        * "float32" / "single" / "fp32" → float (32-bit single precision, default)
+        * "float64" / "double" / "fp64" → double (64-bit double precision)
+        * "float128" / "quad" / "fp128" → float128_t (128-bit or long double)
+        All types are accessed via the double-precision widened bridge.
+        float16 values are narrowed on add_item; float128 gains no input precision
+        but benefits from higher-precision internal arithmetic on GCC/Clang.
+    index_dtype : str, default="int32"
+        Index identifier type. Supported values:
+        * "int8"   → int8_t   (max 127 items)
+        * "int16"  → int16_t  (max 32,767 items)
+        * "int32"  → int32_t  (max 2,147,483,647 items, default)
+        * "int64"  → int64_t  (max 9,223,372,036,854,775,807 items)
+        * "uint8"  → uint8_t  (max 255 items)
+        * "uint16" → uint16_t (max 65,535 items)
+        * "uint32" → uint32_t (max 4,294,967,295 items)
+        * "uint64" → uint64_t (bridge-limited to 2^63-1 items)
+    wrapper_dtype : str, default="uint64"
+        Internal wrapper type (e.g., for Hamming packing).
+        Future: "bool", "uint8", "uint32" etc.
+    random_dtype : str, default="uint64"
+        Random seed type. Currently only "uint64" supported.
+    n_jobs : int or None, default=None
+        Number of threads. If -1, uses all available cores.
     **kwargs
         Future extensibility
 
@@ -1079,6 +1251,11 @@ cdef class Index(BaseIndex):
         True if metric has been configured
     _index_constructed : bool
         True if C++ index exists (ptr != NULL)
+
+    Notes
+    -----
+    * 32-bit integer (4 bytes) can store values from −2^31 to 2^31−1, roughly ±2 billion.
+    * 64-bit integer (8 bytes) can store values from −2^63 to 2^63−1, roughly ±9 quintillion.
 
     Examples
     --------
@@ -1178,6 +1355,7 @@ cdef class Index(BaseIndex):
     cdef str index_dtype  # Index type: int32, int64
     cdef str wrapper_dtype  # Wrapper type: uint32, uint64 (for Hamming)
     cdef str random_dtype  # Random seed type: uint32, uint64
+    cdef int n_jobs
 
     # Threading support
     cdef object lock  # Initialization under __init__ python RLock for thread safety
@@ -1235,6 +1413,7 @@ cdef class Index(BaseIndex):
         self.index_dtype = "int32"
         self.wrapper_dtype = "uint64"
         self.random_dtype = "uint64"
+        self.n_jobs = 1
 
     # =========================================================================
     # Lifecycle: Initialization
@@ -1256,6 +1435,7 @@ cdef class Index(BaseIndex):
         index_dtype: str = "int32",
         wrapper_dtype: str = "uint64",
         random_dtype: str = "uint64",
+        n_jobs: Optional[int] = None,
         **kwargs  # Future extensibility
     ):
         """
@@ -1271,6 +1451,9 @@ cdef class Index(BaseIndex):
             from first vector. Must be positive for eager construction.
         metric : str or None
             Distance metric. See class docstring for supported values.
+        n_trees : int, default=-1
+            Number of trees to build. If -1, auto-selects based on dimension.
+            More trees = better accuracy but slower queries and more memory.
         n_neighbors : int
             Default neighbors for queries (must be >= 1).
         on_disk_path : str or None
@@ -1284,16 +1467,18 @@ cdef class Index(BaseIndex):
         schema_version : int
             Pickle schema marker (does not affect disk format).
         dtype : str, default="float32"
-            Data type for embeddings. Currently only "float32" supported.
-            Future: "float16", "float64", "int8", "uint8"
-        index_dtype : str, default="int32"
-            Index identifier type. Currently only "int32" supported.
-            Future: "int64", "uint32"
+            Data type for embeddings. Currently only "float32", "float64" supported.
+            Future: "bool", "int8", "uint8", "float16", "float128" etc.
+        index_dtype : str, default="int64"
+            Index identifier type. Currently only "int32", "int64" supported.
+            Future: "uint8", "uint32", "uint64" etc.
         wrapper_dtype : str, default="uint64"
             Internal wrapper type (e.g., for Hamming packing).
-            Future: "uint32", "uint8", "bool"
+            Future: "bool", "uint8", "uint32" etc.
         random_dtype : str, default="uint64"
             Random seed type. Currently only "uint64" supported.
+        n_jobs : int or None, default=None
+            Number of threads. If -1, uses all available cores.
         **kwargs : dict
             Reserved for future extensions. Currently ignored with warning.
 
@@ -1354,6 +1539,7 @@ cdef class Index(BaseIndex):
         # Store remaining type parameters (informational, not used for dispatch)
         self.wrapper_dtype = wrapper_dtype
         self.random_dtype = random_dtype
+        self.n_jobs = n_jobs or 1
 
         # Warn about unused kwargs (future extensibility)
         if kwargs:
@@ -1676,7 +1862,7 @@ cdef class Index(BaseIndex):
             self.ptr.set_verbose(self.pending_verbose >= 1)
 
         # Apply on_disk_build (if path is configured and pending)
-        cdef ScopedError error
+        cdef char* error = NULL
         cdef cpp_bool success
         if self.on_disk_pending and not self.on_disk_active:
             if self.on_disk_path.empty():
@@ -1687,17 +1873,16 @@ cdef class Index(BaseIndex):
                 )
 
             # Activate on-disk build mode
-            error = ScopedError()
             success = self.ptr.on_disk_build(
                 self.on_disk_path.c_str(),
-                &error.err
+                &error
             )
 
             if not success:
                 # Roll back to safe state
                 self._destroy_index()
-                if error.err != NULL:
-                    raise IOError(error.err.decode("utf-8", "replace"))
+                if error != NULL:
+                    raise IOError(error.decode("utf-8", "replace"))
                 else:
                     raise IOError("on_disk_build failed (unknown error)")
 
@@ -1853,34 +2038,24 @@ cdef class Index(BaseIndex):
         if item < 0:
             raise IndexError("item id cannot be negative")
 
-        # Guard: int32 index type cannot represent IDs >= 2^31.
-        # The _w bridge performs static_cast<int32_t>(item); values > INT32_MAX
-        # produce implementation-defined C++ behaviour (signed overflow).
-        # Fail fast here with an actionable message instead of silent corruption.
-        if self.index_type_id == INDEX_INT32:  #  and item > 2147483647
-            if item < INT32_MIN or item > INT32_MAX:
-                raise OverflowError(
-                    f"item id {item} exceeds int32 index capacity [{INT32_MIN}, {INT32_MAX}] "
-                    f"(max 2^31-1 = 2_147_483_647). "
-                    f"Recreate the index with index_dtype='int64' to support "
-                    f"item IDs up to 2^63-1."
-                )
-        if self.index_type_id == INDEX_INT64:
-            if item < INT64_MIN or item > INT64_MAX:
-                raise OverflowError
+        # Validate item ID fits in the target index type.
+        # The _w bridge uses int64_t; small types (int8/uint8/int16/uint16/uint32)
+        # require an explicit upper-bound check to prevent silent truncation in C++.
+        # For int64 and uint64 (bridge-limited to INT64_MAX) the Cython int64_t
+        # parameter declaration already rejects Python ints > INT64_MAX.
+        _validate_item_id(self.index_type_id, item)
 
         # Build a double[] view of the Python sequence, then call add_item_w.
         # The C++ bridge (AnnoyIndexInterface::add_item_w) narrows double→T
         # and int64→S before delegating to the concrete typed add_item.
-        cdef int i
         cdef cpp_vector[double] _vec
-        cdef char* error = NULL
-        cdef cpp_bool success
-
         _vec.resize(self.f)
+        cdef int i
         for i in range(self.f):
             _vec[i] = <double>vector[i]
 
+        cdef char* error = NULL
+        cdef cpp_bool success
         with nogil:
             success = self.ptr.add_item_w(<int64_t>item, _vec.data(), &error)
 
@@ -1924,7 +2099,7 @@ cdef class Index(BaseIndex):
             else:
                 raise RuntimeError("add_item failed (unknown error)")
 
-    def build(self, int n_trees=-1, int n_jobs=-1) -> None:
+    def build(self, int n_trees=-1, n_jobs=None) -> None:
         """
         Build the search forest (thread-safe, releases GIL).
 
@@ -1933,7 +2108,7 @@ cdef class Index(BaseIndex):
         n_trees : int, default=-1
             Number of trees to build. If -1, auto-selects based on dimension.
             More trees = better accuracy but slower queries and more memory.
-        n_jobs : int, default=-1
+        n_jobs : int or None, default=None
             Number of threads. If -1, uses all available cores.
 
         Raises
@@ -1967,8 +2142,9 @@ cdef class Index(BaseIndex):
 
         # CRITICAL: Release GIL during expensive C++ operation
         # This allows other Python threads to run concurrently
+        cdef int n_jobs1 = <int>(n_jobs or self.n_jobs)
         with nogil:
-            success = self.ptr.build(n_trees, n_jobs, &error)
+            success = self.ptr.build(n_trees, n_jobs1, &error)
         # GIL automatically reacquired here
 
         if not success:
@@ -1978,6 +2154,91 @@ cdef class Index(BaseIndex):
                 raise RuntimeError(f"build failed: {err_msg}")
             else:
                 raise RuntimeError("build failed (unknown error)")
+
+    # =========================================================================
+    # On-Disk Build (explicit public method for chaining)
+    # =========================================================================
+
+    def on_disk_build(self, fn) -> Self:
+        """
+        Configure the index to build using an on-disk backing file.
+
+        Calling this method explicitly supersedes any ``on_disk_path`` set in
+        the constructor.  It is safe to call before any ``add_item()`` calls;
+        the method ensures the C++ index is constructed first.
+
+        Parameters
+        ----------
+        fn : str
+            Path to the backing file.  The file is created or overwritten.
+
+        Returns
+        -------
+        self : Index
+            This instance (for method chaining).
+
+        Raises
+        ------
+        TypeError
+            If ``fn`` is not a string.
+        ValueError
+            If ``fn`` is empty.
+        IOError
+            If the C++ ``on_disk_build`` call fails (bad path, permissions…).
+        RuntimeError
+            If the index cannot be constructed (``f`` or ``metric`` not set).
+
+        Notes
+        -----
+        * After calling ``on_disk_build``, the index is backed by the file
+          during ``add_item`` / ``build``.  Data written to disk is *not*
+          a finished index file until ``save()`` or after ``build()``
+          completes the tree structure on disk.
+        * For very large datasets that do not fit comfortably in RAM during
+          construction this is the recommended workflow.
+
+        Examples
+        --------
+        >>> idx = Index(3, metric='angular').on_disk_build("test.annoy")
+        >>> for i, v in enumerate([[1,2,3],[4,5,6],[7,8,9]]):
+        ...     idx.add_item(i, v)
+        >>> idx.build(n_trees=10)
+        """
+        if not isinstance(fn, str):
+            raise TypeError(
+                f"`fn` must be a string path, got {type(fn).__name__}"
+            )
+        if not fn:
+            raise ValueError("`fn` must be a non-empty path string")
+
+        # Ensure the C++ index exists; activation of a prior on_disk_pending
+        # path (from the constructor) is intentionally NOT carried over — this
+        # explicit call replaces it.
+        if self.ptr == NULL:
+            # Suppress the constructor's pending on-disk path so _ensure_index
+            # does not accidentally call on_disk_build with the old path first.
+            self.on_disk_pending = False
+            self._ensure_index()
+
+        cdef bytes fn_bytes = fn.encode("utf-8")
+        cdef char* err = NULL
+        cdef cpp_bool success
+
+        cdef char* fn_bytes1 = <char*>fn_bytes
+        with nogil:
+            success = self.ptr.on_disk_build(fn_bytes1, &err)
+
+        if not success:
+            if err != NULL:
+                raise IOError(err.decode("utf-8", "replace"))
+            else:
+                raise IOError("on_disk_build failed (unknown error)")
+
+        # Record state
+        self.on_disk_path = fn.encode("utf-8")
+        self.on_disk_active = True
+        self.on_disk_pending = False
+        return self
 
     def unbuild(self) -> None:
         """
@@ -2061,17 +2322,7 @@ cdef class Index(BaseIndex):
         if item < 0:
             raise IndexError("item id cannot be negative")
 
-        if self.index_type_id == INDEX_INT32:  #  and item > 2147483647
-            if item < INT32_MIN or item > INT32_MAX:
-                raise OverflowError(
-                    f"item id {item} exceeds int32 index capacity [{INT32_MIN}, {INT32_MAX}] "
-                    f"(max 2^31-1 = 2_147_483_647). "
-                    f"Recreate the index with index_dtype='int64' to support "
-                    f"item IDs up to 2^63-1."
-                )
-        if self.index_type_id == INDEX_INT64:
-            if item < INT64_MIN or item > INT64_MAX:
-                raise OverflowError
+        _validate_item_id(self.index_type_id, item)
 
         # Delegate to widened bridge — results are int64_t IDs and double distances.
         cdef cpp_vector[int64_t] _result
@@ -2252,17 +2503,7 @@ cdef class Index(BaseIndex):
         if item < 0:
             raise IndexError("item id cannot be negative")
 
-        if self.index_type_id == INDEX_INT32:  #  and item > 2147483647
-            if item < INT32_MIN or item > INT32_MAX:
-                raise OverflowError(
-                    f"item id {item} exceeds int32 index capacity [{INT32_MIN}, {INT32_MAX}] "
-                    f"(max 2^31-1 = 2_147_483_647). "
-                    f"Recreate the index with index_dtype='int64' to support "
-                    f"item IDs up to 2^63-1."
-                )
-        if self.index_type_id == INDEX_INT64:
-            if item < INT64_MIN or item > INT64_MAX:
-                raise OverflowError
+        _validate_item_id(self.index_type_id, item)
 
         cdef int _gi
         cdef cpp_vector[double] _gi_vec
@@ -2331,18 +2572,8 @@ cdef class Index(BaseIndex):
         if i < 0 or j < 0:
             raise IndexError("item ids cannot be negative")
 
-        if self.index_type_id == INDEX_INT32:  #  and item > 2147483647
-            if (i < INT32_MIN or i > INT32_MAX) or (j < INT32_MIN or j > INT32_MAX):
-                raise OverflowError(
-                    f"item id {'i='+str(i)} or {'j='+str(j)} exceeds "
-                    f"int32 index capacity [{INT32_MIN}, {INT32_MAX}] "
-                    f"(max 2^31-1 = 2_147_483_647). "
-                    f"Recreate the index with index_dtype='int64' to support "
-                    f"item IDs up to 2^63-1."
-                )
-        if self.index_type_id == INDEX_INT64:
-            if (i < INT64_MIN or i > INT64_MAX) or (j < INT64_MIN or j > INT64_MAX):
-                raise OverflowError
+        _validate_item_id(self.index_type_id, i)
+        _validate_item_id(self.index_type_id, j)
 
         return self.ptr.get_distance_w(<int64_t>i, <int64_t>j)
 
@@ -2648,6 +2879,7 @@ cdef class Index(BaseIndex):
             "index_dtype": self.index_dtype,
             "wrapper_dtype": self.wrapper_dtype,
             "random_dtype": self.random_dtype,
+            "n_jobs": self.n_jobs,
         }
 
         return params
@@ -2739,6 +2971,9 @@ cdef class Index(BaseIndex):
 
         if "random_dtype" in params:
             self.random_dtype = params["random_dtype"]
+
+        if "n_jobs" in params:
+            self.n_jobs = params["n_jobs"]
 
         return self
 
@@ -2941,6 +3176,7 @@ cdef class Index(BaseIndex):
             self.index_dtype = params.get("index_dtype", "int32")
             self.wrapper_dtype = params.get("wrapper_dtype", "uint64")
             self.random_dtype = params.get("random_dtype", "uint64")
+            self.n_jobs = params.get("n_jobs", 1)
 
         # Restore index data if present
         cdef bytes data_bytes
@@ -3101,6 +3337,10 @@ cdef class Index(BaseIndex):
     # Future-Proof Helper Methods
     # =========================================================================
 
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        return tags
+
     def clone(self, **override_params) -> Self:
         """
         Create a copy of the index with optional parameter overrides.
@@ -3128,7 +3368,8 @@ cdef class Index(BaseIndex):
             k: v for k, v in params.items()
             if k in ["f", "metric", "n_neighbors", "seed", "verbose",
                      "on_disk_path", "prefault", "schema_version",
-                     "dtype", "index_dtype", "wrapper_dtype", "random_dtype"]
+                     "dtype", "index_dtype", "wrapper_dtype", "random_dtype",
+                     "n_jobs"]
         }
 
         return self.__class__(**params_clean)
@@ -3600,6 +3841,90 @@ cdef class Index(BaseIndex):
 
     _html_repr = _repr_html_
 
-    def __sklearn_tags__(self):
-        tags = super().__sklearn_tags__()
-        return tags
+    # =========================================================================
+    # sklearn Feature Names API (SLEP007)
+    # =========================================================================
+
+    def get_feature_names_out(self, input_features=None):
+        """
+        Get output feature names for the transformer-style API.
+
+        Output feature names are independent of input feature names and
+        follow a stable schema based on ``n_neighbors``:
+        ``('neighbor_0', 'neighbor_1', ..., 'neighbor_{k-1}')``.
+
+        Parameters
+        ----------
+        input_features : sequence of str or None, default=None
+            If provided, validated deterministically against the fitted
+            input feature names (if ``feature_names_in_`` was set during
+            ``fit()``) and against the expected input dimensionality.
+
+        Returns
+        -------
+        feature_names : tuple of str
+            Output feature names: ``('neighbor_0', ..., 'neighbor_{k-1}')``
+            where ``k == n_neighbors``.
+
+        Raises
+        ------
+        AttributeError
+            If called before :meth:`fit` / :meth:`build`.
+        ValueError
+            If ``input_features`` is provided but does not match
+            ``feature_names_in_``.
+        TypeError
+            If ``input_features`` elements are not strings.
+
+        Examples
+        --------
+        >>> idx = Index(3, metric='angular').fit([[1,0,0],[0,1,0]])
+        >>> idx.get_feature_names_out()
+        ('neighbor_0', 'neighbor_1', 'neighbor_2', 'neighbor_3', 'neighbor_4')
+        """
+        if not self.is_built():
+            raise AttributeError(
+                "get_feature_names_out is not available before fit/build"
+            )
+
+        # Validate input_features if provided
+        if input_features is not None:
+            if isinstance(input_features, (str, bytes)):
+                raise TypeError(
+                    "input_features must be a 1-D sequence of str, not a string"
+                )
+            fn_list = list(input_features)
+            if len(fn_list) != self.f:
+                raise ValueError(
+                    f"input_features must have length {self.f}, "
+                    f"got {len(fn_list)}"
+                )
+            for fi, fname in enumerate(fn_list):
+                if not isinstance(fname, str):
+                    raise TypeError(
+                        f"input_features[{fi}] must be str, got "
+                        f"{type(fname).__name__}"
+                    )
+            # Validate against stored feature_names_in_ if set
+            if self.feature_names_in_ is not None:
+                stored = tuple(self.feature_names_in_)
+                provided = tuple(fn_list)
+                if stored != provided:
+                    raise ValueError(
+                        "input_features must match feature_names_in_"
+                    )
+
+        cdef int k = <int>self.n_neighbors
+        if k <= 0:
+            raise RuntimeError(
+                "Internal error: n_neighbors must be > 0"
+            )
+        return tuple(f"neighbor_{i}" for i in range(k))
+
+    # =========================================================================
+    # Rebuild (deterministic copy with optional metric/tree override)
+    # =========================================================================
+
+    # =========================================================================
+    # sklearn-style Transformer API: fit / fit_transform / transform
+    # =========================================================================

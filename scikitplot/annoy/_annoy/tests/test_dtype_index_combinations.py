@@ -38,11 +38,14 @@ int64        float64  angular, euclidean, manhattan, dot, hamming
 Plus overflow-guard, cross-dtype consistency, and int64 smoke tests.
 """
 
+import os
 import math
 import random
 import pytest
 
 from ..annoylib import Index
+
+HERE = os.path.dirname(__file__)  # "tests"
 
 # ---------------------------------------------------------------------------
 # Constants — single source of truth for test parameters
@@ -503,7 +506,7 @@ def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
     * Mention 'int64' as the remedy.
     """
     f = 5
-    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path="on_disk.ann")
+    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
     # Prime the index so get_nns_by_item / get_distance have something to work with.
     index.add_item(0, [0.1] * f)
 
@@ -525,7 +528,7 @@ def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
 def test_int32_overflow_exact_boundary():
     """item == INT32_MAX (2^31-1) is valid; item == INT32_MAX+1 raises."""
     f = 5
-    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path="on_disk.ann")
+    index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
 
     # Last valid ID — must not raise
     # index.add_item(INT32_MAX, [0.1] * f)
@@ -569,7 +572,7 @@ def test_int64_normal_operation():
 # def test_int64_overflow_raises_overflow_error(method_name: str, args_fn):
 #     """Passing item > 2^63-1 to an int64 index raises OverflowError."""
 #     f = 5
-#     index = Index(f=f, metric="angular", index_dtype="int64", seed=1, on_disk_path="on_disk.ann")
+#     index = Index(f=f, metric="angular", index_dtype="int64", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
 #     # Prime the index so get_nns_by_item / get_distance have something to work with.
 #     index.add_item(0, [0.1] * f)
 
@@ -591,7 +594,7 @@ def test_int64_normal_operation():
 # def test_int64_overflow_exact_boundary():
 #     """item == INT64_MAX (2^63-1) is valid; item == INT64_MAX+1 raises."""
 #     f = 5
-#     index = Index(f=f, metric="angular", index_dtype="int64", seed=1, on_disk_path="on_disk.ann")
+#     index = Index(f=f, metric="angular", index_dtype="int64", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
 
 #     # Last valid ID — must not raise
 #     index.add_item(INT64_MAX, [0.1] * f)

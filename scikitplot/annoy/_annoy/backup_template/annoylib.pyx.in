@@ -1808,7 +1808,7 @@ cdef class Index:
         cdef char* error = NULL
 
 
-    def get_item_vector(self, item):
+    def get_item(self, item):
         """Get vector for item."""
         if not self._index_created:
             raise AnnoyIndexException("Index not created")

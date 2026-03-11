@@ -160,8 +160,8 @@ def test_distance_consistency():
         indices, dists = i.get_nns_by_item(a, 100, include_distances=True)
         for b, dist in zip(indices, dists):
             assert dist == pytest.approx(i.get_distance(a, b))
-            u = numpy.array(i.get_item_vector(a))
-            v = numpy.array(i.get_item_vector(b))
+            u = numpy.array(i.get_item(a))
+            v = numpy.array(i.get_item(b))
             assert dist == pytest.approx(numpy.dot(u - v, u - v) ** 0.5)
             assert dist == pytest.approx(
                 sum([(x - y) ** 2 for x, y in zip(u, v)]) ** 0.5

@@ -13,7 +13,7 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-// std::optional<int32_t> / std::nullopt style semantics are emulated in C-API as:
+// std::optional<uint32_t> / std::nullopt style semantics are emulated in C-API as:
 //   (!has_value)  ->  Py_RETURN_NONE
 
 #define PY_SSIZE_T_CLEAN
@@ -44,12 +44,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <algorithm>  // std::transform
-#include <cctype>  // std::tolower
-#include <cmath>
-#include <cstdint>
-#include <cstring>  // std::strcmp
-#include <cstdio>  // std::snprintf, std::vsnprintf
-#include <cstdlib>  // std::getenv
 #include <exception>
 #include <fstream>  // std::ifstream
 #include <memory>
@@ -60,7 +54,209 @@
 #include <unordered_map>
 #include <vector>
 
+#include <climits>
+#include <cctype>  // std::tolower
+#include <cmath>
+#include <cstdint>
+#include <cstring>  // std::strcmp
+#include <cstdio>  // std::snprintf, std::vsnprintf
+#include <cstdlib>  // std::getenv
+
 // #include <iostream>  // std::cout << R"(...)" << std::endl;
+
+// =============================================================================
+// SECTION: CENTRALIZED INDEX DTYPE DEFINITIONS
+// =============================================================================
+//
+// ALL type aliases for the Annoy C++ template system and the Python C-API
+// integer-conversion boundary are defined here and ONLY here.
+//
+// To change the index id width (e.g. uint32_t ↔ uint64_t), edit ONLY this
+// block. The compiler will enforce consistency everywhere else through the
+// type aliases and the static_assert guards at the bottom of the block.
+//
+// ── Template parameter roles ──────────────────────────────────────────────
+//
+//   AnnoyIndex< S, T, Distance, Random, Policy >
+//               │  │
+//               │  └─ DataDtype       vector component (embedding scalar)
+//               └─── IndexDtype       item id stored in every tree node
+//                                     and in the on-disk binary format
+//
+//   IndexDtype  (S) – controls:
+//     • the integer type stored in each tree node's children arrays
+//     • node stride and memory-mapped file layout (on-disk ABI)
+//     • every add_item / get_nns_by_item / get_item / get_distance call
+//     • Python C-API format string (see ANNOY_IDX_FMT below)
+//     • sizeof_S field written into the portable serialization header
+//
+//     WARNING: changing IndexDtype is a BINARY-FORMAT BREAKING CHANGE.
+//     Any .annoy file serialized with uint32_t CANNOT be loaded after
+//     switching to uint64_t, and vice-versa. The sizeof_S header field
+//     will mismatch and deserialization will fail loudly (not silently).
+//
+//     uint32_t  →  max ~4.3 × 10⁹ items, 4 bytes/node-id
+//     uint64_t  →  max ~1.8 × 10¹⁹ items, 8 bytes/node-id
+//
+//   DataDtype   (T) – controls:
+//     • embedding scalar width and SIMD alignment
+//     • float is universal; double breaks AVX packing in annoylib.h
+//     • do NOT change without verifying SIMD paths in annoylib.h
+//
+// ── Structurally separate types ───────────────────────────────────────────
+//
+//   WrapperDataDtype   Hamming's INTERNAL packed-word type.
+//     The HammingWrapperIndex outer interface always speaks DataDtype (float).
+//     Internally it packs 64 binary bits into one uint64_t word and passes
+//     those words to AnnoyIndex<IndexDtype, WrapperDataDtype, Hamming, ...>.
+//     Must remain uint64_t. Do NOT alias to DataDtype.
+//
+//   RandomDtype        Kiss64Random seed and state type.
+//     set_seed() / normalize_seed_u64() both operate on uint64_t.
+//     Must remain uint64_t. Do NOT alias to IndexDtype.
+//
+//   YDtype             Python-layer label type for y / y_map dict values.
+//     Purely in the Python binding layer; does not affect C++ templates.
+//     float matches DataDtype, keeping label arithmetic uniform.
+//
+// ── Python C-API integer width contract ───────────────────────────────────
+//
+//   CRITICAL: The C Python format-string codes for unsigned integers are
+//   platform-dependent in width:
+//
+//     "k"  →  unsigned long       →  32 bits on MSVC/Windows (LLP64)
+//                                    64 bits on Linux/macOS  (LP64)
+//     "K"  →  unsigned long long  →  64 bits on ALL platforms
+//
+//   Therefore:
+//     IndexDtype = uint32_t  →  use "k" / PyLong_AsUnsignedLong /
+//                                        PyLong_FromUnsignedLong
+//     IndexDtype = uint64_t  →  use "K" / PyLong_AsUnsignedLongLong /
+//                                        PyLong_FromUnsignedLongLong
+//
+//   ANNOY_IDX_FMT, AnnoyIdxToPy(), and AnnoyIdxFromPy() (defined below)
+//   encapsulate this choice. Always use them at the C-API boundary instead
+//   of calling PyLong_* directly.
+//
+// ── Downstream sites that track IndexDtype ────────────────────────────────
+//
+//   1.  template class AnnoyIndexInterface<IndexDtype,…>  (explicit instantiation)
+//   2.  AnnoyAngularIndex / Euclidean / Manhattan / Dot typedefs
+//   3.  HammingWrapperIndex: base class, add_item / get_item / get_nns / get_distance
+//   4.  py_annoy::ptr field type
+//   5.  check_constraints() parameter type
+//   6.  get_n_items() / get_n_trees() return types (in HammingWrapperIndex)
+//   7.  All PyArg format strings for item-id arguments  →  ANNOY_IDX_FMT
+//   8.  All PyLong_* calls that produce or consume item ids  →  AnnoyIdxToPy/FromPy
+//   9.  Portable serialization sizeof_S  →  sizeof(IndexDtype)
+//   10. Canonical serialization n_items loop variable and add_item cast
+//   11. fit_batch / fit_rebuild: start_index/item_id overflow checks
+//   12. get_nns_by_queries: exclude_items / by_item range checks
+//   13. annoy_validate_y_map_keys / annoy_materialize_dense_y_from_y_map
+//       (key parsing from signed long long  →  checked against IndexDtype max)
+//   14. n_items / n_trees local variables throughout
+//
+// =============================================================================
+
+#if __cplusplus >= 201103L  // C++11: modern type alias syntax
+
+// Item id type.  Controls AnnoyIndex template param S, the on-disk binary
+// format (sizeof_S header field), and the Python C-API integer format.
+using IndexDtype        = uint64_t;
+
+// Vector component type.  Controls AnnoyIndex template param T.
+// float: 4 bytes, hardware SIMD on x86/ARM.  Do not change to double.
+using DataDtype         = float;
+
+// Hamming internal packed-word type.  Used ONLY by HammingWrapperIndex::_index.
+// Hamming packs 64 bits per word; must remain uint64_t regardless of IndexDtype.
+using WrapperDataDtype  = uint64_t;
+
+// Kiss64Random seed/state type.  Must match kissrandom.h interface.
+using RandomDtype       = uint64_t;
+
+// Python-layer label type for y / y_map dict values.
+using YDtype            = float;
+
+#else  // C++98/03 fallback: typedef syntax
+
+typedef uint64_t  IndexDtype;
+typedef float     DataDtype;
+typedef uint64_t  WrapperDataDtype;
+typedef uint64_t  RandomDtype;
+typedef float     YDtype;
+
+#endif  // __cplusplus >= 201103L
+
+// ── Python C-API format macros ────────────────────────────────────────────
+//
+// ANNOY_IDX_FMT  : format-string fragment for PyArg_ParseTupleAndKeywords.
+//                  Insert directly in the format string, e.g. ANNOY_IDX_FMT "O".
+// AnnoyIdxToPy   : convert IndexDtype value → PyObject* (new reference).
+// AnnoyIdxFromPy : convert PyObject* → unsigned long long; caller casts to
+//                  IndexDtype after checking range.
+//
+// The macros are selected based on sizeof(IndexDtype) at compile time.
+// No runtime branch; no platform-specific #ifdef needed in call sites.
+//
+// IndexDtype = uint32_t (4 bytes) → "k" / unsigned long
+// IndexDtype = uint64_t (8 bytes) → "K" / unsigned long long
+//
+#if defined(__cplusplus) && __cplusplus >= 201103L
+  // Compile-time selector: token-paste trick to pick the right literal.
+  // sizeof(IndexDtype) is a compile-time constant integral expression.
+  // _ANNOY_IDX_FMT_4 / _ANNOY_IDX_FMT_8 expand to the correct format char.
+  static_assert(sizeof(IndexDtype) == 4 || sizeof(IndexDtype) == 8,
+    "IndexDtype must be uint32_t (4 bytes) or uint64_t (8 bytes)");
+#endif
+
+// Format string token for PyArg_ParseTupleAndKeywords.
+// "K" = unsigned long long = 64 bits on all platforms including MSVC/Windows.
+// "k" = unsigned long      = only 32 bits on Windows (LLP64); unsafe for uint64_t.
+//
+// IMPORTANT: `sizeof` is a C++ operator, NOT a preprocessor token.
+// The C preprocessor cannot evaluate `#if sizeof(IndexDtype) == 8`.
+// Instead, we select the macros unconditionally here based on the known
+// definition above (IndexDtype = uint64_t → 8 bytes).
+//
+// If you change IndexDtype to uint32_t, manually switch the macro block below
+// to the uint32_t variants (swap the two blocks). The static_assert guards at
+// the bottom will catch any mismatch at compile time.
+//
+// Currently active: IndexDtype = uint64_t (8 bytes) → "K" / unsigned long long.
+//
+// ── 64-bit variant (active when IndexDtype = uint64_t) ──────────────────────
+// "K" parses unsigned long long: 64 bits on all platforms (LP64 and LLP64/MSVC).
+#define ANNOY_IDX_FMT                  "K"
+#define AnnoyIdxToPy(val)              PyLong_FromUnsignedLongLong((unsigned long long)(val))
+#define AnnoyIdxFromPyRaw(obj)         PyLong_AsUnsignedLongLong(obj)
+#define ANNOY_IDX_MAX                  std::numeric_limits<IndexDtype>::max()
+// Raw local-variable type at PyArg parse sites.
+#define ANNOY_IDX_PARSE_TMP            unsigned long long
+//
+// ── 32-bit variant (use instead when IndexDtype = uint32_t) ─────────────────
+// Uncomment the block below and comment out the 64-bit block above.
+// "k" parses unsigned long: safe for uint32_t on all platforms.
+//
+// #define ANNOY_IDX_FMT                  "k"
+// #define AnnoyIdxToPy(val)              PyLong_FromUnsignedLong((unsigned long)(val))
+// #define AnnoyIdxFromPyRaw(obj)         PyLong_AsUnsignedLong(obj)
+// #define ANNOY_IDX_MAX                  std::numeric_limits<IndexDtype>::max()
+// #define ANNOY_IDX_PARSE_TMP            unsigned long
+
+// Compile-time sanity checks — catch platform-type mismatches before
+// they become silent runtime truncation or undefined behavior.
+#if defined(__cplusplus) && __cplusplus >= 201103L
+  static_assert(sizeof(IndexDtype)       == 8, "IndexDtype is uint64_t; expected 8 bytes");
+  static_assert(sizeof(DataDtype)        == 4, "DataDtype is float; expected 4 bytes");
+  static_assert(sizeof(WrapperDataDtype) == 8, "WrapperDataDtype is uint64_t; expected 8 bytes");
+  static_assert(sizeof(RandomDtype)      == 8, "RandomDtype is uint64_t; expected 8 bytes");
+  static_assert(sizeof(YDtype)           == 4, "YDtype is float; expected 4 bytes");
+#endif
+
+// =============================================================================
+// END SECTION: CENTRALIZED INDEX DTYPE DEFINITIONS
+// =============================================================================
 
 #if PY_MAJOR_VERSION >= 3
   #define IS_PY3K
@@ -98,7 +294,7 @@
 // Minimal C-extension docstring. Rich, user-facing docs live in the Python
 // layer (annoy.Annoy / annoylib.Annoy / AnnoyIndex).
 static const char ANNOY_MOD_DOC[] =
-    COMPILER_INFO ". " AVX_INFO ".\n"
+    COMPILER_INFO "(" AVX_INFO ").\n"
     "\n"
     "High-performance approximate nearest neighbours (Annoy) C++ core.\n"
     "\n"
@@ -113,7 +309,14 @@ static const char ANNOY_MOD_DOC[] =
     "type under a different module path (for example, :mod:`~scikitplot.annoy`)::\n"
     "\n"
     "    >>> from scikitplot.cexternals._annoy import Annoy, AnnoyIndex\n"
-    "    >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index\n";
+    "    >>> from scikitplot.annoy import Annoy, AnnoyIndex, Index\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "* 32-bit integer (4 bytes) can store values from −2^31 to 2^31−1, roughly ±2 billion.\n"
+    "* 64-bit integer (8 bytes) can store values from −2^63 to 2^63−1, roughly ±9 quintillion.\n"
+    "\n"
+    ;
 
 // Safe “return self” helper macro for methods that mutate in-place and
 // return the same Python object (fluent style).
@@ -280,7 +483,16 @@ struct ScopedError {
 
 // Only use NULL (0) when maintaining legacy C code.
 // nullptr is std::nullptr_t, recommended in C++11 and later (not C).
-template class Annoy::AnnoyIndexInterface<int32_t, float, uint64_t>;
+// Explicit template instantiation.
+// Forces the compiler to emit a concrete vtable and all virtual methods for
+// AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype> in this translation
+// unit. Without this, link-time errors can occur when the linker cannot find
+// the vtable for the base interface used by py_annoy::ptr.
+//
+// IndexDtype / DataDtype / RandomDtype are defined in the CENTRALIZED INDEX
+// DTYPE DEFINITIONS block above. Changing those aliases automatically updates
+// this instantiation without requiring changes here.
+template class Annoy::AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype>;
 
 // A raw string literal R"( ... )";
 static const char kAnnoyTypeDoc[] =
@@ -295,12 +507,15 @@ Approximate Nearest Neighbors index (Annoy) with a small, lazy C-extension wrapp
 >>>     f=None,
 >>>     metric=None,
 >>>     *,
->>>     n_neighbors=5,
+>>>     n_trees=-1,  # None = -1 = auto
+>>>     n_neighbors=5,  # None = 5
 >>>     on_disk_path=None,
 >>>     prefault=None,
 >>>     seed=None,
 >>>     verbose=None,
 >>>     schema_version=None,
+>>>     n_jobs=None,  # None = -1
+>>>     l1_ratio = 0.0,  # None = 0.0 Future
 >>> )
 
 Parameters
@@ -320,6 +535,9 @@ metric : {"angular", "cosine", "euclidean", "l2", "lstsq", "manhattan", "l1", "c
     * If ``f == 0``: leaves the metric unset (lazy). You may set
       :attr:`metric` later before construction, or it will default to
       ``'angular'`` on first :meth:`add_item`.
+n_trees : int, default=-1
+    Number of trees to build. If -1, auto-selects based on dimension.
+    More trees = better accuracy but slower queries and more memory.
 n_neighbors : int, default=5
     Non-negative integer Number of neighbors to retrieve for each query.
 on_disk_path : str or None, optional, default=None
@@ -364,6 +582,9 @@ schema_version : int, optional, default=None
       a fallback if the ABI check fails).
 
     If None, treated as ``0`` (reset to default).
+n_jobs : int or None, default=None
+    Number of threads. If -1, uses all available cores.
+    If None, treated as ``-1``.
 
 Attributes
 ----------
@@ -684,15 +905,44 @@ Notes
 //   - Unpacks uint64_t → float[0,1] when returning vectors
 //   - Adds a small header around the raw Annoy index for robustness
 // ---------------------------------------------------------------------
-class HammingWrapperIndex : public AnnoyIndexInterface<int32_t, float, uint64_t> {
+// HammingWrapperIndex
+// ─────────────────────────────────────────────────────────────────────────
+// A thin adapter that exposes a float-based AnnoyIndexInterface for Hamming
+// distance while keeping the underlying AnnoyIndex working on packed uint64_t
+// (WrapperDataDtype) binary words.
+//
+// Type alias roles:
+//
+//   IndexDtype        — item id type (S). Shared with all other metrics.
+//                       Changing IndexDtype in the central block propagates
+//                       to this base class and to _index automatically.
+//
+//   DataDtype (float) — outer interface scalar. User-visible embeddings are
+//                       float[0,1] (one float per bit). The wrapper converts
+//                       float → uint64_t words on add_item and back on get_item.
+//
+//   WrapperDataDtype  — internal packed-word type (T for the internal _index).
+//                       Must remain uint64_t: Hamming stores 64 bits per word.
+//                       This is STRUCTURALLY DISTINCT from DataDtype and must
+//                       NOT be aliased to it.
+//
+//   RandomDtype       — Kiss64Random seed/state.  Shared with all metrics.
+//
+// On-disk ABI note:
+//   _index uses IndexDtype for item ids, so the on-disk format changes
+//   together with the other metrics when IndexDtype is updated.
+class HammingWrapperIndex : public AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype> {
 private:
-  // External binary dimension (number of Hamming bits)
-  int32_t _f_external;  // number of bits in the user-facing embedding
-  // Internal representation: number of uint64_t chunks
-  int32_t _f_internal;  // ceil(_f_external / 64)
+  // External binary dimension (number of Hamming bits per item)
+  uint32_t _f_external;  // user-visible embedding length (bits)
+  // Internal dimension: number of WrapperDataDtype (uint64_t) words
+  uint32_t _f_internal;  // ceil(_f_external / 64)
 
-  // Underlying Annoy index working on packed uint64_t vectors
-  AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
+  // Underlying Annoy index: item ids are IndexDtype, vector components are
+  // WrapperDataDtype (packed uint64_t words), distance is Hamming.
+  // This internal index is NOT exposed directly; all I/O is through the
+  // float-based interface above.
+  AnnoyIndex<IndexDtype, WrapperDataDtype, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
 
   // Header structure for serialization
   struct HammingHeader {
@@ -710,10 +960,10 @@ private:
   //   embedding[b] ≤ 0.5 → bit = 0
   // -------------------------------------------------------------------
   void _pack(const float* embedding, uint64_t* packed) const {
-    for (int32_t word = 0; word < _f_internal; ++word) {
+    for (uint32_t word = 0; word < _f_internal; ++word) {
       packed[word] = 0ULL;
-      for (int32_t bit = 0; bit < 64 && word * 64 + bit < _f_external; ++bit) {
-        const int32_t pos = word * 64 + bit;
+      for (uint32_t bit = 0; bit < 64 && word * 64 + bit < _f_external; ++bit) {
+        const uint32_t pos = word * 64 + bit;
         const uint64_t bit_val = (embedding[pos] > 0.5f) ? 1ULL : 0ULL;
         packed[word] |= (bit_val << bit);
     }
@@ -728,9 +978,9 @@ private:
   //   bit = 0 → embedding[b] = 0.0f
   // -------------------------------------------------------------------
   void _unpack(const uint64_t* packed, float* embedding) const {
-    for (int32_t bit = 0; bit < _f_external; ++bit) {
-      const int32_t word = bit / 64;
-      const int32_t offset = bit % 64;
+    for (uint32_t bit = 0; bit < _f_external; ++bit) {
+      const uint32_t word = bit / 64;
+      const uint32_t offset = bit % 64;
       const uint64_t bit_val = (packed[word] >> offset) & 1ULL;
       embedding[bit] = static_cast<float>(bit_val);
     }
@@ -816,8 +1066,10 @@ public:
   // -------------------------------------------------------------------
   // Index operations (AnnoyIndexInterface)
   // -------------------------------------------------------------------
-  bool add_item(int32_t indice,
-                const float* embedding,
+  // add_item: pack the float embedding to uint64_t words and forward to _index.
+  // IndexDtype matches the base class AnnoyIndexInterface<IndexDtype,...> contract.
+  bool add_item(IndexDtype indice,
+                const DataDtype* embedding,
                 char** error) noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _pack(embedding, &packed[0]);
@@ -859,12 +1111,12 @@ public:
       return false;
     }
 
-    // _f_external = static_cast<int32_t>(hdr.f_external);
-    // _f_internal = static_cast<int32_t>(hdr.f_internal);
+    // _f_external = static_cast<uint32_t>(hdr.f_external);
+    // _f_internal = static_cast<uint32_t>(hdr.f_internal);
     // IMPORTANT: _index dimension is fixed at construction time. Do NOT
     // overwrite _f_external/_f_internal here; enforce a strict match instead.
-    if (static_cast<int32_t>(hdr.f_external) != _f_external ||
-        static_cast<int32_t>(hdr.f_internal) != _f_internal) {
+    if (static_cast<uint32_t>(hdr.f_external) != _f_external ||
+        static_cast<uint32_t>(hdr.f_internal) != _f_internal) {
       if (error) {
         char buf[160];
         snprintf(buf, sizeof(buf),
@@ -888,8 +1140,10 @@ public:
     return _index.deserialize(&idx_byte, prefault, error);
   }
 
-  float get_distance(int32_t i,
-                     int32_t j) const noexcept override {
+  // get_distance: delegate to _index (returns WrapperDataDtype distance = uint64_t),
+  // clip to [0, _f_external] and convert to float for the outer DataDtype interface.
+  DataDtype get_distance(IndexDtype i,
+                         IndexDtype j) const noexcept override {
     // Underlying Hamming index returns an integer distance (uint64_t).
     // We convert to float and clip to [0, _f_external] for robustness.
     const uint64_t d_raw = _index.get_distance(i, j);
@@ -898,18 +1152,22 @@ public:
     return static_cast<float>(d_clipped);
   }
 
-  void get_item(int32_t indice,
-                float* embedding) const noexcept override {
+  // get_item: unpack internal uint64_t words back to float[0,1] embedding.
+  void get_item(IndexDtype indice,
+                DataDtype* embedding) const noexcept override {
     vector<uint64_t> packed(_f_internal, 0ULL);
     _index.get_item(indice, &packed[0]);
     _unpack(&packed[0], embedding);
   }
 
-  int32_t get_n_items() const noexcept override {
+  // get_n_items / get_n_trees: return IndexDtype to match the base interface.
+  // Returning IndexDtype here ensures the return type tracks the item id width
+  // and avoids silent truncation if IndexDtype is changed to uint64_t.
+  IndexDtype get_n_items() const noexcept override {
     return _index.get_n_items();
   }
 
-  int32_t get_n_trees() const noexcept override {
+  IndexDtype get_n_trees() const noexcept override {
     return _index.get_n_trees();
   }
 
@@ -920,13 +1178,20 @@ public:
   //   * result[i]    : indice (Annoy item id)
   //   * distances[i] : Hamming distance as float
   // -------------------------------------------------------------------
-  void get_nns_by_item(int32_t    query_indice,
-                       size_t     n,
-                       int        search_k,
-                       vector<int32_t>*  result,
-                       vector<float>*    distances) const noexcept override {
+  // get_nns_by_item / get_nns_by_vector:
+  //   - result is vector<IndexDtype> (item ids returned by the query)
+  //   - internal_distances is vector<WrapperDataDtype> (Hamming counts as uint64_t)
+  //   - distances is vector<DataDtype> (float, converted from uint64_t Hamming counts)
+  //
+  // IndexDtype in the result vector matches the base class contract, so the
+  // Python binding can treat all metrics identically.
+  void get_nns_by_item(IndexDtype          query_indice,
+                       size_t              n,
+                       int                 search_k,
+                       vector<IndexDtype>* result,
+                       vector<DataDtype>*  distances) const noexcept override {
     if (distances) {
-      vector<uint64_t> internal_distances;
+      vector<WrapperDataDtype> internal_distances;
       _index.get_nns_by_item(query_indice,
                              n,
                              search_k,
@@ -935,10 +1200,10 @@ public:
 
       distances->resize(internal_distances.size());
       for (size_t i = 0; i < internal_distances.size(); ++i) {
-        uint64_t d = internal_distances[i];
-        const uint64_t max_d = static_cast<uint64_t>(_f_external);
+        WrapperDataDtype d = internal_distances[i];
+        const WrapperDataDtype max_d = static_cast<WrapperDataDtype>(_f_external);
         if (d > max_d) d = max_d;
-        (*distances)[i] = static_cast<float>(d);
+        (*distances)[i] = static_cast<DataDtype>(d);
     }
     } else {
       _index.get_nns_by_item(query_indice,
@@ -949,16 +1214,16 @@ public:
     }
   }
 
-  void get_nns_by_vector(const float*       query_embedding,
-                         size_t             n,
-                         int                search_k,
-                         vector<int32_t>*   result,
-                         vector<float>*     distances) const noexcept override {
-    vector<uint64_t> packed_query(_f_internal, 0ULL);
+  void get_nns_by_vector(const DataDtype*    query_embedding,
+                         size_t              n,
+                         int                 search_k,
+                         vector<IndexDtype>* result,
+                         vector<DataDtype>*  distances) const noexcept override {
+    vector<WrapperDataDtype> packed_query(_f_internal, 0ULL);
     _pack(query_embedding, &packed_query[0]);
 
     if (distances) {
-      vector<uint64_t> internal_distances;
+      vector<WrapperDataDtype> internal_distances;
       _index.get_nns_by_vector(&packed_query[0],
                                n,
                                search_k,
@@ -967,10 +1232,10 @@ public:
 
       distances->resize(internal_distances.size());
       for (size_t i = 0; i < internal_distances.size(); ++i) {
-        uint64_t d = internal_distances[i];
-        const uint64_t max_d = static_cast<uint64_t>(_f_external);
+        WrapperDataDtype d = internal_distances[i];
+        const WrapperDataDtype max_d = static_cast<WrapperDataDtype>(_f_external);
         if (d > max_d) d = max_d;
-        (*distances)[i] = static_cast<float>(d);
+        (*distances)[i] = static_cast<DataDtype>(d);
     }
     } else {
       _index.get_nns_by_vector(&packed_query[0],
@@ -1050,21 +1315,22 @@ public:
   }
 };
 
-// ======================= Typedefs ========================================
-// Concrete Annoy types used in the Python binding.
-// These keep the original Annoy naming, but conceptually map to:
+// ======================= Metric Typedefs =====================================
+// Concrete Annoy index types for each distance metric.
 //
-//   * Angular   → cosine-like distance on embeddings
-//   * Euclidean → L2 distance on embeddings
-//   * Manhattan → L1 distance on embeddings
-//   * Dot       → negative dot product distance
-//   * Hamming   → bitwise Hamming distance on binary embeddings
-// -------------------------------------------------------------------------
-typedef AnnoyIndex<int32_t, float, Angular,    Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngularIndex;
-typedef AnnoyIndex<int32_t, float, Euclidean,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclideanIndex;
-typedef AnnoyIndex<int32_t, float, Manhattan,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattanIndex;
-typedef AnnoyIndex<int32_t, float, DotProduct ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDotIndex;
-// typedef AnnoyHamming<int32_t, float, Hamming  ,Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyHammingIndex;
+// All four types share the same IndexDtype (item id) and DataDtype (float)
+// defined in the CENTRALIZED INDEX DTYPE DEFINITIONS block. Changing those
+// aliases automatically updates all five metrics without touching these lines.
+//
+// Hamming uses HammingWrapperIndex (defined above), which bridges the
+// float-based AnnoyIndexInterface to an internal AnnoyIndex<IndexDtype,
+// WrapperDataDtype, Hamming, ...> for packed-bit storage.
+// ─────────────────────────────────────────────────────────────────────────
+typedef AnnoyIndex<IndexDtype, DataDtype, Angular,    Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyAngularIndex;
+typedef AnnoyIndex<IndexDtype, DataDtype, Euclidean,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyEuclideanIndex;
+typedef AnnoyIndex<IndexDtype, DataDtype, Manhattan,  Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyManhattanIndex;
+typedef AnnoyIndex<IndexDtype, DataDtype, DotProduct, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyDotIndex;
+// typedef AnnoyHamming<IndexDtype, DataDtype, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> AnnoyHammingIndex;
 typedef HammingWrapperIndex AnnoyHammingIndex;
 
 // ======================= MetricId =========================================
@@ -1144,7 +1410,18 @@ typedef struct {
   // NOTE: This is separate from the instance __dict__.
   PyObject* weakreflist;        // weakref list head, or NULL
 
-  AnnoyIndexInterface<int32_t, float, uint64_t>* ptr;  // X matris underlying C++ index dynamic_cast<AnnoyAngularIndex*>(ptr)
+  // Pointer to the underlying C++ Annoy index.
+  // Type is AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype>* so that all
+  // metric-specific subclasses (AnnoyAngularIndex, etc.) can be stored here via
+  // polymorphism. The concrete subtype is selected by ensure_index() based on
+  // self->metric_id.
+  //
+  // IndexDtype / DataDtype / RandomDtype are defined in the CENTRALIZED INDEX
+  // DTYPE DEFINITIONS block. This field type updates automatically when those
+  // aliases change.
+  //
+  // NULL when the index has not been constructed yet (lazy mode).
+  AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype>* ptr;  // owned; NULL until constructed
 
   // Optional labels / targets associated with vectors (set by fit or manually).
   //
@@ -1184,7 +1461,17 @@ typedef struct {
   // This is an estimator parameter (not fitted state) and defines:
   //   * n_features_out_ (available once fitted)
   //   * get_feature_names_out() output length
-  size_t n_neighbors;              // > 0
+  size_t n_neighbors;              // > 0; default 5
+
+  // --- Constructor-level build defaults ---
+  // Stored so that build/fit/rebuild can resolve None via:
+  //   n_trees = n_trees if n_trees is not None else self.n_trees
+  //
+  // These are *estimator parameters* (sklearn convention): they describe
+  // how the index will be built, not the fitted state itself.
+  int    n_trees;   // default -1 (auto); None = -1
+  int    n_jobs;    // default -1 (all cores, joblib convention); None = -1
+  double l1_ratio;  // default 0.0 (pure L2 / reserved); None = 0.0; range [0.0, 1.0]
 
   // --- Pending runtime configuration (before C++ index exists) ---
   uint64_t pending_seed;        // last seed requested via set_seed()
@@ -1309,27 +1596,36 @@ static inline std::string normalize_metric(const std::string& m) {
 // We intentionally avoid RTTI / dynamic_cast so this extension can be built with
 // RTTI disabled (e.g. -fno-rtti) while keeping the wrapper and C++ core in sync.
 //
-// ===================== Annoy Helper / Utility =============================
-// Helper: validate a row identifier ("index") against the current index.
+// check_constraints
+// ─────────────────────────────────────────────────────────────────────────
+// Validate an item id (indice) against the current index state.
 //
 // Parameters
 // ----------
-// self     : py_annoy*
-// indice   : int32_t   (ID previously passed to add_item())
-// building : bool      (true while we are still adding before build())
+// self     : py_annoy*   wrapper object
+// indice   : IndexDtype  item id (type matches template param S; non-negative
+//                        by construction since IndexDtype is unsigned)
+// building : bool        true while still adding items before build()
+//
+// Returns
+// -------
+// bool
+//   true if valid; false with a Python exception set if not.
+//
+// Developer notes:
+//   - IndexDtype is unsigned, so no negative check is needed.
+//   - The out-of-range check (indice >= n_items) is only applied after build,
+//     because during build items may be added out of order with gaps.
 static bool check_constraints(
   py_annoy* self,
-  int32_t   indice,
-  bool      building) {
-  if (indice < 0) {
-    PyErr_SetString(PyExc_IndexError,
-      "index (row id) cannot be negative");
-    return false;
-  }
+  IndexDtype indice,    // IndexDtype: unsigned, tracks central alias
+  bool       building) {
+  // Unsigned type: indice < 0 is impossible. Negative input from Python
+  // is rejected before this function is called (see parse sites below).
 
-  // During build we allow gaps; after build, indices must be in-range.
+  // After build: indices must be in [0, n_items).
   if (!building && self->ptr) {
-    const int32_t n_items = self->ptr->get_n_items();
+    const IndexDtype n_items = self->ptr->get_n_items();
     if (indice >= n_items) {
       PyErr_SetString(
         PyExc_IndexError,
@@ -1693,6 +1989,9 @@ static int py_an_init(
 
   // Reset estimator parameters to defaults (sklearn-like).
   self->n_neighbors = 5;
+  self->n_trees     = -1;   // -1 = auto (Annoy decides)
+  self->n_jobs      = -1;   // -1 = all cores (joblib convention)
+  self->l1_ratio    = 0.0;  // 0.0 = pure L2 / no penalty (reserved)
 
   // Clear fitted labels (if any) on re-init.
   Py_CLEAR(self->y);
@@ -1720,12 +2019,15 @@ static int py_an_init(
 
   // ------------------------------------------------------------------
   // Signature (public, documented):
-  //   Annoy(f=None, metric=None, *, on_disk_path=None, prefault=False,
+  //   Annoy(f=None, metric=None, *,
+  //         n_trees=-1, n_jobs=-1, l1_ratio=0.0,
+  //         n_neighbors=5, on_disk_path=None, prefault=False,
   //         schema_version=0, seed=None, random_state=None, verbose=None)
   //
   // Deterministic rules:
   //   * Only (f, metric) may be passed positionally.
   //   * All other parameters are keyword-only.
+  //   * None is always equivalent to the documented default for every param.
   // ------------------------------------------------------------------
   if (!PyTuple_Check(args)) {
     PyErr_SetString(PyExc_TypeError,
@@ -1746,10 +2048,13 @@ static int py_an_init(
   PyObject*   on_disk_path    = NULL;
   PyObject*   prefault        = NULL;
   PyObject*   schema_version  = NULL;
-  PyObject*   seed            = NULL;
-  PyObject*   random_state    = NULL;
-  PyObject*   verbose         = NULL;
-  PyObject*   n_neighbors_obj = NULL;
+  PyObject*   seed            = NULL;  // None → keep self->pending_seed (0)
+  PyObject*   random_state    = NULL;  // None → keep self->pending_seed (0)
+  PyObject*   verbose         = NULL;  // None → keep self->pending_verbose (0)
+  PyObject*   n_neighbors_obj = NULL;  // None → keep self->n_neighbors (5)
+  PyObject*   n_trees_obj     = NULL;  // None → keep self->n_trees (-1)
+  PyObject*   n_jobs_obj      = NULL;  // None → keep self->n_jobs  (-1)
+  PyObject*   l1_ratio_obj    = NULL;  // None → keep self->l1_ratio (0.0)
 
   // parse by PyArg_ParseTuple or PyArg_ParseTupleAndKeywords
   // "O|s" f (required, PyObject), metric (optional, const char*)
@@ -1793,9 +2098,13 @@ static int py_an_init(
       const bool is_random_state = (std::strcmp(k, "random_state") == 0);
       const bool is_verbose      = (std::strcmp(k, "verbose") == 0);
       const bool is_n_neighbors  = (std::strcmp(k, "n_neighbors") == 0);
+      const bool is_n_trees      = (std::strcmp(k, "n_trees") == 0);
+      const bool is_n_jobs       = (std::strcmp(k, "n_jobs") == 0);
+      const bool is_l1_ratio     = (std::strcmp(k, "l1_ratio") == 0);
 
       if (!(is_f || is_metric || is_on_disk_path || is_prefault ||
-          is_schema_ver || is_seed || is_random_state || is_verbose || is_n_neighbors)) {
+            is_schema_ver || is_seed || is_random_state || is_verbose ||
+            is_n_neighbors || is_n_trees || is_n_jobs || is_l1_ratio)) {
         PyErr_Format(PyExc_TypeError,
           "Annoy() got an unexpected keyword argument '%s'", k);
         return -1;
@@ -1829,6 +2138,12 @@ static int py_an_init(
         verbose = value;
       } else if (is_n_neighbors) {
         n_neighbors_obj = value;
+      } else if (is_n_trees) {
+        n_trees_obj = value;
+      } else if (is_n_jobs) {
+        n_jobs_obj = value;
+      } else if (is_l1_ratio) {
+        l1_ratio_obj = value;
       }
     }
   }
@@ -1987,6 +2302,65 @@ static int py_an_init(
     }
     self->n_neighbors = static_cast<size_t>(kn);
   }
+  // None → already reset to 5 above
+
+  // --------------------------
+  // Apply n_trees (build-time default; None or -1 = auto)
+  // Stored so build/fit(n_trees=None) resolves as:
+  //   n_trees = n_trees if n_trees is not None else self.n_trees
+  // --------------------------
+  if (n_trees_obj && n_trees_obj != Py_None) {
+    long v = PyLong_AsLong(n_trees_obj);
+    if (v == -1 && PyErr_Occurred()) return -1;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_trees must be a positive integer or -1 (auto)");
+      return -1;
+    }
+    self->n_trees = static_cast<int>(v);
+  }
+  // None → already reset to -1 above
+
+  // --------------------------
+  // Apply n_jobs (build-time default; None or -1 = all cores, joblib convention)
+  // Stored so build/fit(n_jobs=None) resolves as:
+  //   n_jobs = n_jobs if n_jobs is not None else self.n_jobs
+  // --------------------------
+  if (n_jobs_obj && n_jobs_obj != Py_None) {
+    long v = PyLong_AsLong(n_jobs_obj);
+    if (v == -1 && PyErr_Occurred()) return -1;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_jobs must be a positive integer or -1 (all cores)");
+      return -1;
+    }
+    self->n_jobs = static_cast<int>(v);
+  }
+  // None → already reset to -1 above
+
+  // --------------------------
+  // Apply l1_ratio (reserved; None = 0.0, range [0.0, 1.0])
+  // 0.0 = pure L2, 1.0 = pure L1. Accepts int 0/1 as well as float.
+  // --------------------------
+  if (l1_ratio_obj && l1_ratio_obj != Py_None) {
+    double v = PyFloat_AsDouble(l1_ratio_obj);
+    if (v == -1.0 && PyErr_Occurred()) {
+      // Accept integer literal (e.g. l1_ratio=0 or l1_ratio=1).
+      PyErr_Clear();
+      long iv = PyLong_AsLong(l1_ratio_obj);
+      if (iv == -1 && PyErr_Occurred()) {
+        PyErr_SetString(PyExc_TypeError, "l1_ratio must be a float or int in [0.0, 1.0]");
+        return -1;
+      }
+      v = static_cast<double>(iv);
+    }
+    if (v < 0.0 || v > 1.0) {
+      PyErr_SetString(PyExc_ValueError, "l1_ratio must be in [0.0, 1.0]");
+      return -1;
+    }
+    self->l1_ratio = v;
+  }
+  // None → already reset to 0.0 above
 
   // Eagerly construct the underlying C++ index only when both f and metric are known.
   if (self->f > 0 && self->metric_id != METRIC_UNKNOWN) {
@@ -2041,7 +2415,7 @@ static void py_an_dealloc(py_annoy* self) {
   //
   // Important: set self->ptr to NULL *before* deleting to prevent any accidental
   // re-entrancy (or future code changes) from double-freeing the same pointer.
-  AnnoyIndexInterface<int32_t, float, uint64_t>* ptr = self->ptr;
+  AnnoyIndexInterface<IndexDtype, DataDtype, RandomDtype>* ptr = self->ptr;
 
   // 1) Release OS-backed / heap resources (C++).
   if (ptr) {
@@ -2373,7 +2747,8 @@ static int annoy_validate_y_map_keys(py_annoy* self, PyObject* d, const char* na
     PyErr_Format(PyExc_TypeError, "%s must be a dict or None", name);
     return -1;
   }
-  const int n_items = (self && self->ptr) ? self->ptr->get_n_items() : 0;
+  // n_items: IndexDtype matches get_n_items() return type. Non-negative by construction.
+  const IndexDtype n_items = (self && self->ptr) ? self->ptr->get_n_items() : 0;
   PyObject* key = NULL;
   PyObject* val = NULL;
   Py_ssize_t pos = 0;
@@ -2382,16 +2757,14 @@ static int annoy_validate_y_map_keys(py_annoy* self, PyObject* d, const char* na
       PyErr_Format(PyExc_TypeError, "%s dict keys must be integers (item ids)", name);
       return -1;
     }
-    long long kid = PyLong_AsLongLong(key);
-    if (kid == -1 && PyErr_Occurred()) return -1;
-    if (kid < 0) {
-      PyErr_Format(PyExc_ValueError, "%s dict keys must be >= 0", name);
-      return -1;
-    }
-    if (n_items > 0 && kid >= (long long)n_items) {
+    // AnnoyIdxFromPyRaw: unsigned long long for uint64_t IndexDtype (portable).
+    // Signed PyLong_AsLongLong would silently accept negative ids if unchecked.
+    unsigned long long kid_raw = AnnoyIdxFromPyRaw(key);
+    if (kid_raw == (unsigned long long)-1 && PyErr_Occurred()) return -1;
+    if (n_items > 0 && kid_raw >= (unsigned long long)n_items) {
       PyErr_Format(PyExc_ValueError,
-        "%s dict key %lld is out of range for current index size (n_items=%d)",
-        name, kid, n_items);
+        "%s dict key %llu is out of range for current index size (n_items=%llu)",
+        name, kid_raw, (unsigned long long)n_items);
       return -1;
     }
   }
@@ -2427,17 +2800,20 @@ static PyObject* annoy_materialize_dense_y_from_y_map(py_annoy* self) {
   } else {
     // No live index: infer a deterministic length from max key + 1.
     PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
-    long long max_k = -1;
+    unsigned long long max_k = 0;
+    bool has_keys = false;
     while (PyDict_Next(self->y_map, &pos, &key, &val)) {
       if (!PyLong_Check(key)) {
         PyErr_SetString(PyExc_TypeError, "y_map dict keys must be integers (item ids)");
         return NULL;
       }
-      long long kid = PyLong_AsLongLong(key);
-      if (kid == -1 && PyErr_Occurred()) return NULL;
-      if (kid > max_k) max_k = kid;
+      // AnnoyIdxFromPyRaw: unsigned; prevents accepting negative Python ints.
+      unsigned long long kid = AnnoyIdxFromPyRaw(key);
+      if (kid == (unsigned long long)-1 && PyErr_Occurred()) return NULL;
+      if (!has_keys || kid > max_k) max_k = kid;
+      has_keys = true;
     }
-    n = (max_k >= 0) ? (Py_ssize_t)(max_k + 1) : 0;
+    n = has_keys ? (Py_ssize_t)(max_k + 1) : 0;
   }
   PyObject* lst = PyList_New(n);
   if (!lst) return NULL;
@@ -2447,9 +2823,10 @@ static PyObject* annoy_materialize_dense_y_from_y_map(py_annoy* self) {
   }
   PyObject* key = NULL; PyObject* val = NULL; Py_ssize_t pos = 0;
   while (PyDict_Next(self->y_map, &pos, &key, &val)) {
-    long long kid = PyLong_AsLongLong(key);
-    if (kid == -1 && PyErr_Occurred()) { Py_DECREF(lst); return NULL; }
-    if (kid < 0 || kid >= (long long)n) continue;
+    // AnnoyIdxFromPyRaw returns unsigned long long — correct for IndexDtype keys.
+    unsigned long long kid = AnnoyIdxFromPyRaw(key);
+    if (kid == (unsigned long long)-1 && PyErr_Occurred()) { Py_DECREF(lst); return NULL; }
+    if (kid >= (unsigned long long)n) continue;
     Py_INCREF(val);
     Py_DECREF(PyList_GET_ITEM(lst, (Py_ssize_t)kid));
     PyList_SET_ITEM(lst, (Py_ssize_t)kid, val);  // steals
@@ -3536,7 +3913,7 @@ static PyObject* py_an_set_seed(
 //   version_u16       = 1
 //   endian_u8         = 1 (little) or 2 (big)
 //   sizeof_size_t_u8
-//   sizeof_S_u8       (Annoy index id type; this wrapper uses int32_t)
+//   sizeof_S_u8       (Annoy index id type; this wrapper uses uint32_t)
 //   sizeof_T_u8       (vector scalar type; this wrapper uses float)
 //   metric_id_u8
 //   reserved_u8       (0)
@@ -3619,10 +3996,19 @@ static bool annoy_build_portable_blob(
 
   const uint8_t endian = annoy_host_is_little_endian() ? 1 : 2;
 
-  // Hard ABI invariants for this wrapper type.
-  const uint8_t sizeof_S = static_cast<uint8_t>(sizeof(int32_t));
-  const uint8_t sizeof_T = static_cast<uint8_t>(sizeof(float));
-  const uint8_t sizeof_size_t = static_cast<uint8_t>(sizeof(size_t));
+  // ABI invariants written into the header so deserialization can detect
+  // format mismatches before reading any data.
+  //
+  // sizeof_S tracks IndexDtype (the item id type, template param S).
+  // sizeof_T tracks DataDtype (the vector scalar type, template param T).
+  // Both are derived from the CENTRALIZED INDEX DTYPE DEFINITIONS block;
+  // changing those aliases automatically updates what is written here.
+  //
+  // WARNING: changing IndexDtype changes sizeof_S and makes this file
+  // unloadable by code compiled with the old IndexDtype.
+  const uint8_t sizeof_S       = static_cast<uint8_t>(sizeof(IndexDtype));
+  const uint8_t sizeof_T       = static_cast<uint8_t>(sizeof(DataDtype));
+  const uint8_t sizeof_size_t  = static_cast<uint8_t>(sizeof(size_t));
 
   // Deterministic: do not allow silent truncation when casting sizes.
   if (native_payload.size() > static_cast<size_t>(std::numeric_limits<uint64_t>::max())) {
@@ -3716,7 +4102,16 @@ static bool annoy_unwrap_portable_blob(
     PyErr_SetString(PyExc_IOError, "cannot deserialize portable blob with different endianness");
     return false;
   }
-  if (sizeof_size_t != sizeof(size_t) || sizeof_S != sizeof(int32_t) || sizeof_T != sizeof(float)) {
+  // ABI compatibility check: reject blobs that were serialized with a different
+  // IndexDtype width (sizeof_S), DataDtype width (sizeof_T), or size_t width.
+  // This catches the most common source of silent corruption: loading a file
+  // saved with uint32_t IndexDtype after recompiling with uint64_t (or vice-versa).
+  //
+  // sizeof(IndexDtype) and sizeof(DataDtype) are compile-time constants driven
+  // by the CENTRALIZED INDEX DTYPE DEFINITIONS block above.
+  if (sizeof_size_t != sizeof(size_t) ||
+      sizeof_S      != sizeof(IndexDtype) ||
+      sizeof_T      != sizeof(DataDtype)) {
     PyErr_SetString(PyExc_IOError, "cannot deserialize portable blob with incompatible ABI (sizeof mismatch)");
     return false;
   }
@@ -3752,10 +4147,12 @@ static bool annoy_unwrap_portable_blob(
 // Canonical serialization (sklearn-like, cross-ABI)
 // ------------------------------------------------------------------
 //
-// "canonical-v1" is a rebuildable wire format intended to be:
+// "canonical-v2" is a rebuildable wire format intended to be:
 //   * deterministic (byte-for-byte given the same stored vectors + params)
 //   * portable across compilers / platforms / ABIs (within IEEE-754 float32)
 //   * safe to validate before loading
+//   * IndexDtype-aware: n_items and n_trees are stored as uint64_t so that
+//     indexes larger than 2^32 items are fully representable on disk.
 //
 // Design choice (portability-first):
 //   - We do NOT store Annoy's in-memory node layout.
@@ -3765,16 +4162,16 @@ static bool annoy_unwrap_portable_blob(
 // This mirrors how many sklearn estimators persist as "parameters + learned arrays"
 // rather than raw memory snapshots.
 //
-// Format: little-endian
-//   magic[8]          = "ANNOYCN1"
-//   version_u16       = 1
+// Format v2: little-endian
+//   magic[8]          = "ANNOYCN2"   (changed from v1 "ANNOYCN1" to distinguish)
+//   version_u16       = 2
 //   flags_u16         (bit0 = built)
 //   metric_id_u8
 //   reserved_u8
 //   reserved_u16
-//   f_u32
-//   n_items_u32
-//   n_trees_u32       (valid if built flag set; otherwise 0)
+//   f_u32             (embedding dimension; uint32 sufficient, max ~2B features)
+//   n_items_u64       (was u32 in v1; now u64 to support IndexDtype = uint64_t)
+//   n_trees_u64       (was u32 in v1; now u64 to support IndexDtype = uint64_t)
 //   has_seed_u8
 //   has_verbose_u8
 //   reserved_u16
@@ -3784,10 +4181,27 @@ static bool annoy_unwrap_portable_blob(
 //   payload_size_u64  (= n_items * f * sizeof(float))
 //   payload[payload_size_u64]  float32 values, row-major by item id
 //
-static const uint8_t  ANNOY_CANONICAL_MAGIC[8] = {'A','N','N','O','Y','C','N','1'};
-static const uint16_t ANNOY_CANONICAL_VERSION  = 1;
-static const uint16_t ANNOY_CANONICAL_FLAG_BUILT = 1u << 0;
-static const size_t   ANNOY_CANONICAL_HEADER_SIZE = 56;
+// Header size calculation (v2):
+//   8 + 2 + 2 + 1 + 1 + 2 + 4 + 8 + 8 + 1 + 1 + 2 + 8 + 4 + 4 + 8 = 64 bytes
+//
+// Developer note — backward compatibility (v1 → v2):
+//   v1 format ("ANNOYCN1", version=1): n_items_u32 + n_trees_u32 (4+4 bytes)
+//   v2 format ("ANNOYCN2", version=2): n_items_u64 + n_trees_u64 (8+8 bytes)
+//
+//   On READ:  annoy_parse_canonical_blob detects the magic+version and reads
+//             accordingly. v1 blobs are widened to IndexDtype on load.
+//   On WRITE: always writes v2.
+//   Old v1 blobs remain loadable (read path handles both versions).
+//
+static const uint8_t  ANNOY_CANONICAL_MAGIC_V1[8] = {'A','N','N','O','Y','C','N','1'};
+static const uint8_t  ANNOY_CANONICAL_MAGIC[8]    = {'A','N','N','O','Y','C','N','2'};
+static const uint16_t ANNOY_CANONICAL_VERSION_V1  = 1;
+static const uint16_t ANNOY_CANONICAL_VERSION     = 2;
+static const uint16_t ANNOY_CANONICAL_FLAG_BUILT  = 1u << 0;
+// v1 header: 8+2+2+1+1+2+4+4+4+1+1+2+8+4+4+8 = 56 bytes
+static const size_t   ANNOY_CANONICAL_HEADER_SIZE_V1 = 56;
+// v2 header: 8+2+2+1+1+2+4+8+8+1+1+2+8+4+4+8 = 64 bytes (n_items/n_trees widened to u64)
+static const size_t   ANNOY_CANONICAL_HEADER_SIZE    = 64;
 
 static inline void annoy_append_i32_le(std::vector<uint8_t>& out, int32_t v) {
   annoy_append_u32_le(out, static_cast<uint32_t>(v));
@@ -3799,9 +4213,17 @@ static inline bool annoy_read_i32_le(const uint8_t*& p, size_t& n, int32_t* out)
   return true;
 }
 
+// annoy_is_canonical_blob: returns true if the buffer starts with a known
+// canonical magic (v1 "ANNOYCN1" or v2 "ANNOYCN2"). The minimum size check
+// uses the smaller of the two header sizes (v1 = 56 bytes) so that both
+// formats are accepted before the detailed parse.
 static inline bool annoy_is_canonical_blob(const uint8_t* data, size_t size) {
-  return (data && size >= ANNOY_CANONICAL_HEADER_SIZE &&
-          memcmp(data, ANNOY_CANONICAL_MAGIC, 8) == 0);
+  if (!data) return false;
+  const bool is_v1 = (size >= ANNOY_CANONICAL_HEADER_SIZE_V1 &&
+                      memcmp(data, ANNOY_CANONICAL_MAGIC_V1, 8) == 0);
+  const bool is_v2 = (size >= ANNOY_CANONICAL_HEADER_SIZE &&
+                      memcmp(data, ANNOY_CANONICAL_MAGIC, 8) == 0);
+  return is_v1 || is_v2;
 }
 
 static bool annoy_build_canonical_blob(
@@ -3831,15 +4253,19 @@ static bool annoy_build_canonical_blob(
     return false;
   }
 
-  const int32_t n_items_i32 = self->ptr->get_n_items();
-  if (n_items_i32 < 0) {
-    PyErr_SetString(PyExc_RuntimeError, "invalid n_items");
-    return false;
-  }
+  // n_items / n_trees: IndexDtype matches get_n_items() return type.
+  // Using IndexDtype here prevents silent truncation if the index grows
+  // beyond UINT32_MAX items when IndexDtype = uint64_t.
+  const IndexDtype n_items_i32 = self->ptr->get_n_items();
+  // This check is logically impossible and the compiler is correct to warn.
+  // if (n_items_i32 < 0) {
+  //   PyErr_SetString(PyExc_RuntimeError, "invalid n_items");
+  //   return false;
+  // }
 
-  const uint32_t n_items = static_cast<uint32_t>(n_items_i32);
-  const uint32_t f = static_cast<uint32_t>(self->f);
-  const uint32_t n_trees = static_cast<uint32_t>(self->ptr->get_n_trees());
+  const IndexDtype n_items = static_cast<IndexDtype>(n_items_i32);
+  const uint32_t   f       = static_cast<uint32_t>(self->f);
+  const IndexDtype n_trees = static_cast<IndexDtype>(self->ptr->get_n_trees());
   const bool built = (n_trees > 0);
 
   // Compute payload size with overflow checks.
@@ -3862,30 +4288,34 @@ static bool annoy_build_canonical_blob(
   out_blob->clear();
   out_blob->reserve(static_cast<size_t>(total_u64));
 
-  // Header
+  // Header (v2 format — see format comment above for byte-by-byte layout)
   out_blob->insert(out_blob->end(), ANNOY_CANONICAL_MAGIC, ANNOY_CANONICAL_MAGIC + 8);
-  annoy_append_u16_le(*out_blob, ANNOY_CANONICAL_VERSION);
+  annoy_append_u16_le(*out_blob, ANNOY_CANONICAL_VERSION);           // version = 2
   annoy_append_u16_le(*out_blob, built ? ANNOY_CANONICAL_FLAG_BUILT : 0u);
   annoy_append_u8(*out_blob, static_cast<uint8_t>(self->metric_id));
-  annoy_append_u8(*out_blob, 0);  // reserved_u8
-  annoy_append_u16_le(*out_blob, 0);  // reserved_u16
-  annoy_append_u32_le(*out_blob, f);
-  annoy_append_u32_le(*out_blob, n_items);
-  annoy_append_u32_le(*out_blob, built ? n_trees : 0u);
+  annoy_append_u8(*out_blob, 0);           // reserved_u8
+  annoy_append_u16_le(*out_blob, 0);       // reserved_u16
+  annoy_append_u32_le(*out_blob, f);       // f_u32 (dimension; max ~2B, uint32 sufficient)
+  // n_items and n_trees are written as uint64 in v2 to support IndexDtype = uint64_t.
+  // v1 wrote these as uint32 (max 4B items). v2 removes that cap entirely.
+  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(n_items));
+  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(built ? n_trees : IndexDtype(0)));
 
   annoy_append_u8(*out_blob, self->has_pending_seed ? 1 : 0);
   annoy_append_u8(*out_blob, self->has_pending_verbose ? 1 : 0);
-  annoy_append_u16_le(*out_blob, 0);  // reserved_u16
+  annoy_append_u16_le(*out_blob, 0);       // reserved_u16
 
   annoy_append_u64_le(*out_blob, static_cast<uint64_t>(self->pending_seed));
   annoy_append_i32_le(*out_blob, static_cast<int32_t>(self->pending_verbose));
-  annoy_append_u32_le(*out_blob, 0);  // reserved_u32
+  annoy_append_u32_le(*out_blob, 0);       // reserved_u32
   annoy_append_u64_le(*out_blob, payload_bytes);
 
-  // Payload: row-major vectors (item id order)
+  // Payload: row-major float vectors, one per item in id order (0..n_items-1).
+  // Loop variable is IndexDtype to match n_items type and avoid signed/unsigned
+  // comparison warnings when IndexDtype = uint64_t.
   std::vector<float> vec(static_cast<size_t>(f));
-  for (uint32_t i = 0; i < n_items; ++i) {
-    self->ptr->get_item(static_cast<int32_t>(i), vec.data());
+  for (IndexDtype i = 0; i < n_items; ++i) {
+    self->ptr->get_item(static_cast<IndexDtype>(i), vec.data());
     for (uint32_t j = 0; j < f; ++j) {
       uint32_t bits = 0;
       static_assert(sizeof(bits) == sizeof(float), "float must be 32-bit");
@@ -3897,65 +4327,136 @@ static bool annoy_build_canonical_blob(
   return true;
 }
 
+// annoy_parse_canonical_blob
+// ─────────────────────────────────────────────────────────────────────────
+// Parse the header of a canonical blob (v1 or v2) and return its fields.
+//
+// Format versions:
+//   v1 ("ANNOYCN1", version=1): n_items and n_trees stored as uint32_t (4 bytes each).
+//   v2 ("ANNOYCN2", version=2): n_items and n_trees stored as uint64_t (8 bytes each).
+//
+// The out_n_items / out_n_trees parameters are IndexDtype* so that the caller
+// always works in the correct item-id type without any post-call widening.
+// This function widens v1 uint32_t wire values to IndexDtype internally.
+//
+// On return, *out_payload points into `data` (no copy); valid for the
+// lifetime of `data`.
+//
+// Returns true on success with Python exception unset.
+// Returns false on any error with a Python exception already set.
 static bool annoy_parse_canonical_blob(
   const py_annoy* self,
-  const uint8_t* data,
-  size_t size,
-  uint16_t* out_flags,
-  uint8_t* out_metric_id,
-  uint32_t* out_f,
-  uint32_t* out_n_items,
-  uint32_t* out_n_trees,
-  uint8_t* out_has_seed,
-  uint8_t* out_has_verbose,
-  uint64_t* out_seed,
-  int32_t* out_verbose,
+  const uint8_t*  data,
+  size_t          size,
+  uint16_t*       out_flags,
+  uint8_t*        out_metric_id,
+  uint32_t*       out_f,
+  IndexDtype*     out_n_items,    // IndexDtype: v1 u32 widened; v2 u64 native
+  IndexDtype*     out_n_trees,    // IndexDtype: v1 u32 widened; v2 u64 native
+  uint8_t*        out_has_seed,
+  uint8_t*        out_has_verbose,
+  uint64_t*       out_seed,
+  int32_t*        out_verbose,
   const uint8_t** out_payload,
-  size_t* out_payload_size) {
-  if (!data || size < ANNOY_CANONICAL_HEADER_SIZE) {
-    PyErr_SetString(PyExc_IOError, "canonical blob is truncated");
-    return false;
-  }
-  if (memcmp(data, ANNOY_CANONICAL_MAGIC, 8) != 0) {
-    PyErr_SetString(PyExc_IOError, "canonical blob magic mismatch");
+  size_t*         out_payload_size) {
+
+  // ── Magic / version detection ─────────────────────────────────────────
+  // Detect format version from the magic bytes before checking header size,
+  // so we can give a precise error rather than a generic "truncated" error.
+  const bool is_v1 = (size >= ANNOY_CANONICAL_HEADER_SIZE_V1 &&
+                      memcmp(data, ANNOY_CANONICAL_MAGIC_V1, 8) == 0);
+  const bool is_v2 = (size >= ANNOY_CANONICAL_HEADER_SIZE &&
+                      memcmp(data, ANNOY_CANONICAL_MAGIC, 8) == 0);
+
+  if (!data || (!is_v1 && !is_v2)) {
+    if (!data) {
+      PyErr_SetString(PyExc_IOError, "canonical blob is null");
+    } else if (size < ANNOY_CANONICAL_HEADER_SIZE_V1) {
+      PyErr_SetString(PyExc_IOError, "canonical blob is truncated");
+    } else {
+      PyErr_SetString(PyExc_IOError,
+        "canonical blob magic mismatch (expected 'ANNOYCN1' or 'ANNOYCN2')");
+    }
     return false;
   }
 
-  const uint8_t* p = data + 8;
+  // ── Shared header prefix (identical in v1 and v2) ─────────────────────
+  // Byte layout (after magic[8]):
+  //   version_u16, flags_u16, metric_id_u8, reserved_u8, reserved_u16,
+  //   f_u32
+  // Then v1: n_items_u32, n_trees_u32
+  //      v2: n_items_u64, n_trees_u64
+  // Then (same for both): has_seed_u8, has_verbose_u8, reserved_u16,
+  //   seed_u64, verbose_i32, reserved_u32, payload_size_u64
+
+  const uint8_t* p = data + 8;  // skip magic
   size_t n = size - 8;
 
-  uint16_t version = 0;
-  uint16_t flags = 0;
-  uint8_t metric_id = 0;
-  uint8_t reserved_u8 = 0;
+  uint16_t version     = 0;
+  uint16_t flags       = 0;
+  uint8_t  metric_id   = 0;
+  uint8_t  reserved_u8 = 0;
   uint16_t reserved_u16a = 0;
-  uint32_t f = 0;
-  uint32_t n_items = 0;
-  uint32_t n_trees = 0;
-  uint8_t has_seed = 0;
-  uint8_t has_verbose = 0;
+  uint32_t f           = 0;
+  uint64_t n_items_raw = 0;  // holds wire value; narrowed/widened to IndexDtype below
+  uint64_t n_trees_raw = 0;
+  uint8_t  has_seed    = 0;
+  uint8_t  has_verbose = 0;
   uint16_t reserved_u16b = 0;
-  uint64_t seed = 0;
-  int32_t verbose = 0;
+  uint64_t seed        = 0;
+  int32_t  verbose     = 0;
   uint32_t reserved_u32 = 0;
   uint64_t payload_size_u64 = 0;
 
-  if (!annoy_read_u16_le(p, n, &version) ||
-      !annoy_read_u16_le(p, n, &flags) ||
-      !annoy_read_u8(p, n, &metric_id) ||
-      !annoy_read_u8(p, n, &reserved_u8) ||
+  // Read shared prefix
+  if (!annoy_read_u16_le(p, n, &version)      ||
+      !annoy_read_u16_le(p, n, &flags)         ||
+      !annoy_read_u8(p, n, &metric_id)         ||
+      !annoy_read_u8(p, n, &reserved_u8)       ||
       !annoy_read_u16_le(p, n, &reserved_u16a) ||
-      !annoy_read_u32_le(p, n, &f) ||
-      !annoy_read_u32_le(p, n, &n_items) ||
-      !annoy_read_u32_le(p, n, &n_trees) ||
-      !annoy_read_u8(p, n, &has_seed) ||
-      !annoy_read_u8(p, n, &has_verbose) ||
-      !annoy_read_u16_le(p, n, &reserved_u16b) ||
-      !annoy_read_u64_le(p, n, &seed) ||
-      !annoy_read_i32_le(p, n, &verbose) ||
-      !annoy_read_u32_le(p, n, &reserved_u32) ||
+      !annoy_read_u32_le(p, n, &f)) {
+    PyErr_SetString(PyExc_IOError, "canonical header prefix is truncated");
+    return false;
+  }
+
+  // Version check — must match the magic we detected
+  const uint16_t expected_version = is_v1 ? ANNOY_CANONICAL_VERSION_V1
+                                           : ANNOY_CANONICAL_VERSION;
+  if (version != expected_version) {
+    PyErr_SetString(PyExc_IOError, "canonical blob version field does not match magic");
+    return false;
+  }
+
+  // Read n_items / n_trees: width depends on version
+  if (is_v1) {
+    // v1: both stored as uint32_t (4 bytes each)
+    uint32_t tmp_items = 0, tmp_trees = 0;
+    if (!annoy_read_u32_le(p, n, &tmp_items) ||
+        !annoy_read_u32_le(p, n, &tmp_trees)) {
+      PyErr_SetString(PyExc_IOError, "canonical v1 header n_items/n_trees truncated");
+      return false;
+    }
+    // Widen: uint32_t → uint64_t; always safe (UINT32_MAX < UINT64_MAX)
+    n_items_raw = static_cast<uint64_t>(tmp_items);
+    n_trees_raw = static_cast<uint64_t>(tmp_trees);
+  } else {
+    // v2: both stored as uint64_t (8 bytes each) — native IndexDtype width
+    if (!annoy_read_u64_le(p, n, &n_items_raw) ||
+        !annoy_read_u64_le(p, n, &n_trees_raw)) {
+      PyErr_SetString(PyExc_IOError, "canonical v2 header n_items/n_trees truncated");
+      return false;
+    }
+  }
+
+  // Read shared suffix
+  if (!annoy_read_u8(p, n, &has_seed)          ||
+      !annoy_read_u8(p, n, &has_verbose)        ||
+      !annoy_read_u16_le(p, n, &reserved_u16b)  ||
+      !annoy_read_u64_le(p, n, &seed)           ||
+      !annoy_read_i32_le(p, n, &verbose)        ||
+      !annoy_read_u32_le(p, n, &reserved_u32)   ||
       !annoy_read_u64_le(p, n, &payload_size_u64)) {
-    PyErr_SetString(PyExc_IOError, "canonical header is truncated");
+    PyErr_SetString(PyExc_IOError, "canonical header suffix is truncated");
     return false;
   }
 
@@ -3964,29 +4465,64 @@ static bool annoy_parse_canonical_blob(
   (void)reserved_u16b;
   (void)reserved_u32;
 
-  if (version != ANNOY_CANONICAL_VERSION) {
-    PyErr_SetString(PyExc_IOError, "unsupported canonical blob version");
-    return false;
-  }
+  // ── Semantic validation ───────────────────────────────────────────────
 
-  // Validate metric + f against the current object if known.
+  // Validate dimension and metric against the live index (if known)
   if (self) {
     if (self->f > 0 && static_cast<uint32_t>(self->f) != f) {
-      PyErr_SetString(PyExc_ValueError, "canonical blob dimension f does not match this index");
+      PyErr_SetString(PyExc_ValueError,
+        "canonical blob dimension f does not match this index");
       return false;
     }
-    if (self->metric_id != METRIC_UNKNOWN && static_cast<uint8_t>(self->metric_id) != metric_id) {
-      PyErr_SetString(PyExc_ValueError, "canonical blob metric does not match this index");
+    if (self->metric_id != METRIC_UNKNOWN &&
+        static_cast<uint8_t>(self->metric_id) != metric_id) {
+      PyErr_SetString(PyExc_ValueError,
+        "canonical blob metric does not match this index");
       return false;
     }
   }
 
-  // Validate payload length matches declared sizes.
-  const uint64_t expected = static_cast<uint64_t>(n_items) * static_cast<uint64_t>(f) * 4ULL;
-  if (expected != payload_size_u64) {
-    PyErr_SetString(PyExc_IOError, "canonical payload size mismatch");
+  // Validate IndexDtype range: n_items_raw must fit in IndexDtype.
+  // For v1 blobs this is trivially true (uint32 < uint64).
+  // For v2 blobs it is also trivially true since n_items_raw IS uint64_t.
+  // The check is here as a documentation invariant and guard against future
+  // changes where IndexDtype might be narrower than uint64_t.
+  if (n_items_raw > static_cast<uint64_t>(std::numeric_limits<IndexDtype>::max())) {
+    PyErr_SetString(PyExc_OverflowError,
+      "canonical blob n_items exceeds IndexDtype range");
     return false;
   }
+  if (n_trees_raw > static_cast<uint64_t>(std::numeric_limits<IndexDtype>::max())) {
+    PyErr_SetString(PyExc_OverflowError,
+      "canonical blob n_trees exceeds IndexDtype range");
+    return false;
+  }
+
+  // Validate payload size: n_items * f * sizeof(float).
+  // Use uint64_t arithmetic throughout; overflow check before multiply.
+  if (n_items_raw != 0 && f != 0) {
+    if (n_items_raw > std::numeric_limits<uint64_t>::max() / static_cast<uint64_t>(f)) {
+      PyErr_SetString(PyExc_OverflowError,
+        "canonical blob n_items * f overflows uint64_t");
+      return false;
+    }
+    const uint64_t nf = n_items_raw * static_cast<uint64_t>(f);
+    if (nf > std::numeric_limits<uint64_t>::max() / 4ULL) {
+      PyErr_SetString(PyExc_OverflowError,
+        "canonical blob payload size overflows uint64_t");
+      return false;
+    }
+    const uint64_t expected = nf * 4ULL;
+    if (expected != payload_size_u64) {
+      PyErr_SetString(PyExc_IOError, "canonical payload size mismatch");
+      return false;
+    }
+  } else if (payload_size_u64 != 0) {
+    PyErr_SetString(PyExc_IOError,
+      "canonical payload size non-zero but n_items or f is zero");
+    return false;
+  }
+
   if (payload_size_u64 > static_cast<uint64_t>(n)) {
     PyErr_SetString(PyExc_IOError, "canonical payload is truncated");
     return false;
@@ -3996,18 +4532,20 @@ static bool annoy_parse_canonical_blob(
     return false;
   }
 
-  if (out_flags) *out_flags = flags;
-  if (out_metric_id) *out_metric_id = metric_id;
-  if (out_f) *out_f = f;
-  if (out_n_items) *out_n_items = n_items;
-  if (out_n_trees) *out_n_trees = n_trees;
-  if (out_has_seed) *out_has_seed = has_seed;
-  if (out_has_verbose) *out_has_verbose = has_verbose;
-  if (out_seed) *out_seed = seed;
-  if (out_verbose) *out_verbose = verbose;
-
-  if (out_payload) *out_payload = p;
+  // ── Write outputs ─────────────────────────────────────────────────────
+  if (out_flags)        *out_flags        = flags;
+  if (out_metric_id)    *out_metric_id    = metric_id;
+  if (out_f)            *out_f            = f;
+  // Cast n_items_raw / n_trees_raw to IndexDtype — range already validated above.
+  if (out_n_items)      *out_n_items      = static_cast<IndexDtype>(n_items_raw);
+  if (out_n_trees)      *out_n_trees      = static_cast<IndexDtype>(n_trees_raw);
+  if (out_has_seed)     *out_has_seed     = has_seed;
+  if (out_has_verbose)  *out_has_verbose  = has_verbose;
+  if (out_seed)         *out_seed         = seed;
+  if (out_verbose)      *out_verbose      = verbose;
+  if (out_payload)      *out_payload      = p;
   if (out_payload_size) *out_payload_size = static_cast<size_t>(payload_size_u64);
+
   return true;
 }
 
@@ -4027,17 +4565,20 @@ static bool annoy_restore_from_canonical_blob(
     return false;
   }
 
-  uint16_t flags = 0;
-  uint8_t metric_id_u8 = 0;
-  uint32_t f_u32 = 0;
-  uint32_t n_items = 0;
-  uint32_t n_trees = 0;
-  uint8_t has_seed = 0;
-  uint8_t has_verbose = 0;
-  uint64_t seed = 0;
-  int32_t verbose = 0;
+  uint16_t   flags       = 0;
+  uint8_t    metric_id_u8 = 0;
+  uint32_t   f_u32       = 0;
+  // IndexDtype: annoy_parse_canonical_blob writes the correct in-memory type
+  // directly, handling v1 widening (u32→IndexDtype) and v2 native (u64) internally.
+  // No post-call widening needed here.
+  IndexDtype n_items     = 0;
+  IndexDtype n_trees     = 0;
+  uint8_t    has_seed    = 0;
+  uint8_t    has_verbose = 0;
+  uint64_t   seed        = 0;
+  int32_t    verbose     = 0;
   const uint8_t* payload = NULL;
-  size_t payload_size = 0;
+  size_t         payload_size = 0;
 
   if (!annoy_parse_canonical_blob(
         self, data, size,
@@ -4076,7 +4617,9 @@ static bool annoy_restore_from_canonical_blob(
   size_t n = payload_size;
 
   Py_BEGIN_ALLOW_THREADS;
-  for (uint32_t i = 0; i < n_items && ok; ++i) {
+  // Loop variable is IndexDtype to match n_items type (avoids signed/unsigned
+  // comparison warning when IndexDtype = uint64_t).
+  for (IndexDtype i = 0; i < n_items && ok; ++i) {
     for (uint32_t j = 0; j < f_u32; ++j) {
       if (n < 4) { ok = false; break; }
       uint32_t bits = (static_cast<uint32_t>(p[0]) |
@@ -4090,7 +4633,8 @@ static bool annoy_restore_from_canonical_blob(
       vec[static_cast<size_t>(j)] = fv;
     }
     if (!ok) break;
-    if (!self->ptr->add_item(static_cast<int32_t>(i), vec.data(), &error.err)) {
+    // Cast to IndexDtype: loop var i is already IndexDtype, no truncation.
+    if (!self->ptr->add_item(static_cast<IndexDtype>(i), vec.data(), &error.err)) {
       ok = false;
       break;
     }
@@ -4435,6 +4979,21 @@ static PyObject* py_an_get_params(
   if (!v || PyDict_SetItemString(d, "n_neighbors", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
   Py_DECREF(v);
 
+  // n_trees (-1 = auto; stored as int, exposed as int)
+  v = PyLong_FromLong((long)self->n_trees);
+  if (!v || PyDict_SetItemString(d, "n_trees", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // n_jobs (-1 = all cores; stored as int, exposed as int)
+  v = PyLong_FromLong((long)self->n_jobs);
+  if (!v || PyDict_SetItemString(d, "n_jobs", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
+  // l1_ratio (float in [0.0, 1.0]; reserved)
+  v = PyFloat_FromDouble(self->l1_ratio);
+  if (!v || PyDict_SetItemString(d, "l1_ratio", v) < 0) { Py_XDECREF(v); Py_DECREF(d); return NULL; }
+  Py_DECREF(v);
+
   // seed / verbose (None if not explicitly set)
   if (self->has_pending_seed) {
     v = PyLong_FromUnsignedLongLong((unsigned long long)self->pending_seed);
@@ -4524,10 +5083,62 @@ static PyObject* py_an_set_params(
       if (py_annoy_set_schema_version(self, value, NULL) != 0) return NULL;
     } else if (std::strcmp(k, "on_disk_path") == 0) {
       if (py_annoy_set_on_disk_path(self, value ? value : Py_None, NULL) != 0) return NULL;
+    } else if (std::strcmp(k, "n_trees") == 0) {
+      // None → reset to default (-1 = auto)
+      PyObject* v_obj = (value && value != Py_None) ? value : NULL;
+      if (v_obj) {
+        long v = PyLong_AsLong(v_obj);
+        if (v == -1 && PyErr_Occurred()) return NULL;
+        if (v == 0 || v < -1) {
+          PyErr_SetString(PyExc_ValueError,
+            "n_trees must be a positive integer or -1 (auto)");
+          return NULL;
+        }
+        self->n_trees = static_cast<int>(v);
+      } else {
+        self->n_trees = -1;
+      }
+    } else if (std::strcmp(k, "n_jobs") == 0) {
+      // None → reset to default (-1 = all cores)
+      PyObject* v_obj = (value && value != Py_None) ? value : NULL;
+      if (v_obj) {
+        long v = PyLong_AsLong(v_obj);
+        if (v == -1 && PyErr_Occurred()) return NULL;
+        if (v == 0 || v < -1) {
+          PyErr_SetString(PyExc_ValueError,
+            "n_jobs must be a positive integer or -1 (all cores)");
+          return NULL;
+        }
+        self->n_jobs = static_cast<int>(v);
+      } else {
+        self->n_jobs = -1;
+      }
+    } else if (std::strcmp(k, "l1_ratio") == 0) {
+      // None → reset to default (0.0)
+      if (!value || value == Py_None) {
+        self->l1_ratio = 0.0;
+      } else {
+        double v = PyFloat_AsDouble(value);
+        if (v == -1.0 && PyErr_Occurred()) {
+          PyErr_Clear();
+          long iv = PyLong_AsLong(value);
+          if (iv == -1 && PyErr_Occurred()) {
+            PyErr_SetString(PyExc_TypeError, "l1_ratio must be a float or int in [0.0, 1.0]");
+            return NULL;
+          }
+          v = static_cast<double>(iv);
+        }
+        if (v < 0.0 || v > 1.0) {
+          PyErr_SetString(PyExc_ValueError, "l1_ratio must be in [0.0, 1.0]");
+          return NULL;
+        }
+        self->l1_ratio = v;
+      }
     } else {
       PyErr_Format(PyExc_ValueError,
         "Invalid parameter %R for Annoy. Valid parameters are: "
-        "f, metric, n_neighbors, seed, random_state, verbose, prefault, schema_version, on_disk_path.",
+        "f, metric, n_neighbors, n_trees, n_jobs, l1_ratio, "
+        "seed, random_state, verbose, prefault, schema_version, on_disk_path.",
         key);
       return NULL;
     }
@@ -4875,20 +5486,24 @@ static PyObject* py_an_rebuild(
     }
   }
 
-  // Parse n_jobs.
-  int n_jobs = -1;
+  // Resolve n_jobs: per-call value wins; None → constructor default.
+  int n_jobs = self->n_jobs;
   if (n_jobs_obj != Py_None) {
     long v = PyLong_AsLong(n_jobs_obj);
     if (v == -1 && PyErr_Occurred()) return NULL;
     if (v == 0 || v < -1) {
       PyErr_SetString(PyExc_ValueError,
-        "n_jobs must be a positive integer or -1");
+        "n_jobs must be a positive integer or -1 (all cores)");
       return NULL;
     }
     n_jobs = (int)v;
+    self->n_jobs = n_jobs;
   }
 
-  // Parse n_trees (optional). None => reuse old tree count only if built.
+  // Resolve n_trees: per-call value wins; None → prefer source tree count
+  // (if the source was already built), then fall back to constructor default.
+  //   n_trees = n_trees if n_trees is not None
+  //           else (old_trees if old_trees > 0 else self.n_trees)
   bool have_user_n_trees = false;
   int n_trees = 0;
   if (n_trees_obj != Py_None) {
@@ -4896,11 +5511,12 @@ static PyObject* py_an_rebuild(
     if (v == -1 && PyErr_Occurred()) return NULL;
     if (v == 0 || v < -1) {
       PyErr_SetString(PyExc_ValueError,
-        "n_trees must be a positive integer or -1");
+        "n_trees must be a positive integer or -1 (auto)");
       return NULL;
     }
     have_user_n_trees = true;
     n_trees = (int)v;
+    self->n_trees = n_trees;
   }
 
   // Create constructor kwargs from get_params(deep=False).
@@ -4974,7 +5590,7 @@ static PyObject* py_an_rebuild(
     return NULL;
   }
 
-  const int32_t n_items = self->ptr->get_n_items();
+  const IndexDtype n_items = self->ptr->get_n_items();  // IndexDtype: tracks central alias
   const int old_trees = self->ptr->get_n_trees();
 
   // Copy items deterministically by item id (0..n_items-1).
@@ -4984,7 +5600,9 @@ static PyObject* py_an_rebuild(
   ScopedError error;
   bool ok = true;
   Py_BEGIN_ALLOW_THREADS;
-  for (int32_t i = 0; i < n_items; ++i) {
+  // Loop variable is IndexDtype to match n_items type and avoid signed/unsigned
+  // comparison warnings when IndexDtype = uint64_t.
+  for (IndexDtype i = 0; i < n_items; ++i) {
     self->ptr->get_item(i, embedding.data());
     if (!out->ptr->add_item(i, embedding.data(), &error.err)) {
       ok = false;
@@ -5028,8 +5646,10 @@ static PyObject* py_an_rebuild(
   }
 
   // Rebuild forest deterministically.
-  // - If n_trees was provided, honor it.
-  // - Else, reuse the source's tree count only if the source was already built.
+  // Priority for trees_to_build (descending):
+  //   1. Explicit n_trees arg passed to rebuild()
+  //   2. Source's current tree count (if source was already built)
+  //   3. Constructor default self->n_trees  (-1 = auto)
   int trees_to_build = 0;
   bool do_build = false;
   if (have_user_n_trees) {
@@ -5037,6 +5657,10 @@ static PyObject* py_an_rebuild(
     do_build = true;
   } else if (old_trees > 0) {
     trees_to_build = old_trees;
+    do_build = true;
+  } else if (self->n_trees != 0) {
+    // self->n_trees == -1 (auto) or a user-specified positive value.
+    trees_to_build = self->n_trees;
     do_build = true;
   }
 
@@ -5361,29 +5985,45 @@ static PyObject* py_an_repr_html(
 // add_item: accepts a 1D sequence (embedding) and supports lazy f/metric/init.
 // Public Python signature (kw names kept for backward compatibility):
 //   add_item(i: int, vector: Sequence[float]) -> Annoy
+//
+// Developer notes:
+//   - ANNOY_IDX_FMT is "K" for uint64_t IndexDtype (unsigned long long, 64-bit
+//     on all platforms including MSVC/Windows). Using "i" (int) would reject
+//     valid ids > INT32_MAX. Using "k" (unsigned long) is only 32 bits on
+//     Windows and would silently truncate ids > UINT32_MAX on that platform.
+//   - AnnoyIdxFromPyRaw returns unsigned long long; we cast to IndexDtype after
+//     an explicit upper-bound check to stay in [0, ANNOY_IDX_MAX].
 static PyObject* py_an_add_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int indice_tmp = 0;       // Parsed from Python (C int)
+  // ANNOY_IDX_PARSE_TMP is unsigned long long when IndexDtype = uint64_t,
+  // unsigned long when IndexDtype = uint32_t. Both are wide enough for the
+  // respective ANNOY_IDX_FMT format code.
+  ANNOY_IDX_PARSE_TMP indice_tmp = 0;
   PyObject* embedding_obj;  // Python sequence of floats
 
-  // NOTE: kwlist uses "i" and "vector" for backward compatibility,
-  // but conceptually they are (indice, embedding).
+  // kwlist keyword names kept for backward compatibility with callers that
+  // use keyword-argument syntax: add_item(i=0, vector=[...]).
   static const char* kwlist[] = {"i", "vector", NULL};
+  // ANNOY_IDX_FMT expands to "K" (uint64_t) or "k" (uint32_t) to match
+  // ANNOY_IDX_PARSE_TMP. See the CENTRALIZED INDEX DTYPE DEFINITIONS block.
   if (!PyArg_ParseTupleAndKeywords(
-      args, kwargs, "iO", (char**)kwlist, &indice_tmp, &embedding_obj)) {
+      args, kwargs, ANNOY_IDX_FMT "O", (char**)kwlist, &indice_tmp, &embedding_obj)) {
     return NULL;
   }
 
-  // Convert to int32_t (Annoy item id). Use an explicit bound check before casting.
-  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+  // Upper-bound check: ANNOY_IDX_MAX = std::numeric_limits<IndexDtype>::max().
+  // Lower-bound: not needed — ANNOY_IDX_PARSE_TMP is unsigned; PyArg with "K"
+  // or "k" raises OverflowError for negative Python integers before we get here.
+  if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
-  const int32_t indice = static_cast<int32_t>(indice_tmp);
+  const IndexDtype indice = static_cast<IndexDtype>(indice_tmp);
 
-  // During build stage: allow gaps, but forbid negative ids.
+  // During build stage: allow gaps, but forbid out-of-range ids.
   if (!check_constraints(self, indice, /*building=*/true))
     return NULL;
 
@@ -5418,8 +6058,13 @@ static PyObject* py_an_add_item(
     return NULL;
   }
 
+  // Build the forest (release GIL for heavy work).
   ScopedError error;
-  if (!self->ptr->add_item(indice, embedding.data(), &error.err)) {
+  bool ok = false;
+  Py_BEGIN_ALLOW_THREADS;
+  ok = self->ptr->add_item(indice, embedding.data(), &error.err);
+  Py_END_ALLOW_THREADS;
+  if (!ok) {
     PyErr_SetString(PyExc_RuntimeError,
       error.err ? error.err : (char*)"add_item failed");
     return NULL;
@@ -5470,25 +6115,50 @@ static PyObject* py_an_build(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
-  int n_trees;
-  int n_jobs = -1;  // -1 → "auto" in core Annoy
+  // Both parameters are optional.  None (or omitted) inherits the
+  // constructor default stored on self:
+  //   n_trees = n_trees if n_trees is not None else self.n_trees
+  //   n_jobs  = n_jobs  if n_jobs  is not None else self.n_jobs
+  PyObject* n_trees_obj = Py_None;
+  PyObject* n_jobs_obj  = Py_None;
 
   static const char* kwlist[] = {"n_trees", "n_jobs", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "i|i", (char**)kwlist, &n_trees, &n_jobs)) {
+    args, kwargs, "|OO", (char**)kwlist, &n_trees_obj, &n_jobs_obj)) {
     return NULL;
   }
 
   if (!self->ptr) {
-    PyErr_SetString(PyExc_RuntimeError,
-      "Annoy index is not initialized");
+    PyErr_SetString(PyExc_RuntimeError, "Annoy index is not initialized");
     return NULL;
   }
 
-  if (n_trees <= 0 && n_trees != -1) {
-    PyErr_SetString(PyExc_ValueError,
-      "n_trees must be a positive integer or -1 handle internally");
-    return NULL;
+  // Resolve n_trees: per-call value wins; None → constructor default.
+  int n_trees = self->n_trees;  // default: -1 (auto) unless overridden in __init__
+  if (n_trees_obj && n_trees_obj != Py_None) {
+    long v = PyLong_AsLong(n_trees_obj);
+    if (v == -1 && PyErr_Occurred()) return NULL;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_trees must be a positive integer or -1 (auto)");
+      return NULL;
+    }
+    n_trees = static_cast<int>(v);
+    self->n_trees = n_trees;
+  }
+
+  // Resolve n_jobs: per-call value wins; None → constructor default.
+  int n_jobs = self->n_jobs;    // default: -1 (all cores) unless overridden in __init__
+  if (n_jobs_obj && n_jobs_obj != Py_None) {
+    long v = PyLong_AsLong(n_jobs_obj);
+    if (v == -1 && PyErr_Occurred()) return NULL;
+    if (v == 0 || v < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "n_jobs must be a positive integer or -1 (all cores)");
+      return NULL;
+    }
+    n_jobs = static_cast<int>(v);
+    self->n_jobs = n_jobs;
   }
 
   bool ok = false;
@@ -5504,7 +6174,7 @@ static PyObject* py_an_build(
     return NULL;
   }
   // Chaining: a.build(...).save(...).info()
-  PY_RETURN_SELF; // Py_RETURN_TRUE;
+  PY_RETURN_SELF;
 }
 
 // ------------------------------------------------------------------
@@ -5548,9 +6218,11 @@ static PyObject* py_an_fit(
   PyObject* y = (nargs >= 2) ? PyTuple_GET_ITEM(args, 1) : Py_None;  // borrowed
   PyObject* y_map = Py_None;  // borrowed
 
-  // Defaults
-  int n_trees = 10;
-  int n_jobs  = -1;  // -1 => "auto" in Annoy core
+  // Defaults: inherit constructor-level build parameters.
+  // None (or omitted) from the caller → fall back to self->n_trees / self->n_jobs.
+  // This mirrors: n_trees = n_trees if n_trees is not None else self.n_trees
+  int n_trees = self->n_trees;  // -1 (auto) unless set in __init__
+  int n_jobs  = self->n_jobs;   // -1 (all cores) unless set in __init__
   PyObject* reset_obj = Py_True;
   PyObject* start_index_obj = Py_None;
   PyObject* missing_value_obj = Py_None;
@@ -5611,20 +6283,21 @@ static PyObject* py_an_fit(
       if (std::strcmp(k, "X") == 0 || std::strcmp(k, "y") == 0 || std::strcmp(k, "y_map") == 0) {
         continue;  // handled above
       } else if (std::strcmp(k, "n_trees") == 0) {
-        // None means "use the default" (handy when parameters come from config files).
+        // None (or omitted) → keep self->n_trees (constructor default).
         if (value == Py_None) {
           continue;
         }
         long v = PyLong_AsLong(value);
         if (v == -1 && PyErr_Occurred()) return NULL;
-        // Align with build(): allow -1 (auto) or positive integers.
         if (v == 0 || v < -1) {
           PyErr_SetString(PyExc_ValueError,
-            "n_trees must be a positive integer or -1");
+            "n_trees must be a positive integer or -1 (auto)");
           return NULL;
         }
         n_trees = (int)v;
+        self->n_trees = n_trees;
       } else if (std::strcmp(k, "n_jobs") == 0) {
+        // None (or omitted) → keep self->n_jobs (constructor default).
         if (value == Py_None) {
           continue;
         }
@@ -5632,10 +6305,11 @@ static PyObject* py_an_fit(
         if (v == -1 && PyErr_Occurred()) return NULL;
         if (v == 0 || v < -1) {
           PyErr_SetString(PyExc_ValueError,
-            "n_jobs must be a positive integer or -1");
+            "n_jobs must be a positive integer or -1 (all cores)");
           return NULL;
         }
         n_jobs = (int)v;
+        self->n_jobs = n_jobs;
       } else if (std::strcmp(k, "reset") == 0) {
         if (value == Py_None) {
           continue;  // None => keep default
@@ -5867,17 +6541,19 @@ static PyObject* py_an_fit(
   }
 
   // Number of items before adding rows from X (used for y merging).
-  const int n_items_before = self->ptr ? self->ptr->get_n_items() : 0;
+  // n_items_before: IndexDtype matches get_n_items() return type.
+  const IndexDtype n_items_before = self->ptr ? self->ptr->get_n_items() : 0;
 
-  // Validate start_index + n_samples fits in int32 range.
-  if (start_index > (int64_t)INT32_MAX) {
+
+  // Validate start_index + n_samples fits in IndexDtype range [0, ANNOY_IDX_MAX].
+  if (start_index > (int64_t)ANNOY_IDX_MAX) {
     Py_DECREF(X_seq);
-    PyErr_SetString(PyExc_OverflowError, "start_index exceeds int32 range");
+    PyErr_SetString(PyExc_OverflowError, "start_index exceeds IndexDtype range");
     return NULL;
   }
-  if (start_index + (int64_t)n_samples - 1 > (int64_t)INT32_MAX) {
+  if (start_index + (int64_t)n_samples - 1 > (int64_t)ANNOY_IDX_MAX) {
     Py_DECREF(X_seq);
-    PyErr_SetString(PyExc_OverflowError, "Item ids exceed int32 range");
+    PyErr_SetString(PyExc_OverflowError, "Item ids exceed IndexDtype range");
     return NULL;
   }
 
@@ -5894,7 +6570,7 @@ static PyObject* py_an_fit(
       return NULL;  // exception already set
     }
 
-    const int32_t item_id = (int32_t)(start_index + (int64_t)i);
+    const IndexDtype item_id = static_cast<IndexDtype>(start_index + (int64_t)i);
 
     // Disallow adding after build (should be prevented earlier, but keep explicit).
     if (self->ptr->get_n_trees() > 0) {
@@ -5904,8 +6580,13 @@ static PyObject* py_an_fit(
       return NULL;
     }
 
+    // Build the forest (release GIL for heavy work).
     ScopedError error;
-    if (!self->ptr->add_item(item_id, embedding.data(), &error.err)) {
+    bool ok = false;
+    Py_BEGIN_ALLOW_THREADS;
+    ok = self->ptr->add_item(item_id, embedding.data(), &error.err);
+    Py_END_ALLOW_THREADS;
+    if (!ok) {
       Py_DECREF(X_seq);
       PyErr_SetString(PyExc_RuntimeError,
         error.err ? error.err : (char*)"add_item failed");
@@ -5959,8 +6640,8 @@ if (have_y || have_y_map) {
     PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
     if (!y_seq) { Py_DECREF(y_dict); return NULL; }
     for (Py_ssize_t i = 0; i < n_samples; ++i) {
-      const int32_t item_id = (int32_t)(start_index + (int64_t)i);
-      PyObject* key = PyLong_FromLong((long)item_id);
+      const IndexDtype item_id = static_cast<IndexDtype>(start_index + (int64_t)i);
+      PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
       if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
       PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
       if (PyDict_SetItem(y_dict, key, label) < 0) {
@@ -6079,7 +6760,7 @@ static PyObject* py_an_get_feature_names_out(
 // Lookup helper for  metadata (optional). Always returns a new reference.
 static PyObject* annoy_lookup_y(
   py_annoy* self,
-  int32_t item_id,
+  IndexDtype item_id,  // IndexDtype: tracks central alias
   PyObject* y_fill_value) {
   if (!y_fill_value) y_fill_value = Py_None;
 
@@ -6095,7 +6776,7 @@ static PyObject* annoy_lookup_y(
       return NULL;
     }
 #if PY_VERSION_HEX >= 0x030A0000
-    PyObject* key = PyLong_FromLong((long)item_id);
+    PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
     if (!key) return NULL;
     PyObject* v = PyDict_GetItemWithError(self->y_map, key);  // borrowed
     Py_DECREF(key);
@@ -6104,7 +6785,7 @@ static PyObject* annoy_lookup_y(
     Py_INCREF(y_fill_value);
     return y_fill_value;
 #else
-    PyObject* key = PyLong_FromLong((long)item_id);
+    PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
     if (!key) return NULL;
     PyObject* v = PyDict_GetItem(self->y_map, key);  // borrowed
     Py_DECREF(key);
@@ -6122,7 +6803,7 @@ static PyObject* annoy_lookup_y(
   // Dict mapping: {item_id -> label} (legacy)
   if (PyDict_Check(self->y)) {
 #if PY_VERSION_HEX >= 0x030A0000
-    PyObject* key = PyLong_FromLong((long)item_id);
+    PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
     if (!key) return NULL;
     PyObject* v = PyDict_GetItemWithError(self->y, key);  // borrowed
     Py_DECREF(key);
@@ -6134,7 +6815,7 @@ static PyObject* annoy_lookup_y(
     Py_INCREF(y_fill_value);
     return y_fill_value;
 #else
-    PyObject* key = PyLong_FromLong((long)item_id);
+    PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
     if (!key) return NULL;
     PyObject* v = PyDict_GetItem(self->y, key);  // borrowed (no error reporting)
     Py_DECREF(key);
@@ -6146,16 +6827,23 @@ static PyObject* annoy_lookup_y(
     return y_fill_value;
 #endif
   }
-
   // Sequence: index by item_id.
   Py_ssize_t n = PySequence_Size(self->y);
-  if (n < 0) return NULL;
-  if (item_id < 0 || (Py_ssize_t)item_id >= n) {
-    Py_INCREF(y_fill_value);
-    return y_fill_value;
+  // If item_id cannot fit into Py_ssize_t,
+  // it is necessarily out of bounds.
+  if (item_id > static_cast<uint32_t>(PY_SSIZE_T_MAX)) {
+      Py_INCREF(y_fill_value);
+      return y_fill_value;
   }
-  PyObject* v = PySequence_GetItem(self->y, (Py_ssize_t)item_id);  // new ref
-  if (!v) return NULL;
+  Py_ssize_t idx = static_cast<Py_ssize_t>(item_id);
+  if (idx >= n) {
+      Py_INCREF(y_fill_value);
+      return y_fill_value;
+  }
+  PyObject* v = PySequence_GetItem(self->y, idx);  // new ref
+  if (!v) {
+      return NULL;
+  }
   return v;
 }
 
@@ -6327,7 +7015,7 @@ static PyObject* py_an_transform(
       return NULL;
     }
 
-    std::unordered_map<int32_t, char> exclude_map;
+    std::unordered_map<IndexDtype, char> exclude_map;  // IndexDtype: tracks central alias
     if (exclude_items_obj && exclude_items_obj != Py_None) {
       PyObject* ex_seq = PySequence_Fast(exclude_items_obj,
         "exclude_items must be a sequence of ints or None");
@@ -6342,15 +7030,15 @@ static PyObject* py_an_transform(
             "exclude_items must contain integers");
           return NULL;
         }
-        long long kid = PyLong_AsLongLong(o);
-        if (kid == -1 && PyErr_Occurred()) { Py_DECREF(ex_seq); return NULL; }
-        if (kid < 0 || kid > (long long)INT32_MAX) {
+        unsigned long long kid_raw = AnnoyIdxFromPyRaw(o);
+        if (kid_raw == (unsigned long long)-1 && PyErr_Occurred()) { Py_DECREF(ex_seq); return NULL; }
+        if (kid_raw > (unsigned long long)ANNOY_IDX_MAX) {
           Py_DECREF(ex_seq);
           PyErr_SetString(PyExc_ValueError,
-            "exclude_items id out of int32 range");
+            "exclude_items id out of IndexDtype range [0, 2^N-1]");
           return NULL;
         }
-        exclude_map[(int32_t)kid] = (char)1;
+        exclude_map[static_cast<IndexDtype>(kid_raw)] = (char)1;
       }
       Py_DECREF(ex_seq);
     }
@@ -6389,11 +7077,11 @@ static PyObject* py_an_transform(
   query.reserve((size_t)self->f);
 
   // Raw results from Annoy (may include excluded ids).
-  std::vector<int32_t> result;
+  std::vector<IndexDtype> result;  // IndexDtype: tracks central alias
   std::vector<float> distances;
 
   // Filtered results after applying exclude_self / exclude_items (always length n_neighbors).
-  std::vector<int32_t> filtered;
+  std::vector<IndexDtype> filtered;  // IndexDtype: tracks central alias
   std::vector<float> filtered_dists;
   filtered.reserve(n_neighbors);
   filtered_dists.reserve(n_neighbors);
@@ -6407,7 +7095,7 @@ static PyObject* py_an_transform(
   for (Py_ssize_t i = 0; i < n_queries; ++i) {
     result.clear();
     distances.clear();
-    int32_t result_query_item_id = -1;
+    IndexDtype result_query_item_id = static_cast<IndexDtype>(-1);  // sentinel
 
     if (by_item) {
       PyObject* obj = PySequence_Fast_GET_ITEM(X_seq, i);  // borrowed
@@ -6415,14 +7103,14 @@ static PyObject* py_an_transform(
         PyErr_SetString(PyExc_TypeError, "X must contain integers when input_type='item'");
         goto fail;
       }
-      long long kid = PyLong_AsLongLong(obj);
-      if (kid == -1 && PyErr_Occurred()) goto fail;
-      if (kid < 0 || kid > (long long)INT32_MAX) {
-        PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+      unsigned long long kid_raw = AnnoyIdxFromPyRaw(obj);
+      if (kid_raw == (unsigned long long)-1 && PyErr_Occurred()) goto fail;
+      if (kid_raw > (unsigned long long)ANNOY_IDX_MAX) {
+        PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
         goto fail;
       }
-      const int32_t item_id = (int32_t)kid;
-      result_query_item_id = item_id;
+      const IndexDtype item_id = static_cast<IndexDtype>(kid_raw);
+      result_query_item_id = item_id;  // store for exclude_self check
       if (!check_constraints(self, item_id, /*building=*/false)) goto fail;
 
       size_t k_request = n_neighbors + exclude_map.size() + (exclude_self ? (size_t)1 : (size_t)0);
@@ -6468,10 +7156,10 @@ static PyObject* py_an_transform(
     filtered_dists.clear();
 
     // Query-specific self exclusion applies only to input_type='item'.
-    const int32_t qid_self = (by_item ? result_query_item_id : -1);
+    const IndexDtype qid_self = (by_item ? result_query_item_id : static_cast<IndexDtype>(-1));
 
     for (size_t j = 0; j < result.size(); ++j) {
-      const int32_t nid = result[j];
+      const uint32_t nid = result[j];
       if (exclude_self && by_item && nid == qid_self) continue;
       if (!exclude_map.empty() && exclude_map.find(nid) != exclude_map.end()) continue;
 
@@ -6514,7 +7202,7 @@ static PyObject* py_an_transform(
     }
 
     for (Py_ssize_t j = 0; j < (Py_ssize_t)result.size(); ++j) {
-      const int32_t nid = result[(size_t)j];
+      const uint32_t nid = result[(size_t)j];
 
       if (out_vector) {
         self->ptr->get_item(nid, neighbor_vec.data());
@@ -6968,17 +7656,31 @@ static PyObject* py_an_unload(
 //  Nearest neighbors → Python conversion
 // ======================================================================
 
-// Build Python (indices, distances) from C++ vectors.
+// get_nns_to_python
+// ─────────────────────────────────────────────────────────────────────────
+// Build Python (indices, distances) from C++ result vectors.
 //
-// If include_distances == 0, returns:
-//   list[int]
+// Parameters
+// ----------
+// indices          : vector<IndexDtype>  item ids returned by Annoy query
+// distances        : vector<DataDtype>   corresponding distances (may be empty)
+// include_distances: int                 if non-zero, also pack distances
 //
-// If include_distances != 0, returns:
-//   (list[int], list[float])
+// Returns
+// -------
+// PyObject*
+//   list[int]  if include_distances == 0
+//   (list[int], list[float])  if include_distances != 0
+//
+// Developer notes:
+//   - AnnoyIdxToPy(val) converts IndexDtype → PyObject* using the correct
+//     PyLong_FromUnsigned* variant for the current IndexDtype width.
+//   - Using AnnoyIdxToPy instead of PyLong_FromLong prevents silent truncation
+//     when IndexDtype = uint64_t and item ids exceed INT32_MAX / INT64_MAX.
 static PyObject* get_nns_to_python(
-  const vector<int32_t>& indices,
-  const vector<float>&   distances,
-  int                    include_distances) {
+  const vector<IndexDtype>& indices,
+  const vector<DataDtype>&  distances,
+  int                       include_distances) {
 
   PyObject* py_indices   = NULL;
   PyObject* py_distances = NULL;
@@ -7005,8 +7707,10 @@ static PyObject* get_nns_to_python(
     goto error;
   }
   for (Py_ssize_t i = 0; i < py_idx_sz; ++i) {
-    PyObject* v = PyLong_FromLong(
-      static_cast<long>(indices[static_cast<size_t>(i)]));
+    // AnnoyIdxToPy: converts IndexDtype → PyObject* using the correct
+    // PyLong_From* variant (UnsignedLongLong for uint64_t, UnsignedLong for
+    // uint32_t). Defined in the CENTRALIZED INDEX DTYPE DEFINITIONS block.
+    PyObject* v = AnnoyIdxToPy(indices[static_cast<size_t>(i)]);
     if (!v)
       goto error;
     PyList_SET_ITEM(py_indices, i, v); // Steals reference
@@ -7087,7 +7791,9 @@ static PyObject* py_an_get_nns_by_item(
   PyObject*  args,
   PyObject*  kwargs) {
 
-  int indice_tmp = 0;
+  // ANNOY_IDX_PARSE_TMP is unsigned long long (uint64_t) or unsigned long (uint32_t)
+  // depending on IndexDtype. See CENTRALIZED INDEX DTYPE DEFINITIONS block.
+  ANNOY_IDX_PARSE_TMP indice_tmp = 0;
   Py_ssize_t n_neighbors_ssz = self ? static_cast<Py_ssize_t>(self->n_neighbors) : 5;
   int search_k          = -1;
   int include_distances = 0;
@@ -7100,10 +7806,12 @@ static PyObject* py_an_get_nns_by_item(
     NULL
   };
 
+  // ANNOY_IDX_FMT = "K" for uint64_t, "k" for uint32_t — portable on all
+  // platforms (including MSVC/Windows where unsigned long is only 32 bits).
   if (!PyArg_ParseTupleAndKeywords(
     args,
     kwargs,
-    "i|nip",
+    ANNOY_IDX_FMT "|nip",
     (char**)kwlist,
     &indice_tmp,
     &n_neighbors_ssz,
@@ -7112,12 +7820,14 @@ static PyObject* py_an_get_nns_by_item(
     return NULL;
   }
 
-  // Convert to int32_t item id with explicit bounds check.
-  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+  // Upper-bound check before casting to IndexDtype.
+  // Lower-bound: not needed — ANNOY_IDX_PARSE_TMP is unsigned; negative Python
+  // integers are rejected by PyArg with OverflowError before reaching here.
+  if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
-  const int32_t indice = static_cast<int32_t>(indice_tmp);
+  const IndexDtype indice = static_cast<IndexDtype>(indice_tmp);
 
   if (n_neighbors_ssz <= 0) {
     PyErr_SetString(PyExc_ValueError, "n_neighbors must be a positive integer");
@@ -7152,8 +7862,8 @@ static PyObject* py_an_get_nns_by_item(
   if (!check_constraints(self, indice, /*building=*/false))
     return NULL;
 
-  vector<int32_t> indice_result;
-  vector<float>   distance_result;
+  vector<IndexDtype> indice_result;  // IndexDtype tracks central alias
+  vector<DataDtype>  distance_result;
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_item(
@@ -7260,8 +7970,8 @@ static PyObject* py_an_get_nns_by_vector(
     return NULL;
   }
 
-  vector<int32_t> indice_result;
-  vector<float>   distance_result;
+  vector<IndexDtype> indice_result;  // IndexDtype tracks central alias
+  vector<DataDtype>  distance_result;
 
   Py_BEGIN_ALLOW_THREADS;
   self->ptr->get_nns_by_vector(
@@ -7281,35 +7991,37 @@ static PyObject* py_an_get_nns_by_vector(
 //  METH_VARARGS | METH_KEYWORDS in the method table.
 // ======================================================================
 
-// get_item_vector / get_index_vector → plain list[float]
+// get_item / get_index → plain list[float]
 //
 // Python-facing semantics:
 //
-//   get_item_vector(i: int) -> list[float]
+//   get_item(i: int) -> list[float]
 //
 // * i is the Annoy item id (“indice”) you passed to add_item()
 // * return is the stored embedding (length == f), as Python list[float]
 //
-static PyObject* py_an_get_item_vector(
+static PyObject* py_an_get_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
   (void)kwargs;
 
-  int indice_tmp = 0;
+  // ANNOY_IDX_PARSE_TMP / ANNOY_IDX_FMT: see CENTRALIZED INDEX DTYPE DEFINITIONS.
+  // Using "K" (unsigned long long) prevents silent truncation for ids > INT32_MAX.
+  ANNOY_IDX_PARSE_TMP indice_tmp = 0;
 
   static const char* kwlist[] = {"i", NULL};
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "i", (char**)kwlist, &indice_tmp)) {
+    args, kwargs, ANNOY_IDX_FMT, (char**)kwlist, &indice_tmp)) {
     return NULL;
   }
 
-  // Convert to int32_t (Annoy item id). Use explicit bounds check before casting.
-  if (indice_tmp < 0 || indice_tmp > (int)std::numeric_limits<int32_t>::max()) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+  // Upper-bound check; lower-bound guaranteed by unsigned parse type.
+  if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
-  const int32_t indice = static_cast<int32_t>(indice_tmp);
+  const IndexDtype indice = static_cast<IndexDtype>(indice_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -7363,24 +8075,27 @@ static PyObject* py_an_get_distance(
   PyObject*  kwargs) {
   // (void)kwargs;
 
-  int i_tmp = 0;
-  int j_tmp = 0;
+  // ANNOY_IDX_PARSE_TMP / ANNOY_IDX_FMT: see CENTRALIZED INDEX DTYPE DEFINITIONS.
+  ANNOY_IDX_PARSE_TMP i_tmp = 0;
+  ANNOY_IDX_PARSE_TMP j_tmp = 0;
 
   static const char* kwlist[] = {"i", "j", NULL};
 
+  // Two item-id arguments: format string is ANNOY_IDX_FMT repeated twice.
+  // "KK" (uint64_t) or "kk" (uint32_t). Portable on all ABIs.
   if (!PyArg_ParseTupleAndKeywords(
-    args, kwargs, "ii", (char**)kwlist, &i_tmp, &j_tmp)) {
+    args, kwargs, ANNOY_IDX_FMT ANNOY_IDX_FMT, (char**)kwlist, &i_tmp, &j_tmp)) {
     return NULL;
   }
 
-  // Convert to int32_t (Annoy item ids). Use explicit bounds checks before casting.
-  if (i_tmp < 0 || i_tmp > (int)std::numeric_limits<int32_t>::max() ||
-      j_tmp < 0 || j_tmp > (int)std::numeric_limits<int32_t>::max()) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of int32 range");
+  // Upper-bound checks; lower-bound guaranteed by unsigned parse types.
+  const ANNOY_IDX_PARSE_TMP idx_max = static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX);
+  if (i_tmp > idx_max || j_tmp > idx_max) {
+    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
-  const int32_t i = static_cast<int32_t>(i_tmp);
-  const int32_t j = static_cast<int32_t>(j_tmp);
+  const IndexDtype i = static_cast<IndexDtype>(i_tmp);
+  const IndexDtype j = static_cast<IndexDtype>(j_tmp);
 
   if (!self->ptr) {
     PyErr_SetString(PyExc_RuntimeError,
@@ -7421,9 +8136,11 @@ static PyObject* py_an_get_n_items(
     return NULL;
   }
 
-  const int32_t n = self->ptr->get_n_items();
-  // if (n < 0) n = 0;
-  return PyInt_FromLong(static_cast<long>(n));
+  // get_n_items returns IndexDtype to match the C++ interface.
+  // AnnoyIdxToPy converts IndexDtype → PyObject* using the correct
+  // PyLong_FromUnsigned* variant (see CENTRALIZED INDEX DTYPE DEFINITIONS).
+  const IndexDtype n = self->ptr->get_n_items();
+  return AnnoyIdxToPy(n);
 }
 
 // get_n_trees → number of built trees
@@ -7448,7 +8165,7 @@ static PyObject* py_an_get_n_trees(
     return NULL;
   }
 
-  const int32_t n = self->ptr->get_n_trees();
+  const uint32_t n = self->ptr->get_n_trees();
   // if (n < 0) n = 0;
   return PyInt_FromLong(static_cast<long>(n));
 }
@@ -8446,13 +9163,13 @@ static PyMethodDef py_annoy_methods[] = {
     (PyCFunction)py_an_build,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "build(n_trees, n_jobs=-1)\n"
+    "build(n_trees=-1, n_jobs=-1)\n"
     "\n"
     "Build a forest of random projection trees.\n"
     "\n"
     "Parameters\n"
     "----------\n"
-    "n_trees : int\n"
+    "n_trees : int or None, optional, default=None\n"
     "    Number of trees in the forest. Larger values typically improve recall\n"
     "    at the cost of slower build time and higher memory usage.\n"
     "\n"
@@ -8465,7 +9182,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    * Small datasets (<10k samples): 10-20 trees.\n"
     "    * Medium datasets (10k-1M samples): 20-50 trees.\n"
     "    * Large datasets (>1M samples): 50-100+ trees.\n"
-    "n_jobs : int, optional, default=-1\n"
+    "n_jobs : int or None, optional, default=None\n"
     "    Number of threads to use while building. ``-1`` means \"auto\" (use\n"
     "    the implementation's default, typically all available CPU cores).\n"
     "\n"
@@ -8744,11 +9461,11 @@ static PyMethodDef py_annoy_methods[] = {
   },
 
   {
-    "get_item_vector",
-    (PyCFunction)py_an_get_item_vector,
+    "get_item",
+    (PyCFunction)py_an_get_item,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "get_item_vector(i) -> list[float]\n"
+    "get_item(i) -> list[float]\n"
     "\n"
     "Return the stored embedding vector for a given item id.\n"
     "\n"
@@ -9156,7 +9873,7 @@ static PyMethodDef py_annoy_methods[] = {
     "    Safety: the source object's on_disk_path is never carried over implicitly.\n"
     "    If on_disk_path is provided and is string-equal to the source's configured\n"
     "    path, it is ignored to avoid accidental overwrite/truncation hazards.\n"
-    "n_trees : int or None, optional\n"
+    "n_trees : int or None, optional, default=None\n"
     "    If provided, build the new index with this number of trees (or -1 for\n"
     "    Annoy's internal auto mode). If None, reuse the source's tree count only\n"
     "    when the source index is already built; otherwise do not build.\n"
@@ -10122,6 +10839,14 @@ static int annoy_append_param_row(std::string& html, const char* key, PyObject* 
   Py_DECREF(v);
   return 0;
 }
+// C/C++ type	   Python constructor
+// long	         PyLong_FromLong
+// long long	   PyLong_FromLongLong
+// uint64_t	     PyLong_FromUnsignedLongLong
+// double	       PyFloat_FromDouble
+static int annoy_append_param_double(std::string& html, const char* key, double x) {
+  return annoy_append_param_row(html, key, PyFloat_FromDouble(x));
+}
 
 static int annoy_append_param_long(std::string& html, const char* key, long x) {
   return annoy_append_param_row(html, key, PyLong_FromLong(x));
@@ -10339,6 +11064,9 @@ static PyObject* py_an_repr_html(PyObject* obj, PyObject* Py_UNUSED(ignored)) {
     }
   }
 
+  // n_trees
+  if (annoy_append_param_long(html, "n_trees", (long)self->n_trees) < -1) goto fail;
+
   // n_neighbors
   if (annoy_append_param_long(html, "n_neighbors", (long)self->n_neighbors) < 0) goto fail;
 
@@ -10357,6 +11085,12 @@ static PyObject* py_an_repr_html(PyObject* obj, PyObject* Py_UNUSED(ignored)) {
                                      (long)self->pending_verbose) < 0) goto fail;
 
   if (annoy_append_param_long(html, "schema_version", (long)self->schema_version) < 0) goto fail;
+
+  // n_jobs
+  if (annoy_append_param_long(html, "n_jobs", (long)self->n_jobs) < -99) goto fail;
+
+  // l1_ratio
+  if (annoy_append_param_double(html, "l1_ratio", (double)self->l1_ratio) < 0) goto fail;
 
   html.append("</tbody></table>");
   html.append("</details>");  // parameters details
@@ -10399,14 +11133,23 @@ fail:
 // --------------------- Sequence protocol begin ---------------------
 
 // __len__(self) → number of items in the index
+// Annoy uses uint32_t for item ids.
+// Theoretical maximum: ~4.29 billion items.
+// On 32-bit Python, __len__ cannot represent values above ~2.1 billion.
+// So this is a real theoretical overflow risk, even if practically rare.
 static Py_ssize_t py_an_len(PyObject* obj) {
   py_annoy* self = reinterpret_cast<py_annoy*>(obj);
-  if (!self->ptr)
+  if (!self->ptr) {
     return 0;
-
-  int32_t n = self->ptr->get_n_items();
-  if (n < 0)
-    n = 0;  // defensive
+  }
+  const uint32_t n = self->ptr->get_n_items();
+  if (n > static_cast<uint32_t>(PY_SSIZE_T_MAX)) {
+    PyErr_SetString(
+      PyExc_OverflowError,
+      "__len__ exceeds Py_ssize_t range on this platform"
+    );
+    return -1;
+  }
   return static_cast<Py_ssize_t>(n);
 }
 

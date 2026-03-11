@@ -23,12 +23,52 @@ import numpy as np
 import random; random.seed(0)
 from pprint import pprint
 
+import struct; print(struct.calcsize('P')*8)
+
+# %%
+
+from scikitplot.annoy._annoy import Index  # cython Total: 160 concrete index-data types
+from scikitplot.annoy import AnnoyIndex  # Cpp 1 concrete index-data type (uint64 index float32 data)
+
+# 32 bit int index
+i = Index(10, "angular")
+i.load(f"./test.tree")
+# This might change in the future if we change the search algorithm, but in that case let's update the test
+result1 = i.get_nns_by_item(0, 10)
+
+# 64 bit uint index
+j = AnnoyIndex(10, "angular")
+for idx in range(i.get_n_items()):
+    j.add_item(idx, i.get_item(idx))
+j.build(10)
+j.save("test64.tree")
+result2 = i.get_nns_by_item(0, 10)
+
+i = AnnoyIndex(10, "angular")
+i.load(f"./test64.tree")
+# This might change in the future if we change the search algorithm, but in that case let's update the test
+result3 = i.get_nns_by_item(0, 10)
+
+result1, result2, result3
+
+# %%
+
 # from annoy import Annoy, AnnoyIndex
 # from scikitplot.cexternals._annoy import Annoy, AnnoyIndex
 # from scikitplot.annoy import Annoy, AnnoyIndex, Index
-from scikitplot.annoy._annoy import Index
+from scikitplot.annoy._annoy import Index, AnnoyIndex
 
 print(Index.__doc__)
+
+# %%
+
+import sys
+import scikitplot
+
+# spotify/annoy Backward compatibility helper
+sys.modules["annoy"] = scikitplot.annoy._annoy  # now `import annoy` will resolve to your module
+
+import annoy; print(annoy.AnnoyIndex.__doc__)
 
 # %%
 

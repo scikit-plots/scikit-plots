@@ -243,7 +243,7 @@ public:
     return s.pushResults(L);
   }
 
-  static int get_item_vector(lua_State* L) {
+  static int get_item(lua_State* L) {
     Impl* self = getAnnoy(L, 1);
     int item = getItemIndex(L, 2, self->get_n_items());
     std::vector<AnnoyT> _vec(self->get_f());
@@ -286,7 +286,7 @@ public:
       {"unload", &ThisClass::unload},
       {"get_nns_by_item", &ThisClass::get_nns_by_item},
       {"get_nns_by_vector", &ThisClass::get_nns_by_vector},
-      {"get_item_vector", &ThisClass::get_item_vector},
+      {"get_item", &ThisClass::get_item},
       {"get_distance", &ThisClass::get_distance},
       {"get_n_items", &ThisClass::get_n_items},
       {"on_disk_build", &ThisClass::on_disk_build},

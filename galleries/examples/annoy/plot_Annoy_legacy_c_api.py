@@ -25,6 +25,32 @@ print(AnnoyIndex.__doc__)
 
 # %%
 
+from scikitplot.annoy._annoy import Index  # cython Total: 160 concrete index-data types
+from scikitplot.annoy import AnnoyIndex  # Cpp 1 concrete index-data type (uint64 index float32 data)
+
+# 32 bit int index
+i = Index(10, "angular")
+i.load(f"./test.tree")
+# This might change in the future if we change the search algorithm, but in that case let's update the test
+result1 = i.get_nns_by_item(0, 10)
+
+# 64 bit uint index
+j = AnnoyIndex(10, "angular")
+for idx in range(i.get_n_items()):
+    j.add_item(idx, i.get_item(idx))
+j.build(10)
+j.save("test64.tree")
+result2 = i.get_nns_by_item(0, 10)
+
+i = AnnoyIndex(10, "angular")
+i.load(f"./test64.tree")
+# This might change in the future if we change the search algorithm, but in that case let's update the test
+result3 = i.get_nns_by_item(0, 10)
+
+result1, result2, result3
+
+# %%
+
 import sys
 
 # TODO: change this import to wherever your modified AnnoyIndex lives
@@ -32,11 +58,12 @@ import sys
 import scikitplot.cexternals._annoy as annoy
 # from scikitplot import annoy
 
+# spotify/annoy Backward compatibility helper
 sys.modules["annoy"] = annoy  # now `import annoy` will resolve to your module
 
 import annoy
 
-print(annoy.__doc__)
+print(annoy.AnnoyIndex.__doc__)
 
 # %%
 
@@ -478,11 +505,11 @@ a.info(), a.get_n_items(), a.get_n_trees()
 
 # %%
 
-np.array_equal(a.get_item_vector(0), idx2.get_item_vector(0))
+np.array_equal(a.get_item(0), idx2.get_item(0))
 
 # %%
 
-np.array_equal(a.get_item_vector(0), idx.get_item_vector(0))
+np.array_equal(a.get_item(0), idx.get_item(0))
 
 # %%
 
@@ -521,7 +548,7 @@ idx.info()
 
 # %%
 
-idx.get_nns_by_item(0, 10), len(idx.get_item_vector(0))
+idx.get_nns_by_item(0, 10), len(idx.get_item(0))
 
 # %%
 

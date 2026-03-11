@@ -16,5 +16,8 @@ from __future__ import annotations
 from . import annoylib
 from .annoylib import *  # noqa: F403
 
-__all__ = []
+# spotify/annoy Backward compatibility helper
+AnnoyIndex = Index
+
+__all__ = ["AnnoyIndex"]
 __all__ += annoylib.__all__

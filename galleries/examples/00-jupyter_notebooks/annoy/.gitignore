@@ -15,6 +15,9 @@ catboost_info/
 # =========================
 # ANN / index artifacts
 # =========================
+# 32 bit int indexing testing
+# < v2
+!test.tree
 *.annoy
 *.ann
 *.tree

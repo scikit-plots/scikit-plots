@@ -26,8 +26,8 @@ Design Principles:
 
 Type System:
 
-* S (index type): int32_t, int64_t (item/node identifiers)
-* T (data type): float, double (embedding values)
+* S (index type): int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t
+* T (data type): float16_t, float, double, float128_t (embedding values)
 * Distance: {Angular, Euclidean, Manhattan, DotProduct} metric classes
 * InternalT: uint64_t (for HammingWrapper bit packing)
 * Random: Kiss64Random (RNG type)
@@ -35,16 +35,16 @@ Type System:
 
 Template Parameters:
 
-* index_types: List of (name, ctype, description) for S parameter
+* index_types: List of (name, ctype, max_item, description) for S parameter
 * data_types: List of (name, ctype, numpy_dtype, bits, description) for T parameter
 * annoy_metrics: List of (name, class, description) for Distance parameter
 * hamming_internal_types: List of (name, ctype, bits, description) for InternalT parameter
 
 Generated Typedefs:
 
-* AnnoyIndex types: 2 S × 2 T × 4 metrics = 16 types
-* HammingWrapper types: 2 S × 2 T × 1 InternalT = 4 types
-* Total: 20 concrete index types
+* AnnoyIndex types: 8 S × 4 T × 4 metrics = 128 types
+* HammingWrapper types: 8 S × 4 T × 1 InternalT = 32 types
+* Total: 160 concrete index types
 
 Notes
 -----
@@ -80,7 +80,8 @@ References:
     - https://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html#templates
 """
 
-from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t, uint8_t
+from libc.stdint cimport int8_t, int16_t, int32_t, int64_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string as cpp_string
 from libcpp.pair cimport pair as cpp_pair
@@ -120,6 +121,36 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
 
         @staticmethod
         uint64_t normalize_seed(uint64_t seed) nogil
+
+# ==============================================================================
+# Extended Floating-Point Types (global C++ namespace, defined before namespace Annoy)
+# ==============================================================================
+# These types are declared in annoylib.h in the GLOBAL namespace (not inside Annoy::).
+# They are only used as template type parameters — never manipulated directly in Cython.
+# All data flows through the double-precision widened bridge (_w methods).
+#
+# float16_t platform behaviour (transparent to Cython):
+#   ARM + __ARM_FP16_FORMAT_IEEE : typedef __fp16 float16_t  (native)
+#   x86 + __F16C__               : struct float16_t wrapping uint16_t with F16C intrinsics
+#   fallback                     : struct float16_t with portable IEEE-754 software conversion
+#
+# float128_t platform behaviour (transparent to Cython):
+#   GCC/Clang + __SIZEOF_FLOAT128__ : typedef __float128 float128_t (true 128-bit)
+#   MSVC / generic fallback         : typedef long double float128_t  (80-bit extended)
+
+cdef extern from "../../cexternals/_annoy/src/annoylib.h" nogil:
+
+    # Half-precision (16-bit) float — global namespace
+    # Platform: native __fp16 on ARM; F16C hardware or software IEEE-754 on x86
+    # Used only as AnnoyIndex<S, float16_t, ...> template argument.
+    cdef cppclass float16_t nogil:
+        pass
+
+    # Quadruple/extended-precision float — global namespace
+    # Platform: __float128 on GCC/Clang; long double (80-bit) on MSVC/fallback
+    # Used only as AnnoyIndex<S, float128_t, ...> template argument.
+    cdef cppclass float128_t nogil:
+        pass
 
 # ==============================================================================
 # Annoy Index Interface (Base Class)
@@ -394,20 +425,56 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 {{py:
 
 # Type configuration for template generation
+# ---------------------------------------------------------------------------
+# index_types — S parameter for AnnoyIndex<S, T, Distance, Random, Policy>
+#
+# All types are accessible via the int64_t widened bridge (_w methods).
+# Overflow constraint for unsigned types:
+#   uint64_t: the _w bridge uses int64_t, so item IDs > INT64_MAX (2^63-1) are
+#   not reachable via the _w API.  The Python layer validates this explicitly.
+# ---------------------------------------------------------------------------
 index_types = [
-    {'name': 'Int32', 'ctype': 'int32_t', 'description': '32-bit signed integer (max 2^31-1 items)'},
-    {'name': 'Int64', 'ctype': 'int64_t', 'description': '64-bit signed integer (max 2^63-1 items)'},
+    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 127,
+     'description': '8-bit signed integer (max 127 items)'},
+    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 32767,
+     'description': '16-bit signed integer (max 32767 items)'},
+    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2147483647,
+     'description': '32-bit signed integer (max 2^31-1 items)'},
+    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 9223372036854775807,
+     'description': '64-bit signed integer (max 2^63-1 items)'},
+    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 255,
+     'description': '8-bit unsigned integer (max 255 items)'},
+    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 65535,
+     'description': '16-bit unsigned integer (max 65535 items)'},
+    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 4294967295,
+     'description': '32-bit unsigned integer (max 4294967295 items)'},
+    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 9223372036854775807,
+     'description': '64-bit unsigned integer (bridge-limited to 2^63-1 items)'},
 ]
 
+# ---------------------------------------------------------------------------
+# data_types — T parameter for AnnoyIndex<S, T, Distance, Random, Policy>
+#
+# All types are accessed via the double widened bridge (_w methods).
+# float16_t: input/output via double (double→float16 narrowing); stored at 16-bit precision.
+# float128_t: input/output via double (no precision gain on input), stored + computed at
+#   128-bit (or long double) precision for better numerical stability internally.
+# ---------------------------------------------------------------------------
 data_types = [
-    {'name': 'Float', 'ctype': 'float', 'numpy_dtype': 'float32', 'bits': 32, 'description': 'Single precision (32-bit)'},
-    {'name': 'Double', 'ctype': 'double', 'numpy_dtype': 'float64', 'bits': 64, 'description': 'Double precision (64-bit)'},
+    {'name': 'Float16',  'ctype': 'float16_t',  'numpy_dtype': 'float16',  'bits': 16,
+     'description': 'Half precision (16-bit); input via double bridge'},
+    {'name': 'Float',    'ctype': 'float',       'numpy_dtype': 'float32',  'bits': 32,
+     'description': 'Single precision (32-bit)'},
+    {'name': 'Double',   'ctype': 'double',      'numpy_dtype': 'float64',  'bits': 64,
+     'description': 'Double precision (64-bit)'},
+    {'name': 'Float128', 'ctype': 'float128_t',  'numpy_dtype': 'float128', 'bits': 128,
+     'description': 'Quad/extended precision (128-bit GCC/Clang or long double fallback)'},
 ]
 
 annoy_metrics = [
-    {'name': 'Angular', 'class': 'Angular', 'description': 'Cosine similarity (1 - cos(θ))'},
-    {'name': 'Euclidean', 'class': 'Euclidean', 'description': 'L2 distance (Euclidean norm)'},
-    {'name': 'Manhattan', 'class': 'Manhattan', 'description': 'L1 distance (city-block)'},
+    {'name': 'Angular',    'class': 'Angular',    'description': 'Cosine similarity (1 - cos(θ))'},
+    {'name': 'Euclidean',  'class': 'Euclidean',  'description': 'L2 distance (Euclidean norm)'},
+    {'name': 'Manhattan',  'class': 'Manhattan',  'description': 'L1 distance (city-block)'},
     {'name': 'DotProduct', 'class': 'DotProduct', 'description': 'Negative dot product (for MIPS)'},
 ]
 

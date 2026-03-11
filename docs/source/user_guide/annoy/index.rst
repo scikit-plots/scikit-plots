@@ -72,6 +72,20 @@ This page documents the Annoy [1]_ user guide integration shipped with scikit-pl
 
             Index Inheritance <./annoy_index_inheritance_diagrams.rst>
 
+.. grid:: 1 1 2 2
+   :class-row: sf-fs-1
+   :gutter: 2
+
+   .. grid-item-card::
+      :shadow: none
+
+      **cython**
+      ^^^
+      .. toctree::
+         :maxdepth: 2
+
+         _annoy.rst
+
 Public Python API
 ----------------------------------------------------------------------
 
