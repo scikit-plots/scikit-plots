@@ -84,7 +84,7 @@ try:
     from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
-except:
+except ImportError:
     from ..externals._seaborn._base import VectorPlotter
     from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
     from ..externals._seaborn._docstrings import (
@@ -160,7 +160,7 @@ _param_docs = DocstringComponents.from_nested_components(
 # ==================================================================================== #
 
 
-def get_feature_infos() -> "dict[str, str]":  # noqa: UP037
+def get_feature_infos() -> dict[str, str]:
     """
     Return a comprehensive legend for decile table columns.
 
@@ -391,12 +391,12 @@ class _DecilePlotter(VectorPlotter):
     """
 
     # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
-    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    wide_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
         "hue": "@columns",
     }
-    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    flat_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
     }
@@ -536,50 +536,75 @@ class _DecilePlotter(VectorPlotter):
     def _prepare_subset(
         self,
         sub_data: pd.DataFrame,
-    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
         """
         Extract y_true (binary labels) and y_score (probabilities) arrays from a subset DataFrame.
 
-        - Expects that VectorPlotter has already standardized columns to "x" and "y"
-          in `sub_data` when `from_comp_data=True` is used in iter_data (this matches
-          the approach used in seaborn's VectorPlotter pattern).
-        - Enforces types: y_true -> int (0/1), y_score -> float.
+        Expects VectorPlotter to have standardised columns to ``"x"`` and ``"y"``
+        in ``sub_data`` (``from_comp_data=True``).
+
+        Enforced invariants:
+        - ``y_true`` cast to ``int``; must be binary in ``{0, 1}``.
+        - ``y_score`` cast to ``float``; must be in ``[0, 1]``.
+        - Both arrays must contain only finite values.
+        - ``weights``, when present, must be non-negative and finite.
+
+        Parameters
+        ----------
+        sub_data : pd.DataFrame
+            Subset produced by :meth:`VectorPlotter.iter_data`.
 
         Returns
         -------
-        y_true : ndarray of shape (n_samples,)
-        y_score : ndarray of shape (n_samples,)
-        weights : ndarray or None
+        y_true : ndarray of shape (n_samples,) or None
+        y_score : ndarray of shape (n_samples,) or None
+        weights : ndarray of shape (n_samples,) or None
+            ``None`` is returned for all three when the subset is empty.
         """
-        # Extract the data points from this sub set
-        # compute PR curve: y_true (x_col), y_score (y_col)
-        # Map seaborn-style x/y/hue to our data
-        # x_col, y_col = "x", "y"
-        # y_true = sub_data[x_col].astype(int)
-        # y_score = sub_data[y_col]
-
-        # Drop rows missing either true labels or predicted scores
-        # df.dropna(axis=1, how="all")  # Drop completely empty columns
-
-        # Drop rows missing either true labels or predicted scores
-        sub = sub_data.dropna(subset=["x", "y"])
+        # Drop rows missing either true labels or predicted scores.
+        required = ["x", "y"]
+        subset_cols = required + (["weights"] if "weights" in sub_data.columns else [])
+        sub = sub_data.dropna(subset=subset_cols)
         if sub.empty:
             return None, None, None
 
+        # --- y_true: must be integer binary labels ---
         try:
-            # Coerce true labels to integers array (0/1 for binary classification)
-            y_true = np.asarray(sub["x"], dtype=int)  # .astype(int)
+            y_true = np.asarray(sub["x"], dtype=int)
         except Exception as e:
             raise ValueError(f"Cannot convert x to integer labels: {e}") from e
 
-        # Scores must be float
+        # --- y_score: must be float probabilities in [0, 1] ---
         try:
-            y_score = np.asarray(sub["y"], dtype=float)  # .astype(float)
+            y_score = np.asarray(sub["y"], dtype=float)
         except Exception as e:
             raise ValueError(f"Cannot convert y to float scores: {e}") from e
 
-        # Extract weights if present
-        weights = sub["weights"].to_numpy() if "weights" in sub.columns else None
+        # --- weights: must be non-negative and finite ---
+        weights = None
+        if "weights" in sub.columns:
+            weights = sub["weights"].to_numpy(dtype=float)
+            if np.any(weights < 0):
+                raise ValueError("weights must be non-negative.")
+            if not np.isfinite(weights).all():
+                raise ValueError("weights contains NaN or infinite values.")
+
+        # --- Finite checks ---
+        if not np.isfinite(y_true).all():
+            raise ValueError("x (y_true) contains NaN or infinite values.")
+        if not np.isfinite(y_score).all():
+            raise ValueError("y (y_score) contains NaN or infinite values.")
+
+        # --- Binary label check ---
+        unique_true = np.unique(y_true)
+        if not np.isin(unique_true, [0, 1]).all():
+            raise ValueError(
+                f"x (y_true) must be binary in {{0, 1}}; got unique values: {unique_true}"
+            )
+
+        # --- Probability range check ---
+        if np.any((y_score < 0) | (y_score > 1)):
+            raise ValueError("y (y_score) must be in [0, 1] for decile computation.")
 
         return y_true, y_score, weights
 
@@ -589,7 +614,7 @@ class _DecilePlotter(VectorPlotter):
         y_score,
         n_deciles,
         **kws,
-    ) -> "pd.DataFrame | None":  # noqa: UP037
+    ) -> pd.DataFrame | None:
         # binary case (most common)
         # Defensive copy via DataFrame to use pandas utilities
         dt = pd.DataFrame(
@@ -672,6 +697,7 @@ class _DecilePlotter(VectorPlotter):
         # Direct decile quality metric
         # decile-wise response (per decile rate)
         agg["rate_resp"] = (agg["cnt_resp_true"] / agg["cnt_resp_total"]) * 100.0
+        agg["rate_resp_pct"] = agg["rate_resp"]  # alias kept for API consistency
         agg["rate_resp_wiz"] = (
             agg["cnt_resp_wiz_true"] / agg["cnt_resp_total"]
         ) * 100.0
@@ -679,28 +705,51 @@ class _DecilePlotter(VectorPlotter):
             agg["cnt_resp_true"].sum() / agg["cnt_resp_total"].sum()
         ) * 100.0
 
-        # cumulative columns and percentages: avoid division by zero
-        # cumulative gain/response as % of total responders in population
+        # cumulative columns and percentages: guard against division by zero
+        # When all labels are positive, total negatives == 0 → produce NaN and warn.
+        total_true = np.sum(agg["cnt_resp_true"])
+        total_false = np.sum(agg["cnt_resp_false"])
+        total_all = np.sum(agg["cnt_resp_total"])
+        total_rndm = np.sum(agg["cnt_resp_rndm_true"])
+        total_wiz = np.sum(agg["cnt_resp_wiz_true"])
+
+        if total_false == 0:
+            warnings.warn(
+                "Dataset contains no negative samples (cnt_resp_false = 0). "
+                "cum_resp_false_pct will be NaN.",
+                UserWarning,
+                stacklevel=3,
+            )
+        if total_true == 0:
+            warnings.warn(
+                "Dataset contains no positive samples (cnt_resp_true = 0). "
+                "cum_resp_true_pct and lift metrics will be NaN.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         agg["cum_resp_true"] = np.cumsum(agg["cnt_resp_true"])
         agg["cum_resp_true_pct"] = (
-            agg["cum_resp_true"] / np.sum(agg["cnt_resp_true"])
-        ) * 100.0
+            (agg["cum_resp_true"] / total_true) * 100.0 if total_true > 0 else np.nan
+        )
         agg["cum_resp_false"] = np.cumsum(agg["cnt_resp_false"])
         agg["cum_resp_false_pct"] = (
-            agg["cum_resp_false"] / np.sum(agg["cnt_resp_false"])
-        ) * 100.0
+            (agg["cum_resp_false"] / total_false) * 100.0 if total_false > 0 else np.nan
+        )
         agg["cum_resp_total"] = np.cumsum(agg["cnt_resp_total"])
         agg["cum_resp_total_pct"] = (
-            agg["cum_resp_total"] / np.sum(agg["cnt_resp_total"])
-        ) * 100.0
+            (agg["cum_resp_total"] / total_all) * 100.0 if total_all > 0 else np.nan
+        )
         agg["cum_resp_rndm_true"] = np.cumsum(agg["cnt_resp_rndm_true"])
         agg["cum_resp_rndm_true_pct"] = (
-            agg["cum_resp_rndm_true"] / np.sum(agg["cnt_resp_rndm_true"])
-        ) * 100.0
+            (agg["cum_resp_rndm_true"] / total_rndm) * 100.0
+            if total_rndm > 0
+            else np.nan
+        )
         agg["cum_resp_wiz_true"] = np.cumsum(agg["cnt_resp_wiz_true"])
         agg["cum_resp_wiz_true_pct"] = (
-            agg["cum_resp_wiz_true"] / np.sum(agg["cnt_resp_wiz_true"])
-        ) * 100.0
+            (agg["cum_resp_wiz_true"] / total_wiz) * 100.0 if total_wiz > 0 else np.nan
+        )
 
         # avoid division by zero in lift
         agg["cumulative_lift"] = agg["cum_resp_true_pct"] / agg["cum_resp_total_pct"]
@@ -1445,18 +1494,30 @@ class _DecilePlotter(VectorPlotter):
     # ------------------------
     def plot_decileplot(  # noqa: PLR0912
         self,
-        kind: "Literal['df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'decile_wise_gain', 'cumulative_response', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
+        kind: (
+            Literal[
+                "df",
+                "cumulative_lift",
+                "decile_wise_lift",
+                "cumulative_gain",
+                "decile_wise_gain",
+                "cumulative_response",
+                "ks_statistic",
+                "report",
+            ]
+            | None
+        ) = None,
         n_deciles: int = 10,
         fill=None,
         color=None,
         legend=None,
-        digits: "int | None" = None,  # noqa: UP037
+        digits: int | None = None,
         annot=None,
         fmt=".4g",
         annot_kws=None,
         verbose=True,
         **plot_kws,
-    ) -> "pd.DataFrame | None":  # noqa: UP037
+    ) -> pd.DataFrame | None:
         # -- Default keyword dicts
         # annot_kws = plot_kws.pop('annot_kws', {})
         annot_kws = {} if annot_kws is None else annot_kws.copy()
@@ -1600,13 +1661,25 @@ class _DecilePlotter(VectorPlotter):
 # Public API functions (wrappers)
 # -----------------------------------------------------------------------------
 def decileplot(  # noqa: D417
-    data: "pd.DataFrame | None" = None,  # noqa: UP037
+    data: pd.DataFrame | None = None,
     *,
     # Vector variables
-    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    kind: "Literal['df', 'cumulative_lift', 'decile_wise_lift', 'cumulative_gain', 'decile_wise_gain', 'cumulative_response', 'ks_statistic', 'report'] | None" = None,  # noqa: UP037
+    x: str | np.ndarray[np.generic] | pd.Series | None = None,
+    y: str | np.ndarray[np.generic] | pd.Series | None = None,
+    hue: str | np.ndarray[np.generic] | pd.Series | None = None,
+    kind: (
+        Literal[
+            "df",
+            "cumulative_lift",
+            "decile_wise_lift",
+            "cumulative_gain",
+            "decile_wise_gain",
+            "cumulative_response",
+            "ks_statistic",
+            "report",
+        ]
+        | None
+    ) = None,
     weights=None,
     n_deciles: int = 10,
     # Hue mapping parameters
@@ -1629,11 +1702,11 @@ def decileplot(  # noqa: D417
     fmt="",
     annot_kws=None,
     # computation parameters
-    digits: "int | None" = None,  # noqa: UP037
+    digits: int | None = None,
     common_norm=None,
     verbose: bool = False,
     **kwargs,
-) -> "pd.DataFrame | mpl.axes.Axes":  # mpl.figure.Figure  # noqa: UP037
+) -> pd.DataFrame | mpl.axes.Axes:  # mpl.figure.Figure
     # https://rsted.info.ucl.ac.be/
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes

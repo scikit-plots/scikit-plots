@@ -222,6 +222,7 @@ commands:
             pip install -r ./requirements/mlflow.txt
 
             # pip install voyager==2.1.0
+            pip install nltk
 
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
             # python -m pip check

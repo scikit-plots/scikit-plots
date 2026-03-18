@@ -239,19 +239,19 @@ describe("angular annoy test", function()
         assert.truthy(precision(true, 1000) >= 0.98)
     end)
 
-    it("load_save_get_item_vector", function()
+    it("load_save_get_item", function()
         local f = 3
         local i = AnnoyIndex(f)
         i:add_item(0, {1.1, 2.2, 3.3})
         i:add_item(1, {4.4, 5.5, 6.6})
         i:add_item(2, {7.7, 8.8, 9.9})
-        assert.same(roundArray({1.1, 2.2, 3.3}), roundArray(i:get_item_vector(0)))
+        assert.same(roundArray({1.1, 2.2, 3.3}), roundArray(i:get_item(0)))
         assert.truthy(i:build(10))
         assert.truthy(i:save('blah.ann'))
-        assert.same(roundArray({4.4, 5.5, 6.6}), roundArray(i:get_item_vector(1)))
+        assert.same(roundArray({4.4, 5.5, 6.6}), roundArray(i:get_item(1)))
         local j = AnnoyIndex(f)
         assert.truthy(j:load('blah.ann'))
-        assert.same(roundArray({7.7, 8.8, 9.9}), roundArray(i:get_item_vector(2)))
+        assert.same(roundArray({7.7, 8.8, 9.9}), roundArray(i:get_item(2)))
     end)
 
     it("get_nns_search_k", function()
@@ -475,24 +475,24 @@ describe("index test", function()
         -- Issue #61
         local i = AnnoyIndex(10)
         i:load('test/test.tree')
-        local u = i:get_item_vector(99)
+        local u = i:get_item(99)
         i:save('i.tree')
-        local v = i:get_item_vector(99)
+        local v = i:get_item(99)
         assert.same(u, v)
         local j = AnnoyIndex(10)
         j:load('test/test.tree')
-        local w = i:get_item_vector(99) -- maybe s/i/j/?
+        local w = i:get_item(99) -- maybe s/i/j/?
         assert.same(u, w)
         -- Ensure specifying if prefault is allowed does not impact result
         j:save('j.tree', true)
         local k = AnnoyIndex(10)
         k:load('j.tree', true)
-        local x = k:get_item_vector(99)
+        local x = k:get_item(99)
         assert.same(u, x)
         k:save('k.tree', false)
         local l = AnnoyIndex(10)
         l:load('k.tree', false)
-        local y = l:get_item_vector(99)
+        local y = l:get_item(99)
         assert.same(u, y)
     end)
 
@@ -578,7 +578,7 @@ describe("types test", function()
                 i:get_nns_by_item(bad_index, 1)
             end)
             assert.has_error(function()
-                i:get_item_vector(bad_index)
+                i:get_item(bad_index)
             end)
         end
     end)
@@ -587,14 +587,14 @@ end)
 
 describe("memory leaks", function()
 
-    it("get_item_vector", function()
+    it("get_item", function()
         local f = 10
         local i = AnnoyIndex(f, 'euclidean')
         i:add_item(0, randomVector(f, 0, 1))
         for j = 0, 100 - 1 do
             print(j, '...')
             for _ = 1, 1000 * 1000 do
-                i:get_item_vector(0)
+                i:get_item(0)
             end
         end
     end)

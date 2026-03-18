@@ -349,6 +349,20 @@ micromamba search -c conda-forge "scikit-plots=0.4.0"
 <div>
  <h3>
   (Optionally)
+  <a href="https://docs.astral.sh/uv/" target="_blank" rel="noopener noreferrer">
+   📦 UV
+  </a>
+  <!-- ,  -->
+  install all dependencies:
+ </h3>
+
+```sh
+## (Optionally) uv dep for Python 3.11
+sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+```
+
+ <h3>
+  (Optionally)
   <a href="https://www.anaconda.com/docs/getting-started/anaconda/install" target="_blank" rel="noopener noreferrer">
    📦 Pipenv
   </a>

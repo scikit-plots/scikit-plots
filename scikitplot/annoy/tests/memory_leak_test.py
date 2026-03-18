@@ -22,14 +22,14 @@ from scikitplot.annoy import AnnoyIndex
 HERE = os.path.dirname(__file__)  # "tests"
 
 
-def test_get_item_vector():
+def test_get_item():
     f = 10
     i = AnnoyIndex(f, "euclidean")
     i.add_item(0, [random.gauss(0, 1) for x in range(f)])
     for j in range(100):
         print(j, "...")
         for k in range(1000 * 1000):
-            i.get_item_vector(0)
+            i.get_item(0)
 
 
 def test_get_lots_of_nns():

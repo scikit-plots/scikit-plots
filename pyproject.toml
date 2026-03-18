@@ -51,8 +51,8 @@
 ## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
 ## | os_name               | "posix", "nt", "java"                         | Reflects `os.name`; useful for basic OS family checks  |
 ## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
-## | extra                 | Custom extras like "dev", "docs", "test"      | Used with `extras_require` or `optional-dependencies`  |
-## |                       |                                               | 'package; extra == "docs"'                             |
+## | extra                 | Custom extras like "dev", "doc", "test"      | Used with `extras_require` or `optional-dependencies`  |
+## |                       |                                               | 'package; extra == "doc"'                             |
 ## +-----------------------+-----------------------------------------------+--------------------------------------------------------+
 ##
 ## 🔻 https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#declaring-the-build-backend
@@ -280,7 +280,7 @@ dependencies = [
 
 ######################################################################
 ## 🔻 optional-dependencies
-## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs,gpu] -v
+## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc,gpu] -v
 ## https://peps.python.org/pep-0508/
 ## https://peps.python.org/pep-0735/#deferred-ideas
 ## https://setuptools.pypa.io/en/stable/userguide/dependency_management.html#optional-dependencies
@@ -309,7 +309,7 @@ legacy = [
   'toml;python_version<"3.11"',  # A lil' TOML reader/writer backports for Python < 3.11
 ]
 
-## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
+## python -m pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,doc] -v
 ## Core dependencies that are used in multiple groups
 core = [
   # --- Statistical plotting ---

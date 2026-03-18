@@ -70,9 +70,10 @@ from ..utils._time import Timer
 from ._privacy import OutsourcedIndexMixin
 
 try:
-    from ..annoy import Index as AnnoyIndex
+    # from ..annoy import Index as AnnoyIndex  # cpp based
+    from ..annoy._annoy import Index as AnnoyIndex  # cython based
 except Exception:  # pragma: no cover - fallback to external annoy
-    from annoy import AnnoyIndex
+    from annoy import AnnoyIndex  # cpp based
 
 try:
     import voyager
@@ -1151,7 +1152,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
     #         neighbors = np.empty((len(potential_donors_idx), _dim), dtype=np.float32)
     #         # Fill the array using indices from the list
     #         for _i, idx in enumerate(potential_donors_idx):
-    #             neighbors[_i] = self._annoy_index.get_item_vector(idx)
+    #             neighbors[_i] = self._annoy_index.get_item(idx)
     #         # if not neighbors:
     #         #     continue
 
@@ -1387,7 +1388,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
 
         # 4. Retrieve neighbor rows
         neighbors = np.asarray(
-            [train_index.get_item_vector(int(idx)) for idx in neighbor_ids],
+            [train_index.get_item(int(idx)) for idx in neighbor_ids],
             dtype=float,
         )
         if dists.size != neighbors.shape[0]:

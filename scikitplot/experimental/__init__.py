@@ -24,8 +24,6 @@ experimental basis and may change or be removed in future releases.
 # _clv            : Customer lifetime value analysis
 # _doremi         : Domain-specific modeling utilities
 # _entities       : Structured data entity representations
-# _llm_provider   : Large language model integration utilities
-# _ui_app         : Experimental user interface components
 # pipeline        : Experimental ML pipeline tools
 ## Your package/module initialization code goes here
 from . import pipeline

@@ -2102,16 +2102,16 @@ static PyObject* py_an_get_nns_by_vector(
 //  METH_VARARGS | METH_KEYWORDS in the method table.
 // ======================================================================
 
-// get_item_vector / get_index_vector → plain list[float]
+// get_item / get_index_vector → plain list[float]
 //
 // Python-facing semantics:
 //
-//   get_item_vector(i: int) -> list[float]
+//   get_item(i: int) -> list[float]
 //
 // * i is the Annoy item id (“indice”) you passed to add_item()
 // * return is the stored embedding (length == f), as Python list[float]
 //
-static PyObject* py_an_get_item_vector(
+static PyObject* py_an_get_item(
   py_annoy* self,
   PyObject* args,
   PyObject* kwargs) {
@@ -2865,11 +2865,11 @@ static PyMethodDef py_annoy_methods[] = {
   },
 
   {
-    "get_item_vector",
-    (PyCFunction)py_an_get_item_vector,
+    "get_item",
+    (PyCFunction)py_an_get_item,
     METH_VARARGS | METH_KEYWORDS,
     (char*)
-    "get_item_vector(i) -> list[float]\n"
+    "get_item(i) -> list[float]\n"
     "\n"
     "Return the stored embedding vector for a given indice.\n"
     "\n"

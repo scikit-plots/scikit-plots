@@ -45,6 +45,7 @@ PUBLIC_MODULES = [
         "cexternals",
         "config",
         "config.cbook",
+        "corpus",
         "cython",
         "datasets",
         "decile",
@@ -65,6 +66,8 @@ PUBLIC_MODULES = [
         "externals.array_api_compat.numpy.fft",
         "externals.array_api_compat.numpy.linalg",
         "externals.array_api_compat.torch",
+        "externals.array_api_compat.torch.fft",
+        "externals.array_api_compat.torch.linalg",
         "externals.array_api_extra",
         "externals.array_api_extra.testing",
         "impute",
@@ -121,6 +124,7 @@ def is_unexpected(name):
 
 # Skip public modules
 SKIP_LIST = [
+    "scikitplot.experimental._template",
     # root artifact
     "scikitplot.conftest",
     # optional
@@ -135,11 +139,23 @@ SKIP_LIST = [
 @pytest.mark.thread_unsafe
 def test_all_modules_are_expected():
     """
-    Test that we don't add anything that looks like a new public module by
-    accident.  Check is based on filenames.
+    Ensure that no unintended public modules are added to the package.
+
+    This test walks the package namespace and verifies that every discovered
+    module either belongs to the known public API or is explicitly skipped.
+
+    Notes
+    -----
+    `pkgutil.walk_packages` imports modules during discovery. Import-time
+    warnings originating from build utilities are suppressed locally to
+    prevent noise in the test suite.
     """
 
-    def ignore_errors(name):
+    def ignore_errors(name: str) -> None:
+        """
+        Ignore backend import errors from array_api_compat when the backend
+        is not available in the current test environment.
+        """
         # if versions of other array libraries are installed which are incompatible
         # with the installed NumPy version, there can be errors on importing
         # `array_api_compat`. This should only raise if SciPy is configured with
@@ -154,8 +170,14 @@ def test_all_modules_are_expected():
 
     modnames = []
 
-    with np.testing.suppress_warnings() as sup:
-        sup.filter(DeprecationWarning, "scikitplot._build_utils")
+    # with np.testing.suppress_warnings() as sup:
+    #     sup.filter(DeprecationWarning, "scikitplot._build_utils")
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module=r"scikitplot\._build_utils",
+        )
         for _, modname, _ in pkgutil.walk_packages(
             path=scikitplot.__path__,
             prefix=scikitplot.__name__ + ".",
@@ -175,6 +197,7 @@ def test_all_modules_are_expected():
 # Stuff that clearly shouldn't be in the API and is detected by the next test
 # below
 SKIP_LIST_2 = [
+    "scikitplot.experimental._template",
     # root artifact
     # "scikitplot.conftest",
     "scikitplot.logger",
@@ -200,6 +223,7 @@ REQUIRES_HEAVY = {
 }
 
 
+@pytest.mark.filterwarnings("ignore::DeprecationWarning:scikitplot._build_utils")
 def test_all_modules_are_expected_2():
     """
     Method checking all objects. The pkgutil-based method in
@@ -241,9 +265,15 @@ def test_all_modules_are_expected_2():
 
         return members
 
-    with np.testing.suppress_warnings() as sup:
-        sup.filter(DeprecationWarning, "scikitplot._build_utils")
-        unexpected_members = find_unexpected_members("scikitplot")
+    # with np.testing.suppress_warnings() as sup:
+    #     sup.filter(DeprecationWarning, "scikitplot._build_utils")
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings(
+    #         "ignore",
+    #         category=DeprecationWarning,
+    #         module=r"scikitplot\._build_utils",
+    #     )
+    unexpected_members = find_unexpected_members("scikitplot")
 
     for modname in PUBLIC_MODULES:
         unexpected_members.extend(find_unexpected_members(modname))

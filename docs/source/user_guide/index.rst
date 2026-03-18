@@ -75,6 +75,16 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
+        **corpus generation**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Corpus <./corpus/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **cython realtime pkg/mod generation**
         ^^^
         .. toctree::

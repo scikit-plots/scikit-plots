@@ -308,6 +308,7 @@ clean-basic:
 		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
+		-not -path './scikitplot/annoy/tests/test64.tree' \
 		-type f -print -delete || true; \
 	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
 	\
@@ -337,6 +338,7 @@ clean-test:
 		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
+		-not -path './scikitplot/annoy/tests/test64.tree' \
 		-type f -print -delete || true; \
 	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
 	\
@@ -371,6 +373,7 @@ clean: clean-basic
 		-not -path './.git_clones/*' \
 		-not -path './third_party/*' \
 		-not -path './scikitplot/annoy/tests/test.tree' \
+		-not -path './scikitplot/annoy/tests/test64.tree' \
 		-type f -print -delete || true; \
 	echo "   - Removed: *.annoy *.tree *.ann *.voyager *.voy *.idx *.hdf5"; \
 	\

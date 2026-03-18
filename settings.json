@@ -2,6 +2,11 @@
 // Put in the `.vscode/settings.json` file in your project root
 // View > Command Palette or by pressing Ctrl+Shift+P -> "Test: Refresh Tests"
 // Ref: https://pytest-with-eric.com/introduction/how-to-run-pytest-in-vscode/
+//
+// Clean State Reset (If Still Broken)
+// pkill -f vscode-server
+// cd ~/.vscode-server
+// sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 {
     // "terminal.integrated.shell.linux": "/bin/bash",
     // "terminal.integrated.profiles.linux": {
@@ -10,15 +15,31 @@
     //     }
     // },
     // "terminal.integrated.defaultProfile.linux": "bash",
+    // "python.testing.pytestPath": "/root/micromamba/envs/py311/bin/pytest",
+    "python-envs.defaultEnvManager": "ms-python.python:system",
     "python.defaultInterpreterPath": "/root/micromamba/envs/py311/bin/python",
-    "python.testing.pytestPath": "/root/micromamba/envs/py311/bin/pytest",
-    "python.testing.pytestEnabled": true
-    // "python.testing.unittestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    // https://code.visualstudio.com/docs/python/environments#_package-managers-by-environment
+    // "python-envs.pythonProjects": [
+    //     {
+    //     "path": "ml-service",
+    //     "envManager": "ms-python.python:conda"
+    //     }
+    // ],
     // "files.autoSave": "onFocusChange",
     // "[python]": {
     //     "editor.defaultFormatter": "ms-python.black-formatter"
     // },
-    // "python.testing.pytestArgs": [],
+    // "python.testing.pytestArgs": ["."],
     // "python.testing.cwd": "${workspaceFolder}/tests",
     // "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    // "python-envs.workspaceSearchPaths": [
+    //     "./**/.venv",
+    //     "~/**/**/**/**",
+    //     "/root/micromamba/envs/**/bin/python",
+    //     "/root/micromamba/envs"
+    // ],
+    "C_Cpp.errorSquiggles": "disabled"
 }

@@ -760,9 +760,9 @@ class Annoy:
         """
         ...
 
-    def get_item_vector(self, i: int) -> list[float]:
+    def get_item(self, i: int) -> list[float]:
         """
-        Return the stored embedding vector for a given item id ``get_item_vector(i) -> list[float]``.
+        Return the stored embedding vector for a given item id ``get_item(i) -> list[float]``.
 
         Parameters
         ----------
@@ -2279,7 +2279,7 @@ class AnnoyLike(Protocol):
         include_distances: bool = False,
     ) -> Neighbors | NeighborsWithDistances: ...
 
-    def get_item_vector(self, i: ItemIndex) -> list[float]: ...
+    def get_item(self, i: ItemIndex) -> list[float]: ...
     def get_distance(self, i: ItemIndex, j: ItemIndex) -> float: ...
 
     # --- Estimator API / sklearn hooks ---

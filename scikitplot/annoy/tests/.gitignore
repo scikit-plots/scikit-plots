@@ -1,8 +1,10 @@
-# testing
+# 32 bit int indexing testing
 # < v2
 !test.tree
 # >= v2
 !test_v2.tree
+# 64 bit uint indexing
+!test64.tree
 *.ann
 *.tree
 *.annoy

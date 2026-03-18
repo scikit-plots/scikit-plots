@@ -65,6 +65,19 @@ def is_mlflow_installed() -> bool:
     return importlib.util.find_spec("mlflow") is not None
 
 
+def _parse_version(raw: str) -> MlflowVersion:
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", raw)
+    if not m:
+        # Fallback to 0.0.0 for unexpected version strings; callers should treat raw string.
+        return MlflowVersion(raw=raw, major=0, minor=0, patch=0)
+    return MlflowVersion(
+        raw=raw,
+        major=int(m.group(1)),
+        minor=int(m.group(2)),
+        patch=int(m.group(3)),
+    )
+
+
 def mlflow_version() -> MlflowVersion | None:
     """
     Retrieve the installed MLflow version (if available).
@@ -72,19 +85,30 @@ def mlflow_version() -> MlflowVersion | None:
     Returns
     -------
     MlflowVersion or None
-        Parsed version if MLflow is installed, otherwise None.
+        Parsed version if MLflow is importable and version can be resolved, otherwise None.
 
     Notes
     -----
     Uses package metadata (`importlib.metadata.version`).
+    Prefers module attribute `__version__` to support mocked or vendored MLflow.
+    Falls back to package metadata when available.
     """
     if not is_mlflow_installed():
         return None
-    raw = importlib.metadata.version("mlflow")
-    m = re.search(r"(\d+)\.(\d+)\.(\d+)", raw)
-    if not m:
-        # Fallback to 0.0.0 for unexpected version strings; callers should treat raw string.
-        return MlflowVersion(raw=raw, major=0, minor=0, patch=0)
-    return MlflowVersion(
-        raw=raw, major=int(m.group(1)), minor=int(m.group(2)), patch=int(m.group(3))
-    )
+
+    # --- Try module-based version (works with mocks) ---
+    try:
+        mlflow = importlib.import_module("mlflow")
+        raw = getattr(mlflow, "__version__", None)
+        if raw:
+            return _parse_version(raw)
+    except Exception:
+        # Fail closed, continue to metadata fallback
+        pass
+
+    # --- Fallback to package metadata ---
+    try:
+        raw = importlib.metadata.version("mlflow")
+        return _parse_version(raw)
+    except importlib.metadata.PackageNotFoundError:
+        return None

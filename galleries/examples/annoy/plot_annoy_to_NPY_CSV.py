@@ -182,5 +182,6 @@ idx.kneighbors_graph(v, n_neighbors=10).toarray()
 #
 # .. tags::
 #
+#    model-workflow: vector-db
 #    level: beginner
 #    purpose: showcase

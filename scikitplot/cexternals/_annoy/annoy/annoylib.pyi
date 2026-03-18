@@ -277,7 +277,7 @@ class Annoy(annoylib.Annoy):
         """
         ...
 
-    def get_item_vector(self, __i: int) -> list[float]:
+    def get_item(self, __i: int) -> list[float]:
         """
         Retrieve the vector associated with a given item ID.
 

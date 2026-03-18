@@ -852,7 +852,7 @@ def annoy_index_to_array(
     index : object
         An Annoy-like index instance. This helper expects:
         - ``index.get_n_items() -> int``
-        - ``index.get_item_vector(i) -> Sequence[float]``
+        - ``index.get_item(i) -> Sequence[float]``
     ids : sequence of int, optional
         Item ids to extract. If ``None``, uses ``range(index.get_n_items())``.
         Provide this explicitly if your ids are not contiguous.
@@ -880,9 +880,9 @@ def annoy_index_to_array(
     >>> X2, ids2 = utils.annoy_index_to_array(idx, ids=[0, 10, 20])
     >>> X2, ids2
     """
-    if not hasattr(index, "get_item_vector") or not hasattr(index, "get_n_items"):
+    if not hasattr(index, "get_item") or not hasattr(index, "get_n_items"):
         raise TypeError(
-            "`index` must provide get_n_items() and get_item_vector(i). "
+            "`index` must provide get_n_items() and get_item(i). "
             "Got: {!r}".format(type(index))
         )
 
@@ -897,7 +897,7 @@ def annoy_index_to_array(
     if ids_out.size == 0:
         raise ValueError("`ids` must contain at least one item id.")
 
-    v0 = np.asarray(index.get_item_vector(int(ids_out[0])), dtype=dtype)
+    v0 = np.asarray(index.get_item(int(ids_out[0])), dtype=dtype)
     if v0.ndim != 1:
         raise ValueError("Annoy vectors must be 1D; got shape {}.".format(v0.shape))
     f = int(v0.shape[0])
@@ -905,7 +905,7 @@ def annoy_index_to_array(
     X = np.empty((ids_out.size, f), dtype=dtype)
     X[0] = v0
     for r in range(1, ids_out.size):
-        X[r] = np.asarray(index.get_item_vector(int(ids_out[r])), dtype=dtype)
+        X[r] = np.asarray(index.get_item(int(ids_out[r])), dtype=dtype)
 
     return X, ids_out
 
@@ -1115,7 +1115,7 @@ def plot_annoy_index(
     Parameters
     ----------
     index : object
-        Annoy-like index providing ``get_n_items`` and ``get_item_vector``.
+        Annoy-like index providing ``get_n_items`` and ``get_item``.
     labels : sequence, optional
         Labels for coloring points.
 

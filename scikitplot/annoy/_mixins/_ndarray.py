@@ -9,7 +9,7 @@ for Annoy-like indexes.
 The mixin expects that ``backend_for(self)`` returns an object implementing:
 
 - ``add_item(i: int, vector: Sequence[float])``
-- ``get_item_vector(i: int) -> Sequence[float]``
+- ``get_item(i: int) -> Sequence[float]``
 - ``get_n_items() -> int``
 - Optional: ``get_n_trees() -> int`` (built-state detection)
 - Optional: attribute/property ``f`` (dimension)
@@ -331,7 +331,7 @@ class NDArrayMixin:
             return X0, ids0
 
         with lock_for(self):
-            first_vec = backend.get_item_vector(int(first_id))  # type: ignore[attr-defined]
+            first_vec = backend.get_item(int(first_id))  # type: ignore[attr-defined]
         f = self._ndarray_infer_f(first_vec)
 
         if n == 0:
@@ -354,7 +354,7 @@ class NDArrayMixin:
             if r >= n:
                 raise ValueError("ids yielded more items than expected n_rows.")
             with lock_for(self):
-                raw_vec = backend.get_item_vector(int(item_id))  # type: ignore[attr-defined]
+                raw_vec = backend.get_item(int(item_id))  # type: ignore[attr-defined]
             vec = np.asarray(raw_vec, dtype=dtype)
             if validate_vector_len and vec.shape != (int(f),):
                 raise ValueError(
@@ -635,7 +635,7 @@ class NDArrayMixin:
         backend = backend_for(self)
         for item_id in self._ndarray_iter_ids(ids, start=start, stop=stop):
             with lock_for(self):
-                raw_vec = backend.get_item_vector(int(item_id))  # type: ignore[attr-defined]
+                raw_vec = backend.get_item(int(item_id))  # type: ignore[attr-defined]
             vec = np.asarray(raw_vec, dtype=dtype)
             yield (int(item_id), vec) if with_ids else vec
 
