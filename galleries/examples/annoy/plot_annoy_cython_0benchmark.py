@@ -56,5 +56,6 @@ print(result.stderr)
 #
 # .. tags::
 #
+#    model-workflow: vector-db
 #    level: beginner
 #    purpose: showcase

@@ -38,7 +38,7 @@ def _get_test_data(url=None):
 
 
 _get_test_data()
-_get_test_data('https://github.com/spotify/annoy/raw/main/test/test64.tree')
+# _get_test_data('https://github.com/spotify/annoy/raw/main/test/test64.tree')
 
 
 def test_not_found_tree():

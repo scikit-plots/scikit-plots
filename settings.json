@@ -6,6 +6,7 @@
 // Clean State Reset (If Still Broken)
 // pkill -f vscode-server
 // cd ~/.vscode-server
+// sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 {
     // "terminal.integrated.shell.linux": "/bin/bash",
     // "terminal.integrated.profiles.linux": {
@@ -34,5 +35,11 @@
     // "python.testing.pytestArgs": ["."],
     // "python.testing.cwd": "${workspaceFolder}/tests",
     // "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    // "python-envs.workspaceSearchPaths": [
+    //     "./**/.venv",
+    //     "~/**/**/**/**",
+    //     "/root/micromamba/envs/**/bin/python",
+    //     "/root/micromamba/envs"
+    // ],
     "C_Cpp.errorSquiggles": "disabled"
 }

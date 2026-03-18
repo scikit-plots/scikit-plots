@@ -117,8 +117,7 @@ precision(q)
 #
 # .. tags::
 #
-#    model-type: classification
-#    model-workflow: impute
+#    model-workflow: vector-db
 #    plot-type: bar
 #    level: beginner
 #    purpose: showcase

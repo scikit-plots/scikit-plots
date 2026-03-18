@@ -575,10 +575,10 @@ with Timer("rebuild"):
         idx_m = base.rebuild(metric=m)          # rebuild-from-index
         print(m, idx_m.transform(q))            # no .fit(X) here
 
-
 # %%
 #
 # .. tags::
 #
+#    model-workflow: vector-db
 #    level: beginner
 #    purpose: showcase

@@ -126,6 +126,12 @@ from scikitplot.corpus._adapters import (
     to_rag_tuples,
 )
 
+# --- Archive handling (zip / tar extraction) ---
+from scikitplot.corpus._archive_handler import (
+    extract_archive,
+    is_archive,
+)
+
 # Base classes
 from scikitplot.corpus._base import (
     ChunkerBase,
@@ -251,6 +257,14 @@ from scikitplot.corpus._storage import (
     StorageQuery,
 )
 
+# --- URL handling (classification, resolution, secure download) ---
+from scikitplot.corpus._url_handler import (
+    URLKind,
+    classify_url,
+    download_url,
+    resolve_url,
+)
+
 __all__ = [  # noqa: RUF022
     # Adapters
     "LangChainCorpusRetriever",
@@ -262,6 +276,14 @@ __all__ = [  # noqa: RUF022
     "to_mcp_resources",
     "to_mcp_tool_result",
     "to_rag_tuples",
+    # Archive handler
+    "extract_archive",
+    "is_archive",
+    # URL handler
+    "URLKind",
+    "classify_url",
+    "download_url",
+    "resolve_url",
     # Base
     "DocumentReader",
     "ChunkerBase",

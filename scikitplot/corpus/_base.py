@@ -201,7 +201,7 @@ class ChunkerBase(abc.ABC):
         everything into memory at once.
         """
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
+    def __init_subclass__(cls, **kwargs: dict) -> None:
         """
         Enforce that every concrete subclass declares ``strategy``.
         """
@@ -900,6 +900,7 @@ class DocumentReader(abc.ABC):
         collection_id: str | None = None,
         doi: str | None = None,
         isbn: str | None = None,
+        **kwargs: dict,
     ) -> DocumentReader:
         """
         Instantiate and return the appropriate reader for ``input_file``.
@@ -934,6 +935,8 @@ class DocumentReader(abc.ABC):
             Digital Object Identifier. Default: ``None``.
         isbn : str or None, optional
             International Standard Book Number. Default: ``None``.
+        **kwargs : dict
+            Additional kwargs for pass to type[DocumentReader].
 
         Returns
         -------
@@ -993,6 +996,7 @@ class DocumentReader(abc.ABC):
             filename_override=filename_override,
             default_language=default_language,
             source_provenance=prov,
+            **kwargs,
         )
 
     @classmethod
@@ -1008,6 +1012,7 @@ class DocumentReader(abc.ABC):
         source_author: str | None = None,
         source_date: str | None = None,
         collection_id: str | None = None,
+        **kwargs: dict,
     ) -> DocumentReader:
         """
         Instantiate the appropriate reader for a URL source.
@@ -1038,6 +1043,8 @@ class DocumentReader(abc.ABC):
             Publication date in ISO 8601 format. Default: ``None``.
         collection_id : str or None, optional
             Corpus collection identifier. Default: ``None``.
+        **kwargs : dict
+            Additional kwargs for pass to type[DocumentReader].
 
         Returns
         -------
@@ -1105,13 +1112,14 @@ class DocumentReader(abc.ABC):
             filter_=filter_,
             default_language=default_language,
             source_provenance=prov,
+            **kwargs,
         )
 
     # ------------------------------------------------------------------
     # Registry auto-population via __init_subclass__
     # ------------------------------------------------------------------
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
+    def __init_subclass__(cls, **kwargs: dict) -> None:
         """
         Auto-register concrete subclasses in the extension registry.
 

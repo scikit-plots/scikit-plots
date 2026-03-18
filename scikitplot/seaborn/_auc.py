@@ -161,12 +161,12 @@ class _AucPlotter(VectorPlotter):
     """
 
     # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
-    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    wide_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
         "hue": "@columns",
     }
-    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    flat_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
     }
@@ -765,7 +765,7 @@ class _AucPlotter(VectorPlotter):
         y_score: np.ndarray,
         sample_weight: np.ndarray | None,
         # sub_vars,
-    ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
+    ) -> tuple[np.ndarray, np.ndarray, float] | None:
         # pick one
         # auc(recall, precision) vs average_precision_score
         # The area under PR curve (trapezoidal rule with auc) is not the same as average precision (AP).
@@ -808,7 +808,7 @@ class _AucPlotter(VectorPlotter):
         y_true: np.ndarray,
         y_score: np.ndarray,
         sample_weight: np.ndarray | None,
-    ) -> "tuple[np.ndarray, np.ndarray, float] | None":  # noqa: UP037
+    ) -> tuple[np.ndarray, np.ndarray, float] | None:
         try:
             # prepare coordinates (fpr on x, tpr on y)
             # fpr is sorted ascending, tpr follows.
@@ -821,7 +821,7 @@ class _AucPlotter(VectorPlotter):
             return fpr, tpr, auc(fpr, tpr)  # roc_auc
         except Exception as e:
             warnings.warn(
-                f"Unable to compute PR curve for subset {''}: {e}",
+                f"Unable to compute ROC curve for subset: {e}",
                 UserWarning,
                 stacklevel=2,
             )
@@ -868,16 +868,24 @@ class _AucPlotter(VectorPlotter):
         ).strip()
         label = label if legend else None
         kws["label"] = label
-        # Plot
-        # use step plot to match sklearn docs
-        # scientifically, step is the correct representation for PR.
-        # where="post",  # for ax.step
-        kws["drawstyle"] = kws.pop("steps-post", "steps-post")
-        (artist,) = ax.plot(
-            x,
-            y,
-            **kws,
-        )
+        # Detect fill mode: facecolor is only present when _artist_kws was
+        # called with fill=True (PolyCollection path).
+        _fill = "facecolor" in kws
+        if _fill:
+            # Strip kwargs only valid for PolyCollection so ax.fill_between
+            # receives the right arguments; strip drawstyle (Line2D-only).
+            fill_kws = {
+                k: kws.pop(k)
+                for k in list(kws)
+                if k in ("facecolor", "edgecolor", "alpha", "label", "zorder")
+            }
+            kws.pop("drawstyle", None)
+            artist = ax.fill_between(x, 0.0, y, step="post", **fill_kws)
+        else:
+            # use step plot to match sklearn docs; step is the correct
+            # representation for PR and allows caller to override.
+            kws.setdefault("drawstyle", "steps-post")
+            (artist,) = ax.plot(x, y, **kws)
         # Save artist and label (include statement if legend requested)
         artists.append(artist), labels.append(label)
         ax.grid(True)
@@ -998,7 +1006,7 @@ class _AucPlotter(VectorPlotter):
     # -------------------------
     def plot_aucplot(  # noqa: PLR0912
         self,
-        kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
+        kind: Literal["pr", "roc"] | None = None,
         fill=None,
         color=None,
         legend=None,
@@ -1018,7 +1026,7 @@ class _AucPlotter(VectorPlotter):
         annot=None,
         fmt=".4g",
         annot_kws=None,
-        digits: "int | None" = None,  # noqa: UP037
+        digits: int | None = None,
         verbose=False,
         **plot_kws,
     ) -> None:
@@ -1139,13 +1147,13 @@ class _AucPlotter(VectorPlotter):
 # Public API functions (wrappers)
 # --------------------------------------------------------------------
 def aucplot(  # noqa: D417
-    data: "pd.DataFrame | None" = None,  # noqa: UP037
+    data: pd.DataFrame | None = None,
     *,
     # Vector variables
-    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    kind: "Literal['pr', 'roc'] | None" = None,  # noqa: UP037
+    x: str | np.ndarray[np.generic] | pd.Series | None = None,
+    y: str | np.ndarray[np.generic] | pd.Series | None = None,
+    hue: str | np.ndarray[np.generic] | pd.Series | None = None,
+    kind: Literal["pr", "roc"] | None = None,
     weights=None,
     # Hue mapping parameters
     hue_order=None,
@@ -1167,7 +1175,7 @@ def aucplot(  # noqa: D417
     fmt=".4g",  # ''
     annot_kws=None,
     # computation parameters
-    digits: "int | None" = None,  # noqa: UP037
+    digits: int | None = None,
     common_norm=None,
     verbose: bool = False,
     **kwargs,

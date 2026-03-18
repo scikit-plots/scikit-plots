@@ -72,8 +72,7 @@ from sklearn.metrics import (
 try:
     import statsmodels
 
-    assert statsmodels  # noqa: S101
-    _has_statsmodels = True
+    _has_statsmodels = statsmodels is not None
 except ImportError:
     _has_statsmodels = False
 
@@ -89,7 +88,7 @@ try:
     from seaborn.axisgrid import _facet_docs
     from seaborn.external import husl
     from seaborn.utils import _check_argument, _default_color
-except:
+except ImportError:
     from ..externals._seaborn._base import VectorPlotter
     from ..externals._seaborn._compat import groupby_apply_include_groups  # noqa: F401
     from ..externals._seaborn._docstrings import (
@@ -202,12 +201,12 @@ class _ModelPlotter(VectorPlotter):
     """
 
     # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
-    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    wide_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
         "hue": "@columns",
     }
-    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    flat_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
     }
@@ -347,7 +346,7 @@ class _ModelPlotter(VectorPlotter):
     def _prepare_subset(
         self,
         sub_data: pd.DataFrame,
-    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray]":  # noqa: UP037
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Extract y_true (binary labels) and y_pred (prediction) arrays from a subset DataFrame.
 
@@ -403,7 +402,7 @@ class _ModelPlotter(VectorPlotter):
         digits=4,
         normalize=None,
         # sub_vars=None,
-    ) -> "tuple[np.ndarray, None, None] | None":  # noqa: UP037
+    ) -> tuple[np.ndarray, None, None] | None:
         try:
             # Generate the confusion matrix
             cm = np.around(
@@ -527,20 +526,11 @@ class _ModelPlotter(VectorPlotter):
         # Annotate the matrix with dynamic text color
         threshold = x.max() / 2.0
         for (i, j), val in np.ndenumerate(x):
-            # val == cm[i, j]
-            cmap_method = (
-                image_kws["cmap"].get_over
-                if val > threshold
-                else image_kws["cmap"].get_under
-            )
-            # Get the color at the top end of the colormap
-            rgba = cmap_method()  # Get the RGB values
-
-            # Calculate the luminance of this color
+            # Derive the actual rendered color from the colormap + normalisation,
+            # then compute WCAG relative luminance to pick black or white text.
+            rgba = artist.cmap(artist.norm(val))
             luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
-
-            # If luminance is low (dark color), use white text; otherwise, use black text
-            text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+            text_color = "w" if luminance < 0.5 else "k"  # noqa: PLR2004
             ax.text(
                 j,
                 i,
@@ -551,11 +541,124 @@ class _ModelPlotter(VectorPlotter):
             )
 
     # -------------------------
+    # Computation dispatch
+    # -------------------------
+    def _compute_eval(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        sample_weight: np.ndarray | None,
+        kind: str,
+        sub_vars: dict,
+    ) -> tuple:
+        """
+        Dispatch metric computation for the given ``kind``.
+
+        For ``kind='feature_importances'`` the data arrays are passed through
+        unchanged so that ``_plot_modelplot`` receives the raw arrays for
+        further dispatch.
+
+        Parameters
+        ----------
+        y_true : ndarray of shape (n_samples,)
+            True integer labels.
+        y_pred : ndarray of shape (n_samples,)
+            Predicted labels or scores.
+        sample_weight : ndarray or None
+            Per-sample weights.
+        kind : str
+            Plot kind identifier (currently only ``'feature_importances'``).
+        sub_vars : dict
+            Subset variable mapping from VectorPlotter iteration.
+
+        Returns
+        -------
+        x : ndarray
+            First data array (y_true), or None on failure.
+        y : ndarray
+            Second data array (y_pred), or None on failure.
+        labels : None
+            Reserved for future label forwarding.
+        """
+        # Currently the only supported kind is 'feature_importances'.
+        # Pass through (y_true, y_pred) so _plot_modelplot can delegate to
+        # the appropriate rendering method.
+        return y_true, y_pred, None
+
+    def _plot_modelplot(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        sample_weight: np.ndarray | None,
+        classes: np.ndarray,
+        labels,
+        kind: str,
+        label_base: str,
+        legend: bool,
+        ax: mpl.axes.Axes,
+        **kws,
+    ) -> None:
+        """
+        Dispatch rendering for the given ``kind``.
+
+        Currently delegates to :meth:`_plot_confusion_matrix` which is the
+        only implemented visualisation inside ``_ModelPlotter``.
+
+        Parameters
+        ----------
+        x : ndarray
+            y_true array (binary or multiclass integer labels).
+        y : ndarray
+            y_pred array (predicted labels or scores).
+        sample_weight : ndarray or None
+            Per-sample weights.
+        classes : ndarray
+            Unique class values derived from ``y_true``.
+        labels : None or array-like
+            Class label ordering; passed through to sklearn calls.
+        kind : str
+            Plot kind (currently ``'feature_importances'``).
+        label_base : str
+            Display label prefix for legend entries.
+        legend : bool
+            Whether to show the legend.
+        ax : Axes
+            Target matplotlib axes.
+        **kws
+            Remaining artist keyword arguments forwarded to the renderer.
+        """
+        cbar = kws.pop("cbar", True)
+        cbar_ax = kws.pop("cbar_ax", None)
+        cbar_kws = kws.pop("cbar_kws", {})
+        text_kws = kws.pop("text_kws", {})
+        image_kws = kws.pop("image_kws", {})
+        annot_kws = kws.pop("annot_kws", {})
+        digits = kws.pop("digits", 2)
+
+        self._plot_confusion_matrix(
+            y_true=x,
+            y_pred=y,
+            sample_weight=sample_weight,
+            classes=classes,
+            labels=labels,
+            legend=legend,
+            ax=ax,
+            cbar=cbar,
+            cbar_ax=cbar_ax,
+            cbar_kws=cbar_kws,
+            text_kws=text_kws,
+            image_kws=image_kws,
+            annot_kws=annot_kws,
+            digits=digits,
+            **kws,
+        )
+
+    # -------------------------
     # AUC plotting
     # -------------------------
     def plot_modelplot(  # noqa: PLR0912
         self,
-        kind: "Literal['feature_importances'] | None",  # noqa: UP037
+        kind: Literal["feature_importances"] | None,
         color,
         legend,
         # multiple,
@@ -681,14 +784,14 @@ class _ModelPlotter(VectorPlotter):
 # Public API functions (wrappers)
 # --------------------------------------------------------------------
 def modelplot(  # noqa: D417  # estimatorplot
-    data: "pd.DataFrame | None" = None,  # noqa: UP037
+    data: pd.DataFrame | None = None,
     *,
     # Vector variables
-    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
+    x: str | np.ndarray[np.generic] | pd.Series | None = None,
+    y: str | np.ndarray[np.generic] | pd.Series | None = None,
+    hue: str | np.ndarray[np.generic] | pd.Series | None = None,
     x_estimator=None,
-    kind: "Literal['feature_importances'] | None" = None,  # noqa: UP037
+    kind: Literal["feature_importances"] | None = None,
     # Hue mapping parameters
     hue_order=None,
     hue_norm=None,
@@ -711,7 +814,7 @@ def modelplot(  # noqa: D417  # estimatorplot
     text_kws=None,
     image_kws=None,
     # computation parameters
-    digits: "int | None" = None,  # noqa: UP037
+    digits: int | None = None,
     common_norm=None,
     verbose: bool = False,
     **kwargs,

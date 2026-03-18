@@ -144,12 +144,12 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     """
 
     # minimal structural hints for wide vs flat data (keeps consistency with VectorPlotter)
-    wide_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    wide_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
         "hue": "@columns",
     }
-    flat_structure: "ClassVar[dict[str, str]]" = {  # noqa: RUF012, UP037
+    flat_structure: ClassVar[dict[str, str]] = {  # noqa: RUF012
         "x": "@index",
         "y": "@values",
     }
@@ -377,10 +377,10 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 
             classes = unique_labels(y_true) if labels is None else np.asarray(labels)
 
-            # if len(classes) != 2:  # noqa: PLR2004
-            #     raise ValueError(
-            #         "allow_probs=True requires binary classification (2 unique labels)."  # noqa: E501
-            #     )
+            if len(classes) != 2:  # noqa: PLR2004
+                raise ValueError(
+                    "allow_probs=True requires binary classification (exactly 2 unique labels in x)."
+                )
 
             neg_label, pos_label = classes[0], classes[1]
             y_pred = np.where(y_score > threshold, pos_label, neg_label)
@@ -405,9 +405,9 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         sample_weight=None,
         labels=None,
         digits: int = 4,
-        normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
+        normalize: Literal["true", "pred", "all"] | None = None,
         # sub_vars=None,
-    ) -> "tuple[int, float, str] | None":  # noqa: UP037
+    ) -> tuple[int, float, str] | None:
         """Compute a scikit-learn classification report string."""
         try:
             # Generate the classification report
@@ -435,9 +435,9 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         sample_weight=None,
         labels=None,
         digits: int = 4,
-        normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
+        normalize: Literal["true", "pred", "all"] | None = None,
         # sub_vars=None,
-    ) -> "tuple[np.ndarray, None, None] | None":  # noqa: UP037
+    ) -> tuple[np.ndarray, None, None] | None:
         """Compute a scikit-learn confusion matrix."""
         try:
             # Generate the confusion matrix
@@ -665,23 +665,13 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         # if annot and not fmt:
         #     fmt = ".2f"
 
-        # Annotate the matrix with dynamic text color
-        threshold = x.max() / 2.0
+        # Annotate the matrix with dynamic text color.
+        # Use the actual mapped color at each cell value (WCAG relative luminance)
+        # to choose black or white annotation text.
         for (i, j), val in np.ndenumerate(x):
-            # val == cm[i, j]
-            cmap_method = (
-                image_kws["cmap"].get_over
-                if val > threshold
-                else image_kws["cmap"].get_under
-            )
-            # Get the color at the top end of the colormap
-            # rgba = artist.cmap(artist.norm(val))
-            rgba = cmap_method()  # Get the RGB values
-
-            # Calculate the luminance of this color
+            rgba = artist.cmap(artist.norm(val))
             luminance = 0.2126 * rgba[0] + 0.7152 * rgba[1] + 0.0722 * rgba[2]
-            # If luminance is low (dark color), use white text; otherwise, use black text
-            text_color = {True: "w", False: "k"}[(luminance < 0.5)]  # noqa: PLR2004
+            text_color = "w" if luminance < 0.5 else "k"  # noqa: PLR2004
 
             ax.text(
                 j,
@@ -923,7 +913,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
     # -------------------------
     def plot_evalplot(  # noqa: PLR0912
         self,
-        kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None",  # noqa: UP037
+        kind: Literal["all", "classification_report", "confusion_matrix"] | None,
         labels,
         threshold,
         allow_probs,
@@ -947,7 +937,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
         annot,
         fmt,
         digits,
-        # normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
+        # normalize: Literal['true', 'pred', 'all'] | None = None,
         verbose=False,
         **plot_kws,
     ) -> None:
@@ -1100,18 +1090,18 @@ class _ConfusionMatrixPlotter(VectorPlotter):
 # Public API functions (wrappers)
 # --------------------------------------------------------------------
 def evalplot(  # noqa: D417  # evalmap
-    data: "pd.DataFrame | None" = None,  # noqa: UP037
+    data: pd.DataFrame | None = None,
     *,
     # Vector variables
-    x: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    y: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    hue: "str | np.ndarray[np.generic] | pd.Series | None" = None,  # noqa: UP037
-    kind: "Literal['all', 'classification_report', 'confusion_matrix'] | None" = None,  # noqa: UP037
+    x: str | np.ndarray[np.generic] | pd.Series | None = None,
+    y: str | np.ndarray[np.generic] | pd.Series | None = None,
+    hue: str | np.ndarray[np.generic] | pd.Series | None = None,
+    kind: Literal["all", "classification_report", "confusion_matrix"] | None = None,
     weights=None,
     labels=None,
     threshold: float = 0.5,
     allow_probs: bool = False,
-    # normalize: "Literal['true', 'pred', 'all'] | None" = None,  # noqa: UP037
+    # normalize: Literal['true', 'pred', 'all'] | None = None,
     # Hue mapping parameters
     hue_order=None,
     hue_norm=None,
@@ -1137,7 +1127,7 @@ def evalplot(  # noqa: D417  # evalmap
     annot=True,
     fmt="",
     # computation parameters
-    digits: "int | None" = 4,  # noqa: UP037
+    digits: int | None = 4,
     common_norm=None,
     verbose: bool = False,
     **kwargs,

@@ -131,5 +131,6 @@ with index.clone() as idx:
 #
 # .. tags::
 #
+#    model-workflow: vector-db
 #    level: beginner
 #    purpose: showcase

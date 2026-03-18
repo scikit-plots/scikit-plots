@@ -92,11 +92,15 @@ Supports Python 3.8 through 3.15.
 
 from __future__ import annotations
 
+import glob as _glob
 import logging
 import os  # noqa: F401
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterator, Sequence  # noqa: F401
+
+from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +210,19 @@ class BuilderConfig:
 
     # Filter
     filter_kwargs: dict[str, Any] = field(default_factory=dict)
+
+    # Download / URL handling
+    max_download_bytes: int = 500 * 1024 * 1024
+    """Maximum download size per URL in bytes. Default: 500 MB."""
+
+    download_timeout: int = 120
+    """HTTP timeout for URL downloads in seconds. Default: 120."""
+
+    max_archive_files: int = 10_000
+    """Maximum file count inside a single archive. Default: 10,000."""
+
+    max_archive_bytes: int = 2 * 1024 * 1024 * 1024
+    """Maximum cumulative extracted size per archive. Default: 2 GB."""
 
     # Parallelism
     max_workers: int = 1
@@ -368,6 +385,50 @@ class CorpusBuilder:
         self._enricher: Any = None
         self._embedding_engine: Any = None
         self._index: Any = None
+
+        # Temporary directory for downloaded/extracted files.
+        # Created lazily on first use; cleaned up by close() or __exit__.
+        self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
+
+    # ------------------------------------------------------------------
+    # Context manager — auto-cleanup of temp files
+    # ------------------------------------------------------------------
+
+    def __enter__(self) -> Self:
+        """Enter the context manager."""
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        """Exit the context manager and clean up temp files."""
+        self.close()
+
+    def close(self) -> None:
+        """Clean up temporary files created during downloads/extraction.
+
+        Notes
+        -----
+        Safe to call multiple times. After calling, the builder can
+        still be used — a new temp directory will be created on next
+        download.
+        """
+        if self._temp_dir is not None:
+            try:
+                self._temp_dir.cleanup()
+            except Exception as exc:
+                logger.debug("Temp dir cleanup error: %s", exc)
+            self._temp_dir = None
+
+    def _get_temp_dir(self) -> Path:
+        """Get or create the temporary directory for downloads/extraction.
+
+        Returns
+        -------
+        Path
+            Absolute path to the temporary directory.
+        """
+        if self._temp_dir is None:
+            self._temp_dir = tempfile.TemporaryDirectory(prefix="skplt_corpus_")
+        return Path(self._temp_dir.name)
 
     # ==================================================================
     # Primary API: build
@@ -878,16 +939,26 @@ class CorpusBuilder:
     # ==================================================================
 
     @staticmethod
-    def _expand_sources(
+    def _expand_sources(  # noqa: PLR0912
         sources: list[str | Path],
     ) -> list[str | Path]:
-        """Expand directories and validate paths.
+        """Expand directories, glob patterns, and validate paths.
 
-        Directories are recursively expanded. Only files with extensions
-        registered in the :class:`DocumentReader` registry are included.
+        Handles four kinds of source entries:
+
+        1. **URLs** — passed through unchanged (``http://`` or ``https://``).
+        2. **Glob patterns** — expanded via ``glob.glob`` with recursive
+           support (``**`` is honoured). A string is treated as a glob if
+           it contains ``*``, ``?``, or ``[`` and is *not* a URL.
+        3. **Directories** — recursively expanded. Only files with
+           extensions registered in the ``DocumentReader`` registry are
+           included.
+        4. **Files** — included directly (even if their extension is not
+           registered — the reader will fail later with a clear error).
+
         Hidden files/directories (starting with ``"."``) and
-        ``__pycache__`` are always excluded. Symlinks are skipped to
-        prevent traversal loops.
+        ``__pycache__`` are always excluded from directory and glob
+        expansion. Symlinks are skipped to prevent traversal loops.
         """
         from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
 
@@ -897,39 +968,50 @@ class CorpusBuilder:
         for src in sources:
             src_str = str(src)
 
-            # URL
+            # 1. URL — pass through
             if src_str.startswith(("http://", "https://")):
                 expanded.append(src_str)
                 continue
 
-            # Path
+            # 2. Glob pattern — expand and filter
+            if any(c in src_str for c in ("*", "?", "[")):
+                matches = sorted(_glob.glob(src_str, recursive=True))
+                if not matches:
+                    logger.warning("Glob pattern matched no files: %s", src_str)
+                    continue
+                for m in matches:
+                    mp = Path(m)
+                    if not mp.is_file():
+                        continue
+                    if mp.is_symlink():
+                        logger.debug("Skipping symlink: %s", mp)
+                        continue
+                    if any(
+                        part.startswith(".") or part == "__pycache__"
+                        for part in mp.parts
+                    ):
+                        continue
+                    expanded.append(mp)
+                continue
+
+            # 3 / 4. Path (file or directory)
             p = Path(src_str)
             if p.is_file():
                 expanded.append(p)
             elif p.is_dir():
-                # Recursively find files with supported extensions
                 for fp in sorted(p.rglob("*")):
                     if not fp.is_file():
                         continue
-                    # Skip symlinks to prevent traversal loops
                     if fp.is_symlink():
-                        logger.debug(
-                            "Skipping symlink: %s",
-                            fp,
-                        )
+                        logger.debug("Skipping symlink: %s", fp)
                         continue
-                    # Skip hidden files/dirs and __pycache__
                     if any(
                         part.startswith(".") or part == "__pycache__"
                         for part in fp.relative_to(p).parts
                     ):
                         continue
-                    # Only include files with a registered reader
                     if supported and fp.suffix.lower() not in supported:
-                        logger.debug(
-                            "Skipping unsupported extension: %s",
-                            fp,
-                        )
+                        logger.debug("Skipping unsupported extension: %s", fp)
                         continue
                     expanded.append(fp)
             else:
@@ -949,8 +1031,37 @@ class CorpusBuilder:
         source_author: str | None = None,
         collection_id: str | None = None,
     ) -> list[Any]:
-        """Ingest a single source file or URL into documents."""
-        # Get or create reader
+        """Ingest a single source file or URL into documents.
+
+        Handles three categories of source:
+
+        1. **URLs** — classified via :func:`~._url_handler.classify_url`.
+           ``WEB_PAGE`` and ``YOUTUBE`` URLs are routed to
+           ``DocumentReader.from_url`` as before. All other URL kinds
+           (downloadable file, Google Drive, GitHub) are downloaded to
+           a temp file and then processed via ``DocumentReader.create``.
+        2. **Archive files** (zip, tar, tar.gz, etc.) — extracted to a
+           temp directory, and each supported file inside is processed
+           individually via ``DocumentReader.create``.
+        3. **Regular files** — processed via ``DocumentReader.create``
+           using the extension-based reader registry.
+
+        Parameters
+        ----------
+        source : str or Path
+            File path or URL.
+        source_title : str or None, optional
+            Override title for provenance.
+        source_author : str or None, optional
+            Override author for provenance.
+        collection_id : str or None, optional
+            Override collection id for provenance.
+
+        Returns
+        -------
+        list[CorpusDocument]
+            Documents ingested from the source.
+        """
         from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
 
         cfg = self.config
@@ -969,35 +1080,33 @@ class CorpusBuilder:
         if cfg.default_language:
             reader_kwargs["default_language"] = cfg.default_language
 
-        # Get the chunker
         chunker = self._get_chunker()
 
+        # ── URL handling ─────────────────────────────────────────────
         if is_url:
-            reader = DocumentReader.from_url(
+            return self._ingest_url(
                 source_str,
                 chunker=chunker,
-                # **reader_kwargs,
-                **{
-                    k: v
-                    for k, v in reader_kwargs.items()
-                    if k
-                    in (
-                        "source_title",
-                        "source_author",
-                        "collection_id",
-                        "source_type",
-                        "default_language",
-                    )
-                },
-            )
-        else:
-            reader = DocumentReader.create(
-                source_str,
-                chunker=chunker,
-                **reader_kwargs,
+                reader_kwargs=reader_kwargs,
             )
 
-        # Collect documents
+        # ── Archive handling ─────────────────────────────────────────
+        from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
+
+        local_path = Path(source_str)
+        if local_path.is_file() and is_archive(local_path):
+            return self._ingest_archive(
+                local_path,
+                chunker=chunker,
+                reader_kwargs=reader_kwargs,
+            )
+
+        # ── Regular file ─────────────────────────────────────────────
+        reader = DocumentReader.create(
+            source_str,
+            chunker=chunker,
+            **reader_kwargs,
+        )
         documents = list(reader.get_documents())
         logger.debug(
             "Ingested %d documents from %s",
@@ -1005,6 +1114,188 @@ class CorpusBuilder:
             source_str,
         )
         return documents
+
+    def _ingest_url(
+        self,
+        url: str,
+        *,
+        chunker: Any,
+        reader_kwargs: dict[str, Any],
+    ) -> list[Any]:
+        """Ingest a URL source with automatic classification and download.
+
+        Parameters
+        ----------
+        url : str
+            HTTP/HTTPS URL.
+        chunker : ChunkerBase or None
+            Chunker to inject into the reader.
+        reader_kwargs : dict
+            Provenance keyword arguments for the reader.
+
+        Returns
+        -------
+        list[CorpusDocument]
+            Ingested documents.
+
+        Notes
+        -----
+        **URL classification logic:**
+
+        - ``WEB_PAGE`` → ``DocumentReader.from_url`` → ``WebReader``
+        - ``YOUTUBE`` → ``DocumentReader.from_url`` → ``YouTubeReader``
+        - ``DOWNLOADABLE`` / ``GITHUB_RAW`` → download → ``DocumentReader.create``
+        - ``GOOGLE_DRIVE`` → resolve → download → ``DocumentReader.create``
+        - ``GITHUB_BLOB`` → resolve to raw → download → ``DocumentReader.create``
+
+        Downloaded files that are archives (zip, tar) are further expanded
+        via :meth:`_ingest_archive`.
+        """
+        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+            URLKind,
+            classify_url,
+            download_url,
+            resolve_url,
+        )
+
+        kind = classify_url(url)
+        logger.debug("URL classified as %s: %s", kind.value, url)
+
+        # Web pages and YouTube: delegate to from_url (existing path)
+        if kind in (URLKind.WEB_PAGE, URLKind.YOUTUBE):
+            from_url_kwargs = {
+                k: v
+                for k, v in reader_kwargs.items()
+                if k
+                in (
+                    "source_title",
+                    "source_author",
+                    "collection_id",
+                    "source_type",
+                    "default_language",
+                )
+            }
+            reader = DocumentReader.from_url(
+                url,
+                chunker=chunker,
+                **from_url_kwargs,
+            )
+            documents = list(reader.get_documents())
+            logger.debug("Ingested %d documents from URL %s", len(documents), url)
+            return documents
+
+        # Downloadable file: resolve → download → create reader
+        resolved = resolve_url(url, kind=kind)
+        if resolved != url:
+            logger.info("Resolved URL: %s → %s", url, resolved)
+
+        temp_dir = self._get_temp_dir()
+        local_path = download_url(
+            resolved,
+            dest_dir=temp_dir,
+            max_bytes=self.config.max_download_bytes,
+            timeout=self.config.download_timeout,
+        )
+
+        # If the downloaded file is an archive, extract and process
+        from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
+
+        if is_archive(local_path):
+            return self._ingest_archive(
+                local_path,
+                chunker=chunker,
+                reader_kwargs=reader_kwargs,
+            )
+
+        # Regular downloaded file → create reader by extension
+        # Set filename_override to original URL for provenance
+        reader = DocumentReader.create(
+            local_path,
+            chunker=chunker,
+            filename_override=url,
+            **reader_kwargs,
+        )
+        documents = list(reader.get_documents())
+        logger.debug(
+            "Ingested %d documents from downloaded %s → %s",
+            len(documents),
+            url,
+            local_path,
+        )
+        return documents
+
+    def _ingest_archive(
+        self,
+        archive_path: Path,
+        *,
+        chunker: Any,
+        reader_kwargs: dict[str, Any],
+    ) -> list[Any]:
+        """Extract an archive and ingest each file inside.
+
+        Parameters
+        ----------
+        archive_path : Path
+            Path to the archive file.
+        chunker : ChunkerBase or None
+            Chunker to inject.
+        reader_kwargs : dict
+            Provenance keyword arguments.
+
+        Returns
+        -------
+        list[CorpusDocument]
+            Documents ingested from all files in the archive.
+        """
+        from scikitplot.corpus._archive_handler import (  # noqa: PLC0415
+            extract_archive,
+        )
+        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+
+        cfg = self.config
+        supported = set(DocumentReader.supported_types()) or None
+        temp_dir = self._get_temp_dir()
+        extract_dir = temp_dir / f"archive_{archive_path.stem}"
+
+        extracted_files = extract_archive(
+            archive_path,
+            extract_dir,
+            supported_extensions=(frozenset(supported) if supported else None),
+            max_files=cfg.max_archive_files,
+            max_total_bytes=cfg.max_archive_bytes,
+        )
+
+        all_docs: list[Any] = []
+        for fp in extracted_files:
+            try:
+                reader = DocumentReader.create(
+                    fp,
+                    chunker=chunker,
+                    filename_override=f"{archive_path.name}/{fp.relative_to(extract_dir)}",
+                    **reader_kwargs,
+                )
+                docs = list(reader.get_documents())
+                all_docs.extend(docs)
+                logger.debug(
+                    "Ingested %d documents from archive member %s",
+                    len(docs),
+                    fp.name,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Failed to ingest archive member %s: %s",
+                    fp,
+                    exc,
+                )
+
+        logger.info(
+            "Ingested %d documents from %d files in archive %s",
+            len(all_docs),
+            len(extracted_files),
+            archive_path.name,
+        )
+        return all_docs
 
     # ==================================================================
     # Internal: lazy component creation

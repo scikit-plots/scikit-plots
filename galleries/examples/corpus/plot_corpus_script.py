@@ -17,6 +17,9 @@ Examples related to the :py:mod:`~scikitplot.corpus` submodule.
 # First we download the media preproccess libraries (text, image, audio or video).
 # faster-whisper, openai-whisper, youtube-transcript-api,
 
+# .. seealso::
+#    * galleries/examples/00-jupyter_notebooks/corpus/plot_corpus_from_any_media_notebook.ipynb
+
 # import faster_whisper
 # import whisper  # openai-whisper
 # import youtube_transcript_api

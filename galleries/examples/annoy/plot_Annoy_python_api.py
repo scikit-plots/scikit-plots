@@ -522,5 +522,6 @@ with Timer("rebuild"):
 #
 # .. tags::
 #
+#    model-workflow: vector-db
 #    level: beginner
 #    purpose: showcase
