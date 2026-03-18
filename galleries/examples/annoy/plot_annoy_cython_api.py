@@ -6,15 +6,6 @@ Index (cython) python-api with examples
 =======================================
 
 An example showing the :py:class:`~scikitplot.annoy._annoy.Index` class.
-
-.. important::
-
-  Some parameters are placeholders only and are not processed::
-
-  * dtype
-  * index_dtype
-  * wrapper_dtype
-  * random_dtype
 """
 
 # %%
