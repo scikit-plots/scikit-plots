@@ -18,7 +18,7 @@ import struct; print(struct.calcsize('P')*8)
 
 # %%
 
-from scikitplot.annoy._annoy import Index  # cython Total: 160 concrete index-data types
+from scikitplot.annoy._annoy import Index  # cython Total: 160 concrete index-data-metrics types 8 S × 4 T × 5 metrics
 from scikitplot.annoy import AnnoyIndex  # Cpp 1 concrete index-data type (uint64 index float32 data)
 
 # 32 bit int index
@@ -54,6 +54,9 @@ print(Index.__doc__)
 # %%
 
 import sys
+import tempfile
+from pathlib import Path
+
 import scikitplot
 
 # spotify/annoy Backward compatibility helper

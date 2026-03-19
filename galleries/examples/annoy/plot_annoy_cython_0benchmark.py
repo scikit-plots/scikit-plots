@@ -26,9 +26,38 @@ from scikitplot.annoy._annoy import Index
 
 import subprocess
 import sys
+import inspect
+import joblib
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+def get_current_script_dir() -> Path:
+    """
+    Returns the directory of the current script in a robust way.
+
+    Returns
+    -------
+    Path
+        Absolute directory path.
+
+    Raises
+    ------
+    RuntimeError
+        If location cannot be determined.
+    """
+    # Case 1: normal Python execution
+    if "__file__" in globals():
+        return Path(__file__).resolve().parent
+
+    # Case 2: fallback for Sphinx-gallery / exec environments
+    frame = inspect.currentframe()
+    if frame is not None:
+        file = inspect.getfile(frame)
+        return Path(file).resolve().parent
+
+    raise RuntimeError("Cannot determine script directory.")
+
+BASE_DIR = get_current_script_dir()
+PROJECT_ROOT = BASE_DIR.parents[2]
 
 # pytest ../../../scikitplot/annoy/_annoy/tests/test_benchmark_dtype_combinations.py::test_benchmark_summary_table
 cmd = [

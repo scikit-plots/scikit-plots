@@ -18,6 +18,7 @@ catboost_info/
 # 32 bit int indexing testing
 # < v2
 !test.tree
+!test64.tree
 *.annoy
 *.ann
 *.tree
