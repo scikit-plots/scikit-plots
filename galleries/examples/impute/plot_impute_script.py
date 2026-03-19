@@ -55,10 +55,39 @@ from sklearn.preprocessing import MaxAbsScaler, RobustScaler, StandardScaler
 
 # %%
 
+import inspect
 import joblib
+from pathlib import Path
 
+def get_current_script_dir() -> Path:
+    """
+    Returns the directory of the current script in a robust way.
+
+    Returns
+    -------
+    Path
+        Absolute directory path.
+
+    Raises
+    ------
+    RuntimeError
+        If location cannot be determined.
+    """
+    # Case 1: normal Python execution
+    if "__file__" in globals():
+        return Path(__file__).resolve().parent
+
+    # Case 2: fallback for Sphinx-gallery / exec environments
+    frame = inspect.currentframe()
+    if frame is not None:
+        file = inspect.getfile(frame)
+        return Path(file).resolve().parent
+
+    raise RuntimeError("Cannot determine script directory.")
+
+BASE_DIR = get_current_script_dir()
 # joblib.dump(fetch_california_housing(return_X_y=True), "fetch_california_housing.joblib")
-joblib.load(Path(__file__).parent / "fetch_california_housing.joblib")
+joblib.load(BASE_DIR / "fetch_california_housing.joblib")
 
 # %%
 
