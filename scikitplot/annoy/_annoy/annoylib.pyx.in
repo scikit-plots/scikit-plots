@@ -2001,7 +2001,7 @@ cdef class Index(BaseIndex):
     # Core Annoy Methods
     # =========================================================================
 
-    def add_item(self, uint64_t item, vector) -> None:
+    def add_item(self, item, vector) -> None:
         """
         Add a vector to the index.
 
@@ -2032,18 +2032,12 @@ cdef class Index(BaseIndex):
         * Item IDs need not be contiguous
         * After build(), call unbuild() to add more items
         """
+        if item < 0:
+            raise IndexError("item id cannot be negative")
+        cdef uint64_t item64 = <uint64_t>item
+
         if self.ptr == NULL:
             self._ensure_index()
-
-        # if item < 0:
-        #     raise IndexError("item id cannot be negative")
-
-        # Validate item ID fits in the target index type.
-        # The _w bridge uses int64_t; small types (int8/uint8/int16/uint16/uint32)
-        # require an explicit upper-bound check to prevent silent truncation in C++.
-        # For int64 and uint64 (bridge-limited to INT64_MAX) the Cython int64_t
-        # parameter declaration already rejects Python ints > INT64_MAX.
-        _validate_item_id(self.index_type_id, item)
 
         # Build a double[] view of the Python sequence, then call add_item_w.
         # The C++ bridge (AnnoyIndexInterface::add_item_w) narrows double→T
@@ -2057,7 +2051,7 @@ cdef class Index(BaseIndex):
         cdef char* error = NULL
         cdef cpp_bool success
         with nogil:
-            success = self.ptr.add_item_w(<uint64_t>item, _vec.data(), &error)
+            success = self.ptr.add_item_w(item64, _vec.data(), &error)
 
         # Convert Python sequence to C array and dispatch on runtime type
         # TEMPLATE GENERATED: {{len(index_types)}} x {{len(data_types)}} = {{len(index_types)*len(data_types)}} type combinations
@@ -2265,7 +2259,7 @@ cdef class Index(BaseIndex):
             else:
                 raise RuntimeError("unbuild failed (unknown error)")
 
-    def get_nns_by_item(self, uint64_t item, int n, int search_k=-1, bint include_distances=False):
+    def get_nns_by_item(self, item, int n, int search_k=-1, bint include_distances=False):
         """
         Find nearest neighbors (thread-safe, releases GIL).
 
@@ -2316,13 +2310,12 @@ cdef class Index(BaseIndex):
         ...     ))
         >>> # True parallelism - all 8 threads run concurrently!
         """
+        if item < 0:
+            raise IndexError("item id cannot be negative")
+        cdef uint64_t item64 = <uint64_t>item
+
         if self.ptr == NULL:
             raise RuntimeError("Cannot query: index not constructed")
-
-        # if item < 0:
-        #     raise IndexError("item id cannot be negative")
-
-        _validate_item_id(self.index_type_id, item)
 
         # Delegate to widened bridge — results are uint64_t IDs and double distances.
         cdef cpp_vector[uint64_t] _result
@@ -2330,7 +2323,7 @@ cdef class Index(BaseIndex):
 
         if include_distances:
             with nogil:
-                self.ptr.get_nns_by_item_w(<uint64_t>item, n, search_k,
+                self.ptr.get_nns_by_item_w(item64, n, search_k,
                                            &_result, &_distances)
             return (
                 [_result[_i]    for _i in range(_result.size())],
@@ -2338,7 +2331,7 @@ cdef class Index(BaseIndex):
             )
         else:
             with nogil:
-                self.ptr.get_nns_by_item_w(<uint64_t>item, n, search_k,
+                self.ptr.get_nns_by_item_w(item64, n, search_k,
                                            &_result, NULL)
             return [_result[_i] for _i in range(_result.size())]
 
@@ -2473,7 +2466,7 @@ cdef class Index(BaseIndex):
         # else:
         #     raise RuntimeError(f"Unsupported index_type_id {self.index_type_id}")
 
-    def get_item(self, uint64_t item):
+    def get_item(self, item):
         """
         Retrieve a stored embedding vector.
 
@@ -2497,18 +2490,17 @@ cdef class Index(BaseIndex):
         IndexError
             If item is negative or >= n_items
         """
+        if item < 0:
+            raise IndexError("item id cannot be negative")
+        cdef uint64_t item64 = <uint64_t>item
+
         if self.ptr == NULL:
             raise RuntimeError("Cannot get_item: index not constructed")
-
-        # if item < 0:
-        #     raise IndexError("item id cannot be negative")
-
-        _validate_item_id(self.index_type_id, item)
 
         cdef int _gi
         cdef cpp_vector[double] _gi_vec
         _gi_vec.resize(self.f)
-        self.ptr.get_item_w(<uint64_t>item, _gi_vec.data())
+        self.ptr.get_item_w(item64, _gi_vec.data())
         return [_gi_vec[_gi] for _gi in range(self.f)]
 
         # TEMPLATE GENERATED: type-dispatch get_item
@@ -2537,7 +2529,7 @@ cdef class Index(BaseIndex):
         # else:
         #     raise RuntimeError(f"Unsupported index_type_id {self.index_type_id}")
 
-    def get_distance(self, uint64_t i, uint64_t j):
+    def get_distance(self, i, j):
         """
         Compute distance between two stored items.
 
@@ -2569,13 +2561,12 @@ cdef class Index(BaseIndex):
         if self.ptr == NULL:
             raise RuntimeError("Cannot get_distance: index not constructed")
 
-        # if i < 0 or j < 0:
-        #     raise IndexError("item ids cannot be negative")
+        if i < 0 or j < 0:
+            raise IndexError("item ids cannot be negative")
 
-        _validate_item_id(self.index_type_id, i)
-        _validate_item_id(self.index_type_id, j)
-
-        return self.ptr.get_distance_w(<uint64_t>i, <uint64_t>j)
+        cdef uint64_t i64 = <uint64_t>i
+        cdef uint64_t j64 = <uint64_t>j
+        return self.ptr.get_distance_w(i64, j64)
 
         # TEMPLATE GENERATED: type-dispatch get_distance
         {{for loop, index_type in looper(index_types)}}
