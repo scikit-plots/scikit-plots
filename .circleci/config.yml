@@ -226,7 +226,7 @@ commands:
 
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
             # python -m pip check
-            pip install -U "protobuf<6"
+            pip install -U "protobuf<7"
   build-scikit-plots:
     description: build scikit-plots
     steps:

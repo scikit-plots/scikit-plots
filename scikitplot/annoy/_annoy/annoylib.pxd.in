@@ -169,7 +169,7 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
     #
     # Type-independent methods call directly via vtable.
     # Type-dependent methods use widened wire types (_w suffix):
-    #   S → int64_t   T → double   R → uint64_t
+    #   S → uint64_t   T → double   R → uint64_t
     # Bridge implementations in AnnoyIndexInterface<S,T,R> do the casts.
     cdef cppclass AnnoyIndexInterfaceBase nogil:
 
@@ -216,7 +216,7 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
         # cpp_bool add_item(S item, const T* embedding, char** error) except +
 
         # ── Widened mutators (_w) ─────────────────────────────────────────
-        cpp_bool add_item_w(int64_t item, const double* emb,
+        cpp_bool add_item_w(uint64_t item, const double* emb,
                             char** error)                  except +
 
         # ==================== Metadata ====================
@@ -227,10 +227,10 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
         # void get_item(S item, T* embedding) except +
 
         # ── Widened accessors (_w) ────────────────────────────────────────
-        int64_t get_n_items_w()                            nogil
-        int64_t get_n_trees_w()                            nogil
-        double  get_distance_w(int64_t i, int64_t j)       except +
-        void    get_item_w(int64_t item, double* emb)      except +
+        uint64_t get_n_items_w()                            nogil
+        uint64_t get_n_trees_w()                            nogil
+        double  get_distance_w(uint64_t i, uint64_t j)      except +
+        void    get_item_w(uint64_t item, double* emb)      except +
 
         # ==================== Querying ====================
 
@@ -251,14 +251,14 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 
         # ── Widened queries (_w) ──────────────────────────────────────────
         void get_nns_by_item_w(
-            int64_t item, size_t n, int search_k,
-            cpp_vector[int64_t]* result,
+            uint64_t item, size_t n, int search_k,
+            cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
         ) except +
 
         void get_nns_by_vector_w(
             const double* vec, size_t n, int search_k,
-            cpp_vector[int64_t]* result,
+            cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
         ) except +
 

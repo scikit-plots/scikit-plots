@@ -2887,7 +2887,7 @@ static int py_annoy_set_y(
     if (n_items > 0) {
       const Py_ssize_t n = PySequence_Size(value);
       if (n < 0) return -1;
-      if ((int64_t)n != (int64_t)n_items) {
+      if ((IndexDtype)n != (IndexDtype)n_items) {
         PyErr_Format(PyExc_ValueError,
           "y must have length %d to match current index size (n_items)", n_items);
         return -1;
@@ -4271,7 +4271,7 @@ static bool annoy_build_canonical_blob(
   // Compute payload size with overflow checks.
   uint64_t payload_bytes = 0;
   if (n_items != 0 && f != 0) {
-    const uint64_t mul = static_cast<uint64_t>(n_items) * static_cast<uint64_t>(f);
+    const uint64_t mul = static_cast<IndexDtype>(n_items) * static_cast<uint64_t>(f);
     if (mul > (std::numeric_limits<uint64_t>::max() / 4ULL)) {
       PyErr_SetString(PyExc_OverflowError, "canonical payload too large to serialize");
       return false;
@@ -4298,8 +4298,8 @@ static bool annoy_build_canonical_blob(
   annoy_append_u32_le(*out_blob, f);       // f_u32 (dimension; max ~2B, uint32 sufficient)
   // n_items and n_trees are written as uint64 in v2 to support IndexDtype = uint64_t.
   // v1 wrote these as uint32 (max 4B items). v2 removes that cap entirely.
-  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(n_items));
-  annoy_append_u64_le(*out_blob, static_cast<uint64_t>(built ? n_trees : IndexDtype(0)));
+  annoy_append_u64_le(*out_blob, static_cast<IndexDtype>(n_items));
+  annoy_append_u64_le(*out_blob, static_cast<IndexDtype>(built ? n_trees : IndexDtype(0)));
 
   annoy_append_u8(*out_blob, self->has_pending_seed ? 1 : 0);
   annoy_append_u8(*out_blob, self->has_pending_verbose ? 1 : 0);
@@ -4398,8 +4398,8 @@ static bool annoy_parse_canonical_blob(
   uint8_t  reserved_u8 = 0;
   uint16_t reserved_u16a = 0;
   uint32_t f           = 0;
-  uint64_t n_items_raw = 0;  // holds wire value; narrowed/widened to IndexDtype below
-  uint64_t n_trees_raw = 0;
+  IndexDtype n_items_raw = 0;  // holds wire value; narrowed/widened to IndexDtype below
+  IndexDtype n_trees_raw = 0;
   uint8_t  has_seed    = 0;
   uint8_t  has_verbose = 0;
   uint16_t reserved_u16b = 0;
@@ -4437,8 +4437,8 @@ static bool annoy_parse_canonical_blob(
       return false;
     }
     // Widen: uint32_t → uint64_t; always safe (UINT32_MAX < UINT64_MAX)
-    n_items_raw = static_cast<uint64_t>(tmp_items);
-    n_trees_raw = static_cast<uint64_t>(tmp_trees);
+    n_items_raw = static_cast<IndexDtype>(tmp_items);
+    n_trees_raw = static_cast<IndexDtype>(tmp_trees);
   } else {
     // v2: both stored as uint64_t (8 bytes each) — native IndexDtype width
     if (!annoy_read_u64_le(p, n, &n_items_raw) ||
@@ -4487,12 +4487,12 @@ static bool annoy_parse_canonical_blob(
   // For v2 blobs it is also trivially true since n_items_raw IS uint64_t.
   // The check is here as a documentation invariant and guard against future
   // changes where IndexDtype might be narrower than uint64_t.
-  if (n_items_raw > static_cast<uint64_t>(std::numeric_limits<IndexDtype>::max())) {
+  if (n_items_raw > static_cast<IndexDtype>(std::numeric_limits<IndexDtype>::max())) {
     PyErr_SetString(PyExc_OverflowError,
       "canonical blob n_items exceeds IndexDtype range");
     return false;
   }
-  if (n_trees_raw > static_cast<uint64_t>(std::numeric_limits<IndexDtype>::max())) {
+  if (n_trees_raw > static_cast<IndexDtype>(std::numeric_limits<IndexDtype>::max())) {
     PyErr_SetString(PyExc_OverflowError,
       "canonical blob n_trees exceeds IndexDtype range");
     return false;
@@ -4501,12 +4501,12 @@ static bool annoy_parse_canonical_blob(
   // Validate payload size: n_items * f * sizeof(float).
   // Use uint64_t arithmetic throughout; overflow check before multiply.
   if (n_items_raw != 0 && f != 0) {
-    if (n_items_raw > std::numeric_limits<uint64_t>::max() / static_cast<uint64_t>(f)) {
+    if (n_items_raw > std::numeric_limits<IndexDtype>::max() / static_cast<IndexDtype>(f)) {
       PyErr_SetString(PyExc_OverflowError,
         "canonical blob n_items * f overflows uint64_t");
       return false;
     }
-    const uint64_t nf = n_items_raw * static_cast<uint64_t>(f);
+    const IndexDtype nf = n_items_raw * static_cast<IndexDtype>(f);
     if (nf > std::numeric_limits<uint64_t>::max() / 4ULL) {
       PyErr_SetString(PyExc_OverflowError,
         "canonical blob payload size overflows uint64_t");
@@ -6546,12 +6546,12 @@ static PyObject* py_an_fit(
 
 
   // Validate start_index + n_samples fits in IndexDtype range [0, ANNOY_IDX_MAX].
-  if (start_index > (int64_t)ANNOY_IDX_MAX) {
+  if (start_index > (uint64_t)ANNOY_IDX_MAX) {
     Py_DECREF(X_seq);
     PyErr_SetString(PyExc_OverflowError, "start_index exceeds IndexDtype range");
     return NULL;
   }
-  if (start_index + (int64_t)n_samples - 1 > (int64_t)ANNOY_IDX_MAX) {
+  if (start_index + (uint64_t)n_samples - 1 > (uint64_t)ANNOY_IDX_MAX) {
     Py_DECREF(X_seq);
     PyErr_SetString(PyExc_OverflowError, "Item ids exceed IndexDtype range");
     return NULL;
@@ -6570,7 +6570,7 @@ static PyObject* py_an_fit(
       return NULL;  // exception already set
     }
 
-    const IndexDtype item_id = static_cast<IndexDtype>(start_index + (int64_t)i);
+    const IndexDtype item_id = static_cast<IndexDtype>(start_index + (uint64_t)i);
 
     // Disallow adding after build (should be prevented earlier, but keep explicit).
     if (self->ptr->get_n_trees() > 0) {

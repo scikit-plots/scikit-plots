@@ -2378,20 +2378,20 @@ public:
                           char** error = NULL) noexcept = 0;
 
   // Accessors
-  virtual int64_t get_n_items_w()   const noexcept = 0;
-  virtual int64_t get_n_trees_w()   const noexcept = 0;
+  virtual uint64_t get_n_items_w()   const noexcept = 0;
+  virtual uint64_t get_n_trees_w()   const noexcept = 0;
   virtual void    get_item_w(uint64_t item, double* embedding) const noexcept = 0;
   virtual double  get_distance_w(uint64_t i, uint64_t j) const noexcept = 0;
 
   // Querying
   virtual void get_nns_by_item_w(
     uint64_t item, size_t n, int search_k,
-    std::vector<int64_t>* result,
+    std::vector<uint64_t>* result,
     std::vector<double>*  distances) const noexcept = 0;
 
   virtual void get_nns_by_vector_w(
     const double* vec, size_t n, int search_k,
-    std::vector<int64_t>* result,
+    std::vector<uint64_t>* result,
     std::vector<double>*  distances) const noexcept = 0;
 };
 /* =========================================================================================
@@ -2543,12 +2543,12 @@ class AnnoyIndexInterface
     }
   }
 
-  int64_t get_n_items_w() const noexcept override final {
-    return static_cast<int64_t>(get_n_items());
+  uint64_t get_n_items_w() const noexcept override final {
+    return static_cast<uint64_t>(get_n_items());
   }
 
-  int64_t get_n_trees_w() const noexcept override final {
-    return static_cast<int64_t>(get_n_trees());
+  uint64_t get_n_trees_w() const noexcept override final {
+    return static_cast<uint64_t>(get_n_trees());
   }
 
   void get_item_w(uint64_t item, double* embedding) const noexcept override final {
@@ -2566,7 +2566,7 @@ class AnnoyIndexInterface
 
   void get_nns_by_item_w(
       uint64_t item, size_t n, int search_k,
-      std::vector<int64_t>* result,
+      std::vector<uint64_t>* result,
       std::vector<double>*  distances) const noexcept override final {
     try {
       std::vector<S> sr;
@@ -2575,19 +2575,19 @@ class AnnoyIndexInterface
         get_nns_by_item(static_cast<S>(item), n, search_k, &sr, &sd);
         result->resize(sr.size());
         distances->resize(sd.size());
-        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<uint64_t>(sr[k]);
         for (size_t k = 0; k < sd.size(); ++k) (*distances)[k] = static_cast<double>(sd[k]);
       } else {
         get_nns_by_item(static_cast<S>(item), n, search_k, &sr, NULL);
         result->resize(sr.size());
-        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<uint64_t>(sr[k]);
       }
     } catch (...) {}
   }
 
   void get_nns_by_vector_w(
       const double* vec, size_t n, int search_k,
-      std::vector<int64_t>* result,
+      std::vector<uint64_t>* result,
       std::vector<double>*  distances) const noexcept override final {
     try {
       const int f = get_f();
@@ -2599,12 +2599,12 @@ class AnnoyIndexInterface
         get_nns_by_vector(query.data(), n, search_k, &sr, &sd);
         result->resize(sr.size());
         distances->resize(sd.size());
-        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k]    = static_cast<uint64_t>(sr[k]);
         for (size_t k = 0; k < sd.size(); ++k) (*distances)[k] = static_cast<double>(sd[k]);
       } else {
         get_nns_by_vector(query.data(), n, search_k, &sr, NULL);
         result->resize(sr.size());
-        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<int64_t>(sr[k]);
+        for (size_t k = 0; k < sr.size(); ++k) (*result)[k] = static_cast<uint64_t>(sr[k]);
       }
     } catch (...) {}
   }
