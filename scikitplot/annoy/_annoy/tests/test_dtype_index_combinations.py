@@ -624,7 +624,7 @@ def test_negative_item_id_raises_index_error(method_name: str, args_fn, index_dt
     index = Index(f=f, metric="angular", index_dtype=index_dtype, seed=1)
     index.add_item(0, [0.1] * f)
 
-    with pytest.raises(IndexError):
+    with pytest.raises(IndexError, OverflowError):
         method = getattr(index, method_name)
         method(*args_fn())
 

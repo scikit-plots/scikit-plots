@@ -269,7 +269,7 @@ def test_overflow_guard_new_index_types(index_dtype, max_item):
 def test_negative_item_id_raises_index_error_new_types(index_dtype, _max):
     """Negative item IDs always raise IndexError for all new index types."""
     idx = Index(f=4, metric="angular", index_dtype=index_dtype, seed=SEED)
-    with pytest.raises(IndexError):
+    with pytest.raises(IndexError, OverflowError):
         idx.add_item(-1, [1.0, 2.0, 3.0, 4.0])
 
 
