@@ -29,6 +29,7 @@ repos:
           benchmarks/.*|\
           docs/source/logos/.*|\
           docs/source/_static/logos/.*|\
+          docs/source/_static/user_guide/corpus_any_to_any_architecture.png|\
           docs/source/devel/sampledoc.pdf|\
           docs/source/user_guide/random/GoodPracticeRNG.pdf|\
           docs/source/.jupyterlite.doit.db|\

@@ -494,9 +494,21 @@ maintenance = [
   "conda-lock>=3.0.0",                      # Dependency lock files for Conda
 ]
 
-## Mlflow
+## mlflow submodule dep
 mlflow = [
-  "mlflow",                                 # Dependency lock files for Conda
+  "mlflow",                                 # mlflow
+]
+
+## corpus submodule dep
+## sudo apt-get install tesseract-ocr
+corpus = [
+  "nltk",                                   # nltk
+  "gensim",
+  "langdetect",
+  "pytesseract",
+  "faster-whisper",
+  "openai-whisper",
+  "youtube-transcript-api",
 ]
 
 ## Specialized dependencies for specific hardware

@@ -800,3 +800,267 @@ class TestLangChainCorpusRetriever:
         mock_idx = MagicMock()
         retriever = LangChainCorpusRetriever(mock_idx)
         assert "LangChainCorpusRetriever" in repr(retriever)
+
+
+# =====================================================================
+# Tests: BuilderConfig — probe_url fields
+# =====================================================================
+
+
+class TestBuilderConfigProbeURL:
+    """Tests for the new probe_url_content_type and probe_url_timeout fields."""
+
+    def test_probe_url_content_type_default_true(self):
+        from scikitplot.corpus._corpus_builder import BuilderConfig
+        cfg = BuilderConfig()
+        assert cfg.probe_url_content_type is True
+
+    def test_probe_url_timeout_default_15(self):
+        from scikitplot.corpus._corpus_builder import BuilderConfig
+        cfg = BuilderConfig()
+        assert cfg.probe_url_timeout == 15
+
+    def test_probe_url_content_type_can_be_disabled(self):
+        from scikitplot.corpus._corpus_builder import BuilderConfig
+        cfg = BuilderConfig(probe_url_content_type=False)
+        assert cfg.probe_url_content_type is False
+
+    def test_probe_url_timeout_custom(self):
+        from scikitplot.corpus._corpus_builder import BuilderConfig
+        cfg = BuilderConfig(probe_url_timeout=30)
+        assert cfg.probe_url_timeout == 30
+
+
+# =====================================================================
+# Tests: CorpusBuilder._ingest_url — two-stage URL classification
+# =====================================================================
+
+
+class TestCorpusBuilderURLProbe:
+    """Tests for the probe_url_kind integration in _ingest_url."""
+
+    def _make_builder(self, **cfg_kwargs):
+        from scikitplot.corpus._corpus_builder import BuilderConfig, CorpusBuilder
+        cfg = BuilderConfig(**cfg_kwargs)
+        return CorpusBuilder(cfg)
+
+    def _fake_documents(self, n: int = 3):
+        return [_MockDoc(doc_id=f"d{i:03d}", text=f"doc {i}") for i in range(n)]
+
+    # ------------------------------------------------------------------
+    # Stage 2 probe is triggered for extensionless WEB_PAGE URLs
+    # ------------------------------------------------------------------
+
+    def test_probe_triggered_for_extensionless_url(self):
+        """URL with no extension → probe called → DOWNLOADABLE → download path."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder()
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._corpus_builder.CorpusBuilder._get_temp_dir",
+                  return_value=MagicMock()),
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind",
+                  return_value=URLKind.DOWNLOADABLE) as mock_probe,
+            patch("scikitplot.corpus._url_handler.download_url") as mock_download,
+            patch("scikitplot.corpus._archive_handler.is_archive", return_value=False),
+            patch("scikitplot.corpus._base.DocumentReader.create") as mock_create,
+        ):
+            mock_path = MagicMock()
+            mock_path.suffix = ".pdf"
+            mock_download.return_value = mock_path
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_create.return_value = mock_reader
+
+            result = builder._ingest_url(
+                "https://iris.who.int/api/bitstreams/abc/content",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_probe.assert_called_once()
+        mock_download.assert_called_once()
+        assert len(result) == 3
+
+    def test_probe_not_triggered_when_url_has_extension(self):
+        """URL with .pdf extension → classify_url returns DOWNLOADABLE → no probe."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder()
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._corpus_builder.CorpusBuilder._get_temp_dir",
+                  return_value=MagicMock()),
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.DOWNLOADABLE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind") as mock_probe,
+            patch("scikitplot.corpus._url_handler.download_url") as mock_download,
+            patch("scikitplot.corpus._archive_handler.is_archive", return_value=False),
+            patch("scikitplot.corpus._base.DocumentReader.create") as mock_create,
+        ):
+            mock_path = MagicMock()
+            mock_path.suffix = ".pdf"
+            mock_download.return_value = mock_path
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_create.return_value = mock_reader
+
+            builder._ingest_url(
+                "https://example.com/report.pdf",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_probe.assert_not_called()
+
+    def test_probe_not_triggered_when_disabled_in_config(self):
+        """probe_url_content_type=False → no probe, falls back to WebReader path."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder(probe_url_content_type=False)
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind") as mock_probe,
+            patch("scikitplot.corpus._base.DocumentReader.from_url") as mock_from_url,
+        ):
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_from_url.return_value = mock_reader
+
+            result = builder._ingest_url(
+                "https://example.com/resource",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_probe.assert_not_called()
+        mock_from_url.assert_called_once()
+        assert len(result) == 3
+
+    def test_probe_uses_config_timeout(self):
+        """probe_url_kind receives the timeout from BuilderConfig."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder(probe_url_timeout=30)
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._corpus_builder.CorpusBuilder._get_temp_dir",
+                  return_value=MagicMock()),
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind",
+                  return_value=URLKind.DOWNLOADABLE) as mock_probe,
+            patch("scikitplot.corpus._url_handler.download_url") as mock_download,
+            patch("scikitplot.corpus._archive_handler.is_archive", return_value=False),
+            patch("scikitplot.corpus._base.DocumentReader.create") as mock_create,
+        ):
+            mock_path = MagicMock()
+            mock_path.suffix = ".pdf"
+            mock_download.return_value = mock_path
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_create.return_value = mock_reader
+
+            builder._ingest_url(
+                "https://example.com/content",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        call_kwargs = mock_probe.call_args
+        assert call_kwargs.kwargs.get("timeout") == 30
+
+    def test_probe_returns_web_page_goes_to_web_reader(self):
+        """When probe still returns WEB_PAGE → from_url (WebReader) is used."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder()
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._base.DocumentReader.from_url") as mock_from_url,
+        ):
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_from_url.return_value = mock_reader
+
+            result = builder._ingest_url(
+                "https://example.com/about",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_from_url.assert_called_once()
+        assert len(result) == 3
+
+    def test_probe_reclassified_archive_url_extracts(self):
+        """When probe → DOWNLOADABLE and file is archive → _ingest_archive called."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder()
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._corpus_builder.CorpusBuilder._get_temp_dir",
+                  return_value=MagicMock()),
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.WEB_PAGE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind",
+                  return_value=URLKind.DOWNLOADABLE),
+            patch("scikitplot.corpus._url_handler.download_url") as mock_download,
+            patch("scikitplot.corpus._archive_handler.is_archive", return_value=True),
+            patch.object(builder, "_ingest_archive", return_value=docs) as mock_archive,
+        ):
+            mock_download.return_value = MagicMock()
+
+            result = builder._ingest_url(
+                "https://example.com/bundle",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_archive.assert_called_once()
+        assert result is docs
+
+    # ------------------------------------------------------------------
+    # YouTube and explicit WEB_PAGE are not affected by probe
+    # ------------------------------------------------------------------
+
+    def test_youtube_url_never_probed(self):
+        """YouTube URLs are classified and routed before probe is considered."""
+        from scikitplot.corpus._url_handler import URLKind
+
+        builder = self._make_builder()
+        docs = self._fake_documents()
+
+        with (
+            patch("scikitplot.corpus._url_handler.classify_url",
+                  return_value=URLKind.YOUTUBE),
+            patch("scikitplot.corpus._url_handler.probe_url_kind") as mock_probe,
+            patch("scikitplot.corpus._base.DocumentReader.from_url") as mock_from_url,
+        ):
+            mock_reader = MagicMock()
+            mock_reader.get_documents.return_value = docs
+            mock_from_url.return_value = mock_reader
+
+            builder._ingest_url(
+                "https://youtu.be/abc123",
+                chunker=None,
+                reader_kwargs={},
+            )
+
+        mock_probe.assert_not_called()
+        mock_from_url.assert_called_once()
