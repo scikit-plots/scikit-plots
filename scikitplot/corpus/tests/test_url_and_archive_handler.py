@@ -9,6 +9,7 @@ import os
 import tempfile
 import zipfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -18,11 +19,13 @@ import pytest
 
 from scikitplot.corpus._url_handler import (
     URLKind,
+    _classify_content_type,
     _infer_extension_from_headers,
     _make_temp_filename,
     _resolve_gdrive,
     _resolve_github_blob,
     classify_url,
+    probe_url_kind,
     resolve_url,
 )
 
@@ -96,15 +99,24 @@ class TestClassifyURL:
 
     def test_web_page_html(self):
         # .html is not in _DOWNLOADABLE_EXTENSIONS — treated as web page
-        # Actually .html is not in the set, so it falls to WEB_PAGE
         result = classify_url("https://example.com/page.html")
-        # .html is not in _DOWNLOADABLE_EXTENSIONS
         assert result == URLKind.WEB_PAGE
 
     def test_web_page_news(self):
         assert classify_url(
             "https://www.who.int/europe/news/item/12-12-2023-article"
         ) == URLKind.WEB_PAGE
+
+    # -- API endpoints without extension (stage 1 → WEB_PAGE) --
+    def test_api_endpoint_no_extension_is_webpage_before_probe(self):
+        """API endpoint with no extension classifies as WEB_PAGE (stage 1 only)."""
+        assert classify_url(
+            "https://iris.who.int/server/api/core/bitstreams/abc/content"
+        ) == URLKind.WEB_PAGE
+
+    def test_api_download_no_extension_is_webpage_before_probe(self):
+        """Download endpoints without extension are WEB_PAGE at stage 1."""
+        assert classify_url("https://example.com/download") == URLKind.WEB_PAGE
 
     # -- Error --
     def test_invalid_url(self):
@@ -179,6 +191,22 @@ class TestInferExtension:
     def test_fallback_bin(self):
         assert _infer_extension_from_headers({}, "https://example.com/download") == ".bin"
 
+    def test_image_content_type(self):
+        headers = {"Content-Type": "image/jpeg"}
+        assert _infer_extension_from_headers(headers, "https://example.com/img") == ".jpg"
+
+    def test_audio_content_type(self):
+        headers = {"Content-Type": "audio/mpeg"}
+        assert _infer_extension_from_headers(headers, "https://example.com/podcast") == ".mp3"
+
+    def test_video_content_type(self):
+        headers = {"Content-Type": "video/mp4"}
+        assert _infer_extension_from_headers(headers, "https://example.com/clip") == ".mp4"
+
+    def test_zip_content_type(self):
+        headers = {"Content-Type": "application/zip"}
+        assert _infer_extension_from_headers(headers, "https://example.com/bundle") == ".zip"
+
 
 class TestMakeTempFilename:
     """Tests for _make_temp_filename."""
@@ -197,6 +225,242 @@ class TestMakeTempFilename:
         name = _make_temp_filename("https://example.com/file.pdf", ".pdf")
         assert name.startswith("skplt_")
         assert name.endswith(".pdf")
+
+
+# ---------------------------------------------------------------------------
+# Tests for _classify_content_type (unit tests for the new helper)
+# ---------------------------------------------------------------------------
+
+
+class TestClassifyContentType:
+    """Tests for _classify_content_type mapping MIME → URLKind."""
+
+    def test_pdf_is_downloadable(self):
+        assert _classify_content_type("application/pdf") == URLKind.DOWNLOADABLE
+
+    def test_zip_is_downloadable(self):
+        assert _classify_content_type("application/zip") == URLKind.DOWNLOADABLE
+
+    def test_image_jpeg_is_downloadable(self):
+        assert _classify_content_type("image/jpeg") == URLKind.DOWNLOADABLE
+
+    def test_image_png_is_downloadable(self):
+        assert _classify_content_type("image/png") == URLKind.DOWNLOADABLE
+
+    def test_audio_mpeg_is_downloadable(self):
+        assert _classify_content_type("audio/mpeg") == URLKind.DOWNLOADABLE
+
+    def test_audio_wav_is_downloadable(self):
+        assert _classify_content_type("audio/wav") == URLKind.DOWNLOADABLE
+
+    def test_video_mp4_is_downloadable(self):
+        assert _classify_content_type("video/mp4") == URLKind.DOWNLOADABLE
+
+    def test_video_webm_is_downloadable(self):
+        assert _classify_content_type("video/webm") == URLKind.DOWNLOADABLE
+
+    def test_text_csv_is_downloadable(self):
+        assert _classify_content_type("text/csv") == URLKind.DOWNLOADABLE
+
+    def test_text_plain_is_downloadable(self):
+        # Plain text (transcripts, code) routes to TextReader not WebReader.
+        assert _classify_content_type("text/plain") == URLKind.DOWNLOADABLE
+
+    def test_json_is_downloadable(self):
+        assert _classify_content_type("application/json") == URLKind.DOWNLOADABLE
+
+    def test_octet_stream_is_downloadable(self):
+        assert _classify_content_type("application/octet-stream") == URLKind.DOWNLOADABLE
+
+    def test_xlsx_is_downloadable(self):
+        assert _classify_content_type(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ) == URLKind.DOWNLOADABLE
+
+    def test_html_is_web_page(self):
+        assert _classify_content_type("text/html") == URLKind.WEB_PAGE
+
+    def test_empty_is_web_page(self):
+        # Empty content-type → fail-safe: treat as web page.
+        assert _classify_content_type("") == URLKind.WEB_PAGE
+
+    def test_unknown_mime_is_web_page(self):
+        assert _classify_content_type("x-custom/unknown-type") == URLKind.WEB_PAGE
+
+
+# ---------------------------------------------------------------------------
+# Tests for probe_url_kind (mocked — no real network calls)
+# ---------------------------------------------------------------------------
+
+
+class TestProbeUrlKind:
+    """Tests for probe_url_kind with mocked HTTP responses."""
+
+    def test_invalid_url_raises(self):
+        with pytest.raises(ValueError, match="must start with"):
+            probe_url_kind("ftp://example.com/file")
+
+    def test_empty_string_raises(self):
+        with pytest.raises(ValueError):
+            probe_url_kind("")
+
+    def _make_mock_response(self, content_type: str, status_code: int = 200):
+        """Build a minimal mock requests.Response."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = status_code
+        mock_resp.headers = {"Content-Type": content_type}
+        mock_resp.url = "https://example.com/resource"
+        return mock_resp
+
+    def test_pdf_content_type_returns_downloadable(self):
+        """An API endpoint returning application/pdf → DOWNLOADABLE."""
+        mock_resp = self._make_mock_response("application/pdf")
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="application/pdf"),
+        ):
+            result = probe_url_kind("https://iris.who.int/api/bitstreams/abc/content")
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_image_jpeg_returns_downloadable(self):
+        """An endpoint serving image/jpeg → DOWNLOADABLE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="image/jpeg"),
+        ):
+            result = probe_url_kind("https://example.com/api/image")
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_audio_mpeg_returns_downloadable(self):
+        """An endpoint serving audio/mpeg → DOWNLOADABLE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="audio/mpeg"),
+        ):
+            result = probe_url_kind("https://archive.org/stream/podcast")
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_video_mp4_returns_downloadable(self):
+        """An endpoint serving video/mp4 → DOWNLOADABLE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="video/mp4"),
+        ):
+            result = probe_url_kind("https://cdn.example.com/stream")
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_text_html_returns_web_page(self):
+        """An endpoint serving text/html → WEB_PAGE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="text/html"),
+        ):
+            result = probe_url_kind("https://example.com/article")
+        assert result == URLKind.WEB_PAGE
+
+    def test_empty_content_type_falls_back_to_web_page(self):
+        """When probe returns empty string → fail-safe WEB_PAGE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value=""),
+        ):
+            result = probe_url_kind("https://example.com/resource")
+        assert result == URLKind.WEB_PAGE
+
+    def test_probe_network_error_falls_back_to_web_page(self):
+        """On network error in probe → fail-safe WEB_PAGE (no exception raised)."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value=""),
+        ):
+            result = probe_url_kind("https://example.com/resource")
+        assert result == URLKind.WEB_PAGE
+
+    def test_skip_ssrf_check_skips_validation(self):
+        """skip_ssrf_check=True must not call _validate_url_security."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security") as mock_validate,
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="application/pdf"),
+        ):
+            probe_url_kind(
+                "https://example.com/content",
+                skip_ssrf_check=True,
+            )
+        mock_validate.assert_not_called()
+
+    def test_ssrf_check_called_by_default(self):
+        """SSRF check is called when skip_ssrf_check=False (default)."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security") as mock_validate,
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="text/html"),
+        ):
+            probe_url_kind("https://example.com/content")
+        mock_validate.assert_called_once()
+
+    def test_zip_content_type_returns_downloadable(self):
+        """An endpoint serving application/zip → DOWNLOADABLE."""
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="application/zip"),
+        ):
+            result = probe_url_kind("https://example.com/bundle")
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_who_iris_pdf_endpoint_pattern(self):
+        """Simulate the exact WHO IRIS PDF endpoint from the notebook TODO."""
+        # https://iris.who.int/server/api/core/bitstreams/7ad66865-7f23-4485-8cf5-7b3d78bdf4f9/content
+        # → Content-Type: application/pdf → DOWNLOADABLE → PDFReader
+        url = (
+            "https://iris.who.int/server/api/core/bitstreams/"
+            "7ad66865-7f23-4485-8cf5-7b3d78bdf4f9/content"
+        )
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="application/pdf"),
+        ):
+            result = probe_url_kind(url)
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_who_iris_image_endpoint_pattern(self):
+        """Simulate the WHO IRIS image endpoint from the notebook TODO."""
+        # https://iris.who.int/server/api/core/bitstreams/d57241c0-512d-4cfc-9ead-91a83eea83f0/content
+        # → Content-Type: image/jpeg → DOWNLOADABLE → ImageReader
+        url = (
+            "https://iris.who.int/server/api/core/bitstreams/"
+            "d57241c0-512d-4cfc-9ead-91a83eea83f0/content"
+        )
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="image/jpeg"),
+        ):
+            result = probe_url_kind(url)
+        assert result == URLKind.DOWNLOADABLE
+
+    def test_archive_org_audio_endpoint_pattern(self):
+        """Simulate the archive.org MP3 endpoint from the notebook TODO."""
+        # https://archive.org/download/makingcon-241016/makingcon-241016_promo.mp3
+        # Already has .mp3 extension → classify_url would catch it.
+        # Test the extensionless variant: https://archive.org/stream/makingcon-241016
+        url = "https://archive.org/stream/makingcon-241016"
+        with (
+            patch("scikitplot.corpus._url_handler._validate_url_security"),
+            patch("scikitplot.corpus._url_handler._probe_with_requests",
+                  return_value="audio/mpeg"),
+        ):
+            result = probe_url_kind(url)
+        assert result == URLKind.DOWNLOADABLE
 
 
 # ---------------------------------------------------------------------------

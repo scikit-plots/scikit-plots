@@ -224,6 +224,20 @@ class BuilderConfig:
     max_archive_bytes: int = 2 * 1024 * 1024 * 1024
     """Maximum cumulative extracted size per archive. Default: 2 GB."""
 
+    # URL content-type probing
+    probe_url_content_type: bool = True
+    """Probe extensionless URLs with a HEAD request to determine the correct
+    reader.  When ``True`` (default), any URL that :func:`classify_url`
+    classifies as ``WEB_PAGE`` *and* has no file extension in its path
+    is probed via :func:`probe_url_kind` before routing.  Set to
+    ``False`` to skip the extra network round-trip (e.g. when all your
+    URLs already carry file extensions or you want pure-offline
+    operation).  Default: ``True``."""
+
+    probe_url_timeout: int = 15
+    """HTTP timeout in seconds for the URL-probing HEAD request.
+    Default: 15."""
+
     # Parallelism
     max_workers: int = 1
 
@@ -414,7 +428,7 @@ class CorpusBuilder:
         if self._temp_dir is not None:
             try:
                 self._temp_dir.cleanup()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.debug("Temp dir cleanup error: %s", exc)
             self._temp_dir = None
 
@@ -499,7 +513,7 @@ class CorpusBuilder:
                     collection_id=coll_id,
                 )
                 all_docs.extend(docs)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.error("Failed to ingest %s: %s", src, exc)
                 result.errors.append((str(src), exc))
 
@@ -1140,30 +1154,80 @@ class CorpusBuilder:
 
         Notes
         -----
-        **URL classification logic:**
+        **URL classification logic (two-stage):**
 
-        - ``WEB_PAGE`` → ``DocumentReader.from_url`` → ``WebReader``
-        - ``YOUTUBE`` → ``DocumentReader.from_url`` → ``YouTubeReader``
-        - ``DOWNLOADABLE`` / ``GITHUB_RAW`` → download → ``DocumentReader.create``
-        - ``GOOGLE_DRIVE`` → resolve → download → ``DocumentReader.create``
-        - ``GITHUB_BLOB`` → resolve to raw → download → ``DocumentReader.create``
+        Stage 1 — :func:`classify_url` (extension-based, no network):
 
-        Downloaded files that are archives (zip, tar) are further expanded
+        - ``YOUTUBE`` → :class:`YouTubeReader` (always)
+        - ``GOOGLE_DRIVE`` → resolve → download → :class:`DocumentReader.create`
+        - ``GITHUB_BLOB`` / ``GITHUB_RAW`` → resolve/download → :class:`DocumentReader.create`
+        - ``DOWNLOADABLE`` (path has known extension) → download → :class:`DocumentReader.create`
+        - ``WEB_PAGE`` (no extension in path) → Stage 2
+
+        Stage 2 — :func:`probe_url_kind` (HEAD request, only for extensionless
+        ``WEB_PAGE`` results when :attr:`BuilderConfig.probe_url_content_type`
+        is ``True``):
+
+        - ``DOWNLOADABLE`` (Content-Type != text/html) → download → :class:`DocumentReader.create`
+        - ``WEB_PAGE`` (Content-Type is text/html or probe failed) → :class:`WebReader`
+
+        This two-stage design means a single extra HEAD request correctly routes
+        API endpoints like ``https://iris.who.int/.../content`` (returns
+        ``application/pdf``) to :class:`PDFReader` instead of :class:`WebReader`.
+
+        Downloaded files that are archives (ZIP, TAR) are further expanded
         via :meth:`_ingest_archive`.
+
+        Developer note
+        --------------
+        Stage 2 is only triggered when ALL of:
+
+        1. ``kind == WEB_PAGE`` after stage 1.
+        2. ``config.probe_url_content_type is True``.
+        3. The URL path has no recognisable file extension — checked via
+           ``os.path.splitext(urllib.parse.urlparse(url).path)[1]``.
+
+        Condition 3 avoids redundant HEAD requests for URLs that already carry
+        a known extension (e.g. ``https://example.com/article.html``).
         """
+        import os as _os  # noqa: PLC0415
+        import urllib.parse as _up  # noqa: PLC0415
+
         from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         from scikitplot.corpus._url_handler import (  # noqa: PLC0415
             URLKind,
             classify_url,
             download_url,
+            probe_url_kind,
             resolve_url,
         )
 
+        cfg = self.config
         kind = classify_url(url)
         logger.debug("URL classified as %s: %s", kind.value, url)
 
-        # Web pages and YouTube: delegate to from_url (existing path)
-        if kind in (URLKind.WEB_PAGE, URLKind.YOUTUBE):
+        # ── Stage 2: probe extensionless WEB_PAGE URLs ──────────────────────
+        # Only activate when the initial classification is WEB_PAGE, the
+        # config enables probing, and the URL path truly has no extension.
+        # This correctly reclassifies API endpoints that serve binary files
+        # (PDFs, images, audio) without a file-extension suffix in the path.
+        if (
+            kind == URLKind.WEB_PAGE
+            and cfg.probe_url_content_type
+            and not _os.path.splitext(_up.urlparse(url).path)[1]
+        ):
+            probed = probe_url_kind(url, timeout=cfg.probe_url_timeout)
+            if probed != kind:
+                logger.info(
+                    "probe_url_kind reclassified %s: %s → %s",
+                    url,
+                    kind.value,
+                    probed.value,
+                )
+                kind = probed
+
+        # ── YouTube: direct transcript fetch ────────────────────────────────
+        if kind == URLKind.YOUTUBE:
             from_url_kwargs = {
                 k: v
                 for k, v in reader_kwargs.items()
@@ -1182,10 +1246,35 @@ class CorpusBuilder:
                 **from_url_kwargs,
             )
             documents = list(reader.get_documents())
-            logger.debug("Ingested %d documents from URL %s", len(documents), url)
+            logger.debug(
+                "Ingested %d documents from YouTube URL %s", len(documents), url
+            )
             return documents
 
-        # Downloadable file: resolve → download → create reader
+        # ── WEB_PAGE: HTML scraping ──────────────────────────────────────────
+        if kind == URLKind.WEB_PAGE:
+            from_url_kwargs = {
+                k: v
+                for k, v in reader_kwargs.items()
+                if k
+                in (
+                    "source_title",
+                    "source_author",
+                    "collection_id",
+                    "source_type",
+                    "default_language",
+                )
+            }
+            reader = DocumentReader.from_url(
+                url,
+                chunker=chunker,
+                **from_url_kwargs,
+            )
+            documents = list(reader.get_documents())
+            logger.debug("Ingested %d documents from web URL %s", len(documents), url)
+            return documents
+
+        # ── Downloadable file: resolve → download → create reader ────────────
         resolved = resolve_url(url, kind=kind)
         if resolved != url:
             logger.info("Resolved URL: %s → %s", url, resolved)
@@ -1194,8 +1283,8 @@ class CorpusBuilder:
         local_path = download_url(
             resolved,
             dest_dir=temp_dir,
-            max_bytes=self.config.max_download_bytes,
-            timeout=self.config.download_timeout,
+            max_bytes=cfg.max_download_bytes,
+            timeout=cfg.download_timeout,
         )
 
         # If the downloaded file is an archive, extract and process
@@ -1208,8 +1297,10 @@ class CorpusBuilder:
                 reader_kwargs=reader_kwargs,
             )
 
-        # Regular downloaded file → create reader by extension
-        # Set filename_override to original URL for provenance
+        # Regular downloaded file → create reader by extension.
+        # download_url already inferred the correct extension from Content-Type
+        # headers (via _infer_extension_from_headers), so the file on disk has
+        # the right suffix even when the URL path had none.
         reader = DocumentReader.create(
             local_path,
             chunker=chunker,
@@ -1282,7 +1373,7 @@ class CorpusBuilder:
                     len(docs),
                     fp.name,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "Failed to ingest archive member %s: %s",
                     fp,
@@ -1477,7 +1568,7 @@ class CorpusBuilder:
 
         try:
             embeddings = engine.embed(texts)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.error("Embedding failed: %s", exc)
             return documents, 0
 

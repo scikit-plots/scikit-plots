@@ -77,6 +77,7 @@ __all__ = [
     "URLKind",
     "classify_url",
     "download_url",
+    "probe_url_kind",
     "resolve_url",
 ]
 
@@ -136,6 +137,36 @@ _CONTENT_TYPE_TO_EXT: dict[str, str] = {
     "video/quicktime": ".mov",
     "video/webm": ".webm",
 }
+
+#: Default HTTP timeout for probing in seconds (short — just HEAD).
+DEFAULT_PROBE_TIMEOUT_SECONDS: int = 15
+
+#: Content-Type MIME type prefixes that indicate a downloadable (non-HTML) resource.
+#: The value ``True`` means "treat as DOWNLOADABLE regardless of subtype".
+#: Checked by prefix so ``audio/mpeg`` matches the ``audio/`` key.
+_DOWNLOADABLE_MIME_PREFIXES: tuple[str, ...] = (
+    "application/pdf",
+    "application/zip",
+    "application/x-tar",
+    "application/gzip",
+    "application/x-gzip",
+    "application/x-bzip2",
+    "application/x-xz",
+    "application/x-7z-compressed",
+    "application/vnd.openxmlformats-officedocument",
+    "application/msword",
+    "application/vnd.ms-",
+    "application/octet-stream",
+    "application/json",
+    "application/xml",
+    "text/csv",
+    "text/plain",
+    "text/markdown",
+    "text/xml",
+    "image/",
+    "audio/",
+    "video/",
+)
 
 # ---------------------------------------------------------------------------
 # URL regex patterns
@@ -366,8 +397,267 @@ def classify_url(url: str) -> URLKind:  # noqa: PLR0911
 
 
 # ===========================================================================
-# resolve_url — provider-specific → direct download
+# probe_url_kind — HEAD-request-based classification for extensionless URLs
 # ===========================================================================
+
+
+def probe_url_kind(
+    url: str,
+    *,
+    timeout: int = DEFAULT_PROBE_TIMEOUT_SECONDS,
+    skip_ssrf_check: bool = False,
+) -> URLKind:
+    """
+    Probe a URL with a HEAD request to classify by Content-Type.
+
+    Use this when :func:`classify_url` returns :attr:`URLKind.WEB_PAGE`
+    but the URL has no file extension in the path (e.g. API endpoints
+    like ``/content``, ``/download``, ``/bitstream``).  A HEAD request
+    is sent first; if that fails a GET with ``stream=True`` is attempted
+    (some servers reject HEAD).  The ``Content-Type`` response header is
+    read and mapped to the correct :class:`URLKind`.
+
+    Parameters
+    ----------
+    url : str
+        HTTP/HTTPS URL to probe.
+    timeout : int, optional
+        Connection + read timeout in seconds.  Default: 15.
+    skip_ssrf_check : bool, optional
+        Skip SSRF prevention check.  Only for trusted internal URLs.
+        Default: ``False``.
+
+    Returns
+    -------
+    URLKind
+        The inferred classification:
+
+        - :attr:`URLKind.DOWNLOADABLE` — Content-Type indicates a
+          non-HTML binary or structured file (PDF, image, audio, video,
+          archive, CSV, JSON, plain text, etc.).
+        - :attr:`URLKind.WEB_PAGE` — Content-Type is ``text/html`` or
+          the probe failed (fail-safe: treat as web page so the caller
+          can still attempt WebReader).
+
+    Raises
+    ------
+    ValueError
+        If *url* does not start with ``http://`` or ``https://``.
+
+    Notes
+    -----
+    **When to call this**: Only when :func:`classify_url` returns
+    ``WEB_PAGE`` *and* the URL path has no recognisable file extension.
+    For URLs that already have a known extension or are already
+    classified as YOUTUBE / GOOGLE_DRIVE / GITHUB_*, call the faster
+    :func:`classify_url` directly.
+
+    **Network cost**: One HEAD request (no body download).  Adds
+    ~50-500 ms of latency depending on server and network.
+
+    **Thread safety**: This function is stateless and safe to call
+    from multiple threads.
+
+    Examples
+    --------
+    >>> # An API endpoint returning a PDF with no extension in path
+    >>> kind = probe_url_kind(
+    ...     "https://iris.who.int/server/api/core/bitstreams/abc/content"
+    ... )
+    >>> kind == URLKind.DOWNLOADABLE
+    True  # Content-Type: application/pdf
+
+    >>> # A normal web page
+    >>> kind = probe_url_kind("https://www.example.com/about")
+    >>> kind == URLKind.WEB_PAGE
+    True  # Content-Type: text/html
+
+    Developer note
+    --------------
+    The function tries ``requests`` first (better redirect + timeout
+    handling).  It falls back to ``urllib.request`` if requests is not
+    installed.  The SSRF check is applied before connecting when
+    ``skip_ssrf_check=False``.
+    """
+    if not isinstance(url, str) or not re.match(r"https?://", url, re.IGNORECASE):
+        raise ValueError(
+            f"probe_url_kind: url must start with 'http://' or 'https://'; got {url!r}."
+        )
+
+    if not skip_ssrf_check:
+        _validate_url_security(url)
+
+    content_type = _probe_content_type(url, timeout=timeout)
+    return _classify_content_type(content_type)
+
+
+def _probe_content_type(url: str, *, timeout: int) -> str:
+    """
+    Send a HEAD (or fallback GET) request and return the Content-Type.
+
+    Parameters
+    ----------
+    url : str
+        URL to probe.
+    timeout : int
+        Request timeout in seconds.
+
+    Returns
+    -------
+    str
+        Content-Type header value, lower-cased and stripped.
+        Returns ``""`` on any network error.
+
+    Notes
+    -----
+    HEAD is tried first.  If the server returns 405 Method Not Allowed
+    or a connection error, a streaming GET is attempted and immediately
+    closed after reading the headers.  Both paths respect *timeout*.
+
+    Developer note
+    --------------
+    ``requests`` is preferred over ``urllib`` because it handles
+    redirects automatically (important for CDN/API links that redirect
+    to the actual file).  ``urllib`` is used as a stdlib fallback.
+    """
+    try:
+        return _probe_with_requests(url, timeout=timeout)
+    except ImportError:
+        return _probe_with_urllib(url, timeout=timeout)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("probe_url_kind: requests probe failed for %s: %s", url, exc)
+        return ""
+
+
+def _probe_with_requests(url: str, *, timeout: int) -> str:
+    """
+    Probe with the ``requests`` library.
+
+    Parameters
+    ----------
+    url : str
+        URL to probe.
+    timeout : int
+        Request timeout in seconds.
+
+    Returns
+    -------
+    str
+        Lower-cased Content-Type or ``""`` on failure.
+
+    Raises
+    ------
+    ImportError
+        If ``requests`` is not installed.
+    """
+    import requests  # noqa: PLC0415
+
+    session = requests.Session()
+    session.headers["User-Agent"] = _USER_AGENT
+
+    # Try HEAD first — no body, minimal bandwidth
+    try:
+        resp = session.head(url, allow_redirects=True, timeout=timeout)
+        if resp.status_code not in (405, 501):
+            ct = resp.headers.get("Content-Type", "")
+            return ct.split(";")[0].strip().lower()
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Fallback: GET with stream — read headers only, close immediately
+    try:
+        resp = session.get(url, stream=True, allow_redirects=True, timeout=timeout)
+        resp.close()
+        ct = resp.headers.get("Content-Type", "")
+        return ct.split(";")[0].strip().lower()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("_probe_with_requests: GET stream probe failed: %s", exc)
+        return ""
+
+
+def _probe_with_urllib(url: str, *, timeout: int) -> str:
+    """
+    Probe with ``urllib.request`` (stdlib fallback).
+
+    Parameters
+    ----------
+    url : str
+        URL to probe.
+    timeout : int
+        Request timeout in seconds.
+
+    Returns
+    -------
+    str
+        Lower-cased Content-Type or ``""`` on failure.
+    """
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            url,
+            method="HEAD",
+            headers={"User-Agent": _USER_AGENT},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            ct = resp.headers.get("Content-Type", "")
+            return ct.split(";")[0].strip().lower()
+    except Exception:  # noqa: BLE001
+        pass
+
+    # HEAD failed — try GET and read only headers
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            url,
+            headers={"User-Agent": _USER_AGENT},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            ct = resp.headers.get("Content-Type", "")
+            return ct.split(";")[0].strip().lower()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("_probe_with_urllib: probe failed for %s: %s", url, exc)
+        return ""
+
+
+def _classify_content_type(content_type: str) -> URLKind:
+    """
+    Map a MIME content-type string to a :class:`URLKind`.
+
+    Parameters
+    ----------
+    content_type : str
+        Lower-cased MIME type (e.g. ``"application/pdf"``).
+        May be empty string.
+
+    Returns
+    -------
+    URLKind
+        :attr:`URLKind.DOWNLOADABLE` if the type matches any prefix in
+        :data:`_DOWNLOADABLE_MIME_PREFIXES`; :attr:`URLKind.WEB_PAGE`
+        otherwise (including when *content_type* is empty — fail-safe).
+
+    Notes
+    -----
+    ``text/plain`` is treated as DOWNLOADABLE rather than WEB_PAGE
+    because plain-text files (transcripts, code, data) should be
+    routed to :class:`TextReader`, not :class:`WebReader`.
+    ``text/html`` stays WEB_PAGE — HTML is a web page by definition.
+    """
+    if not content_type:
+        return URLKind.WEB_PAGE
+
+    for prefix in _DOWNLOADABLE_MIME_PREFIXES:
+        if content_type.startswith(prefix):
+            logger.debug(
+                "_classify_content_type: %r → DOWNLOADABLE (prefix=%r)",
+                content_type,
+                prefix,
+            )
+            return URLKind.DOWNLOADABLE
+
+    logger.debug(
+        "_classify_content_type: %r → WEB_PAGE (no matching prefix)",
+        content_type,
+    )
+    return URLKind.WEB_PAGE
 
 
 def resolve_url(url: str, kind: URLKind | None = None) -> str:

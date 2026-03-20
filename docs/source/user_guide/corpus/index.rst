@@ -24,6 +24,10 @@
 Corpus Generation
 ======================================================================
 
+.. image:: /_static/user_guide/corpus_any_to_any_architecture.png
+    :align: center
+    :alt: Corpus Architecture
+
 Quick start
 -----------
 
@@ -35,6 +39,15 @@ Quick start
 .. .. prompt:: python >>>
 .. prompt:: python >>>
 
+    # First we download the media preproccess libraries (text, image, audio or video).
+    # pip install nltk gensim langdetect faster-whisper openai-whisper pytesseract youtube-transcript-api
+    # sudo apt-get install tesseract-ocr
+    # pip install scikit-plots[corpus]
     from scikitplot import corpus
 
     print(corpus.__doc__)
+
+
+.. rubric:: Examples
+
+* :ref:`sphx_glr_auto_examples_corpus_plot_corpus_script.py`: Example notebook.
