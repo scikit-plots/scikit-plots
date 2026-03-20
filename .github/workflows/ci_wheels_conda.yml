@@ -577,7 +577,7 @@ jobs:
 
       - name: "📦 Build Wheels Packages"
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
-        uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e # v3.3.1
+        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           ## ✅ Method 2: Use pyproject.toml (Best for portability & reuse)
           ## Specify target platform
@@ -626,7 +626,7 @@ jobs:
 
       - name: "📦 Upload Wheelhouse Wheels Artifact(s) (.whl Packages)"
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: >-
             Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
@@ -795,7 +795,7 @@ jobs:
 
       - name: Upload Wheelhouse Wheels Packages
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdist
           path: ./dist/*.gz
@@ -902,14 +902,14 @@ jobs:
           fetch-tags: true
 
       - name: Build Wheels Packages
-        uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e # v3.3.1
+        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
         continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         continue-on-error: true
         with:
           name: cp312-pyodide_wasm32
