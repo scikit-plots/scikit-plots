@@ -22,16 +22,16 @@ DEF MAX_DIMENSION = 1000000
 
 # Index type item-ID upper bounds (non-negative IDs only; all validated via int64_t bridge)
 # Signed small integer types: upper bound = max positive value of the type
-DEF MAX_ITEMS_8 = 127  # int8_t:   2^7  - 1
-DEF MAX_ITEMS_16 = 32767  # int16_t:  2^15 - 1
-DEF MAX_ITEMS_32 = 2147483647  # int32_t:  2^31 - 1
-DEF MAX_ITEMS_64 = 9223372036854775807  # int64_t:  2^63 - 1 (also bridge limit)
+DEF MAX_ITEMS_8 = 126  # int8_t:   2^7  - 2  (max item id; n_items = id+1 must fit in int8_t)
+DEF MAX_ITEMS_16 = 32766  # int16_t:  2^15 - 2
+DEF MAX_ITEMS_32 = 2147483646  # int32_t:  2^31 - 2
+DEF MAX_ITEMS_64 = 9223372036854775806  # int64_t:  2^63 - 2
 # Unsigned integer types: upper bound = type max (all fit in int64_t bridge except uint64_t)
-DEF MAX_ITEMS_U8 = 255  # uint8_t:  2^8  - 1
-DEF MAX_ITEMS_U16 = 65535  # uint16_t: 2^16 - 1
-DEF MAX_ITEMS_U32 = 4294967295  # uint32_t: 2^32 - 1 (fits in int64_t)
+DEF MAX_ITEMS_U8 = 254  # uint8_t:  2^8  - 2
+DEF MAX_ITEMS_U16 = 65534  # uint16_t: 2^16 - 2
+DEF MAX_ITEMS_U32 = 4294967294  # uint32_t: 2^32 - 2
 # uint64_t: bridge limit = INT64_MAX (values 2^63..2^64-1 cannot be passed via int64_t _w bridge)
-DEF MAX_ITEMS_U64 = 9223372036854775807  # uint64_t via bridge: same as int64_t max
+DEF MAX_ITEMS_U64 = 18446744073709551614  # uint64_t: 2^64 - 2
 DEF MAX_TREES = 10000
 DEF MAX_SEARCH_K = 1000000
 DEF MAX_THREADS = 256

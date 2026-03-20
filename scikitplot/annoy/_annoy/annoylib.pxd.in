@@ -169,7 +169,7 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
     #
     # Type-independent methods call directly via vtable.
     # Type-dependent methods use widened wire types (_w suffix):
-    #   S → int64_t   T → double   R → uint64_t
+    #   S → uint64_t   T → double   R → uint64_t
     # Bridge implementations in AnnoyIndexInterface<S,T,R> do the casts.
     cdef cppclass AnnoyIndexInterfaceBase nogil:
 
@@ -216,7 +216,7 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
         # cpp_bool add_item(S item, const T* embedding, char** error) except +
 
         # ── Widened mutators (_w) ─────────────────────────────────────────
-        cpp_bool add_item_w(int64_t item, const double* emb,
+        cpp_bool add_item_w(uint64_t item, const double* emb,
                             char** error)                  except +
 
         # ==================== Metadata ====================
@@ -227,10 +227,10 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
         # void get_item(S item, T* embedding) except +
 
         # ── Widened accessors (_w) ────────────────────────────────────────
-        int64_t get_n_items_w()                            nogil
-        int64_t get_n_trees_w()                            nogil
-        double  get_distance_w(int64_t i, int64_t j)       except +
-        void    get_item_w(int64_t item, double* emb)      except +
+        uint64_t get_n_items_w()                            nogil
+        uint64_t get_n_trees_w()                            nogil
+        double  get_distance_w(uint64_t i, uint64_t j)      except +
+        void    get_item_w(uint64_t item, double* emb)      except +
 
         # ==================== Querying ====================
 
@@ -251,14 +251,14 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 
         # ── Widened queries (_w) ──────────────────────────────────────────
         void get_nns_by_item_w(
-            int64_t item, size_t n, int search_k,
-            cpp_vector[int64_t]* result,
+            uint64_t item, size_t n, int search_k,
+            cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
         ) except +
 
         void get_nns_by_vector_w(
             const double* vec, size_t n, int search_k,
-            cpp_vector[int64_t]* result,
+            cpp_vector[uint64_t]* result,
             cpp_vector[double]*  distances
         ) except +
 
@@ -428,28 +428,34 @@ cdef extern from "../../cexternals/_annoy/src/annoylib.h" namespace "Annoy" nogi
 # ---------------------------------------------------------------------------
 # index_types — S parameter for AnnoyIndex<S, T, Distance, Random, Policy>
 #
-# All types are accessible via the int64_t widened bridge (_w methods).
-# Overflow constraint for unsigned types:
-#   uint64_t: the _w bridge uses int64_t, so item IDs > INT64_MAX (2^63-1) are
-#   not reachable via the _w API.  The Python layer validates this explicitly.
+# All types are accessible via the uint64_t widened bridge (_w methods).
+# annoylib.h declares: bool add_item_w(uint64_t item, const double* embedding, ...)
+# The full uint64_t range [0, 2**64-1] is therefore reachable for all index
+# types; _validate_item_id enforces per-type ceilings in Python object space
+# (before any C cast) using arbitrary-precision integer comparison.
 # ---------------------------------------------------------------------------
 index_types = [
-    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 127,
-     'description': '8-bit signed integer (max 127 items)'},
-    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 32767,
-     'description': '16-bit signed integer (max 32767 items)'},
-    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2147483647,
-     'description': '32-bit signed integer (max 2^31-1 items)'},
-    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 9223372036854775807,
-     'description': '64-bit signed integer (max 2^63-1 items)'},
-    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 255,
-     'description': '8-bit unsigned integer (max 255 items)'},
-    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 65535,
-     'description': '16-bit unsigned integer (max 65535 items)'},
-    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 4294967295,
-     'description': '32-bit unsigned integer (max 4294967295 items)'},
-    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 9223372036854775807,
-     'description': '64-bit unsigned integer (bridge-limited to 2^63-1 items)'},
+    # max_item is the highest valid non-negative item ID for this type.
+    # All values must match annoylib.pyx.in exactly (single source of truth).
+    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 2**7-2,   # 127
+     'description': '8-bit signed integer (max 2**7-2 (126) items)'},
+    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 2**15-2,  # 32767
+     'description': '16-bit signed integer (max 2**15-2 (32766) items)'},
+    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2**31-2,  # 2147483647
+     'description': '32-bit signed integer (max 2**31-2 (2147483646) items)'},
+    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 2**63-2,  # 9223372036854775807
+     'description': '64-bit signed integer (max 2**63-2 (9223372036854775806) items)'},
+    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 2**8-2,   # 255
+     'description': '8-bit unsigned integer (max 2**8-2 (254) items)'},
+    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 2**16-2,  # 65535
+     'description': '16-bit unsigned integer (max 2**16-2 (65534) items)'},
+    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 2**32-2,  # 4294967295
+     'description': '32-bit unsigned integer (max 2**32-2 (4294967294) items)'},
+    # uint64_t: _w bridge uses uint64_t wire type (annoylib.h add_item_w).
+    # The full range [0, 2**64-1] is reachable; Python ints above 2**64-1
+    # are caught by _validate_item_id before any C truncation occurs.
+    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 2**64-2,  # 18446744073709551615
+     'description': '64-bit unsigned integer (max 2**64-2 (18446744073709551614) items)'},
 ]
 
 # ---------------------------------------------------------------------------
@@ -536,6 +542,9 @@ cdef extern from "<cstdlib>" namespace "std" nogil:
 
     void free(void* ptr)
 
-cdef extern from "<cstring>" namespace "std" nogil:
+# strdup is POSIX (::strdup), not std::strdup.
+# annoylib.h includes <string.h> and provides the MSVC _strdup alias, so
+# using <string.h> with no namespace qualifier matches the C++ side exactly.
+cdef extern from "<string.h>" nogil:
 
     char* strdup(const char* s)
