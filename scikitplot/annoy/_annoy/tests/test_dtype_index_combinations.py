@@ -51,11 +51,11 @@ HERE = os.path.dirname(__file__)  # "tests"
 # Constants — single source of truth for test parameters
 # ---------------------------------------------------------------------------
 
-INT32_MAX = 2**31 - 1       # 2_147_483_647  (last valid int32 item id)
-INT32_OVERFLOW = 2**31      # 2_147_483_648  (triggers int32 guard)
+INT32_MAX = 2**31 - 2       # 2_147_483_646  (last valid int32 item id; n_items=id+1 must fit int32_t)
+INT32_OVERFLOW = 2**31 - 1  # 2_147_483_647  (first item id that overflows int32_t n_items)
 
-INT64_MAX = 2**63 - 1       # 9_223_372_036_854_775_807  (last valid int64 item id)
-INT64_OVERFLOW = 2**63      # 9_223_372_036_854_775_808  (triggers int64 guard)
+INT64_MAX = 2**63 - 2       # 9_223_372_036_854_775_806  (last valid int64 item id; n_items must fit int64_t)
+INT64_OVERFLOW = 2**63 - 1  # 9_223_372_036_854_775_807  (first item id that overflows int64_t n_items)
 INT64_LARGE = 2**31 + 7     # fits int64 but exceeds int32 — verifies Cython layer
 
 #: All supported (index_dtype, dtype) pairs.
@@ -526,7 +526,7 @@ def test_int32_overflow_raises_overflow_error(method_name: str, args_fn):
 
 
 def test_int32_overflow_exact_boundary():
-    """item == INT32_MAX (2^31-1) is valid; item == INT32_MAX+1 raises."""
+    """item == INT32_MAX (2^31-2) is valid; item == INT32_MAX+1 (= 2^31-1) raises."""
     f = 5
     index = Index(f=f, metric="angular", index_dtype="int32", seed=1, on_disk_path=f"{HERE}/on_disk.ann")
 
@@ -624,7 +624,7 @@ def test_negative_item_id_raises_index_error(method_name: str, args_fn, index_dt
     index = Index(f=f, metric="angular", index_dtype=index_dtype, seed=1)
     index.add_item(0, [0.1] * f)
 
-    with pytest.raises(IndexError, OverflowError):
+    with pytest.raises((IndexError, OverflowError)):
         method = getattr(index, method_name)
         method(*args_fn())
 

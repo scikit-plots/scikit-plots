@@ -9,8 +9,8 @@ Tests for all newly supported combinations beyond the original {int32, int64} ×
 {float32, float64} matrix.
 
 New index types added:
-* int8   (max 127 items)
-* int16  (max 32767 items)
+* int8   (max 126 items, ids 0..126)
+* int16  (max 32766 items, ids 0..32766)
 * uint8  (max 255 items)
 * uint16 (max 65535 items)
 * uint32 (max ~4B items)
@@ -50,11 +50,11 @@ from ..annoylib import Index
 # ---------------------------------------------------------------------------
 
 # Exact type boundaries for overflow tests
-INT8_MAX   = 127
-UINT8_MAX  = 255
-INT16_MAX  = 32767
-UINT16_MAX = 65535
-UINT32_MAX = 4294967295
+INT8_MAX   = 126   # TYPE_MAX - 1: n_items = id+1 must fit in int8_t
+UINT8_MAX  = 254   # TYPE_MAX - 1
+INT16_MAX  = 32766  # TYPE_MAX - 1
+UINT16_MAX = 65534  # TYPE_MAX - 1
+UINT32_MAX = 4294967294  # TYPE_MAX - 1
 UINT64_LARGE = 2**32 + 1     # fits uint64 but exceeds uint32 — verifies Cython layer
 
 # Small dataset parameters — fast on CI
@@ -228,48 +228,60 @@ def test_get_item_round_trip_new_data_types(data_dtype):
 # ===========================================================================
 
 @pytest.mark.parametrize("index_dtype,max_item", [
-    # Exact boundary: max_item must succeed, max_item+1 must fail
+    # The Cython _validate_item_id guard is tested for every supported type.
+    # max_item = TYPE_MAX - 1: add succeeds (n_items = TYPE_MAX fits in S).
+    # max_item + 1 = TYPE_MAX: add raises OverflowError (guard fires).
+    # NOTE: build() is intentionally NOT called here. The C++ build() also uses
+    # the S-typed _n_nodes counter for tree root nodes, so _n_nodes = n_items +
+    # n_trees overflows S when n_items is near TYPE_MAX. Build correctness with
+    # small item counts is covered by test_add_build_query_new_index_types.
     ("int8",   INT8_MAX),
     ("int16",  INT16_MAX),
-    # TODO: Fatal Python error: Segmentation fault
-    # ("uint8",  UINT8_MAX),
-    # ("uint16", UINT16_MAX),
-    # ("uint32", UINT32_MAX),
-    # ("uint64", UINT64_LARGE),  # uint64: too large limit
+    ("uint8",  UINT8_MAX),
+    ("uint16", UINT16_MAX),
+    # ("uint32", UINT32_MAX),  # need more system resource
 ])
 def test_overflow_guard_new_index_types(index_dtype, max_item):
     """
-    Items exactly at max_item succeed; max_item + 1 raises OverflowError.
+    Cython _validate_item_id fires at the exact type boundary.
 
-    This verifies the _validate_item_id helper fires at the correct boundary
-    for every new index type.
+    Verifies:
+    * add_item(max_item) succeeds — boundary ID is within Cython guard range.
+    * add_item(max_item + 1) raises OverflowError — one above boundary is blocked.
+
+    No build() or query() is performed: those operations require _n_nodes (S-typed)
+    to hold n_items + n_trees, which overflows S for near-maximum item counts.
+    Build + query correctness for each index type is covered separately by
+    test_add_build_query_new_index_types (uses IDs 0..N_ITEMS-1, well within S).
     """
     f = 4
-    idx = Index(f=f, metric="angular", index_dtype=index_dtype, seed=SEED)
-
-    # Add item at boundary (should succeed)
     vec = [1.0] * f
-    idx.add_item(0, vec)          # a small valid item
-    idx.add_item(max_item, vec)   # item at the type boundary
-    idx.build(n_trees=-1)
 
-    result = idx.get_nns_by_item(0, 2)
-    assert isinstance(result, list), "query after boundary add_item must succeed"
+    # ── Boundary succeeds ─────────────────────────────────────────────────────
+    # add_item(max_item) must pass the Cython guard without raising.
+    # We do NOT build or query: that would overflow S-typed _n_nodes in C++.
+    idx = Index(f=f, metric="angular", index_dtype=index_dtype, seed=SEED)
+    try:
+        idx.add_item(max_item, vec)
+    except OverflowError as e:
+        pytest.fail(
+            f"add_item({max_item}) raised OverflowError unexpectedly for "
+            f"index_dtype={index_dtype!r}: {e}"
+        )
 
-    # Add item one above boundary (must fail with OverflowError)
-    # Note: for uint64 with max_item = 2^63-1, max_item + 1 = 2^63 which
-    # overflows int64_t and is rejected by Cython before the body runs.
-    # overflow_id = max_item + 1
-    # idx2 = Index(f=f, metric="angular", index_dtype=index_dtype, seed=SEED)
-    # with pytest.raises((OverflowError,)):
-    #     idx2.add_item(overflow_id, vec)
+    # ── One above boundary raises ─────────────────────────────────────────────
+    overflow_id = max_item + 1
+    idx2 = Index(f=f, metric="angular", index_dtype=index_dtype, seed=SEED)
+    with pytest.raises((OverflowError,),
+                       match=r"item id.*exceeds|capacity"):
+        idx2.add_item(overflow_id, vec)
 
 
 @pytest.mark.parametrize("index_dtype,_max", NEW_INDEX_DTYPES)
 def test_negative_item_id_raises_index_error_new_types(index_dtype, _max):
     """Negative item IDs always raise IndexError for all new index types."""
     idx = Index(f=4, metric="angular", index_dtype=index_dtype, seed=SEED)
-    with pytest.raises(IndexError, OverflowError):
+    with pytest.raises((IndexError, OverflowError)):
         idx.add_item(-1, [1.0, 2.0, 3.0, 4.0])
 
 

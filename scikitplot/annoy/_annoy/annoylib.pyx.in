@@ -95,8 +95,7 @@ from cpython.exc cimport PyErr_SetString, PyErr_Format, PyErr_NoMemory, PyErr_Oc
 import warnings  # no-cython-lint
 import json  # no-cython-lint
 import pickle  # no-cython-lint
-from typing import Any, Dict, Optional  # no-cython-lint
-from typing import Optional, Union, List, Tuple, Sequence  # no-cython-lint
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union  # no-cython-lint
 from typing_extensions import Self  # no-cython-lint
 from threading import RLock
 
@@ -115,9 +114,7 @@ from threading import RLock
 # index_types — S parameter
 # -------------------------
 # max_item is the highest valid non-negative item ID for this type.
-# For unsigned types, max_item is the full type maximum EXCEPT uint64_t:
-# the _w bridge passes item IDs as int64_t, so the hard ceiling is INT64_MAX
-# (2^63-1) regardless of the type's own maximum.
+# For unsigned types, max_item is the full type own maximum.
 #
 # data_types — T parameter
 # ------------------------
@@ -128,32 +125,34 @@ from threading import RLock
 #
 index_types = [
     # ── Signed integer types ──────────────────────────────────────────────
-    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 127,
+    {'name': 'Int8',   'ctype': 'int8_t',   'max_item': 2**7-2,  # 127
      'enum': 'INDEX_INT8',
-     'description': '8-bit signed integer (max 127 items)'},
-    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 32767,
+     'description': '8-bit signed integer (max 2**7-2 (126) items)'},
+    {'name': 'Int16',  'ctype': 'int16_t',  'max_item': 2**15-2,  # 32767
      'enum': 'INDEX_INT16',
-     'description': '16-bit signed integer (max 32767 items)'},
-    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2147483647,
+     'description': '16-bit signed integer (max 2**15-2 (32766) items)'},
+    {'name': 'Int32',  'ctype': 'int32_t',  'max_item': 2**31-2,  # 2147483647
      'enum': 'INDEX_INT32',
-     'description': '32-bit signed integer (max 2^31-1 items)'},
-    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 9223372036854775807,
+     'description': '32-bit signed integer (max 2**31-2 (2147483646) items)'},
+    {'name': 'Int64',  'ctype': 'int64_t',  'max_item': 2**63-2,  # 9223372036854775807
      'enum': 'INDEX_INT64',
-     'description': '64-bit signed integer (max 2^63-1 items)'},
+     'description': '64-bit signed integer (max 2**63-2 (9223372036854775806) items)'},
     # ── Unsigned integer types ────────────────────────────────────────────
-    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 255,
+    {'name': 'Uint8',  'ctype': 'uint8_t',  'max_item': 2**8-2,  # 255
      'enum': 'INDEX_UINT8',
-     'description': '8-bit unsigned integer (max 255 items)'},
-    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 65535,
+     'description': '8-bit unsigned integer (max 2**8-2 (254) items)'},
+    {'name': 'Uint16', 'ctype': 'uint16_t', 'max_item': 2**16-2,  # 65535
      'enum': 'INDEX_UINT16',
-     'description': '16-bit unsigned integer (max 65535 items)'},
-    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 4294967295,
+     'description': '16-bit unsigned integer (max 2**16-2 (65534) items)'},
+    {'name': 'Uint32', 'ctype': 'uint32_t', 'max_item': 2**32-2,  # 4294967295
      'enum': 'INDEX_UINT32',
-     'description': '32-bit unsigned integer (max 4294967295 items)'},
-    # uint64_t: bridge ceiling = INT64_MAX (int64_t wire type)
-    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 9223372036854775807,
+     'description': '32-bit unsigned integer (max 2**32-2 (4294967294) items)'},
+    # uint64_t: _w bridge uses uint64_t wire type (annoylib.h add_item_w signature),
+    # so the full type range [0, 2**64-1] is reachable.  Python ints > 2**64-1 are
+    # caught here via the Python-object comparison before any C truncation occurs.
+    {'name': 'Uint64', 'ctype': 'uint64_t', 'max_item': 2**64-2,  # 18446744073709551615
      'enum': 'INDEX_UINT64',
-     'description': '64-bit unsigned integer (bridge-limited to 2^63-1 items)'},
+     'description': '64-bit unsigned integer (max 2**64-2 (18446744073709551614) items)'},
 ]
 
 data_types = [
@@ -192,7 +191,11 @@ annoy_metrics = [
 ]
 
 hamming_internal_types = [
-    {'name': 'Uint64', 'ctype': 'uint64_t', 'bits': 64, 'description': '64-bit unsigned integer for bit packing', 'enum': 'METRIC_HAMMING'},
+    # InternalT type for HammingWrapper bit packing. 'enum' is NOT a MetricId;
+    # it is the identifier used when this type appears in generated typedef names.
+    {'name': 'Uint64', 'ctype': 'uint64_t', 'bits': 64,
+     'description': '64-bit unsigned integer for bit packing',
+     'internal_enum': 'INTERNAL_UINT64'},
 ]
 
 # Generate all valid combinations
@@ -282,9 +285,7 @@ cpdef enum FloatType:
         Single precision (32-bit) - DEFAULT
     FLOAT64 : 2
         Double precision (64-bit)
-    FLOAT80 : 3
-        Extended precision (80-bit, x87)
-    FLOAT128 : 4
+    FLOAT128 : 3
         Quadruple precision (128-bit GCC/Clang or long double fallback)
 
     Notes
@@ -292,12 +293,14 @@ cpdef enum FloatType:
     * FLOAT16 is supported via the double widened bridge with narrowing to float16_t.
     * FLOAT128 benefits from higher-precision internal arithmetic on GCC/Clang;
       on MSVC and generic fallback it maps to long double (80-bit extended).
+    * FLOAT80 (x87 extended) is intentionally absent: there is no float80_t in
+      annoylib.h; parse_data_dtype would raise ValueError for it, causing a silent
+      inconsistency between parse_dtype and parse_data_dtype.
     """
     FLOAT16 = 0
     FLOAT32 = 1
     FLOAT64 = 2
-    FLOAT80 = 3
-    FLOAT128 = 4
+    FLOAT128 = 3
 
 
 cdef FloatType parse_dtype(str dtype_str):
@@ -327,14 +330,13 @@ cdef FloatType parse_dtype(str dtype_str):
         return FLOAT32
     elif dtype_lower in ("float64", "double", "fp64"):
         return FLOAT64
-    elif dtype_lower in ("float80", "extended", "fp80"):
-        return FLOAT80
     elif dtype_lower in ("float128", "quadruple", "fp128", "quad"):
         return FLOAT128
     else:
         raise ValueError(
             f"Unsupported dtype '{dtype_str}'. "
-            f"Supported: float16, float32, float64, float80, float128"
+            f"Supported: float16, float32, float64, float128. "
+            f"(float80/x87 is not supported: no float80_t in annoylib.h)"
         )
 
 
@@ -346,8 +348,6 @@ cdef str dtype_to_string(FloatType dtype):
         return "float32"
     elif dtype == FLOAT64:
         return "float64"
-    elif dtype == FLOAT80:
-        return "float80"
     elif dtype == FLOAT128:
         return "float128"
     else:
@@ -362,8 +362,6 @@ cdef int dtype_size(FloatType dtype):
         return 4
     elif dtype == FLOAT64:
         return 8
-    elif dtype == FLOAT80:
-        return 10  # or 16 padded
     elif dtype == FLOAT128:
         return 16
     else:
@@ -609,11 +607,6 @@ cdef IndexTypeId parse_index_dtype(str dtype_str) except? INDEX_UNKNOWN:
     {{for index_type in index_types}}
     * '{{index_type['ctype']}}', '{{index_type['name'].lower()}}' - {{index_type['description']}}
     {{endfor}}
-
-    Notes
-    -----
-    * For uint64_t: item IDs are limited to [0, 2^63-1] due to the int64_t
-      widened bridge.  Items >= 2^63 will raise OverflowError at runtime.
     """
     dtype_lower = dtype_str.lower().strip()
     {{for index_type in index_types}}
@@ -673,7 +666,7 @@ cdef DataTypeId parse_data_dtype(str dtype_str) except? DATA_UNKNOWN:
 # Item ID Bounds Validation - TEMPLATE GENERATED
 # =============================================================================
 
-cdef inline void _validate_item_id(IndexTypeId type_id, uint64_t item) except *:
+cdef inline void _validate_item_id(IndexTypeId type_id, object item) except *:
     """
     Validate that a non-negative item ID fits within the target index type's range.
 
@@ -681,53 +674,74 @@ cdef inline void _validate_item_id(IndexTypeId type_id, uint64_t item) except *:
     ----------
     type_id : IndexTypeId
         The index type enum value identifying the target C++ index type.
-    item : uint64_t
-        Non-negative item ID to validate.  A negative value must already be
-        caught by the caller before this function is invoked.
+    item : object (Python int)
+        Non-negative item ID to validate.  Accepted as a Python ``object``
+        so that Python's arbitrary-precision integer arithmetic is used for
+        the comparison — a ``uint64_t`` parameter would silently truncate
+        any value larger than ``2**64-1`` before the check, making the
+        guard invisible.  A negative value must be caught by the caller
+        before invoking this function (``if item < 0: raise IndexError``).
 
     Raises
     ------
     OverflowError
         If ``item`` exceeds the maximum representable ID for ``type_id``.
-        The error message names the type, the actual value, and the ceiling,
-        and suggests a wider type when applicable.
+        The error message names the C type, the actual value, the ceiling,
+        and suggests a wider ``index_dtype`` where applicable.
 
     Notes
     -----
-    * The _w bridge passes item IDs as ``int64_t``.  Any Python integer that
-      does not fit in ``int64_t`` is rejected by Cython before the call body
-      runs, so no upper-bound check for ``int64_t`` / ``uint64_t`` is needed
-      (the bridge ceiling IS INT64_MAX for both).
-    * For small signed types the valid non-negative range is [0, TYPE_MAX].
-    * For unsigned types the valid range is [0, TYPE_MAX] — except uint64_t
-      which is additionally limited to [0, INT64_MAX] by the bridge.
+    * The _w bridge passes item IDs to C++ as ``uint64_t`` (see
+      ``AnnoyIndexInterfaceBase::add_item_w`` in annoylib.h).
+    * Using ``object`` instead of ``uint64_t`` ensures the comparison
+      ``item > MAX`` is performed in Python integer space — no C truncation
+      can hide an out-of-range value before the guard fires.
+    * For signed small types (int8/int16/int32/int64) the valid range is
+      ``[0, TYPE_MAX]`` because the C++ template parameter S is signed and
+      negative IDs are meaningless.
+    * For unsigned types (uint8/uint16/uint32) the full type range
+      ``[0, 2**N - 1]`` is valid and reachable via the uint64_t bridge.
+    * For uint64_t the ceiling is ``2**64 - 1``; Python ints larger than
+      that cannot be passed through the bridge at all.
 
     Generated combinations ({{len(index_types)}} index types):
     {{for index_type in index_types}}
     * {{index_type['enum']}} ({{index_type['ctype']}}): max_item = {{index_type['max_item']}}
     {{endfor}}
     """
-    # TEMPLATE GENERATED: one branch per IndexTypeId
+    # TEMPLATE GENERATED: one branch per IndexTypeId.
+    # Each branch compares the Python int ``item`` against the Python-level
+    # constant {{index_type['max_item']}}.  Because ``item`` is ``object``
+    # the comparison uses Python's arbitrary-precision integers — no C
+    # truncation occurs before the guard fires.
     {{for loop, index_type in looper(index_types)}}
     {{if loop.first}}if{{else}}elif{{endif}} type_id == {{index_type['enum']}}:
         if item > {{index_type['max_item']}}:
             raise OverflowError(
-                f"item id '{item}' exceeds {{index_type['ctype']}} capacity "
+                f"item id {item!r} exceeds {{index_type['ctype']}} capacity "
                 f"[0, {{index_type['max_item']}}]. "
                 {{if index_type['name'] == 'Int8' or index_type['name'] == 'Uint8'}}
                 f"Use a wider index_dtype (e.g. 'int32') for larger item IDs."
                 {{elif index_type['name'] == 'Int16' or index_type['name'] == 'Uint16'}}
                 f"Use a wider index_dtype (e.g. 'int32' or 'int64') for larger item IDs."
-                {{elif index_type['name'] == 'Int32' or index_type['name'] == 'Uint32'}}
-                f"Use index_dtype='int64' to support item IDs up to 2^63-1."
+                {{elif index_type['name'] == 'Int32'}}
+                f"Use index_dtype='int64' or index_dtype='uint64' for larger item IDs "
+                f"(int64 up to {2**63 - 1}, uint64 up to {2**64 - 1})."
+                {{elif index_type['name'] == 'Uint32'}}
+                f"Use index_dtype='uint64' for item IDs up to {2**64 - 1}, "
+                f"or index_dtype='int64' for up to {2**63 - 1}."
                 {{elif index_type['name'] == 'Uint64'}}
-                f"uint64_t item IDs above 2^63-1 are not supported via the int64_t bridge."
+                f"uint64_t is the widest supported index type; "
+                f"item IDs above {2**64 - 1} cannot be passed through the uint64_t bridge."
                 {{else}}
-                f""  # int64_t: Cython rejects overflow before we reach here
+                f""  # Int64: type max (2**63-1) == the guard threshold above.
+                     # Bridge wire type is uint64_t (add_item_w), so no truncation
+                     # occurs before this guard fires for any valid Python int.
                 {{endif}}
             )
     {{endfor}}
-    # INDEX_UNKNOWN or unrecognized: no action (caller should have validated type_id)
+    # INDEX_UNKNOWN or unrecognized type_id: no action.
+    # The caller is responsible for validating type_id before calling here.
 
 
 # =============================================================================
@@ -1109,7 +1123,7 @@ cdef class BaseIndex(_HTMLDocumentationLinkMixin):
             "f": self.f,
             "metric": self.metric,
             "n_neighbors": self.n_neighbors,
-            "dtype": dtype_to_string(self.dtype),
+            "dtype": self.dtype,  # already a canonical str; no FloatType conversion needed
             "index_dtype": self.index_dtype,
             "wrapper_dtype": self.wrapper_dtype,
             "random_dtype": self.random_dtype,
@@ -1218,13 +1232,13 @@ cdef class Index(BaseIndex):
     index_dtype : str, default="int32"
         Index identifier type. Supported values:
         * "int8"   → int8_t   (max 127 items)
-        * "int16"  → int16_t  (max 32,767 items)
-        * "int32"  → int32_t  (max 2,147,483,647 items, default)
-        * "int64"  → int64_t  (max 9,223,372,036,854,775,807 items)
         * "uint8"  → uint8_t  (max 255 items)
+        * "int16"  → int16_t  (max 32,767 items)
         * "uint16" → uint16_t (max 65,535 items)
+        * "int32"  → int32_t  (max 2,147,483,647 items, default)
         * "uint32" → uint32_t (max 4,294,967,295 items)
-        * "uint64" → uint64_t (bridge-limited to 2^63-1 items)
+        * "int64"  → int64_t  (max 9,223,372,036,854,775,807 items)
+        * "uint64" → uint64_t (max 18,446,744,073,709,551,615 items)
     wrapper_dtype : str, default="uint64"
         Internal wrapper type (e.g., for Hamming packing).
         Future: "bool", "uint8", "uint32" etc.
@@ -1254,8 +1268,8 @@ cdef class Index(BaseIndex):
 
     Notes
     -----
-    * 32-bit integer (4 bytes) can store values from −2^31 to 2^31−1, roughly ±2 billion.
-    * 64-bit integer (8 bytes) can store values from −2^63 to 2^63−1, roughly ±9 quintillion.
+    * 32-bit integer (4 bytes) can store values from −2**31 to 2**31−1, roughly ±2 billion.
+    * 64-bit integer (8 bytes) can store values from −2**63 to 2**63−1, roughly ±9 quintillion.
 
     Examples
     --------
@@ -1290,9 +1304,9 @@ cdef class Index(BaseIndex):
     # C++ pointer - stored as int32/float typed; cast to correct type at each call
     # Virtual dispatch via vtable ensures type-insensitive calls work correctly.
     # For type-sensitive calls (add_item etc.) we cast back to the right type.
-    # cdef AnnoyIndexInterface[int32_t, float, uint64_t]* ptr
     # cdef AnnoyIndexInterface[int32_t, float, uint64_t]* ptr32
-    # cdef AnnoyIndexInterface[int64_t, double, uint64_t]* ptr64
+    # cdef AnnoyIndexInterface[uint32_t, float, uint64_t]* ptr32u
+    # cdef AnnoyIndexInterface[uint64_t, double, uint64_t]* ptr64u
 
     # ------------------------------------------------------------------
     # C++ index pointer — stored as the non-templated AnnoyIndexInterfaceBase*.
@@ -1328,7 +1342,7 @@ cdef class Index(BaseIndex):
     cdef MetricId metric_id  # METRIC_UNKNOWN = unset
 
     # Estimator parameters (SLEP013-like)
-    cdef size_t n_neighbors  # default neighbors for queries
+    cdef int n_neighbors  # default neighbors for queries; int matches BaseIndex and signed < 1 check
 
     # On-disk configuration
     cdef cpp_bool on_disk_active  # True if currently backed by disk
@@ -1634,8 +1648,10 @@ cdef class Index(BaseIndex):
             if seed < 0:
                 raise ValueError(f"`seed` must be non-negative, got {seed}")
 
-            # Check for overflow (Python int can be arbitrarily large)
-            if seed > <uint64_t>(-1):
+            # Check for overflow in Python integer space — do NOT cast to uint64_t here.
+            # <uint64_t>(-1) would be evaluated at C level, causing Cython to widen
+            # `seed` to uint64_t before the comparison, hiding values > 2**64-1.
+            if seed > 18446744073709551615:  # UINT64_MAX as Python int literal
                 raise ValueError(f"`seed` must fit in uint64_t range [0, 2**64 - 1], got {seed}")
 
             seed_u64 = <uint64_t>seed
@@ -1699,15 +1715,17 @@ cdef class Index(BaseIndex):
         """
         self._destroy_index()
 
-    cdef void _destroy_index(self) nogil:
+    cdef void _destroy_index(self):
         """
-        Internal: safely destroy C++ index (nogil for efficiency).
+        Internal: safely destroy C++ index.
 
         Notes
         -----
         * Safe to call multiple times (idempotent)
         * Safe to call from __dealloc__ or __init__
-        * Never raises exceptions (nogil context)
+        * Must NOT be declared nogil: unload() is 'except +' so exception
+          conversion requires the GIL; self.on_disk_active/pending are Python
+          attributes that also require GIL access.
         """
         if self.ptr != NULL:
             self.ptr.unload()
@@ -1882,7 +1900,9 @@ cdef class Index(BaseIndex):
                 # Roll back to safe state
                 self._destroy_index()
                 if error != NULL:
-                    raise IOError(error.decode("utf-8", "replace"))
+                    err_msg = error.decode("utf-8", "replace")
+                    free(error)  # must free before raise to avoid C-string leak
+                    raise IOError(err_msg)
                 else:
                     raise IOError("on_disk_build failed (unknown error)")
 
@@ -2016,15 +2036,15 @@ cdef class Index(BaseIndex):
 
         Raises
         ------
+        IndexError
+            If item is negative
         OverflowError
-            If item > 2^31-1 and index_dtype is 'int32'.
-            Use ``index_dtype='int64'`` for larger item IDs.
+            If item exceeds the maximum for the configured index_dtype
+            (e.g. 2**31-1 for int32, 2**63-1 for int64, 2**64-1 for uint64).
         RuntimeError
             If index is not constructed or already built
         ValueError
             If vector dimension doesn't match f
-        IndexError
-            If item is negative
 
         Notes
         -----
@@ -2034,10 +2054,22 @@ cdef class Index(BaseIndex):
         """
         if item < 0:
             raise IndexError("item id cannot be negative")
+        # Upper-bound guard: compare in Python integer space (object parameter)
+        # so no C truncation can hide an out-of-range value before the check.
+        _validate_item_id(self.index_type_id, item)
         cdef uint64_t item64 = <uint64_t>item
 
         if self.ptr == NULL:
             self._ensure_index()
+
+        # Dimension guard: f is fixed once the index is constructed.
+        # Check here (after ensure_index sets self.f) so the error message
+        # includes the actual expected dimension.
+        cdef int _vec_len = len(vector)
+        if _vec_len != self.f:
+            raise ValueError(
+                f"Vector length {_vec_len} does not match index dimension {self.f}"
+            )
 
         # Build a double[] view of the Python sequence, then call add_item_w.
         # The C++ bridge (AnnoyIndexInterface::add_item_w) narrows double→T
@@ -2284,12 +2316,15 @@ cdef class Index(BaseIndex):
 
         Raises
         ------
-        OverflowError
-            If item > 2^31-1 and index_dtype is 'int32'.
-        RuntimeError
-            If index not built
         IndexError
             If item >= n_items
+        OverflowError
+            If item exceeds the maximum for the configured index_dtype
+            (e.g. 2**31-1 for int32, 2**63-1 for int64, 2**64-1 for uint64).
+        ValueError
+            If n <= 0
+        RuntimeError
+            If index not built
 
         Notes
         -----
@@ -2312,7 +2347,11 @@ cdef class Index(BaseIndex):
         """
         if item < 0:
             raise IndexError("item id cannot be negative")
+        _validate_item_id(self.index_type_id, item)
         cdef uint64_t item64 = <uint64_t>item
+
+        if n <= 0:
+            raise ValueError(f"n must be >= 1, got {n}")
 
         if self.ptr == NULL:
             raise RuntimeError("Cannot query: index not constructed")
@@ -2399,10 +2438,19 @@ cdef class Index(BaseIndex):
         RuntimeError
             If index not built
         ValueError
-            If vector dimension doesn't match f
+            If n <= 0, or if vector length does not match index dimension f
         """
         if self.ptr == NULL:
             raise RuntimeError("Cannot query: index not constructed")
+
+        if n <= 0:
+            raise ValueError(f"n must be >= 1, got {n}")
+
+        cdef int _vec_len_q = len(vector)
+        if _vec_len_q != self.f:
+            raise ValueError(
+                f"Query vector length {_vec_len_q} does not match index dimension {self.f}"
+            )
 
         cdef int _i
         cdef cpp_vector[double]  _qvec
@@ -2483,15 +2531,17 @@ cdef class Index(BaseIndex):
 
         Raises
         ------
-        OverflowError
-            If item > 2^31-1 and index_dtype is 'int32'.
-        RuntimeError
-            If index not constructed
         IndexError
             If item is negative or >= n_items
+        OverflowError
+            If item exceeds the maximum for the configured index_dtype
+            (e.g. 2**31-1 for int32, 2**63-1 for int64, 2**64-1 for uint64).
+        RuntimeError
+            If index not constructed
         """
         if item < 0:
             raise IndexError("item id cannot be negative")
+        _validate_item_id(self.index_type_id, item)
         cdef uint64_t item64 = <uint64_t>item
 
         if self.ptr == NULL:
@@ -2546,12 +2596,13 @@ cdef class Index(BaseIndex):
 
         Raises
         ------
-        OverflowError
-            If i or j > 2^31-1 and index_dtype is 'int32'.
-        RuntimeError
-            If index not constructed
         IndexError
             If i or j is negative or >= n_items
+        OverflowError
+            If i or j exceeds the maximum for the configured index_dtype
+            (e.g. 2**31-1 for int32, 2**63-1 for int64, 2**64-1 for uint64).
+        RuntimeError
+            If index not constructed
 
         Notes
         -----
@@ -2563,7 +2614,8 @@ cdef class Index(BaseIndex):
 
         if i < 0 or j < 0:
             raise IndexError("item ids cannot be negative")
-
+        _validate_item_id(self.index_type_id, i)
+        _validate_item_id(self.index_type_id, j)
         cdef uint64_t i64 = <uint64_t>i
         cdef uint64_t j64 = <uint64_t>j
         return self.ptr.get_distance_w(i64, j64)
@@ -2692,33 +2744,56 @@ cdef class Index(BaseIndex):
         if self.ptr != NULL:
             self.ptr.unload()
 
-    def set_seed(self, int seed) -> None:
+    def set_seed(self, object seed) -> None:
         """
         Set random seed for index construction.
 
         Parameters
         ----------
         seed : int
-            Random seed (0 uses default_seed)
+            Non-negative integer in [0, 2**64 - 1].
+            0 uses Annoy's deterministic default seed and emits a UserWarning.
+
+        Returns
+        -------
+        self : Index
+
+        Raises
+        ------
+        TypeError
+            If seed is not an integer.
+        ValueError
+            If seed is negative or exceeds uint64_t range [0, 2**64 - 1].
 
         Notes
         -----
-        * Must be called before build()
-        * Seed is normalized: 0 -> default_seed
-        * Affects tree construction randomness
+        * Must be called before build() to take effect.
+        * set_seed(R) is not on AnnoyIndexInterfaceBase; the widened
+          set_seed_w(uint64_t) bridge is used for all concrete index types.
+        * Seed 0 triggers Annoy's deterministic default (Kiss64Random::default_seed).
         """
+        if not isinstance(seed, int):
+            raise TypeError(f"`seed` must be an integer, got {type(seed).__name__}")
+        if seed < 0:
+            raise ValueError(f"`seed` must be non-negative, got {seed}")
+        # Python-level integer comparison — must NOT cast to uint64_t before this
+        # guard, or values > 2**64-1 would wrap silently at C truncation.
+        if seed > 18446744073709551615:  # UINT64_MAX as Python int literal
+            raise ValueError(
+                f"`seed` must fit in uint64_t range [0, 2**64 - 1], got {seed}"
+            )
+        cdef uint64_t seed_u64 = <uint64_t>seed
+        if seed_u64 == 0:
+            warnings.warn(
+                "seed=0 uses Annoy's deterministic default seed",
+                UserWarning,
+                stacklevel=2,
+            )
         if self.ptr == NULL:
-            # Store for later application
-            self.pending_seed = seed
-            self.has_pending_seed = True
+            self.pending_seed = seed_u64
+            self.has_pending_seed = (seed_u64 != 0)
         else:
-            # self.ptr.set_seed(seed)
-            # set_seed(R) is not on AnnoyIndexInterfaceBase; use set_seed_w.
-            self.ptr.set_seed_w(<uint64_t>seed)
-
-            # set_seed(R) is not on AnnoyIndexInterfaceBase; use a fixed typed cast.
-            # R is always uint64_t; argument type is correct for all concrete types.
-            # (<AnnoyIndexInterface[int32_t, float, uint64_t]*>self.ptr).set_seed(seed)
+            self.ptr.set_seed_w(seed_u64)
         return self
 
     def set_verbose(self, bint v) -> None:
@@ -3137,10 +3212,15 @@ cdef class Index(BaseIndex):
 
             # Core parameters
             self.f = params.get("f", 0)
-            self.metric = params.get("metric", "")
+            # Use None default so an absent key doesn't pass '' to the
+            # property setter ('' → METRIC_UNKNOWN → ValueError).
+            _metric_str = params.get("metric")  # None if absent
+            self.metric = _metric_str  # property setter validates & sets metric_id
+            # metric_id is already set by the property setter above;
+            # the explicit assignment below is kept only as a guard.
             self.metric_id = metric_from_string(
-                params.get("metric", "").encode("utf-8")
-            ) if params.get("metric") else METRIC_UNKNOWN
+                _metric_str.encode("utf-8")
+            ) if _metric_str else METRIC_UNKNOWN
             self.n_neighbors = params.get("n_neighbors", 5)
 
             # Configuration
@@ -3523,7 +3603,7 @@ cdef class Index(BaseIndex):
                 f"Index key must be int or slice, not {type(key).__name__}"
             )
 
-    def __contains__(self, int item) -> bool:
+    def __contains__(self, item) -> bool:
         """
         Check if item ID exists in index.
 

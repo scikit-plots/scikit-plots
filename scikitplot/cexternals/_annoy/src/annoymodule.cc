@@ -95,8 +95,10 @@
 //     switching to uint64_t, and vice-versa. The sizeof_S header field
 //     will mismatch and deserialization will fail loudly (not silently).
 //
-//     uint32_t  →  max ~4.3 × 10⁹ items, 4 bytes/node-id
-//     uint64_t  →  max ~1.8 × 10¹⁹ items, 8 bytes/node-id
+//     int32_t  → max 2^31-1 =  2,147,483,647  (~2.1 × 10⁹  items), 4 bytes/node-id
+//     int64_t  → max 2^63-1 =  9,223,372,036,854,775,807  (~9.2 × 10¹⁸ items), 8 bytes/node-id
+//     uint32_t → max 2^32-1 =  4,294,967,295  (~4.3 × 10⁹  items), 4 bytes/node-id
+//     uint64_t → max 2^64-1 = 18,446,744,073,709,551,615  (~1.8 × 10¹⁹ items), 8 bytes/node-id
 //
 //   DataDtype   (T) – controls:
 //     • embedding scalar width and SIMD alignment
@@ -1058,7 +1060,7 @@ public:
       }
 
       if (error) {
-          *error = strdup("missing parameter: f");
+          *error = dup_cstr("missing parameter: f");
       }
       return false;
   }
@@ -1279,7 +1281,22 @@ public:
     HammingHeader hdr;
     hdr.f_external = static_cast<uint32_t>(_f_external);
     hdr.f_internal = static_cast<uint32_t>(_f_internal);
-    hdr.n_items    = static_cast<uint32_t>(_index.get_n_items());
+
+    // n_items is IndexDtype (uint64_t when IndexDtype=uint64_t).
+    // HammingHeader.n_items is uint32_t for on-disk ABI compatibility.
+    // Guard against silent truncation: if the index has more items than
+    // uint32_t can hold, the header would be corrupt.
+    {
+      const IndexDtype n_items_idx = _index.get_n_items();
+      if (n_items_idx > static_cast<IndexDtype>(std::numeric_limits<uint32_t>::max())) {
+        if (error) *error = dup_cstr(
+          "Hamming index has more than 2^32-1 items; "
+          "HammingHeader.n_items (uint32_t) cannot store this count. "
+          "Serialization aborted to prevent silent data corruption.");
+        return {};
+      }
+      hdr.n_items = static_cast<uint32_t>(n_items_idx);
+    }
     hdr.reserved   = 0U;
 
     const uint8_t* hdr_byte =
@@ -2883,13 +2900,14 @@ static int py_annoy_set_y(
     return -1;
   }
   if (self->ptr) {
-    const int n_items = self->ptr->get_n_items();
+    const IndexDtype n_items = self->ptr->get_n_items();
     if (n_items > 0) {
       const Py_ssize_t n = PySequence_Size(value);
       if (n < 0) return -1;
-      if ((IndexDtype)n != (IndexDtype)n_items) {
+      if ((IndexDtype)n != n_items) {
         PyErr_Format(PyExc_ValueError,
-          "y must have length %d to match current index size (n_items)", n_items);
+          "y must have length %llu to match current index size (n_items)",
+          (unsigned long long)n_items);
         return -1;
       }
     }
@@ -5840,11 +5858,11 @@ static PyObject* annoy_build_summary_dict(
 
   // Optional keys (included only when requested)
   if (include_n_items || include_n_trees) {
-    int64_t n_items64 = 0;
-    int64_t n_trees64 = 0;
+    uint64_t n_items64 = 0;
+    uint64_t n_trees64 = 0;
     if (self->ptr) {
-      n_items64 = static_cast<int64_t>(self->ptr->get_n_items());
-      n_trees64 = static_cast<int64_t>(self->ptr->get_n_trees());
+      n_items64 = static_cast<uint64_t>(self->ptr->get_n_items());
+      n_trees64 = static_cast<uint64_t>(self->ptr->get_n_trees());
     }
 
     if (include_n_items) {
@@ -6017,7 +6035,7 @@ static PyObject* py_an_add_item(
   // Lower-bound: not needed — ANNOY_IDX_PARSE_TMP is unsigned; PyArg with "K"
   // or "k" raises OverflowError for negative Python integers before we get here.
   if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
-    PyErr_SetString(PyExc_ValueError,
+    PyErr_SetString(PyExc_OverflowError,
                     "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
@@ -6448,10 +6466,10 @@ static PyObject* py_an_fit(
   }
 
   // Determine start_index.
-  int64_t start_index = 0;
+  uint64_t start_index = 0;
   if (start_index_obj == Py_None) {
     if (!reset && self->ptr) {
-      start_index = (int64_t)self->ptr->get_n_items();
+      start_index = (uint64_t)self->ptr->get_n_items();
     } else {
       start_index = 0;
     }
@@ -6463,7 +6481,7 @@ static PyObject* py_an_fit(
       PyErr_SetString(PyExc_ValueError, "start_index must be >= 0");
       return NULL;
     }
-    start_index = (int64_t)v;
+    start_index = (uint64_t)v;
   }
 
   // Infer f from first row if needed.
@@ -6640,7 +6658,7 @@ if (have_y || have_y_map) {
     PyObject* y_seq = PySequence_Fast(y, "y must be a 1D array-like (sequence)");
     if (!y_seq) { Py_DECREF(y_dict); return NULL; }
     for (Py_ssize_t i = 0; i < n_samples; ++i) {
-      const IndexDtype item_id = static_cast<IndexDtype>(start_index + (int64_t)i);
+      const IndexDtype item_id = static_cast<IndexDtype>(start_index + (uint64_t)i);
       PyObject* key = AnnoyIdxToPy(item_id);  // AnnoyIdxToPy: IndexDtype-aware conversion
       if (!key) { Py_DECREF(y_seq); Py_DECREF(y_dict); return NULL; }
       PyObject* label = PySequence_Fast_GET_ITEM(y_seq, i);  // borrowed
@@ -6831,7 +6849,7 @@ static PyObject* annoy_lookup_y(
   Py_ssize_t n = PySequence_Size(self->y);
   // If item_id cannot fit into Py_ssize_t,
   // it is necessarily out of bounds.
-  if (item_id > static_cast<uint32_t>(PY_SSIZE_T_MAX)) {
+  if (item_id > static_cast<IndexDtype>(PY_SSIZE_T_MAX)) {
       Py_INCREF(y_fill_value);
       return y_fill_value;
   }
@@ -7106,7 +7124,7 @@ static PyObject* py_an_transform(
       unsigned long long kid_raw = AnnoyIdxFromPyRaw(obj);
       if (kid_raw == (unsigned long long)-1 && PyErr_Occurred()) goto fail;
       if (kid_raw > (unsigned long long)ANNOY_IDX_MAX) {
-        PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
+        PyErr_SetString(PyExc_OverflowError, "Item id out of IndexDtype range [0, 2^N-1]");
         goto fail;
       }
       const IndexDtype item_id = static_cast<IndexDtype>(kid_raw);
@@ -7824,7 +7842,7 @@ static PyObject* py_an_get_nns_by_item(
   // Lower-bound: not needed — ANNOY_IDX_PARSE_TMP is unsigned; negative Python
   // integers are rejected by PyArg with OverflowError before reaching here.
   if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
+    PyErr_SetString(PyExc_OverflowError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
   const IndexDtype indice = static_cast<IndexDtype>(indice_tmp);
@@ -8018,7 +8036,7 @@ static PyObject* py_an_get_item(
 
   // Upper-bound check; lower-bound guaranteed by unsigned parse type.
   if (indice_tmp > static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX)) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
+    PyErr_SetString(PyExc_OverflowError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
   const IndexDtype indice = static_cast<IndexDtype>(indice_tmp);
@@ -8091,7 +8109,7 @@ static PyObject* py_an_get_distance(
   // Upper-bound checks; lower-bound guaranteed by unsigned parse types.
   const ANNOY_IDX_PARSE_TMP idx_max = static_cast<ANNOY_IDX_PARSE_TMP>(ANNOY_IDX_MAX);
   if (i_tmp > idx_max || j_tmp > idx_max) {
-    PyErr_SetString(PyExc_ValueError, "Item id out of IndexDtype range [0, 2^N-1]");
+    PyErr_SetString(PyExc_OverflowError, "Item id out of IndexDtype range [0, 2^N-1]");
     return NULL;
   }
   const IndexDtype i = static_cast<IndexDtype>(i_tmp);
@@ -11142,8 +11160,8 @@ static Py_ssize_t py_an_len(PyObject* obj) {
   if (!self->ptr) {
     return 0;
   }
-  const uint32_t n = self->ptr->get_n_items();
-  if (n > static_cast<uint32_t>(PY_SSIZE_T_MAX)) {
+  const IndexDtype n = self->ptr->get_n_items();
+  if (n > static_cast<IndexDtype>(PY_SSIZE_T_MAX)) {
     PyErr_SetString(
       PyExc_OverflowError,
       "__len__ exceeds Py_ssize_t range on this platform"
