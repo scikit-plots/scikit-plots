@@ -537,6 +537,25 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Normalizers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "DedupLinesNormalizer",
+                    "HTMLStripNormalizer",
+                    "LanguageDetectionNormalizer",
+                    "LowercaseNormalizer",
+                    "NormalizationPipeline",
+                    "NormalizerBase",
+                    "NormalizerConfig",
+                    "TextNormalizer",
+                    "UnicodeNormalizer",
+                    "WhitespaceNormalizer",
+                    "normalize_text",
+                ],
+            },
+            {
                 "title": "Enricher",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -547,23 +566,36 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Results",
+                "title": "Embeddings",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
-                    # Results
-                    "BuildResult",
+                    "DEFAULT_MODEL",
+                    "EmbedFn",
+                    "EmbeddingEngine",
                 ],
             },
             {
-                "title": "Templates / workflows",
+                "title": "Similarity",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
-                    # Templates / workflows
-                    "TemplateInfo",
+                    "SearchConfig",
+                    "SearchResult",
+                    "SimilarityIndex",
+                ],
+            },
+            {
+                "title": "Pipeline",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "CorpusPipeline",
+                    "PipelineResult",
+                    "create_corpus",
                 ],
             },
         ],
