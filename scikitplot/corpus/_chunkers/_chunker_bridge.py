@@ -230,12 +230,14 @@ class WordChunkerBridge(ChunkerBridge):
 
     Notes
     -----
-    ``WordChunker`` returns a single chunk per document (or one per
-    sentence if ``chunk_by="sentence"``).  The bridge converts all
-    resulting ``Chunk`` objects into ``(char_start, text)`` tuples.
+    ``WordChunker`` splits text at the word-token level, which does not
+    correspond to any named :class:`~scikitplot.corpus._schema.ChunkingStrategy`
+    value.  ``CUSTOM`` is used as the closest approximation — it signals
+    that user-supplied or non-standard logic was applied, and downstream
+    consumers should not assume standard segment boundaries.
     """
 
-    strategy: ClassVar[ChunkingStrategy] = ChunkingStrategy.WORD
+    strategy: ClassVar[ChunkingStrategy] = ChunkingStrategy.CUSTOM
 
     def _call_inner(
         self,

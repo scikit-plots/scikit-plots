@@ -138,6 +138,7 @@ from scikitplot.corpus._base import (
     DefaultFilter,
     DocumentReader,
     FilterBase,
+    PipelineGuard,
 )
 
 # Chunkers
@@ -162,6 +163,8 @@ from scikitplot.corpus._embeddings import (
     DEFAULT_MODEL,
     EmbeddingEngine,
     EmbedFn,
+    LLMTrainingExporter,
+    MultimodalEmbeddingEngine,
 )
 
 # --- NLP enricher ---
@@ -228,10 +231,14 @@ from scikitplot.corpus._registry import (
 from scikitplot.corpus._schema import (
     ChunkingStrategy,
     CorpusDocument,
+    ErrorPolicy,
     ExportFormat,
     MatchMode,
+    Modality,
     SectionType,
     SourceType,
+    documents_to_pandas,
+    documents_to_polars,
 )
 
 # --- Similarity index ---
@@ -262,6 +269,7 @@ from scikitplot.corpus._url_handler import (
     URLKind,
     classify_url,
     download_url,
+    probe_url_kind,
     resolve_url,
 )
 
@@ -283,28 +291,29 @@ __all__ = [  # noqa: RUF022
     "URLKind",
     "classify_url",
     "download_url",
+    "probe_url_kind",
     "resolve_url",
     # Base
-    "DocumentReader",
     "ChunkerBase",
-    "FilterBase",
     "DefaultFilter",
+    "DocumentReader",
+    "FilterBase",
     # Chunkers
-    "WordChunker",
-    "SentenceChunker",
-    "ParagraphChunker",
     "FixedWindowChunker",
+    "ParagraphChunker",
+    "SentenceChunker",
+    "WordChunker",
     # Chunker bridge
     "ChunkerBridge",
     "bridge_chunker",
     # Builder
-    "BuilderConfig",
     "BuildResult",
+    "BuilderConfig",
     "CorpusBuilder",
     # Embeddings
-    "EmbeddingEngine",
-    "EmbedFn",
     "DEFAULT_MODEL",
+    "EmbedFn",
+    "EmbeddingEngine",
     # Enricher
     "EnricherConfig",
     "NLPEnricher",
@@ -315,44 +324,46 @@ __all__ = [  # noqa: RUF022
     "CollectionManifest",
     "CorpusStats",
     # Normalizers
-    "NormalizerBase",
-    "UnicodeNormalizer",
-    "WhitespaceNormalizer",
-    "HTMLStripNormalizer",
-    "LowercaseNormalizer",
     "DedupLinesNormalizer",
+    "HTMLStripNormalizer",
     "LanguageDetectionNormalizer",
+    "LowercaseNormalizer",
     "NormalizationPipeline",
+    "NormalizerBase",
     "NormalizerConfig",
     "TextNormalizer",
+    "UnicodeNormalizer",
+    "WhitespaceNormalizer",
     "normalize_text",
     # Pipeline
     "CorpusPipeline",
     "PipelineResult",
     "create_corpus",
     # Readers
-    "TextReader",
-    "MarkdownReader",
-    "ReSTReader",
-    "XMLReader",
-    "TEIReader",
     "ALTOReader",
-    "PDFReader",
-    "ImageReader",
-    "VideoReader",
     "AudioReader",
+    "ImageReader",
+    "MarkdownReader",
+    "PDFReader",
+    "ReSTReader",
+    "TEIReader",
+    "TextReader",
+    "VideoReader",
     "WebReader",
+    "XMLReader",
     "YouTubeReader",
     # Registry
     "ComponentRegistry",
     "registry",
     # Schema
-    "CorpusDocument",
-    "SectionType",
     "ChunkingStrategy",
+    "CorpusDocument",
     "ExportFormat",
-    "SourceType",
     "MatchMode",
+    "SectionType",
+    "SourceType",
+    "documents_to_pandas",
+    "documents_to_polars",
     # Similarity
     "SearchConfig",
     "SearchResult",
@@ -362,9 +373,14 @@ __all__ = [  # noqa: RUF022
     "SourceEntry",
     "SourceKind",
     # Storage
-    "StorageBase",
+    "ErrorPolicy",
     "InMemoryStorage",
     "JSONLStorage",
+    "LLMTrainingExporter",
+    "Modality",
+    "MultimodalEmbeddingEngine",
+    "PipelineGuard",
     "SQLiteStorage",
+    "StorageBase",
     "StorageQuery",
 ]

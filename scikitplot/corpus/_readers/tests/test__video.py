@@ -34,6 +34,14 @@ MEDIUM-V4
     ``timecode_end`` as their internal dict keys — consistent with the promoted
     contract throughout.
 
+NEW-V5 yield_frames field
+    VideoReader has ``yield_frames: bool = False`` field.
+    When set, documents carry ``raw_tensor`` of shape ``(T, H, W, C)`` uint8.
+
+NEW-V6 VideoReader.__post_init__ validation
+    ``__post_init__`` rejects unrecognised ``whisper_model`` values and
+    is documented.
+
 Additional coverage
     * ``_tc_to_seconds`` arithmetic correctness.
     * ``_parse_srt``: multi-block, HTML tag stripping, empty-text skip.
@@ -67,51 +75,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-# Prevent Recursion
-# real_import = builtins.__import__
-
-# ---------------------------------------------------------------------------
-# Package bootstrap
-# ---------------------------------------------------------------------------
-
-_REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]  # …/corpus_src
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-
-def _bootstrap() -> None:
-    """Install minimal stubs so the reader module can be imported standalone."""
-    for name in ("scikitplot", "scikitplot.corpus"):
-        if name in sys.modules:
-            continue
-        m = types.ModuleType(name)
-        m.__path__ = [str(_REPO_ROOT)]
-        m.__package__ = name
-        sys.modules[name] = m
-
-    for mod_name, rel in [
-        ("scikitplot.corpus._schema", _REPO_ROOT / "corpus" / "_schema.py"),
-        ("scikitplot.corpus._base", _REPO_ROOT / "corpus" / "_base.py"),
-    ]:
-        if mod_name in sys.modules:
-            continue
-        spec = importlib.util.spec_from_file_location(mod_name, str(rel))
-        m = importlib.util.module_from_spec(spec)
-        m.__package__ = "scikitplot.corpus"
-        sys.modules[mod_name] = m
-        spec.loader.exec_module(m)
-
-    video_path = _REPO_ROOT / "corpus" / "_readers" / "_video.py"
-    video_mod_name = "scikitplot.corpus._readers._video"
-    if video_mod_name not in sys.modules:
-        spec = importlib.util.spec_from_file_location(video_mod_name, str(video_path))
-        m = importlib.util.module_from_spec(spec)
-        m.__package__ = "scikitplot.corpus._readers"
-        sys.modules[video_mod_name] = m
-        spec.loader.exec_module(m)
-
-
-_bootstrap()
+from scikitplot.corpus import _base, _schema, _readers
 
 # Imports after bootstrap
 from scikitplot.corpus._readers._video import (  # noqa: E402
@@ -789,6 +753,62 @@ class TestVideoReaderConstruction:
 # ---------------------------------------------------------------------------
 # Group 10: get_raw_chunks edge cases
 # ---------------------------------------------------------------------------
+
+
+class TestYieldFramesField:
+    """VideoReader yield_frames field — new raw media path."""
+
+    def test_yield_frames_default_false(self):
+        from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
+        import pathlib  # noqa: PLC0415
+        reader = VideoReader(input_file=pathlib.Path("v.mp4"))
+        assert reader.yield_frames is False
+
+    def test_yield_frames_field_settable(self):
+        from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
+        import pathlib  # noqa: PLC0415
+        reader = VideoReader(
+            input_file=pathlib.Path("v.mp4"),
+            yield_frames=True,
+        )
+        assert reader.yield_frames is True
+
+    def test_raw_tensor_in_promoted_keys(self):
+        from scikitplot.corpus._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        assert "raw_tensor" in _PROMOTED_RAW_KEYS
+
+    def test_modality_in_promoted_keys(self):
+        from scikitplot.corpus._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        assert "modality" in _PROMOTED_RAW_KEYS
+
+    def test_frame_index_in_promoted_keys(self):
+        from scikitplot.corpus._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        assert "frame_index" in _PROMOTED_RAW_KEYS
+
+
+class TestVideoReaderPostInit:
+    """VideoReader.__post_init__ validation."""
+
+    def test_valid_whisper_model(self):
+        from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
+        import pathlib  # noqa: PLC0415
+        # Should not raise for known sizes
+        for size in ("tiny", "base", "small"):
+            reader = VideoReader(
+                input_file=pathlib.Path("v.mp4"),
+                whisper_model=size,
+            )
+            assert reader.whisper_model == size
+
+    def test_invalid_whisper_model_raises(self):
+        from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
+        import pathlib  # noqa: PLC0415
+        import pytest  # noqa: PLC0415
+        with pytest.raises(ValueError):
+            VideoReader(
+                input_file=pathlib.Path("v.mp4"),
+                whisper_model="not_a_real_model_xyz",
+            )
 
 
 class TestGetRawChunksEdgeCases:

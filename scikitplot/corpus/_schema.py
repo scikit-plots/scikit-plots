@@ -1,3 +1,10 @@
+# scikitplot/corpus/_schema.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._schema
 ========================
@@ -108,6 +115,98 @@ else:  # pragma: <3.11
 # ===========================================================================
 # Public enumerations
 # ===========================================================================
+
+
+# ===========================================================================
+# Modality — primary content kind of a CorpusDocument
+# ===========================================================================
+
+
+class Modality(_StrEnumBase):
+    """
+    Primary content modality of a :class:`CorpusDocument`.
+
+    Notes
+    -----
+    **TEXT** — document carries non-empty ``text``; ``raw_tensor`` is
+    ``None`` (the common, existing case).
+
+    **IMAGE / AUDIO / VIDEO** — document carries ``raw_tensor`` and/or
+    ``raw_bytes``; ``text`` may be ``None`` (raw-only) or non-None (e.g.
+    OCR transcript alongside pixel array).
+
+    **MULTIMODAL** — document carries both ``text`` and a ``raw_tensor``
+    (e.g. an image with its OCR transcript).
+
+    Reader-to-modality mapping
+    --------------------------
+    - ``TextReader / PDFReader / XMLReader / WebReader / YouTubeReader``
+      → ``TEXT``
+    - ``ImageReader(yield_raw=False)`` → ``TEXT``
+    - ``ImageReader(yield_raw=True)`` → ``IMAGE`` or ``MULTIMODAL``
+    - ``AudioReader(yield_waveform=False)`` → ``TEXT``
+    - ``AudioReader(yield_waveform=True)`` → ``AUDIO``
+    - ``VideoReader(yield_frames=False)`` → ``TEXT``
+    - ``VideoReader(yield_frames=True)`` → ``VIDEO`` or ``MULTIMODAL``
+
+    Examples
+    --------
+    >>> Modality.TEXT == "text"
+    True
+    >>> Modality("image")
+    <Modality.IMAGE: 'image'>
+    """
+
+    TEXT = "text"
+    """Plain text content — ``raw_tensor`` is ``None``."""
+
+    IMAGE = "image"
+    """Raster image tensor — ``raw_tensor`` shape is ``(H, W, C)`` uint8."""
+
+    AUDIO = "audio"
+    """Audio waveform — ``raw_tensor`` shape is ``(samples,)`` float32."""
+
+    VIDEO = "video"
+    """Video frame tensor — ``raw_tensor`` shape is ``(T, H, W, C)`` uint8."""
+
+    MULTIMODAL = "multimodal"
+    """Both ``text`` and ``raw_tensor`` are present (e.g. image + OCR)."""
+
+
+# ===========================================================================
+# ErrorPolicy — how the pipeline handles per-document errors
+# ===========================================================================
+
+
+class ErrorPolicy(_StrEnumBase):
+    """
+    Per-document error handling strategy for :class:`PipelineGuard`.
+
+    Notes
+    -----
+    **RAISE** (default) — exceptions propagate immediately; caller handles.
+    **SKIP** — broken documents are silently discarded; pipeline continues.
+    **LOG** — exception is logged at WARNING level; document is discarded.
+    **RETRY** — the document is retried up to ``max_retries`` times
+    (for transient I/O errors); falls back to LOG on exhaustion.
+
+    Examples
+    --------
+    >>> ErrorPolicy.SKIP == "skip"
+    True
+    """
+
+    RAISE = "raise"
+    """Propagate exceptions immediately (default, strictest)."""
+
+    SKIP = "skip"
+    """Discard failing documents silently."""
+
+    LOG = "log"
+    """Log failures at WARNING level and discard."""
+
+    RETRY = "retry"
+    """Retry transient failures up to ``max_retries`` times, then LOG."""
 
 
 class SectionType(_StrEnumBase):
@@ -224,16 +323,9 @@ class ChunkingStrategy(_StrEnumBase):
     --------
     >>> ChunkingStrategy.SENTENCE == "sentence"
     True
-
-    >>> from scikitplot.corpus._schema import ChunkingStrategy
-    >>> assert hasattr(ChunkingStrategy, "WORD"), "WORD not found"
-    >>> assert ChunkingStrategy.WORD == "word", "WORD value wrong"
-    >>> assert ChunkingStrategy.WORD.value == "word"
-    >>> print("✓ ChunkingStrategy.WORD verified")
+    >>> ChunkingStrategy.NONE == "none"
+    True
     """
-
-    WORD = "word"
-    """One chunk per word-token list, produced by NLP tokeniser."""
 
     SENTENCE = "sentence"
     """One sentence per chunk, produced by a language-model segmenter."""
@@ -323,6 +415,23 @@ class SourceType(_StrEnumBase):
     Every value is a plain lowercase string that round-trips through CSV,
     JSON, Parquet, and database storage without loss.
 
+    Reader affinity
+    ---------------
+    Each value maps to the reader most likely to handle it:
+
+    ==========================  ========================  ===========================
+    SourceType value            Default reader            Typical file extension
+    ==========================  ========================  ===========================
+    ``BOOK / ARTICLE / ...``    ``TextReader``            ``.txt .md .rst``
+    ``RESEARCH``                ``PDFReader``             ``.pdf``
+    ``IMAGE``                   ``ImageReader``           ``.png .jpg .tiff …``
+    ``AUDIO / PODCAST / ...``   ``AudioReader``           ``.mp3 .wav .flac …``
+    ``VIDEO / MOVIE / ...``     ``VideoReader``           ``.mp4 .mkv …``
+    ``WEB / WIKI / BLOG``       ``WebReader``             ``http(s)://``
+    ``VIDEO`` (YouTube)         ``YouTubeReader``         ``youtu.be / youtube.com``
+    ``UNKNOWN``                 inferred from extension   any
+    ==========================  ========================  ===========================
+
     Examples
     --------
     >>> SourceType.BOOK == "book"
@@ -333,6 +442,10 @@ class SourceType(_StrEnumBase):
     True
     """
 
+    # ------------------------------------------------------------------
+    # Written / textual
+    # ------------------------------------------------------------------
+
     BOOK = "book"
     """Printed or digital book (novel, monograph, anthology, etc.)."""
 
@@ -342,11 +455,8 @@ class SourceType(_StrEnumBase):
     RESEARCH = "research"
     """Peer-reviewed research paper (arXiv, ResearchGate, DOI-bearing PDF)."""
 
-    MOVIE = "movie"
-    """Feature film or short film source (subtitle file or OCR transcript)."""
-
-    SUBTITLE = "subtitle"
-    """Subtitle / caption file (.srt, .vtt, .sbv, .sub)."""
+    BIOGRAPHY = "biography"
+    """Biography or autobiography."""
 
     PLAY = "play"
     """Dramatic play text (Shakespeare, modern theatre, screenplays)."""
@@ -354,8 +464,54 @@ class SourceType(_StrEnumBase):
     POEM = "poem"
     """Poem or collection of poems."""
 
-    BIOGRAPHY = "biography"
-    """Biography or autobiography."""
+    # ------------------------------------------------------------------
+    # Journalism / media / broadcast
+    # ------------------------------------------------------------------
+
+    NEWS = "news"
+    """News article from a news outlet or wire service."""
+
+    BLOG = "blog"
+    """Personal or corporate blog post."""
+
+    NEWSLETTER = "newsletter"
+    """Email or web newsletter (Substack, Revue, Mailchimp, etc.)."""
+
+    PRESS_RELEASE = "press_release"
+    """Official press release or public statement."""
+
+    # ------------------------------------------------------------------
+    # Audio / spoken word
+    # ------------------------------------------------------------------
+
+    AUDIO = "audio"
+    """Generic audio source (transcript extracted via ASR / Whisper)."""
+
+    PODCAST = "podcast"
+    """Podcast episode — audio file with associated RSS/feed metadata."""
+
+    LECTURE = "lecture"
+    """Academic or conference lecture (audio or video recording)."""
+
+    INTERVIEW = "interview"
+    """Interview recording or transcript (audio, video, or text)."""
+
+    # ------------------------------------------------------------------
+    # Video / visual
+    # ------------------------------------------------------------------
+
+    VIDEO = "video"
+    """Generic video source (transcript extracted from video file or stream)."""
+
+    MOVIE = "movie"
+    """Feature film or short film source (subtitle file or OCR transcript)."""
+
+    SUBTITLE = "subtitle"
+    """Subtitle / caption file (.srt, .vtt, .sbv, .sub)."""
+
+    # ------------------------------------------------------------------
+    # Web / online
+    # ------------------------------------------------------------------
 
     WEB = "web"
     """General web page (HTML scraped from an http/https URL)."""
@@ -363,23 +519,262 @@ class SourceType(_StrEnumBase):
     WIKI = "wiki"
     """Wikipedia or MediaWiki article."""
 
-    IMAGE = "image"
-    """Image source (OCR'd text from a raster image file)."""
+    SOCIAL_MEDIA = "social_media"
+    """Post, thread, or profile from a social media platform."""
 
-    VIDEO = "video"
-    """Video source (transcript extracted from video file or stream)."""
+    FORUM = "forum"
+    """Online forum post, thread, or discussion (Reddit, Stack Overflow, etc.)."""
 
-    AUDIO = "audio"
-    """Audio source (transcript extracted via ASR / Whisper)."""
+    FAQ = "faq"
+    """Frequently-asked-questions page or document."""
+
+    # ------------------------------------------------------------------
+    # Reference / professional
+    # ------------------------------------------------------------------
+
+    DOCUMENTATION = "documentation"
+    """Technical or product documentation (API docs, user manuals, etc.)."""
+
+    TUTORIAL = "tutorial"
+    """Step-by-step guide or how-to article."""
+
+    MANUAL = "manual"
+    """Instruction manual, operator guide, or maintenance handbook."""
+
+    REPORT = "report"
+    """Formal report (annual report, white paper, government report, etc.)."""
+
+    # ------------------------------------------------------------------
+    # Domain-specific
+    # ------------------------------------------------------------------
+
+    LEGAL = "legal"
+    """Legal document (contract, court ruling, legislation, terms of service)."""
+
+    MEDICAL = "medical"
+    """Medical or clinical document (case study, clinical trial, drug insert)."""
+
+    PATENT = "patent"
+    """Patent application or granted patent document."""
+
+    # ------------------------------------------------------------------
+    # Structured / data
+    # ------------------------------------------------------------------
 
     SPREADSHEET = "spreadsheet"
     """Spreadsheet source (.xlsx, .csv, .ods)."""
 
+    DATASET = "dataset"
+    """Structured dataset (JSON, JSONL, Parquet, database export)."""
+
     CODE = "code"
     """Source-code file or repository."""
 
+    # ------------------------------------------------------------------
+    # Communication
+    # ------------------------------------------------------------------
+
+    EMAIL = "email"
+    """Email message or mailing-list post."""
+
+    CHAT = "chat"
+    """Chat or messaging log (Slack, Teams, WhatsApp, IRC export)."""
+
+    # ------------------------------------------------------------------
+    # Visual / image
+    # ------------------------------------------------------------------
+
+    IMAGE = "image"
+    """Image source (OCR'd text from a raster image file)."""
+
+    # ------------------------------------------------------------------
+    # Fallback
+    # ------------------------------------------------------------------
+
     UNKNOWN = "unknown"
     """Source type could not be determined."""
+
+    # ------------------------------------------------------------------
+    # Class-level inference
+    # ------------------------------------------------------------------
+
+    #: Extension → SourceType mapping used by :meth:`infer`.
+    #: Only canonical extensions (lower-case, with leading dot).
+    _EXT_MAP: ClassVar[dict[str, SourceType]]
+
+    @classmethod
+    def infer(  # noqa: PLR0911, PLR0912
+        cls,
+        source: str | pathlib.Path | None = None,
+        *,
+        mime_type: str | None = None,
+    ) -> Self:
+        """
+        Infer the most likely :class:`SourceType` from a file path or MIME type.
+
+        Parameters
+        ----------
+        source : str, pathlib.Path, or None, optional
+            File path or URL string.  The extension (lower-case) is
+            extracted and looked up in the internal extension map.
+            ``None`` falls through to *mime_type* lookup.  Default: ``None``.
+        mime_type : str or None, optional
+            MIME type string (e.g. ``"application/pdf"``).  Used when
+            *source* has no recognisable extension (e.g. extensionless
+            API URLs).  Default: ``None``.
+
+        Returns
+        -------
+        SourceType
+            Inferred type, or :attr:`SourceType.UNKNOWN` when neither
+            *source* nor *mime_type* yields a match.
+
+        Notes
+        -----
+        **Priority:** extension (from *source*) wins over *mime_type*.
+
+        **Use case — ZipReader:** Each member is passed to
+        :meth:`infer` so that ``source_type`` is never ``UNKNOWN``
+        unless truly ambiguous::
+
+            st = SourceType.infer(member_path)
+            # → SourceType.RESEARCH for .pdf, SourceType.IMAGE for .jpg …
+
+        **Use case — from_url probe:** After downloading an extensionless
+        URL, the server's ``Content-Type`` header is passed as *mime_type*::
+
+            st = SourceType.infer(mime_type="audio/mpeg")
+            # → SourceType.AUDIO
+
+        Examples
+        --------
+        >>> SourceType.infer("report.pdf")
+        <SourceType.RESEARCH: 'research'>
+        >>> SourceType.infer("podcast.mp3")
+        <SourceType.AUDIO: 'audio'>
+        >>> SourceType.infer(mime_type="image/jpeg")
+        <SourceType.IMAGE: 'image'>
+        >>> SourceType.infer("mystery.bin")
+        <SourceType.UNKNOWN: 'unknown'>
+        """
+        import os as _os  # noqa: PLC0415
+
+        # Extension lookup
+        if source is not None:
+            path_str = str(source)
+            name_lower = _os.path.basename(path_str).lower()
+            # Compound extensions first
+            for compound in (".tar.gz", ".tar.bz2", ".tar.xz"):
+                if name_lower.endswith(compound):
+                    return cls.UNKNOWN  # archive, ambiguous content
+            _, ext = _os.path.splitext(name_lower)
+            if ext and ext in cls._EXT_MAP:
+                return cls._EXT_MAP[ext]
+
+        # MIME type lookup
+        if mime_type is not None:
+            mime_lower = mime_type.split(";")[0].strip().lower()
+            if mime_lower.startswith("audio/"):
+                return cls.AUDIO
+            if mime_lower.startswith("video/"):
+                return cls.VIDEO
+            if mime_lower.startswith("image/"):
+                return cls.IMAGE
+            if mime_lower in ("application/pdf",):  # noqa: FURB171
+                return cls.RESEARCH
+            if mime_lower in ("text/plain", "text/markdown", "text/x-rst"):
+                return cls.ARTICLE
+            if mime_lower in (
+                "application/zip",
+                "application/x-tar",
+                "application/gzip",
+                "application/x-bzip2",
+            ):
+                return cls.UNKNOWN
+            if mime_lower in ("text/html",):  # noqa: FURB171
+                return cls.WEB
+            if mime_lower in (
+                "application/json",
+                "text/csv",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ):
+                return cls.DATASET
+
+        return cls.UNKNOWN
+
+
+# Extension → SourceType lookup table (populated after class definition
+# so SourceType members are available).
+SourceType._EXT_MAP = {
+    # Text / document
+    ".txt": SourceType.ARTICLE,
+    ".md": SourceType.ARTICLE,
+    ".markdown": SourceType.ARTICLE,
+    ".rst": SourceType.ARTICLE,
+    ".rtf": SourceType.ARTICLE,
+    ".pdf": SourceType.RESEARCH,
+    ".doc": SourceType.ARTICLE,
+    ".docx": SourceType.ARTICLE,
+    ".odt": SourceType.ARTICLE,
+    # Markup / data
+    ".xml": SourceType.ARTICLE,
+    ".html": SourceType.WEB,
+    ".htm": SourceType.WEB,
+    ".json": SourceType.DATASET,
+    ".jsonl": SourceType.DATASET,
+    ".csv": SourceType.DATASET,
+    ".tsv": SourceType.DATASET,
+    ".xlsx": SourceType.SPREADSHEET,
+    ".xls": SourceType.SPREADSHEET,
+    ".ods": SourceType.SPREADSHEET,
+    # Images
+    ".jpg": SourceType.IMAGE,
+    ".jpeg": SourceType.IMAGE,
+    ".png": SourceType.IMAGE,
+    ".gif": SourceType.IMAGE,
+    ".webp": SourceType.IMAGE,
+    ".tiff": SourceType.IMAGE,
+    ".tif": SourceType.IMAGE,
+    ".bmp": SourceType.IMAGE,
+    ".svg": SourceType.IMAGE,
+    # Audio
+    ".mp3": SourceType.AUDIO,
+    ".wav": SourceType.AUDIO,
+    ".flac": SourceType.AUDIO,
+    ".ogg": SourceType.AUDIO,
+    ".m4a": SourceType.AUDIO,
+    ".aac": SourceType.AUDIO,
+    ".wma": SourceType.AUDIO,
+    ".aiff": SourceType.AUDIO,
+    ".opus": SourceType.AUDIO,
+    ".wv": SourceType.AUDIO,
+    # Video
+    ".mp4": SourceType.VIDEO,
+    ".avi": SourceType.VIDEO,
+    ".mkv": SourceType.VIDEO,
+    ".mov": SourceType.VIDEO,
+    ".webm": SourceType.VIDEO,
+    ".m4v": SourceType.VIDEO,
+    ".wmv": SourceType.VIDEO,
+    ".flv": SourceType.VIDEO,
+    # Subtitle
+    ".srt": SourceType.SUBTITLE,
+    ".vtt": SourceType.SUBTITLE,
+    ".sbv": SourceType.SUBTITLE,
+    ".sub": SourceType.SUBTITLE,
+    ".lrc": SourceType.SUBTITLE,
+    # Code
+    ".py": SourceType.CODE,
+    ".js": SourceType.CODE,
+    ".ts": SourceType.CODE,
+    ".java": SourceType.CODE,
+    ".c": SourceType.CODE,
+    ".cpp": SourceType.CODE,
+    ".go": SourceType.CODE,
+    ".rs": SourceType.CODE,
+    ".rb": SourceType.CODE,
+    ".sh": SourceType.CODE,
+}  # type: ignore[assignment]
 
 
 class MatchMode(_StrEnumBase):
@@ -456,6 +851,14 @@ _PROMOTED_RAW_KEYS: frozenset[str] = frozenset(
         "lemmas",
         "stems",
         "keywords",
+        # Raw media (new)
+        "modality",
+        "raw_bytes",
+        "raw_tensor",
+        "raw_shape",
+        "raw_dtype",
+        "frame_index",
+        "content_hash",
     }
 )
 """
@@ -640,9 +1043,17 @@ class CorpusDocument:
     REQUIRED_FIELDS: ClassVar[tuple[str, ...]] = (
         "doc_id",
         "source_file",
-        "text",
     )
-    """Fields that must be non-empty strings for :meth:`validate` to pass."""
+    """Fields that must be non-empty strings for :meth:`validate` to pass.
+
+    Notes
+    -----
+    ``text`` is intentionally excluded from this tuple.  For TEXT-modality
+    documents, ``validate()`` enforces non-empty text directly.  For
+    raw-media documents (``modality`` is IMAGE, AUDIO, or VIDEO), ``text``
+    may legitimately be ``None`` — the document carries its content in
+    ``raw_tensor`` or ``raw_bytes`` instead.
+    """
 
     # ------------------------------------------------------------------
     # Core fields — positional in __init__
@@ -677,6 +1088,33 @@ class CorpusDocument:
 
     embedding: Any | None = field(default=None, repr=False, compare=False)
     """Dense vector embedding, or ``None`` if not yet computed."""
+
+    # ------------------------------------------------------------------
+    # Raw tensor / multimodal fields — any-media-to-any-model path
+    # ------------------------------------------------------------------
+
+    modality: Modality = field(default_factory=lambda: Modality.TEXT)
+    """Primary content modality. Default: :attr:`Modality.TEXT`."""
+
+    raw_bytes: bytes | None = field(default=None, repr=False, compare=False)
+    """Raw encoded media bytes (e.g. JPEG bytes).  ``None`` for text-only."""
+
+    raw_tensor: Any = field(default=None, repr=False, compare=False)
+    """Decoded media array ready for model input. Shape conventions:
+    image ``(H,W,C)`` uint8; audio ``(samples,)`` float32;
+    video ``(T,H,W,C)`` uint8.  ``None`` for text-only."""
+
+    raw_shape: tuple[int, ...] | None = field(default=None)
+    """Shape of ``raw_tensor`` as a plain Python tuple.  Default: ``None``."""
+
+    raw_dtype: str | None = field(default=None)
+    """String dtype of ``raw_tensor`` (e.g. ``"uint8"``).  Default: ``None``."""
+
+    frame_index: int | None = field(default=None)
+    """Zero-based frame index in a video or multi-frame image.  Default: ``None``."""
+
+    content_hash: str | None = field(default=None)
+    """SHA-256 hex digest (32 chars) of canonical content.  Dedup key."""
 
     metadata: dict[str, Any] = field(default_factory=dict, compare=False)
     """Truly ad-hoc format-specific metadata."""
@@ -873,6 +1311,21 @@ class CorpusDocument:
                     f"CorpusDocument.{fname} must be a non-empty string; got {val!r}"
                 )
 
+        # --- text is required for TEXT modality; optional for raw-media ----
+        # Raw-media documents (IMAGE, AUDIO, VIDEO) carry content in
+        # raw_tensor / raw_bytes and may have text=None (e.g. a video frame
+        # before any OCR or transcription has been applied).  MULTIMODAL
+        # documents carry both text and a tensor, so text is also required.
+        _text_modality = self.modality if isinstance(self.modality, Modality) else None
+        _requires_text = _text_modality in (None, Modality.TEXT, Modality.MULTIMODAL)
+        if _requires_text:  # noqa: SIM102
+            if not isinstance(self.text, str) or not self.text.strip():
+                raise ValueError(
+                    f"CorpusDocument.text must be a non-empty string for"
+                    f" modality={getattr(self.modality, 'value', self.modality)!r};"
+                    f" got {self.text!r}"
+                )
+
         # --- chunk_index must be non-negative --------------------------
         if not isinstance(self.chunk_index, int) or self.chunk_index < 0:
             raise ValueError(
@@ -941,7 +1394,7 @@ class CorpusDocument:
 
         # --- metadata keys must all be strings -------------------------
         if not isinstance(self.metadata, dict):
-            raise ValueError(
+            raise TypeError(
                 f"CorpusDocument.metadata must be a dict; got"
                 f" {type(self.metadata).__name__}"
             )
@@ -1091,15 +1544,54 @@ class CorpusDocument:
             if isinstance(source_type, SourceType)
             else str(source_type)
         )
-        raw = f"{st_val}:{source_file}:{chunk_index}:{text[:64]}"
+        # Guard against text=None: raw-media documents (IMAGE, VIDEO, AUDIO
+        # modalities) legitimately have no text.  Use an empty string prefix
+        # so the hash is still deterministic and unique per (source, chunk).
+        text_prefix = text[:64] if text is not None else ""
+        raw = f"{st_val}:{source_file}:{chunk_index}:{text_prefix}"
         return hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
 
     @classmethod
-    def create(
+    @staticmethod
+    def make_content_hash(
+        text: str | None = None,
+        raw_bytes: bytes | None = None,
+    ) -> str:
+        """
+        Compute a 32-char SHA-256 hex digest for deduplication.
+
+        Parameters
+        ----------
+        text : str or None
+            Text content. Used when ``raw_bytes`` is ``None``.
+        raw_bytes : bytes or None
+            Raw media bytes. Preferred over ``text`` when set.
+
+        Returns
+        -------
+        str
+            32-character hex SHA-256 prefix.
+
+        Notes
+        -----
+        Empty / ``None`` inputs return a fixed sentinel value
+        ``"0" * 32`` (32 zeros) to ensure ``content_hash`` is always
+        populated and the dedup logic is deterministic.
+        """
+        if raw_bytes is not None:
+            return hashlib.sha256(raw_bytes).hexdigest()[:32]
+        if text is not None:
+            return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()[
+                :32
+            ]
+        return "0" * 32
+
+    @classmethod
+    def create(  # noqa: D417
         cls,
         source_file: str,
         chunk_index: int,
-        text: str,
+        text: str | None,
         # Core classification
         section_type: SectionType = SectionType.TEXT,
         chunking_strategy: ChunkingStrategy = ChunkingStrategy.SENTENCE,
@@ -1142,7 +1634,15 @@ class CorpusDocument:
         lemmas: list[str] | None = None,
         stems: list[str] | None = None,
         keywords: list[str] | None = None,
-    ) -> Self:
+        # Raw media fields (new)
+        modality: Modality | None = None,
+        raw_bytes: bytes | None = None,
+        raw_tensor: Any = None,
+        raw_shape: tuple[int, ...] | None = None,
+        raw_dtype: str | None = None,
+        frame_index: int | None = None,
+        content_hash: str | None = None,
+    ) -> CorpusDocument:
         """
         Validate factory constructor for :class:`CorpusDocument`.
 
@@ -1286,6 +1786,36 @@ class CorpusDocument:
             lemmas=lemmas,
             stems=stems,
             keywords=keywords,
+            # Raw media
+            modality=modality
+            or (
+                Modality.TEXT
+                if raw_tensor is None and raw_bytes is None
+                else Modality.IMAGE
+            ),
+            raw_bytes=raw_bytes,
+            raw_tensor=raw_tensor,
+            raw_shape=(
+                raw_shape
+                if raw_shape is not None
+                else (
+                    tuple(raw_tensor.shape)
+                    if raw_tensor is not None and hasattr(raw_tensor, "shape")
+                    else None
+                )
+            ),
+            raw_dtype=(
+                raw_dtype
+                if raw_dtype is not None
+                else (
+                    str(raw_tensor.dtype)
+                    if raw_tensor is not None and hasattr(raw_tensor, "dtype")
+                    else None
+                )
+            ),
+            frame_index=frame_index,
+            content_hash=content_hash
+            or cls.make_content_hash(text=text, raw_bytes=raw_bytes),
         )
         instance.validate()
         return instance
@@ -1426,6 +1956,18 @@ class CorpusDocument:
             "lemmas": list(self.lemmas) if self.lemmas is not None else None,
             "stems": list(self.stems) if self.stems is not None else None,
             "keywords": list(self.keywords) if self.keywords is not None else None,
+            # Raw media — modality and lightweight scalar fields are always
+            # serialised; raw_tensor and raw_bytes are excluded (too large /
+            # not JSON-safe; callers that need them work with the object directly).
+            "modality": (
+                self.modality.value
+                if isinstance(self.modality, Modality)
+                else self.modality
+            ),
+            "frame_index": self.frame_index,
+            "raw_shape": list(self.raw_shape) if self.raw_shape is not None else None,
+            "raw_dtype": self.raw_dtype,
+            "content_hash": self.content_hash,
         }
         if include_embedding and self.embedding is not None:
             try:
@@ -1573,7 +2115,10 @@ class CorpusDocument:
         >>> restored.doc_id == doc.doc_id
         True
         """
-        required_keys = {"doc_id", "source_file", "chunk_index", "text"}
+        # text is optional for raw-media documents (modality != TEXT).
+        # The required-keys check only enforces the fields that must always
+        # be present regardless of modality.
+        required_keys = {"doc_id", "source_file", "chunk_index"}
         missing = required_keys - set(data)
         if missing:
             raise ValueError(
@@ -1586,15 +2131,29 @@ class CorpusDocument:
             tuple(float(v) for v in raw_bbox) if raw_bbox is not None else None
         )
 
+        # Restore raw_shape from list → tuple[int, ...]
+        raw_shape_raw = data.get("raw_shape")
+        raw_shape: tuple[int, ...] | None = (
+            tuple(int(v) for v in raw_shape_raw) if raw_shape_raw is not None else None
+        )
+
+        # Restore modality enum from stored string value (None → auto-detected
+        # by create() from raw_tensor / raw_bytes presence).
+        raw_modality = data.get("modality")
+        modality: Modality | None = (
+            Modality(raw_modality) if raw_modality is not None else None
+        )
+
         # Helper: restore optional list[str] fields
         def _restore_str_list(key: str) -> list[str] | None:
+            """Restore an optional ``list[str]`` field from a raw dict."""
             val = data.get(key)
             return [str(s) for s in val] if val is not None else None
 
         return cls.create(
             source_file=data["source_file"],
             chunk_index=int(data["chunk_index"]),
-            text=data["text"],
+            text=data.get("text"),
             section_type=SectionType(data.get("section_type", SectionType.TEXT.value)),
             chunking_strategy=ChunkingStrategy(
                 data.get("chunking_strategy", ChunkingStrategy.SENTENCE.value)
@@ -1634,13 +2193,26 @@ class CorpusDocument:
             lemmas=_restore_str_list("lemmas"),
             stems=_restore_str_list("stems"),
             keywords=_restore_str_list("keywords"),
+            # Raw media
+            modality=modality,
+            frame_index=data.get("frame_index"),
+            raw_shape=raw_shape,
+            raw_dtype=data.get("raw_dtype"),
+            content_hash=data.get("content_hash"),
         )
 
     # ------------------------------------------------------------------
     # Dunder overrides
     # ------------------------------------------------------------------
 
-    def __repr__(self) -> str:  # noqa: D105
+    def __repr__(self) -> str:
+        """Return a concise human-readable representation.
+
+        Returns
+        -------
+        str
+            ``CorpusDocument(source_file=..., chunk_index=..., words=...[, emb=...])``.
+        """
         emb_info = (
             f", embedding=<array shape={getattr(self.embedding, 'shape', '?')}>"
             if self.has_embedding
@@ -1769,6 +2341,9 @@ __all__ = [  # noqa: RUF022
     "ExportFormat",
     "SourceType",
     "MatchMode",
+    # New enumerations
+    "Modality",
+    "ErrorPolicy",
     # Core document type
     "CorpusDocument",
     # Promoted-key registry (used by _base.py get_documents routing)

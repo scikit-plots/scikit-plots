@@ -51,56 +51,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ---------------------------------------------------------------------------
-# Package bootstrap
-# ---------------------------------------------------------------------------
-
-_REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
-
-
-def _bootstrap() -> None:
-    sk = types.ModuleType("scikitplot")
-    sk.__path__ = [str(_REPO_ROOT)]
-    sk.__package__ = "scikitplot"
-    sys.modules.setdefault("scikitplot", sk)
-
-    ck = types.ModuleType("scikitplot.corpus")
-    ck.__path__ = [str(_REPO_ROOT / "corpus")]
-    ck.__package__ = "scikitplot.corpus"
-    ck.__file__ = str(_REPO_ROOT / "corpus" / "__init__.py")
-    sk.corpus = ck
-    sys.modules.setdefault("scikitplot.corpus", ck)
-
-    rk = types.ModuleType("scikitplot.corpus._readers")
-    rk.__path__ = [str(_REPO_ROOT / "corpus" / "_readers")]
-    rk.__package__ = "scikitplot.corpus._readers"
-    ck._readers = rk
-    sys.modules.setdefault("scikitplot.corpus._readers", rk)
-
-    for mod_name, rel in [
-        ("scikitplot.corpus._schema", _REPO_ROOT / "corpus" / "_schema.py"),
-        ("scikitplot.corpus._base",   _REPO_ROOT / "corpus" / "_base.py"),
-    ]:
-        if mod_name not in sys.modules:
-            spec = importlib.util.spec_from_file_location(mod_name, str(rel))
-            m = importlib.util.module_from_spec(spec)
-            m.__package__ = "scikitplot.corpus"
-            sys.modules[mod_name] = m
-            spec.loader.exec_module(m)
-
-    web_path = _REPO_ROOT / "corpus" / "_readers" / "_web.py"
-    web_mod_name = "scikitplot.corpus._readers._web"
-    if web_mod_name not in sys.modules:
-        spec = importlib.util.spec_from_file_location(web_mod_name, str(web_path))
-        m = importlib.util.module_from_spec(spec)
-        m.__package__ = "scikitplot.corpus._readers"
-        rk._web = m
-        sys.modules[web_mod_name] = m
-        spec.loader.exec_module(m)
-
-
-_bootstrap()
-
+from scikitplot.corpus import _base, _schema, _readers
 from scikitplot.corpus._readers._web import (   # noqa: E402
     WebReader,
     YouTubeReader,
@@ -114,6 +65,7 @@ from scikitplot.corpus._schema import (        # noqa: E402
 )
 
 # Module reference for monkey-patching
+from scikitplot.corpus._readers import _web
 import scikitplot.corpus._readers._web as _web_mod  # noqa: E402
 
 

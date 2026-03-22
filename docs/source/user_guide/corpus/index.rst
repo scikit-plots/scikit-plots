@@ -24,7 +24,7 @@
 Corpus Generation
 ======================================================================
 
-.. image:: /_static/user_guide/corpus_any_to_any_architecture.png
+.. image:: /_static/user_guide/scikitplot_corpus_architecture.svg
     :align: center
     :alt: Corpus Architecture
 

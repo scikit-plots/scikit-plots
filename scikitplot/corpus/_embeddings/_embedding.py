@@ -1,7 +1,14 @@
+# scikitplot/corpus/_embeddings/_embedding.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._embedding
 =============================
-Multi-backend sentence embedding engine with file-based caching.
+Multi-backend text and multimodal embedding engine with file-based caching.
 
 Produces dense vector representations of text chunks. The embedding step
 is optional in the pipeline (``embed=False`` skips it entirely) and is
@@ -123,7 +130,20 @@ def _make_cache_key(
 
 
 def _cache_path(cache_dir: pathlib.Path, key: str) -> pathlib.Path:
-    """Return the ``.npy`` path for a given cache key."""
+    """Return the ``.npy`` path for a given cache key.
+
+    Parameters
+    ----------
+    cache_dir : pathlib.Path
+        Directory holding cached embedding arrays.
+    key : str
+        24-character hex cache key from :func:`_make_cache_key`.
+
+    Returns
+    -------
+    pathlib.Path
+        ``cache_dir / f"{key}.npy"``.
+    """
     return cache_dir / f"{key}.npy"
 
 
@@ -178,7 +198,7 @@ def _load_from_cache(
         return None
     try:
         arr = np.load(str(path), allow_pickle=False)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning(
             "EmbeddingEngine: failed to load cache %s — will regenerate. %s",
             path,
@@ -254,6 +274,7 @@ def _make_sentence_transformers_fn(
     _model: list[Any] = []  # mutable container for lazy init
 
     def embed(texts: list[str]) -> npt.NDArray[np.float32]:
+        """Embed texts with sentence-transformers, loading model on first call."""
         if not _model:
             try:
                 from sentence_transformers import (  # type: ignore[] # noqa: PLC0415
@@ -306,6 +327,7 @@ def _make_openai_fn(
     """
 
     def embed(texts: list[str]) -> npt.NDArray[np.float32]:
+        """Embed texts via the OpenAI embeddings API in batches."""
         try:
             import openai  # type: ignore[] # noqa: PLC0415
         except ImportError as exc:
@@ -393,6 +415,9 @@ class EmbeddingEngine:
     See Also
     --------
     scikitplot.corpus.pipeline.CorpusPipeline : Integrates this engine.
+    scikitplot.corpus._embeddings._multimodal_embedding.MultimodalEmbeddingEngine :
+        Extends this engine with image, audio, and video modalities plus
+        projection layer and LLM training export.
 
     Notes
     -----
@@ -444,6 +469,12 @@ class EmbeddingEngine:
         "openai",
         "custom",
     )
+    """Accepted ``backend`` values.
+
+    For image/audio/video embeddings use
+    :class:`~scikitplot.corpus._embeddings._multimodal_embedding.MultimodalEmbeddingEngine`
+    which supports ``"clip"``, ``"whisper"``, ``"wav2vec"`` in addition.
+    """
 
     model_name: str = field(default=DEFAULT_MODEL)
     backend: str = field(default="sentence_transformers")
@@ -463,6 +494,15 @@ class EmbeddingEngine:
     )
 
     def __post_init__(self) -> None:
+        """Validate constructor fields after dataclass ``__init__``.
+
+        Raises
+        ------
+        ValueError
+            If ``backend`` is not in :attr:`VALID_BACKENDS`,
+            ``backend="custom"`` without ``custom_fn``,
+            ``batch_size <= 0``, or ``dtype`` is not a float dtype.
+        """
         if self.backend not in self.VALID_BACKENDS:
             raise ValueError(
                 f"EmbeddingEngine: backend must be one of"
@@ -722,6 +762,7 @@ class EmbeddingEngine:
             return fn
 
     def __repr__(self) -> str:
+        """Return ``EmbeddingEngine(backend=..., model_name=..., ...)``."""
         return (
             f"EmbeddingEngine("
             f"backend={self.backend!r},"

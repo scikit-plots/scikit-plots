@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/_image.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers._image
 =================================
@@ -344,10 +351,35 @@ class ImageReader(DocumentReader):
     preprocess_grayscale: bool = field(default=False)
     """Convert frames to grayscale before OCR when ``True``."""
 
+    yield_raw: bool = field(default=False)
+    """Include raw pixel array in output chunks.
+
+    When ``True``, each chunk includes ``"raw_tensor"`` (numpy ndarray,
+    shape ``(H, W, C)`` uint8 RGB) and sets ``"modality"`` to
+    ``"multimodal"`` (when OCR text is also present) or ``"image"``
+    (when text is empty).  Requires numpy (always available with Pillow).
+    Default: ``False``."""
+
+    yield_raw_bytes: bool = field(default=False)
+    """Include raw encoded file bytes in output chunks.
+
+    When ``True``, each chunk includes ``"raw_bytes"`` containing the
+    compressed image bytes (JPEG/PNG/etc.) — useful for
+    ``tf.io.decode_image`` or CV2 ``imdecode``.  Default: ``False``."""
+
     # Internal: easyocr Reader instance (cached across frames)
     _easyocr_reader: Any | None = field(default=None, init=False, repr=False)
 
-    def __post_init__(self) -> None:  # noqa: D105
+    def __post_init__(self) -> None:
+        """Validate constructor fields and set OCR backend.
+
+        Raises
+        ------
+        ValueError
+            If ``backend`` is not in ``{'tesseract', 'easyocr'}``.
+        ValueError
+            If ``max_file_bytes <= 0``.
+        """
         super().__post_init__()
         if self.backend not in _VALID_BACKENDS:
             raise ValueError(
@@ -363,7 +395,7 @@ class ImageReader(DocumentReader):
     # DocumentReader contract
     # ------------------------------------------------------------------
 
-    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+    def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
         Run OCR on each frame of the image and yield one chunk per frame.
 
@@ -454,7 +486,37 @@ class ImageReader(DocumentReader):
                         self.min_confidence,
                     )
 
-                yield {
+                # Build raw tensor and bytes if requested
+                _raw_tensor = None
+                _raw_bytes = None
+                if self.yield_raw or self.yield_raw_bytes:
+                    try:
+                        import numpy as _np  # noqa: ICN001, PLC0415
+
+                        if self.yield_raw:
+                            _pil_rgb = frame.convert("RGB")
+                            _raw_tensor = _np.array(_pil_rgb)
+                        if self.yield_raw_bytes:
+                            import io as _io  # noqa: PLC0415
+
+                            _buf = _io.BytesIO()
+                            frame.save(_buf, format=frame.format or "PNG")
+                            _raw_bytes = _buf.getvalue()
+                    except Exception as _ex:  # noqa: BLE001
+                        logger.debug(
+                            "ImageReader: raw tensor/bytes extraction failed: %s", _ex
+                        )
+
+                # Modality: multimodal when we have both text and tensor
+                _modality = "image"
+                if text and _raw_tensor is not None:
+                    _modality = "multimodal"
+                elif not text and _raw_tensor is not None:
+                    _modality = "image"
+                else:
+                    _modality = "text"
+
+                _chunk: dict[str, Any] = {
                     "text": text,
                     "section_type": SectionType.TEXT.value,
                     # promoted → CorpusDocument.source_type
@@ -468,7 +530,16 @@ class ImageReader(DocumentReader):
                     ),  # promoted → CorpusDocument.confidence
                     "ocr_engine": self.backend,  # promoted → CorpusDocument.ocr_engine
                     "total_frames": total,  # non-promoted → metadata
+                    # Raw media fields (promoted)
+                    "modality": _modality,
                 }
+                if _raw_tensor is not None:
+                    _chunk["raw_tensor"] = _raw_tensor
+                    _chunk["raw_shape"] = tuple(_raw_tensor.shape)
+                    _chunk["raw_dtype"] = str(_raw_tensor.dtype)
+                if _raw_bytes is not None:
+                    _chunk["raw_bytes"] = _raw_bytes
+                yield _chunk
 
         logger.info(
             "ImageReader: finished %s — %d frame(s) processed.",

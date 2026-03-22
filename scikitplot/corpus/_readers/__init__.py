@@ -70,6 +70,18 @@ Available readers
     YouTube video URLs. Retrieves transcript via ``youtube-transcript-api``.
     No audio download or model required.
 
+:class:`ZipReader`
+    Generic ZIP archives (``.zip``). Extracts members to a temporary
+    directory and dispatches each by extension to the correct reader.
+    Supports ``member_kwargs`` for per-extension kwargs (e.g.
+    ``{".mp3": {"transcribe": True}}``).  Overrides :class:`ALTOReader`
+    for ``".zip"`` — use :class:`ALTOReader` directly for ALTO XML archives.
+
+:class:`DummyReader`
+    No-op reader registered as ``":dummy"``.  Validates source accessibility
+    without producing documents.  Use :meth:`DummyReader.check` for batch
+    pre-flight validation of file or URL sources.
+
 Quick usage
 -----------
 File-based:
@@ -107,6 +119,7 @@ Video (subtitle-first, Whisper fallback):
 
 from __future__ import annotations
 
+from scikitplot.corpus._base import DummyReader  # noqa: F401 — registers :dummy
 from scikitplot.corpus._readers._alto import ALTOReader
 from scikitplot.corpus._readers._audio import AudioReader
 from scikitplot.corpus._readers._image import ImageReader
@@ -116,10 +129,17 @@ from scikitplot.corpus._readers._pdf import PDFReader
 # which registers the class in DocumentReader._registry.
 # All readers are imported unconditionally so the registry is complete
 # whenever this package is imported.
+#
+# IMPORTANT: _zip must be imported AFTER _alto so that ZipReader's ".zip"
+# registration overwrites ALTOReader's ".zip" registration.  This makes
+# DocumentReader.create("corpus.zip") dispatch to the generic ZipReader
+# which handles any content mix.  To use ALTOReader directly, instantiate
+# it explicitly: ALTOReader(input_file=Path("alto.zip")).
 from scikitplot.corpus._readers._text import MarkdownReader, ReSTReader, TextReader
 from scikitplot.corpus._readers._video import VideoReader
 from scikitplot.corpus._readers._web import WebReader, YouTubeReader
 from scikitplot.corpus._readers._xml import TEIReader, XMLReader
+from scikitplot.corpus._readers._zip import ZipReader  # must come after ALTOReader
 
 __all__ = [  # noqa: RUF022
     # Text family
@@ -139,4 +159,8 @@ __all__ = [  # noqa: RUF022
     # URL-based
     "WebReader",
     "YouTubeReader",
+    # Archive dispatch
+    "ZipReader",
+    # Utility
+    "DummyReader",
 ]
