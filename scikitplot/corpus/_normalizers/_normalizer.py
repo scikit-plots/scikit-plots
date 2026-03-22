@@ -635,13 +635,13 @@ class NormalizationPipeline(NormalizerBase):
 
     Parameters
     ----------
-    normalizers : sequence of NormalizerBase
+    steps : sequence of NormalizerBase
         Ordered list of normalisers to apply.
 
     Raises
     ------
     ValueError
-        If ``normalizers`` is empty.
+        If ``steps`` is empty.
 
     Examples
     --------
@@ -655,16 +655,16 @@ class NormalizationPipeline(NormalizerBase):
     >>> result = pipeline.normalize_doc(doc)
     """
 
-    def __init__(self, normalizers: Sequence[NormalizerBase]) -> None:
-        if not normalizers:
-            raise ValueError("NormalizationPipeline: normalizers must not be empty.")
-        bad = [n for n in normalizers if not isinstance(n, NormalizerBase)]
+    def __init__(self, steps: Sequence[NormalizerBase]) -> None:
+        if not steps:
+            raise ValueError("NormalizationPipeline: steps must not be empty.")
+        bad = [n for n in steps if not isinstance(n, NormalizerBase)]
         if bad:
             raise TypeError(
                 f"NormalizationPipeline: all items must be NormalizerBase "
                 f"instances; got {[type(b).__name__ for b in bad]!r}."
             )
-        self.normalizers: list[NormalizerBase] = list(normalizers)
+        self.steps: list[NormalizerBase] = list(steps)
 
     def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:  # noqa: D417
         """
@@ -680,7 +680,7 @@ class NormalizationPipeline(NormalizerBase):
             Document after all normalisation stages.
         """
         current = doc
-        for norm in self.normalizers:
+        for norm in self.steps:
             current = norm.normalize_doc(current)
         return current
 
@@ -701,7 +701,7 @@ class NormalizationPipeline(NormalizerBase):
         return [self.normalize_doc(doc) for doc in docs]
 
     def __repr__(self) -> str:  # noqa: D105
-        names = ", ".join(repr(n) for n in self.normalizers)
+        names = ", ".join(repr(n) for n in self.steps)
         return f"NormalizationPipeline([{names}])"
 
 

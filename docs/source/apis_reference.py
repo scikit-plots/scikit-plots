@@ -488,6 +488,86 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             },
         ],
     },
+    "scikitplot.corpus": {
+        "short_summary": "Document corpus ingestion, chunking, filtering, embedding, and export pipeline for NLP and ML workflows.",
+        "description": _get_guide("corpus-index"),
+        "sections": [
+            {
+                "title": "Base",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "ChunkerBase",
+                    "DefaultFilter",
+                    "DocumentReader",
+                    "FilterBase",
+                ],
+            },
+            {
+                "title": "Readers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "ALTOReader",
+                    "AudioReader",
+                    "ImageReader",
+                    "MarkdownReader",
+                    "PDFReader",
+                    "ReSTReader",
+                    "TEIReader",
+                    "TextReader",
+                    "VideoReader",
+                    "WebReader",
+                    "XMLReader",
+                    "YouTubeReader",
+                ],
+            },
+            {
+                "title": "Chunkers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "FixedWindowChunker",
+                    "ParagraphChunker",
+                    "SentenceChunker",
+                    "WordChunker",
+                ],
+            },
+            {
+                "title": "Enricher",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "EnricherConfig",
+                    "NLPEnricher",
+                ],
+            },
+            {
+                "title": "Results",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # Results
+                    "BuildResult",
+                ],
+            },
+            {
+                "title": "Templates / workflows",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # Templates / workflows
+                    "TemplateInfo",
+                ],
+            },
+        ],
+    },
     "scikitplot.cython": {
         "short_summary": "A small runtime Cython devkit with caching, pinning, GC, and templates.",
         "description": _get_guide("cython-index"),
