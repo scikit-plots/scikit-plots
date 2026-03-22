@@ -1,5 +1,7 @@
 # scikitplot/corpus/_url_handler.py
 #
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,7 +70,11 @@ if sys.version_info >= (3, 11):
 else:
 
     class _StrEnumBase(str, Enum):  # type: ignore[no-redef]
-        """Backport of ``enum.StrEnum`` for Python < 3.11."""
+        """Backport of ``enum.StrEnum`` for Python < 3.11.
+
+        Enables direct string comparison: ``URLKind.WEB_PAGE == "web_page"``.
+        On Python 3.11+ the stdlib ``enum.StrEnum`` is used instead.
+        """
 
 
 logger = logging.getLogger(__name__)
@@ -77,6 +83,7 @@ __all__ = [
     "URLKind",
     "classify_url",
     "download_url",
+    "infer_extension",
     "probe_url_kind",
     "resolve_url",
 ]
@@ -93,6 +100,25 @@ DEFAULT_TIMEOUT_SECONDS: int = 120
 
 #: Default maximum number of HTTP redirects to follow.
 DEFAULT_MAX_REDIRECTS: int = 10
+
+#: Default maximum retry attempts for transient HTTP errors.
+DEFAULT_MAX_RETRIES: int = 3
+
+#: Default base delay in seconds between retry attempts (exponential back-off).
+DEFAULT_RETRY_BACKOFF_BASE: float = 1.0
+
+#: HTTP status codes that indicate a transient server-side error and should
+#: trigger an automatic retry.  Client errors (4xx except 429) are *not*
+#: retried — they indicate a permanent problem with the request itself.
+_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset(
+    {
+        429,  # Too Many Requests  — back off and retry
+        500,  # Internal Server Error
+        502,  # Bad Gateway
+        503,  # Service Unavailable
+        504,  # Gateway Timeout
+    }
+)
 
 #: User-Agent header used for downloads.
 _USER_AGENT: str = (
@@ -125,17 +151,27 @@ _CONTENT_TYPE_TO_EXT: dict[str, str] = {
     "image/tiff": ".tiff",
     "image/bmp": ".bmp",
     "audio/mpeg": ".mp3",
+    "audio/mp3": ".mp3",
     "audio/wav": ".wav",
     "audio/x-wav": ".wav",
     "audio/flac": ".flac",
     "audio/ogg": ".ogg",
+    "audio/opus": ".opus",
+    "audio/webm": ".webm",
     "audio/mp4": ".m4a",
     "audio/aac": ".aac",
+    "audio/x-aac": ".aac",
+    "audio/x-m4a": ".m4a",
     "video/mp4": ".mp4",
     "video/x-msvideo": ".avi",
     "video/x-matroska": ".mkv",
     "video/quicktime": ".mov",
     "video/webm": ".webm",
+    "video/x-flv": ".flv",
+    "video/x-m4v": ".m4v",
+    "video/x-ms-wmv": ".wmv",
+    "video/3gpp": ".3gp",
+    "image/svg+xml": ".svg",
 }
 
 #: Default HTTP timeout for probing in seconds (short — just HEAD).
@@ -407,8 +443,7 @@ def probe_url_kind(
     timeout: int = DEFAULT_PROBE_TIMEOUT_SECONDS,
     skip_ssrf_check: bool = False,
 ) -> URLKind:
-    """
-    Probe a URL with a HEAD request to classify by Content-Type.
+    """Probe a URL with a HEAD request to classify by Content-Type.
 
     Use this when :func:`classify_url` returns :attr:`URLKind.WEB_PAGE`
     but the URL has no file extension in the path (e.g. API endpoints
@@ -492,8 +527,7 @@ def probe_url_kind(
 
 
 def _probe_content_type(url: str, *, timeout: int) -> str:
-    """
-    Send a HEAD (or fallback GET) request and return the Content-Type.
+    """Send a HEAD (or fallback GET) request and return the Content-Type.
 
     Parameters
     ----------
@@ -530,8 +564,7 @@ def _probe_content_type(url: str, *, timeout: int) -> str:
 
 
 def _probe_with_requests(url: str, *, timeout: int) -> str:
-    """
-    Probe with the ``requests`` library.
+    """Probe with the ``requests`` library.
 
     Parameters
     ----------
@@ -552,32 +585,33 @@ def _probe_with_requests(url: str, *, timeout: int) -> str:
     """
     import requests  # noqa: PLC0415
 
-    session = requests.Session()
-    session.headers["User-Agent"] = _USER_AGENT
+    # Use the session as a context manager so the underlying urllib3
+    # connection pool is released even if an exception propagates.
+    with requests.Session() as session:
+        session.headers["User-Agent"] = _USER_AGENT
 
-    # Try HEAD first — no body, minimal bandwidth
-    try:
-        resp = session.head(url, allow_redirects=True, timeout=timeout)
-        if resp.status_code not in (405, 501):
+        # Try HEAD first — no body, minimal bandwidth
+        try:
+            resp = session.head(url, allow_redirects=True, timeout=timeout)
+            if resp.status_code not in (405, 501):
+                ct = resp.headers.get("Content-Type", "")
+                return ct.split(";")[0].strip().lower()
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Fallback: GET with stream — read headers only, close immediately
+        try:
+            resp = session.get(url, stream=True, allow_redirects=True, timeout=timeout)
+            resp.close()
             ct = resp.headers.get("Content-Type", "")
             return ct.split(";")[0].strip().lower()
-    except Exception:  # noqa: BLE001
-        pass
-
-    # Fallback: GET with stream — read headers only, close immediately
-    try:
-        resp = session.get(url, stream=True, allow_redirects=True, timeout=timeout)
-        resp.close()
-        ct = resp.headers.get("Content-Type", "")
-        return ct.split(";")[0].strip().lower()
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("_probe_with_requests: GET stream probe failed: %s", exc)
-        return ""
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("_probe_with_requests: GET stream probe failed: %s", exc)
+            return ""
 
 
 def _probe_with_urllib(url: str, *, timeout: int) -> str:
-    """
-    Probe with ``urllib.request`` (stdlib fallback).
+    """Probe with ``urllib.request`` (stdlib fallback).
 
     Parameters
     ----------
@@ -618,8 +652,7 @@ def _probe_with_urllib(url: str, *, timeout: int) -> str:
 
 
 def _classify_content_type(content_type: str) -> URLKind:
-    """
-    Map a MIME content-type string to a :class:`URLKind`.
+    """Map a MIME content-type string to a :class:`URLKind`.
 
     Parameters
     ----------
@@ -860,12 +893,22 @@ def _validate_url_security(url: str) -> None:
 # ===========================================================================
 
 
-def _infer_extension_from_headers(
+def _infer_extension_from_headers(  # noqa: PLR0911, PLR0912
     headers: Any,
     url: str,
 ) -> str:
     """
     Infer file extension from HTTP response headers or URL path.
+
+    The resolution order is deliberately:
+
+    1. **URL path** — cheapest and most reliable when present.
+    2. **Content-Disposition** — servers explicitly declare the filename;
+       this is authoritative when the URL path has no extension.
+    3. **Content-Type** — MIME-based inference; skips ``application/octet-stream``
+       because that type is deliberately generic ("unknown binary") and would
+       produce ``.bin`` prematurely, preventing step 2 from being reached.
+    4. **Fallback** — ``.bin`` when nothing can be inferred.
 
     Parameters
     ----------
@@ -880,7 +923,7 @@ def _infer_extension_from_headers(
         File extension including leading dot (e.g. ``".pdf"``).
         Returns ``".bin"`` if nothing can be inferred.
     """
-    # Try URL path first
+    # ── 1. URL path ──────────────────────────────────────────────────────
     parsed = urllib.parse.urlparse(url)
     path_lower = parsed.path.lower()
     for compound_ext in (".tar.gz", ".tar.bz2", ".tar.xz"):
@@ -890,33 +933,55 @@ def _infer_extension_from_headers(
     if ext and ext in _DOWNLOADABLE_EXTENSIONS:
         return ext
 
-    # Try Content-Type header
+    # ── 2. Content-Disposition (most authoritative when URL has no ext) ──
+    cd = None
+    if hasattr(headers, "get"):
+        cd = headers.get("Content-Disposition", "")
+    if cd:
+        # RFC 5987 encoded form: filename*=UTF-8''report%20final.pdf
+        # Must be checked FIRST because the plain-form regex also partially
+        # matches the star variant (captures the charset prefix as fname).
+        m5987 = re.search(
+            r"filename\*=[^']*''([^;\s]+)",
+            cd,
+            re.IGNORECASE,
+        )
+        if m5987:
+            try:
+                import urllib.parse as _up  # noqa: PLC0415
+
+                fname = _up.unquote(m5987.group(1).strip().rstrip('"'))
+                _, cd_ext = os.path.splitext(fname)
+                if cd_ext:
+                    return cd_ext.lower()
+            except Exception:  # noqa: BLE001
+                pass
+        # Plain form: filename="report.pdf" or filename=report.pdf
+        m_plain = re.search(r'filename="?([^";]+)"?', cd, re.IGNORECASE)
+        if m_plain:
+            fname = m_plain.group(1).strip()
+            _, cd_ext = os.path.splitext(fname)
+            if cd_ext:
+                return cd_ext.lower()
+
+    # ── 3. Content-Type (skip octet-stream — it means "unknown binary") ─
     ct = None
     if hasattr(headers, "get"):
         ct = headers.get("Content-Type", "")
     if ct:
         # "application/pdf; charset=utf-8" → "application/pdf"
         mime = ct.split(";")[0].strip().lower()
-        if mime in _CONTENT_TYPE_TO_EXT:
-            return _CONTENT_TYPE_TO_EXT[mime]
-        # Try mimetypes stdlib
-        guessed = mimetypes.guess_extension(mime)
-        if guessed:
-            return guessed
+        # Skip octet-stream: it's deliberately generic and would produce
+        # ".bin" via mimetypes, preventing downstream reader dispatch.
+        if mime != "application/octet-stream":
+            if mime in _CONTENT_TYPE_TO_EXT:
+                return _CONTENT_TYPE_TO_EXT[mime]
+            # Try mimetypes stdlib
+            guessed = mimetypes.guess_extension(mime)
+            if guessed:
+                return guessed
 
-    # Try Content-Disposition header
-    cd = None
-    if hasattr(headers, "get"):
-        cd = headers.get("Content-Disposition", "")
-    if cd:
-        # attachment; filename="report.pdf"
-        match = re.search(r'filename[*]?="?([^";]+)"?', cd, re.IGNORECASE)
-        if match:
-            fname = match.group(1).strip()
-            _, cd_ext = os.path.splitext(fname)
-            if cd_ext:
-                return cd_ext.lower()
-
+    # ── 4. Fallback ──────────────────────────────────────────────────────
     return ".bin"
 
 
@@ -940,6 +1005,242 @@ def _make_temp_filename(url: str, extension: str) -> str:
     return f"skplt_{url_hash}{extension}"
 
 
+# ---------------------------------------------------------------------------
+# Magic-byte detection — last-resort extension inference
+# ---------------------------------------------------------------------------
+
+#: Mapping of file-header magic bytes → extension.
+#: Checked in order; first match wins.  Each entry is
+#: ``(byte_prefix, extension)``.
+_MAGIC_SIGNATURES: tuple[tuple[bytes, str], ...] = (
+    # Documents
+    (b"%PDF", ".pdf"),
+    # Archives
+    (b"PK\x03\x04", ".zip"),
+    (b"PK\x05\x06", ".zip"),
+    (b"\x1f\x8b", ".tar.gz"),
+    (b"BZh", ".tar.bz2"),
+    (b"\xfd7zXZ\x00", ".tar.xz"),
+    (b"7z\xbc\xaf\x27\x1c", ".7z"),
+    # Images
+    (b"\x89PNG\r\n\x1a\n", ".png"),
+    (b"\xff\xd8\xff", ".jpg"),
+    (b"GIF87a", ".gif"),
+    (b"GIF89a", ".gif"),
+    (b"RIFF", ".webp"),  # RIFF....WEBP — checked below with content
+    (b"II\x2a\x00", ".tiff"),
+    (b"MM\x00\x2a", ".tiff"),
+    (b"BM", ".bmp"),
+    # Audio
+    (b"ID3", ".mp3"),
+    (b"\xff\xfb", ".mp3"),
+    (b"\xff\xf3", ".mp3"),
+    (b"\xff\xf2", ".mp3"),
+    (b"fLaC", ".flac"),
+    (b"OggS", ".ogg"),
+    (b"RIFF", ".wav"),  # RIFF....WAVE — disambiguated below
+    # Video
+    (b"\x1a\x45\xdf\xa3", ".mkv"),
+    # XML / HTML (text-based, check late)
+    (b"<?xml", ".xml"),
+    (b"<!DOCTYPE html", ".html"),
+    (b"<html", ".html"),
+)
+
+
+def _detect_extension_from_magic(path: Path) -> str | None:  # noqa: PLR0911
+    """Detect file extension from the first bytes of a file.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file to inspect.
+
+    Returns
+    -------
+    str or None
+        Detected extension (e.g. ``".pdf"``, ``".png"``), or ``None``
+        if no known signature matches.
+
+    Notes
+    -----
+    **RIFF disambiguation:** Both WAV and WEBP use the ``RIFF`` magic
+    prefix.  The file sub-type at offset 8 distinguishes them:
+    ``WAVE`` → ``.wav``, ``WEBP`` → ``.webp``.
+
+    **MP4/MOV/M4A detection:** The ISO base media file format (MP4,
+    MOV, M4A, M4V) uses ``ftyp`` at offset 4.  The brand bytes at
+    offset 8 distinguish sub-types.
+
+    This function reads at most 32 bytes and is safe to call on any
+    file, including empty files (returns ``None``).
+    """
+    try:
+        with open(path, "rb") as f:
+            header = f.read(32)
+    except OSError:
+        return None
+
+    if len(header) < 4:  # noqa: PLR2004
+        return None
+
+    # ── RIFF disambiguation (WAV vs WEBP) ────────────────────────
+    if header[:4] == b"RIFF" and len(header) >= 12:  # noqa: PLR2004
+        sub_type = header[8:12]
+        if sub_type == b"WEBP":
+            return ".webp"
+        if sub_type == b"WAVE":
+            return ".wav"
+        if sub_type == b"AVI ":
+            return ".avi"
+
+    # ── ISO base media (MP4/MOV/M4A) ─────────────────────────────
+    if len(header) >= 8 and header[4:8] == b"ftyp":  # noqa: PLR2004
+        brand = header[8:12] if len(header) >= 12 else b""  # noqa: PLR2004
+        if brand in (b"M4A ", b"M4B "):
+            return ".m4a"
+        if brand in (b"qt  ",):  # noqa: FURB171
+            return ".mov"
+        # Default: MP4 covers isom, mp41, mp42, avc1, etc.
+        return ".mp4"
+
+    # ── Standard prefix matching ─────────────────────────────────
+    for magic, ext in _MAGIC_SIGNATURES:
+        if header[: len(magic)] == magic:
+            # Skip RIFF here — already handled above
+            if magic == b"RIFF":
+                continue
+            return ext
+
+    return None
+
+
+def _fixup_bin_extension(dest_path: Path) -> Path:
+    """Rename a ``.bin`` file to its correct extension via magic-byte detection.
+
+    Parameters
+    ----------
+    dest_path : Path
+        Path to the downloaded file.  If the suffix is not ``.bin``,
+        the file is returned unchanged.
+
+    Returns
+    -------
+    Path
+        The (possibly renamed) file path.
+
+    Notes
+    -----
+    This is the safety net for URLs served with ``Content-Type:
+    application/octet-stream`` and no extension in the URL path or
+    Content-Disposition header.  Without this, the file would be named
+    ``*.bin`` and ``DocumentReader.create()`` would fail with
+    "No DocumentReader registered for extension '.bin'".
+    """
+    if dest_path.suffix.lower() != ".bin":
+        return dest_path
+
+    detected = _detect_extension_from_magic(dest_path)
+    if detected is None:
+        logger.debug(
+            "_fixup_bin_extension: no magic signature detected in %s; "
+            "keeping .bin extension.",
+            dest_path.name,
+        )
+        return dest_path
+
+    new_path = dest_path.with_suffix(detected)
+    try:
+        dest_path.rename(new_path)
+        logger.info(
+            "_fixup_bin_extension: renamed %s → %s (detected %s via magic bytes)",
+            dest_path.name,
+            new_path.name,
+            detected,
+        )
+        return new_path
+    except OSError as exc:
+        logger.warning(
+            "_fixup_bin_extension: failed to rename %s → %s: %s",
+            dest_path.name,
+            new_path.name,
+            exc,
+        )
+        return dest_path
+
+
+def infer_extension(headers: Any, url: str) -> str:
+    """Infer a file extension from HTTP response headers and URL path.
+
+    Public wrapper around :func:`_infer_extension_from_headers`.  Call
+    this when you already hold response headers (e.g. after a manual
+    ``requests.head()``) and want to know what extension to use for the
+    downloaded file.
+
+    The resolution order is:
+
+    1. URL path extension (cheapest, most reliable when present).
+    2. ``Content-Disposition`` ``filename*=`` (RFC 5987 encoded form).
+    3. ``Content-Disposition`` ``filename=`` (plain form).
+    4. ``Content-Type`` MIME mapping (skips ``application/octet-stream``).
+    5. ``mimetypes.guess_extension`` stdlib fallback.
+    6. ``".bin"`` when nothing can be inferred.
+
+    Parameters
+    ----------
+    headers : dict-like or http.client.HTTPMessage
+        HTTP response headers that support ``.get(key, default)``.
+    url : str
+        Original request URL.  Used for path-based extension lookup
+        and as a logging label.
+
+    Returns
+    -------
+    str
+        File extension including leading dot, e.g. ``".pdf"``.
+        Returns ``".bin"`` if nothing can be inferred.
+
+    Examples
+    --------
+    >>> infer_extension({"Content-Type": "audio/mpeg"}, "https://host/dl")
+    '.mp3'
+    >>> infer_extension({}, "https://host/report.pdf")
+    '.pdf'
+    >>> infer_extension(
+    ...     {"Content-Disposition": "attachment; filename*=UTF-8''report%20final.pdf"},
+    ...     "https://host/dl",
+    ... )
+    '.pdf'
+    """
+    return _infer_extension_from_headers(headers, url)
+
+
+def _extract_http_status(exc: BaseException) -> int | None:
+    """Extract the HTTP status code from a requests or urllib exception.
+
+    Parameters
+    ----------
+    exc : BaseException
+        Exception to inspect.
+
+    Returns
+    -------
+    int or None
+        HTTP status code if detectable, ``None`` otherwise.
+    """
+    # requests.HTTPError stores the response on exc.response
+    response = getattr(exc, "response", None)
+    if response is not None:
+        code = getattr(response, "status_code", None)
+        if isinstance(code, int):
+            return code
+    # urllib.error.HTTPError subclasses URLError and exposes .code
+    code = getattr(exc, "code", None)
+    if isinstance(code, int):
+        return code
+    return None
+
+
 def download_url(
     url: str,
     *,
@@ -947,6 +1248,8 @@ def download_url(
     max_bytes: int = DEFAULT_MAX_DOWNLOAD_BYTES,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_redirects: int = DEFAULT_MAX_REDIRECTS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_backoff: float = DEFAULT_RETRY_BACKOFF_BASE,
     skip_ssrf_check: bool = False,
 ) -> Path:
     """
@@ -965,6 +1268,15 @@ def download_url(
         HTTP timeout in seconds. Default: 120.
     max_redirects : int, optional
         Maximum number of HTTP redirects to follow. Default: 10.
+    max_retries : int, optional
+        Maximum retry attempts for transient HTTP errors (429, 500,
+        502, 503, 504). Each attempt waits
+        ``retry_backoff * 2 ** attempt`` seconds before retrying.
+        Set to ``0`` to disable retries. Default: 3.
+    retry_backoff : float, optional
+        Base delay in seconds for exponential back-off. The actual
+        wait before attempt *n* (0-indexed) is
+        ``retry_backoff * 2 ** n`` seconds. Default: 1.0.
     skip_ssrf_check : bool, optional
         Skip SSRF prevention check. **Only** for trusted internal
         URLs. Default: ``False``.
@@ -981,7 +1293,8 @@ def download_url(
         If the URL is invalid, targets a private IP (SSRF), or the
         response exceeds *max_bytes*.
     urllib.error.URLError
-        If the download fails due to a network error.
+        If the download fails due to a network error and all retries
+        are exhausted.
     TimeoutError
         If the download exceeds *timeout* seconds.
 
@@ -995,6 +1308,10 @@ def download_url(
     prefix of the URL as the filename stem, so repeated downloads of
     the same URL produce the same filename.
 
+    **Retry policy:** Only transient server-side errors trigger a retry
+    (HTTP 429, 500, 502, 503, 504). Client errors (4xx except 429) and
+    ``ValueError`` (SSRF, size exceeded) are *not* retried.
+
     Examples
     --------
     >>> path = download_url("https://example.com/report.pdf")
@@ -1003,12 +1320,14 @@ def download_url(
     >>> path.exists()
     True
     """
+    import time  # noqa: PLC0415
+
     if not isinstance(url, str) or not re.match(r"https?://", url, re.IGNORECASE):
         raise ValueError(
             f"download_url: url must start with 'http://' or 'https://'; got {url!r}."
         )
 
-    # SSRF check
+    # SSRF check — performed once before any network I/O.
     if not skip_ssrf_check:
         _validate_url_security(url)
 
@@ -1019,25 +1338,69 @@ def download_url(
         dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    # Try requests first (better redirect handling, streaming), fall back
-    # to urllib.
-    try:
-        return _download_with_requests(
-            url,
-            dest_dir=dest_dir,
-            max_bytes=max_bytes,
-            timeout=timeout,
-            max_redirects=max_redirects,
-            skip_ssrf_check=skip_ssrf_check,
-        )
-    except ImportError:
-        logger.debug("requests library not available; falling back to urllib.")
-        return _download_with_urllib(
-            url,
-            dest_dir=dest_dir,
-            max_bytes=max_bytes,
-            timeout=timeout,
-        )
+    last_exc: Exception | None = None
+    total_attempts = max(1, max_retries + 1)
+
+    for attempt in range(total_attempts):
+        if attempt > 0:
+            delay = retry_backoff * (2 ** (attempt - 1))
+            logger.warning(
+                "download_url: attempt %d/%d for %s after %.1fs back-off "
+                "(previous: %s).",
+                attempt + 1,
+                total_attempts,
+                url,
+                delay,
+                last_exc,
+            )
+            time.sleep(delay)
+
+        try:
+            # Try requests first (better redirect handling + streaming),
+            # fall back to urllib when requests is not installed.
+            try:
+                dest_path = _download_with_requests(
+                    url,
+                    dest_dir=dest_dir,
+                    max_bytes=max_bytes,
+                    timeout=timeout,
+                    max_redirects=max_redirects,
+                    skip_ssrf_check=skip_ssrf_check,
+                )
+            except ImportError:
+                logger.debug("requests library not available; falling back to urllib.")
+                dest_path = _download_with_urllib(
+                    url,
+                    dest_dir=dest_dir,
+                    max_bytes=max_bytes,
+                    timeout=timeout,
+                )
+
+            # Post-download: rename .bin files whose real format can be
+            # detected from magic bytes, so DocumentReader.create() does
+            # not fail with "No reader for .bin".
+            return _fixup_bin_extension(dest_path)
+
+        except ValueError:
+            # ValueError = permanent problem (SSRF, size exceeded).
+            # Never retry — raise immediately.
+            raise
+        except Exception as exc:  # noqa: BLE001
+            status = _extract_http_status(exc)
+            if status is not None and status not in _RETRYABLE_STATUS_CODES:
+                # Permanent HTTP error (e.g. 404, 403) — raise immediately.
+                raise
+            last_exc = exc
+            if attempt >= max_retries:
+                logger.error(
+                    "download_url: all %d attempts exhausted for %s.",
+                    total_attempts,
+                    url,
+                )
+                raise
+
+    # Unreachable: loop always returns or raises.
+    raise RuntimeError("download_url: unexpected loop exit.")  # pragma: no cover
 
 
 def _download_with_requests(
@@ -1081,58 +1444,61 @@ def _download_with_requests(
     """
     import requests  # noqa: PLC0415
 
-    session = requests.Session()
-    session.max_redirects = max_redirects
-    session.headers["User-Agent"] = _USER_AGENT
+    # Use the session as a context manager so the underlying urllib3
+    # connection pool is always released, even when an exception raises
+    # mid-download (size exceeded, SSRF detected, network error, etc.).
+    with requests.Session() as session:
+        session.max_redirects = max_redirects
+        session.headers["User-Agent"] = _USER_AGENT
 
-    response = session.get(
-        url,
-        stream=True,
-        timeout=timeout,
-        allow_redirects=True,
-    )
-    response.raise_for_status()
-
-    # SSRF check on final URL after redirects
-    if not skip_ssrf_check and response.url != url:
-        _validate_url_security(response.url)
-
-    # Check Content-Length if available
-    content_length = response.headers.get("Content-Length")
-    if content_length is not None and int(content_length) > max_bytes:
-        raise ValueError(
-            f"download_url: Content-Length {content_length} exceeds "
-            f"max_bytes={max_bytes}."
+        response = session.get(
+            url,
+            stream=True,
+            timeout=timeout,
+            allow_redirects=True,
         )
+        response.raise_for_status()
 
-    # Infer extension
-    ext = _infer_extension_from_headers(response.headers, url)
-    filename = _make_temp_filename(url, ext)
-    dest_path = dest_dir / filename
+        # SSRF check on final URL after redirects
+        if not skip_ssrf_check and response.url != url:
+            _validate_url_security(response.url)
 
-    # Stream download with size guard
-    downloaded = 0
-    with open(dest_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                downloaded += len(chunk)
-                if downloaded > max_bytes:
-                    # Clean up partial file
-                    f.close()
-                    dest_path.unlink(missing_ok=True)
-                    raise ValueError(
-                        f"download_url: download exceeded max_bytes="
-                        f"{max_bytes} (downloaded {downloaded} bytes so far)."
-                    )
-                f.write(chunk)
+        # Check Content-Length if available
+        content_length = response.headers.get("Content-Length")
+        if content_length is not None and int(content_length) > max_bytes:
+            raise ValueError(
+                f"download_url: Content-Length {content_length} exceeds "
+                f"max_bytes={max_bytes}."
+            )
 
-    logger.info(
-        "download_url: downloaded %s → %s (%d bytes)",
-        url,
-        dest_path,
-        downloaded,
-    )
-    return dest_path
+        # Infer extension
+        ext = _infer_extension_from_headers(response.headers, url)
+        filename = _make_temp_filename(url, ext)
+        dest_path = dest_dir / filename
+
+        # Stream download with size guard
+        downloaded = 0
+        with open(dest_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    downloaded += len(chunk)
+                    if downloaded > max_bytes:
+                        # Clean up partial file before raising
+                        f.close()
+                        dest_path.unlink(missing_ok=True)
+                        raise ValueError(
+                            f"download_url: download exceeded max_bytes="
+                            f"{max_bytes} (downloaded {downloaded} bytes so far)."
+                        )
+                    f.write(chunk)
+
+        logger.info(
+            "download_url: downloaded %s → %s (%d bytes)",
+            url,
+            dest_path,
+            downloaded,
+        )
+        return dest_path
 
 
 def _download_with_urllib(

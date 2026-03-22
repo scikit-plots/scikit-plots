@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/_audio.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers.audio
 =================================
@@ -856,7 +863,7 @@ def _get_audio_duration(audio_path: Path) -> float | None:
         audio = mutagen.File(str(audio_path))
         if audio is not None and audio.info is not None:
             return float(audio.info.length)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: mutagen failed for %s; trying next backend.",
             audio_path.name,
@@ -867,7 +874,7 @@ def _get_audio_duration(audio_path: Path) -> float | None:
         import librosa  # type: ignore[] # noqa: PLC0415
 
         return float(librosa.get_duration(path=str(audio_path)))
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: librosa failed for %s; trying next backend.",
             audio_path.name,
@@ -879,7 +886,7 @@ def _get_audio_duration(audio_path: Path) -> float | None:
 
         info = sf.info(str(audio_path))
         return float(info.duration)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: soundfile failed for %s.",
             audio_path.name,
@@ -971,7 +978,7 @@ def _extract_audio_features(
     try:
         mfcc = librosa.feature.mfcc(y=y, sr=sr_actual, n_mfcc=n_mfcc)
         features["mfcc_mean"] = [round(float(x), 6) for x in np.mean(mfcc, axis=1)]
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: MFCC extraction failed for %s.",
             audio_path.name,
@@ -981,7 +988,7 @@ def _extract_audio_features(
     try:
         chroma = librosa.feature.chroma_stft(y=y, sr=sr_actual)
         features["chroma_mean"] = [round(float(x), 6) for x in np.mean(chroma, axis=1)]
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: chroma extraction failed for %s.",
             audio_path.name,
@@ -991,7 +998,7 @@ def _extract_audio_features(
     try:
         sc = librosa.feature.spectral_centroid(y=y, sr=sr_actual)
         features["spectral_centroid"] = round(float(np.mean(sc)), 2)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: spectral centroid extraction failed for %s.",
             audio_path.name,
@@ -1001,7 +1008,7 @@ def _extract_audio_features(
     try:
         rms = librosa.feature.rms(y=y)
         features["rms_energy"] = round(float(np.mean(rms)), 6)
-    except Exception:
+    except Exception:  # noqa: BLE001
         logger.debug(
             "AudioReader: RMS energy extraction failed for %s.",
             audio_path.name,
@@ -1244,7 +1251,16 @@ class AudioReader(DocumentReader):
     max_file_bytes: int = field(default=5 * 1024 * 1024 * 1024)
     """Maximum audio file size. Default: 5 GB."""
 
-    def __post_init__(self) -> None:  # noqa: D105
+    def __post_init__(self) -> None:
+        """Validate constructor fields and resolve companion file strategy.
+
+        Raises
+        ------
+        ValueError
+            If ``whisper_model`` is not a recognised Whisper size.
+        ValueError
+            If ``classify=True`` but ``classifier`` callable is ``None``.
+        """
         super().__post_init__()
         if self.whisper_model not in self._VALID_WHISPER_MODELS:
             raise ValueError(

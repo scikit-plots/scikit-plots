@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/tests/test__image.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Tests for scikitplot.corpus._readers._image
 ===========================================
@@ -32,48 +39,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 import pytest
 
-# ---------------------------------------------------------------------------
-# Relative import helpers
-# ---------------------------------------------------------------------------
-# Tests are run from the repo root with:
-#   pytest corpus/_readers/tests/test_image.py
-# We add the package root to sys.path so relative imports resolve.
-_REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]  # …/corpus_src
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-# Stub out scikitplot.corpus so the reader module can be imported without the
-# full package present.  We only need _schema constants and _base.DocumentReader.
-def _build_stubs() -> None:
-    """Install minimal stubs for scikitplot.corpus._schema and _base."""
-    # ---- stub scikitplot package hierarchy ----
-    for name in ("scikitplot", "scikitplot.corpus"):
-        if name not in sys.modules:
-            sys.modules[name] = types.ModuleType(name)
-
-    # ---- _schema stub ----
-    import importlib.util as ilu
-
-    schema_spec = ilu.spec_from_file_location(
-        "scikitplot.corpus._schema",
-        str(_REPO_ROOT / "corpus" / "_schema.py"),
-    )
-    schema_mod = ilu.module_from_spec(schema_spec)
-    sys.modules["scikitplot.corpus._schema"] = schema_mod
-    schema_spec.loader.exec_module(schema_mod)
-
-    # ---- _base stub (minimal DocumentReader) ----
-    base_spec = ilu.spec_from_file_location(
-        "scikitplot.corpus._base",
-        str(_REPO_ROOT / "corpus" / "_base.py"),
-    )
-    base_mod = ilu.module_from_spec(base_spec)
-    sys.modules["scikitplot.corpus._base"] = base_mod
-    base_spec.loader.exec_module(base_mod)
-
-
-_build_stubs()
-
 # Now import the module under test using its package path
 from .._image import (  # noqa: E402
     ImageReader,
@@ -83,6 +48,7 @@ from .._image import (  # noqa: E402
     _ocr_easyocr,
     _ocr_tesseract,
 )
+from scikitplot.corpus import _base, _schema
 from scikitplot.corpus._schema import SectionType, SourceType, _PROMOTED_RAW_KEYS  # noqa: E402
 
 
@@ -675,3 +641,341 @@ class TestFileTypesRegistration:
     def test_all_expected_extensions_registered(self) -> None:
         expected = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".tiff", ".tif", ".bmp"}
         assert expected == set(ImageReader.file_types)
+
+
+# ---------------------------------------------------------------------------
+# Field defaults
+# ---------------------------------------------------------------------------
+
+
+class TestImageReaderFieldDefaults:
+    """Every public ImageReader field must carry the documented default value.
+
+    Rationale: silent default changes break serialised configs stored in
+    experiment logs.  This class pins all defaults so regressions are caught
+    at test time, not after a production run.
+    """
+
+    def test_backend_default_is_tesseract(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.backend == _BACKEND_TESSERACT
+
+    def test_ocr_lang_default_is_none(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.ocr_lang is None
+
+    def test_min_confidence_default_is_none(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.min_confidence is None
+
+    def test_preprocess_grayscale_default_is_false(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.preprocess_grayscale is False
+
+    def test_yield_raw_default_is_false(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.yield_raw is False
+
+    def test_yield_raw_bytes_default_is_false(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.yield_raw_bytes is False
+
+    def test_max_file_bytes_default_is_100mb(self, tmp_path: pathlib.Path) -> None:
+        r = _make_reader(tmp_path)
+        assert r.max_file_bytes == 100 * 1024 * 1024
+
+    def test_easyocr_reader_cache_starts_none(self, tmp_path: pathlib.Path) -> None:
+        """Internal cache must be None before any OCR call is made."""
+        r = _make_reader(tmp_path, backend=_BACKEND_EASYOCR)
+        assert r._easyocr_reader is None
+
+
+# ---------------------------------------------------------------------------
+# yield_raw path: raw tensors included when yield_raw=True
+# ---------------------------------------------------------------------------
+
+
+class TestYieldRawPath:
+    """When ``yield_raw=True``, each chunk must carry tensor fields and
+    the correct modality value.
+
+    The tensor itself is mocked via numpy so no real image library is needed.
+    """
+
+    def _run_with_yield_raw(
+        self,
+        tmp_path: pathlib.Path,
+        *,
+        ocr_text: str = "extracted text",
+        ocr_conf: float = 0.9,
+    ) -> list[dict]:
+        reader = _make_reader(tmp_path, yield_raw=True)
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+
+        import numpy as np
+
+        fake_array = MagicMock()
+        fake_array.shape = (50, 100, 3)
+        fake_array.dtype = np.dtype("uint8")
+
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=(ocr_text, ocr_conf)), \
+             patch("numpy.array", return_value=fake_array):
+            chunks = list(reader.get_raw_chunks())
+        return chunks
+
+    def test_raw_tensor_key_present(self, tmp_path: pathlib.Path) -> None:
+        chunks = self._run_with_yield_raw(tmp_path)
+        assert len(chunks) == 1
+        assert "raw_tensor" in chunks[0], "raw_tensor missing when yield_raw=True"
+
+    def test_raw_shape_key_present(self, tmp_path: pathlib.Path) -> None:
+        chunks = self._run_with_yield_raw(tmp_path)
+        assert "raw_shape" in chunks[0]
+
+    def test_raw_dtype_key_present(self, tmp_path: pathlib.Path) -> None:
+        chunks = self._run_with_yield_raw(tmp_path)
+        assert "raw_dtype" in chunks[0]
+
+    def test_modality_is_multimodal_when_text_and_tensor(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Text present + tensor present → modality must be 'multimodal'."""
+        chunks = self._run_with_yield_raw(tmp_path, ocr_text="hello")
+        assert chunks[0]["modality"] == "multimodal"
+
+    def test_raw_tensor_absent_when_yield_raw_false(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Baseline: yield_raw=False (default) → no raw_tensor in chunk."""
+        reader = _make_reader(tmp_path)  # yield_raw=False
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("text", 0.8)):
+            chunks = list(reader.get_raw_chunks())
+
+        assert len(chunks) == 1
+        assert "raw_tensor" not in chunks[0]
+
+    def test_modality_is_text_when_yield_raw_false(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """yield_raw=False → modality should be 'text' when OCR text is present."""
+        reader = _make_reader(tmp_path)
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("text", 0.8)):
+            chunks = list(reader.get_raw_chunks())
+
+        assert chunks[0]["modality"] == "text"
+
+
+# ---------------------------------------------------------------------------
+# _run_ocr interface
+# ---------------------------------------------------------------------------
+
+
+class TestRunOcrInterface:
+    """``_run_ocr`` must return a 2-tuple ``(str, float)`` for both backends.
+
+    The 3-tuple returned by ``_ocr_easyocr`` is an implementation detail of
+    that function; ``_run_ocr`` is the public boundary — callers outside the
+    class see only ``(text, confidence)``.
+    """
+
+    def test_tesseract_backend_returns_two_tuple(self, tmp_path: pathlib.Path) -> None:
+        reader = _make_reader(tmp_path, backend=_BACKEND_TESSERACT)
+        frame = _make_pil_image()
+        with patch(
+            "scikitplot.corpus._readers._image._ocr_tesseract",
+            return_value=("hello", 0.85),
+        ):
+            result = reader._run_ocr(frame)
+
+        assert isinstance(result, tuple)
+        assert len(result) == 2, f"Expected 2-tuple, got {len(result)}-tuple"
+        text, conf = result
+        assert isinstance(text, str)
+        assert isinstance(conf, float)
+
+    def test_easyocr_backend_returns_two_tuple(self, tmp_path: pathlib.Path) -> None:
+        """_run_ocr must strip the 3rd element from _ocr_easyocr and return 2-tuple."""
+        reader = _make_reader(tmp_path, backend=_BACKEND_EASYOCR)
+        frame = _make_pil_image()
+        sentinel_reader = object()
+        with patch(
+            "scikitplot.corpus._readers._image._ocr_easyocr",
+            return_value=("world", 0.77, sentinel_reader),
+        ):
+            result = reader._run_ocr(frame)
+
+        assert isinstance(result, tuple)
+        assert len(result) == 2, f"Expected 2-tuple, got {len(result)}-tuple"
+        text, conf = result
+        assert text == "world"
+        assert conf == 0.77
+
+    def test_confidence_is_float_type(self, tmp_path: pathlib.Path) -> None:
+        reader = _make_reader(tmp_path)
+        frame = _make_pil_image()
+        with patch(
+            "scikitplot.corpus._readers._image._ocr_tesseract",
+            return_value=("some text", 0.5),
+        ):
+            _, conf = reader._run_ocr(frame)
+        assert isinstance(conf, float)
+
+
+# ---------------------------------------------------------------------------
+# min_confidence logging — documents actual contract (log, no filter)
+# ---------------------------------------------------------------------------
+
+
+class TestMinConfidenceLogging:
+    """``min_confidence`` triggers a DEBUG log entry but does **not** filter
+    the chunk from output.
+
+    The current implementation logs when ``confidence < min_confidence`` and
+    continues, yielding the chunk.  This test pins that contract so any
+    accidental introduction of a ``continue`` or ``return`` is caught.
+    """
+
+    def test_low_confidence_chunk_is_still_yielded(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        reader = _make_reader(tmp_path, min_confidence=0.9)
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+        # Confidence 0.1 is far below min_confidence=0.9
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("low conf text", 0.1)):
+            chunks = list(reader.get_raw_chunks())
+
+        # Chunk must still be yielded (min_confidence is advisory, not a filter)
+        assert len(chunks) == 1
+        assert chunks[0]["text"] == "low conf text"
+
+    def test_low_confidence_emits_debug_log(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Logger.debug must be called mentioning 'confidence' when conf < min."""
+        import scikitplot.corpus._readers._image as _img_mod
+
+        reader = _make_reader(tmp_path, min_confidence=0.9)
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("low conf text", 0.1)), \
+             patch.object(_img_mod, "logger") as mock_log:
+            list(reader.get_raw_chunks())
+
+        # At least one debug call must contain "confidence"
+        debug_messages = [
+            str(call) for call in mock_log.debug.call_args_list
+        ]
+        assert any("confidence" in m.lower() for m in debug_messages), (
+            f"Expected logger.debug(...'confidence'...) when conf < min_confidence."
+            f" Actual debug calls: {debug_messages}"
+        )
+
+    def test_high_confidence_no_log_emitted(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """No 'confidence < min' debug call when conf >= min_confidence."""
+        import scikitplot.corpus._readers._image as _img_mod
+
+        reader = _make_reader(tmp_path, min_confidence=0.5)
+        mock_img = _make_pil_image()
+        mock_frames = [_make_pil_image()]
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=mock_frames), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("good text", 0.95)), \
+             patch.object(_img_mod, "logger") as mock_log:
+            list(reader.get_raw_chunks())
+
+        # Filter to calls that contain both "confidence" and a "< min" pattern
+        conf_min_calls = [
+            str(c) for c in mock_log.debug.call_args_list
+            if "confidence" in str(c).lower() and "< min" in str(c).lower()
+        ]
+        assert len(conf_min_calls) == 0, (
+            f"Unexpected 'confidence < min' debug log when conf >= min_confidence:"
+            f" {conf_min_calls}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# preprocess_grayscale: triggers frame.convert("L") before OCR
+# ---------------------------------------------------------------------------
+
+
+class TestPreprocessGrayscale:
+    """When ``preprocess_grayscale=True``, the reader must call
+    ``frame.convert("L")`` for frames that are not already in mode ``"L"``.
+    """
+
+    def test_rgb_frame_converted_to_grayscale(self, tmp_path: pathlib.Path) -> None:
+        reader = _make_reader(tmp_path, preprocess_grayscale=True)
+        mock_img = _make_pil_image(mode="RGB")
+
+        # Create a frame that reports mode="RGB" and tracks convert() calls
+        frame = MagicMock()
+        frame.mode = "RGB"
+        frame.size = (100, 50)
+        converted = MagicMock()
+        converted.mode = "L"
+        converted.size = (100, 50)
+        frame.convert.return_value = converted
+
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=[frame]), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("text", 0.9)):
+            list(reader.get_raw_chunks())
+
+        frame.convert.assert_called_once_with("L")
+
+    def test_already_grayscale_frame_not_reconverted(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """A frame already in mode 'L' must not be converted again."""
+        reader = _make_reader(tmp_path, preprocess_grayscale=True)
+        mock_img = _make_pil_image(mode="L")
+
+        frame = MagicMock()
+        frame.mode = "L"  # already grayscale
+        frame.size = (100, 50)
+
+        with patch("PIL.Image.open", return_value=mock_img), \
+             patch("scikitplot.corpus._readers._image.ImageReader._extract_frames",
+                   return_value=[frame]), \
+             patch("scikitplot.corpus._readers._image.ImageReader._run_ocr",
+                   return_value=("gray text", 0.8)):
+            list(reader.get_raw_chunks())
+
+        # convert() must NOT have been called with "L" (no redundant conversion)
+        for call in frame.convert.call_args_list:
+            assert call.args[0] != "L", (
+                "frame.convert('L') called on a frame already in 'L' mode."
+            )

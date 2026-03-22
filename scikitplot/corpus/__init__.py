@@ -138,6 +138,7 @@ from scikitplot.corpus._base import (
     DefaultFilter,
     DocumentReader,
     FilterBase,
+    PipelineGuard,
 )
 
 # Chunkers
@@ -162,6 +163,8 @@ from scikitplot.corpus._embeddings import (
     DEFAULT_MODEL,
     EmbeddingEngine,
     EmbedFn,
+    LLMTrainingExporter,
+    MultimodalEmbeddingEngine,
 )
 
 # --- NLP enricher ---
@@ -228,10 +231,14 @@ from scikitplot.corpus._registry import (
 from scikitplot.corpus._schema import (
     ChunkingStrategy,
     CorpusDocument,
+    ErrorPolicy,
     ExportFormat,
     MatchMode,
+    Modality,
     SectionType,
     SourceType,
+    documents_to_pandas,
+    documents_to_polars,
 )
 
 # --- Similarity index ---
@@ -262,6 +269,7 @@ from scikitplot.corpus._url_handler import (
     URLKind,
     classify_url,
     download_url,
+    probe_url_kind,
     resolve_url,
 )
 
@@ -283,6 +291,7 @@ __all__ = [  # noqa: RUF022
     "URLKind",
     "classify_url",
     "download_url",
+    "probe_url_kind",
     "resolve_url",
     # Base
     "DocumentReader",
@@ -353,6 +362,8 @@ __all__ = [  # noqa: RUF022
     "ExportFormat",
     "SourceType",
     "MatchMode",
+    "documents_to_pandas",
+    "documents_to_polars",
     # Similarity
     "SearchConfig",
     "SearchResult",
@@ -367,4 +378,9 @@ __all__ = [  # noqa: RUF022
     "JSONLStorage",
     "SQLiteStorage",
     "StorageQuery",
+    "LLMTrainingExporter",
+    "MultimodalEmbeddingEngine",
+    "PipelineGuard",
+    "ErrorPolicy",
+    "Modality",
 ]

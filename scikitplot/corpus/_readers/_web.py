@@ -341,7 +341,21 @@ class WebReader(DocumentReader):
     max_content_bytes: int = field(default=50_000_000)  # 50 MB
     """Maximum content size in bytes."""
 
-    def __post_init__(self) -> None:  # noqa: D105
+    def __post_init__(self) -> None:
+        """Initialise the WebReader and configure HTTP session settings.
+
+        Notes
+        -----
+        URL-based readers do not call ``super().__post_init__()`` because
+        ``validate_input`` for URLs performs a network check, not a
+        filesystem existence check.  Validation is deferred to the first
+        ``get_raw_chunks`` call.
+
+        Raises
+        ------
+        ValueError
+            If ``timeout <= 0`` or ``max_response_bytes <= 0``.
+        """
         # URL readers do NOT call super().__post_init__ for file validation —
         # we handle validation ourselves in validate_input().
         from scikitplot.corpus._base import DefaultFilter  # noqa: PLC0415
@@ -371,6 +385,13 @@ class WebReader(DocumentReader):
         return self.filename_override or self._effective_url()
 
     def _effective_url(self) -> str:
+        """Return the URL to fetch: ``source_uri`` or ``str(input_file)``.
+
+        Returns
+        -------
+        str
+            The URL used for the HTTP request.
+        """
         return self.source_uri or str(self.input_file)
 
     def _build_headers(self) -> dict[str, str]:
@@ -624,7 +645,15 @@ class YouTubeReader(DocumentReader):
     min_cue_chars: int = field(default=20)
     """Minimum cue length for ``merge_short_cues``."""
 
-    def __post_init__(self) -> None:  # noqa: D105
+    def __post_init__(self) -> None:
+        """Initialise the YouTubeReader and parse the video ID from the URL.
+
+        Raises
+        ------
+        ValueError
+            If the URL does not match any recognised YouTube pattern
+            (watch, shorts, embed, live, youtu.be).
+        """
         from scikitplot.corpus._base import DefaultFilter  # noqa: PLC0415
 
         if self.filter_ is None:
@@ -656,6 +685,13 @@ class YouTubeReader(DocumentReader):
         return self.filename_override or self._effective_url()
 
     def _effective_url(self) -> str:
+        """Return the YouTube URL for this reader.
+
+        Returns
+        -------
+        str
+            ``source_uri`` when set, otherwise ``str(input_file)``.
+        """
         return self.source_uri or str(self.input_file)
 
     # ------------------------------------------------------------------
@@ -751,7 +787,7 @@ class YouTubeReader(DocumentReader):
             transcript = transcript_list.find_manually_created_transcript(
                 lang_codes or ["en", "en-US", "en-GB"]
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             logger.debug(
                 "YouTubeReader: manual transcript not found for %s;"
                 " trying auto-generated.",
@@ -763,7 +799,7 @@ class YouTubeReader(DocumentReader):
                         lang_codes or ["en", "en-US", "en-GB"]
                     )
                     transcript_type = "auto_generated"
-                except Exception:
+                except Exception:  # noqa: BLE001
                     logger.debug(
                         "YouTubeReader: auto-generated transcript not found for %s.",
                         video_id,
@@ -855,6 +891,18 @@ class YouTubeReader(DocumentReader):
         """  # noqa: D205
 
         def _normalise(c: Any) -> dict[str, Any]:
+            """Normalise a raw content block to ``{"text": str}``.
+
+            Parameters
+            ----------
+            c : dict or any
+                Raw content block from BeautifulSoup extraction.
+
+            Returns
+            -------
+            dict[str, Any]
+                Dict with at least ``"text"`` key.
+            """
             if isinstance(c, dict):
                 return c
             return {

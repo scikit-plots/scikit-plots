@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/_pdf.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers.pdf
 ==============================
@@ -334,7 +341,16 @@ class PDFReader(DocumentReader):
     or ``None`` (auto). Default: ``None``.
     """
 
-    def __post_init__(self) -> None:  # noqa: D105
+    def __post_init__(self) -> None:
+        """Validate PDF reader constructor fields.
+
+        Raises
+        ------
+        ValueError
+            If ``prefer_backend`` is not in ``{'pdfminer', 'pypdf', 'auto'}``.
+        ValueError
+            If ``max_file_bytes <= 0``.
+        """
         super().__post_init__()
         if (
             self.prefer_backend is not None

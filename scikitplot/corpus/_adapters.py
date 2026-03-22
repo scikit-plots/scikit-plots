@@ -18,6 +18,10 @@ standardised formats consumed by:
 - **HuggingFace** — ``datasets.Dataset`` rows
 - **Generic RAG** — ``(text, metadata, embedding)`` tuples
 - **JSONL streaming** — newline-delimited JSON for any consumer
+- **NumPy arrays** — ``(N, D)`` matrices for batch ML workflows
+- **TensorFlow** — ``tf.data.Dataset`` for Keras / TF-Hub models
+- **PyTorch** — ``DataLoader`` / ``CorpusDataset`` for PyTorch/Lightning
+- **MLflow** — artifact logging via :class:`LLMTrainingExporter`
 
 .. admonition:: Design philosophy
 
@@ -39,7 +43,7 @@ from typing import Any, Iterator, Sequence
 logger = logging.getLogger(__name__)
 
 __all__ = [  # noqa: RUF022
-    # Core converters
+    # LLM consumer adapters
     "to_langchain_documents",
     "to_langgraph_state",
     "to_mcp_resources",
@@ -47,7 +51,11 @@ __all__ = [  # noqa: RUF022
     "to_huggingface_dataset",
     "to_rag_tuples",
     "to_jsonl",
-    # Retriever adapters
+    # ML / tensor adapters (new)
+    "to_numpy_arrays",
+    "to_tensorflow_dataset",
+    "to_torch_dataloader",
+    # Retriever / server adapters
     "LangChainCorpusRetriever",
     "MCPCorpusServer",
 ]
@@ -132,7 +140,19 @@ def _doc_metadata(doc: Any) -> dict[str, Any]:
 
 
 def _get_text(doc: Any) -> str:
-    """Prefer ``normalized_text`` over ``text``."""
+    """Return the best available text from a :class:`~scikitplot.corpus.CorpusDocument`.
+
+    Parameters
+    ----------
+    doc : CorpusDocument
+        Document to extract text from.
+
+    Returns
+    -------
+    str
+        ``doc.normalized_text`` when non-empty, otherwise ``doc.text``,
+        otherwise empty string.  Never raises.
+    """
     nt = getattr(doc, "normalized_text", None)
     return nt or getattr(doc, "text", "")
 
@@ -534,6 +554,21 @@ class LangChainCorpusRetriever:
         embedding_fn: Any = None,
         config: Any = None,
     ) -> None:
+        """Initialise the retriever.
+
+        Parameters
+        ----------
+        index : SimilarityIndex
+            Pre-built corpus index.  Must have a ``search(query, config)``
+            method returning a list of :class:`~scikitplot.corpus._similarity.SearchResult`.
+        embedding_fn : callable or None, optional
+            Function ``str → ndarray`` for semantic search.  When ``None``,
+            keyword search is used.  Default: ``None``.
+        config : SearchConfig or None, optional
+            Default search configuration.  When ``None``, uses
+            ``SearchConfig(match_mode="hybrid", top_k=4)``.
+            Default: ``None``.
+        """
         self.index = index
         self.embedding_fn = embedding_fn
         self.config = config
@@ -569,6 +604,7 @@ class LangChainCorpusRetriever:
     invoke = get_relevant_documents
 
     def __repr__(self) -> str:
+        """Return ``LangChainCorpusRetriever(n_docs=N, mode=...)``."""
         return (
             f"LangChainCorpusRetriever("
             f"index={self.index!r}, "
@@ -628,6 +664,19 @@ class MCPCorpusServer:
         embedding_fn: Any = None,
         server_name: str = "corpus-search",
     ) -> None:
+        """Initialise the MCP server adapter.
+
+        Parameters
+        ----------
+        index : SimilarityIndex
+            Pre-built corpus index used to handle ``corpus_search`` tool calls.
+        embedding_fn : callable or None, optional
+            Function ``str → ndarray`` for semantic query embedding.
+            ``None`` uses keyword (BM25) search.  Default: ``None``.
+        server_name : str, optional
+            MCP server name returned in ``list_tools`` responses.
+            Default: ``"corpus-search"``.
+        """
         self.index = index
         self.embedding_fn = embedding_fn
         self.server_name = server_name
@@ -719,8 +768,485 @@ class MCPCorpusServer:
         ]
 
     def __repr__(self) -> str:
+        """Return ``MCPCorpusServer(name=..., n_docs=N)``."""
         return (
             f"MCPCorpusServer("
             f"name={self.server_name!r}, "
             f"n_docs={self.index.n_documents})"
         )
+
+
+# ===========================================================================
+# ML / tensor consumer adapters — TensorFlow · PyTorch · NumPy
+# ===========================================================================
+
+
+def to_numpy_arrays(
+    documents: list[Any],
+    *,
+    include_text: bool = True,
+    include_raw_tensor: bool = True,
+    include_embedding: bool = True,
+    include_metadata: bool = True,
+    dtype_map: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Convert documents to a dict of NumPy arrays suitable for batch ML.
+
+    Parameters
+    ----------
+    documents : list[CorpusDocument]
+        Documents to convert.
+    include_text : bool, optional
+        Include ``texts`` column (list of str, empty str for None).
+        Default: ``True``.
+    include_raw_tensor : bool, optional
+        Stack ``raw_tensor`` fields when all documents share the same
+        shape.  Skipped when shapes differ.  Default: ``True``.
+    include_embedding : bool, optional
+        Stack ``embedding`` fields when all documents have embeddings.
+        Default: ``True``.
+    include_metadata : bool, optional
+        Include ``doc_ids``, ``source_files``, ``source_types`` columns.
+        Default: ``True``.
+    dtype_map : dict[str, Any] or None, optional
+        Override dtypes, e.g. ``{"raw_tensor": "float32"}``.
+        Default: ``None``.
+
+    Returns
+    -------
+    dict[str, Any]
+        Column dict. Keys depend on *include_* flags:
+
+        - ``"texts"`` — list[str]
+        - ``"raw_tensors"`` — ndarray shape ``(N, H, W, C)`` or ``(N, S)``
+          (only when all shapes match)
+        - ``"embeddings"`` — ndarray shape ``(N, D)``
+        - ``"doc_ids"`` — list[str]
+        - ``"source_files"`` — list[str]
+        - ``"source_types"`` — list[str]
+        - ``"modalities"`` — list[str]
+        - ``"content_hashes"`` — list[str | None]
+
+    Notes
+    -----
+    Requires ``numpy``.  Raises ``ImportError`` when not installed.
+
+    Examples
+    --------
+    >>> arrays = to_numpy_arrays(docs, include_raw_tensor=True)
+    >>> arrays["raw_tensors"].shape  # (N, H, W, C) for image batch
+    (32, 224, 224, 3)
+    >>> arrays["embeddings"].shape  # (N, D)
+    (32, 384)
+    """
+    try:
+        import numpy as np  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError("to_numpy_arrays requires numpy: pip install numpy") from exc
+
+    result: dict[str, Any] = {}
+
+    if include_text:
+        result["texts"] = [
+            getattr(d, "normalized_text", None) or getattr(d, "text", None) or ""
+            for d in documents
+        ]
+
+    if include_metadata:
+        result["doc_ids"] = [getattr(d, "doc_id", "") for d in documents]
+        result["source_files"] = [getattr(d, "source_file", "") for d in documents]
+        result["source_types"] = [
+            str(getattr(d, "source_type", "unknown")) for d in documents
+        ]
+        result["modalities"] = [str(getattr(d, "modality", "text")) for d in documents]
+        result["content_hashes"] = [getattr(d, "content_hash", None) for d in documents]
+
+    if include_raw_tensor:
+        tensors = [getattr(d, "raw_tensor", None) for d in documents]
+        tensors = [t for t in tensors if t is not None]
+        if tensors:
+            try:
+                stacked = np.stack(tensors, axis=0)
+                if dtype_map and "raw_tensor" in dtype_map:
+                    stacked = stacked.astype(dtype_map["raw_tensor"])
+                result["raw_tensors"] = stacked
+            except ValueError:
+                # Shapes differ — store as object array
+                result["raw_tensors"] = np.array(tensors, dtype=object)
+
+    if include_embedding:
+        embeddings = [getattr(d, "embedding", None) for d in documents]
+        embeddings = [e for e in embeddings if e is not None]
+        if embeddings:
+            try:
+                emb_arr = np.stack(embeddings, axis=0)
+                if dtype_map and "embedding" in dtype_map:
+                    emb_arr = emb_arr.astype(dtype_map["embedding"])
+                result["embeddings"] = emb_arr
+            except (ValueError, TypeError):
+                result["embeddings"] = np.array(embeddings, dtype=object)
+
+    return result
+
+
+def to_tensorflow_dataset(  # noqa: PLR0912
+    documents: list[Any],
+    *,
+    text_feature: bool = True,
+    raw_tensor_feature: bool = False,
+    embedding_feature: bool = False,
+    label_field: str | None = None,
+    label_map: dict[str, int] | None = None,
+    batch_size: int = 32,
+    shuffle: bool = False,
+    shuffle_seed: int | None = None,
+    dtype_map: dict[str, Any] | None = None,
+) -> Any:
+    """
+    Convert documents to a ``tf.data.Dataset``.
+
+    Parameters
+    ----------
+    documents : list[CorpusDocument]
+        Documents to convert.
+    text_feature : bool, optional
+        Include ``"text"`` feature (tf.string). Default: ``True``.
+    raw_tensor_feature : bool, optional
+        Include ``"raw_tensor"`` feature (tf.uint8) when documents carry
+        pixel arrays.  Requires all tensors to share the same shape.
+        Default: ``False``.
+    embedding_feature : bool, optional
+        Include ``"embedding"`` feature (tf.float32). Default: ``False``.
+    label_field : str or None, optional
+        ``CorpusDocument`` attribute to use as label (e.g.
+        ``"source_type"``).  Default: ``None`` (no label).
+    label_map : dict[str, int] or None, optional
+        Map string label values to integer class ids.  Required when
+        *label_field* is set and the field contains strings.
+        Default: ``None``.
+    batch_size : int, optional
+        Batch size.  ``None`` disables batching.  Default: 32.
+    shuffle : bool, optional
+        Shuffle the dataset before batching.  Default: ``False``.
+    shuffle_seed : int or None, optional
+        Seed for deterministic shuffling.  Default: ``None``.
+    dtype_map : dict or None, optional
+        Cast feature dtypes, e.g. ``{"raw_tensor": tf.float32}``.
+
+    Returns
+    -------
+    tf.data.Dataset
+        Batched dataset of feature dicts (and optionally labels).
+
+    Raises
+    ------
+    ImportError
+        If TensorFlow is not installed.
+    ValueError
+        If *raw_tensor_feature* is True but raw tensors have different
+        shapes across documents.
+
+    Notes
+    -----
+    **Fallback:** When TensorFlow is not available, returns a dict of
+    NumPy arrays (via :func:`to_numpy_arrays`) so pipelines can test
+    the shape of the output without requiring a GPU environment.
+
+    Examples
+    --------
+    Text-only dataset for a Keras text classifier:
+
+    >>> ds = to_tensorflow_dataset(docs, text_feature=True, batch_size=16)
+    >>> for batch in ds.take(1):
+    ...     print(batch["text"].shape)  # (16,)
+
+    Image dataset for a CNN:
+
+    >>> ds = to_tensorflow_dataset(
+    ...     docs,
+    ...     text_feature=False,
+    ...     raw_tensor_feature=True,
+    ...     label_field="source_type",
+    ...     label_map={"image": 0, "research": 1},
+    ... )
+    """
+    try:
+        import tensorflow as tf  # noqa: PLC0415
+    except ImportError:
+        import logging as _log  # noqa: PLC0415
+
+        _log.getLogger(__name__).warning(
+            "tensorflow not installed; returning numpy arrays fallback. "
+            "Install with: pip install tensorflow"
+        )
+        return to_numpy_arrays(
+            documents,
+            include_text=text_feature,
+            include_raw_tensor=raw_tensor_feature,
+            include_embedding=embedding_feature,
+        )
+
+    try:
+        import numpy as np  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError("to_tensorflow_dataset requires numpy") from exc
+
+    # Build feature dict
+    features: dict[str, Any] = {}
+
+    if text_feature:
+        texts = [
+            getattr(d, "normalized_text", None) or getattr(d, "text", None) or ""
+            for d in documents
+        ]
+        features["text"] = tf.constant(texts, dtype=tf.string)
+
+    if raw_tensor_feature:
+        tensors = [getattr(d, "raw_tensor", None) for d in documents]
+        if any(t is None for t in tensors):
+            raise ValueError(
+                "to_tensorflow_dataset: raw_tensor_feature=True but "
+                "some documents have raw_tensor=None. Set yield_raw=True "
+                "on the reader."
+            )
+        try:
+            stacked = np.stack(tensors, axis=0)
+        except ValueError as exc:
+            raise ValueError(
+                "to_tensorflow_dataset: raw tensors have different shapes. "
+                "Resize images to a common size before calling this function."
+            ) from exc
+        raw_dtype = (dtype_map or {}).get("raw_tensor", tf.uint8)
+        features["raw_tensor"] = tf.cast(tf.constant(stacked), dtype=raw_dtype)
+
+    if embedding_feature:
+        embeddings = [getattr(d, "embedding", None) for d in documents]
+        if any(e is None for e in embeddings):
+            raise ValueError(
+                "to_tensorflow_dataset: embedding_feature=True but some "
+                "documents have embedding=None. Run EmbeddingEngine first."
+            )
+        emb_arr = np.stack(embeddings, axis=0).astype(np.float32)
+        features["embedding"] = tf.constant(emb_arr, dtype=tf.float32)
+
+    # Build label tensor
+    if label_field is not None:
+        raw_labels = [getattr(d, label_field, None) for d in documents]
+        if label_map is not None:
+            int_labels = [label_map.get(str(lbl), -1) for lbl in raw_labels]
+            labels_tensor = tf.constant(int_labels, dtype=tf.int32)
+        else:
+            labels_tensor = tf.constant([str(l) for l in raw_labels], dtype=tf.string)
+        ds = tf.data.Dataset.from_tensor_slices((features, labels_tensor))
+    else:
+        ds = tf.data.Dataset.from_tensor_slices(features)
+
+    if shuffle:
+        ds = ds.shuffle(
+            buffer_size=len(documents),
+            seed=shuffle_seed,
+            reshuffle_each_iteration=False,
+        )
+
+    if batch_size:
+        ds = ds.batch(batch_size, drop_remainder=False)
+
+    return ds
+
+
+def to_torch_dataloader(
+    documents: list[Any],
+    *,
+    text_feature: bool = True,
+    raw_tensor_feature: bool = False,
+    embedding_feature: bool = False,
+    label_field: str | None = None,
+    label_map: dict[str, int] | None = None,
+    batch_size: int = 32,
+    shuffle: bool = False,
+    num_workers: int = 0,
+    dtype_map: dict[str, Any] | None = None,
+) -> Any:
+    """
+    Convert documents to a ``torch.utils.data.DataLoader``.
+
+    Parameters
+    ----------
+    documents : list[CorpusDocument]
+        Documents to convert.
+    text_feature : bool, optional
+        Include ``"text"`` key (list of str per batch). Default: ``True``.
+    raw_tensor_feature : bool, optional
+        Include ``"raw_tensor"`` key (torch.Tensor, NCHW float32).
+        Requires all tensors to have the same shape.  Default: ``False``.
+    embedding_feature : bool, optional
+        Include ``"embedding"`` key (torch.Tensor, shape ``(N, D)``).
+        Default: ``False``.
+    label_field : str or None, optional
+        Attribute to use as label. Default: ``None``.
+    label_map : dict[str, int] or None, optional
+        Map string labels to class indices. Default: ``None``.
+    batch_size : int, optional
+        Batch size. Default: 32.
+    shuffle : bool, optional
+        Shuffle data each epoch. Default: ``False``.
+    num_workers : int, optional
+        DataLoader worker processes. Default: 0 (main process only).
+    dtype_map : dict or None, optional
+        Cast tensors, e.g. ``{"raw_tensor": torch.float32}``.
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+        DataLoader over a ``CorpusDataset``.
+
+    Raises
+    ------
+    ImportError
+        If PyTorch is not installed.
+
+    Notes
+    -----
+    **Fallback:** When PyTorch is not available, returns a dict of
+    NumPy arrays so pipelines can test without GPU hardware.
+
+    **Channel order:** Raw tensors from :class:`ImageReader` are
+    ``(H, W, C)`` uint8 (channels-last).  This function converts them to
+    ``(C, H, W)`` float32 in ``[0, 1]`` (channels-first, PyTorch
+    convention) when ``dtype_map`` is not set.
+
+    Examples
+    --------
+    Image classification loader:
+
+    >>> loader = to_torch_dataloader(
+    ...     docs,
+    ...     raw_tensor_feature=True,
+    ...     label_field="source_type",
+    ...     label_map={"image": 0, "research": 1},
+    ...     batch_size=16,
+    ... )
+    >>> for batch in loader:
+    ...     imgs = batch["raw_tensor"]  # (16, C, H, W) float32
+    ...     labels = batch["label"]  # (16,) int64
+    """
+    try:
+        import torch  # noqa: PLC0415
+        from torch.utils.data import DataLoader, Dataset  # noqa: PLC0415
+    except ImportError:
+        import logging as _log  # noqa: PLC0415
+
+        _log.getLogger(__name__).warning(
+            "torch not installed; returning numpy arrays fallback. "
+            "Install with: pip install torch"
+        )
+        return to_numpy_arrays(
+            documents,
+            include_text=text_feature,
+            include_raw_tensor=raw_tensor_feature,
+            include_embedding=embedding_feature,
+        )
+
+    try:
+        import numpy as np  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError("to_torch_dataloader requires numpy") from exc
+
+    class CorpusDataset(Dataset):  # type: ignore[type-arg]
+        """In-memory PyTorch Dataset wrapping CorpusDocuments."""
+
+        def __init__(self, docs: list) -> None:
+            """Store the document list.
+
+            Parameters
+            ----------
+            docs : list[CorpusDocument]
+                Documents to wrap.
+            """
+            self.docs = docs
+
+        def __len__(self) -> int:
+            return len(self.docs)
+
+        def __getitem__(self, idx: int) -> dict[str, Any]:
+            doc = self.docs[idx]
+            item: dict[str, Any] = {}
+
+            if text_feature:
+                item["text"] = (
+                    getattr(doc, "normalized_text", None)
+                    or getattr(doc, "text", None)
+                    or ""
+                )
+
+            if raw_tensor_feature:
+                arr = getattr(doc, "raw_tensor", None)
+                if arr is None:
+                    raise ValueError(
+                        f"raw_tensor_feature=True but doc {idx} has raw_tensor=None."
+                    )
+                arr_np = np.array(arr)
+                # Convert HWC uint8 → CHW float32 [0,1] (PyTorch convention)
+                target_dtype = (dtype_map or {}).get("raw_tensor", torch.float32)
+                if arr_np.ndim == 3:  # (H, W, C)  # noqa: PLR2004
+                    t = torch.from_numpy(arr_np).permute(2, 0, 1)
+                else:
+                    t = torch.from_numpy(arr_np)
+                if target_dtype == torch.float32:
+                    t = t.float() / 255.0
+                else:
+                    t = t.to(target_dtype)
+                item["raw_tensor"] = t
+
+            if embedding_feature:
+                emb = getattr(doc, "embedding", None)
+                if emb is None:
+                    raise ValueError(
+                        f"embedding_feature=True but doc {idx} has embedding=None."
+                    )
+                item["embedding"] = torch.tensor(np.array(emb), dtype=torch.float32)
+
+            if label_field is not None:
+                raw_lbl = getattr(doc, label_field, None)
+                if label_map is not None:
+                    item["label"] = torch.tensor(
+                        label_map.get(str(raw_lbl), -1), dtype=torch.long
+                    )
+                else:
+                    item["label"] = str(raw_lbl)
+
+            return item
+
+    dataset = CorpusDataset(documents)
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        collate_fn=_torch_collate_fn,
+    )
+
+
+def _torch_collate_fn(batch: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Collate that handles mixed text/tensor batches.
+
+    String fields are collated as lists; tensor fields use the default
+    torch collation (stack along batch dimension).
+    """
+    result: dict[str, Any] = {}
+    if not batch:
+        return result
+    for key in batch[0]:
+        values = [item[key] for item in batch]
+        if isinstance(values[0], str):
+            result[key] = values  # keep as list of str
+        else:
+            try:
+                import torch  # noqa: PLC0415
+
+                result[key] = torch.stack(values)
+            except Exception:  # noqa: BLE001
+                result[key] = values
+    return result

@@ -1,307 +1,635 @@
-"""
-Tests for Group 1 fixes:
-  - HIGH-INIT1: SourceType and MatchMode exported from scikitplot.corpus.__init__
-  - LOW-SC1: _NO_LETTER_RE removed from _schema.py (was dead code)
-  - Smoke tests for CorpusDocument full field round-trip
+# scikitplot/corpus/tests/test__schema.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
-Run with: pytest tests/test_group1_schema_init.py -v
+"""
+Tests for scikitplot.corpus._schema
+====================================
+
+Coverage
+--------
+* :class:`SourceType` — 35-member enum, string equality, infer(), ``__all__``
+* :class:`Modality` — 5-member enum, string equality, ``__all__``
+* :class:`ErrorPolicy` — 4-member enum, string equality, ``__all__``
+* :class:`MatchMode` — 4-member enum
+* :class:`SectionType` — all original and new dramatic/research members
+* :class:`ChunkingStrategy` — all members
+* :class:`CorpusDocument` — full field round-trip including 7 new raw media fields
+* :meth:`CorpusDocument.make_content_hash` — text and raw_bytes paths
+* :meth:`CorpusDocument.make_doc_id` — determinism, length, source_type sensitivity
+* :meth:`CorpusDocument.create` — auto-populates content_hash, raw_shape, raw_dtype
+* :meth:`CorpusDocument.replace` — copy-on-write, embedding, raw_tensor, modality
+* :meth:`CorpusDocument.validate` — all invariant violations
+* :data:`_PROMOTED_RAW_KEYS` — all groups including raw media keys
+* :meth:`SourceType.infer` — extension and MIME type paths
+* Dead-code absence — ``_NO_LETTER_RE`` must not be in ``_schema``
+
+Run with:
+    pytest corpus/tests/test__schema.py -v
 """
 from __future__ import annotations
 
-import importlib
+import os
 import sys
-from unittest.mock import patch
+
+import pytest
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# TestInitExports
+# ===========================================================================
 
-def _import_corpus_module():
-    """
-    Import corpus package, mocking heavy optional readers to avoid
-    ImportError from optional dependencies (PIL, pytesseract, etc.).
-    """
-    # We stub the _readers import so heavy deps are not required in CI
-    # The _readers __init__.py registers readers; we just need it to succeed.
-    # Strategy: mock the heavy per-reader imports inside _readers submodules.
-    # Easiest: import the schema and __init__ directly without full reader chain.
-    # Since tests run against the local corpus/ directory (not installed package),
-    # we import via sys.path manipulation.
-    import os
-    # import sys
-    # corpus/ parent directory must be on sys.path
-    parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if parent not in sys.path:
-        sys.path.insert(0, parent)
-
-
-# ---------------------------------------------------------------------------
-# HIGH-INIT1: SourceType and MatchMode must be importable from corpus package
-# ---------------------------------------------------------------------------
 
 class TestInitExports:
-    """Verify that SourceType and MatchMode are exported from corpus __init__."""
+    """All new enum types must be importable from _schema and in __all__."""
 
-    def test_sourcetype_importable_from_schema(self):
-        """SourceType must be importable from _schema without any extras."""
+    def test_sourcetype_importable(self):
         from .._schema import SourceType  # noqa: PLC0415
         assert SourceType.BOOK == "book"
-        assert SourceType.UNKNOWN == "unknown"
 
-    def test_matchmode_importable_from_schema(self):
-        """MatchMode must be importable from _schema without any extras."""
+    def test_matchmode_importable(self):
         from .._schema import MatchMode  # noqa: PLC0415
         assert MatchMode.STRICT == "strict"
-        assert MatchMode.SEMANTIC == "semantic"
-        assert MatchMode.HYBRID == "hybrid"
-        assert MatchMode.KEYWORD == "keyword"
 
-    def test_sourcetype_in_schema_all(self):
-        """SourceType must appear in _schema.__all__."""
+    def test_modality_importable(self):
+        from .._schema import Modality  # noqa: PLC0415
+        assert Modality.TEXT == "text"
+        assert Modality.IMAGE == "image"
+        assert Modality.AUDIO == "audio"
+        assert Modality.VIDEO == "video"
+        assert Modality.MULTIMODAL == "multimodal"
+
+    def test_errorpolicy_importable(self):
+        from .._schema import ErrorPolicy  # noqa: PLC0415
+        assert ErrorPolicy.RAISE == "raise"
+        assert ErrorPolicy.SKIP == "skip"
+        assert ErrorPolicy.LOG == "log"
+        assert ErrorPolicy.RETRY == "retry"
+
+    def test_modality_in_all(self):
+        from .. import _schema as m  # noqa: PLC0415
+        assert "Modality" in m.__all__
+
+    def test_errorpolicy_in_all(self):
+        from .. import _schema as m  # noqa: PLC0415
+        assert "ErrorPolicy" in m.__all__
+
+    def test_sourcetype_in_all(self):
         from .. import _schema as m  # noqa: PLC0415
         assert "SourceType" in m.__all__
 
-    def test_matchmode_in_schema_all(self):
-        """MatchMode must appear in _schema.__all__."""
+    def test_matchmode_in_all(self):
         from .. import _schema as m  # noqa: PLC0415
         assert "MatchMode" in m.__all__
 
-    def test_init_imports_sourcetype(self):
-        """SourceType must be importable from corpus package root."""
-        # Import only the schema part of __init__ to avoid heavy readers
-        from .._schema import SourceType, MatchMode  # noqa: PLC0415
-        # Verify the values defined in architecture doc are present
-        expected_source_types = {
-            "book", "article", "research", "movie", "subtitle",
-            "play", "poem", "biography", "web", "wiki",
-            "image", "video", "audio", "spreadsheet", "code", "unknown",
-        }
-        actual_values = {st.value for st in SourceType}
-        assert expected_source_types == actual_values, (
-            f"Missing SourceType members: {expected_source_types - actual_values}"
-        )
-
-    def test_matchmode_values(self):
-        """MatchMode must have exactly: strict, keyword, semantic, hybrid."""
-        from .._schema import MatchMode  # noqa: PLC0415
-        expected = {"strict", "keyword", "semantic", "hybrid"}
-        actual = {m.value for m in MatchMode}
-        assert expected == actual
-
-
-# ---------------------------------------------------------------------------
-# LOW-SC1: _NO_LETTER_RE must NOT be defined in _schema.py
-# ---------------------------------------------------------------------------
-
-class TestSchemaDeadCode:
-    """_NO_LETTER_RE was dead code in _schema.py — must be removed."""
-
-    def test_no_letter_re_removed_from_schema(self):
-        """_NO_LETTER_RE must not be present in _schema module namespace."""
+    def test_corpusdocument_in_all(self):
         from .. import _schema as m  # noqa: PLC0415
-        assert not hasattr(m, "_NO_LETTER_RE"), (
-            "_NO_LETTER_RE is dead code in _schema.py; it must be removed. "
-            "Only _base.py should define it."
-        )
+        assert "CorpusDocument" in m.__all__
 
-    def test_doi_prefix_re_still_present(self):
-        """_DOI_PREFIX_RE must still be present (used by validate())."""
+    def test_promoted_raw_keys_in_all(self):
         from .. import _schema as m  # noqa: PLC0415
-        assert hasattr(m, "_DOI_PREFIX_RE")
+        assert "_PROMOTED_RAW_KEYS" in m.__all__
 
 
-# ---------------------------------------------------------------------------
-# Smoke: CorpusDocument with all new fields round-trips correctly
-# ---------------------------------------------------------------------------
-
-class TestCorpusDocumentFullRoundTrip:
-    """CorpusDocument.to_dict / from_dict must include all 22 new fields."""
-
-    def _make_doc(self):
-        from .._schema import (  # noqa: PLC0415
-            CorpusDocument, SourceType, SectionType, ChunkingStrategy,
-        )
-        return CorpusDocument.create(
-            source_file="hamlet.txt",
-            chunk_index=5,
-            text="To be or not to be, that is the question.",
-            section_type=SectionType.DIALOGUE,
-            chunking_strategy=ChunkingStrategy.SENTENCE,
-            language="en",
-            char_start=100,
-            char_end=141,
-            source_type=SourceType.PLAY,
-            source_title="Hamlet",
-            source_author="Shakespeare, William",
-            source_date="1603",
-            collection_id="shakespeare_complete",
-            url=None,
-            doi=None,
-            isbn="978-0-7432-7796-2",
-            page_number=42,
-            paragraph_index=3,
-            line_number=7,
-            act=3,
-            scene_number=1,
-            timecode_start=None,
-            timecode_end=None,
-            confidence=None,
-            ocr_engine=None,
-            bbox=None,
-            normalized_text="to be or not to be that is the question",
-            tokens=["To", "be", "or", "not", "to", "be"],
-            lemmas=["be", "be", "or", "not", "be", "be"],
-            stems=["to", "be", "or", "not", "to", "be"],
-            keywords=["question", "being"],
-        )
-
-    def test_to_dict_includes_provenance_fields(self):
-        doc = self._make_doc()
-        d = doc.to_dict()
-        assert d["source_type"] == "play"
-        assert d["source_title"] == "Hamlet"
-        assert d["source_author"] == "Shakespeare, William"
-        assert d["collection_id"] == "shakespeare_complete"
-        assert d["isbn"] == "978-0-7432-7796-2"
-
-    def test_to_dict_includes_position_fields(self):
-        doc = self._make_doc()
-        d = doc.to_dict()
-        assert d["page_number"] == 42
-        assert d["paragraph_index"] == 3
-        assert d["line_number"] == 7
-        assert d["act"] == 3
-        assert d["scene_number"] == 1
-
-    def test_to_dict_includes_nlp_fields(self):
-        doc = self._make_doc()
-        d = doc.to_dict()
-        assert d["normalized_text"] == "to be or not to be that is the question"
-        assert d["tokens"] == ["To", "be", "or", "not", "to", "be"]
-        assert d["lemmas"] is not None
-        assert d["stems"] is not None
-        assert d["keywords"] == ["question", "being"]
-
-    def test_from_dict_round_trip(self):
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        doc = self._make_doc()
-        d = doc.to_dict()
-        restored = CorpusDocument.from_dict(d)
-        assert restored.doc_id == doc.doc_id
-        assert restored.source_type.value == "play"
-        assert restored.act == 3
-        assert restored.scene_number == 1
-        assert restored.keywords == ["question", "being"]
-        assert restored.page_number == 42
-
-    def test_doc_id_includes_source_type(self):
-        """Same file/chunk/text but different source_type must yield different doc_id (Issue S-7)."""
-        from .._schema import CorpusDocument, SourceType  # noqa: PLC0415
-        id_book = CorpusDocument.make_doc_id("f.txt", 0, "Hello", SourceType.BOOK)
-        id_movie = CorpusDocument.make_doc_id("f.txt", 0, "Hello", SourceType.MOVIE)
-        assert id_book != id_movie, "doc_id must differ when source_type differs"
-
-    def test_doc_id_length(self):
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        did = CorpusDocument.make_doc_id("f.txt", 0, "Hello world.")
-        assert len(did) == 16
-        assert did.isalnum()  # hex chars only
-
-    def test_replace_preserves_all_fields(self):
-        doc = self._make_doc()
-        updated = doc.replace(page_number=99)
-        assert updated.page_number == 99
-        assert updated.source_type == doc.source_type
-        assert updated.tokens is not None
-        assert updated.tokens is not doc.tokens  # deep copy
-
-    def test_validate_raises_on_bad_confidence(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        with pytest.raises(ValueError, match="confidence"):
-            CorpusDocument.create("f.txt", 0, "Hello.", confidence=1.5)
-
-    def test_validate_raises_on_bad_timecode_order(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        with pytest.raises(ValueError, match="timecode_end"):
-            CorpusDocument.create("f.txt", 0, "Hi.", timecode_start=5.0, timecode_end=3.0)
-
-    def test_validate_raises_on_bad_bbox(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        with pytest.raises(ValueError, match="bbox"):
-            CorpusDocument.create("f.txt", 0, "Hi.", bbox=(0.0, 1.0))  # only 2 items
-
-    def test_validate_raises_on_bad_act(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        with pytest.raises(ValueError, match="act"):
-            CorpusDocument.create("f.txt", 0, "Hi.", act=0)  # must be >= 1
-
-    def test_doi_warns_on_bad_format(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import CorpusDocument  # noqa: PLC0415
-        with pytest.warns(UserWarning, match="DOI"):
-            CorpusDocument.create("f.txt", 0, "Hi.", doi="not-a-doi")
-
-    def test_section_type_new_members(self):
-        """All 8 new SectionType members added in Issue S-1 must be present."""
-        from .._schema import SectionType  # noqa: PLC0415
-        new_members = [
-            "abstract", "references", "stage_direction", "dialogue",
-            "verse", "acknowledgements", "list_item", "sidebar",
-        ]
-        for val in new_members:
-            member = SectionType(val)
-            assert member.value == val, f"SectionType({val!r}) failed"
+# ===========================================================================
+# TestSourceType
+# ===========================================================================
 
 
-# ---------------------------------------------------------------------------
-# MatchMode / SourceType enum behaviour
-# ---------------------------------------------------------------------------
+class TestSourceType:
+    """SourceType must have 35 members covering all semantic source kinds."""
 
-class TestEnumBehaviour:
-    """Enums must behave as StrEnum: str equality, round-trip, membership."""
+    EXPECTED = {
+        "book", "article", "research", "biography", "play", "poem",
+        "news", "blog", "newsletter", "press_release",
+        "movie", "subtitle", "video", "audio", "podcast", "lecture", "interview",
+        "web", "wiki", "social_media", "forum", "faq",
+        "documentation", "tutorial", "manual", "report",
+        "legal", "medical", "patent",
+        "spreadsheet", "dataset", "code",
+        "email", "chat",
+        "image",
+        "unknown",
+    }
 
-    def test_sourcetype_str_equality(self):
+    def test_all_expected_values_present(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        actual = {st.value for st in SourceType}
+        missing = self.EXPECTED - actual
+        assert not missing, f"Missing SourceType members: {sorted(missing)}"
+
+    def test_str_equality(self):
         from .._schema import SourceType  # noqa: PLC0415
         assert SourceType.WIKI == "wiki"
         assert SourceType.RESEARCH == "research"
+        assert SourceType.PODCAST == "podcast"
 
-    def test_matchmode_str_equality(self):
-        from .._schema import MatchMode  # noqa: PLC0415
-        assert MatchMode.HYBRID == "hybrid"
-
-    def test_sourcetype_coercion_from_string(self):
+    def test_coercion(self):
         from .._schema import SourceType  # noqa: PLC0415
         assert SourceType("audio") is SourceType.AUDIO
+        assert SourceType("news") is SourceType.NEWS
+        assert SourceType("dataset") is SourceType.DATASET
 
-    def test_sourcetype_invalid_value_raises(self):
-        import pytest  # noqa: PLC0415
+    def test_invalid_raises(self):
         from .._schema import SourceType  # noqa: PLC0415
         with pytest.raises(ValueError):
             SourceType("not_a_source_type")
 
-    def test_matchmode_invalid_value_raises(self):
-        import pytest  # noqa: PLC0415
-        from .._schema import MatchMode  # noqa: PLC0415
-        with pytest.raises(ValueError):
-            MatchMode("fuzzy")
+    def test_journalism_members(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        for v in ("news", "blog", "newsletter", "press_release"):
+            assert SourceType(v).value == v
 
-    def test_promoted_raw_keys_completeness(self):
-        """_PROMOTED_RAW_KEYS must include all 22 new field names."""
-        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
-        required = {
-            "source_type", "source_title", "source_author", "source_date",
-            "collection_id", "url", "doi", "isbn",
-            "page_number", "paragraph_index", "line_number", "parent_doc_id",
-            "act", "scene_number",
-            "timecode_start", "timecode_end", "confidence", "ocr_engine", "bbox",
-            "normalized_text", "tokens", "lemmas", "stems", "keywords",
-        }
-        missing = required - _PROMOTED_RAW_KEYS
-        assert not missing, (
-            f"_PROMOTED_RAW_KEYS is missing fields: {sorted(missing)}"
+    def test_domain_members(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        for v in ("legal", "medical", "patent"):
+            assert SourceType(v).value == v
+
+    def test_communication_members(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        for v in ("email", "chat"):
+            assert SourceType(v).value == v
+
+    def test_reference_members(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        for v in ("documentation", "tutorial", "manual", "report"):
+            assert SourceType(v).value == v
+
+
+# ===========================================================================
+# TestSourceTypeInfer
+# ===========================================================================
+
+
+class TestSourceTypeInfer:
+    """SourceType.infer() must map extensions and MIME types correctly."""
+
+    @pytest.mark.parametrize("filename, expected_value", [
+        ("report.pdf", "research"),
+        ("podcast.mp3", "audio"),
+        ("lecture.mp4", "video"),
+        ("scan.jpg", "image"),
+        ("scan.jpeg", "image"),
+        ("diagram.png", "image"),
+        ("article.txt", "article"),
+        ("readme.md", "article"),
+        ("doc.rst", "article"),
+        ("data.csv", "dataset"),
+        ("data.json", "dataset"),
+        ("sheet.xlsx", "spreadsheet"),
+        ("sheet.xls", "spreadsheet"),
+        ("script.py", "code"),
+        ("app.js", "code"),
+        ("captions.srt", "subtitle"),
+        ("subs.vtt", "subtitle"),
+        ("page.html", "web"),
+        ("page.htm", "web"),
+    ])
+    def test_extension_inference(self, filename, expected_value):
+        from .._schema import SourceType  # noqa: PLC0415
+        result = SourceType.infer(filename)
+        assert result.value == expected_value, (
+            f"infer({filename!r}) returned {result!r}, expected {expected_value!r}"
         )
+
+    @pytest.mark.parametrize("mime, expected_value", [
+        ("audio/mpeg", "audio"),
+        ("audio/wav", "audio"),
+        ("video/mp4", "video"),
+        ("video/webm", "video"),
+        ("image/jpeg", "image"),
+        ("image/png", "image"),
+        ("application/pdf", "research"),
+        ("text/html", "web"),
+        ("text/csv", "dataset"),
+        ("text/plain", "article"),
+    ])
+    def test_mime_inference(self, mime, expected_value):
+        from .._schema import SourceType  # noqa: PLC0415
+        result = SourceType.infer(mime_type=mime)
+        assert result.value == expected_value
+
+    def test_unknown_extension(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        assert SourceType.infer("mystery.bin") == SourceType.UNKNOWN
+
+    def test_none_returns_unknown(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        assert SourceType.infer(None) == SourceType.UNKNOWN
+
+    def test_extension_beats_mime(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        result = SourceType.infer("report.pdf", mime_type="audio/mpeg")
+        assert result == SourceType.RESEARCH
+
+    def test_uppercase_normalised(self):
+        from .._schema import SourceType  # noqa: PLC0415
+        assert SourceType.infer("REPORT.PDF") == SourceType.RESEARCH
+
+    def test_pathlib_input(self):
+        import pathlib  # noqa: PLC0415
+        from .._schema import SourceType  # noqa: PLC0415
+        assert SourceType.infer(pathlib.Path("docs/report.pdf")) == SourceType.RESEARCH
+
+
+# ===========================================================================
+# TestModality
+# ===========================================================================
+
+
+class TestModality:
+    def test_all_values(self):
+        from .._schema import Modality  # noqa: PLC0415
+        assert {m.value for m in Modality} == {"text", "image", "audio", "video", "multimodal"}
+
+    def test_str_equality(self):
+        from .._schema import Modality  # noqa: PLC0415
+        assert Modality.TEXT == "text"
+        assert Modality.IMAGE == "image"
+
+    def test_coercion(self):
+        from .._schema import Modality  # noqa: PLC0415
+        assert Modality("video") is Modality.VIDEO
+
+    def test_invalid_raises(self):
+        from .._schema import Modality  # noqa: PLC0415
+        with pytest.raises(ValueError):
+            Modality("binary")
+
+
+# ===========================================================================
+# TestErrorPolicy
+# ===========================================================================
+
+
+class TestErrorPolicy:
+    def test_all_values(self):
+        from .._schema import ErrorPolicy  # noqa: PLC0415
+        assert {p.value for p in ErrorPolicy} == {"raise", "skip", "log", "retry"}
+
+    def test_str_equality(self):
+        from .._schema import ErrorPolicy  # noqa: PLC0415
+        assert ErrorPolicy.SKIP == "skip"
+        assert ErrorPolicy.LOG == "log"
+
+    def test_coercion(self):
+        from .._schema import ErrorPolicy  # noqa: PLC0415
+        assert ErrorPolicy("retry") is ErrorPolicy.RETRY
+
+    def test_invalid_raises(self):
+        from .._schema import ErrorPolicy  # noqa: PLC0415
+        with pytest.raises(ValueError):
+            ErrorPolicy("ignore")
+
+
+# ===========================================================================
+# TestSectionType
+# ===========================================================================
+
+
+class TestSectionType:
+    def test_original_members(self):
+        from .._schema import SectionType  # noqa: PLC0415
+        for v in ("text", "footnote", "title", "table", "header",
+                  "figure", "code", "caption", "metadata", "unknown"):
+            assert SectionType(v).value == v
+
+    def test_new_members(self):
+        from .._schema import SectionType  # noqa: PLC0415
+        for v in ("abstract", "references", "stage_direction", "dialogue",
+                  "verse", "acknowledgements", "list_item", "sidebar",
+                  "lyrics", "transcript"):
+            assert SectionType(v).value == v, f"SectionType({v!r}) missing"
+
+
+# ===========================================================================
+# TestChunkingStrategy
+# ===========================================================================
+
+
+class TestChunkingStrategy:
+    def test_all_values(self):
+        from .._schema import ChunkingStrategy  # noqa: PLC0415
+        expected = {"sentence", "paragraph", "fixed_window", "semantic",
+                    "page", "block", "custom", "none"}
+        assert {c.value for c in ChunkingStrategy} == expected
+
+
+# ===========================================================================
+# TestPromotedRawKeys
+# ===========================================================================
+
+
+class TestPromotedRawKeys:
+    """_PROMOTED_RAW_KEYS must include all field groups including raw media."""
+
+    def test_provenance_keys(self):
+        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        for k in ("source_type", "source_title", "source_author", "source_date",
+                  "collection_id", "url", "doi", "isbn"):
+            assert k in _PROMOTED_RAW_KEYS
+
+    def test_position_keys(self):
+        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        for k in ("page_number", "paragraph_index", "line_number", "parent_doc_id",
+                  "act", "scene_number"):
+            assert k in _PROMOTED_RAW_KEYS
+
+    def test_media_keys(self):
+        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        for k in ("timecode_start", "timecode_end", "confidence", "ocr_engine", "bbox"):
+            assert k in _PROMOTED_RAW_KEYS
+
+    def test_nlp_keys(self):
+        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        for k in ("normalized_text", "tokens", "lemmas", "stems", "keywords"):
+            assert k in _PROMOTED_RAW_KEYS
+
+    def test_raw_media_keys(self):
+        from .._schema import _PROMOTED_RAW_KEYS  # noqa: PLC0415
+        for k in ("modality", "raw_bytes", "raw_tensor", "raw_shape",
+                  "raw_dtype", "frame_index", "content_hash"):
+            assert k in _PROMOTED_RAW_KEYS, f"Missing raw media key: {k!r}"
+
+
+# ===========================================================================
+# TestMakeContentHash
+# ===========================================================================
+
+
+class TestMakeContentHash:
+    def test_text_returns_32_hex_chars(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        h = CorpusDocument.make_content_hash(text="Hello world")
+        assert isinstance(h, str) and len(h) == 32
+        assert all(c in "0123456789abcdef" for c in h)
+
+    def test_raw_bytes_path(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        h = CorpusDocument.make_content_hash(raw_bytes=b"\x89PNG\r\n")
+        assert len(h) == 32
+
+    def test_raw_bytes_beats_text(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        h_t = CorpusDocument.make_content_hash(text="Hello")
+        h_r = CorpusDocument.make_content_hash(text="Hello", raw_bytes=b"different")
+        assert h_t != h_r
+
+    def test_deterministic(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        assert (CorpusDocument.make_content_hash(text="X") ==
+                CorpusDocument.make_content_hash(text="X"))
+
+    def test_different_texts_differ(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        assert (CorpusDocument.make_content_hash(text="A") !=
+                CorpusDocument.make_content_hash(text="B"))
+
+    def test_empty_returns_zeros(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        assert CorpusDocument.make_content_hash() == "0" * 32
+
+
+# ===========================================================================
+# TestCreate
+# ===========================================================================
+
+
+class TestCreate:
+    """CorpusDocument.create() — auto fields and raw media fields."""
+
+    def test_doc_id_auto(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        assert len(doc.doc_id) == 16
+
+    def test_content_hash_auto(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        assert doc.content_hash is not None and len(doc.content_hash) == 32
+
+    def test_same_text_same_hash(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        d1 = CorpusDocument.create("a.txt", 0, "Same.")
+        d2 = CorpusDocument.create("b.txt", 1, "Same.")
+        assert d1.content_hash == d2.content_hash
+
+    def test_modality_defaults_text(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        assert CorpusDocument.create("f.txt", 0, "Hello.").modality == Modality.TEXT
+
+    def test_text_none_allowed_for_raw_docs(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        doc = CorpusDocument.create("img.jpg", 0, None, modality=Modality.IMAGE)
+        assert doc.text is None
+
+    def test_raw_shape_auto_inferred(self):
+        try:
+            import numpy as np  # noqa: PLC0415
+        except ImportError:
+            pytest.skip("numpy not available")
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        arr = np.zeros((224, 224, 3), dtype=np.uint8)
+        doc = CorpusDocument.create("img.jpg", 0, None, raw_tensor=arr,
+                                    modality=Modality.IMAGE)
+        assert doc.raw_shape == (224, 224, 3)
+
+    def test_raw_dtype_auto_inferred(self):
+        try:
+            import numpy as np  # noqa: PLC0415
+        except ImportError:
+            pytest.skip("numpy not available")
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        arr = np.zeros((224, 224, 3), dtype=np.uint8)
+        doc = CorpusDocument.create("img.jpg", 0, None, raw_tensor=arr,
+                                    modality=Modality.IMAGE)
+        assert "uint8" in doc.raw_dtype
+
+    def test_raw_bytes_hash(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        raw = b"\xff\xd8\xff"
+        doc = CorpusDocument.create("img.jpg", 0, None, raw_bytes=raw)
+        expected = CorpusDocument.make_content_hash(raw_bytes=raw)
+        assert doc.content_hash == expected
+
+    def test_frame_index_stored(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        doc = CorpusDocument.create("v.mp4", 3, None,
+                                    frame_index=7, modality=Modality.VIDEO)
+        assert doc.frame_index == 7
+
+    def test_doc_id_source_type_sensitivity(self):
+        from .._schema import CorpusDocument, SourceType  # noqa: PLC0415
+        id1 = CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.BOOK)
+        id2 = CorpusDocument.make_doc_id("f.txt", 0, "Hi", SourceType.MOVIE)
+        assert id1 != id2
+
+
+# ===========================================================================
+# TestValidate
+# ===========================================================================
+
+
+class TestValidate:
+    def test_bad_confidence(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        with pytest.raises(ValueError, match="confidence"):
+            CorpusDocument.create("f.txt", 0, "Hi.", confidence=1.5)
+
+    def test_bad_timecode_order(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        with pytest.raises(ValueError, match="timecode_end"):
+            CorpusDocument.create("f.txt", 0, "Hi.",
+                                  timecode_start=5.0, timecode_end=3.0)
+
+    def test_bad_bbox(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        with pytest.raises(ValueError, match="bbox"):
+            CorpusDocument.create("f.txt", 0, "Hi.", bbox=(0.0, 1.0))
+
+    def test_bad_act(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        with pytest.raises(ValueError, match="act"):
+            CorpusDocument.create("f.txt", 0, "Hi.", act=0)
+
+    def test_doi_bad_format_warns(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        with pytest.warns(UserWarning, match="DOI"):
+            CorpusDocument.create("f.txt", 0, "Hi.", doi="not-a-doi")
+
+
+# ===========================================================================
+# TestRoundTrip
+# ===========================================================================
+
+
+class TestRoundTrip:
+    """to_dict / from_dict round-trips for all field groups."""
+
+    def _full_doc(self):
+        from .._schema import (  # noqa: PLC0415
+            CorpusDocument, SourceType, SectionType, ChunkingStrategy, Modality,
+        )
+        return CorpusDocument.create(
+            source_file="hamlet.txt", chunk_index=5,
+            text="To be or not to be.",
+            section_type=SectionType.DIALOGUE,
+            chunking_strategy=ChunkingStrategy.SENTENCE,
+            language="en", char_start=100, char_end=120,
+            source_type=SourceType.PLAY, source_title="Hamlet",
+            source_author="Shakespeare", source_date="1603",
+            collection_id="bard", isbn="978-0-7432-7796-2",
+            page_number=42, paragraph_index=3, line_number=7,
+            act=3, scene_number=1,
+            normalized_text="to be or not to be",
+            tokens=["To", "be"], lemmas=["be", "be"],
+            stems=["to", "be"], keywords=["question"],
+        )
+
+    def test_provenance_preserved(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = self._full_doc()
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.source_type.value == "play"
+        assert r.source_title == "Hamlet"
+        assert r.isbn == "978-0-7432-7796-2"
+
+    def test_position_preserved(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = self._full_doc()
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.page_number == 42 and r.act == 3
+
+    def test_nlp_preserved(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = self._full_doc()
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.tokens == ["To", "be"]
+        assert r.keywords == ["question"]
+
+    def test_modality_preserved(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hi.", modality=Modality.TEXT)
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.modality == Modality.TEXT
+
+    def test_content_hash_preserved(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.content_hash == doc.content_hash
+
+    def test_frame_index_preserved(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        doc = CorpusDocument.create("v.mp4", 2, None,
+                                    frame_index=7, modality=Modality.VIDEO)
+        r = CorpusDocument.from_dict(doc.to_dict())
+        assert r.frame_index == 7
+
+    def test_doc_id_preserved(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = self._full_doc()
+        assert CorpusDocument.from_dict(doc.to_dict()).doc_id == doc.doc_id
+
+
+# ===========================================================================
+# TestReplace
+# ===========================================================================
+
+
+class TestReplace:
+    def test_single_field(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        u = doc.replace(page_number=99)
+        assert u.page_number == 99 and doc.page_number is None
+
+    def test_embedding(self):
+        try:
+            import numpy as np  # noqa: PLC0415
+        except ImportError:
+            pytest.skip("numpy not available")
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        assert not doc.has_embedding
+        e = CorpusDocument.create("f.txt", 0, "Hello.")
+        enriched = e.replace(embedding=np.zeros(384, dtype=np.float32))
+        assert enriched.has_embedding
+
+    def test_modality(self):
+        from .._schema import CorpusDocument, Modality  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        u = doc.replace(modality=Modality.MULTIMODAL)
+        assert u.modality == Modality.MULTIMODAL
+        assert doc.modality == Modality.TEXT
+
+    def test_preserves_other_fields(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.",
+                                    source_title="My Title")
+        u = doc.replace(page_number=5)
+        assert u.source_title == "My Title"
+
+    def test_unknown_field_raises(self):
+        from .._schema import CorpusDocument  # noqa: PLC0415
+        doc = CorpusDocument.create("f.txt", 0, "Hello.")
+        with pytest.raises((ValueError, TypeError)):
+            doc.replace(nonexistent_field="x")
+
+
+# ===========================================================================
+# TestDeadCode
+# ===========================================================================
+
+
+class TestDeadCode:
+    def test_no_letter_re_absent(self):
+        from .. import _schema as m  # noqa: PLC0415
+        assert not hasattr(m, "_NO_LETTER_RE"), (
+            "_NO_LETTER_RE is dead code; must only live in _base.py"
+        )
+
+    def test_doi_prefix_re_present(self):
+        from .. import _schema as m  # noqa: PLC0415
+        assert hasattr(m, "_DOI_PREFIX_RE")

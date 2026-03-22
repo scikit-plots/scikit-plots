@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/_video.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers._video
 =================================
@@ -60,12 +67,36 @@ logger = logging.getLogger(__name__)
 
 
 def _load_faster():
+    """Lazily import faster_whisper and return the WhisperModel class.
+
+    Returns
+    -------
+    type
+        The ``faster_whisper.WhisperModel`` class.
+
+    Raises
+    ------
+    ImportError
+        If ``faster_whisper`` is not installed.
+    """
     from faster_whisper import WhisperModel  # noqa: PLC0415
 
     return WhisperModel
 
 
 def _load_openai():
+    """Lazily import openai-whisper and return the module.
+
+    Returns
+    -------
+    module
+        The ``whisper`` module (openai-whisper).
+
+    Raises
+    ------
+    ImportError
+        If ``openai-whisper`` is not installed.
+    """
     import whisper  # noqa: PLC0415
 
     return whisper
@@ -541,7 +572,29 @@ class VideoReader(DocumentReader):
     max_file_bytes: int = field(default=10 * 1024 * 1024 * 1024)
     """Maximum video file size. Default: 10 GB."""
 
-    def __post_init__(self) -> None:  # noqa: D105
+    yield_frames: bool = field(default=False)
+    """Include decoded video frames as raw tensors in output chunks.
+
+    When ``True``, the reader extracts raw pixel data from video frames
+    (requires ``opencv-python`` or equivalent) and sets ``modality`` to
+    ``"video"`` (or ``"multimodal"`` when subtitle/transcript text is also
+    present).  When ``False`` (default), only text is yielded and
+    ``modality`` is ``"text"``.
+
+    .. note::
+        Frame extraction is compute-intensive.  Use ``yield_frames=True``
+        only when the downstream model requires visual input alongside the
+        transcript.  For text-only pipelines, leave this at ``False``.
+    """
+
+    def __post_init__(self) -> None:
+        """Validate VideoReader fields and resolve subtitle/transcription strategy.
+
+        Raises
+        ------
+        ValueError
+            If ``whisper_model`` is not a recognised Whisper model size.
+        """
         super().__post_init__()
         if self.whisper_model not in self._VALID_WHISPER_MODELS:
             raise ValueError(

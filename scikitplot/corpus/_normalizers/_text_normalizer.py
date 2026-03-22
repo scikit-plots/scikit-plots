@@ -79,9 +79,17 @@ class NormalizerConfig:
         If the normalised text is shorter than this (in chars),
         set ``normalized_text = None`` so the embedding engine
         falls back to raw ``text``.
-    custom_pipeline : list[Callable[[str], str]]
+    custom_pipeline : tuple of Callable[[str], str]
         Additional user-supplied ``str → str`` transforms applied
         **after** all built-in steps.  Order is preserved.
+    steps : list of str or None, optional
+        Ordered list of step names to apply.  ``None`` (default)
+        derives the list automatically from the boolean flags above.
+        Pass an explicit list to run only a named subset, e.g.
+        ``steps=["unicode", "whitespace"]``.  Valid names:
+        ``"unicode"``, ``"ligatures"``, ``"control_chars"``,
+        ``"hyphenation"``, ``"whitespace"``, ``"lowercase"``,
+        ``"custom"``.  Used by :meth:`TextNormalizer.normalize`.
 
     Notes
     -----
@@ -89,6 +97,11 @@ class NormalizerConfig:
     English-language PDF and OCR sources.  For CJK text, set
     ``fix_hyphenation=False`` (CJK does not hyphenate) and
     ``unicode_form="NFKC"`` (normalises full-width characters).
+
+    **Developer note:** ``steps`` is excluded from ``__hash__`` and
+    ``__eq__`` so that two configs with identical boolean flags but
+    different ``steps`` lists are treated as equal for caching.  If you
+    need strict equality on ``steps``, compare the lists explicitly.
     """
 
     unicode_form: str = "NFKC"
@@ -99,6 +112,33 @@ class NormalizerConfig:
     lowercase: bool = False
     min_length: int = 1
     custom_pipeline: tuple[Callable[[str], str], ...] = field(default_factory=tuple)
+    steps: list[str] | None = field(default=None, hash=False, compare=False)
+    """Ordered list of normalisation step names to apply.
+
+    When ``None`` (default), the list is derived automatically from the
+    boolean flags above in pipeline order:
+    ``"unicode"``, ``"ligatures"``, ``"control_chars"``, ``"hyphenation"``,
+    ``"whitespace"``, ``"lowercase"``, ``"custom"``.
+    Pass an explicit list to run only a named subset, e.g.
+    ``steps=["unicode", "whitespace"]``.
+
+    Valid step names
+    ----------------
+    ``"unicode"``
+        Apply ``unicode_form`` normalisation.
+    ``"ligatures"``
+        Expand typographic ligatures (requires ``expand_ligatures=True``).
+    ``"control_chars"``
+        Strip Unicode control characters (requires ``strip_control_chars=True``).
+    ``"hyphenation"``
+        Re-join hyphenated line-breaks (requires ``fix_hyphenation=True``).
+    ``"whitespace"``
+        Collapse runs of whitespace (requires ``collapse_whitespace=True``).
+    ``"lowercase"``
+        Convert to lowercase (requires ``lowercase=True``).
+    ``"custom"``
+        Apply ``custom_pipeline`` callables.
+    """
 
     def __post_init__(self) -> None:
         valid_forms = ("NFC", "NFD", "NFKC", "NFKD", "")
@@ -108,6 +148,26 @@ class NormalizerConfig:
             )
         if self.min_length < 0:
             raise ValueError(f"min_length must be >= 0, got {self.min_length}")
+        # Derive the steps list from boolean flags when not explicitly supplied.
+        if self.steps is None:
+            derived: list[str] = []
+            if self.unicode_form:
+                derived.append("unicode")
+            if self.expand_ligatures:
+                derived.append("ligatures")
+            if self.strip_control_chars:
+                derived.append("control_chars")
+            if self.fix_hyphenation:
+                derived.append("hyphenation")
+            if self.collapse_whitespace:
+                derived.append("whitespace")
+            if self.lowercase:
+                derived.append("lowercase")
+            if self.custom_pipeline:
+                derived.append("custom")
+            # frozen=True blocks normal assignment; object.__setattr__ is the
+            # canonical workaround used throughout the Python dataclass ecosystem.
+            object.__setattr__(self, "steps", derived)
 
 
 # =====================================================================
@@ -279,6 +339,69 @@ class TextNormalizer:
         config: NormalizerConfig | None = None,
     ) -> None:
         self.config = config or NormalizerConfig()
+
+    def normalize(self, text: str) -> str:  # noqa: PLR0912
+        r"""Normalise a single string using only the steps in ``config.steps``.
+
+        Unlike :func:`normalize_text`, this method:
+
+        * Applies steps *selectively* — only those listed in
+          ``self.config.steps`` are executed, in that order.
+        * Returns ``""`` for empty input rather than ``None``.
+        * Never returns ``None`` — callers that need the min-length guard
+          should use :func:`normalize_text` directly.
+
+        Parameters
+        ----------
+        text : str
+            Raw text to normalise.
+
+        Returns
+        -------
+        str
+            Normalised text, or ``""`` if *text* is empty or becomes empty
+            after normalisation.
+
+        Examples
+        --------
+        >>> n = TextNormalizer(NormalizerConfig(steps=["unicode"]))
+        >>> "\\ufb01" not in n.normalize("fi\\ufb01rst")
+        True
+        >>> n2 = TextNormalizer(NormalizerConfig(steps=["whitespace"]))
+        >>> "   " not in n2.normalize("Hello   world")
+        True
+        >>> TextNormalizer(NormalizerConfig()).normalize("")
+        ''
+        """
+        if not text:
+            return ""
+        s = text
+        for step in self.config.steps or []:
+            if step == "unicode":
+                if self.config.unicode_form:
+                    s = unicodedata.normalize(self.config.unicode_form, s)
+            elif step == "ligatures":
+                if self.config.expand_ligatures:
+                    s = _LIGATURE_RE.sub(lambda m: _LIGATURE_MAP[m.group()], s)
+            elif step == "control_chars":
+                if self.config.strip_control_chars:
+                    s = _CONTROL_RE.sub("", s)
+            elif step == "hyphenation":
+                if self.config.fix_hyphenation:
+                    s = _HYPHEN_RE.sub(r"\1\2", s)
+            elif step == "whitespace":
+                if self.config.collapse_whitespace:
+                    s = _MULTI_NL_RE.sub("\n\n", s)
+                    s = _MULTI_WS_RE.sub(" ", s)
+                    s = "\n".join(line.strip() for line in s.split("\n"))
+                    s = s.strip()
+            elif step == "lowercase":
+                if self.config.lowercase:
+                    s = s.lower()
+            elif step == "custom":
+                for fn in self.config.custom_pipeline:
+                    s = fn(s)
+        return s
 
     def normalize_documents(
         self,

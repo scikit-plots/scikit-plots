@@ -167,6 +167,13 @@ class BuilderConfig:
         Kwargs for ``DefaultFilter``.
     max_workers : int
         Parallelism for multi-file ingestion.
+    probe_url_content_type : bool
+        When ``True`` (default), extensionless URLs are probed with an
+        HTTP HEAD request to infer the correct reader before downloading.
+        Disable to save a round-trip when all URLs have file extensions.
+    probe_url_timeout : int
+        HTTP timeout in seconds for :func:`~scikitplot.corpus._url_handler.probe_url_kind`
+        calls.  Default: 15.
 
     Notes
     -----
@@ -217,6 +224,16 @@ class BuilderConfig:
 
     download_timeout: int = 120
     """HTTP timeout for URL downloads in seconds. Default: 120."""
+
+    download_max_retries: int = 3
+    """Maximum retry attempts for transient HTTP errors (429, 500, 502,
+    503, 504) during URL downloads.  Set to ``0`` to disable retries.
+    Default: 3."""
+
+    download_retry_backoff: float = 1.0
+    """Base delay in seconds for exponential back-off between download
+    retries.  Actual wait = ``download_retry_backoff * 2 ** attempt``.
+    Default: 1.0."""
 
     max_archive_files: int = 10_000
     """Maximum file count inside a single archive. Default: 10,000."""
@@ -293,19 +310,38 @@ class BuildResult:
 
     @property
     def n_documents(self) -> int:
-        """Number of documents in the result."""
+        """Number of :class:`~scikitplot.corpus.CorpusDocument` instances in :attr:`documents`.
+
+        Returns
+        -------
+        int
+        """
         return len(self.documents)
 
     @property
     def success_rate(self) -> float:
-        """Fraction of sources processed without errors."""
+        """Fraction of ingested sources that completed without error.
+
+        Returns
+        -------
+        float
+            ``(n_sources - len(errors)) / n_sources`` in ``[0.0, 1.0]``.
+            Returns ``1.0`` when no sources were processed.
+        """
         total = self.n_sources
         if total == 0:
             return 1.0
         return (total - len(self.errors)) / total
 
     def summary(self) -> str:
-        """Return a human-readable summary."""
+        """Return a multi-line human-readable build summary.
+
+        Returns
+        -------
+        str
+            Multi-line string reporting sources, documents, normalisation,
+            enrichment, embedding counts, and any errors.
+        """
         lines = [
             "CorpusBuilder result:",
             f"  Sources:    {self.n_sources}",
@@ -390,6 +426,22 @@ class CorpusBuilder:
         self,
         config: BuilderConfig | None = None,
     ) -> None:
+        """Initialise the builder with a :class:`BuilderConfig`.
+
+        Parameters
+        ----------
+        config : BuilderConfig or None, optional
+            Configuration object controlling every stage of the pipeline.
+            When ``None``, defaults are used:
+            ``BuilderConfig(chunker="sentence", normalize=True)``.
+
+        Notes
+        -----
+        Heavy components (embedder, enricher, similarity index) are
+        **lazily initialised** — the first call to :meth:`build` loads
+        them.  Constructing a :class:`CorpusBuilder` is therefore fast
+        and does not import optional dependencies.
+        """
         self.config = config or BuilderConfig()
         self._result: BuildResult | None = None
 
@@ -400,6 +452,10 @@ class CorpusBuilder:
         self._embedding_engine: Any = None
         self._index: Any = None
 
+        # Accumulates omitted-chunk count during a single build() call.
+        # Reset to 0 at the start of each build() and read after ingestion.
+        self._n_filtered_current_build: int = 0
+
         # Temporary directory for downloaded/extracted files.
         # Created lazily on first use; cleaned up by close() or __exit__.
         self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
@@ -409,11 +465,26 @@ class CorpusBuilder:
     # ------------------------------------------------------------------
 
     def __enter__(self) -> Self:
-        """Enter the context manager."""
+        """Enter the context manager.
+
+        Enables ``with CorpusBuilder(config) as builder:`` pattern.
+        Resources are lazy-loaded on the first :meth:`build` call.
+
+        Returns
+        -------
+        CorpusBuilder
+        """
         return self
 
     def __exit__(self, *exc: object) -> None:
-        """Exit the context manager and clean up temp files."""
+        """Exit the context manager.
+
+        Notes
+        -----
+        Cleans up any temporary directories created during URL ingestion.
+        The internal ``_result`` and lazy-loaded components remain usable
+        after the ``with`` block.
+        """
         self.close()
 
     def close(self) -> None:
@@ -448,7 +519,7 @@ class CorpusBuilder:
     # Primary API: build
     # ==================================================================
 
-    def build(
+    def build(  # noqa: PLR0912
         self,
         sources: str | Path | Sequence[str | Path],
         *,
@@ -503,25 +574,71 @@ class CorpusBuilder:
         result = BuildResult(n_sources=len(expanded))
 
         # ① Ingest: source → reader → raw chunks → documents
+        # Reset per-build omitted counter before ingestion starts.
+        self._n_filtered_current_build = 0
         all_docs: list[Any] = []
-        for src in expanded:
-            try:
-                docs = self._ingest_source(
-                    src,
-                    source_title=title,
-                    source_author=author,
-                    collection_id=coll_id,
-                )
-                all_docs.extend(docs)
-            except Exception as exc:  # noqa: BLE001
-                logger.error("Failed to ingest %s: %s", src, exc)
-                result.errors.append((str(src), exc))
+
+        if cfg.max_workers > 1 and len(expanded) > 1:
+            # Parallel ingestion via ThreadPoolExecutor.
+            # IO-bound work (downloads, OCR, ASR) benefits from threads.
+            # self._n_filtered_current_build is protected by the GIL:
+            # reads/writes to a Python int are atomic at the bytecode level.
+            import concurrent.futures  # noqa: PLC0415
+
+            n_workers = min(cfg.max_workers, len(expanded))
+            logger.info(
+                "build(): parallel ingestion of %d sources with %d workers.",
+                len(expanded),
+                n_workers,
+            )
+
+            def _ingest_one(src: Any) -> tuple[Any, list[Any], Exception | None]:
+                try:
+                    docs = self._ingest_source(
+                        src,
+                        source_title=title,
+                        source_author=author,
+                        collection_id=coll_id,
+                    )
+                    return src, docs, None
+                except Exception as exc:  # noqa: BLE001
+                    return src, [], exc
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=n_workers,
+                thread_name_prefix="skplt_corpus_",
+            ) as executor:
+                futures = {executor.submit(_ingest_one, src): src for src in expanded}
+                for future in concurrent.futures.as_completed(futures):
+                    src, docs, exc = future.result()
+                    if exc is not None:
+                        logger.error("Failed to ingest %s: %s", src, exc)
+                        result.errors.append((str(src), exc))
+                    else:
+                        all_docs.extend(docs)
+        else:
+            # Serial ingestion (default, max_workers=1).
+            for src in expanded:
+                try:
+                    docs = self._ingest_source(
+                        src,
+                        source_title=title,
+                        source_author=author,
+                        collection_id=coll_id,
+                    )
+                    all_docs.extend(docs)
+                except Exception as exc:  # noqa: BLE001
+                    logger.error("Failed to ingest %s: %s", src, exc)
+                    result.errors.append((str(src), exc))
 
         result.n_raw = len(all_docs)
 
-        # ② Filter (already done inside ingest via get_documents)
-        # The reader's internal filter already removed chunks.
-        # We record the count but the filtering happened in ①.
+        # ② Filter count — the reader's get_documents() already filtered
+        # chunks and stored the omitted count in _last_n_omitted.  Collect
+        # it from every reader that was created during _ingest_source.
+        # _last_n_omitted is set on each DocumentReader after get_documents()
+        # completes.  We sum it here so BuildResult.n_filtered is accurate.
+        result.n_filtered = self._n_filtered_current_build
 
         documents = all_docs
 
@@ -571,6 +688,7 @@ class CorpusBuilder:
         *,
         source_title: str | None = None,
         source_author: str | None = None,
+        source_type: str | None = None,
         collection_id: str | None = None,
         rebuild_index: bool = True,
     ) -> BuildResult:
@@ -588,6 +706,10 @@ class CorpusBuilder:
             Override title for new sources.
         source_author : str or None, optional
             Override author for new sources.
+        source_type : str or None, optional
+            Override ``source_type`` for new sources (e.g. ``"audio"``).
+            When ``None`` the type is inferred from each file extension.
+            Default: ``None``.
         collection_id : str or None, optional
             Override collection id for new sources.
         rebuild_index : bool, optional
@@ -639,13 +761,22 @@ class CorpusBuilder:
             list(self._result.errors),
         )
 
-        # Build new sources (this replaces self._result)
-        new_result = self.build(
-            sources,
-            source_title=source_title,
-            source_author=source_author,
-            collection_id=collection_id,
-        )
+        # Temporarily override source_type in config when the caller
+        # supplies an explicit value.  Restore it after build() returns
+        # (or raises) so the builder's config remains consistent.
+        _prev_source_type = self.config.source_type
+        if source_type is not None:
+            self.config.source_type = source_type
+        try:
+            # Build new sources (this replaces self._result)
+            new_result = self.build(
+                sources,
+                source_title=source_title,
+                source_author=source_author,
+                collection_id=collection_id,
+            )
+        finally:
+            self.config.source_type = _prev_source_type
 
         # Merge: prepend existing docs, accumulate counts
         merged_docs = existing_docs + new_result.documents
@@ -1009,6 +1140,15 @@ class CorpusBuilder:
                 continue
 
             # 3 / 4. Path (file or directory)
+            # Guard: empty or whitespace-only strings silently resolve to CWD
+            # via Path("").is_dir() == True.  Treat them as invalid sources.
+            if not src_str.strip():
+                logger.warning(
+                    "_expand_sources: ignoring empty or whitespace-only source %r.",
+                    src_str,
+                )
+                continue
+
             p = Path(src_str)
             if p.is_file():
                 expanded.append(p)
@@ -1105,10 +1245,49 @@ class CorpusBuilder:
             )
 
         # ── Archive handling ─────────────────────────────────────────
+        # Archives (zip, tar, etc.) are extracted and each file inside
+        # is processed individually.  However, some archive extensions
+        # have a *dedicated* reader registered (e.g. ALTOReader for
+        # .zip).  In that case, try the dedicated reader first — only
+        # fall back to generic extraction when the reader yields zero
+        # documents (meaning the archive contents didn't match the
+        # reader's expected format).
         from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
 
         local_path = Path(source_str)
         if local_path.is_file() and is_archive(local_path):
+            ext = local_path.suffix.lower()
+            has_dedicated_reader = ext in DocumentReader._registry
+
+            if has_dedicated_reader:
+                try:
+                    reader = DocumentReader.create(
+                        source_str,
+                        chunker=chunker,
+                        **reader_kwargs,
+                    )
+                    documents = list(reader.get_documents())
+                    if documents:
+                        logger.debug(
+                            "Ingested %d documents from %s via dedicated reader (%s)",
+                            len(documents),
+                            source_str,
+                            type(reader).__name__,
+                        )
+                        return documents
+                    logger.debug(
+                        "Dedicated reader for %s yielded 0 documents; "
+                        "falling back to archive extraction.",
+                        source_str,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        "Dedicated reader for %s failed (%s); "
+                        "falling back to archive extraction.",
+                        source_str,
+                        exc,
+                    )
+
             return self._ingest_archive(
                 local_path,
                 chunker=chunker,
@@ -1122,6 +1301,7 @@ class CorpusBuilder:
             **reader_kwargs,
         )
         documents = list(reader.get_documents())
+        self._n_filtered_current_build += getattr(reader, "_last_n_omitted", 0)
         logger.debug(
             "Ingested %d documents from %s",
             len(documents),
@@ -1246,6 +1426,7 @@ class CorpusBuilder:
                 **from_url_kwargs,
             )
             documents = list(reader.get_documents())
+            self._n_filtered_current_build += getattr(reader, "_last_n_omitted", 0)
             logger.debug(
                 "Ingested %d documents from YouTube URL %s", len(documents), url
             )
@@ -1271,6 +1452,7 @@ class CorpusBuilder:
                 **from_url_kwargs,
             )
             documents = list(reader.get_documents())
+            self._n_filtered_current_build += getattr(reader, "_last_n_omitted", 0)
             logger.debug("Ingested %d documents from web URL %s", len(documents), url)
             return documents
 
@@ -1285,12 +1467,50 @@ class CorpusBuilder:
             dest_dir=temp_dir,
             max_bytes=cfg.max_download_bytes,
             timeout=cfg.download_timeout,
+            max_retries=cfg.download_max_retries,
+            retry_backoff=cfg.download_retry_backoff,
         )
 
-        # If the downloaded file is an archive, extract and process
+        # If the downloaded file is an archive, apply the same
+        # reader-first logic as _ingest_source: try a dedicated reader
+        # (e.g. ALTOReader for .zip) before generic extraction.
         from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
 
         if is_archive(local_path):
+            ext = local_path.suffix.lower()
+            has_dedicated_reader = ext in DocumentReader._registry
+
+            if has_dedicated_reader:
+                try:
+                    reader = DocumentReader.create(
+                        local_path,
+                        chunker=chunker,
+                        filename_override=url,
+                        **reader_kwargs,
+                    )
+                    documents = list(reader.get_documents())
+                    if documents:
+                        logger.debug(
+                            "Ingested %d documents from downloaded "
+                            "archive %s via dedicated reader (%s)",
+                            len(documents),
+                            url,
+                            type(reader).__name__,
+                        )
+                        return documents
+                    logger.debug(
+                        "Dedicated reader for downloaded %s yielded "
+                        "0 documents; falling back to extraction.",
+                        url,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        "Dedicated reader for downloaded %s failed "
+                        "(%s); falling back to extraction.",
+                        url,
+                        exc,
+                    )
+
             return self._ingest_archive(
                 local_path,
                 chunker=chunker,
@@ -1308,6 +1528,7 @@ class CorpusBuilder:
             **reader_kwargs,
         )
         documents = list(reader.get_documents())
+        self._n_filtered_current_build += getattr(reader, "_last_n_omitted", 0)
         logger.debug(
             "Ingested %d documents from downloaded %s → %s",
             len(documents),
@@ -1590,6 +1811,7 @@ class CorpusBuilder:
             return None
 
         def fn(text: str) -> Any:
+            """Embed a single query string using the configured engine."""
             embs = engine.embed([text])
             return embs[0] if embs else None
 
@@ -1610,6 +1832,7 @@ class CorpusBuilder:
     # ==================================================================
 
     def __repr__(self) -> str:
+        """Return a concise summary of the builder state."""
         cfg = self.config
         parts = [
             f"chunker={cfg.chunker!r}",
