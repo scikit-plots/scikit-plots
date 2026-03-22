@@ -172,6 +172,9 @@ class TextReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".txt"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".txt"]``.
 
     Raises
     ------
@@ -219,6 +222,7 @@ class TextReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".txt"
+    file_types: ClassVar[list[str] | None] = [".txt"]
 
     encoding: Optional[str] = field(default=None)  # noqa: UP045
     """
@@ -351,6 +355,9 @@ class MarkdownReader(TextReader):
     ----------
     file_type : str
         Class variable. Always ``".md"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".md"]``.
 
     See Also
     --------
@@ -365,6 +372,7 @@ class MarkdownReader(TextReader):
     """
 
     file_type: ClassVar[str] = ".md"
+    file_types: ClassVar[list[str] | None] = [".md"]
 
 
 @dataclass
@@ -385,6 +393,9 @@ class ReSTReader(TextReader):
     ----------
     file_type : str
         Class variable. Always ``".rst"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".rst"]``.
 
     See Also
     --------
@@ -399,3 +410,4 @@ class ReSTReader(TextReader):
     """
 
     file_type: ClassVar[str] = ".rst"
+    file_types: ClassVar[list[str] | None] = [".rst"]

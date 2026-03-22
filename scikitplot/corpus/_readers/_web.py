@@ -276,6 +276,9 @@ class WebReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Registry key ``":url"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[":url"]``.
 
     Raises
     ------
@@ -322,6 +325,7 @@ class WebReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ":url"
+    file_types: ClassVar[list[str] | None] = [":url"]
 
     timeout: int = field(default=_DEFAULT_TIMEOUT)
     """HTTP request timeout in seconds."""
@@ -592,6 +596,9 @@ class YouTubeReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Registry key ``":youtube"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[":youtube"]``.
 
     Raises
     ------
@@ -632,6 +639,7 @@ class YouTubeReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ":youtube"
+    file_types: ClassVar[list[str] | None] = [":youtube"]
 
     preferred_language: str | None = field(default=None)
     """ISO 639-1 language code for the preferred transcript track."""

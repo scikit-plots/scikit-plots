@@ -548,7 +548,8 @@ class VideoReader(DocumentReader):
     >>> docs = list(reader.get_documents())
     """  # noqa: D205
 
-    file_types: ClassVar[list[str]] = _VIDEO_EXTENSIONS
+    file_type: ClassVar[str | None] = None
+    file_types: ClassVar[list[str] | None] = _VIDEO_EXTENSIONS
 
     _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = (
         "tiny",

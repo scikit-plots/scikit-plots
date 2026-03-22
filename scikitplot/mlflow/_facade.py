@@ -90,24 +90,17 @@ class ArtifactsFacade:
         ------
         AttributeError
             If no compatible artifact download API is available.
+
+        Notes
+        -----
+        Delegates to :func:`scikitplot.mlflow._compat.resolve_download_artifacts`,
+        which applies the same preference order: modern public API first, then
+        session-bound client fallback.
         """
-        # Preferred, documented modern API.
-        m = self.mlflow_module
-        if hasattr(m, "artifacts") and hasattr(m.artifacts, "download_artifacts"):
-            p = m.artifacts.download_artifacts(
-                run_id=run_id, artifact_path=artifact_path, dst_path=dst_path
-            )
-            return Path(p)
+        from ._compat import resolve_download_artifacts  # noqa: PLC0415
 
-        # Fallback: older client API, bound to our session.
-        if hasattr(self.client, "download_artifacts"):
-            p = self.client.download_artifacts(run_id, artifact_path, dst_path)  # type: ignore[misc]
-            return Path(p)
-
-        raise AttributeError(
-            "No supported artifact download API found. Expected mlflow.artifacts.download_artifacts "
-            "or MlflowClient.download_artifacts."
-        )
+        dl = resolve_download_artifacts(self.mlflow_module, client=self.client)
+        return Path(dl(run_id=run_id, artifact_path=artifact_path, dst_path=dst_path))
 
     def log_file(
         self, local_path: str | Path, artifact_path: str | None = None

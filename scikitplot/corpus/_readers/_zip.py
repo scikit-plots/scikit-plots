@@ -214,6 +214,7 @@ class ZipReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".zip"
+    file_types: ClassVar[list[str] | None] = [".zip"]
 
     max_files: int = field(default=_DEFAULT_MAX_FILES)
     """Maximum file count inside the archive. Default: 10,000."""

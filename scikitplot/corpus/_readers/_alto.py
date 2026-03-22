@@ -554,6 +554,9 @@ class ALTOReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".zip"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".zip"]``.
 
     Raises
     ------
@@ -621,7 +624,8 @@ class ALTOReader(DocumentReader):
     ... )
     """
 
-    file_type: ClassVar[str] = ".zip"
+    file_type: ClassVar[str | None] = ".zip"
+    file_types: ClassVar[list[str] | None] = [".zip"]
 
     granularity: str = field(default=_GRAN_BLOCK)
     """

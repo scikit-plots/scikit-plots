@@ -304,6 +304,9 @@ class XMLReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".xml"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".xml"]``.
 
     Raises
     ------
@@ -354,6 +357,7 @@ class XMLReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".xml"
+    file_types: ClassVar[list[str] | None] = [".xml"]
 
     _DEFAULT_MAX_FILE_BYTES: ClassVar[int] = 200 * 1024 * 1024  # 200 MB
 
@@ -571,6 +575,7 @@ class TEIReader(DocumentReader):
     # Setting file_type to a sentinel prevents __init_subclass__ from
     # registering it while still satisfying the ClassVar declaration.
     file_type: ClassVar[str] = ":tei"  # internal-only key, not a real extension
+    file_types: ClassVar[list[str] | None] = [":tei"]
 
     _DEFAULT_MAX_FILE_BYTES: ClassVar[int] = 200 * 1024 * 1024  # 200 MB
 

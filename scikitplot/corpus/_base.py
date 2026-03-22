@@ -454,9 +454,20 @@ class DocumentReader(abc.ABC):
     Attributes
     ----------
     file_type : str
-        Class variable. The file extension this reader handles, including
-        the leading dot (e.g. ``".txt"``, ``".xml"``, ``".zip"``). Must be
-        lowercase. **Must** be defined on every concrete subclass.
+        Single file extension this reader handles (lowercase, including leading
+        dot). E.g. ``".txt"``, ``".xml"``, ``".zip"``.
+
+        For readers that handle multiple extensions, define ``file_types``
+        (plural) instead.  **Exactly one** of ``file_type`` or ``file_types``
+        must be defined on every concrete subclass.
+    file_types : list of str
+        List of file extensions this reader handles (lowercase, leading dot).
+        Use instead of ``file_type`` when a single reader class should be
+        registered for several extensions — e.g. an image reader for
+        ``[".png", ".jpg", ".jpeg", ".gif", ".webp"]``.
+
+        When both ``file_type`` and ``file_types`` are defined on the same
+        class, ``file_types`` takes precedence and ``file_type`` is ignored.
 
     Raises
     ------
@@ -525,7 +536,7 @@ class DocumentReader(abc.ABC):
     # Required class variable — subclasses must define ONE of these
     # ------------------------------------------------------------------
 
-    file_type: ClassVar[str]
+    file_type: ClassVar[str | None]
     """
     Single file extension this reader handles (lowercase, including leading
     dot). E.g. ``".txt"``, ``".xml"``, ``".zip"``.
@@ -2030,7 +2041,8 @@ class DummyReader(DocumentReader):
     >>> os.unlink(tmp)
     """
 
-    file_type: ClassVar[str] = ":dummy"
+    file_type: ClassVar[str | None] = ":dummy"
+    file_types: ClassVar[list[str] | None] = [":dummy"]
 
     # ------------------------------------------------------------------
     # Batch class-level check — the primary use-case API

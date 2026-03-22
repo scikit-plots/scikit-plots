@@ -262,6 +262,9 @@ class PDFReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".pdf"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".pdf"]``.
 
     Raises
     ------
@@ -326,6 +329,7 @@ class PDFReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".pdf"
+    file_types: ClassVar[list[str] | None] = [".pdf"]
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf")
 

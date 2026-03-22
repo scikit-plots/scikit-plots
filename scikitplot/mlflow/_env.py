@@ -34,7 +34,7 @@ class EnvSnapshot:
     @property
     def data(self) -> dict[str, str]:
         """A copy of the full environment mapping."""
-        return self._data
+        return dict(self._data)
 
     @classmethod
     def capture(cls) -> Self:
@@ -85,8 +85,10 @@ def parse_dotenv(path: str) -> dict[str, str]:
     - Empty lines and comments beginning with `#` are ignored
     - No shell expansion is performed
     - Optional leading `export ` is supported
-    - Surrounding single/double quotes are stripped from values
-    - Invalid lines (missing `=`) are ignored
+    - Surrounding matching-pair quotes are stripped from values
+      (``"value"`` → ``value``, ``'value'`` → ``value``,
+      but ``"value'`` is left unchanged — mismatched quotes are not stripped)
+    - Invalid lines (missing ``=``) are ignored
     """
     if not os.path.exists(path):
         raise FileNotFoundError(path)
@@ -101,7 +103,11 @@ def parse_dotenv(path: str) -> dict[str, str]:
                 line = line[len("export ") :].lstrip()
             k, v = line.split("=", 1)
             k = k.strip()
-            v = v.strip().strip('"').strip("'")
+            v = v.strip()
+            # Strip only matching outer quote pairs (never mismatched quotes).
+            # E.g. "hello" → hello, 'hello' → hello, "hello' → "hello' (unchanged).
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):  # noqa: PLR2004
+                v = v[1:-1]
             if k:
                 out[k] = v
     return out

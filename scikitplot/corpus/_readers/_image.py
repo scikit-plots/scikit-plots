@@ -334,7 +334,8 @@ class ImageReader(DocumentReader):
     >>> print(f"Extracted {len(docs)} pages")
     """
 
-    file_types: ClassVar[list[str]] = _IMAGE_EXTENSIONS
+    file_type: ClassVar[str | None] = None
+    file_types: ClassVar[list[str] | None] = _IMAGE_EXTENSIONS
 
     backend: str = field(default=_BACKEND_TESSERACT)
     """OCR backend. One of ``"tesseract"`` (default) or ``"easyocr"``."""

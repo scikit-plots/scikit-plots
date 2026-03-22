@@ -10,6 +10,7 @@ _workflow.
 from __future__ import annotations
 
 import argparse
+import logging
 import re
 import time
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from pathlib import Path
 
 from ._project import dump_project_config_yaml, find_project_root, load_project_config
 from ._project_session import session_from_file
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -279,7 +282,7 @@ def run_demo(
 
     # 5) UI check using YAML.
     with session_from_file(paths.yaml_path, profile=profile) as mlflow:
-        print(f"🌐 Open MLflow UI: {mlflow.ui_url}")  # noqa: T201
+        logger.info("Open MLflow UI: %s", mlflow.ui_url)
         if open_ui_seconds > 0:
             time.sleep(open_ui_seconds)
 
@@ -363,7 +366,7 @@ def workflow(
     experiment_name: str | None = None,
     fmt: str = "toml",
     overwrite: bool = False,
-) -> None:
+) -> WorkflowPaths:
     """
     Run the built-in end-to-end MLflow workflow demo.
 
@@ -379,7 +382,7 @@ def workflow(
     profile : str, default="local"
         Profile name inside the project config.
     open_ui_seconds : float, default=0.0
-        If > 0, sleeps for this many seconds while the session is open, printing ``ui_url``.
+        If > 0, sleeps for this many seconds while the session is open, logging ``ui_url``.
     experiment_name : str or None, default=None
         If provided, patches the exported config to use this experiment name.
     fmt : {"toml", "yaml"}, default="toml"
@@ -389,7 +392,8 @@ def workflow(
 
     Returns
     -------
-    None
+    WorkflowPaths
+        Paths used during the workflow (project root, config dir, toml/yaml paths).
 
     See Also
     --------
