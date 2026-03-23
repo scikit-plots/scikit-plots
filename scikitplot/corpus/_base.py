@@ -96,19 +96,19 @@ from ._schema import (
 
 logger = logging.getLogger(__name__)
 
-__all__ = [  # noqa: RUF022
-    # Abstract bases
-    "DocumentReader",
+__all__ = [
     "ChunkerBase",
-    "FilterBase",
     # Concrete built-in filter
     "DefaultFilter",
-    # Multi-source adapter (context manager)
-    "_MultiSourceReader",
+    # Abstract bases
+    "DocumentReader",
     # Utility readers
     "DummyReader",
+    "FilterBase",
     # Pipeline resilience
     "PipelineGuard",
+    # Multi-source adapter (context manager)
+    "_MultiSourceReader",
     # URL detection helper
     "_is_url",
 ]
@@ -1078,9 +1078,22 @@ class DocumentReader(abc.ABC):
         Parameters
         ----------
         *inputs : pathlib.Path or str
-            One or more source paths or URL strings.  Pass a single value
-            for the common case; pass multiple values to get a
-            :class:`_MultiSourceReader` that chains all their documents.
+            One or more source paths or URL strings.  Each element is
+            classified independently:
+
+            * ``str`` matching ``^https?://`` (case-insensitive) — treated
+              as a URL and routed to :meth:`from_url`.  **Must be passed as
+              a plain ``str``, not wrapped in** ``pathlib.Path``; wrapping
+              collapses the double-slash (``https://`` → ``https:/``) and
+              breaks URL detection.
+            * ``str`` not matching the URL pattern — treated as a local
+              file path and converted to :class:`pathlib.Path` internally.
+            * :class:`pathlib.Path` — always treated as a local file path
+              and dispatched by extension via the reader registry.
+
+            Pass a single value for the common case; pass multiple values
+            to get a :class:`_MultiSourceReader` that chains all their
+            documents in order.
         chunker : ChunkerBase or None, optional
             Chunker injected into every reader. Default: ``None``.
         filter_ : FilterBase or None, optional

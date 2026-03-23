@@ -31,6 +31,8 @@ Batch processing with sentence chunking:
 
 URL ingestion:
 
+>>> # https://archive.org/download/WHO-documents
+>>> # https://www.who.int/europe/news/item/...
 >>> result = pipeline.run_url("https://en.wikipedia.org/wiki/Python")
 
 YouTube transcript:

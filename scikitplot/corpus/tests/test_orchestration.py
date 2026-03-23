@@ -1059,3 +1059,293 @@ class TestBuilderConfigProbeURL:
         from scikitplot.corpus._corpus_builder import BuilderConfig  # noqa: PLC0415
         cfg = BuilderConfig(probe_url_content_type=False)
         assert cfg.probe_url_content_type is False
+
+
+# ===========================================================================
+# TestCorpusPipeline — run / run_batch / _run_source / _collect_documents
+# ===========================================================================
+
+
+class TestCorpusPipelineRun:
+    """CorpusPipeline.run() — URL routing, file routing, type guards."""
+
+    def _make_pipeline(self):
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+        return CorpusPipeline()
+
+    def test_run_local_file_calls_create(self, tmp_path):
+        """run(Path) calls DocumentReader.create with a Path, not a URL."""
+        from pathlib import Path
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        txt = tmp_path / "sample.txt"
+        txt.write_text("Hello world.")
+
+        captured = {}
+
+        def fake_create(src, **kw):
+            captured["src"] = src
+            captured["type"] = type(src).__name__
+            m = MagicMock()
+            m.get_documents.return_value = iter([])
+            return m
+
+        with patch("scikitplot.corpus._pipeline.DocumentReader.create", side_effect=fake_create):
+            pipeline.run(txt)
+
+        assert captured["type"] == "PosixPath" or captured["type"] == "WindowsPath"
+
+    def test_run_url_string_not_wrapped_in_path(self):
+        """run('https://...') must NOT wrap the URL in pathlib.Path before routing."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        url = "https://en.wikipedia.org/wiki/Python"
+        captured = {}
+
+        def fake_create(src, **kw):
+            captured["src"] = src
+            captured["type"] = type(src).__name__
+            m = MagicMock()
+            m.get_documents.return_value = iter([])
+            return m
+
+        with patch("scikitplot.corpus._pipeline.DocumentReader.create", side_effect=fake_create):
+            pipeline.run(url)
+
+        # The URL must arrive at create() as a str, never as a Path.
+        assert captured["type"] == "str", (
+            f"URL was wrapped in {captured['type']!r}; "
+            "pathlib.Path collapses https:// to https:/ and breaks routing."
+        )
+        # The double-slash must be preserved.
+        assert captured["src"].startswith("https://"), (
+            f"Double-slash mangled: {captured['src']!r}"
+        )
+
+    def test_run_url_source_label_preserved(self):
+        """PipelineResult.source equals the original URL string."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        url = "https://example.com/report.pdf"
+
+        mock_reader = MagicMock()
+        mock_reader.get_documents.return_value = iter([])
+
+        with patch("scikitplot.corpus._pipeline.DocumentReader.create", return_value=mock_reader):
+            result = pipeline.run(url)
+
+        assert result.source == url
+
+    def test_run_bad_type_raises_type_error(self):
+        """run(42) raises TypeError immediately."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        with pytest.raises(TypeError, match="str or pathlib.Path"):
+            pipeline.run(42)  # type: ignore[arg-type]
+
+
+class TestCorpusPipelineRunBatch:
+    """run_batch() — mixed inputs, URL pass-through, type guard."""
+
+    def _make_pipeline(self):
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+        return CorpusPipeline()
+
+    def test_run_batch_urls_not_wrapped_in_path(self):
+        """URL strings inside run_batch must reach _run_source as raw str."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        url = "https://example.com/doc.html"
+        captured_sources = []
+
+        def fake_run_source(source, **kw):
+            captured_sources.append((source, type(source).__name__))
+            from scikitplot.corpus._pipeline import PipelineResult  # noqa: PLC0415
+            from scikitplot.corpus._schema import ExportFormat  # noqa: PLC0415
+            return PipelineResult(
+                source=str(source), documents=[], output_path=None,
+                n_read=0, n_omitted=0, n_embedded=0,
+                elapsed_seconds=0.0, export_format=None,
+            )
+
+        with patch.object(pipeline, "_run_source", side_effect=fake_run_source):
+            pipeline.run_batch([url])
+
+        assert len(captured_sources) == 1
+        src, typename = captured_sources[0]
+        assert typename == "str", f"URL was wrapped in {typename!r} before _run_source."
+        assert str(src).startswith("https://")
+
+    def test_run_batch_mixed_sources(self, tmp_path):
+        """run_batch accepts a list mixing Path and URL str."""
+        from pathlib import Path
+        from scikitplot.corpus._pipeline import CorpusPipeline, PipelineResult  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        txt = tmp_path / "a.txt"
+        txt.write_text("hello")
+        url = "https://example.com/b.html"
+
+        call_sources = []
+
+        def fake_run_source(source, **kw):
+            call_sources.append(source)
+            return PipelineResult(
+                source=str(source), documents=[], output_path=None,
+                n_read=0, n_omitted=0, n_embedded=0,
+                elapsed_seconds=0.0, export_format=None,
+            )
+
+        with patch.object(pipeline, "_run_source", side_effect=fake_run_source):
+            results = pipeline.run_batch([txt, url])
+
+        assert len(results) == 2
+        assert len(call_sources) == 2
+        # First source is a Path, second is a str URL.
+        assert isinstance(call_sources[0], Path)
+        assert isinstance(call_sources[1], str)
+
+    def test_run_batch_bad_type_raises(self):
+        """Non-str / non-Path element raises TypeError."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        with pytest.raises(TypeError, match="str or pathlib.Path"):
+            pipeline.run_batch([123])  # type: ignore[list-item]
+
+    def test_run_batch_stop_on_error_propagates(self):
+        """stop_on_error=True re-raises the first exception."""
+        from unittest.mock import patch  # noqa: PLC0415
+
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+
+        with patch.object(pipeline, "_run_source", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError, match="boom"):
+                pipeline.run_batch(["https://example.com/x"], stop_on_error=True)
+
+    def test_run_batch_continue_on_error_skips(self):
+        """stop_on_error=False skips failing sources and continues."""
+        from unittest.mock import patch  # noqa: PLC0415
+
+        from scikitplot.corpus._pipeline import CorpusPipeline, PipelineResult  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        ok_result = PipelineResult(
+            source="https://ok.com", documents=[], output_path=None,
+            n_read=0, n_omitted=0, n_embedded=0,
+            elapsed_seconds=0.0, export_format=None,
+        )
+
+        def side_effect(source, **kw):
+            if "fail" in str(source):
+                raise ValueError("bad source")
+            return ok_result
+
+        with patch.object(pipeline, "_run_source", side_effect=side_effect):
+            results = pipeline.run_batch(
+                ["https://fail.com/x", "https://ok.com/y"],
+                stop_on_error=False,
+            )
+
+        assert len(results) == 1
+        assert results[0].source == "https://ok.com"
+
+
+class TestCollectDocumentsCounters:
+    """_collect_documents() — counter accuracy for single and multi-source readers."""
+
+    def _make_pipeline(self):
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+        return CorpusPipeline()
+
+    def _mock_reader(self, docs, n_included, n_omitted):
+        """Build a mock DocumentReader with pre-set counter attrs."""
+        from unittest.mock import MagicMock  # noqa: PLC0415
+        r = MagicMock()
+        r.get_documents.return_value = iter(docs)
+        r._last_n_included = n_included
+        r._last_n_omitted = n_omitted
+        return r
+
+    def test_single_reader_correct_counters(self):
+        """Single DocumentReader: counters read from _last_n_* attrs."""
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        reader = self._mock_reader(["a", "b", "c"], n_included=3, n_omitted=2)
+        docs, n_read, n_omitted = pipeline._collect_documents(reader, "test")
+
+        assert n_omitted == 2
+        assert n_read == 5  # 3 included + 2 omitted
+
+    def test_single_reader_missing_attrs_fallback(self):
+        """Single reader without counter attrs falls back to len(docs), 0."""
+        from unittest.mock import MagicMock  # noqa: PLC0415
+
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+        r = MagicMock()
+        r.get_documents.return_value = iter(["x", "y"])
+        # No _last_n_included / _last_n_omitted attrs
+        del r._last_n_included
+        del r._last_n_omitted
+        docs, n_read, n_omitted = pipeline._collect_documents(r, "test")
+
+        assert n_omitted == 0
+        assert n_read == 2
+
+    def test_multi_source_reader_aggregates_counters(self):
+        """_MultiSourceReader: n_omitted is the sum of all sub-reader omits."""
+        from unittest.mock import MagicMock  # noqa: PLC0415
+
+        from scikitplot.corpus._base import _MultiSourceReader  # noqa: PLC0415
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+
+        # Two sub-readers: reader A omitted 3, reader B omitted 5.
+        sub_a = self._mock_reader(["doc1", "doc2"], n_included=2, n_omitted=3)
+        sub_b = self._mock_reader(["doc3"], n_included=1, n_omitted=5)
+
+        multi = MagicMock(spec=_MultiSourceReader)
+        multi.readers = [sub_a, sub_b]
+        # get_documents yields from both — exhaust in order so attrs get set
+        multi.get_documents.return_value = iter(["doc1", "doc2", "doc3"])
+
+        docs, n_read, n_omitted = pipeline._collect_documents(multi, "multi")
+
+        assert n_omitted == 8          # 3 + 5
+        assert n_read == 11            # (2+1) + (3+5)
+        assert len(docs) == 3
+
+    def test_multi_source_reader_missing_attrs_fallback(self):
+        """_MultiSourceReader with counter-less sub-readers: fallback is safe."""
+        from unittest.mock import MagicMock  # noqa: PLC0415
+
+        from scikitplot.corpus._base import _MultiSourceReader  # noqa: PLC0415
+        from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
+
+        pipeline = CorpusPipeline()
+
+        sub = MagicMock()
+        sub.get_documents.return_value = iter([])
+        del sub._last_n_included
+        del sub._last_n_omitted
+
+        multi = MagicMock(spec=_MultiSourceReader)
+        multi.readers = [sub]
+        multi.get_documents.return_value = iter([])
+
+        docs, n_read, n_omitted = pipeline._collect_documents(multi, "multi-fallback")
+
+        # Must not crash; counters fall back to 0/0.
+        assert n_omitted == 0
+        assert n_read == 0

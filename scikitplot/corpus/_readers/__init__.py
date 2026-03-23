@@ -73,7 +73,7 @@ Available readers
 :class:`ZipReader`
     Generic ZIP archives (``.zip``). Extracts members to a temporary
     directory and dispatches each by extension to the correct reader.
-    Supports ``member_kwargs`` for per-extension kwargs (e.g.
+    Supports ``reader_kwargs`` for per-extension kwargs (e.g.
     ``{".mp3": {"transcribe": True}}``).  Overrides :class:`ALTOReader`
     for ``".zip"`` — use :class:`ALTOReader` directly for ALTO XML archives.
 

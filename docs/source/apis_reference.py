@@ -499,22 +499,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "ChunkerBase",
+                    # Concrete built-in filter
                     "DefaultFilter",
+                    # Abstract bases
                     "DocumentReader",
+                    # Utility readers
                     "DummyReader",
                     "FilterBase",
+                    # Pipeline resilience
                     "PipelineGuard",
-                ],
-            },
-            {
-                "title": "Builder",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "BuilderConfig",
-                    "BuildResult",
-                    "CorpusBuilder",
+                    # Multi-source adapter (context manager)
+                    "_MultiSourceReader",
+                    # URL detection helper
+                    "_is_url",
                 ],
             },
             {
@@ -523,17 +520,42 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # _chunker_bridge
+                    "ChunkerBridge",
+                    "FixedWindowChunkerBridge",
+                    "ParagraphChunkerBridge",
+                    "SentenceChunkerBridge",
+                    "WordChunkerBridge",
+                    "bridge_chunker",
+                    # _fixed_window
                     "FixedWindowChunker",
                     "FixedWindowChunkerConfig",
+                    "WindowUnit",
+                    # _paragraph
                     "ParagraphChunker",
                     "ParagraphChunkerConfig",
+                    # _sentence
+                    "SentenceBackend",
                     "SentenceChunker",
                     "SentenceChunkerConfig",
+                    # _word
+                    "LemmatizationBackend",
+                    "StemmingBackend",
+                    "StopwordSource",
+                    "TokenizerBackend",
                     "WordChunker",
                     "WordChunkerConfig",
-                    # Chunker bridge
-                    "ChunkerBridge",
-                    "bridge_chunker",
+                ],
+            },
+            {
+                "title": "Corpus Builder",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "BuildResult",
+                    "BuilderConfig",
+                    "CorpusBuilder",
                 ],
             },
             {
@@ -542,9 +564,16 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # _embedding
+                    "DEFAULT_CACHE_DIR",
                     "DEFAULT_MODEL",
-                    "EmbedFn",
                     "EmbeddingEngine",
+                    # _multimodal_embedding
+                    "DEFAULT_AUDIO_MODEL",
+                    "DEFAULT_IMAGE_MODEL",
+                    "DEFAULT_TEXT_MODEL",
+                    "LLMTrainingExporter",
+                    "MultimodalEmbeddingEngine",
                 ],
             },
             {
@@ -553,8 +582,19 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    "BUILTIN_STOPWORDS",
                     "EnricherConfig",
                     "NLPEnricher",
+                ],
+            },
+            {
+                "title": "Export",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "export_documents",
+                    "load_documents",
                 ],
             },
             {
@@ -563,16 +603,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # _normalizer
                     "DedupLinesNormalizer",
                     "HTMLStripNormalizer",
                     "LanguageDetectionNormalizer",
                     "LowercaseNormalizer",
                     "NormalizationPipeline",
                     "NormalizerBase",
-                    "NormalizerConfig",
-                    "TextNormalizer",
                     "UnicodeNormalizer",
                     "WhitespaceNormalizer",
+                    # _text_normalizer
+                    "NormalizerConfig",
+                    "TextNormalizer",
                     "normalize_text",
                 ],
             },
@@ -605,6 +647,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "WebReader",
                     "XMLReader",
                     "YouTubeReader",
+                    "ZipReader",
                 ],
             },
             {
@@ -616,6 +659,17 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SearchConfig",
                     "SearchResult",
                     "SimilarityIndex",
+                ],
+            },
+            {
+                "title": "Source",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "CorpusSource",
+                    "SourceEntry",
+                    "SourceKind",
                 ],
             },
         ],

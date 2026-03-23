@@ -1,0 +1,632 @@
+doc_id,source_file,chunk_index,text,section_type,chunking_strategy,language,source_type,source_title,source_author,act,bbox,char_end,char_start,collection_id,confidence,content_hash,doi,frame_index,image_height,image_width,isbn,keywords,lemmas,line_number,modality,normalized_text,ocr_engine,page_number,paragraph_index,parent_doc_id,raw_dtype,raw_shape,scene_number,source_date,stems,timecode_end,timecode_start,tokens,total_frames,url
+63533d90661689f9,WHO-EURO-2025-12555-52329-80560-eng.zip,0,Can people afford to pay for healthcare in Europe?,transcript,sentence,,audio,,,,,50,0,,0.8465,28540b9739ee232fb67a4e1088555ddd,,,,,,,,,text,,,,,,,,,,,6.0,0.0,,,
+af4a96b6f8cccd60,WHO-EURO-2025-12555-52329-80560-eng.zip,1,The short answer is not everyone.,transcript,sentence,,audio,,,,,33,0,,0.8465,2c8eb5cb7f068b42310a62d951f9a103,,,,,,,,,text,,,,,,,,,,,9.0,6.0,,,
+adb1682d7e30a156,WHO-EURO-2025-12555-52329-80560-eng.zip,2,No country in Europe has achieved universal health coverage.,transcript,sentence,,audio,,,,,60,0,,0.8465,31a24d3e03ce1119627d5bff9a29dfa6,,,,,,,,,text,,,,,,,,,,,14.0,9.0,,,
+854e98d6f9240e55,WHO-EURO-2025-12555-52329-80560-eng.zip,3,"When people have to pay out of pocket for healthcare and they can't afford it,",transcript,sentence,,audio,,,,,78,0,,0.8465,14312e5e9f2c77936f3da344dc9d8869,,,,,,,,,text,,,,,,,,,,,21.0,17.0,,,
+da326479e13bf3ce,WHO-EURO-2025-12555-52329-80560-eng.zip,4,they either have to cut spending on other basic needs like...,transcript,sentence,,audio,,,,,61,0,,0.8465,7c2b137120a08fcffd38c67e655cb899,,,,,,,,,text,,,,,,,,,,,25.0,21.0,,,
+daf5a6ac3f7dfcf5,WHO-EURO-2025-12555-52329-80560-eng.zip,5,"Can people afford
+to pay for health care?",text,sentence,,unknown,,,,,42,0,,,95e11362aa1ce2c261e1b8579b43ea45,,,,,,,,,text,,,0,,,,,,,,,,,,
+0a2ed8e8e3f3c565,WHO-EURO-2025-12555-52329-80560-eng.zip,6,"New evidence on
+financial protection
+in Greece: summary
+This review assesses the extent to which people in
+Greece face financial barriers to access or experience
+financial hardship (impoverishing or catastrophic health
+spending) when they use health care.",text,sentence,,unknown,,,,,304,44,,,128f7c004be6ceaa1d9adef930b8b763,,,,,,,,,text,,,0,,,,,,,,,,,,
+dd808e2c9a03b1b1,WHO-EURO-2025-12555-52329-80560-eng.zip,7,"It covers the period
+between 2008 and 2025, using data from household
+budget surveys carried out from 2008 to 2023 (the latest
+available year), data on unmet need for health care up
+to 2024 (the latest available year) and information on
+coverage policy (population coverage, service coverage
+and user charges) up to May 2025 (UHC watch, 2025).",text,sentence,,unknown,,,,,654,305,,,a28966c71bcb13d703d5c05161b38f1f,,,,,,,,,text,,,0,,,,,,,,,,,,
+17ea1b938b6ae5ec,WHO-EURO-2025-12555-52329-80560-eng.zip,8,"In 2023 3% of households were impoverished or further
+impoverished after out-of-pocket payments (data not
+shown) and almost 10% of households experienced
+catastrophic health spending, up from around 7%
+in 2008 (Fig.",text,sentence,,unknown,,,,,875,655,,,cc8cf5b580ba392660b1e1a0c914a572,,,,,,,,,text,,,0,,,,,,,,,,,,
+a3983b091263f3c3,WHO-EURO-2025-12555-52329-80560-eng.zip,9,"Catastrophic health spending is consistently heavily
+concentrated in the poorest consumption quintile, which
+accounted for nearly two thirds of the total in 2023
+(Fig.",text,sentence,,unknown,,,,,1050,880,,,a331a17a8041974051761dcf39123225,,,,,,,,,text,,,0,,,,,,,,,,,,
+93fbd8bb06747c61,WHO-EURO-2025-12555-52329-80560-eng.zip,10,"Incidence in the poorest quintile has risen
+sharply over time, from 23% in 2008 to 32% in 2023,
+and was higher in 2023 than in any other year in the
+study.",text,sentence,,unknown,,,,,1213,1055,,,975ee9ac6ea7826edafdd258a95bb006,,,,,,,,,text,,,0,,,,,,,,,,,,
+eea3d57a7a0fd063,WHO-EURO-2025-12555-52329-80560-eng.zip,11,"Catastrophic health spending is also much higher
+than average in households headed by people who are
+categorized as other inactive (17%), aged over 60 years
+(15%), retired (15%) or unemployed (14%) (data not
+shown; Chletsos & Economou, 2025).",text,sentence,,unknown,,,,,1460,1214,,,63646dd2e746858196a2b1f6f4b7b1d6,,,,,,,,,text,,,0,,,,,,,,,,,,
+db7a9278069e6976,WHO-EURO-2025-12555-52329-80560-eng.zip,12,"1
+Source: Chletsos & Economou (2025).",text,sentence,,unknown,,,,,1498,1461,,,894de4fb6e942b3cffd4fea95d3becf3,,,,,,,,,text,,,0,,,,,,,,,,,,
+e46054526aa85faf,WHO-EURO-2025-12555-52329-80560-eng.zip,13,"3rd
+2nd
+Poorest
+Richest
+4th
+Catastrophic incidence
+Fig.",text,sentence,,unknown,,,,,1554,1499,,,782c975c4430e4bef516d87a5dcc916d,,,,,,,,,text,,,0,,,,,,,,,,,,
+9f519a277aa8776a,WHO-EURO-2025-12555-52329-80560-eng.zip,14,"Breakdown of households with catastrophic health spending
+by consumption quintile and incidence of catastrophic health spending
+in the poorest quintile
+0 0
+20
+40
+3
+60
+6
+80
+9
+12
+100 15
+Households (%)
+Households in the poorest quintile (%)
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023",text,sentence,,unknown,,,,,1878,1558,,,7f31521090d68b328faf3c3ad02634d6,,,,,,,,,text,,,0,,,,,,,,,,,,
+ff8b9470bfcf3f26,WHO-EURO-2025-12555-52329-80560-eng.zip,15,"2
+In 2023 catastrophic health spending was mainly driven
+by inpatient care and outpatient medicines on average
+(Fig.",text,sentence,,unknown,,,,,118,0,,,c43ff1c3b5da536267ab32167abeb792,,,,,,,,,text,,,1,,,,,,,,,,,,
+1833a101cd1fc380,WHO-EURO-2025-12555-52329-80560-eng.zip,16,"It was mainly driven by outpatient medicines and
+outpatient care in the poorest quintile and by inpatient
+care and dental care in the richer quintiles.",text,sentence,,unknown,,,,,276,123,,,066e69c59fcc14ec8edddb26f4086a57,,,,,,,,,text,,,1,,,,,,,,,,,,
+f31b99adb4684d9e,WHO-EURO-2025-12555-52329-80560-eng.zip,17,"How does Greece compare
+to other countries?",text,sentence,,unknown,,,,,321,277,,,c7c43e7f151a922e1d930f0ed2bcdc10,,,,,,,,,text,,,1,,,,,,,,,,,,
+48ff9e7e45938d42,WHO-EURO-2025-12555-52329-80560-eng.zip,18,"The incidence of catastrophic health spending is higher
+in Greece than in many European Union (EU) countries,
+but lower than in EU countries with a similarly heavy
+reliance on out-of-pocket payments (Fig.",text,sentence,,unknown,,,,,529,322,,,5a20f786aa4ccdef46d96994604d3c2f,,,,,,,,,text,,,1,,,,,,,,,,,,
+3debe92bac54893e,WHO-EURO-2025-12555-52329-80560-eng.zip,19,"In the
+poorest quintile catastrophic health spending is mainly
+driven by out-of-pocket payments for outpatient
+medicines, in common with countries with weaker
+financial protection (those on the right of Fig.",text,sentence,,unknown,,,,,745,534,,,1e5802c9b184dd749e974b3a817ec0d1,,,,,,,,,text,,,1,,,,,,,,,,,,
+29d3ad4ba33a30c2,WHO-EURO-2025-12555-52329-80560-eng.zip,20,"4) (WHO
+Regional Office for Europe, 2023).",text,sentence,,unknown,,,,,789,746,,,019554816a268a658cde98e34ec0422f,,,,,,,,,text,,,1,,,,,,,,,,,,
+74b82e1bfc5f816a,WHO-EURO-2025-12555-52329-80560-eng.zip,21,"Unmet need for health care, dental care and prescribed
+medicines is consistently above the EU average.",text,sentence,,unknown,,,,,893,790,,,fcdd61163318e9b957fbe77f7cdf0c2a,,,,,,,,,text,,,1,,,,,,,,,,,,
+40a403809de3f691,WHO-EURO-2025-12555-52329-80560-eng.zip,22,"It is
+largely driven by cost and income inequality in unmet
+need is substantial, particularly for prescribed medicines
+(data not shown; Eurostat, 2025a; 2025b).",text,sentence,,unknown,,,,,1057,894,,,d9c3c66b50af57afb5ba67b823a871b1,,,,,,,,,text,,,1,,,,,,,,,,,,
+16bf70c84e809904,WHO-EURO-2025-12555-52329-80560-eng.zip,23,"What strengthens and
+undermines financial
+protection in Greece?",text,sentence,,unknown,,,,,1123,1058,,,b42b9daa31ea4a0465f8f9193156cbbc,,,,,,,,,text,,,1,,,,,,,,,,,,
+278df9bf9c3e6c5e,WHO-EURO-2025-12555-52329-80560-eng.zip,24,"Financial protection was relatively weak in 2008, before
+the economic crisis, but due to increases in public
+spending on health per person it looked as though the
+situation might be improving.",text,sentence,,unknown,,,,,1319,1124,,,a48611401e3bcd801120a77d7b29bed1,,,,,,,,,text,,,1,,,,,,,,,,,,
+4dcf5378c9b574f9,WHO-EURO-2025-12555-52329-80560-eng.zip,25,"Heavy reliance on out-of-
+pocket payments had been falling due to steady increases
+in public spending on health per person, which grew by
+about a third between 2004 and 2008.",text,sentence,,unknown,,,,,1496,1320,,,5d1be0a54ecd6f2c082891678aa501cd,,,,,,,,,text,,,1,,,,,,,,,,,,
+e041bc86b269cd6f,WHO-EURO-2025-12555-52329-80560-eng.zip,26,"The economic crisis exposed the complexity and
+fragmentation of health care coverage in Greece and its
+lack of resilience to shocks.",text,sentence,,unknown,,,,,1631,1497,,,dd82bbb57639bb68a25a390469ef6c10,,,,,,,,,text,,,1,,,,,,,,,,,,
+831b68b42f81b2c5,WHO-EURO-2025-12555-52329-80560-eng.zip,27,"Financial hardship and unmet
+need increased markedly due to large and sustained
+cuts to public spending on health; coverage restrictions
+through new or increased co-payments and caps on the
+volume of outpatient care; and underlying weaknesses in
+coverage policy.",text,sentence,,unknown,,,,,1899,1632,,,fdfe6901ea155ae46b1e779788c46afc,,,,,,,,,text,,,1,,,,,,,,,,,,
+0a2dcd22c7a374be,WHO-EURO-2025-12555-52329-80560-eng.zip,28,"These policy responses had a particularly
+negative effect on households with low incomes and
+led to a strong shift in household spending towards
+outpatient medicines and inpatient care.",text,sentence,,unknown,,,,,2088,1900,,,304734ae1898eb8d734d9859a7ee8fb7,,,,,,,,,text,,,1,,,,,,,,,,,,
+5a193dec37dbf19a,WHO-EURO-2025-12555-52329-80560-eng.zip,29,"Financial protection improved on average after the
+economic crisis but not for people with low incomes.",text,sentence,,unknown,,,,,2193,2089,,,77267206f6f75c3d2205b4994c47c5ad,,,,,,,,,text,,,1,,,,,,,,,,,,
+01b5064c2a86f0ee,WHO-EURO-2025-12555-52329-80560-eng.zip,30,"Financial hardship and unmet need are not much better
+for the poorest quintile now than they were during the
+economic crisis.",text,sentence,,unknown,,,,,2322,2195,,,523ce9d8efaad8b17c611957973726f7,,,,,,,,,text,,,1,,,,,,,,,,,,
+2f2861acfde708dd,WHO-EURO-2025-12555-52329-80560-eng.zip,31,"This is due to:
+Source: Chletsos & Economou (2025).",text,sentence,,unknown,,,,,2374,2323,,,e85b959da0cced8b444576ed934ea67b,,,,,,,,,text,,,1,,,,,,,,,,,,
+62ad2b3a47fc9b70,WHO-EURO-2025-12555-52329-80560-eng.zip,32,"Medical products
+Inpatient care
+Diagnostic tests
+Outpatient care
+Dental care
+Medicines
+Fig.",text,sentence,,unknown,,,,,2469,2375,,,44d8e4cfa424f7381e12b49993109a3c,,,,,,,,,text,,,1,,,,,,,,,,,,
+9c27941f59614fb7,WHO-EURO-2025-12555-52329-80560-eng.zip,33,"Breakdown of catastrophic
+health spending by type of health
+care and consumption quintileCatastrophic health spending (%)
+0
+60
+40
+20
+80
+100
+Total Poorest quintile                    All other quintiles
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023",text,sentence,,unknown,,,,,2917,2473,,,73933bb364ee6815bd0e7d43a713449e,,,,,,,,,text,,,1,,,,,,,,,,,,
+9a9c8b7465e8850f,WHO-EURO-2025-12555-52329-80560-eng.zip,34,"Households with catastrophic
+health spending and out-of-pocket
+payments as a share of current
+spending on health, WHO European
+Region, latest available year
+Notes: data on catastrophic health spending and
+out-of-pocket payments are for the same year.",text,sentence,,unknown,,,,,265,10,,,a7c78cf46db6bf28ea8b5e2c119da311,,,,,,,,,text,,,2,,,,,,,,,,,,
+bee5df9f15e4cb1f,WHO-EURO-2025-12555-52329-80560-eng.zip,35,"The colour of the dots reflects the incidence of
+catastrophic health spending: green < 2%, yellow
+< 5%, orange < 10%, red < 15%, dark red over
+15%.",text,sentence,,unknown,,,,,417,267,,,3fa0512b032c8d1296fad3303311c5af,,,,,,,,,text,,,2,,,,,,,,,,,,
+627fac4ef8587318,WHO-EURO-2025-12555-52329-80560-eng.zip,36,See page 6 for country codes.,text,sentence,,unknown,,,,,447,418,,,a67fd95c8b50d83eb1276e8f6a9dd6fd,,,,,,,,,text,,,2,,,,,,,,,,,,
+b7add4a334c7f461,WHO-EURO-2025-12555-52329-80560-eng.zip,37,"Source: data on catastrophic health spending
+from UHC watch (2025) and data on out-of-
+pocket payments from the WHO Global Health
+Expenditure Database (2025).",text,sentence,,unknown,,,,,609,449,,,8fc205e22b32721c682d21d211277583,,,,,,,,,text,,,2,,,,,,,,,,,,
+34da59b1a6590c74,WHO-EURO-2025-12555-52329-80560-eng.zip,38,"Catastrophic health spending
+0
+100
+60
+40
+20
+80
+IRE 2016
+UNK 2019
+SVN 2022
+SWE 2015
+FRA 2017
+LUX 2017
+DEU 2018
+DEN 2015
+SPA 2020
+CRO 2019
+FIN 2016
+AUT 2020
+TUR 2018
+SVK 2023
+CYP 2015
+BEL 2020
+ISR 2022
+CZH 2023
+BIH 2021
+MKD 2018
+MAT 2015
+EST 2020
+POR 2022
+ITA 2022
+MNE 2021
+POL 2021
+GRE 2023
+MDA 2021
+HUN 2015
+ALB 2015
+ROM 2015
+SRB 2022
+LVA 2016
+LTU 2016
+ARM 2021
+UKR 2021
+GEO 2018
+TJK 2022
+BUL 2018
+Fig.",text,sentence,,unknown,,,,,1012,610,,,89396002ad48ddd9683c8a96900a3a2a,,,,,,,,,text,,,2,,,,,,,,,,,,
+749cdda318176d73,WHO-EURO-2025-12555-52329-80560-eng.zip,39,"Breakdown of out-of-
+pocket payments by type of
+health care in households in the
+poorest consumption quintile with
+catastrophic health spending, WHO
+European Region, latest available year
+Notes: countries ranked from left to right by the
+incidence of catastrophic health spending.",text,sentence,,unknown,,,,,1301,1016,,,ad914668f0f574d7741693b4b16abc9f,,,,,,,,,text,,,2,,,,,,,,,,,,
+5b4e2caf01744d12,WHO-EURO-2025-12555-52329-80560-eng.zip,40,"Types
+of health care are sorted by the unweighted
+average across all households and all countries.",text,sentence,,unknown,,,,,1402,1302,,,1429dfbeb2ee8dba308bd5efbe6f8c18,,,,,,,,,text,,,2,,,,,,,,,,,,
+d9ef60c014dcc601,WHO-EURO-2025-12555-52329-80560-eng.zip,41,See page 6 for country codes.,text,sentence,,unknown,,,,,1433,1404,,,a67fd95c8b50d83eb1276e8f6a9dd6fd,,,,,,,,,text,,,2,,,,,,,,,,,,
+9814db2af68c82d0,WHO-EURO-2025-12555-52329-80560-eng.zip,42,Source: UHC watch (2025).,text,sentence,,unknown,,,,,1459,1434,,,d74df96c04edc5e612249bfb03a3ad49,,,,,,,,,text,,,2,,,,,,,,,,,,
+e08e929da963bb36,WHO-EURO-2025-12555-52329-80560-eng.zip,43,"Medical products
+Inpatient care
+Diagnostic tests
+Outpatient care Dental care
+Medicines
+Households with catastrophic health spending (%)
+Out-of-pocket payments as a share of current spending on health (%)
+0
+0 90604530 7515
+20
+15
+10
+5
+SWI 2017
+DEU 2018
+DEN 2015
+FIN 2016
+TUR 2018
+SVK 2023
+GRE 2023
+MNE 2021
+MDA 2023
+SRB 2022
+ALB 2015
+CYP 2015
+MKD 2018
+MAT 2015
+UNK 2019SVN 2022
+IRE 2016
+SWE 2015FRA 2017
+CZH 2023 ISR 2022
+EST 2020
+POL 2021
+ITA 2022
+HUN 2015
+ROM 2015
+LTU 2016 LVA 2016
+GEO 2018UKR 2021
+BUL 2018
+ARM 2021
+TJK 2022
+BIH 2021
+POR 2022
+LUX 2020
+BEL 2020
+CRO 2019 SPA 2020
+AUT 2020",text,sentence,,unknown,,,,,2053,1460,,,89a13a9b2b2bc8c67d077102e4df203f,,,,,,,,,text,,,2,,,,,,,,,,,,
+be6c77859ed61fee,WHO-EURO-2025-12555-52329-80560-eng.zip,44,"4
+• continued underfunding of the health system – public
+spending on health has risen since the economic crisis
+but, as a share of gross domestic product, it remains well
+below the EU average, reflecting the very low priority
+given to health in allocating the government budget;
+and
+• persistent gaps in all three dimensions of coverage
+policy (see Table 1), which have a disproportionately
+negative impact on people with low incomes and
+exacerbate inequalities in access to health care.",text,sentence,,unknown,,,,,495,0,,,ef3c27e26a3ec587b6220f636b57a302,,,,,,,,,text,,,3,,,,,,,,,,,,
+47b8f4f9d0ce2015,WHO-EURO-2025-12555-52329-80560-eng.zip,45,"How can Greece improve
+financial protection?",text,sentence,,unknown,,,,,541,496,,,ecb662f4ec689b274158debad849413a,,,,,,,,,text,,,3,,,,,,,,,,,,
+47af2d239bcdcfa0,WHO-EURO-2025-12555-52329-80560-eng.zip,46,"Building on steps already taken, the Government can
+consider the following options for action to address key
+gaps in coverage and reduce financial hardship
+and unmet need, particularly for households with
+low incomes.",text,sentence,,unknown,,,,,765,542,,,585ab0a1cb96e1c56f050b1422a55180,,,,,,,,,text,,,3,,,,,,,,,,,,
+0762b780b7fc37a7,WHO-EURO-2025-12555-52329-80560-eng.zip,47,"Reduce inequality in access to health care by extending
+benefits from the National Organization for the
+Provision of Health Services (EOPYY) to all residents.",text,sentence,,unknown,,,,,926,766,,,50ebe8715cd5ba3d5e04b0b8b4407355,,,,,,,,,text,,,3,,,,,,,,,,,,
+4b6bfa0d3df79cf6,WHO-EURO-2025-12555-52329-80560-eng.zip,48,"People not covered by the EOPYY rely on public facilities
+and face greater barriers to access due to longer waiting
+times and shortages of staff and equipment.",text,sentence,,unknown,,,,,1089,928,,,25ea39585973a186c9d20217bcd25f27,,,,,,,,,text,,,3,,,,,,,,,,,,
+2bebeb8eef5fc147,WHO-EURO-2025-12555-52329-80560-eng.zip,49,"In addition,
+many taxpayers are not entitled to EOPYY benefits even
+though they contribute to the financing of the EOPYY;
+this includes (but is not limited to) people who have paid
+contributions to the EOPYY (or its predecessors) while
+working but are no longer eligible for EOPYY benefits
+due to long-term unemployment.",text,sentence,,unknown,,,,,1416,1090,,,5967a5f8c0ff7e07f45d936ab3820fbd,,,,,,,,,text,,,3,,,,,,,,,,,,
+12bfd5f0fc5185c1,WHO-EURO-2025-12555-52329-80560-eng.zip,50,"These challenges can be addressed by changing the basis
+for entitlement to EOPYY benefits from payment of
+contributions to residence, as in Czechia or France (WHO
+Regional Office for Europe, 2023).",text,sentence,,unknown,,,,,1617,1417,,,415d5cec0f7b66527459a068a939fe9a,,,,,,,,,text,,,3,,,,,,,,,,,,
+4a3a8110d71d29cb,WHO-EURO-2025-12555-52329-80560-eng.zip,51,"Changing the basis for
+entitlement would not require any fundamental change
+in the way the EOPYY is financed.",text,sentence,,unknown,,,,,1729,1618,,,3735c1333ddbc20cc43de152018bb01a,,,,,,,,,text,,,3,,,,,,,,,,,,
+7dcec31e627e3969,WHO-EURO-2025-12555-52329-80560-eng.zip,52,"Rather, it would mean
+that:
+Table 1.",text,sentence,,unknown,,,,,1767,1730,,,f221bc77d4988c48f6c17ebf0bfcbce0,,,,,,,,,text,,,3,,,,,,,,,,,,
+4389db29a3d18cd9,WHO-EURO-2025-12555-52329-80560-eng.zip,53,Gaps in publicly financed and voluntary health insurance coverage Source: UHC watch (2025).,text,sentence,,unknown,,,,,1859,1768,,,f2f4f97acda0b6f8871bdf47b2bc329d,,,,,,,,,text,,,3,,,,,,,,,,,,
+59917c18350fb798,WHO-EURO-2025-12555-52329-80560-eng.zip,54,"Coverage dimension Main gaps in publicly financed coverage Are these gaps covered by voluntary health
+insurance?",text,sentence,,unknown,,,,,1973,1860,,,f19344a8bf777c77344594d1d40a6052,,,,,,,,,text,,,3,,,,,,,,,,,,
+7d30061249fd4c12,WHO-EURO-2025-12555-52329-80560-eng.zip,55,"Population coverage The basis for entitlement to benefits covered by the SHI scheme (the
+EOPYY) is employment and payment of mandatory contributions,
+which leaves some legal residents without SHI coverage, including
+long-term unemployed people under the age of 55 or self-employed
+people who struggle to pay contributions
+There are no publicly available data on the number of legal residents
+who lack EOPYY coverage
+Legal residents (and their dependants) who are not covered by the
+EOPYY are only entitled to health care provided in public facilities
+and tend to face longer waiting times for treatment and other access
+barriers
+Undocumented migrants only have access to emergency care and
+essential treatment for illnesses and serious mental health conditions
+and may face administrative barriers, such as delays in access to the
+relevant type of proof of entitlement to social insurance coverage
+Most Roma may lack coverage or face barriers to access
+No, due to financial barriers to voluntary health
+insurance
+Service coverage Coverage of dental care is limited, particularly for adults who are only
+entitled to emergency dental care in public facilities
+Caps on service volumes limit access to outpatient visits, prescribed
+medicines and diagnostic tests
+Although waiting times are a major issue, there are no waiting time
+guarantees or targets
+Informal payments are widespread, particularly in public hospitals
+Yes, but take up is low and concentrated
+among people with higher incomes
+User charges
+(co-payments)
+User charges are applied to most types of outpatient care and to
+inpatient care and diagnostic tests provided in private facilities
+contracted by the EOPYY
+The design of user charges for outpatient prescribed medicines is
+complex
+There are very few exemptions from co-payments targeting people
+with low incomes and there is no overall cap on co-payment
+No",text,sentence,,unknown,,,,,3867,1974,,,c3d5d23c5cda081b28d4754b27198f41,,,,,,,,,text,,,3,,,,,,,,,,,,
+becb7d40b17952bf,WHO-EURO-2025-12555-52329-80560-eng.zip,56,"5
+• all residents would be entitled to the same health care
+benefits; and
+• non-payment of contributions would be treated in the
+same way as non-payment of other taxes (i.e.",text,sentence,,unknown,,,,,175,0,,,1fcac0772d9d2741a8513abfdf8f9efe,,,,,,,,,text,,,4,,,,,,,,,,,,
+ee12ed80f21f7ca6,WHO-EURO-2025-12555-52329-80560-eng.zip,57,"through
+fines rather than through denial of access to services).",text,sentence,,unknown,,,,,241,176,,,f93d07c737ed4f00c7ef6c189592c13b,,,,,,,,,text,,,4,,,,,,,,,,,,
+bfda833dbb4232f4,WHO-EURO-2025-12555-52329-80560-eng.zip,58,"Simplify and strengthen the design of co-payments,
+particularly for outpatient medicines and other forms
+of outpatient care.",text,sentence,,unknown,,,,,369,242,,,c20173d2590f4d487dc6167f1ac46385,,,,,,,,,text,,,4,,,,,,,,,,,,
+4ce3cb9bdb0e2477,WHO-EURO-2025-12555-52329-80560-eng.zip,59,"International evidence and
+experience show that this can be done by extending
+exemptions from all co-payments (including the
+avoidable co-payments caused by reference pricing)
+to more households with low incomes; introducing an
+income-based cap on all co-payments – caps that give
+stronger protection to people with lower incomes are
+not only more likely to improve financial protection
+but will also ensure equity and efficiency in the use of
+public funds and soften the impact on the health budget
+(García-Ramirez et al., 2025); replacing percentage co-
+payments with low, fixed co-payments; and applying
+protection mechanisms automatically, with the help of
+digital tools, to simplify access and maximize take up
+(Kasekamp & Habicht, 2025).",text,sentence,,unknown,,,,,1126,370,,,bc4820abfa9bde7b00ab9c8be972baee,,,,,,,,,text,,,4,,,,,,,,,,,,
+9c4f231a5c032c7f,WHO-EURO-2025-12555-52329-80560-eng.zip,60,"Continue efforts to:
+• improve financial protection for people who need
+outpatient medicines and other forms of outpatient
+care by strengthening protection from co-payments;
+ensuring appropriate prescribing and dispensing;
+encouraging greater use of generics; and lowering
+medicine prices;
+• expand access to publicly financed non-emergency
+dental care, going beyond the limited services provided
+at present – particularly for people with low incomes,
+who currently experience very high levels of unmet
+need;
+• monitor and address long waiting times and informal
+payments, ensuring that existing and new measures do
+not exacerbate inequalities in access to health care; and
+• strengthen the purchasing and governance of publicly
+financed health care, so that public resources are better
+able to meet equity and efficiency goals.",text,sentence,,unknown,,,,,1969,1128,,,5700247919eef5b8d37bea7ba835fdfe,,,,,,,,,text,,,4,,,,,,,,,,,,
+af85320e7143b415,WHO-EURO-2025-12555-52329-80560-eng.zip,61,"These policy choices can be supported by increasing the
+priority given to health in allocating the government
+budget.",text,sentence,,unknown,,,,,2089,1970,,,7d172a5e9d78085597fce132a95fe8e4,,,,,,,,,text,,,4,,,,,,,,,,,,
+0f1540c3c8b91279,WHO-EURO-2025-12555-52329-80560-eng.zip,62,"Any additional public spending on health should
+be carefully used to reduce financial hardship and unmet
+need for households with low incomes.",text,sentence,,unknown,,,,,2234,2090,,,178d8bb5da203479e25dcd81fe853e06,,,,,,,,,text,,,4,,,,,,,,,,,,
+2820a65fa3238954,WHO-EURO-2025-12555-52329-80560-eng.zip,63,"In itself, an
+increase in public spending on health is not a guarantee
+of better financial protection.",text,sentence,,unknown,,,,,2339,2235,,,37efdbdd09d47436d656cf5189dec71c,,,,,,,,,text,,,4,,,,,,,,,,,,
+bd2de00dc3fb82c4,WHO-EURO-2025-12555-52329-80560-eng.zip,64,"References1
+Chletsos M, Economou C (2025).",text,sentence,,unknown,,,,,2382,2340,,,de36ad941a099f3482cd5377402bd45e,,,,,,,,,text,,,4,,,,,,,,,,,,
+ca746133d6ae6042,WHO-EURO-2025-12555-52329-80560-eng.zip,65,"Can people afford to pay
+for health care?",text,sentence,,unknown,,,,,2425,2383,,,848fc46a2a475815aa360adc7696b08d,,,,,,,,,text,,,4,,,,,,,,,,,,
+c07f021a313448e5,WHO-EURO-2025-12555-52329-80560-eng.zip,66,"New evidence on financial protection in
+Greece.",text,sentence,,unknown,,,,,2474,2426,,,d53238446ac4c2ea0dc9e48cbe7cb27a,,,,,,,,,text,,,4,,,,,,,,,,,,
+b34969e57378b522,WHO-EURO-2025-12555-52329-80560-eng.zip,67,Copenhagen: WHO Regional Office for Europe.,text,sentence,,unknown,,,,,2518,2475,,,8b985036fa1322771c1362a8675d5204,,,,,,,,,text,,,4,,,,,,,,,,,,
+cd2f91ceccd2be08,WHO-EURO-2025-12555-52329-80560-eng.zip,69,"Licence: CC
+BY-NC-SA 3.0 IGO.",text,sentence,,unknown,,,,,2594,2564,,,6cd529c729c7f1ae85d3aa4ba11c9dca,,,,,,,,,text,,,4,,,,,,,,,,,,
+d4d3ad606189c6a0,WHO-EURO-2025-12555-52329-80560-eng.zip,70,"Cylus J, Thomson S, Serrano Gregori M, Gallardo
+Martínez M, García-Ramírez JA, Evetovits T (2025).",text,sentence,,unknown,,,,,2694,2595,,,00af1584a7df6773865556b3261d6817,,,,,,,,,text,,,4,,,,,,,,,,,,
+dbaeaf22ebf62b1e,WHO-EURO-2025-12555-52329-80560-eng.zip,71,"How
+does population ageing affect health system financial
+sustainability and affordable access to health care in
+Europe?",text,sentence,,unknown,,,,,2818,2695,,,bd51bb14bc1739fde52cc8b7daf4a945,,,,,,,,,text,,,4,,,,,,,,,,,,
+e37ba103153f133c,WHO-EURO-2025-12555-52329-80560-eng.zip,72,"Copenhagen: WHO Regional Office for Europe
+(https://iris.who.int/handle/10665/380710).",text,sentence,,unknown,,,,,2906,2819,,,b0fc4ea23677bb100898b0c6d56e78ee,,,,,,,,,text,,,4,,,,,,,,,,,,
+5c0080e6001b055d,WHO-EURO-2025-12555-52329-80560-eng.zip,73,"Licence: CC
+BY-NC-SA 3.0 IGO.",text,sentence,,unknown,,,,,2937,2907,,,6cd529c729c7f1ae85d3aa4ba11c9dca,,,,,,,,,text,,,4,,,,,,,,,,,,
+e9a2abc29d03f563,WHO-EURO-2025-12555-52329-80560-eng.zip,75,"European Union Statistics on Income
+and Living Conditions (EU-SILC) [website].",text,sentence,,unknown,,,,,3035,2956,,,bdd45a89ec1f90b2eadf17660273634d,,,,,,,,,text,,,4,,,,,,,,,,,,
+a572d0a3dabab710,WHO-EURO-2025-12555-52329-80560-eng.zip,76,"Luxembourg:
+Statistical Office of the European Union (https://
+ec.europa.eu/eurostat/web/microdata/european-union-
+statistics-on-income-and-living-conditions).",text,sentence,,unknown,,,,,3196,3036,,,57780430734493f93f02925a1aefdc3c,,,,,,,,,text,,,4,,,,,,,,,,,,
+2413d0e095f44a12,WHO-EURO-2025-12555-52329-80560-eng.zip,78,"European Health Interview Survey
+(EHIS) [website].",text,sentence,,unknown,,,,,3266,3215,,,0d52319962bca1b7bffaecfe1229b8c2,,,,,,,,,text,,,4,,,,,,,,,,,,
+4caa4a2f873de505,WHO-EURO-2025-12555-52329-80560-eng.zip,79,"Luxembourg: Statistical Office of the
+European Union (https://ec.europa.eu/eurostat/web/
+microdata/european-health-interview-survey).",text,sentence,,unknown,,,,,3401,3267,,,ec2b56cad3ff99a72840c83bc1c05c84,,,,,,,,,text,,,4,,,,,,,,,,,,
+5fdc196799716bc6,WHO-EURO-2025-12555-52329-80560-eng.zip,80,"García-Ramírez J, Thomson S, Urbanos-Garrido R,
+Bouckaert N, Czypionka T, Blümel M et al.",text,sentence,,unknown,,,,,3492,3402,,,46d3df02941de4d538430110ca70a11e,,,,,,,,,text,,,4,,,,,,,,,,,,
+aab6eb719d8adb25,WHO-EURO-2025-12555-52329-80560-eng.zip,81,"Using
+income-based caps to protect people from user charges
+for health care.",text,sentence,,unknown,,,,,3579,3501,,,0a9314ca803e4e9a94cab57c7ef97ab0,,,,,,,,,text,,,4,,,,,,,,,,,,
+9aeb5fcb8b1fb505,WHO-EURO-2025-12555-52329-80560-eng.zip,82,"Lessons from Austria, Belgium, Germany
+and Spain.",text,sentence,,unknown,,,,,3630,3580,,,6d98565758b99616d2b71a7328f0c2c8,,,,,,,,,text,,,4,,,,,,,,,,,,
+95e3f48229ae6633,WHO-EURO-2025-12555-52329-80560-eng.zip,83,"Improving affordable access to health care
+series.",text,sentence,,unknown,,,,,3682,3631,,,d362d4846e33e81a4a1cd59044df3cd0,,,,,,,,,text,,,4,,,,,,,,,,,,
+3aea74a388075949,WHO-EURO-2025-12555-52329-80560-eng.zip,84,"Copenhagen: WHO Regional Office for Europe
+(https://iris.who.int/handle/10665/380709).",text,sentence,,unknown,,,,,3770,3683,,,c7f269b70d8ab58a89108a609b7a6bee,,,,,,,,,text,,,4,,,,,,,,,,,,
+49d29169a4c03697,WHO-EURO-2025-12555-52329-80560-eng.zip,85,"Licence: CC
+BY-NC-SA 3.0 IGO.",text,sentence,,unknown,,,,,3801,3771,,,6cd529c729c7f1ae85d3aa4ba11c9dca,,,,,,,,,text,,,4,,,,,,,,,,,,
+b273caff14b74fa3,WHO-EURO-2025-12555-52329-80560-eng.zip,86,"Kasekamp K, Habicht T (2025).",text,sentence,,unknown,,,,,3831,3802,,,aac6f29d9bb3394412d5118800a7b56d,,,,,,,,,text,,,4,,,,,,,,,,,,
+2e883b7af286f025,WHO-EURO-2025-12555-52329-80560-eng.zip,87,"Using digital solutions to
+protect people from user charges for health care.",text,sentence,,unknown,,,,,3909,3832,,,14224e9418225edca6852e7c3a04c7c0,,,,,,,,,text,,,4,,,,,,,,,,,,
+e4e5489a6bd7b17f,WHO-EURO-2025-12555-52329-80560-eng.zip,88,"Lessons
+from Estonia.",text,sentence,,unknown,,,,,3932,3910,,,c6425e221d2a64a449436a99d04e74dd,,,,,,,,,text,,,4,,,,,,,,,,,,
+5e943927d08b6721,WHO-EURO-2025-12555-52329-80560-eng.zip,89,"Improving affordable access to health care
+series.",text,sentence,,unknown,,,,,3984,3933,,,d362d4846e33e81a4a1cd59044df3cd0,,,,,,,,,text,,,4,,,,,,,,,,,,
+ef3d70c59f5d045b,WHO-EURO-2025-12555-52329-80560-eng.zip,90,"Copenhagen: WHO Regional Office for Europe
+(https://iris.who.int/handle/10665/380708).",text,sentence,,unknown,,,,,4072,3985,,,aa4910f5962dd840db68e7dbd418361a,,,,,,,,,text,,,4,,,,,,,,,,,,
+5181d8039f2c7fbf,WHO-EURO-2025-12555-52329-80560-eng.zip,91,"Licence: CC
+BY-NC-SA 3.0 IGO.",text,sentence,,unknown,,,,,4103,4073,,,6cd529c729c7f1ae85d3aa4ba11c9dca,,,,,,,,,text,,,4,,,,,,,,,,,,
+f997365ddef24a45,WHO-EURO-2025-12555-52329-80560-eng.zip,92,UHC watch (2025).,text,sentence,,unknown,,,,,4121,4104,,,c71c059921ce8dec9fed8ba93ef5914c,,,,,,,,,text,,,4,,,,,,,,,,,,
+775f5e6c7200122f,WHO-EURO-2025-12555-52329-80560-eng.zip,93,UHC watch [online database].,text,sentence,,unknown,,,,,4150,4122,,,1d9952ddb5a006e1c0cd4e33789dccc2,,,,,,,,,text,,,4,,,,,,,,,,,,
+45adf408cceebb0a,WHO-EURO-2025-12555-52329-80560-eng.zip,94,"Copenhagen: WHO Regional Office for Europe (https://
+apps.who.int/dhis2/uhcwatch/).",text,sentence,,unknown,,,,,4235,4152,,,fa0918050559e0ad5546a8b2b56684ba,,,,,,,,,text,,,4,,,,,,,,,,,,
+143fa4e3adaaabfc,WHO-EURO-2025-12555-52329-80560-eng.zip,96,"Global Health Expenditure Database [online
+database].",text,sentence,,unknown,,,,,4302,4248,,,ec978786f0fa37c357297e30aed990f1,,,,,,,,,text,,,4,,,,,,,,,,,,
+3e0106be115209d6,WHO-EURO-2025-12555-52329-80560-eng.zip,97,World Health Organization (https://apps.who.,text,sentence,,unknown,,,,,4347,4303,,,1d237d22efa2b95226bcbb7d70271ab0,,,,,,,,,text,,,4,,,,,,,,,,,,
+e053894fe630096b,WHO-EURO-2025-12555-52329-80560-eng.zip,99,WHO Regional Office for Europe (2023).,text,sentence,,unknown,,,,,4405,4367,,,48555cd282d0f5c74e9f3eb900a3eba5,,,,,,,,,text,,,4,,,,,,,,,,,,
+ed98bdb152bf24f8,WHO-EURO-2025-12555-52329-80560-eng.zip,100,"Can people
+afford to pay for health care?",text,sentence,,unknown,,,,,4448,4406,,,99d17feffe2052ca7c3c687df852bebd,,,,,,,,,text,,,4,,,,,,,,,,,,
+02ccb8f911286626,WHO-EURO-2025-12555-52329-80560-eng.zip,101,"Evidence on financial
+protection in 40 countries in Europe.",text,sentence,,unknown,,,,,4509,4449,,,c14642d8b208c99482ff47ea32552dd1,,,,,,,,,text,,,4,,,,,,,,,,,,
+6d5364f2d0408274,WHO-EURO-2025-12555-52329-80560-eng.zip,102,"Copenhagen:
+WHO Regional Office for Europe (https://iris.who.int/
+handle/10665/374504).",text,sentence,,unknown,,,,,4598,4510,,,b52b32a247c4a0fa04abc4a575d17647,,,,,,,,,text,,,4,,,,,,,,,,,,
+5d97a7ce96079674,WHO-EURO-2025-12555-52329-80560-eng.zip,103,Licence: CC BY-NC-SA 3.0 IGO.,text,sentence,,unknown,,,,,4628,4599,,,96d72d31672d31092a2deef701cd60dd,,,,,,,,,text,,,4,,,,,,,,,,,,
+044c629d5a376e3b,WHO-EURO-2025-12555-52329-80560-eng.zip,104,All references were accessed on 18 July 2025.,text,sentence,,unknown,,,,,4677,4632,,,3db9b64bdc2296104b884840f6ff1645,,,,,,,,,text,,,4,,,,,,,,,,,,
+c5ec395574191740,WHO-EURO-2025-12555-52329-80560-eng.zip,105,"WHO Barcelona Office for Health Systems Financing
+
+The WHO Barcelona Office is a centre of excellence in
+health financing for universal health coverage.",text,sentence,,unknown,,,,,154,0,,,0dde307e14ffb70dfb807d6307a9ce62,,,,,,,,,text,,,5,,,,,,,,,,,,
+ca726d7aa96f5ddf,WHO-EURO-2025-12555-52329-80560-eng.zip,106,"The
+Office works with Member States in Europe and central
+Asia to promote evidence-informed policy making.",text,sentence,,unknown,,,,,263,155,,,e8b63fab32c13396294d1af976d55b34,,,,,,,,,text,,,5,,,,,,,,,,,,
+df7163f0bfc7b67e,WHO-EURO-2025-12555-52329-80560-eng.zip,107,"It
+also offers training courses on health financing.",text,sentence,,unknown,,,,,317,264,,,9e71034a3fbb2fca3daea9da25a9bf6d,,,,,,,,,text,,,5,,,,,,,,,,,,
+cf58ebbe1280f0ca,WHO-EURO-2025-12555-52329-80560-eng.zip,108,"A key
+part of the work of the Office is to assess country and
+regional progress towards universal health coverage by
+monitoring affordable access to health care.",text,sentence,,unknown,,,,,482,318,,,7634109d47ecde56142d7320a9fe068e,,,,,,,,,text,,,5,,,,,,,,,,,,
+b29640b25c479b3a,WHO-EURO-2025-12555-52329-80560-eng.zip,109,"The Office
+supports countries to strengthen financial protection
+through tailored technical assistance and disseminates
+country-specific and internationally comparable data and
+policy analysis through UHC watch, a digital platform
+tracking progress on affordable access to health care in
+Europe and central Asia.",text,sentence,,unknown,,,,,801,483,,,4c568818e69f771e25903cb12dd7ad4f,,,,,,,,,text,,,5,,,,,,,,,,,,
+5bcf65c6b28b3fd9,WHO-EURO-2025-12555-52329-80560-eng.zip,110,"Established in 1999, the Office
+is supported by the Government of the Autonomous
+Community of Catalonia, Spain.",text,sentence,,unknown,,,,,915,802,,,ebe085ecbd2397be7c2f242dd340a44c,,,,,,,,,text,,,5,,,,,,,,,,,,
+11de7b09a6a8ea13,WHO-EURO-2025-12555-52329-80560-eng.zip,111,"It is part of the Division
+of Country Health Policies and Systems of the WHO
+Regional Office for Europe.",text,sentence,,unknown,,,,,1022,916,,,b03f79d59b462ac6a61bce388c34a3a6,,,,,,,,,text,,,5,,,,,,,,,,,,
+f87bba4414dd36ee,WHO-EURO-2025-12555-52329-80560-eng.zip,112,"WHO Regional Office for Europe
+The World Health Organization (WHO) is a specialized
+agency of the United Nations created in 1948 with the
+primary responsibility for international health matters
+and public health.",text,sentence,,unknown,,,,,1238,1023,,,4b7a692f7d5350676a60cb38e632054e,,,,,,,,,text,,,5,,,,,,,,,,,,
+475d70a8d1e450fd,WHO-EURO-2025-12555-52329-80560-eng.zip,113,"The WHO Regional Office for Europe
+is one of six regional offices throughout the world, each
+with its own programme geared to the particular health
+conditions of the countries it serves.",text,sentence,,unknown,,,,,1428,1239,,,a3ab3b9f5b284bee21ae2d53d148c71f,,,,,,,,,text,,,5,,,,,,,,,,,,
+3cd0d1e4f4299033,WHO-EURO-2025-12555-52329-80560-eng.zip,114,"World Health Organization
+Regional Office for Europe
+UN City, Marmorvej 51, DK-2100 Copenhagen Ø, Denmark
+Tel.",text,sentence,,unknown,,,,,1539,1429,,,e5f14572e7160838cef66d198b722f8e,,,,,,,,,text,,,5,,,,,,,,,,,,
+48d8f0c62532c194,WHO-EURO-2025-12555-52329-80560-eng.zip,115,": +45 45 33 70 00 Fax: +45 45 33 70 01
+Email: eurocontact@who.int
+Website: www.who.int/europe
+6
+© World Health Organization 2025.",text,sentence,,unknown,,,,,1668,1539,,,b729de44d654242949cfdd06c7617b79,,,,,,,,,text,,,5,,,,,,,,,,,,
+bb47d120d199ac4a,WHO-EURO-2025-12555-52329-80560-eng.zip,116,Some rights reserved.,text,sentence,,unknown,,,,,1690,1669,,,3a9fed97f71c0591703ca9f6779ff1af,,,,,,,,,text,,,5,,,,,,,,,,,,
+3ffab9c481ac1599,WHO-EURO-2025-12555-52329-80560-eng.zip,117,"This work
+is available under the CC BY-NC-SA 3.0 IGO license.",text,sentence,,unknown,,,,,1753,1691,,,40bda308be3621b15011817ba18763be,,,,,,,,,text,,,5,,,,,,,,,,,,
+69c73d1291046df3,WHO-EURO-2025-12555-52329-80560-eng.zip,118,"WHO/EURO:2025-12555-52329-80560 (PDF)
+WHO/EURO:2025-12555-52349-80638 (print)
+Countries
+ALB: Albania; ARM: Armenia; AUT: Austria; BEL: Belgium;
+BIH: Bosnia and Herzegovina; BUL: Bulgaria; CRO: Croatia;
+CYP: Cyprus; CZH: Czechia; DEN: Denmark; DEU: Germany;
+EST: Estonia; FIN: Finland; FRA: France; GEO: Georgia; GRE:
+Greece; HUN: Hungary; IRE: Ireland; ISR: Israel; ITA: Italy;
+LTU: Lithuania; LUX: Luxembourg; LVA: Latvia; MAT: Malta;
+MDA: Republic of Moldova; MKD: North Macedonia; MNE:
+Montenegro; POL: Poland; POR: Portugal; ROM: Romania;
+SPA: Spain; SRB: Serbia; SVK: Slovakia; SVN: Slovenia; SWE:
+Sweden; SWI: Switzerland;  TJK: Tajikistan; TUR: Türkiye;
+UKR: Ukraine; UNK: United Kingdom.",text,sentence,,unknown,,,,,2459,1754,,,ef90052e2a97f457b1dbb75fe217cd42,,,,,,,,,text,,,5,,,,,,,,,,,,
+a0e273397ea6add9,WHO-EURO-2025-12555-52329-80560-eng.zip,119,"Acknowledgements
+This summary is based on a review written by Michael
+Chletsos (University of Piraeus) and Charalampos
+Economou (Panteion University) and edited by Lynn Al
+Tayara and Sarah Thomson (WHO Barcelona Office for
+Health Systems Financing).",text,sentence,,unknown,,,,,2713,2460,,,a445a59479c84b679f5ad45e8b5e26ad,,,,,,,,,text,,,5,,,,,,,,,,,,
+414df581cfb2cb5c,WHO-EURO-2025-12555-52329-80560-eng.zip,120,"The authors of the review are
+grateful to the Hellenic Statistical Authority for making
+the household budget survey data available to Michael
+Chletsos.",text,sentence,,unknown,,,,,2868,2714,,,45b26613ae66437b264731c4d36156f1,,,,,,,,,text,,,5,,,,,,,,,,,,
+d7572a879a6d0c5d,WHO-EURO-2025-12555-52329-80560-eng.zip,121,"WHO gratefully acknowledges funding from the
+Government of the Autonomous Community of Catalonia,
+Spain.",text,sentence,,unknown,,,,,2975,2869,,,ccd5fb41bc2af8b0031e11e7c8963315,,,,,,,,,text,,,5,,,,,,,,,,,,
+92c7487c9d8ee1c1,WHO-EURO-2025-12555-52329-80560-eng.zip,122,"This publication was co-funded by the European
+Union.",text,sentence,,unknown,,,,,3030,2976,,,e740a387d6fcc83c582a76898a042120,,,,,,,,,text,,,5,,,,,,,,,,,,
+e12661c6134dda36,WHO-EURO-2025-12555-52329-80560-eng.zip,123,"Its contents are the sole responsibility of WHO and
+do not necessarily reflect the views of the European Union.",text,sentence,,unknown,,,,,3143,3031,,,f3ad7bd0f3e6d5461e8b82b4db7669b8,,,,,,,,,text,,,5,,,,,,,,,,,,
+cca9baff052d3f93,WHO-EURO-2025-12555-52329-80560-eng.zip,124,"Monitoring financial
+protection in Europe
+This study is part of a series of country reports generating
+new evidence on financial protection – affordable access
+to health care – in health systems in Europe and central
+Asia.",text,sentence,,unknown,,,,,3370,3144,,,4d7e3982cebf8c1b7061cd402db12842,,,,,,,,,text,,,5,,,,,,,,,,,,
+215314a4e2b483b3,WHO-EURO-2025-12555-52329-80560-eng.zip,125,"Financial protection is central to universal health
+coverage, an indicator of the Sustainable Development
+Goals, part of the European Pillar of Social Rights and at
+the centre of the European Programme of Work, WHO’s
+strategic framework for the European Region.",text,sentence,,unknown,,,,,3636,3371,,,0329cfeb471f735693f59d43d279c7f3,,,,,,,,,text,,,5,,,,,,,,,,,,
+a224edb06a4adb5b,WHO-EURO-2025-12555-52329-80560-eng.zip,126,"The WHO
+Regional Office for Europe monitors financial protection
+in over 40 countries through the WHO Barcelona Office
+for Health Systems Financing.",text,sentence,,unknown,,,,,3788,3637,,,3e8e0c67097d5a94648d0de16ee5bd93,,,,,,,,,text,,,5,,,,,,,,,,,,
+de898b6cc7455dcc,WHO-EURO-2025-12555-52329-80560-eng.zip,127,"See UHC watch for data,
+analysis and other resources (https://apps.who.int/dhis2/
+uhcwatch).",text,sentence,,unknown,,,,,3882,3789,,,742f5c4f0ffd34eb4e66aa0f1d22b564,,,,,,,,,text,,,5,,,,,,,,,,,,
+93f5b1c616e1f4ee,WHO-EURO-2025-12555-52329-80560-eng.zip,128,"td pais
+Gan people afford
+topay for health care?",text,sentence,,image,,,,,48,0,,0.5916,e653a6a23bfe395aacec1e6ce427cfbe,,,240,170,,,,,text,,tesseract,0,,,,,,,,,,,1,
+7d67dec21716a2a2,WHO-EURO-2025-12555-52329-80560-eng.zip,129,"New evidence on
+financial protection
+
+InGreece!",text,sentence,,image,,,,,97,50,,0.5916,e4e5d8158d22a8656c8a0379572e3733,,,240,170,,,,,text,,tesseract,0,,,,,,,,,,,1,
