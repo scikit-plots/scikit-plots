@@ -53,6 +53,12 @@ else:
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CorpusSource",
+    "SourceEntry",
+    "SourceKind",
+]
+
 # ---------------------------------------------------------------------------
 # URL pattern — basic http/https detection
 # ---------------------------------------------------------------------------
@@ -592,10 +598,3 @@ class CorpusSource:
             f"root={root_str!r}, "
             f"pattern={self.pattern!r})"
         )
-
-
-__all__ = [
-    "CorpusSource",
-    "SourceEntry",
-    "SourceKind",
-]

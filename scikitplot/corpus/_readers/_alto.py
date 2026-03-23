@@ -53,10 +53,12 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ALTOReader"]
 
 # ---------------------------------------------------------------------------
 # ALTO namespace URIs for v2 / v3 / v4
@@ -554,6 +556,9 @@ class ALTOReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".zip"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".zip"]``.
 
     Raises
     ------
@@ -621,7 +626,8 @@ class ALTOReader(DocumentReader):
     ... )
     """
 
-    file_type: ClassVar[str] = ".zip"
+    file_type: ClassVar[str | None] = ".zip"
+    file_types: ClassVar[list[str] | None] = [".zip"]
 
     granularity: str = field(default=_GRAN_BLOCK)
     """
@@ -786,6 +792,3 @@ class ALTOReader(DocumentReader):
             total_chunks,
             len(xml_entries),
         )
-
-
-__all__ = ["ALTOReader"]

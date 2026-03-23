@@ -38,7 +38,7 @@ import threading
 from dataclasses import dataclass, field  # noqa: F401
 from typing import Any, Dict, Iterator, List, Optional, Sequence  # noqa: F401
 
-from scikitplot.corpus._schema import (  # noqa: F401
+from .._schema import (  # noqa: F401
     ChunkingStrategy,
     CorpusDocument,
     SectionType,
@@ -46,6 +46,15 @@ from scikitplot.corpus._schema import (  # noqa: F401
 )
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "InMemoryStorage",
+    "JSONLStorage",
+    "QueryResult",
+    "SQLiteStorage",
+    "StorageBase",
+    "StorageQuery",
+]
 
 
 # ===========================================================================
@@ -785,13 +794,3 @@ class SQLiteStorage(StorageBase):
 
     def __repr__(self) -> str:  # noqa: D105
         return f"SQLiteStorage(db_path={self._db_path!r})"
-
-
-__all__ = [
-    "InMemoryStorage",
-    "JSONLStorage",
-    "QueryResult",
-    "SQLiteStorage",
-    "StorageBase",
-    "StorageQuery",
-]

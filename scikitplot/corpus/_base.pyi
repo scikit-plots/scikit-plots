@@ -266,6 +266,7 @@ class _MultiSourceReader:
 
 class DummyReader(DocumentReader):
     file_type: ClassVar[str]
+    file_types: ClassVar[list[str] | None]
 
     @classmethod
     def check(

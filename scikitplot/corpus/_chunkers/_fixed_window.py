@@ -21,7 +21,7 @@ Two unit modes are supported:
 ``unit="words"``
     The window is measured in whitespace-delimited tokens. Character offsets
     are computed from the original text by recording the start position of
-    each token via ``re.finditer(r"\\S+", text)``. Chunk text is sliced from
+    each token via ``re.finditer(r"\S+", text)``. Chunk text is sliced from
     the original string, preserving all internal whitespace and punctuation.
 
 ``unit="chars"``
@@ -60,6 +60,12 @@ from typing import Any, Final
 from .._types import Chunk, ChunkerConfig, ChunkResult
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "FixedWindowChunker",
+    "FixedWindowChunkerConfig",
+    "WindowUnit",
+]
 
 # ---------------------------------------------------------------------------
 # Constants

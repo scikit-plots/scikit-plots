@@ -499,9 +499,134 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 # ),
                 "autosummary": [
                     "ChunkerBase",
+                    # Concrete built-in filter
                     "DefaultFilter",
+                    # Abstract bases
                     "DocumentReader",
+                    # Utility readers
+                    "DummyReader",
                     "FilterBase",
+                    # Pipeline resilience
+                    "PipelineGuard",
+                    # Multi-source adapter (context manager)
+                    "_MultiSourceReader",
+                    # URL detection helper
+                    "_is_url",
+                ],
+            },
+            {
+                "title": "Chunkers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _chunker_bridge
+                    "ChunkerBridge",
+                    "FixedWindowChunkerBridge",
+                    "ParagraphChunkerBridge",
+                    "SentenceChunkerBridge",
+                    "WordChunkerBridge",
+                    "bridge_chunker",
+                    # _fixed_window
+                    "FixedWindowChunker",
+                    "FixedWindowChunkerConfig",
+                    "WindowUnit",
+                    # _paragraph
+                    "ParagraphChunker",
+                    "ParagraphChunkerConfig",
+                    # _sentence
+                    "SentenceBackend",
+                    "SentenceChunker",
+                    "SentenceChunkerConfig",
+                    # _word
+                    "LemmatizationBackend",
+                    "StemmingBackend",
+                    "StopwordSource",
+                    "TokenizerBackend",
+                    "WordChunker",
+                    "WordChunkerConfig",
+                ],
+            },
+            {
+                "title": "Corpus Builder",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "BuildResult",
+                    "BuilderConfig",
+                    "CorpusBuilder",
+                ],
+            },
+            {
+                "title": "Embeddings",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _embedding
+                    "DEFAULT_CACHE_DIR",
+                    "DEFAULT_MODEL",
+                    "EmbeddingEngine",
+                    # _multimodal_embedding
+                    "DEFAULT_AUDIO_MODEL",
+                    "DEFAULT_IMAGE_MODEL",
+                    "DEFAULT_TEXT_MODEL",
+                    "LLMTrainingExporter",
+                    "MultimodalEmbeddingEngine",
+                ],
+            },
+            {
+                "title": "Enricher",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "BUILTIN_STOPWORDS",
+                    "EnricherConfig",
+                    "NLPEnricher",
+                ],
+            },
+            {
+                "title": "Export",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "export_documents",
+                    "load_documents",
+                ],
+            },
+            {
+                "title": "Normalizers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # _normalizer
+                    "DedupLinesNormalizer",
+                    "HTMLStripNormalizer",
+                    "LanguageDetectionNormalizer",
+                    "LowercaseNormalizer",
+                    "NormalizationPipeline",
+                    "NormalizerBase",
+                    "UnicodeNormalizer",
+                    "WhitespaceNormalizer",
+                    # _text_normalizer
+                    "NormalizerConfig",
+                    "TextNormalizer",
+                    "normalize_text",
+                ],
+            },
+            {
+                "title": "Pipeline",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "CorpusPipeline",
+                    "PipelineResult",
+                    "create_corpus",
                 ],
             },
             {
@@ -522,48 +647,29 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "WebReader",
                     "XMLReader",
                     "YouTubeReader",
+                    "ZipReader",
                 ],
             },
             {
-                "title": "Chunkers",
+                "title": "Similarity",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
-                    "FixedWindowChunker",
-                    "ParagraphChunker",
-                    "SentenceChunker",
-                    "WordChunker",
+                    "SearchConfig",
+                    "SearchResult",
+                    "SimilarityIndex",
                 ],
             },
             {
-                "title": "Enricher",
+                "title": "Source",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
-                    "EnricherConfig",
-                    "NLPEnricher",
-                ],
-            },
-            {
-                "title": "Results",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    # Results
-                    "BuildResult",
-                ],
-            },
-            {
-                "title": "Templates / workflows",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    # Templates / workflows
-                    "TemplateInfo",
+                    "CorpusSource",
+                    "SourceEntry",
+                    "SourceKind",
                 ],
             },
         ],

@@ -24,20 +24,10 @@ All backends implement the same four-method contract:
 
 from __future__ import annotations
 
-from scikitplot.corpus._storage._storage import (
-    InMemoryStorage,
-    JSONLStorage,
-    QueryResult,
-    SQLiteStorage,
-    StorageBase,
-    StorageQuery,
+from . import (
+    _storage,
 )
+from ._storage import *  # noqa: F403
 
-__all__ = [
-    "InMemoryStorage",
-    "JSONLStorage",
-    "QueryResult",
-    "SQLiteStorage",
-    "StorageBase",
-    "StorageQuery",
-]
+__all__ = []
+__all__ += _storage.__all__

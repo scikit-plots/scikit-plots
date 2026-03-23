@@ -325,7 +325,7 @@ class SimilarityIndex:
                 self._build_faiss_index(self._embeddings)
             except ImportError:
                 logger.warning("NumPy not available; SEMANTIC mode disabled.")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("Failed to build dense index: %s", exc)
 
         logger.info(
@@ -538,7 +538,7 @@ class SimilarityIndex:
                         )
                     )
                 return results
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
         # Brute-force cosine

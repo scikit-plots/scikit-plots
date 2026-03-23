@@ -53,10 +53,12 @@ from typing import (  # noqa: F401
     Optional,
 )
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["PDFReader"]
 
 # Maximum file size accepted before raising. 2 GB covers most real PDFs; very
 # large document sets should be split into individual files first.
@@ -262,6 +264,9 @@ class PDFReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".pdf"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".pdf"]``.
 
     Raises
     ------
@@ -326,6 +331,7 @@ class PDFReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".pdf"
+    file_types: ClassVar[list[str] | None] = [".pdf"]
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf")
 
@@ -508,6 +514,3 @@ class PDFReader(DocumentReader):
             fallback = None
 
         return fallback if fallback is not None else text
-
-
-__all__ = ["PDFReader"]

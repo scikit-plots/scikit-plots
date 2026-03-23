@@ -53,8 +53,58 @@ from typing import (  # noqa: F401
     runtime_checkable,
 )
 
-if TYPE_CHECKING:
-    pass  # reserved for forward-reference stubs
+# if TYPE_CHECKING:
+#     pass  # reserved for forward-reference stubs
+
+__all__: Final[list[str]] = [  # noqa: RUF022
+    # Aliases
+    "MetadataDict",
+    "CharOffset",
+    "TokenId",
+    "BowVector",
+    "EmbeddingVector",
+    # Enumerations
+    "DocumentStatus",
+    "ContentType",
+    "ChunkStrategy",
+    "StorageBackend",
+    "NormalizerType",
+    # Core containers
+    "Chunk",
+    "ChunkResult",
+    "Document",
+    # Abstract configs
+    "ChunkerConfig",
+    "SourceConfig",
+    "NormalizerConfig",
+    "StorageConfig",
+    # Pipeline
+    "PipelineStep",
+    "PipelineConfig",
+    "PipelineResult",
+    # Embedding / retrieval
+    "EmbeddedChunk",
+    "RetrievalQuery",
+    "RetrievalResult",
+    # Storage
+    "CorpusRecord",
+    # Protocols
+    "ChunkerProtocol",
+    "NormalizerProtocol",
+    "SourceProtocol",
+    "StorageProtocol",
+    # Registry
+    "ChunkerRegistration",
+    # Validation
+    "ValidationError",
+    "ValidationResult",
+    # LLM training
+    "TrainingExample",
+    "TrainingDataset",
+    # MCP
+    "MCPToolInput",
+    "MCPToolResult",
+]
 
 
 # ===========================================================================
@@ -1241,58 +1291,3 @@ class MCPToolResult:
     content: Any
     is_error: bool = False
     error_message: str | None = None
-
-
-# ===========================================================================
-# Section 14 — Public re-exports
-# ===========================================================================
-
-__all__: Final[list[str]] = [  # noqa: RUF022
-    # Aliases
-    "MetadataDict",
-    "CharOffset",
-    "TokenId",
-    "BowVector",
-    "EmbeddingVector",
-    # Enumerations
-    "DocumentStatus",
-    "ContentType",
-    "ChunkStrategy",
-    "StorageBackend",
-    "NormalizerType",
-    # Core containers
-    "Chunk",
-    "ChunkResult",
-    "Document",
-    # Abstract configs
-    "ChunkerConfig",
-    "SourceConfig",
-    "NormalizerConfig",
-    "StorageConfig",
-    # Pipeline
-    "PipelineStep",
-    "PipelineConfig",
-    "PipelineResult",
-    # Embedding / retrieval
-    "EmbeddedChunk",
-    "RetrievalQuery",
-    "RetrievalResult",
-    # Storage
-    "CorpusRecord",
-    # Protocols
-    "ChunkerProtocol",
-    "NormalizerProtocol",
-    "SourceProtocol",
-    "StorageProtocol",
-    # Registry
-    "ChunkerRegistration",
-    # Validation
-    "ValidationError",
-    "ValidationResult",
-    # LLM training
-    "TrainingExample",
-    "TrainingDataset",
-    # MCP
-    "MCPToolInput",
-    "MCPToolResult",
-]

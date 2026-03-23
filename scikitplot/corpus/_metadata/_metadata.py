@@ -32,6 +32,13 @@ from .._schema import CorpusDocument
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CollectionManifest",
+    "CorpusStats",
+    "compute_stats",
+    "provenance_from_filename",
+]
+
 
 # ===========================================================================
 # CollectionManifest
@@ -567,11 +574,3 @@ def provenance_from_filename(
         logger.debug("provenance_from_filename(%r) → %r.", filename, result)
 
     return result
-
-
-__all__ = [
-    "CollectionManifest",
-    "CorpusStats",
-    "compute_stats",
-    "provenance_from_filename",
-]

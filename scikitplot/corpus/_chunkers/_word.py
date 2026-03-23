@@ -33,6 +33,15 @@ from .._types import Chunk, ChunkerConfig, ChunkResult
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "LemmatizationBackend",
+    "StemmingBackend",
+    "StopwordSource",
+    "TokenizerBackend",
+    "WordChunker",
+    "WordChunkerConfig",
+]
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------

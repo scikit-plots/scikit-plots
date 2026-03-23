@@ -10,33 +10,13 @@ Each normaliser receives a ``CorpusDocument`` and returns a new instance
 
 from __future__ import annotations
 
-from ._normalizer import (
-    DedupLinesNormalizer,
-    HTMLStripNormalizer,
-    LanguageDetectionNormalizer,
-    LowercaseNormalizer,
-    NormalizationPipeline,
-    NormalizerBase,
-    UnicodeNormalizer,
-    WhitespaceNormalizer,
+from . import (
+    _normalizer,
+    _text_normalizer,
 )
-from ._text_normalizer import (
-    NormalizerConfig,
-    TextNormalizer,
-    normalize_text,
-)
+from ._normalizer import *  # noqa: F403
+from ._text_normalizer import *  # noqa: F403
 
-__all__ = [  # noqa: RUF022
-    "DedupLinesNormalizer",
-    "HTMLStripNormalizer",
-    "LanguageDetectionNormalizer",
-    "LowercaseNormalizer",
-    "NormalizationPipeline",
-    "NormalizerBase",
-    "UnicodeNormalizer",
-    "WhitespaceNormalizer",
-    # Text normalisation
-    "NormalizerConfig",
-    "TextNormalizer",
-    "normalize_text",
-]
+__all__ = []
+__all__ += _normalizer.__all__
+__all__ += _text_normalizer.__all__

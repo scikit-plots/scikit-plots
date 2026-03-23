@@ -8,7 +8,7 @@
 r"""
 scikitplot.corpus._chunkers._sentence
 =====================================
-Sentence-boundary segmentation via spaCy.
+Sentence-boundary segmentation via spaCy, NLTK, or regex.
 
 This module is a ground-up rewrite of remarx's ``segment.py``. Every failure
 mode from the original is resolved at its root cause:
@@ -16,16 +16,18 @@ mode from the original is resolved at its root cause:
 Original issues resolved
 ------------------------
 1. **Model reload on every call** — models are cached in a per-instance dict
-   keyed by model name; repeated calls are O(1) dict lookups.
+   (``SentenceChunker._nlp_cache``) keyed by model name; repeated calls are
+   O(1) dict lookups.  The cache is created in ``__init__`` and passed
+   explicitly into ``_split_spacy``; there is no global mutable state.
 2. **Silent auto-download in CI/Docker** — ``auto_download`` param defaults to
-   ``False``. Callers must opt in explicitly. When ``False`` and the model is
+   ``False``.  Callers must opt in explicitly.  When ``False`` and the model is
    missing, a ``RuntimeError`` with the exact install command is raised.
 3. **Hard-coded German model** — ``model_name`` is a required constructor
-   parameter. The caller chooses the model; this class has no language opinion.
+   parameter.  The caller chooses the model; this class has no language opinion.
 4. **No max_length guard** — text longer than ``max_text_length`` is rejected
    with an actionable error before being passed to spaCy.
-5. **Narrow exception handling** — both ``OSError`` and ``IOError`` (which is
-   ``OSError`` on Py3) are handled in the model-load path.
+5. **Narrow exception handling** — ``OSError`` from ``spacy.load`` is caught
+   and re-raised with the exact ``python -m spacy download <model>`` command.
 6. **No empty text guard** — empty/whitespace-only input returns ``[]``
    immediately without loading spaCy.
 7. **Full NLP pipeline for sentence splitting** — disables all pipes that do
@@ -34,9 +36,28 @@ Original issues resolved
 8. **No download gate** — auto-download is behind an explicit ``auto_download``
    flag and logs a warning before mutating the environment.
 
+Constructor convenience
+-----------------------
+``SentenceChunker`` accepts three equivalent forms:
+
+.. code-block:: python
+
+    # 1. Defaults — REGEX backend, no overlap, min_length=10
+    chunker = SentenceChunker()
+
+    # 2. String shorthand — SPACY backend with the named model
+    chunker = SentenceChunker("en_core_web_sm")
+
+    # 3. Explicit config object
+    chunker = SentenceChunker(
+        SentenceChunkerConfig(
+            backend=SentenceBackend.SPACY, spacy_model="en_core_web_sm"
+        )
+    )
+
 Python compatibility
 --------------------
-Python 3.8-3.15. No use of ``match``, ``StrEnum``, or ``Self``.
+Python 3.8-3.15.  No use of ``match``, ``StrEnum``, or ``Self``.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400
 
@@ -44,13 +65,19 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
 from typing import Any, Final
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "SentenceBackend",
+    "SentenceChunker",
+    "SentenceChunkerConfig",
+]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -257,15 +284,27 @@ def _split_nltk(text: str, language: str) -> list[str]:
         return sent_tokenize(text, language=language)
 
 
-def _split_spacy(text: str, model_name: str) -> list[str]:
+def _split_spacy(
+    text: str,
+    model_name: str,
+    nlp_cache: dict[str, Any] | None = None,
+) -> list[str]:
     """Split *text* using a spaCy sentence segmentation pipeline.
+
+    The loaded ``nlp`` object is stored in *nlp_cache* under *model_name*
+    so that repeated calls with the same model pay zero reload cost.
+    Pass ``SentenceChunker._nlp_cache`` to share the cache across calls
+    on the same chunker instance.
 
     Parameters
     ----------
     text : str
         Input document text.
     model_name : str
-        Installed spaCy model name, e.g. ``"en_core_web_sm"``.
+        Name of an installed spaCy model, e.g. ``"en_core_web_sm"``.
+    nlp_cache : dict[str, Any] or None, optional
+        Mutable mapping used to cache loaded ``nlp`` objects.
+        When ``None`` a throwaway local dict is used (no cross-call caching).
 
     Returns
     -------
@@ -277,7 +316,13 @@ def _split_spacy(text: str, model_name: str) -> list[str]:
     ImportError
         If ``spacy`` is not installed.
     OSError
-        If *model_name* is not installed.
+        If *model_name* is not installed, with the exact install command.
+
+    Notes
+    -----
+    Only the ``senter`` / ``sentencizer`` component is kept active.
+    ``ner``, ``tagger``, ``lemmatizer``, and ``attribute_ruler`` are
+    disabled at load time to minimise memory and CPU cost.
     """
     try:
         import spacy  # type: ignore[import-untyped]  # noqa: PLC0415
@@ -286,8 +331,22 @@ def _split_spacy(text: str, model_name: str) -> list[str]:
             "SentenceBackend.SPACY requires 'spacy'. Install with: pip install spacy"
         ) from exc
 
-    nlp = spacy.load(model_name, disable=["ner", "tagger", "lemmatizer"])
-    doc = nlp(text)
+    # Use the caller-supplied cache (or a throwaway local one).
+    cache: dict[str, Any] = nlp_cache if nlp_cache is not None else {}
+
+    if model_name not in cache:
+        try:
+            cache[model_name] = spacy.load(
+                model_name,
+                disable=["ner", "tagger", "lemmatizer", "attribute_ruler"],
+            )
+        except OSError as exc:
+            raise OSError(
+                f"spaCy model {model_name!r} is not installed. "
+                f"Install with: python -m spacy download {model_name}"
+            ) from exc
+
+    doc = cache[model_name](text)
     return [sent.text for sent in doc.sents]
 
 
@@ -327,23 +386,107 @@ class SentenceChunker:
 
     Parameters
     ----------
-    config : SentenceChunkerConfig, optional
-        Chunker configuration.  Defaults to :class:`SentenceChunkerConfig`
-        (REGEX backend, no overlap, min_length=10).
+    config : str or SentenceChunkerConfig or None, optional
+        Three accepted forms:
+
+        ``None`` (default)
+            Constructs a :class:`SentenceChunkerConfig` with all defaults:
+            ``REGEX`` backend, ``min_length=10``, no overlap.
+
+        ``str``
+            Shorthand for the ``SPACY`` backend.  The string is interpreted
+            as the spaCy model name, equivalent to::
+
+                SentenceChunkerConfig(
+                    backend=SentenceBackend.SPACY,
+                    spacy_model=<value>,
+                )
+
+        :class:`SentenceChunkerConfig`
+            Full explicit configuration.
+
+    Raises
+    ------
+    TypeError
+        If *config* is not ``str``, :class:`SentenceChunkerConfig`, or ``None``.
+    ValueError
+        If the resolved configuration is invalid (negative lengths, missing
+        model name for SPACY backend, etc.).
+
+    Notes
+    -----
+    **spaCy model caching** — the loaded ``nlp`` object is stored in
+    ``self._nlp_cache`` (a plain ``dict``) keyed by model name.  The cache
+    is passed into :func:`_split_spacy` on every call, so ``spacy.load``
+    is invoked at most once per model per chunker instance.
 
     Examples
     --------
+    Default REGEX backend:
+
     >>> chunker = SentenceChunker()
     >>> result = chunker.chunk("Hello world. How are you? Fine thanks.")
     >>> len(result.chunks)
     3
     >>> result.chunks[0].text
     'Hello world.'
+
+    spaCy shorthand (model name as string):
+
+    >>> chunker = SentenceChunker("en_core_web_sm")
+    >>> chunker.config.backend
+    <SentenceBackend.SPACY: 'spacy'>
+    >>> chunker.config.spacy_model
+    'en_core_web_sm'
+
+    Explicit config:
+
+    >>> from scikitplot.corpus._chunkers._sentence import SentenceChunkerConfig
+    >>> cfg = SentenceChunkerConfig(backend=SentenceBackend.NLTK, min_length=5)
+    >>> chunker = SentenceChunker(cfg)
     """
 
-    def __init__(self, config: SentenceChunkerConfig | None = None) -> None:
-        self._cfg = config if config is not None else SentenceChunkerConfig()
+    def __init__(
+        self,
+        config: str | SentenceChunkerConfig | None = None,
+    ) -> None:
+        # ------------------------------------------------------------------
+        # Developer note: Accept three forms for ergonomics:
+        #   str   → shorthand for SentenceChunkerConfig(SPACY, spacy_model=str)
+        #   None  → SentenceChunkerConfig() with all defaults
+        #   SentenceChunkerConfig → use as-is
+        # This prevents the common AttributeError when callers pass a model
+        # name directly (e.g. SentenceChunker("en_core_web_sm")).
+        # ------------------------------------------------------------------
+        if isinstance(config, str):
+            config = SentenceChunkerConfig(
+                backend=SentenceBackend.SPACY,
+                spacy_model=config,
+            )
+        elif config is None:
+            config = SentenceChunkerConfig()
+        elif not isinstance(config, SentenceChunkerConfig):
+            raise TypeError(
+                f"SentenceChunker: config must be str, SentenceChunkerConfig, "
+                f"or None; got {type(config).__name__!r}."
+            )
+
+        self._cfg: SentenceChunkerConfig = config
+
+        # Per-instance spaCy model cache: model_name → loaded nlp object.
+        # Passed into _split_spacy so spacy.load() runs at most once per model.
+        self._nlp_cache: dict[str, Any] = {}
+
         self._validate_config()
+
+    # ------------------------------------------------------------------
+    # Public read-only properties
+    # ------------------------------------------------------------------
+
+    @property
+    def config(self) -> SentenceChunkerConfig:
+        """The resolved :class:`SentenceChunkerConfig` for this instance."""
+        return self._cfg
 
     # ------------------------------------------------------------------
     # Validation
@@ -395,10 +538,10 @@ class SentenceChunker:
         if self._cfg.backend == SentenceBackend.NLTK:
             return _split_nltk(text, self._cfg.nltk_language)
         if self._cfg.backend == SentenceBackend.SPACY:
-            assert (  # noqa: S101
-                self._cfg.spacy_model is not None
-            )  # guaranteed by validation  # noqa: S101
-            return _split_spacy(text, self._cfg.spacy_model)
+            # Guaranteed non-None by _validate_config.
+            assert self._cfg.spacy_model is not None  # noqa: S101
+            # Pass the instance cache so spacy.load() is called at most once.
+            return _split_spacy(text, self._cfg.spacy_model, self._nlp_cache)
         raise ValueError(
             f"Unsupported backend: {self._cfg.backend!r}."
         )  # pragma: no cover

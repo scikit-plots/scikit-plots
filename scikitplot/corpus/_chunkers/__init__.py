@@ -16,7 +16,7 @@ Available chunkers
     Optional auto-download gate for CI/Docker safety.
 
 :class:`ParagraphChunker`
-    Splits on one or more consecutive blank lines (``\\n\\n``). Pure Python,
+    Splits on one or more consecutive blank lines (``\n\n``). Pure Python,
     no external dependencies. Configurable minimum paragraph length.
 
 :class:`FixedWindowChunker`
@@ -28,28 +28,29 @@ Quick usage
 -----------
 >>> from scikitplot.corpus._chunkers import SentenceChunker, ParagraphChunker
 >>> chunker = ParagraphChunker()
->>> chunks = chunker.chunk("Para one.\\n\\nPara two.")
+>>> chunks = chunker.chunk("Para one.\n\nPara two.")
 >>> [(start, text) for start, text in chunks]
 [(0, 'Para one.'), (11, 'Para two.')]
 """  # noqa: D205, D400
 
 from __future__ import annotations
 
-from scikitplot.corpus._chunkers._chunker_bridge import (
-    ChunkerBridge,
-    bridge_chunker,
+from . import (
+    _chunker_bridge,
+    _fixed_window,
+    _paragraph,
+    _sentence,
+    _word,
 )
-from scikitplot.corpus._chunkers._fixed_window import FixedWindowChunker
-from scikitplot.corpus._chunkers._paragraph import ParagraphChunker
-from scikitplot.corpus._chunkers._sentence import SentenceChunker
-from scikitplot.corpus._chunkers._word import WordChunker
+from ._chunker_bridge import *  # noqa: F403
+from ._fixed_window import *  # noqa: F403
+from ._paragraph import *  # noqa: F403
+from ._sentence import *  # noqa: F403
+from ._word import *  # noqa: F403
 
-__all__ = [  # noqa: RUF022
-    "FixedWindowChunker",
-    "ParagraphChunker",
-    "SentenceChunker",
-    "WordChunker",
-    # Chunker bridge
-    "ChunkerBridge",
-    "bridge_chunker",
-]
+__all__ = []
+__all__ += _chunker_bridge.__all__
+__all__ += _fixed_window.__all__
+__all__ += _paragraph.__all__
+__all__ += _sentence.__all__
+__all__ += _word.__all__

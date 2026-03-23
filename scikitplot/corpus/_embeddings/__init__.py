@@ -18,8 +18,13 @@ call time when not installed.
 
 from __future__ import annotations
 
-from ._embedding import *  # noqa: F403
-from ._multimodal_embedding import (  # noqa: F401
-    LLMTrainingExporter,
-    MultimodalEmbeddingEngine,
+from . import (
+    _embedding,
+    _multimodal_embedding,
 )
+from ._embedding import *  # noqa: F403
+from ._multimodal_embedding import *  # noqa: F403
+
+__all__ = []
+__all__ += _embedding.__all__
+__all__ += _multimodal_embedding.__all__

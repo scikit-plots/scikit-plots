@@ -83,7 +83,7 @@ from typing import (  # noqa: F401
 
 from typing_extensions import Self  # noqa: F401
 
-from scikitplot.corpus._schema import (
+from ._schema import (
     _PROMOTED_RAW_KEYS,
     ChunkingStrategy,
     CorpusDocument,
@@ -95,6 +95,23 @@ from scikitplot.corpus._schema import (
 #     pass  # reserved for future static-analysis-only imports
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "ChunkerBase",
+    # Concrete built-in filter
+    "DefaultFilter",
+    # Abstract bases
+    "DocumentReader",
+    # Utility readers
+    "DummyReader",
+    "FilterBase",
+    # Pipeline resilience
+    "PipelineGuard",
+    # Multi-source adapter (context manager)
+    "_MultiSourceReader",
+    # URL detection helper
+    "_is_url",
+]
 
 # ---------------------------------------------------------------------------
 # Module-level constants
@@ -454,9 +471,20 @@ class DocumentReader(abc.ABC):
     Attributes
     ----------
     file_type : str
-        Class variable. The file extension this reader handles, including
-        the leading dot (e.g. ``".txt"``, ``".xml"``, ``".zip"``). Must be
-        lowercase. **Must** be defined on every concrete subclass.
+        Single file extension this reader handles (lowercase, including leading
+        dot). E.g. ``".txt"``, ``".xml"``, ``".zip"``.
+
+        For readers that handle multiple extensions, define ``file_types``
+        (plural) instead.  **Exactly one** of ``file_type`` or ``file_types``
+        must be defined on every concrete subclass.
+    file_types : list of str
+        List of file extensions this reader handles (lowercase, leading dot).
+        Use instead of ``file_type`` when a single reader class should be
+        registered for several extensions — e.g. an image reader for
+        ``[".png", ".jpg", ".jpeg", ".gif", ".webp"]``.
+
+        When both ``file_type`` and ``file_types`` are defined on the same
+        class, ``file_types`` takes precedence and ``file_type`` is ignored.
 
     Raises
     ------
@@ -525,7 +553,7 @@ class DocumentReader(abc.ABC):
     # Required class variable — subclasses must define ONE of these
     # ------------------------------------------------------------------
 
-    file_type: ClassVar[str]
+    file_type: ClassVar[str | None]
     """
     Single file extension this reader handles (lowercase, including leading
     dot). E.g. ``".txt"``, ``".xml"``, ``".zip"``.
@@ -1050,9 +1078,22 @@ class DocumentReader(abc.ABC):
         Parameters
         ----------
         *inputs : pathlib.Path or str
-            One or more source paths or URL strings.  Pass a single value
-            for the common case; pass multiple values to get a
-            :class:`_MultiSourceReader` that chains all their documents.
+            One or more source paths or URL strings.  Each element is
+            classified independently:
+
+            * ``str`` matching ``^https?://`` (case-insensitive) — treated
+              as a URL and routed to :meth:`from_url`.  **Must be passed as
+              a plain ``str``, not wrapped in** ``pathlib.Path``; wrapping
+              collapses the double-slash (``https://`` → ``https:/``) and
+              breaks URL detection.
+            * ``str`` not matching the URL pattern — treated as a local
+              file path and converted to :class:`pathlib.Path` internally.
+            * :class:`pathlib.Path` — always treated as a local file path
+              and dispatched by extension via the reader registry.
+
+            Pass a single value for the common case; pass multiple values
+            to get a :class:`_MultiSourceReader` that chains all their
+            documents in order.
         chunker : ChunkerBase or None, optional
             Chunker injected into every reader. Default: ``None``.
         filter_ : FilterBase or None, optional
@@ -1597,7 +1638,7 @@ class DocumentReader(abc.ABC):
         >>> reader = DocumentReader.from_url("https://en.wikipedia.org/wiki/Python")
         >>> docs = list(reader.get_documents())
 
-        >>> yt = DocumentReader.from_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        >>> yt = DocumentReader.from_url("https://www.youtube.com/watch?v=rwPISgZcYIk")
         >>> docs = list(yt.get_documents())
         """
         import os as _os  # noqa: PLC0415
@@ -1657,7 +1698,7 @@ class DocumentReader(abc.ABC):
         # ── Stage 2: probe extensionless URLs with HEAD request ───────────
         if not has_ext:
             try:
-                from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+                from ._url_handler import (  # noqa: PLC0415
                     URLKind,
                     classify_url,
                     probe_url_kind,
@@ -1679,7 +1720,7 @@ class DocumentReader(abc.ABC):
         if has_ext:
             import tempfile  # noqa: PLC0415
 
-            from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+            from ._url_handler import (  # noqa: PLC0415
                 URLKind,
                 classify_url,
                 download_url,
@@ -1698,7 +1739,7 @@ class DocumentReader(abc.ABC):
                 st = source_type
                 if st is None:
                     try:
-                        from scikitplot.corpus._schema import (  # noqa: PLC0415
+                        from ._schema import (  # noqa: PLC0415
                             SourceType as _ST,  # noqa: N814
                         )
 
@@ -2030,7 +2071,8 @@ class DummyReader(DocumentReader):
     >>> os.unlink(tmp)
     """
 
-    file_type: ClassVar[str] = ":dummy"
+    file_type: ClassVar[str | None] = ":dummy"
+    file_types: ClassVar[list[str] | None] = [":dummy"]
 
     # ------------------------------------------------------------------
     # Batch class-level check — the primary use-case API
@@ -2295,7 +2337,7 @@ class PipelineGuard:
         """
         # Import here to avoid circular import at module level
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2359,7 +2401,7 @@ class PipelineGuard:
         import time  # noqa: F401, PLC0415
 
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2498,7 +2540,7 @@ class PipelineGuard:
         import time  # noqa: PLC0415
 
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2586,26 +2628,3 @@ class PipelineGuard:
             self._ckpt_file.flush()
         except OSError as exc:
             logger.warning("PipelineGuard: checkpoint write failed: %s", exc)
-
-
-# ===========================================================================
-# Public API
-# ===========================================================================
-
-
-__all__ = [  # noqa: RUF022
-    # Abstract bases
-    "DocumentReader",
-    "ChunkerBase",
-    "FilterBase",
-    # Concrete built-in filter
-    "DefaultFilter",
-    # Multi-source adapter (context manager)
-    "_MultiSourceReader",
-    # Utility readers
-    "DummyReader",
-    # Pipeline resilience
-    "PipelineGuard",
-    # URL detection helper
-    "_is_url",
-]

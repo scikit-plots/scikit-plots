@@ -64,10 +64,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Generator, Optional  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType  # noqa: F401
+from .._base import DocumentReader
+from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ZipReader"]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -214,6 +216,7 @@ class ZipReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".zip"
+    file_types: ClassVar[list[str] | None] = [".zip"]
 
     max_files: int = field(default=_DEFAULT_MAX_FILES)
     """Maximum file count inside the archive. Default: 10,000."""
@@ -229,7 +232,7 @@ class ZipReader(DocumentReader):
     :meth:`SourceType.infer` when the caller did not supply
     ``source_type`` in ``source_provenance``.  Default: ``True``."""
 
-    member_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    reader_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
     """Per-extension keyword arguments forwarded to sub-reader constructors.
 
     Enables reader-specific options for individual file types inside the
@@ -240,7 +243,7 @@ class ZipReader(DocumentReader):
 
         ZipReader(
             input_file=Path("corpus.zip"),
-            member_kwargs={
+            reader_kwargs={
                 ".mp3": {"transcribe": True, "whisper_model": "small"},
                 ".mp4": {"transcribe": True},
                 ".jpg": {"backend": "easyocr"},
@@ -253,18 +256,18 @@ class ZipReader(DocumentReader):
     """
 
     def __post_init__(self) -> None:
-        """Validate constructor arguments and normalise ``member_kwargs`` keys.
+        """Validate constructor arguments and normalise ``reader_kwargs`` keys.
 
         Raises
         ------
         ValueError
             If ``max_files <= 0`` or ``max_total_bytes <= 0``.
         TypeError
-            If ``member_kwargs`` is not a dict, or any value is not a dict.
+            If ``reader_kwargs`` is not a dict, or any value is not a dict.
 
         Notes
         -----
-        ``member_kwargs`` keys are normalised to lower-case with a
+        ``reader_kwargs`` keys are normalised to lower-case with a
         leading dot (e.g. ``"MP3"`` → ``".mp3"``) for consistent lookup.
         """
         super().__post_init__()
@@ -276,22 +279,22 @@ class ZipReader(DocumentReader):
             raise ValueError(
                 f"ZipReader: max_total_bytes must be > 0; got {self.max_total_bytes!r}."
             )
-        if not isinstance(self.member_kwargs, dict):
+        if not isinstance(self.reader_kwargs, dict):
             raise TypeError(
-                f"ZipReader: member_kwargs must be a dict; "
-                f"got {type(self.member_kwargs).__name__!r}."
+                f"ZipReader: reader_kwargs must be a dict; "
+                f"got {type(self.reader_kwargs).__name__!r}."
             )
-        # Normalise member_kwargs keys to lower-case with leading dot
+        # Normalise reader_kwargs keys to lower-case with leading dot
         normalised: dict[str, dict[str, Any]] = {}
-        for k, v in self.member_kwargs.items():
+        for k, v in self.reader_kwargs.items():
             key = k.lower() if k.startswith(".") else f".{k.lower()}"
             if not isinstance(v, dict):
                 raise TypeError(
-                    f"ZipReader: member_kwargs[{k!r}] must be a dict; "
+                    f"ZipReader: reader_kwargs[{k!r}] must be a dict; "
                     f"got {type(v).__name__!r}."
                 )
             normalised[key] = dict(v)
-        object.__setattr__(self, "member_kwargs", normalised)
+        object.__setattr__(self, "reader_kwargs", normalised)
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
@@ -411,7 +414,7 @@ class ZipReader(DocumentReader):
                     member_st = provenance.get("source_type")
                     if member_st is None and self.infer_source_type:
                         try:
-                            from scikitplot.corpus._schema import (  # noqa: PLC0415
+                            from .._schema import (  # noqa: PLC0415
                                 SourceType,
                             )
 
@@ -423,8 +426,8 @@ class ZipReader(DocumentReader):
 
                     # Merge global kwargs with per-extension overrides
                     member_kw: dict[str, Any] = {}
-                    if self.member_kwargs:
-                        member_kw.update(self.member_kwargs.get(ext, {}))
+                    if self.reader_kwargs:
+                        member_kw.update(self.reader_kwargs.get(ext, {}))
 
                     try:
                         sub_reader = DocumentReader._create_one(

@@ -54,10 +54,16 @@ import socket
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType, SourceType
+from .._base import DocumentReader
+from .._schema import SectionType, SourceType
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "WebReader",
+    "YouTubeReader",
+    # "validate_url_safety",
+]
 
 # with patch("scikitplot.corpus._readers._web._load_youtube_api",
 #            side_effect=ImportError):
@@ -81,14 +87,23 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
+# HTML tag pattern for stripping tags from cue text (reuse from module level)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
 # HTML tags whose text content maps to section types
 _HEADING_TAGS: tuple[str, ...] = ("h1", "h2", "h3", "h4", "h5", "h6")
 _TITLE_TAGS: tuple[str, ...] = ("title",)
 _BODY_TAGS: tuple[str, ...] = ("p", "li", "td", "blockquote", "pre", "code")
 
 # Regex for YouTube URL / video ID extraction
-_YT_URL_RE = re.compile(r"https?://(www\.)?(youtube\.com/watch|youtu\.be/)")
-_YT_ID_RE = re.compile(r"(?:v=|youtu\.be/)([A-Za-z0-9_-]{11})")
+# Matches every single-video YouTube URL form:
+#   watch?v=…, shorts/ID, embed/ID, live/ID, youtu.be/ID
+_YT_URL_RE = re.compile(
+    r"https?://(www\.)?(youtube\.com/(watch|shorts/|embed/|live/)|youtu\.be/)",
+    re.IGNORECASE,
+)
+# Extracts the 11-char video ID from any of the above URL forms.
+_YT_ID_RE = re.compile(r"(?:v=|youtu\.be/|shorts/|embed/|live/)([A-Za-z0-9_-]{11})")
 
 # Default HTTP request timeout in seconds
 _DEFAULT_TIMEOUT: int = 30
@@ -114,10 +129,11 @@ def _extract_youtube_id(url: str) -> str | None:
 
     Examples
     --------
-    >>> _extract_youtube_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-    'dQw4w9WgXcQ'
-    >>> _extract_youtube_id("https://youtu.be/dQw4w9WgXcQ")
-    'dQw4w9WgXcQ'
+    >>> # "https://youtu.be/rwPISgZcYIk",  # https://www.youtube.com/watch?v=rwPISgZcYIk
+    >>> _extract_youtube_id("https://www.youtube.com/watch?v=rwPISgZcYIk")
+    'rwPISgZcYIk'
+    >>> _extract_youtube_id("https://youtu.be/rwPISgZcYIk")
+    'rwPISgZcYIk'
     """
     m = _YT_ID_RE.search(url)
     return m.group(1) if m else None
@@ -276,6 +292,9 @@ class WebReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Registry key ``":url"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[":url"]``.
 
     Raises
     ------
@@ -322,6 +341,7 @@ class WebReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ":url"
+    file_types: ClassVar[list[str] | None] = [":url"]
 
     timeout: int = field(default=_DEFAULT_TIMEOUT)
     """HTTP request timeout in seconds."""
@@ -358,7 +378,7 @@ class WebReader(DocumentReader):
         """
         # URL readers do NOT call super().__post_init__ for file validation —
         # we handle validation ourselves in validate_input().
-        from scikitplot.corpus._base import DefaultFilter  # noqa: PLC0415
+        from .._base import DefaultFilter  # noqa: PLC0415
 
         if self.filter_ is None:
             object.__setattr__(self, "filter_", DefaultFilter())
@@ -592,6 +612,9 @@ class YouTubeReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Registry key ``":youtube"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[":youtube"]``.
 
     Raises
     ------
@@ -624,7 +647,7 @@ class YouTubeReader(DocumentReader):
     >>> from scikitplot.corpus._base import DocumentReader
     >>> import scikitplot.corpus._readers
     >>> reader = DocumentReader.from_url(
-    ...     "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    ...     "https://www.youtube.com/watch?v=rwPISgZcYIk",
     ...     default_language="en",
     ... )
     >>> docs = list(reader.get_documents())
@@ -632,6 +655,7 @@ class YouTubeReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ":youtube"
+    file_types: ClassVar[list[str] | None] = [":youtube"]
 
     preferred_language: str | None = field(default=None)
     """ISO 639-1 language code for the preferred transcript track."""
@@ -654,7 +678,7 @@ class YouTubeReader(DocumentReader):
             If the URL does not match any recognised YouTube pattern
             (watch, shorts, embed, live, youtu.be).
         """
-        from scikitplot.corpus._base import DefaultFilter  # noqa: PLC0415
+        from .._base import DefaultFilter  # noqa: PLC0415
 
         if self.filter_ is None:
             object.__setattr__(self, "filter_", DefaultFilter())
@@ -672,9 +696,13 @@ class YouTubeReader(DocumentReader):
         url = self._effective_url()
         if not _YT_URL_RE.match(url):
             raise ValueError(
-                f"YouTubeReader: URL does not look like a YouTube link: {url!r}."
-                f" Expected form: https://www.youtube.com/watch?v=... or"
-                f" https://youtu.be/..."
+                f"YouTubeReader: URL does not look like a YouTube link: {url!r}. "
+                f"Supported forms: "
+                f"https://www.youtube.com/watch?v=ID, "
+                f"https://www.youtube.com/shorts/ID, "
+                f"https://www.youtube.com/embed/ID, "
+                f"https://www.youtube.com/live/ID, "
+                f"https://youtu.be/ID"
             )
         if _extract_youtube_id(url) is None:
             raise ValueError(f"YouTubeReader: could not extract video ID from {url!r}.")
@@ -933,10 +961,3 @@ class YouTubeReader(DocumentReader):
             merged.append(pending)
 
         return merged
-
-
-# HTML tag pattern for stripping tags from cue text (reuse from module level)
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-
-__all__ = ["WebReader", "YouTubeReader"]

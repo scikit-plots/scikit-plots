@@ -31,11 +31,13 @@ Batch processing with sentence chunking:
 
 URL ingestion:
 
+>>> # https://archive.org/download/WHO-documents
+>>> # https://www.who.int/europe/news/item/...
 >>> result = pipeline.run_url("https://en.wikipedia.org/wiki/Python")
 
 YouTube transcript:
 
->>> result = pipeline.run_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+>>> result = pipeline.run_url("https://www.youtube.com/watch?v=rwPISgZcYIk")
 
 Image OCR:
 
@@ -92,7 +94,8 @@ Package structure
     Abstract bases: DocumentReader, ChunkerBase, FilterBase, DefaultFilter.
 
 ``scikitplot.corpus._chunkers``
-    SentenceChunker, ParagraphChunker, FixedWindowChunker.
+    WordChunker, WordChunkerConfig, SentenceChunker, SentenceChunkerConfig,
+    ParagraphChunker, ParagraphChunkerConfig, FixedWindowChunker, FixedWindowChunkerConfig.
 
 ``scikitplot.corpus._readers``
     TextReader, MarkdownReader, ReSTReader, XMLReader, TEIReader, AudioReader,
@@ -110,277 +113,61 @@ Package structure
 
 from __future__ import annotations
 
-# Readers -- import triggers registry population for all 24 extensions
-import scikitplot.corpus._readers  # noqa: F401
-
-# --- Adapters (LangChain / LangGraph / MCP / HuggingFace / RAG) ---
-from scikitplot.corpus._adapters import (
-    LangChainCorpusRetriever,
-    MCPCorpusServer,
-    to_huggingface_dataset,
-    to_jsonl,
-    to_langchain_documents,
-    to_langgraph_state,
-    to_mcp_resources,
-    to_mcp_tool_result,
-    to_rag_tuples,
+from . import (
+    _adapters,
+    _archive_handler,
+    _base,
+    _chunkers,
+    _corpus_builder,
+    _embeddings,
+    _enrichers,
+    _export,
+    _metadata,
+    _normalizers,
+    _pipeline,
+    _readers,  # Readers -- import triggers registry population for all 24 extensions
+    _registry,
+    _schema,
+    _similarity,
+    _sources,
+    _storage,
+    _url_handler,
 )
+from ._adapters import *  # noqa: F403  # --- Adapters (LangChain / LangGraph / MCP / HuggingFace / RAG) ---
+from ._archive_handler import *  # noqa: F403  # --- Archive handling (zip / tar extraction) ---
+from ._base import *  # noqa: F403  # Base classes
+from ._chunkers import *  # noqa: F403
+from ._corpus_builder import *  # noqa: F403  # --- Unified builder (the user-friendly orchestration API) ---
+from ._embeddings import *  # noqa: F403  # Embeddings by sentence-transformer
+from ._enrichers import *  # noqa: F403  # --- NLP enricher ---
+from ._export import *  # noqa: F403
+from ._metadata import *  # noqa: F403
+from ._normalizers import *  # noqa: F403  # --- Text normaliser ---
+from ._pipeline import *  # noqa: F403
+from ._readers import *  # noqa: F403
+from ._registry import *  # noqa: F403  # Registry
+from ._schema import *  # noqa: F403  # Schema -- always first, zero optional dependencies
+from ._similarity import *  # noqa: F403  # --- Similarity index ---
+from ._sources import *  # noqa: F403  # Sources
+from ._storage import *  # noqa: F403  # Storage
+from ._url_handler import *  # noqa: F403  # --- URL handling (classification, resolution, secure download) ---
 
-# --- Archive handling (zip / tar extraction) ---
-from scikitplot.corpus._archive_handler import (
-    extract_archive,
-    is_archive,
-)
-
-# Base classes
-from scikitplot.corpus._base import (
-    ChunkerBase,
-    DefaultFilter,
-    DocumentReader,
-    FilterBase,
-    PipelineGuard,
-)
-
-# Chunkers
-from scikitplot.corpus._chunkers import (
-    ChunkerBridge,
-    FixedWindowChunker,
-    ParagraphChunker,
-    SentenceChunker,
-    WordChunker,
-    bridge_chunker,
-)
-
-# --- Unified builder (the user-friendly orchestration API) ---
-from scikitplot.corpus._corpus_builder import (
-    BuilderConfig,
-    BuildResult,
-    CorpusBuilder,
-)
-
-# Embeddings by sentence-transformer
-from scikitplot.corpus._embeddings import (
-    DEFAULT_MODEL,
-    EmbeddingEngine,
-    EmbedFn,
-    LLMTrainingExporter,
-    MultimodalEmbeddingEngine,
-)
-
-# --- NLP enricher ---
-from scikitplot.corpus._enrichers import (
-    EnricherConfig,
-    NLPEnricher,
-)
-
-# Export
-from scikitplot.corpus._export import (
-    export_documents,
-    load_documents,
-)
-
-# Metadata
-from scikitplot.corpus._metadata import (
-    CollectionManifest,
-    CorpusStats,
-)
-
-# --- Text normaliser ---
-from scikitplot.corpus._normalizers import (
-    DedupLinesNormalizer,
-    HTMLStripNormalizer,
-    LanguageDetectionNormalizer,
-    LowercaseNormalizer,
-    NormalizationPipeline,
-    NormalizerBase,
-    NormalizerConfig,
-    TextNormalizer,
-    UnicodeNormalizer,
-    WhitespaceNormalizer,
-    normalize_text,
-)
-
-# Pipeline
-from scikitplot.corpus._pipeline import (
-    CorpusPipeline,
-    PipelineResult,
-    create_corpus,
-)
-from scikitplot.corpus._readers import (
-    ALTOReader,
-    AudioReader,
-    ImageReader,
-    MarkdownReader,
-    PDFReader,
-    ReSTReader,
-    TEIReader,
-    TextReader,
-    VideoReader,
-    WebReader,
-    XMLReader,
-    YouTubeReader,
-)
-
-# Registry
-from scikitplot.corpus._registry import (
-    ComponentRegistry,
-    registry,
-)
-
-# Schema -- always first, zero optional dependencies
-from scikitplot.corpus._schema import (
-    ChunkingStrategy,
-    CorpusDocument,
-    ErrorPolicy,
-    ExportFormat,
-    MatchMode,
-    Modality,
-    SectionType,
-    SourceType,
-    documents_to_pandas,
-    documents_to_polars,
-)
-
-# --- Similarity index ---
-from scikitplot.corpus._similarity import (
-    SearchConfig,
-    SearchResult,
-    SimilarityIndex,
-)
-
-# Sources
-from scikitplot.corpus._sources import (
-    CorpusSource,
-    SourceEntry,
-    SourceKind,
-)
-
-# Storage
-from scikitplot.corpus._storage import (
-    InMemoryStorage,
-    JSONLStorage,
-    SQLiteStorage,
-    StorageBase,
-    StorageQuery,
-)
-
-# --- URL handling (classification, resolution, secure download) ---
-from scikitplot.corpus._url_handler import (
-    URLKind,
-    classify_url,
-    download_url,
-    probe_url_kind,
-    resolve_url,
-)
-
-__all__ = [  # noqa: RUF022
-    # Adapters
-    "LangChainCorpusRetriever",
-    "MCPCorpusServer",
-    "to_huggingface_dataset",
-    "to_jsonl",
-    "to_langchain_documents",
-    "to_langgraph_state",
-    "to_mcp_resources",
-    "to_mcp_tool_result",
-    "to_rag_tuples",
-    # Archive handler
-    "extract_archive",
-    "is_archive",
-    # URL handler
-    "URLKind",
-    "classify_url",
-    "download_url",
-    "probe_url_kind",
-    "resolve_url",
-    # Base
-    "ChunkerBase",
-    "DefaultFilter",
-    "DocumentReader",
-    "FilterBase",
-    # Chunkers
-    "FixedWindowChunker",
-    "ParagraphChunker",
-    "SentenceChunker",
-    "WordChunker",
-    # Chunker bridge
-    "ChunkerBridge",
-    "bridge_chunker",
-    # Builder
-    "BuildResult",
-    "BuilderConfig",
-    "CorpusBuilder",
-    # Embeddings
-    "DEFAULT_MODEL",
-    "EmbedFn",
-    "EmbeddingEngine",
-    # Enricher
-    "EnricherConfig",
-    "NLPEnricher",
-    # Export
-    "export_documents",
-    "load_documents",
-    # Metadata
-    "CollectionManifest",
-    "CorpusStats",
-    # Normalizers
-    "DedupLinesNormalizer",
-    "HTMLStripNormalizer",
-    "LanguageDetectionNormalizer",
-    "LowercaseNormalizer",
-    "NormalizationPipeline",
-    "NormalizerBase",
-    "NormalizerConfig",
-    "TextNormalizer",
-    "UnicodeNormalizer",
-    "WhitespaceNormalizer",
-    "normalize_text",
-    # Pipeline
-    "CorpusPipeline",
-    "PipelineResult",
-    "create_corpus",
-    # Readers
-    "ALTOReader",
-    "AudioReader",
-    "ImageReader",
-    "MarkdownReader",
-    "PDFReader",
-    "ReSTReader",
-    "TEIReader",
-    "TextReader",
-    "VideoReader",
-    "WebReader",
-    "XMLReader",
-    "YouTubeReader",
-    # Registry
-    "ComponentRegistry",
-    "registry",
-    # Schema
-    "ChunkingStrategy",
-    "CorpusDocument",
-    "ExportFormat",
-    "MatchMode",
-    "SectionType",
-    "SourceType",
-    "documents_to_pandas",
-    "documents_to_polars",
-    # Similarity
-    "SearchConfig",
-    "SearchResult",
-    "SimilarityIndex",
-    # Sources
-    "CorpusSource",
-    "SourceEntry",
-    "SourceKind",
-    # Storage
-    "ErrorPolicy",
-    "InMemoryStorage",
-    "JSONLStorage",
-    "LLMTrainingExporter",
-    "Modality",
-    "MultimodalEmbeddingEngine",
-    "PipelineGuard",
-    "SQLiteStorage",
-    "StorageBase",
-    "StorageQuery",
-]
+__all__ = []
+__all__ += _adapters.__all__
+__all__ += _archive_handler.__all__
+__all__ += _base.__all__
+__all__ += _chunkers.__all__
+__all__ += _corpus_builder.__all__
+__all__ += _embeddings.__all__
+__all__ += _enrichers.__all__
+__all__ += _export.__all__
+__all__ += _metadata.__all__
+__all__ += _normalizers.__all__
+__all__ += _pipeline.__all__
+__all__ += _readers.__all__
+__all__ += _registry.__all__
+__all__ += _schema.__all__
+__all__ += _similarity.__all__
+__all__ += _sources.__all__
+__all__ += _storage.__all__
+__all__ += _url_handler.__all__

@@ -1,12 +1,11 @@
-# --- Similarity index ---
-from ._similarity import (
-    SearchConfig,
-    SearchResult,
-    SimilarityIndex,
+from __future__ import annotations
+
+from . import (
+    _similarity,
 )
 
-__all__ = [
-    "SearchConfig",
-    "SearchResult",
-    "SimilarityIndex",
-]
+# --- Similarity index ---
+from ._similarity import *  # noqa: F403
+
+__all__ = []
+__all__ += _similarity.__all__

@@ -10,6 +10,8 @@ _session.
 from __future__ import annotations
 
 import contextlib
+import logging
+import os
 from dataclasses import dataclass
 from typing import Any, Iterator, Mapping
 from urllib.parse import urlparse
@@ -21,6 +23,8 @@ from ._facade import ArtifactsFacade, ModelsFacade
 from ._readiness import wait_tracking_ready
 from ._server import SpawnedServer, spawn_server
 from ._utils import mlflow_version
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_http_uri(uri: str) -> tuple[str, str, int]:
@@ -353,8 +357,6 @@ def session(  # noqa: PLR0912
             env_file=cfg.env_file, extra_env=cfg.extra_env, set_defaults_only=True
         )
 
-        import os  # noqa: PLC0415
-
         tracking_uri = cfg.tracking_uri or os.environ.get("MLFLOW_TRACKING_URI")
         registry_uri = cfg.registry_uri or os.environ.get("MLFLOW_REGISTRY_URI")
 
@@ -391,6 +393,12 @@ def session(  # noqa: PLR0912
                 "No tracking URI resolved. Provide SessionConfig.tracking_uri or set MLFLOW_TRACKING_URI."
             )
 
+        logger.debug(
+            "Session starting: tracking_uri=%r registry_uri=%r",
+            tracking_uri,
+            registry_uri,
+        )
+
         # Import MLflow lazily with a friendly error before spawning.
         mlflow_mod = import_mlflow()
 
@@ -400,10 +408,12 @@ def session(  # noqa: PLR0912
             os.environ["MLFLOW_REGISTRY_URI"] = registry_uri
 
         if start_server:
+            logger.debug("Spawning managed MLflow server on %s:%s", srv.host, srv.port)
             spawned = spawn_server(srv)
             wait_tracking_ready(
                 tracking_uri, timeout_s=cfg.startup_timeout_s, server=spawned
             )
+            logger.debug("Managed MLflow server ready at %r", tracking_uri)
         elif cfg.ensure_reachable:
             # ensure_reachable requires http(s) URI
             u = urlparse(tracking_uri)
@@ -411,6 +421,11 @@ def session(  # noqa: PLR0912
                 raise ValueError(
                     f"ensure_reachable=True requires an http(s) tracking_uri, got {tracking_uri!r}."
                 )
+            logger.debug(
+                "Checking reachability of %r (timeout=%.1fs)",
+                tracking_uri,
+                cfg.startup_timeout_s,
+            )
             wait_tracking_ready(
                 tracking_uri, timeout_s=cfg.startup_timeout_s, server=None
             )
@@ -456,8 +471,11 @@ def session(  # noqa: PLR0912
 
     finally:
         if spawned is not None:
+            logger.debug(
+                "Terminating managed MLflow server (pid=%s)", spawned.process.pid
+            )
             try:  # noqa: SIM105
                 spawned.terminate()
-            except Exception:
-                pass
+            except Exception as _exc:  # noqa: BLE001
+                logger.debug("Server terminate raised (non-critical): %r", _exc)
         snapshot.restore()

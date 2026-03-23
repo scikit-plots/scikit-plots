@@ -34,10 +34,16 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, Optional  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "MarkdownReader",
+    "ReSTReader",
+    "TextReader",
+]
 
 # Default upper bound for files read into memory in one shot.
 # 500 MB should be generous for any realistic text corpus file.
@@ -172,6 +178,9 @@ class TextReader(DocumentReader):
     ----------
     file_type : str
         Class variable. Always ``".txt"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".txt"]``.
 
     Raises
     ------
@@ -219,6 +228,7 @@ class TextReader(DocumentReader):
     """
 
     file_type: ClassVar[str] = ".txt"
+    file_types: ClassVar[list[str] | None] = [".txt"]
 
     encoding: Optional[str] = field(default=None)  # noqa: UP045
     """
@@ -320,9 +330,6 @@ class TextReader(DocumentReader):
         }
 
 
-__all__ = ["MarkdownReader", "ReSTReader", "TextReader"]
-
-
 # ---------------------------------------------------------------------------
 # Extension aliases — register additional text-like extensions without
 # duplicating any logic. Each subclass inherits all TextReader behaviour
@@ -351,6 +358,9 @@ class MarkdownReader(TextReader):
     ----------
     file_type : str
         Class variable. Always ``".md"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".md"]``.
 
     See Also
     --------
@@ -365,6 +375,7 @@ class MarkdownReader(TextReader):
     """
 
     file_type: ClassVar[str] = ".md"
+    file_types: ClassVar[list[str] | None] = [".md"]
 
 
 @dataclass
@@ -385,6 +396,9 @@ class ReSTReader(TextReader):
     ----------
     file_type : str
         Class variable. Always ``".rst"``.
+    file_types : list of str
+        Class variable. Registered extensions:
+        ``[".rst"]``.
 
     See Also
     --------
@@ -399,3 +413,4 @@ class ReSTReader(TextReader):
     """
 
     file_type: ClassVar[str] = ".rst"
+    file_types: ClassVar[list[str] | None] = [".rst"]

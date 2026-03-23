@@ -92,10 +92,12 @@ from typing import (
     Tuple,  # noqa: F401
 )
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType, SourceType
+from .._base import DocumentReader
+from .._schema import SectionType, SourceType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["AudioReader"]
 
 # ---------------------------------------------------------------------------
 # Audio extensions registered by this reader
@@ -1203,7 +1205,8 @@ class AudioReader(DocumentReader):
     >>> docs = list(reader.get_documents())
     """  # noqa: D205
 
-    file_types: ClassVar[list[str]] = _AUDIO_EXTENSIONS
+    file_type: ClassVar[str | None] = None
+    file_types: ClassVar[list[str] | None] = _AUDIO_EXTENSIONS
 
     _VALID_WHISPER_MODELS: ClassVar[tuple[str, ...]] = (
         "tiny",
@@ -1486,6 +1489,3 @@ class AudioReader(DocumentReader):
                 self.transcribe,
                 self.classify,
             )
-
-
-__all__ = ["AudioReader"]

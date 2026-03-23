@@ -24,12 +24,10 @@ Usage
 
 from __future__ import annotations
 
-from ._registry import (
-    ComponentRegistry,
-    registry,
+from . import (
+    _registry,
 )
+from ._registry import *  # noqa: F403
 
-__all__ = [
-    "ComponentRegistry",
-    "registry",
-]
+__all__ = []
+__all__ += _registry.__all__

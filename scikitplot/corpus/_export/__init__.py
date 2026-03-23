@@ -17,4 +17,10 @@ and ``numpy`` are hard requirements. All other backends are optional.
 
 from __future__ import annotations
 
+from . import (
+    _export,
+)
 from ._export import *  # noqa: F403
+
+__all__ = []
+__all__ += _export.__all__
