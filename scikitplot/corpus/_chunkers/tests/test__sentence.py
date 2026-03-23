@@ -278,7 +278,7 @@ class TestSentenceChunkerSpacy:
             )
         )
         result = chunker.chunk(SIMPLE_TEXT)
-        mock_split.assert_called_once_with(SIMPLE_TEXT, "en_core_web_sm")
+        mock_split.assert_called_once_with(SIMPLE_TEXT, "en_core_web_sm", chunker._nlp_cache)
         assert len(result.chunks) == 2
 
     def test_spacy_import_error_propagates(self) -> None:
