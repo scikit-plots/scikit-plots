@@ -894,7 +894,7 @@ class CorpusBuilder:
         -------
         list[langchain_core.documents.Document] or list[dict]
         """
-        from scikitplot.corpus._adapters import to_langchain_documents  # noqa: PLC0415
+        from ._adapters import to_langchain_documents  # noqa: PLC0415
 
         return to_langchain_documents(self._get_documents())
 
@@ -909,7 +909,7 @@ class CorpusBuilder:
         -------
         dict[str, Any]
         """
-        from scikitplot.corpus._adapters import to_langgraph_state  # noqa: PLC0415
+        from ._adapters import to_langgraph_state  # noqa: PLC0415
 
         return to_langgraph_state(
             self._get_documents(),
@@ -927,7 +927,7 @@ class CorpusBuilder:
         -------
         list[dict[str, Any]]
         """
-        from scikitplot.corpus._adapters import to_mcp_resources  # noqa: PLC0415
+        from ._adapters import to_mcp_resources  # noqa: PLC0415
 
         return to_mcp_resources(
             self._get_documents(),
@@ -957,7 +957,7 @@ class CorpusBuilder:
         dict[str, Any]
             MCP ``tools/call`` response.
         """
-        from scikitplot.corpus._adapters import to_mcp_tool_result  # noqa: PLC0415
+        from ._adapters import to_mcp_tool_result  # noqa: PLC0415
 
         results = self.search(
             query,
@@ -981,7 +981,7 @@ class CorpusBuilder:
         -------
         MCPCorpusServer
         """
-        from scikitplot.corpus._adapters import MCPCorpusServer  # noqa: PLC0415
+        from ._adapters import MCPCorpusServer  # noqa: PLC0415
 
         if self._index is None:
             raise RuntimeError(
@@ -1000,7 +1000,7 @@ class CorpusBuilder:
         -------
         LangChainCorpusRetriever
         """
-        from scikitplot.corpus._adapters import (  # noqa: PLC0415
+        from ._adapters import (  # noqa: PLC0415
             LangChainCorpusRetriever,
         )
 
@@ -1021,7 +1021,7 @@ class CorpusBuilder:
         -------
         datasets.Dataset or dict[str, list]
         """
-        from scikitplot.corpus._adapters import to_huggingface_dataset  # noqa: PLC0415
+        from ._adapters import to_huggingface_dataset  # noqa: PLC0415
 
         return to_huggingface_dataset(self._get_documents())
 
@@ -1032,7 +1032,7 @@ class CorpusBuilder:
         -------
         list[tuple[str, dict, Any]]
         """
-        from scikitplot.corpus._adapters import to_rag_tuples  # noqa: PLC0415
+        from ._adapters import to_rag_tuples  # noqa: PLC0415
 
         return to_rag_tuples(self._get_documents())
 
@@ -1043,7 +1043,7 @@ class CorpusBuilder:
         ------
         str
         """
-        from scikitplot.corpus._adapters import to_jsonl  # noqa: PLC0415
+        from ._adapters import to_jsonl  # noqa: PLC0415
 
         return to_jsonl(self._get_documents())
 
@@ -1071,7 +1071,7 @@ class CorpusBuilder:
         Path
             The output file path.
         """
-        from scikitplot.corpus._export._export import export_documents  # noqa: PLC0415
+        from ._export._export import export_documents  # noqa: PLC0415
 
         docs = self._get_documents()
         out_path = Path(path)
@@ -1105,7 +1105,7 @@ class CorpusBuilder:
         ``__pycache__`` are always excluded from directory and glob
         expansion. Symlinks are skipped to prevent traversal loops.
         """
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+        from ._base import DocumentReader  # noqa: PLC0415
 
         supported = set(DocumentReader.supported_types())
         expanded: list[str | Path] = []
@@ -1216,7 +1216,7 @@ class CorpusBuilder:
         list[CorpusDocument]
             Documents ingested from the source.
         """
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+        from ._base import DocumentReader  # noqa: PLC0415
 
         cfg = self.config
         source_str = str(source)
@@ -1252,7 +1252,7 @@ class CorpusBuilder:
         # fall back to generic extraction when the reader yields zero
         # documents (meaning the archive contents didn't match the
         # reader's expected format).
-        from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
+        from ._archive_handler import is_archive  # noqa: PLC0415
 
         local_path = Path(source_str)
         if local_path.is_file() and is_archive(local_path):
@@ -1373,8 +1373,8 @@ class CorpusBuilder:
         import os as _os  # noqa: PLC0415
         import urllib.parse as _up  # noqa: PLC0415
 
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
-        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+        from ._base import DocumentReader  # noqa: PLC0415
+        from ._url_handler import (  # noqa: PLC0415
             URLKind,
             classify_url,
             download_url,
@@ -1474,7 +1474,7 @@ class CorpusBuilder:
         # If the downloaded file is an archive, apply the same
         # reader-first logic as _ingest_source: try a dedicated reader
         # (e.g. ALTOReader for .zip) before generic extraction.
-        from scikitplot.corpus._archive_handler import is_archive  # noqa: PLC0415
+        from ._archive_handler import is_archive  # noqa: PLC0415
 
         if is_archive(local_path):
             ext = local_path.suffix.lower()
@@ -1560,10 +1560,10 @@ class CorpusBuilder:
         list[CorpusDocument]
             Documents ingested from all files in the archive.
         """
-        from scikitplot.corpus._archive_handler import (  # noqa: PLC0415
+        from ._archive_handler import (  # noqa: PLC0415
             extract_archive,
         )
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+        from ._base import DocumentReader  # noqa: PLC0415
 
         cfg = self.config
         supported = set(DocumentReader.supported_types()) or None
@@ -1623,7 +1623,7 @@ class CorpusBuilder:
 
         # Already an instance
         if not isinstance(chunker_spec, str):
-            from scikitplot.corpus._chunkers._chunker_bridge import (  # noqa: PLC0415
+            from ._chunkers._chunker_bridge import (  # noqa: PLC0415
                 bridge_chunker,
             )
 
@@ -1635,8 +1635,8 @@ class CorpusBuilder:
 
         if chunker_spec == "sentence":
             try:
-                from scikitplot.corpus._chunkers import SentenceChunker  # noqa: PLC0415
-                from scikitplot.corpus._chunkers._chunker_bridge import (  # noqa: PLC0415
+                from ._chunkers import SentenceChunker  # noqa: PLC0415
+                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
                     SentenceChunkerBridge,
                 )
 
@@ -1652,10 +1652,10 @@ class CorpusBuilder:
 
         elif chunker_spec == "paragraph":
             try:
-                from scikitplot.corpus._chunkers import (  # noqa: PLC0415
+                from ._chunkers import (  # noqa: PLC0415
                     ParagraphChunker,
                 )
-                from scikitplot.corpus._chunkers._chunker_bridge import (  # noqa: PLC0415
+                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
                     ParagraphChunkerBridge,
                 )
 
@@ -1666,10 +1666,10 @@ class CorpusBuilder:
 
         elif chunker_spec == "fixed_window":
             try:
-                from scikitplot.corpus._chunkers import (  # noqa: PLC0415
+                from ._chunkers import (  # noqa: PLC0415
                     FixedWindowChunker,
                 )
-                from scikitplot.corpus._chunkers._chunker_bridge import (  # noqa: PLC0415
+                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
                     FixedWindowChunkerBridge,
                 )
 
@@ -1680,10 +1680,10 @@ class CorpusBuilder:
 
         elif chunker_spec == "word":
             try:
-                from scikitplot.corpus._chunkers._chunker_bridge import (  # noqa: PLC0415
+                from ._chunkers._chunker_bridge import (  # noqa: PLC0415
                     WordChunkerBridge,
                 )
-                from scikitplot.corpus._chunkers._word import (  # noqa: PLC0415
+                from ._chunkers._word import (  # noqa: PLC0415
                     WordChunker,
                 )
 
@@ -1706,7 +1706,7 @@ class CorpusBuilder:
         if self._normalizer_pipeline is not None:
             return self._normalizer_pipeline
 
-        from scikitplot.corpus._normalizers import (  # noqa: PLC0415
+        from ._normalizers import (  # noqa: PLC0415
             DedupLinesNormalizer,
             HTMLStripNormalizer,
             LowercaseNormalizer,
@@ -1739,7 +1739,7 @@ class CorpusBuilder:
         if self._enricher is not None:
             return self._enricher
 
-        from scikitplot.corpus._enrichers._nlp_enricher import (  # noqa: PLC0415
+        from ._enrichers._nlp_enricher import (  # noqa: PLC0415
             EnricherConfig,
             NLPEnricher,
         )
@@ -1757,7 +1757,7 @@ class CorpusBuilder:
             return None
 
         try:
-            from scikitplot.corpus._embeddings import (  # noqa: PLC0415
+            from ._embeddings import (  # noqa: PLC0415
                 EmbeddingEngine,
             )
 

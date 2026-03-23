@@ -53,10 +53,12 @@ from typing import (  # noqa: F401
     Optional,
 )
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["PDFReader"]
 
 # Maximum file size accepted before raising. 2 GB covers most real PDFs; very
 # large document sets should be split into individual files first.
@@ -512,6 +514,3 @@ class PDFReader(DocumentReader):
             fallback = None
 
         return fallback if fallback is not None else text
-
-
-__all__ = ["PDFReader"]

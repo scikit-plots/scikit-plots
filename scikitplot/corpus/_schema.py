@@ -81,6 +81,25 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+__all__ = [  # noqa: RUF022
+    # Enumerations
+    "SectionType",
+    "ChunkingStrategy",
+    "ExportFormat",
+    "SourceType",
+    "MatchMode",
+    # New enumerations
+    "Modality",
+    "ErrorPolicy",
+    # Core document type
+    "CorpusDocument",
+    # Promoted-key registry (used by _base.py get_documents routing)
+    "_PROMOTED_RAW_KEYS",
+    # Bulk helpers
+    "documents_to_pandas",
+    "documents_to_polars",
+]
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -2332,23 +2351,3 @@ def documents_to_polars(
         ) from exc
     rows = [d.to_polars_row(include_embedding=include_embedding) for d in docs]
     return pl.DataFrame(rows)
-
-
-__all__ = [  # noqa: RUF022
-    # Enumerations
-    "SectionType",
-    "ChunkingStrategy",
-    "ExportFormat",
-    "SourceType",
-    "MatchMode",
-    # New enumerations
-    "Modality",
-    "ErrorPolicy",
-    # Core document type
-    "CorpusDocument",
-    # Promoted-key registry (used by _base.py get_documents routing)
-    "_PROMOTED_RAW_KEYS",
-    # Bulk helpers
-    "documents_to_pandas",
-    "documents_to_polars",
-]

@@ -73,8 +73,8 @@ import scikitplot.corpus._readers._web as _web_mod  # noqa: E402
 # Helpers
 # ---------------------------------------------------------------------------
 
-_YT_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-_YT_ID  = "dQw4w9WgXcQ"
+_YT_URL = "https://www.youtube.com/watch?v=rwPISgZcYIk"
+_YT_ID  = "rwPISgZcYIk"
 
 
 def _yt_reader(**kwargs: Any) -> YouTubeReader:
@@ -560,10 +560,10 @@ class TestYoutubeReaderErrors:
 
 class TestExtractYoutubeId:
     def test_watch_url(self) -> None:
-        assert _extract_youtube_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+        assert _extract_youtube_id("https://www.youtube.com/watch?v=rwPISgZcYIk") == "rwPISgZcYIk"
 
     def test_short_url(self) -> None:
-        assert _extract_youtube_id("https://youtu.be/dQw4w9WgXcQ") == "dQw4w9WgXcQ"
+        assert _extract_youtube_id("https://youtu.be/rwPISgZcYIk") == "rwPISgZcYIk"
 
     def test_non_youtube_returns_none(self) -> None:
         assert _extract_youtube_id("https://example.com/page") is None

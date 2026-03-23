@@ -695,7 +695,7 @@ class MCPCorpusServer:
         dict[str, Any]
             MCP tool result.
         """
-        from scikitplot.corpus._similarity import SearchConfig  # noqa: PLC0415
+        from ._similarity import SearchConfig  # noqa: PLC0415
 
         qe = None
         if self.embedding_fn is not None:

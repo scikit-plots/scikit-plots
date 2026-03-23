@@ -83,7 +83,7 @@ from typing import (  # noqa: F401
 
 from typing_extensions import Self  # noqa: F401
 
-from scikitplot.corpus._schema import (
+from ._schema import (
     _PROMOTED_RAW_KEYS,
     ChunkingStrategy,
     CorpusDocument,
@@ -95,6 +95,23 @@ from scikitplot.corpus._schema import (
 #     pass  # reserved for future static-analysis-only imports
 
 logger = logging.getLogger(__name__)
+
+__all__ = [  # noqa: RUF022
+    # Abstract bases
+    "DocumentReader",
+    "ChunkerBase",
+    "FilterBase",
+    # Concrete built-in filter
+    "DefaultFilter",
+    # Multi-source adapter (context manager)
+    "_MultiSourceReader",
+    # Utility readers
+    "DummyReader",
+    # Pipeline resilience
+    "PipelineGuard",
+    # URL detection helper
+    "_is_url",
+]
 
 # ---------------------------------------------------------------------------
 # Module-level constants
@@ -1608,7 +1625,7 @@ class DocumentReader(abc.ABC):
         >>> reader = DocumentReader.from_url("https://en.wikipedia.org/wiki/Python")
         >>> docs = list(reader.get_documents())
 
-        >>> yt = DocumentReader.from_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        >>> yt = DocumentReader.from_url("https://www.youtube.com/watch?v=rwPISgZcYIk")
         >>> docs = list(yt.get_documents())
         """
         import os as _os  # noqa: PLC0415
@@ -1668,7 +1685,7 @@ class DocumentReader(abc.ABC):
         # ── Stage 2: probe extensionless URLs with HEAD request ───────────
         if not has_ext:
             try:
-                from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+                from ._url_handler import (  # noqa: PLC0415
                     URLKind,
                     classify_url,
                     probe_url_kind,
@@ -1690,7 +1707,7 @@ class DocumentReader(abc.ABC):
         if has_ext:
             import tempfile  # noqa: PLC0415
 
-            from scikitplot.corpus._url_handler import (  # noqa: PLC0415
+            from ._url_handler import (  # noqa: PLC0415
                 URLKind,
                 classify_url,
                 download_url,
@@ -1709,7 +1726,7 @@ class DocumentReader(abc.ABC):
                 st = source_type
                 if st is None:
                     try:
-                        from scikitplot.corpus._schema import (  # noqa: PLC0415
+                        from ._schema import (  # noqa: PLC0415
                             SourceType as _ST,  # noqa: N814
                         )
 
@@ -2307,7 +2324,7 @@ class PipelineGuard:
         """
         # Import here to avoid circular import at module level
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2371,7 +2388,7 @@ class PipelineGuard:
         import time  # noqa: F401, PLC0415
 
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2510,7 +2527,7 @@ class PipelineGuard:
         import time  # noqa: PLC0415
 
         try:
-            from scikitplot.corpus._schema import (  # noqa: N814, PLC0415
+            from ._schema import (  # noqa: N814, PLC0415
                 ErrorPolicy as _EP,
             )
 
@@ -2598,26 +2615,3 @@ class PipelineGuard:
             self._ckpt_file.flush()
         except OSError as exc:
             logger.warning("PipelineGuard: checkpoint write failed: %s", exc)
-
-
-# ===========================================================================
-# Public API
-# ===========================================================================
-
-
-__all__ = [  # noqa: RUF022
-    # Abstract bases
-    "DocumentReader",
-    "ChunkerBase",
-    "FilterBase",
-    # Concrete built-in filter
-    "DefaultFilter",
-    # Multi-source adapter (context manager)
-    "_MultiSourceReader",
-    # Utility readers
-    "DummyReader",
-    # Pipeline resilience
-    "PipelineGuard",
-    # URL detection helper
-    "_is_url",
-]

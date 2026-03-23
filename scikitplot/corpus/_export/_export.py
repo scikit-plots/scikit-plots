@@ -87,9 +87,14 @@ from typing import Any, Dict, List, Optional  # noqa: F401
 
 import numpy as np
 
-from scikitplot.corpus._schema import CorpusDocument, ExportFormat
+from .._schema import CorpusDocument, ExportFormat
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "export_documents",
+    "load_documents",
+]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -943,9 +948,3 @@ def load_documents(
         fmt,
     )
     return []
-
-
-__all__ = [
-    "export_documents",
-    "load_documents",
-]

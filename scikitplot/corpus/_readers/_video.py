@@ -60,10 +60,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType, SourceType
+from .._base import DocumentReader
+from .._schema import SectionType, SourceType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["VideoReader"]
 
 
 def _load_faster():
@@ -713,6 +715,3 @@ class VideoReader(DocumentReader):
             " Yielding no chunks. To enable transcription, set transcribe=True.",
             self.file_name,
         )
-
-
-__all__ = ["VideoReader"]

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from ._nlp_enricher import (
-    EnricherConfig,
-    NLPEnricher,
+from . import (
+    _nlp_enricher,
 )
+from ._nlp_enricher import *  # noqa: F403
 
-__all__ = [
-    "EnricherConfig",
-    "NLPEnricher",
-]
+__all__ = []
+__all__ += _nlp_enricher.__all__

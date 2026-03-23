@@ -24,16 +24,10 @@ and provenance manifests.
 
 from __future__ import annotations
 
-from ._metadata import (
-    CollectionManifest,
-    CorpusStats,
-    compute_stats,
-    provenance_from_filename,
+from . import (
+    _metadata,
 )
+from ._metadata import *  # noqa: F403
 
-__all__ = [
-    "CollectionManifest",
-    "CorpusStats",
-    "compute_stats",
-    "provenance_from_filename",
-]
+__all__ = []
+__all__ += _metadata.__all__

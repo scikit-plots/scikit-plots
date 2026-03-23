@@ -66,6 +66,12 @@ import numpy.typing as npt
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "DEFAULT_CACHE_DIR",
+    "DEFAULT_MODEL",
+    "EmbeddingEngine",
+]
+
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------
@@ -77,7 +83,7 @@ EmbedFn = Callable[[List[str]], npt.NDArray[np.float32]]
 DEFAULT_MODEL: str = "paraphrase-multilingual-mpnet-base-v2"
 
 # Default cache directory under the user's home
-_DEFAULT_CACHE_DIR: pathlib.Path = (
+DEFAULT_CACHE_DIR: pathlib.Path = (
     pathlib.Path.home() / ".cache" / "scikitplot" / "embeddings"
 )
 
@@ -524,7 +530,7 @@ class EmbeddingEngine:
                 f" got {self.dtype!r}."
             )
         if self.cache_dir is None:
-            object.__setattr__(self, "cache_dir", _DEFAULT_CACHE_DIR)
+            object.__setattr__(self, "cache_dir", DEFAULT_CACHE_DIR)
 
     # ------------------------------------------------------------------
     # Public API
@@ -771,10 +777,3 @@ class EmbeddingEngine:
             f" normalize={self.normalize},"
             f" cache={'enabled' if self.enable_cache else 'disabled'})"
         )
-
-
-__all__ = [
-    "DEFAULT_MODEL",
-    "EmbedFn",
-    "EmbeddingEngine",
-]

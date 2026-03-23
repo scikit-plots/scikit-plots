@@ -41,6 +41,7 @@ from typing import Any, Sequence
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "BUILTIN_STOPWORDS",
     "EnricherConfig",
     "NLPEnricher",
 ]
@@ -143,7 +144,7 @@ class EnricherConfig:
 # Built-in stopwords (small English set for zero-dep fallback)
 # =====================================================================
 
-_BUILTIN_STOPWORDS: frozenset[str] = frozenset(
+BUILTIN_STOPWORDS: frozenset[str] = frozenset(
     {
         "a",
         "an",
@@ -627,7 +628,7 @@ class NLPEnricher:
                 nltk.download("stopwords", quiet=True)
             self._stopwords = frozenset(sw.words("english"))
         except (ImportError, LookupError):
-            self._stopwords = _BUILTIN_STOPWORDS
+            self._stopwords = BUILTIN_STOPWORDS
 
         return self._stopwords
 

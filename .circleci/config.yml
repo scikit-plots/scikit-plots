@@ -205,7 +205,8 @@ commands:
               libopenblas-dev \
               liblapack-dev \
               libgmp-dev \
-              libmpfr-dev
+              libmpfr-dev \
+              tesseract-ocr
   pip-install:
     description: Upgrade pip and setuptools and wheel to get as clean an install as possible
     steps:
@@ -220,6 +221,7 @@ commands:
             # pip install -r ./requirements/gpu.txt
             pip install -r ./requirements/cpu.txt
             pip install -r ./requirements/mlflow.txt
+            pip install -r ./requirements/corpus.txt
 
             # pip install voyager==2.1.0
             pip install nltk

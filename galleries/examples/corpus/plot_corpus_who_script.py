@@ -1,6 +1,6 @@
 """
-corpus with examples
-====================
+corpus WHO European Region with examples
+========================================
 
 .. currentmodule:: scikitplot.corpus
 
@@ -15,12 +15,14 @@ Examples related to the :py:mod:`~scikitplot.corpus` submodule.
 # #############################
 #
 # First we download the media preproccess libraries (text, image, audio or video).
-# pip install nltk gensim langdetect faster-whisper openai-whisper pytesseract youtube-transcript-api
-# sudo apt-get install tesseract-ocr
+# ::
 #
-# curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/corpus.txt
-# pip install -r requirements/corpus.txt
-# pip install scikit-plots[corpus]
+#   pip install nltk gensim langdetect faster-whisper openai-whisper pytesseract youtube-transcript-api
+#   sudo apt-get install tesseract-ocr
+#
+#   curl -O https://raw.githubusercontent.com/scikit-plots/scikit-plots/main/requirements/corpus.txt
+#   pip install -r requirements/corpus.txt
+#   pip install scikit-plots[corpus]
 #
 # .. seealso::
 #    * galleries/examples/00-jupyter_notebooks/corpus/plot_corpus_from_any_media_notebook.ipynb
@@ -39,6 +41,14 @@ from pathlib import Path
 
 import scikitplot as sp
 from scikitplot import corpus
+from scikitplot.corpus import (
+    DocumentReader,
+    CorpusPipeline,
+    SentenceChunker,
+    ExportFormat,
+    CorpusDocument,
+    SourceType,
+)
 
 from scikitplot.corpus._schema import (
     CorpusDocument,
@@ -156,6 +166,7 @@ all_documents[60].text
 
 # --- Source ②: YouTube Transcript ---
 # In production: DocumentReader.from_url("https://youtu.be/rwPISgZcYIk")
+# "https://youtu.be/rwPISgZcYIk",  # https://www.youtube.com/watch?v=rwPISgZcYIk
 mini_banner("Source ②: YouTube Transcript (text proxy)")
 try:
     if Path("who_video_transcript.txt").exists():
@@ -526,6 +537,7 @@ result = builder.build([
 
 # ② YouTube Video
 result = builder.build([
+    # "https://youtu.be/rwPISgZcYIk",  # https://www.youtube.com/watch?v=rwPISgZcYIk
     "https://youtu.be/rwPISgZcYIk?si=TddW-0bwBRF_4_qU",
 ])
 
@@ -547,7 +559,7 @@ result = builder.build(["can-people-afford-to-pay-for-health-care.mp3"])
 # ━━━ Or process ALL at once: ━━━
 result = builder.build([
     "https://www.who.int/europe/news/item/12-12-2023-out-of-pocket-...",
-    "https://youtu.be/rwPISgZcYIk",
+    "https://youtu.be/rwPISgZcYIk",  # https://www.youtube.com/watch?v=rwPISgZcYIk
     "who_greece_report.pdf",
     "scan.jpg",
     "podcast.mp3",

@@ -35,7 +35,7 @@ import abc
 import logging
 from typing import Any, ClassVar
 
-from scikitplot.corpus._schema import ChunkingStrategy
+from .._schema import ChunkingStrategy
 
 logger = logging.getLogger(__name__)
 

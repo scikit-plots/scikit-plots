@@ -64,10 +64,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Generator, Optional  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType  # noqa: F401
+from .._base import DocumentReader
+from .._schema import SectionType  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ZipReader"]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -412,7 +414,7 @@ class ZipReader(DocumentReader):
                     member_st = provenance.get("source_type")
                     if member_st is None and self.infer_source_type:
                         try:
-                            from scikitplot.corpus._schema import (  # noqa: PLC0415
+                            from .._schema import (  # noqa: PLC0415
                                 SourceType,
                             )
 

@@ -501,7 +501,90 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "ChunkerBase",
                     "DefaultFilter",
                     "DocumentReader",
+                    "DummyReader",
                     "FilterBase",
+                    "PipelineGuard",
+                ],
+            },
+            {
+                "title": "Builder",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "BuilderConfig",
+                    "BuildResult",
+                    "CorpusBuilder",
+                ],
+            },
+            {
+                "title": "Chunkers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "FixedWindowChunker",
+                    "FixedWindowChunkerConfig",
+                    "ParagraphChunker",
+                    "ParagraphChunkerConfig",
+                    "SentenceChunker",
+                    "SentenceChunkerConfig",
+                    "WordChunker",
+                    "WordChunkerConfig",
+                    # Chunker bridge
+                    "ChunkerBridge",
+                    "bridge_chunker",
+                ],
+            },
+            {
+                "title": "Embeddings",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "DEFAULT_MODEL",
+                    "EmbedFn",
+                    "EmbeddingEngine",
+                ],
+            },
+            {
+                "title": "Enricher",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "EnricherConfig",
+                    "NLPEnricher",
+                ],
+            },
+            {
+                "title": "Normalizers",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "DedupLinesNormalizer",
+                    "HTMLStripNormalizer",
+                    "LanguageDetectionNormalizer",
+                    "LowercaseNormalizer",
+                    "NormalizationPipeline",
+                    "NormalizerBase",
+                    "NormalizerConfig",
+                    "TextNormalizer",
+                    "UnicodeNormalizer",
+                    "WhitespaceNormalizer",
+                    "normalize_text",
+                ],
+            },
+            {
+                "title": "Pipeline",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "CorpusPipeline",
+                    "PipelineResult",
+                    "create_corpus",
                 ],
             },
             {
@@ -525,58 +608,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Chunkers",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "FixedWindowChunker",
-                    "ParagraphChunker",
-                    "SentenceChunker",
-                    "WordChunker",
-                ],
-            },
-            {
-                "title": "Normalizers",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "DedupLinesNormalizer",
-                    "HTMLStripNormalizer",
-                    "LanguageDetectionNormalizer",
-                    "LowercaseNormalizer",
-                    "NormalizationPipeline",
-                    "NormalizerBase",
-                    "NormalizerConfig",
-                    "TextNormalizer",
-                    "UnicodeNormalizer",
-                    "WhitespaceNormalizer",
-                    "normalize_text",
-                ],
-            },
-            {
-                "title": "Enricher",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "EnricherConfig",
-                    "NLPEnricher",
-                ],
-            },
-            {
-                "title": "Embeddings",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "DEFAULT_MODEL",
-                    "EmbedFn",
-                    "EmbeddingEngine",
-                ],
-            },
-            {
                 "title": "Similarity",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -585,17 +616,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SearchConfig",
                     "SearchResult",
                     "SimilarityIndex",
-                ],
-            },
-            {
-                "title": "Pipeline",
-                # "description": (
-                #     _get_submodule("scikitplot.corpus", "__init__")
-                # ),
-                "autosummary": [
-                    "CorpusPipeline",
-                    "PipelineResult",
-                    "create_corpus",
                 ],
             },
         ],

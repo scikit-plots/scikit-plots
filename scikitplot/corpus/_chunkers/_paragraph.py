@@ -12,18 +12,18 @@ Paragraph-boundary segmentation via blank-line splitting.
 
 Pure Python — no external dependencies. Suitable for plain text, pre-processed
 XML body text, and any format where paragraph boundaries are expressed by one
-or more consecutive blank lines (``\\n\\n``).
+or more consecutive blank lines (``\n\n``).
 
 Design
 ------
 A "blank line" is any line that contains only whitespace characters.
-The split regex ``\\n\\s*\\n+`` matches one newline, any amount of
+The split regex ``\n\s*\n+`` matches one newline, any amount of
 whitespace (including none), followed by one or more additional newlines.
 This correctly handles:
 
-- Standard double-newline (``\\n\\n``)
-- Windows-style line endings after normalisation (``\\n`` after ``\\r\\n`` strip)
-- Extra blank lines (``\\n\\n\\n``) collapsed to one boundary
+- Standard double-newline (``\n\n``)
+- Windows-style line endings after normalisation (``\n`` after ``\r\n`` strip)
+- Extra blank lines (``\n\n\n``) collapsed to one boundary
 - Lines containing only spaces or tabs between newlines
 
 Character offsets
@@ -49,6 +49,11 @@ from typing import Any, Final
 from .._types import Chunk, ChunkerConfig, ChunkResult
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "ParagraphChunker",
+    "ParagraphChunkerConfig",
+]
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -241,7 +246,7 @@ class ParagraphChunker:
     Examples
     --------
     >>> chunker = ParagraphChunker()
-    >>> text = "First paragraph.\\n\\nSecond paragraph."
+    >>> text = "First paragraph.\n\nSecond paragraph."
     >>> result = chunker.chunk(text)
     >>> len(result.chunks)
     2

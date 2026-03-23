@@ -43,10 +43,16 @@ from dataclasses import dataclass, field  # noqa: F401
 from timeit import default_timer as timer
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union  # noqa: F401
 
-from scikitplot.corpus._base import ChunkerBase, DocumentReader, FilterBase
-from scikitplot.corpus._schema import CorpusDocument, ExportFormat
+from ._base import ChunkerBase, DocumentReader, FilterBase
+from ._schema import CorpusDocument, ExportFormat
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "CorpusPipeline",
+    "PipelineResult",
+    "create_corpus",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +243,15 @@ class CorpusPipeline:
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
     ) -> None:
-        self.chunker = chunker
+        # Bridge new-style chunkers (SentenceChunker, ParagraphChunker,
+        # FixedWindowChunker, WordChunker) to the ChunkerBase contract
+        # (_base.py needs .strategy and chunk(text, metadata) → list[tuple]).
+        # Already-compliant ChunkerBase subclasses are returned as-is.
+        from ._chunkers._chunker_bridge import (  # noqa: PLC0415
+            bridge_chunker,
+        )
+
+        self.chunker = bridge_chunker(chunker) if chunker is not None else None
         self.filter_ = filter_
         self.embedding_engine = embedding_engine
         self.output_dir = pathlib.Path(output_dir) if output_dir is not None else None
@@ -342,46 +356,119 @@ class CorpusPipeline:
 
     def run_url(
         self,
-        url: str,
+        url: str | list[str],
         *,
         output_path: pathlib.Path | None = None,
         export_format: ExportFormat | None = None,
-    ) -> PipelineResult:
+        stop_on_error: bool = False,
+    ) -> PipelineResult | list[PipelineResult]:
         """
-        Process a URL source (web page or YouTube video).
+        Process one URL or a list of URLs.
+
+        Accepts a single URL string or a list of URL strings.  When a list
+        is passed each URL is processed independently and a parallel list of
+        :class:`PipelineResult` objects is returned.  The single-URL form
+        returns a single :class:`PipelineResult` (backwards compatible).
+
+        Supported URL shapes
+        --------------------
+        * Single video — ``watch?v=``, ``youtu.be/``, ``/shorts/``,
+          ``/embed/``, ``/live/``
+        * Video + playlist context — ``watch?v=…&list=…``
+          (treated as single video; ``list=`` is ignored)
+        * Channel / handle page — ``@Handle``, ``@Handle/videos``,
+          ``@Handle/shorts``, ``@Handle/podcasts``,
+          ``/channel/UCxxx``, ``/c/Name``, ``/user/Name``
+        * Pure playlist — ``/playlist?list=…``
+        * Any ``http(s)://`` URL — routed to :class:`WebReader`
 
         Parameters
         ----------
-        url : str
-            Full URL string. Dispatched to :class:`WebReader` or
-            :class:`YouTubeReader` via
-            :meth:`~scikitplot.corpus._base.DocumentReader.from_url`.
+        url : str or list of str
+            One URL string or a list of URL strings.  Every string must
+            start with ``http://`` or ``https://``.
         output_path : pathlib.Path or None, optional
-            Explicit output file path. When ``None`` and ``output_dir``
-            is set, a filename is derived from the URL host/path.
+            Explicit output file path.  Ignored when *url* is a list
+            (each result derives its own path from the URL).
         export_format : ExportFormat or None, optional
             Override the pipeline-level ``export_format`` for this call.
+        stop_on_error : bool, optional
+            When ``True`` and *url* is a list, re-raise the first
+            exception encountered instead of continuing.  Has no effect
+            for single-URL calls (exceptions always propagate).
 
         Returns
         -------
         PipelineResult
+            When *url* is a ``str``.
+        list of PipelineResult
+            When *url* is a ``list``.  Results are in the same order as
+            *url*.  Failed URLs (when ``stop_on_error=False``) are
+            omitted from the list and logged at ERROR level.
 
         Raises
         ------
+        TypeError
+            If *url* is not a ``str`` or ``list``.
         ValueError
-            If ``url`` does not start with ``http://`` or ``https://``.
+            If any URL string does not start with ``http://`` or
+            ``https://``.
         ImportError
             If ``scikitplot.corpus._readers`` has not been imported yet.
 
         Examples
         --------
-        >>> result = pipeline.run_url("https://en.wikipedia.org/wiki/Python")
-        >>> len(result.documents)
-        58
+        Single video:
+
+        >>> result = pipeline.run_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        >>> isinstance(result, PipelineResult)
+        True
+
+        List of URLs (returns list):
+
+        >>> results = pipeline.run_url(
+        ...     [
+        ...         "https://www.youtube.com/@WHO/shorts",
+        ...         "https://www.youtube.com/@WHO/videos",
+        ...     ]
+        ... )
+        >>> isinstance(results, list)
+        True
         """
+        # ── List form: recurse per URL, collect results ──────────────
+        if isinstance(url, list):
+            if not url:
+                raise ValueError("run_url: url list must not be empty.")
+            results: list[PipelineResult] = []
+            for u in url:
+                try:
+                    results.append(
+                        self.run_url(  # type: ignore[arg-type]
+                            u,
+                            output_path=None,
+                            export_format=export_format,
+                            stop_on_error=stop_on_error,
+                        )
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    if stop_on_error:
+                        raise
+                    logger.error(
+                        "CorpusPipeline.run_url: skipping %s — %s: %s",
+                        u,
+                        type(exc).__name__,
+                        exc,
+                    )
+            return results
+
+        if not isinstance(url, str):
+            raise TypeError(
+                f"run_url: url must be str or list[str], got {type(url).__name__!r}."
+            )
+
         import re  # noqa: PLC0415
 
-        import scikitplot.corpus._readers  # noqa: F401, PLC0415
+        from . import _readers  # noqa: F401, PLC0415
 
         start = timer()
         logger.info("CorpusPipeline.run_url: processing %s.", url)
@@ -523,11 +610,10 @@ class CorpusPipeline:
         tuple of (list[CorpusDocument], int, int)
             ``(documents, n_read, n_omitted)``
         """
-        from scikitplot.corpus._base import DefaultFilter  # noqa: F401, PLC0415
+        from ._base import DefaultFilter  # noqa: F401, PLC0415
 
         documents: list[CorpusDocument] = []
-        for doc in reader.get_documents():
-            documents.append(doc)
+        documents = list(reader.get_documents())
 
         # get_documents() now stores counters as instance attributes.
         # n_included + n_omitted = total raw chunks processed.
@@ -607,7 +693,7 @@ class CorpusPipeline:
         output_path : pathlib.Path
         fmt : ExportFormat
         """
-        from scikitplot.corpus._export import export_documents  # noqa: PLC0415
+        from ._export import export_documents  # noqa: PLC0415
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         export_documents(documents, output_path=output_path, fmt=fmt)
@@ -703,10 +789,3 @@ def create_corpus(
         export_format=export_format,
         filename_override=filename_override,
     )
-
-
-__all__ = [
-    "CorpusPipeline",
-    "PipelineResult",
-    "create_corpus",
-]

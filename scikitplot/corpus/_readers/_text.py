@@ -34,10 +34,16 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, Optional  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "MarkdownReader",
+    "ReSTReader",
+    "TextReader",
+]
 
 # Default upper bound for files read into memory in one shot.
 # 500 MB should be generous for any realistic text corpus file.
@@ -322,9 +328,6 @@ class TextReader(DocumentReader):
             "text": text,
             "section_type": SectionType.TEXT.value,
         }
-
-
-__all__ = ["MarkdownReader", "ReSTReader", "TextReader"]
 
 
 # ---------------------------------------------------------------------------

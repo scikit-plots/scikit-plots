@@ -208,8 +208,30 @@ _DOWNLOADABLE_MIME_PREFIXES: tuple[str, ...] = (
 # URL regex patterns
 # ---------------------------------------------------------------------------
 
-_YOUTUBE_RE: re.Pattern[str] = re.compile(
-    r"https?://(www\.)?(youtube\.com/(watch|shorts|embed|live)|youtu\.be/)",
+# Individual video: watch, shorts, embed, live, youtu.be
+_YOUTUBE_VIDEO_RE: re.Pattern[str] = re.compile(
+    r"https?://(www\.)?(youtube\.com/(watch|shorts/|embed/|live/)|youtu\.be/)",
+    re.IGNORECASE,
+)
+
+# Channel / handle pages (all tab variants + legacy URL schemes)
+#   @Handle, @Handle/shorts, @Handle/videos, @Handle/podcasts,
+#   @Handle/streams, @Handle/community, @Handle/about, @Handle/featured
+#   channel/UCxxx, c/Name (legacy), user/Name (legacy)
+_YOUTUBE_CHANNEL_RE: re.Pattern[str] = re.compile(
+    r"https?://(www\.)?youtube\.com/"
+    r"(@[^/?#]+"
+    r"|channel/[^/?#]+"
+    r"|c/[^/?#]+"
+    r"|user/[^/?#]+)"
+    r"(/shorts|/videos|/podcasts|/streams|/community|/about|/featured)?"
+    r"/?$",
+    re.IGNORECASE,
+)
+
+# Pure playlist page (no video ID — only list= param)
+_YOUTUBE_PLAYLIST_RE: re.Pattern[str] = re.compile(
+    r"https?://(www\.)?youtube\.com/playlist\?",
     re.IGNORECASE,
 )
 
@@ -324,7 +346,18 @@ class URLKind(_StrEnumBase):
     WEB_PAGE
         General web page — route to ``WebReader``.
     YOUTUBE
-        YouTube video — route to ``YouTubeReader``.
+        Single YouTube video (watch, shorts, embed, live, youtu.be)
+        — route to ``YouTubeReader``.
+    YOUTUBE_CHANNEL
+        YouTube channel or handle page (``@Handle``, ``/channel/``,
+        ``/c/``, ``/user/``), with any tab suffix (``/shorts``,
+        ``/videos``, ``/podcasts``, etc.)
+        — enumerate videos via ``yt-dlp`` then route each to
+        ``YouTubeReader``.
+    YOUTUBE_PLAYLIST
+        Pure playlist page (``/playlist?list=…``, no ``v=`` param)
+        — enumerate videos via ``yt-dlp`` then route each to
+        ``YouTubeReader``.
     DOWNLOADABLE
         Direct-download file (PDF, image, audio, etc.) — download
         locally, then route to ``DocumentReader.create()``.
@@ -341,6 +374,8 @@ class URLKind(_StrEnumBase):
 
     WEB_PAGE = "web_page"
     YOUTUBE = "youtube"
+    YOUTUBE_CHANNEL = "youtube_channel"
+    YOUTUBE_PLAYLIST = "youtube_playlist"
     DOWNLOADABLE = "downloadable"
     GOOGLE_DRIVE = "google_drive"
     GITHUB_RAW = "github_raw"
@@ -375,19 +410,36 @@ def classify_url(url: str) -> URLKind:  # noqa: PLR0911
     -----
     **Classification order matters.** The check sequence is:
 
-    1. YouTube (highest priority — YouTube URLs look like web pages
-       but need special transcript handling).
-    2. Google Drive share links.
-    3. GitHub blob URLs (must check before raw, since blob URLs
+    1. YouTube channel / handle (checked before video — the ``@Handle``
+       path would otherwise fall through to the web-page fallback).
+    2. YouTube playlist (``/playlist?list=…``).
+    3. YouTube single video (``watch``, ``shorts``, ``embed``, ``live``,
+       ``youtu.be``).  A ``watch?v=…&list=…`` URL is classified as a
+       single video — the ``list=`` param is contextual and the reader
+       extracts only the ``v=`` video ID.
+    4. Google Drive share links.
+    5. GitHub blob URLs (must check before raw, since blob URLs
        are on ``github.com``).
-    4. GitHub raw URLs.
-    5. Downloadable file (extension-based heuristic on the URL path).
-    6. Web page (default fallback).
+    6. GitHub raw URLs.
+    7. Downloadable file (extension-based heuristic on the URL path).
+    8. Web page (default fallback).
 
     Examples
     --------
-    >>> classify_url("https://youtu.be/dQw4w9WgXcQ")
+    >>> classify_url("https://youtu.be/rwPISgZcYIk")
     <URLKind.YOUTUBE: 'youtube'>
+    >>> classify_url("https://www.youtube.com/watch?v=4nMSvDEYl1c")
+    <URLKind.YOUTUBE: 'youtube'>
+    >>> classify_url("https://www.youtube.com/shorts/-6hoqujlmfU")
+    <URLKind.YOUTUBE: 'youtube'>
+    >>> classify_url("https://www.youtube.com/watch?v=AAk3pi15Zn4&list=PLL4_zLP7J")
+    <URLKind.YOUTUBE: 'youtube'>
+    >>> classify_url("https://www.youtube.com/@WHO/videos")
+    <URLKind.YOUTUBE_CHANNEL: 'youtube_channel'>
+    >>> classify_url("https://www.youtube.com/@WHO/shorts")
+    <URLKind.YOUTUBE_CHANNEL: 'youtube_channel'>
+    >>> classify_url("https://www.youtube.com/playlist?list=PLL4_zLP7J")
+    <URLKind.YOUTUBE_PLAYLIST: 'youtube_playlist'>
     >>> classify_url("https://example.com/report.pdf")
     <URLKind.DOWNLOADABLE: 'downloadable'>
     >>> classify_url("https://drive.google.com/file/d/abc123/view")
@@ -400,19 +452,30 @@ def classify_url(url: str) -> URLKind:  # noqa: PLR0911
             f"classify_url: url must start with 'http://' or 'https://'; got {url!r}."
         )
 
-    # 1. YouTube
-    if _YOUTUBE_RE.match(url):
+    # 1. YouTube channel / handle — must come before video: @Handle paths
+    #    share the youtube.com domain with watch/shorts but are not videos.
+    if _YOUTUBE_CHANNEL_RE.match(url):
+        return URLKind.YOUTUBE_CHANNEL
+
+    # 2. YouTube pure playlist (no v= param)
+    if _YOUTUBE_PLAYLIST_RE.match(url):
+        return URLKind.YOUTUBE_PLAYLIST
+
+    # 3. YouTube single video (watch, shorts, embed, live, youtu.be)
+    #    watch?v=…&list=… is intentionally classified as YOUTUBE (single
+    #    video); the reader extracts only the v= param.
+    if _YOUTUBE_VIDEO_RE.match(url):
         return URLKind.YOUTUBE
 
-    # 2. Google Drive
+    # 4. Google Drive
     if _GDRIVE_FILE_RE.match(url) or _GDRIVE_OPEN_RE.match(url):
         return URLKind.GOOGLE_DRIVE
 
-    # 3. GitHub blob
+    # 5. GitHub blob
     if _GITHUB_BLOB_RE.match(url):
         return URLKind.GITHUB_BLOB
 
-    # 4. GitHub raw
+    # 6. GitHub raw
     if _GITHUB_RAW_RE.match(url):
         return URLKind.GITHUB_RAW
 

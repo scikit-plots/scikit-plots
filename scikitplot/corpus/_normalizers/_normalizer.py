@@ -53,9 +53,20 @@ import re
 import unicodedata
 from typing import Any, List, Optional, Sequence  # noqa: F401
 
-from scikitplot.corpus._schema import CorpusDocument
+from .._schema import CorpusDocument
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "DedupLinesNormalizer",
+    "HTMLStripNormalizer",
+    "LanguageDetectionNormalizer",
+    "LowercaseNormalizer",
+    "NormalizationPipeline",
+    "NormalizerBase",
+    "UnicodeNormalizer",
+    "WhitespaceNormalizer",
+]
 
 # Matches one or more whitespace characters (including non-breaking space).
 _WS_RE: re.Pattern[str] = re.compile(r"\s+")
@@ -703,15 +714,3 @@ class NormalizationPipeline(NormalizerBase):
     def __repr__(self) -> str:  # noqa: D105
         names = ", ".join(repr(n) for n in self.steps)
         return f"NormalizationPipeline([{names}])"
-
-
-__all__ = [
-    "DedupLinesNormalizer",
-    "HTMLStripNormalizer",
-    "LanguageDetectionNormalizer",
-    "LowercaseNormalizer",
-    "NormalizationPipeline",
-    "NormalizerBase",
-    "UnicodeNormalizer",
-    "WhitespaceNormalizer",
-]

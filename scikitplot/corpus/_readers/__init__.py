@@ -99,7 +99,7 @@ URL-based:
 
 YouTube:
 
->>> reader = DocumentReader.from_url("https://youtu.be/dQw4w9WgXcQ")
+>>> reader = DocumentReader.from_url("https://youtu.be/rwPISgZcYIk")
 >>> docs = list(reader.get_documents())
 
 Image (OCR):
@@ -119,12 +119,6 @@ Video (subtitle-first, Whisper fallback):
 
 from __future__ import annotations
 
-from scikitplot.corpus._base import DummyReader  # noqa: F401 — registers :dummy
-from scikitplot.corpus._readers._alto import ALTOReader
-from scikitplot.corpus._readers._audio import AudioReader
-from scikitplot.corpus._readers._image import ImageReader
-from scikitplot.corpus._readers._pdf import PDFReader
-
 # Import order is intentional: each import triggers __init_subclass__
 # which registers the class in DocumentReader._registry.
 # All readers are imported unconditionally so the registry is complete
@@ -135,32 +129,35 @@ from scikitplot.corpus._readers._pdf import PDFReader
 # DocumentReader.create("corpus.zip") dispatch to the generic ZipReader
 # which handles any content mix.  To use ALTOReader directly, instantiate
 # it explicitly: ALTOReader(input_file=Path("alto.zip")).
-from scikitplot.corpus._readers._text import MarkdownReader, ReSTReader, TextReader
-from scikitplot.corpus._readers._video import VideoReader
-from scikitplot.corpus._readers._web import WebReader, YouTubeReader
-from scikitplot.corpus._readers._xml import TEIReader, XMLReader
-from scikitplot.corpus._readers._zip import ZipReader  # must come after ALTOReader
+from .._base import DummyReader  # noqa: F401 — registers :dummy
+from . import (
+    _alto,
+    _audio,
+    _image,
+    _pdf,
+    _text,
+    _video,
+    _web,
+    _xml,
+    _zip,
+)
+from ._alto import *  # noqa: F403
+from ._audio import *  # noqa: F403
+from ._image import *  # noqa: F403
+from ._pdf import *  # noqa: F403
+from ._text import *  # noqa: F403
+from ._video import *  # noqa: F403
+from ._web import *  # noqa: F403
+from ._xml import *  # noqa: F403
+from ._zip import *  # noqa: F403  # must come after ALTOReader
 
-__all__ = [  # noqa: RUF022
-    # Text family
-    "TextReader",
-    "MarkdownReader",
-    "ReSTReader",
-    # XML family
-    "XMLReader",
-    "TEIReader",
-    # Archive / structured document
-    "ALTOReader",
-    "PDFReader",
-    # Media (OCR / transcription)
-    "ImageReader",
-    "VideoReader",
-    "AudioReader",
-    # URL-based
-    "WebReader",
-    "YouTubeReader",
-    # Archive dispatch
-    "ZipReader",
-    # Utility
-    "DummyReader",
-]
+__all__ = ["DummyReader"]
+__all__ += _alto.__all__
+__all__ += _audio.__all__
+__all__ += _image.__all__
+__all__ += _pdf.__all__
+__all__ += _text.__all__
+__all__ += _video.__all__
+__all__ += _web.__all__
+__all__ += _xml.__all__
+__all__ += _zip.__all__

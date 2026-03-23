@@ -32,14 +32,10 @@ Usage
 
 from __future__ import annotations
 
-from ._source import (
-    CorpusSource,
-    SourceEntry,
-    SourceKind,
+from . import (
+    _source,
 )
+from ._source import *  # noqa: F403
 
-__all__ = [
-    "CorpusSource",
-    "SourceEntry",
-    "SourceKind",
-]
+__all__ = []
+__all__ += _source.__all__

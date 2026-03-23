@@ -35,6 +35,11 @@ from typing import Any, Dict, List, Optional, Type  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "ComponentRegistry",
+    "registry",
+]
+
 
 def _fqcn(cls: type) -> str:
     # __qualname__ or __name__ or f"{v.__module__}.{v.__name__}"
@@ -141,7 +146,7 @@ class ComponentRegistry:
 
             # --- Chunkers ---
             try:
-                from scikitplot.corpus._chunkers import (  # noqa: PLC0415
+                from .._chunkers import (  # noqa: PLC0415
                     FixedWindowChunker,
                     ParagraphChunker,
                     SentenceChunker,
@@ -155,7 +160,7 @@ class ComponentRegistry:
 
             # --- Filters ---
             try:
-                from scikitplot.corpus._base import DefaultFilter  # noqa: PLC0415
+                from .._base import DefaultFilter  # noqa: PLC0415
 
                 self._filters["default"] = DefaultFilter
             except ImportError as exc:
@@ -163,8 +168,8 @@ class ComponentRegistry:
 
             # --- Readers (populates DocumentReader._registry as side effect) ---
             try:
-                import scikitplot.corpus._readers  # noqa: F401, PLC0415
-                from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
+                from .. import _readers  # noqa: F401, PLC0415
+                from .._base import DocumentReader  # noqa: PLC0415
 
                 for ext, cls in DocumentReader.subclass_by_type().items():
                     self._readers[ext] = cls
@@ -173,7 +178,7 @@ class ComponentRegistry:
 
             # --- Normalizers ---
             try:
-                from scikitplot.corpus._normalizers import (  # noqa: PLC0415
+                from .._normalizers import (  # noqa: PLC0415
                     DedupLinesNormalizer,
                     HTMLStripNormalizer,
                     LanguageDetectionNormalizer,
@@ -540,7 +545,7 @@ class ComponentRegistry:
             allowed_module_prefixes = [allowed_module_prefixes]
 
         if not isinstance(snapshot, dict):
-            raise ValueError("Snapshot must be a dict.")
+            raise TypeError("Snapshot must be a dict.")
 
         if set(snapshot.keys()) != required_keys:
             raise ValueError(
@@ -550,7 +555,7 @@ class ComponentRegistry:
 
         for section in required_keys:
             if not isinstance(snapshot[section], dict):
-                raise ValueError(f"Snapshot[{section!r}] must be a dict.")
+                raise TypeError(f"Snapshot[{section!r}] must be a dict.")
 
             for k, v in snapshot[section].items():
                 if not isinstance(k, str) or not k.strip():
@@ -636,8 +641,3 @@ class ComponentRegistry:
 #: Global registry singleton. Call :meth:`ComponentRegistry.register_builtins`
 #: once to populate built-in components.
 registry: ComponentRegistry = ComponentRegistry()
-
-__all__ = [
-    "ComponentRegistry",
-    "registry",
-]

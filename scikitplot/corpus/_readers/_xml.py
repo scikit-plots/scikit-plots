@@ -33,10 +33,15 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType
+from .._base import DocumentReader
+from .._schema import SectionType
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "TEIReader",
+    "XMLReader",
+]
 
 # ---------------------------------------------------------------------------
 # TEI namespace URIs — documents may use any of these as the default ns
@@ -90,7 +95,7 @@ def _strip_namespace(tag: str) -> str:
     >>> _strip_namespace("div")
     'div'
     """
-    return tag.split("}")[-1] if "}" in tag else tag
+    return tag.rsplit("}", maxsplit=1)[-1] if "}" in tag else tag
 
 
 def _element_text_content(element: Any) -> str:
@@ -232,7 +237,7 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
     # stdlib ElementTree: limited XPath subset via findall
 
     try:
-        return root.findall(xpath, namespaces if namespaces else None) or []
+        return root.findall(xpath, namespaces or None) or []
     except Exception as exc:  # noqa: BLE001
         logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)
         return []
@@ -911,9 +916,6 @@ class TEIReader(DocumentReader):
         """Return the ``type`` attribute of a ``<div>`` element, or empty string."""
         return (
             element.get("type")
-            or element.get("{http://www.tei-c.org/ns/1.0}type")
+            or element.get(r"{http://www.tei-c.org/ns/1.0}type")
             or ""
         ).lower()
-
-
-__all__ = ["TEIReader", "XMLReader"]

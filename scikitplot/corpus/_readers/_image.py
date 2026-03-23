@@ -56,10 +56,12 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
 
-from scikitplot.corpus._base import DocumentReader
-from scikitplot.corpus._schema import SectionType, SourceType
+from .._base import DocumentReader
+from .._schema import SectionType, SourceType
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ImageReader"]
 
 # ---------------------------------------------------------------------------
 # Recognised image extensions registered by this reader
@@ -615,6 +617,3 @@ class ImageReader(DocumentReader):
         if self._easyocr_reader is None:
             object.__setattr__(self, "_easyocr_reader", reader_obj)
         return text, conf
-
-
-__all__ = ["ImageReader"]

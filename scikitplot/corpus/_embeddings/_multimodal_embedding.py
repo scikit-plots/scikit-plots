@@ -70,17 +70,25 @@ from typing import Any, Callable, ClassVar, Generator, Optional  # noqa: F401
 import numpy as np
 import numpy.typing as npt
 
-from scikitplot.corpus._embeddings._embedding import EmbeddingEngine
+from ._embedding import EmbeddingEngine
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "DEFAULT_AUDIO_MODEL",
+    "DEFAULT_IMAGE_MODEL",
+    "DEFAULT_TEXT_MODEL",
+    "LLMTrainingExporter",
+    "MultimodalEmbeddingEngine",
+]
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-_DEFAULT_IMAGE_MODEL: str = "openai/clip-vit-base-patch32"
-_DEFAULT_AUDIO_MODEL: str = "openai/whisper-base"
-_DEFAULT_TEXT_MODEL: str = "all-MiniLM-L6-v2"
+DEFAULT_IMAGE_MODEL: str = "openai/clip-vit-base-patch32"
+DEFAULT_AUDIO_MODEL: str = "openai/whisper-base"
+DEFAULT_TEXT_MODEL: str = "all-MiniLM-L6-v2"
 
 #: Frames sampled per video when using CLIP
 _VIDEO_FRAME_SAMPLE: int = 8
@@ -666,15 +674,15 @@ class MultimodalEmbeddingEngine:
 
     # Text
     text_backend: str = field(default="sentence_transformers")
-    text_model: str = field(default=_DEFAULT_TEXT_MODEL)
+    text_model: str = field(default=DEFAULT_TEXT_MODEL)
     text_custom_fn: Callable | None = field(default=None, repr=False)
     # Image
     image_backend: str = field(default="clip")
-    image_model: str = field(default=_DEFAULT_IMAGE_MODEL)
+    image_model: str = field(default=DEFAULT_IMAGE_MODEL)
     image_custom_fn: Callable | None = field(default=None, repr=False)
     # Audio
     audio_backend: str = field(default="whisper")
-    audio_model: str = field(default=_DEFAULT_AUDIO_MODEL)
+    audio_model: str = field(default=DEFAULT_AUDIO_MODEL)
     audio_custom_fn: Callable | None = field(default=None, repr=False)
     # Fusion
     multimodal_fusion: str = field(default="mean")
@@ -788,7 +796,7 @@ class MultimodalEmbeddingEngine:
 
         # Import here to avoid circular import
         try:
-            from scikitplot.corpus._schema import Modality  # noqa: PLC0415
+            from .._schema import Modality  # noqa: PLC0415
         except ImportError:
             Modality = None  # type: ignore[assignment]  # noqa: N806
 
@@ -1778,13 +1786,3 @@ class LLMTrainingExporter:
     def __repr__(self) -> str:
         eng = type(self.engine).__name__ if self.engine else "None"
         return f"LLMTrainingExporter(engine={eng})"
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-__all__ = [
-    "LLMTrainingExporter",
-    "MultimodalEmbeddingEngine",
-]
