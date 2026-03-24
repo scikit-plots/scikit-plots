@@ -91,7 +91,7 @@ with sp.mlflow.session_from_file(ROOT / "configs/mlflow.yaml", profile="local") 
 #
 #    model-type: classification
 #    model-workflow: model building
-#    plot-type: mlflow
+#    plot-type: text
 #    domain: mlflow
 #    level: beginner
 #    purpose: showcase

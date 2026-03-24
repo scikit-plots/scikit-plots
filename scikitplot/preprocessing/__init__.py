@@ -3,9 +3,10 @@
 
 """Methods for scaling, centering, normalization, binarization, and more."""
 
-from ._encoders import DummyCodeEncoder, GetDummies
+from __future__ import annotations
 
-__all__ = [
-    "DummyCodeEncoder",
-    "GetDummies",
-]
+from . import _encoders
+from ._encoders import *  # noqa: F403
+
+__all__ = []
+__all__ += _encoders.__all__

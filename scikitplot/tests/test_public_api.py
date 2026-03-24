@@ -72,7 +72,6 @@ PUBLIC_MODULES = [
         "externals.array_api_extra.testing",
         "impute",
         "misc",
-        "misc.plot_colortable",
         "memmap",
         "mlflow",
         "nc",
