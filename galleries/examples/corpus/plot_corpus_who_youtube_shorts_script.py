@@ -73,6 +73,6 @@ pipeline
 #
 #    model-type: classification
 #    model-workflow: corpus
-#    plot-type: bar
+#    plot-type: text
 #    level: beginner
 #    purpose: showcase

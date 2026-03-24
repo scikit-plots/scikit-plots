@@ -53,7 +53,7 @@ def humansize(
     suffixes = suffixes or SUFFIXES
     try:
         n = float(nbytes)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return str(nbytes)
 
     neg = n < 0
@@ -83,5 +83,10 @@ def humansize_vector(values, suffixes=None):
         return humansize(values, suffixes)
 
     arr = np.asarray(values, dtype="object")
-    func = np.vectorize(lambda x: humansize(x, suffixes))
-    return func(arr)
+    # ✅ FAIL-FAST: empty input
+    if arr.size == 0:
+        return np.asarray([], dtype=object)
+    # func = np.vectorize(lambda x: humansize(x, suffixes), otypes=[object])
+    # return func(arr)
+    result = [humansize(x, suffixes) for x in arr]
+    return np.asarray(result, dtype=object)

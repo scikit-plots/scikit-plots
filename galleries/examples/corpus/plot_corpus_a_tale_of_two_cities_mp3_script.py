@@ -90,6 +90,6 @@ print(rich1[0].keywords, rich1[0].lemmas, rich1[0].stems)
 #
 #    model-type: classification
 #    model-workflow: corpus
-#    plot-type: bar
+#    plot-type: text
 #    level: beginner
 #    purpose: showcase

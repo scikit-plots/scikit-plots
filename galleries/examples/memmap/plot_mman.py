@@ -266,3 +266,12 @@ plt.savefig("plot_mman_advanced.png", dpi=120)
 plt.show()
 
 print("[ADVANCED] done.\n")
+
+
+# %%
+#
+# .. tags::
+#
+#    plot-type: bar
+#    level: beginner
+#    purpose: showcase

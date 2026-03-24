@@ -1,5 +1,7 @@
+# scikitplot/preprocessing/_encoders.py
+#
 # flake8: noqa: D213
-
+#
 # ruff: noqa
 # ruff: noqa: PGH004
 # ruff: noqa: D205, D401, D404
@@ -8,13 +10,15 @@
 # ruff: noqa: PLR0912
 # ruff: noqa: RET506
 # ruff: noqa: SIM102, SIM108
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
 Multi-column multi-label string column one-hot encoder [1]_.
 """
+
+from __future__ import annotations
 
 import array
 import itertools
@@ -161,11 +165,11 @@ class GetDummies(TransformerMixin, BaseEstimator):
         dtype=np.float64,
         handle_unknown="error",
     ):
-        if isinstance(columns, str):
-            self.columns = [columns]  # Normalize single column str → list
-        else:
-            # Columns to encode. If None, scan all object columns
-            self.columns = columns  # list or None
+        # NOTE: sklearn contract — __init__ must store ALL params exactly as received.
+        # get_params() / clone() / set_params() rely on __init__ param names matching
+        # instance attribute names with no mutation.  Normalization (str → list) is
+        # done lazily inside fit(), not here.
+        self.columns = columns  # str, list, or None — preserved as-is
         # Separator for multiple values in a cell
         self.sep = sep
         # Separator for dummy column names
@@ -285,14 +289,25 @@ class GetDummies(TransformerMixin, BaseEstimator):
         # Store number of input features (sklearn convention)
         self.n_features_in_ = X.shape[1]
 
+        # Normalize columns at fit-time only — NOT in __init__ — to honour sklearn's
+        # clone contract: __init__ must store params verbatim so that get_params()
+        # returns the original value and clone() can reconstruct the estimator.
+        # A str shorthand is expanded to a single-element list here only.
+        if isinstance(self.columns, str):
+            cols_requested = [self.columns]
+        else:
+            cols_requested = self.columns  # list or None
+
         # Determine columns to encode
-        if self.columns is not None:
+        if cols_requested is not None:
             # User-specified columns, Only keep those that exist in DataFrame
-            self.dummy_cols_ = [col for col in self.columns if col in X.columns]
+            self.dummy_cols_ = [col for col in cols_requested if col in X.columns]
         else:
             # Automatically detect object/string columns containing the separator, e.g., "a,b,c".
+            # Pandas 3 changed select_dtypes: "O"/"object" no longer implicitly
+            # includes the new StringDtype. Use both to support pandas 2 and 3.
             object_cols = X.select_dtypes(
-                include="O"
+                include=["object", "string"]
             ).columns  # Identify object/string columns
             # Keep only those that contain multiple values (separator present)
             self.dummy_cols_ = [
@@ -312,8 +327,13 @@ class GetDummies(TransformerMixin, BaseEstimator):
             )
             for col in self.dummy_cols_
         }
-        if len(set(self.dummy_prefix_)) != len(set(self.dummy_prefix_.values())):
-            # Build mapping for prefixes (use full col name for safety, not abbreviations)
+        # Detect prefix abbreviation collisions (e.g. "ta" and "tags" both → "ta").
+        # The original check compared len(set(keys)) vs len(set(values)) which is
+        # always equal (dict keys are inherently unique).  The correct check is:
+        # if any two columns share the same abbreviated prefix, fall back to full names.
+        prefix_values = list(self.dummy_prefix_.values())
+        if len(set(prefix_values)) != len(prefix_values):
+            # Collision detected — use full column names as prefixes for safety
             self.dummy_prefix_ = {col: col for col in self.dummy_cols_}
 
         # Learn/Store categories seen during fit for each dummy column
@@ -369,17 +389,21 @@ class GetDummies(TransformerMixin, BaseEstimator):
         # Reindex to preserve global column order
         X_out = X_out.reindex(columns=self.columns_, fill_value=0)
 
-        # Return SciPy sparse CSR matrix if requested
+        # Return SciPy sparse CSR matrix if requested.
+        # Only dummy columns are numeric; non-dummy passthrough columns may contain
+        # strings or objects.  Cast only the dummy sub-block so we never attempt
+        # float-casting string columns (which raises ValueError on mixed DataFrames).
         if self.sparse_output:
-            return sp.csr_matrix(X_out.to_numpy(dtype=self.dtype))
+            dummy_cols = [c for cats in self.categories_.values() for c in cats]
+            numeric_block = X_out[dummy_cols].to_numpy(dtype=self.dtype)
+            return sp.csr_matrix(numeric_block)
 
-        # Return numpy array if set_output(transform="default") and pipeline expects dense array
-        if hasattr(self, "_get_output_config"):
-            cfg = self._get_output_config()
-            if cfg.get("dense", False) is False:
-                return X_out.to_numpy(dtype=self.dtype)  # Dense numpy output
-
-        # Default: return pandas DataFrame
+        # Default: return pandas DataFrame.
+        # NOTE: The `set_output` API (pandas / numpy wrapping) is handled automatically
+        # by TransformerMixin's decorated `transform` wrapper — no manual dispatch needed
+        # here.  The previously present `hasattr(self, "_get_output_config")` branch was
+        # dead code: `_get_output_config` is a module-level function, not an instance
+        # method, so `hasattr(self, ...)` was always False.
         return X_out
 
     def get_feature_names_out(self, input_features=None):
@@ -621,9 +645,16 @@ class _BaseEncoder(TransformerMixin, BaseEstimator):
         """Infrequent categories for each feature."""
         # raises an AttributeError if `_infrequent_indices` is not defined
         infrequent_indices = self._infrequent_indices
+        # categories_ may be a dict (DummyCodeEncoder) or list (_BaseEncoder subclasses).
+        # Always iterate values so both forms work correctly.
+        cats_iter = (
+            self.categories_.values()
+            if isinstance(self.categories_, dict)
+            else self.categories_
+        )
         return [
             None if indices is None else category[indices]
-            for category, indices in zip(self.categories_, infrequent_indices)
+            for category, indices in zip(cats_iter, infrequent_indices)
         ]
 
     def _check_infrequent_enabled(self):
@@ -1235,7 +1266,7 @@ class DummyCodeEncoder(_BaseEncoder):
             if self.drop == "first":
                 drop_idx_after_grouping = np.zeros(len(self.categories_), dtype=object)
             elif self.drop == "if_binary":
-                n_features_out_no_drop = [len(cat) for cat in self.categories_]
+                n_features_out_no_drop = [len(cat) for cat in self.categories_.values()]
                 if self._infrequent_enabled:
                     for i, infreq_idx in enumerate(self._infrequent_indices):
                         if infreq_idx is None:
@@ -1263,10 +1294,10 @@ class DummyCodeEncoder(_BaseEncoder):
             missing_drops = []
             drop_indices = []
             for feature_idx, (drop_val, cat_list) in enumerate(
-                zip(drop_array, self.categories_)
+                zip(drop_array, self.categories_.values())
             ):
                 if not is_scalar_nan(drop_val):
-                    drop_idx = np.where(cat_list == drop_val)[0]
+                    drop_idx = np.where(np.asarray(cat_list) == drop_val)[0]
                     if drop_idx.size:  # found drop idx
                         drop_indices.append(
                             self._map_drop_idx_to_infrequent(feature_idx, drop_idx[0])
@@ -1499,11 +1530,9 @@ class DummyCodeEncoder(_BaseEncoder):
             if self.categories == "auto":
                 # Sort: normal values first, None/NaN at the end
                 cats = self._sort_with_none_nan_last(Xi)
-            elif len(set(self.categories)) < len(self.categories):
+            elif not isinstance(self.categories, list):
                 raise ValueError(
-                    "The categories argument contains duplicate "
-                    "categories. Remove these duplicates before passing "
-                    "them to MultiLabelBinarizer."
+                    "categories must be 'auto' or a list of per-feature arrays."
                 )
             else:
                 if np.issubdtype(Xi.dtype, np.str_):
@@ -1567,6 +1596,33 @@ class DummyCodeEncoder(_BaseEncoder):
             self.categories_[input_features[i]] = categories
 
         output = {"n_samples": n_samples}
+
+        # When infrequent-category grouping is requested (min_frequency /
+        # max_categories), we must compute per-category counts and run the
+        # infrequent mapping.  The base-class _fit() does this, but
+        # DummyCodeEncoder._fit() is fully overridden and cannot reuse it
+        # directly (different categories_ structure).  We compute the counts
+        # here and delegate to the shared helper so _infrequent_indices and
+        # _default_to_infrequent_mappings are always defined before fit()
+        # calls _set_drop_idx() and _compute_n_features_outs().
+        if self._infrequent_enabled:
+            category_counts = []
+            for i in range(n_features):
+                Xi = X_list[i]
+                Xi_expanded = self._expand_by_separators(Xi)
+                counts = []
+                for cat in self.categories_[i]:
+                    counts.append(np.sum(Xi_expanded == cat))
+                category_counts.append(np.array(counts, dtype=np.int64))
+            self._fit_infrequent_category_mapping(
+                n_samples, category_counts, missing_indices={}
+            )
+        else:
+            # No infrequent grouping: initialise attributes to safe defaults so
+            # _set_drop_idx() and _compute_n_features_outs() can always rely on them.
+            self._infrequent_indices = [None] * n_features
+            self._default_to_infrequent_mappings = [None] * n_features
+
         return output
 
     @_fit_context(prefer_skip_nested_validation=True)
@@ -1681,14 +1737,28 @@ class DummyCodeEncoder(_BaseEncoder):
                         columns_with_unknown.add(d)
 
         if columns_with_unknown:
-            warnings.warn(
-                (
-                    "Found unknown categories in columns "
-                    f"{sorted(columns_with_unknown, key=str)} during transform. These "
-                    "unknown categories will be encoded as all zeros"
-                ),
-                UserWarning,
-            )
+            sorted_unknown = sorted(columns_with_unknown, key=str)
+            if handle_unknown == "error":
+                # Raise immediately — do not silently encode unknowns as zeros.
+                # This enforces the contract documented in the class docstring.
+                raise ValueError(
+                    f"Found unknown categories {sorted_unknown} in data during "
+                    "transform. Set handle_unknown='ignore' or handle_unknown='warn' "
+                    "to silently encode unknowns as all zeros."
+                )
+            # Only warn when explicitly requested.
+            # handle_unknown='ignore'  → warn_on_unknown=False → silent (no warning)
+            # handle_unknown='warn'    → warn_on_unknown=True  → issue UserWarning
+            # NaN/None rows are treated as unknowns and silently zeroed under 'ignore'.
+            if warn_on_unknown:
+                warnings.warn(
+                    (
+                        "Found unknown categories in columns "
+                        f"{sorted_unknown} during transform. These "
+                        "unknown categories will be encoded as all zeros"
+                    ),
+                    UserWarning,
+                )
 
         # Convert row buckets → CSR lists
         for index in per_row_buckets:
@@ -1750,12 +1820,34 @@ class DummyCodeEncoder(_BaseEncoder):
             }
             handle_unknown = self.handle_unknown
 
-        X_int, X_mask = self._transform(
+        # NOTE: _transform() returns (csr_matrix, X_mask).  X_mask is a boolean
+        # array marking valid (known) entries; it is produced by the parent-class
+        # _transform() but DummyCodeEncoder overrides _transform() with its own CSR
+        # builder that already encodes unknowns as all-zeros.  The mask is therefore
+        # not needed here and is intentionally discarded (_mask_unused).
+        X_int, _mask_unused = self._transform(
             X,
             handle_unknown=handle_unknown,
             ensure_all_finite="allow-nan",
             warn_on_unknown=warn_on_unknown,
         )
+
+        # Apply drop filtering: remove globally-indexed columns that correspond to
+        # the `drop` parameter (e.g. drop='first' removes index 0 within each feature).
+        # The CSR was built from all categories; the drop bookkeeping (_set_drop_idx)
+        # computed which local-within-feature indices to remove — translate those to
+        # global column indices and slice them out now.
+        if self._drop_idx_after_grouping is not None:
+            # Compute per-feature start offsets in the flat column space
+            offsets = np.cumsum([0] + [len(v) for v in self.categories_.values()])
+            cols_to_drop = []
+            for feat_i, drop_idx in enumerate(self._drop_idx_after_grouping):
+                if drop_idx is not None:
+                    cols_to_drop.append(int(offsets[feat_i]) + int(drop_idx))
+            if cols_to_drop:
+                all_cols = list(range(X_int.shape[1]))
+                keep_cols = [c for c in all_cols if c not in cols_to_drop]
+                X_int = X_int[:, keep_cols]
 
         if not self.sparse_output:
             return X_int.toarray()
@@ -1922,85 +2014,10 @@ class DummyCodeEncoder(_BaseEncoder):
         if X.shape[1] != n_features_out:
             raise ValueError(msg.format(n_features_out, X.shape[1]))
 
-        transformed_features = [
-            self._compute_transformed_categories(i, remove_dropped=False)
-            for i, _ in enumerate(self.categories_)
-        ]
-
-        # create resulting array of appropriate dtype
-        dt = np.result_type(*[cat.dtype for cat in transformed_features])
-        X_tr = np.empty((n_samples, n_features), dtype=dt)
-
-        # j = 0
-        # found_unknown = {}
-
-        # if self._infrequent_enabled:
-        #     infrequent_indices = self._infrequent_indices
-        # else:
-        #     infrequent_indices = [None] * n_features
-
-        # for i in range(n_features):
-        #     cats_wo_dropped = self._remove_dropped_categories(
-        #         transformed_features[i], i
-        #     )
-        #     n_categories = cats_wo_dropped.shape[0]
-
-        #     # Only happens if there was a column with a unique
-        #     # category. In this case we just fill the column with this
-        #     # unique category value.
-        #     if n_categories == 0:
-        #         X_tr[:, i] = self.categories_[i][self._drop_idx_after_grouping[i]]
-        #         j += n_categories
-        #         continue
-        #     sub = X[:, j : j + n_categories]
-        #     # for sparse X argmax returns 2D matrix, ensure 1D array
-        #     labels = np.asarray(sub.argmax(axis=1)).flatten()
-        #     X_tr[:, i] = cats_wo_dropped[labels]
-
-        #     if self.handle_unknown == "ignore" or (
-        #         self.handle_unknown in ("infrequent_if_exist", "warn")
-        #         and infrequent_indices[i] is None
-        #     ):
-        #         unknown = np.asarray(sub.sum(axis=1) == 0).flatten()
-        #         # ignored unknown categories: we have a row of all zero
-        #         if unknown.any():
-        #             # if categories were dropped then unknown categories will
-        #             # be mapped to the dropped category
-        #             if (
-        #                 self._drop_idx_after_grouping is None
-        #                 or self._drop_idx_after_grouping[i] is None
-        #             ):
-        #                 found_unknown[i] = unknown
-        #             else:
-        #                 X_tr[unknown, i] = self.categories_[i][
-        #                     self._drop_idx_after_grouping[i]
-        #                 ]
-        #     else:
-        #         dropped = np.asarray(sub.sum(axis=1) == 0).flatten()
-        #         if dropped.any():
-        #             if self._drop_idx_after_grouping is None:
-        #                 all_zero_samples = np.flatnonzero(dropped)
-        #                 raise ValueError(
-        #                     f"Samples {all_zero_samples} can not be inverted "
-        #                     "when drop=None and handle_unknown='error' "
-        #                     "because they contain all zeros"
-        #                 )
-        #             # we can safely assume that all of the nulls in each column
-        #             # are the dropped value
-        #             drop_idx = self._drop_idx_after_grouping[i]
-        #             X_tr[dropped, i] = transformed_features[i][drop_idx]
-
-        #     j += n_categories
-
-        # # if ignored are found: potentially need to upcast result to
-        # # insert None values
-        # if found_unknown:
-        #     if X_tr.dtype != object:
-        #         X_tr = X_tr.astype(object)
-
-        #     for idx, mask in found_unknown.items():
-        #         X_tr[mask, idx] = None
-
+        # Decode sparse or dense label-indicator matrix back to original categories.
+        # NOTE: The commented-out sklearn-style X_tr reconstruction block was removed —
+        # it was unreachable dead code that followed two explicit `return` statements.
+        # The decode helpers below are the only active paths.
         if sp.issparse(X):
             X = X.tocsr()
             if len(X.data) != 0 and len(np.setdiff1d(X.data, [0, 1])) > 0:
@@ -2016,8 +2033,6 @@ class DummyCodeEncoder(_BaseEncoder):
                 )
             )
         return self._decode_rows_from_dense(X_arr)
-
-        return X_tr
 
     def get_feature_names_out(self, input_features=None):
         """Get output feature names for transformation.

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import warnings
 
 from ...conftest import array_api_compatible
 from ...externals import array_api_extra as xpx
@@ -15,6 +16,23 @@ from .._array_api import (
 )
 from .._array_api_no_0d import xp_assert_equal as xp_assert_equal_no_0d
 
+
+def _has_working_cuda(torch) -> bool:
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            return torch.cuda.is_available()
+    except Exception:
+        # Any CUDA init failure → fallback
+        return False
+
+def _safe_torch_device(torch):
+    if not _has_working_cuda(torch):
+        # pytest.skip("CUDA unavailable")
+        device = "cpu"
+    else:
+        device = "cuda"
+    return device
 
 @pytest.mark.skipif(
     not _GLOBAL_CONFIG["SKPLT_ARRAY_API"],
@@ -257,7 +275,7 @@ def test_pytorch():
         import torch
 
         # assert torch.cuda.is_available(), "No GPUs available for PyTorch"
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = _safe_torch_device(torch)
         device = torch.device(device)
         a = torch.tensor([[1.0, 2.0], [3.0, 4.0]], device=device)
         b = torch.tensor([[5.0, 6.0], [7.0, 8.0]], device=device)
