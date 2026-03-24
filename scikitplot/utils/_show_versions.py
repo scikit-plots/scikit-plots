@@ -14,12 +14,13 @@ Adapted and expanded from :py:func:`pandas.show_versions`.
 
 from __future__ import annotations
 
-import json
+import logging
+import json  # noqa: F401
 import platform
 import sys
 import os
 import shutil
-import warnings
+import warnings  # noqa: F401
 from functools import lru_cache
 from importlib.metadata import version, PackageNotFoundError
 
@@ -29,9 +30,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Heavy import, only for type checking
     # Only imports when type checking, not at runtime
-    from typing import Dict, List, Optional, Any
+    from typing import Dict, List, Optional, Any  # noqa: F401
 
 from threadpoolctl import threadpool_info
+
+# ---------------------------------------------------------------------------
+# Module-level logger
+# ---------------------------------------------------------------------------
+logger = logging.getLogger("scikitplot.utils._show_versions")
 
 ## Define __all__ to specify the public interface of the module,
 ## not required default all belove func
@@ -265,7 +271,7 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
             # Lazy import for performance
             import yaml  # noqa: PLC0415
         except ImportError:
-            warnings.warn("PyYAML is not installed! Install with: `pip install PyYAML`")
+            logger.warn("PyYAML is not installed! Install with: `pip install PyYAML`")
             mode = "stdout"  # fallback stdout
         else:
             # str
@@ -277,7 +283,7 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
             from rich.console import Console  # noqa: PLC0415
             from rich.table import Table  # noqa: PLC0415
         except ImportError:
-            warnings.warn("rich is not installed! Install with: `pip install rich`")
+            logger.warn("rich is not installed! Install with: `pip install rich`")
             mode = "stdout"  # fallback stdout
         else:
             console = Console()

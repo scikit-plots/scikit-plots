@@ -79,7 +79,15 @@ def _has_module(module_name: str) -> bool:
     >>> _has_module("tomli") in (True, False)
     True
     """
-    return _importlib_util.find_spec(module_name) is not None
+    if not isinstance(module_name, str):
+        return False
+    if not module_name.strip():
+        return False
+    # return _importlib_util.find_spec(module_name) is not None
+    try:
+        return _importlib_util.find_spec(module_name) is not None
+    except (ImportError, AttributeError, ValueError):
+        return False
 
 
 def _read_backend_name() -> str | None:

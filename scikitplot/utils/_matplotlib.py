@@ -1,15 +1,19 @@
+# scikitplot/utils/_matplotlib.py
+#
+# pylint: disable=import-error
+# pylint: disable=broad-exception-caught
+# pylint: disable=logging-fstring-interpolation
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 Provides utilities for saving result images.
 
 Such as plots and includes decorators for automatically saving plots.
 """
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
-# pylint: disable=import-error
-# pylint: disable=broad-exception-caught
-# pylint: disable=logging-fstring-interpolation
+from __future__ import annotations
 
 # import inspect
 # import tempfile
@@ -29,7 +33,7 @@ from ._path import get_path
 
 if TYPE_CHECKING:
     # Only imported during type checking
-    from typing import (
+    from typing import (  # noqa: F401
         Callable,
         Optional,
         # Union,
@@ -97,7 +101,7 @@ def safe_tight_layout(fig=None, *, warn=True):
             # import warnings
             # warnings.filterwarnings("ignore", message=".*Tight layout not applied.*")
             fig.tight_layout()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             if warn:
                 _logger.warning("tight_layout() failed: %s", e)
 
@@ -155,7 +159,7 @@ class SafeTightLayout:
         """__exit__."""
         try:
             self.fig.tight_layout()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             if self.warn:
                 _logger.warning("tight_layout() failed: %s", e)
 
@@ -217,10 +221,10 @@ def save_plot_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
     # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
-    func: "Optional[Callable[..., any]]" = None,
+    func: Callable[..., any] | None = None,
     # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
-) -> "Callable[..., any]":
+) -> Callable[..., any]:
     """
     Decorate that supports both parameterized and non-parameterized usage.
 
@@ -268,7 +272,7 @@ def save_plot_decorator(
     """
 
     # The case where the decorator is called with parameters (returns a decorator)
-    def decorator(inner_func: "Callable") -> "Callable":
+    def decorator(inner_func: Callable) -> Callable:
         """
         Actual decorator function that wraps the target function.
 
@@ -287,10 +291,26 @@ def save_plot_decorator(
         """
 
         @_functools.wraps(inner_func)
-        def wrapper(*args, **kwargs) -> "any":
+        def wrapper(*args, **kwargs) -> any:
+            decorator_keys = {
+                "show_fig",
+                "save_fig",
+                "save_fig_filename",
+                "verbose",
+            }
+            decorator_kwargs = {k: kwargs[k] for k in kwargs if k in decorator_keys}
+            func_kwargs = {k: kwargs[k] for k in kwargs if k not in decorator_keys}
+            # Handle verbosity if specified
+            if "verbose" in decorator_kwargs and not isinstance(
+                decorator_kwargs["verbose"], bool
+            ):
+                _warnings.warn(
+                    "'verbose' parameter should be of type bool.",
+                    stacklevel=1,
+                )
             with safe_tight_layout():
                 # Call the actual plotting function
-                result = inner_func(*args, **kwargs)
+                result = inner_func(*args, **kwargs)  # **func_kwargs
             # result = inner_func(*args, **kwargs)
             # _plt.tight_layout()
             # _plt.draw()
@@ -310,17 +330,12 @@ def save_plot_decorator(
                     kwargs.get("save_fig_filename", dkwargs.get("filename"))
                     or inner_func.__name__
                 )
-                dkwargs["filename"] = save_fig_filename
-                # print(f"[INFO]:\n\t{kwargs}\n\t{dkwargs}\n\t{save_fig}\n\t{save_fig_filename}\n")
-                # Handle verbosity if specified
-                if "verbose" in kwargs and not isinstance(kwargs["verbose"], bool):
-                    _warnings.warn(
-                        "'verbose' parameter should be of type bool.",
-                        stacklevel=1,
-                    )
+                # dkwargs["filename"] = save_fig_filename
+                local_dkwargs = {**dkwargs, "filename": save_fig_filename}
+                # print(f"[INFO]:\n\t{kwargs}\n\t{local_dkwargs}\n\t{save_fig}\n\t{save_fig_filename}\n")
                 if save_fig and save_fig_filename:
                     save_path = get_path(
-                        **{**dkwargs, **kwargs},  # Update by inner func
+                        **{**local_dkwargs, **kwargs},  # Update by inner func
                     )
                     try:
                         # with tempfile.TemporaryDirectory() as tmpdirname:
@@ -330,14 +345,14 @@ def save_plot_decorator(
                         )
                         if kwargs.get("verbose", False):
                             print(f"[INFO] Plot saved to: {save_path}")  # noqa: T201
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001
                         print(f"[ERROR] Failed to save plot: {e}")  # noqa: T201
                 if show_fig:
                     # Manage the plot window
                     _plt.show()
                     # _plt.gcf().clear()
                     # _plt.close()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
             return result
 
@@ -379,7 +394,7 @@ def save_plot_decorator(
 def stack(
     *figs: tuple,
     orient: str = "vertical",
-    padding: "float | None" = None,
+    padding: float | None = None,
     **kwargs,
 ):
     """

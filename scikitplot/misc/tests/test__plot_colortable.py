@@ -59,6 +59,9 @@ from .._plot_colortable import (  # noqa: E402
     plot_overlapping_colors,
 )
 
+_SUB_MOD = "scikitplot.misc._plot_colortable"
+_SUB_MOD_ROOT = _SUB_MOD.rsplit(".", maxsplit=1)[0]
+
 
 def _close_all():
     """Close all matplotlib figures after each test."""

@@ -21,9 +21,78 @@ __all__ = [
     "config_context",
 ]
 
+def _parse_env_bool(name, default=False):
+    """
+    Parse a boolean from an environment variable.
+
+    Parameters
+    ----------
+    name : str
+        Environment variable name.
+    default : bool, default False
+        Value returned when the variable is absent.
+
+    Returns
+    -------
+    bool
+        True only when the variable is set to '1', 'true', 'yes', or 'on'
+        (case-insensitive).
+
+    Notes
+    -----
+    Developer note
+        Bug fix: ``bool(os.environ.get(name, 'False'))`` evaluates to ``True``
+        because ``bool('False') == True`` — any non-empty string is truthy.
+        This helper uses an explicit allow-list for truthy string values.
+    """
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _parse_env_int(name, default):
+    """
+    Parse an integer from an environment variable, falling back on error.
+
+    Parameters
+    ----------
+    name : str
+        Environment variable name.
+    default : int
+        Value returned when the variable is absent or not a valid integer.
+
+    Returns
+    -------
+    int
+        Parsed integer, or *default* when parsing fails.
+
+    Notes
+    -----
+    Developer note
+        Bug fix: ``int(os.environ.get(name, str(default)))`` raises
+        ``ValueError`` with no recovery when the variable holds a
+        non-integer string.  This helper warns and falls back instead.
+    """
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        import warnings
+        warnings.warn(
+            f"Environment variable {name}={val!r} is not a valid integer; "
+            f"using default {default}.",
+            UserWarning,
+            stacklevel=0,
+        )
+        return default
+
+
 _global_config = {
-    "assume_finite": bool(os.environ.get("SKPLT_ASSUME_FINITE", "False")),
-    "working_memory": int(os.environ.get("SKPLT_WORKING_MEMORY", "1024")),
+    "assume_finite": _parse_env_bool("SKPLT_ASSUME_FINITE", default=False),
+    "working_memory": _parse_env_int("SKPLT_WORKING_MEMORY", default=1024),
     "display": "diagram",
     "array_api_dispatch": False,
     "transform_output": "default",
@@ -158,7 +227,7 @@ def set_config(
     if display is not None:
         local_config["display"] = display
     if array_api_dispatch is not None:
-        from .._utils import _check_array_api_dispatch
+        from ..utils._array_api import _check_array_api_dispatch
 
         _check_array_api_dispatch(array_api_dispatch)
         local_config["array_api_dispatch"] = array_api_dispatch
