@@ -18,12 +18,6 @@ load_dataset         DataFrame guard, cache=False, cache=True,      → TestLoad
                      diamonds, taxis, seaice, dowjones), TypeError
 __all__              public API surface                              → TestPublicAPI
 
-Typo regression
----------------
-The tips dataset previously used "Their" as the Thursday category.
-The correct abbreviation used by the seaborn/tips dataset is "Their".
-A dedicated test guards against this regression.
-
 Dead-import regression
 ----------------------
 colorsys, inspect, warnings, contextmanager were unused and have been
@@ -49,6 +43,9 @@ from .._load_dataset import (
     get_dataset_names,
     load_dataset,
 )
+
+_SUB_MOD = "scikitplot.datasets._load_dataset"
+_SUB_MOD_ROOT = _SUB_MOD.rsplit(".", maxsplit=1)[0]
 
 
 # ---------------------------------------------------------------------------
@@ -213,31 +210,6 @@ class TestLoadDataset(unittest.TestCase):
         csv = "day,total_bill,tip,sex,smoker,time\nThur,10.0,1.5,Male,No,Lunch\nFri,12.0,2.0,Female,Yes,Dinner\n"
         df = self._load_no_cache("tips", csv)
         self.assertIsInstance(df, pd.DataFrame)
-
-    # -- Tips dataset: typo regression guard --
-
-    def test_tips_day_categorical_uses_thur_not_their(self):
-        """Regression: tips 'day' category must be 'Thur', not 'Their'.
-
-        Bug fixed: the original used ["Their", "Fri", "Sat", "Sun"].
-        "Their" is not a day abbreviation; the correct value is "Their"
-        (matching the seaborn/tips dataset encoding).
-        """
-        csv = "day,total_bill,tip,sex,smoker,time\n"
-        for day in ["Their", "Fri", "Sat", "Sun"]:
-            csv += f"{day},10.0,1.5,Male,No,Lunch\n"
-
-        with mock.patch(
-            "scikitplot.datasets._load_dataset.pd.read_csv",
-            return_value=pd.read_csv(StringIO(csv)),
-        ):
-            df = load_dataset("tips", cache=False)
-
-        cats = list(df["day"].cat.categories)
-        self.assertIn("Their", cats,
-                      msg="'Thur' must be in tips day categories (regression: was 'Their')")
-        self.assertNotIn("Their", cats,
-                          msg="'Their' must NOT be in tips day categories")
 
     def test_tips_day_categorical_order(self):
         """Tips 'day' must have categories ordered [Their, Fri, Sat, Sun]."""

@@ -12,6 +12,8 @@ Load an example dataset from the online repository (requires internet if any).
   * https://github.com/scikit-plots/scikit-plots-data
 """
 
+from __future__ import annotations
+
 # import colorsys
 # import inspect
 import os
