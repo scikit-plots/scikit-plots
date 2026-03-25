@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-data_export.py.
-
 Generic, reproducible dataset subset exporter for ML workflows.
 
 Key features:
@@ -173,7 +171,7 @@ def _utc_now_iso() -> str:
     ------
     None
 
-    Seealso
+    See Also
     --------
     datetime.now
 
@@ -207,7 +205,7 @@ def stable_hash64(text: str) -> int:
     ------
     None
 
-    Seealso
+    See Also
     --------
     hashlib.blake2b
 
@@ -245,7 +243,7 @@ def _ensure_cols_exist(df: pd.DataFrame, cols: Sequence[str]) -> None:
     KeyError
         If any requested columns are missing.
 
-    Seealso
+    See Also
     --------
     pandas.DataFrame.columns
 
@@ -533,7 +531,7 @@ def load_dataframe(
     KeyError
         If query references unknown columns.
 
-    Seealso
+    See Also
     --------
     pandas.read_csv, pandas.read_parquet, pandas.DataFrame.query
 
@@ -592,7 +590,7 @@ def enforce_required_columns(
     KeyError
         If required columns do not exist.
 
-    Seealso
+    See Also
     --------
     pandas.DataFrame.dropna
 
@@ -639,7 +637,7 @@ def drop_duplicates_by_id(
     KeyError
         If `id_col` is missing.
 
-    Seealso
+    See Also
     --------
     pandas.DataFrame.drop_duplicates
     """
@@ -721,7 +719,7 @@ def sample_hash_full(df: pd.DataFrame, *, n: int, id_col: str) -> pd.DataFrame:
     KeyError
         If `id_col` is missing.
 
-    Seealso
+    See Also
     --------
     stable_hash64
     """
@@ -759,7 +757,7 @@ def sample_random(df: pd.DataFrame, *, n: int, seed: int) -> pd.DataFrame:
     ValueError
         If `n` is invalid.
 
-    Seealso
+    See Also
     --------
     pandas.DataFrame.sample
     """
@@ -897,7 +895,7 @@ def _largest_remainder_allocation(group_sizes: pd.Series, *, n: int) -> pd.Serie
         raise ValueError(f"n={n} exceeds dataset size={total}")
 
     quotas = group_sizes.astype(float) * (float(n) / float(total))
-    floors = quotas.apply(lambda x: int(x))
+    floors = quotas.apply(int)
     alloc = floors.clip(upper=group_sizes.astype(int))
 
     remaining = n - int(alloc.sum())
@@ -972,7 +970,7 @@ def _equal_allocation(group_sizes: pd.Series, *, n: int) -> pd.Series:
     base = int(n // k)
     rem = int(n % k)
 
-    idx_sorted = sorted(group_sizes.index, key=lambda x: str(x))
+    idx_sorted = sorted(group_sizes.index, key=str)
     desired = pd.Series(base, index=group_sizes.index, dtype=int)
     if rem:
         desired.loc[idx_sorted[:rem]] += 1
@@ -1056,6 +1054,8 @@ def sample_stratified(  # noqa: D417, PLR0912
         Columns defining strata groups (must be provided explicitly).
     within : {'hash', 'random', 'linspace'}
         Within-stratum sampling method.
+    allocation : {'proportional', 'equal'}
+        Allocation mode across strata groups.
     seed : int
         Seed used when within='random' and for deterministic final trimming.
 
@@ -1077,6 +1077,10 @@ def sample_stratified(  # noqa: D417, PLR0912
         raise ValueError("n must be non-negative")
     if n > len(df):
         raise ValueError(f"n={n} exceeds dataset size={len(df)}")
+
+    # Early return for n=0 avoids pd.concat([]) ValueError on an empty piece list.
+    if n == 0:
+        return df.iloc[:0].reset_index(drop=True)
 
     _ensure_cols_exist(df, list(strata_cols))
     if within == "hash":
@@ -1316,7 +1320,7 @@ def write_dataset(df: pd.DataFrame, *, output_path: Path, fmt: OutputFormat) -> 
     ValueError
         If format is unsupported.
 
-    Seealso
+    See Also
     --------
     pandas.DataFrame.to_csv, pandas.DataFrame.to_parquet
     """

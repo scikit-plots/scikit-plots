@@ -23,7 +23,8 @@ Batch processing with sentence chunking:
 
 >>> from scikitplot.corpus import CorpusPipeline, SentenceChunker, ExportFormat
 >>> pipeline = CorpusPipeline(
-...     chunker=SentenceChunker("en_core_web_sm"),
+...     # chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
+...     chunker=SentenceChunker("en_core_web_sm"),  # default backend spacy
 ...     output_dir=Path("output/"),
 ...     export_format=ExportFormat.PARQUET,
 ... )
@@ -37,7 +38,7 @@ URL ingestion:
 
 YouTube transcript:
 
->>> result = pipeline.run_url("https://www.youtube.com/watch?v=rwPISgZcYIk")
+>>> result = pipeline.run("https://www.youtube.com/watch?v=rwPISgZcYIk")
 
 Image OCR:
 

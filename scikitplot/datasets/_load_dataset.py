@@ -12,11 +12,12 @@ Load an example dataset from the online repository (requires internet if any).
   * https://github.com/scikit-plots/scikit-plots-data
 """
 
-import colorsys
-import inspect
+# import colorsys
+# import inspect
 import os
-import warnings
-from contextlib import contextmanager
+
+# import warnings
+# from contextlib import contextmanager
 from urllib.request import urlopen, urlretrieve
 
 import matplotlib as mpl
