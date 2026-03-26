@@ -38,6 +38,18 @@ __all__ = []
 __all__ += _plot_colortable.__all__
 
 # ---------------------------------------------------------------------------
+# Re-point __module__ on every public symbol to 'scikitplot.misc' so that
+# help(), repr(), and IDE tooling show the public path, not the private one.
+#
+# Developer note: without this, functions imported via ``from ._plot_colortable
+# import *`` keep __module__ = 'scikitplot.misc._plot_colortable'.
+# export_all() walks __all__ and sets __module__ = __name__ on each object.
+# ---------------------------------------------------------------------------
+# from .._utils._export import export_all as _export_all  # noqa: E402
+# _export_all(globals(), public_module=__name__)
+# del _export_all
+
+# ---------------------------------------------------------------------------
 # numpy-style test runner
 # ---------------------------------------------------------------------------
 # Developer note

@@ -22,6 +22,25 @@ If a utility requires the import of NumPy, it probably belongs
 in ``numpy._core``.
 """
 
+# scikitplot/
+# ├── _utils/              ← Private utility submodule (numpy/mlflow/astropy lineage)
+# │   ├── __init__.py      ← Core helpers: set_module, _rename_parameter, AttrDict, merge_dicts…
+# │   ├── _convertions.py  ← asbytes, asunicode (numpy compat, pure stdlib)
+# │   ├── _export.py       ← export_all, export_objects (pure stdlib)
+# │   ├── _inspect.py      ← getargspec, formatargspec subset (pure stdlib)
+# │   ├── _pep440.py       ← PEP 440 Version, parse, LegacyVersion (pure stdlib)
+# │   ├── lazy_load.py     ← LazyLoader class (pure stdlib)
+# │   ├── os.py            ← is_windows() (pure stdlib)
+# │   ├── time.py          ← Timer, get_current_time_millis (pure stdlib)
+# │   ├── string_utils.py  ← strip_prefix, quote, _create_table… (relative→os only)
+# │   ├── misc.py          ← NumpyRNGContext, silence… (needs ..decorators, __version__)
+# │   ├── env_manager.py   ← validate() (needs ..exceptions)
+# │   ├── exception_utils  ← get_stacktrace (needs ..exceptions)
+# │   ├── timeout.py       ← run_with_timeout (needs ..exceptions, .os)
+# │   ├── logging_utils.py ← ScikitplotFormatter (needs ..logging, env_vars)
+# │   └── tests/
+# │       └── __init__.py  ← ⚠ EMPTY — zero tests, zero coverage
+
 import functools
 import warnings
 
