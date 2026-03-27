@@ -631,25 +631,96 @@ class DocumentReader(abc.ABC):
     arguments.
     """
 
+    custom_extractor: Any | None = field(default=None, repr=False)
+    """
+    User-supplied extraction callable that **replaces** :meth:`get_raw_chunks`
+    entirely for this reader instance.
+
+    When set, :meth:`_iter_raw_chunks` calls
+    ``custom_extractor(self.input_file, **custom_extractor_kwargs)`` and
+    normalises the return value through
+    :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
+    The built-in :meth:`get_raw_chunks` implementation is **not** called.
+
+    This hook is available on **every** reader class
+    (``ALTOReader``, ``TextReader``, ``PDFReader``, ``ImageReader``, etc.)
+    without any subclassing — simply pass a callable at construction time.
+
+    Callable contract
+    -----------------
+    ::
+
+        def my_extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
+
+    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
+    ``list[dict]`` — the same contract as :class:`~scikitplot.corpus._readers.CustomReader`.
+
+    Examples
+    --------
+    Override PDF extraction with ``pdfplumber`` for a single reader::
+
+        import pdfplumber
+        from pathlib import Path
+        from scikitplot.corpus._base import DocumentReader
+
+        def plumber_fn(path, **kw):
+            with pdfplumber.open(path) as pdf:
+                return [{"text": p.extract_text() or "", "page_number": i}
+                        for i, p in enumerate(pdf.pages)]
+
+        reader = DocumentReader.create(
+            Path("report.pdf"),
+            custom_extractor=plumber_fn,
+        )
+        docs = list(reader.get_documents())
+    """
+
+    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
+    """
+    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
+    invocation.  Merged into the call as ``**custom_extractor_kwargs``.
+
+    Examples
+    --------
+    ::
+
+        reader = DocumentReader.create(
+            Path("report.pdf"),
+            custom_extractor=my_fn,
+            custom_extractor_kwargs={"password": "s3cret", "pages": [0, 1, 2]},
+        )
+    """
+
     # ------------------------------------------------------------------
     # Post-init: resolve defaults
     # ------------------------------------------------------------------
 
     def __post_init__(self) -> None:
         """
-        Resolve ``filter_`` default after dataclass ``__init__``.
+        Resolve ``filter_`` default and validate ``custom_extractor``.
 
         Notes
         -----
         We cannot use a mutable :class:`DefaultFilter` as a field default
         directly (Python dataclass restriction). ``__post_init__`` is the
         canonical place to set mutable defaults.
+
+        Raises
+        ------
+        TypeError
+            If ``custom_extractor`` is provided but not callable.
         """
         if self.filter_ is None:
             object.__setattr__(self, "filter_", DefaultFilter())
         # Coerce input_file to pathlib.Path if a string was passed
         if not isinstance(self.input_file, pathlib.Path):
             object.__setattr__(self, "input_file", pathlib.Path(self.input_file))
+        # Validate custom_extractor when provided
+        if self.custom_extractor is not None and not callable(self.custom_extractor):
+            raise TypeError(
+                f"DocumentReader: custom_extractor must be callable or None; "
+                f"got {type(self.custom_extractor).__name__!r}."
+            )
 
     # ------------------------------------------------------------------
     # Computed properties
@@ -746,6 +817,69 @@ class DocumentReader(abc.ABC):
         be a plain string — no XML nodes or bytes.
         """
 
+    def _iter_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
+        """
+        Dispatch raw chunk generation to :attr:`custom_extractor` or
+        :meth:`get_raw_chunks`.
+
+        When :attr:`custom_extractor` is set, calls it with
+        ``(self.input_file, **self.custom_extractor_kwargs)`` and normalises
+        the return value via
+        :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
+        When :attr:`custom_extractor` is ``None``, delegates to
+        :meth:`get_raw_chunks` (the normal format-specific implementation).
+
+        This method is the **sole** call-site inside :meth:`get_documents`;
+        it replaces the previous direct call to ``get_raw_chunks()`` so that
+        the customisation hook intercepts the full extraction path without
+        requiring subclassing.
+
+        Yields
+        ------
+        dict
+            Raw chunk dicts with at minimum ``{"text": str}``.
+
+        Raises
+        ------
+        RuntimeError
+            If ``custom_extractor`` is set and raises during extraction.
+        TypeError
+            If the extractor returns an unsupported type.
+
+        Notes
+        -----
+        **Developer note:** All built-in readers (``ALTOReader``,
+        ``AudioReader``, ``ImageReader``, ``MarkdownReader``, ``PDFReader``,
+        ``ReSTReader``, ``TEIReader``, ``TextReader``, ``VideoReader``,
+        ``WebReader``, ``XMLReader``, ``YouTubeReader``, ``ZipReader``,
+        ``DummyReader``) inherit this dispatch for free — no per-reader
+        changes needed.
+        """  # noqa: D205
+        if self.custom_extractor is not None:
+            from ._readers._custom import (  # noqa: PLC0415
+                normalize_extractor_output,
+            )
+
+            extractor_name = getattr(
+                self.custom_extractor, "__name__", repr(self.custom_extractor)
+            )
+            logger.info(
+                "%s: _iter_raw_chunks dispatching to custom_extractor %r.",
+                self.file_name,
+                extractor_name,
+            )
+            kw: dict[str, Any] = self.custom_extractor_kwargs or {}
+            try:
+                raw = self.custom_extractor(self.input_file, **kw)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"{self.file_name}: custom_extractor {extractor_name!r} "
+                    f"raised an error: {exc}"
+                ) from exc
+            yield from normalize_extractor_output(raw)
+        else:
+            yield from self.get_raw_chunks()
+
     # ------------------------------------------------------------------
     # Concrete pipeline method — builds CorpusDocuments from raw chunks
     # ------------------------------------------------------------------
@@ -796,7 +930,7 @@ class DocumentReader(abc.ABC):
         omitted: int = 0
         included: int = 0
 
-        for raw_chunk in self.get_raw_chunks():
+        for raw_chunk in self._iter_raw_chunks():
             raw_text: str = raw_chunk.get("text", "")
 
             # Determine chunking strategy label
