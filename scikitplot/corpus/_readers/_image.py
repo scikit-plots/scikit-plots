@@ -54,10 +54,20 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
+from typing import (  # noqa: F401
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+)
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
+from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +92,12 @@ _IMAGE_EXTENSIONS: list[str] = [
 # ---------------------------------------------------------------------------
 _BACKEND_TESSERACT = "tesseract"
 _BACKEND_EASYOCR = "easyocr"
-_VALID_BACKENDS: Tuple[str, ...] = (_BACKEND_TESSERACT, _BACKEND_EASYOCR)  # noqa: UP006
+_BACKEND_CUSTOM = "custom"
+_VALID_BACKENDS: tuple[str, ...] = (
+    _BACKEND_TESSERACT,
+    _BACKEND_EASYOCR,
+    _BACKEND_CUSTOM,
+)  # noqa: UP006
 
 
 def _ocr_tesseract(
@@ -370,7 +385,45 @@ class ImageReader(DocumentReader):
     compressed image bytes (JPEG/PNG/etc.) — useful for
     ``tf.io.decode_image`` or CV2 ``imdecode``.  Default: ``False``."""
 
-    # Internal: easyocr Reader instance (cached across frames)
+    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
+    """
+    User-supplied image extraction callable, active only when
+    ``backend="custom"``.
+
+    Signature::
+
+        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
+
+    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
+    ``list[dict]``.  Every dict must contain a ``"text"`` key.
+
+    Common use-cases: ``surya`` (document layout + OCR), ``docling``,
+    ``azure-cognitiveservices-vision``, AWS Textract clients, or any
+    library not supported by Tesseract / easyocr.  Ignored when
+    ``backend`` is not ``"custom"``.  Default: ``None``.
+
+    Examples
+    --------
+    >>> def surya_extract(path, **kw):
+    ...     from surya.ocr import run_ocr
+    ...     result = run_ocr([str(path)], langs=[["en"]])[0]
+    ...     return [{"text": line.text, "confidence": line.confidence}
+    ...             for line in result.text_lines]
+    >>> reader = ImageReader(
+    ...     input_file=Path("scan.png"),
+    ...     backend="custom",
+    ...     custom_extractor=surya_extract,
+    ... )
+    """
+
+    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
+    """
+    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
+    call.  Only used when ``backend="custom"``.  Default: ``{}``.
+    """
+
+    # Internal: easyocr Reader instance (cached across frames to avoid
+    # reloading ~100 MB model weights on every frame).
     _easyocr_reader: Any | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -379,7 +432,12 @@ class ImageReader(DocumentReader):
         Raises
         ------
         ValueError
-            If ``backend`` is not in ``{'tesseract', 'easyocr'}``.
+            If ``backend`` is not in
+            ``{"tesseract", "easyocr", "custom"}``.
+        ValueError
+            If ``backend="custom"`` but ``custom_extractor`` is ``None``.
+        TypeError
+            If ``custom_extractor`` is not callable (and not ``None``).
         ValueError
             If ``max_file_bytes <= 0``.
         """
@@ -388,6 +446,17 @@ class ImageReader(DocumentReader):
             raise ValueError(
                 f"ImageReader: backend must be one of {_VALID_BACKENDS};"
                 f" got {self.backend!r}."
+            )
+        if self.backend == _BACKEND_CUSTOM and self.custom_extractor is None:
+            raise ValueError(
+                "ImageReader: backend='custom' requires a "
+                "'custom_extractor' callable.  Pass one via "
+                "custom_extractor=my_fn, or choose a built-in backend."
+            )
+        if self.custom_extractor is not None and not callable(self.custom_extractor):
+            raise TypeError(
+                f"ImageReader: custom_extractor must be callable or None; "
+                f"got {type(self.custom_extractor).__name__!r}."
             )
         if self.max_file_bytes <= 0:
             raise ValueError(
@@ -401,6 +470,11 @@ class ImageReader(DocumentReader):
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
         Run OCR on each frame of the image and yield one chunk per frame.
+
+        When ``backend="custom"`` and :attr:`custom_extractor` is set,
+        delegates entirely to the callable and normalises its output via
+        :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
+        The custom path bypasses PIL frame extraction and all OCR engines.
 
         Yields
         ------
@@ -438,6 +512,41 @@ class ImageReader(DocumentReader):
         ImportError
             If Pillow or the OCR library is not installed.
         """
+        # ── Custom extractor path ──────────────────────────────────────
+        if self.backend == _BACKEND_CUSTOM:
+            assert (  # noqa: S101  (guaranteed by __post_init__)
+                self.custom_extractor is not None
+            )
+            extractor_name = getattr(
+                self.custom_extractor, "__name__", repr(self.custom_extractor)
+            )
+            logger.info(
+                "ImageReader: using custom extractor %r on %s.",
+                extractor_name,
+                self.file_name,
+            )
+            try:
+                raw = self.custom_extractor(
+                    self.input_file, **self.custom_extractor_kwargs
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"ImageReader: custom extractor {extractor_name!r} raised "
+                    f"an error processing {self.file_name!r}: {exc}"
+                ) from exc
+            chunks = normalize_extractor_output(
+                raw,
+                source_type=SourceType.IMAGE,
+                section_type=SectionType.TEXT,
+            )
+            logger.info(
+                "ImageReader: custom extractor returned %d chunk(s) from %s.",
+                len(chunks),
+                self.file_name,
+            )
+            yield from chunks
+            return
+
         try:
             from PIL import Image  # noqa: PLC0415
         except ImportError as exc:
@@ -613,7 +722,7 @@ class ImageReader(DocumentReader):
             frame, self.ocr_lang, self._easyocr_reader
         )
         # Cache the reader after first creation so subsequent frames reuse it.
-        # object.__setattr__ bypasses dataclass field-assignment restrictions.
+        # This avoids reloading ~100 MB model weights on every frame.
         if self._easyocr_reader is None:
-            object.__setattr__(self, "_easyocr_reader", reader_obj)
+            self._easyocr_reader = reader_obj
         return text, conf

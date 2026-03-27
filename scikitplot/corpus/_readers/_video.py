@@ -58,10 +58,20 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Generator, List, Optional, Tuple  # noqa: F401
+from typing import (  # noqa: F401
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+)
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
+from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -590,19 +600,64 @@ class VideoReader(DocumentReader):
         transcript.  For text-only pipelines, leave this at ``False``.
     """
 
+    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
+    """
+    User-supplied video extraction callable.  When set, this callable is
+    called **first** — before subtitle detection and Whisper ASR — and its
+    output is used exclusively.
+
+    Signature::
+
+        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
+
+    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
+    ``list[dict]``.  Every dict must contain a ``"text"`` key.  Dicts may
+    also include ``"timecode_start"`` and ``"timecode_end"`` (float,
+    seconds).
+
+    Common use-cases: ``whisperX`` with speaker diarization, cloud-based
+    video transcription APIs, or any library not supported by the built-in
+    strategies.  Default: ``None``.
+
+    Examples
+    --------
+    >>> def cloud_transcribe(path, language="en", **kw):
+    ...     result = cloud_api.transcribe_video(str(path), lang=language)
+    ...     return [{"text": seg.text, "timecode_start": seg.start,
+    ...              "timecode_end": seg.end}
+    ...             for seg in result.segments]
+    >>> reader = VideoReader(
+    ...     input_file=Path("lecture.mp4"),
+    ...     custom_extractor=cloud_transcribe,
+    ... )
+    """
+
+    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
+    """
+    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
+    call.  Only used when :attr:`custom_extractor` is set.  Default: ``{}``.
+    """
+
     def __post_init__(self) -> None:
-        """Validate VideoReader fields and resolve subtitle/transcription strategy.
+        """Validate VideoReader fields.
 
         Raises
         ------
         ValueError
             If ``whisper_model`` is not a recognised Whisper model size.
+        TypeError
+            If ``custom_extractor`` is not callable (and not ``None``).
         """
         super().__post_init__()
         if self.whisper_model not in self._VALID_WHISPER_MODELS:
             raise ValueError(
                 f"VideoReader: whisper_model must be one of"
                 f" {self._VALID_WHISPER_MODELS}; got {self.whisper_model!r}."
+            )
+        if self.custom_extractor is not None and not callable(self.custom_extractor):
+            raise TypeError(
+                f"VideoReader: custom_extractor must be callable or None; "
+                f"got {type(self.custom_extractor).__name__!r}."
             )
         if self.subtitle_frame_rate <= 0:
             raise ValueError(
@@ -645,6 +700,38 @@ class VideoReader(DocumentReader):
                 f"VideoReader: {self.file_name} is {file_size:,} bytes,"
                 f" which exceeds max_file_bytes={self.max_file_bytes:,}."
             )
+
+        # ── Strategy 0: custom extractor (highest priority) ───────────
+        if self.custom_extractor is not None:
+            extractor_name = getattr(
+                self.custom_extractor, "__name__", repr(self.custom_extractor)
+            )
+            logger.info(
+                "VideoReader: using custom extractor %r on %s.",
+                extractor_name,
+                self.file_name,
+            )
+            try:
+                raw = self.custom_extractor(
+                    self.input_file, **self.custom_extractor_kwargs
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"VideoReader: custom extractor {extractor_name!r} raised "
+                    f"an error processing {self.file_name!r}: {exc}"
+                ) from exc
+            chunks = normalize_extractor_output(
+                raw,
+                source_type=SourceType.VIDEO,
+                section_type=SectionType.TEXT,
+            )
+            logger.info(
+                "VideoReader: custom extractor returned %d chunk(s) from %s.",
+                len(chunks),
+                self.file_name,
+            )
+            yield from chunks
+            return
 
         # --- Strategy 1: companion subtitle file ---
         subtitle_result = _find_subtitle(self.input_file)

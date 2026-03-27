@@ -221,6 +221,7 @@
 #include <cstddef>
 #include <cstdio>   // C++ correct fprintf, stderr
 #include <cstdlib>
+#include <thread>   // std::thread::hardware_concurrency() — required by resolve_n_jobs()
 
 // For 201103L "This library requires at least C++11 (-std=c++11)."
 // For 201402L "This library requires at least C++14 (-std=c++14)."
@@ -234,14 +235,19 @@
 #endif
 
 #ifdef ANNOYLIB_MULTITHREADED_BUILD
-  // ThreadedBuildPolicy
   #include <thread>
   #include <functional>
   #include <mutex>
   #if __cplusplus >= 201402L
+    /* std::shared_timed_mutex is standardised in C++14.
+     * std::shared_mutex (without "timed") requires C++17. */
     #include <shared_mutex>
   #else
-    #include <shared_mutex>
+    /* C++11: <shared_mutex> is absent from the standard.
+     * AnnoyIndexMultiThreadedBuildPolicy falls back to std::mutex
+     * (exclusive lock only). lock_shared / unlock_shared map to
+     * lock / unlock in the C++11 build path. */
+    #include <mutex>
   #endif
 #endif
 
@@ -262,18 +268,23 @@
 #endif
 
 /* =========================
- * Compile-time assertions (C++11)
+ * Compile-time ABI assertions (C++11)
+ *
+ * Verify that the fundamental types have the exact widths the rest of the
+ * code assumes.  These fire at compile time — zero runtime cost.
+ * The C++11 guard is redundant (line 278 enforces C++11 via #error) but is
+ * kept as documentation of the minimum requirement for each assertion.
  * ========================= */
-// #if __cplusplus >= 201103L
-//   static_assert(sizeof(uint8_t) == 1, "uint8_t must be 8-bit");
-//   static_assert(sizeof(uint16_t) == 2, "uint16_t must be 16-bit");
-//   static_assert(sizeof(uint32_t) == 4, "uint32_t must be 32-bit");
-//   static_assert(sizeof(uint64_t) == 8, "uint64_t must be 64-bit");
-//   static_assert(sizeof(int32_t) == 4, "int32_t must be 32-bit");
-//   static_assert(sizeof(int64_t) == 8, "int64_t must be 64-bit");
-//   static_assert(sizeof(float) == 4, "float must be 32-bit");
-//   static_assert(sizeof(double) == 8, "double must be 64-bit");
-// #endif
+#if __cplusplus >= 201103L
+  static_assert(sizeof(uint8_t)  == 1, "uint8_t must be exactly 8 bits");
+  static_assert(sizeof(uint16_t) == 2, "uint16_t must be exactly 16 bits");
+  static_assert(sizeof(uint32_t) == 4, "uint32_t must be exactly 32 bits");
+  static_assert(sizeof(uint64_t) == 8, "uint64_t must be exactly 64 bits");
+  static_assert(sizeof(int32_t)  == 4, "int32_t must be exactly 32 bits");
+  static_assert(sizeof(int64_t)  == 8, "int64_t must be exactly 64 bits");
+  static_assert(sizeof(float)    == 4, "float must be 32-bit IEEE 754");
+  static_assert(sizeof(double)   == 8, "double must be 64-bit IEEE 754");
+#endif
 
 #if __cplusplus < 201103L
   #error "Annoy requires at least C++11 or newer"
@@ -530,22 +541,28 @@ typedef double float64_t;
   #define ANNOYLIB_COMPILER_UNKNOWN 1
 #endif
 #if !defined(NO_MANUAL_VECTORIZATION)
-  /* ---- AVX-512 (GCC only) ---- */
+  /* ---- AVX-512: GCC only (Clang excluded — known correctness issues, see #402) ---- */
   #if defined(ANNOYLIB_COMPILER_GCC) && defined(__AVX512F__)
     #define ANNOYLIB_USE_AVX512 1
-  /* ---- AVX (GCC / Clang / MSVC) (broad support) ---- */
+  /* ---- AVX: GCC / Clang / MSVC with full SSE feature set ---- */
   #elif defined(__AVX__) && defined(__SSE__) && defined(__SSE2__) && defined(__SSE3__)
     #define ANNOYLIB_USE_AVX 1
   #else
-    /* Scalar fallback */
+    /* Scalar fallback: hardware lacks AVX, or compiler does not expose it */
     #define ANNOYLIB_SIMD_SCALAR 1
   #endif
+#else
+  /* NO_MANUAL_VECTORIZATION is defined: force scalar path unconditionally.
+   * Without this define the invariant check below fires (sum == 0 != 1). */
+  #define ANNOYLIB_SIMD_SCALAR 1
 #endif /* NO_MANUAL_VECTORIZATION */
+
+/* Invariant: exactly one backend active. Catches mis-configured builds early. */
 #if defined(ANNOYLIB_USE_AVX512) && defined(ANNOYLIB_USE_AVX)
-  #error "Invalid SIMD state: both AVX and AVX512 enabled"
+  #error "Invalid SIMD state: both ANNOYLIB_USE_AVX512 and ANNOYLIB_USE_AVX are defined"
 #endif
 #if (defined(ANNOYLIB_USE_AVX512) + defined(ANNOYLIB_USE_AVX) + defined(ANNOYLIB_SIMD_SCALAR)) != 1
-  #error "Exactly one SIMD backend must be selected"
+  #error "Exactly one SIMD backend must be active (AVX512, AVX, or SCALAR)"
 #endif
 /* =========================
  * SIMD headers MSVC → <intrin.h> GCC/Clang → <x86intrin.h>
@@ -579,23 +596,9 @@ typedef double float64_t;
   #define ANNOY_UNUSED(x) (void)(x)
 #endif
 
-// Safe string duplication
-inline char* dup_cstr(const char* str) {
-  if (str == NULL) return NULL;
-  size_t len = std::strlen(str);
-  char* copy = static_cast<char*>(std::malloc(len + 1));
-  if (copy != NULL) {
-    std::memcpy(copy, str, len + 1);
-  }
-  return copy;
-}
-
-// Safe error message setting
-inline void set_error_msg(char** error, const char* msg) {
-  if (error != NULL && msg != NULL) {
-    *error = dup_cstr(msg);
-  }
-}
+/* NOTE: dup_cstr and set_error_from_string live in namespace Annoy (below).
+ * No global-scope duplicates — callers inside the namespace resolve them
+ * without qualification; callers outside use Annoy::dup_cstr. */
 /* =========================================================================================
  * PARAMETER CONTAINER FOR CENTRALIZED MANAGEMENT
  * ========================================================================================= */
@@ -722,142 +725,107 @@ struct DefaultValue<double> {
 };
 template<>
 struct DefaultValue<float128_t> {
+  // QA-3: constexpr is only valid here when float128_t is a literal type.
+  //   - On GCC/Clang with native __float128: __float128 is NOT a literal type
+  //     in the C++ standard sense, so constexpr would be ill-formed in strict
+  //     mode.  Guard with #ifdef so MSVC / strict builds use the base template.
+  //   - On MSVC or generic fallback (float128_t == long double): long double IS
+  //     a literal type; constexpr is valid.
+#ifdef ANNOYLIB_HAVE_FLOAT128
+  // __float128 path: drop constexpr (not a literal type), keep noexcept.
+  static float128_t get() noexcept { return static_cast<float128_t>(0); }
+#else
+  // long double path (MSVC / generic): constexpr is valid.
   static constexpr float128_t get() noexcept { return 0.0L; }
+#endif
 };
+/**
+ * safe_divide — numerically robust division for floating-point types.
+ *
+ * Returns `default_val` when the denominator is effectively zero
+ * (|denom| < epsilon * max(|num|, |denom|)).  Otherwise returns num/denom
+ * directly — no denominator clamping, no sign alteration.
+ *
+ * Rationale
+ * ---------
+ * The previous code had two overloads with conflicting semantics:
+ *   - 3-arg version:  trivial (b != 0) check only — misses near-zero denoms.
+ *   - 2-arg version:  clamps denom to ±threshold — alters the result sign
+ *                     and magnitude when denom is tiny but non-zero.
+ *
+ * This single form avoids both problems:
+ *   - 0 / 0               → default_val (scale == 0, threshold == 0, condition true)
+ *   - near-zero / near-zero → default_val
+ *   - normal division     → num / denom unchanged
+ *   - huge / tiny         → default_val (prevents overflow)
+ *
+ * Parameters
+ * ----------
+ * num         Numerator.
+ * denom       Denominator.
+ * default_val Returned when |denom| is effectively zero. Defaults to T{}.
+ *
+ * Returns
+ * -------
+ * T  Stable division result, or default_val.
+ *
+ * Requirements
+ * ------------
+ * T must be a floating-point type (enforced at compile time).
+ */
 template<typename T>
-inline T safe_divide(T a, T b, T default_val = DefaultValue<T>::get()) {
+inline T safe_divide(T num, T denom, T default_val = T{}) noexcept {
   static_assert(std::is_floating_point<T>::value,
-                "safe_divide is only valid for floating-point types");
-  return (b != T(0)) ? a / b : default_val;
-}
-/*
-  safe_divide
-  ===========
-  Numerically robust division for floating-point types.
-
-  Motivation
-  ----------
-  Direct floating-point division
-
-    result = num / denom
-
-  is unsafe when the denominator becomes extremely small or zero.
-
-  Failure modes include:
-
-  1) Division by zero
-    denom = 0  →  ±inf or NaN
-
-  2) Overflow
-    num ≈ 1e308 and denom ≈ 1e-308  →  result ≈ 1e616 (overflow)
-
-  3) Numerical instability
-    Very small denominators produce extremely large results that
-    destabilize downstream computations (optimizers, normalization,
-    probability calculations, etc.).
-
-  Naive fixes like
-
-    num / (denom + ε)
-
-  introduce bias when |denom| >> ε and are not scale-invariant.
-
-  Design principle
-  ----------------
-  Instead of adding a constant epsilon, we scale the stabilization
-  relative to the magnitude of the numbers:
-
-    |denom| ≥ ε * max(|num|, |denom|)
-
-  where ε is the machine epsilon for the floating-point type.
-
-  This ensures:
-
-  • Division by zero cannot occur
-  • The correction scales with numeric magnitude
-  • Large values are not biased by an arbitrary constant
-  • Overflow risk from tiny denominators is reduced
-
-  Numerical invariant
-  -------------------
-    |denom| >= threshold
-    threshold = ε * max(|num|, |denom|)
-
-  This pattern is widely used in high-performance numerical software
-  (e.g. linear algebra kernels and scientific computing libraries).
-
-  Parameters
-  ----------
-  num
-      Numerator.
-
-  denom
-      Denominator.
-
-  Returns
-  -------
-  T
-      Stable division result.
-
-  Requirements
-  ------------
-  T must be a floating-point type.
-*/
-// Case	            Result
-// 1 / 0	          large finite number
-// 0 / 0	          0
-// huge / tiny	    bounded
-// normal division	unchanged
-template <typename T>
-T safe_divide(T num, T denom)
-{
-  // Enforce that the function is only used with floating-point types.
-  // Integer types do not have a meaningful machine epsilon. C++17
-  // static_assert(std::is_floating_point_v<T>,
-  //               "safe_divide requires floating point type");
-  // In C++11 the trait value must be accessed with ::value.
-  static_assert(std::is_floating_point<T>::value,
-                "safe_divide requires floating point type");
-
-  // Machine epsilon:
-  // Smallest representable increment near 1.0 for type T.
-  // Example values:
-  //   float  ≈ 1.19e-7
-  //   double ≈ 2.22e-16
-  // ✅ Final rule:
-  //   float  -> 1e-7
-  //   double -> 1e-12
-  const T eps = std::numeric_limits<T>::epsilon();
-
-  // Determine the scale of the computation.
-  // Using the maximum magnitude provides a robust estimate of
-  // the numeric scale of the division problem.
+                "safe_divide requires a floating-point type");
+  const T eps       = std::numeric_limits<T>::epsilon();
   const T abs_num   = std::abs(num);
   const T abs_denom = std::abs(denom);
-  const T scale = std::max(abs_num, abs_denom);
-  // Handle the special case 0 / 0 explicitly.
-  // if (scale == T(0)) return T(0);
-
-  // Compute the minimum safe magnitude for the denominator.
-  // This scales epsilon relative to the magnitude of the inputs.
-  const T threshold = eps * scale;
-
-  // If the denominator is smaller than the threshold,
-  // clamp it to ±threshold while preserving its sign.
-  //
-  // This guarantees the invariant:
-  //     |denom| >= threshold
-  //
-  // The sign preservation ensures the mathematical direction
-  // of the division is not altered.
-  if (abs_denom < threshold)
-  {
-    // denom = (denom < T(0) ? -threshold : threshold);
-    denom = std::copysign(threshold, denom);
+  const T scale     = std::max(abs_num, abs_denom);
+  // scale == 0 means both inputs are zero: 0/0 → default_val.
+  // abs_denom < eps*scale means denom is negligibly small relative to the
+  // magnitude of the problem: avoid division by a near-zero value.
+  if (scale == T{} || abs_denom < eps * scale) {
+    return default_val;
   }
-  // Perform the stabilized division.
   return num / denom;
 }
+
+/* Forward declarations — full definitions follow in the UTILITY FUNCTIONS
+ * section below.  AnnoyParams::validate() needs these before the definitions
+ * appear in the translation unit. */
+inline char* dup_cstr(const char* s) noexcept;
+inline void  set_error_msg(char** error, const char* msg) noexcept;
+
+// ---------------------------------------------------------------------------
+// FUT-1: Typed verbosity constants
+// ---------------------------------------------------------------------------
+// AnnoyVerbose provides named, type-safe verbosity levels.  The underlying
+// member type in AnnoyParams (and _verbose) remains int so existing callers
+// that pass integer literals are not broken.  New callers should prefer the
+// enum.
+//
+// Level semantics:
+//   Silent (-2) : suppress everything, including errors.
+//   Error  (-1) : only fatal errors.
+//   Quiet  ( 0) : no output (default).
+//   Info   ( 1) : progress milestones (build passes, load events).
+//   Debug  ( 2) : per-node / per-thread detail.
+//
+// All levels are clamped to [-2, 2] at the constructor / set_verbose boundary.
+// ---------------------------------------------------------------------------
+enum class AnnoyVerbose : int {
+  Silent = -2,
+  Error  = -1,
+  Quiet  =  0,
+  Info   =  1,
+  Debug  =  2,
+};
+
+/// Convert AnnoyVerbose → int (implicit int used throughout the implementation).
+inline int annoy_verbose_level(AnnoyVerbose v) noexcept {
+  return static_cast<int>(v);
+}
+
 /**
  * @brief Centralized parameter storage for AnnoyIndex
  *
@@ -877,18 +845,21 @@ struct AnnoyParams {
 
   // Behavioral flags
   bool prefault;                  // Prefault pages when loading
-  bool verbose;                   // Verbosity level
-  bool f_inferred;                // Whether f was inferred
+  int  verbose;                   // Verbosity level: 0=quiet, 1=info, 2=debug (clamped to [-2,2])
+  bool f_inferred;                // Whether f was inferred from first add_item
 
   // Paths and strings
-  const char* on_disk_path;       // Default path for on_disk_build
-  const char* metric;             // Metric name
-  const char* dtype;              // Data type string
-  const char* index_dtype;        // Index type string
-  const char* wrapper_dtype;      // Hamming type string
-  const char* random_dtype;       // Random type string
-  const char* y_dtype;            // Label type string
-  const char* y_return_type;      // Return type (list/dict)
+  // NOTE: std::string (not const char*) so AnnoyParams owns its string data.
+  // Eliminates the dangling-pointer risk that existed when these were non-owning
+  // const char* pointers whose lifetime was the caller's responsibility.
+  std::string on_disk_path;       // Default path for on_disk_build ("" = none)
+  std::string metric;             // Metric name
+  std::string dtype;              // Data type string
+  std::string index_dtype;        // Index type string
+  std::string wrapper_dtype;      // Hamming type string
+  std::string random_dtype;       // Random type string
+  std::string y_dtype;            // Label type string
+  std::string y_return_type;      // Return type (list/dict)
 
   // Future-proof parameters
   double l1_ratio;                // Random projection ratio
@@ -907,14 +878,14 @@ struct AnnoyParams {
     , n_jobs(1)
     , schema_version(0)
     , prefault(false)
-    , verbose(false)
+    , verbose(0)              // 0 = quiet; use int not bool (leveled: 1=info, 2=debug)
     , f_inferred(false)
-    , on_disk_path(NULL)
+    , on_disk_path("")     // "" means no path configured; non-empty enables on_disk_build
     , metric("angular")
     , dtype("float")
     , index_dtype("int32")
     , wrapper_dtype("uint32")
-    , random_dtype("uint32")
+    , random_dtype("uint64")  // matches Kiss64Random / uint64_t default seed type
     , y_dtype("float")
     , y_return_type("list")
     , l1_ratio(0.0)
@@ -924,7 +895,8 @@ struct AnnoyParams {
    * @brief Destructor - cleanup allocated strings
    */
   ~AnnoyParams() {
-    // Note: Paths are owned by caller, don't free here
+    // std::string members are destroyed automatically by their own destructors.
+    // No manual memory management required.
   }
 
   /**
@@ -956,56 +928,81 @@ struct AnnoyParams {
 /* =========================================================================================
  * UTILITY FUNCTIONS
  * =========================================================================================
- * Helper functions for error handling, string duplication, and common operations.
+ * One definition each. AnnoyParams::validate() forward-declared these above;
+ * the actual definitions are here. HammingWrapper must NOT add its own copies.
  * ========================================================================================= */
-// Error handling: one allocator, one owner
-inline char* dup_error(const char* msg) {
-  const size_t n = std::strlen(msg) + 1;
-  char* p = static_cast<char*>(std::malloc(n));
-  if (p) std::memcpy(p, msg, n);
-  return p;
-}
-// Duplicate a C-style string (safe memory allocation)
-inline char* dup_cstr(const char* s) {
+
+// dup_cstr — safe C-string duplication (malloc-owned, caller must free).
+// Returns NULL for NULL input; returns NULL on allocation failure.
+inline char* dup_cstr(const char* s) noexcept {
   if (s == NULL) return NULL;
-  const size_t len = strlen(s);
-  char* r = static_cast<char*>(malloc(len + 1));
-  if (r == NULL) return NULL;
-  std::memcpy(r, s, len + 1);
+  const size_t len = std::strlen(s);
+  char* r = static_cast<char*>(std::malloc(len + 1));
+  if (r != NULL) std::memcpy(r, s, len + 1);
   return r;
 }
-// Set error from C-style string
-inline void set_error_from_string(char **error, const char* msg) {
-  // if (error != NULL) {
-  //   *error = dup_cstr(msg);
-  // }
+
+// set_error_msg — write a malloc-owned copy of msg into *error.
+// Safe to call with error == NULL (no-op).
+inline void set_error_msg(char** error, const char* msg) noexcept {
+  if (error != NULL && msg != NULL) {
+    *error = dup_cstr(msg);
+  }
+}
+
+// set_error_from_string — log to stderr via annoylib_showUpdate AND write
+// a malloc-owned copy of msg into *error if error is non-NULL.
+inline void set_error_from_string(char** error, const char* msg) noexcept {
   annoylib_showUpdate("%s\n", msg);
-  if (error) {
-    *error = (char *)malloc(strlen(msg) + 1);
-    // strcpy(*error, msg);
-    if (*error) {
-      strcpy(*error, msg);
-    }
+  if (error != NULL) {
+    *error = dup_cstr(msg);
   }
 }
-// Set error from errno
-inline void set_error_from_errno(char **error, const char* msg) {
-  // if (error == NULL) return;
-  // char buf[512];
-  // snprintf(buf, sizeof(buf), "%s: %s",
-  //          prefix ? prefix : "Error",
-  //          strerror(errno));
-  // *error = dup_cstr(buf);
-  annoylib_showUpdate("%s: %s (%d)\n", msg, strerror(errno), errno);
-  if (error) {
-    // Caller owns *error and must free() it
-    *error = static_cast<char*>(malloc(256));  // TODO: win doesn't support snprintf
-    // snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
-    if (*error) {
-      snprintf(*error, 255, "%s: %s (%d)", msg, strerror(errno), errno);
-    }
+
+// set_error_from_errno — log prefix + strerror(errno) + errno number, and
+// write the formatted string into *error.  Uses dynamic allocation so the
+// buffer is always large enough for platform-specific strerror() strings.
+inline void set_error_from_errno(char** error, const char* prefix) noexcept {
+  const char* err_str = std::strerror(errno);
+  const int   err_num = errno;
+  annoylib_showUpdate("%s: %s (%d)\n", prefix, err_str, err_num);
+  if (error == NULL) return;
+  // Dynamic size: prefix + ": " + err_str + " (NNN)\0"
+  const size_t n = std::strlen(prefix) + 2 + std::strlen(err_str) + 16 + 1;
+  *error = static_cast<char*>(std::malloc(n));
+  if (*error != NULL) {
+    std::snprintf(*error, n, "%s: %s (%d)", prefix, err_str, err_num);
   }
 }
+
+// dup_error — alias kept for internal callers that used the old name.
+inline char* dup_error(const char* msg) noexcept {
+  return dup_cstr(msg);
+}
+
+// ---------------------------------------------------------------------------
+// FUT-2: Thread count resolution — resolve_n_jobs()
+// ---------------------------------------------------------------------------
+// Translates the joblib-style n_jobs convention into a concrete positive
+// thread count.  This is the single authoritative implementation; build()
+// and any future parallel query path should call this rather than inlining
+// their own -1 / hardware_concurrency logic.
+//
+// Convention:
+//   -1 → std::thread::hardware_concurrency() (clamped to >= 1)
+//    N → N threads verbatim          (N must be >= 1)
+//
+// Always returns >= 1 so callers can pass the result directly to a
+// std::vector<std::thread> constructor without an additional guard.
+// ---------------------------------------------------------------------------
+inline int resolve_n_jobs(int n_jobs) noexcept {
+  if (n_jobs == -1) {
+    const unsigned int hw = std::thread::hardware_concurrency();
+    return (hw > 0u) ? static_cast<int>(hw) : 1;
+  }
+  return (n_jobs < 1) ? 1 : n_jobs;
+}
+
 #if __cplusplus >= 201103L
 /* ================================================================
  * Type Traits and Compile-Time Validation
@@ -1100,7 +1097,42 @@ struct is_arithmetic_type {
 };
 #endif // ANNOY_TYPE_TRAITS_DEFINED
 #endif // __cplusplus >= 201103L
-namespace bitops {
+
+// ---------------------------------------------------------------------------
+// FUT-3: Compile-time type-name strings — TypeName<T>
+// ---------------------------------------------------------------------------
+// TypeName<T>::value() returns a stable const char* for each supported type.
+// Usage:
+//   annoylib_showUpdate("index dtype: %s\n", TypeName<S>::value());
+//
+// Design rationale:
+//   - No RTTI (typeid) — works with -fno-rtti.
+//   - No std::string allocation — returns a string literal.
+//   - Primary template gives "unknown" so novel types compile without error.
+//   - All specializations are explicit so there is no ambiguity between,
+//     e.g., long (32-bit Windows) and int32_t (which may be a distinct type).
+// ---------------------------------------------------------------------------
+template<typename T>
+struct TypeName {
+  static const char* value() noexcept { return "unknown"; }
+};
+
+// --- Data types (T parameter) ---
+template<> struct TypeName<float16_t>   { static const char* value() noexcept { return "float16";  } };
+template<> struct TypeName<float>       { static const char* value() noexcept { return "float32";  } };
+template<> struct TypeName<double>      { static const char* value() noexcept { return "float64";  } };
+template<> struct TypeName<float128_t>  { static const char* value() noexcept { return "float128"; } };
+template<> struct TypeName<bool>        { static const char* value() noexcept { return "bool";     } };
+template<> struct TypeName<uint8_t>     { static const char* value() noexcept { return "uint8";    } };
+template<> struct TypeName<uint16_t>    { static const char* value() noexcept { return "uint16";   } };
+template<> struct TypeName<uint32_t>    { static const char* value() noexcept { return "uint32";   } };
+template<> struct TypeName<uint64_t>    { static const char* value() noexcept { return "uint64";   } };
+template<> struct TypeName<int8_t>      { static const char* value() noexcept { return "int8";     } };
+template<> struct TypeName<int16_t>     { static const char* value() noexcept { return "int16";    } };
+template<> struct TypeName<int32_t>     { static const char* value() noexcept { return "int32";    } };
+template<> struct TypeName<int64_t>     { static const char* value() noexcept { return "int64";    } };
+
+
 /* ================================================================
  * Portable fallback (unsigned only)
  * ================================================================ */
@@ -1149,7 +1181,6 @@ inline uint32_t popcount(bool x) noexcept {
 // inline bool popcount(bool x) noexcept {
 //   return x;
 // }
-} // namespace bitops
 /* =========================================================================================
  * TYPE CONVERSION UTILITIES
  * =========================================================================================
@@ -1645,45 +1676,11 @@ class AnnoyIndexSingleThreadedBuildPolicy;
  * @tparam S Index type
  * @tparam T Data type
  */
-template<typename S, typename T>
-struct Node {
-  /*
-    * We store a binary tree where each node has two things
-    * - A vector associated with it
-    * - Two children
-    * All nodes occupy the same amount of memory
-    * All nodes with n_descendants == 1 are leaf nodes.
-    * A memory optimization is that for nodes with 2 <= n_descendants <= K,
-    * we skip the vector. Instead we store a list of all descendants. K is
-    * determined by the number of items that fits in the space of the vector.
-    * For nodes with n_descendants == 1 the vector is a data point.
-    * For nodes with n_descendants > K the vector is the normal of the split plane.
-    * Note that we can't really do sizeof(node<T>) because we cheat and allocate
-    * more memory to be able to fit the vector outside
-    */
-  S n_descendants; // Number of points in subtree
-  union {
-    S children[2]; // Will possibly store more than 2, Child node indices (or -1 for leaf, item index for leaf)
-    T norm;
-  };
-  T* v[ANNOYLIB_V_ARRAY_SIZE]; // Hyperplane normal vector (for split nodes)
-
-  Node() : n_descendants(0), v(NULL) {
-    children[0] = static_cast<S>(-1);
-    children[1] = static_cast<S>(-1);
-  }
-
-  ~Node() {
-    if (v != NULL) {
-      delete[] v;
-      v = NULL;
-    }
-  }
-
-  bool is_leaf() const {
-    return children[0] == static_cast<S>(-1) && children[1] == static_cast<S>(-1);
-  }
-};
+// NOTE: The concrete node types used by AnnoyIndex are defined as
+// D::template Node<S,T> inside each metric struct (Angular, Euclidean,
+// Manhattan, DotProduct, Hamming below).  There is no single top-level
+// Node<S,T> — the type alias inside AnnoyIndex is:
+//   typedef typename D::template Node<S, T> Node;
 /* ================================================================
  * DISTANCE METRICS Base Class and Implementations
  * ================================================================ */
@@ -1830,17 +1827,44 @@ struct DotProduct : Angular {
   template<typename S, typename T>
   struct Node {
     /*
-     * This is an extension of the Angular node with extra attributes for the DotProduct metric.
-     * It has dot_factor which is needed to reduce the task to Angular distance metric (see the preprocess method)
-     * and also a built flag that helps to compute exact dot products when an index is already built.
+     * Extension of Angular node for dot-product metric.
+     *
+     * Layout (all fields T-aligned or explicitly padded):
+     *   n_descendants  S         — child count
+     *   children[2]    S[2]      — tree child indices
+     *   dot_factor     T         — augmentation scalar for preprocess
+     *   norm           T         — precomputed L2 norm
+     *   built          uint8_t   — flag: index is built (exact dot available)
+     *   _pad[]         uint8_t[] — explicit pad to align v[] on sizeof(T) boundary
+     *   v[]            T[]       — embedding vector (ANNOYLIB_V_ARRAY_SIZE elements)
+     *
+     * Developer note: using `bool built` here was ARCH-6: the compiler inserts
+     * implicit padding after bool to realign T, making the layout fragile across
+     * compilers and optimization flags. uint8_t + explicit pad pins the layout
+     * and the static_assert below guarantees it at compile time.
      */
     S n_descendants;
     S children[2]; // Will possibly store more than 2
     T dot_factor;
     T norm;
-    bool built;
+    uint8_t  built;                      // 0 = not built, 1 = built
+    uint8_t  _pad[sizeof(T) - 1];        // explicit pad: align v[] to sizeof(T)
     T v[ANNOYLIB_V_ARRAY_SIZE];
   };
+
+  // Verify the explicit padding produces the same offset for v[] as the
+  // compiler would choose on its own.  If this fires, the pad formula needs
+  // adjustment for the target T (e.g. long double / __float128 alignment > 8).
+  //
+  // Developer note: the C preprocessor macro offsetof() cannot accept a
+  // comma-bearing template instantiation (e.g. Node<int32_t, float>) as an
+  // argument, because it treats the comma as a macro argument separator.
+  // The typedef alias sidesteps the macro limitation without changing semantics.
+  typedef Node<int32_t, float> _DotProductNodeForStaticAssert;
+  static_assert(
+    offsetof(_DotProductNodeForStaticAssert, v) ==
+      offsetof(_DotProductNodeForStaticAssert, built) + sizeof(float),
+    "DotProduct::Node: explicit _pad does not align v[] correctly for float");
 
   static const char* name() {
     return "dot";
@@ -2285,9 +2309,12 @@ public:
   // Configuration
   // virtual void set_seed(R seed) noexcept = 0;
   virtual void set_verbose(bool verbosity) noexcept = 0;
+  /// Typed overload — preferred over the bool version for new callers.
+  virtual void set_verbose(AnnoyVerbose level) noexcept {
+    set_verbose(annoy_verbose_level(level) > 0);
+  }
 
   // Core operations
-  // virtual bool add_item(S item, const T* embedding, char** error = NULL) noexcept = 0;
   virtual bool build(int n_trees = -1, int n_threads = -1, char** error = NULL) noexcept = 0;
   virtual bool unbuild(char** error = NULL) noexcept = 0;
 
@@ -2466,6 +2493,10 @@ class AnnoyIndexInterface
   // Configuration
   virtual void set_seed(R seed) noexcept = 0;
   virtual void set_verbose(bool verbosity) noexcept = 0;
+  /// Typed overload — preferred over the bool version for new callers.
+  virtual void set_verbose(AnnoyVerbose level) noexcept {
+    set_verbose(annoy_verbose_level(level) > 0);
+  }
 
   // Core operations
   virtual bool add_item(S item, const T* embedding, char** error = NULL) noexcept = 0;
@@ -2640,7 +2671,67 @@ class AnnoyIndexInterface
  * - sklearn-compatible API
  * - Thread-safe building
  * - Disk-based construction for large datasets
- *
+ */
+// ---------------------------------------------------------------------------
+// FUT-4: On-disk index file prologue
+// ---------------------------------------------------------------------------
+// AnnoyFileHeader is written at byte 0 of every index file created by
+// AnnoyIndex::save().  load() reads it first to detect:
+//   - Wrong file type (magic mismatch → clear error, not silent garbage).
+//   - Format version mismatch (header_version != ANNOY_FILE_VERSION).
+//   - Metric or node-size mismatch (metric_hash, node_size).
+//   - Dimension mismatch (_f stored in the header).
+//   - Type-size mismatch (sizeof_T, sizeof_S).
+//
+// Old files that were saved without this header do NOT start with the magic
+// 0x414E4958 ('ANIX') so load() can detect them and emit a migration error
+// rather than misinterpreting the raw node bytes.
+//
+// On-disk layout (64 bytes, 8-byte aligned, little-endian by convention):
+//   Offset  Size  Field
+//      0     4    magic          = 0x414E4958 ('ANIX')
+//      4     2    header_version = ANNOY_FILE_VERSION (1)
+//      6     1    sizeof_T       = sizeof(T) in bytes
+//      7     1    sizeof_S       = sizeof(S) in bytes
+//      8     4    node_size      = _s (bytes per node, includes children[])
+//     12     4    n_dimensions   = _f at build time
+//     16     8    n_items        = item count at build time
+//     24     4    metric_hash    = FNV-1a hash of metric name string
+//     28     4    reserved       = 0
+//     32    32    reserved2      = 0 (future: dtype strings, checksum, etc.)
+// ---------------------------------------------------------------------------
+static const uint32_t ANNOY_FILE_MAGIC   = 0x414E4958u; // 'ANIX'
+static const uint16_t ANNOY_FILE_VERSION = 1u;
+
+// FNV-1a 32-bit — tiny, constexpr-friendly, used only for the metric name.
+// Not a security hash; used only to detect obvious metric mismatches at load.
+inline uint32_t annoy_fnv1a32(const char* s) noexcept {
+  uint32_t h = 2166136261u;
+  while (*s) {
+    h ^= static_cast<uint8_t>(*s++);
+    h *= 16777619u;
+  }
+  return h;
+}
+
+#pragma pack(push, 1)
+struct AnnoyFileHeader {
+  uint32_t magic;           // must equal ANNOY_FILE_MAGIC
+  uint16_t header_version;  // must equal ANNOY_FILE_VERSION
+  uint8_t  sizeof_T;        // sizeof(T) — detects float32 vs float64 mismatch
+  uint8_t  sizeof_S;        // sizeof(S) — detects int32 vs int64 mismatch
+  uint32_t node_size;       // _s: bytes per node
+  uint32_t n_dimensions;    // _f at build time
+  uint64_t n_items;         // item count
+  uint32_t metric_hash;     // FNV-1a of metric name (e.g. "angular")
+  uint32_t reserved;        // must be zero
+  uint8_t  reserved2[32];   // must be zero; future: dtype strings, checksum
+};
+#pragma pack(pop)
+static_assert(sizeof(AnnoyFileHeader) == 64,
+  "AnnoyFileHeader size changed — update ANNOY_FILE_VERSION and save/load paths");
+
+/**
  * @tparam S Index type (int8_t | int16_t | int32_t | int64_t | uint8_t | uint16_t | uint32_t | uint64_t)
  * @tparam T Data type (float, double, float16_t, float128_t, bool, uint8_t, uint32_t, uint64_t)
  * @tparam Distance Distance metric (Angular, Euclidean, Manhattan, DotProduct, Hamming)
@@ -2682,55 +2773,53 @@ public:
   using R = typename Random::seed_type;
 #endif
 
-// ⚠️ ← declared first assign first ❌ This violates the declaration order.
+// Member declarations are ordered to exactly match the constructor initializer
+// list.  C++ initializes members in *declaration* order regardless of the
+// order items appear in the initializer list; mismatches cause subtle bugs
+// (e.g. _s computed before _f is set).  Keep this order in sync with the
+// constructor below.
 private:
-  // Centralized parameters
+  // Centralized parameters — single source of truth for all constructor args.
   AnnoyParams _params;
 
-  // Core data structures
-  // std::vector<Node<S, T>*> _nodes;
-  // std::vector<S> _roots;
-  // std::vector<T*> _items;
-  // Random _random;
-
-  // State flags
-  // bool _built;
-  // bool _on_disk;
-  // bool _loaded;
-
-  // File handling
-  // int _fd;
-  // void* _mmap_ptr;
-  // size_t _mmap_size;
-
-  // Thread synchronization (via policy)
-  // ThreadPolicy _build_policy;
-// ⚠️ ← declared first assign first ❌ This violates the declaration order.
 protected:
-  bool _verbose;                    // Verbose logging
-  const int _f;                     // Dimension (0 means "infer from first vector")
-  size_t _s;                        // Node size in bytes
-  S _n_items;                       // Number of items added
+  // ---- fields initialized by the constructor initializer list ----
+  int    _verbose;    // Verbosity level: 0=quiet 1=info 2=debug (clamped to [-2,2]).
+                      // int, not bool — leveled verbosity must not be truncated.
+  int    _f;          // Embedding dimension. NOT const: set_f() must be able to
+                      // update it during lazy initialization (first add_item when
+                      // constructed with f=0). Protected by _n_items==0 guard.
+  size_t _s;          // Node size in bytes = offsetof(Node,v) + _f*sizeof(T).
+                      // Recomputed whenever _f changes via set_f().
+  S      _n_items;    // Number of items added so far.
 
   // Core data structures
-  void* _nodes;                     // Could either be mmapped, or point to a memory buffer that we reallocate
-  S _n_nodes;                       // Total number of nodes
-  S _nodes_size;                    // Allocated size
-  std::vector<S> _roots;            // Root node indices
+  void*  _nodes;      // Either mmap-backed or heap-realloc'd node array.
+  S      _n_nodes;    // Total nodes currently stored (items + internal nodes).
+  S      _nodes_size; // Allocated capacity in nodes.
+  std::vector<S> _roots; // Root node indices (one per tree).
 
-  S _K;                             // Max descendants per leaf
-  Random _random;                   // RNG instance
-  R _seed;                          // seed value (0 = default_seed for kiss)
-  bool _loaded;                     // True if loaded from disk
-  int _fd;                          // File descriptor (for on-disk build)
-  bool _on_disk;
-  bool _built;
+  S      _K;          // Max children per leaf node = (_s - offsetof(Node,children)) / sizeof(S).
+                      // Recomputed whenever _f changes via set_f().
+  Random _random;     // RNG instance (stateful; seeded in constructor).
+  R      _seed;       // Seed value passed to _random.
+  bool   _loaded;     // True after load(); prevents add_item / build.
+  int    _fd;         // File descriptor for on-disk build (0 = not open).
+  bool   _on_disk;    // True when on_disk_build() has been called.
+  bool   _built;      // True after build() completes successfully.
 
-#if __cplusplus >= 201103L
-  std::atomic<bool> _build_failed;  // Thread-safe build failure flag
-#else
-  bool _build_failed;
-#endif
+  std::atomic<bool> _build_failed; // Thread-safe build failure flag.
+                                    // Always std::atomic<bool>: C++11 is
+                                    // required (enforced by #error above).
+
+  // True mmap region when load() maps a headered file (FUT-4).
+  // mmap(2) requires its offset to be page-aligned; sizeof(AnnoyFileHeader)=64
+  // is not.  We therefore map the entire file from offset 0, store the base
+  // and total size here, and point _nodes at (base + header_size).
+  // unload() uses these fields for munmap instead of _nodes.
+  // Both are NULL/0 when not in use (on_disk path or heap-allocated nodes).
+  void*  _mmap_base;  // true mmap base returned by mmap(); NULL if unused
+  size_t _mmap_size;  // total bytes passed to mmap();     0   if unused
 
 public:
   /**
@@ -2750,69 +2839,85 @@ public:
    * @param n_jobs Number of threads (-1 = all cores)
    * @param l1_ratio Future: random projection ratio
    */
-  AnnoyIndex() = default;
-  // AnnoyIndex(int f) : _f(f),
+  // NOTE: No default constructor. AnnoyIndex() = default would be either
+  // deleted (int _f has no in-class initializer) or leave _f
+  // indeterminate — both are undefined behaviour.  All construction goes
+  // through the parameterized constructor below; every argument has a default.
   explicit AnnoyIndex(
-    int f = 0,                        // DEFAULT_DIMENSION  0/None infer from first vector
-    int n_trees = -1,
-    int n_neighbors = 5,
-    const char* on_disk_path = NULL,
-    bool prefault = false,
-    int seed = 0,
-    bool verbose = false,
-    int schema_version = 0,
-    int n_jobs = 1,
-    double l1_ratio = 0.0
+    int f = 0,                        // 0 → lazy: dimension inferred from first add_item
+    int n_trees = -1,                 // -1 → auto (2x memory budget)
+    int n_neighbors = 5,              // default result count for get_nns queries
+    const std::string& on_disk_path = "",  // non-empty → on_disk_build path
+    bool prefault = false,            // MAP_POPULATE on load
+    int seed = 0,                     // RNG seed (0 → library default)
+    int verbose = 0,                  // 0=quiet 1=info 2=debug (int, not bool)
+    int schema_version = 0,           // serialization schema marker
+    int n_jobs = 1,                   // threads; -1=all cores (joblib semantics)
+    double l1_ratio = 0.0             // future: random projection ratio
   )
-    : _verbose(verbose)
+    // Initializer list order MUST match member declaration order above.
+    : _params()               // zero-initialized via AnnoyParams()
+    , _verbose(std::max(-2, std::min(2, verbose)))  // clamp to [-2, 2]
     , _f(f)
+    , _s(0)                   // computed below; 0 when f==0 (lazy init)
+    , _n_items(S(0))
+    , _nodes(NULL)
+    , _n_nodes(S(0))
+    , _nodes_size(S(0))
+    , _roots()
+    , _K(S(0))                // computed below
+    , _random()
     , _seed(Random::default_seed)
-    // ,  _s(0)
-    // ,  _n_items(0)
-    // ,  _random(0)  // Default seed
-    // ,  _nodes(NULL)
-    // ,  _n_nodes(0)
-    // ,  _nodes_size(0)
-    // ,  _K(0)
-    // ,  _loaded(false)
-    // ,  _fd(0)
+    , _loaded(false)
+    , _fd(0)
+    , _on_disk(false)
+    , _built(false)
+    , _build_failed(false)
+    , _mmap_base(NULL)    // no mmap-with-header in use yet
+    , _mmap_size(0)
   {
-    // Store all parameters
-    _params.f = f;
-    _params.n_trees = n_trees;
-    _params.n_neighbors = n_neighbors;
-    _params.on_disk_path = on_disk_path;
-    _params.prefault = prefault;
-    _params.seed = seed;
-    _params.verbose = verbose;
+    // Store all parameters in the central params struct.
+    _params.f             = f;
+    _params.n_trees       = n_trees;
+    _params.n_neighbors   = n_neighbors;
+    _params.on_disk_path  = on_disk_path;
+    _params.prefault      = prefault;
+    _params.seed          = seed;
+    _params.verbose       = _verbose;  // store clamped value
     _params.schema_version = schema_version;
-    _params.n_jobs = n_jobs;
-    _params.l1_ratio = l1_ratio;
-    _params.f_inferred = (f == 0);  // Mark for lazy inference
-    // Validate parameters
-    char* error = NULL;
-    if (!_params.validate(&error)) {
-      if (_verbose && error != NULL) {
-        fprintf(stderr, "AnnoyIndex parameter validation failed: %s\n", error);
-        std::free(error);
+    _params.n_jobs        = n_jobs;
+    _params.l1_ratio      = l1_ratio;
+    _params.f_inferred    = (f == 0);
+
+    // Validate parameters. Report but do not abort on invalid params so that
+    // the object is always in a defined (if unusable) state.
+    {
+      char* err = NULL;
+      if (!_params.validate(&err)) {
+        if (_verbose > 0 && err != NULL) {
+          annoylib_showUpdate("AnnoyIndex: invalid parameter: %s\n", err);
+        }
+        std::free(err);
       }
     }
-    if (_verbose) {
-      fprintf(stderr, "AnnoyIndex initialized: f=%d, n_trees=%d, n_neighbors=%d, n_jobs=%d\n",
-              _params.f, _params.n_trees, _params.n_neighbors, _params.n_jobs);
+
+    if (_verbose > 0) {
+      annoylib_showUpdate(
+        "AnnoyIndex: f=%d n_trees=%d n_neighbors=%d n_jobs=%d verbose=%d"
+        " dtype=%s index_dtype=%s\n",
+        _params.f, _params.n_trees, _params.n_neighbors, _params.n_jobs, _verbose,
+        TypeName<T>::value(), TypeName<S>::value());
     }
-    _built = false;
-    _s = offsetof(Node, v) + _f * sizeof(T); // Size of each node
 
-    // _build_failed.store(false, std::memory_order_relaxed);
-    #if __cplusplus >= 201103L
-      _build_failed.store(false, std::memory_order_relaxed);
-    #else
-      _build_failed = false;
-    #endif
-
-    _K = (S) (((size_t) (_s - offsetof(Node, children))) / sizeof(S)); // Max number of descendants to fit into node
-    reinitialize(); // Reset everything
+    // BUG-6 fix: only compute _s and _K when f > 0.
+    // When f == 0 (lazy init), _s and _K remain 0 and are recomputed by
+    // set_f() on the first add_item call.  Computing them here with f==0
+    // yields _s == offsetof(Node,v) (no vector storage) and _K == 0, which
+    // corrupts every subsequent node-pointer and capacity calculation.
+    if (_f > 0) {
+      _s = offsetof(Node, v) + static_cast<size_t>(_f) * sizeof(T);
+      _K = static_cast<S>((_s - offsetof(Node, children)) / sizeof(S));
+    }
   }
   /**
    * @brief Destructor - cleanup resources
@@ -2844,26 +2949,59 @@ public:
     return static_cast<int>(_f);
   }
 
-  bool set_f(int f, char** error = NULL) noexcept override {
-      if (f <= 0) {
-          if (error) {
-              *error = strdup("f must be > 0");
-          }
-          return false;
-      }
-      // _f = static_cast<S>(f);
-      return true;
+  bool set_f(int new_f, char** error = NULL) noexcept override {
+    if (new_f <= 0) {
+      set_error_from_string(error, "f must be > 0");
+      return false;
+    }
+    if (_n_items > S(0) || _built) {
+      set_error_from_string(error,
+        "Cannot change f after items have been added or the index has been built");
+      return false;
+    }
+    _f = new_f;
+    // Recompute derived constants that depend on _f.
+    // These were 0 when constructed with f=0 (lazy init); they must be
+    // correct before any node pointer arithmetic or allocation.
+    _s = offsetof(Node, v) + static_cast<size_t>(_f) * sizeof(T);
+    _K = static_cast<S>((_s - offsetof(Node, children)) / sizeof(S));
+    _params.f          = new_f;
+    _params.f_inferred = false;
+    return true;
   }
 
   bool add_item(S item, const T* w, char** error=NULL) noexcept override {
-    return add_item_impl(item, w, error);
+    // Pass _f as the known vector size so add_item_impl can validate or infer.
+    // When _f==0 (lazy mode) and this is the first call, w_size==0 triggers
+    // an error: the caller must supply a concrete dimension via set_f() first
+    // or use the w-bridge (add_item_w) which carries the vector length.
+    return add_item_impl(item, w, _f, error);
   }
 
     bool get_params(
         std::vector<std::pair<std::string, std::string>>& params
     ) const noexcept override {
+        // Export every field in AnnoyParams so callers can round-trip the full
+        // configuration.  The order here matches AnnoyParams declaration order
+        // so diffs are readable.  All values are serialized as strings for the
+        // sklearn-style API; numeric types use std::to_string.
         params.clear();
-        params.emplace_back("f", std::to_string(_f));
+        params.emplace_back("f",              std::to_string(_f));
+        params.emplace_back("n_trees",        std::to_string(_params.n_trees));
+        params.emplace_back("n_neighbors",    std::to_string(_params.n_neighbors));
+        params.emplace_back("seed",           std::to_string(_params.seed));
+        params.emplace_back("n_jobs",         std::to_string(_params.n_jobs));
+        params.emplace_back("schema_version", std::to_string(_params.schema_version));
+        params.emplace_back("prefault",       _params.prefault ? "true" : "false");
+        params.emplace_back("verbose",        std::to_string(_params.verbose));
+        params.emplace_back("f_inferred",     _params.f_inferred ? "true" : "false");
+        params.emplace_back("on_disk_path",   _params.on_disk_path);
+        params.emplace_back("metric",         _params.metric);
+        params.emplace_back("dtype",          _params.dtype);
+        params.emplace_back("index_dtype",    _params.index_dtype);
+        params.emplace_back("wrapper_dtype",  _params.wrapper_dtype);
+        params.emplace_back("random_dtype",   _params.random_dtype);
+        params.emplace_back("l1_ratio",       std::to_string(_params.l1_ratio));
         return true;
     }
 
@@ -2871,24 +3009,136 @@ public:
         const std::vector<std::pair<std::string, std::string>>& params,
         char** error = NULL
     ) noexcept override {
+        // Iterate all supplied key-value pairs; update the corresponding field.
+        // Unknown keys are silently ignored so forward-compatible clients work.
+        // Returns false only when a value is syntactically or semantically wrong.
         for (const auto& kv : params) {
-            if (kv.first == "f") {
-                return set_f(std::stoi(kv.second), error);
+            const std::string& key = kv.first;
+            const std::string& val = kv.second;
+
+            // --- numeric fields ---
+            if (key == "f") {
+                int v = 0;
+                try { v = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'f' must be an integer");
+                    return false;
+                }
+                if (!set_f(v, error)) return false;
+
+            } else if (key == "n_trees") {
+                try { _params.n_trees = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'n_trees' must be an integer");
+                    return false;
+                }
+
+            } else if (key == "n_neighbors") {
+                try {
+                    _params.n_neighbors = std::stoi(val);
+                } catch (...) {
+                    set_error_from_string(error, "set_params: 'n_neighbors' must be an integer");
+                    return false;
+                }
+                if (_params.n_neighbors < 1) {
+                    set_error_from_string(error, "set_params: 'n_neighbors' must be >= 1");
+                    return false;
+                }
+
+            } else if (key == "seed") {
+                try { _params.seed = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'seed' must be an integer");
+                    return false;
+                }
+
+            } else if (key == "n_jobs") {
+                try { _params.n_jobs = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'n_jobs' must be an integer");
+                    return false;
+                }
+                if (_params.n_jobs < -1 || _params.n_jobs == 0) {
+                    set_error_from_string(error, "set_params: 'n_jobs' must be -1 or >= 1");
+                    return false;
+                }
+
+            } else if (key == "schema_version") {
+                try { _params.schema_version = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'schema_version' must be an integer");
+                    return false;
+                }
+
+            } else if (key == "verbose") {
+                int v = 0;
+                try { v = std::stoi(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'verbose' must be an integer");
+                    return false;
+                }
+                // Clamp to [-2, 2] — same range as set_verbose.
+                _verbose = (v < -2) ? -2 : (v > 2) ? 2 : v;
+                _params.verbose = _verbose;
+
+            } else if (key == "l1_ratio") {
+                try { _params.l1_ratio = std::stod(val); } catch (...) {
+                    set_error_from_string(error, "set_params: 'l1_ratio' must be a number");
+                    return false;
+                }
+
+            // --- boolean fields ---
+            } else if (key == "prefault") {
+                _params.prefault = (val == "true" || val == "1");
+
+            // --- string fields (std::string; value-copied safely) ---
+            } else if (key == "on_disk_path") {
+                // std::string owns the storage, so we can safely copy val here.
+                // Empty string means "no path configured" (equivalent to the old NULL).
+                _params.on_disk_path = val;
+
             }
+            // f_inferred, metric, dtype, index_dtype, wrapper_dtype, random_dtype
+            // are read-only from the external API; silently ignored if supplied.
         }
-        if (error) {
-            *error = strdup("missing parameter: f");
-        }
-        return false;
+        return true;
     }
 
   template<typename W>
-  bool add_item_impl(S item, const W& w, char** error=NULL) {
+  bool add_item_impl(S item, const W& w, int w_size, char** error=NULL) {
+    // Developer note: w_size is the dimensionality of the vector pointed to by
+    // w.  It is used for two purposes:
+    //   (a) Lazy dimension inference: if _f==0 and this is the first item,
+    //       we call set_f(w_size) to lock in the index dimension.
+    //   (b) Dimension mismatch detection: if _f>0 and w_size>0 and they
+    //       disagree, we fail fast rather than silently truncate/overrun.
+    // w_size==0 is only legal when _f>0 (the caller knows the dimension).
+
     if (_loaded) {
       set_error_from_string(error, "You can't add an item to a loaded index");
       return false;
     }
-    // _allocate_size(item + 1);
+
+    // --- Lazy dimension inference (BUG-6) ---
+    if (_f == 0) {
+      if (w_size <= 0) {
+        set_error_from_string(error,
+          "Dimension is not set (f=0). "
+          "Call set_f(n) before add_item, or pass the vector size explicitly.");
+        return false;
+      }
+      // First item determines the index dimension.
+      if (!set_f(w_size, error)) {
+        return false;  // set_f already wrote the error string
+      }
+    }
+
+    // --- Dimension mismatch guard (ROB-2) ---
+    if (w_size > 0 && w_size != _f) {
+      // Build a compact, actionable message without dynamic allocation.
+      // snprintf is safe here; the buffer is stack-allocated.
+      char buf[128];
+      std::snprintf(buf, sizeof(buf),
+        "Vector size mismatch: expected %d dimensions, got %d",
+        _f, w_size);
+      set_error_from_string(error, buf);
+      return false;
+    }
+
     if (!_allocate_size(item + 1)) {
       set_error_from_string(error, "Unable to allocate memory for item");
       return false;
@@ -2903,7 +3153,7 @@ public:
     n->n_descendants = 1;
 
     for (int z = 0; z < _f; z++)
-      n->v[z] = w[z];
+      n->v[z] = static_cast<T>(w[z]);
 
     D::init_node(n, _f);
 
@@ -2971,6 +3221,17 @@ public:
       return false;
     }
 
+    // ARCH-4 + FUT-2: Resolve thread count via resolve_n_jobs() so all
+    // parallel paths use one canonical rule.
+    //   n_threads == -1 (call-site default) → honour _params.n_jobs.
+    //   _params.n_jobs or n_threads == -1   → all hardware threads.
+    //   Explicit n_threads > 0              → honour the override.
+    if (n_threads == -1) {
+      n_threads = resolve_n_jobs(_params.n_jobs);
+    } else {
+      n_threads = resolve_n_jobs(n_threads);
+    }
+
     D::template preprocess<T, S, Node>(_nodes, _s, _n_items, _f);
 
     _n_nodes = _n_items;
@@ -3034,37 +3295,59 @@ public:
       return false;
     }
     if (_on_disk) {
+      // on_disk_build files are already flushed to disk via mmap; no further
+      // write needed.  They do not carry an AnnoyFileHeader (the mmap path
+      // owns the fd and cannot prepend data without a full rewrite).
       return true;
-    } else {
-      // Delete file if it already exists (See issue #335)
+    }
+
+    // Delete existing file first (avoids partial-overwrite corruption on short
+    // writes and matches the original behaviour — see issue #335).
 #ifndef _MSC_VER
-      unlink(filename);
+    unlink(filename);
 #else
-      _unlink(filename);
+    _unlink(filename);
 #endif
 
-      FILE *f = fopen(filename, "wb");
-      if (f == NULL) {
-        set_error_from_errno(error, "Unable to open");
-        return false;
-      }
-
-      if (fwrite(_nodes, _s, _n_nodes, f) != (size_t) _n_nodes) {
-        set_error_from_errno(error, "Unable to write");
-        // Best-effort cleanup: avoid leaking FILE* on short write.
-        // fclose() may itself fail, but we still attempt it.
-        fclose(f);
-        return false;
-      }
-
-      if (fclose(f) == EOF) {
-        set_error_from_errno(error, "Unable to close");
-        return false;
-      }
-
-      unload();
-      return load(filename, prefault, error);
+    FILE* f = fopen(filename, "wb");
+    if (f == NULL) {
+      set_error_from_errno(error, "Unable to open");
+      return false;
     }
+
+    // FUT-4: Write the file prologue so load() can validate type/metric/size
+    // before touching any node data.
+    AnnoyFileHeader hdr{};
+    hdr.magic          = ANNOY_FILE_MAGIC;
+    hdr.header_version = ANNOY_FILE_VERSION;
+    hdr.sizeof_T       = static_cast<uint8_t>(sizeof(T));
+    hdr.sizeof_S       = static_cast<uint8_t>(sizeof(S));
+    hdr.node_size      = static_cast<uint32_t>(_s);
+    hdr.n_dimensions   = static_cast<uint32_t>(_f);
+    hdr.n_items        = static_cast<uint64_t>(_n_items);
+    hdr.metric_hash    = annoy_fnv1a32(D::name());
+    hdr.reserved       = 0u;
+    std::memset(hdr.reserved2, 0, sizeof(hdr.reserved2));
+
+    if (fwrite(&hdr, sizeof(hdr), 1, f) != 1) {
+      set_error_from_errno(error, "Unable to write file header");
+      fclose(f);
+      return false;
+    }
+
+    if (fwrite(_nodes, _s, _n_nodes, f) != static_cast<size_t>(_n_nodes)) {
+      set_error_from_errno(error, "Unable to write");
+      fclose(f);
+      return false;
+    }
+
+    if (fclose(f) == EOF) {
+      set_error_from_errno(error, "Unable to close");
+      return false;
+    }
+
+    unload();
+    return load(filename, prefault, error);
   }
 
   void reinitialize() {
@@ -3077,6 +3360,8 @@ public:
     _on_disk = false;
     _seed = Random::default_seed;
     _roots.clear();
+    _mmap_base = NULL;  // cleared on every unload; set only by load() for headered files
+    _mmap_size = 0;
   }
 
   void unload() noexcept override {
@@ -3095,7 +3380,16 @@ public:
 #else
         _close(_fd);
 #endif
-        munmap(_nodes, _n_nodes * _s);
+        // When load() mapped a headered file (FUT-4), _nodes points into
+        // the mapping at offset sizeof(AnnoyFileHeader), not at the base.
+        // munmap must receive the true base and total size stored in
+        // _mmap_base/_mmap_size.  For legacy headerless files _mmap_base
+        // is NULL and _nodes is the true base (_n_nodes * _s bytes).
+        if (_mmap_base) {
+          munmap(_mmap_base, _mmap_size);
+        } else {
+          munmap(_nodes, _n_nodes * _s);
+        }
       } else if (_nodes) {
         // We have heap allocated data
         free(_nodes);
@@ -3119,35 +3413,192 @@ public:
     off_t size = lseek_getsize(_fd);
     if (size == -1) {
       set_error_from_errno(error, "Unable to get size");
- #ifndef _MSC_VER
+#ifndef _MSC_VER
       close(_fd);
- #else
+#else
       _close(_fd);
- #endif
+#endif
       _fd = 0;
       return false;
     } else if (size == 0) {
-      // set_error_from_errno(error, "Size of file is zero");
       set_error_from_string(error, "Size of file is zero");
- #ifndef _MSC_VER
+#ifndef _MSC_VER
       close(_fd);
- #else
+#else
       _close(_fd);
- #endif
+#endif
       _fd = 0;
       return false;
-    } else if (size % _s) {
-      // Something is fishy with this index!
-      // set_error_from_errno(error, "Index size is not a multiple of vector size. Ensure you are opening using the same metric you used to create the index.");
+    }
+
+    // FUT-4: Detect AnnoyFileHeader prologue.
+    // Read the first 4 bytes as a candidate magic number.  If it matches
+    // ANNOY_FILE_MAGIC we validate the full 64-byte header and skip past it
+    // before mapping node data, catching type/metric/version mismatches early.
+    // If it does not match we treat the file as a legacy headerless index so
+    // existing saved files continue to load without rebuilding.
+    //
+    // CRITICAL: lseek_getsize() uses lseek(fd, 0, SEEK_END) on POSIX and
+    // _lseeki64(fd, 0, SEEK_END) on Windows.  Both leave the fd position AT
+    // EOF.  We must seek back to byte 0 BEFORE reading candidate_magic;
+    // otherwise ::read returns 0 bytes (EOF), the magic check silently fails,
+    // and the file is treated as a legacy headerless index.  For any index
+    // file whose total size is not divisible by _s (e.g. 64-byte header +
+    // N*36-byte nodes gives file_size%36 == 28 for Angular f=3, S=uint64_t)
+    // this produces the misleading "not a multiple of node size" error.
+    off_t node_data_offset = 0;
+    {
+      uint32_t candidate_magic = 0u;
+#ifndef _MSC_VER
+      lseek(_fd, 0, SEEK_SET);  // rewind after lseek_getsize left fd at EOF
+      ssize_t r = ::read(_fd, &candidate_magic, sizeof(candidate_magic));
+      lseek(_fd, 0, SEEK_SET);  // rewind again so full 64-byte header read starts at byte 0
+#else
+      _lseek(_fd, 0, SEEK_SET);
+      int r = ::_read(_fd, &candidate_magic, static_cast<unsigned>(sizeof(candidate_magic)));
+      _lseek(_fd, 0, SEEK_SET);
+#endif
+      if (r == static_cast<decltype(r)>(sizeof(candidate_magic))
+          && candidate_magic == ANNOY_FILE_MAGIC)
+      {
+        AnnoyFileHeader hdr{};
+#ifndef _MSC_VER
+        ssize_t hr = ::read(_fd, &hdr, sizeof(hdr));
+#else
+        int hr = ::_read(_fd, &hdr, static_cast<unsigned>(sizeof(hdr)));
+#endif
+        if (hr != static_cast<decltype(hr)>(sizeof(hdr))) {
+          set_error_from_string(error, "File header truncated");
+#ifndef _MSC_VER
+          close(_fd);
+#else
+          _close(_fd);
+#endif
+          _fd = 0;
+          return false;
+        }
+
+        if (hdr.header_version != ANNOY_FILE_VERSION) {
+          char buf[128];
+          std::snprintf(buf, sizeof(buf),
+            "Unsupported index file version %u (expected %u). Rebuild the index.",
+            static_cast<unsigned>(hdr.header_version),
+            static_cast<unsigned>(ANNOY_FILE_VERSION));
+          set_error_from_string(error, buf);
+#ifndef _MSC_VER
+          close(_fd);
+#else
+          _close(_fd);
+#endif
+          _fd = 0;
+          return false;
+        }
+
+        if (hdr.sizeof_T != static_cast<uint8_t>(sizeof(T)) ||
+            hdr.sizeof_S != static_cast<uint8_t>(sizeof(S)))
+        {
+          char buf[192];
+          std::snprintf(buf, sizeof(buf),
+            "Type size mismatch: file sizeof(T)=%u sizeof(S)=%u, "
+            "instance sizeof(T)=%u sizeof(S)=%u.",
+            static_cast<unsigned>(hdr.sizeof_T), static_cast<unsigned>(hdr.sizeof_S),
+            static_cast<unsigned>(sizeof(T)), static_cast<unsigned>(sizeof(S)));
+          set_error_from_string(error, buf);
+#ifndef _MSC_VER
+          close(_fd);
+#else
+          _close(_fd);
+#endif
+          _fd = 0;
+          return false;
+        }
+
+        uint32_t expected_metric = annoy_fnv1a32(Distance::name());
+        if (hdr.metric_hash != 0u && hdr.metric_hash != expected_metric) {
+          char buf[192];
+          std::snprintf(buf, sizeof(buf),
+            "Metric mismatch: file metric hash 0x%08X, expected 0x%08X (%s).",
+            static_cast<unsigned>(hdr.metric_hash),
+            static_cast<unsigned>(expected_metric), Distance::name());
+          set_error_from_string(error, buf);
+#ifndef _MSC_VER
+          close(_fd);
+#else
+          _close(_fd);
+#endif
+          _fd = 0;
+          return false;
+        }
+
+        if (_s > 0 && hdr.node_size != static_cast<uint32_t>(_s)) {
+          char buf[192];
+          std::snprintf(buf, sizeof(buf),
+            "Node size mismatch: file node_size=%u, instance _s=%u (f=%d).",
+            static_cast<unsigned>(hdr.node_size),
+            static_cast<unsigned>(_s), _f);
+          set_error_from_string(error, buf);
+#ifndef _MSC_VER
+          close(_fd);
+#else
+          _close(_fd);
+#endif
+          _fd = 0;
+          return false;
+        }
+
+        // Lazy-init: infer _f from header when _f==0.
+        if (_f == 0 && hdr.n_dimensions > 0) {
+          if (!set_f(static_cast<int>(hdr.n_dimensions), error)) {
+#ifndef _MSC_VER
+            close(_fd);
+#else
+            _close(_fd);
+#endif
+            _fd = 0;
+            return false;
+          }
+        }
+
+        node_data_offset = static_cast<off_t>(sizeof(AnnoyFileHeader));
+
+        if (_verbose > 0) {
+          annoylib_showUpdate(
+            "load: header v%u — metric=0x%08X f=%u n_items=%llu\n",
+            static_cast<unsigned>(hdr.header_version),
+            static_cast<unsigned>(hdr.metric_hash),
+            static_cast<unsigned>(hdr.n_dimensions),
+            static_cast<unsigned long long>(hdr.n_items));
+        }
+      } else {
+        if (_verbose > 0) {
+          annoylib_showUpdate("load: no header found — loading as legacy headerless index\n");
+        }
+      }
+    }
+
+    off_t node_data_size = size - node_data_offset;
+
+    if (node_data_size <= 0) {
+      set_error_from_string(error, "No node data after header");
+#ifndef _MSC_VER
+      close(_fd);
+#else
+      _close(_fd);
+#endif
+      _fd = 0;
+      return false;
+    }
+
+    if (_s > 0 && static_cast<size_t>(node_data_size) % static_cast<size_t>(_s)) {
       set_error_from_string(
           error,
           "Index size is not a multiple of node size; "
           "are you opening the index using the same metric you used to create the index?");
- #ifndef _MSC_VER
+#ifndef _MSC_VER
       close(_fd);
- #else
+#else
       _close(_fd);
- #endif
+#endif
       _fd = 0;
       return false;
     }
@@ -3160,43 +3611,89 @@ public:
       annoylib_showUpdate("prefault is set to true, but MAP_POPULATE is not defined on this platform");
 #endif
     }
-    _nodes = (Node*)mmap(0, size, PROT_READ, flags, _fd, 0);
-    if (_nodes == MAP_FAILED) {
-      _nodes = NULL;
+
+    // FUT-4 mmap alignment fix:
+    // mmap(2) requires its offset argument to be a multiple of the page size
+    // (typically 4096).  sizeof(AnnoyFileHeader) = 64 is not page-aligned, so
+    // we cannot pass node_data_offset directly as the mmap offset.
+    //
+    // Solution: always map the ENTIRE file from offset 0.  When a header is
+    // present (node_data_offset > 0) we advance the _nodes pointer past the
+    // header and record the true base/size in _mmap_base/_mmap_size so that
+    // unload() can munmap the correct region.  For legacy headerless files
+    // node_data_offset == 0 so _nodes == map base and _mmap_base stays NULL.
+    const size_t map_size = static_cast<size_t>(size);  // entire file
+    void* map_base = mmap(0, map_size, PROT_READ, flags, _fd, 0);
+    if (map_base == MAP_FAILED) {
       set_error_from_errno(error, "Unable to mmap");
- #ifndef _MSC_VER
+#ifndef _MSC_VER
       close(_fd);
- #else
+#else
       _close(_fd);
- #endif
+#endif
       _fd = 0;
       return false;
     }
+    if (node_data_offset > 0) {
+      // Headered file: _nodes points past the header; munmap needs true base.
+      _mmap_base = map_base;
+      _mmap_size = map_size;
+      _nodes = (Node*)((uint8_t*)map_base + static_cast<size_t>(node_data_offset));
+    } else {
+      // Legacy headerless file: _nodes IS the map base; _mmap_base stays NULL.
+      _nodes = (Node*)map_base;
+    }
 
-    _n_nodes = (S)(size / _s);
+    _n_nodes = (_s > 0) ? static_cast<S>(node_data_size / static_cast<off_t>(_s)) : S(0);
 
-    // Keep capacity in sync for serialize()/memory usage.
+    // Keep capacity in sync for serialize() / memory-usage queries.
     _nodes_size = _n_nodes;
 
-    // Find the roots by scanning the end of the file and taking the nodes with most descendants
+    // Scan backwards to find root nodes.
+    //
+    // Roots are stored at the tail of the node array: the last `n_trees`
+    // nodes all have the same n_descendants value (the total item count).
+    //
+    // BUG-1 / ROB-5 fix: the original code used
+    //
+    //   S m = -1;
+    //   for (S i = _n_nodes - 1; i >= 0; i--) { if (m == -1 || ...) }
+    //
+    // For unsigned S (uint32_t, uint64_t):
+    //   - "-1" wraps to S::max, making the initial sentinel match any node
+    //     whose n_descendants == S::max — silent wrong result.
+    //   - "i >= 0" is always true for unsigned types — infinite loop.
+    //
+    // Fix: use a bool flag instead of a sentinel value, and use the
+    // post-decrement idiom "i-- > 0" which is safe for both signed and
+    // unsigned S.
     _roots.clear();
-    S m = -1;
-    for (S i = _n_nodes - 1; i >= 0; i--) {
-      S k = _get(i)->n_descendants;
-      if (m == -1 || k == m) {
-        _roots.push_back(i);
-        m = k;
-      } else {
-        break;
+    if (_n_nodes > S(0)) {
+      S m_val = S(0);
+      bool m_set = false;
+      for (S i = _n_nodes; i-- > S(0); ) {
+        S k = _get(i)->n_descendants;
+        if (!m_set || k == m_val) {
+          _roots.push_back(i);
+          m_val = k;
+          m_set = true;
+        } else {
+          break;
+        }
+      }
+      // hacky fix: since the last root precedes the copy of all roots, delete it
+      if (_roots.size() > 1 &&
+          _get(_roots.front())->children[0] == _get(_roots.back())->children[0]) {
+        _roots.pop_back();
+      }
+      _n_items = m_set ? m_val : S(0);
+      if (_verbose > 0) {
+        annoylib_showUpdate("found %zu roots with degree %ld\n",
+                            _roots.size(), (long)_n_items);
       }
     }
-    // hacky fix: since the last root precedes the copy of all roots, delete it
-    if (_roots.size() > 1 && _get(_roots.front())->children[0] == _get(_roots.back())->children[0])
-      _roots.pop_back();
     _loaded = true;
-    _built = true;
-    _n_items = m;
-    if (_verbose) annoylib_showUpdate("found %zu roots with degree %ld\n", _roots.size(), (long)m);
+    _built  = true;
     return true;
   }
 
@@ -3223,7 +3720,20 @@ public:
   }
 
   void set_verbose(bool v) noexcept override {
-    _verbose = v;
+    // Bool accepted for interface compat. true → Info(1), false → Quiet(0).
+    set_verbose_level(v ? annoy_verbose_level(AnnoyVerbose::Info)
+                        : annoy_verbose_level(AnnoyVerbose::Quiet));
+  }
+
+  /// Typed enum overload — preferred; maps directly to leveled storage.
+  void set_verbose(AnnoyVerbose level) noexcept {
+    set_verbose_level(annoy_verbose_level(level));
+  }
+
+  // Single implementation point for verbosity changes.
+  void set_verbose_level(int level) noexcept {
+    _verbose = std::max(-2, std::min(2, level));
+    _params.verbose = _verbose;
   }
 
   void get_item(S item, T* v) const noexcept override {
@@ -3488,7 +3998,31 @@ public:
 protected:
   bool _reallocate_nodes(S n) {
     const double reallocation_factor = 1.3;
-    S new_nodes_size = std::max(n, (S)((_nodes_size + 1) * reallocation_factor));
+
+    // ARCH-5: Compute new_nodes_size in size_t to avoid narrowing overflow
+    // when S is a small type (int8_t, uint16_t, etc.).  We then cap against
+    // the maximum representable value of S before casting back.
+    const size_t s_max = static_cast<size_t>(std::numeric_limits<S>::max());
+    const size_t current = static_cast<size_t>(_nodes_size);
+    const size_t requested = static_cast<size_t>(n);
+
+    // Candidate size: max(requested, floor((current + 1) * growth_factor)).
+    // All arithmetic is in size_t — no narrowing until the final cast.
+    size_t grown = static_cast<size_t>(
+        static_cast<double>(current + 1u) * reallocation_factor);
+    size_t candidate = (grown > requested) ? grown : requested;
+
+    // Clamp to S::max so the cast below is defined.
+    if (candidate > s_max) {
+      candidate = s_max;
+    }
+
+    // If even clamped max < requested the index has exceeded S capacity.
+    if (candidate < requested) {
+      return false;  // S is too narrow for this many items; caller must choose a wider index_dtype
+    }
+
+    S new_nodes_size = static_cast<S>(candidate);
 
     void* old = _nodes;
 
@@ -3696,19 +4230,19 @@ protected:
     std::memcpy(v_node->v, v, sizeof(T) * _f);
     D::init_node(v_node, _f);
 
-    std::priority_queue<pair<T, S> > q;
+    std::priority_queue<std::pair<T, S> > q;
 
     if (search_k == -1) {
       search_k = n * _roots.size();
     }
 
     for (size_t i = 0; i < _roots.size(); i++) {
-      q.push(make_pair(Distance::template pq_initial_value<T>(), _roots[i]));
+      q.push(std::make_pair(Distance::template pq_initial_value<T>(), _roots[i]));
     }
 
     std::vector<S> nns;
     while (nns.size() < (size_t)search_k && !q.empty()) {
-      const pair<T, S>& top = q.top();
+      const std::pair<T, S>& top = q.top();
       T d = top.first;
       S i = top.second;
       Node* nd = _get(i);
@@ -3720,23 +4254,37 @@ protected:
         nns.insert(nns.end(), dst, &dst[nd->n_descendants]);
       } else {
         T margin = D::margin(nd, v, _f);
-        q.push(make_pair(D::pq_distance(d, margin, 1), static_cast<S>(nd->children[1])));
-        q.push(make_pair(D::pq_distance(d, margin, 0), static_cast<S>(nd->children[0])));
+        q.push(std::make_pair(D::pq_distance(d, margin, 1), static_cast<S>(nd->children[1])));
+        q.push(std::make_pair(D::pq_distance(d, margin, 0), static_cast<S>(nd->children[0])));
       }
     }
 
-    // Get distances for all items
-    // To avoid calculating distance multiple times for any items, sort by id
+    // Deduplicate and compute distances.
+    //
+    // Sort by ID so each ID appears in a contiguous run; then skip duplicates.
+    //
+    // BUG-1 fix: the original code used
+    //
+    //   S last = -1;
+    //   if (j == last) continue;
+    //
+    // For unsigned S (uint32_t, uint64_t), -1 wraps to S::max.  Any item
+    // whose ID == S::max would be treated as already seen and skipped on its
+    // first encounter — a silent result corruption.
+    //
+    // Fix: use a bool flag for "have we seen the previous ID yet".
     std::sort(nns.begin(), nns.end());
-    std::vector<pair<T, S> > nns_dist;
-    S last = -1;
+    std::vector<std::pair<T, S> > nns_dist;
+    bool have_last = false;
+    S last = S(0);
     for (size_t i = 0; i < nns.size(); i++) {
       S j = nns[i];
-      if (j == last)
+      if (have_last && j == last)
         continue;
+      have_last = true;
       last = j;
-      if (_get(j)->n_descendants == 1)  // This is only to guard a really obscure case, #284
-        nns_dist.push_back(make_pair(D::distance(v_node, _get(j), _f), j));
+      if (_get(j)->n_descendants == 1)  // guard for obscure case, #284
+        nns_dist.push_back(std::make_pair(D::distance(v_node, _get(j), _f), j));
     }
 
     size_t m = nns_dist.size();
@@ -3835,7 +4383,7 @@ private:
   // ThreadPolicy _build_policy;
 // ⚠️ ← declared first assign first ❌ This violates the declaration order.
 protected:
-  bool _verbose;                    // Verbose logging
+  int _verbose;                     // Verbose logging level: 0=quiet 1=info 2=debug (clamped [-2,2]; int, not bool)
   // const int _f;                     // Dimension (0 means "infer from first vector")
   // size_t _s;                        // Node size in bytes
   // S _n_items;                       // Number of items added
@@ -3863,42 +4411,41 @@ protected:
 // ⚠️ ← declared first assign first ❌ This violates the declaration order.
 private:
   // -------------------- Serialization constants --------------------
-  static constexpr uint32_t HAMMING_MAGIC   = 0x48414D4D; // 'HAMM'
-  static constexpr uint32_t HAMMING_VERSION = 1;
+  // HAMMING_MAGIC and HAMMING_VERSION are declared further below, after
+  // HammingHeader (they were moved there when the header was bumped to v2
+  // to keep the version comment co-located with the struct definition).
 
   // static constexpr size_t BITS_PER_WORD = sizeof(InternalT) * 8;
   static constexpr int BITS_PER_WORD = sizeof(InternalT) * 8;
 
-  // -------------------- Dimensions (immutable) ---------------------
+  // -------------------- Dimensions ---------------------
   bool _f_inferred;
-  const S _f_external;  // External dimension (number of bits/bools from user)
-  const S _f_internal;  // Internal dimension (number of words to store)
+  S _f_external;  // External dimension (number of bits/bools from user)
+  S _f_internal;  // Internal dimension (number of words to store)
 
   // -------------------- Underlying Annoy index ---------------------
-  // AnnoyIndex<int32_t, uint64_t, Hamming, Kiss64Random, AnnoyIndexThreadedBuildPolicy> _index;
   AnnoyIndex<S, InternalT, Hamming, Random, ThreadedBuildPolicy> _index;
 
   // -------------------- Serialization header -----------------------
+  // Version history:
+  //   1 — original; f_external/f_internal/n_items were uint32_t (truncated for S=int64_t/uint64_t)
+  //   2 — promoted f_external, f_internal, n_items to uint64_t; header is 48 bytes
+  static const uint32_t HAMMING_MAGIC   = 0x414E4E59u; // 'ANNY'
+  static const uint32_t HAMMING_VERSION = 2u;
+
   struct HammingHeader {
-    uint32_t magic;
-    uint32_t version;
-    uint32_t f_external;
-    uint32_t f_internal;
-    uint32_t n_items;
-    uint32_t reserved;   // must be zero
+    uint32_t magic;       // must equal HAMMING_MAGIC
+    uint32_t version;     // must equal HAMMING_VERSION (2)
+    uint64_t f_external;  // user-visible bit dimension (was uint32_t in v1)
+    uint64_t f_internal;  // packed-word dimension      (was uint32_t in v1)
+    uint64_t n_items;     // item count                 (was uint32_t in v1)
+    uint64_t reserved;    // must be zero
+    uint64_t reserved2;   // must be zero; pad to 48 bytes total
   };
+  static_assert(sizeof(HammingHeader) == 48,
+    "HammingHeader size changed — update HAMMING_VERSION and save/load paths");
 
   // -------------------- Utilities ----------------------------------
-  // Duplicate a C-style string (safe memory allocation)
-  static char* dup_cstr(const char* s) {
-    if (s == NULL) return NULL;
-    const size_t len = strlen(s);
-    char* r = static_cast<char*>(malloc(len + 1));
-    if (r == NULL) return NULL;
-    std::memcpy(r, s, len + 1);
-    return r;
-  }
-
   inline InternalT _clip_distance(InternalT d) const noexcept {
     const InternalT max_d = static_cast<InternalT>(_f_external);
     return (d > max_d) ? max_d : d;
@@ -3950,70 +4497,78 @@ public:
    * @param n_jobs Number of threads (-1 = all cores)
    */
   // -------------------- Construction -------------------------------
-  // AnnoyIndex(int f) : _f(f),
-  // explicit HammingWrapper(S f)
-  //     : _f_external(f)
-  //     , _f_internal((f + BITS_PER_WORD - 1) / BITS_PER_WORD)
-  //     , _f_inferred(false)
-  //     , _index(_f_internal) { }
-  HammingWrapper() = default;
+  // NOTE: HammingWrapper() = default is NOT used because _f_external and
+  // _f_internal (now non-const, but previously const) have no default member
+  // initializers. The default constructor explicitly zeroes them so any
+  // accidental default-constructed instance is in a deterministic UNSET state
+  // rather than UB. In practice _ensure_index() always calls HammingWrapper(f).
+  HammingWrapper()
+    : _verbose(0)
+    , _f_inferred(true)
+    , _f_external(S(0))
+    , _f_internal(S(0))
+    , _index(0)
+    , _build_failed(false)
+  {}
   explicit HammingWrapper(
-    int f = 0,                        // DEFAULT_DIMENSION
+    int f = 0,                        // DEFAULT_DIMENSION (0 = lazy inference)
     int n_trees = -1,
     int n_neighbors = 5,
-    const char* on_disk_path = NULL,
+    const std::string& on_disk_path = "",
     bool prefault = false,
     int seed = 0,
-    bool verbose = false,
+    int verbose = 0,                  // ARCH-3: int not bool; clamped to [-2,2]
     int schema_version = 0,
     int n_jobs = 1,
     double l1_ratio = 0.0
   )
-    // : _f_external(f),
-    //   _f_internal((f + 63) / 64),
-    //   _index((f + 63) / 64) {}
-    :  _verbose(verbose)
-    , _f_inferred(false)
+    // Clamp verbose here so _verbose and the forwarded value to _index are
+    // both consistently bounded.  Use a named local via the ternary rather
+    // than computing it twice in the initializer-list.
+    :  _verbose((verbose < -2) ? -2 : (verbose > 2) ? 2 : verbose)
+    , _f_inferred(f == 0)
     , _f_external(static_cast<S>(f))
     , _f_internal((static_cast<S>(f) + BITS_PER_WORD - 1) / BITS_PER_WORD)
-    , _index(                         // Start with dimension 0 (lazy)
+    , _index(
+      // Pass internal (packed-word) dimension to the underlying AnnoyIndex.
+      // When f==0 (lazy), both _f_external and _f_internal are 0; set_f()
+      // on the first add_item call will recompute them.
       (static_cast<S>(f) + BITS_PER_WORD - 1) / BITS_PER_WORD,
       n_trees,
       n_neighbors,
       on_disk_path,
       prefault,
       seed,
-      verbose,
+      _verbose,                       // pass the clamped int, not the raw arg
       schema_version,
       n_jobs
     )
   {
-    // if (f < 0) {
-    //   throw std::invalid_argument("HammingWrapper: dimension must be non-negative (use 0 for lazy inference)");
-    // }
-    // Store all parameters
-    _params.f = f;
-    _params.n_trees = n_trees;
-    _params.n_neighbors = n_neighbors;
-    _params.on_disk_path = on_disk_path;
-    _params.prefault = prefault;
-    _params.seed = seed;
-    _params.verbose = verbose;
-    _params.schema_version = schema_version;
-    _params.n_jobs = n_jobs;
-    _params.l1_ratio = l1_ratio;
-    _params.f_inferred = (f == 0);  // Mark for lazy inference
-    // Validate parameters
-    char* error = NULL;
-    if (!_params.validate(&error)) {
-      if (_verbose && error != NULL) {
-        fprintf(stderr, "AnnoyIndex parameter validation failed: %s\n", error);
-        std::free(error);
+    // Populate AnnoyParams mirror so get_params() / set_params() work.
+    _params.f             = f;
+    _params.n_trees       = n_trees;
+    _params.n_neighbors   = n_neighbors;
+    _params.on_disk_path  = on_disk_path;
+    _params.prefault      = prefault;
+    _params.seed          = seed;
+    _params.verbose       = _verbose;  // store clamped int
+    _params.schema_version= schema_version;
+    _params.n_jobs        = n_jobs;
+    _params.l1_ratio      = l1_ratio;
+    _params.f_inferred    = (f == 0);
+
+    // Validate parameters; log if verbosity allows.
+    char* err = NULL;
+    if (!_params.validate(&err)) {
+      if (_verbose > 0 && err != NULL) {
+        annoylib_showUpdate("HammingWrapper parameter validation failed: %s\n", err);
       }
+      std::free(err);
     }
-    if (_verbose) {
-      fprintf(stderr, "AnnoyIndex initialized: f=%d, n_trees=%d, n_neighbors=%d, n_jobs=%d\n",
-              _params.f, _params.n_trees, _params.n_neighbors, _params.n_jobs);
+    if (_verbose > 0) {
+      annoylib_showUpdate(
+        "HammingWrapper initialized: f=%d n_trees=%d n_neighbors=%d n_jobs=%d verbose=%d\n",
+        _params.f, _params.n_trees, _params.n_neighbors, _params.n_jobs, _verbose);
     }
   }
   virtual ~HammingWrapper() { unload(); }
@@ -4038,10 +4593,6 @@ public:
     return static_cast<int>(_f_external);
   }
 
-  // bool set_f(int f, char** error = NULL) noexcept{
-  //     return _index.set_f(f, error);
-  // }
-
   // Set dimension (must be called before add_item if using default constructor)
   bool set_f(int f, char** error = NULL) noexcept override {
     if (_index.get_n_items() > 0) {
@@ -4058,13 +4609,18 @@ public:
       return false;
     }
 
-    // _f_external = static_cast<S>(f);
-    // _f_internal = static_cast<S>(
-    //   (_f_external + BITS_PER_WORD - 1) / BITS_PER_WORD
-    // );
-    // _f_inferred = true;
+    // Update external/internal dimensions.
+    // Previously these were const and therefore could not be updated here —
+    // that made get_f() return the stale construction-time value (0 for lazy
+    // mode) even after set_f() succeeded.  Now that const has been removed
+    // these assignments are both valid and required for correctness.
+    _f_external = static_cast<S>(f);
+    _f_internal = static_cast<S>(
+      (_f_external + BITS_PER_WORD - 1) / BITS_PER_WORD
+    );
+    _f_inferred = false;
 
-    return _index.set_f(static_cast<int>(f), error);
+    return _index.set_f(static_cast<int>(_f_internal), error);
   }
 
   bool get_params(
@@ -4133,10 +4689,11 @@ public:
     HammingHeader hdr{};
     hdr.magic      = HAMMING_MAGIC;
     hdr.version    = HAMMING_VERSION;
-    hdr.f_external = static_cast<uint32_t>(_f_external);
-    hdr.f_internal = static_cast<uint32_t>(_f_internal);
-    hdr.n_items    = static_cast<uint32_t>(_index.get_n_items());
+    hdr.f_external = static_cast<uint64_t>(_f_external);
+    hdr.f_internal = static_cast<uint64_t>(_f_internal);
+    hdr.n_items    = static_cast<uint64_t>(_index.get_n_items());
     hdr.reserved   = 0U;
+    hdr.reserved2  = 0U;
 
     std::vector<uint8_t> out(sizeof(hdr));
     std::memcpy(out.data(), &hdr, sizeof(hdr));
@@ -4162,8 +4719,9 @@ public:
     if (hdr.magic != HAMMING_MAGIC ||
         hdr.version != HAMMING_VERSION ||
         hdr.reserved != 0 ||
-        hdr.f_external != static_cast<uint32_t>(_f_external) ||
-        hdr.f_internal != static_cast<uint32_t>(_f_internal)) {
+        hdr.reserved2 != 0 ||
+        hdr.f_external != static_cast<uint64_t>(_f_external) ||
+        hdr.f_internal != static_cast<uint64_t>(_f_internal)) {
       if (error) *error = dup_cstr("Hamming header mismatch");
       return false;
     }
@@ -4209,7 +4767,7 @@ public:
                        std::vector<S>* result,
                        std::vector<T>* distances) const noexcept override {
     if (distances) {
-      vector<InternalT> internal_distances;
+      std::vector<InternalT> internal_distances;
       _index.get_nns_by_item(query_indice,
                              n,
                              search_k,
@@ -4236,11 +4794,11 @@ public:
                          int             search_k,
                          std::vector<S>* result,
                          std::vector<T>* distances) const noexcept override {
-    vector<InternalT> packed_query(_f_internal, 0ULL);
+    std::vector<InternalT> packed_query(_f_internal, InternalT(0));
     _pack(query_embedding, &packed_query[0]);
 
     if (distances) {
-      vector<InternalT> internal_distances;
+      std::vector<InternalT> internal_distances;
       _index.get_nns_by_vector(&packed_query[0],
                                n,
                                search_k,
@@ -4294,7 +4852,17 @@ public:
   }
 
   void set_verbose(bool v) noexcept override {
+    _verbose = v ? annoy_verbose_level(AnnoyVerbose::Info)
+                 : annoy_verbose_level(AnnoyVerbose::Quiet);
+    _params.verbose = _verbose;
     _index.set_verbose(v);
+  }
+
+  /// Typed enum overload — delegates through to the underlying AnnoyIndex.
+  void set_verbose(AnnoyVerbose level) noexcept {
+    _verbose = annoy_verbose_level(level);
+    _params.verbose = _verbose;
+    _index.set_verbose(level);
   }
 };
 
@@ -4329,14 +4897,17 @@ private:
 public:
   template<typename S, typename T, typename D, typename Random>
   static void build(AnnoyIndex<S, T, D, Random, AnnoyIndexMultiThreadedBuildPolicy>* annoy, int q, int n_threads) {
-    AnnoyIndexMultiThreadedBuildPolicy threaded_build_policy;
-    if (n_threads == -1) {
-      // If the hardware_concurrency() value is not well defined or not computable, it returns 0.
-      // We guard against this by using at least 1 thread.
-      n_threads = std::max(1, (int)std::thread::hardware_concurrency());
-    }
+    // Invariant: n_threads >= 1.
+    // build() in AnnoyIndex resolves -1 → hardware_concurrency() via
+    // resolve_n_jobs() before reaching this policy, so -1 must never arrive
+    // here.  The assert documents and enforces that contract; if a future
+    // call path bypasses resolve_n_jobs() it will fire immediately in debug
+    // builds rather than silently allocating a zero-element thread vector.
+    assert(n_threads >= 1 && "n_threads must be resolved via resolve_n_jobs() before calling policy::build");
 
-    std::vector<std::thread> threads(n_threads);
+    AnnoyIndexMultiThreadedBuildPolicy threaded_build_policy;
+
+    std::vector<std::thread> threads(static_cast<size_t>(n_threads));
 
     for (int thread_idx = 0; thread_idx < n_threads; thread_idx++) {
       int trees_per_thread = q == -1 ? -1 : (int)floor((q + thread_idx) / n_threads);

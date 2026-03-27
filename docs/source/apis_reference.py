@@ -637,6 +637,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "ALTOReader",
                     "AudioReader",
+                    "CustomReader",
                     "ImageReader",
                     "MarkdownReader",
                     "PDFReader",

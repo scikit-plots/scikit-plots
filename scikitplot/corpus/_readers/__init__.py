@@ -133,6 +133,7 @@ from .._base import DummyReader  # noqa: F401 — registers :dummy
 from . import (
     _alto,
     _audio,
+    _custom,
     _image,
     _pdf,
     _text,
@@ -143,6 +144,7 @@ from . import (
 )
 from ._alto import *  # noqa: F403
 from ._audio import *  # noqa: F403
+from ._custom import *  # noqa: F403  # CustomReader + normalize_extractor_output
 from ._image import *  # noqa: F403
 from ._pdf import *  # noqa: F403
 from ._text import *  # noqa: F403
@@ -154,6 +156,7 @@ from ._zip import *  # noqa: F403  # must come after ALTOReader
 __all__ = ["DummyReader"]
 __all__ += _alto.__all__
 __all__ += _audio.__all__
+__all__ += _custom.__all__
 __all__ += _image.__all__
 __all__ += _pdf.__all__
 __all__ += _text.__all__

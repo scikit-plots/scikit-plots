@@ -45,6 +45,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import (  # noqa: F401
     Any,
+    Callable,
     ClassVar,
     Dict,
     Generator,
@@ -55,6 +56,7 @@ from typing import (  # noqa: F401
 
 from .._base import DocumentReader
 from .._schema import SectionType
+from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -333,7 +335,7 @@ class PDFReader(DocumentReader):
     file_type: ClassVar[str] = ".pdf"
     file_types: ClassVar[list[str] | None] = [".pdf"]
 
-    _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf")
+    _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
 
     password: str = field(default="")
     """Decryption password for encrypted PDFs. Empty string means unencrypted."""
@@ -344,7 +346,46 @@ class PDFReader(DocumentReader):
     prefer_backend: str | None = field(default=None)
     """
     Force a specific extraction backend. One of ``"pdfminer"``, ``"pypdf"``,
-    or ``None`` (auto). Default: ``None``.
+    ``"custom"``, or ``None`` (auto: try pdfminer first, pypdf fallback).
+    Default: ``None``.
+
+    When ``"custom"``, :attr:`custom_extractor` **must** be provided.
+    """
+
+    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
+    """
+    User-supplied PDF extraction callable, active only when
+    ``prefer_backend="custom"``.
+
+    Signature::
+
+        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
+
+    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
+    ``list[dict]``.  Every dict must contain a ``"text"`` key.
+
+    Common use-cases: ``pdfplumber``, ``pymupdf`` (fitz), ``docling``,
+    ``surya``, or any proprietary PDF engine.  Ignored when
+    ``prefer_backend`` is not ``"custom"``.  Default: ``None``.
+
+    Examples
+    --------
+    >>> import pdfplumber
+    >>> def pdfplumber_extract(path, **kw):
+    ...     with pdfplumber.open(path) as pdf:
+    ...         return [{"text": p.extract_text() or "", "page_number": i}
+    ...                 for i, p in enumerate(pdf.pages)]
+    >>> reader = PDFReader(
+    ...     input_file=Path("paper.pdf"),
+    ...     prefer_backend="custom",
+    ...     custom_extractor=pdfplumber_extract,
+    ... )
+    """
+
+    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
+    """
+    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
+    call.  Only used when ``prefer_backend="custom"``.  Default: ``{}``.
     """
 
     def __post_init__(self) -> None:
@@ -353,7 +394,13 @@ class PDFReader(DocumentReader):
         Raises
         ------
         ValueError
-            If ``prefer_backend`` is not in ``{'pdfminer', 'pypdf', 'auto'}``.
+            If ``prefer_backend`` is not in
+            ``{"pdfminer", "pypdf", "custom", None}``.
+        ValueError
+            If ``prefer_backend="custom"`` but ``custom_extractor`` is
+            ``None``.
+        TypeError
+            If ``custom_extractor`` is not callable (and not ``None``).
         ValueError
             If ``max_file_bytes <= 0``.
         """
@@ -366,6 +413,17 @@ class PDFReader(DocumentReader):
                 f"PDFReader: prefer_backend must be one of"
                 f" {self._VALID_BACKENDS} or None;"
                 f" got {self.prefer_backend!r}."
+            )
+        if self.prefer_backend == "custom" and self.custom_extractor is None:
+            raise ValueError(
+                "PDFReader: prefer_backend='custom' requires a "
+                "'custom_extractor' callable.  Pass one via "
+                "custom_extractor=my_fn, or choose a built-in backend."
+            )
+        if self.custom_extractor is not None and not callable(self.custom_extractor):
+            raise TypeError(
+                f"PDFReader: custom_extractor must be callable or None; "
+                f"got {type(self.custom_extractor).__name__!r}."
             )
         if self.max_file_bytes <= 0:
             raise ValueError(
@@ -380,9 +438,13 @@ class PDFReader(DocumentReader):
         """
         Yield one raw chunk dict per PDF page.
 
-        Attempts pdfminer.six first; falls back to pypdf on pages where
-        pdfminer returns no text. Pages with no extractable text are
-        skipped.
+        When ``prefer_backend="custom"`` and :attr:`custom_extractor` is
+        set, delegates entirely to the extractor callable and normalises
+        its return value via
+        :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
+        Otherwise, attempts pdfminer.six first; falls back to pypdf on
+        pages where pdfminer returns no text.  Pages with no extractable
+        text are skipped.
 
         Yields
         ------
@@ -401,8 +463,44 @@ class PDFReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes``.
         ImportError
-            If neither pdfminer.six nor pypdf is installed.
+            If neither pdfminer.six nor pypdf is installed (built-in path).
+        RuntimeError
+            If ``prefer_backend="custom"`` and the extractor raises.
         """
+        # ── Custom extractor path ──────────────────────────────────────
+        if self.prefer_backend == "custom":
+            # custom_extractor is guaranteed non-None by __post_init__
+            assert self.custom_extractor is not None  # noqa: S101
+            extractor_name = getattr(
+                self.custom_extractor, "__name__", repr(self.custom_extractor)
+            )
+            logger.info(
+                "PDFReader: using custom extractor %r on %s.",
+                extractor_name,
+                self.file_name,
+            )
+            try:
+                raw = self.custom_extractor(
+                    self.input_file, **self.custom_extractor_kwargs
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"PDFReader: custom extractor {extractor_name!r} raised "
+                    f"an error processing {self.file_name!r}: {exc}"
+                ) from exc
+            chunks = normalize_extractor_output(
+                raw,
+                source_type=self.source_provenance.get("source_type", "unknown"),
+                section_type=SectionType.TEXT,
+            )
+            logger.info(
+                "PDFReader: custom extractor returned %d chunk(s) from %s.",
+                len(chunks),
+                self.file_name,
+            )
+            yield from chunks
+            return
+
         file_size = self.input_file.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(

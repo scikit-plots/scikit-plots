@@ -94,6 +94,7 @@ from typing import (
 
 from .._base import DocumentReader
 from .._schema import SectionType, SourceType
+from ._custom import normalize_extractor_output
 
 logger = logging.getLogger(__name__)
 
@@ -1254,6 +1255,49 @@ class AudioReader(DocumentReader):
     max_file_bytes: int = field(default=5 * 1024 * 1024 * 1024)
     """Maximum audio file size. Default: 5 GB."""
 
+    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
+    """
+    User-supplied audio extraction callable.  When set, this callable is
+    called **first** — before companion-file detection, Whisper ASR, and
+    audio classification — and its output is used exclusively.
+
+    Signature::
+
+        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
+
+    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
+    ``list[dict]``.  Every dict must contain a ``"text"`` key.  Dicts may
+    also include ``"timecode_start"`` and ``"timecode_end"`` (float,
+    seconds) to populate the corresponding
+    :class:`~scikitplot.corpus._schema.CorpusDocument` fields.
+
+    Common use-cases: ``whisperX`` (speaker diarization), proprietary ASR
+    APIs (Google Cloud Speech, AWS Transcribe, Azure Speech), or any
+    library not supported by the built-in strategies.  Default: ``None``.
+
+    Examples
+    --------
+    >>> def whisperx_extract(path, language="en", **kw):
+    ...     import whisperx
+    ...     model = whisperx.load_model("large-v3", device="cpu")
+    ...     result = model.transcribe(str(path), language=language)
+    ...     return [{"text": s["text"].strip(),
+    ...              "timecode_start": s["start"],
+    ...              "timecode_end": s["end"]}
+    ...             for s in result["segments"] if s["text"].strip()]
+    >>> reader = AudioReader(
+    ...     input_file=Path("interview.mp3"),
+    ...     custom_extractor=whisperx_extract,
+    ...     custom_extractor_kwargs={"language": "de"},
+    ... )
+    """
+
+    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
+    """
+    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
+    call.  Only used when :attr:`custom_extractor` is set.  Default: ``{}``.
+    """
+
     def __post_init__(self) -> None:
         """Validate constructor fields and resolve companion file strategy.
 
@@ -1263,6 +1307,8 @@ class AudioReader(DocumentReader):
             If ``whisper_model`` is not a recognised Whisper size.
         ValueError
             If ``classify=True`` but ``classifier`` callable is ``None``.
+        TypeError
+            If ``custom_extractor`` is not callable (and not ``None``).
         """
         super().__post_init__()
         if self.whisper_model not in self._VALID_WHISPER_MODELS:
@@ -1276,6 +1322,11 @@ class AudioReader(DocumentReader):
                 " Provide a function with signature:"
                 " classifier(path: Path, offset: float, duration: float)"
                 " -> list[dict[str, Any]]."
+            )
+        if self.custom_extractor is not None and not callable(self.custom_extractor):
+            raise TypeError(
+                f"AudioReader: custom_extractor must be callable or None; "
+                f"got {type(self.custom_extractor).__name__!r}."
             )
         if self.segment_duration <= 0:
             raise ValueError(
@@ -1331,6 +1382,38 @@ class AudioReader(DocumentReader):
                 f"AudioReader: {self.file_name} is {file_size:,} bytes,"
                 f" which exceeds max_file_bytes={self.max_file_bytes:,}."
             )
+
+        # ── Strategy 0: custom extractor (highest priority) ───────────
+        if self.custom_extractor is not None:
+            extractor_name = getattr(
+                self.custom_extractor, "__name__", repr(self.custom_extractor)
+            )
+            logger.info(
+                "AudioReader: using custom extractor %r on %s.",
+                extractor_name,
+                self.file_name,
+            )
+            try:
+                raw = self.custom_extractor(
+                    self.input_file, **self.custom_extractor_kwargs
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"AudioReader: custom extractor {extractor_name!r} raised "
+                    f"an error processing {self.file_name!r}: {exc}"
+                ) from exc
+            chunks = normalize_extractor_output(
+                raw,
+                source_type=SourceType.AUDIO,
+                section_type=SectionType.TEXT,
+            )
+            logger.info(
+                "AudioReader: custom extractor returned %d chunk(s) from %s.",
+                len(chunks),
+                self.file_name,
+            )
+            yield from chunks
+            return
 
         yielded_any = False
 

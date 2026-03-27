@@ -1339,8 +1339,13 @@ class DocumentReader(abc.ABC):
             raise ValueError(
                 f"No DocumentReader registered for extension {ext!r}."
                 f" Supported types: {supported}."
-                f" Register a custom reader by subclassing DocumentReader"
-                f" with file_type = {ext!r}."
+                f" To add support for {ext!r}, either:\n"
+                f"  1. Use CustomReader directly:\n"
+                f"       reader = CustomReader(input_file=path, extractor=my_fn)\n"
+                f"  2. Register globally via CustomReader.register():\n"
+                f"       CustomReader.register(name='MyReader',"
+                f" extensions=[{ext!r}], extractor=my_fn)\n"
+                f"  3. Subclass DocumentReader with file_type = {ext!r}."
             )
         prov = cls._build_prov(
             source_type=source_type,
@@ -2071,7 +2076,9 @@ class DummyReader(DocumentReader):
     >>> os.unlink(tmp)
     """
 
-    file_type: ClassVar[str | None] = ":dummy"
+    # file_type intentionally not set here — file_types takes precedence
+    # per the __init_subclass__ contract ("file_types wins when both present").
+    # Defining both caused a silent inconsistency with the documented invariant.
     file_types: ClassVar[list[str] | None] = [":dummy"]
 
     # ------------------------------------------------------------------
