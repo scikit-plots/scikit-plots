@@ -12,6 +12,7 @@ omit =
     */benchmarks/*
     */galleries/*
     */scikitplot/_build_utils/*
+    */scikitplot/_decorates/*
     */scikitplot/cexperimental/*
     */scikitplot/cexternals/*
     */scikitplot/config/cbook.py

@@ -1,9 +1,11 @@
+# scikitplot/_decorates/_decorate.py
+#
 # pylint: disable=import-error
 # pylint: disable=unused-import
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,6 +28,8 @@ Example usage:
 ...     print(f"Hello, {name}!")
 >>> greet("Alice")
 """  # pylint: disable=too-many-lines
+
+from __future__ import annotations
 
 ## Standard library imports
 import asyncio
@@ -60,7 +64,7 @@ from ..utils._inspect import _resolve_args_and_kwargs
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
     from collections.abc import Coroutine
-    from typing import (
+    from typing import (  # noqa: F401
         ClassVar,
         Optional,
         TypeVar,
@@ -84,12 +88,20 @@ if TYPE_CHECKING:
     # (used for singleton or decorator patterns).
     ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
     # Later, use Union for functions that accept either
-    DecoratorLike = TypeVar("DecoratorLike", bound="Union[F, FuncDec, ClsDec]")
+    DecoratorLike = TypeVar("DecoratorLike", bound="F | FuncDec | ClsDec")
 
 ## Set up basic logger configuration
 # logging.basicConfig(level=_logging.INFO)
 # logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
+
+__all__ = [
+    "BaseDecorator",
+    "DecorateMeta",
+    "DummyDecorator",
+    "decorate",
+    "decorator_dispatcher",
+]
 
 ######################################################################
 ## decorator_dispatcher
@@ -105,12 +117,12 @@ if TYPE_CHECKING:
 #     - Returns an `inner decorator` that can accept the function to decorate.
 def decorator_dispatcher(
     # A direct decorator when callable is passed
-    simple: "FuncDec",
+    simple: FuncDec,
     # A factory decorator (parameterized or class) when no callable is passed
-    factory: "Union[callable[..., FuncDec], callable[..., ClsDec]]",
-    *args: "tuple[any, ...]",  # Positional arguments
-    **kwargs: "dict[str, any]",  # Keyword arguments
-) -> "DecoratorLike":
+    factory: callable[..., FuncDec] | callable[..., ClsDec],
+    *args: tuple[any, ...],  # Positional arguments
+    **kwargs: dict[str, any],  # Keyword arguments
+) -> DecoratorLike:
     """
     Dispatch a decorator to be used with or without arguments (parentheses).
 
@@ -219,7 +231,7 @@ def decorate(
     # The target function to be decorated (passed when parameters are used, if any)
     # func: "Optional[callable[..., any]]" = None,
     **kwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
-) -> "Union[F, FuncDec]":
+) -> F | FuncDec:
     """
     Create a generic decorator that supports both parameterized and non-parameterized usage.
 
@@ -265,7 +277,7 @@ def decorate(
     """
 
     # The case where the decorator is called with parameters (returns a decorator)
-    def decorator(func: "callable[..., any]") -> "callable[..., any]":
+    def decorator(func: callable[..., any]) -> callable[..., any]:
         """
         Decorate the actual decorator function that wraps the target function.
 
@@ -281,7 +293,7 @@ def decorate(
         """
 
         @functools.wraps(func)
-        def wrapper(*args_f, **kwargs_f) -> "any":
+        def wrapper(*args_f, **kwargs_f) -> any:
             # c = {**a, **b}  # Non-destructive merge (3.5+), Safe, non-mutating
             # c = a | b       # Non-destructive merge (3.9+)
             # a.update(b)     # All Versions but In-place update
@@ -405,21 +417,21 @@ class BaseDecorator(metaclass=DecorateMeta):
     ## Singleton instance, thread lock, and thread pool for execution
     ## Store singleton instances in a class-level dictionary
     ## dictionary on the base class that tracks a Singleton instance per subclass
-    _instance: "ClassVar[dict[type[BaseDecorator], BaseDecorator]]" = {}  # noqa: RUF012
+    _instance: ClassVar[dict[type[BaseDecorator], BaseDecorator]] = {}  # noqa: RUF012
     ## Used for thread-safe operations
     ## Reentrant: The same thread can acquire the lock multiple times without blocking.
-    _lock: "threading.RLock" = threading.RLock()
+    _lock: threading.RLock = threading.RLock()
     ## Executor to manage threaded execution for async tasks
-    _executor: "ThreadPoolExecutor" = ThreadPoolExecutor(max_workers=10)
+    _executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=10)
 
     # --------------------- make sure class is callable ---------------------
 
     def __new__(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
-    ) -> "DecoratorLike":
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
+    ) -> DecoratorLike:
         """
         Ensure that only a single instance of the decorator is created.
 
@@ -473,8 +485,8 @@ class BaseDecorator(metaclass=DecorateMeta):
     def __init__(
         # self refers to the instance of the class.
         self,  # self is an instance of 'BaseDecorator'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Initialize the decorator instance with any provided arguments.
@@ -522,9 +534,9 @@ class BaseDecorator(metaclass=DecorateMeta):
     def __call__(
         # self refers to the instance of the class.
         self,  # self is an instance of 'BaseDecorator'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
-    ) -> "F":
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
+    ) -> F:
         """
         Allow the decorator to be used with arguments (e.g., @BaseDecorator(verbose=True)).
 
@@ -628,8 +640,8 @@ class BaseDecorator(metaclass=DecorateMeta):
     def decorator_args_kwargs_sanitizer(
         # self refers to the instance of the class.
         self,  # self is an instance of 'BaseDecorator'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Validate and sanitize keyword arguments passed to the decorator.
@@ -672,8 +684,8 @@ class BaseDecorator(metaclass=DecorateMeta):
 
     @staticmethod
     def get_default_parameters(
-        func: "callable[..., any]",
-    ) -> "dict[str, any]":
+        func: callable[..., any],
+    ) -> dict[str, any]:
         """
         Extract default parameter values from a function's signature.
 
@@ -708,10 +720,10 @@ class BaseDecorator(metaclass=DecorateMeta):
 
     @staticmethod
     def func_default_args_kwargs_broadcaster(
-        func: "callable[..., any]",
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
-    ) -> "tuple[tuple[any, ...], dict[str, any]]":
+        func: callable[..., any],
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
+    ) -> tuple[tuple[any, ...], dict[str, any]]:
         """
         Resolve arguments to a function, applying default values using introspection.
 
@@ -773,7 +785,7 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def release_instance(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
     ) -> None:
         """
         Destroys the singleton instance, releasing any resources.
@@ -792,8 +804,8 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def get_instance(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-    ) -> "BaseDecorator":
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+    ) -> BaseDecorator:
         """
         Retrieve or creates the singleton instance of the decorator.
 
@@ -814,7 +826,7 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def get_weak_instance(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
     ):
         """Return a weak reference to the Singleton instance."""
         # Class.method() or obj.method()
@@ -827,9 +839,9 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def entry_point(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Entry point to initialize or retrieve the singleton instance of the decorator.
@@ -858,10 +870,10 @@ class BaseDecorator(metaclass=DecorateMeta):
     @staticmethod
     def decorate(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        # cls: "Type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
-    ) -> "F":
+        # cls: Type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
+    ) -> F:
         """
         Apply logging, profiling, and exception handling to the wrapped function.
 
@@ -904,8 +916,8 @@ class BaseDecorator(metaclass=DecorateMeta):
         # Class.method() or obj.method()
         ## The case where the decorator is called with parameters (returns a decorator)
         def decorator(
-            func: "callable[..., any]",
-        ) -> "callable[..., any]":
+            func: callable[..., any],
+        ) -> callable[..., any]:
             ## Set up file-based logging if required
             log_file_handler = None
             log_to_file = kwargs.get("log_to_file", False)
@@ -925,9 +937,9 @@ class BaseDecorator(metaclass=DecorateMeta):
             ## Retain original function attributes (name, docstring)
             @functools.wraps(func)
             def wrapper(
-                *args_f: "any",
-                **kwargs_f: "any",
-            ) -> "any":
+                *args_f: any,
+                **kwargs_f: any,
+            ) -> any:
                 """
                 Wrap function.
 
@@ -1014,9 +1026,9 @@ class BaseDecorator(metaclass=DecorateMeta):
     # --- wrapper_exception_handler ---
     @staticmethod
     def wrapper_exception_handler(
-        e: "Exception",
-        func: "Optional[callable]" = None,
-    ) -> "Optional[any]":
+        e: Exception,
+        func: callable | None = None,
+    ) -> any | None:
         """
         Centralized exception handling method.
 
@@ -1043,7 +1055,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                 f"Error occurred in thread {thread_id}: {e}",
                 exc_info=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Log any exceptions
             logger.exception(
                 f"'{getattr(func, __name__, 'no_name')}' function error in : {e}"
@@ -1055,10 +1067,10 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def execute_in_thread(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-        func: "F",
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+        func: F,
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Execute the given function in a separate thread.
@@ -1090,7 +1102,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                     f"classmethod in thread..."
                 )
                 func(*args, **kwargs)  # Execute the function
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 # Log errors
                 logger.exception(f"Threaded execution error in '{func.__name__}': {e}")
 
@@ -1099,10 +1111,10 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def execute_async(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
-        func: "callable[..., Coroutine[any, any, any]]",
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
+        func: callable[..., Coroutine[any, any, any]],
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Execute the given async function within an event loop.
@@ -1127,7 +1139,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                     f"classmethod in async..."
                 )
                 await func(*args, **kwargs)  # Execute the async function
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.exception(
                     f"Async execution error in '{func.__name__}': {e}"
                 )  # Log errors
@@ -1140,7 +1152,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                 task.add_done_callback(lambda t: t.exception())
             else:
                 asyncio.run(_async_wrapper())  # Run async task in new loop
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.exception(
                 f"Failed to run async task: {e}"
             )  # Log if running async fails
@@ -1164,10 +1176,10 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def serialize(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
         filename: str,
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
     ) -> None:
         """
         Save the singleton instance to a file using joblib.
@@ -1190,7 +1202,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                     joblib.dump(cls._instance[cls], filename, *args, **kwargs)
                     # Log success
                     logger.info(f"Serialized {cls.__name__} instance to '{filename}'")
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.exception(f"Serialization failed: {e}")  # Log failure
             else:
                 logger.warning(
@@ -1200,11 +1212,11 @@ class BaseDecorator(metaclass=DecorateMeta):
     @classmethod
     def deserialize(
         # cls refers to the class itself, and is used in class methods (@classmethod).
-        cls: "type[BaseDecorator]",  # cls is of type 'Type[BaseDecorator]'
+        cls: type[BaseDecorator],  # cls is of type Type[BaseDecorator]
         filename: str,
-        *args: "tuple[any, ...]",
-        **kwargs: "dict[str, any]",
-    ) -> "Optional[type[BaseDecorator]]":
+        *args: tuple[any, ...],
+        **kwargs: dict[str, any],
+    ) -> type[BaseDecorator] | None:
         """
         Load the singleton instance from a file using joblib.
 
@@ -1235,7 +1247,7 @@ class BaseDecorator(metaclass=DecorateMeta):
                 logger.warning(
                     f"File not found: {filename}"
                 )  # Log if file doesn't exist
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.exception(
                     f"Deserialization error: {e}"
                 )  # Log if deserialization fails

@@ -1,3 +1,8 @@
+# scikitplot/_typing/__init__.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 The typing module: Support for gradual typing as defined by PEP 484 and subsequent PEPs.
 
@@ -18,6 +23,8 @@ Any name not present in __all__ is an implementation detail
 that may be changed without notice. Use at your own risk!
 """
 
+from . import _typing
 from ._typing import *  # noqa: F403
 
-__all__ = ["type_t"]  # noqa: F405
+__all__ = []
+__all__ += _typing.__all__

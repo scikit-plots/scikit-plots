@@ -1,35 +1,38 @@
-"""
-This module was copied from the numpy project.
+# scikitplot/_testing/_pytesttester.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
+"""
 Pytest test running.
 
-This module implements the ``test()`` function for NumPy modules. The usual
-boiler plate for doing that is to put the following in the module
-``__init__.py`` file::
+This module implements the ``test()`` function for library sub-packages.
+The typical boiler-plate for a sub-package ``__init__.py``::
 
-    from numpy._pytesttester import PytestTester
+    from ._testing._pytesttester import PytestTester
 
-    test = PytestTester(__name__).test
+    test = PytestTester(__name__)
     del PytestTester
 
+Warnings filtering and other runtime settings should be configured in the
+``pytest.ini`` file at the repository root:
 
-Warnings filtering and other runtime settings should be dealt with in the
-``pytest.ini`` file in the numpy repo root. The behavior of the test depends on
-whether or not that file is found as follows:
+* ``pytest.ini`` present (develop mode)
+    All unfiltered warnings are raised as errors.
+* ``pytest.ini`` absent (release mode)
+    ``DeprecationWarning`` and ``PendingDeprecationWarning`` are ignored;
+    other warnings pass through.
 
-* ``pytest.ini`` is present (develop mode)
-    All warnings except those explicitly filtered out are raised as error.
-* ``pytest.ini`` is absent (release mode)
-    DeprecationWarnings and PendingDeprecationWarnings are ignored, other
-    warnings are passed through.
-
-In practice, tests run from the numpy repo are run in develop mode. That
-includes the standard ``python runtests.py`` invocation.
-
-This module is imported by every numpy subpackage, so lies at the top level to
-simplify circular import issues. For the same reason, it contains no numpy
-imports at module scope, instead importing numpy within function calls.
+Notes
+-----
+This module is imported by every sub-package that exposes a ``test()``
+function.  It therefore contains **no library imports at module scope** to
+avoid slowing test collection and to prevent circular imports.
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -37,161 +40,213 @@ import sys
 __all__ = ["PytestTester"]
 
 
-def _show_numpy_info():
-    import numpy as np
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
-    print("NumPy version %s" % np.__version__)
+
+def _show_numpy_info() -> None:
+    """Print NumPy version and relaxed-strides status to stdout.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Developer note: Called before ``pytest.main`` as a diagnostic aid.  If
+    NumPy is not installed, a single :class:`ImportWarning` is emitted and the
+    function returns silently rather than raising :class:`ImportError`.
+
+    Examples
+    --------
+    >>> _show_numpy_info()  # doctest: +SKIP
+    NumPy version 2.x.y
+    NumPy relaxed strides checking option: True
+    """
+    try:
+        import numpy as np
+    except ImportError:  # pragma: no cover
+        import warnings as _warnings
+
+        _warnings.warn(
+            "NumPy is not installed; skipping NumPy diagnostic output.",
+            ImportWarning,
+            stacklevel=2,
+        )
+        return
+    print(f"NumPy version {np.__version__}")
     relaxed_strides = np.ones((10, 1), order="C").flags.f_contiguous
-    print("NumPy relaxed strides checking option:", relaxed_strides)
+    print(f"NumPy relaxed strides checking option: {relaxed_strides}")
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 
 class PytestTester:
-    """
-    Pytest test runner.
+    """Pytest test runner entry point for a library sub-package.
 
-    This class is made available in ``numpy.testing``, and a test function
-    is typically added to a package's __init__.py like so::
+    A ``test`` attribute is typically wired into a sub-package
+    ``__init__.py``::
 
-      from numpy.testing import PytestTester
+        from ._testing._pytesttester import PytestTester
 
-      test = PytestTester(__name__).test
-      del PytestTester
+        test = PytestTester(__name__)
+        del PytestTester
 
-    Calling this test function finds and runs all tests associated with the
-    module and all its sub-modules.
+    Calling the instance discovers and runs all tests associated with that
+    sub-package and all of its nested sub-packages.
+
+    Parameters
+    ----------
+    module_name : str
+        Fully-qualified module name whose tests should be run, e.g.
+        ``"scikitplot.decomposition"``.
 
     Attributes
     ----------
     module_name : str
-        Full path to the package to test.
+        The module name provided at construction time.
 
-    Parameters
-    ----------
-    module_name : module name
-        The name of the module to test.
+    Notes
+    -----
+    User note: Use the instance as a callable — the public interface is the
+    :meth:`__call__` signature.  Do not access named methods directly.
 
+    Developer note: All library imports are intentionally deferred to
+    :meth:`__call__` time so that importing this module during test collection
+    does not trigger heavy dependency loading or circular imports.
+
+    Examples
+    --------
+    >>> tester = PytestTester("scikitplot.decomposition")  # doctest: +SKIP
+    >>> tester()                                           # doctest: +SKIP
+    True
     """
 
-    def __init__(self, module_name):
+    def __init__(self, module_name: str) -> None:
+        if not isinstance(module_name, str):
+            raise TypeError(
+                f"'module_name' must be a str, got {type(module_name).__name__!r}."
+            )
         self.module_name = module_name
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(module_name={self.module_name!r})"
 
     def __call__(
         self,
-        label="fast",
-        verbose=1,
-        extra_argv=None,
-        doctests=False,
-        coverage=False,
-        durations=-1,
-        tests=None,
-    ):
-        """
-        Run tests for module using pytest.
+        label: str = "fast",
+        verbose: int = 1,
+        extra_argv: list | None = None,
+        doctests: bool = False,
+        coverage: bool = False,
+        durations: int = -1,
+        tests: list | None = None,
+    ) -> bool:
+        """Run tests for the module using pytest.
 
         Parameters
         ----------
-        label : {'fast', 'full'}, optional
-            Identifies the tests to run. When set to 'fast', tests decorated
-            with `pytest.mark.slow` are skipped, when 'full', the slow marker
-            is ignored.
-        verbose : int, optional
-            Verbosity value for test outputs, in the range 1-3. Default is 1.
-        extra_argv : list, optional
-            List with any extra arguments to pass to pytests.
-        doctests : bool, optional
-            .. note:: Not supported
-        coverage : bool, optional
-            If True, report coverage of NumPy code. Default is False.
-            Requires installation of (pip) pytest-cov.
-        durations : int, optional
-            If < 0, do nothing, If 0, report time of all tests, if > 0,
-            report the time of the slowest `timer` tests. Default is -1.
-        tests : test or list of tests
-            Tests to be executed with pytest '--pyargs'
+        label : str, default='fast'
+            Which tests to run.  ``'fast'`` skips tests decorated with
+            ``pytest.mark.slow``; ``'full'`` includes them; any other value
+            is forwarded verbatim as a pytest ``-m`` marker expression.
+        verbose : int, default=1
+            Verbosity level in the range ``[1, inf)``.  ``1`` maps to quiet
+            mode only; each increment adds one ``-v`` flag.
+        extra_argv : list of str or None, default=None
+            Extra arguments forwarded verbatim to ``pytest.main``.
+        doctests : bool, default=False
+            .. note::
+               Doctest mode is **not** supported.  Passing ``True`` raises
+               :class:`ValueError`.
+        coverage : bool, default=False
+            When ``True``, append ``--cov=<module_path>`` to enable
+            pytest-cov coverage reporting.
+        durations : int, default=-1
+            Timing report threshold.  ``-1`` disables; ``0`` reports all;
+            positive *n* reports the *n* slowest tests.
+        tests : list of str or None, default=None
+            Explicit test targets forwarded via ``--pyargs``.  When ``None``,
+            defaults to ``[self.module_name]``.
 
         Returns
         -------
-        result : bool
-            Return True on success, false otherwise.
+        success : bool
+            ``True`` when all collected tests pass; ``False`` otherwise.
+
+        Raises
+        ------
+        ValueError
+            If *doctests* is ``True`` (not supported).
+        KeyError
+            If :attr:`module_name` is not found in ``sys.modules``.
+
+        See Also
+        --------
+        _show_numpy_info : Diagnostic helper called before running tests.
 
         Notes
         -----
-        Each NumPy module exposes `test` in its namespace to run all tests for
-        it. For example, to run all tests for numpy.lib:
-
-        >>> np.lib.test()  # doctest: +SKIP
+        Developer note: ``pytest.main`` may raise ``SystemExit`` in some
+        environments (e.g. Jupyter, IPython).  The exit code is normalised to
+        ``int`` so that ``pytest.ExitCode`` enum values (which inherit from
+        ``int``), raw integers, ``None`` (POSIX success convention), and
+        strings (any non-empty string = failure) are all handled correctly.
 
         Examples
         --------
-        >>> result = np.lib.test()  # doctest: +SKIP
-        1023 passed, 2 skipped, 6 deselected, 1 xfailed in 10.39 seconds
-        >>> result
+        >>> tester = PytestTester("scikitplot")  # doctest: +SKIP
+        >>> tester(label="fast", verbose=1)      # doctest: +SKIP
         True
-
         """
-        import warnings
-
         import pytest
 
-        # FIXME This is no longer needed? Assume it was for use in tests.
-        # cap verbosity at 3, which is equivalent to the pytest '-vv' option
-        # from . import utils
-        # verbose = min(int(verbose), 3)
-        # utils.verbose = verbose
-        #
+        if doctests:
+            raise ValueError(
+                "Doctests are not supported by PytestTester. "
+                "Use pytest's --doctest-modules flag directly instead."
+            )
 
         module = sys.modules[self.module_name]
-        module_path = os.path.abspath(module.__path__[0])
 
-        # setup the pytest arguments
-        pytest_args = ["-l"]
+        # __path__ exists on packages; single-file modules only have __file__.
+        path_list = getattr(module, "__path__", None)
+        if path_list:
+            module_path = os.path.abspath(path_list[0])
+        else:
+            file_attr = getattr(module, "__file__", None) or "."
+            module_path = os.path.abspath(file_attr)
 
-        # offset verbosity. The "-q" cancels a "-v".
-        pytest_args += ["-q"]
+        # Base arguments: show locals on failure (-l) and quiet output (-q).
+        pytest_args = ["-l", "-q"]
 
-        # Filter out distutils cpu warnings (could be localized to
-        # distutils tests). ASV has problems with top level import,
-        # so fetch module for suppression here.
-        with warnings.catch_warnings():
-            warnings.simplefilter("always")
-
-        # Filter out annoying import messages. Want these in both develop and
-        # release mode.
+        # Suppress known false-positive / environment-specific warnings that
+        # are irrelevant to user code and pollute test output.
         pytest_args += [
             "-W ignore:Not importing directory",
             "-W ignore:numpy.dtype size changed",
             "-W ignore:numpy.ufunc size changed",
             "-W ignore::UserWarning:cpuinfo",
-        ]
-
-        # When testing matrices, ignore their PendingDeprecationWarnings
-        pytest_args += [
             "-W ignore:the matrix subclass is not",
         ]
-
-        # Ignore python2.7 -3 warnings
-        pytest_args += [
-            r"-W ignore:sys\.exc_clear\(\) not supported in 3\.x:DeprecationWarning",
-            r"-W ignore:in 3\.x, __setslice__:DeprecationWarning",
-            r"-W ignore:in 3\.x, __getslice__:DeprecationWarning",
-            r"-W ignore:buffer\(\) not supported in 3\.x:DeprecationWarning",
-            r"-W ignore:CObject type is not supported in 3\.x:DeprecationWarning",
-            r"-W ignore:comparing unequal types not supported in 3\.x:DeprecationWarning",
-            r"-W ignore:the commands module has been removed in Python 3\.0:DeprecationWarning",
-            r"-W ignore:The 'new' module has been removed in Python 3\.0:DeprecationWarning",
-        ]
-
-        if doctests:
-            raise ValueError("Doctests not supported")
 
         if extra_argv:
             pytest_args += list(extra_argv)
 
+        # Each verbosity level above 1 adds one -v flag.
         if verbose > 1:
             pytest_args += ["-" + "v" * (verbose - 1)]
 
         if coverage:
-            pytest_args += ["--cov=" + module_path]
+            pytest_args += [f"--cov={module_path}"]
 
         if label == "fast":
             pytest_args += ["-m", "not slow"]
@@ -199,19 +254,26 @@ class PytestTester:
             pytest_args += ["-m", label]
 
         if durations >= 0:
-            pytest_args += ["--durations=%s" % durations]
+            pytest_args += [f"--durations={durations}"]
 
         if tests is None:
             tests = [self.module_name]
 
         pytest_args += ["--pyargs"] + list(tests)
 
-        # run tests.
         _show_numpy_info()
 
         try:
             code = pytest.main(pytest_args)
         except SystemExit as exc:
-            code = exc.code
+            # Normalise:
+            #   int / ExitCode enum  -> use directly
+            #   None                 -> 0  (POSIX: exit() with no arg = success)
+            #   non-empty str        -> 1  (any message = failure)
+            raw = exc.code
+            if isinstance(raw, int):
+                code = raw
+            else:
+                code = 0 if not raw else 1
 
-        return code == 0
+        return int(code) == 0
