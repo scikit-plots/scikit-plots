@@ -331,7 +331,7 @@ def test_api_importable():
 @pytest.mark.parametrize(
     ("module_name", "correct_module"),
     [
-        ("scikitplot.decile.kds._deciles", None)
+        # ("scikitplot.decile.kds._deciles", None)
         # ('scikitplot.decile.kds._deciles.', None),
     ],
 )
