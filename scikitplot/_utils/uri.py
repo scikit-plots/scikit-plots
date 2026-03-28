@@ -257,9 +257,14 @@ def add_databricks_profile_info_to_artifact_uri(artifact_uri, databricks_profile
 
 
 def extract_and_normalize_path(uri):
-    parsed_uri_path = _urllib.parse.urlparse(uri).path
-    normalized_path = _posixpath.normpath(parsed_uri_path)
-    return normalized_path.lstrip("/")
+    parsed_uri = _urllib.parse.urlparse(uri)
+    normalized_path = _posixpath.normpath(parsed_uri.path)
+    # Only relativize for non-local schemes (e.g. s3://, dbfs://).
+    # Bare paths (no scheme) and file:// URIs represent real filesystem
+    # paths whose leading slash must be preserved.
+    if parsed_uri.scheme and parsed_uri.scheme != "file":
+        return normalized_path.lstrip("/")
+    return normalized_path
 
 
 def append_to_uri_path(uri, *paths):

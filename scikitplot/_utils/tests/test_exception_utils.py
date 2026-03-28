@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import unittest
 
-from ..exception_utils import get_stacktrace
+from ..exception_utils import get_stacktrace, ScikitplotException
 
 
 # ===========================================================================
@@ -103,7 +103,6 @@ class TestGetStacktrace(unittest.TestCase):
         and returns repr(error) directly, preventing infinite recursion when
         format_exception itself raises a ScikitplotException.
         """
-        from scikitplot.exceptions import ScikitplotException
         exc = ScikitplotException("skplt error")
         result = get_stacktrace(exc)
         self.assertIsInstance(result, str)

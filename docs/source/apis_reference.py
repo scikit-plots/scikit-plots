@@ -559,6 +559,24 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Custom Hooks",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "BuilderFactories",
+                    "CustomChunker",
+                    "CustomEnricherConfig",
+                    "CustomFilter",
+                    "CustomNLPEnricher",
+                    "CustomNormalizer",
+                    "CustomSimilarityIndex",
+                    "FactoryCorpusBuilder",
+                    "HookableCorpusPipeline",
+                    "PipelineHooks",
+                ],
+            },
+            {
                 "title": "Embeddings",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")

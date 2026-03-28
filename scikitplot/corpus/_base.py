@@ -876,9 +876,62 @@ class DocumentReader(abc.ABC):
                     f"{self.file_name}: custom_extractor {extractor_name!r} "
                     f"raised an error: {exc}"
                 ) from exc
-            yield from normalize_extractor_output(raw)
+            yield from normalize_extractor_output(
+                raw,
+                source_type=self._custom_extractor_source_type(),
+                section_type=self._custom_extractor_section_type(),
+            )
         else:
             yield from self.get_raw_chunks()
+
+    def _custom_extractor_source_type(self) -> SourceType:
+        """
+        Source type applied to chunks produced via :attr:`custom_extractor`.
+
+        Subclasses whose format implies a fixed source type override this
+        method to return their canonical value (e.g. ``ImageReader`` returns
+        :attr:`~scikitplot.corpus._schema.SourceType.IMAGE`,
+        ``AudioReader`` returns
+        :attr:`~scikitplot.corpus._schema.SourceType.AUDIO`).
+
+        The base implementation returns
+        :attr:`~scikitplot.corpus._schema.SourceType.UNKNOWN`, which
+        preserves the previous behaviour for all readers that do not override
+        this hook (``TextReader``, ``PDFReader``, ``XMLReader``, etc.).
+
+        Returns
+        -------
+        SourceType
+            Default source type for custom-extractor chunks.
+
+        Notes
+        -----
+        This hook is called **only** inside :meth:`_iter_raw_chunks` when
+        :attr:`custom_extractor` is not ``None``.  It is never called on the
+        normal :meth:`get_raw_chunks` path.
+        """
+        return SourceType.UNKNOWN
+
+    def _custom_extractor_section_type(self) -> SectionType:
+        """
+        Section type applied to chunks produced via :attr:`custom_extractor`.
+
+        Override in subclasses that require a non-text default section type.
+        The base implementation returns
+        :attr:`~scikitplot.corpus._schema.SectionType.TEXT`.
+
+        Returns
+        -------
+        SectionType
+            Default section type for custom-extractor chunks.
+
+        Notes
+        -----
+        This hook is called **only** inside :meth:`_iter_raw_chunks` when
+        :attr:`custom_extractor` is not ``None``.  It is never called on the
+        normal :meth:`get_raw_chunks` path.
+        """
+        return SectionType.TEXT
 
     # ------------------------------------------------------------------
     # Concrete pipeline method — builds CorpusDocuments from raw chunks

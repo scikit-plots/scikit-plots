@@ -425,6 +425,12 @@ class PDFReader(DocumentReader):
                 f"PDFReader: custom_extractor must be callable or None; "
                 f"got {type(self.custom_extractor).__name__!r}."
             )
+        # The base-class DocumentReader._iter_raw_chunks treats any non-None
+        # custom_extractor as Strategy 0 (highest priority) and dispatches to
+        # it before get_raw_chunks is called.  Clear the field for every
+        # backend other than 'custom' so the base class never sees it.
+        if self.prefer_backend != "custom" and self.custom_extractor is not None:
+            self.custom_extractor = None
         if self.max_file_bytes <= 0:
             raise ValueError(
                 f"PDFReader: max_file_bytes must be > 0; got {self.max_file_bytes!r}."

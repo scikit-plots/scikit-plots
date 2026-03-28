@@ -434,8 +434,6 @@ class ImageReader(DocumentReader):
         ValueError
             If ``backend`` is not in
             ``{"tesseract", "easyocr", "custom"}``.
-        ValueError
-            If ``backend="custom"`` but ``custom_extractor`` is ``None``.
         TypeError
             If ``custom_extractor`` is not callable (and not ``None``).
         ValueError
@@ -446,12 +444,6 @@ class ImageReader(DocumentReader):
             raise ValueError(
                 f"ImageReader: backend must be one of {_VALID_BACKENDS};"
                 f" got {self.backend!r}."
-            )
-        if self.backend == _BACKEND_CUSTOM and self.custom_extractor is None:
-            raise ValueError(
-                "ImageReader: backend='custom' requires a "
-                "'custom_extractor' callable.  Pass one via "
-                "custom_extractor=my_fn, or choose a built-in backend."
             )
         if self.custom_extractor is not None and not callable(self.custom_extractor):
             raise TypeError(
@@ -466,6 +458,10 @@ class ImageReader(DocumentReader):
     # ------------------------------------------------------------------
     # DocumentReader contract
     # ------------------------------------------------------------------
+
+    def _custom_extractor_source_type(self) -> SourceType:
+        """Return :attr:`~scikitplot.corpus._schema.SourceType.IMAGE` for custom-extractor chunks."""
+        return SourceType.IMAGE
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
@@ -514,9 +510,12 @@ class ImageReader(DocumentReader):
         """
         # ── Custom extractor path ──────────────────────────────────────
         if self.backend == _BACKEND_CUSTOM:
-            assert (  # noqa: S101  (guaranteed by __post_init__)
-                self.custom_extractor is not None
-            )
+            if self.custom_extractor is None:
+                raise ValueError(
+                    "ImageReader: backend='custom' requires a "
+                    "'custom_extractor' callable.  Pass one via "
+                    "custom_extractor=my_fn, or choose a built-in backend."
+                )
             extractor_name = getattr(
                 self.custom_extractor, "__name__", repr(self.custom_extractor)
             )

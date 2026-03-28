@@ -673,6 +673,10 @@ class VideoReader(DocumentReader):
     # DocumentReader contract
     # ------------------------------------------------------------------
 
+    def _custom_extractor_source_type(self) -> SourceType:
+        """Return :attr:`~scikitplot.corpus._schema.SourceType.VIDEO` for custom-extractor chunks."""
+        return SourceType.VIDEO
+
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
         """
         Extract text from the video via subtitle or transcription.

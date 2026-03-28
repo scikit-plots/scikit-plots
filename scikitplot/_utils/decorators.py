@@ -222,7 +222,7 @@ def deprecated(
                 )
             else:
                 message = (
-                    "The {func} {obj_type} is deprecated and may "
+                    "The {func} {obj_type} is deprecated since {since} and may "
                     "be removed in a future version."
                 )
             if alternative:
@@ -234,6 +234,7 @@ def deprecated(
                 name=name,
                 alternative=alternative,
                 obj_type=obj_type_name,
+                since=since,
             )
         ) + altmessage
 
@@ -318,31 +319,51 @@ def deprecated_attribute(
                 self.new_name = 24
     """
     private_name = alternative or "_" + name
+    category = pending_warning_type if pending else warning_type
 
-    specific_deprecated = deprecated(
-        since,
-        name=name,
-        obj_type="attribute",
-        message=message,
-        alternative=alternative,
-        pending=pending,
-        warning_type=warning_type,
-        pending_warning_type=pending_warning_type,
-    )
+    # Build the warning message once at decoration time, mirroring the same
+    # template logic used by deprecated() for functions and classes.
+    if not message:
+        if pending:
+            warn_msg = (
+                f"The {name} attribute will be deprecated in a future version."
+            )
+        else:
+            warn_msg = (
+                f"The {name} attribute is deprecated since {since} and may "
+                "be removed in a future version."
+            )
+        if alternative:
+            warn_msg += f"\n        Use {alternative} instead."
+    else:
+        warn_msg = message.format(
+            name=name,
+            alternative=alternative or "",
+            since=since,
+        )
 
-    @specific_deprecated
-    def get(self):
-        return getattr(self, private_name)
+    # A plain `property` cannot be used here because `property.__get__` returns
+    # the descriptor itself when `obj is None` (class-level access) and never
+    # calls fget — so the warning would not fire.  A custom data descriptor
+    # calls our __get__ unconditionally for both class and instance access.
+    class _DeprecatedAttribute:
+        def __get__(self_d, obj, objtype=None):
+            warnings.warn(warn_msg, category, stacklevel=2)
+            if obj is None:
+                # Class-level access: return the descriptor itself (standard
+                # Python convention) so the attribute is still inspectable.
+                return self_d
+            return getattr(obj, private_name)
 
-    @specific_deprecated
-    def set(self, val):
-        setattr(self, private_name, val)
+        def __set__(self_d, obj, value):
+            warnings.warn(warn_msg, category, stacklevel=2)
+            setattr(obj, private_name, value)
 
-    @specific_deprecated
-    def delete(self):
-        delattr(self, private_name)
+        def __delete__(self_d, obj):
+            warnings.warn(warn_msg, category, stacklevel=2)
+            delattr(obj, private_name)
 
-    return property(get, set, delete)
+    return _DeprecatedAttribute()
 
 
 def deprecated_renamed_argument(
@@ -1279,5 +1300,35 @@ def format_doc(docstring, *args, **kwargs):
         kwargs["__doc__"] = obj.__doc__ or ""
         obj.__doc__ = doc.format(*args, **kwargs)
         return obj
+
+    # When `docstring` is a plain string, return an object that behaves as both
+    # a formatted string (for direct calls) AND a callable decorator.
+    #
+    # Why a str subclass: `format_doc("Value: {x}", x=99)` must satisfy
+    # assertEqual(result, "Value: 99"), while `@format_doc("Tmpl: {k}", k="v")`
+    # must still apply set_docstring to the decorated function.  Both usages
+    # have identical call signatures so a plain conditional cannot distinguish
+    # them; a str subclass that is also callable satisfies both at once.
+    #
+    # Eager formatting uses __doc__="" as a stand-in; the decorator path
+    # re-injects the real obj.__doc__ inside set_docstring, so no information
+    # is lost when the result is used as a decorator.
+    if isinstance(docstring, str):
+        _eager_kwargs = {**kwargs, "__doc__": ""}
+        try:
+            _eager_value = docstring.format(*args, **_eager_kwargs)
+        except (IndexError, KeyError):
+            # Template has placeholders that need obj context (e.g. positional
+            # args without a matching obj); keep the raw template as the string
+            # value — the decorator path will format correctly when called.
+            _eager_value = docstring
+
+        class _FormatDocResult(str):
+            """str subclass returned by format_doc; callable as a decorator."""
+
+            def __call__(self, obj):
+                return set_docstring(obj)
+
+        return _FormatDocResult(_eager_value)
 
     return set_docstring

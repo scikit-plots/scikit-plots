@@ -1352,11 +1352,12 @@ class AudioReader(DocumentReader):
     # DocumentReader contract
     # ------------------------------------------------------------------
 
+    def _custom_extractor_source_type(self) -> SourceType:
+        """Return :attr:`~scikitplot.corpus._schema.SourceType.AUDIO` for custom-extractor chunks."""
+        return SourceType.AUDIO
+
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:  # noqa: PLR0912
         """
-        Extract text from the audio via companion, transcription, or
-        classification.
-
         Attempts companion detection first. Falls back to Whisper only
         when ``transcribe=True`` and no companion was found. Classification
         via ``classify=True`` runs independently (can combine with
@@ -1375,7 +1376,7 @@ class AudioReader(DocumentReader):
             If the file exceeds ``max_file_bytes``.
         ImportError
             If ``transcribe=True`` and Whisper is not installed.
-        """  # noqa: D205
+        """  # noqa: D205, D401
         file_size = self.input_file.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(

@@ -9,8 +9,8 @@ module, preserving all proven design patterns while resolving every known
 correctness, robustness, and maintainability issue identified during the
 migration audit.
 
-Quick start
------------
+Examples
+--------
 Single file, no embedding:
 
 >>> from pathlib import Path
@@ -84,32 +84,6 @@ Convenience function (direct replacement for remarx ``create_corpus``):
 >>> results = builder.search("quantum computing")
 >>> lc_docs = builder.to_langchain()
 >>> mcp_response = builder.to_mcp_tool_result("quantum computing")
-
-Package structure
------------------
-``scikitplot.corpus._schema``
-    Core data types: CorpusDocument, SectionType, ChunkingStrategy,
-    ExportFormat, SourceType, MatchMode.
-
-``scikitplot.corpus._base``
-    Abstract bases: DocumentReader, ChunkerBase, FilterBase, DefaultFilter.
-
-``scikitplot.corpus._chunkers``
-    WordChunker, WordChunkerConfig, SentenceChunker, SentenceChunkerConfig,
-    ParagraphChunker, ParagraphChunkerConfig, FixedWindowChunker, FixedWindowChunkerConfig.
-
-``scikitplot.corpus._readers``
-    TextReader, MarkdownReader, ReSTReader, XMLReader, TEIReader, AudioReader,
-    ALTOReader, PDFReader, ImageReader, VideoReader, WebReader, YouTubeReader.
-
-``scikitplot.corpus._embeddings``
-    EmbeddingEngine -- multi-backend embedding with disk cache.
-
-``scikitplot.corpus._pipeline``
-    CorpusPipeline, PipelineResult, create_corpus.
-
-``scikitplot.corpus._export``
-    export_documents, load_documents.
 """  # noqa: D205, D400
 
 from __future__ import annotations
@@ -120,6 +94,7 @@ from . import (
     _base,
     _chunkers,
     _corpus_builder,
+    _custom_hooks,
     _embeddings,
     _enrichers,
     _export,
@@ -139,6 +114,7 @@ from ._archive_handler import *  # noqa: F403  # --- Archive handling (zip / tar
 from ._base import *  # noqa: F403  # Base classes
 from ._chunkers import *  # noqa: F403
 from ._corpus_builder import *  # noqa: F403  # --- Unified builder (the user-friendly orchestration API) ---
+from ._custom_hooks import *  # noqa: F403
 from ._embeddings import *  # noqa: F403  # Embeddings by sentence-transformer
 from ._enrichers import *  # noqa: F403  # --- NLP enricher ---
 from ._export import *  # noqa: F403
@@ -159,6 +135,7 @@ __all__ += _archive_handler.__all__
 __all__ += _base.__all__
 __all__ += _chunkers.__all__
 __all__ += _corpus_builder.__all__
+__all__ += _custom_hooks.__all__
 __all__ += _embeddings.__all__
 __all__ += _enrichers.__all__
 __all__ += _export.__all__

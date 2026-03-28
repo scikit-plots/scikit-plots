@@ -21,6 +21,12 @@ Custom warnings and errors used across scikit-plots.
 This module contains errors/exceptions and warnings of general use for
 scikit-plots. Exceptions that are specific to a given subpackage should *not* be
 here, but rather in the particular subpackage.
+The builtin warning hierarchy is:
+
+Warning
+├── DeprecationWarning          ← must be base of ScikitplotDeprecationWarning
+├── PendingDeprecationWarning   ← must be base of ScikitplotPendingDeprecationWarning
+└── UserWarning                 ← must be base of ScikitplotUserWarning
 """
 
 import json as _json
@@ -266,37 +272,6 @@ class ModuleDeprecationWarning(DeprecationWarning):
     pass
 
 
-# class ModuleDeprecationWarning(DeprecationWarning):
-#     """
-#     Module deprecation warning class.
-
-#     This custom warning class is used to signal the deprecation of an entire module.
-#     The `nose` testing framework treats ordinary `DeprecationWarning` as test failures,
-#     which makes it challenging to deprecate whole modules. To address this, this special
-#     `ModuleDeprecationWarning` is defined, which the `nose` tester will allow without
-#     causing test failures.
-
-#     This is especially useful when deprecating entire modules or submodules without
-#     breaking existing tests.
-
-#     Attributes
-#     ----------
-#     __module__ : str
-#         The module in which this warning is defined, set to 'scikitplot'.
-
-#     Methods
-#     -------
-#     __module__
-#         A string representing the module that contains this warning.
-
-#     """
-
-#     # Set the module for the warning to 'scikitplot'
-#     __module__: str = "scikitplot"
-
-
-# ModuleDeprecationWarning.__module__ = 'scikitplot'
-
 ######################################################################
 ## VisibleDeprecationWarning class
 ######################################################################
@@ -313,36 +288,6 @@ class VisibleDeprecationWarning(UserWarning):
     pass
 
 
-# class VisibleDeprecationWarning(UserWarning):
-#     """
-#     Visible deprecation warning class.
-
-#     In Python, deprecation warnings are usually suppressed by default. This custom warning
-#     class is designed to make deprecation warnings more visible, which is useful when
-#     the usage is likely a user mistake or bug. This class ensures that the warning is shown
-#     to the user more prominently, alerting them about deprecated functionality.
-
-#     It is useful in situations where deprecation indicates potential issues with the
-#     user's code and immediate attention is required.
-
-#     Attributes
-#     ----------
-#     __module__ : str
-#         The module in which this warning is defined, set to 'scikitplot'.
-
-#     Methods
-#     -------
-#     __module__
-#         A string representing the module that contains this warning.
-
-#     """
-
-#     # Set the module for the warning to 'scikitplot'
-#     __module__: str = "scikitplot"
-
-
-# VisibleDeprecationWarning.__module__ = 'scikitplot'
-
 ######################################################################
 ## Astropy exceptions
 ######################################################################
@@ -355,7 +300,7 @@ class ScikitplotWarning(Warning):
     """
 
 
-class ScikitplotUserWarning(UserWarning, ScikitplotWarning):
+class ScikitplotUserWarning(UserWarning):
     """
     The primary warning class for scikit-plots.
 
@@ -363,13 +308,13 @@ class ScikitplotUserWarning(UserWarning, ScikitplotWarning):
     """
 
 
-class ScikitplotDeprecationWarning(ScikitplotWarning):
+class ScikitplotDeprecationWarning(DeprecationWarning):
     """
     A warning class to indicate a deprecated feature.
     """
 
 
-class ScikitplotPendingDeprecationWarning(PendingDeprecationWarning, ScikitplotWarning):
+class ScikitplotPendingDeprecationWarning(PendingDeprecationWarning):
     """
     A warning class to indicate a soon-to-be deprecated feature.
     """
@@ -390,20 +335,6 @@ class DuplicateRepresentationWarning(ScikitplotWarning):
     A warning class indicating a representation name was already registered.
     """
 
-
-# class _NoValue:
-#     """Special keyword value.
-
-#     This class may be used as the default value assigned to a
-#     deprecated keyword in order to check if it has been given a user
-#     defined value.
-#     """
-
-#     def __repr__(self):
-#         return "astropy.utils.exceptions.NoValue"
-
-
-# NoValue = _NoValue()
 
 ######################################################################
 ## Mlflow exceptions
@@ -508,7 +439,41 @@ class ScikitplotTracingException(ScikitplotException):
 
 
 class ScikitplotTraceDataException(ScikitplotTracingException):
-    """Exception thrown for trace data related error."""
+    """Exception thrown for trace data related errors.
+
+    Parameters
+    ----------
+    error_code : str
+        A string identifier for the error kind.  Recognised values are
+        ``"NOT_FOUND"`` and ``"INVALID_STATE"``; any other value produces a
+        generic message.
+    request_id : str or None, optional
+        The trace request identifier to include in the error message.
+        Takes priority over *artifact_path* when both are supplied.
+    artifact_path : str or None, optional
+        The artifact path to include in the error message, used when
+        *request_id* is ``None``.
+
+    Notes
+    -----
+    **Bug fixes applied (three defects in the original):**
+
+    1. ``self.ctx`` was never initialised when both *request_id* and
+       *artifact_path* were ``None``, causing ``AttributeError`` inside
+       ``super().__init__()``.  Now defaults to ``"unknown"``.
+
+    2. The second branch was ``elif error_code == -1:`` — identical to the
+       ``if`` above it, making the corrupted-state path dead code.  Replaced
+       with the correct string sentinel ``"INVALID_STATE"``, matching what
+       ``ScikitplotTraceDataCorrupted`` actually passes.
+
+    3. ``ScikitplotTraceDataNotFound`` passes ``"NOT_FOUND"`` and
+       ``ScikitplotTraceDataCorrupted`` passes ``"INVALID_STATE"`` as
+       *error_code*, but the old comparisons used integer literals (``-1``),
+       so no branch ever matched and ``super().__init__()`` was never called,
+       leaving the exception object in an uninitialised state.  Comparisons
+       now use the correct string sentinels.
+    """
 
     def __init__(
         self,
@@ -516,18 +481,29 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
         request_id: "str | None" = None,
         artifact_path: "str | None" = None,
     ):
-        if request_id:
+        # Fix 1: always initialise self.ctx so super().__init__() never
+        # raises AttributeError regardless of which arguments are supplied.
+        if request_id is not None:
             self.ctx = f"request_id={request_id}"
-        elif artifact_path:
+        elif artifact_path is not None:
             self.ctx = f"path={artifact_path}"
+        else:
+            self.ctx = "unknown"
 
-        if error_code == -1:
+        # Fix 2 & 3: compare against the string sentinels that the
+        # subclasses actually pass, not against integer literals.
+        if error_code == "NOT_FOUND":
             super().__init__(
                 f"Trace data not found for {self.ctx}", error_code=error_code
             )
-        elif error_code == -1:
+        elif error_code == "INVALID_STATE":
             super().__init__(
                 f"Trace data is corrupted for {self.ctx}", error_code=error_code
+            )
+        else:
+            super().__init__(
+                f"Trace data error ({error_code!r}) for {self.ctx}",
+                error_code=error_code,
             )
 
 

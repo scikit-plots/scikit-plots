@@ -663,8 +663,9 @@ class TestImageReaderCustomExtractor:
     def test_raises_when_custom_backend_but_no_extractor(self, tmp_image: pathlib.Path) -> None:
         from .._image import ImageReader
 
+        reader = ImageReader(input_file=tmp_image, backend="custom")
         with pytest.raises(ValueError, match="requires a 'custom_extractor'"):
-            ImageReader(input_file=tmp_image, backend="custom")
+            list(reader.get_documents())
 
     def test_raises_on_non_callable_custom_extractor(self, tmp_image: pathlib.Path) -> None:
         from .._image import ImageReader

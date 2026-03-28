@@ -281,7 +281,7 @@ def _validate_chunk_dict(chunk: dict[str, Any], *, index: int | None = None) -> 
             f"the required 'text' key. Got keys: {sorted(chunk.keys())!r}."
         )
     if not isinstance(chunk["text"], str):
-        raise TypeError(
+        raise ValueError(  # noqa: TRY004
             f"normalize_extractor_output: chunk dict{loc} 'text' must be "
             f"a str; got {type(chunk['text']).__name__!r}."
         )
