@@ -38,7 +38,11 @@ Preset = Literal["favicon", "avatar", "docs-hero"]
 # Public constants
 # -----------------------------
 
-_SCIKITPLOT_BANNER: str = r"""
+# FIX 1: lstrip() result was previously discarded (dead statement).
+# Strip the leading newline so the banner prints cleanly without a blank
+# first line, while preserving all ASCII art content.
+_SCIKITPLOT_BANNER: str = (
+    r"""
  ____       _ _    _ _              _       _
 / ___|  ___(_) | _(_) |_      _ __ | | ___ | |_ ___
 \___ \ / __| | |/ / | __|____| '_ \| |/ _ \| __/ __|
@@ -46,9 +50,16 @@ _SCIKITPLOT_BANNER: str = r"""
 |____/ \___|_|_|\_\_|\__|    | .__/|_|\___/ \__|___/
                              |_|
 """
-_SCIKITPLOT_BANNER.lstrip()
+).lstrip("\n")
 
 _VARIANTS: tuple[Variant, ...] = ("primary", "small", "metrics", "knn")
+
+# FIX 2 (new): Declare valid theme and dots-mode sets as module-level
+# constants so that draw() validation, _palette(), and future callers
+# can reference a single canonical source of truth rather than repeating
+# literal strings in multiple places.
+_THEMES: tuple[Theme, ...] = ("light", "dark")
+_DOTS_MODES: tuple[DotsMode, ...] = ("fixed", "random", "none")
 
 
 _SIZE_PRESETS: dict[Preset, dict[str, object]] = {
@@ -102,13 +113,51 @@ _FIXED_DOTS: Sequence[tuple[float, float, float, str]] = [
 
 
 def _lerp_color(c1: str, c2: str, t: float):
+    """
+    Linearly interpolate between two Matplotlib-compatible color strings.
+
+    Parameters
+    ----------
+    c1 : str
+        Start color (any Matplotlib color string).
+    c2 : str
+        End color (any Matplotlib color string).
+    t : float
+        Interpolation parameter in [0, 1]; 0 → c1, 1 → c2.
+
+    Returns
+    -------
+    numpy.ndarray
+        RGB array of shape (3,) with values in [0, 1].
+
+    Notes
+    -----
+    Both inputs are converted via ``matplotlib.colors.to_rgb`` before
+    interpolation, so any valid Matplotlib color specification is accepted.
+    """
     c1 = np.array(mcolors.to_rgb(c1))
     c2 = np.array(mcolors.to_rgb(c2))
     return (1 - t) * c1 + t * c2
 
 
 def _palette(theme: Theme = "light", mono: bool = False):
-    """Return the brand palette for a theme."""
+    """
+    Return the brand palette for a theme.
+
+    Parameters
+    ----------
+    theme : {"light", "dark"}, default="light"
+        Base palette theme.
+    mono : bool, default=False
+        When True, all non-background colors are reduced to a single hue.
+
+    Returns
+    -------
+    dict
+        Mapping of color-role strings to hex color values.
+        Keys: ``NAVY``, ``BLUE``, ``BLUE_LIGHT``, ``ORANGE``,
+        ``ORANGE_LIGHT``, ``BG``.
+    """
     if mono:
         if theme == "dark":
             return {
@@ -192,9 +241,48 @@ def _apply_preset(
     size: float,
     dpi: int,
 ) -> tuple[Variant, DotsMode, float, int]:
-    """Resolve preset defaults without overriding explicit parameters."""
+    """
+    Resolve preset defaults without overriding explicit user parameters.
+
+    Parameters
+    ----------
+    preset : Preset or None
+        Named preset to apply, or None for no override.
+    variant : Variant
+        Current variant (treated as explicit if not "primary").
+    dots : DotsMode
+        Current dots mode (treated as explicit if not "fixed").
+    size : float
+        Current size (treated as explicit if not the create() default of 4).
+    dpi : int
+        Current dpi (treated as explicit if not the create() default of 200).
+
+    Returns
+    -------
+    tuple
+        Resolved (variant, dots, size, dpi) after applying preset.
+
+    Raises
+    ------
+    ValueError
+        If ``preset`` is not None and not a known key in ``_SIZE_PRESETS``.
+
+    Notes
+    -----
+    Developer note: sentinel detection compares against documented defaults
+    (``size=4``, ``dpi=200``, ``variant="primary"``, ``dots="fixed"``).
+    If a caller explicitly passes a sentinel value *and* wants the preset
+    to NOT override it, they must set the value to a non-sentinel equivalent
+    (e.g., ``size=4.0000001``). This is a known trade-off of the approach.
+    """
     if preset is None:
         return variant, dots, size, dpi
+
+    # FIX 3: Validate preset key explicitly so callers receive a clear,
+    # actionable error instead of an opaque KeyError from dict lookup.
+    if preset not in _SIZE_PRESETS:
+        valid = tuple(_SIZE_PRESETS)
+        raise ValueError(f"preset must be one of {valid!r}, got {preset!r}")
 
     cfg = _SIZE_PRESETS[preset]
     variant = (
@@ -202,7 +290,7 @@ def _apply_preset(
     )  # type: ignore[]
     dots = dots if dots != "fixed" or "dots" not in cfg else cfg["dots"]  # type: ignore[]
 
-    # Only override size/dpi if user kept defaults
+    # Only override size/dpi if the caller kept the create() defaults.
     size = size if size != 4 else cfg.get("size", size)  # type: ignore[]  # noqa: PLR2004
     dpi = dpi if dpi != 200 else cfg.get("dpi", dpi)  # type: ignore[]  # noqa: PLR2004
     return variant, dots, size, dpi
@@ -237,7 +325,7 @@ def _add_spark(ax, clip, center, arms, color, hole_face="white"):
         dx = 0.12 * np.cos(ang)
         dy = 0.12 * np.sin(ang)
 
-        l = Line2D(
+        spoke = Line2D(
             [center[0] - dx, center[0] + dx],
             [center[1] - dy, center[1] + dy],
             color=color,
@@ -245,8 +333,8 @@ def _add_spark(ax, clip, center, arms, color, hole_face="white"):
             solid_capstyle="round",
             zorder=4,
         )
-        l.set_clip_path(clip)
-        ax.add_line(l)
+        spoke.set_clip_path(clip)
+        ax.add_line(spoke)
 
     hole = Circle(center, 0.04, facecolor=hole_face, edgecolor="none", zorder=5)
     hole.set_clip_path(clip)
@@ -286,9 +374,15 @@ def draw(  # noqa: PLR0912
     seed : int, default=2
         Seed for "random" dot placement.
 
+    Raises
+    ------
+    ValueError
+        If ``variant``, ``theme``, or ``dots`` is not one of the accepted
+        literal values.
+
     Notes
     -----
-    This function is deterministic for all variants when `dots="fixed"`.
+    This function is deterministic for all variants when ``dots="fixed"``.
 
     See Also
     --------
@@ -303,6 +397,16 @@ def draw(  # noqa: PLR0912
     >>> fig, ax = plt.subplots(figsize=(4, 4), dpi=200)
     >>> sp._logo.draw(ax, variant="metrics")
     """
+    # FIX 4: Validate all enumerated arguments eagerly so callers receive
+    # a clear ValueError pointing to the bad value and its allowed choices,
+    # rather than a cryptic AttributeError or silent wrong rendering later.
+    if variant not in _VARIANTS:
+        raise ValueError(f"variant must be one of {_VARIANTS!r}, got {variant!r}")
+    if theme not in _THEMES:
+        raise ValueError(f"theme must be one of {_THEMES!r}, got {theme!r}")
+    if dots not in _DOTS_MODES:
+        raise ValueError(f"dots must be one of {_DOTS_MODES!r}, got {dots!r}")
+
     P = _palette(theme=theme, mono=mono)  # noqa: N806
     NAVY, BLUE, BLUE_LIGHT = P["NAVY"], P["BLUE"], P["BLUE_LIGHT"]  # noqa: N806
     ORANGE, ORANGE_LIGHT, BG = P["ORANGE"], P["ORANGE_LIGHT"], P["BG"]  # noqa: N806
@@ -436,9 +540,9 @@ def draw(  # noqa: PLR0912
             ax.add_patch(c)
         links = [(-0.05, 0.52, 0.10, 0.45), (0.10, 0.45, 0.25, 0.55)]
         for x1, y1, x2, y2 in links:
-            l = Line2D([x1, x2], [y1, y2], color=BLUE, linewidth=4, zorder=3.8)
-            l.set_clip_path(clip)
-            ax.add_line(l)
+            knn_edge = Line2D([x1, x2], [y1, y2], color=BLUE, linewidth=4, zorder=3.8)
+            knn_edge.set_clip_path(clip)
+            ax.add_line(knn_edge)
 
     # Accent dots
     if variant != "small":
@@ -507,6 +611,11 @@ def create(
     -------
     fig : matplotlib.figure.Figure
     ax : matplotlib.axes.Axes
+
+    Raises
+    ------
+    ValueError
+        If ``variant``, ``theme``, ``dots``, or ``preset`` is invalid.
 
     See Also
     --------
@@ -585,9 +694,37 @@ def show(
 def _infer_format_from_filename(
     filename: str | Path, ext: str | None, format: str | None
 ):
+    """
+    Resolve output format and final path from a filename plus optional overrides.
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Base output path.
+    ext : str or None
+        Explicit format override; takes priority over ``format``.
+    format : str or None
+        Alternative explicit format; used when ``ext`` is None.
+
+    Returns
+    -------
+    fmt : str
+        Resolved lowercase format string (e.g., ``"svg"``, ``"png"``).
+    path : pathlib.Path
+        Final output path with the resolved suffix applied.
+
+    Notes
+    -----
+    Resolution order (highest to lowest priority):
+
+    1. ``ext`` — strips any leading dot, lowercased.
+    2. ``format`` — lowercased.
+    3. Suffix of ``filename`` — lowercased.
+    4. ``"svg"`` — default when no suffix is present.
+    """
     p = Path(filename)
 
-    # Resolve explicit format
+    # Resolve explicit format — ext takes priority over format
     chosen = ext or format
     if chosen:
         e = str(chosen).lower().lstrip(".")
@@ -608,6 +745,35 @@ def _resolve_output_names(
     ext: str | None,
     format: str | None,
 ):
+    """
+    Build the list of (variant, output_path, format) tuples for a save call.
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Base output path or template containing ``{variant}``.
+    variants : sequence of Variant
+        One or more variants to export.
+    ext : str or None
+        Explicit format override.
+    format : str or None
+        Alternative explicit format.
+
+    Returns
+    -------
+    list of tuple
+        Each element is ``(variant, output_path_str, format_str)``.
+
+    Notes
+    -----
+    Three naming strategies apply in priority order:
+
+    1. **Template mode** — filename contains ``{variant}``; it is expanded
+       for each variant.
+    2. **Multi-variant mode** — multiple variants requested; ``-{variant}``
+       is appended before the extension.
+    3. **Single-variant mode** — filename is used verbatim.
+    """
     fmt, base = _infer_format_from_filename(filename, ext, format)
     base_str = str(base)
 
@@ -797,6 +963,43 @@ def _draw_wordmark(
     weight: str,
     letter_spacing: float,
 ):
+    """
+    Render icon and text side-by-side onto two pre-created axes.
+
+    Parameters
+    ----------
+    ax_icon : matplotlib.axes.Axes
+        Axes for the icon mark.
+    ax_text : matplotlib.axes.Axes
+        Axes for the text portion.
+    text : str
+        Wordmark text to render.
+    icon_variant : Variant
+        Which logo variant to draw in the icon axes.
+    theme : Theme
+        Palette theme.
+    mono : bool
+        Monochrome mode.
+    dots : DotsMode
+        Decorative dot mode for the icon.
+    seed : int
+        Random seed for dot placement.
+    text_size : int
+        Font size in points.
+    weight : str
+        Font weight string (e.g., ``"semibold"``).
+    letter_spacing : float
+        Approximate extra horizontal advance per character in axes-fraction
+        units. Values ≤ 0 render text as a single ``ax.text`` call.
+
+    Notes
+    -----
+    Developer note: Matplotlib does not expose per-character advance widths
+    without a renderer. When ``letter_spacing > 0``, characters are placed
+    with a fixed approximate advance (``0.03 + letter_spacing``). This is a
+    deliberate simplification for pure-Matplotlib portability; for precise
+    kerning, a renderer-based text shaping library would be required.
+    """
     # Icon axes
     draw(ax_icon, variant=icon_variant, theme=theme, mono=mono, dots=dots, seed=seed)
 
@@ -806,8 +1009,6 @@ def _draw_wordmark(
     ax_text.axis("off")
     ax_text.set_facecolor(BG)
 
-    # Simple letter spacing emulation by tiny offset per char
-    # (kept conservative for Matplotlib portability)
     if letter_spacing <= 0:
         ax_text.text(
             0.0,
@@ -822,6 +1023,7 @@ def _draw_wordmark(
         )
         return
 
+    # Per-character placement with approximate advance for letter-spacing.
     x = 0.0
     for ch in text:
         ax_text.text(
@@ -835,7 +1037,6 @@ def _draw_wordmark(
             fontweight=weight,
             transform=ax_text.transAxes,
         )
-        # heuristic advance
         x += 0.03 + letter_spacing
 
 
@@ -931,6 +1132,20 @@ class _WordmarkAPI:
             letter_spacing=letter_spacing,
         )
 
+        # draw() calls ax.set_aspect("equal") with adjustable="box" (matplotlib
+        # default).  When icon_ratio != height_ratio (0.28), the icon axes
+        # display area is not square, so apply_aspect() shrinks the active
+        # bounding box to enforce square pixels -- silently overwriting the
+        # caller-requested icon_ratio.
+        #
+        # Fix: switch to adjustable="datalim" so aspect is enforced by
+        # expanding data limits instead of resizing the box, then restore the
+        # bounding box to the caller's intent.  The icon remains visually
+        # correct: equal-aspect within the circle clip; any extra axes space
+        # shows the background colour only.
+        ax_icon.set_aspect("equal", adjustable="datalim")
+        ax_icon.set_position([0.0, 0.0, icon_ratio, 1.0])
+
         return fig, (ax_icon, ax_text)
 
     def show(self, **kwargs):
@@ -997,12 +1212,15 @@ class _WordmarkAPI:
         """
         fmt, out_path = _infer_format_from_filename(filename, ext, format)
 
-        # Allow preset to influence size/dpi if caller didn't override
+        # Allow preset to influence size if caller kept the wordmark default (6.0).
+        # FIX 5: The original code had a dead `dpi = 200 if dpi == 200 else dpi`
+        # statement — an unconditional no-op.  It is removed here.  The dpi for
+        # "docs-hero" wordmark stays at the caller-provided value (200 by default),
+        # which matches _SIZE_PRESETS["docs-hero"]["dpi"] anyway.
         size = kwargs.pop("size", 6.0)
         dpi = kwargs.pop("dpi", 200)
         if preset == "docs-hero":
             size = 8.0 if size == 6.0 else size  # noqa: PLR2004
-            dpi = 200 if dpi == 200 else dpi  # noqa: PLR2004
 
         fig, _ = self.create(preset=preset, size=size, dpi=dpi, **kwargs)
         fig.savefig(
@@ -1026,6 +1244,21 @@ wordmark = _WordmarkAPI()
 
 
 def _cli_build_variants(arg_variants: list[str] | None, all_flag: bool):
+    """
+    Resolve the list of variants to generate for the CLI.
+
+    Parameters
+    ----------
+    arg_variants : list of str or None
+        Variants passed via ``--variant`` flags.
+    all_flag : bool
+        Whether ``--all`` was passed.
+
+    Returns
+    -------
+    list of str
+        Resolved variant list.
+    """
     if all_flag:
         return list(_VARIANTS)
     if not arg_variants:

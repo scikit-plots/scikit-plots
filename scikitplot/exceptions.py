@@ -21,12 +21,31 @@ Custom warnings and errors used across scikit-plots.
 This module contains errors/exceptions and warnings of general use for
 scikit-plots. Exceptions that are specific to a given subpackage should *not* be
 here, but rather in the particular subpackage.
-The builtin warning hierarchy is:
 
-Warning
-├── DeprecationWarning          ← must be base of ScikitplotDeprecationWarning
-├── PendingDeprecationWarning   ← must be base of ScikitplotPendingDeprecationWarning
-└── UserWarning                 ← must be base of ScikitplotUserWarning
+The builtin warning hierarchy is::
+
+    Warning
+    ├── DeprecationWarning          ← base of ScikitplotDeprecationWarning
+    ├── PendingDeprecationWarning   ← base of ScikitplotPendingDeprecationWarning
+    └── UserWarning                 ← base of ScikitplotUserWarning
+
+Notes
+-----
+**Developer notes**
+
+* Do *not* import this module from ``__init__.py`` before it has been fully
+  bootstrapped.  The ``_is_loaded`` guard prevents accidental re-import, which
+  would create duplicate class identities and break ``isinstance`` checks across
+  reload boundaries.
+
+* ``error_code`` in :class:`ScikitplotException` and its subclasses may be
+  either an ``int`` (legacy convention) or a ``str`` sentinel (e.g.
+  ``"NOT_FOUND"``, ``"INVALID_STATE"``).  Both forms are preserved verbatim in
+  the JSON payload; callers must not assume a particular type.
+
+* :func:`__getattr__` at module scope handles the deprecated ``ErfaError`` /
+  ``ErfaWarning`` aliases.  ``stacklevel=2`` ensures the warning frame points
+  at the *caller* rather than at the ``__getattr__`` body itself.
 """
 
 import json as _json
@@ -44,7 +63,6 @@ __all__ = [
     "ScikitplotUserWarning",
     "ScikitplotWarning",
     "DuplicateRepresentationWarning",
-    # "NoValue",  # see: globals
     # from mlflow
     "ScikitplotException",
     "ExecutionException",
@@ -54,29 +72,34 @@ __all__ = [
     "ScikitplotTraceDataException",
     "ScikitplotTraceDataNotFound",
     "ScikitplotTraceDataCorrupted",
+    "CommandError",
     # from numpy
     "ComplexWarning",
+    "RankWarning",
     "VisibleDeprecationWarning",
     "ModuleDeprecationWarning",
     "TooHardError",
     "AxisError",
     "DTypePromotionError",
-    # from pip
-    "CommandError",
 ]
 
+# ---------------------------------------------------------------------------
+# Reload guard
 # Disallow reloading this module so as to preserve the identities of the
-# classes defined here.
+# classes defined here.  A reload would create new class objects, breaking
+# ``isinstance`` checks for any exception/warning instance that was raised
+# before the reload.
+# ---------------------------------------------------------------------------
 if '_is_loaded' in globals():
-    raise RuntimeError('Reloading scikitplot._globals is not allowed')
+    raise RuntimeError('Reloading scikitplot.exceptions is not allowed')
 _is_loaded = True
+
 
 ######################################################################
 ## Numpy exceptions
 ######################################################################
 
 
-# Exception used in shares_memory()
 class TooHardError(RuntimeError):
     """``max_work`` was exceeded.
 
@@ -84,18 +107,15 @@ class TooHardError(RuntimeError):
     to consider specified by the ``max_work`` parameter is exceeded.
     Assigning a finite number to ``max_work`` may have caused the operation
     to fail.
-
     """
     pass
 
 
 class ComplexWarning(RuntimeWarning):
-    """
-    The warning raised when casting a complex dtype to a real dtype.
+    """The warning raised when casting a complex dtype to a real dtype.
 
     As implemented, casting a complex number to a real discards its imaginary
     part, but this behavior may not be what the user actually wants.
-
     """
     pass
 
@@ -104,7 +124,6 @@ class RankWarning(RuntimeWarning):
     """Matrix rank warning.
 
     Issued by polynomial functions when the design matrix is rank deficient.
-
     """
     pass
 
@@ -125,7 +144,7 @@ class DTypePromotionError(TypeError):
     for the input dtypes.
 
     Typically promotion should be considered "invalid" between the dtypes of
-    two arrays when `arr1 == arr2` can safely return all ``False`` because the
+    two arrays when ``arr1 == arr2`` can safely return all ``False`` because the
     dtypes are fundamentally different.
 
     Examples
@@ -173,27 +192,30 @@ class AxisError(ValueError, IndexError):
     Parameters
     ----------
     axis : int or str
-        The out of bounds axis or a custom exception message.
-        If an axis is provided, then `ndim` should be specified as well.
+        The out-of-bounds axis, or a custom exception message string.
+        When a custom message is supplied, ``ndim`` must be omitted (or
+        ``None``) and ``msg_prefix`` must be ``None``.
     ndim : int, optional
-        The number of array dimensions.
+        The number of array dimensions.  Required when ``axis`` is an int.
     msg_prefix : str, optional
-        A prefix for the exception message.
+        A prefix prepended to the auto-generated message, separated by
+        ``": "``.
 
     Attributes
     ----------
-    axis : int, optional
-        The out of bounds axis or ``None`` if a custom exception
-        message was provided. This should be the axis as passed by
-        the user, before any normalization to resolve negative indices.
+    axis : int or None
+        The out-of-bounds axis, or ``None`` for the single-argument form.
+    ndim : int or None
+        The number of array dimensions, or ``None`` for the single-argument
+        form.
 
-        .. versionadded:: 1.22
-    ndim : int, optional
-        The number of array dimensions or ``None`` if a custom exception
-        message was provided.
+    Notes
+    -----
+    .. versionadded:: 1.22
+        The ``axis`` and ``ndim`` attributes.
 
-        .. versionadded:: 1.22
-
+    The ``__slots__`` declaration prevents creation of a ``__dict__``,
+    keeping instances lightweight.
 
     Examples
     --------
@@ -221,18 +243,19 @@ class AxisError(ValueError, IndexError):
 
     >>> print(np.exceptions.AxisError('Custom error message'))
     Custom error message
-
     """
 
     __slots__ = ("_msg", "axis", "ndim")
 
     def __init__(self, axis, ndim=None, msg_prefix=None):
         if ndim is msg_prefix is None:
-            # single-argument form: directly set the error message
+            # Single-argument form: ``axis`` is a plain string message.
             self._msg = axis
             self.axis = None
             self.ndim = None
         else:
+            # Structured form: ``axis`` is an int, ``ndim`` is an int.
+            # ``msg_prefix`` is an optional string prefix (may be None).
             self._msg = msg_prefix
             self.axis = axis
             self.ndim = ndim
@@ -242,6 +265,7 @@ class AxisError(ValueError, IndexError):
         ndim = self.ndim
 
         if axis is ndim is None:
+            # Single-argument form – return the verbatim message.
             return self._msg
         else:
             msg = f"axis {axis} is out of bounds for array of dimension {ndim}"
@@ -267,7 +291,6 @@ class ModuleDeprecationWarning(DeprecationWarning):
     That makes it hard to deprecate whole modules, because they get
     imported by default. So this is a special Deprecation warning that the
     nose tester will let pass without making tests fail.
-
     """
     pass
 
@@ -283,7 +306,6 @@ class VisibleDeprecationWarning(UserWarning):
     By default, python will not show deprecation warnings, so this class
     can be used when a very visible warning is helpful, for example because
     the usage is most likely a user bug.
-
     """
     pass
 
@@ -292,37 +314,31 @@ class VisibleDeprecationWarning(UserWarning):
 ## Astropy exceptions
 ######################################################################
 
+
 class ScikitplotWarning(Warning):
-    """
-    The base warning class from which all scikit-plots warnings should inherit.
+    """The base warning class from which all scikit-plots warnings should inherit.
 
     Any warning inheriting from this class is handled by the scikit-plots logger.
     """
 
 
 class ScikitplotUserWarning(UserWarning):
-    """
-    The primary warning class for scikit-plots.
+    """The primary warning class for scikit-plots.
 
     Use this if you do not need a specific sub-class.
     """
 
 
 class ScikitplotDeprecationWarning(DeprecationWarning):
-    """
-    A warning class to indicate a deprecated feature.
-    """
+    """A warning class to indicate a deprecated feature."""
 
 
 class ScikitplotPendingDeprecationWarning(PendingDeprecationWarning):
-    """
-    A warning class to indicate a soon-to-be deprecated feature.
-    """
+    """A warning class to indicate a soon-to-be deprecated feature."""
 
 
 class ScikitplotBackwardsIncompatibleChangeWarning(ScikitplotWarning):
-    """
-    A warning class indicating a change in astropy that is incompatible
+    """A warning class indicating a change in scikit-plots that is incompatible
     with previous versions.
 
     The suggested procedure is to issue this warning for the version in
@@ -331,9 +347,7 @@ class ScikitplotBackwardsIncompatibleChangeWarning(ScikitplotWarning):
 
 
 class DuplicateRepresentationWarning(ScikitplotWarning):
-    """
-    A warning class indicating a representation name was already registered.
-    """
+    """A warning class indicating a representation name was already registered."""
 
 
 ######################################################################
@@ -342,67 +356,113 @@ class DuplicateRepresentationWarning(ScikitplotWarning):
 
 
 class ScikitplotException(Exception):  # noqa: N818
-    """
-    Generic exception thrown to surface failure information about external-facing operations.
+    """Generic exception thrown to surface failure information about external-facing operations.
 
-    The error message associated with this exception may be exposed to clients in HTTP responses
-    for debugging purposes. If the error text is sensitive, raise a generic `Exception` object
-    instead.
+    The error message associated with this exception may be exposed to clients
+    in HTTP responses for debugging purposes.  If the error text is sensitive,
+    raise a generic :exc:`Exception` object instead.
+
+    Parameters
+    ----------
+    message : str or Exception
+        The message or exception describing the error that occurred.  Converted
+        to ``str`` unconditionally.  Included in the serialised JSON payload.
+    error_code : int or str, optional
+        An error code for the error that occurred.  May be an integer
+        (legacy convention) or a string sentinel such as ``"NOT_FOUND"``.
+        Defaults to ``0``.  Included in the serialised JSON payload.
+    **kwargs
+        Additional key-value pairs included in the serialised JSON payload.
+        Values must be JSON-serialisable; non-serialisable values are
+        coerced to their ``str`` representation during serialisation.
+
+    Attributes
+    ----------
+    error_code : int or str
+        The error code as supplied.
+    message : str
+        The string form of the supplied message.
+    json_kwargs : dict
+        The extra keyword arguments to include in the JSON payload.
+
+    Notes
+    -----
+    **User note** – catch this class (or its subclasses) when you need to
+    distinguish scikit-plots operational errors from other :exc:`Exception`
+    types.
+
+    **Developer note** – ``error_code`` is stored verbatim; do not apply
+    integer-only logic elsewhere in the codebase without first checking its
+    type.  The ``try/except`` that previously guarded the attribute assignment
+    was dead code (attribute assignment never raises :exc:`ValueError` or
+    :exc:`TypeError`) and has been removed.
     """
 
     def __init__(self, message, error_code=0, **kwargs):
-        """
-        Thrown to surface failure information about external-facing operations.
-
-        Parameters
-        ----------
-        message:
-            The message or exception describing the error that occurred. This will be
-            included in the exception's serialized JSON representation.
-        error_code:
-            An appropriate error code for the error that occurred; it will be
-            included in the exception's serialized JSON representation. This should
-            be one of the codes listed in the `scikitplot.protos.databricks_pb2` proto.
-        kwargs:
-            Additional key-value pairs to include in the serialized JSON representation
-            of the ScikitplotException.
-        """
-        try:
-            self.error_code = error_code
-        except (ValueError, TypeError):
-            self.error_code = 0
+        self.error_code = error_code
         message = str(message)
         self.message = message
         self.json_kwargs = kwargs
         super().__init__(message)
 
-    def serialize_as_json(self):  # noqa: D102
+    def serialize_as_json(self):
+        """Serialise the exception as a JSON string.
+
+        Returns
+        -------
+        str
+            A JSON-encoded object containing at minimum ``error_code`` and
+            ``message``, plus any extra keyword arguments supplied at
+            construction time.
+
+        Notes
+        -----
+        If any value in ``json_kwargs`` is not JSON-serialisable, the entire
+        payload falls back to a ``str``-coerced representation so that
+        serialisation never raises.
+        """
         exception_dict = {"error_code": self.error_code, "message": self.message}
         exception_dict.update(self.json_kwargs)
-        return _json.dumps(exception_dict)
+        try:
+            return _json.dumps(exception_dict)
+        except (TypeError, ValueError):
+            # Coerce every value to str to guarantee a valid JSON response.
+            safe_dict = {k: str(v) for k, v in exception_dict.items()}
+            return _json.dumps(safe_dict)
 
-    def get_http_status_code(self):  # noqa: D102
+    def get_http_status_code(self):
+        """Return the HTTP status code associated with this exception.
+
+        Returns
+        -------
+        int
+            Always ``500`` for the base class.
+        """
         return 500
 
     @classmethod
     def invalid_parameter_value(cls, message, **kwargs):
-        """
-        Construct an `ScikitplotException` object with the `INVALID_PARAMETER_VALUE` error code.
+        """Construct a :class:`ScikitplotException` with the ``INVALID_PARAMETER_VALUE`` code.
 
         Parameters
         ----------
-        message:
-            The message describing the error that occurred. This will be included in the
-            exception's serialized JSON representation.
-        kwargs:
-            Additional key-value pairs to include in the serialized JSON representation
-            of the ScikitplotException.
+        message : str
+            The message describing the error that occurred.  Included in the
+            exception's serialised JSON representation.
+        **kwargs
+            Additional key-value pairs to include in the serialised JSON
+            representation.
+
+        Returns
+        -------
+        ScikitplotException
+            A new instance with ``error_code=0``.
         """
         return cls(message, error_code=0, **kwargs)
 
 
 class CommandError(ScikitplotException):
-    """Raised when there is an error in command-line arguments"""
+    """Raised when there is an error in command-line arguments."""
 
 
 class ExecutionException(ScikitplotException):
@@ -418,7 +478,13 @@ class InvalidUrlException(ScikitplotException):
 
 
 class _UnsupportedMultipartUploadException(ScikitplotException):
-    """Exception thrown when multipart upload is unsupported by an artifact repository."""
+    """Exception thrown when multipart upload is unsupported by an artifact repository.
+
+    Notes
+    -----
+    This class is intentionally private (underscore prefix) and excluded from
+    ``__all__``; it is raised only by internal upload machinery.
+    """
 
     MESSAGE = "Multipart upload is not supported for the current artifact repository"
 
@@ -427,11 +493,18 @@ class _UnsupportedMultipartUploadException(ScikitplotException):
 
 
 class ScikitplotTracingException(ScikitplotException):
-    """
-    Exception thrown from tracing logic.
+    """Exception thrown from tracing logic.
 
-    Tracing logic should not block the main execution flow in general, hence this exception
-    is used to distinguish tracing related errors and handle them properly.
+    Tracing logic should not block the main execution flow in general; hence
+    this exception is used to distinguish tracing-related errors and handle
+    them gracefully without surfacing them to end users.
+
+    Parameters
+    ----------
+    message : str or Exception
+        Description of the tracing error.
+    error_code : int or str, optional
+        Error code; defaults to ``0``.
     """
 
     def __init__(self, message, error_code=0):
@@ -444,19 +517,30 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
     Parameters
     ----------
     error_code : str
-        A string identifier for the error kind.  Recognised values are
-        ``"NOT_FOUND"`` and ``"INVALID_STATE"``; any other value produces a
-        generic message.
+        A string identifier for the error kind.  Recognised values:
+
+        ``"NOT_FOUND"``
+            Trace data could not be located.
+        ``"INVALID_STATE"``
+            Trace data was found but is corrupted or in an unexpected state.
+
+        Any other value produces a generic error message.
     request_id : str or None, optional
         The trace request identifier to include in the error message.
         Takes priority over *artifact_path* when both are supplied.
     artifact_path : str or None, optional
-        The artifact path to include in the error message, used when
+        The artifact path to include in the error message.  Used only when
         *request_id* is ``None``.
+
+    Attributes
+    ----------
+    ctx : str
+        The context string embedded in the error message.  One of
+        ``"request_id=<value>"``, ``"path=<value>"``, or ``"unknown"``.
 
     Notes
     -----
-    **Bug fixes applied (three defects in the original):**
+    **Bug fixes applied (three defects present in the original upstream):**
 
     1. ``self.ctx`` was never initialised when both *request_id* and
        *artifact_path* were ``None``, causing ``AttributeError`` inside
@@ -465,10 +549,10 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
     2. The second branch was ``elif error_code == -1:`` — identical to the
        ``if`` above it, making the corrupted-state path dead code.  Replaced
        with the correct string sentinel ``"INVALID_STATE"``, matching what
-       ``ScikitplotTraceDataCorrupted`` actually passes.
+       :class:`ScikitplotTraceDataCorrupted` actually passes.
 
-    3. ``ScikitplotTraceDataNotFound`` passes ``"NOT_FOUND"`` and
-       ``ScikitplotTraceDataCorrupted`` passes ``"INVALID_STATE"`` as
+    3. :class:`ScikitplotTraceDataNotFound` passes ``"NOT_FOUND"`` and
+       :class:`ScikitplotTraceDataCorrupted` passes ``"INVALID_STATE"`` as
        *error_code*, but the old comparisons used integer literals (``-1``),
        so no branch ever matched and ``super().__init__()`` was never called,
        leaving the exception object in an uninitialised state.  Comparisons
@@ -508,7 +592,16 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
 
 
 class ScikitplotTraceDataNotFound(ScikitplotTraceDataException):
-    """Exception thrown when trace data is not found."""
+    """Exception thrown when trace data is not found.
+
+    Parameters
+    ----------
+    request_id : str or None, optional
+        Trace request identifier to embed in the error message.
+    artifact_path : str or None, optional
+        Artifact path to embed in the error message when *request_id* is
+        ``None``.
+    """
 
     def __init__(
         self, request_id: "str | None" = None, artifact_path: "str | None" = None
@@ -517,7 +610,16 @@ class ScikitplotTraceDataNotFound(ScikitplotTraceDataException):
 
 
 class ScikitplotTraceDataCorrupted(ScikitplotTraceDataException):
-    """Exception thrown when trace data is corrupted."""
+    """Exception thrown when trace data is corrupted.
+
+    Parameters
+    ----------
+    request_id : str or None, optional
+        Trace request identifier to embed in the error message.
+    artifact_path : str or None, optional
+        Artifact path to embed in the error message when *request_id* is
+        ``None``.
+    """
 
     def __init__(
         self, request_id: "str | None" = None, artifact_path: "str | None" = None
@@ -525,7 +627,35 @@ class ScikitplotTraceDataCorrupted(ScikitplotTraceDataException):
         super().__init__("INVALID_STATE", request_id, artifact_path)
 
 
+######################################################################
+## Module-level __getattr__ for deprecated aliases
+######################################################################
+
+
 def __getattr__(name: str):
+    """Handle deprecated attribute access at module level.
+
+    Parameters
+    ----------
+    name : str
+        The attribute name being accessed.
+
+    Returns
+    -------
+    type
+        The requested class from the ``erfa`` package.
+
+    Raises
+    ------
+    AttributeError
+        If *name* is not a known deprecated alias.
+
+    Notes
+    -----
+    ``stacklevel=2`` ensures the :exc:`DeprecationWarning` is reported at
+    the *caller* frame (the ``import`` or ``getattr`` statement in user
+    code), not inside this function body.
+    """
     if name in ("ErfaError", "ErfaWarning"):
         import warnings
 
@@ -534,10 +664,10 @@ def __getattr__(name: str):
             "in version 0.4 and will stop working in a future version. "
             f"Instead, please use\n`from erfa import {name}`\n\n",
             category=ScikitplotDeprecationWarning,
-            stacklevel=1,
+            # Fix: stacklevel=2 → warning frame is the caller, not __getattr__
+            stacklevel=2,
         )
 
-        # import erfa
         return getattr(__import__('erfa'), name)
 
     raise AttributeError(f"Module {__name__!r} has no attribute {name!r}.")
