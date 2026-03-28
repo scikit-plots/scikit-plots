@@ -35,8 +35,16 @@ class LazyLoader(_types.ModuleType):
         self._parent_module_globals[self._local_name] = module
         _sys.modules[self._local_name] = module
 
-        # Update this object's dict so that if someone keeps a reference to the `LazyLoader`,
-        # lookups are efficient (`__getattr__` is only called on lookups that fail).
+        # Cache the loaded module so the guard at the top of _load fires on
+        # subsequent calls and repr() reflects the loaded state.
+        # Bug fix: the original wandb port omitted this assignment, leaving
+        # self._module = None permanently and breaking the if-self._module guard,
+        # repr(), and any caller that inspects _module directly.
+        self._module = module
+
+        # Update this object's dict so that if someone keeps a reference to the
+        # LazyLoader, subsequent attribute lookups are efficient — __getattr__
+        # is only called on lookups that fail the instance dict.
         self.__dict__.update(module.__dict__)
 
         return module

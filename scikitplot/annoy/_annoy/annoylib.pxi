@@ -22,7 +22,7 @@ DEF MAX_DIMENSION = 1000000
 
 # Index type item-ID upper bounds (non-negative IDs only; all validated via int64_t bridge)
 # Signed small integer types: upper bound = max positive value of the type
-DEF MAX_ITEMS_8 = 126  # int8_t:   2^7  - 2  (max item id; n_items = id+1 must fit in int8_t)
+DEF MAX_ITEMS_8 = 126  # int8_t:   2^7  - 2  (max item id = 126; n_items = id+1 = 127 = INT8_MAX fits in int8_t)
 DEF MAX_ITEMS_16 = 32766  # int16_t:  2^15 - 2
 DEF MAX_ITEMS_32 = 2147483646  # int32_t:  2^31 - 2
 DEF MAX_ITEMS_64 = 9223372036854775806  # int64_t:  2^63 - 2

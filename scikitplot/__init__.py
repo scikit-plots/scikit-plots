@@ -321,7 +321,7 @@ def __getattr__(
             return nested_import(f"{package}.api.{name}")
 
         # Lazily load scikitplot flavors to avoid excessive dependencies.
-        if name in ("visualkeras",):
+        if name in ("visualkeras",):  # noqa: FURB171
             # Avoiding heavy imports top level module unless actually used
             from ._compat.optional_deps import LazyImport
 
@@ -464,7 +464,7 @@ def set_seed(seed: int = 42):
         import numpy as np
 
         np.random.seed(seed)  # noqa: NPY002
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     # NumPy (modern API)
@@ -472,7 +472,7 @@ def set_seed(seed: int = 42):
         import numpy as np
 
         np_random = np.random.default_rng(seed)
-    except Exception:
+    except Exception:  # noqa: BLE001
         np_random = None
 
     # PyTorch
@@ -480,7 +480,7 @@ def set_seed(seed: int = 42):
         import torch
 
         torch.manual_seed(seed)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     # TensorFlow
@@ -488,7 +488,7 @@ def set_seed(seed: int = 42):
         import tensorflow as tf
 
         tf.random.set_seed(seed)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     return np_random

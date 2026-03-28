@@ -801,6 +801,11 @@ release: check-release
 ## Git Search and fix
 ######################################################################
 
+# git log --oneline | grep -iE 'release|setup'              # regex
+# git log --oneline | grep -iE '\b(release|setup)\b'        # regex
+# git log --oneline | grep -i -e release -e setup           # multiple explicit patterns
+# git log --oneline --grep='release' --grep='setup' -i      # Git-native filtering Compact, single-line summary per commit, Scanning history quickly
+# git log --grep='release' --grep='setup' -i                # Git-native filtering Multi-line per commit, Full , verbose commit representation
 grep:
 	@#grep -rn "interp(" .
 	@#Use git grep (faster in Git repos)

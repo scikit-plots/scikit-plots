@@ -1032,11 +1032,11 @@ public:
       return false;
     }
 
-    // _f_external = static_cast<S>(f);
-    // _f_internal = static_cast<S>(
-    //   (_f_external + BITS_PER_WORD - 1) / BITS_PER_WORD
-    // );
-    // _f_inferred = true;
+    // Keep wrapper fields in sync BEFORE forwarding to the inner index.
+    // _pack(), _unpack(), add_item(), and get_item() all read _f_external and
+    // _f_internal directly; if they are stale the Hamming bit layout is wrong.
+    _f_external = static_cast<uint32_t>(f);
+    _f_internal = (static_cast<uint32_t>(f) + 63u) / 64u;  // ceil(f / 64)
 
     return _index.set_f(static_cast<int>(f), error);
   }
@@ -4274,14 +4274,7 @@ static bool annoy_build_canonical_blob(
   // n_items / n_trees: IndexDtype matches get_n_items() return type.
   // Using IndexDtype here prevents silent truncation if the index grows
   // beyond UINT32_MAX items when IndexDtype = uint64_t.
-  const IndexDtype n_items_i32 = self->ptr->get_n_items();
-  // This check is logically impossible and the compiler is correct to warn.
-  // if (n_items_i32 < 0) {
-  //   PyErr_SetString(PyExc_RuntimeError, "invalid n_items");
-  //   return false;
-  // }
-
-  const IndexDtype n_items = static_cast<IndexDtype>(n_items_i32);
+  const IndexDtype n_items = self->ptr->get_n_items();
   const uint32_t   f       = static_cast<uint32_t>(self->f);
   const IndexDtype n_trees = static_cast<IndexDtype>(self->ptr->get_n_trees());
   const bool built = (n_trees > 0);
@@ -5609,7 +5602,7 @@ static PyObject* py_an_rebuild(
   }
 
   const IndexDtype n_items = self->ptr->get_n_items();  // IndexDtype: tracks central alias
-  const int old_trees = self->ptr->get_n_trees();
+  const IndexDtype old_trees = self->ptr->get_n_trees();  // IndexDtype: no UB for values > INT_MAX
 
   // Copy items deterministically by item id (0..n_items-1).
   std::vector<float> embedding;
@@ -5674,7 +5667,12 @@ static PyObject* py_an_rebuild(
     trees_to_build = n_trees;
     do_build = true;
   } else if (old_trees > 0) {
-    trees_to_build = old_trees;
+    if (old_trees > static_cast<IndexDtype>(std::numeric_limits<int>::max())) {
+      Py_DECREF(out_obj);
+      PyErr_SetString(PyExc_OverflowError, "old_trees exceeds int range for build()");
+      return NULL;
+    }
+    trees_to_build = static_cast<int>(old_trees);
     do_build = true;
   } else if (self->n_trees != 0) {
     // self->n_trees == -1 (auto) or a user-specified positive value.
@@ -7177,7 +7175,7 @@ static PyObject* py_an_transform(
     const IndexDtype qid_self = (by_item ? result_query_item_id : static_cast<IndexDtype>(-1));
 
     for (size_t j = 0; j < result.size(); ++j) {
-      const uint32_t nid = result[j];
+      const IndexDtype nid = result[j];  // IndexDtype: no truncation (uint64_t)
       if (exclude_self && by_item && nid == qid_self) continue;
       if (!exclude_map.empty() && exclude_map.find(nid) != exclude_map.end()) continue;
 
@@ -7220,7 +7218,7 @@ static PyObject* py_an_transform(
     }
 
     for (Py_ssize_t j = 0; j < (Py_ssize_t)result.size(); ++j) {
-      const uint32_t nid = result[(size_t)j];
+      const IndexDtype nid = result[(size_t)j];  // IndexDtype: no truncation (uint64_t)
 
       if (out_vector) {
         self->ptr->get_item(nid, neighbor_vec.data());
@@ -7247,7 +7245,7 @@ static PyObject* py_an_transform(
 
         PyList_SET_ITEM(row_neighbors, j, vec);  // steals ref
       } else {
-        PyObject* pid = PyLong_FromLongLong((long long)nid);
+        PyObject* pid = AnnoyIdxToPy(nid);  // AnnoyIdxToPy: IndexDtype-aware, no sign extension
         if (!pid) {
           Py_DECREF(row_neighbors);
           Py_XDECREF(row_dists);
@@ -7327,7 +7325,7 @@ static PyObject* py_an_fit_transform(
   PyObject* y = Py_None;
   PyObject* y_map = Py_None;
 
-  int n_trees = 10;
+  int n_trees = self ? self->n_trees : -1;  // respect constructor default; -1 = auto
   int n_jobs = -1;
   int reset = 1;
   PyObject* start_index_obj = Py_None;
@@ -8183,9 +8181,8 @@ static PyObject* py_an_get_n_trees(
     return NULL;
   }
 
-  const uint32_t n = self->ptr->get_n_trees();
-  // if (n < 0) n = 0;
-  return PyInt_FromLong(static_cast<long>(n));
+  const IndexDtype n = self->ptr->get_n_trees();  // IndexDtype: no truncation (uint64_t)
+  return AnnoyIdxToPy(n);  // AnnoyIdxToPy: portable, correct unsigned conversion
 }
 
 // ------------------------------------------------------------------
@@ -8486,7 +8483,7 @@ static PyObject* py_an_getstate(
   //          (portable fallback if the ABI check fails)
   const bool store_portable  = (self->schema_version <= 1) || (self->schema_version >= 3);
   const bool store_canonical = (self->schema_version >= 2);
-  const char* primary_format = store_portable ? "portable-v1" : "canonical-v1";
+  const char* primary_format = store_portable ? "portable-v1" : "canonical-v2";
 
   if (!self->ptr) {
     Py_INCREF(Py_None);
@@ -8554,7 +8551,7 @@ static PyObject* py_an_getstate(
         }
         Py_DECREF(v2);
 
-        PyObject* vfmt2 = PyUnicode_FromString("canonical-v1");
+        PyObject* vfmt2 = PyUnicode_FromString("canonical-v2");
         if (!vfmt2 || PyDict_SetItemString(state, "data_canonical_format", vfmt2) < 0) {
           Py_XDECREF(vfmt2);
           Py_DECREF(v);
@@ -8719,7 +8716,33 @@ static PyObject* py_an_setstate(
     self->schema_version = (int)sv;
   }
 
-  // n_neighbors (SLEP013; estimator parameter)
+  // n_trees (-1 = auto; estimator constructor parameter)
+  PyObject* nt_obj = PyDict_GetItemString(state, "n_trees");  // borrowed
+  if (nt_obj && nt_obj != Py_None) {
+    long nt = PyLong_AsLong(nt_obj);
+    if (nt == -1 && PyErr_Occurred()) return NULL;
+    // -1 is a valid sentinel (auto); any other negative value is invalid.
+    if (nt < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "`n_trees` in pickle state must be -1 (auto) or a positive integer");
+      return NULL;
+    }
+    self->n_trees = (int)nt;
+  }
+
+  // n_jobs (-1 = all cores; estimator constructor parameter)
+  PyObject* nj_obj = PyDict_GetItemString(state, "n_jobs");  // borrowed
+  if (nj_obj && nj_obj != Py_None) {
+    long nj = PyLong_AsLong(nj_obj);
+    if (nj == -1 && PyErr_Occurred()) return NULL;
+    // -1 is a valid sentinel (all cores); 0 is invalid.
+    if (nj == 0 || nj < -1) {
+      PyErr_SetString(PyExc_ValueError,
+        "`n_jobs` in pickle state must be -1 (all cores) or a positive integer");
+      return NULL;
+    }
+    self->n_jobs = (int)nj;
+  }
   PyObject* kn_obj = PyDict_GetItemString(state, "n_neighbors");  // borrowed
   if (kn_obj && kn_obj != Py_None) {
     long kn = PyLong_AsLong(kn_obj);
@@ -8729,7 +8752,7 @@ static PyObject* py_an_setstate(
         "`n_neighbors` in pickle state must be a positive integer");
       return NULL;
     }
-    self->n_neighbors = (int)kn;
+    self->n_neighbors = static_cast<size_t>(kn);  // size_t: no int truncation at INT_MAX
   }
 
   // feature_names_in (SLEP007; explicit-only fitted metadata)
@@ -8938,7 +8961,8 @@ static PyObject* py_an_setstate(
     }
       const char* fmt = PyUnicode_AsUTF8(fmt_obj);
       if (!fmt) return NULL;
-      declared_canonical = (std::strcmp(fmt, "canonical-v1") == 0);
+      declared_canonical = (std::strcmp(fmt, "canonical-v1") == 0 ||
+                            std::strcmp(fmt, "canonical-v2") == 0);
     }
 
     char* buf = NULL;
@@ -9118,9 +9142,6 @@ static PyObject* py_an_reduce(
   PyTuple_SET_ITEM(out, 2, state);
   return out;
 }
-
-// TODO: Enable method chaining by self : Annoy (Annoy(...).add_item(...).add_item(...).build(...))
-// METH_NOARGS | METH_VARARGS | METH_KEYWORDS
 
 static PyMethodDef py_annoy_methods[] = {
   // ------------------------------------------------------------------

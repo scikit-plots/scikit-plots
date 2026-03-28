@@ -58,6 +58,7 @@ import json
 import logging as _logging
 import os
 import pprint
+import re as _re
 import sys
 import textwrap  # textwrap.dedent
 import threading  # Python 2 to thread.get_ident
@@ -370,7 +371,7 @@ def _is_jupyter_notebook() -> bool:
     ## Fallback: try importing and inspecting the IPython shell
     try:
         from IPython import get_ipython
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
     ## Check if the IPython shell is configured as a kernel app (notebook backend)
     try:
@@ -380,7 +381,7 @@ def _is_jupyter_notebook() -> bool:
         cfg = getattr(ip, "config", None)
         # shell = get_ipython().__class__.__name__
         return bool(cfg and "IPKernelApp" in cfg)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -804,7 +805,7 @@ class GoogleLogFormatter(_logging.Formatter):
                     separators=(",", ": "),  # Maintain default spacing
                     ensure_ascii=False,
                 )
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
         # Fallback to a literal string format
         return "".join(payload.values())
@@ -878,7 +879,7 @@ def _make_default_formatter(
                 fmt=custom,
                 datefmt=time_format,
             )
-    except Exception:
+    except Exception:  # noqa: BLE001
         # sys.stderr.write(e)
         # Fallback to basic formatter if other formatters are not available
         return _logging.Formatter(
@@ -972,11 +973,17 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
                 raise ValueError(
                     "stream must be 'stdout', 'stderr', or a file-like object"
                 )
-            super().__init__(resolved)
+            # NOTE: self._stream must be assigned before super().__init__() is
+            # called.  StreamHandler.__init__ ends with ``self.stream = stream``
+            # which immediately triggers AlwaysStdErrHandler.stream.setter.
+            # That setter may call ``super().setStream(stream=self._stream)``;
+            # if self._stream does not exist yet the call raises AttributeError.
             self._stream = resolved
+            super().__init__(resolved)
         else:
-            super().__init__(stream)
+            # Same ordering requirement for arbitrary file-like objects.
             self._stream = stream
+            super().__init__(stream)
 
     @property  # type: ignore [override]
     def stream(self) -> IO[str]:
@@ -1037,6 +1044,7 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 def _make_default_handler(
     handler: _logging.Handler | None = None,
     formatter: _logging.Formatter | None = None,
+    _fallback_cls: type = AlwaysStdErrHandler,
 ) -> _logging.Handler:
     """
     Create and return a default logging Handler.
@@ -1060,6 +1068,14 @@ def _make_default_handler(
     -------
     logging.Handler
         The Handler instance that matches the specified `handler` type.
+
+    Notes
+    -----
+    ``_fallback_cls`` is a private parameter used to capture a reference to
+    :class:`AlwaysStdErrHandler` at function-definition time.  This ensures
+    that even when the module-level name ``AlwaysStdErrHandler`` is replaced
+    (e.g. by a test mock), the fallback path always uses the real class.
+    Callers must never pass this argument explicitly.
     """
     # Configure formatter (default if none is provided)
     formatter = formatter or _make_default_formatter()
@@ -1067,7 +1083,7 @@ def _make_default_handler(
         if isinstance(handler, _logging.Handler):
             pass
         elif handler is None:
-            handler = AlwaysStdErrHandler()
+            handler = _fallback_cls()
         elif handler == "RotatingFileHandler":
             handler = _logging.handlers.RotatingFileHandler(
                 "skplt.log",
@@ -1080,11 +1096,21 @@ def _make_default_handler(
             from rich.logging import RichHandler  # type: ignore[reportMissingImports]
 
             handler = RichHandler(console=Console(stderr=True))
-    except Exception:
-        # Fallback to AlwaysStdErrHandler if other handlers are not available
-        handler = AlwaysStdErrHandler()
-    # finally:
-    handler.setFormatter(formatter)
+        # setFormatter is inside the try so that any failure during handler
+        # construction *or* formatter attachment triggers the fallback below.
+        handler.setFormatter(formatter)
+    except Exception:  # noqa: BLE001
+        # First fallback: construct a clean handler and attach the formatter.
+        # NOTE: _fallback_cls is the real AlwaysStdErrHandler captured at
+        # definition time, so this path is immune to module-level patching.
+        # A nested try-except guards against the rare case where construction
+        # itself raises (e.g. stream unavailable at interpreter shutdown),
+        # retrying once without setFormatter as the last-resort safeguard.
+        try:
+            handler = _fallback_cls()
+            handler.setFormatter(formatter)
+        except Exception:  # noqa: BLE001
+            handler = _fallback_cls()
     return handler
 
 
@@ -1307,8 +1333,17 @@ def set_verbosity(level: int | str) -> None:
     setLevel(level)
 
 
+# Compiled once at module level for efficiency.
+# Word boundaries (\b) prevent partial-word matches, e.g. "secrets" does NOT
+# match the keyword "secret".  re.IGNORECASE covers all case variants.
+_SENSITIVE_PATTERN: _re.Pattern[str] = _re.compile(
+    r"\b(?:password|secret|token|api_key|access_key|private_key)\b",
+    _re.IGNORECASE,
+)
+
+
 def sanitize_log_message(msg: str) -> str:
-    """
+    r"""
     Sanitize a log message by redacting obviously sensitive keywords.
 
     Parameters
@@ -1319,18 +1354,33 @@ def sanitize_log_message(msg: str) -> str:
     Returns
     -------
     str
-        A sanitized message.
+        The original message unchanged, or a fixed redaction string when a
+        sensitive keyword is detected as a whole word.
 
     Notes
     -----
-    This helper is intentionally conservative and is **not applied automatically**.
-    If you need automatic sanitization, install a logging.Filter in your app.
+    - Keyword matching uses whole-word boundaries (``\\b``) so that words
+      which merely *contain* a sensitive keyword (e.g. ``"secrets"``) are
+      **not** incorrectly redacted.
+    - Matching is case-insensitive (``re.IGNORECASE``), so ``PASSWORD``,
+      ``Password``, and ``password`` are all detected.
+    - The compiled pattern ``_SENSITIVE_PATTERN`` is built once at module
+      load time to avoid per-call overhead.
+    - This helper is intentionally conservative and is **not applied
+      automatically**.  Install a ``logging.Filter`` for automatic use.
+
+    Examples
+    --------
+    >>> sanitize_log_message("The password is abc123")
+    '[REDACTED] Potentially sensitive information detected.'
+
+    >>> sanitize_log_message("Normal log message without secrets")
+    'Normal log message without secrets'
+
+    >>> sanitize_log_message("")
+    ''
     """
-    lowered = msg.lower()
-    if any(
-        k in lowered
-        for k in ("password", "secret", "token", "api_key", "access_key", "private_key")
-    ):
+    if _SENSITIVE_PATTERN.search(msg):
         return "[REDACTED] Potentially sensitive information detected."
     return msg
 

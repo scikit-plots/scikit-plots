@@ -63,7 +63,7 @@ parameters:
     type: boolean
     default: false
 
-# Aliases to reuse
+# YAML anchor & alias, Aliases to reuse `<<: *alias`
 _defaults: &defaults
   ## https://circleci.com/docs/install-machine-runner-3-on-linux/
   # machine: true
@@ -301,6 +301,7 @@ commands:
 jobs:
   ## Build scikit-plots from source
   build_scikitplot:
+    # YAML anchor & alias
     <<: *defaults
     description: "Build new docs"
 

@@ -50,4 +50,4 @@ Quick start
 
 .. rubric:: Examples
 
-* :ref:`sphx_glr_auto_examples_corpus_plot_corpus_script.py`: Example notebook.
+* :ref:`sphx_glr_auto_examples_corpus_plot_corpus_who_per_file_script.py`: Example notebook.

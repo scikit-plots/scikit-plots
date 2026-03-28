@@ -17,6 +17,8 @@ _dataset_loader.
 - Unified pd.read_* read_auto and extensible data loading module.
 """
 
+from __future__ import annotations
+
 import asyncio  # noqa: F401
 import io
 import mimetypes
@@ -94,7 +96,7 @@ def is_url(path: str) -> bool:
     try:
         result = urlparse(str(path))
         return result.scheme in ("http", "https")
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -111,7 +113,8 @@ def get_file_from_zip(path):
 
 
 def get_file_data(
-    path: "Union[str, Path, io.BytesIO]", compression: "Optional[str]" = None
+    path: str | Path | io.BytesIO,
+    compression: str | None = None,
 ):
     """
     Retrieve a file-like object based on file path, URL, or stream.
@@ -313,7 +316,7 @@ def clean_sql(query: str, remove_inline_comments: bool = True) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-def load_duckdb(path: "Union[str, Path]", query: str = "SELECT 1;", **kwargs):
+def load_duckdb(path: str | Path, query: str = "SELECT 1;", **kwargs):
     """
     Load data from a DuckDB database file 'path/to/file.db'.
 
@@ -329,7 +332,7 @@ def load_duckdb(path: "Union[str, Path]", query: str = "SELECT 1;", **kwargs):
         conn.close()
 
 
-def load_sqlite(path: "Union[str, Path]", query: str = "SELECT 1;", **kwargs):
+def load_sqlite(path: str | Path, query: str = "SELECT 1;", **kwargs):
     """
     load_sqlite 'path/to/file.db'.
 
@@ -369,13 +372,13 @@ def preview_sqlite_tables(path):
         tables = [row[0] for row in cursor.fetchall()]
         conn.close()
         return tables
-    except Exception:
+    except Exception:  # noqa: BLE001
         return []
 
 
 def load_sqlalchemy(
     path: str, db_type: str = "postgresql", query: str = "SELECT 1;", **kwargs
-) -> "pandas.DataFrame":  # noqa: F821
+) -> pandas.DataFrame:
     """
     Load data from a database using SQLAlchemy and return as a pandas DataFrame.
 
@@ -496,7 +499,7 @@ async def async_load_sqlalchemy(
     path: str,
     db_type: str = "postgresql",
     query: str = "SELECT 1;",
-) -> "pandas.DataFrame":  # noqa: F821
+) -> pandas.DataFrame:
     """
     Async version of load_sqlalchemy using SQLAlchemy 2.0 async engine.
 
@@ -541,10 +544,10 @@ def upload_handler(
     file_obj,
     return_file: bool = True,
     clean_tmp: bool = False,
-    loader_func: "Optional[Callable[[str, Optional[str]], dict[str, any]]]" = None,
-    query: "Optional[str]" = None,
-    db_type: "Optional[str]" = None,
-) -> "Union[dict[str, any], str, None]":
+    loader_func: Callable[[str, str | None], dict[str, any]] | None = None,
+    query: str | None = None,
+    db_type: str | None = None,
+) -> dict[str, any] | str | None:
     """
     Handle an uploaded file object.
 
@@ -605,7 +608,7 @@ def upload_handler(
             result = load_data(tmp_path, query=clean_sql(query))
         return result
 
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Optionally log or raise depending on use case
         # print(f"[upload_handler] Failed to process file: {e}")
         return tmp_path if return_file else None
@@ -666,7 +669,7 @@ def register_loader(extension: str, func, override: bool = False):
     EXTENSION_LOADERS[ext] = func
 
 
-def get_loader_by_ext(ext: str) -> "Callable":
+def get_loader_by_ext(ext: str) -> Callable:
     """get_loader_by_ext."""
     return EXTENSION_LOADERS.get(
         ext.lower(),
@@ -678,11 +681,11 @@ def get_loader_by_ext(ext: str) -> "Callable":
 
 
 def load_data_meta(
-    path: "Union[str, Path]",
-    extension: "Optional[str]" = None,
-    upload_type: "Optional[str]" = None,
-    db_type: "Optional[str]" = None,
-    query: "Optional[str]" = None,
+    path: str | Path,
+    extension: str | None = None,
+    upload_type: str | None = None,
+    db_type: str | None = None,
+    query: str | None = None,
     **kwargs,
 ) -> dict:
     """Unified high-level data loading with meta interface."""
@@ -738,13 +741,13 @@ def load_data_meta(
 
 
 def load_data(
-    path: "Union[str, Path]",
-    extension: "Optional[str]" = None,
-    upload_type: "Optional[str]" = None,
-    db_type: "Optional[str]" = None,
-    query: "Optional[str]" = None,
+    path: str | Path,
+    extension: str | None = None,
+    upload_type: str | None = None,
+    db_type: str | None = None,
+    query: str | None = None,
     **kwargs,
-) -> "pandas.DataFrame":
+) -> pandas.DataFrame:
     """Unified high-level data loading interface."""
     return load_data_meta(
         path,

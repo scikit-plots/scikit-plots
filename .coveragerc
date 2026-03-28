@@ -14,7 +14,9 @@ omit =
     */scikitplot/_build_utils/*
     */scikitplot/cexperimental/*
     */scikitplot/cexternals/*
+    */scikitplot/config/cbook.py
     */scikitplot/experimental/*
     */scikitplot/externals/*
+    */scikitplot/dummy.py
     */third_party/*
     */tools/*
