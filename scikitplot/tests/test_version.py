@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 import scikitplot
-import scikitplot.version
 
 
 # Compile once for speed & clarity

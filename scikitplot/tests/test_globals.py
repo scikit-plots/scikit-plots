@@ -62,7 +62,7 @@ import pytest
 # Module import
 # ---------------------------------------------------------------------------
 try:
-    import scikitplot._globals as glb
+    from .. import _globals as glb
 except ImportError:
     pytest.skip(
         "scikitplot._globals is not importable. "

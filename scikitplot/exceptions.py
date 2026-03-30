@@ -1,3 +1,5 @@
+# scikitplot/exceptions.py
+#
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -5,13 +7,16 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
-
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
 # This module was copied from the numpy project.
 # https://github.com/numpy/numpy/blob/main/numpy/exceptions.py
-
+#
 # This module was copied from the astropy project.
 # https://github.com/astropy/astropy/blob/main/astropy/utils/exceptions.py
-
+#
 # This module was copied from the mlflow project.
 # https://github.com/mlflow/mlflow/blob/master/mlflow/exceptions.py
 

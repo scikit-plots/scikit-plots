@@ -135,7 +135,8 @@ def deprecated(since, *, message='', name='', alternative='', pending=False,
 
     def deprecate(obj, message=message, name=name, alternative=alternative,
                   pending=pending, obj_type=obj_type, addendum=addendum):
-        from matplotlib._api import classproperty
+        # from matplotlib._api import classproperty
+        from . import classproperty
 
         if isinstance(obj, type):
             if obj_type is None:

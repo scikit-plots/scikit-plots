@@ -196,7 +196,8 @@ if TYPE_CHECKING:
 
     RandomState: TypeAlias = (
         int
-        | np.ndarray
+        # | np.ndarray
+        | npt.NDArray[np.generic | np.integer]
         | np.random.Generator
         | np.random.BitGenerator
         | np.random.RandomState
@@ -294,24 +295,26 @@ if TYPE_CHECKING:
 
     PythonFuncType: TypeAlias = Callable[[Any], Any]
 
-    ## A generic type variable for class decorator
-    from .._decorates import BaseDecorator
+    ## Generic callable type
+    F = TypeVar("F", bound="Callable[..., Any]")
+    ## Hashable key type (e.g., dict keys, cache identifiers)
+    HT = TypeVar("HT", bound="Hashable")
 
     # used in decorators to preserve the signature of the function it decorates
     # see https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
     # FuncType: TypeAlias = Callable[..., Any]
     # F = TypeVar("F", bound=FuncType)
 
-    ## A type representing a class, function decorator
-    ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
-    FuncDec = TypeVar("FuncDec", bound="Callable[[F], F]")
-    DecoratorLike = TypeVar("DecoratorLike", bound="Union[F, FuncDec, ClsDec]")
+    ## A generic type variable for class decorator
+    # from .._decorates import BaseDecorator
 
-    ## Generic callable type
-    F = TypeVar("F", bound="Callable[..., Any]")
-    ## Hashable key type (e.g., dict keys, cache identifiers)
-    HT = TypeVar("HT", bound="Hashable")
+    ## A type representing a class, function decorator
+    # ClsDec = TypeVar("ClsDec", bound="BaseDecorator")
+    # FuncDec = TypeVar("FuncDec", bound="Callable[[F], F]")
+    # DecoratorLike = TypeVar("DecoratorLike", bound="F | FuncDec | ClsDec")
 
 # Allows for the creation of enumerated constants
 # Enum values are immutable after definition.
-# __all__ = ["type_t"]
+__all__ = [
+    "type_t",
+]

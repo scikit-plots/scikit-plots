@@ -82,7 +82,7 @@ import pytest
 # works, skip the entire file with a helpful message rather than letting every
 # test fail with an ImportError.
 try:
-    import scikitplot.exceptions as exc
+    from .. import exceptions as exc
 except ImportError:
     pytest.skip(
         "scikitplot.exceptions is not importable. "

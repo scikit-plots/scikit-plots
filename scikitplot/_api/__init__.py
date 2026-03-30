@@ -145,6 +145,10 @@ def check_in_list(values, /, *, _print_supported_values=True, **kwargs):
     """
     if not kwargs:
         raise TypeError("No argument to check!")
+    # Materialise once: a generator would be exhausted after the first failed
+    # membership test, producing empty supported-values strings for subsequent
+    # kwargs and preventing re-iteration for the repr listing.
+    values = tuple(values)
     for key, val in kwargs.items():
         if val not in values:
             msg = f"{val!r} is not a valid value for {key}"
@@ -170,6 +174,11 @@ def check_shape(shape, /, **kwargs):
     >>> _api.check_shape((None, 2), arg=arg, other_arg=other_arg)
     """
     for k, v in kwargs.items():
+        if not hasattr(v, "shape"):
+            raise TypeError(
+                f"{k!r} must be a numpy array (or array-like with a .shape attribute), "
+                f"but got {type(v).__qualname__!r}"
+            )
         data_shape = v.shape
 
         if (len(data_shape) != len(shape)
@@ -210,10 +219,14 @@ def check_getitem(mapping, /, _error_cls=ValueError, **kwargs):
         return mapping[v]
     except KeyError:
         if len(mapping) > 5:
-            if len(best := difflib.get_close_matches(v, mapping.keys(), cutoff=0.5)):
-                suggestion = f"Did you mean one of {best}?"
+            # difflib requires string sequences; guard against non-string keys
+            # or values so we degrade gracefully instead of raising TypeError.
+            if isinstance(v, str):
+                str_keys = [key for key in mapping.keys() if isinstance(key, str)]
+                best = difflib.get_close_matches(v, str_keys, cutoff=0.5) if str_keys else []
             else:
-                suggestion = ""
+                best = []
+            suggestion = f"Did you mean one of {best}?" if best else ""
         else:
             suggestion = f"Supported values are {', '.join(map(repr, mapping))}"
         raise _error_cls(f"{v!r} is not a valid value for {k}. {suggestion}") from None

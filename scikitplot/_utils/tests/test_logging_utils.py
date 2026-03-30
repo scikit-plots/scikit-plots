@@ -35,33 +35,8 @@ import types
 import unittest
 import unittest.mock as mock
 
-# ---------------------------------------------------------------------------
-# Minimal scikitplot stub for isolation
-# ---------------------------------------------------------------------------
-if "scikitplot" not in sys.modules:
-    _stub = types.ModuleType("scikitplot")
-    _stub.logger = logging.getLogger("scikitplot")
-    sys.modules["scikitplot"] = _stub
-
-if "scikitplot.logging" not in sys.modules:
-    _log_mod = types.ModuleType("scikitplot.logging")
-    _log_mod.getLogger = logging.getLogger
-    _log_mod.Filter = logging.Filter
-    _log_mod.Formatter = logging.Formatter
-    _log_mod.StreamHandler = logging.StreamHandler
-    import logging.config as _lc
-    _log_mod.config = _lc
-    sys.modules["scikitplot.logging"] = _log_mod
-    sys.modules["scikitplot"].logging = _log_mod  # type: ignore[attr-defined]
-
-if "scikitplot.environment_variables" not in sys.modules:
-    _env_mod = types.ModuleType("scikitplot.environment_variables")
-    class _FakeEnvVar:
-        def get(self):
-            return "INFO"
-    _env_mod.SKPLT_LOGGING_LEVEL = _FakeEnvVar()
-    sys.modules["scikitplot.environment_variables"] = _env_mod
-
+from ... import environment_variables
+from ... import logging
 from ..logging_utils import (  # noqa: E402
     LOGGING_DATETIME_FORMAT,
     LOGGING_LINE_FORMAT,
