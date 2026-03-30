@@ -360,6 +360,88 @@ def __getattr__(
 ######################################################################
 
 
+def _validate_base_url(url: str) -> str:
+    """
+    Validate that the base URL is a safe absolute HTTP(S) URL.
+
+    Parameters
+    ----------
+    url : str
+        URL string to validate.
+
+    Returns
+    -------
+    str
+        The original URL, confirmed valid and safe.
+
+    Raises
+    ------
+    TypeError
+        If ``url`` is not a string.
+    ValueError
+        If the scheme is not ``http`` or ``https``, or if the host
+        (netloc) is absent — which would allow path-relative or
+        protocol-relative URLs to slip through.
+    """
+    from urllib.parse import urlparse  # pylint: disable=import-outside-toplevel
+
+    if not isinstance(url, str):
+        raise TypeError(f"URL must be a str, got {type(url).__name__!r}")
+
+    parsed = urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(
+            f"Unsafe or missing URL scheme {parsed.scheme!r}: "
+            "only 'http' and 'https' are permitted."
+        )
+    # Critical: reject URLs with no host — urlparse accepts "https:///path"
+    # which has scheme="https" but netloc="" and would bypass the scheme check.
+    if not parsed.netloc:
+        raise ValueError(
+            f"URL {url!r} has no host (netloc). A fully qualified host is required."
+        )
+    return url
+
+
+def _build_docs_url(base: str, search_page: str, query: str) -> str:
+    """
+    Build a documentation search URL safely using ``urlunparse``.
+
+    Avoids string concatenation by reconstructing the URL from its
+    parsed components, ensuring no injection via ``query`` or ``search_page``.
+
+    Parameters
+    ----------
+    base : str
+        Validated base URL without a trailing slash
+        (e.g. ``"https://scikit-plots.github.io/dev"``).
+    search_page : str
+        Relative search page path (e.g. ``"search.html"``).
+    query : str
+        Raw search query; will be percent-encoded by ``urlencode``.
+
+    Returns
+    -------
+    str
+        Complete, percent-encoded URL string safe to pass to
+        ``webbrowser.open``.
+    """
+    from urllib.parse import (  # pylint: disable=import-outside-toplevel
+        urlencode,
+        urlparse,
+        urlunparse,
+    )
+
+    parsed = urlparse(base)
+    # Combine base path with the search page, normalising slashes
+    base_path = parsed.path.rstrip("/")
+    full_path = f"{base_path}/{search_page.lstrip('/')}"
+    # urlencode percent-encodes the query value — no injection possible
+    query_str = urlencode({"q": query})
+    return urlunparse((parsed.scheme, parsed.netloc, full_path, "", query_str, ""))
+
+
 def online_help(
     query: str = "",
     docs_root_url: str = "https://scikit-plots.github.io/",
@@ -367,44 +449,43 @@ def online_help(
     new_window: int = 0,
 ) -> bool:
     """
-    Open the online documentation search page.
-
-    Use a given search query in the default web browser.
-    This function constructs a search URL based on the provided query
-    and opens it in the web browser.
-    It detects whether the version is in development or stable state
-    and directs the user to the appropriate documentation.
+    Open the online documentation search page in the default web browser.
 
     Parameters
     ----------
     query : str, optional
-        The search query to find relevant documentation.
-        Defaults to an empty string.
+        The search query. Defaults to ``""``.
     docs_root_url : str, optional
-        The base URL of the documentation website.
-        Defaults to `https://scikit-plots.github.io/`.
+        Base URL of the documentation website.
+        Overridden by the ``DOCS_ROOT_URL`` environment variable when set.
+        Defaults to ``"https://scikit-plots.github.io/"``.
     search_page : str, optional
-        The search page URL (relative to `docs_root_url`).
-        Defaults to `search.html`.
+        Search page path relative to ``docs_root_url``.
+        Defaults to ``"search.html"``.
     new_window : int, optional
-        Controls how the URL is opened in the browser:
-
-        - 0: Open in the same browser window.
-        - 1: Open in a new browser window.
-        - 2: Open in a new browser tab.
+        Browser open mode — ``0`` same window, ``1`` new window,
+        ``2`` new tab. Defaults to ``0``.
 
     Returns
     -------
     bool
-        Returns True if the browser was successfully launched, False otherwise.
+        ``True`` if the browser was successfully launched, ``False``
+        otherwise.
+
+    Raises
+    ------
+    Does not raise — all errors are caught and logged; returns ``False``.
 
     Notes
     -----
-    - The function automatically switches between the 'dev' and 'stable'
-      versions of the documentation based on the value of `__version__`.
-    - Requires an active internet connection.
-    - If the environment variable `DOCS_ROOT_URL` is set,
-      it overrides the `docs_root_url` argument.
+    **User:** Requires an active internet connection. The URL printed to
+    stderr shows the exact page that will open.
+
+    **Developer:** URL construction is intentionally separated into
+    ``_validate_base_url`` and ``_build_docs_url`` so that each concern
+    is independently testable and the security boundary is explicit.
+    ``os.getenv`` is resolved *before* validation so that an unsafe env
+    value is rejected with a clear error rather than silently used.
 
     Examples
     --------
@@ -413,31 +494,30 @@ def online_help(
     https://scikit-plots.github.io/dev/search.html?q=installation
     """
     try:
-        # pylint: disable=import-outside-toplevel
         import os
         import sys
         import webbrowser
-        from urllib.parse import urlencode, urlparse
 
-        # from scikitplot import __version__
-        # Determine if the current version is in development or stable
         version_type = "dev" if "dev" in __version__ else "stable"
 
-        # Construct the base documentation URL, appending the version type
-        docs_root_url = os.getenv("DOCS_ROOT_URL", docs_root_url).strip().strip("/")
-        docs_root_url = f"{docs_root_url}/{version_type}"
+        # Resolve env override first so validation catches bad env values too.
+        raw_base = os.getenv("DOCS_ROOT_URL", docs_root_url).strip().rstrip("/")
+        versioned_base = f"{raw_base}/{version_type}"
 
-        # Build the search URL with query parameters
-        search_url = f"{docs_root_url}/{search_page}"
-        params = {"q": query}
-        full_url = f"{search_url}{('&' if urlparse(search_url).query else '?')}{urlencode(params)}"
+        # Validate *before* any use — this is the security gate.
+        _validate_base_url(versioned_base)
 
-        ## This launches the URL in the browser
-        # logger.error(f"{full_url}")
-        sys.stderr.write(f"{full_url}")
+        # Build the final URL via urlunparse, not f-string concatenation.
+        full_url = _build_docs_url(versioned_base, search_page, query)
+
+        sys.stderr.write(f"{full_url}\n")
         return webbrowser.open(full_url, new=new_window)
+
+    except (TypeError, ValueError) as e:
+        logger.error("Invalid documentation URL — refusing to open browser: %s", e)
+        return False
     except ModuleNotFoundError as e:
-        logger.exception(f"Error opening documentation: {e}")
+        logger.exception("Error opening documentation: %s", e)
         return False
 
 

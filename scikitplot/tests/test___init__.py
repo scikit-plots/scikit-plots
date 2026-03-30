@@ -48,6 +48,7 @@ import importlib
 import re
 import sys
 import types
+from urllib.parse import urlparse
 
 import pytest
 
@@ -267,13 +268,20 @@ class TestOnlineHelp:
     def test_custom_docs_root_url(self, patched_browser):
         sp.online_help("q", docs_root_url="https://example.com")
         url = patched_browser[0]["url"]
-        assert url.startswith("https://example.com")
+        # Parse and assert scheme + netloc exactly — startswith is insufficient
+        # because "https://example.com.evil.org/..." would also pass it.
+        parsed = urlparse(url)
+        assert parsed.scheme == "https"
+        assert parsed.netloc == "example.com"
 
     def test_env_var_overrides_docs_root_url(self, monkeypatch, patched_browser):
         monkeypatch.setenv("DOCS_ROOT_URL", "https://custom.example.org")
         sp.online_help("query")
         url = patched_browser[0]["url"]
-        assert url.startswith("https://custom.example.org")
+        # Same fix: exact netloc match, not a prefix substring check.
+        parsed = urlparse(url)
+        assert parsed.scheme == "https"
+        assert parsed.netloc == "custom.example.org"
 
     def test_new_window_parameter_forwarded(self, patched_browser):
         sp.online_help("q", new_window=2)
