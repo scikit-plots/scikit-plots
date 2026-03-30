@@ -18,6 +18,8 @@ Documentation is available in the docstrings and online at
 https://scikit-plots.github.io.
 """
 
+from __future__ import annotations
+
 from numpy import __version__ as __numpy_version__
 
 ######################################################################
@@ -202,7 +204,7 @@ __all__ = tuple(_submodules)
 ## Reference: https://docs.python.org/3/library/functions.html#dir
 ## dir() default behavior: Similar to globals().keys().
 ## To customize what dir() returns, define a custom __dir__() function within the module.
-def __dir__() -> "list[str]":
+def __dir__() -> list[str]:
     """
     Return a sorted list of custom attributes for the module.
 
@@ -259,9 +261,9 @@ def __dir__() -> "list[str]":
 ## Provide clear error handling and suggestions for unresolved attributes.
 def __getattr__(
     name: str,
-    package: "str | None" = None,
+    package: str | None = None,
     suggestion: bool = False,
-) -> "any":
+) -> any:
     """
     Dynamically handle undefined attribute access in a module.
 

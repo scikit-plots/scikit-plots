@@ -42,15 +42,6 @@ import unittest
 import uuid
 import warnings
 
-# ---------------------------------------------------------------------------
-# Inject a minimal scikitplot stub so ``from .. import logger`` in
-# _utils/__init__.py resolves when running outside the full package.
-# ---------------------------------------------------------------------------
-if "scikitplot" not in sys.modules:
-    _stub = types.ModuleType("scikitplot")
-    _stub.logger = logging.getLogger("scikitplot")
-    sys.modules["scikitplot"] = _stub
-
 from .. import (  # noqa: E402
     AttrDict,
     _chunk_dict,

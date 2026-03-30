@@ -11,9 +11,9 @@
 
 Coverage targets
 ----------------
-- :class:`environment_variables.EnvironmentVariable`      : all methods, all branches, all edge cases.
-- :class:`environment_variables.BooleanEnvironmentVariable`: all init validations, all ``get()`` branches.
-- Module-level naming conventions    : automated AST regression for all 129 declarations.
+- :class:`~scikitplot.environment_variables.EnvironmentVariable`      : all methods, all branches, all edge cases.
+- :class:`~scikitplot.environment_variables.BooleanEnvironmentVariable`: all init validations, all ``get()`` branches.
+- Module-level naming conventions    : automated AST regression for all declarations.
 - Module-level default spot checks   : representative variables and documented defaults.
 - Namespace / module hygiene         : private-helper leakage guards.
 - Round-trip fidelity                : set → get for every supported type.
@@ -53,13 +53,19 @@ from pathlib import Path
 
 import pytest
 
-# python - <<'PY'
-# import importlib
-# m = importlib.import_module("scikitplot.environment_variables")
-# print(hasattr(m, "environment_variables.BooleanEnvironmentVariable"))
-# print(dir(m))
-# PY
-from .. import environment_variables
+# ---------------------------------------------------------------------------
+# Import fix — use an absolute import instead of ``from .. import``.
+#
+# WHY: a relative import (``from .. import environment_variables``) binds to
+# whatever Python's import machinery considers the parent package at collection
+# time.  In a pytest session that does *not* treat the repo root as a package
+# (e.g. no ``__init__.py`` in the test directory, or ``rootdir`` set elsewhere)
+# the ``..`` resolves to the *installed* copy of ``scikitplot``, which may be a
+# stale wheel that predates the addition of ``EnvironmentVariable``.  The
+# absolute import always targets the canonical module name and therefore always
+# resolves to the same object regardless of how pytest is invoked.
+# ---------------------------------------------------------------------------
+import scikitplot.environment_variables as environment_variables  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Sentinel env var name — must be absent from the real environment at all times.
@@ -100,48 +106,48 @@ def _clean_isolated_var(monkeypatch):
 
 @pytest.fixture
 def str_var():
-    """A string-typed :class:`environment_variables.EnvironmentVariable` with a non-None default."""
+    """A string-typed :class:`~scikitplot.environment_variables.EnvironmentVariable` with a non-None default."""
     return environment_variables.EnvironmentVariable(_ISOLATED_VAR, str, "default_str")
 
 
 @pytest.fixture
 def int_var():
-    """An int-typed :class:`environment_variables.EnvironmentVariable` with default 42."""
+    """An int-typed :class:`~scikitplot.environment_variables.EnvironmentVariable` with default 42."""
     return environment_variables.EnvironmentVariable(_ISOLATED_VAR, int, 42)
 
 
 @pytest.fixture
 def float_var():
-    """A float-typed :class:`environment_variables.EnvironmentVariable` with default 3.14."""
+    """A float-typed :class:`~scikitplot.environment_variables.EnvironmentVariable` with default 3.14."""
     return environment_variables.EnvironmentVariable(_ISOLATED_VAR, float, 3.14)
 
 
 @pytest.fixture
 def none_default_var():
-    """A string-typed :class:`environment_variables.EnvironmentVariable` with default ``None``."""
+    """A string-typed :class:`~scikitplot.environment_variables.EnvironmentVariable` with default ``None``."""
     return environment_variables.EnvironmentVariable(_ISOLATED_VAR, str, None)
 
 
 @pytest.fixture
 def bool_var_true():
-    """A :class:`environment_variables.BooleanEnvironmentVariable` whose default is ``True``."""
+    """A :class:`~scikitplot.environment_variables.BooleanEnvironmentVariable` whose default is ``True``."""
     return environment_variables.BooleanEnvironmentVariable(_ISOLATED_VAR, True)
 
 
 @pytest.fixture
 def bool_var_false():
-    """A :class:`environment_variables.BooleanEnvironmentVariable` whose default is ``False``."""
+    """A :class:`~scikitplot.environment_variables.BooleanEnvironmentVariable` whose default is ``False``."""
     return environment_variables.BooleanEnvironmentVariable(_ISOLATED_VAR, False)
 
 
 @pytest.fixture
 def bool_var_none():
-    """A :class:`environment_variables.BooleanEnvironmentVariable` whose default is ``None``."""
+    """A :class:`~scikitplot.environment_variables.BooleanEnvironmentVariable` whose default is ``None``."""
     return environment_variables.BooleanEnvironmentVariable(_ISOLATED_VAR, None)
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — __init__
+# EnvironmentVariable — __init__
 # ===========================================================================
 
 
@@ -215,7 +221,7 @@ class TestEnvironmentVariableInit:
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — defined / is_set
+# EnvironmentVariable — defined / is_set
 # ===========================================================================
 
 
@@ -245,7 +251,7 @@ class TestEnvironmentVariableDefined:
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — get_raw
+# EnvironmentVariable — get_raw
 # ===========================================================================
 
 
@@ -274,7 +280,7 @@ class TestEnvironmentVariableGetRaw:
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — get
+# EnvironmentVariable — get
 # ===========================================================================
 
 
@@ -360,7 +366,7 @@ class TestEnvironmentVariableGet:
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — set / unset
+# EnvironmentVariable — set / unset
 # ===========================================================================
 
 
@@ -438,7 +444,7 @@ class TestEnvironmentVariableUnset:
 
 
 # ===========================================================================
-# environment_variables.EnvironmentVariable — dunder methods
+# EnvironmentVariable — dunder methods
 # ===========================================================================
 
 
@@ -505,7 +511,7 @@ class TestEnvironmentVariableDunderMethods:
 
 
 # ===========================================================================
-# environment_variables.BooleanEnvironmentVariable — __init__
+# BooleanEnvironmentVariable — __init__
 # ===========================================================================
 
 
@@ -560,7 +566,7 @@ class TestBooleanEnvironmentVariableInit:
 
 
 # ===========================================================================
-# environment_variables.BooleanEnvironmentVariable — get
+# BooleanEnvironmentVariable — get
 # ===========================================================================
 
 
@@ -613,7 +619,7 @@ class TestBooleanEnvironmentVariableGet:
 
     def test_get_raw_delegation(self, monkeypatch, bool_var_false):
         """
-        Regression: ``environment_variables.BooleanEnvironmentVariable.get()`` must delegate to
+        Regression: ``BooleanEnvironmentVariable.get()`` must delegate to
         ``self.get_raw()`` — not call ``_os.getenv()`` directly.  Both produce
         the same observable result, but the delegation ensures subclasses that
         override ``get_raw()`` work correctly.
@@ -623,12 +629,11 @@ class TestBooleanEnvironmentVariableGet:
 
     def test_defined_check_prevents_get_raw_on_absent_var(self, bool_var_false):
         """When var is absent, ``get()`` must return the default without calling ``get_raw()``."""
-        # Verify: absent var, default False, no env mutation
         assert bool_var_false.get() is False
 
 
 # ===========================================================================
-# Module-level naming conventions — automated AST regression (all 129 vars)
+# Module-level naming conventions — automated AST regression (all declarations)
 # ===========================================================================
 
 
@@ -641,11 +646,17 @@ class TestModuleNamingConventions:
 
     Notes
     -----
-    **Bug fix**: the ``declarations`` fixture previously declared
-    ``def declarations():`` — missing ``self``.  Calling a method with no
-    ``self`` on a class instance raises
-    ``TypeError: declarations() takes 0 positional arguments but 1 was given``.
-    The fix is to add ``self`` as the first parameter.
+    **Bug fix 1**: the ``declarations`` fixture previously compared ``func.id``
+    against ``"environment_variables.EnvironmentVariable"``.  The module source
+    uses bare constructor names (``EnvironmentVariable(...)``) not
+    attribute-access style, so ``func.id`` is always ``"EnvironmentVariable"``.
+    The old filter never matched anything, making every naming test pass
+    vacuously (testing nothing).  The correct filter is against the bare names
+    ``{"EnvironmentVariable", "BooleanEnvironmentVariable"}``.
+
+    **Bug fix 2**: the ``declarations`` method previously lacked ``self``,
+    causing ``TypeError: declarations() takes 0 positional arguments but 1 was
+    given`` when called on a class instance.
     """
 
     @pytest.fixture(scope="class")
@@ -691,12 +702,17 @@ class TestModuleNamingConventions:
             if not isinstance(call, ast.Call):
                 continue
 
-            # Resolve the constructor name deterministically.
+            # Resolve the constructor name.
+            # The module source uses bare names: ``EnvironmentVariable(...)``
+            # and ``BooleanEnvironmentVariable(...)``.  ``func`` is therefore
+            # an ``ast.Name`` node whose ``id`` is the bare class name — NOT
+            # an ``ast.Attribute`` node with a dotted path.
             func = call.func
             if not isinstance(func, ast.Name):
-                continue  # ignore attribute-style calls
+                continue  # ignore attribute-style calls (none expected here)
 
-            if func.id not in {"environment_variables.EnvironmentVariable", "environment_variables.BooleanEnvironmentVariable"}:
+            # FIX: compare against bare constructor names, not dotted names.
+            if func.id not in {"EnvironmentVariable", "BooleanEnvironmentVariable"}:
                 continue
 
             if not call.args:
@@ -710,16 +726,16 @@ class TestModuleNamingConventions:
 
         return result
 
-    # def test_expected_total_count(self, declarations):
-    #     """Sanity-check: the file must have exactly 129 declarations.
+    def test_declarations_are_non_empty(self, declarations):
+        """Sanity-check: the AST scan must find at least one declaration.
 
-    #     Update this constant if new variables are intentionally added or removed,
-    #     and include a corresponding ``# noqa`` style comment explaining why.
-    #     """
-    #     assert len(declarations) == 129, (
-    #         f"Expected 129 env var declarations, found {len(declarations)}. "
-    #         "Update this count if new variables were intentionally added or removed."
-    #     )
+        An empty result means the filter logic is broken (e.g. wrong func.id
+        comparison) and all subsequent naming tests would pass vacuously.
+        """
+        assert len(declarations) > 0, (
+            "AST scan found zero EnvironmentVariable declarations. "
+            "The declarations fixture filter is broken."
+        )
 
     def test_python_name_equals_env_var_string(self, declarations):
         """Core invariant: ``PY_NAME`` must equal ``ENV_STR`` for every declaration.
@@ -881,6 +897,8 @@ class TestModuleLevelVariableDefaults:
     def test_private_testing_name(self):
         """Regression: env var was ``'SKPLT_TESTING'`` — missing ``_`` prefix."""
         assert environment_variables._SKPLT_TESTING.name == "_SKPLT_TESTING"
+
+    def test_private_testing_default_false(self):
         assert environment_variables._SKPLT_TESTING.default is False
 
     def test_private_autologging_testing_name(self):
@@ -1051,7 +1069,6 @@ class TestLiveGet:
 
     def test_tracking_uri_get_default(self):
         """``SKPLT_TRACKING_URI`` absent → default ``None`` is returned unchanged."""
-        # Preserve original value (unlikely to be set in CI, but defensive).
         original = os.environ.pop("SKPLT_TRACKING_URI", None)
         try:
             assert environment_variables.SKPLT_TRACKING_URI.get() is None

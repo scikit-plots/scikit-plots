@@ -3,6 +3,8 @@
 
 """CLI Interface."""
 
+from __future__ import annotations
+
 from ._cli.cli import cli
 
 if __name__ == "__main__":
