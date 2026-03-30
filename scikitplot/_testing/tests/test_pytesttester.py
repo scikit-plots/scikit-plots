@@ -6,16 +6,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Comprehensive tests for :mod:`_testing._pytesttester`.
+Comprehensive tests for :mod:`scikitplot._testing._pytesttester`.
 
 Coverage targets
 ----------------
-* :func:`_testing._pytesttester._show_numpy_info`
+* :func:`scikitplot._testing._pytesttester._show_numpy_info`
     - prints NumPy version line
     - prints relaxed-strides line
     - version string matches numpy.__version__
 
-* :class:`_testing._pytesttester.PytestTester`
+* :class:`scikitplot._testing._pytesttester.PytestTester`
     - __init__: stores module_name, rejects non-str
     - __repr__: correct format
     - __call__: argument assembly (label, verbose, extra_argv, coverage,
@@ -32,7 +32,7 @@ Notes
 Developer note: ``pytest`` is imported *inside* ``PytestTester.__call__``
 with a plain ``import pytest`` statement.  The canonical way to mock a
 deferred local import is to temporarily replace the entry in ``sys.modules``
-via ``unittest.mock.patch.dict``.  Using ``patch("_testing._pytesttester.pytest")``
+via ``unittest.mock.patch.dict``.  Using ``patch("scikitplot._testing._pytesttester.pytest")``
 would raise ``AttributeError`` because the attribute does not exist at the
 module level until the first call executes.
 
@@ -96,7 +96,7 @@ def _run_call(mod_name: str, mod: types.ModuleType, **call_kwargs):
     mock_pytest = MagicMock()
     mock_pytest.main.return_value = 0
     with patch.dict(sys.modules, {"pytest": mock_pytest, mod_name: mod}):
-        with patch("_testing._pytesttester._show_numpy_info"):
+        with patch("scikitplot._testing._pytesttester._show_numpy_info"):
             result = PytestTester(mod_name)(**call_kwargs)
     return result, mock_pytest
 
@@ -345,7 +345,7 @@ class TestPytestTesterDoctests:
         mod = _make_package_module("_tp_docs")
         mock_pytest = MagicMock()
         with patch.dict(sys.modules, {"pytest": mock_pytest, "_tp_docs": mod}):
-            with patch("_testing._pytesttester._show_numpy_info"):
+            with patch("scikitplot._testing._pytesttester._show_numpy_info"):
                 with pytest.raises(ValueError, match="not supported"):
                     PytestTester("_tp_docs")(doctests=True)
 
@@ -368,7 +368,7 @@ class TestPytestTesterReturnValues:
         mock_pytest = MagicMock()
         mock_pytest.main.return_value = retval
         with patch.dict(sys.modules, {"pytest": mock_pytest, self._NAME: self._MOD}):
-            with patch("_testing._pytesttester._show_numpy_info"):
+            with patch("scikitplot._testing._pytesttester._show_numpy_info"):
                 return PytestTester(self._NAME)()
 
     def test_exit_0_returns_true(self) -> None:
@@ -408,7 +408,7 @@ class TestPytestTesterSystemExit:
         mock_pytest = MagicMock()
         mock_pytest.main.side_effect = SystemExit(code)
         with patch.dict(sys.modules, {"pytest": mock_pytest, self._NAME: self._MOD}):
-            with patch("_testing._pytesttester._show_numpy_info"):
+            with patch("scikitplot._testing._pytesttester._show_numpy_info"):
                 return PytestTester(self._NAME)()
 
     def test_int_0_returns_true(self) -> None:
@@ -481,6 +481,6 @@ class TestPytestTesterModulePath:
         mock_pytest = MagicMock()
         mock_pytest.main.return_value = 0
         with patch.dict(sys.modules, {"pytest": mock_pytest, self._NAME: mod}):
-            with patch("_testing._pytesttester._show_numpy_info") as mock_info:
+            with patch("scikitplot._testing._pytesttester._show_numpy_info") as mock_info:
                 PytestTester(self._NAME)()
         mock_info.assert_called_once()

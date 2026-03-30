@@ -1,3 +1,5 @@
+# scikitplot/logging.py
+#
 # ruff: noqa: PLC0415
 # pylint: disable=import-error
 # pylint: disable=unused-argument
@@ -7,7 +9,7 @@
 # pylint: disable=import-outside-toplevel
 # pylint: disable=reimported
 # pylint: disable=too-many-lines
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 

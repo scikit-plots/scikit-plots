@@ -6,11 +6,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Comprehensive tests for :mod:`_testing._testing`.
+Comprehensive tests for :mod:`scikitplot._testing._testing`.
 
 Coverage targets
 ----------------
-* :class:`_testing._testing._IgnoreWarnings`
+* :class:`scikitplot._testing._testing._IgnoreWarnings`
     - __init__ validation (valid, invalid category types)
     - context-manager protocol (suppression, category filtering, filter
       restoration, exception propagation, enter returns self)
@@ -20,7 +20,7 @@ Coverage targets
     - __exit__ without __enter__ guard (RuntimeError)
     - __repr__
 
-* :class:`_testing._testing._AssertNoWarningsContext`
+* :class:`scikitplot._testing._testing._AssertNoWarningsContext`
     - __init__ validation
     - context-manager protocol (no-warn passes, matching warn raises,
       non-matching warn passes, subclass warns trigger, multiple warns,
@@ -38,12 +38,12 @@ Coverage targets
     - non-callable non-None obj raises TypeError
     - category keyword propagated
 
-* :func:`_testing._testing.assert_no_warnings` (public factory)
+* :func:`scikitplot._testing._testing.assert_no_warnings` (public factory)
     - returns _AssertNoWarningsContext
     - default and custom warning_class
     - functional integration (no-warn, warn)
 
-* :data:`_testing.SkipTest` re-export alias
+* :data:`scikitplot._testing.SkipTest` re-export alias
 """
 
 from __future__ import annotations
