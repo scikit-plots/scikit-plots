@@ -1,3 +1,5 @@
+# scikitplot/dummy.py
+#
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -5,7 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
-
+#
 # This module was copied from the scikit-learn project.
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/_min_dependencies.py
 

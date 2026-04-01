@@ -1,13 +1,13 @@
 # scikitplot/decile/_decile_modelplotpy.py
-
+#
 # pylint: disable=import-error
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
 # pylint: disable=consider-using-f-string
-
+#
 # flake8: noqa: D213
 # ruff: noqa: PLR2004
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -1068,7 +1068,7 @@ class ModelPlotPy:
             ]
 
         if scope == "compare_models":
-            models_sel = sm if sm else self.model_labels
+            models_sel = sm or self.model_labels
             if len(models_sel) < 2:
                 raise ValueError("compare_models requires at least 2 models.")
             d = _one_or_error(sd, self.dataset_labels, what="select_dataset_label")
@@ -1083,7 +1083,7 @@ class ModelPlotPy:
 
         if scope == "compare_datasets":
             m = _one_or_error(sm, self.model_labels, what="select_model_label")
-            datasets_sel = sd if sd else self.dataset_labels
+            datasets_sel = sd or self.dataset_labels
             if len(datasets_sel) < 2:
                 raise ValueError("compare_datasets requires at least 2 datasets.")
             t = _one_or_error(
@@ -1098,7 +1098,7 @@ class ModelPlotPy:
         # scope == 'compare_targetclasses'
         m = _one_or_error(sm, self.model_labels, what="select_model_label")
         d = _one_or_error(sd, self.dataset_labels, what="select_dataset_label")
-        classes_sel = st if st else list(self.models[0].classes_)
+        classes_sel = st or list(self.models[0].classes_)
         if len(classes_sel) < 2:
             raise ValueError(
                 "compare_targetclasses requires at least 2 target classes."
@@ -3441,7 +3441,7 @@ def plot_all(  # noqa: D417
 
     # Tight layout (keep suptitle visible). If footer reserved space, it was
     # already applied via subplots_adjust in _render_footer_text.
-    fig.tight_layout(rect=[0.0, 0.03, 1.0, 0.95])
+    # fig.tight_layout(rect=[0.0, 0.03, 1.0, 0.95])
 
     return ax1
 

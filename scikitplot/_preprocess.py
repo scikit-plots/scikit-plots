@@ -1,5 +1,11 @@
+# scikitplot/_preprocess.py
+#
+# flake8: noqa: D213
 # pylint: disable=broad-exception-caught
 # pylint: disable=consider-using-f-string
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """_preprocess."""
 
