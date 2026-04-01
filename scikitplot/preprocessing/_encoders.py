@@ -29,6 +29,8 @@ from numbers import Integral
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import pandas
+
     # from collections import defaultdict
     from collections.abc import (
         # Hashable,
@@ -209,70 +211,147 @@ class GetDummies(TransformerMixin, BaseEstimator):
             "Input must be a pandas DataFrame, NumPy array, or SciPy sparse matrix"
         )
 
-    def _split_and_clean(self, series):
+    def _split_and_clean(self, series: pandas.Series) -> pandas.Series:
         """
-        Split strings by separator and normalize.
+        Split strings by separator and normalize, preserving NaN positions.
 
-        Steps:
-        - lowercase
-        - strip whitespace
-        - drop empty entries
-        - rejoin into normalized string so pd.get_dummies can handle
-        """
-        return (
-            series.fillna("")  # Replace NaN with empty string
-            .str.split(self.sep)  # split into list of tokens
-            .apply(
-                lambda lst: self.sep.join(  # rejoin back to single string
-                    sorted(  # optional: sort tokens for consistency
-                        {
-                            s.strip().lower() for s in lst if s.strip()
-                        }  # deduplicate + normalize
-                    )
-                )
-            )
-        )
+        Each non-NaN entry is lowercased, whitespace-stripped, deduplicated,
+        sorted, and rejoined by ``self.sep`` so that ``str.get_dummies`` can
+        parse it in a deterministic, order-independent way.
 
-    def _make_dummies(self, series, colname):
-        """
-        Convert cleaned string column into dummy variables.
+        NaN values are kept as NaN throughout — never coerced to empty string.
+        The downstream invariant (NaN row → all-zero dummy row) is enforced
+        explicitly in :meth:`_make_dummies`, not here.
 
         Parameters
         ----------
         series : pd.Series
-            The column to convert.
-        colname : str
-            Column name (used to create prefixed dummy names).
+            Raw string series from a DataFrame column; may contain ``NaN`` /
+            ``None`` values.
+
+        Returns
+        -------
+        pd.Series
+            Normalised, separator-rejoined strings for valid entries.
+            NaN entries remain NaN, preserving the original index and length.
+
+        Notes
+        -----
+        Developer note
+            **Do NOT replace** ``fillna("")`` here.  In pandas ≥ 3 the empty
+            string ``""`` is a valid, non-null value.  ``str.get_dummies``
+            treats it as a real token and produces a spurious ``""`` dummy
+            column, giving the NaN row a ``1`` instead of all zeros.
+
+            The NaN → zero-row contract is owned entirely by ``_make_dummies``,
+            which captures the NaN mask before calling this method and zeroes
+            those rows explicitly after dummification.
         """
-        # Split + normalize string into sets of labels
+        nan_mask = series.isna()
+        result = series.copy()
+
+        valid = ~nan_mask
+        if valid.any():
+            result[valid] = (
+                series[valid]
+                .str.split(self.sep)
+                .apply(
+                    lambda lst: self.sep.join(
+                        sorted({s.strip().lower() for s in lst if s.strip()})
+                    )
+                )
+            )
+        # NaN rows remain NaN — _make_dummies enforces the zero-row invariant.
+        return result
+
+    def _make_dummies(self, series: pandas.Series, colname: str) -> pandas.DataFrame:
+        """
+        Convert a raw string column into prefixed one-hot dummy variables.
+
+        Enforces the invariant: a row whose input value was NaN produces a
+        row of all zeros in the output, deterministically across all pandas
+        versions.
+
+        Parameters
+        ----------
+        series : pd.Series
+            Raw string column from the input DataFrame; may contain NaN.
+        colname : str
+            Name of the source column, used to look up the abbreviation
+            prefix stored in ``self.dummy_prefix_`` and to build output
+            column names (e.g. ``"tags"`` → prefix ``"ta"`` → ``"ta_a"``).
+
+        Returns
+        -------
+        dummies : pd.DataFrame
+            One-hot encoded DataFrame.  Column names are prefixed with
+            ``<abbrev><col_name_sep><token>`` (e.g. ``"ta_a"``).
+            Shape: ``(len(series), n_unique_tokens)``.  Rows where the
+            original value was NaN are guaranteed to be all-zero.
+
+        Notes
+        -----
+        Developer note
+            This method is the **invariant owner** for NaN handling.  The
+            two-step design is intentional:
+
+            1. ``_split_and_clean`` is a pure normaliser — it preserves NaN
+               as NaN and never decides what missing means semantically.
+
+            2. This method captures ``nan_mask`` *before* normalisation,
+               calls ``str.get_dummies`` on the cleaned series, then
+               unconditionally zeros the NaN rows.  That explicit zero-out
+               is the load-bearing line: it makes the contract hold
+               regardless of how any pandas version internally handles NaN
+               or empty strings in ``str.get_dummies``.
+
+            A defensive ``drop(columns=[""])`` follows dummification.  In
+            some pandas builds a non-NaN row that normalises to ``""`` (e.g.
+            input was ``","`` — only separator, no tokens) can produce a
+            spurious ``""`` column.  Dropping it keeps the column set clean.
+
+        Raises
+        ------
+        KeyError
+            If ``colname`` is not present in ``self.dummy_prefix_``.  This
+            indicates ``fit`` was not called before ``transform``.
+        """
+        # ── Step 1: capture NaN positions before any mutation ────────────
+        # This is the authoritative source of truth for missing rows.
+        nan_mask = series.isna()
+
+        # ── Step 2: normalise tokens; NaN rows remain NaN (no fillna) ────
         series = self._split_and_clean(series)
 
-        # TODO: Use MultiLabelBinarizer if sparse_output=True (efficient)
-        # if self.sparse_output:
-        #     mlb = MultiLabelBinarizer(
-        #         sparse_output=self.sparse_output,
-        #         dtype=self.dtype,
-        #     )
-        #     mlb.fit(series)
-        #     cats = mlb.classes_
+        # ── Step 3: expand into one-hot dummy columns ─────────────────────
+        # str.get_dummies(NaN) → all-zeros in pandas 2.x; behaviour is
+        # version-sensitive in pandas 3.x.  We enforce the invariant below
+        # so behaviour is deterministic across all supported versions.
+        dummies = series.str.get_dummies(sep=self.sep)
 
-        # Expand multi-label strings into one-hot dummy columns
-        # dummies = pd.get_dummies(  # Expand to dummy variables
-        #     data=pd.Series(series),
-        #     dtype=self.dtype,
-        #     # drop=self.drop,
-        # )
-        dummies = series.str.get_dummies(  # Expand to dummy variables
-            sep=self.sep  # default "|"
-        )
-        # Prefix to column names to avoid collisions
+        # ── Step 4: drop spurious empty-token column ──────────────────────
+        # Appears in certain pandas builds when a valid (non-NaN) row
+        # normalises to "" (e.g. input "," → all tokens stripped → "").
+        # Dropping it prevents an unwanted column from polluting the schema.
+        if "" in dummies.columns:
+            dummies = dummies.drop(columns=[""])
+
+        # ── Step 5: enforce NaN-row → zero-row invariant ─────────────────
+        # Unconditional: does not depend on any pandas NA behaviour.
+        if nan_mask.any():
+            dummies.loc[nan_mask] = 0
+
+        # ── Step 6: prefix column names to avoid cross-column collisions ──
         dummies = dummies.add_prefix(self.dummy_prefix_[colname] + self.col_name_sep)
-        # Drop first dummy if requested (to avoid multicollinearity)
+
+        # ── Step 7: optionally drop first dummy (collinearity reduction) ──
         if self.drop in ["first", True] and len(dummies.columns) > 1:
             dummies = dummies.iloc[:, 1:]
-        # Ensure dtype is correct
+
+        # ── Step 8: cast to requested output dtype ────────────────────────
         if self.dtype is not None:
-            dummies = dummies.astype(self.dtype)  # Set dtype
+            dummies = dummies.astype(self.dtype)
+
         return dummies
 
     # -----------------------
