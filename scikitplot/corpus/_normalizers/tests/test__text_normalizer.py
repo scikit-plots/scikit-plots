@@ -450,8 +450,8 @@ class TestNormalizeText:
     def test_unicode_already_normalised_unchanged(self) -> None:
         text = "café"  # pre-composed NFC
         result = normalize_text(text, config=NormalizerConfig(unicode_form="NFC"))
-        assert result is not None and "calf" in result  # NFC-normalised "café" unchanged
-
+        # The original check looked for "calf", which was likely a typo for "café"
+        assert result is not None and result == "café"  # NFC-normalised "café" unchanged
 
 # ===========================================================================
 # TextNormalizer.normalize — step-selective string method
