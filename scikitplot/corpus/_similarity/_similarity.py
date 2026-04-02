@@ -495,13 +495,16 @@ class SimilarityIndex:
         import numpy as np  # noqa: PLC0415
 
         qe = np.asarray(query_embedding, dtype=np.float32).flatten()
+        norm_q = np.linalg.norm(qe)
+        if norm_q == 0:
+            return []
 
         if self._faiss_index is not None:
             # FAISS or Voyager
             try:
                 import faiss  # type: ignore[import]  # noqa: F401, PLC0415
 
-                qe_norm = qe / (np.linalg.norm(qe) or 1.0)
+                qe_norm = qe / norm_q
                 D, I = self._faiss_index.search(  # noqa: N806
                     qe_norm.reshape(1, -1), cfg.top_k
                 )
@@ -544,13 +547,8 @@ class SimilarityIndex:
         # Brute-force cosine
         embs = self._embeddings
         norms_e = np.linalg.norm(embs, axis=1)
-        norm_q = np.linalg.norm(qe)
-        if norm_q == 0:
-            return []
-
         scores = embs @ qe / (norms_e * norm_q + 1e-10)
         top_indices = np.argsort(scores)[::-1][: cfg.top_k]
-
         results = []
         for idx in top_indices:
             s = float(scores[idx])
@@ -563,7 +561,6 @@ class SimilarityIndex:
                     match_mode="semantic",
                 )
             )
-
         return results
 
     # ------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""Tests for corpus._chunkers._paragraph."""
+"""Tests for scikitplot.corpus._chunkers._paragraph."""
 
 from __future__ import annotations
 

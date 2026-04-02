@@ -245,17 +245,22 @@ class TestLanguageDetectionNormalizer:
         m.prob = prob
         return [m]
 
+    def _make_langdetect_module(self, mock_langs: list) -> MagicMock:
+        """Return a fake ``langdetect`` module with ``detect_langs`` pre-set."""
+        mod = MagicMock()
+        mod.detect_langs.return_value = mock_langs
+        return mod
+
     def test_detects_language(self) -> None:
         norm = LanguageDetectionNormalizer()
         doc = _doc("The quick brown fox jumps over the lazy dog.")
         mock_langs = self._make_mock_langs("en", 0.99)
-        with patch(
-            "scikitplot.corpus._normalizers._normalizer.LanguageDetectionNormalizer"
-            "._get_source_text",
-            return_value="The quick brown fox jumps over the lazy dog.",
-        ):
+        fake_ld = self._make_langdetect_module(mock_langs)
+        with patch.dict("sys.modules", {"langdetect": fake_ld}):
             with patch(
-                "langdetect.detect_langs", return_value=mock_langs
+                "scikitplot.corpus._normalizers._normalizer."
+                "LanguageDetectionNormalizer._get_source_text",
+                return_value="The quick brown fox jumps over the lazy dog.",
             ):
                 result = norm.normalize_doc(doc)
                 assert result.language == "en"
@@ -264,7 +269,8 @@ class TestLanguageDetectionNormalizer:
         norm = LanguageDetectionNormalizer(fallback_language="en", min_confidence=0.9)
         doc = _doc("The quick brown fox jumps over the lazy dog.")
         mock_langs = self._make_mock_langs("de", 0.5)
-        with patch("langdetect.detect_langs", return_value=mock_langs):
+        fake_ld = self._make_langdetect_module(mock_langs)
+        with patch.dict("sys.modules", {"langdetect": fake_ld}):
             result = norm.normalize_doc(doc)
             assert result.language == "en"
 
@@ -278,7 +284,8 @@ class TestLanguageDetectionNormalizer:
         norm = LanguageDetectionNormalizer(overwrite=True)
         doc = CorpusDocument.create("f.txt", 0, "Hello world today.", language="fr")
         mock_langs = self._make_mock_langs("en", 0.99)
-        with patch("langdetect.detect_langs", return_value=mock_langs):
+        fake_ld = self._make_langdetect_module(mock_langs)
+        with patch.dict("sys.modules", {"langdetect": fake_ld}):
             result = norm.normalize_doc(doc)
             assert result.language == "en"
 

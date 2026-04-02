@@ -237,7 +237,11 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
     # stdlib ElementTree: limited XPath subset via findall
 
     try:
-        return root.findall(xpath, namespaces or None) or []
+        # Evaluation: eager Memory: allocates full list
+        # return root.findall(xpath, namespaces or None) or []
+        # Evaluation: lazy Memory: minimal (streaming)
+        # return root.iterfind(xpath, namespaces or None) or []
+        return list(root.iterfind(xpath, namespaces or None)) or []
     except Exception as exc:  # noqa: BLE001
         logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)
         return []
@@ -443,7 +447,7 @@ class XMLReader(DocumentReader):
                 continue
             yield {
                 "text": text,
-                "section_type": SectionType.TEXT.value,
+                "section_type": SectionType.TEXT,
             }
 
     # ------------------------------------------------------------------
@@ -777,7 +781,7 @@ class TEIReader(DocumentReader):
             if text:
                 yield {
                     "text": text,
-                    "section_type": SectionType.STAGE_DIRECTION.value,
+                    "section_type": SectionType.STAGE_DIRECTION,
                     "act": act,
                     "scene_number": scene,
                     "line_number": None,
@@ -802,7 +806,7 @@ class TEIReader(DocumentReader):
                 line_counter[0] += 1
                 yield {
                     "text": text,
-                    "section_type": SectionType.VERSE.value,
+                    "section_type": SectionType.VERSE,
                     "act": act,
                     "scene_number": scene,
                     "line_number": line_counter[0],
@@ -815,7 +819,7 @@ class TEIReader(DocumentReader):
             if text:
                 yield {
                     "text": text,
-                    "section_type": SectionType.TEXT.value,
+                    "section_type": SectionType.TEXT,
                     "act": act,
                     "scene_number": scene,
                     "line_number": None,
@@ -882,7 +886,7 @@ class TEIReader(DocumentReader):
                 if self.include_stage_directions:
                     yield {
                         "text": text,
-                        "section_type": SectionType.STAGE_DIRECTION.value,
+                        "section_type": SectionType.STAGE_DIRECTION,
                         "act": act,
                         "scene_number": scene,
                         "line_number": None,
@@ -894,7 +898,7 @@ class TEIReader(DocumentReader):
                 chunk_text = f"{speaker}: {text}" if speaker else text
                 yield {
                     "text": chunk_text,
-                    "section_type": SectionType.DIALOGUE.value,
+                    "section_type": SectionType.VERSE,
                     "act": act,
                     "scene_number": scene,
                     "line_number": line_counter[0],
@@ -905,7 +909,7 @@ class TEIReader(DocumentReader):
             chunk_text = f"{speaker}: {text}" if speaker else text
             yield {
                 "text": chunk_text,
-                "section_type": SectionType.DIALOGUE.value,
+                "section_type": SectionType.DIALOGUE,
                 "act": act,
                 "scene_number": scene,
                 "line_number": None,

@@ -435,7 +435,7 @@ class TextNormalizer:
                 n_skipped += 1
                 continue
 
-            raw = getattr(doc, "text", "")
+            raw = getattr(doc, "text", "") or ""
             cleaned = normalize_text(raw, config=self.config)
             out.append(doc.replace(normalized_text=cleaned))
             n_normalised += 1
