@@ -223,10 +223,23 @@ class TestExportDocuments:
         import logging  # noqa: PLC0415
 
         out = tmp_path / "log_test.csv"
-        with caplog.at_level(logging.INFO):
+        # Patch the specific logger instance in the export module
+        # Note: adjust the path if your module structure is different
+        patch_path = "scikitplot.corpus._export._export.logger"
+        with patch(patch_path) as mock_logger:
             export_documents(_docs(1), out, ExportFormat.CSV)
-        assert any("export" in r.message.lower() or "wrote" in r.message.lower()
-                   for r in caplog.records)
+        # Verify that an INFO level log was attempted
+        assert mock_logger.info.called, "Expected logger.info() to be called"
+        # Check the content of the log message
+        # call_args_list handles multiple calls; we check if any match your criteria
+        found = False
+        for call in mock_logger.info.call_args_list:
+            args, _ = call
+            message = str(args[0]).lower()
+            if "export" in message or "wrote" in message:
+                found = True
+                break
+        assert found, f"Log message did not contain 'export' or 'wrote'. Got: {mock_logger.info.call_args_list}"
 
 
 # ===========================================================================

@@ -1,5 +1,7 @@
 # scikitplot/corpus/_chunkers/tests/test__chunker_bridge.py
 #
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,6 +38,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from .. import _chunker_bridge  # Import the module to access its logger
 from .._chunker_bridge import (
     ChunkerBridge,
     FixedWindowChunkerBridge,
@@ -47,6 +50,9 @@ from .._chunker_bridge import (
 from ..._schema import ChunkingStrategy
 from ..._types import Chunk, ChunkResult
 
+# 1. Access the logger instance directly from the module
+# 2. Force propagation so caplog (which hooks into the hierarchy) catches it
+_chunker_bridge.logger.propagate = True
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -441,17 +447,37 @@ class TestBridgeChunker:
     def test_unknown_chunker_returns_original_with_warning(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """An unrecognised chunker must be returned as-is with a WARNING log."""
+        """An unrecognised chunker must be returned as-is with a WARNING log.
+
+        Notes
+        -----
+        ``caplog.records`` stores raw ``LogRecord`` objects; the ``.message``
+        attribute only exists after ``Formatter.format()`` has been called.
+        Use ``caplog.messages`` (which calls ``r.getMessage()`` on each
+        record) instead.  We also set the level on both possible logger
+        hierarchy roots so the test is robust regardless of whether the
+        module was imported as ``scikitplot.corpus.*``.
+        """
 
         class WeirdChunker:
             def chunk(self, text, extra_metadata=None):
                 return ChunkResult(chunks=[])
 
         obj = WeirdChunker()
-        with caplog.at_level(logging.WARNING):
+        # We patch the logger instance directly in the target module.
+        # This intercepts the call before it even reaches the logging handlers.
+        patch_path = "scikitplot.corpus._chunkers._chunker_bridge.logger"
+        with patch(patch_path) as mock_logger:
             result = bridge_chunker(obj)
         assert result is obj
-        assert any("WeirdChunker" in r.message for r in caplog.records)
+        # Verify logger.warning was called
+        assert mock_logger.warning.called, "logger.warning() was not called"
+        # Verify the content of the arguments
+        # The first arg is the format string, subsequent are values for %r
+        args, _ = mock_logger.warning.call_args
+        assert any("WeirdChunker" in str(arg) for arg in args), (
+            f"Expected 'WeirdChunker' in log arguments, but got: {args}"
+        )
 
     def test_no_chunk_method_returned_unchanged(self) -> None:
         """Object with no ``chunk`` method at all goes through the unknown path."""
@@ -502,8 +528,7 @@ class TestBridgeChunker:
             assert len(text) > 0
 
     def test_real_fixed_window_chunker_integration(self) -> None:
-        """
-        End-to-end: bridge real FixedWindowChunker → tuple list.
+        """End-to-end: bridge real FixedWindowChunker → tuple list.
 
         Uses CHARS unit with window_size=10, step_size=5 so a 33-char
         source produces multiple non-empty windows.

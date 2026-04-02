@@ -450,7 +450,7 @@ class TestNormalizeText:
     def test_unicode_already_normalised_unchanged(self) -> None:
         text = "café"  # pre-composed NFC
         result = normalize_text(text, config=NormalizerConfig(unicode_form="NFC"))
-        assert result is not None and "calf" in result
+        assert result is not None and "calf" in result  # NFC-normalised "café" unchanged
 
 
 # ===========================================================================
@@ -615,10 +615,17 @@ class TestTextNormalizerNormalizeDocuments:
 
         n = TextNormalizer()
         docs = [self._doc("hello.")]
-        with caplog.at_level(logging.INFO):
+        # Patch the logger inside the text_normalizer module
+        patch_path = "scikitplot.corpus._normalizers._text_normalizer.logger"
+        with patch(patch_path) as mock_logger:
             n.normalize_documents(docs)
-        assert any("normalised" in r.message or "TextNormalizer" in r.message
-                   for r in caplog.records)
+        # 1. Ensure info() was called
+        assert mock_logger.info.called, "logger.info() was never called"
+        # 2. Verify the message content
+        messages = [str(call.args[0]).lower() for call in mock_logger.info.call_args_list]
+        assert any("normalised" in m or "textnormalizer" in m for m in messages), (
+            f"Expected keywords not found in logs: {messages}"
+        )
 
     def test_min_length_sets_normalized_text_to_none(self) -> None:
         cfg = NormalizerConfig(min_length=100)

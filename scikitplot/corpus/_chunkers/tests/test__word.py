@@ -1,4 +1,4 @@
-"""Tests for corpus._chunkers._word."""
+"""Tests for scikitplot.corpus._chunkers._word."""
 
 from __future__ import annotations
 
@@ -192,6 +192,7 @@ class TestStemming:
     def test_porter_stems_tokens(
         self, porter_chunker: WordChunker
     ) -> None:
+        pytest.importorskip("nltk", reason="nltk not installed; stemming tests skipped")
         result = porter_chunker.chunk("The jumping runners ran quickly.")
         tokens = result.chunks[0].metadata["tokens"]
         # 'jumping' → 'jump', 'runners' → 'runner' or 'run'
@@ -200,6 +201,7 @@ class TestStemming:
     def test_stemmer_key_in_metadata(
         self, porter_chunker: WordChunker
     ) -> None:
+        pytest.importorskip("nltk", reason="nltk not installed; stemming tests skipped")
         result = porter_chunker.chunk(TEXT)
         assert result.chunks[0].metadata["stemmer"] == "porter"
 
