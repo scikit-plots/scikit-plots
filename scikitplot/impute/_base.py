@@ -1,5 +1,16 @@
-# flake8: noqa: D213
-
+# scikitplot/impute/_base.py
+#
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+#
+# Copied from:
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/impute/_base.py
+#
 # Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,13 +21,15 @@ from functools import partial
 from typing import Callable
 
 import numpy as np
-from numpy import ma
+import numpy.ma as ma
 from scipy import sparse as sp
+
 from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils._mask import _get_mask
 from sklearn.utils._missing import is_pandas_na, is_scalar_nan
 from sklearn.utils._param_validation import MissingValues, StrOptions
-from sklearn.utils.fixes import _mode
+from sklearn.utils._sparse import _align_api_if_sparse
+from sklearn.utils.fixes import SCIPY_VERSION_BELOW_1_12, _mode
 from sklearn.utils.sparsefuncs import _get_median
 from sklearn.utils.validation import (
     FLOAT_DTYPES,
@@ -33,7 +46,7 @@ def _check_inputs_dtype(X, missing_values):
         return
     if X.dtype.kind in ("f", "i", "u") and not isinstance(missing_values, numbers.Real):
         raise ValueError(
-            "'X' and 'missing_values' types are expected to be"  # noqa: EM103, UP032
+            "'X' and 'missing_values' types are expected to be"
             " both numerical. Got X.dtype={} and "
             " type(missing_values)={}.".format(X.dtype, type(missing_values))
         )
@@ -54,12 +67,9 @@ def _safe_min(items):
 
 
 def _most_frequent(array, extra_value, n_repeat):
-    """
-    Compute the most frequent value.
-
-    In a 1d array extended with [extra_value] * n_repeat,
-    where extra_value is assumed to be not part of the array.
-    """
+    """Compute the most frequent value in a 1d array extended with
+    [extra_value] * n_repeat, where extra_value is assumed to be not part
+    of the array."""
     # Compute the most frequent value in array only
     if array.size > 0:
         if array.dtype == object:
@@ -86,14 +96,13 @@ def _most_frequent(array, extra_value, n_repeat):
     # Compare to array + [extra_value] * n_repeat
     if most_frequent_count == 0 and n_repeat == 0:
         return np.nan
-    elif most_frequent_count < n_repeat:  # noqa: RET505
+    elif most_frequent_count < n_repeat:
         return extra_value
     elif most_frequent_count > n_repeat:
         return most_frequent_value
     elif most_frequent_count == n_repeat:
         # tie breaking similarly to scipy.stats.mode
         return _safe_min([most_frequent_value, extra_value])
-    return np.nan
 
 
 class _BaseImputer(TransformerMixin, BaseEstimator):
@@ -102,7 +111,7 @@ class _BaseImputer(TransformerMixin, BaseEstimator):
     It adds automatically support for `add_indicator`.
     """
 
-    _parameter_constraints: dict = {  # noqa: RUF012
+    _parameter_constraints: dict = {
         "missing_values": [MissingValues()],
         "add_indicator": ["boolean"],
         "keep_empty_features": ["boolean"],
@@ -126,8 +135,7 @@ class _BaseImputer(TransformerMixin, BaseEstimator):
             self.indicator_ = None
 
     def _transform_indicator(self, X):
-        """
-        Compute the indicator mask.
+        """Compute the indicator mask.'
 
         Note that X must be the original data as passed to the imputer before
         any imputation, since imputation may be done inplace in some cases.
@@ -138,7 +146,6 @@ class _BaseImputer(TransformerMixin, BaseEstimator):
                     "Make sure to call _fit_indicator before _transform_indicator"
                 )
             return self.indicator_.transform(X)
-        return np.nan
 
     def _concatenate_indicator(self, X_imputed, X_indicator):
         """Concatenate indicator mask with the imputed data."""
@@ -159,7 +166,7 @@ class _BaseImputer(TransformerMixin, BaseEstimator):
                 "implementation."
             )
 
-        return hstack((X_imputed, X_indicator))
+        return _align_api_if_sparse(hstack((X_imputed, X_indicator)))
 
     def _concatenate_indicator_feature_names_out(self, names, input_features):
         if not self.add_indicator:
@@ -292,7 +299,7 @@ class SimpleImputer(_BaseImputer):
     --------
     >>> import numpy as np
     >>> from sklearn.impute import SimpleImputer
-    >>> imp_mean = SimpleImputer(missing_values=np.nan, strategy="mean")
+    >>> imp_mean = SimpleImputer(missing_values=np.nan, strategy='mean')
     >>> imp_mean.fit([[7, 2, 3], [4, np.nan, 6], [10, 5, 9]])
     SimpleImputer()
     >>> X = [[np.nan, 2, 3], [4, np.nan, 6], [10, np.nan, 9]]
@@ -305,7 +312,7 @@ class SimpleImputer(_BaseImputer):
     :ref:`sphx_glr_auto_examples_impute_plot_missing_values.py`.
     """
 
-    _parameter_constraints: dict = {  # noqa: RUF012
+    _parameter_constraints: dict = {
         **_BaseImputer._parameter_constraints,
         "strategy": [
             StrOptions({"mean", "median", "most_frequent", "constant"}),
@@ -334,7 +341,7 @@ class SimpleImputer(_BaseImputer):
         self.fill_value = fill_value
         self.copy = copy
 
-    def _validate_input(self, X, in_fit):  # noqa: PLR0912
+    def _validate_input(self, X, in_fit):
         if self.strategy in ("most_frequent", "constant"):
             # If input is a list of strings, dtype = object.
             # Otherwise ValueError is raised in SimpleImputer
@@ -372,12 +379,12 @@ class SimpleImputer(_BaseImputer):
         except ValueError as ve:
             if "could not convert" in str(ve):
                 new_ve = ValueError(
-                    "Cannot use {} strategy with non-numeric data:\n{}".format(  # noqa: UP032
+                    "Cannot use {} strategy with non-numeric data:\n{}".format(
                         self.strategy, ve
                     )
                 )
                 raise new_ve from None
-            else:  # noqa: RET506
+            else:
                 raise ve
 
         if in_fit:
@@ -387,7 +394,7 @@ class SimpleImputer(_BaseImputer):
         _check_inputs_dtype(X, self.missing_values)
         if X.dtype.kind not in ("i", "u", "f", "O"):
             raise ValueError(
-                "SimpleImputer does not support data with dtype "  # noqa: EM103, UP030, UP032
+                "SimpleImputer does not support data with dtype "
                 "{0}. Please provide either a numeric array (with"
                 " a floating point or integer dtype) or "
                 "categorical data represented either as an array "
@@ -456,7 +463,7 @@ class SimpleImputer(_BaseImputer):
         # default fill_value is 0 for numerical input and "missing_value"
         # otherwise
         if self.fill_value is None:
-            if X.dtype.kind in ("i", "u", "f"):  # noqa: SIM108
+            if X.dtype.kind in ("i", "u", "f"):
                 fill_value = 0
             else:
                 fill_value = "missing_value"
@@ -490,9 +497,14 @@ class SimpleImputer(_BaseImputer):
             statistics.fill(fill_value)
 
             if not self.keep_empty_features:
-                for i in range(missing_mask.shape[1]):
-                    if all(missing_mask[:, i].data):
-                        statistics[i] = np.nan
+                if SCIPY_VERSION_BELOW_1_12:
+                    for i in range(missing_mask.shape[1]):
+                        if all(missing_mask[:, [i]].data):
+                            statistics[i] = np.nan
+                else:
+                    for i in range(missing_mask.shape[1]):
+                        if all(missing_mask[:, i].data):
+                            statistics[i] = np.nan
 
         else:
             for i in range(X.shape[1]):
@@ -509,7 +521,7 @@ class SimpleImputer(_BaseImputer):
                 if len(column) == 0 and self.keep_empty_features:
                     # in case we want to keep columns with only missing values.
                     statistics[i] = 0
-                else:  # noqa: PLR5501
+                else:
                     if strategy == "mean":
                         s = column.size + n_zeros
                         statistics[i] = np.nan if s == 0 else column.sum() / s
@@ -527,10 +539,10 @@ class SimpleImputer(_BaseImputer):
 
         return statistics
 
-    def _dense_fit(self, X, strategy, missing_values, fill_value):  # noqa: PLR0912
+    def _dense_fit(self, X, strategy, missing_values, fill_value):
         """Fit the transformer on dense data."""
         missing_mask = _get_mask(X, missing_values)
-        masked_X = ma.masked_array(X, mask=missing_mask)  # noqa: N806
+        masked_X = ma.masked_array(X, mask=missing_mask)
 
         super()._fit_indicator(missing_mask)
 
@@ -544,7 +556,7 @@ class SimpleImputer(_BaseImputer):
             return mean
 
         # Median
-        elif strategy == "median":  # noqa: RET505
+        elif strategy == "median":
             median_masked = np.ma.median(masked_X, axis=0)
             # Avoid the warning "Warning: converting a masked element to nan."
             median = np.ma.getdata(median_masked)
@@ -570,8 +582,8 @@ class SimpleImputer(_BaseImputer):
                 most_frequent = np.empty(X.shape[0])
 
             for i, (row, row_mask) in enumerate(zip(X[:], mask[:])):
-                row_mask = np.logical_not(row_mask).astype(bool)  # noqa: PLW2901
-                row = row[row_mask]  # noqa: PLW2901
+                row_mask = np.logical_not(row_mask).astype(bool)
+                row = row[row_mask]
                 if len(row) == 0 and self.keep_empty_features:
                     most_frequent[i] = 0
                 else:
@@ -598,9 +610,8 @@ class SimpleImputer(_BaseImputer):
             for i in range(masked_X.shape[1]):
                 statistics[i] = self.strategy(masked_X[:, i].compressed())
             return statistics
-        return np.nan
 
-    def transform(self, X):  # noqa: PLR0912
+    def transform(self, X):
         """Impute all missing values in `X`.
 
         Parameters
@@ -621,7 +632,7 @@ class SimpleImputer(_BaseImputer):
 
         if X.shape[1] != statistics.shape[0]:
             raise ValueError(
-                "X has %d features per sample, expected %d"  # noqa: UP031
+                "X has %d features per sample, expected %d"
                 % (X.shape[1], self.statistics_.shape[0])
             )
 
@@ -649,8 +660,7 @@ class SimpleImputer(_BaseImputer):
                 warnings.warn(
                     "Skipping features without any observed values:"
                     f" {invalid_features}. At least one non-missing value is needed"
-                    f" for imputation with strategy='{self.strategy}'.",
-                    stacklevel=2,
+                    f" for imputation with strategy='{self.strategy}'."
                 )
                 X = X[:, valid_statistics_indexes]
 
@@ -662,7 +672,7 @@ class SimpleImputer(_BaseImputer):
                     "== 0 and input is sparse. Provide a dense "
                     "array instead."
                 )
-            else:  # noqa: RET506
+            else:
                 # if no invalid statistics are found, use the mask computed
                 # before, else recompute mask
                 if valid_statistics_indexes is None:
@@ -856,8 +866,12 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
     --------
     >>> import numpy as np
     >>> from sklearn.impute import MissingIndicator
-    >>> X1 = np.array([[np.nan, 1, 3], [4, 0, np.nan], [8, 1, 0]])
-    >>> X2 = np.array([[5, 1, np.nan], [np.nan, 2, 3], [2, 4, 0]])
+    >>> X1 = np.array([[np.nan, 1, 3],
+    ...                [4, 0, np.nan],
+    ...                [8, 1, 0]])
+    >>> X2 = np.array([[5, 1, np.nan],
+    ...                [np.nan, 2, 3],
+    ...                [2, 4, 0]])
     >>> indicator = MissingIndicator()
     >>> indicator.fit(X1)
     MissingIndicator()
@@ -868,7 +882,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
            [False, False]])
     """
 
-    _parameter_constraints: dict = {  # noqa: RUF012
+    _parameter_constraints: dict = {
         "missing_values": [MissingValues()],
         "features": [StrOptions({"missing-only", "all"})],
         "sparse": ["boolean", StrOptions({"auto"})],
@@ -888,9 +902,9 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
         self.sparse = sparse
         self.error_on_new = error_on_new
 
-    def _get_missing_features_info(self, X):  # noqa: PLR0912
-        """
-        Compute the imputer mask and the indices of the features containing missing values.
+    def _get_missing_features_info(self, X):
+        """Compute the imputer mask and the indices of the features
+        containing missing values.
 
         Parameters
         ----------
@@ -908,7 +922,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
         features_with_missing : ndarray of shape (n_features_with_missing)
             The features containing missing values.
         """
-        if not self._precomputed:  # noqa: SIM108
+        if not self._precomputed:
             imputer_mask = _get_mask(X, self.missing_values)
         else:
             imputer_mask = X
@@ -934,7 +948,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
                 n_missing = imputer_mask.sum(axis=0)
 
             if self.sparse is True:
-                imputer_mask = sp.csc_matrix(imputer_mask)
+                imputer_mask = _align_api_if_sparse(sp.csc_array(imputer_mask))
 
         if self.features == "all":
             features_indices = np.arange(X.shape[1])
@@ -959,7 +973,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
         _check_inputs_dtype(X, self.missing_values)
         if X.dtype.kind not in ("i", "u", "f", "O"):
             raise ValueError(
-                "MissingIndicator does not support data with "  # noqa: EM103, UP030, UP032
+                "MissingIndicator does not support data with "
                 "dtype {0}. Please provide either a numeric array"
                 " (with a floating point or integer dtype) or "
                 "categorical data represented either as an array "
@@ -978,7 +992,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
 
         return X
 
-    def _fit(self, X, y=None, precomputed=False):  # noqa: D417
+    def _fit(self, X, y=None, precomputed=False):
         """Fit the transformer on `X`.
 
         Parameters
@@ -1062,7 +1076,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
         # in the Imputer calling MissingIndicator
         if not self._precomputed:
             X = self._validate_input(X, in_fit=False)
-        else:  # noqa: PLR5501
+        else:
             if not (hasattr(X, "dtype") and X.dtype.kind == "b"):
                 raise ValueError("precomputed is True but the input data is not a mask")
 
@@ -1072,7 +1086,7 @@ class MissingIndicator(TransformerMixin, BaseEstimator):
             features_diff_fit_trans = np.setdiff1d(features, self.features_)
             if self.error_on_new and features_diff_fit_trans.size > 0:
                 raise ValueError(
-                    "The features {} have missing values "  # noqa: EM103, UP032
+                    "The features {} have missing values "
                     "in transform but have no missing values "
                     "in fit.".format(features_diff_fit_trans)
                 )

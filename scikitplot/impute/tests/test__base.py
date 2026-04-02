@@ -1,3 +1,19 @@
+# scikitplot/impute/tests/test__base.py
+#
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+#
+# Copied from:
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/impute/tests/test_base.py
+#
+# Authors: The scikit-learn developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 import numpy as np
 import pytest
 

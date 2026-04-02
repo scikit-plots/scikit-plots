@@ -1,6 +1,8 @@
+# scikitplot/impute/_privacy.py
+#
 # ruff: noqa: F401
 # pylint: disable=unused-import
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,9 +105,10 @@ class PrivateIndexMixin:
         """
         mode = getattr(self, "index_access", "private")
         if mode == "public":
-            # Use a standard sklearn-style fitted check, but on a
-            # mixin-specific internal attribute.
-            check_is_fitted(self, "_PrivateIndexMixin__index_store")
+            # _get_internal_index raises AttributeError when the store is
+            # absent (i.e. fit has not been called yet), which is exactly
+            # the sklearn-style "not fitted" contract for a mixin that does
+            # not necessarily inherit from BaseEstimator.
             return self._get_internal_index()
 
         raise AttributeError(
@@ -228,7 +231,7 @@ class OutsourcedIndexMixin(PrivateIndexMixin):
             if on_disk_path is not None:
                 try:
                     should_save = Path(on_disk_path).resolve() != index_path
-                except Exception:
+                except Exception:  # noqa: BLE001
                     should_save = str(on_disk_path) != str(index_path)
 
             if should_save:

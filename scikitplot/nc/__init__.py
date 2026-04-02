@@ -21,6 +21,21 @@ Compilers:
    * https://github.com/dpilger26/NumCpp
 """
 
+# nc/
+# ├── __init__.py              ← public API: get_include(), author metadata
+# ├── _wrappers.py             ← pure Python: _promote_to_supported_dtype, _binary_arraylike
+# ├── _linalg/
+# │   ├── __init__.py          ← pure Python wrapper exposing dot
+# │   └── tests/test__linalg.py ← tests (Layer 1 + Layer 2 mixed)
+# ├── _version/
+# │   ├── __init__.py          ← imports Cython + pybind11 version modules
+# │   └── tests/
+# │       ├── test___version.py ← Cython module tests (has bugs)
+# │       └── test__version.py  ← EMPTY (pybind11 module tests missing)
+# └── tests/
+#     ├── test___init__.py     ← nc package tests (has silent NameError bugs)
+#     └── test__wrappers.py    ← pure Python tests (comprehensive)
+
 # PUBLIC, user-facing API: Python wrapper that accepts array_like (lists, tuples, ndarrays)
 from ._linalg import *  # noqa: F403
 from ._version import *  # noqa: F403

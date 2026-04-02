@@ -1,5 +1,5 @@
 # scikitplot/decile/modelplotpy/_modelplotpy.py
-
+#
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -7,7 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,21 +71,53 @@ __all__ = [  # noqa: RUF022
 ##########################################################################
 
 
-def _range01(x):
+def _range01(x: Any) -> np.ndarray:
     """
-    Normalize input.
+    Normalize numeric input into the closed interval [0, 1].
 
     Parameters
     ----------
-    x : list of numeric data
-        List of numeric data to get normalized
+    x : Any
+        Numeric array-like. Supported inputs include numpy arrays, pandas Series,
+        and array-like objects accepted by :func:`numpy.asarray`.
 
     Returns
     -------
-    normalized version of x
+    numpy.ndarray
+        Normalized values in [0, 1] with the same shape as the input.
 
+    Raises
+    ------
+    ValueError
+        If the input contains NaN or infinite values.
+
+    See Also
+    --------
+    numpy.asarray
+
+    Notes
+    -----
+    Rule:
+
+    - If max(x) == min(x), returns an array of zeros.
+
+    Examples
+    --------
+    >>> _range01([2.0, 4.0]).tolist()
+    [0.0, 1.0]
     """
-    return (x - np.min(x)) / (np.max(x) - np.min(x))
+    arr = np.asarray(x, dtype=float)
+
+    # Dev note: do not silently accept NaN/inf; downstream ranking depends on finite values.
+    if not np.isfinite(arr).all():
+        raise ValueError("x must contain only finite values (no NaN/inf).")
+
+    xmin = float(arr.min())
+    xmax = float(arr.max())
+    if xmax == xmin:
+        return np.zeros_like(arr, dtype=float)
+
+    return (arr - xmin) / (xmax - xmin)
 
 
 def _check_input(input_list, check_list, check=""):
@@ -113,13 +145,15 @@ def _check_input(input_list, check_list, check=""):
 
     """
     if len(input_list) >= 1:
-        if any(elem in input_list for elem in check_list):
-            input_list = input_list  # ?
-        else:
+        # Require every element in input_list to be a member of check_list.
+        # Using `any` (old code) silently accepted partial overlaps such as
+        # ["valid", "typo"] — a correctness bug.  `all` enforces strict membership.
+        invalid = [elem for elem in input_list if elem not in check_list]
+        if invalid:
             raise ValueError(
-                f"Invalid input for parameter {check}. "
-                f"The input for {check} is 1 or more elements from {check_list} "
-                "and put in a list."
+                f"Invalid input for parameter '{check}'. "
+                f"The following elements are not allowed: {invalid}. "
+                f"Each element must come from: {check_list}."
             )
     return list(input_list)
 
@@ -168,24 +202,43 @@ class ModelPlotPy:
 
     def __init__(
         self,
-        feature_data=[],
-        label_data=[],
-        dataset_labels=[],
-        models=[],
-        model_labels=[],
+        feature_data=None,
+        label_data=None,
+        dataset_labels=None,
+        models=None,
+        model_labels=None,
         ntiles=10,
         seed=0,
     ):
         """Create a model_plots object."""
         super().__init__()
 
-        self.feature_data = feature_data
-        self.label_data = label_data
-        self.dataset_labels = dataset_labels
-        self.models = models
-        self.model_labels = model_labels
+        # Use None sentinels to avoid the mutable-default-argument pitfall where
+        # every instance would share the *same* list object across calls.
+        self.feature_data = list(feature_data) if feature_data is not None else []
+        self.label_data = list(label_data) if label_data is not None else []
+        self.dataset_labels = list(dataset_labels) if dataset_labels is not None else []
+        self.models = list(models) if models is not None else []
+        self.model_labels = list(model_labels) if model_labels is not None else []
         self.ntiles = ntiles
         self.seed = seed
+
+        # Validate length consistency eagerly so callers get a clear error at
+        # construction time instead of a cryptic failure deep inside a pipeline.
+        if len(self.models) != len(self.model_labels):
+            raise ValueError(
+                "The number of models and model_labels must be equal. "
+                f"Got models={len(self.models)}, model_labels={len(self.model_labels)}."
+            )
+        if not (
+            len(self.feature_data) == len(self.label_data) == len(self.dataset_labels)
+        ):
+            raise ValueError(
+                "feature_data, label_data, and dataset_labels must all have the same length. "
+                f"Got feature_data={len(self.feature_data)}, "
+                f"label_data={len(self.label_data)}, "
+                f"dataset_labels={len(self.dataset_labels)}."
+            )
 
     def get_params(self):
         """
@@ -321,9 +374,11 @@ class ModelPlotPy:
                         dataset[["prob_" + k]]
                         + (np.random.uniform(size=(n, 1)) / 1000000)
                     )
-                    prob_plus_smallrandom = np.array(
-                        prob_plus_smallrandom["prob_" + k]
-                    )  # cast to a 1 dimension thing
+                    # _range01 returns a numpy ndarray (shape (n, 1) or (n,)).
+                    # Flatten to 1-D so pd.qcut receives a plain vector.
+                    # The old code tried prob_plus_smallrandom["prob_" + k] which
+                    # string-indexes an ndarray and always raised IndexError.
+                    prob_plus_smallrandom = np.asarray(prob_plus_smallrandom).ravel()
                     dataset["dec_" + k] = self.ntiles - (
                         pd.DataFrame(
                             pd.qcut(prob_plus_smallrandom, self.ntiles, labels=False),
@@ -458,7 +513,9 @@ class ModelPlotPy:
                     ntiles_agg["postot"] = ntiles_agg.pos.sum()
                     ntiles_agg["negtot"] = ntiles_agg.neg.sum()
                     ntiles_agg["tottot"] = ntiles_agg.tot.sum()
-                    ntiles_agg["pcttot"] = ntiles_agg.pct.sum()
+                    # pcttot is the *overall* positive rate across all ntiles, not
+                    # the sum of per-ntile rates (which would be meaningless).
+                    ntiles_agg["pcttot"] = ntiles_agg["postot"] / ntiles_agg["tottot"]
                     ntiles_agg["cumpos"] = ntiles_agg.pos.cumsum()
                     ntiles_agg["cumneg"] = ntiles_agg.neg.cumsum()
                     ntiles_agg["cumtot"] = ntiles_agg.tot.cumsum()
@@ -600,23 +657,18 @@ class ModelPlotPy:
                 "Default scope value no_comparison selected, "
                 "single evaluation line will be plotted."
             )
-            if len(select_model_label) >= 1:
-                select_model_label = select_model_label
-            else:
+            if len(select_model_label) < 1:
                 select_model_label = self.model_labels
-            if len(select_dataset_label) >= 1:
-                select_dataset_label = select_dataset_label
-            else:
+            if len(select_dataset_label) < 1:
                 select_dataset_label = self.dataset_labels
-            if len(select_targetclass) >= 1:
-                select_targetclass = select_targetclass
-            elif select_smallest_targetclass == True:
-                select_targetclass = [
-                    self.label_data[0].value_counts(ascending=True).idxmin()
-                ]
-                print("The label with smallest class is %s" % select_targetclass[0])
-            else:
-                select_targetvalue = list(self.models[0].classes_)
+            if len(select_targetclass) < 1:
+                if select_smallest_targetclass == True:
+                    select_targetclass = [
+                        self.label_data[0].value_counts(ascending=True).idxmin()
+                    ]
+                    print("The label with smallest class is %s" % select_targetclass[0])
+                else:
+                    select_targetvalue = list(self.models[0].classes_)
             plot_input = ntiles_aggregate[
                 (ntiles_aggregate.model_label == select_model_label[0])
                 & (ntiles_aggregate.dataset_label == select_dataset_label[0])
@@ -627,23 +679,18 @@ class ModelPlotPy:
             )
         elif scope == "compare_models":
             print("compare models")
-            if len(select_model_label) >= 2:
-                select_model_label = select_model_label
-            else:
+            if len(select_model_label) < 2:
                 select_model_label = self.model_labels
-            if len(select_dataset_label) >= 1:
-                select_dataset_label = select_dataset_label
-            else:
+            if len(select_dataset_label) < 1:
                 select_dataset_label = self.dataset_labels
-            if len(select_targetclass) >= 1:
-                select_targetclass = select_targetclass
-            elif select_smallest_targetclass == True:
-                select_targetclass = [
-                    self.label_data[0].value_counts(ascending=True).idxmin()
-                ]
-                print(f"The label with smallest class is {select_targetclass}")
-            else:
-                select_targetclass = list(self.models[0].classes_)
+            if len(select_targetclass) < 1:
+                if select_smallest_targetclass == True:
+                    select_targetclass = [
+                        self.label_data[0].value_counts(ascending=True).idxmin()
+                    ]
+                    print(f"The label with smallest class is {select_targetclass}")
+                else:
+                    select_targetclass = list(self.models[0].classes_)
             plot_input = ntiles_aggregate[
                 (ntiles_aggregate.model_label.isin(select_model_label))
                 & (ntiles_aggregate.dataset_label == select_dataset_label[0])
@@ -651,23 +698,18 @@ class ModelPlotPy:
             ]
         elif scope == "compare_datasets":
             print("compare datasets")
-            if len(select_model_label) >= 1:
-                select_model_label = select_model_label
-            else:
+            if len(select_model_label) < 1:
                 select_model_label = self.model_labels
-            if len(select_dataset_label) >= 2:
-                select_dataset_label = select_dataset_label
-            else:
+            if len(select_dataset_label) < 2:
                 select_dataset_label = self.dataset_labels
-            if len(select_targetclass) >= 1:
-                select_targetclass = select_targetclass
-            elif select_smallest_targetclass == True:
-                select_targetclass = [
-                    self.label_data[0].value_counts(ascending=True).idxmin()
-                ]
-                print(f"The label with smallest class is {select_targetclass}")
-            else:
-                select_targetclass = list(self.models[0].classes_)
+            if len(select_targetclass) < 1:
+                if select_smallest_targetclass == True:
+                    select_targetclass = [
+                        self.label_data[0].value_counts(ascending=True).idxmin()
+                    ]
+                    print(f"The label with smallest class is {select_targetclass}")
+                else:
+                    select_targetclass = list(self.models[0].classes_)
             plot_input = ntiles_aggregate[
                 (ntiles_aggregate.model_label == select_model_label[0])
                 & (ntiles_aggregate.dataset_label.isin(select_dataset_label))
@@ -675,17 +717,11 @@ class ModelPlotPy:
             ]
         else:  # scope == 'compare_targetclasses'
             print("compare target classes")
-            if len(select_model_label) >= 1:
-                select_model_label = select_model_label
-            else:
+            if len(select_model_label) < 1:
                 select_model_label = self.model_labels
-            if len(select_dataset_label) >= 1:
-                select_dataset_label = select_dataset_label
-            else:
+            if len(select_dataset_label) < 1:
                 select_dataset_label = self.dataset_labels
-            if len(select_targetclass) >= 2:
-                select_targetclass = select_targetclass
-            else:
+            if len(select_targetclass) < 2:
                 select_targetclass = list(self.models[0].classes_)
             plot_input = ntiles_aggregate[
                 (ntiles_aggregate.model_label == select_model_label[0])
@@ -908,7 +944,7 @@ def plot_response(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 str(int(cumpct[0] * 100)) + "%",
                 xy=xy,
@@ -948,7 +984,7 @@ def plot_response(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -988,7 +1024,7 @@ def plot_response(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1028,7 +1064,7 @@ def plot_response(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1274,7 +1310,7 @@ def plot_cumresponse(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 str(int(cumpct[0] * 100)) + "%",
                 xy=xy,
@@ -1312,7 +1348,7 @@ def plot_cumresponse(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1350,7 +1386,7 @@ def plot_cumresponse(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1388,7 +1424,7 @@ def plot_cumresponse(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1616,7 +1652,7 @@ def plot_cumlift(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 str(int(cumpct[0] * 100)) + "%",
                 xy=xy,
@@ -1655,7 +1691,7 @@ def plot_cumlift(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1694,7 +1730,7 @@ def plot_cumlift(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1733,7 +1769,7 @@ def plot_cumlift(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -1984,7 +2020,7 @@ def plot_cumgains(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 str(int(cumpct[0] * 100)) + "%",
                 xy=xy,
@@ -2022,7 +2058,7 @@ def plot_cumgains(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -2060,7 +2096,7 @@ def plot_cumgains(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -2098,7 +2134,7 @@ def plot_cumgains(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -2568,6 +2604,10 @@ def plot_costsrevs(
         "#F781BF",
         "#999999",
     )
+    # plot_input is a filtered slice of the aggregated DataFrame.  Mutating it
+    # directly triggers SettingWithCopyWarning and will silently fail in future
+    # pandas versions.  Always work on an explicit copy.
+    plot_input = plot_input.copy()
     plot_input["variable_costs"] = variable_costs_per_unit * plot_input.cumtot
     plot_input["investments"] = fixed_costs + plot_input.variable_costs
     plot_input["revenues"] = profit_per_unit * plot_input.cumpos
@@ -2712,7 +2752,7 @@ def plot_costsrevs(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 "€" + str(int(cumpct[0])),
                 xy=xy,
@@ -2752,7 +2792,7 @@ def plot_costsrevs(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -2792,7 +2832,7 @@ def plot_costsrevs(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -2832,7 +2872,7 @@ def plot_costsrevs(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -2956,6 +2996,10 @@ def plot_profit(
         "#999999",
     )
 
+    # Work on an explicit copy — plot_input is a filtered slice and pandas will
+    # raise SettingWithCopyWarning (or silently drop writes in future versions)
+    # if we assign new columns directly to a slice.
+    plot_input = plot_input.copy()
     plot_input["variable_costs"] = variable_costs_per_unit * plot_input.cumtot
     plot_input["investments"] = fixed_costs + plot_input.variable_costs
     plot_input["revenues"] = profit_per_unit * plot_input.cumpos
@@ -3081,7 +3125,7 @@ def plot_profit(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 "€" + str(int(cumpct[0])),
                 xy=xy,
@@ -3121,7 +3165,7 @@ def plot_profit(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -3161,7 +3205,7 @@ def plot_profit(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -3201,7 +3245,7 @@ def plot_profit(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     "€" + str(int(cumpct[0])),
                     xy=xy,
@@ -3325,6 +3369,10 @@ def plot_roi(
         "#999999",
     )
 
+    # Work on an explicit copy — plot_input is a filtered slice and pandas will
+    # raise SettingWithCopyWarning (or silently drop writes in future versions)
+    # if we assign new columns directly to a slice.
+    plot_input = plot_input.copy()
     plot_input["variable_costs"] = variable_costs_per_unit * plot_input.cumtot
     plot_input["investments"] = fixed_costs + plot_input.variable_costs
     plot_input["revenues"] = profit_per_unit * plot_input.cumpos
@@ -3450,7 +3498,7 @@ def plot_roi(
                 lw=1.5,
             )
             xy = (highlight_ntile, cumpct[0])
-            ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[0])
+            ax.plot(xy[0], xy[1], ".", ms=20, color=colors[0])
             ax.annotate(
                 str(int(cumpct[0] * 100)) + "%",
                 xy=xy,
@@ -3490,7 +3538,7 @@ def plot_roi(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -3530,7 +3578,7 @@ def plot_roi(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,
@@ -3570,7 +3618,7 @@ def plot_roi(
                     lw=1.5,
                 )
                 xy = (highlight_ntile, *cumpct)
-                ax.plot(xy[0], xy[1], ".r", ms=20, color=colors[col])
+                ax.plot(xy[0], xy[1], ".", ms=20, color=colors[col])
                 ax.annotate(
                     str(int(cumpct[0] * 100)) + "%",
                     xy=xy,

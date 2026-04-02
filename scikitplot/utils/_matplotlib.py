@@ -15,11 +15,13 @@ Such as plots and includes decorators for automatically saving plots.
 
 from __future__ import annotations
 
+import contextlib as _contextlib
+import functools as _functools
+
 # import inspect
 # import tempfile
 # from functools import wraps
-import contextlib as _contextlib
-import functools as _functools
+import warnings
 import warnings as _warnings
 from typing import TYPE_CHECKING
 
@@ -91,16 +93,41 @@ def safe_tight_layout(fig=None, *, warn=True):
     ...     ax.plot([1, 2, 3], [4, 5, 6])
     ...     ax.set_title("Safe Layout")
     """
+
+    def _is_tight_layout_compatible(fig):
+        return all(ax.get_subplotspec() is not None for ax in fig.axes)
+
     try:
         # yield  # None
         # yield "anything"
+        # fig = plt.figure(constrained_layout=True) switch to constrained layout
         yield fig
     finally:
         try:
             fig = fig or _plt.gcf()
-            # import warnings
+
+            # UserWarning: This figure includes Axes that are not compatible with tight_layout, so results might be incorrect.
             # warnings.filterwarnings("ignore", message=".*Tight layout not applied.*")
-            fig.tight_layout()
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+
+                # fig.tight_layout()
+                if _is_tight_layout_compatible(fig):
+                    fig.tight_layout()
+                else:
+                    _logger.debug("Skipping tight_layout due to incompatible axes")
+                # Detect specific failure mode deterministically
+                incompatible = [
+                    w
+                    for w in caught
+                    if "not compatible with tight_layout" in str(w.message)
+                ]
+
+                if incompatible and warn:
+                    _logger.warning(
+                        "tight_layout() skipped due to incompatible Axes: %s",
+                        incompatible[0].message,
+                    )
         except Exception as e:  # noqa: BLE001
             if warn:
                 _logger.warning("tight_layout() failed: %s", e)
