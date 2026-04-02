@@ -1,6 +1,8 @@
+# scikitplot/impute/_ann.py
+#
 # ruff: noqa: F401
 # pylint: disable=unused-import
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +32,7 @@ import contextlib
 import os
 import tempfile
 import typing
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -72,7 +75,7 @@ from ._privacy import OutsourcedIndexMixin
 try:
     # from ..annoy import Index as AnnoyIndex  # cpp based
     from ..annoy._annoy import Index as AnnoyIndex  # cython based
-except Exception:  # pragma: no cover - fallback to external annoy
+except Exception:  # pragma: no cover - fallback to external annoy  # noqa: BLE001
     from annoy import AnnoyIndex  # cpp based
 
 try:
@@ -772,13 +775,23 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         strategy = self.initial_strategy
 
         if strategy == "mean":
-            stats = np.nanmean(X, axis=0)
+            # np.nanmean emits RuntimeWarning("Mean of empty slice") via
+            # warnings.warn() for all-NaN columns.  np.errstate only suppresses
+            # IEEE-754 floating-point *signals*; it does NOT intercept
+            # warnings.warn() calls.  Use warnings.catch_warnings so the
+            # warning never reaches pytest's filterwarnings=error mode.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                stats = np.nanmean(X, axis=0)
             # For columns that are entirely missing, nanmean returns np.nan.
-            # Use a neutral numeric fallback (0.0) there.
+            # Fall back to 0.0 for those columns.
             return np.where(np.isnan(stats), 0.0, stats)
 
         if strategy == "median":
-            stats = np.nanmedian(X, axis=0)
+            # Same: np.nanmedian emits RuntimeWarning on all-NaN columns.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                stats = np.nanmedian(X, axis=0)
             return np.where(np.isnan(stats), 0.0, stats)
 
         if strategy == "most_frequent":
@@ -851,7 +864,7 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
                 self.temp_fill_vector_,
                 X,
             )
-        except Exception:  # pragma: no cover - fallback
+        except Exception:  # pragma: no cover - fallback  # noqa: BLE001
             X = np.where(np.isnan(X), self.temp_fill_vector_, X)
         return X
 
@@ -877,7 +890,9 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
                 fill_vec,
                 row,
             )
-        except Exception:  # pragma: no cover - ultra-conservative fallback
+        except (
+            Exception  # noqa: BLE001
+        ):  # pragma: no cover - ultra-conservative fallback
             return np.where(np.isnan(row), fill_vec, row)
 
     def _iter_non_nan_rows(self, X: np.ndarray):
@@ -1070,6 +1085,17 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
         # Keep track of non-valid (all-missing) features
         # determine non-valid all col is nan
         self._is_empty_feature = np.all(mask_missing_values, axis=0)
+
+        # Guard: if every row is entirely missing there are no valid training
+        # vectors — KNN imputation is impossible.  Fail fast before any
+        # index-building code runs (which would otherwise emit a numpy
+        # RuntimeWarning from nanmean on an all-NaN slice).
+        if np.all(mask_missing_values):
+            raise ValueError(
+                f"{self.__class__.__name__}: all samples contain only missing "
+                "values. KNN imputation requires at least one row with at "
+                "least one observed value to build the nearest-neighbor index."
+            )
 
         # For index construction we always encode missingness as np.nan
         X = np.asarray(X, dtype=float)
@@ -1348,22 +1374,22 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             "search_k": search_k,  # If -1, defaults to approximately n_trees * n
             "include_distances": True,  # (weights == "distance")
         }
-        if hasattr(train_index, "query_vectors_by_vector"):
-            # scikit-plot wrapper API
-            query_kwargs.pop("n", None)
-            query_kwargs["n_neighbors"] = n_neighbors
-            query_kwargs["exclude_self"] = True
-            query_kwargs["output_type"] = "item"
-            neighbor_ids, dists = train_index.query_vectors_by_vector(
-                vec,  # row, X[i]
-                **query_kwargs,
-            )
-        else:
-            # raw spotify/annoy API
-            neighbor_ids, dists = train_index.get_nns_by_vector(
-                vec,  # row, X[i]
-                **query_kwargs,
-            )
+        # if hasattr(train_index, "query_vectors_by_vector"):
+        #     # scikit-plot wrapper API
+        #     query_kwargs.pop("n", None)
+        #     query_kwargs["n_neighbors"] = n_neighbors
+        #     query_kwargs["exclude_self"] = True
+        #     query_kwargs["output_type"] = "item"
+        #     neighbor_ids, dists = train_index.query_vectors_by_vector(
+        #         vec,  # row, X[i]
+        #         **query_kwargs,
+        #     )
+        # else:
+        # raw spotify/annoy API
+        neighbor_ids, dists = train_index.get_nns_by_vector(
+            vec,  # row, X[i]
+            **query_kwargs,
+        )
         # Annoy returns the query point itself as the first element
         # Remove self-neighbors (distance == 0)
         if not list(neighbor_ids):  # python list or not neighbor_ids

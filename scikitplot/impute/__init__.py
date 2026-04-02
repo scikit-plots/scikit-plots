@@ -1,3 +1,5 @@
+# scikitplot/impute/__init__.py
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +28,10 @@ if typing.TYPE_CHECKING:
     # TODO: remove this check once the estimator is no longer experimental.
     from ._ann import ANNImputer  # noqa: F401
 
-__all__ = []
+__all__ = [
+    "MissingIndicator",
+    "SimpleImputer",
+]
 
 
 # TODO: remove this check once the estimator is no longer experimental.
@@ -48,7 +53,7 @@ def __getattr__(name):
             "from scikitplot.experimental import enable_ann_imputer"
         ),
     }
-    if name in ["ANNImputer"]:
+    if name in ["ANNImputer"]:  # noqa: FURB171
         raise ImportError(
             f"{name} is experimental and the API might change without any "
             f"deprecation cycle. {msg[name]}"

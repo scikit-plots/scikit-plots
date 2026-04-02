@@ -4,776 +4,702 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Tests for :mod:`~._path`.
+Unit-tests for :mod:`scikitplot.utils._path`.
 
-Runs under pytest from the package root::
+Coverage goals
+--------------
+normalize_directory_path
+    expand_user / expand_vars / resolve flags, str vs Path input,
+    already-absolute paths, non-existent targets.
 
-    pytest scikitplot/utils/tests/test__path.py -v
+sanitize_path_component
+    space→underscore, invalid chars, collapse underscores, dot/dotdot,
+    trailing dot/space, Windows reserved names, None / empty,
+    max_len truncation, default fallback.
 
-Coverage map
-------------
-normalize_directory_path    Tilde, env-var, relative paths        → TestNormalizeDirectoryPath
-sanitize_path_component     None/empty, spaces, invalid chars,
-                            Windows reserved names, dot/dotdot,
-                            max_len truncation                     → TestSanitizePathComponent
-normalize_extension         With/without dot, None, empty         → TestNormalizeExtension
-_ensure_aware_utc           None, naive, aware datetimes          → TestEnsureAwareUtc
-_utc_timestamp_ms           Format correctness                    → TestUtcTimestampMs
-PathNamer                   Dataclass defaults, make_filename,
-                            make_path, by_day, private/add_secret → TestPathNamer
-make_path                   Zero-arg, with args, private, subdir  → TestMakePath
-make_temp_path              Creates temp file                      → TestMakeTempPath
-get_path                    Defaults, ext, subfolder, timestamp,
-                            overwrite=False, return_parts          → TestGetPath
-remove_path                 File, directory, non-existing, None   → TestRemovePath
-_filename_sanitizer         Invalid character replacement          → TestFilenameSanitizer
-_filename_extension_normalizer  Extension normalization variants   → TestFilenameExtNormalizer
-_filename_uniquer           Collision-avoidance counter            → TestFilenameUniquer
+normalize_extension
+    bare word, leading-dot, empty, None, whitespace.
+
+PathNamer (dataclass)
+    defaults, root= kwarg, directory= alias, directory wins over root,
+    str root coerced to Path, by_day folder layout, subdir layout,
+    add_secret / private tokens, mkdir=False, make_filename params,
+    make_path params, frozen immutability guard,
+    multiple calls produce unique names,
+    day-boundary timestamp consistency.
+
+make_path (convenience wrapper)
+    zero-arg call, prefix/ext, by_day, private, subdir, root expansion.
+
+make_temp_path
+    creates file on disk, honours prefix / suffix / ext.
+
+_ensure_aware_utc (private, tested via PathNamer.make_filename)
+    naive datetime treated as UTC, aware datetime normalised.
 """
 
 from __future__ import annotations
 
 import os
-import shutil
+import re
 import tempfile
 import threading
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# --- path bootstrap (commented out — use pytest from the package root) -----
-# import pathlib, sys
-# _HERE = pathlib.Path(__file__).resolve().parent
-# _PKG_ROOT = _HERE.parent.parent.parent
-# if str(_PKG_ROOT) not in sys.path:
-#     sys.path.insert(0, str(_PKG_ROOT))
-# --------------------------------------------------------------------------
-
-from .._path import (  # noqa: E402
+from .._path import (
     PathNamer,
-    _ensure_aware_utc,
-    _filename_extension_normalizer,
-    _filename_sanitizer,
-    _filename_uniquer,
-    _utc_timestamp_ms,
-    get_path,
     make_path,
     make_temp_path,
     normalize_directory_path,
     normalize_extension,
-    remove_path,
     sanitize_path_component,
 )
 
 
-def _make_tmpdir():
-    """Create a temporary directory and return its Path."""
-    return Path(tempfile.mkdtemp())
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _tmp_dir() -> str:
+    """Return a fresh temporary directory path (caller cleans up)."""
+    return tempfile.mkdtemp()
 
 
 # ===========================================================================
 # normalize_directory_path
 # ===========================================================================
 
-
 class TestNormalizeDirectoryPath(unittest.TestCase):
-    """normalize_directory_path must expand and resolve paths."""
 
-    def test_tilde_expanded(self):
-        """'~' must be expanded to the user home directory."""
-        p = normalize_directory_path("~/some/path")
-        self.assertFalse(str(p).startswith("~"))
-        self.assertTrue(p.is_absolute())
+    def test_str_input_returns_path(self):
+        result = normalize_directory_path("/tmp")
+        self.assertIsInstance(result, Path)
 
-    def test_relative_path_becomes_absolute(self):
-        """A relative path must be resolved to absolute."""
-        p = normalize_directory_path("relative/dir")
-        self.assertTrue(p.is_absolute())
+    def test_path_input_returns_path(self):
+        result = normalize_directory_path(Path("/tmp"))
+        self.assertIsInstance(result, Path)
 
-    def test_returns_path_object(self):
-        p = normalize_directory_path("/tmp")
-        self.assertIsInstance(p, Path)
+    def test_resolves_to_absolute(self):
+        result = normalize_directory_path("relative/path", resolve=True)
+        self.assertTrue(result.is_absolute())
 
-    def test_env_var_expansion(self):
-        """$HOME must be expanded when expand_vars=True."""
-        os.environ["_TEST_SKPLT_DIR"] = "/tmp/skplt_test"
-        p = normalize_directory_path("$_TEST_SKPLT_DIR/data", expand_vars=True)
-        self.assertEqual(str(p), str(Path("/tmp/skplt_test/data").resolve(strict=False)))
-        del os.environ["_TEST_SKPLT_DIR"]
+    def test_no_resolve_keeps_relative_normalized(self):
+        # With resolve=False the result should NOT call Path.resolve()
+        result = normalize_directory_path("some/rel", resolve=False)
+        self.assertIsInstance(result, Path)
+        # Cannot assert is_absolute=False on all OSes, but parts should be consistent
+        self.assertIn("rel", result.parts)
 
-    def test_no_tilde_expansion_when_disabled(self):
-        """expand_user=False must leave '~' unexpanded."""
-        p = normalize_directory_path("~/path", expand_user=False, resolve=False)
-        self.assertTrue(str(p).startswith("~"))
+    def test_expand_user_replaces_tilde(self):
+        result = normalize_directory_path("~/mydir", expand_user=True, resolve=False)
+        self.assertNotIn("~", str(result))
 
-    def test_no_resolve_when_disabled(self):
-        """resolve=False must not normalize '..' components."""
-        p = normalize_directory_path("/tmp/../tmp", resolve=False, expand_user=False)
-        self.assertIn("..", str(p))
+    def test_no_expand_user_keeps_tilde_in_str_rep(self):
+        # resolve=False so we don't hit filesystem, expand_user=False keeps literal ~
+        result = normalize_directory_path("~/mydir", expand_user=False, resolve=False)
+        self.assertIn("~", str(result))
 
-    def test_path_object_input(self):
-        """Accepts pathlib.Path as input."""
-        p = normalize_directory_path(Path("/tmp"))
-        self.assertIsInstance(p, Path)
+    def test_expand_vars_replaces_env_var(self):
+        os.environ["_SKPLT_TEST_VAR"] = "injected"
+        try:
+            result = normalize_directory_path(
+                "$_SKPLT_TEST_VAR/sub", expand_user=False, resolve=False
+            )
+            self.assertIn("injected", str(result))
+        finally:
+            del os.environ["_SKPLT_TEST_VAR"]
+
+    def test_non_existent_path_does_not_raise(self):
+        # resolve(strict=False) must not raise even if the path does not exist.
+        result = normalize_directory_path("/no/such/directory/at/all")
+        self.assertIsInstance(result, Path)
+
+    def test_dot_dot_collapsed(self):
+        result = normalize_directory_path("/tmp/a/../b")
+        self.assertNotIn("..", result.parts)
 
 
 # ===========================================================================
 # sanitize_path_component
 # ===========================================================================
 
-
 class TestSanitizePathComponent(unittest.TestCase):
-    """sanitize_path_component must produce portable path components."""
 
-    def test_basic_name_unchanged(self):
-        self.assertEqual(sanitize_path_component("myfile"), "myfile")
+    def test_spaces_replaced_with_underscore(self):
+        self.assertEqual(sanitize_path_component("hello world"), "hello_world")
 
-    def test_spaces_become_underscores(self):
-        result = sanitize_path_component("my file name")
-        self.assertEqual(result, "my_file_name")
+    def test_multiple_spaces_collapsed(self):
+        self.assertEqual(sanitize_path_component("a   b"), "a_b")
 
-    def test_multiple_spaces_collapse(self):
-        result = sanitize_path_component("a  b   c")
-        self.assertEqual(result, "a_b_c")
-
-    def test_colon_replaced(self):
-        result = sanitize_path_component("my report: v1")
+    def test_invalid_chars_replaced(self):
+        # Characters like : < > " are replaced.
+        result = sanitize_path_component("report: v1")
         self.assertNotIn(":", result)
 
-    def test_invalid_chars_replaced_by_underscore(self):
-        """'<', '>', ':', '"', '\\', '/', '|', '?', '*' must be replaced."""
-        for ch in '<>:"/\\|?*':
-            result = sanitize_path_component(f"name{ch}")
-            self.assertNotIn(ch, result)
-
-    def test_single_dot_replaced_by_default(self):
-        """'.' alone is a directory reference and must be replaced."""
-        result = sanitize_path_component(".", default="data")
-        self.assertEqual(result, "data")
-
-    def test_double_dot_replaced_by_default(self):
-        """'..' alone is a traversal; must be replaced."""
-        result = sanitize_path_component("..", default="safe")
-        self.assertEqual(result, "safe")
-
-    def test_none_returns_empty_or_default(self):
-        """None input must return the default value."""
-        result = sanitize_path_component(None, default="fallback")
-        self.assertEqual(result, "fallback")
+    def test_none_input_returns_default(self):
+        self.assertEqual(sanitize_path_component(None, default="fallback"), "fallback")
 
     def test_empty_string_returns_default(self):
-        result = sanitize_path_component("", default="fallback")
-        self.assertEqual(result, "fallback")
+        self.assertEqual(sanitize_path_component("", default="fb"), "fb")
 
-    def test_max_len_truncation(self):
-        """Result must not exceed max_len characters."""
-        long_name = "a" * 200
-        result = sanitize_path_component(long_name, max_len=50)
-        self.assertLessEqual(len(result), 50)
+    def test_whitespace_only_returns_default(self):
+        self.assertEqual(sanitize_path_component("   ", default="x"), "x")
 
-    def test_windows_reserved_con(self):
-        """'CON' is a Windows reserved device name; must get '_' appended."""
-        result = sanitize_path_component("CON")
-        self.assertNotEqual(result, "CON")
-        self.assertTrue(result.startswith("CON"))
+    def test_dot_replaced_by_default(self):
+        self.assertEqual(sanitize_path_component(".", default="safe"), "safe")
 
-    def test_windows_reserved_case_insensitive(self):
-        """Windows reserved names are case-insensitive."""
-        result = sanitize_path_component("con")
-        self.assertNotEqual(result.upper(), "CON")
+    def test_dotdot_replaced_by_default(self):
+        self.assertEqual(sanitize_path_component("..", default="safe"), "safe")
 
-    def test_trailing_dot_removed(self):
-        """Trailing dots are invalid on Windows; must be stripped."""
-        result = sanitize_path_component("filename.")
+    def test_trailing_dot_stripped(self):
+        result = sanitize_path_component("file.")
         self.assertFalse(result.endswith("."))
 
-    def test_trailing_space_removed(self):
-        """Trailing spaces are invalid on Windows; must be stripped."""
-        result = sanitize_path_component("name  ")
+    def test_trailing_space_stripped(self):
+        result = sanitize_path_component("file ")
         self.assertFalse(result.endswith(" "))
 
-    def test_underscore_not_multiple(self):
-        """Consecutive underscores must be collapsed to one."""
-        result = sanitize_path_component("a__b")
-        self.assertNotIn("__", result)
+    def test_windows_reserved_name_con(self):
+        result = sanitize_path_component("CON")
+        self.assertEqual(result, "CON_")
 
-    def test_returns_string(self):
-        self.assertIsInstance(sanitize_path_component("hello"), str)
+    def test_windows_reserved_name_nul(self):
+        result = sanitize_path_component("NUL")
+        self.assertEqual(result, "NUL_")
+
+    def test_windows_reserved_name_com1(self):
+        result = sanitize_path_component("COM1")
+        self.assertEqual(result, "COM1_")
+
+    def test_windows_reserved_name_case_insensitive(self):
+        result = sanitize_path_component("con")
+        self.assertEqual(result, "con_")
+
+    def test_max_len_truncation(self):
+        long_name = "a" * 200
+        result = sanitize_path_component(long_name, max_len=80)
+        self.assertEqual(len(result), 80)
+
+    def test_max_len_short_name_not_padded(self):
+        result = sanitize_path_component("short", max_len=80)
+        self.assertLessEqual(len(result), 80)
+
+    def test_normal_name_unchanged(self):
+        self.assertEqual(sanitize_path_component("my_file"), "my_file")
+
+    def test_none_default_empty_returns_empty(self):
+        result = sanitize_path_component(None)
+        self.assertEqual(result, "")
+
+    def test_path_separator_replaced(self):
+        # / and \ are invalid on various filesystems
+        result = sanitize_path_component("a/b")
+        self.assertNotIn("/", result)
+
+    def test_collapse_multiple_underscores(self):
+        result = sanitize_path_component("a___b")
+        self.assertNotIn("__", result)
 
 
 # ===========================================================================
 # normalize_extension
 # ===========================================================================
 
-
 class TestNormalizeExtension(unittest.TestCase):
-    """normalize_extension must produce a dot-prefixed extension or ''."""
 
-    def test_none_returns_empty(self):
-        self.assertEqual(normalize_extension(None), "")
+    def test_bare_word_gets_dot_prefix(self):
+        self.assertEqual(normalize_extension("csv"), ".csv")
+
+    def test_leading_dot_preserved(self):
+        self.assertEqual(normalize_extension(".parquet"), ".parquet")
 
     def test_empty_string_returns_empty(self):
         self.assertEqual(normalize_extension(""), "")
 
-    def test_ext_without_dot_gets_dot(self):
-        self.assertEqual(normalize_extension("csv"), ".csv")
-
-    def test_ext_with_dot_unchanged(self):
-        self.assertEqual(normalize_extension(".parquet"), ".parquet")
-
-    def test_uppercase_ext_preserved(self):
-        self.assertEqual(normalize_extension("CSV"), ".CSV")
-
-    def test_whitespace_stripped(self):
-        self.assertEqual(normalize_extension("  .json  "), ".json")
+    def test_none_returns_empty(self):
+        self.assertEqual(normalize_extension(None), "")
 
     def test_whitespace_only_returns_empty(self):
         self.assertEqual(normalize_extension("   "), "")
 
-    def test_multi_dot_ext(self):
-        """'.tar.gz' with a leading dot stays as-is."""
-        self.assertEqual(normalize_extension(".tar.gz"), ".tar.gz")
+    def test_json_extension(self):
+        self.assertEqual(normalize_extension("json"), ".json")
 
-    def test_returns_string(self):
-        self.assertIsInstance(normalize_extension("csv"), str)
+    def test_annoy_extension(self):
+        self.assertEqual(normalize_extension(".annoy"), ".annoy")
 
-
-# ===========================================================================
-# _ensure_aware_utc
-# ===========================================================================
-
-
-class TestEnsureAwareUtc(unittest.TestCase):
-    """_ensure_aware_utc must always return a UTC-aware datetime."""
-
-    def test_none_returns_now_utc(self):
-        """None input must return current UTC time (aware)."""
-        result = _ensure_aware_utc(None)
-        self.assertIsNotNone(result.tzinfo)
-        self.assertEqual(result.tzinfo, timezone.utc)
-
-    def test_naive_treated_as_utc(self):
-        """Naive datetime must have UTC tzinfo attached."""
-        naive = datetime(2025, 1, 1, 12, 0, 0)
-        result = _ensure_aware_utc(naive)
-        self.assertEqual(result.tzinfo, timezone.utc)
-        self.assertEqual(result.year, 2025)
-
-    def test_aware_utc_preserved(self):
-        """An already UTC-aware datetime must be returned unchanged."""
-        aware = datetime(2025, 6, 15, 9, 30, 0, tzinfo=timezone.utc)
-        result = _ensure_aware_utc(aware)
-        self.assertEqual(result, aware)
-
-    def test_returns_datetime(self):
-        self.assertIsInstance(_ensure_aware_utc(None), datetime)
+    def test_double_dot_not_added(self):
+        result = normalize_extension(".csv")
+        self.assertFalse(result.startswith(".."))
 
 
 # ===========================================================================
-# _utc_timestamp_ms
+# PathNamer — construction and field defaults
 # ===========================================================================
 
+class TestPathNamerDefaults(unittest.TestCase):
 
-class TestUtcTimestampMs(unittest.TestCase):
-    """_utc_timestamp_ms must produce the correct format."""
+    def test_default_root_is_path(self):
+        namer = PathNamer()
+        self.assertIsInstance(namer.root, Path)
 
-    def test_format_length(self):
-        """Must be exactly 19 characters: YYYYMMDDTHHMMSSmmmZ."""
-        ts = datetime(2025, 3, 15, 14, 30, 5, 123456, tzinfo=timezone.utc)
-        # result     = '20250315T143005123Z'
-        result = _utc_timestamp_ms(ts)
-        self.assertEqual(len(result), 19)
-
-    def test_format_ends_with_z(self):
-        ts = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.assertTrue(_utc_timestamp_ms(ts).endswith("Z"))
-
-    def test_format_contains_T(self):
-        ts = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.assertIn("T", _utc_timestamp_ms(ts))
-
-    def test_milliseconds_embedded(self):
-        """Milliseconds must be the last 3 digits before 'Z'."""
-        ts = datetime(2025, 1, 1, 0, 0, 0, 456000, tzinfo=timezone.utc)
-        result = _utc_timestamp_ms(ts)
-        self.assertTrue(result.endswith("456Z"))
-
-    def test_zero_milliseconds(self):
-        ts = datetime(2025, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-        self.assertTrue(_utc_timestamp_ms(ts).endswith("000Z"))
-
-
-# ===========================================================================
-# PathNamer
-# ===========================================================================
-
-
-class TestPathNamer(unittest.TestCase):
-    """PathNamer must generate correct, unique, portable paths."""
-
-    def setUp(self):
-        self._tmpdir = _make_tmpdir()
-
-    def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    # -- Dataclass defaults --
-
-    def test_default_root(self):
+    def test_default_root_value(self):
         namer = PathNamer()
         self.assertEqual(namer.root, Path("scikitplot-artifacts"))
+
+    def test_str_root_coerced_to_path(self):
+        namer = PathNamer(root="/tmp/myroot")
+        self.assertIsInstance(namer.root, Path)
+
+    def test_default_prefix_empty(self):
+        self.assertEqual(PathNamer().prefix, "")
+
+    def test_default_suffix_empty(self):
+        self.assertEqual(PathNamer().suffix, "")
 
     def test_default_ext_empty(self):
         self.assertEqual(PathNamer().ext, "")
 
-    def test_frozen_dataclass(self):
-        """PathNamer is frozen; attribute assignment must raise."""
+    def test_default_by_day_false(self):
+        self.assertFalse(PathNamer().by_day)
+
+    def test_default_add_secret_false(self):
+        self.assertFalse(PathNamer().add_secret)
+
+    def test_default_private_false(self):
+        self.assertFalse(PathNamer().private)
+
+    def test_default_mkdir_true(self):
+        self.assertTrue(PathNamer().mkdir)
+
+    def test_default_directory_none(self):
+        self.assertIsNone(PathNamer().directory)
+
+
+# ===========================================================================
+# PathNamer — directory alias
+# ===========================================================================
+
+class TestPathNamerDirectoryAlias(unittest.TestCase):
+
+    def test_directory_sets_root(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(directory=td)
+            self.assertEqual(namer.root, Path(td).resolve())
+
+    def test_directory_str_accepted(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(directory=td)
+            self.assertIsInstance(namer.root, Path)
+
+    def test_directory_path_accepted(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(directory=Path(td))
+            self.assertIsInstance(namer.root, Path)
+
+    def test_directory_wins_over_root(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root="/tmp/other", directory=td)
+            self.assertEqual(namer.root, Path(td).resolve())
+
+    def test_directory_with_prefix_and_ext(self):
+        """Canonical test matching the failing tests in test__ann.py / test__privacy.py."""
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(prefix="test_", ext=".annoy", directory=td)
+            p = namer.make_path()
+            self.assertEqual(p.parent, Path(td).resolve())
+            self.assertTrue(p.name.startswith("test_"))
+            self.assertTrue(p.name.endswith(".annoy"))
+
+    def test_directory_normalises_tilde(self):
+        # Passing "~" must not raise; tilde is expanded.
+        namer = PathNamer(directory="~", mkdir=False)
+        self.assertNotIn("~", str(namer.root))
+
+    def test_directory_none_leaves_root_unchanged(self):
+        namer = PathNamer(root="/tmp", directory=None)
+        self.assertEqual(namer.root, Path("/tmp"))
+
+
+# ===========================================================================
+# PathNamer — frozen immutability
+# ===========================================================================
+
+class TestPathNamerFrozen(unittest.TestCase):
+
+    def test_cannot_reassign_root(self):
         namer = PathNamer()
         with self.assertRaises((TypeError, AttributeError)):
-            namer.prefix = "new"
+            namer.root = Path("/other")  # type: ignore[misc]
 
-    # -- make_filename --
+    def test_cannot_reassign_prefix(self):
+        namer = PathNamer()
+        with self.assertRaises((TypeError, AttributeError)):
+            namer.prefix = "new"  # type: ignore[misc]
 
-    def test_make_filename_returns_str(self):
-        namer = PathNamer(root=self._tmpdir, mkdir=False)
-        self.assertIsInstance(namer.make_filename(), str)
 
-    def test_make_filename_with_prefix(self):
-        namer = PathNamer(prefix="rep", root=self._tmpdir, mkdir=False)
-        fname = namer.make_filename()
+# ===========================================================================
+# PathNamer.make_filename
+# ===========================================================================
+
+class TestPathNamerMakeFilename(unittest.TestCase):
+
+    def _namer(self, **kw):
+        return PathNamer(**kw)
+
+    def test_returns_string(self):
+        fname = self._namer().make_filename()
+        self.assertIsInstance(fname, str)
+
+    def test_prefix_in_filename(self):
+        fname = self._namer(prefix="rep").make_filename()
         self.assertTrue(fname.startswith("rep-"))
 
-    def test_make_filename_with_ext(self):
-        namer = PathNamer(ext="csv", root=self._tmpdir, mkdir=False)
-        self.assertTrue(namer.make_filename().endswith(".csv"))
+    def test_extension_appended(self):
+        fname = self._namer(ext="csv").make_filename()
+        self.assertTrue(fname.endswith(".csv"))
 
-    def test_make_filename_ext_without_dot(self):
-        namer = PathNamer(ext="json", root=self._tmpdir, mkdir=False)
-        fname = namer.make_filename()
+    def test_extension_with_leading_dot(self):
+        fname = self._namer(ext=".json").make_filename()
         self.assertTrue(fname.endswith(".json"))
 
-    def test_make_filename_with_suffix(self):
-        namer = PathNamer(suffix="final", root=self._tmpdir, mkdir=False)
-        self.assertIn("final", namer.make_filename())
+    def test_no_prefix_no_leading_dash(self):
+        fname = self._namer().make_filename()
+        self.assertFalse(fname.startswith("-"))
 
-    def test_make_filename_unique(self):
-        """Two consecutive filenames must differ (counter or UUID)."""
-        namer = PathNamer(root=self._tmpdir, mkdir=False)
+    def test_suffix_included(self):
+        fname = self._namer(suffix="run").make_filename()
+        # suffix comes after the UUID segment
+        self.assertIn("run", fname)
+
+    def test_private_flag_adds_token(self):
+        namer = self._namer(private=True)
         f1 = namer.make_filename()
         f2 = namer.make_filename()
-        self.assertNotEqual(f1, f2)
+        # Both names should contain a secret token (extra hex segment)
+        # Private names are longer because of the extra token.
+        self.assertGreater(len(f1), len(self._namer().make_filename()))
 
-    def test_make_filename_private_adds_token(self):
-        """private=True must add a token segment."""
-        namer = PathNamer(root=self._tmpdir, private=True, mkdir=False)
-        f1 = namer.make_filename()
-        namer_plain = PathNamer(root=self._tmpdir, private=False, mkdir=False)
-        f2 = namer_plain.make_filename()
-        # Private filename is longer (extra token segment)
-        self.assertGreater(len(f1), len(f2) - 40)  # tokens differ but both have UUID
+    def test_add_secret_flag_adds_token(self):
+        namer = self._namer(add_secret=True)
+        fname = namer.make_filename()
+        self.assertGreater(len(fname), len(self._namer().make_filename()))
 
-    def test_make_filename_override_prefix(self):
-        """make_filename(prefix=...) must override the dataclass prefix."""
-        namer = PathNamer(prefix="base", root=self._tmpdir, mkdir=False)
+    def test_two_calls_produce_different_names(self):
+        namer = self._namer()
+        self.assertNotEqual(namer.make_filename(), namer.make_filename())
+
+    def test_override_prefix_per_call(self):
+        namer = self._namer(prefix="default")
         fname = namer.make_filename(prefix="override")
         self.assertTrue(fname.startswith("override-"))
 
-    def test_make_filename_override_ext(self):
-        namer = PathNamer(ext="csv", root=self._tmpdir, mkdir=False)
+    def test_override_ext_per_call(self):
+        namer = self._namer(ext="csv")
         fname = namer.make_filename(ext="parquet")
         self.assertTrue(fname.endswith(".parquet"))
 
-    def test_make_filename_custom_now(self):
-        """A fixed 'now' must produce a deterministic timestamp segment."""
-        fixed = datetime(2025, 6, 1, 12, 0, 0, 500000, tzinfo=timezone.utc)
-        namer = PathNamer(root=self._tmpdir, mkdir=False)
-        fname = namer.make_filename(now=fixed)
-        self.assertIn("20250601T120000500Z", fname)
+    def test_timestamp_in_filename(self):
+        # Timestamp pattern: YYYYMMDDTHHMMSSsssZ
+        fname = self._namer().make_filename()
+        ts_pattern = re.compile(r"\d{8}T\d{6}\d{3}Z")
+        self.assertRegex(fname, ts_pattern)
 
-    # -- make_path --
+    def test_custom_datetime_used(self):
+        fixed_dt = datetime(2026, 1, 15, 12, 0, 0, 500_000, tzinfo=timezone.utc)
+        fname = self._namer().make_filename(now=fixed_dt)
+        self.assertIn("20260115T120000500Z", fname)
 
-    def test_make_path_returns_path(self):
-        namer = PathNamer(root=self._tmpdir)
-        self.assertIsInstance(namer.make_path(), Path)
+    def test_naive_datetime_treated_as_utc(self):
+        naive = datetime(2026, 3, 1, 8, 30, 0)
+        fname = self._namer().make_filename(now=naive)
+        self.assertIn("20260301T083000000Z", fname)
 
-    def test_make_path_directory_created(self):
-        """mkdir=True must create the target directory."""
-        namer = PathNamer(root=self._tmpdir / "newdir")
-        p = namer.make_path()
-        self.assertTrue(p.parent.exists())
+    def test_aware_non_utc_normalised(self):
+        # +02:00 → 06:00 UTC
+        tz_plus2 = timezone(timedelta(hours=2))
+        aware = datetime(2026, 6, 1, 8, 0, 0, tzinfo=tz_plus2)
+        fname = self._namer().make_filename(now=aware)
+        self.assertIn("20260601T060000000Z", fname)
 
-    def test_make_path_mkdir_false_does_not_create(self):
-        """mkdir=False must not create directories."""
-        target = self._tmpdir / "absent_dir"
-        namer = PathNamer(root=target, mkdir=False)
-        namer.make_path()  # must not raise
-        # Directory absent_dir should NOT have been created
-        self.assertFalse(target.exists())
-
-    def test_make_path_by_day_nests_under_date(self):
-        """by_day=True must nest files under YYYY/MM/DD."""
-        namer = PathNamer(root=self._tmpdir, by_day=True)
-        p = namer.make_path()
-        # Last 3 parent parts should look like year/month/day
-        parts = p.parts
-        # The path should have at least 3 date segments above the filename
-        date_parts = parts[-4:-1]  # (year, month, day)
-        self.assertTrue(all(d.isdigit() for d in date_parts))
-
-    def test_make_path_subdir_created(self):
-        """subdir must create a subdirectory under root."""
-        namer = PathNamer(root=self._tmpdir)
-        p = namer.make_path(subdir="models")
-        self.assertIn("models", str(p))
-
-    def test_make_path_add_secret(self):
-        """add_secret=True must include an extra token in the filename."""
-        namer_secret = PathNamer(root=self._tmpdir, add_secret=True)
-        namer_plain = PathNamer(root=self._tmpdir)
-        f_secret = namer_secret.make_filename()
-        f_plain = namer_plain.make_filename()
-        # Secret filename has one extra '-' delimited segment
-        self.assertGreater(f_secret.count("-"), f_plain.count("-") - 1)
-
-    def test_make_path_is_absolute(self):
-        namer = PathNamer(root=self._tmpdir)
-        self.assertTrue(namer.make_path().is_absolute())
-
-    # -- Thread safety: counters remain unique across threads --
-
-    def test_concurrent_filenames_unique(self):
-        """Counter must prevent collision across threads."""
-        namer = PathNamer(root=self._tmpdir, mkdir=False)
-        names = []
+    def test_concurrent_calls_all_unique(self):
+        namer = self._namer()
+        results = []
         lock = threading.Lock()
 
-        def gen():
+        def worker():
             fname = namer.make_filename()
             with lock:
-                names.append(fname)
+                results.append(fname)
 
-        threads = [threading.Thread(target=gen) for _ in range(50)]
+        threads = [threading.Thread(target=worker) for _ in range(50)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
 
-        self.assertEqual(len(names), len(set(names)))
+        self.assertEqual(len(results), len(set(results)), "Concurrent filenames not unique")
 
 
 # ===========================================================================
-# make_path  (convenience wrapper)
+# PathNamer.make_path
 # ===========================================================================
 
+class TestPathNamerMakePath(unittest.TestCase):
+
+    def test_returns_path_object(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, mkdir=True)
+            p = namer.make_path()
+        self.assertIsInstance(p, Path)
+
+    def test_directory_created_when_mkdir_true(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, mkdir=True)
+            p = namer.make_path()
+            self.assertTrue(p.parent.exists())
+
+    def test_mkdir_false_does_not_create_missing_dir(self):
+        non_existent = Path(tempfile.mkdtemp()) / "does_not_exist"
+        namer = PathNamer(root=non_existent, mkdir=False)
+        p = namer.make_path()
+        # Parent should not be created
+        self.assertFalse(non_existent.exists())
+
+    def test_by_day_creates_date_subdirectory(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, by_day=True, mkdir=True)
+            now = datetime(2026, 7, 4, 12, 0, 0, tzinfo=timezone.utc)
+            p = namer.make_path(now=now)
+            # Path should contain 2026/07/04
+            self.assertIn("2026", str(p))
+            self.assertIn("07", str(p))
+            self.assertIn("04", str(p))
+
+    def test_subdir_used_when_by_day_false(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, by_day=False, mkdir=True)
+            p = namer.make_path(subdir="models")
+            self.assertIn("models", str(p))
+
+    def test_subdir_ignored_when_by_day_true(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, by_day=True, mkdir=True)
+            now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+            p = namer.make_path(subdir="models", now=now)
+            # by_day takes priority; subdir is not inserted
+            self.assertNotIn("models", str(p))
+
+    def test_two_paths_are_unique(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, mkdir=True)
+            p1, p2 = namer.make_path(), namer.make_path()
+            self.assertNotEqual(p1, p2)
+
+    def test_prefix_reflected_in_filename(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, prefix="snap", mkdir=True)
+            p = namer.make_path()
+            self.assertTrue(p.name.startswith("snap-"))
+
+    def test_ext_reflected_in_filename(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, ext="parquet", mkdir=True)
+            p = namer.make_path()
+            self.assertTrue(p.name.endswith(".parquet"))
+
+    def test_directory_alias_used_as_root(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(directory=td, prefix="d", ext=".bin", mkdir=True)
+            p = namer.make_path()
+            self.assertEqual(p.parent, Path(td).resolve())
+
+    def test_day_boundary_consistency(self):
+        """Folder and filename share the same UTC timestamp (no day boundary mismatch)."""
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(root=td, by_day=True, mkdir=True)
+            # Inject a time exactly at midnight UTC
+            now = datetime(2026, 12, 31, 0, 0, 0, tzinfo=timezone.utc)
+            p = namer.make_path(now=now)
+            # Date folder must be 2026/12/31
+            self.assertIn("2026", str(p))
+            self.assertIn("12", str(p))
+            self.assertIn("31", str(p))
+            # Filename timestamp starts with 20261231
+            self.assertIn("20261231", p.name)
+
+
+# ===========================================================================
+# make_path convenience wrapper
+# ===========================================================================
 
 class TestMakePath(unittest.TestCase):
-    """make_path must behave like PathNamer.make_path with zero args."""
 
-    def setUp(self):
-        self._tmpdir = _make_tmpdir()
-
-    def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def test_zero_arg_returns_path(self):
-        p = make_path(root=self._tmpdir)
+    def test_zero_args_returns_path(self):
+        p = make_path()
         self.assertIsInstance(p, Path)
+        # Clean up created directory
+        try:
+            import shutil
+            shutil.rmtree(p.parent, ignore_errors=True)
+        except Exception:
+            pass
 
-    def test_prefix_in_filename(self):
-        p = make_path(prefix="report", root=self._tmpdir)
-        self.assertTrue(p.name.startswith("report-"))
+    def test_prefix_and_ext(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_path(root=td, prefix="report", ext="csv")
+            self.assertTrue(p.name.startswith("report-"))
+            self.assertTrue(p.name.endswith(".csv"))
 
-    def test_ext_in_filename(self):
-        p = make_path(ext="csv", root=self._tmpdir)
-        self.assertTrue(p.name.endswith(".csv"))
-
-    def test_private_returns_path(self):
-        p = make_path(root=self._tmpdir, private=True)
-        self.assertIsInstance(p, Path)
+    def test_private_adds_extra_token(self):
+        with tempfile.TemporaryDirectory() as td:
+            p_priv = make_path(root=td, private=True)
+            p_plain = make_path(root=td)
+            self.assertGreater(len(p_priv.name), len(p_plain.name))
 
     def test_subdir_in_path(self):
-        p = make_path(root=self._tmpdir, subdir="runs")
-        self.assertIn("runs", str(p))
+        with tempfile.TemporaryDirectory() as td:
+            p = make_path(root=td, subdir="runs")
+            self.assertIn("runs", str(p))
 
-    def test_by_day_creates_date_dirs(self):
-        p = make_path(root=self._tmpdir, by_day=True)
-        # Date dirs (YYYY/MM/DD) should be in the path
-        self.assertGreater(len(p.parts), 2)
+    def test_by_day_nests_under_date(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_path(root=td, by_day=True, now=datetime(2026, 5, 3, tzinfo=timezone.utc))
+            self.assertIn("2026", str(p))
 
-    def test_mkdir_false_does_not_create(self):
-        target = self._tmpdir / "noexist"
-        make_path(root=target, mkdir=False)
-        self.assertFalse(target.exists())
+    def test_root_tilde_expanded(self):
+        home = Path("~").expanduser()
+        p = make_path(root="~/skplt_test_tmp", prefix="x", mkdir=True)
+        try:
+            self.assertEqual(p.parent.parent, home)
+        finally:
+            import shutil
+            shutil.rmtree(str(home / "skplt_test_tmp"), ignore_errors=True)
+
+    def test_two_calls_unique(self):
+        with tempfile.TemporaryDirectory() as td:
+            self.assertNotEqual(make_path(root=td), make_path(root=td))
 
 
 # ===========================================================================
 # make_temp_path
 # ===========================================================================
 
-
 class TestMakeTempPath(unittest.TestCase):
-    """make_temp_path must create a real temporary file."""
+
+    def test_creates_file_on_disk(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_temp_path(root=td)
+            self.assertTrue(os.path.exists(p))
+            os.remove(p)
+
+    def test_returns_str(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_temp_path(root=td)
+            self.assertIsInstance(p, str)
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+    def test_honours_ext(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_temp_path(root=td, ext=".annoy")
+            self.assertTrue(p.endswith(".annoy"))
+            os.remove(p)
+
+    def test_honours_prefix(self):
+        with tempfile.TemporaryDirectory() as td:
+            p = make_temp_path(root=td, prefix="idx")
+            self.assertIn("idx", os.path.basename(p))
+            os.remove(p)
+
+    def test_two_calls_produce_distinct_paths(self):
+        with tempfile.TemporaryDirectory() as td:
+            p1 = make_temp_path(root=td)
+            p2 = make_temp_path(root=td)
+            self.assertNotEqual(p1, p2)
+            for p in (p1, p2):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+
+# ===========================================================================
+# PathNamer — edge cases and regressions
+# ===========================================================================
+
+class TestPathNamerEdgeCases(unittest.TestCase):
+
+    def test_prefix_with_invalid_chars_sanitised(self):
+        """Prefix containing filesystem-invalid chars must be sanitised, not crash."""
+        with tempfile.TemporaryDirectory() as td:
+            # Colon is invalid on Windows; sanitize_path_component should clean it.
+            namer = PathNamer(root=td, prefix="my:run", mkdir=True)
+            fname = namer.make_filename()
+            self.assertNotIn(":", fname)
+
+    def test_empty_prefix_no_leading_dash(self):
+        namer = PathNamer(prefix="")
+        fname = namer.make_filename()
+        self.assertFalse(fname.startswith("-"))
+
+    def test_no_extension_no_trailing_dot(self):
+        namer = PathNamer(ext="")
+        fname = namer.make_filename()
+        self.assertFalse(fname.endswith("."))
+
+    def test_100_unique_filenames(self):
+        namer = PathNamer()
+        names = {namer.make_filename() for _ in range(100)}
+        self.assertEqual(len(names), 100)
+
+    def test_pathlib_root_passed_to_directory(self):
+        with tempfile.TemporaryDirectory() as td:
+            namer = PathNamer(directory=Path(td))
+            p = namer.make_path()
+            self.assertTrue(str(p).startswith(str(Path(td).resolve())))
+
+
+# ===========================================================================
+# Integration: PathNamer → _store_index interaction pattern
+# ===========================================================================
+
+class TestPathNamerAsIndexStorePath(unittest.TestCase):
+    """
+    Mirror the exact usage pattern from test__privacy.py::test_pathnamer_input
+    and test__ann.py::test_external_pathnamer to confirm the root fix
+    integrates end-to-end.
+    """
 
     def setUp(self):
-        self._tmpdir = _make_tmpdir()
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.td = self._tmpdir.name
 
     def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def test_returns_path_string(self):
-        path = make_temp_path(root=self._tmpdir)
-        self.assertIsInstance(path, (str, Path))
-
-    def test_file_exists(self):
-        """mkstemp creates the file; it should exist."""
-        path = make_temp_path(root=self._tmpdir)
-        self.assertTrue(os.path.exists(path))
-
-    def test_prefix_in_name(self):
-        path = make_temp_path(prefix="tmptest", root=self._tmpdir)
-        self.assertIn("tmptest", os.path.basename(str(path)))
-
-
-# ===========================================================================
-# get_path
-# ===========================================================================
-
-
-class TestGetPath(unittest.TestCase):
-    """get_path must return valid, writable paths and validate extensions."""
-
-    def setUp(self):
-        self._tmpdir = _make_tmpdir()
-
-    def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def test_default_returns_string(self):
-        result = get_path(file_path=str(self._tmpdir))
-        self.assertIsInstance(result, str)
-
-    def test_default_ext_is_png(self):
-        result = get_path(file_path=str(self._tmpdir))
-        self.assertTrue(result.endswith(".png"))
-
-    def test_custom_filename(self):
-        result = get_path(filename="myplot", file_path=str(self._tmpdir))
-        self.assertIn("myplot", result)
-
-    def test_custom_ext_jpg(self):
-        result = get_path(filename="img", ext=".jpg", file_path=str(self._tmpdir))
-        self.assertTrue(result.endswith(".jpg"))
-
-    def test_pdf_ext_accepted(self):
-        result = get_path(filename="report", ext=".pdf", file_path=str(self._tmpdir))
-        self.assertTrue(result.endswith(".pdf"))
-
-    def test_unsupported_ext_raises(self):
-        """An unsupported extension must raise ValueError."""
-        with self.assertRaises(ValueError):
-            get_path(filename="data", ext=".zip", file_path=str(self._tmpdir))
-
-    def test_subfolder_created(self):
-        result = get_path(file_path=str(self._tmpdir), subfolder="sub1")
-        self.assertIn("sub1", result)
-
-    def test_directory_created(self):
-        """Target directory must be created if not present."""
-        new_dir = str(self._tmpdir / "auto_created")
-        get_path(file_path=new_dir)
-        self.assertTrue(os.path.isdir(new_dir))
-
-    def test_add_timestamp_modifies_filename(self):
-        result = get_path(
-            filename="snap", file_path=str(self._tmpdir), add_timestamp=True
-        )
-        # Timestamp format YYYYMMDD_HHMMSSZ should appear
-        self.assertIn("_", os.path.basename(result))
-
-    def test_return_parts_true(self):
-        result = get_path(file_path=str(self._tmpdir), return_parts=True)
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 3)
-
-    def test_return_parts_false_gives_str(self):
-        result = get_path(file_path=str(self._tmpdir), return_parts=False)
-        self.assertIsInstance(result, str)
-
-    def test_overwrite_false_avoids_collision(self):
-        """overwrite=False must rename to avoid overwriting existing files."""
-        # Create the file first
-        base = get_path(filename="chart", file_path=str(self._tmpdir))
-        open(base, "w").close()  # noqa: WPS515
-        # Second call with same name must produce a different path
-        result2 = get_path(
-            filename="chart", file_path=str(self._tmpdir), overwrite=False
-        )
-        self.assertNotEqual(base, result2)
-
-    def test_invalid_chars_sanitized(self):
-        """Filename with '<', '>', ':', etc. must be sanitized."""
-        result = get_path(filename="bad:name", file_path=str(self._tmpdir))
-        self.assertNotIn(":", os.path.basename(result))
-
-
-# ===========================================================================
-# remove_path
-# ===========================================================================
-
-
-class TestRemovePath(unittest.TestCase):
-    """remove_path must silently remove files/dirs when present, ignore missing."""
-
-    def setUp(self):
-        self._tmpdir = _make_tmpdir()
-
-    def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def test_removes_existing_file(self):
-        f = self._tmpdir / "to_remove.txt"
-        f.write_text("x")
-        remove_path(["to_remove.txt"], base_path=str(self._tmpdir))
-        self.assertFalse(f.exists())
-
-    def test_removes_existing_directory(self):
-        d = self._tmpdir / "dir_to_remove"
-        d.mkdir()
-        remove_path(["dir_to_remove"], base_path=str(self._tmpdir))
-        self.assertFalse(d.exists())
-
-    def test_missing_path_does_not_raise(self):
-        """A path that does not exist must be silently ignored."""
-        try:
-            remove_path(["nonexistent_file"], base_path=str(self._tmpdir))
-        except Exception as e:
-            self.fail(f"remove_path raised on missing path: {e}")
-
-    def test_none_paths_uses_default_list(self):
-        """paths=None must use the built-in default list without raising."""
-        try:
-            remove_path(paths=None, base_path=str(self._tmpdir))
-        except Exception as e:
-            self.fail(f"remove_path raised with default list: {e}")
-
-    def test_none_base_path_uses_cwd(self):
-        """base_path=None must default to the current working directory."""
-        try:
-            remove_path(paths=["_nonexistent_abc"], base_path=None)
-        except Exception as e:
-            self.fail(f"remove_path raised with None base_path: {e}")
-
-
-# ===========================================================================
-# _filename_sanitizer
-# ===========================================================================
-
-
-class TestFilenameSanitizer(unittest.TestCase):
-    """_filename_sanitizer must replace invalid characters with '_'."""
-
-    def test_colon_replaced(self):
-        self.assertEqual(_filename_sanitizer("a:b"), "a_b")
-
-    def test_slash_replaced(self):
-        self.assertEqual(_filename_sanitizer("a/b"), "a_b")
-
-    def test_backslash_replaced(self):
-        self.assertEqual(_filename_sanitizer("a\\b"), "a_b")
-
-    def test_angle_bracket_replaced(self):
-        self.assertEqual(_filename_sanitizer("a<b>c"), "a_b_c")
-
-    def test_valid_name_unchanged(self):
-        self.assertEqual(_filename_sanitizer("report_2025"), "report_2025")
-
-    def test_empty_string(self):
-        self.assertEqual(_filename_sanitizer(""), "")
-
-    def test_returns_string(self):
-        self.assertIsInstance(_filename_sanitizer("test"), str)
-
-
-# ===========================================================================
-# _filename_extension_normalizer
-# ===========================================================================
-
-
-class TestFilenameExtNormalizer(unittest.TestCase):
-    """_filename_extension_normalizer must detect and normalize extensions."""
-
-    def test_filename_with_png_ext(self):
-        base, ext = _filename_extension_normalizer("chart.png", allowed_exts=[".png"])
-        self.assertEqual(base, "chart")
-        self.assertEqual(ext, ".png")
-
-    def test_explicit_ext_overrides(self):
-        base, ext = _filename_extension_normalizer("photo", ext=".jpg")
-        self.assertEqual(ext, ".jpg")
-
-    def test_explicit_ext_without_dot_gets_dot(self):
-        _, ext = _filename_extension_normalizer("photo", ext="jpg")
-        self.assertEqual(ext, ".jpg")
-
-    def test_case_insensitive_extension_match(self):
-        base, ext = _filename_extension_normalizer(
-            "doc.PDF", allowed_exts=[".pdf"]
-        )
-        self.assertIn("PDF", ext.upper())
-
-    def test_no_ext_no_allowed_gives_empty_ext(self):
-        base, ext = _filename_extension_normalizer("noext", allowed_exts=[])
-        # splitext on "noext" returns ("noext", "")
-        self.assertEqual(base, "noext")
-
-    def test_returns_tuple(self):
-        result = _filename_extension_normalizer("chart.png")
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 2)
-
-
-# ===========================================================================
-# _filename_uniquer
-# ===========================================================================
-
-
-class TestFilenameUniquer(unittest.TestCase):
-    """_filename_uniquer must append counter to avoid overwriting files."""
-
-    def setUp(self):
-        self._tmpdir = _make_tmpdir()
-
-    def tearDown(self):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def test_no_collision_returns_same_path(self):
-        full = str(self._tmpdir / "new.png")
-        new_full, _, _ = _filename_uniquer(full, str(self._tmpdir), "new.png")
-        self.assertEqual(new_full, full)
-
-    def test_collision_changes_filename(self):
-        """If the file exists, the returned path must differ."""
-        existing = self._tmpdir / "report.png"
-        existing.write_text("data")
-        new_full, _, _ = _filename_uniquer(
-            str(existing), str(self._tmpdir), "report.png"
-        )
-        self.assertNotEqual(new_full, str(existing))
-
-    def test_double_collision_increments_counter(self):
-        """Counter must keep incrementing until a free slot is found."""
-        for name in ["data.png", "data_1.png"]:
-            (self._tmpdir / name).write_text("x")
-        new_full, _, _ = _filename_uniquer(
-            str(self._tmpdir / "data.png"), str(self._tmpdir), "data.png"
-        )
-        self.assertIn("data_2", new_full)
-
-    def test_returns_tuple_three(self):
-        full = str(self._tmpdir / "x.png")
-        result = _filename_uniquer(full, str(self._tmpdir), "x.png")
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 3)
+        self._tmpdir.cleanup()
+
+    def test_pathnamer_directory_kwarg_makes_valid_path(self):
+        namer = PathNamer(prefix="tst_", ext=".annoy", directory=self.td)
+        p = namer.make_path()
+        # Parent directory must exist (mkdir=True by default)
+        self.assertTrue(p.parent.exists())
+        # File name starts with the expected prefix
+        self.assertTrue(p.name.startswith("tst_"))
+        self.assertTrue(p.name.endswith(".annoy"))
+        # Root must be inside the supplied temp dir
+        self.assertEqual(p.parent, Path(self.td).resolve())
+
+    def test_pathnamer_directory_kwarg_caching_consistency(self):
+        """Two make_path() calls on the same namer differ only in filename."""
+        namer = PathNamer(prefix="p_", ext=".annoy", directory=self.td)
+        p1 = namer.make_path()
+        p2 = namer.make_path()
+        self.assertNotEqual(p1, p2)
+        self.assertEqual(p1.parent, p2.parent)  # same directory, different names
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 # scikitplot/utils/_path.py
-
+#
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,6 +25,7 @@ Filename format:
 
 from __future__ import annotations
 
+import datetime as _datetime
 import itertools
 import os
 import re
@@ -52,6 +55,11 @@ __all__ = [
 # -----------------------------------------------------------------------------
 # Internals
 # -----------------------------------------------------------------------------
+
+# Use datetime.UTC if available (Python 3.11+),
+# else fallback to datetime.timezone.utc, time.timezone.utc
+# for datetime.datetime.now(tz=UTC)
+UTC = getattr(_datetime, "UTC", _datetime.timezone.utc)
 
 # Counter breaks ties when multiple names are generated within the same
 # millisecond. UUID4 already makes collisions extremely unlikely; the counter
@@ -335,6 +343,11 @@ class PathNamer:
         behavior regardless of `add_secret`.
     mkdir : bool, default=True
         If True, create the target directory (parents included).
+    directory : path-like or None, default=None
+        Convenience alias for ``root``. When provided it takes precedence
+        over ``root``. Useful when callers prefer the name ``directory``::
+
+            PathNamer(prefix="run", ext=".annoy", directory="/tmp/idx")
 
     See Also
     --------
@@ -427,6 +440,29 @@ class PathNamer:
     add_secret: bool = False
     private: bool = False
     mkdir: bool = True
+    # ``directory`` is a convenience alias for ``root``.  When set it takes
+    # precedence over ``root``, allowing callers to write either
+    # ``PathNamer(root=path)`` or ``PathNamer(directory=path)``
+    # interchangeably.  Only one of the two should be provided; if both are
+    # given ``directory`` wins.
+    directory: Path | str | None = None
+
+    def __post_init__(self) -> None:
+        """Resolve ``directory`` alias and normalise ``root`` to a Path.
+
+        ``frozen=True`` forbids normal attribute assignment; we use
+        ``object.__setattr__`` which bypasses the dataclass guard and is the
+        canonical pattern for post-init transforms on frozen dataclasses.
+        """
+        # Resolve directory alias → overrides root when provided.
+        if self.directory is not None:
+            resolved = normalize_directory_path(self.directory)
+            object.__setattr__(self, "root", resolved)
+            # Keep directory slot consistent (normalised) for repr / equality.
+            object.__setattr__(self, "directory", resolved)
+        elif not isinstance(self.root, Path):
+            # Ensure root is always a Path regardless of how it was passed.
+            object.__setattr__(self, "root", Path(self.root))
 
     def make_filename(
         self,
@@ -727,7 +763,7 @@ def _filename_extension_normalizer(
         elif ext and not ext.startswith(".") and not ext.endswith("."):
             ext = f".{ext}"
         return filename, ext
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Gracefully fallback if anything goes wrong
         return filename, ext
 
@@ -844,7 +880,7 @@ def get_path(  # noqa: D417
     if add_timestamp:
         if filename.endswith(ext):
             filename = filename.rstrip(ext)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%SZ")
+        timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%SZ")
         filename = f"{filename}_{timestamp}"
 
     # Ensure the extension is included
@@ -942,6 +978,6 @@ def remove_path(
                 path_to_remove
             ):  # noqa: PTH110
                 shutil.rmtree(path_to_remove)
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Log the error silently or add specific logging if needed
             pass
