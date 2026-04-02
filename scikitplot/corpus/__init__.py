@@ -9,6 +9,9 @@ module, preserving all proven design patterns while resolving every known
 correctness, robustness, and maintainability issue identified during the
 migration audit.
 
+The Universal/Standard NLP/ML Workflow:
+``Sourcing → Reading → Chunking → Filtering → Normalizing → Embedding → Exporting``.
+
 Examples
 --------
 Single file, no embedding:

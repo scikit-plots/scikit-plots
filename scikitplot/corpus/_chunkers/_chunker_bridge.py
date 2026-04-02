@@ -157,7 +157,12 @@ class ChunkerBridge(abc.ABC):
 
         for ch in chunks:
             ch_text: str = ch.text
-            ch_start = getattr(ch, "char_start", None)
+            # Chunk (from _types.py) exposes start_char / end_char.
+            # A legacy guard also checks the old alias char_start so that
+            # third-party or schema-derived objects still work.
+            ch_start = getattr(ch, "start_char", None)
+            if ch_start is None:
+                ch_start = getattr(ch, "char_start", None)
 
             if ch_start is not None:
                 pairs.append((ch_start, ch_text))

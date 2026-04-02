@@ -363,13 +363,24 @@ class TestCorpusUtilities:
         with pytest.raises(ValueError, match="empty"):
             WordChunker.vocabulary_stats([])
 
-    @patch("gensim.corpora.Dictionary")
-    def test_build_gensim_dictionary(self, mock_dict_cls: MagicMock) -> None:
+    def test_build_gensim_dictionary(self) -> None:
+        import sys
+        from unittest.mock import MagicMock
+
         mock_instance = MagicMock()
-        mock_dict_cls.return_value = mock_instance
+        mock_dict_cls = MagicMock(return_value=mock_instance)
+        mock_corpora = MagicMock()
+        mock_corpora.Dictionary = mock_dict_cls
+        mock_gensim = MagicMock()
+        mock_gensim.corpora = mock_corpora
+
         token_lists = [["fox", "jump"], ["fox", "run"]]
-        with patch("gensim.corpora.Dictionary", mock_dict_cls):
-            from .._word import WordChunker as WC
+        with patch.dict(
+            "sys.modules",
+            {"gensim": mock_gensim, "gensim.corpora": mock_corpora},
+        ):
+            from .._word import WordChunker as WC  # noqa: PLC0415
+
             result = WC.build_gensim_dictionary(token_lists)
         mock_dict_cls.assert_called_once_with(token_lists)
         mock_instance.filter_extremes.assert_called_once()
