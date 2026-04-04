@@ -42,7 +42,7 @@ pipeline_zip = CorpusPipeline(
     output_dir=Path("output/"),
     export_format=ExportFormat.CSV,
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/Gemini_Generated_Image_1ix.png"))
+result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
 result_zip
 
 # %%
