@@ -268,10 +268,12 @@ def gc_cache(  # noqa: PLR0912
             # safety: only delete direct children of cache root with valid key names
             if d.parent != root or not is_valid_key(key):
                 continue
-            freed += sz
-            shutil.rmtree(d, ignore_errors=False)
-            deleted.append(key)
-
+            try:
+                shutil.rmtree(d, ignore_errors=False)
+                deleted.append(key)
+                freed += sz
+            except FileNotFoundError:
+                skipped_missing.append(key)
     return CacheGCResult(
         cache_root=root,
         deleted_keys=tuple(deleted),
