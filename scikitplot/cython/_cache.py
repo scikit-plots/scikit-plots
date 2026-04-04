@@ -354,8 +354,13 @@ def write_meta(build_dir: Path, meta: Mapping[str, Any]) -> None:
     writing never leaves a partially-written ``meta.json``.  On POSIX this is
     an atomic operation; on Windows it uses ``replace()`` which is best-effort.
     """
-    path = build_dir / "meta.json"
-    tmp = path.with_suffix(".json.tmp")
+    # Detect if caller passed a file path
+    if build_dir.suffix == ".json":  # noqa: SIM108
+        path = build_dir
+    else:
+        path = build_dir / "meta.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")  # meta.json.tmp
     tmp.write_text(_json_dumps(meta) + "\n", encoding="utf-8")
     tmp.replace(path)
 

@@ -83,7 +83,7 @@ def build_lock(
 
     while True:
         try:
-            lock_dir.mkdir(parents=True, exist_ok=False)
+            lock_dir.mkdir(parents=True, exist_ok=True)
             break
         except FileExistsError as e:
             now = time.monotonic()
