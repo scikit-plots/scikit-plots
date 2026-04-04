@@ -48,15 +48,15 @@ from ._cache import (
     register_artifact_path,
     resolve_cache_dir,
 )
-from ._gc import cache_stats as _cache_stats
-from ._gc import gc_cache as _gc_cache
 from ._loader import import_extension_from_bytes, import_extension_from_path
-from ._pins import list_pins as _list_pins
-from ._pins import pin as _pin
 from ._pins import resolve_pinned_key as _resolve_pinned_key
-from ._pins import unpin as _unpin
 from ._profiles import apply_profile
-from ._result import BuildResult, CacheGCResult, CacheStats, PackageBuildResult
+from ._result import (  # noqa: F401
+    BuildResult,
+    CacheGCResult,
+    CacheStats,
+    PackageBuildResult,
+)
 from ._util import sanitize  # noqa: F401
 
 # A single path-like value (str, bytes, or os.PathLike).
@@ -117,7 +117,6 @@ __all__ = [
     "build_package_from_code_result",
     "build_package_from_paths",
     "build_package_from_paths_result",
-    "cache_stats",
     "check_build_prereqs",
     "compile_and_load",
     "compile_and_load_result",
@@ -125,7 +124,6 @@ __all__ = [
     "cython_import_all",
     "cython_import_result",
     "export_cached",
-    "gc_cache",
     "get_cache_dir",
     "import_artifact_bytes",
     "import_artifact_path",
@@ -138,12 +136,9 @@ __all__ = [
     "import_pinned_result",
     "list_cached",
     "list_cached_packages",
-    "list_pins",
-    "pin",
     "purge_cache",
     "register_cached_artifact_bytes",
     "register_cached_artifact_path",
-    "unpin",
 ]
 
 
@@ -672,77 +667,6 @@ def list_cached_packages(
     List cached *package* entries.
     """
     return iter_package_entries(cache_dir)
-
-
-def cache_stats(cache_dir: str | Path | None = None) -> CacheStats:
-    """
-    Return cache statistics for the given cache root.
-    """
-    return _cache_stats(cache_dir)
-
-
-def gc_cache(
-    *,
-    cache_dir: str | Path | None = None,
-    keep_n_newest: int | None = None,
-    max_age_days: int | None = None,
-    max_bytes: int | None = None,
-    dry_run: bool = False,
-    lock_timeout_s: float = 60.0,
-) -> CacheGCResult:
-    """
-    Garbage-collect cached builds deterministically.
-    """
-    return _gc_cache(
-        cache_dir=cache_dir,
-        keep_n_newest=keep_n_newest,
-        max_age_days=max_age_days,
-        max_bytes=max_bytes,
-        dry_run=dry_run,
-        lock_timeout_s=lock_timeout_s,
-    )
-
-
-def pin(
-    key: str,
-    *,
-    alias: str,
-    cache_dir: str | Path | None = None,
-    overwrite: bool = False,
-    lock_timeout_s: float = 60.0,
-) -> str:
-    """
-    Pin a cache key under a human-friendly alias.
-
-    See Also
-    --------
-    import_pinned
-    list_pins
-    unpin
-    """
-    return _pin(
-        key,
-        alias=alias,
-        cache_dir=cache_dir,
-        overwrite=overwrite,
-        lock_timeout_s=lock_timeout_s,
-    )
-
-
-def unpin(
-    alias: str, *, cache_dir: str | Path | None = None, lock_timeout_s: float = 60.0
-) -> bool:
-    """
-    Remove a pinned alias.
-    """
-    return _unpin(alias, cache_dir=cache_dir, lock_timeout_s=lock_timeout_s)
-
-
-def list_pins(cache_dir: str | Path | None = None) -> dict[str, str]:
-    """
-    List alias→key mappings in the pin registry.
-    """
-    return _list_pins(cache_dir)
 
 
 def import_pinned_result(
