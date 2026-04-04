@@ -50,6 +50,8 @@ Image OCR:
 
 Video transcription (subtitle-first):
 
+>>> # Richard Feynman - The Character of Physical Law (1964) - Complete - Better Audio
+>>> # https://www.youtube.com/watch?v=kEx-gRfuhhk
 >>> reader = DocumentReader.create(Path("lecture.mp4"))
 >>> docs = list(reader.get_documents())
 

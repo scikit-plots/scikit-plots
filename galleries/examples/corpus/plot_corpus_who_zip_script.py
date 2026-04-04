@@ -73,6 +73,13 @@ result_zip = pipeline_zip.run(Path("data/WHO-EURO-2025-12555-52329-80560-eng.zip
 result_zip
 
 # %%
+
+import pandas as pd
+from pprint import pprint
+
+pprint(pd.read_csv(result_zip.output_path).head().to_dict())
+
+# %%
 #
 # .. tags::
 #
