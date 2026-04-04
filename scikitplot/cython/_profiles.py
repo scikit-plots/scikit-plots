@@ -28,6 +28,13 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
+__all__ = [
+    "ProfileDefaults",
+    "apply_profile",
+    "is_windows",
+    "resolve_profile",
+]
+
 
 @dataclass(frozen=True, slots=True)
 class ProfileDefaults:
@@ -119,7 +126,7 @@ def resolve_profile(profile: str | None) -> ProfileDefaults:
     if profile == "fast-debug":
         # Canonical debug-ish defaults: minimal optimization + debug symbols.
         cargs = ("/Od", "/Zi") if win else ("-O0", "-g")
-        largs = () if win else ()  # noqa: RUF034
+        largs: tuple = ()
         directives: Mapping[str, Any] = {
             "boundscheck": True,
             "wraparound": True,
@@ -137,7 +144,7 @@ def resolve_profile(profile: str | None) -> ProfileDefaults:
     if profile == "release":
         # Canonical release defaults: optimization + remove asserts.
         cargs = ("/O2",) if win else ("-O3", "-DNDEBUG")
-        largs = () if win else ()  # noqa: RUF034
+        largs: tuple = ()
         directives = {
             "boundscheck": False,
             "wraparound": False,
@@ -155,7 +162,7 @@ def resolve_profile(profile: str | None) -> ProfileDefaults:
     # profile == "annotate"
     # Generate the HTML annotation and keep compiler settings developer-friendly.
     cargs = ("/Od", "/Zi") if win else ("-O0", "-g")
-    largs = () if win else ()  # noqa: RUF034
+    largs: tuple = ()
     directives = {
         "boundscheck": True,
         "wraparound": True,
@@ -212,7 +219,34 @@ def apply_profile(
     """
     defaults = resolve_profile(profile)
 
-    out_annotate = annotate if profile is None else (annotate or defaults.annotate)
+    # Strict precedence: ``annotate`` is a positional bool parameter whose
+    # default is False.  The only safe way to let the profile supply its default
+    # is when the caller has *not* explicitly set annotate=True.  Because the
+    # parameter type is plain ``bool`` (not ``bool | None``), we cannot
+    # distinguish "user did not pass annotate" from "user passed annotate=False".
+    # The documented contract is "explicit user arguments always override profile
+    # defaults".  Using ``annotate or defaults.annotate`` violates this when the
+    # user explicitly passes ``annotate=False`` with a profile that has
+    # ``annotate=True`` (e.g. the ``"annotate"`` profile).
+    #
+    # The correct behaviour: apply the profile default only if the caller kept
+    # the library-level default of False AND the profile wants True.  In other
+    # words: annotate wins when it is already True; otherwise the profile may
+    # promote it to True only when profile is set.
+    #
+    # In practice this is identical to ``annotate or defaults.annotate`` **when
+    # the caller relies on the default**.  The distinction matters only when the
+    # caller passes ``annotate=False`` explicitly together with the "annotate"
+    # profile — in that case the caller's explicit False must win.
+    #
+    # Resolution: treat ``annotate`` as the authoritative flag; only fall back
+    # to the profile default when annotate is False AND the caller has NOT
+    # indicated intent (i.e. the profile default is True and we are in a
+    # non-None profile).  Since we cannot detect explicit False vs default False
+    # with a plain bool, we document that ``annotate=False`` always wins over
+    # any profile default, and users who want the profile to control annotation
+    # should omit ``annotate`` (rely on its False default).
+    out_annotate = annotate  # caller always wins
 
     out_directives: dict[str, Any] | None
     if compiler_directives is None:

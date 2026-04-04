@@ -31,6 +31,13 @@ from ._lock import build_lock
 
 _ALIAS_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
+__all__ = [
+    "list_pins",
+    "pin",
+    "resolve_pinned_key",
+    "unpin",
+]
+
 
 def _pins_path(cache_root: Path) -> Path:
     return cache_root / "pins.json"
@@ -73,7 +80,7 @@ def list_pins(cache_dir: str | Path | None = None) -> dict[str, str]:
 
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Strict: if pins.json is corrupted, return empty and let user repin.
         return {}
 

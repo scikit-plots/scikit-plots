@@ -61,6 +61,53 @@ _ALLOWED_EXTRA_SOURCE_SUFFIXES = {
     ".cxx",
 }
 
+__all__ = [
+    "DEFAULT_COMPILER_DIRECTIVES",
+    "build_extension_module",
+    "build_extension_module_result",
+    "build_extension_package_from_code_result",
+    "build_extension_package_from_paths_result",
+]
+
+
+def _open_annotation_in_browser(html_uri: str) -> None:
+    """
+    Open a Cython annotation HTML file in the system browser.
+
+    Parameters
+    ----------
+    html_uri : str
+        ``file://`` URI of the annotation HTML file.
+
+    Notes
+    -----
+    **Headless guard**: browsers cannot open on headless systems (CI servers,
+    Docker containers, Jupyter kernels without a display).  Opening a browser
+    in those environments hangs the process or raises an OS-level error.
+
+    The call is skipped when any of the following conditions are true:
+
+    - The ``CI`` environment variable is set (GitHub Actions, GitLab CI, etc.).
+    - The ``DISPLAY`` variable is absent on Linux/macOS (no X11/Wayland server).
+    - ``sys.stdout`` is not attached to a TTY (non-interactive session).
+
+    This allows ``view_annotate=True`` to be used safely in automation without
+    conditional guards at the call site.
+    """
+    # Skip on any well-known CI / headless signal.
+    if os.environ.get("CI"):
+        return
+    # On POSIX systems, no DISPLAY means no graphical environment.
+    if sys.platform not in ("win32", "darwin") and not os.environ.get("DISPLAY"):
+        return
+    # Skip in non-interactive sessions (piped output, notebooks, daemons).
+    try:
+        if not sys.stdout.isatty():
+            return
+    except Exception:  # noqa: BLE001
+        return
+    webbrowser.open(html_uri)
+
 
 def _to_path(p: PathLike) -> Path:
     """
@@ -155,7 +202,7 @@ DEFAULT_COMPILER_DIRECTIVES: Mapping[str, Any] = {
 }
 
 
-def build_extension_module(  # noqa: D417
+def build_extension_module(
     *,
     code: str | None,
     source_path: Path | None,
@@ -187,19 +234,80 @@ def build_extension_module(  # noqa: D417
     """
     Compile and import an extension module (module-only convenience wrapper).
 
-    This is the internal implementation used by the public API. It returns only
-    the imported module. For structured metadata, use
-    :func:`build_extension_module_result`.
+    This is the internal implementation used by the public API. It delegates
+    entirely to :func:`build_extension_module_result` and returns only the
+    imported module object.  Use :func:`build_extension_module_result` when
+    structured metadata (cache key, artifact path, fingerprint) is required.
 
     Parameters
     ----------
-    All parameters
-        See :func:`build_extension_module_result`.
+    code : str or None
+        Cython source string. Exactly one of ``code`` or ``source_path`` must
+        be provided.
+    source_path : pathlib.Path or None
+        Path to a ``.pyx`` file. Exactly one of ``code`` or ``source_path``
+        must be provided.
+    module_name : str or None
+        Optional explicit module name. Derived from the cache key if ``None``.
+    cache_dir : str or pathlib.Path or None
+        Root cache directory for build artifacts.
+    use_cache : bool
+        If ``True``, reuse an existing cached artifact when the cache key
+        matches.
+    force_rebuild : bool
+        If ``True``, rebuild even when a valid cached artifact exists.
+    verbose : int
+        Build verbosity.  Negative values suppress most output.
+    profile : str or None
+        Optional build profile (``"fast-debug"``, ``"release"``,
+        ``"annotate"``).
+    annotate : bool
+        If ``True``, generate a Cython HTML annotation file.
+    view_annotate : bool
+        If ``True``, open the annotation HTML in a browser after compilation.
+        Requires ``annotate=True``.  Silently skipped in headless environments.
+    numpy_support : bool
+        If ``True``, attempt to add NumPy include directories.
+    numpy_required : bool
+        If ``True`` and ``numpy_support=True``, raise ``ImportError`` when
+        NumPy is not installed.
+    include_dirs : sequence of path-like or None
+        Additional C/C++ include directories.
+    library_dirs : sequence of path-like or None
+        Additional linker search directories.
+    libraries : sequence of str or None
+        Libraries to link against.
+    define_macros : sequence of (str, str | None) or None
+        Preprocessor macros to define.
+    extra_compile_args : sequence of str or None
+        Extra flags passed to the C/C++ compiler.
+    extra_link_args : sequence of str or None
+        Extra flags passed to the linker.
+    compiler_directives : Mapping[str, Any] or None
+        Cython compiler directives merged over the baseline defaults.
+    extra_sources : sequence of path-like or None, default=None
+        Additional C/C++ source files to compile and link.
+    support_files : Mapping[str, str | bytes] or None, default=None
+        In-memory support files written into the build directory before
+        compilation (e.g., ``.pxd`` / ``.pxi`` headers).
+    support_paths : sequence of path-like or None, default=None
+        On-disk support files copied into the build directory before
+        compilation.
+    include_cwd : bool, default=True
+        If ``True``, add the current working directory to include paths.
+    lock_timeout_s : float, default=60.0
+        Maximum seconds to wait for the per-key build lock.
+    language : {{'c', 'c++'}} or None, default=None
+        Optional language override for the extension.
 
     Returns
     -------
     types.ModuleType
-        Imported extension module.
+        The imported extension module.
+
+    See Also
+    --------
+    build_extension_module_result : Same operation returning structured metadata.
     """
     return build_extension_module_result(
         code=code,
@@ -552,7 +660,7 @@ def build_extension_module_result(  # noqa: PLR0912
         if view_annotate:
             html = _find_annotation(build_dir, name)
             if html is not None:
-                webbrowser.open(html.as_uri())
+                _open_annotation_in_browser(html.as_uri())
 
         module = import_extension(
             name=name, path=ext_path, key=key, build_dir=build_dir
@@ -828,19 +936,33 @@ def _compile(
                 # Best-effort: write to both streams.
                 try:  # noqa: SIM105
                     self._secondary.write(s)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
                 return self._primary.write(s)
 
             def flush(self) -> None:  # pragma: no cover
                 try:  # noqa: SIM105
                     self._secondary.flush()
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
                 try:  # noqa: SIM105
                     self._primary.flush()
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
+
+            def isatty(self) -> bool:  # pragma: no cover
+                # Delegate to primary; downstream consumers (e.g. distutils) call
+                # isatty() to decide whether to emit ANSI escape codes.
+                try:
+                    return self._primary.isatty()
+                except Exception:  # noqa: BLE001
+                    return False
+
+            def fileno(self) -> int:  # pragma: no cover
+                # Delegate to primary.  Raise UnsupportedOperation when the
+                # primary does not have a real fd (e.g. StringIO), so that
+                # callers fall back gracefully rather than receiving AttributeError.
+                return self._primary.fileno()
 
         buf = io.StringIO()
         out_stream: Any
@@ -878,7 +1000,7 @@ def _compile(
             tail_lines = lines[-60:] if len(lines) > 60 else lines  # noqa: PLR2004
             if tail_lines:
                 tail = "\n" + "\n".join(tail_lines)
-        except Exception:
+        except Exception:  # noqa: BLE001
             tail = ""
 
         raise RuntimeError(
@@ -907,7 +1029,7 @@ def _compile(
         # Ensure options are finalized before invoking the build.
         try:  # noqa: SIM105
             cmd.ensure_finalized()
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Best-effort: some setuptools variants finalize during run_command.
             pass
         dist.run_command("build_ext")
@@ -938,7 +1060,7 @@ def _set_verbosity(verbose: int) -> None:
         from setuptools._distutils.log import set_verbosity  # type: ignore[]  # noqa: I001, PLC0415
 
         set_verbosity(verbose)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return
 
 
@@ -1248,7 +1370,6 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
                     raise RuntimeError(
                         f"Build completed but extension file not found for '{full_name}' in {pkg_path}"
                     )
-                full_name = f"{package_name}.{short_name}"
                 rel_ext = str(ext_path.relative_to(build_dir).as_posix())
 
                 html_rel: str | None = None
@@ -1320,7 +1441,9 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
 
         mods_meta = meta_out.get("modules") if isinstance(meta_out, dict) else None
         if not isinstance(mods_meta, list):
-            raise RuntimeError("Invalid package metadata: missing modules list")
+            raise RuntimeError(  # noqa: TRY004
+                "Invalid package metadata: missing modules list"
+            )
 
         for m in sorted(mods_meta, key=lambda d: str(d.get("module_name", ""))):
             if not isinstance(m, dict):
@@ -1370,7 +1493,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
             )
             html = _find_annotation(pkg_fs_dir, first)
             if html is not None:
-                webbrowser.open(html.as_uri())
+                _open_annotation_in_browser(html.as_uri())
 
     return PackageBuildResult(
         package_name=package_name,

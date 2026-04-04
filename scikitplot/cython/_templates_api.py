@@ -38,6 +38,28 @@ _TEMPLATE_EXT_BY_KIND = {
 }
 _ALLOWED_KINDS = tuple(_TEMPLATE_EXT_BY_KIND.keys())
 
+__all__ = [
+    "TemplateInfo",
+    "build_package_example",
+    "build_package_example_result",
+    "compile_template",
+    "compile_template_result",
+    "copy_workflow",
+    "generate_sphinx_template_docs",
+    "get_package_example_path",
+    "get_template_path",
+    "get_workflow_path",
+    "list_package_examples",
+    "list_templates",
+    "list_workflows",
+    "load_package_example_metadata",
+    "load_template_metadata",
+    "read_template",
+    "read_template_info",
+    "template_root",
+    "workflow_cli_template_path",
+]
+
 
 @dataclass(frozen=True, slots=True)
 class TemplateInfo:
@@ -139,7 +161,9 @@ def _load_json(path: Path) -> dict[str, Any]:
         raise ValueError(f"Failed to read template metadata JSON: {path}") from e
 
     if not isinstance(obj, dict):
-        raise ValueError(f"Template metadata must be a JSON object (dict): {path}")
+        raise ValueError(  # noqa: TRY004
+            f"Template metadata must be a JSON object (dict): {path}"
+        )
     return obj
 
 
@@ -447,7 +471,7 @@ def load_template_metadata(
             data = json.loads(meta_path.read_text(encoding="utf-8"))
             if isinstance(data, dict):
                 return data
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
     # Minimal derived metadata
     rel = p.relative_to(_TEMPLATE_ROOT)
@@ -808,7 +832,7 @@ def load_package_example_metadata(name: str) -> dict[str, Any]:
         raise FileNotFoundError(str(meta_path))
     data = json.loads(meta_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError(f"Invalid package metadata: {meta_path}")
+        raise ValueError(f"Invalid package metadata: {meta_path}")  # noqa: TRY004
     return data
 
 

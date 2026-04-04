@@ -8,10 +8,151 @@
 import os
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Literal, Mapping, Sequence, TypeAlias
+from typing import Any, Literal, Mapping, Self, Sequence, TypeAlias
 
 PathLikeAny: TypeAlias = str | bytes | Path | os.PathLike[str] | os.PathLike[bytes]
 ProfileName: TypeAlias = Literal["fast-debug", "release", "annotate"]
+
+# ---------------------------------------------------------------------------
+# _security
+# ---------------------------------------------------------------------------
+
+class SecurityError(ValueError):
+    field: str | None
+    def __init__(self, message: str, *, field: str | None = ...) -> None: ...
+
+class SecurityPolicy:
+    strict: bool
+    allow_absolute_include_dirs: bool
+    allow_shell_metacharacters: bool
+    allow_reserved_macros: bool
+    allow_dangerous_compiler_args: bool
+    max_source_bytes: int | None
+    max_extra_compile_args: int
+    max_extra_link_args: int
+    max_include_dirs: int
+    max_libraries: int
+
+    def __init__(
+        self,
+        *,
+        strict: bool = ...,
+        allow_absolute_include_dirs: bool = ...,
+        allow_shell_metacharacters: bool = ...,
+        allow_reserved_macros: bool = ...,
+        allow_dangerous_compiler_args: bool = ...,
+        max_source_bytes: int | None = ...,
+        max_extra_compile_args: int = ...,
+        max_extra_link_args: int = ...,
+        max_include_dirs: int = ...,
+        max_libraries: int = ...,
+    ) -> None: ...
+    @classmethod
+    def relaxed(cls) -> Self: ...
+
+DEFAULT_SECURITY_POLICY: SecurityPolicy
+RELAXED_SECURITY_POLICY: SecurityPolicy
+
+def is_safe_path(
+    path: str | os.PathLike[str], *, allow_absolute: bool = ...
+) -> bool: ...
+def is_safe_macro_name(name: str, *, allow_reserved: bool = ...) -> bool: ...
+def is_safe_compiler_arg(
+    arg: str, *, allow_shell_meta: bool = ..., allow_dangerous: bool = ...
+) -> bool: ...
+def validate_build_inputs(
+    *,
+    policy: SecurityPolicy | None = ...,
+    source: str | None = ...,
+    define_macros: Sequence[tuple[str, str | None]] | None = ...,
+    extra_compile_args: Sequence[str] | None = ...,
+    extra_link_args: Sequence[str] | None = ...,
+    include_dirs: Sequence[str | os.PathLike[str]] | None = ...,
+    libraries: Sequence[str] | None = ...,
+) -> None: ...
+
+# ---------------------------------------------------------------------------
+# _custom_compiler
+# ---------------------------------------------------------------------------
+
+class CustomCompilerProtocol:
+    name: str
+
+    def __call__(
+        self,
+        source: str,
+        *,
+        build_dir: Path,
+        module_name: str,
+        **kwargs: Any,
+    ) -> Path: ...
+
+class CompilerRegistry:
+    def register(
+        self, compiler: CustomCompilerProtocol, *, overwrite: bool = ...
+    ) -> None: ...
+    def get(self, name: str) -> CustomCompilerProtocol: ...
+    def list(self) -> list[str]: ...
+    def unregister(self, name: str) -> bool: ...
+
+def register_compiler(
+    compiler: CustomCompilerProtocol, *, overwrite: bool = ...
+) -> None: ...
+def get_compiler(name: str) -> CustomCompilerProtocol: ...
+def list_compilers() -> list[str]: ...
+def pure_python_prereqs() -> dict[str, Any]: ...
+def cython_cpp_prereqs() -> dict[str, Any]: ...
+def full_stack_prereqs() -> dict[str, Any]: ...
+def pybind11_only_prereqs() -> dict[str, Any]: ...
+def c_api_prereqs() -> dict[str, Any]: ...
+def pybind11_include() -> Path | None: ...
+def numpy_include() -> Path | None: ...
+def collect_c_api_sources(
+    *paths: str | os.PathLike[str],
+    recursive: bool = ...,
+    suffixes: frozenset[str] | None = ...,
+    exclude_patterns: Sequence[str] | None = ...,
+) -> list[Path]: ...
+def collect_header_dirs(
+    *paths: str | os.PathLike[str],
+    recursive: bool = ...,
+    suffixes: frozenset[str] | None = ...,
+) -> list[Path]: ...
+
+class PybindCompiler:
+    name: str
+
+    def __call__(
+        self,
+        source: str,
+        *,
+        build_dir: Path,
+        module_name: str,
+        include_dirs: Sequence[str | Path] | None = ...,
+        extra_compile_args: Sequence[str] | None = ...,
+        extra_link_args: Sequence[str] | None = ...,
+        **kwargs: Any,
+    ) -> Path: ...
+
+class CApiCompiler:
+    name: str
+
+    def __call__(
+        self,
+        source: str,
+        *,
+        build_dir: Path,
+        module_name: str,
+        extra_sources: Sequence[str | Path] | None = ...,
+        include_dirs: Sequence[str | Path] | None = ...,
+        extra_compile_args: Sequence[str] | None = ...,
+        extra_link_args: Sequence[str] | None = ...,
+        **kwargs: Any,
+    ) -> Path: ...
+
+# ---------------------------------------------------------------------------
+# _result
+# ---------------------------------------------------------------------------
 
 class TemplateInfo:
     template_id: str
@@ -94,9 +235,15 @@ class CacheGCResult:
     skipped_missing_keys: tuple[str, ...] = ...
     freed_bytes: int = 0
 
+# ---------------------------------------------------------------------------
+# _public
+# ---------------------------------------------------------------------------
+
 def get_cache_dir(cache_dir: str | Path | None = ...) -> Path: ...
 def purge_cache(cache_dir: str | Path | None = ...) -> None: ...
-def check_build_prereqs(*, numpy: bool = ...) -> dict[str, Any]: ...
+def check_build_prereqs(
+    *, numpy: bool = ..., pybind11: bool = ...
+) -> dict[str, Any]: ...
 def compile_and_load_result(
     source: str,
     *,
@@ -110,19 +257,20 @@ def compile_and_load_result(
     view_annotate: bool = ...,
     numpy_support: bool = ...,
     numpy_required: bool = ...,
-    include_dirs: Sequence[PathLikeAny] | None = ...,
-    library_dirs: Sequence[PathLikeAny] | None = ...,
+    include_dirs: Sequence[PathLikeAny] | PathLikeAny | None = ...,
+    library_dirs: Sequence[PathLikeAny] | PathLikeAny | None = ...,
     libraries: Sequence[str] | None = ...,
     define_macros: Sequence[tuple[str, str | None]] | None = ...,
     extra_compile_args: Sequence[str] | None = ...,
     extra_link_args: Sequence[str] | None = ...,
     compiler_directives: Mapping[str, Any] | None = ...,
-    extra_sources: Sequence[PathLikeAny] | None = ...,
+    extra_sources: Sequence[PathLikeAny] | PathLikeAny | None = ...,
     support_files: Mapping[str, str | bytes] | None = ...,
-    support_paths: Sequence[PathLikeAny] | None = ...,
+    support_paths: Sequence[PathLikeAny] | PathLikeAny | None = ...,
     include_cwd: bool = ...,
     lock_timeout_s: float = ...,
     language: str | None = ...,
+    security_policy: SecurityPolicy | None = ...,
 ) -> BuildResult: ...
 def compile_and_load(
     source: str, *, module_name: str | None = ..., **kwargs: Any
@@ -234,9 +382,13 @@ def build_package_from_paths_result(
 def build_package_from_paths(
     modules: Mapping[str, str | Path], *, package_name: str, **kwargs: Any
 ) -> Sequence[ModuleType]: ...
-def export_cached(key: str, *, dest_dir: str | Path) -> Path: ...
+def export_cached(
+    key: str, *, dest_dir: str | Path, cache_dir: str | Path | None = ...
+) -> Path: ...
 
+# ---------------------------------------------------------------------------
 # Templates / workflows
+# ---------------------------------------------------------------------------
 
 def template_root() -> Path: ...
 def list_templates(*, kind: Literal["cython", "python"] = ...) -> list[str]: ...
@@ -280,7 +432,9 @@ def compile_template(
     template_id: str, *, module_name: str | None = ..., **kwargs: Any
 ) -> ModuleType: ...
 
+# ---------------------------------------------------------------------------
 # Package examples (multi-module builds)
+# ---------------------------------------------------------------------------
 
 def list_package_examples() -> list[str]: ...
 def get_package_example_path(name: str) -> Path: ...

@@ -12,6 +12,10 @@ migration audit.
 The Universal/Standard NLP/ML Workflow:
 ``Sourcing → Reading → Chunking → Filtering → Normalizing → Embedding → Exporting``.
 
+.. seealso::
+  * https://github.com/Princeton-CDH/remarx
+  * https://princeton-cdh.github.io/remarx/api/
+
 Examples
 --------
 Single file, no embedding:

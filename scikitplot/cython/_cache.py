@@ -21,6 +21,7 @@ Do not compile or import native code from untrusted sources.
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import re
@@ -28,10 +29,30 @@ import sys
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 _ENV_CACHE_DIR = "SCIKITPLOT_CYTHON_CACHE_DIR"
 _KEY_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
+
+__all__ = [
+    "CacheEntry",
+    "PackageCacheEntry",
+    "find_entries_by_name",
+    "find_entry_by_key",
+    "find_package_entry_by_key",
+    "is_valid_key",
+    "iter_all_entry_dirs",
+    "iter_cache_entries",
+    "iter_package_entries",
+    "make_cache_key",
+    "peek_cache_dir",
+    "read_meta",
+    "register_artifact_path",
+    "resolve_cache_dir",
+    "runtime_fingerprint",
+    "source_digest",
+    "write_meta",
+]
 
 
 def is_valid_key(key: str) -> bool:
@@ -318,7 +339,7 @@ def source_digest(data: bytes) -> str:
 
 def write_meta(build_dir: Path, meta: Mapping[str, Any]) -> None:
     """
-    Write ``meta.json`` in the build directory.
+    Write ``meta.json`` in the build directory atomically.
 
     Parameters
     ----------
@@ -326,9 +347,17 @@ def write_meta(build_dir: Path, meta: Mapping[str, Any]) -> None:
         Cache entry directory.
     meta : Mapping[str, Any]
         Metadata mapping.
+
+    Notes
+    -----
+    Uses a write-then-rename (atomic replace) pattern so that a crash during
+    writing never leaves a partially-written ``meta.json``.  On POSIX this is
+    an atomic operation; on Windows it uses ``replace()`` which is best-effort.
     """
     path = build_dir / "meta.json"
-    path.write_text(_json_dumps(meta) + "\n", encoding="utf-8")
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(_json_dumps(meta) + "\n", encoding="utf-8")
+    tmp.replace(path)
 
 
 def read_meta(build_dir: Path) -> Mapping[str, Any] | None:
@@ -349,32 +378,37 @@ def read_meta(build_dir: Path) -> Mapping[str, Any] | None:
     if not path.exists():
         return None
     try:
-        import json  # noqa: PLC0415
-
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else None
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
 
-def iter_all_entry_dirs(cache_root: str | Path | None) -> Iterable[Path]:
+def iter_all_entry_dirs(cache_root: str | Path | None) -> list[Path]:
     """
-    Yield all cache entry directories whose name is a valid cache key.
+    Return all cache entry directories whose name is a valid cache key.
 
     Parameters
     ----------
     cache_root : str or pathlib.Path or None
         Cache root.
 
-    Yields
-    ------
-    pathlib.Path
-        Entry directory paths.
+    Returns
+    -------
+    list[pathlib.Path]
+        Entry directory paths, sorted by name for deterministic ordering.
+
+    Notes
+    -----
+    A ``list`` is returned rather than a generator so that callers can iterate
+    the result multiple times safely (e.g., once for stats and once for GC).
+    A generator would be silently exhausted on the second pass, producing an
+    empty sequence with no error.
     """
     root = peek_cache_dir(cache_root)
     if not root.exists():
         return []
-    return (p for p in sorted(root.iterdir()) if p.is_dir() and is_valid_key(p.name))
+    return [p for p in sorted(root.iterdir()) if p.is_dir() and is_valid_key(p.name)]
 
 
 def iter_cache_entries(cache_dir: str | Path | None) -> list[CacheEntry]:
@@ -605,12 +639,49 @@ def find_package_entry_by_key(
     if meta is None or meta.get("kind") != "package":
         raise ValueError(f"Key {k} does not refer to a package build.")
 
-    # Reuse parsing logic by iterating this one entry
-    entries = iter_package_entries(root)
-    for e in entries:
-        if e.key == k:
-            return e
-    raise FileNotFoundError(f"Package entry is missing artifacts for key: {k}")
+    # Parse this one entry directly instead of re-scanning the entire cache root.
+    pkg = meta.get("package_name")
+    mods_raw = meta.get("modules")
+    if not isinstance(pkg, str) or not pkg:
+        raise FileNotFoundError(f"Package entry is missing package_name for key: {k}")
+    if not isinstance(mods_raw, list) or not mods_raw:
+        raise FileNotFoundError(f"Package entry has no modules for key: {k}")
+
+    modules: list[str] = []
+    artifacts: list[Path] = []
+    for m in mods_raw:
+        if not isinstance(m, dict):
+            continue
+        mn = m.get("module_name")
+        ap = m.get("artifact")
+        if not isinstance(mn, str) or not mn:
+            continue
+        if not isinstance(ap, str) or not ap:
+            continue
+        p = (build_dir / ap) if not os.path.isabs(ap) else Path(ap)
+        if not p.exists():
+            continue
+        modules.append(mn)
+        artifacts.append(p)
+
+    if not modules or len(modules) != len(artifacts):
+        raise FileNotFoundError(f"Package entry is missing artifacts for key: {k}")
+
+    created_utc = (
+        meta.get("created_utc") if isinstance(meta.get("created_utc"), str) else None
+    )
+    fingerprint = (
+        meta.get("fingerprint") if isinstance(meta.get("fingerprint"), dict) else None
+    )
+    return PackageCacheEntry(
+        key=k,
+        build_dir=build_dir,
+        package_name=pkg,
+        modules=tuple(modules),
+        artifacts=tuple(artifacts),
+        created_utc=created_utc,
+        fingerprint=fingerprint,
+    )
 
 
 def find_entries_by_name(
@@ -795,8 +866,6 @@ def _module_name_from_meta_or_guess(
 
 
 def _json_dumps(payload: Mapping[str, Any]) -> str:
-    import json  # noqa: PLC0415
-
     return json.dumps(
         _stable_repr(dict(payload)),
         sort_keys=True,
