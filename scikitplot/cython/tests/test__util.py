@@ -3,7 +3,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Tests for :mod:`scikitplot.cython._util` and related low-level cache helpers.
+Tests for :mod:`scikitplot.cython._utils` and related low-level cache helpers.
 
 Covers
 ------
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from .._util import sanitize
+from .._utils import sanitize
 from .._cache import (
     _json_dumps,
     _stable_repr,
@@ -70,7 +70,7 @@ class TestSanitizeBranches:
 
 
 class TestSanitize:
-    """Unit tests for :func:`scikitplot.cython._util.sanitize`."""
+    """Unit tests for :func:`scikitplot.cython._utils.sanitize`."""
 
     @pytest.mark.parametrize(
         ("name", "expected"),
@@ -531,6 +531,6 @@ def test_make_cache_key_parametric(payload: dict, expected_type: type) -> None:
     ],
 )
 def test_sanitize_full_docstring_examples(inp: str, expected: str) -> None:
-    from .._util import sanitize
+    from .._utils import sanitize
 
     assert sanitize(inp) == expected

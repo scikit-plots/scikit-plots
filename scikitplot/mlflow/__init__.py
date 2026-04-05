@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
+scikitplot.mlflow
+==================
 ``MLflow UI | SERVER`` share the exact same settings.
 
 Adds a **project-level configuration** mechanism so multiple scripts
@@ -36,7 +38,7 @@ CLI
 >>> # Walk upward from `start` until a directory containing any marker is found.
 >>> # export SCIKITPLOT_PROJECT_MARKERS='[".git","pyproject.toml","README.txt","configs/mlflow.toml"]'
 >>> python -m scikitplot.mlflow --profile local --open-ui-seconds 5
-"""
+"""  # noqa: D205, D400
 
 from __future__ import annotations
 
