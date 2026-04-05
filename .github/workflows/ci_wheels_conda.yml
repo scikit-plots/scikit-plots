@@ -378,6 +378,7 @@ jobs:
           # "CXX=cl" >> $env:GITHUB_ENV
           echo "CC=cl" >> "$env:GITHUB_ENV"
           echo "CXX=cl" >> "$env:GITHUB_ENV"
+          echo "CL=/bigobj" >> "$env:GITHUB_ENV"
 
           ## Step outputs, Verify Tools
           # echo cl /? >> $GITHUB_OUTPUT
