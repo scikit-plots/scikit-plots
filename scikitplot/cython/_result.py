@@ -26,6 +26,13 @@ from types import ModuleType
 from types import ModuleType as _ModuleType
 from typing import Any, Mapping, Sequence
 
+__all__ = [
+    "BuildResult",
+    "CacheGCResult",
+    "CacheStats",
+    "PackageBuildResult",
+]
+
 
 def _uninitialized_module() -> ModuleType:
     """

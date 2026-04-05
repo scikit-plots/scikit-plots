@@ -18,6 +18,7 @@ Deletion is intentionally strict:
 
 from __future__ import annotations
 
+import json
 import shutil
 import time
 from pathlib import Path
@@ -26,6 +27,11 @@ from ._cache import is_valid_key, iter_all_entry_dirs, peek_cache_dir, resolve_c
 from ._lock import build_lock
 from ._pins import list_pins
 from ._result import CacheGCResult, CacheStats
+
+__all__ = [
+    "cache_stats",
+    "gc_cache",
+]
 
 
 def _utc_iso_from_epoch(ts: float) -> str:
@@ -96,11 +102,9 @@ def cache_stats(cache_dir: str | Path | None = None) -> CacheStats:
         kind = None
         if meta.exists():
             try:
-                import json  # noqa: PLC0415
-
                 data = json.loads(meta.read_text(encoding="utf-8"))
                 kind = data.get("kind")
-            except Exception:
+            except Exception:  # noqa: BLE001
                 kind = None
         if kind == "package":
             n_packages += 1
@@ -166,7 +170,12 @@ def gc_cache(  # noqa: PLR0912
     if max_bytes is not None and max_bytes < 0:
         raise ValueError("max_bytes must be >= 0")
 
-    root = peek_cache_dir(cache_dir)
+    # Resolve once: creates the cache directory if it does not yet exist and
+    # returns an absolute, canonical Path.  Using peek_cache_dir followed by a
+    # second resolve_cache_dir(root) was logically incorrect because passing an
+    # already-resolved Path to resolve_cache_dir bypassed the env-var override
+    # on the second call when cache_dir was None.
+    root = resolve_cache_dir(cache_dir)
     if not root.exists():
         return CacheGCResult(
             cache_root=root,
@@ -176,7 +185,6 @@ def gc_cache(  # noqa: PLR0912
             freed_bytes=0,
         )
 
-    root = resolve_cache_dir(root)
     pins = list_pins(root)
     pinned_keys = set(pins.values())
 
@@ -223,6 +231,7 @@ def gc_cache(  # noqa: PLR0912
         total = sum(sz for (_, _, _, sz) in entries)
         if total > max_bytes:
             # Expand candidate pool with non-pinned, non-keep entries ordered oldest-first
+            candidate_keys: set[str] = {c[0] for c in candidates}
             pool = [
                 e for e in entries if e[0] not in pinned_keys and e[0] not in keep_set
             ]
@@ -232,7 +241,7 @@ def gc_cache(  # noqa: PLR0912
             acc = 0
             extra: list[tuple[str, Path, float, int]] = []
             for e in pool_oldest:
-                if e in candidates:
+                if e[0] in candidate_keys:
                     continue
                 extra.append(e)
                 acc += e[3]
@@ -259,10 +268,12 @@ def gc_cache(  # noqa: PLR0912
             # safety: only delete direct children of cache root with valid key names
             if d.parent != root or not is_valid_key(key):
                 continue
-            freed += sz
-            shutil.rmtree(d, ignore_errors=False)
-            deleted.append(key)
-
+            try:
+                shutil.rmtree(d, ignore_errors=False)
+                deleted.append(key)
+                freed += sz
+            except FileNotFoundError:
+                skipped_missing.append(key)
     return CacheGCResult(
         cache_root=root,
         deleted_keys=tuple(deleted),

@@ -12,6 +12,10 @@ migration audit.
 The Universal/Standard NLP/ML Workflow:
 ``Sourcing → Reading → Chunking → Filtering → Normalizing → Embedding → Exporting``.
 
+.. seealso::
+  * https://github.com/Princeton-CDH/remarx
+  * https://princeton-cdh.github.io/remarx/api/
+
 Examples
 --------
 Single file, no embedding:
@@ -50,6 +54,8 @@ Image OCR:
 
 Video transcription (subtitle-first):
 
+>>> # Richard Feynman - The Character of Physical Law (1964) - Complete - Better Audio
+>>> # https://www.youtube.com/watch?v=kEx-gRfuhhk
 >>> reader = DocumentReader.create(Path("lecture.mp4"))
 >>> docs = list(reader.get_documents())
 

@@ -48,18 +48,98 @@ from ._cache import (
     register_artifact_path,
     resolve_cache_dir,
 )
-from ._gc import cache_stats as _cache_stats
-from ._gc import gc_cache as _gc_cache
 from ._loader import import_extension_from_bytes, import_extension_from_path
-from ._pins import list_pins as _list_pins
-from ._pins import pin as _pin
 from ._pins import resolve_pinned_key as _resolve_pinned_key
-from ._pins import unpin as _unpin
 from ._profiles import apply_profile
-from ._result import BuildResult, CacheGCResult, CacheStats, PackageBuildResult
+from ._result import (  # noqa: F401
+    BuildResult,
+    CacheGCResult,
+    CacheStats,
+    PackageBuildResult,
+)
 from ._util import sanitize  # noqa: F401
 
+# A single path-like value (str, bytes, or os.PathLike).
 PathLikeAny = str | bytes | Path | os.PathLike[str] | os.PathLike[bytes]
+
+# A sequence of path-like values — the correct type for include_dirs etc.
+# NOTE: PathLikeAny was incorrectly used as the type for sequence parameters
+# (include_dirs, library_dirs, extra_sources, support_paths) in earlier
+# versions.  These parameters must be sequences; a bare path-like is coerced
+# to a one-element list at the call site for backward compatibility.
+PathLikeSeq = Sequence[PathLikeAny] | PathLikeAny | None
+
+
+def _coerce_path_seq(
+    val: PathLikeSeq,
+    param: str,
+) -> list[PathLikeAny] | None:
+    """
+    Coerce a single path-like or a sequence into a list, or return None.
+
+    Parameters
+    ----------
+    val : sequence of path-like, or path-like, or None
+        Value to coerce.
+    param : str
+        Parameter name for error messages.
+
+    Returns
+    -------
+    list or None
+        Normalized list, or None when *val* is None.
+
+    Notes
+    -----
+    This function exists to fix a long-standing API inconsistency where
+    ``include_dirs``, ``library_dirs``, ``extra_sources``, and
+    ``support_paths`` were typed as ``PathLikeAny | None`` instead of
+    ``Sequence[PathLikeAny] | None``.  Passing a single path string now
+    works correctly instead of being treated as a character-iteration
+    source.
+    """
+    if val is None:
+        return None
+    # A str/bytes is itself iterable but should be treated as a single path.
+    if isinstance(val, (str, bytes, os.PathLike)):
+        return [val]
+    try:
+        return list(val)
+    except TypeError:
+        raise TypeError(
+            f"'{param}' must be a path-like or a sequence of path-like values, "
+            f"got {type(val).__name__!r}"
+        ) from None
+
+
+__all__ = [
+    "build_package_from_code",
+    "build_package_from_code_result",
+    "build_package_from_paths",
+    "build_package_from_paths_result",
+    "check_build_prereqs",
+    "compile_and_load",
+    "compile_and_load_result",
+    "cython_import",
+    "cython_import_all",
+    "cython_import_result",
+    "export_cached",
+    "get_cache_dir",
+    "import_artifact_bytes",
+    "import_artifact_path",
+    "import_cached",
+    "import_cached_by_name",
+    "import_cached_package",
+    "import_cached_package_result",
+    "import_cached_result",
+    "import_pinned",
+    "import_pinned_result",
+    "list_cached",
+    "list_cached_packages",
+    "purge_cache",
+    "register_cached_artifact_bytes",
+    "register_cached_artifact_path",
+]
 
 
 def get_cache_dir(cache_dir: str | Path | None = None) -> Path:
@@ -100,7 +180,9 @@ def purge_cache(cache_dir: str | Path | None = None) -> None:
     shutil.rmtree(root)
 
 
-def check_build_prereqs(*, numpy: bool = False) -> dict[str, Any]:
+def check_build_prereqs(
+    *, numpy: bool = False, pybind11: bool = False
+) -> dict[str, Any]:
     """
     Check whether build prerequisites are importable.
 
@@ -108,18 +190,36 @@ def check_build_prereqs(*, numpy: bool = False) -> dict[str, Any]:
     ----------
     numpy : bool, default=False
         If True, also check NumPy availability.
+    pybind11 : bool, default=False
+        If True, also check pybind11 availability (Scenario 3 & 4).
 
     Returns
     -------
     dict[str, Any]
-        A dict with keys: ``cython``, ``setuptools``, ``numpy`` (optional).
+        Keys: ``cython``, ``setuptools``, optionally ``numpy``,
+        ``pybind11``.  Each value: ``{"ok": bool, "version": str}``.
+
+    Notes
+    -----
+    **Newbie** (Scenarios 1 & 2): run this to understand your environment.
+    **Pro/master** (Scenarios 3-5): use the scenario-specific helpers in
+    :mod:`scikitplot.cython._custom_compiler` for targeted checks.
+
+    Examples
+    --------
+    >>> result = check_build_prereqs()
+    >>> "cython" in result and "setuptools" in result
+    True
+    >>> result = check_build_prereqs(numpy=True, pybind11=True)
+    >>> all(k in result for k in ("cython", "setuptools", "numpy", "pybind11"))
+    True
     """
     out: dict[str, Any] = {}
     try:
         import Cython  # noqa: PLC0415
 
         out["cython"] = {"ok": True, "version": getattr(Cython, "__version__", None)}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         out["cython"] = {"ok": False, "error": str(e)}
 
     try:
@@ -129,20 +229,36 @@ def check_build_prereqs(*, numpy: bool = False) -> dict[str, Any]:
             "ok": True,
             "version": getattr(setuptools, "__version__", None),
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         out["setuptools"] = {"ok": False, "error": str(e)}
 
     if numpy:
         try:
-            import numpy  # noqa: ICN001, PLC0415
+            import numpy as _numpy  # noqa: ICN001, PLC0415
 
-            out["numpy"] = {"ok": True, "version": getattr(numpy, "__version__", None)}
-        except Exception as e:
+            out["numpy"] = {
+                "ok": True,
+                "version": getattr(_numpy, "__version__", None),
+            }
+        except Exception as e:  # noqa: BLE001
             out["numpy"] = {"ok": False, "error": str(e)}
+
+    if pybind11:
+        try:
+            import pybind11 as _pybind11  # noqa: PLC0415
+
+            out["pybind11"] = {
+                "ok": True,
+                "version": getattr(_pybind11, "__version__", None),
+                "include": str(_pybind11.get_include()),
+            }
+        except Exception as e:  # noqa: BLE001
+            out["pybind11"] = {"ok": False, "error": str(e)}
+
     return out
 
 
-def compile_and_load_result(
+def compile_and_load_result(  # noqa: D417
     source: str,
     *,
     module_name: str | None = None,
@@ -155,19 +271,20 @@ def compile_and_load_result(
     view_annotate: bool = False,
     numpy_support: bool = True,
     numpy_required: bool = False,
-    include_dirs: PathLikeAny | None = None,
-    library_dirs: PathLikeAny | None = None,
+    include_dirs: PathLikeSeq = None,
+    library_dirs: PathLikeSeq = None,
     libraries: Sequence[str] | None = None,
     define_macros: Sequence[tuple[str, str | None]] | None = None,
     extra_compile_args: Sequence[str] | None = None,
     extra_link_args: Sequence[str] | None = None,
     compiler_directives: Mapping[str, Any] | None = None,
-    extra_sources: PathLikeAny | None = None,
+    extra_sources: PathLikeSeq = None,
     support_files: Mapping[str, str | bytes] | None = None,
-    support_paths: PathLikeAny | None = None,
+    support_paths: PathLikeSeq = None,
     include_cwd: bool = True,
     lock_timeout_s: float = 60.0,
     language: str | None = None,
+    security_policy: Any | None = None,
 ) -> BuildResult:
     """
     Compile and import a Cython extension module from source text.
@@ -218,6 +335,38 @@ def compile_and_load_result(
     # compiler options). This prevents collisions when the same source is built
     # under different flags in the same Python session.
     mod_name = module_name
+
+    # --- Coerce single path-like values to sequences (backward compat fix) ---
+    inc_dirs_list = _coerce_path_seq(include_dirs, "include_dirs")
+    lib_dirs_list = _coerce_path_seq(library_dirs, "library_dirs")
+    extra_sources_list = _coerce_path_seq(extra_sources, "extra_sources")
+    support_paths_list = _coerce_path_seq(support_paths, "support_paths")
+
+    # --- Security validation (applied before any filesystem or compiler ops) ---
+    from ._security import (  # noqa: PLC0415
+        DEFAULT_SECURITY_POLICY,
+        SecurityPolicy,
+        validate_build_inputs,
+    )
+
+    _policy = (
+        security_policy if security_policy is not None else DEFAULT_SECURITY_POLICY
+    )
+    if not isinstance(_policy, SecurityPolicy):
+        raise TypeError(
+            f"security_policy must be a SecurityPolicy instance, "
+            f"got {type(_policy).__name__!r}"
+        )
+    validate_build_inputs(
+        policy=_policy,
+        source=source,
+        define_macros=define_macros,
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=inc_dirs_list,
+        libraries=libraries,
+    )
+
     annotate2, directives2, cargs2, largs2, lang2 = apply_profile(
         profile=profile,
         annotate=annotate,
@@ -245,16 +394,16 @@ def compile_and_load_result(
         view_annotate=view_annotate,
         numpy_support=numpy_support,
         numpy_required=numpy_required,
-        include_dirs=include_dirs,
-        library_dirs=library_dirs,
+        include_dirs=inc_dirs_list,
+        library_dirs=lib_dirs_list,
         libraries=libraries,
         define_macros=define_macros,
         extra_compile_args=cargs2,
         extra_link_args=largs2,
         compiler_directives=directives2,
-        extra_sources=extra_sources,
+        extra_sources=extra_sources_list,
         support_files=support_files,
-        support_paths=support_paths,
+        support_paths=support_paths_list,
         include_cwd=include_cwd,
         lock_timeout_s=lock_timeout_s,
         language=lang2,
@@ -310,7 +459,11 @@ def cython_import_result(
     """
     p = Path(os.fsdecode(os.fspath(pyx_path))).expanduser().resolve()
     source = p.read_text(encoding="utf-8")
-    inc = list(kwargs.pop("include_dirs", []) or [])
+    # Use _coerce_path_seq so that a bare string like include_dirs="include/"
+    # is treated as a single path, not iterated character by character.
+    raw_inc = kwargs.pop("include_dirs", None)
+    inc: list = list(_coerce_path_seq(raw_inc, "include_dirs") or [])
+    inc.append(p.parent)
     inc.append(p.parent)
     return compile_and_load_result(
         source, module_name=module_name, include_dirs=inc, **kwargs
@@ -372,7 +525,7 @@ def import_cached_result(
         meta_dict = json.loads(meta)
         if not isinstance(meta_dict, dict):
             meta_dict = {}
-    except Exception:
+    except Exception:  # noqa: BLE001
         meta_dict = {}
     return BuildResult(
         module=mod,
@@ -433,7 +586,7 @@ def import_cached_package_result(
             meta_obj = json.loads(meta_path.read_text(encoding="utf-8"))
             if isinstance(meta_obj, dict):
                 meta = meta_obj
-        except Exception:
+        except Exception:  # noqa: BLE001
             meta = {}
 
     # Import each module in deterministic order
@@ -445,7 +598,9 @@ def import_cached_package_result(
     results: list[BuildResult] = []
     mods = meta.get("modules")
     if not isinstance(mods, list):
-        raise RuntimeError("Invalid package metadata: missing modules list")
+        raise RuntimeError(  # noqa: TRY004
+            "Invalid package metadata: missing modules list"
+        )
     used_cache = True
     for m in sorted(mods, key=lambda d: str(d.get("module_name", ""))):
         if not isinstance(m, dict):
@@ -514,77 +669,6 @@ def list_cached_packages(
     return iter_package_entries(cache_dir)
 
 
-def cache_stats(cache_dir: str | Path | None = None) -> CacheStats:
-    """
-    Return cache statistics for the given cache root.
-    """
-    return _cache_stats(cache_dir)
-
-
-def gc_cache(
-    *,
-    cache_dir: str | Path | None = None,
-    keep_n_newest: int | None = None,
-    max_age_days: int | None = None,
-    max_bytes: int | None = None,
-    dry_run: bool = False,
-    lock_timeout_s: float = 60.0,
-) -> CacheGCResult:
-    """
-    Garbage-collect cached builds deterministically.
-    """
-    return _gc_cache(
-        cache_dir=cache_dir,
-        keep_n_newest=keep_n_newest,
-        max_age_days=max_age_days,
-        max_bytes=max_bytes,
-        dry_run=dry_run,
-        lock_timeout_s=lock_timeout_s,
-    )
-
-
-def pin(
-    key: str,
-    *,
-    alias: str,
-    cache_dir: str | Path | None = None,
-    overwrite: bool = False,
-    lock_timeout_s: float = 60.0,
-) -> str:
-    """
-    Pin a cache key under a human-friendly alias.
-
-    See Also
-    --------
-    import_pinned
-    list_pins
-    unpin
-    """
-    return _pin(
-        key,
-        alias=alias,
-        cache_dir=cache_dir,
-        overwrite=overwrite,
-        lock_timeout_s=lock_timeout_s,
-    )
-
-
-def unpin(
-    alias: str, *, cache_dir: str | Path | None = None, lock_timeout_s: float = 60.0
-) -> bool:
-    """
-    Remove a pinned alias.
-    """
-    return _unpin(alias, cache_dir=cache_dir, lock_timeout_s=lock_timeout_s)
-
-
-def list_pins(cache_dir: str | Path | None = None) -> dict[str, str]:
-    """
-    List alias→key mappings in the pin registry.
-    """
-    return _list_pins(cache_dir)
-
-
 def import_pinned_result(
     alias: str, *, cache_dir: str | Path | None = None
 ) -> BuildResult | PackageBuildResult:
@@ -615,7 +699,7 @@ def import_pinned_result(
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             if isinstance(meta, dict) and meta.get("kind") == "package":
                 return import_cached_package_result(key, cache_dir=cache_dir)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
     return import_cached_result(key, cache_dir=cache_dir)
 
@@ -853,7 +937,12 @@ def build_package_from_paths(
     ).modules
 
 
-def export_cached(key: str, *, dest_dir: str | Path) -> Path:
+def export_cached(
+    key: str,
+    *,
+    dest_dir: str | Path,
+    cache_dir: str | Path | None = None,
+) -> Path:
     """
     Export a cache entry directory to a destination folder.
 
@@ -862,14 +951,23 @@ def export_cached(key: str, *, dest_dir: str | Path) -> Path:
     key : str
         Cache key to export.
     dest_dir : str or pathlib.Path
-        Destination directory.
+        Destination directory. Created (including parents) if absent.
+    cache_dir : str or pathlib.Path or None, default=None
+        Cache root override. If ``None``, uses the environment override or the
+        default cache location. Consistent with all other public functions that
+        accept ``cache_dir``.
 
     Returns
     -------
     pathlib.Path
-        Exported directory path.
+        Path to the exported entry directory inside ``dest_dir``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``key`` does not exist in the cache.
     """
-    root = peek_cache_dir(None)
+    root = peek_cache_dir(cache_dir)
     src = root / key
     if not src.exists():
         raise FileNotFoundError(str(src))

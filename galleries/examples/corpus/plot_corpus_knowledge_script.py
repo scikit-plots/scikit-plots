@@ -1,6 +1,6 @@
 """
-corpus WHO European Region YouTube shorts with examples
-=======================================================
+corpus Knowledge and Information local .png with examples
+=========================================================
 
 .. currentmodule:: scikitplot.corpus
 
@@ -34,40 +34,33 @@ from scikitplot.corpus import (
 )
 
 # %%
+# via :class:`CorpusPipeline`
+# ----------------------------------------
 
-pipeline = CorpusPipeline(
+pipeline_zip = CorpusPipeline(
     chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
     output_dir=Path("output/"),
     export_format=ExportFormat.CSV,
 )
-pipeline
+result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
+result_zip
 
 # %%
 
-# Unfortunately, most IPs from cloud providers are blocked by YouTube.
-# result = pipeline.run_url("https://www.youtube.com/shorts/VMZ40dVugAk")
+import pandas as pd
+from pprint import pprint
 
-# Richard Feynman - The Character of Physical Law (1964) - Complete - Better Audio
-# https://www.youtube.com/watch?v=kEx-gRfuhhk
-# result = pipeline.run("https://www.youtube.com/shorts/VMZ40dVugAk")
-# result
+pprint(pd.read_csv(result_zip.output_path).head().to_dict())
 
 # %%
 
-# print(result.documents)
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
-# %%
-
-# print(result.documents[0].text, result.documents[1].text)
-
-# %%
-
-# rich1 = NLPEnricher(EnricherConfig("nltk", lemmatizer="nltk", stemmer="snowball")).enrich_documents(result.documents[:1])
-# rich1
-
-# %%
-
-# print(rich1[0].keywords, rich1[0].lemmas, rich1[0].stems)
+img = mpimg.imread(result_zip.source)
+plt.imshow(img)
+plt.axis('off')  # hides axes
+plt.show()
 
 # %%
 #

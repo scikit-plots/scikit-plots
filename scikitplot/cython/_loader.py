@@ -24,6 +24,12 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+__all__ = [
+    "import_extension",
+    "import_extension_from_bytes",
+    "import_extension_from_path",
+]
+
 
 def import_extension(
     *,
@@ -77,7 +83,7 @@ def import_extension(
                 str(build_dir),
             )
         setattr(module, "__scikitplot_cython_artifact__", str(path))  # noqa: B010
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     return module
@@ -105,7 +111,7 @@ def _read_meta_near_artifact(
                 data = json.loads(m.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     return data, d
-            except Exception:
+            except Exception:  # noqa: BLE001
                 return None, None
     return None, None
 
