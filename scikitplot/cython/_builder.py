@@ -874,6 +874,84 @@ def _copy_extra_sources(
     return out
 
 
+def _neutralize_distutils_hack() -> None:
+    """
+    Neutralize ``_distutils_hack.ensure_local_distutils`` if necessary.
+
+    Notes
+    -----
+    **Developer note — why this exists:**
+
+    On certain Python 3.11 builds (notably the GitHub Actions
+    ``hostedtoolcache`` Python), the stdlib ``distutils`` is pre-loaded into
+    ``sys.modules`` by the test runner *before* setuptools gets a chance to
+    install its ``_distutils`` shim via ``sitecustomize.py``.
+
+    When ``setuptools`` is later imported for the first time, its
+    ``__init__.py`` executes ``import _distutils_hack.override``, which calls
+    ``_distutils_hack.do_override()`` → ``ensure_local_distutils()``.  That
+    function asserts:
+
+    .. code-block:: python
+
+        assert "_distutils" in distutils.core.__file__
+
+    Because ``distutils.core.__file__`` points to the stdlib path (not the
+    shim path), the assertion fires as an ``AssertionError`` — not an
+    ``ImportError`` — crashing the import.
+
+    **Why the ``SETUPTOOLS_USE_DISTUTILS`` env-var does not help here:**
+    that variable is only consumed by ``_distutils_hack`` during
+    ``sitecustomize.py`` at interpreter startup. By the time any runtime code
+    runs, ``_distutils_hack`` is already loaded and its startup processing is
+    complete; setting the env-var afterwards has no effect whatsoever.
+
+    **The correct fix:** patch ``_distutils_hack.ensure_local_distutils``
+    directly to a no-op *before* setuptools is imported.  The patch is:
+
+    * applied only when ``setuptools`` is not yet in ``sys.modules``, so it
+      is completely inert in every healthy environment where setuptools was
+      already loaded at process start (local dev, Docker, most CI);
+    * applied only when ``_distutils_hack`` is already in ``sys.modules``
+      *and* the problematic assertion is detectable (i.e. stdlib distutils is
+      loaded at the wrong path), so it never fires unnecessarily;
+    * a strict no-op on Python ≥ 3.12 where ``distutils`` was removed from
+      the stdlib and ``_distutils_hack`` either does not exist or behaves
+      differently.
+
+    References
+    ----------
+    https://github.com/pypa/setuptools/issues/3544
+    """
+    if "setuptools" in sys.modules:
+        # Already imported successfully — nothing to do.
+        return
+
+    # Check whether _distutils_hack is loaded and the assertion will fire.
+    # We only patch when the problem is actually present; never speculatively.
+    dh = sys.modules.get("_distutils_hack")
+    if dh is None:
+        # Not present (Python ≥ 3.12, or non-standard build) — safe to skip.
+        return
+
+    distutils_core = sys.modules.get("distutils.core")
+    if distutils_core is None:
+        # distutils.core not yet loaded → the assertion cannot fire.
+        return
+
+    core_file = getattr(distutils_core, "__file__", "") or ""
+    if "_distutils" in core_file:
+        # setuptools' own shim is already in place → the assertion will pass.
+        return
+
+    # stdlib distutils is loaded and _distutils_hack is present → the
+    # assertion WILL fire when setuptools.__init__ runs ensure_local_distutils.
+    # Neutralise it now, before the setuptools import occurs.
+    ensure_fn = getattr(dh, "ensure_local_distutils", None)
+    if callable(ensure_fn):
+        dh.ensure_local_distutils = lambda: None  # type: ignore[attr-defined]
+
+
 def _import_setuptools() -> tuple[Any, Any]:
     """
     Import ``setuptools.Extension`` and ``setuptools.dist.Distribution``.
@@ -889,47 +967,27 @@ def _import_setuptools() -> tuple[Any, Any]:
     ------
     ImportError
         If setuptools is not installed, or if the build environment has a
-        broken ``_distutils_hack`` override that prevents setuptools from
-        loading (observed on GitHub Actions Python 3.11 hostedtoolcache builds).
+        broken ``_distutils_hack`` that cannot be neutralized.
 
     Notes
     -----
-    **Developer note — why this helper exists:**
-
-    When ``setuptools`` is imported for the *first* time inside a long-lived
-    process (e.g. a pytest worker), its ``__init__`` executes
-    ``import _distutils_hack.override``, which calls
-    ``_distutils_hack.ensure_local_distutils()``.  That function asserts that
-    the already-loaded ``distutils.core`` module comes from setuptools' own
-    bundled ``_distutils`` shim.  On certain Python 3.11 builds (notably the
-    GitHub Actions ``hostedtoolcache`` Python), the stdlib ``distutils`` is
-    pre-loaded before setuptools gets a chance to install its shim, causing
-    the assertion to fail with ``AssertionError`` — not ``ImportError``.
-
-    Setting ``SETUPTOOLS_USE_DISTUTILS=stdlib`` *before* the first import of
-    ``setuptools`` tells ``_distutils_hack`` not to attempt the override at
-    all, bypassing the assertion entirely.  The ``os.environ.setdefault`` call
-    is a strict no-op when setuptools is already cached in ``sys.modules``
-    (i.e. in a healthy local environment), so this guard is safe everywhere.
-
-    References
-    ----------
-    https://github.com/pypa/setuptools/issues/3544
+    **Developer note:**
+    Calls :func:`_neutralize_distutils_hack` before importing to prevent the
+    ``AssertionError`` that ``_distutils_hack.ensure_local_distutils`` raises
+    on GitHub Actions Python 3.11 hostedtoolcache builds.  See that function's
+    docstring for a full explanation.
     """
-    # Guard: set the env-var only when setuptools has not yet been imported.
-    # Once it is in sys.modules the env-var has no effect, so this is a no-op
-    # in any environment where setuptools was already loaded at process start.
-    if "setuptools" not in sys.modules:
-        os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "stdlib")
+    _neutralize_distutils_hack()
     try:
         from setuptools import Extension  # noqa: PLC0415
         from setuptools.dist import Distribution  # noqa: PLC0415
     except AssertionError as e:
+        # Should not normally reach here after _neutralize_distutils_hack, but
+        # guard defensively in case the patch could not be applied.
         raise ImportError(
-            "setuptools could not be imported because '_distutils_hack' failed "
-            "its distutils-override assertion in this build environment.  "
-            "Work-around: set the environment variable "
-            "SETUPTOOLS_USE_DISTUTILS=stdlib before running Python.  "
+            "setuptools import failed because '_distutils_hack' asserted that "
+            "the already-loaded 'distutils.core' does not come from setuptools' "
+            "own shim.  This is a build-environment misconfiguration.  "
             f"Original error: {e}"
         ) from e
     except ImportError as e:
