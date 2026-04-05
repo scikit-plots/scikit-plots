@@ -162,6 +162,11 @@ elif is_gcc or is_clang
   endif
 endif
 
+# ✅ Fix for large Cython-generated files Large object file support (fixes C1128)
+if (is_msvc or is_clang_cl) and cc.has_argument('/bigobj')
+  extra_compile_args += ['/bigobj']
+endif
+
 # --------------------------------------------------------------------
 # macOS Minimum Target
 # --------------------------------------------------------------------

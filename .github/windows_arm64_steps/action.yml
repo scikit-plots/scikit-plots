@@ -28,6 +28,10 @@ runs:
         echo "FC=flang-new" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+        # Inside Meson
+        # echo "CL=/bigobj" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
         # Python itself is built with /MD, /MD = link against the shared runtime DLL
         # echo "CFLAGS=/MD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         # echo "CXXFLAGS=/MD" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
