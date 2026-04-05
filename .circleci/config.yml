@@ -225,7 +225,11 @@ commands:
 
             # pip install voyager==2.1.0
             pip install nltk
-            pip install setuptools
+
+            # ✅ It’s a distutils override conflict
+            # pip install "setuptools>=69"
+            export SETUPTOOLS_USE_DISTUTILS=local
+            pip install -U setuptools
 
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
             # python -m pip check
