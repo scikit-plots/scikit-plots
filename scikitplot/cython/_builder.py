@@ -912,9 +912,18 @@ def _neutralize_distutils_hack() -> None:
     * applied only when ``setuptools`` is not yet in ``sys.modules``, so it
       is completely inert in every healthy environment where setuptools was
       already loaded at process start (local dev, Docker, most CI);
-    * applied only when ``_distutils_hack`` is already in ``sys.modules``
-      *and* the problematic assertion is detectable (i.e. stdlib distutils is
-      loaded at the wrong path), so it never fires unnecessarily;
+    * applied only when stdlib ``distutils.core`` is already in
+      ``sys.modules`` at the wrong path — the true trigger condition.
+      Previously the check tested whether ``_distutils_hack`` was in
+      ``sys.modules`` first and returned early if not, which missed the
+      critical sub-case where pythran (or another build helper) pre-loads
+      stdlib ``distutils`` *before* ``_distutils_hack`` has ever been
+      imported.  In that sub-case, when ``from setuptools import Extension``
+      later runs, setuptools imports ``_distutils_hack`` for the first time
+      and immediately invokes ``ensure_local_distutils()`` — with no patch
+      in place — causing the assertion to fire.  The fix pre-imports
+      ``_distutils_hack`` ourselves so the patch is applied before setuptools
+      triggers the call;
     * a strict no-op on Python ≥ 3.12 where ``distutils`` was removed from
       the stdlib and ``_distutils_hack`` either does not exist or behaves
       differently.
@@ -927,13 +936,11 @@ def _neutralize_distutils_hack() -> None:
         # Already imported successfully — nothing to do.
         return
 
-    # Check whether _distutils_hack is loaded and the assertion will fire.
-    # We only patch when the problem is actually present; never speculatively.
-    dh = sys.modules.get("_distutils_hack")
-    if dh is None:
-        # Not present (Python ≥ 3.12, or non-standard build) — safe to skip.
-        return
-
+    # First: determine whether stdlib distutils is pre-loaded at the wrong
+    # path.  This is the actual trigger for the AssertionError; checking it
+    # before looking for _distutils_hack handles the case where pythran (or
+    # any other build helper) imports distutils before _distutils_hack has
+    # ever been imported into this process.
     distutils_core = sys.modules.get("distutils.core")
     if distutils_core is None:
         # distutils.core not yet loaded → the assertion cannot fire.
@@ -941,12 +948,28 @@ def _neutralize_distutils_hack() -> None:
 
     core_file = getattr(distutils_core, "__file__", "") or ""
     if "_distutils" in core_file:
-        # setuptools' own shim is already in place → the assertion will pass.
+        # setuptools' own shim is already active → the assertion will pass.
         return
 
-    # stdlib distutils is loaded and _distutils_hack is present → the
-    # assertion WILL fire when setuptools.__init__ runs ensure_local_distutils.
-    # Neutralise it now, before the setuptools import occurs.
+    # stdlib distutils is pre-loaded at the wrong path.  We must neutralise
+    # ensure_local_distutils *before* setuptools/__init__.py imports
+    # _distutils_hack.override and calls do_override().
+    #
+    # Two sub-cases:
+    #   (a) _distutils_hack already in sys.modules  → patch it directly.
+    #   (b) _distutils_hack NOT yet in sys.modules  → import it ourselves
+    #       first so the patch is in place before setuptools does the same
+    #       import and immediately invokes the assertion.
+    dh = sys.modules.get("_distutils_hack")
+    if dh is None:
+        try:
+            import _distutils_hack as dh  # noqa: PLC0415
+        except ImportError:
+            # No _distutils_hack on this interpreter (Python ≥ 3.12 or a
+            # non-standard env without setuptools' shim package).  setuptools
+            # will import without triggering the distutils assertion.
+            return
+
     ensure_fn = getattr(dh, "ensure_local_distutils", None)
     if callable(ensure_fn):
         dh.ensure_local_distutils = lambda: None  # type: ignore[attr-defined]
