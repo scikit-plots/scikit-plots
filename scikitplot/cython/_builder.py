@@ -874,6 +874,72 @@ def _copy_extra_sources(
     return out
 
 
+def _import_setuptools() -> tuple[Any, Any]:
+    """
+    Import ``setuptools.Extension`` and ``setuptools.dist.Distribution``.
+
+    Returns
+    -------
+    Extension : type
+        ``setuptools.Extension`` class.
+    Distribution : type
+        ``setuptools.dist.Distribution`` class.
+
+    Raises
+    ------
+    ImportError
+        If setuptools is not installed, or if the build environment has a
+        broken ``_distutils_hack`` override that prevents setuptools from
+        loading (observed on GitHub Actions Python 3.11 hostedtoolcache builds).
+
+    Notes
+    -----
+    **Developer note — why this helper exists:**
+
+    When ``setuptools`` is imported for the *first* time inside a long-lived
+    process (e.g. a pytest worker), its ``__init__`` executes
+    ``import _distutils_hack.override``, which calls
+    ``_distutils_hack.ensure_local_distutils()``.  That function asserts that
+    the already-loaded ``distutils.core`` module comes from setuptools' own
+    bundled ``_distutils`` shim.  On certain Python 3.11 builds (notably the
+    GitHub Actions ``hostedtoolcache`` Python), the stdlib ``distutils`` is
+    pre-loaded before setuptools gets a chance to install its shim, causing
+    the assertion to fail with ``AssertionError`` — not ``ImportError``.
+
+    Setting ``SETUPTOOLS_USE_DISTUTILS=stdlib`` *before* the first import of
+    ``setuptools`` tells ``_distutils_hack`` not to attempt the override at
+    all, bypassing the assertion entirely.  The ``os.environ.setdefault`` call
+    is a strict no-op when setuptools is already cached in ``sys.modules``
+    (i.e. in a healthy local environment), so this guard is safe everywhere.
+
+    References
+    ----------
+    https://github.com/pypa/setuptools/issues/3544
+    """
+    # Guard: set the env-var only when setuptools has not yet been imported.
+    # Once it is in sys.modules the env-var has no effect, so this is a no-op
+    # in any environment where setuptools was already loaded at process start.
+    if "setuptools" not in sys.modules:
+        os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "stdlib")
+    try:
+        from setuptools import Extension  # noqa: PLC0415
+        from setuptools.dist import Distribution  # noqa: PLC0415
+    except AssertionError as e:
+        raise ImportError(
+            "setuptools could not be imported because '_distutils_hack' failed "
+            "its distutils-override assertion in this build environment.  "
+            "Work-around: set the environment variable "
+            "SETUPTOOLS_USE_DISTUTILS=stdlib before running Python.  "
+            f"Original error: {e}"
+        ) from e
+    except ImportError as e:
+        raise ImportError(
+            "setuptools is required to compile Cython extensions.  "
+            "Install it with: pip install setuptools"
+        ) from e
+    return Extension, Distribution
+
+
 def _compile(
     *,
     name: str,
@@ -898,11 +964,7 @@ def _compile(
     # (and may not be included in the raised exception message). To provide
     # user/dev-friendly diagnostics (especially when verbose=0 in docs builds),
     # we capture output during cythonize and include a trimmed tail on failure.
-    try:
-        from setuptools import Extension  # noqa: PLC0415
-        from setuptools.dist import Distribution  # noqa: PLC0415
-    except Exception as e:
-        raise ImportError("setuptools is required to compile Cython extensions.") from e
+    Extension, Distribution = _import_setuptools()  # noqa: N806
 
     _set_verbosity(verbose)
 
@@ -1295,13 +1357,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
                     "Cython.Build.cythonize is required to compile extensions."
                 ) from e
 
-            try:
-                from setuptools import Extension  # noqa: PLC0415
-                from setuptools.dist import Distribution  # noqa: PLC0415
-            except Exception as e:
-                raise ImportError(
-                    "setuptools is required to compile Cython extensions."
-                ) from e
+            Extension, Distribution = _import_setuptools()  # noqa: N806
 
             _set_verbosity(verbose)
 

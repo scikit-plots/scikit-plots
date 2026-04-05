@@ -308,6 +308,13 @@ dep_all += [lapack_dep]
 ## https://github.com/mesonbuild/meson/blob/master/mesonbuild/compilers/mixins/visualstudio.py#L236
 ## GCC / Clang (GNU frontend) Use -W*, -f*, -std=*, etc. Fully supports GNU flags
 ## Clang-CL / MSVC Use /W4, /wdXXXX, /MD, /fp:except, /fp:precise, /arch:ARM64 Only supports CL-style flags
+## For SciPy, NumPy, and the broader scientific Python ecosystem, the clear preference is /fp:precise.
+## Choose /fp:strict only if your code is highly sensitive to the Floating-Point Environment.
+## Use /fp:precise along with /arch:AVX2 (or your relevant architecture).
+## In modern scientific computing, we actually prefer the small "inconsistencies" introduced by /fp:precise because they often involve using FMA, which reduces the number of rounding steps.
+## /fp:strict often disables these modern CPU features to maintain a "legacy" level of bit-perfect reproducibility, which usually isn't worth the 10-20% performance hit.
+## A quick tip: Never use /fp:fast for scientific work.
+## It allows the compiler to ignore IEEE 754 entirely, reassociating math in ways that can cause catastrophic cancellation or "Not a Number" ($NaN$) errors to propagate silently.
 ## Flang / Intel Needs its own tailored set Avoids random test failures
 ## -D : Define a macro, It's equivalent to putting `#define DEBUG` at the top of every source file.
 ## -d : Internal debugging options (rarely used by end users), Print all macros after preprocessing.
@@ -465,100 +472,171 @@ elif is_msvc or is_clang_cl
 endif
 
 ######################################################################
-## Compiler Flags: Clang trapping math flags
+## Compiler Flags: Floating-Point Model and Trapping Math
+##
+## Design rationale (SciPy / NumPy / scikit-plots consensus):
+##
+## PHASE 1 — FP Model (what the compiler is allowed to do with math)
+## ─────────────────────────────────────────────────────────────────
+##   /fp:precise  [MSVC / clang-cl MSVC frontend — CHOSEN standard]
+##     • IEEE-754 compliant: NaN and Inf propagate correctly.
+##     • Permits FMA (Fused Multiply-Add): reduces rounding steps → better
+##       accuracy and up to 10-20 % faster than /fp:strict.
+##     • Permits /arch:AVX2 and other SIMD optimisations.
+##     • Stated explicitly here so it appears last on the command line and
+##       overrides any /fp:strict injected by a sub-build, per-target c_args,
+##       or cibuildwheel environment variables, eliminating D9025.
+##
+##   /fp:strict  ← FORBIDDEN for C / C++ in this project
+##     • Conflicts with /fp:precise → MSVC D9025 (last flag wins).
+##     • Disables FMA and SIMD for "legacy-exact" reproducibility that
+##       scientific code does not require.
+##     • Exception: Intel compilers (intel-cl, intel-llvm-cl) default to
+##       fast-math and need /fp:strict to restore correctness — kept below
+##       in the existing Intel section (lines ~662-685).
+##
+##   /fp:fast  ← NEVER use in scientific code
+##     • Allows the compiler to ignore IEEE-754 entirely; Inf and NaN may
+##       propagate silently as garbage.  Ruled out because this project uses
+##       Inf (e.g. sklearn decision boundaries, annoy distances).
+##
+##   -fno-fast-math  [GCC / Clang Unix frontend]
+##     • Cumulative negation of all -ffast-math sub-flags.
+##     • Restores IEEE-754 signed-zero, Inf/NaN, and rounding semantics.
+##     • Safe even if no -ffast-math was requested (no-op when not enabled).
+##
+## PHASE 2 — Trapping Math (hardware FP exception semantics)
+## ─────────────────────────────────────────────────────────
+##   Clang (Unix): -ftrapping-math
+##     • Equivalent to -ffp-exception-behavior=strict.
+##     • Required to prevent SIMD partial-load workaround activation.
+##     • Reference: https://github.com/numpy/numpy/issues/24461
+##
+##   clang-cl (Windows): /clang:-ftrapping-math
+##     • Routes the flag to the Clang backend only.
+##     • The MSVC frontend FP model (/fp:precise, set in Phase 1) is
+##       left untouched → no D9025 conflict.
+##
+##   MSVC (pure, Windows): /fp:except
+##     • Enables FP exception semantics compatible with /fp:precise.
+##     • Does NOT conflict with /fp:precise (unlike /fp:strict).
+##
+##   GCC (Unix / MinGW): no flag needed.
+##     • Trapping math is GCC's default behaviour.
 ######################################################################
-# Clang defaults to a non-strict floating error point model, but we need strict
-# behavior. `-ftrapping-math` is equivalent to `-ffp-exception-behavior=strict`.
-# This flag is also required to prevent the activation of SIMD partial load workarounds.
-# For further clarification, refer to gh-24461.
 
-cc = meson.get_compiler('c')
+# Re-query compiler objects (idempotent; canonical names guaranteed here).
+cc  = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
-cc_id = cc.get_id()
-arg_syntax = cc.get_argument_syntax()
+cc_id      = cc.get_id()             # 'gcc' | 'clang' | 'clang-cl' | 'msvc' | ...
+arg_syntax = cc.get_argument_syntax() # 'gcc' (Unix-style) | 'msvc' (CL-style)
 
-is_unix_clang = cc_id == 'clang'
-is_msvc = cc_id == 'msvc'
-is_clang_cl = is_msvc and cc.has_argument('/clang:-ftrapping-math')
+# Compiler family booleans — mutually exclusive, cover all supported toolchains.
+# NOTE: is_clang_cl requires cc_id == 'clang-cl', NOT cc_id == 'msvc'.
+#       The previous code used `is_msvc and cc.has_argument(...)` which was
+#       always False for clang-cl (a distinct compiler id), making the entire
+#       clang-cl branch dead code on every CI run.
+_fp_is_msvc       = cc_id == 'msvc'       # Pure Microsoft CL (no Clang backend)
+_fp_is_clang_cl   = cc_id == 'clang-cl'   # Clang with MSVC-style CL frontend (Windows)
+_fp_is_unix_clang = cc_id == 'clang'      # Clang with GCC-style frontend (Linux / macOS)
+_fp_is_gcc        = cc_id == 'gcc'        # GCC or MinGW-w64
 
-trapping_math = []
+# ── PHASE 1: Floating-Point Model ────────────────────────────────────────────
+# Explicitly pin the FP model at the project level.  Project arguments are
+# emitted before per-target c_args in the Meson-generated command line, so
+# placing /fp:precise here ensures it appears last and wins over any /fp:strict
+# that a sub-build or environment may inject earlier — eliminating D9025.
+_fp_model_flags_c   = []
+_fp_model_flags_cpp = []
 
-# ------------------------------------------------------------
-# UNIX CLANG
-# ------------------------------------------------------------
-if is_unix_clang
+if _fp_is_msvc or _fp_is_clang_cl
+  # /fp:precise: IEEE-754 with FMA and SIMD enabled. Stated explicitly so it
+  # is the last /fp:* flag on the command line regardless of environment noise.
+  if cc.has_argument('/fp:precise')
+    _fp_model_flags_c   += ['/fp:precise']
+    _fp_model_flags_cpp += ['/fp:precise']
+  endif
+  message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    ' FP model: /fp:precise (MSVC-style, compiler: ' + cc_id + ')'
+  )
+
+elif _fp_is_unix_clang or _fp_is_gcc
+  # -fno-fast-math: cumulative guard against any -ffast-math component.
+  # Safe to add even when -ffast-math was never requested (no-op).
+  foreach _flag : ['-fno-fast-math', '-fno-associative-math', '-fno-finite-math-only']
+    if cc.has_argument(_flag)
+      _fp_model_flags_c   += [_flag]
+      _fp_model_flags_cpp += [_flag]
+    endif
+  endforeach
+  message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    ' FP model: -fno-fast-math guards (Unix compiler: ' + cc_id + ')'
+  )
+endif
+
+if _fp_model_flags_c.length() > 0
+  add_project_arguments(cc.get_supported_arguments(_fp_model_flags_c),   language: 'c')
+endif
+if _fp_model_flags_cpp.length() > 0
+  add_project_arguments(cpp.get_supported_arguments(_fp_model_flags_cpp), language: 'cpp')
+endif
+
+# ── PHASE 2: Trapping Math (FP Hardware Exception Semantics) ─────────────────
+# Enable hardware floating-point exception trapping where necessary.
+# This is orthogonal to the FP model selected in Phase 1.
+_trapping_math_flags = []
+
+if _fp_is_unix_clang
+  # Unix Clang: -ftrapping-math enables hardware FP exception trapping.
+  # Required to prevent SIMD partial-load workaround activation (gh-24461).
   if cc.has_argument('-ftrapping-math')
     if cc.compiles('int main() { return 0; }',
                    args: ['-ftrapping-math', '-Werror'])
-      trapping_math = [
-        '-ftrapping-math',
-        '-DNPY_HAVE_CLANG_FPSTRICT'
-      ]
+      # Clang fully supports the flag: enable trapping and advertise the macro.
+      _trapping_math_flags = ['-ftrapping-math', '-DNPY_HAVE_CLANG_FPSTRICT']
     else
-      trapping_math = [
-        '-ftrapping-math',
-        '-Wno-unsupported-floating-point-opt'
-      ]
+      # Older Clang emits a warning about this flag; silence it and continue.
+      # Trapping semantics are still enabled even with the diagnostic suppressed.
+      _trapping_math_flags = ['-ftrapping-math', '-Wno-unsupported-floating-point-opt']
       message(
-        '\n[INFO] Clang does not strictly enforce floating-point exception handling. ' +
-        'Consider upgrading Clang.'
+        '\n' +
+        BLUE + '[INFO]' + RESET +
+        ' Clang does not fully enforce FP exception handling. ' +
+        'Consider upgrading Clang for optimal NumPy/SciPy compatibility.'
       )
     endif
   endif
 
-# ------------------------------------------------------------
-# CLANG-CL (MSVC FRONTEND)
-# ------------------------------------------------------------
-elif is_clang_cl
-  # Use proper MSVC semantic equivalent
-  if cc.has_argument('/fp:strict')
-    trapping_math = [
-      '/fp:strict',
-      '/DNPY_HAVE_CLANG_FPSTRICT'
-    ]
+elif _fp_is_clang_cl
+  # clang-cl (Windows): route trapping through the Clang backend via /clang:.
+  # The MSVC frontend FP model remains /fp:precise (set in Phase 1).
+  # This avoids the D9025 conflict that /fp:strict would cause.
+  # /fp:strict is NOT used here because:
+  #   1. It conflicts with /fp:precise → D9025 warning.
+  #   2. It disables FMA and SIMD optimisations without benefit.
+  if cc.has_argument('/clang:-ftrapping-math')
+    _trapping_math_flags = ['/clang:-ftrapping-math', '-DNPY_HAVE_CLANG_FPSTRICT']
   endif
 
+elif _fp_is_msvc
+  # Pure MSVC: /fp:except enables FP exception semantics.
+  # Fully compatible with /fp:precise; does NOT conflict (unlike /fp:strict).
+  if cc.has_argument('/fp:except')
+    _trapping_math_flags = ['/fp:except']
+  endif
+
+# GCC / MinGW: trapping math is GCC's default — no flag required.
 endif
 
-# Apply arguments if detected
-if trapping_math.length() > 0
-  add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
-  add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
+if _trapping_math_flags.length() > 0
+  add_project_arguments(cc.get_supported_arguments(_trapping_math_flags),  language: 'c')
+  add_project_arguments(cpp.get_supported_arguments(_trapping_math_flags), language: 'cpp')
 endif
-
-# if cc_id.startswith('clang')
-#   # Determine the compiler flags for trapping math exceptions.
-#   trapping_math = {
-#     'clang-cl': '/clang:-ftrapping-math',
-#   }.get(cc_id, '-ftrapping-math')
-#   # Check if the compiler supports the trapping math flag.
-#   if cc.has_argument(trapping_math)
-#     # TODO: Consider upgrading the vendored Meson to 1.3.0 to support the parameter `werror`
-#     # Detect whether the compiler actually supports strict handling of floating-point exceptions
-#     # by treating warnings as errors.
-#     if cc.compiles('int main() { return 0; }', args: [trapping_math, '-Werror'])
-#       if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
-#         trapping_math = [trapping_math, '/DNPY_HAVE_CLANG_FPSTRICT']
-#       elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-#         trapping_math = [trapping_math, '-DNPY_HAVE_CLANG_FPSTRICT']
-#       endif
-#     else
-#       # Suppress warnings about unsupported floating-point optimization.
-#       trapping_math = [trapping_math, '-Wno-unsupported-floating-point-opt']
-#       # Inform the user about the workaround.
-#       message(
-#         '\n' +
-#         BLUE + '[INFO]' + RESET +
-#         ' Clang version does not strictly ' +
-#         'enforce floating-point exception handling. ' +
-#         'Performance may be impacted. Consider upgrading Clang.'
-#       )
-#     endif
-#     add_project_arguments(cc.get_supported_arguments(trapping_math), language: 'c')
-#     add_project_arguments(cpp.get_supported_arguments(trapping_math), language: 'cpp')
-#   endif
-# endif
 
 ######################################################################
 ## C and C++ Global compiler flags/options argument

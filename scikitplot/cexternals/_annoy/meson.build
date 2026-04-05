@@ -106,41 +106,66 @@ extra_link_args = []
 # --------------------------------------------------------------------
 # Optimization + Floating Point (Deterministic & Safe)
 # --------------------------------------------------------------------
+#
+# FP model policy for this module:
+#   • The project-level meson.build already sets the canonical FP model
+#     for all compilers via add_project_arguments:
+#       MSVC / clang-cl → /fp:precise  (IEEE-754, FMA, SIMD enabled)
+#       GCC / Clang     → -fno-fast-math guards
+#   • We do NOT repeat /fp:precise or -ffp-model=strict here.
+#     Repeating /fp:precise is harmless but noisy; -ffp-model=strict
+#     is the Clang equivalent of /fp:strict and disables FMA — wrong.
+#   • annoylib uses Inf in distance calculations (e.g. infinite distances
+#     for unset neighbours). /fp:fast and -ffast-math are therefore
+#     explicitly forbidden: they allow the compiler to ignore IEEE-754
+#     Inf/NaN propagation and would silently corrupt results.
+#
+# /bigobj rationale:
+#   The Cython-generated annoylib.pyx.cpp is a very large translation
+#   unit (100 000+ lines of C++). The default COFF object file format
+#   limits an object to 65 535 sections. With MSVC or clang-cl, the
+#   template-heavy annoylib code exceeds this limit, producing:
+#     fatal error C1128: number of sections exceeded object file format
+#                        limit: compile with /bigobj
+#   /bigobj raises the limit to ~16 million sections. It has no runtime
+#   cost and no effect on the generated code — only on the object format.
 
-# Multithreaded build flag (Python 3 or non-Windows Py2 equivalent)
-# We can safely always enable this — modern environments all support threads
 if is_msvc_style
   extra_compile_args += [
+    # Object format: must be first — the Cython-generated .pyx.cpp
+    # exceeds the default 65 535-section COFF limit (C1128 fatal error).
+    '/bigobj',
+    # Optimisation: /O2 = maximise speed (same as Meson's optimization=2).
+    # The per-target override_options sets optimization=3, which maps to
+    # /O2 on MSVC (MSVC has no /O3). Listing it here makes the intent
+    # explicit and ensures it is present even without override_options.
     '/O2',
-    '/fp:strict',                 # deterministic IEEE behavior
+    # Suppress MSVC warnings about 'unsafe' C runtime functions (strcpy,
+    # sprintf, etc.) used throughout the C annoy header. These are
+    # internal implementation details; the warnings add no safety value.
     '/D_CRT_SECURE_NO_WARNINGS',
+    # Strict C++ conformance mode: reject non-standard extensions that
+    # MSVC would otherwise silently accept. Aligns with /std:c++17.
     '/permissive-',
-    # '/DANNOYLIB_MULTITHREADED_BUILD',
   ]
 else
   extra_compile_args += [
+    # -O3: full optimisation including auto-vectorisation. Safe because the
+    # project-level -fno-fast-math guards prevent reassociation and
+    # Inf/NaN suppression.
     '-O3',
+    # -fno-strict-aliasing: annoylib casts raw memory buffers between
+    # pointer types (float*, uint64_t*, etc.). Strict aliasing assumptions
+    # at -O2+ would allow the compiler to generate incorrect code for
+    # these patterns. Also set project-wide, but explicit here documents
+    # the per-module rationale.
     '-fno-strict-aliasing',
-    # '-DANNOYLIB_MULTITHREADED_BUILD',
   ]
-
-  # Strict floating point only for Clang (Unix) For scientific reproducibility:
-  if is_clang and cc.has_argument('-ffp-model=strict')
-    extra_compile_args += ['-ffp-model=strict']
-  endif
-endif
-
-# https://stackoverflow.com/questions/22931147/stdisinf-does-not-work-with-ffast-math-how-to-check-for-infinity
-if host_machine.system() == 'windows' or cc.get_id() == 'intel'
-  if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
-    extra_compile_args += [
-      '/fp:precise',  # can't use fp:fast because we use inf
-    ]
-  elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
-    extra_compile_args += [
-      '-fp:precise',  # can't use fp:fast because we use inf
-    ]
-  endif
+  # NOTE: -ffp-model=strict is intentionally absent.
+  # It is Clang's equivalent of /fp:strict and disables FMA, which costs
+  # 10-20 % performance with no scientific accuracy benefit for annoylib.
+  # The project-level -fno-fast-math already prevents unsafe reassociation
+  # and guarantees correct Inf propagation.
 endif
 
 # Make sure we have the right definition when compiling as a shared library on Windows.
@@ -273,15 +298,9 @@ annoy_extension_metadata = {
       'optimization=3',                           # Optimization level '-O3'
     ],
     'cython_args': cython_cpp_args,
-    'c_args': cython_c_flags,                     # Additional C/C++ arguments
-    'cpp_args': [                                 # Additional C/C++ arguments
-      cython_cpp_flags,
-      extra_compile_args,
-    ],
-    'link_args': [                                # 👈 add this
-      cython_link_flags,
-      extra_link_args
-    ],
+    'c_args': cython_c_flags,                     # Additional C arguments
+    'cpp_args': cython_cpp_flags + extra_compile_args,  # Flat list: nested lists silently drop flags
+    'link_args': cython_link_flags + extra_link_args,   # Flat list: same reason
     'install': true,                              # Whether to install the .so file executable after building
     'subdir': 'scikitplot/cexternals/_annoy',     # Path where the module is located
   },
