@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 _ENV_CACHE_DIR = "SCIKITPLOT_CYTHON_CACHE_DIR"
+_ENV_CACHE_DIR_SHORT = "SKPLT_CYTHON_CACHE_DIR"  # Short alias; takes priority when set.
 _KEY_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 
 __all__ = [
@@ -53,6 +54,24 @@ __all__ = [
     "source_digest",
     "write_meta",
 ]
+
+
+def _env_cache_dir() -> str | None:
+    """
+    Return the env-var override for the cache directory, or None.
+
+    Checks the short alias ``SKPLT_CYTHON_CACHE_DIR`` first, then the
+    canonical ``SCIKITPLOT_CYTHON_CACHE_DIR``.  The short alias exists so
+    that CI configurations and shell profiles can use a concise name.
+
+    Returns
+    -------
+    str or None
+        Non-empty env-var value, or ``None`` if neither variable is set.
+    """
+    return (
+        os.environ.get(_ENV_CACHE_DIR_SHORT) or os.environ.get(_ENV_CACHE_DIR) or None
+    )
 
 
 def is_valid_key(key: str) -> bool:
@@ -195,7 +214,7 @@ def resolve_cache_dir(cache_dir: str | Path | None) -> Path:
     Environment override (if set) takes precedence:
     ``SCIKITPLOT_CYTHON_CACHE_DIR``.
     """
-    env = os.environ.get(_ENV_CACHE_DIR)
+    env = _env_cache_dir()
     root = (
         Path(env)
         if env
@@ -221,7 +240,7 @@ def peek_cache_dir(cache_dir: str | Path | None) -> Path:
     pathlib.Path
         Resolved cache directory root (may not exist).
     """
-    env = os.environ.get(_ENV_CACHE_DIR)
+    env = _env_cache_dir()
     root = (
         Path(env)
         if env

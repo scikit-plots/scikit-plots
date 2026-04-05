@@ -105,9 +105,14 @@ _SHELL_META_RE = re.compile(r"[;&|`$<>()\\\n\r\x00]")
 # ---------------------------------------------------------------------------
 _RESERVED_MACRO_NAMES: frozenset[str] = frozenset(
     {
+        # Canonical CPython mixed-case guards
         "Py_LIMITED_API",
         "Py_DEBUG",
         "Py_TRACE_REFS",
+        # All-caps variants that could also shadow the above
+        "PY_LIMITED_API",
+        "PY_DEBUG",
+        # Platform / hardening guards
         "NDEBUG",
         "_FORTIFY_SOURCE",
         "_GLIBCXX_ASSERTIONS",
@@ -121,10 +126,12 @@ _RESERVED_MACRO_NAMES: frozenset[str] = frozenset(
 # ---------------------------------------------------------------------------
 _DANGEROUS_ARG_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^-x\s*c\+\+"),  # language override via flag
-    re.compile(r"^-imacros\b"),  # inject macro from file (arbitrary read)
+    re.compile(
+        r"^--?imacros\b"
+    ),  # inject macro from file (arbitrary read); -imacros and --imacros
     re.compile(r"^-include\s+/"),  # force-include absolute path
     re.compile(r"^--sysroot="),  # sysroot override
-    re.compile(r"^-specs="),  # GCC specs injection
+    re.compile(r"^--?specs="),  # GCC specs injection (-specs= and --specs=)
     re.compile(r"^/manifestuac"),  # Windows UAC manifest injection
 )
 

@@ -1954,10 +1954,10 @@ class TestPublicListCached:
 
 
 class TestPublicCacheStatsGc:
-    """Tests for public :func:`scikitplot.cython._public.cache_stats` and ``gc_cache``."""
+    """Tests for public :func:`scikitplot.cython._gc.cache_stats` and ``gc_cache``."""
 
     def test_cache_stats_delegates(self, fake_module_entry) -> None:
-        from .._public import cache_stats as pub_stats
+        from .._gc import cache_stats as pub_stats
 
         key, build_dir, _ = fake_module_entry
         stats = pub_stats(build_dir.parent)
@@ -1965,7 +1965,7 @@ class TestPublicCacheStatsGc:
         assert stats.n_modules == 1
 
     def test_gc_cache_delegates(self, tmp_cache: Path) -> None:
-        from .._public import gc_cache as pub_gc
+        from .._gc import gc_cache as pub_gc
 
         result = pub_gc(cache_dir=tmp_cache)
         assert isinstance(result, CacheGCResult)
@@ -1975,7 +1975,7 @@ class TestPublicPinUnpin:
     """Tests for public pin/unpin/list_pins wrappers."""
 
     def test_pin_unpin_roundtrip(self, tmp_cache: Path) -> None:
-        from .._public import list_pins, pin, unpin
+        from .._pins import list_pins, pin, unpin
 
         key = make_cache_key({"pub": "pin"})
         pin(key, alias="pub_alias", cache_dir=tmp_cache)
@@ -2076,18 +2076,18 @@ class TestPackageCacheEntryDataclass:
 
 
 class TestInitModule:
-    """Smoke tests for the :mod:`cython` package ``__init__.py``."""
+    """Smoke tests for the :mod:`scikitplot.cython` package ``__init__.py``."""
 
     def test_all_exports_importable(self) -> None:
         import importlib
 
-        from ... import cython as pkg
+        import scikitplot.cython as pkg
 
         for name in pkg.__all__:
             assert hasattr(pkg, name), f"__all__ member {name!r} not importable"
 
     def test_no_spurious_exports(self) -> None:
-        from ... import cython as pkg
+        import scikitplot.cython as pkg
 
         assert "_builder" not in pkg.__all__  # private builder
 
@@ -2320,7 +2320,8 @@ def add(int a, int b):
         assert hasattr(mod2, "add")
 
     def test_pin_and_import_pinned(self, tmp_cache: Path) -> None:
-        from .._public import compile_and_load_result, import_pinned, pin
+        from .._public import compile_and_load_result, import_pinned
+        from .._pins import pin
 
         r = compile_and_load_result(
             self._SIMPLE_PYX,

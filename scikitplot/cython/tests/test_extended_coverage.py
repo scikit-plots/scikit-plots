@@ -147,7 +147,7 @@ class TestReprBuildResult:
     """BuildResult.__repr__ must serialise every declared field."""
 
     def test_repr_default(self) -> None:
-        from scikitplot.cython._result import BuildResult
+        from .._result import BuildResult
 
         r = BuildResult()
         s = repr(r)
@@ -157,7 +157,7 @@ class TestReprBuildResult:
         assert "used_cache=" in s
 
     def test_repr_with_fingerprint(self) -> None:
-        from scikitplot.cython._result import BuildResult
+        from .._result import BuildResult
 
         r = BuildResult(key="abc", fingerprint={"python": "3.12"}, source_sha256="d1")
         s = repr(r)
@@ -165,14 +165,14 @@ class TestReprBuildResult:
         assert "source_sha256=" in s
 
     def test_repr_none_fingerprint(self) -> None:
-        from scikitplot.cython._result import BuildResult
+        from .._result import BuildResult
 
         r = BuildResult(fingerprint=None)
         s = repr(r)
         assert "fingerprint=None" in s
 
     def test_repr_with_meta(self) -> None:
-        from scikitplot.cython._result import BuildResult
+        from .._result import BuildResult
 
         r = BuildResult(meta={"k": "v"})
         s = repr(r)
@@ -183,7 +183,7 @@ class TestReprPackageBuildResult:
     """PackageBuildResult.__repr__ must serialise every declared field."""
 
     def test_repr_default(self) -> None:
-        from scikitplot.cython._result import PackageBuildResult
+        from .._result import PackageBuildResult
 
         r = PackageBuildResult()
         s = repr(r)
@@ -192,14 +192,14 @@ class TestReprPackageBuildResult:
         assert "results=" in s
 
     def test_repr_with_fingerprint(self) -> None:
-        from scikitplot.cython._result import PackageBuildResult
+        from .._result import PackageBuildResult
 
         r = PackageBuildResult(fingerprint={"cython": "3.x"})
         s = repr(r)
         assert "fingerprint=" in s
 
     def test_repr_none_fingerprint(self) -> None:
-        from scikitplot.cython._result import PackageBuildResult
+        from .._result import PackageBuildResult
 
         r = PackageBuildResult(fingerprint=None)
         s = repr(r)
@@ -210,7 +210,7 @@ class TestReprCacheStats:
     """CacheStats.__repr__ must list all fields."""
 
     def test_repr_default(self) -> None:
-        from scikitplot.cython._result import CacheStats
+        from .._result import CacheStats
 
         s = repr(CacheStats())
         assert "CacheStats(" in s
@@ -219,7 +219,7 @@ class TestReprCacheStats:
         assert "pinned_aliases=" in s
 
     def test_repr_populated(self) -> None:
-        from scikitplot.cython._result import CacheStats
+        from .._result import CacheStats
 
         s = repr(
             CacheStats(
@@ -240,7 +240,7 @@ class TestReprCacheGCResult:
     """CacheGCResult.__repr__ must list all fields."""
 
     def test_repr_default(self) -> None:
-        from scikitplot.cython._result import CacheGCResult
+        from .._result import CacheGCResult
 
         s = repr(CacheGCResult())
         assert "CacheGCResult(" in s
@@ -248,7 +248,7 @@ class TestReprCacheGCResult:
         assert "freed_bytes=" in s
 
     def test_repr_populated(self) -> None:
-        from scikitplot.cython._result import CacheGCResult
+        from .._result import CacheGCResult
 
         s = repr(
             CacheGCResult(
@@ -272,7 +272,7 @@ class TestBuildLockStaleLock:
 
     def test_stale_lock_cleared_and_acquired(self, tmp_path: Path) -> None:
         """A pre-existing lock dir older than timeout_s is treated as stale."""
-        from scikitplot.cython._lock import build_lock
+        from .._lock import build_lock
 
         lock_dir = tmp_path / "build.lock"
         lock_dir.mkdir()
@@ -292,7 +292,7 @@ class TestBuildLockStaleLock:
 
     def test_stale_lock_cleared_with_positive_timeout(self, tmp_path: Path) -> None:
         """Stale lock older than timeout_s is removed even with short timeout."""
-        from scikitplot.cython._lock import build_lock
+        from .._lock import build_lock
 
         lock_dir = tmp_path / "stale2.lock"
         lock_dir.mkdir()
@@ -312,7 +312,7 @@ class TestBuildLockStaleLock:
         stale lock, removes it, and the lock is acquired.  The test verifies
         that a transient OSError during stale detection never propagates.
         """
-        from scikitplot.cython._lock import build_lock
+        from .._lock import build_lock
 
         lock_dir = tmp_path / "oserr.lock"
         lock_dir.mkdir()
@@ -353,7 +353,7 @@ class TestBuildLockStaleLock:
         If another process removes the lock directory while the context is
         active, the FileNotFoundError in finally must be swallowed silently.
         """
-        from scikitplot.cython._lock import build_lock
+        from .._lock import build_lock
 
         lock_dir = tmp_path / "gone.lock"
 
@@ -366,7 +366,7 @@ class TestBuildLockStaleLock:
 
     def test_stale_lock_older_than_zero_timeout(self, tmp_path: Path) -> None:
         """Even with timeout_s=0, a pre-existing stale lock must be cleared."""
-        from scikitplot.cython._lock import build_lock
+        from .._lock import build_lock
 
         lock_dir = tmp_path / "zero.lock"
         lock_dir.mkdir()
@@ -388,7 +388,7 @@ class TestDirSizeBytesFileNotFound:
     """_dir_size_bytes must tolerate concurrent deletes (FileNotFoundError)."""
 
     def test_concurrent_delete_tolerated(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import _dir_size_bytes
+        from .._gc import _dir_size_bytes
 
         f = tmp_path / "data.bin"
         f.write_bytes(b"x" * 100)
@@ -407,12 +407,12 @@ class TestDirSizeBytesFileNotFound:
         assert result >= 0
 
     def test_empty_dir_returns_zero(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import _dir_size_bytes
+        from .._gc import _dir_size_bytes
 
         assert _dir_size_bytes(tmp_path) == 0
 
     def test_nested_files_counted(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import _dir_size_bytes
+        from .._gc import _dir_size_bytes
 
         sub = tmp_path / "sub"
         sub.mkdir()
@@ -425,7 +425,7 @@ class TestGcCacheEarlyReturns:
     """gc_cache early-return when cache root does not exist."""
 
     def test_nonexistent_root_returns_empty_result(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         absent = tmp_path / "no_such_cache"
         result = gc_cache(cache_dir=absent)
@@ -437,7 +437,7 @@ class TestGcCacheEarlyReturns:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """gc_cache must respect SCIKITPLOT_CYTHON_CACHE_DIR env override."""
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         absent = tmp_path / "env_cache_absent"
         monkeypatch.setenv("SCIKITPLOT_CYTHON_CACHE_DIR", str(absent))
@@ -449,7 +449,7 @@ class TestGcCacheAgeCutoffSkip:
     """Entries newer than max_age_days must not be deleted."""
 
     def test_recent_entry_not_deleted(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         # Entry mtime = now (definitely < 30 days old)
         build_dir, _ = _write_cache_entry(tmp_path, _FAKE_KEY)
@@ -458,7 +458,7 @@ class TestGcCacheAgeCutoffSkip:
         assert build_dir.exists()
 
     def test_old_entry_deleted(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         build_dir, _ = _write_cache_entry(tmp_path, _FAKE_KEY)
         old_time = time.time() - 32 * 86400  # 32 days ago
@@ -471,7 +471,7 @@ class TestGcCacheCombinedKeepBytes:
     """keep_n_newest + max_bytes combined: oldest non-kept entries deleted first."""
 
     def test_combined_strategy(self, tmp_path: Path) -> None:
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         key_a = "a" * 64
         key_b = "b" * 64
@@ -502,7 +502,7 @@ class TestGcCacheSafetyCheckSkip:
         verifying that entries not directly under root are never touched.
         The branch is exercised indirectly through the iteration path.
         """
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         # Two-level deep fake entry — not a direct child of cache root.
         nested = tmp_path / "subdir" / (_FAKE_KEY)
@@ -521,7 +521,7 @@ class TestGcCacheSafetyCheckSkip:
         Simulates a race condition by patching Path.exists to return False
         for the entry dir only during the deletion-loop check.
         """
-        from scikitplot.cython._gc import gc_cache
+        from .._gc import gc_cache
 
         build_dir, _ = _write_cache_entry(tmp_path, _FAKE_KEY)
         # Make it old enough to be a candidate under max_age_days=0
@@ -539,7 +539,7 @@ class TestGcCacheSafetyCheckSkip:
             return original_exists(self)
 
         # Activate the patch after the scanning phase by hooking build_lock
-        from scikitplot.cython import _gc as gc_mod
+        from .. import _gc as gc_mod
         original_build_lock = gc_mod.build_lock
 
         from contextlib import contextmanager
@@ -566,7 +566,7 @@ class TestIterAllEntryDirsReturnsList:
     """iter_all_entry_dirs must return a list, not a one-shot generator."""
 
     def test_can_iterate_twice(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_all_entry_dirs
+        from .._cache import iter_all_entry_dirs
 
         _write_cache_entry(tmp_path, _FAKE_KEY)
         result = iter_all_entry_dirs(tmp_path)
@@ -577,7 +577,7 @@ class TestIterAllEntryDirsReturnsList:
         )
 
     def test_returns_list_type(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_all_entry_dirs
+        from .._cache import iter_all_entry_dirs
 
         assert isinstance(iter_all_entry_dirs(tmp_path), list)
 
@@ -586,7 +586,7 @@ class TestIterCacheEntriesFingerprint:
     """iter_cache_entries fingerprint parsing coverage."""
 
     def test_valid_fingerprint_included(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_cache_entries
+        from .._cache import iter_cache_entries
 
         fp = {"python": "3.12", "cython": "3.0"}
         _write_cache_entry(tmp_path, _FAKE_KEY, fingerprint=fp)
@@ -595,7 +595,7 @@ class TestIterCacheEntriesFingerprint:
         assert entries[0].fingerprint == fp
 
     def test_non_dict_fingerprint_excluded(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_cache_entries, write_meta
+        from .._cache import iter_cache_entries, write_meta
 
         build_dir, art = _write_cache_entry(tmp_path, _FAKE_KEY)
         # Overwrite meta with non-dict fingerprint
@@ -608,7 +608,7 @@ class TestIterCacheEntriesFingerprint:
         assert entries[0].fingerprint is None
 
     def test_missing_fingerprint_is_none(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_cache_entries
+        from .._cache import iter_cache_entries
 
         _write_cache_entry(tmp_path, _FAKE_KEY, fingerprint=None)
         entries = iter_cache_entries(tmp_path)
@@ -619,7 +619,7 @@ class TestFindPackageEntryByKeyEdgePaths:
     """find_package_entry_by_key: missing package_name and empty modules raises."""
 
     def test_missing_package_name_in_meta_raises(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import find_package_entry_by_key, write_meta
+        from .._cache import find_package_entry_by_key, write_meta
 
         build_dir = tmp_path / _FAKE_KEY
         build_dir.mkdir()
@@ -629,7 +629,7 @@ class TestFindPackageEntryByKeyEdgePaths:
             find_package_entry_by_key(tmp_path, _FAKE_KEY)
 
     def test_empty_modules_list_raises(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import find_package_entry_by_key, write_meta
+        from .._cache import find_package_entry_by_key, write_meta
 
         build_dir = tmp_path / _FAKE_KEY
         build_dir.mkdir()
@@ -638,7 +638,7 @@ class TestFindPackageEntryByKeyEdgePaths:
             find_package_entry_by_key(tmp_path, _FAKE_KEY)
 
     def test_all_artifacts_missing_raises(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import find_package_entry_by_key, write_meta
+        from .._cache import find_package_entry_by_key, write_meta
 
         build_dir = tmp_path / _FAKE_KEY
         build_dir.mkdir()
@@ -659,7 +659,7 @@ class TestDefaultCacheDirWindowsBranch:
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only path logic")
     def test_nt_localappdata(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scikitplot.cython import _cache as cache_mod
+        from .. import _cache as cache_mod
 
         monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
         monkeypatch.delenv("TEMP", raising=False)
@@ -668,7 +668,7 @@ class TestDefaultCacheDirWindowsBranch:
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only path logic")
     def test_nt_temp_fallback(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        from scikitplot.cython import _cache as cache_mod
+        from .. import _cache as cache_mod
 
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
         monkeypatch.setenv("TEMP", str(tmp_path))
@@ -679,7 +679,7 @@ class TestDefaultCacheDirWindowsBranch:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """XDG_CACHE_HOME is used on POSIX when set (lines 249-250)."""
-        from scikitplot.cython import _cache as cache_mod
+        from .. import _cache as cache_mod
 
         monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
         result = cache_mod._default_cache_dir()
@@ -690,7 +690,7 @@ class TestDefaultCacheDirWindowsBranch:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """No XDG_CACHE_HOME → ~/.cache/scikitplot/cython (lines 251)."""
-        from scikitplot.cython import _cache as cache_mod
+        from .. import _cache as cache_mod
 
         monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
         result = cache_mod._default_cache_dir()
@@ -707,7 +707,7 @@ class TestImportExtensionSpecNone:
     """import_extension raises ImportError when spec_from_file_location returns None."""
 
     def test_bad_spec_raises_import_error(self, tmp_path: Path) -> None:
-        from scikitplot.cython._loader import import_extension
+        from .._loader import import_extension
 
         # Create a file with a valid extension name so the loader doesn't
         # reject it, but make spec_from_file_location return None via mock.
@@ -723,7 +723,7 @@ class TestImportExtensionMetadataAttach:
     """import_extension silently swallows setattr exceptions."""
 
     def test_setattr_exception_swallowed(self, tmp_path: Path) -> None:
-        from scikitplot.cython._loader import import_extension
+        from .._loader import import_extension
 
         artifact = tmp_path / f"meta_mod{EXTENSION_SUFFIXES[0]}"
         artifact.write_bytes(b"\x7fELF")
@@ -760,7 +760,7 @@ class TestImportExtensionFromPathPackageMeta:
     """import_extension_from_path: package-kind meta resolution path."""
 
     def test_package_meta_resolves_module_name(self, tmp_path: Path) -> None:
-        from scikitplot.cython._loader import import_extension_from_path
+        from .._loader import import_extension_from_path
 
         # Create package build structure
         suffix = EXTENSION_SUFFIXES[0]
@@ -794,7 +794,7 @@ class TestImportExtensionFromPathPackageMeta:
 
     def test_key_and_build_dir_attached_from_meta(self, tmp_path: Path) -> None:
         """Key and build_dir must be read from meta.json when not overridden."""
-        from scikitplot.cython._loader import import_extension_from_path
+        from .._loader import import_extension_from_path
 
         suffix = EXTENSION_SUFFIXES[0]
         artifact = tmp_path / f"amod{suffix}"
@@ -809,7 +809,6 @@ class TestImportExtensionFromPathPackageMeta:
         (tmp_path / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
         captured: dict = {}
-        original_import = __import__("scikitplot.cython._loader", fromlist=["import_extension"])
 
         fake_mod = types.ModuleType("amod")
         spec = MagicMock()
@@ -827,7 +826,7 @@ class TestImportExtensionFromBytesCollision:
     """import_extension_from_bytes raises OSError on content collision."""
 
     def test_collision_raises_os_error(self, tmp_path: Path) -> None:
-        from scikitplot.cython._loader import import_extension_from_bytes
+        from .._loader import import_extension_from_bytes
 
         suffix = EXTENSION_SUFFIXES[0]
         filename = f"colmod{suffix}"
@@ -870,7 +869,7 @@ class TestUnpinLastAliasRemovesFile:
     """Removing the last alias must delete pins.json, not write an empty file."""
 
     def test_pins_file_removed_when_empty(self, tmp_path: Path) -> None:
-        from scikitplot.cython._pins import pin, unpin
+        from .._pins import pin, unpin
 
         pin(_FAKE_KEY, alias="sole_alias", cache_dir=tmp_path)
         pins_file = tmp_path / "pins.json"
@@ -885,7 +884,7 @@ class TestUnpinLastAliasRemovesFile:
         self, tmp_path: Path
     ) -> None:
         """unlink() raising FileNotFoundError must be silently swallowed."""
-        from scikitplot.cython._pins import pin, unpin
+        from .._pins import pin, unpin
 
         pin(_FAKE_KEY, alias="alias_x", cache_dir=tmp_path)
         pins_file = tmp_path / "pins.json"
@@ -914,7 +913,7 @@ class TestOpenAnnotationInBrowser:
 
     def _call(self, env_updates: dict, *, isatty: bool = False) -> bool:
         """Return True if webbrowser.open was called."""
-        from scikitplot.cython import _builder as bmod
+        from .. import _builder as bmod
 
         opened: list[str] = []
 
@@ -951,7 +950,7 @@ class TestOpenAnnotationInBrowser:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """If stdout.isatty() raises, the browser call is suppressed."""
-        from scikitplot.cython import _builder as bmod
+        from .. import _builder as bmod
 
         monkeypatch.delenv("CI", raising=False)
         monkeypatch.setenv("DISPLAY", ":0")
@@ -975,7 +974,7 @@ class TestNormalizeExtraSourcesBytesPath:
     """_normalize_extra_sources must handle bytes paths via os.fsdecode."""
 
     def test_bytes_path_accepted(self, tmp_path: Path) -> None:
-        from scikitplot.cython._builder import _normalize_extra_sources
+        from .._builder import _normalize_extra_sources
 
         src = tmp_path / "extra.c"
         src.write_text("int x = 1;", encoding="utf-8")
@@ -993,7 +992,7 @@ class TestCheckBuildPrereqsFailurePaths:
     """check_build_prereqs must record ok=False when imports fail."""
 
     def test_cython_import_failure_recorded(self) -> None:
-        from scikitplot.cython._public import check_build_prereqs
+        from .._public import check_build_prereqs
 
         with patch.dict(sys.modules, {"Cython": None}):
             result = check_build_prereqs()
@@ -1003,28 +1002,29 @@ class TestCheckBuildPrereqsFailurePaths:
         assert "cython" in result
 
     def test_setuptools_import_failure_recorded(self) -> None:
-        from scikitplot.cython._public import check_build_prereqs
+        from .._public import check_build_prereqs
 
         with patch.dict(sys.modules, {"setuptools": None}):
             result = check_build_prereqs()
         assert "setuptools" in result
 
     def test_numpy_failure_recorded_when_requested(self) -> None:
-        from scikitplot.cython._public import check_build_prereqs
+        from .._public import check_build_prereqs
 
         with patch.dict(sys.modules, {"numpy": None}):
             result = check_build_prereqs(numpy=True)
         assert "numpy" in result
 
     def test_numpy_not_included_when_not_requested(self) -> None:
-        from scikitplot.cython._public import check_build_prereqs
+        from .._public import check_build_prereqs
 
         result = check_build_prereqs(numpy=False)
         assert "numpy" not in result
 
     def test_cython_ok_path(self) -> None:
         """Happy path: Cython and setuptools present."""
-        from scikitplot.cython._public import check_build_prereqs
+        pytest.importorskip("Cython", reason="Cython package not installed in this environment")
+        from .._public import check_build_prereqs
 
         result = check_build_prereqs()
         assert result["cython"]["ok"] is True
@@ -1042,7 +1042,7 @@ class TestImportCachedResultPublic:
     def test_returns_build_result_with_used_cache_true(
         self, tmp_path: Path
     ) -> None:
-        from scikitplot.cython._public import import_cached_result
+        from .._public import import_cached_result
 
         build_dir, artifact = _write_cache_entry(tmp_path, _FAKE_KEY)
 
@@ -1060,8 +1060,8 @@ class TestImportCachedResultPublic:
         assert result.module_name == "mymod"
 
     def test_meta_source_sha256_propagated(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import write_meta
-        from scikitplot.cython._public import import_cached_result
+        from .._cache import write_meta
+        from .._public import import_cached_result
 
         build_dir, artifact = _write_cache_entry(tmp_path, _FAKE_KEY)
         meta = json.loads((build_dir / "meta.json").read_text())
@@ -1081,7 +1081,7 @@ class TestImportCachedResultPublic:
 
     def test_corrupted_meta_gives_empty_dict(self, tmp_path: Path) -> None:
         """Corrupted meta.json must fall back to empty meta, not crash."""
-        from scikitplot.cython._public import import_cached_result
+        from .._public import import_cached_result
 
         build_dir, artifact = _write_cache_entry(tmp_path, _FAKE_KEY)
         (build_dir / "meta.json").write_text("NOT JSON {{{{", encoding="utf-8")
@@ -1102,7 +1102,8 @@ class TestImportPinnedPublic:
     """import_pinned returns module for module-type pins."""
 
     def test_import_pinned_module_returns_module(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import import_pinned, pin
+        from .._public import import_pinned
+        from .._pins import pin
 
         _write_cache_entry(tmp_path, _FAKE_KEY)
         pin(_FAKE_KEY, alias="myfn", cache_dir=tmp_path)
@@ -1123,7 +1124,7 @@ class TestRegisterCachedArtifactPathPublic:
     """register_cached_artifact_path registers artifact and returns BuildResult."""
 
     def test_registration_returns_build_result(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import register_cached_artifact_path
+        from .._public import register_cached_artifact_path
 
         artifact = tmp_path / f"ext{EXTENSION_SUFFIXES[0]}"
         artifact.write_bytes(b"\x7fELF" + b"\x00" * 8)
@@ -1151,7 +1152,7 @@ class TestImportArtifactPublic:
     """import_artifact_path and import_artifact_bytes public wrappers."""
 
     def test_import_artifact_path_works(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import import_artifact_path
+        from .._public import import_artifact_path
 
         suffix = EXTENSION_SUFFIXES[0]
         artifact = tmp_path / f"pathmod{suffix}"
@@ -1172,7 +1173,7 @@ class TestImportArtifactPublic:
         assert mod is fake_mod
 
     def test_import_artifact_bytes_works(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import import_artifact_bytes
+        from .._public import import_artifact_bytes
 
         suffix = EXTENSION_SUFFIXES[0]
         filename = f"bytemod{suffix}"
@@ -1199,7 +1200,7 @@ class TestExportCachedReplace:
     """export_cached must overwrite an existing destination directory."""
 
     def test_replaces_existing_dest(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import export_cached
+        from .._public import export_cached
 
         cache_root = tmp_path / "cache"
         _write_cache_entry(cache_root, _FAKE_KEY)
@@ -1217,7 +1218,7 @@ class TestExportCachedReplace:
         assert not (exported / "stale.txt").exists()
 
     def test_export_creates_dest_if_missing(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import export_cached
+        from .._public import export_cached
 
         cache_root = tmp_path / "cache"
         _write_cache_entry(cache_root, _FAKE_KEY)
@@ -1232,26 +1233,26 @@ class TestCythonImportAll:
     """cython_import_all: FileNotFoundError for absent directory, empty for no pyx."""
 
     def test_missing_directory_raises(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import cython_import_all
+        from .._public import cython_import_all
 
         with pytest.raises(FileNotFoundError):
             cython_import_all(tmp_path / "absent")
 
     def test_empty_directory_returns_empty_dict(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import cython_import_all
+        from .._public import cython_import_all
 
         result = cython_import_all(tmp_path)
         assert result == {}
 
     def test_non_pyx_files_not_compiled(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import cython_import_all
+        from .._public import cython_import_all
 
         (tmp_path / "helper.c").write_text("int x;", encoding="utf-8")
         result = cython_import_all(tmp_path)
         assert result == {}
 
     def test_custom_pattern_no_match_returns_empty(self, tmp_path: Path) -> None:
-        from scikitplot.cython._public import cython_import_all
+        from .._public import cython_import_all
 
         (tmp_path / "hello.pyx").write_text("def f(): pass", encoding="utf-8")
         # Pattern that matches nothing
@@ -1268,7 +1269,7 @@ class TestIterPackageEntriesFingerprint:
     """iter_package_entries must populate fingerprint from meta when present."""
 
     def test_valid_fingerprint_populated(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_package_entries
+        from .._cache import iter_package_entries
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
         # Patch meta to include a fingerprint
@@ -1281,7 +1282,7 @@ class TestIterPackageEntriesFingerprint:
         assert entries[0].fingerprint == {"python": "3.12"}
 
     def test_non_dict_fingerprint_is_none(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_package_entries
+        from .._cache import iter_package_entries
 
         build_dir = _write_package_cache_entry(tmp_path, _FAKE_KEY)
         meta = json.loads((build_dir / "meta.json").read_text())
@@ -1296,7 +1297,7 @@ class TestIterPackageEntriesAbsoluteArtifact:
     """iter_package_entries: artifact stored as absolute path in meta."""
 
     def test_absolute_artifact_path_resolved(self, tmp_path: Path) -> None:
-        from scikitplot.cython._cache import iter_package_entries
+        from .._cache import iter_package_entries
 
         build_dir = tmp_path / _FAKE_KEY
         pkg_dir = build_dir / "mypkg"
@@ -1347,7 +1348,7 @@ class TestIterPackageEntriesAbsoluteArtifact:
     ],
 )
 def test_sanitize_full_docstring_examples(inp: str, expected: str) -> None:
-    from scikitplot.cython._util import sanitize
+    from .._util import sanitize
 
     assert sanitize(inp) == expected
 
@@ -1361,7 +1362,7 @@ def test_sanitize_full_docstring_examples(inp: str, expected: str) -> None:
 def test_build_lock_negative_timeout_variants(
     tmp_path: Path, timeout_s: float
 ) -> None:
-    from scikitplot.cython._lock import build_lock
+    from .._lock import build_lock
 
     with pytest.raises(ValueError, match="timeout_s"):
         with build_lock(tmp_path / "x.lock", timeout_s=timeout_s):
@@ -1370,7 +1371,7 @@ def test_build_lock_negative_timeout_variants(
 
 @pytest.mark.parametrize("poll_s", [0.0, -0.1, -1.0])
 def test_build_lock_invalid_poll_variants(tmp_path: Path, poll_s: float) -> None:
-    from scikitplot.cython._lock import build_lock
+    from .._lock import build_lock
 
     with pytest.raises(ValueError, match="poll_s"):
         with build_lock(tmp_path / "x.lock", poll_s=poll_s):
@@ -1386,7 +1387,7 @@ def test_build_lock_invalid_poll_variants(tmp_path: Path, poll_s: float) -> None
 def test_cache_stats_entry_count_matches(
     tmp_path: Path, n_entries: int
 ) -> None:
-    from scikitplot.cython._gc import cache_stats
+    from .._gc import cache_stats
 
     keys = [chr(ord("a") + i) * 64 for i in range(n_entries)]
     for k in keys:
@@ -1401,7 +1402,7 @@ def test_cache_stats_entry_count_matches(
 def test_cache_stats_package_count_matches(
     tmp_path: Path, n_packages: int
 ) -> None:
-    from scikitplot.cython._gc import cache_stats
+    from .._gc import cache_stats
 
     keys = [chr(ord("a") + i) * 64 for i in range(n_packages)]
     for k in keys:
