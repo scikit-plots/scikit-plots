@@ -48,7 +48,7 @@ from ._cache import (
 from ._loader import import_extension
 from ._lock import build_lock
 from ._result import BuildResult, PackageBuildResult
-from ._util import sanitize
+from ._utils import sanitize
 
 _ALLOWED_SUPPORT_NAME = set(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"

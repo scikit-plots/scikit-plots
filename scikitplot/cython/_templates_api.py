@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from ._util import sanitize
+from ._utils import sanitize
 
 _TEMPLATE_ROOT = Path(__file__).resolve().parent / "_templates"
 _WORKFLOW_ROOT = _TEMPLATE_ROOT / "workflow"

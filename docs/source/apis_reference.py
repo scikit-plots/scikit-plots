@@ -698,113 +698,226 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("cython-index"),
         "sections": [
             {
-                "title": "Cython Realtime Inplace PKG/MOD Generation",
+                "title": "PKG/MOD Builder",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
-                    # Public compilation/import API
-                    "compile_and_load",
-                    "compile_and_load_result",
-                    "cython_import",
-                    "cython_import_result",
-                    "cython_import_all",
-                    "build_package_from_code",
-                    "build_package_from_code_result",
-                    "build_package_from_paths",
-                    "build_package_from_paths_result",
-                    "import_cached",
-                    "import_cached_result",
-                    "import_cached_by_name",
-                    "import_cached_package",
-                    "import_cached_package_result",
-                    "register_cached_artifact_path",
-                    "register_cached_artifact_bytes",
-                    "import_artifact_path",
-                    "import_artifact_bytes",
-                    "export_cached",
+                    "DEFAULT_COMPILER_DIRECTIVES",
+                    "build_extension_module",
+                    "build_extension_module_result",
+                    "build_extension_package_from_code_result",
+                    "build_extension_package_from_paths_result",
                 ],
             },
             {
-                "title": "Cache management",
+                "title": "Cache Management",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
                     # Cache management
-                    "get_cache_dir",
-                    "list_cached",
-                    "list_cached_packages",
-                    "cache_stats",
-                    "gc_cache",
-                    "purge_cache",
+                    "CacheEntry",
+                    "PackageCacheEntry",
+                    "find_entries_by_name",
+                    "find_entry_by_key",
+                    "find_package_entry_by_key",
+                    "is_valid_key",
+                    "iter_all_entry_dirs",
+                    "iter_cache_entries",
+                    "iter_package_entries",
+                    "make_cache_key",
+                    "peek_cache_dir",
+                    "read_meta",
+                    "register_artifact_path",
+                    "resolve_cache_dir",
+                    "runtime_fingerprint",
+                    "source_digest",
+                    "write_meta",
                 ],
             },
             {
-                "title": "Pins/aliases",
+                "title": "Custom Compiler Protocol",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    # Protocol + registry
+                    "CustomCompilerProtocol",
+                    "CompilerRegistry",
+                    "register_compiler",
+                    "get_compiler",
+                    "list_compilers",
+                    # Prereq validators
+                    "pure_python_prereqs",
+                    "cython_cpp_prereqs",
+                    "full_stack_prereqs",
+                    "pybind11_only_prereqs",
+                    "c_api_prereqs",
+                    # Helpers
+                    "pybind11_include",
+                    "numpy_include",
+                    "collect_c_api_sources",
+                    "collect_header_dirs",
+                    # Built-in custom compilers
+                    "PybindCompiler",
+                    "CApiCompiler",
+                ],
+            },
+            {
+                "title": "Cache Management Utilities",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "cache_stats",
+                    "gc_cache",
+                ],
+            },
+            {
+                "title": "Extension Module Loader",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "import_extension",
+                    "import_extension_from_bytes",
+                    "import_extension_from_path",
+                ],
+            },
+            {
+                "title": "Cross-platform Build Lock",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "build_lock",
+                ],
+            },
+            {
+                "title": "Pins/Aliases Registry",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
                     # Pins/aliases
-                    "pin",
-                    "unpin",
                     "list_pins",
-                    "import_pinned",
-                    "import_pinned_result",
+                    "pin",
+                    "resolve_pinned_key",
+                    "unpin",
                 ],
             },
             {
-                "title": "Prereqs",
+                "title": "Build Profile Presets",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
                     # Prereqs
-                    "check_build_prereqs",
+                    "ProfileDefaults",
+                    "apply_profile",
+                    "is_windows",
+                    "resolve_profile",
                 ],
             },
             {
-                "title": "Results",
+                "title": "Public API",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
                     # Results
-                    "BuildResult",
-                    "PackageBuildResult",
-                    "CacheStats",
-                    "CacheGCResult",
-                    "CacheEntry",
-                    "PackageCacheEntry",
+                    "build_package_from_code",
+                    "build_package_from_code_result",
+                    "build_package_from_paths",
+                    "build_package_from_paths_result",
+                    "check_build_prereqs",
+                    "compile_and_load",
+                    "compile_and_load_result",
+                    "cython_import",
+                    "cython_import_all",
+                    "cython_import_result",
+                    "export_cached",
+                    "get_cache_dir",
+                    "import_artifact_bytes",
+                    "import_artifact_path",
+                    "import_cached",
+                    "import_cached_by_name",
+                    "import_cached_package",
+                    "import_cached_package_result",
+                    "import_cached_result",
+                    "import_pinned",
+                    "import_pinned_result",
+                    "list_cached",
+                    "list_cached_packages",
+                    "purge_cache",
+                    "register_cached_artifact_bytes",
+                    "register_cached_artifact_path",
                 ],
             },
             {
-                "title": "Templates / workflows",
+                "title": "Result types",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "BuildResult",
+                    "CacheGCResult",
+                    "CacheStats",
+                    "PackageBuildResult",
+                ],
+            },
+            {
+                "title": "Security Guards",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "DEFAULT_SECURITY_POLICY",
+                    "RELAXED_SECURITY_POLICY",
+                    "SecurityError",
+                    "SecurityPolicy",
+                    "is_safe_compiler_arg",
+                    "is_safe_macro_name",
+                    "is_safe_path",
+                    "validate_build_inputs",
+                ],
+            },
+            {
+                "title": "Template and workflow assets",
                 # "description": (
                 #     _get_submodule("scikitplot.cython", "__init__")
                 # ),
                 "autosummary": [
                     # Templates / workflows
                     "TemplateInfo",
-                    "template_root",
-                    "list_templates",
-                    "get_template_path",
-                    "read_template",
-                    "read_template_info",
-                    "load_template_metadata",
+                    "build_package_example",
+                    "build_package_example_result",
                     "compile_template",
                     "compile_template_result",
-                    "list_package_examples",
-                    "get_package_example_path",
-                    "load_package_example_metadata",
-                    "build_package_example_result",
-                    "build_package_example",
-                    "list_workflows",
-                    "get_workflow_path",
-                    "workflow_cli_template_path",
                     "copy_workflow",
                     "generate_sphinx_template_docs",
+                    "get_package_example_path",
+                    "get_template_path",
+                    "get_workflow_path",
+                    "list_package_examples",
+                    "list_templates",
+                    "list_workflows",
+                    "load_package_example_metadata",
+                    "load_template_metadata",
+                    "read_template",
+                    "read_template_info",
+                    "template_root",
+                    "workflow_cli_template_path",
+                ],
+            },
+            {
+                "title": "Small utilities",
+                # "description": (
+                #     _get_submodule("scikitplot.cython", "__init__")
+                # ),
+                "autosummary": [
+                    "sanitize",
                 ],
             },
         ],

@@ -57,7 +57,7 @@ from ._result import (  # noqa: F401
     CacheStats,
     PackageBuildResult,
 )
-from ._util import sanitize  # noqa: F401
+from ._utils import sanitize  # noqa: F401
 
 # A single path-like value (str, bytes, or os.PathLike).
 PathLikeAny = str | bytes | Path | os.PathLike[str] | os.PathLike[bytes]

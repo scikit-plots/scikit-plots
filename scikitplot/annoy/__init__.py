@@ -17,6 +17,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
+scikitplot.annoy
+================
 Public Annoy Python API for scikitplot.
 
 Spotify ANNoy [1]_ (Approximate Nearest Neighbors Oh Yeah).
@@ -72,7 +74,7 @@ Examples
 >>> t.add_item(0, [1] * f)
 >>> t.build(10)  # Build 10 trees
 >>> t.get_nns_by_item(0, 1)  # Find nearest neighbor
-"""
+"""  # noqa: D205, D400
 
 # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 # https://www.devasking.com/issue/passing-arguments-to-tpnew-and-tpinit-from-subtypes-in-python-c-api

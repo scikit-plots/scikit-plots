@@ -19,7 +19,7 @@
 
 .. _cython-index:
 
-Cython Realtime Inplace PKG/MOD Generation
+PKG/MOD Realtime-Inplace Generation
 ======================================================================
 
 Examples relevant to the :py:mod:`~.cython` module.
