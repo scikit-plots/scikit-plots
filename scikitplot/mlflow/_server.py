@@ -18,13 +18,24 @@ import sys
 import time
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
-
-
 from ._cli_caps import ensure_flags_supported, get_mlflow_server_cli_caps
 from ._config import ServerConfig
 from ._container import running_in_docker
 from ._errors import MlflowServerStartError
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "SpawnedServer",
+    "build_server_args",
+    "build_server_command",
+    "spawn_server",
+]
+
+
+def _is_windows() -> bool:
+    """Return True if running on Windows."""
+    return os.name == "nt"
 
 
 def _is_port_free(host: str, port: int) -> bool:
@@ -233,7 +244,7 @@ class SpawnedServer:
             if self.process.stdout is None:
                 return ""
             return self.process.stdout.read() or ""
-        except Exception:
+        except Exception:  # noqa: BLE001
             return ""
 
     def terminate(self) -> None:
@@ -254,12 +265,12 @@ class SpawnedServer:
             _ = self.read_all_output()
             return
 
-        if os.name == "nt":
+        if _is_windows():
             # Best-effort CTRL_BREAK_EVENT to the process group.
             try:
                 self.process.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[attr-defined]
                 self.process.wait(timeout=3)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
             if self.process.poll() is None:
@@ -273,11 +284,11 @@ class SpawnedServer:
             try:
                 pgid = os.getpgid(self.process.pid)
                 os.killpg(pgid, signal.SIGTERM)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 # Fallback to direct terminate
                 try:  # noqa: SIM105
                     self.process.terminate()
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
 
             try:
@@ -286,10 +297,10 @@ class SpawnedServer:
                 try:
                     pgid = os.getpgid(self.process.pid)
                     os.killpg(pgid, signal.SIGKILL)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     try:  # noqa: SIM105
                         self.process.kill()
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         pass
 
         _ = self.read_all_output()
@@ -316,7 +327,7 @@ def spawn_server(cfg: ServerConfig) -> SpawnedServer:
     """
     cfg.validate(for_managed_tracking=True)
 
-    if cfg.dev and os.name == "nt":
+    if cfg.dev and _is_windows():
         raise MlflowServerStartError(
             "MLflow server --dev is unsupported on Windows (per MLflow CLI)."
         )
@@ -333,7 +344,7 @@ def spawn_server(cfg: ServerConfig) -> SpawnedServer:
         "text": True,
     }
 
-    if os.name == "nt":
+    if _is_windows():
         popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
     else:
         popen_kwargs["start_new_session"] = True

@@ -65,6 +65,21 @@ import tomllib
 
 from ._config import ServerConfig, SessionConfig
 
+__all__ = [
+    "DEFAULT_PROJECT_MARKERS",
+    "ProjectConfig",
+    "dump_project_config_yaml",
+    "ensure_local_store_layout",
+    "find_project_root",
+    "get_project_markers",
+    "load_project_config",
+    "load_project_config_toml",
+    "load_project_config_yaml",
+    "normalize_mlflow_store_values",
+    "project_markers",
+    "set_project_markers",
+]
+
 # ---------------------------------------------------------------------------
 # Marker configuration (public API + private mutable default)
 # ---------------------------------------------------------------------------
@@ -831,7 +846,9 @@ def load_project_config_yaml(
 
     loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
-        raise ValueError("YAML config must parse to a mapping at the document root.")
+        raise ValueError(  # noqa: TRY004
+            "YAML config must parse to a mapping at the document root."
+        )
     return _build_project_config_from_mapping(
         loaded, profile=profile, project_root=root
     )

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import overload
 
 from ._config import ServerConfig, SessionConfig
+from ._session import MlflowHandle
 
 DEFAULT_PROJECT_MARKERS: tuple[str, ...]
 
@@ -70,3 +71,9 @@ def dump_project_config_yaml(
     profile: str = ...,
     source_config_path: Path | None = ...,
 ) -> Path: ...
+def session_from_toml(
+    toml_path: str | Path, *, profile: str = ...
+) -> Iterator[MlflowHandle]: ...
+def session_from_file(
+    config_path: str | Path, *, profile: str = ...
+) -> Iterator[MlflowHandle]: ...

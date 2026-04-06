@@ -17,9 +17,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ._project import dump_project_config_yaml, find_project_root, load_project_config
-from ._project_session import session_from_file
+from ._session import session_from_file
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "WorkflowPaths",
+    "builtin_config_path",
+    "default_project_paths",
+    "export_builtin_config",
+    "patch_experiment_name_in_toml",
+    "run_demo",
+    "workflow",  # alias for run_demo
+]
 
 
 @dataclass(frozen=True)

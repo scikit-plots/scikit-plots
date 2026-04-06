@@ -12,19 +12,32 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
+from contextlib import contextmanager  # noqa: F401
 from dataclasses import dataclass
+from pathlib import Path  # noqa: F401
 from typing import Any, Iterator, Mapping
 from urllib.parse import urlparse
 
 from ._compat import import_mlflow
 from ._config import ServerConfig, SessionConfig
+from ._custom import get_provider
 from ._env import EnvSnapshot, apply_env
 from ._facade import ArtifactsFacade, ModelsFacade
+from ._project import (  # noqa: F401
+    ProjectConfig,
+    load_project_config,
+    load_project_config_toml,
+)
 from ._readiness import wait_tracking_ready
 from ._server import SpawnedServer, spawn_server
 from ._utils import mlflow_version
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "MlflowHandle",
+    "session",
+]
 
 
 def _parse_http_uri(uri: str) -> tuple[str, str, int]:
@@ -435,13 +448,18 @@ def session(  # noqa: PLR0912
         if registry_uri is not None and hasattr(mlflow_mod, "set_registry_uri"):
             mlflow_mod.set_registry_uri(registry_uri)
 
-        # Construct client (registry_uri may be ignored if unsupported in older versions).
-        try:
-            client = mlflow_mod.tracking.MlflowClient(
-                tracking_uri=tracking_uri, registry_uri=registry_uri
-            )
-        except TypeError:
-            client = mlflow_mod.tracking.MlflowClient(tracking_uri=tracking_uri)
+        # Construct client
+        provider = get_provider()
+        if provider is not None:
+            client = provider.get_client(tracking_uri, registry_uri)
+        else:
+            # Construct client (registry_uri may be ignored if unsupported in older versions).
+            try:
+                client = mlflow_mod.tracking.MlflowClient(
+                    tracking_uri=tracking_uri, registry_uri=registry_uri
+                )
+            except TypeError:
+                client = mlflow_mod.tracking.MlflowClient(tracking_uri=tracking_uri)
 
         # Set experiment if requested (strict behavior configurable).
         if cfg.experiment_name:
@@ -479,3 +497,52 @@ def session(  # noqa: PLR0912
             except Exception as _exc:  # noqa: BLE001
                 logger.debug("Server terminate raised (non-critical): %r", _exc)
         snapshot.restore()
+
+
+@contextmanager
+def session_from_toml(
+    toml_path: str | Path,
+    *,
+    profile: str = "local",
+) -> Iterator[MlflowHandle]:
+    """
+    Create an MLflow session using a shared project TOML config.
+
+    Notes
+    -----
+    TOML reading is supported via stdlib `tomllib` (Python 3.11+).
+    TOML writing is not supported in stdlib; use YAML if you need read/write.
+    """
+    cfg: ProjectConfig = load_project_config_toml(Path(toml_path), profile=profile)
+    with session(
+        config=cfg.session, server=cfg.server, start_server=cfg.start_server
+    ) as h:
+        yield h
+
+
+@contextmanager
+def session_from_file(
+    config_path: str | Path,
+    *,
+    profile: str = "local",
+) -> Iterator[MlflowHandle]:
+    """
+    Create an MLflow session using a shared project config file (TOML or YAML).
+
+    Parameters
+    ----------
+    config_path : str or pathlib.Path
+        Path to a project config file. Supported extensions: .toml, .yaml, .yml
+    profile : str, default="local"
+        Profile to load.
+
+    Returns
+    -------
+    Iterator[MlflowHandle]
+        Session handle proxying the upstream `mlflow` module.
+    """
+    cfg: ProjectConfig = load_project_config(Path(config_path), profile=profile)
+    with session(
+        config=cfg.session, server=cfg.server, start_server=cfg.start_server
+    ) as h:
+        yield h

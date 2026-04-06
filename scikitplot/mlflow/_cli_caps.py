@@ -18,7 +18,14 @@ from typing import Sequence
 
 from ._errors import MlflowCliIncompatibleError
 
-_DEFAULT_MLFLOW_SERVER_FLAGS: frozenset[str] = frozenset()
+DEFAULT_MLFLOW_SERVER_FLAGS: frozenset[str] = frozenset()
+
+__all__ = [
+    "DEFAULT_MLFLOW_SERVER_FLAGS",
+    "MlflowServerCliCaps",
+    "ensure_flags_supported",
+    "get_mlflow_server_cli_caps",
+]
 
 
 @dataclass(frozen=True)
@@ -32,7 +39,7 @@ class MlflowServerCliCaps:
         Set of supported long flags (e.g., "--host", "--port").
     """
 
-    flags: frozenset[str] = _DEFAULT_MLFLOW_SERVER_FLAGS
+    flags: frozenset[str] = DEFAULT_MLFLOW_SERVER_FLAGS
 
 
 def _run_mlflow_server_help() -> str:

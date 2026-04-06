@@ -12,7 +12,13 @@ from __future__ import annotations
 import importlib
 from typing import Any, Callable
 
+from ._custom import get_provider
 from ._errors import MlflowNotInstalledError
+
+__all__ = [
+    "import_mlflow",
+    "resolve_download_artifacts",
+]
 
 
 def import_mlflow() -> Any:
@@ -29,6 +35,10 @@ def import_mlflow() -> Any:
     MlflowNotInstalledError
         If MLflow is not installed.
     """
+    provider = get_provider()
+    if provider is not None:
+        return provider.module
+
     spec = importlib.util.find_spec("mlflow")
     if spec is None:
         raise MlflowNotInstalledError(
