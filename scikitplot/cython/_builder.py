@@ -888,65 +888,118 @@ def _import_setuptools() -> tuple[Any, Any]:
     Raises
     ------
     ImportError
-        If setuptools is not installed, or if the build environment has a
-        broken ``_distutils_hack`` that cannot be neutralized.
+        If ``setuptools`` is not installed.
+    ImportError
+        If ``setuptools`` cannot be imported even after environment
+        normalisation (e.g. broken CI toolchain).
 
     Notes
     -----
-    **Developer note:**
-    Calls :mod:`setuptools` before importing to prevent the
-    ``AssertionError`` that ``_distutils_hack.ensure_local_distutils`` raises
-    on GitHub Actions Python 3.11 hostedtoolcache builds.  See that function's
-    docstring for a full explanation.
+    **User note:**
+    Compiling Cython extensions requires ``setuptools``.  Install it with
+    ``pip install setuptools``.
+
+    **Developer note — distutils backend selection:**
+
+    ``setuptools`` ships its own copy of ``distutils`` (vendored under
+    ``setuptools/_distutils/``) and uses ``_distutils_hack`` to redirect
+    all ``import distutils`` statements to that copy.  The redirect is
+    activated only when ``SETUPTOOLS_USE_DISTUTILS`` equals ``"local"``.
+
+    On Python < 3.12 the stdlib still contains a real ``distutils``.
+    Certain CI environments (e.g. GitHub Actions ``hostedtoolcache``
+    Python 3.11) pre-import stdlib ``distutils`` early in the process
+    lifetime, so when ``_distutils_hack.ensure_local_distutils`` later
+    asserts ``'_distutils' in distutils.core.__file__`` it finds the
+    stdlib path and raises ``AssertionError``, crashing ``setuptools``
+    import.
+
+    Setting ``SETUPTOOLS_USE_DISTUTILS=stdlib`` on Python < 3.12 tells
+    ``setuptools`` to leave ``distutils`` alone and use the stdlib copy
+    directly.  The ``_distutils_hack`` assertion path is never entered,
+    so no ``AssertionError`` can occur.
+
+    On Python >= 3.12 stdlib ``distutils`` was removed (PEP 632), so
+    ``"local"`` is mandatory: setuptools must supply its own copy.
+
+    In both cases we purge all previously cached ``distutils``,
+    ``_distutils_hack``, ``setuptools``, and ``pkg_resources`` modules
+    from ``sys.modules`` *after* writing the env-var, so the fresh import
+    tree respects the setting unconditionally, regardless of what was
+    imported earlier in the process.
+
+    References
+    ----------
+    .. [1] PEP 632 — Deprecate distutils module:
+       https://peps.python.org/pep-0632/
+    .. [2] setuptools distutils-precedence:
+       https://github.com/pypa/setuptools/blob/main/setuptools/_distutils_hack/__init__.py
+
+    Examples
+    --------
+    >>> Extension, Distribution = _import_setuptools()
+    >>> issubclass(Extension, object)
+    True
+    >>> issubclass(Distribution, object)
+    True
     """
+    # ------------------------------------------------------------------
+    # Step 1 — Choose the correct distutils backend.
+    #
+    # "stdlib"  → setuptools skips _distutils_hack entirely; safe on
+    #             Python 3.8-3.11 where stdlib distutils still exists.
+    # "local"   → setuptools vendors its own distutils; required on
+    #             Python 3.12+ where stdlib distutils was removed.
+    #
+    # We only write the env-var when the caller has not already set one,
+    # so an explicit SETUPTOOLS_USE_DISTUTILS in the environment is
+    # always honoured.
+    # ------------------------------------------------------------------
+    _backend = "stdlib" if sys.version_info < (3, 12) else "local"
+    os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", _backend)
+
+    # ------------------------------------------------------------------
+    # Step 2 — Purge stale module cache entries.
+    #
+    # Modules imported *before* the env-var was set may have cached the
+    # wrong distutils implementation.  We evict all of them so the
+    # subsequent import starts from a clean state.
+    #
+    # Prefixes are ordered from most-specific to least-specific to avoid
+    # partial-name false matches (e.g. "distutils" must not evict a
+    # hypothetical "distutils_extra" that the caller owns).
+    # ------------------------------------------------------------------
+    _evict_prefixes: tuple[str, ...] = (
+        "_distutils_hack",
+        "distutils",
+        "pkg_resources",
+        "setuptools",
+    )
+    for _mod_name in list(sys.modules):
+        if any(
+            _mod_name == _pfx or _mod_name.startswith(_pfx + ".")
+            for _pfx in _evict_prefixes
+        ):
+            sys.modules.pop(_mod_name, None)
+
+    # ------------------------------------------------------------------
+    # Step 3 — Import setuptools from a clean slate.
+    #
+    # We import from the submodule paths (not the top-level package
+    # re-exports) because those paths are stable across setuptools
+    # major versions and avoid triggering unnecessary side-effects inside
+    # setuptools.__init__.
+    # ------------------------------------------------------------------
     try:
-        # 1. Force setuptools to use its own vendored-bundled distutils.
-        # This must happen before 'setuptools' or 'distutils' is imported.
-        os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "local")
-
-        # 2. Remove only *stdlib* distutils modules
-        for name, module in list(sys.modules.items()):
-            if not name.startswith("distutils"):
-                continue
-            path = getattr(module, "__file__", None)
-            if isinstance(path, str):
-                norm = path.replace("\\", "/")
-                if "setuptools/_distutils" in norm:
-                    continue  # keep correct one
-            sys.modules.pop(name, None)
-
-        # 🔥 3. CRITICAL: force override BEFORE setuptools import
-        try:
-            import _distutils_hack  # noqa: PLC0415
-
-            _distutils_hack.do_override()
-        except Exception:  # noqa: BLE001
-            pass  # best effort, safe fallback
-
-        # 4. Now import setuptools safely
-        # Direct imports from submodules are most stable across versions
-        import setuptools  # noqa: F401, PLC0415
         from setuptools.dist import Distribution  # noqa: PLC0415
         from setuptools.extension import Extension  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError(
+            "setuptools is required to compile Cython extensions but could "
+            "not be imported.  Install it with: pip install setuptools\n"
+            f"Original error: {exc}"
+        ) from exc
 
-        # 5. Sanity check Critical validation (this is the missing piece)
-        dist = Distribution()
-        mod = dist.__class__.__module__
-        if not mod.startswith("setuptools"):
-            raise AssertionError(
-                f"Inconsistent Distribution from '{mod}', expected setuptools"
-            )
-    except AssertionError as e:
-        raise ImportError(
-            "setuptools/distutils environment is inconsistent. "
-            "This usually means stdlib distutils was imported before setuptools. "
-            f"Original error: {e}"
-        ) from e
-    except ImportError as e:
-        raise ImportError(
-            "setuptools is required to compile Cython extensions. "
-            "Install it with: pip install setuptools"
-        ) from e
     return Extension, Distribution
 
 
