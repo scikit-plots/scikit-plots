@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING, Any, Sequence
 if TYPE_CHECKING:  # pragma: no cover
     from mlflow.tracking import MlflowClient  # noqa: F401
 
+from ._custom import get_provider
+
 _DEFAULT_MLFLOW_MODULE: Any = None
 _DEFAULT_MLFLOW_CLIENT: Any = None
 
@@ -102,9 +104,14 @@ class ArtifactsFacade:
         which applies the same preference order: modern public API first, then
         session-bound client fallback.
         """
-        from ._compat import resolve_download_artifacts  # noqa: PLC0415
+        provider = get_provider()
+        if provider is not None:
+            dl = provider.get_artifact_downloader(self.client)
+        else:
+            from ._compat import resolve_download_artifacts  # noqa: PLC0415
 
-        dl = resolve_download_artifacts(self.mlflow_module, client=self.client)
+            dl = resolve_download_artifacts(self.mlflow_module, client=self.client)
+
         return Path(dl(run_id=run_id, artifact_path=artifact_path, dst_path=dst_path))
 
     def log_file(

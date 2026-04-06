@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ._project import dump_project_config_yaml, find_project_root, load_project_config
-from ._project_session import session_from_file
+from ._session import session_from_file
 
 logger = logging.getLogger(__name__)
 

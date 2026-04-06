@@ -1253,36 +1253,29 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("mlflow-index"),
         "sections": [
             {
-                "title": "Mlflow Session Helper",
-                "description": (
-                    _get_submodule("scikitplot.mlflow", "_session")
-                    + "\n\n" +
-                    _get_guide("mlflow-index")
-                ),
+                "title": "Cli Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
                 "autosummary": [
-                    "MlflowHandle",
-                    "session",
-                    "session_from_file",
-                    "session_from_toml",
+                    "DEFAULT_MLFLOW_SERVER_FLAGS",
+                    "MlflowServerCliCaps",
+                    "ensure_flags_supported",
+                    "get_mlflow_server_cli_caps",
                 ],
             },
             {
-                "title": "project config helpers",
-                "description": (
-                    _get_submodule("scikitplot.mlflow", "_project")
-                    + "\n\n" +
-                    _get_guide("mlflow-index")
-                ),
+                "title": "Compat Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
                 "autosummary": [
-                    "DEFAULT_PROJECT_MARKERS",
-                    "find_project_root",
-                    "load_project_config",
-                    "load_project_config_toml",
-                    "dump_project_config_yaml",
+                    "import_mlflow",
+                    "resolve_download_artifacts",
                 ],
             },
             {
-                "title": "config",
+                "title": "Config Helper",
                 "description": (
                     _get_submodule("scikitplot.mlflow", "_config")
                     + "\n\n" +
@@ -1291,31 +1284,166 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "ServerConfig",
                     "SessionConfig",
-                    "ProjectConfig",
                 ],
             },
             {
-                "title": "errors",
-                "description": None,
+                "title": "Container Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
                 "autosummary": [
+                    "running_in_docker",
+                ],
+            },
+            {
+                "title": "Customization Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "MlflowProvider",
+                    "get_provider",
+                    "set_provider",
+                    "use_provider",
+                ],
+            },
+            {
+                "title": "Env Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "EnvSnapshot",
+                    "apply_env",
+                    "parse_dotenv",
+                ],
+            },
+            {
+                "title": "Error Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "MlflowCliIncompatibleError",
                     "MlflowIntegrationError",
                     "MlflowNotInstalledError",
-                    "MlflowCliIncompatibleError",
                     "MlflowServerStartError",
+                    "SecurityPolicyViolationError",
                 ],
             },
             {
-                "title": "workflow helpers",
+                "title": "Facade Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "ArtifactsFacade",
+                    "ModelsFacade",
+                ],
+            },
+            {
+                "title": "Project Session Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "session_from_file",
+                    "session_from_toml",
+                ],
+            },
+            {
+                "title": "Project Helper",
                 "description": (
-                    _get_submodule("scikitplot.mlflow", "_workflow")
+                    _get_submodule("scikitplot.mlflow", "_project")
                     + "\n\n" +
                     _get_guide("mlflow-index")
                 ),
                 "autosummary": [
-                    "workflow",
+                    "DEFAULT_PROJECT_MARKERS",
+                    "ProjectConfig",
+                    "dump_project_config_yaml",
+                    "ensure_local_store_layout",
+                    "find_project_root",
+                    "get_project_markers",
+                    "load_project_config",
+                    "load_project_config_toml",
+                    "load_project_config_yaml",
+                    "normalize_mlflow_store_values",
+                    "project_markers",
+                    "set_project_markers",
+                ],
+            },
+            {
+                "title": "Readiness Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "wait_tracking_ready",
+                ],
+            },
+            {
+                "title": "Security Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "DEFAULT_SECURITY_POLICY",
+                    "RELAXED_SECURITY_POLICY",
+                    "SecurityPolicy",
+                    "get_security_policy",
+                    "security_policy",
+                    "set_security_policy",
+                ],
+            },
+            {
+                "title": "Server Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "SpawnedServer",
+                    "build_server_args",
+                    "build_server_command",
+                    "spawn_server",
+                ],
+            },
+            {
+                "title": "Session Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "MlflowHandle",
+                    "session",
+                    "session_from_file",
+                    "session_from_toml",
+                ],
+            },
+            {
+                "title": "Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "MlflowVersion",
+                    "is_mlflow_installed",
+                    "mlflow_version",
+                ],
+            },
+            {
+                "title": "Workflow Helper",
+                # "description": (
+                #     _get_submodule("scikitplot.mlflow", "__init__")
+                # ),
+                "autosummary": [
+                    "WorkflowPaths",
                     "builtin_config_path",
-                    "export_builtin_config",
                     "default_project_paths",
+                    "export_builtin_config",
+                    "patch_experiment_name_in_toml",
+                    "run_demo",
+                    "workflow",  # alias for run_demo
                 ],
             },
         ],

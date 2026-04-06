@@ -49,11 +49,11 @@ from . import (
     _compat,
     _config,
     _container,
+    _custom,
     _env,
     _errors,
     _facade,
     _project,
-    _project_session,
     _readiness,
     _security,
     _server,
@@ -65,11 +65,11 @@ from ._cli_caps import *  # noqa: F403
 from ._compat import *  # noqa: F403
 from ._config import *  # noqa: F403
 from ._container import *  # noqa: F403
+from ._custom import *  # noqa: F403
 from ._env import *  # noqa: F403
 from ._errors import *  # noqa: F403
 from ._facade import *  # noqa: F403
 from ._project import *  # noqa: F403
-from ._project_session import *  # noqa: F403
 from ._readiness import *  # noqa: F403
 from ._security import *  # noqa: F403
 from ._server import *  # noqa: F403
@@ -82,10 +82,10 @@ __all__ += _cli_caps.__all__
 __all__ += _compat.__all__
 __all__ += _config.__all__
 __all__ += _container.__all__
+__all__ += _custom.__all__
 __all__ += _env.__all__
 __all__ += _errors.__all__
 __all__ += _facade.__all__
-__all__ += _project_session.__all__
 __all__ += _project.__all__
 __all__ += _readiness.__all__
 __all__ += _security.__all__

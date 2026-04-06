@@ -16,6 +16,8 @@ import re
 import sys
 from dataclasses import dataclass
 
+from ._custom import get_provider
+
 __all__ = [
     "MlflowVersion",
     "is_mlflow_installed",
@@ -107,6 +109,10 @@ def mlflow_version() -> MlflowVersion | None:
     Prefers module attribute `__version__` to support mocked or vendored MLflow.
     Falls back to package metadata when available.
     """
+    provider = get_provider()
+    if provider is not None and provider.version is not None:
+        return _parse_version(provider.version)
+
     if not is_mlflow_installed():
         return None
 
