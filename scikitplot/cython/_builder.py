@@ -1003,7 +1003,7 @@ def _import_setuptools() -> tuple[Any, Any]:
     return Extension, Distribution
 
 
-def _compile(
+def _compile(  # noqa: PLR0912
     *,
     name: str,
     pyx_path: Path,
@@ -1149,6 +1149,41 @@ def _compile(
     cmd.build_temp = str(build_dir / "build")
     cmd.inplace = False
     cmd.force = True
+
+    # ------------------------------------------------------------------
+    # Normalize swig_opts before finalize_options runs.
+    #
+    # setuptools._distutils.command.build_ext.finalize_options does:
+    #
+    #     self.swig_opts = self.swig_opts.split(' ')
+    #
+    # expecting swig_opts to be a str.  However, some setuptools versions
+    # and Cython's build_ext subclass initialise swig_opts as an empty list
+    # at the class level.  When the command object is created from a
+    # Distribution that already has ext_modules set, the list survives into
+    # finalize_options and causes:
+    #
+    #     AttributeError: 'list' object has no attribute 'split'
+    #
+    # Fix: coerce swig_opts to str before finalize_options executes.
+    # get_command_obj returns the same instance that run_command will finalize,
+    # so the mutation is guaranteed to be visible when finalize_options runs.
+    #
+    # References
+    # ----------
+    # https://github.com/pypa/setuptools/issues/2353
+    # https://github.com/cython/cython/issues/4800
+    # ------------------------------------------------------------------
+    _raw_swig = getattr(cmd, "swig_opts", None)
+    if isinstance(_raw_swig, list):
+        # Re-join to a str so finalize_options can safely split it.
+        # An empty list becomes "" which finalize_options converts back to [""]
+        # and then normalises to [] via its own filtering.
+        cmd.swig_opts = " ".join(_raw_swig)
+    elif _raw_swig is None:
+        # None is also not splittable; distutils expects an empty string.
+        cmd.swig_opts = ""
+    # If swig_opts is already a str (the normal case), leave it untouched.
 
     try:
         # Ensure options are finalized before invoking the build.
