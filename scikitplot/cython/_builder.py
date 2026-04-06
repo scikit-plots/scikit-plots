@@ -915,12 +915,21 @@ def _import_setuptools() -> tuple[Any, Any]:
                     continue  # keep correct one
             sys.modules.pop(name, None)
 
+        # 🔥 3. CRITICAL: force override BEFORE setuptools import
+        try:
+            import _distutils_hack  # noqa: PLC0415
+
+            _distutils_hack.do_override()
+        except Exception:  # noqa: BLE001
+            pass  # best effort, safe fallback
+
+        # 4. Now import setuptools safely
         # Direct imports from submodules are most stable across versions
         import setuptools  # noqa: F401, PLC0415
         from setuptools.dist import Distribution  # noqa: PLC0415
         from setuptools.extension import Extension  # noqa: PLC0415
 
-        # 3. Critical validation (this is the missing piece)
+        # 5. Sanity check Critical validation (this is the missing piece)
         dist = Distribution()
         mod = dist.__class__.__module__
         if not mod.startswith("setuptools"):
