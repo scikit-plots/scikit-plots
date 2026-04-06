@@ -18,6 +18,10 @@ from urllib.parse import urlparse
 
 from ._server import SpawnedServer
 
+__all__ = [
+    "wait_tracking_ready",
+]
+
 logger = logging.getLogger(__name__)
 
 #: Default poll interval (seconds) between readiness checks.

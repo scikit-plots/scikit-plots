@@ -21,6 +21,16 @@ from ._project_session import session_from_file
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "WorkflowPaths",
+    "builtin_config_path",
+    "default_project_paths",
+    "export_builtin_config",
+    "patch_experiment_name_in_toml",
+    "run_demo",
+    "workflow",  # alias for run_demo
+]
+
 
 @dataclass(frozen=True)
 class WorkflowPaths:

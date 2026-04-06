@@ -11,6 +11,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+__all__ = [
+    "running_in_docker",
+]
+
 
 def running_in_docker() -> bool:
     """

@@ -13,6 +13,12 @@ import os
 from dataclasses import dataclass
 from typing import Mapping, Self
 
+__all__ = [
+    "EnvSnapshot",
+    "apply_env",
+    "parse_dotenv",
+]
+
 
 @dataclass(frozen=True)
 class EnvSnapshot:

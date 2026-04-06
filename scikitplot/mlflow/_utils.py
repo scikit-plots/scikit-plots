@@ -11,8 +11,16 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import importlib.util
 import re
+import sys
 from dataclasses import dataclass
+
+__all__ = [
+    "MlflowVersion",
+    "is_mlflow_installed",
+    "mlflow_version",
+]
 
 
 @dataclass(frozen=True)
@@ -62,7 +70,13 @@ def is_mlflow_installed() -> bool:
     -----
     This does not import MLflow; it checks import metadata only.
     """
-    return importlib.util.find_spec("mlflow") is not None
+    try:
+        return importlib.util.find_spec("mlflow") is not None
+    except ValueError:
+        # importlib.util.find_spec raises ValueError when the module is already in
+        # sys.modules but has __spec__ = None (e.g., types.ModuleType stubs or
+        # partially-initialised modules).  In this case the module *is* present.
+        return "mlflow" in sys.modules and sys.modules["mlflow"] is not None
 
 
 def _parse_version(raw: str) -> MlflowVersion:
@@ -102,7 +116,7 @@ def mlflow_version() -> MlflowVersion | None:
         raw = getattr(mlflow, "__version__", None)
         if raw:
             return _parse_version(raw)
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Fail closed, continue to metadata fallback
         pass
 

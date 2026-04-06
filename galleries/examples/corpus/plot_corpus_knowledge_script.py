@@ -57,6 +57,7 @@ pprint(pd.read_csv(result_zip.output_path).head().to_dict())
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+plt.figure(dpi=300)  # Set DPI to 150
 img = mpimg.imread(result_zip.source)
 plt.imshow(img)
 plt.axis('off')  # hides axes

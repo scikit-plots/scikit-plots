@@ -14,6 +14,11 @@ from typing import Any, Callable
 
 from ._errors import MlflowNotInstalledError
 
+__all__ = [
+    "import_mlflow",
+    "resolve_download_artifacts",
+]
+
 
 def import_mlflow() -> Any:
     """

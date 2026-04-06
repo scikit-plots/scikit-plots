@@ -16,6 +16,11 @@ from typing import Iterator
 from ._project import ProjectConfig, load_project_config, load_project_config_toml
 from ._session import MlflowHandle, session
 
+__all__ = [
+    "session_from_file",
+    "session_from_toml",
+]
+
 
 @contextmanager
 def session_from_toml(

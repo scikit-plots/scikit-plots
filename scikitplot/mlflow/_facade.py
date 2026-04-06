@@ -19,6 +19,11 @@ if TYPE_CHECKING:  # pragma: no cover
 _DEFAULT_MLFLOW_MODULE: Any = None
 _DEFAULT_MLFLOW_CLIENT: Any = None
 
+__all__ = [
+    "ArtifactsFacade",
+    "ModelsFacade",
+]
+
 
 @dataclass(frozen=True)
 class ArtifactsFacade:

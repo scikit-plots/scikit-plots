@@ -13,6 +13,11 @@ from collections.abc import Mapping as _AbcMapping
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+__all__ = [
+    "ServerConfig",
+    "SessionConfig",
+]
+
 
 @dataclass(frozen=True)
 class SessionConfig:
@@ -98,7 +103,7 @@ class SessionConfig:
                         f"extra_env keys must be non-empty str, got {k!r}."
                     )
                 if not isinstance(v, str):
-                    raise ValueError(
+                    raise ValueError(  # noqa: TRY004
                         f"extra_env[{k!r}] must be str, got {type(v).__name__}."
                     )
         if self.default_run_tags is not None:
@@ -112,7 +117,7 @@ class SessionConfig:
                         f"default_run_tags keys must be non-empty str, got {k!r}."
                     )
                 if not isinstance(v, str):
-                    raise ValueError(
+                    raise ValueError(  # noqa: TRY004
                         f"default_run_tags[{k!r}] must be str, got {type(v).__name__}."
                     )
 

@@ -26,6 +26,11 @@ from ._utils import mlflow_version
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "MlflowHandle",
+    "session",
+]
+
 
 def _parse_http_uri(uri: str) -> tuple[str, str, int]:
     """
