@@ -874,107 +874,6 @@ def _copy_extra_sources(
     return out
 
 
-def _neutralize_distutils_hack() -> None:
-    """
-    Neutralize ``_distutils_hack.ensure_local_distutils`` if necessary.
-
-    Notes
-    -----
-    **Developer note — why this exists:**
-
-    On certain Python 3.11 builds (notably the GitHub Actions
-    ``hostedtoolcache`` Python), the stdlib ``distutils`` is pre-loaded into
-    ``sys.modules`` by the test runner *before* setuptools gets a chance to
-    install its ``_distutils`` shim via ``sitecustomize.py``.
-
-    When ``setuptools`` is later imported for the first time, its
-    ``__init__.py`` executes ``import _distutils_hack.override``, which calls
-    ``_distutils_hack.do_override()`` → ``ensure_local_distutils()``.  That
-    function asserts:
-
-    .. code-block:: python
-
-        assert "_distutils" in distutils.core.__file__
-
-    Because ``distutils.core.__file__`` points to the stdlib path (not the
-    shim path), the assertion fires as an ``AssertionError`` — not an
-    ``ImportError`` — crashing the import.
-
-    **Why the ``SETUPTOOLS_USE_DISTUTILS`` env-var does not help here:**
-    that variable is only consumed by ``_distutils_hack`` during
-    ``sitecustomize.py`` at interpreter startup. By the time any runtime code
-    runs, ``_distutils_hack`` is already loaded and its startup processing is
-    complete; setting the env-var afterwards has no effect whatsoever.
-
-    **The correct fix:** patch ``_distutils_hack.ensure_local_distutils``
-    directly to a no-op *before* setuptools is imported.  The patch is:
-
-    * applied only when ``setuptools`` is not yet in ``sys.modules``, so it
-      is completely inert in every healthy environment where setuptools was
-      already loaded at process start (local dev, Docker, most CI);
-    * applied only when stdlib ``distutils.core`` is already in
-      ``sys.modules`` at the wrong path — the true trigger condition.
-      Previously the check tested whether ``_distutils_hack`` was in
-      ``sys.modules`` first and returned early if not, which missed the
-      critical sub-case where pythran (or another build helper) pre-loads
-      stdlib ``distutils`` *before* ``_distutils_hack`` has ever been
-      imported.  In that sub-case, when ``from setuptools import Extension``
-      later runs, setuptools imports ``_distutils_hack`` for the first time
-      and immediately invokes ``ensure_local_distutils()`` — with no patch
-      in place — causing the assertion to fire.  The fix pre-imports
-      ``_distutils_hack`` ourselves so the patch is applied before setuptools
-      triggers the call;
-    * a strict no-op on Python ≥ 3.12 where ``distutils`` was removed from
-      the stdlib and ``_distutils_hack`` either does not exist or behaves
-      differently.
-
-    References
-    ----------
-    https://github.com/pypa/setuptools/issues/3544
-    """
-    if "setuptools" in sys.modules:
-        # Already imported successfully — nothing to do.
-        return
-
-    # First: determine whether stdlib distutils is pre-loaded at the wrong
-    # path.  This is the actual trigger for the AssertionError; checking it
-    # before looking for _distutils_hack handles the case where pythran (or
-    # any other build helper) imports distutils before _distutils_hack has
-    # ever been imported into this process.
-    distutils_core = sys.modules.get("distutils.core")
-    if distutils_core is None:
-        # distutils.core not yet loaded → the assertion cannot fire.
-        return
-
-    core_file = getattr(distutils_core, "__file__", "") or ""
-    if "_distutils" in core_file:
-        # setuptools' own shim is already active → the assertion will pass.
-        return
-
-    # stdlib distutils is pre-loaded at the wrong path.  We must neutralise
-    # ensure_local_distutils *before* setuptools/__init__.py imports
-    # _distutils_hack.override and calls do_override().
-    #
-    # Two sub-cases:
-    #   (a) _distutils_hack already in sys.modules  → patch it directly.
-    #   (b) _distutils_hack NOT yet in sys.modules  → import it ourselves
-    #       first so the patch is in place before setuptools does the same
-    #       import and immediately invokes the assertion.
-    dh = sys.modules.get("_distutils_hack")
-    if dh is None:
-        try:
-            import _distutils_hack as dh  # noqa: PLC0415
-        except ImportError:
-            # No _distutils_hack on this interpreter (Python ≥ 3.12 or a
-            # non-standard env without setuptools' shim package).  setuptools
-            # will import without triggering the distutils assertion.
-            return
-
-    ensure_fn = getattr(dh, "ensure_local_distutils", None)
-    if callable(ensure_fn):
-        dh.ensure_local_distutils = lambda: None  # type: ignore[attr-defined]
-
-
 def _import_setuptools() -> tuple[Any, Any]:
     """
     Import ``setuptools.Extension`` and ``setuptools.dist.Distribution``.
@@ -995,27 +894,48 @@ def _import_setuptools() -> tuple[Any, Any]:
     Notes
     -----
     **Developer note:**
-    Calls :func:`_neutralize_distutils_hack` before importing to prevent the
+    Calls :mod:`setuptools` before importing to prevent the
     ``AssertionError`` that ``_distutils_hack.ensure_local_distutils`` raises
     on GitHub Actions Python 3.11 hostedtoolcache builds.  See that function's
     docstring for a full explanation.
     """
-    _neutralize_distutils_hack()
     try:
-        from setuptools import Extension  # noqa: PLC0415
+        # 1. Force setuptools to use its own vendored-bundled distutils.
+        # This must happen before 'setuptools' or 'distutils' is imported.
+        os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "local")
+
+        # 2. Remove only *stdlib* distutils modules
+        for name, module in list(sys.modules.items()):
+            if not name.startswith("distutils"):
+                continue
+            path = getattr(module, "__file__", None)
+            if isinstance(path, str):
+                norm = path.replace("\\", "/")
+                if "setuptools/_distutils" in norm:
+                    continue  # keep correct one
+            sys.modules.pop(name, None)
+
+        # Direct imports from submodules are most stable across versions
+        import setuptools  # noqa: F401, PLC0415
         from setuptools.dist import Distribution  # noqa: PLC0415
+        from setuptools.extension import Extension  # noqa: PLC0415
+
+        # 3. Critical validation (this is the missing piece)
+        dist = Distribution()
+        mod = dist.__class__.__module__
+        if not mod.startswith("setuptools"):
+            raise AssertionError(
+                f"Inconsistent Distribution from '{mod}', expected setuptools"
+            )
     except AssertionError as e:
-        # Should not normally reach here after _neutralize_distutils_hack, but
-        # guard defensively in case the patch could not be applied.
         raise ImportError(
-            "setuptools import failed because '_distutils_hack' asserted that "
-            "the already-loaded 'distutils.core' does not come from setuptools' "
-            "own shim.  This is a build-environment misconfiguration.  "
+            "setuptools/distutils environment is inconsistent. "
+            "This usually means stdlib distutils was imported before setuptools. "
             f"Original error: {e}"
         ) from e
     except ImportError as e:
         raise ImportError(
-            "setuptools is required to compile Cython extensions.  "
+            "setuptools is required to compile Cython extensions. "
             "Install it with: pip install setuptools"
         ) from e
     return Extension, Distribution
