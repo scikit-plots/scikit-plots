@@ -61,6 +61,23 @@ _ALLOWED_EXTRA_SOURCE_SUFFIXES = {
     ".cxx",
 }
 
+# Module-level singleton populated on the *first* successful call to
+# ``_import_setuptools()``.  Subsequent calls return the cached pair,
+# guaranteeing that ``Extension`` and ``Distribution`` are the same Python
+# class objects for the entire process lifetime.
+#
+# Why this matters: ``cythonize()`` (from Cython) is imported once and holds
+# an internal reference to the ``Extension`` class it received.  If
+# ``_import_setuptools()`` were to evict setuptools from ``sys.modules`` and
+# re-import on every call, new class objects would be created.  Cython's
+# already-imported copy would still reference the old class, so extensions
+# built by ``cythonize()`` would fail the ``isinstance(ext, Extension)`` check
+# inside ``setuptools._distutils.command.build_ext.check_extensions_list``,
+# raising ``DistutilsSetupError: each element of 'ext_modules' option must be
+# an Extension instance or 2-tuple`` on the *second* (and every subsequent)
+# compilation call.
+_SETUPTOOLS_CACHE: tuple[Any, Any] | None = None
+
 __all__ = [
     "DEFAULT_COMPILER_DIRECTIVES",
     "build_extension_module",
@@ -878,69 +895,187 @@ def _import_setuptools() -> tuple[Any, Any]:
     """
     Import ``setuptools.Extension`` and ``setuptools.dist.Distribution``.
 
+    Returns the same class objects on every call — guaranteed by a
+    module-level singleton cache populated on the first successful import.
+
     Returns
     -------
     Extension : type
-        ``setuptools.Extension`` class.
+        ``setuptools.extension.Extension`` class.
     Distribution : type
         ``setuptools.dist.Distribution`` class.
 
     Raises
     ------
     ImportError
-        If setuptools is not installed, or if the build environment has a
-        broken ``_distutils_hack`` override that prevents setuptools from
-        loading (observed on GitHub Actions Python 3.11 hostedtoolcache builds).
+        If ``setuptools`` is not installed.
+    ImportError
+        If ``setuptools`` cannot be imported because ``_distutils_hack``
+        failed its distutils-override assertion (broken CI toolchain).
+        Work-around: set ``SETUPTOOLS_USE_DISTUTILS=stdlib`` before
+        running Python.
 
     Notes
     -----
-    **Developer note — why this helper exists:**
+    **User note:**
+    Compiling Cython extensions requires ``setuptools``.  Install it with
+    ``pip install setuptools``.
 
-    When ``setuptools`` is imported for the *first* time inside a long-lived
-    process (e.g. a pytest worker), its ``__init__`` executes
-    ``import _distutils_hack.override``, which calls
-    ``_distutils_hack.ensure_local_distutils()``.  That function asserts that
-    the already-loaded ``distutils.core`` module comes from setuptools' own
-    bundled ``_distutils`` shim.  On certain Python 3.11 builds (notably the
-    GitHub Actions ``hostedtoolcache`` Python), the stdlib ``distutils`` is
-    pre-loaded before setuptools gets a chance to install its shim, causing
-    the assertion to fail with ``AssertionError`` — not ``ImportError``.
+    **Developer note — singleton cache and class identity:**
 
-    Setting ``SETUPTOOLS_USE_DISTUTILS=stdlib`` *before* the first import of
-    ``setuptools`` tells ``_distutils_hack`` not to attempt the override at
-    all, bypassing the assertion entirely.  The ``os.environ.setdefault`` call
-    is a strict no-op when setuptools is already cached in ``sys.modules``
-    (i.e. in a healthy local environment), so this guard is safe everywhere.
+    The function caches ``(Extension, Distribution)`` in the module-level
+    ``_SETUPTOOLS_CACHE`` variable and returns the same pair on every
+    subsequent call.  This is critical for correctness:
+
+    ``cythonize()`` (from ``Cython.Build``) is imported once in
+    ``build_extension_module_result()`` and holds an internal reference to
+    the ``Extension`` class it received at that point.  If this function
+    were to evict setuptools from ``sys.modules`` and re-import on every
+    call, new class objects would be created on each call.  Cython's
+    already-imported copy would still reference the old class, so extensions
+    built by ``cythonize()`` would fail the ``isinstance(ext, Extension)``
+    check inside
+    ``setuptools._distutils.command.build_ext.check_extensions_list``,
+    raising ``DistutilsSetupError: each element of 'ext_modules' option must
+    be an Extension instance or 2-tuple`` on the second (and every
+    subsequent) compilation call.
+
+    **Developer note — distutils backend selection (first call only):**
+
+    ``setuptools`` ships its own copy of ``distutils`` (vendored under
+    ``setuptools/_distutils/``) and uses ``_distutils_hack`` to redirect
+    all ``import distutils`` statements to that copy.  The redirect is
+    activated only when ``SETUPTOOLS_USE_DISTUTILS`` equals ``"local"``.
+
+    On Python < 3.12 the stdlib still contains a real ``distutils``.
+    Certain CI environments (e.g. GitHub Actions ``hostedtoolcache``
+    Python 3.11) pre-import stdlib ``distutils`` early in the process
+    lifetime, so when ``_distutils_hack.ensure_local_distutils`` later
+    asserts ``'_distutils' in distutils.core.__file__`` it finds the
+    stdlib path and raises ``AssertionError``, crashing ``setuptools``
+    import.
+
+    Setting ``SETUPTOOLS_USE_DISTUTILS=stdlib`` on Python < 3.12 tells
+    ``setuptools`` to leave ``distutils`` alone and use the stdlib copy
+    directly.  The ``_distutils_hack`` assertion path is never entered,
+    so no ``AssertionError`` can occur.
+
+    On Python >= 3.12 stdlib ``distutils`` was removed (PEP 632), so
+    ``"local"`` is mandatory: setuptools must supply its own copy.
+
+    The module cache eviction and env-var setup happen **only on the first
+    call**.  Subsequent calls return the cached pair directly, keeping class
+    identity stable for the process lifetime.
 
     References
     ----------
-    https://github.com/pypa/setuptools/issues/3544
+    .. [1] PEP 632 — Deprecate distutils module:
+       https://peps.python.org/pep-0632/
+    .. [2] setuptools distutils-precedence:
+       https://github.com/pypa/setuptools/blob/main/setuptools/_distutils_hack/__init__.py
+
+    Examples
+    --------
+    >>> Extension, Distribution = _import_setuptools()
+    >>> issubclass(Extension, object)
+    True
+    >>> issubclass(Distribution, object)
+    True
+    >>> # Repeated calls return the *same* class objects (identity, not equality).
+    >>> Extension2, _ = _import_setuptools()
+    >>> Extension2 is Extension
+    True
     """
-    # Guard: set the env-var only when setuptools has not yet been imported.
-    # Once it is in sys.modules the env-var has no effect, so this is a no-op
-    # in any environment where setuptools was already loaded at process start.
-    if "setuptools" not in sys.modules:
-        os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", "stdlib")
+    global _SETUPTOOLS_CACHE  # noqa: PLW0603
+
+    # ------------------------------------------------------------------
+    # Fast path: return the cached (Extension, Distribution) pair.
+    #
+    # Returning the same class objects on every call is essential for
+    # isinstance() correctness in build_ext.check_extensions_list.
+    # See the developer note in the docstring above for the full
+    # explanation of the DistutilsSetupError failure mode this prevents.
+    # ------------------------------------------------------------------
+    if _SETUPTOOLS_CACHE is not None:
+        return _SETUPTOOLS_CACHE
+
+    # ------------------------------------------------------------------
+    # Step 1 — Choose the correct distutils backend (first call only).
+    #
+    # "stdlib"  → setuptools skips _distutils_hack entirely; safe on
+    #             Python 3.8-3.11 where stdlib distutils still exists.
+    # "local"   → setuptools vendors its own distutils; required on
+    #             Python 3.12+ where stdlib distutils was removed.
+    #
+    # We only write the env-var when the caller has not already set one,
+    # so an explicit SETUPTOOLS_USE_DISTUTILS in the environment is
+    # always honoured.
+    # ------------------------------------------------------------------
+    _backend = "stdlib" if sys.version_info < (3, 12) else "local"
+    os.environ.setdefault("SETUPTOOLS_USE_DISTUTILS", _backend)
+
+    # ------------------------------------------------------------------
+    # Step 2 — Purge stale module cache entries (first call only).
+    #
+    # Modules imported *before* the env-var was set may have cached the
+    # wrong distutils implementation.  We evict all of them so the
+    # subsequent import starts from a clean state.
+    #
+    # Prefixes are ordered from most-specific to least-specific to avoid
+    # partial-name false matches (e.g. "distutils" must not evict a
+    # hypothetical "distutils_extra" that the caller owns).
+    # ------------------------------------------------------------------
+    _evict_prefixes: tuple[str, ...] = (
+        "_distutils_hack",
+        "distutils",
+        "pkg_resources",
+        "setuptools",
+    )
+    for _mod_name in list(sys.modules):
+        if any(
+            _mod_name == _pfx or _mod_name.startswith(_pfx + ".")
+            for _pfx in _evict_prefixes
+        ):
+            sys.modules.pop(_mod_name, None)
+
+    # ------------------------------------------------------------------
+    # Step 3 — Import setuptools from a clean slate and cache the result.
+    #
+    # We import from the submodule paths (not the top-level package
+    # re-exports) because those paths are stable across setuptools
+    # major versions and avoid triggering unnecessary side-effects inside
+    # setuptools.__init__.
+    #
+    # AssertionError is raised by _distutils_hack.do_override() when the
+    # stdlib distutils was already loaded before our env-var was set.
+    # This happens in certain CI environments (GitHub Actions hostedtoolcache
+    # Python 3.11).  We surface it as an actionable ImportError with a
+    # concrete work-around rather than letting the raw AssertionError
+    # propagate with no guidance.
+    # ------------------------------------------------------------------
     try:
-        from setuptools import Extension  # noqa: PLC0415
         from setuptools.dist import Distribution  # noqa: PLC0415
-    except AssertionError as e:
+        from setuptools.extension import Extension  # noqa: PLC0415
+    except AssertionError as exc:
         raise ImportError(
             "setuptools could not be imported because '_distutils_hack' failed "
             "its distutils-override assertion in this build environment.  "
             "Work-around: set the environment variable "
             "SETUPTOOLS_USE_DISTUTILS=stdlib before running Python.  "
-            f"Original error: {e}"
-        ) from e
-    except ImportError as e:
+            f"Original error: {exc}"
+        ) from exc
+    except ImportError as exc:
         raise ImportError(
-            "setuptools is required to compile Cython extensions.  "
-            "Install it with: pip install setuptools"
-        ) from e
-    return Extension, Distribution
+            "setuptools is required to compile Cython extensions but could "
+            "not be imported.  Install it with: pip install setuptools\n"
+            f"Original error: {exc}"
+        ) from exc
+
+    _SETUPTOOLS_CACHE = (Extension, Distribution)
+    return _SETUPTOOLS_CACHE
 
 
-def _compile(
+def _compile(  # noqa: PLR0912
     *,
     name: str,
     pyx_path: Path,
@@ -1087,13 +1222,66 @@ def _compile(
     cmd.inplace = False
     cmd.force = True
 
+    # ------------------------------------------------------------------
+    # Patch finalize_options on the command INSTANCE to guard against
+    # the swig_opts type mismatch on every call.
+    #
+    # Background
+    # ----------
+    # setuptools._distutils.command.build_ext.finalize_options does:
+    #
+    #     self.swig_opts = self.swig_opts.split(' ')
+    #
+    # expecting swig_opts to be a str.  Some setuptools/Cython combos
+    # (notably micromamba envs on Python 3.11) initialise swig_opts as
+    # None or as [] at the class level.
+    #
+    # A one-shot normalization before the first ensure_finalized() call
+    # is insufficient because:
+    #
+    #   1. finalize_options may succeed in converting swig_opts to ['']
+    #      (a list) and then fail on a *later* step inside the same method.
+    #   2. The swallowed exception leaves cmd.finalized = 0 and
+    #      cmd.swig_opts = [''].
+    #   3. dist.run_command() then calls ensure_finalized() again, which
+    #      calls finalize_options() again, which finds swig_opts already a
+    #      list and raises AttributeError: 'list' has no attribute 'split'.
+    #
+    # Fix
+    # ---
+    # Patch finalize_options on the INSTANCE (not the class) so that
+    # swig_opts is normalized to a str before every invocation, regardless
+    # of how many times ensure_finalized() retries.
+    #
+    # Instance attributes shadow class methods in Python's attribute lookup,
+    # so self.finalize_options() inside ensure_finalized() transparently
+    # finds and calls our function.  _orig_finalize is a pre-bound method
+    # (self=cmd is already captured), so calling it requires zero arguments.
+    #
+    # The explicit cmd.ensure_finalized() call that preceded dist.run_command()
+    # has been removed.  dist.run_command() always calls ensure_finalized()
+    # internally; the explicit call was redundant and harmful — partial
+    # finalization silently corrupted swig_opts and masked the real error.
+    #
+    # References
+    # ----------
+    # https://github.com/pypa/setuptools/issues/2353
+    # https://github.com/cython/cython/issues/4800
+    # ------------------------------------------------------------------
+    _orig_finalize = cmd.finalize_options
+
+    def _guarded_finalize() -> None:
+        # Normalize swig_opts to str before every finalize_options call.
+        # Handles None, [], [''] and any other non-str value left by a
+        # previous partial invocation.
+        _raw = getattr(cmd, "swig_opts", None)
+        if not isinstance(_raw, str):
+            cmd.swig_opts = " ".join(_raw) if isinstance(_raw, (list, tuple)) else ""
+        _orig_finalize()
+
+    cmd.finalize_options = _guarded_finalize
+
     try:
-        # Ensure options are finalized before invoking the build.
-        try:  # noqa: SIM105
-            cmd.ensure_finalized()
-        except Exception:  # noqa: BLE001
-            # Best-effort: some setuptools variants finalize during run_command.
-            pass
         dist.run_command("build_ext")
     except SystemExit as e:
         raise RuntimeError(

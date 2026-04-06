@@ -41,13 +41,17 @@ from .._builder import (
     DEFAULT_COMPILER_DIRECTIVES,
     _ALLOWED_EXTRA_SOURCE_SUFFIXES,
     _ALLOWED_SUPPORT_NAME,
+    _SETUPTOOLS_CACHE,
     _clean_build_artifacts,
     _copy_extra_sources,
     _copy_support_paths,
     _ensure_package,
     _find_annotation,
     _find_built_extension,
+    _import_setuptools,
     _normalize_extra_sources,
+    _open_annotation_in_browser,
+    _set_verbosity,
     _support_files_digest,
     _support_paths_digest,
     _to_path,
@@ -55,6 +59,7 @@ from .._builder import (
     _validate_support_filename,
     _write_support_files,
 )
+from .. import _builder as _builder_module
 from .._cache import (
     is_valid_key,
 )
@@ -72,6 +77,11 @@ requires_compiler = pytest.mark.skipif(
         and __import__("importlib").util.find_spec("setuptools") is not None
     ),
     reason="Cython and setuptools required for compiler tests",
+)
+
+requires_setuptools = pytest.mark.skipif(
+    __import__("importlib").util.find_spec("setuptools") is None,
+    reason="setuptools required",
 )
 
 
@@ -736,3 +746,460 @@ class TestScenario5CApiSources:
     def test_c_api_compiler_satisfies_protocol(self) -> None:
         cc = CApiCompiler()
         assert isinstance(cc, CustomCompilerProtocol)
+
+
+# ---------------------------------------------------------------------------
+# TestImportSetuptools
+# ---------------------------------------------------------------------------
+
+
+@requires_setuptools
+class TestImportSetuptools:
+    """
+    Tests for :func:`~scikitplot.cython._builder._import_setuptools`.
+
+    Notes
+    -----
+    **Developer note — why class identity matters:**
+
+    ``_import_setuptools()`` must return the *same* ``(Extension, Distribution)``
+    class objects on every call.  Returning different objects breaks the
+    ``isinstance(ext, Extension)`` check inside
+    ``setuptools._distutils.command.build_ext.check_extensions_list``, raising::
+
+        DistutilsSetupError: each element of 'ext_modules' option must be
+        an Extension instance or 2-tuple
+
+    This happens because ``cythonize()`` (from Cython) is imported once and
+    keeps an internal reference to the ``Extension`` class it received at that
+    time.  If the module cache is evicted and setuptools is re-imported between
+    calls, the class objects diverge.  The singleton cache in
+    ``_SETUPTOOLS_CACHE`` prevents this by importing setuptools exactly once.
+
+    **Test isolation note:** because ``_import_setuptools()`` uses a module-level
+    singleton, tests that need a clean cache state manipulate
+    ``_builder_module._SETUPTOOLS_CACHE`` directly and restore it in a fixture.
+    This is intentional: it tests the exact state the production code manages.
+    """
+
+    @pytest.fixture()
+    def clean_cache(self):
+        """
+        Temporarily clear _SETUPTOOLS_CACHE so the function exercises the
+        slow (first-call) import path during this test.
+
+        Restores the original cached value after the test, so subsequent
+        tests still benefit from the cached classes.
+        """
+        original = _builder_module._SETUPTOOLS_CACHE
+        _builder_module._SETUPTOOLS_CACHE = None
+        yield
+        _builder_module._SETUPTOOLS_CACHE = original
+
+    # ------------------------------------------------------------------
+    # Return-value shape
+    # ------------------------------------------------------------------
+
+    def test_returns_two_items(self) -> None:
+        """Result must be a 2-tuple."""
+        result = _import_setuptools()
+        assert len(result) == 2
+
+    def test_extension_is_type(self) -> None:
+        """First element must be a class (type)."""
+        Extension, _ = _import_setuptools()
+        assert isinstance(Extension, type)
+
+    def test_distribution_is_type(self) -> None:
+        """Second element must be a class (type)."""
+        _, Distribution = _import_setuptools()
+        assert isinstance(Distribution, type)
+
+    def test_extension_module_contains_setuptools(self) -> None:
+        """Extension must come from the setuptools namespace."""
+        Extension, _ = _import_setuptools()
+        assert "setuptools" in Extension.__module__
+
+    def test_distribution_module_contains_setuptools(self) -> None:
+        """Distribution must come from the setuptools namespace."""
+        _, Distribution = _import_setuptools()
+        assert "setuptools" in Distribution.__module__
+
+    def test_extension_is_subclass_of_object(self) -> None:
+        Extension, _ = _import_setuptools()
+        assert issubclass(Extension, object)
+
+    def test_distribution_is_subclass_of_object(self) -> None:
+        _, Distribution = _import_setuptools()
+        assert issubclass(Distribution, object)
+
+    def test_extension_can_be_instantiated(self, tmp_path: Path) -> None:
+        """A minimal Extension(name, sources=[...]) must not raise."""
+        src = tmp_path / "dummy.c"
+        src.write_text("", encoding="utf-8")
+        Extension, _ = _import_setuptools()
+        ext = Extension(name="mymodule", sources=[str(src)])
+        assert ext.name == "mymodule"
+
+    # ------------------------------------------------------------------
+    # Singleton / class-identity guarantees
+    # ------------------------------------------------------------------
+
+    def test_repeated_calls_return_identical_extension_class(self) -> None:
+        """
+        Regression test for the second-call DistutilsSetupError bug.
+
+        Before the singleton cache was added, each call evicted sys.modules
+        and re-imported setuptools, producing a new Extension class object.
+        Cython's cythonize() still held a reference to the old class, so
+        isinstance() inside check_extensions_list returned False and raised
+        DistutilsSetupError.  The singleton cache fixes this permanently.
+        """
+        Extension1, _ = _import_setuptools()
+        Extension2, _ = _import_setuptools()
+        assert Extension1 is Extension2, (
+            "Repeated calls must return the *same* Extension class object. "
+            "Different objects break isinstance() in build_ext."
+        )
+
+    def test_repeated_calls_return_identical_distribution_class(self) -> None:
+        """Distribution class identity must also be stable across calls."""
+        _, Dist1 = _import_setuptools()
+        _, Dist2 = _import_setuptools()
+        assert Dist1 is Dist2
+
+    def test_many_repeated_calls_all_identical(self) -> None:
+        """Identity must hold for N > 2 calls (not just pairwise)."""
+        pairs = [_import_setuptools() for _ in range(5)]
+        first_ext, first_dist = pairs[0]
+        for ext, dist in pairs[1:]:
+            assert ext is first_ext
+            assert dist is first_dist
+
+    def test_extension_isinstance_stable_across_calls(self, tmp_path: Path) -> None:
+        """
+        An Extension instance created on call N must satisfy isinstance()
+        with the class returned on call N+1.
+
+        This is the exact isinstance() check that
+        check_extensions_list performs.  Without the singleton cache this
+        assertion fails on the second call.
+        """
+        src = tmp_path / "dummy.c"
+        src.write_text("", encoding="utf-8")
+        Extension1, _ = _import_setuptools()
+        ext = Extension1(name="mymod", sources=[str(src)])
+        Extension2, _ = _import_setuptools()
+        # Fails (False) without the singleton cache fix.
+        assert isinstance(ext, Extension2), (
+            "Extension instance must satisfy isinstance() with the class "
+            "returned by a subsequent call to _import_setuptools()."
+        )
+
+    # ------------------------------------------------------------------
+    # First-call path (clean-cache fixture required)
+    # ------------------------------------------------------------------
+
+    def test_populates_module_cache_on_first_call(self, clean_cache: None) -> None:
+        """After a first call, _SETUPTOOLS_CACHE must be non-None."""
+        assert _builder_module._SETUPTOOLS_CACHE is None  # fixture guarantee
+        _import_setuptools()
+        assert _builder_module._SETUPTOOLS_CACHE is not None
+
+    def test_cached_value_matches_return_value(self, clean_cache: None) -> None:
+        """The module-level cache must equal the returned pair."""
+        result = _import_setuptools()
+        assert _builder_module._SETUPTOOLS_CACHE is result
+
+    def test_second_call_uses_cache_not_reimport(self, clean_cache: None) -> None:
+        """On a second call, the module-level cache is returned unchanged."""
+        first = _import_setuptools()
+        # Simulate what would break without the cache: evict setuptools.
+        # Even after eviction the second call must return the same objects.
+        import sys as _sys
+        for _k in list(_sys.modules):
+            if _k.startswith("setuptools") or _k.startswith("distutils"):
+                _sys.modules.pop(_k, None)
+        second = _import_setuptools()
+        assert second is first  # same tuple object from cache
+
+    # ------------------------------------------------------------------
+    # Environment variable behaviour
+    # ------------------------------------------------------------------
+
+    def test_env_var_set_after_first_call(self, clean_cache: None) -> None:
+        """SETUPTOOLS_USE_DISTUTILS must be present after the first call."""
+        os.environ.pop("SETUPTOOLS_USE_DISTUTILS", None)
+        _import_setuptools()
+        assert "SETUPTOOLS_USE_DISTUTILS" in os.environ
+
+    def test_env_var_not_overwritten_if_already_set(
+        self, monkeypatch: pytest.MonkeyPatch, clean_cache: None
+    ) -> None:
+        """
+        A caller-supplied SETUPTOOLS_USE_DISTUTILS must be honoured.
+
+        The function uses ``setdefault``, so a pre-existing value is never
+        overwritten.  We verify this with ``monkeypatch`` so the test is
+        side-effect-free.
+        """
+        monkeypatch.setenv("SETUPTOOLS_USE_DISTUTILS", "stdlib")
+        _import_setuptools()
+        assert os.environ["SETUPTOOLS_USE_DISTUTILS"] == "stdlib"
+
+    def test_env_var_stdlib_on_python_lt_312(
+        self, monkeypatch: pytest.MonkeyPatch, clean_cache: None
+    ) -> None:
+        """On Python < 3.12, the default backend must be 'stdlib'."""
+        if sys.version_info >= (3, 12):
+            pytest.skip("Python < 3.12 only")
+        monkeypatch.delenv("SETUPTOOLS_USE_DISTUTILS", raising=False)
+        _import_setuptools()
+        assert os.environ.get("SETUPTOOLS_USE_DISTUTILS") == "stdlib"
+
+    def test_env_var_local_on_python_gte_312(
+        self, monkeypatch: pytest.MonkeyPatch, clean_cache: None
+    ) -> None:
+        """On Python >= 3.12, the default backend must be 'local'."""
+        if sys.version_info < (3, 12):
+            pytest.skip("Python >= 3.12 only")
+        monkeypatch.delenv("SETUPTOOLS_USE_DISTUTILS", raising=False)
+        _import_setuptools()
+        assert os.environ.get("SETUPTOOLS_USE_DISTUTILS") == "local"
+
+    # ------------------------------------------------------------------
+    # Error path: missing setuptools
+    # ------------------------------------------------------------------
+
+    def test_missing_setuptools_raises_import_error(
+        self, monkeypatch: pytest.MonkeyPatch, clean_cache: None
+    ) -> None:
+        """
+        If setuptools is not importable, an actionable ImportError must be
+        raised — never a raw exception from a nested import.
+        """
+        import builtins
+        real_import = builtins.__import__
+
+        def _block_setuptools(name, *args, **kwargs):
+            if name.startswith("setuptools"):
+                raise ImportError(f"Blocked: {name}")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _block_setuptools)
+        with pytest.raises(ImportError, match="setuptools is required"):
+            _import_setuptools()
+
+    def test_assertion_error_wrapped_as_import_error(
+        self, monkeypatch: pytest.MonkeyPatch, clean_cache: None
+    ) -> None:
+        """
+        If _distutils_hack raises AssertionError (broken CI toolchain), it
+        must be surfaced as an ImportError with a concrete work-around hint
+        — not the raw AssertionError which gives no guidance to the user.
+        """
+        import builtins
+        real_import = builtins.__import__
+
+        def _raise_assertion(name, *args, **kwargs):
+            if name.startswith("setuptools"):
+                raise AssertionError("/path/to/distutils/core.py")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _raise_assertion)
+        with pytest.raises(ImportError, match="SETUPTOOLS_USE_DISTUTILS=stdlib"):
+            _import_setuptools()
+
+
+# ---------------------------------------------------------------------------
+# TestSetVerbosity
+# ---------------------------------------------------------------------------
+
+
+class TestSetVerbosity:
+    """
+    Tests for :func:`~scikitplot.cython._builder._set_verbosity`.
+
+    Notes
+    -----
+    ``_set_verbosity`` is a best-effort helper that calls
+    ``setuptools._distutils.log.set_verbosity``.  It must never raise — even
+    when the underlying distutils log module is absent or incompatible.
+    """
+
+    def test_no_error_on_zero(self) -> None:
+        """Verbosity level 0 (default quiet) must not raise."""
+        _set_verbosity(0)
+
+    def test_no_error_on_positive(self) -> None:
+        """Verbosity level 1 (normal) must not raise."""
+        _set_verbosity(1)
+
+    def test_no_error_on_negative(self) -> None:
+        """Verbosity level -1 (suppress all) must not raise."""
+        _set_verbosity(-1)
+
+    def test_no_error_on_large_positive(self) -> None:
+        """Verbosity level 9 (very verbose) must not raise."""
+        _set_verbosity(9)
+
+    def test_no_error_when_distutils_log_absent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        If setuptools._distutils.log is missing, _set_verbosity must
+        silently succeed (best-effort contract).
+        """
+        import builtins
+        real_import = builtins.__import__
+
+        def _block_distutils_log(name, *args, **kwargs):
+            if "distutils" in name and "log" in name:
+                raise ImportError(f"Blocked: {name}")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _block_distutils_log)
+        # Must not raise even when the import fails.
+        _set_verbosity(1)
+
+    def test_no_error_when_set_verbosity_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        If set_verbosity itself raises (e.g. incompatible API), _set_verbosity
+        must swallow the exception (best-effort contract).
+        """
+        import builtins
+        real_import = builtins.__import__
+
+        class _FakeLog:
+            @staticmethod
+            def set_verbosity(level):  # noqa: ANN001
+                raise RuntimeError("Simulated API incompatibility")
+
+        fake_log_module = _FakeLog()
+
+        def _inject_fake_log(name, globals=None, locals=None, fromlist=(), level=0):
+            if "distutils" in (name or "") and fromlist and "set_verbosity" in fromlist:
+                return fake_log_module
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", _inject_fake_log)
+        # Must not raise despite the RuntimeError inside set_verbosity.
+        _set_verbosity(0)
+
+
+# ---------------------------------------------------------------------------
+# TestOpenAnnotationInBrowser
+# ---------------------------------------------------------------------------
+
+
+class TestOpenAnnotationInBrowser:
+    """
+    Tests for :func:`~scikitplot.cython._builder._open_annotation_in_browser`.
+
+    Notes
+    -----
+    The function is a best-effort helper that opens an HTML annotation in a
+    browser.  It must never raise and must silently skip in every headless /
+    CI / non-interactive environment.  All three guard branches are exercised
+    here:
+
+    1. ``CI`` environment variable is set.
+    2. Linux/macOS without a ``DISPLAY`` variable (no X11/Wayland).
+    3. ``sys.stdout`` is not a TTY (non-interactive session).
+    """
+
+    _DUMMY_URI = "file:///tmp/annotation.html"
+
+    def test_skips_and_does_not_raise_when_ci_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """CI guard: must return silently when CI env var is set."""
+        monkeypatch.setenv("CI", "true")
+        # Must not raise and must not call webbrowser.open.
+        _open_annotation_in_browser(self._DUMMY_URI)
+
+    def test_ci_guard_triggered_by_any_truthy_value(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """CI guard must trigger for any non-empty CI value."""
+        monkeypatch.setenv("CI", "1")
+        _open_annotation_in_browser(self._DUMMY_URI)
+
+    def test_skips_on_posix_without_display(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """DISPLAY guard: must skip on Linux/macOS when DISPLAY is absent."""
+        if sys.platform in ("win32", "darwin"):
+            pytest.skip("DISPLAY guard is POSIX-only")
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.delenv("DISPLAY", raising=False)
+        _open_annotation_in_browser(self._DUMMY_URI)
+
+    def test_skips_when_stdout_is_not_a_tty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """TTY guard: must skip when sys.stdout.isatty() returns False."""
+        import io
+        monkeypatch.delenv("CI", raising=False)
+        # Provide a DISPLAY so the POSIX guard is not triggered on Linux.
+        monkeypatch.setenv("DISPLAY", ":0")
+        monkeypatch.setattr(sys, "stdout", io.StringIO())
+        _open_annotation_in_browser(self._DUMMY_URI)
+
+    def test_skips_when_stdout_has_no_isatty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        TTY guard: if sys.stdout.isatty() raises AttributeError (e.g.
+        some logging redirectors), the function must silently skip.
+        """
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.setenv("DISPLAY", ":0")
+
+        class _NoIsatty:
+            def isatty(self):  # noqa: ANN001
+                raise AttributeError("no isatty")
+
+        monkeypatch.setattr(sys, "stdout", _NoIsatty())
+        _open_annotation_in_browser(self._DUMMY_URI)
+
+    def test_browser_not_opened_in_ci(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify webbrowser.open is NOT called when CI guard triggers."""
+        import webbrowser
+        opened: list[str] = []
+        monkeypatch.setenv("CI", "true")
+        monkeypatch.setattr(webbrowser, "open", lambda uri: opened.append(uri))
+        _open_annotation_in_browser(self._DUMMY_URI)
+        assert opened == [], "webbrowser.open must not be called in CI"
+
+    def test_browser_not_opened_without_display(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify webbrowser.open is NOT called when DISPLAY guard triggers."""
+        if sys.platform in ("win32", "darwin"):
+            pytest.skip("DISPLAY guard is POSIX-only")
+        import webbrowser
+        opened: list[str] = []
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.delenv("DISPLAY", raising=False)
+        monkeypatch.setattr(webbrowser, "open", lambda uri: opened.append(uri))
+        _open_annotation_in_browser(self._DUMMY_URI)
+        assert opened == [], "webbrowser.open must not be called without DISPLAY"
+
+    def test_browser_not_opened_when_not_tty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify webbrowser.open is NOT called when TTY guard triggers."""
+        import io
+        import webbrowser
+        opened: list[str] = []
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.setenv("DISPLAY", ":0")
+        monkeypatch.setattr(sys, "stdout", io.StringIO())
+        monkeypatch.setattr(webbrowser, "open", lambda uri: opened.append(uri))
+        _open_annotation_in_browser(self._DUMMY_URI)
+        assert opened == [], "webbrowser.open must not be called when not a TTY"
