@@ -82,6 +82,12 @@ PUBLIC_MODULES = [
         "stats",
         "utils",
         "utils.validation",
+        "utils.validation.joblib",
+        "utils.validation.np",
+        "utils.validation.numbers",
+        "utils.validation.operator",
+        "utils.validation.sp",
+        "utils.validation.warnings",
         "visualkeras",
         # py
         "conftest",
