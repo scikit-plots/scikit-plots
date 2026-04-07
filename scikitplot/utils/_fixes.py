@@ -7,6 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
+# codespell:ignore coo
 #
 # This module was copied from the scikit-learn project.
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/fixes.py
@@ -255,7 +256,7 @@ def _preserve_dia_indices_dtype(
     """
     if original_container_format == "dia_array" and requested_sparse_format in (
         "csr",
-        "coup",
+        "coo",
     ):
         if requested_sparse_format == "csr":
             index_dtype = _smallest_admissible_index_dtype(
@@ -269,7 +270,7 @@ def _preserve_dia_indices_dtype(
             sparse_container.indptr = sparse_container.indptr.astype(
                 index_dtype, copy=False
             )
-        else:  # requested_sparse_format == "coup"
+        else:  # requested_sparse_format == "coo"
             index_dtype = _smallest_admissible_index_dtype(
                 maxval=max(sparse_container.shape)
             )
@@ -432,7 +433,7 @@ if not SCIPY_VERSION_BELOW_1_12:
         shape,
         *,
         density=0.01,
-        format="coup",
+        format="coo",
         dtype=None,
         random_state=None,
         rng=None,
@@ -465,7 +466,7 @@ else:
         shape,
         *,
         density=0.01,
-        format="coup",
+        format="coo",
         dtype=None,
         random_state=None,
         rng=None,
@@ -487,7 +488,7 @@ def _ensure_sparse_index_int32(A):
     """Safely ensure that index arrays are int32."""
     if A.format in ("csc", "csr", "bsr"):
         A.indices, A.indptr = _safely_cast_index_arrays(A)
-    elif A.format == "coup":
+    elif A.format == "coo":
         if hasattr(A, "coords"):
             A.coords = _safely_cast_index_arrays(A)
         elif hasattr(A, "indices"):
@@ -529,7 +530,7 @@ def _safely_cast_index_arrays(A, idx_dtype=np.int32, msg=""):
         indptr = A.indptr.astype(idx_dtype, copy=False)
         return indices, indptr
 
-    elif A.format == "coup":
+    elif A.format == "coo":
         coords = getattr(A, "coords", None)
         if coords is None:
             coords = getattr(A, "indices", None)
