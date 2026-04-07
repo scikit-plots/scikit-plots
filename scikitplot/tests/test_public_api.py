@@ -82,12 +82,6 @@ PUBLIC_MODULES = [
         "stats",
         "utils",
         "utils.validation",
-        "utils.validation.joblib",
-        "utils.validation.np",
-        "utils.validation.numbers",
-        "utils.validation.operator",
-        "utils.validation.sp",
-        "utils.validation.warnings",
         "visualkeras",
         # py
         "conftest",
@@ -129,7 +123,6 @@ def is_unexpected(name):
 
 # Skip public modules
 SKIP_LIST = [
-    "scikitplot.experimental._template",
     # root artifact
     "scikitplot.conftest",
     # optional
@@ -212,6 +205,13 @@ SKIP_LIST_2 = [
     "scikitplot.estimators",
     "scikitplot.metrics",
     "scikitplot.plotters",
+    # optional
+    "scikitplot.utils.validation.joblib",
+    "scikitplot.utils.validation.np",
+    "scikitplot.utils.validation.numbers",
+    "scikitplot.utils.validation.operator",
+    "scikitplot.utils.validation.sp",
+    "scikitplot.utils.validation.warnings",
 ] + [
     # 'scikitplot.utils.inspect', 'scikitplot.utils.socket', 'scikitplot.utils.subprocess',
     "scikitplot.externals.array_api_compat.cupy",
