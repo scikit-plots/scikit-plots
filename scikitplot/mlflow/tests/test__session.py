@@ -650,3 +650,287 @@ class TestSessionFromFile:
 
         with session_from_file(str(toml_file), profile="local") as h:
             assert h.tracking_uri == "http://127.0.0.1:5000"
+
+
+# ===========================================================================
+# Gap-fill: MlflowHandle properties (registry_uri, artifacts, models) lines 221,250,262
+# ===========================================================================
+
+
+class TestMlflowHandleProperties:
+    """Tests for MlflowHandle property accessors not yet covered."""
+
+    def _make_handle(self, dummy):
+        from scikitplot.mlflow._facade import ArtifactsFacade, ModelsFacade
+        client = _Client()
+        return MlflowHandle(
+            _mlflow_module=dummy,
+            _tracking_uri="http://127.0.0.1:5000",
+            _registry_uri="http://registry:5001",
+            _ui_url="http://127.0.0.1:5000",
+            _client=client,
+            _artifacts=ArtifactsFacade(mlflow_module=dummy, client=client),
+            _models=ModelsFacade(mlflow_module=dummy, client=client),
+        )
+
+    def test_registry_uri_property_returns_value(self) -> None:
+        """MlflowHandle.registry_uri (line 221) must return the stored value."""
+        from scikitplot.mlflow._facade import ArtifactsFacade, ModelsFacade
+        dummy = _Mlflow()
+        client = _Client()
+        handle = MlflowHandle(
+            _mlflow_module=dummy,
+            _tracking_uri="http://127.0.0.1:5000",
+            _registry_uri="http://reg:9000",
+            _ui_url="http://127.0.0.1:5000",
+            _client=client,
+            _artifacts=ArtifactsFacade(mlflow_module=dummy, client=client),
+            _models=ModelsFacade(mlflow_module=dummy, client=client),
+        )
+        assert handle.registry_uri == "http://reg:9000"
+
+    def test_artifacts_property_returns_facade(self) -> None:
+        """MlflowHandle.artifacts (line 250) must return an ArtifactsFacade."""
+        from scikitplot.mlflow._facade import ArtifactsFacade
+        dummy = _Mlflow()
+        handle = self._make_handle(dummy)
+        assert isinstance(handle.artifacts, ArtifactsFacade)
+
+    def test_models_property_returns_facade(self) -> None:
+        """MlflowHandle.models (line 262) must return a ModelsFacade."""
+        from scikitplot.mlflow._facade import ModelsFacade
+        dummy = _Mlflow()
+        handle = self._make_handle(dummy)
+        assert isinstance(handle.models, ModelsFacade)
+
+
+# ===========================================================================
+# Gap-fill: session() provider client path (line 454)
+# ===========================================================================
+
+
+class TestSessionProviderClientPath:
+    """
+    Tests for the provider.get_client() path inside session() (line 454).
+
+    When a MlflowProvider is active, session() must use provider.get_client()
+    instead of calling mlflow_mod.tracking.MlflowClient directly.
+    """
+
+    def test_provider_get_client_called_when_active(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from scikitplot.mlflow._custom import MlflowProvider, set_provider, use_provider
+        import scikitplot.mlflow._session as sess_mod
+
+        dummy = _Mlflow()
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(sess_mod, "wait_tracking_ready", lambda *a, **kw: None)
+
+        factory_calls: list = []
+
+        def custom_factory(tracking_uri, registry_uri):
+            factory_calls.append((tracking_uri, registry_uri))
+            return _Client(tracking_uri=tracking_uri)
+
+        provider = MlflowProvider(module=dummy, client_factory=custom_factory)
+        with use_provider(provider):
+            cfg = SessionConfig(tracking_uri="http://127.0.0.1:5000")
+            with session(config=cfg, start_server=False) as h:
+                assert h is not None
+
+        assert len(factory_calls) == 1
+        assert factory_calls[0][0] == "http://127.0.0.1:5000"
+
+    def test_no_provider_uses_mlflow_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Without a provider, must use mlflow_mod.tracking.MlflowClient."""
+        from scikitplot.mlflow._custom import set_provider
+        set_provider(None)
+
+        dummy = _Mlflow()
+        import scikitplot.mlflow._session as sess_mod
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(sess_mod, "wait_tracking_ready", lambda *a, **kw: None)
+
+        cfg = SessionConfig(tracking_uri="http://127.0.0.1:5000")
+        with session(config=cfg, start_server=False) as h:
+            assert h.client.tracking_uri == "http://127.0.0.1:5000"
+
+
+# ===========================================================================
+# Gap-fill: session() start_server=True provides tracking_uri from server (line 380)
+# ===========================================================================
+
+
+class TestSessionStartServerDerivesUri:
+    """
+    When start_server=True and no tracking_uri is given, session() must
+    construct the URI from the server host/port (line 380).
+    """
+
+    def test_tracking_uri_derived_from_server_when_none_given(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import scikitplot.mlflow._session as sess_mod
+
+        dummy = _Mlflow()
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(sess_mod, "wait_tracking_ready", lambda *a, **kw: None)
+        monkeypatch.setattr(sess_mod, "spawn_server", lambda cfg: _FakeSpawnedServer())
+        monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
+
+        cfg = SessionConfig()  # no tracking_uri
+        srv_cfg = ServerConfig(host="127.0.0.1", port=5001, strict_cli_compat=False)
+        with session(config=cfg, server=srv_cfg, start_server=True) as h:
+            assert "5001" in h.tracking_uri
+
+
+# ---------------------------------------------------------------------------
+# Stub needed for derived-URI test
+# ---------------------------------------------------------------------------
+
+
+class _FakeSpawnedServer:
+    """Minimal SpawnedServer stub for start_server path tests."""
+
+    class _FakeProc:
+        returncode = None
+        pid = 1
+        stdout = None
+
+        def poll(self):
+            return None
+
+    process = _FakeProc()
+    command = ["mlflow", "server"]
+
+    def terminate(self):
+        pass
+
+    def read_all_output(self):
+        return ""
+
+
+# ===========================================================================
+# Gap-fill: _parse_http_uri empty hostname (line 69)
+# ===========================================================================
+
+
+class TestParseHttpUriEmptyHostname:
+    """Tests for _parse_http_uri empty hostname validation."""
+
+    def test_empty_hostname_raises_value_error(self) -> None:
+        """URI with empty hostname must raise ValueError (line 69)."""
+        # urlparse("http://") gives empty hostname
+        with pytest.raises(ValueError, match="Invalid"):
+            _parse_http_uri("http://")
+
+
+# ===========================================================================
+# Gap-fill: session() ensure_reachable path (lines 432-442)
+# ===========================================================================
+
+
+class TestSessionEnsureReachable:
+    """Tests for the ensure_reachable=True path in session()."""
+
+    def test_ensure_reachable_calls_wait_tracking_ready(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ensure_reachable=True must invoke wait_tracking_ready."""
+        dummy = _Mlflow()
+        wait_called: list = []
+        import scikitplot.mlflow._session as sess_mod
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(
+            sess_mod,
+            "wait_tracking_ready",
+            lambda *a, **kw: wait_called.append(a),
+        )
+        cfg = SessionConfig(
+            tracking_uri="http://127.0.0.1:5000",
+            ensure_reachable=True,
+            startup_timeout_s=0.1,
+        )
+        with session(config=cfg, start_server=False):
+            pass
+        assert len(wait_called) == 1
+
+    def test_ensure_reachable_non_http_raises_value_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ensure_reachable=True with a file:// URI must raise ValueError (line 434)."""
+        dummy = _Mlflow()
+        import scikitplot.mlflow._session as sess_mod
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(sess_mod, "wait_tracking_ready", lambda *a, **kw: None)
+        cfg = SessionConfig(
+            tracking_uri="file:///tmp/mlruns",
+            ensure_reachable=True,
+            startup_timeout_s=0.1,
+        )
+        with pytest.raises(ValueError, match="http"):
+            with session(config=cfg, start_server=False):
+                pass
+
+
+# ===========================================================================
+# Gap-fill: session() set_experiment strict path (line 466)
+# ===========================================================================
+
+
+class TestSessionSetExperimentStrict:
+    """Tests for the experiment_name strict=False path in session()."""
+
+    def test_create_if_missing_false_and_experiment_exists_succeeds(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When experiment exists and create_if_missing=False, no error (line 466)."""
+        dummy = _Mlflow()
+        dummy._experiments["existing-exp"] = object()
+        _patch_session(monkeypatch, dummy)
+        cfg = SessionConfig(
+            tracking_uri="http://127.0.0.1:5000",
+            experiment_name="existing-exp",
+            create_experiment_if_missing=False,
+        )
+        with session(config=cfg, start_server=False) as h:
+            assert h.experiment_name == "existing-exp"
+
+
+# ===========================================================================
+# Gap-fill: session() spawned.terminate() exception path (lines 497-498)
+# ===========================================================================
+
+
+class TestSessionSpawnedTerminateException:
+    """
+    Tests for the finally-block terminate() exception swallowing (lines 497-498).
+
+    When spawned.terminate() raises, session() must swallow it and still
+    restore the environment.
+    """
+
+    def test_terminate_exception_does_not_propagate(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import scikitplot.mlflow._session as sess_mod
+
+        dummy = _Mlflow()
+        monkeypatch.setattr(sess_mod, "import_mlflow", lambda: dummy)
+        monkeypatch.setattr(sess_mod, "wait_tracking_ready", lambda *a, **kw: None)
+
+        class _RaisingServer(_FakeSpawnedServer):
+            def terminate(self) -> None:
+                raise OSError("terminate failed")
+
+        monkeypatch.setattr(sess_mod, "spawn_server", lambda cfg: _RaisingServer())
+        monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
+
+        cfg = SessionConfig()
+        srv_cfg = ServerConfig(host="127.0.0.1", port=5001, strict_cli_compat=False)
+        with session(config=cfg, server=srv_cfg, start_server=True) as h:
+            assert h is not None
+        # Must not raise; environment must be restored

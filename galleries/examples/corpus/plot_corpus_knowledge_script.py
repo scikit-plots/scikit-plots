@@ -64,6 +64,13 @@ plt.axis('off')  # hides axes
 plt.show()
 
 # %%
+
+from IPython.display import FileLink, FileLinks
+
+# Replace 'path/to/your_file.csv' with your actual file path
+FileLink(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
+
+# %%
 #
 # .. tags::
 #

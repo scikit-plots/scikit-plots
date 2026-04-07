@@ -83,6 +83,8 @@ jobs:
           # pip install "setuptools>=69"
           pip install -U setuptools
 
+          pip install polars pyarrow
+
       - name: Build Library
         run: |
           # install your project if it's a package

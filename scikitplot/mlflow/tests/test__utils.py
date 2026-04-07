@@ -227,3 +227,49 @@ class TestMlflowVersionFunction:
         result = mlflow_version()
         assert result is not None
         assert result.major == 1
+
+
+# ===========================================================================
+# Gap-fill: mlflow_version() provider.version path (line 114)
+# ===========================================================================
+
+
+class TestMlflowVersionProviderPath:
+    """Tests for mlflow_version() reading version from an active MlflowProvider."""
+
+    def test_returns_version_from_provider_version_field(self) -> None:
+        """
+        When an MlflowProvider with a non-None version is active,
+        mlflow_version() must return that version without importing mlflow (line 114).
+        """
+        from scikitplot.mlflow._custom import MlflowProvider, use_provider
+        import types
+
+        stub = types.ModuleType("mlflow_custom")
+        provider = MlflowProvider(module=stub, version="9.8.7")
+        with use_provider(provider):
+            result = mlflow_version()
+
+        assert result is not None
+        assert result.major == 9
+        assert result.minor == 8
+        assert result.patch == 7
+
+    def test_provider_without_version_falls_through_to_module(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Provider with version=None must fall through to the normal resolution path."""
+        import types
+        from scikitplot.mlflow._custom import MlflowProvider, use_provider
+
+        stub = types.ModuleType("mlflow_custom")
+        provider = MlflowProvider(module=stub, version=None)
+
+        import importlib.util
+        monkeypatch.setattr(importlib.util, "find_spec", lambda _: None)
+
+        with use_provider(provider):
+            result = mlflow_version()
+
+        # No real mlflow → None (because find_spec returns None → is_mlflow_installed=False)
+        assert result is None
