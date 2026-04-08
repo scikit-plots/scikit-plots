@@ -37,8 +37,8 @@ from sklearn._config import get_config
 from sklearn.externals import array_api_compat
 from sklearn.externals import array_api_extra as xpx
 from sklearn.externals.array_api_compat import numpy as np_compat
-from .._dataframe import is_df_or_series
-from ..fixes import parse_version
+from ._dataframe import is_df_or_series
+from ._fixes import parse_version
 
 # TODO: complete __all__
 __all__ = ["xpx"]  # we import xpx here just to re-export it, need this to appease ruff

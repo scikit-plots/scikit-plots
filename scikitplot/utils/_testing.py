@@ -60,14 +60,14 @@ from sklearn.utils import (
     TargetTags,
     TransformerTags,
 )
-from sklearn.utils._array_api import _check_array_api_dispatch
-from sklearn.utils.fixes import (
+from ._array_api import _check_array_api_dispatch
+from ._fixes import (
     _IS_32BIT,
     VisibleDeprecationWarning,
     _in_unstable_openblas_configuration,
 )
 from sklearn.utils.multiclass import check_classification_targets
-from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
+from .validation import check_array, check_is_fitted, check_X_y
 
 __all__ = [
     "SkipTest",

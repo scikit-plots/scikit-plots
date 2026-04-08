@@ -19,7 +19,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils._metadata_requests import RequestMethod
 from sklearn.utils.metaestimators import available_if
-from ..validation import (
+from .validation import (
     _check_sample_weight,
     _num_samples,
     check_array,

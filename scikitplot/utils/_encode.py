@@ -20,8 +20,8 @@ from typing import NamedTuple
 
 import numpy as np
 
-from .._array_api import _isin, device, get_namespace, xpx
-from .._missing import is_scalar_nan
+from ._array_api import _isin, device, get_namespace, xpx
+from ._missing import is_scalar_nan
 
 
 def _unique(values, *, return_inverse=False, return_counts=False):
