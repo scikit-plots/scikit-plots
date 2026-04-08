@@ -1,7 +1,7 @@
-# tests/externals/_sphinx_ext/_sphinx_ai_assistant/test__sphinx_ai_assistant.py
+# tests/_externals/_sphinx_ext/_sphinx_ai_assistant/test__sphinx_ai_assistant.py
 """
 Comprehensive test suite for
-``scikitplot.externals._sphinx_ext._sphinx_ai_assistant``.
+``scikitplot._externals._sphinx_ext._sphinx_ai_assistant``.
 
 Coverage targets
 ----------------
@@ -36,7 +36,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Import the module under test
 # ---------------------------------------------------------------------------
-import scikitplot.externals._sphinx_ext._sphinx_ai_assistant as _mod
+import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _mod
 
 # Convenience alias
 _EXT = _mod
@@ -773,7 +773,7 @@ class TestEdgeCases:
         html = tmp_path / "page.html"
         html.write_text("<html><body><article>OK</article></body></html>", encoding="utf-8")
         with patch(
-            "scikitplot.externals._sphinx_ext._sphinx_ai_assistant.html_to_markdown",
+            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant.html_to_markdown",
             side_effect=RuntimeError("converter exploded"),
         ):
             status, rel, msg = _mod._process_single_html_file((

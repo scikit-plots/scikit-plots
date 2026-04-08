@@ -1,7 +1,12 @@
-# tests/externals/_sphinx_ext/_sphinx_ai_assistant/conftest.py
+# tests/_externals/_sphinx_ext/_sphinx_ai_assistant/conftest.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Pytest configuration and shared fixtures for
-``scikitplot.externals._sphinx_ext._sphinx_ai_assistant`` tests.
+``scikitplot._externals._sphinx_ext._sphinx_ai_assistant`` tests.
 
 All heavy dependencies (Sphinx, BeautifulSoup, markdownify) are mocked
 at the session level so that the test suite can run in environments where

@@ -83,9 +83,8 @@ ignore:
 
   # Ignore everything in externals
   - "scikitplot/externals/**"  # ❌ closed everything
-
   # ✅ Re-include step-by-step (IMPORTANT)
-  - "!scikitplot/externals/_sphinx_ext"  # ✅ reopen level 1
-  - "!scikitplot/externals/_sphinx_ext/**"  # ✅ allow traversal
-  - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant"  # ✅ final includes
-  - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/**"
+  # - "!scikitplot/externals/_sphinx_ext"  # ✅ reopen level 1
+  # - "!scikitplot/externals/_sphinx_ext/**"  # ✅ allow traversal
+  # - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant"  # ✅ final includes
+  # - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/**"

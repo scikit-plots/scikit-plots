@@ -1,4 +1,4 @@
-# scikitplot/externals/_sphinx_ext/__init__.py
+# scikitplot/_externals/_sphinx_ext/__init__.py
 #
 # fmt: off
 # ruff: noqa
@@ -8,10 +8,10 @@
 # mypy: ignore-errors
 # type: ignore
 #
-# Authors: The scikit-learn developers
+# Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 """
-scikitplot.externals._sphinx_ext
+scikitplot._externals._sphinx_ext
 =================================
 
 Private namespace for vendored Sphinx extensions.
@@ -32,13 +32,13 @@ To register the AI-assistant extension in a Sphinx project, add the full
 dotted path to ``extensions`` in ``conf.py``::
 
     extensions = [
-        "scikitplot.externals._sphinx_ext._sphinx_ai_assistant",
+        "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
     ]
 
 Examples
 --------
 >>> # Safe: no Sphinx needed yet
->>> from scikitplot.externals import _sphinx_ext
+>>> from scikitplot._externals import _sphinx_ext
 >>> # Sphinx imported here, on demand:
 >>> ai = _sphinx_ext._sphinx_ai_assistant
 """

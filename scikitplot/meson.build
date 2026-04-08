@@ -221,4 +221,4 @@ subdir('nc')  # defined use in dep_numcpp
 # submodules
 subdir('cexperimental')
 
-subdir('externals/_sphinx_ext/_sphinx_ai_assistant')
+subdir('_externals/_sphinx_ext/_sphinx_ai_assistant')

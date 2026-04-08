@@ -1,4 +1,4 @@
-# scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/_example_conf.py
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_example_conf.py
 #
 # fmt: off
 # ruff: noqa
@@ -11,7 +11,7 @@
 # This module was adapted from the sphinx-ai-assistant project.
 # https://github.com/mlazag/sphinx-ai-assistant/blob/main/example_conf.py
 #
-# Authors: Mladen Zagorac, The scikit-plot developers
+# Authors: Mladen Zagorac, The scikit-plots developers
 # SPDX-License-Identifier: MIT
 """
 Example Sphinx ``conf.py`` for the AI-assistant extension.
@@ -40,7 +40,7 @@ comments next to each selector value.
 # ---------------------------------------------------------------------------
 extensions = [
     # ... your other extensions ...
-    "scikitplot.externals._sphinx_ext._sphinx_ai_assistant",
+    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
 ]
 
 # ---------------------------------------------------------------------------
