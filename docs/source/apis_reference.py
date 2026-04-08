@@ -1342,16 +1342,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Project Session Helper",
-                # "description": (
-                #     _get_submodule("scikitplot.mlflow", "__init__")
-                # ),
-                "autosummary": [
-                    "session_from_file",
-                    "session_from_toml",
-                ],
-            },
-            {
                 "title": "Project Helper",
                 "description": (
                     _get_submodule("scikitplot.mlflow", "_project")

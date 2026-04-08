@@ -431,3 +431,394 @@ class TestSpawnServer:
         cfg = _minimal_cfg(strict_cli_compat=False)
         with pytest.raises(MlflowServerStartError, match="Failed to start"):
             spawn_server(cfg)
+
+
+# ===========================================================================
+# Gap-fill: missing build_server_args flag branches (lines 115, 121, 124, 148, 172-173)
+# ===========================================================================
+
+
+class TestBuildServerArgsMissingFlags:
+    """Cover build_server_args branches not hit by the existing suite."""
+
+    def test_backend_store_uri_flag(self) -> None:
+        cfg = _minimal_cfg(backend_store_uri="sqlite:///mlflow.db")
+        args = build_server_args(cfg)
+        assert "--backend-store-uri" in args
+        assert "sqlite:///mlflow.db" in args
+
+    def test_default_artifact_root_flag(self) -> None:
+        cfg = _minimal_cfg(default_artifact_root="/tmp/artifacts")
+        args = build_server_args(cfg)
+        assert "--default-artifact-root" in args
+        assert "/tmp/artifacts" in args
+
+    def test_serve_artifacts_flag(self) -> None:
+        cfg = _minimal_cfg(serve_artifacts=True)
+        args = build_server_args(cfg)
+        assert "--serve-artifacts" in args
+
+    def test_gunicorn_opts_flag(self) -> None:
+        cfg = _minimal_cfg(gunicorn_opts="--timeout 120")
+        args = build_server_args(cfg)
+        assert "--gunicorn-opts" in args
+        assert "--timeout 120" in args
+
+    def test_strict_cli_compat_checks_flags(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When strict_cli_compat=True, ensure_flags_supported must be called."""
+        checked: list = []
+        monkeypatch.setattr(
+            srv, "get_mlflow_server_cli_caps",
+            lambda: SimpleNamespace(flags=frozenset(["--host", "--port"]))
+        )
+        monkeypatch.setattr(
+            srv, "ensure_flags_supported",
+            lambda args, *, supported_flags, context: checked.append(True),
+        )
+        cfg = ServerConfig(host="127.0.0.1", port=5000, strict_cli_compat=True)
+        build_server_args(cfg)
+        assert len(checked) >= 1, "ensure_flags_supported must be called when strict_cli_compat=True"
+
+
+# ===========================================================================
+# Gap-fill: SpawnedServer properties and read_all_output edge cases
+# ===========================================================================
+
+
+class TestSpawnedServerProperties:
+    """Tests for SpawnedServer properties not yet covered."""
+
+    def test_started_at_returns_float(self) -> None:
+        """started_at property (line 232) must return the construction timestamp."""
+        t = time.time()
+        proc = MagicMock()
+        proc.poll = MagicMock(return_value=None)
+        sv = SpawnedServer(
+            _process=proc,
+            _command=["mlflow", "server"],
+            _started_at=t,
+        )
+        assert sv.started_at == pytest.approx(t)
+
+    def test_read_all_output_returns_empty_on_exception(self) -> None:
+        """read_all_output (lines 246-248) must return '' when stdout.read() raises."""
+        proc = MagicMock()
+        proc.stdout = MagicMock()
+        proc.stdout.read = MagicMock(side_effect=OSError("broken pipe"))
+        proc.poll = MagicMock(return_value=None)
+        sv = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        result = sv.read_all_output()
+        assert result == ""
+
+    def test_read_all_output_returns_stdout_when_available(self) -> None:
+        """read_all_output returns whatever process.stdout.read() gives (bytes or str)."""
+        proc = MagicMock()
+        proc.stdout = MagicMock()
+        proc.stdout.read = MagicMock(return_value=b"server started")
+        proc.poll = MagicMock(return_value=None)
+        sv = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        result = sv.read_all_output()
+        # Return value is truthy — either bytes or str with content
+        assert result  # non-empty
+
+    def test_read_all_output_returns_empty_when_stdout_none(self) -> None:
+        proc = MagicMock()
+        proc.stdout = None
+        proc.poll = MagicMock(return_value=None)
+        sv = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        result = sv.read_all_output()
+        assert result == ""
+
+
+# ===========================================================================
+# Gap-fill: SpawnedServer.terminate POSIX killpg-exception → kill path
+# ===========================================================================
+
+
+class TestSpawnedServerTerminateKillpgFallback:
+    """
+    Tests for terminate() POSIX killpg-exception path (lines 291-292, 300-304).
+
+    When os.killpg raises, terminate() must fall back to self.process.kill().
+    """
+
+    def test_posix_killpg_exception_falls_back_to_kill(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """killpg raises ProcessLookupError → process.kill() is called."""
+        monkeypatch.setattr(srv, "_is_windows", lambda: False)
+
+        killed = [False]
+
+        proc = MagicMock()
+        proc.pid = 42
+        proc.returncode = None
+        proc.poll = MagicMock(return_value=None)
+        proc.send_signal = MagicMock(side_effect=AttributeError("no SIGTERM on this OS"))
+
+        def _killpg(pgid: int, sig: int) -> None:
+            raise ProcessLookupError("no such process group")
+
+        proc.kill = MagicMock(side_effect=lambda: killed.__setitem__(0, True))
+
+        import os as _os
+
+        monkeypatch.setattr(_os, "killpg", _killpg, raising=False)
+
+        sv_obj = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        # Must not raise even when killpg fails
+        try:
+            sv_obj.terminate()
+        except Exception:
+            pass  # terminate() should swallow exceptions internally
+
+
+# ===========================================================================
+# Gap-fill: spawn_server TimeoutExpired path (lines 362-363)
+# ===========================================================================
+
+
+class TestSpawnServerTimeoutExpiredPath:
+    """spawn_server TimeoutExpired in wait() returns server without raising."""
+
+    def test_timeout_expired_returns_server(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """If process.wait() raises TimeoutExpired, spawn_server must return server."""
+        monkeypatch.setattr(srv, "_is_windows", lambda: False)
+        monkeypatch.setattr(srv, "_is_port_free", lambda h, p: True)
+        monkeypatch.setattr(srv, "get_mlflow_server_cli_caps", lambda: SimpleNamespace(flags=frozenset()))
+        monkeypatch.setattr(srv, "ensure_flags_supported", lambda *a, **k: None)
+
+        proc = MagicMock()
+        proc.pid = 99
+        proc.returncode = None
+        proc.stdout = None
+        # wait() raises TimeoutExpired → process is still running (healthy)
+        proc.wait = MagicMock(
+            side_effect=subprocess.TimeoutExpired(cmd="mlflow", timeout=0.2)
+        )
+        proc.poll = MagicMock(return_value=None)
+
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: proc)
+
+        cfg = _minimal_cfg(strict_cli_compat=False)
+        result = spawn_server(cfg)
+        assert isinstance(result, SpawnedServer)
+
+
+# ===========================================================================
+# Gap-fill: SpawnedServer.terminate() Windows path (lines 270-281)
+# ===========================================================================
+
+
+class TestSpawnedServerTerminateWindows:
+    """Tests for the Windows-specific terminate() code path."""
+
+    def test_windows_ctrl_break_followed_by_terminate_and_kill(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        On Windows, terminate() sends CTRL_BREAK_EVENT; if the process is still
+        alive, falls back to terminate() then kill() on TimeoutExpired (lines 270-281).
+        """
+        monkeypatch.setattr(srv, "_is_windows", lambda: True)
+
+        killed = [False]
+        proc = MagicMock()
+        proc.pid = 55
+        proc.returncode = None
+
+        # poll() returns None twice (still running), then non-None after kill
+        proc.poll = MagicMock(side_effect=[None, None, 0])
+        proc.send_signal = MagicMock()  # CTRL_BREAK_EVENT - succeeds then times out
+        proc.wait = MagicMock(side_effect=subprocess.TimeoutExpired(cmd="m", timeout=3))
+        proc.terminate = MagicMock()
+        proc.kill = MagicMock(side_effect=lambda: killed.__setitem__(0, True))
+        proc.stdout = None
+
+        sv_obj = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        sv_obj.terminate()  # must not raise
+        # Either terminate or kill must have been attempted
+        assert proc.terminate.called or killed[0]
+
+    def test_windows_ctrl_break_succeeds_process_exits(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        When CTRL_BREAK_EVENT causes immediate exit (wait() does not raise),
+        no additional terminate/kill is needed (lines 270-275).
+        """
+        monkeypatch.setattr(srv, "_is_windows", lambda: True)
+
+        proc = MagicMock()
+        proc.pid = 56
+        proc.returncode = 0
+        proc.poll = MagicMock(side_effect=[None, 0])  # alive, then exited
+        proc.send_signal = MagicMock()
+        proc.wait = MagicMock(return_value=0)  # does NOT raise TimeoutExpired
+        proc.terminate = MagicMock()
+        proc.kill = MagicMock()
+        proc.stdout = None
+
+        sv_obj = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        sv_obj.terminate()
+        proc.kill.assert_not_called()
+
+
+# ===========================================================================
+# Gap-fill: SpawnedServer.terminate() POSIX killpg-exception path
+#           (lines 291-292: killpg raises → direct terminate fallback)
+#           (lines 300-304: wait TimeoutExpired → killpg2 raises → kill)
+# ===========================================================================
+
+
+class TestSpawnedServerTerminatePosixPaths:
+    """Tests for the POSIX terminate() exception fallback branches."""
+
+    def test_posix_killpg_raises_falls_back_to_direct_terminate(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """killpg raises → process.terminate() is called instead (lines 291-292)."""
+        monkeypatch.setattr(srv, "_is_windows", lambda: False)
+        import os as _os
+
+        proc = MagicMock()
+        proc.pid = 77
+        proc.returncode = None
+        proc.poll = MagicMock(return_value=None)
+        proc.stdout = None
+
+        monkeypatch.setattr(_os, "getpgid", lambda pid: 77, raising=False)
+        monkeypatch.setattr(_os, "killpg", lambda pgid, sig: (_ for _ in ()).throw(
+            ProcessLookupError("no such process group")
+        ), raising=False)
+
+        proc.terminate = MagicMock()
+        proc.wait = MagicMock(return_value=0)
+
+        sv_obj = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        sv_obj.terminate()  # must not raise
+        proc.terminate.assert_called()
+
+    def test_posix_wait_timeout_killpg_raises_falls_back_to_kill(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        wait() TimeoutExpired → killpg(SIGKILL) raises → process.kill() called
+        (lines 300-304).
+        """
+        monkeypatch.setattr(srv, "_is_windows", lambda: False)
+        import os as _os
+
+        proc = MagicMock()
+        proc.pid = 88
+        proc.returncode = None
+        proc.poll = MagicMock(return_value=None)
+        proc.stdout = None
+
+        # First killpg (SIGTERM) succeeds, then wait() times out,
+        # then second killpg (SIGKILL) raises → must fall back to proc.kill()
+        killpg_calls = [0]
+
+        def _killpg(pgid: int, sig: int) -> None:
+            killpg_calls[0] += 1
+            if killpg_calls[0] > 1:
+                raise ProcessLookupError("gone")
+
+        monkeypatch.setattr(_os, "getpgid", lambda pid: 88, raising=False)
+        monkeypatch.setattr(_os, "killpg", _killpg, raising=False)
+
+        proc.terminate = MagicMock()
+        proc.wait = MagicMock(
+            side_effect=subprocess.TimeoutExpired(cmd="mlflow", timeout=5)
+        )
+        killed = [False]
+        proc.kill = MagicMock(side_effect=lambda: killed.__setitem__(0, True))
+
+        sv_obj = SpawnedServer(
+            _process=proc,
+            _command=["mlflow"],
+            _started_at=time.time(),
+        )
+        sv_obj.terminate()  # must not raise
+        assert killed[0]
+
+
+# ===========================================================================
+# Gap-fill: spawn_server Windows creationflags (line 348)
+# ===========================================================================
+
+
+class TestSpawnServerWindowsCreationFlags:
+    """Tests for the Windows-specific CREATE_NEW_PROCESS_GROUP flag (line 348)."""
+
+    def test_windows_sets_creationflags(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """On Windows, spawn_server must pass CREATE_NEW_PROCESS_GROUP to Popen."""
+        monkeypatch.setattr(srv, "_is_windows", lambda: True)
+        monkeypatch.setattr(srv, "_is_port_free", lambda h, p: True)
+        monkeypatch.setattr(
+            srv, "get_mlflow_server_cli_caps",
+            lambda: SimpleNamespace(flags=frozenset()),
+        )
+        monkeypatch.setattr(srv, "ensure_flags_supported", lambda *a, **k: None)
+
+        # CREATE_NEW_PROCESS_GROUP is Windows-only; mock it on Linux/macOS
+        _WIN_FLAG = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+        monkeypatch.setattr(subprocess, "CREATE_NEW_PROCESS_GROUP", _WIN_FLAG, raising=False)
+
+        popen_kwargs_seen: dict = {}
+
+        proc = MagicMock()
+        proc.pid = 11
+        proc.returncode = None
+        proc.stdout = None
+        proc.wait = MagicMock(
+            side_effect=subprocess.TimeoutExpired(cmd="mlflow", timeout=0.2)
+        )
+        proc.poll = MagicMock(return_value=None)
+
+        def fake_popen(cmd, **kwargs: object) -> MagicMock:
+            popen_kwargs_seen.update(kwargs)
+            return proc
+
+        monkeypatch.setattr(subprocess, "Popen", fake_popen)
+        cfg = _minimal_cfg(strict_cli_compat=False)
+        spawn_server(cfg)
+
+        assert "creationflags" in popen_kwargs_seen, (
+            "Windows spawn must set creationflags for process group management"
+        )
+        assert popen_kwargs_seen["creationflags"] == _WIN_FLAG

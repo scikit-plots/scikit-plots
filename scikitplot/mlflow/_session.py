@@ -37,6 +37,8 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "MlflowHandle",
     "session",
+    "session_from_file",
+    "session_from_toml",
 ]
 
 
