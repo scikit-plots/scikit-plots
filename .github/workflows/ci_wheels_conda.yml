@@ -427,7 +427,7 @@ jobs:
 
       - name: 🛠️ Windows ARM64 Setup (MSVC/Clang ← Visual Studio) (C++ Toolchain)  # MSVC → C/C++ compilation
         if: ${{ runner.os == 'Windows' && matrix.buildplat[2] == 'ARM64' }}
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce #v2.0.0
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 #v3.0.0
         with:
           # This ensures MSBuild/toolchain is available for ARM64 builds
           # x86 (default), x64, and arm64
@@ -578,7 +578,7 @@ jobs:
 
       - name: "📦 Build Wheels Packages"
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
-        uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e # v3.3.1
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           ## ✅ Method 2: Use pyproject.toml (Best for portability & reuse)
           ## Specify target platform
@@ -627,7 +627,7 @@ jobs:
 
       - name: "📦 Upload Wheelhouse Wheels Artifact(s) (.whl Packages)"
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: >-
             Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
@@ -796,7 +796,7 @@ jobs:
 
       - name: Upload Wheelhouse Wheels Packages
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: sdist
           path: ./dist/*.gz
@@ -903,14 +903,14 @@ jobs:
           fetch-tags: true
 
       - name: Build Wheels Packages
-        uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e # v3.3.1
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
         continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         continue-on-error: true
         with:
           name: cp312-pyodide_wasm32
