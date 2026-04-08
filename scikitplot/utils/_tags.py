@@ -18,9 +18,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Authors: The scikit-learn developers
-# SPDX-License-Identifier: BSD-3-Clause
-
 
 @dataclass(slots=True)
 class InputTags:

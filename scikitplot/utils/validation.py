@@ -7,6 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
+# codespell:ignore coo
 #
 # This module was copied from the scikit-learn project.
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/validation.py
@@ -39,7 +40,7 @@ from sklearn.exceptions import (
     NotFittedError,
     PositiveSpectrumWarning,
 )
-from sklearn.utils._array_api import (
+from .._array_api import (
     _asarray_with_order,
     _is_numpy_namespace,
     _max_precision_float_dtype,
@@ -47,10 +48,10 @@ from sklearn.utils._array_api import (
     get_namespace_and_device,
     move_to,
 )
-from sklearn.utils._dataframe import is_pandas_df, is_pandas_df_or_series
+from .._dataframe import is_pandas_df, is_pandas_df_or_series
 from sklearn.utils._isfinite import FiniteStatus, cy_isfinite
-from sklearn.utils._tags import get_tags
-from sklearn.utils.fixes import (
+from .._tags import get_tags
+from ..fixes import (
     ComplexWarning,
     _object_dtype_isnan,
     _preserve_dia_indices_dtype,
@@ -292,7 +293,7 @@ def as_float_array(X, *, copy=True, ensure_all_finite=True):
     ):
         return check_array(
             X,
-            accept_sparse=["csr", "csc", "coup"],
+            accept_sparse=["csr", "csc", "coo"],
             dtype=np.float64,
             copy=copy,
             ensure_all_finite=ensure_all_finite,
@@ -589,7 +590,7 @@ def _ensure_sparse_format(
            Accepts `pd.NA` and converts it into `np.nan`
 
     accept_large_sparse : bool
-        If a CSR, CSC, COUP or BSR sparse matrix is supplied and accepted by
+        If a CSR, CSC, COO or BSR sparse matrix is supplied and accepted by
         accept_sparse, accept_large_sparse will cause it to be accepted only
         if its indices are stored with a 32-bit dtype.
 
@@ -665,7 +666,7 @@ def _ensure_sparse_format(
             )
 
     # TODO: Remove when the minimum version of SciPy supported is 1.12
-    # With SciPy sparse arrays, conversion from DIA format to COUP, CSR, or BSR
+    # With SciPy sparse arrays, conversion from DIA format to COO, CSR, or BSR
     # triggers the use of `np.int64` indices even if the data is such that it could
     # be more efficiently represented with `np.int32` indices.
     # https://github.com/scipy/scipy/issues/19245 Since not all scikit-learn
@@ -781,7 +782,7 @@ def check_array(
         raise an error.
 
     accept_large_sparse : bool, default=True
-        If a CSR, CSC, COUP or BSR sparse matrix is supplied and accepted by
+        If a CSR, CSC, COO or BSR sparse matrix is supplied and accepted by
         accept_sparse, accept_large_sparse=False will cause it to be accepted
         only if its indices are stored with a 32-bit dtype.
 
@@ -1171,7 +1172,7 @@ def _check_large_sparse(X, accept_large_sparse=False):
     """Raise a ValueError if X has 64bit indices and accept_large_sparse=False"""
     if not accept_large_sparse:
         supported_indices = ["int32"]
-        if X.format == "coup":
+        if X.format == "coo":
             index_keys = ["col", "row"]
         elif X.format in ["csr", "csc", "bsr"]:
             index_keys = ["indices", "indptr"]
@@ -1233,7 +1234,7 @@ def check_X_y(
         raise an error.
 
     accept_large_sparse : bool, default=True
-        If a CSR, CSC, COUP or BSR sparse matrix is supplied and accepted by
+        If a CSR, CSC, COO or BSR sparse matrix is supplied and accepted by
         accept_sparse, accept_large_sparse will cause it to be accepted only
         if its indices are stored with a 32-bit dtype.
 
@@ -1575,8 +1576,8 @@ def check_symmetric(array, *, tol=1e-10, raise_warning=True, raise_exception=Fal
 
     if sp.issparse(array):
         diff = array - array.T
-        # only csr, csc, and coup have `data` attribute
-        if diff.format not in ["csr", "csc", "coup"]:
+        # only csr, csc, and coo have `data` attribute
+        if diff.format not in ["csr", "csc", "coo"]:
             diff = diff.tocsr()
         symmetric = np.all(abs(diff.data) < tol)
     else:

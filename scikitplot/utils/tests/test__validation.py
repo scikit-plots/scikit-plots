@@ -7,6 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
+# codespell:ignore coo,ser,copys  # cannot ignore an entire file.
 #
 # This module was copied from the scikit-learn project.
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/validation.py
@@ -362,10 +363,10 @@ def test_check_array_series_err_msg():
     https://github.com/scikit-learn/scikit-learn/issues/27498
     """
     pd = pytest.importorskip("pandas")
-    set = pd.Series([1, 2, 3])
-    msg = f"Expected a 2-dimensional container but got {type(set)} instead."
+    ser = pd.Series([1, 2, 3])
+    msg = f"Expected a 2-dimensional container but got {type(ser)} instead."
     with pytest.raises(ValueError, match=msg):
-        check_array(set, ensure_2d=True)
+        check_array(ser, ensure_2d=True)
 
 
 @pytest.mark.filterwarnings("ignore:Can't check dok sparse matrix for nan or inf")
@@ -410,9 +411,9 @@ def test_check_array():
     Xs = [X_C, X_F, X_int, X_float]
     dtypes = [np.int32, int, float, np.float32, None, bool, object]
     orders = ["C", "F", None]
-    copies = [True, False]
+    copys = [True, False]
 
-    for X, dtype, order, copy in product(Xs, dtypes, orders, copies):
+    for X, dtype, order, copy in product(Xs, dtypes, orders, copys):
         X_checked = check_array(X, dtype=dtype, order=order, copy=copy)
         if dtype is not None:
             assert X_checked.dtype == dtype
@@ -450,12 +451,12 @@ def test_check_array():
     )
     Xs.extend([Xs[0].astype(np.int64), Xs[0].astype(np.float64)])
 
-    accept_sparses = [["csr", "coup"], ["coup", "dok"]]
+    accept_sparses = [["csr", "coo"], ["coo", "dok"]]
     # scipy sparse matrices do not support the object dtype so
     # this dtype is skipped in this loop
     non_object_dtypes = [dt for dt in dtypes if dt is not object]
     for X, dtype, accept_sparse, copy in product(
-        Xs, non_object_dtypes, accept_sparses, copies
+        Xs, non_object_dtypes, accept_sparses, copys
     ):
         X_checked = check_array(X, dtype=dtype, accept_sparse=accept_sparse, copy=copy)
         if dtype is not None:
@@ -717,11 +718,11 @@ def test_check_array_accept_sparse_no_exception():
     check_array(X_csr, accept_sparse=("csr",))
 
 
-@pytest.fixture(params=["csr", "csc", "coup", "bsr"])
+@pytest.fixture(params=["csr", "csc", "coo", "bsr"])
 def X_64bit(request):
     X = _sparse_random_array((20, 10), format=request.param)
 
-    if request.param == "coup":
+    if request.param == "coo":
         if hasattr(X, "coords"):
             # for scipy >= 1.13 .coords is a new attribute and is a tuple. The
             # .col and .row attributes do not seem to be able to change the
@@ -886,7 +887,7 @@ def test_check_symmetric():
         "dok": sp.dok_array(arr_asym),
         "csr": sp.csr_array(arr_asym),
         "csc": sp.csc_array(arr_asym),
-        "coup": sp.coo_array(arr_asym),
+        "coo": sp.coo_array(arr_asym),
         "lil": sp.lil_array(arr_asym),
         "bsr": sp.bsr_array(arr_asym),
     }
@@ -1857,7 +1858,7 @@ def test_check_method_params(indices):
     )
 
 
-@pytest.mark.parametrize("sp_format", [True, "csr", "csc", "coup", "bsr"])
+@pytest.mark.parametrize("sp_format", [True, "csr", "csc", "coo", "bsr"])
 def test_check_sparse_pandas_sp_format(sp_format):
     # check_array converts pandas dataframe with only sparse arrays into
     # sparse matrix
@@ -1868,8 +1869,8 @@ def test_check_sparse_pandas_sp_format(sp_format):
     result = check_array(sdf, accept_sparse=sp_format)
 
     if sp_format is True:
-        # by default pandas converts to coup when accept_sparse is True
-        sp_format = "coup"
+        # by default pandas converts to coo when accept_sparse is True
+        sp_format = "coo"
 
     assert sp.issparse(result)
     assert result.format == sp_format
@@ -2248,7 +2249,7 @@ def test_num_samples_dataframe_protocol():
     "sparse_container",
     CSR_CONTAINERS + CSC_CONTAINERS + COO_CONTAINERS + DIA_CONTAINERS,
 )
-@pytest.mark.parametrize("output_format", ["csr", "csc", "coup"])
+@pytest.mark.parametrize("output_format", ["csr", "csc", "coo"])
 def test_check_array_dia_to_int32_indexed_csr_csc_coo(sparse_container, output_format):
     """Check the consistency of the indices dtype with sparse matrices/arrays."""
     X = sparse_container([[0, 1], [1, 0]], dtype=np.float64)
@@ -2256,14 +2257,14 @@ def test_check_array_dia_to_int32_indexed_csr_csc_coo(sparse_container, output_f
     # Explicitly set the dtype of the indexing arrays
     if hasattr(X, "offsets"):  # DIA matrix
         X.offsets = X.offsets.astype(np.int32)
-    elif hasattr(X, "row") and hasattr(X, "col"):  # COUP matrix
+    elif hasattr(X, "row") and hasattr(X, "col"):  # COO matrix
         X.row = X.row.astype(np.int32)
     elif hasattr(X, "indices") and hasattr(X, "indptr"):  # CSR or CSC matrix
         X.indices = X.indices.astype(np.int32)
         X.indptr = X.indptr.astype(np.int32)
 
     X_checked = check_array(X, accept_sparse=output_format)
-    if output_format == "coup":
+    if output_format == "coo":
         assert X_checked.row.dtype == np.int32
         assert X_checked.col.dtype == np.int32
     else:  # output_format in ["csr", "csc"]

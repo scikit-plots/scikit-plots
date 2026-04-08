@@ -7,6 +7,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
+# codespell:ignore coo
 #
 # This module was copied from the scikit-learn project.
 # https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/fixes.py

@@ -1,3 +1,5 @@
+# scikitplot/utils/_encode.py
+#
 # fmt: off
 # ruff: noqa
 # ruff: noqa: PGH004
@@ -5,7 +7,10 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
-
+#
+# This module was copied from the scikit-learn project.
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/_encode.py
+#
 # Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,8 +20,8 @@ from typing import NamedTuple
 
 import numpy as np
 
-from sklearn.utils._array_api import _isin, device, get_namespace, xpx
-from sklearn.utils._missing import is_scalar_nan
+from .._array_api import _isin, device, get_namespace, xpx
+from .._missing import is_scalar_nan
 
 
 def _unique(values, *, return_inverse=False, return_counts=False):

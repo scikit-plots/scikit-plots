@@ -1,9 +1,18 @@
 # scikitplot/utils/tests/test__missing.py
 #
-# flake8: noqa: D213
+# fmt: off
+# ruff: noqa
+# ruff: noqa: PGH004
+# flake8: noqa
+# pylint: skip-file
+# mypy: ignore-errors
+# type: ignore
+# codespell:ignore coo
 #
+# This module was copied from the scikit-learn project.
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/fixes.py
 #
-# Authors: The scikit-plots developers
+# Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
@@ -24,16 +33,9 @@ from __future__ import annotations
 import math
 import sys
 import unittest
+import pytest
 
 import numpy as np
-
-# --- path bootstrap (commented out — use pytest from the package root) -----
-# import pathlib
-# _HERE = pathlib.Path(__file__).resolve().parent
-# _PKG_ROOT = _HERE.parent.parent.parent
-# if str(_PKG_ROOT) not in sys.path:
-#     sys.path.insert(0, str(_PKG_ROOT))
-# --------------------------------------------------------------------------
 
 from .._missing import is_pandas_na, is_scalar_nan  # noqa: E402
 
@@ -45,6 +47,28 @@ from .._missing import is_pandas_na, is_scalar_nan  # noqa: E402
 
 class TestIsScalarNan(unittest.TestCase):
     """is_scalar_nan must detect NaN correctly for all numeric/non-numeric types."""
+
+    @pytest.mark.parametrize(
+        "value, result",
+        [
+            (float("nan"), True),
+            (np.nan, True),
+            (float(np.nan), True),
+            (np.float32(np.nan), True),
+            (np.float64(np.nan), True),
+            (0, False),
+            (0.0, False),
+            (None, False),
+            ("", False),
+            ("nan", False),
+            ([np.nan], False),
+            (9867966753463435747313673, False),  # Python int that overflows with C type
+        ],
+    )
+    def test_is_scalar_nan(value, result):
+        assert is_scalar_nan(value) is result
+        # make sure that we are returning a Python bool
+        assert isinstance(is_scalar_nan(value), bool)
 
     # -- True cases: should be NaN --
 
