@@ -10,7 +10,7 @@
 # codespell:ignore coo
 #
 # This module was copied from the scikit-learn project.
-# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/fixes.py
+# https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/utils/tests/test__missing.py
 #
 # Authors: The scikit-learn developers
 # SPDX-License-Identifier: BSD-3-Clause

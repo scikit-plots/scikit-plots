@@ -40,7 +40,7 @@ from sklearn.exceptions import (
     NotFittedError,
     PositiveSpectrumWarning,
 )
-from .._array_api import (
+from ._array_api import (
     _asarray_with_order,
     _is_numpy_namespace,
     _max_precision_float_dtype,
@@ -48,10 +48,10 @@ from .._array_api import (
     get_namespace_and_device,
     move_to,
 )
-from .._dataframe import is_pandas_df, is_pandas_df_or_series
+from ._dataframe import is_pandas_df, is_pandas_df_or_series
 from sklearn.utils._isfinite import FiniteStatus, cy_isfinite
-from .._tags import get_tags
-from ..fixes import (
+from ._tags import get_tags
+from ._fixes import (
     ComplexWarning,
     _object_dtype_isnan,
     _preserve_dia_indices_dtype,
