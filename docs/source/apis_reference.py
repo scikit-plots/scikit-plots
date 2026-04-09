@@ -1099,10 +1099,10 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     _get_guide("externals_-sphinx_ext_-sphinx_ai_assistant_-index")
                 ),
                 "autosummary": [
-                    "_sphinx_ext._sphinx_ai_assistant.add_ai_assistant_context",
-                    "_sphinx_ext._sphinx_ai_assistant.generate_llms_txt",
-                    "_sphinx_ext._sphinx_ai_assistant.generate_markdown_files",
-                    "_sphinx_ext._sphinx_ai_assistant.html_to_markdown",
+                    "_sphinx_ai_assistant.add_ai_assistant_context",
+                    "_sphinx_ai_assistant.generate_llms_txt",
+                    "_sphinx_ai_assistant.generate_markdown_files",
+                    "_sphinx_ai_assistant.html_to_markdown",
                 ],
             },
         ],
