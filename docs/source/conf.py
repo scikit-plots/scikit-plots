@@ -293,6 +293,8 @@ extensions = [
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
     "_sphinx_ext.sklearn_ext.search_filter",  # Custom extension
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
+    # scikitplot lib
+    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
 ]
 
 # %%
@@ -370,12 +372,12 @@ else:
 #         "hi"
 
 try:
-    import jupyter_sphinx  # noqa: F401  # pylint: disable=W0611
+    import jupyter_sphinx  # type: ignore[] # noqa: F401  # pylint: disable=W0611
 
     # https://jupyter-sphinx.readthedocs.io/en/latest/setup.html#enabling-the-extension
     extensions.append("jupyter_sphinx")
 
-    import jupyterlite_sphinx  # noqa: F401  # pylint: disable=W0611
+    import jupyterlite_sphinx  # type: ignore[] # noqa: F401  # pylint: disable=W0611
 
     # https://jupyterlite-sphinx.readthedocs.io/en/latest/installation.html
     extensions.append("jupyterlite_sphinx")
@@ -418,7 +420,7 @@ def _check_dependencies():
             ) from e
 
     # debug sphinx-pydata-theme and mpl-theme-version
-    import pydata_sphinx_theme
+    import pydata_sphinx_theme # type: ignore[]
 
     print(f"pydata sphinx theme : {pydata_sphinx_theme.__version__}")
     # import mpl_sphinx_theme
@@ -1661,6 +1663,7 @@ sass_targets = {
 # HTML context populated by the extension
 # --------------------------------------------------------------------
 
+# Required for edit-page button (if enabled above)
 # html_context for UI and templates
 # Adds Configuration Variables Directly from conf.py into templates
 # Pass the `repl_url` to the HTML context so it can be used in templates
@@ -1675,6 +1678,7 @@ html_context = {
     # "github_repo": "scikit-plots",
     # "github_version": "main",
     # "doc_path": "docs",
+
     # 'repl_url': repl_url,  # populated by the extension
     # "shell": {
     #   "intro": [
@@ -1695,6 +1699,129 @@ old_links_dict = {
 html_context["redirects"] = old_links_dict
 for old_link in old_links_dict:
     html_additional_pages[old_link] = "redirects.html"
+
+##########################################################################
+## Extension: scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant options
+##########################################################################
+
+# Base URL — used by llms.txt and AI provider prompt templates
+html_baseurl = "https://docs.example.com"
+
+# Where to render the AI-assistant button.
+# "sidebar"  → right sidebar, above the page TOC (works well with pydata)
+# "title"    → next to the page heading
+ai_assistant_position = "sidebar"
+
+# CSS selector used by the JavaScript widget to extract page content for
+# copy-as-Markdown and AI-chat features.
+#
+# pydata-sphinx-theme:  "article.bd-article"  or  'div[role="main"]'
+# Furo theme:           'article[role="main"]'
+# Alabaster / Classic:  "div.document"
+# Read the Docs theme:  'div[role="main"]'
+ai_assistant_content_selector = "article.bd-article"
+
+# Ordered list of CSS selectors the *build-time* Markdown generator probes
+# to locate the main content element in each HTML file.  The first selector
+# that matches is used.
+ai_assistant_content_selectors = [
+    "article.bd-article",      # pydata-sphinx-theme ≥ 0.13
+    'div[role="main"]',        # pydata-sphinx-theme (older), RTD
+    'article[role="main"]',    # Furo
+    "div.document",            # Classic / Alabaster
+    "main",                    # Generic HTML5
+    "div.body",                # Very old themes
+    "article",                 # Last-resort fallback
+]
+
+# Generate a ``.md`` companion for every ``.html`` file after the build.
+# Requires: pip install beautifulsoup4 markdownify
+ai_assistant_generate_markdown = True
+
+# Path substrings excluded from Markdown generation
+ai_assistant_markdown_exclude_patterns = [
+    "genindex",
+    "search",
+    "py-modindex",
+    "_sources",          # Sphinx source download files
+    "_static",           # Static assets have no readable prose
+]
+
+# Maximum number of parallel worker processes for Markdown generation.
+# None → auto-detect (CPU count, capped at 8).
+ai_assistant_max_workers = None
+
+# Write an llms.txt index file listing all generated .md page URLs.
+# See: https://llmstxt.org/
+ai_assistant_generate_llms_txt = True
+
+# Base URL prepended to .md paths in llms.txt.
+# Falls back to html_baseurl when empty.
+ai_assistant_base_url = ""  # use html_baseurl above
+
+ai_assistant_features = {
+    # Copy page content as Markdown to clipboard
+    "markdown_export": True,
+    # Open raw Markdown of the current page in a new browser tab
+    "view_markdown": True,
+    # Render deep-links to Claude / ChatGPT with page context
+    "ai_chat": True,
+    # Show MCP server installation buttons
+    "mcp_integration": False,
+}
+
+ai_assistant_providers = {
+    "claude": {
+        "enabled": True,
+        "label": "Ask Claude",
+        "description": "Ask Claude about this documentation page.",
+        "icon": "claude.svg",
+        "url_template": "https://claude.ai/new?q={prompt}",
+        "prompt_template": (
+            "Get familiar with the documentation at {url} "
+            "so I can ask questions about it."
+        ),
+    },
+    "chatgpt": {
+        "enabled": True,
+        "label": "Ask ChatGPT",
+        "description": "Ask ChatGPT about this documentation page.",
+        "icon": "chatgpt.svg",
+        "url_template": "https://chatgpt.com/?q={prompt}",
+        "prompt_template": (
+            "Get familiar with the documentation at {url} "
+            "so I can ask questions about it."
+        ),
+    },
+    # Uncomment to add Perplexity or any other AI chat service:
+    # "perplexity": {
+    #     "enabled": True,
+    #     "label": "Ask Perplexity",
+    #     "url_template": "https://www.perplexity.ai/?q={prompt}",
+    #     "prompt_template": "Explain this documentation page: {url}",
+    # },
+}
+
+ai_assistant_mcp_tools = {
+    "vscode": {
+        "enabled": False,                 # set True to show the VS Code button
+        "type": "vscode",
+        "label": "Connect to VS Code",
+        "description": "Install your MCP server directly into VS Code.",
+        "icon": "vscode.svg",
+        "server_name": "your-docs-mcp-server",
+        "server_url": "https://your-docs-mcp-server/sse",
+        "transport": "sse",               # "sse" or "stdio"
+    },
+    "claude_desktop": {
+        "enabled": False,                 # set True to show the Claude button
+        "type": "claude_desktop",
+        "label": "Connect to Claude",
+        "description": "Download and run the Claude MCP bundle.",
+        "icon": "claude.svg",
+        "mcpb_url": "https://docs.example.com/_static/your-mcpb-config.zip",
+    },
+}
 
 ##########################################################################
 ## Extension: Jupyter Sphinx options
@@ -1733,7 +1860,7 @@ jupyter_sphinx_thebelab_config = {
 # from _sphinx_ext.skplt_ext.sg_custom_sorting import (
 #   SubSectionTitleOrder, SKExampleTitleSortKey)
 
-from sphinx_gallery.sorting import (
+from sphinx_gallery.sorting import (  # type: ignore[]
     # ExampleTitleSortKey,
     # ExplicitOrder,
     FileNameSortKey,

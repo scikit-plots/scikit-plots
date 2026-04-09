@@ -225,6 +225,7 @@ commands:
 
             # pip install voyager==2.1.0
             pip install nltk
+            pip install beautifulsoup4 markdownify
 
             # ✅ It’s a distutils override conflict
             # pip install "setuptools>=69"

@@ -38,21 +38,39 @@ def _make_config(**overrides: Any) -> MagicMock:
     -------
     unittest.mock.MagicMock
         A mock with sensible defaults for all config values the extension reads.
+
+    Notes
+    -----
+    Keep this function in sync with every ``app.add_config_value`` call in
+    :func:`~scikitplot._externals._sphinx_ext._sphinx_ai_assistant.setup`.
+    Missing keys will cause ``MagicMock`` auto-attribute creation, which
+    returns a new MagicMock instance and can lead to subtle test failures.
     """
     cfg = MagicMock()
+    # Core toggles
     cfg.ai_assistant_enabled = True
     cfg.ai_assistant_position = "sidebar"
     cfg.ai_assistant_content_selector = "article"
+    # Content selectors
     cfg.ai_assistant_content_selectors = [
         "article.bd-article",
         'div[role="main"]',
         'article[role="main"]',
     ]
+    cfg.ai_assistant_theme_preset = None
+    # Markdown generation
     cfg.ai_assistant_generate_markdown = True
-    cfg.ai_assistant_markdown_exclude_patterns = ["genindex", "search", "py-modindex"]
+    cfg.ai_assistant_markdown_exclude_patterns = [
+        "genindex", "search", "py-modindex",
+    ]
+    cfg.ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
+    cfg.ai_assistant_max_workers = 1
+    # llms.txt generation
     cfg.ai_assistant_generate_llms_txt = True
     cfg.ai_assistant_base_url = ""
-    cfg.ai_assistant_max_workers = 1
+    cfg.ai_assistant_llms_txt_max_entries = None
+    cfg.ai_assistant_llms_txt_full_content = False
+    # Features
     cfg.ai_assistant_features = {
         "markdown_export": True,
         "view_markdown": True,
@@ -61,6 +79,7 @@ def _make_config(**overrides: Any) -> MagicMock:
     }
     cfg.ai_assistant_providers = {}
     cfg.ai_assistant_mcp_tools = {}
+    # Standard Sphinx values
     cfg.html_baseurl = ""
     cfg.html_static_path = []
     cfg.project = "TestProject"
@@ -119,6 +138,16 @@ def tmp_html_tree(tmp_path: Path):
     -------
     pathlib.Path
         Root of the temporary output directory containing sample HTML files.
+
+    Notes
+    -----
+    Tree layout::
+
+        html/
+        ├── index.html          — article[role="main"]
+        ├── genindex.html       — div[role="main"]  (excluded by default)
+        └── api/
+            └── module.html     — article.bd-article
     """
     outdir = tmp_path / "html"
     outdir.mkdir()
