@@ -5,6 +5,18 @@ corpus Knowledge and Information local .png with examples
 .. currentmodule:: scikitplot.corpus
 
 Examples related to the :py:mod:`~scikitplot.corpus` submodule.
+Demonstrates all four chunkers (WordChunker-by-document, WordChunker-by-sentence,
+SentenceChunker, FixedWindowChunker-chars, FixedWindowChunker-tokens) on an
+image file containing multi-script text extracted via OCR.
+
+Notes
+-----
+**User note:** Run from any working directory — paths are resolved relative
+to this script's location, not the caller's CWD.
+
+**Developer note:** ``FileLink`` / ``FileLinks`` (IPython display utilities)
+are guarded behind ``_IN_JUPYTER`` so this script executes correctly in
+plain Python, pytest, Docker CI, and notebook contexts alike.
 """
 
 # Authors: The scikit-plots developers
@@ -12,43 +24,93 @@ Examples related to the :py:mod:`~scikitplot.corpus` submodule.
 
 # %%
 
-import os
-import json
-import sys
-import textwrap
-from pathlib import Path
+from __future__ import annotations
 
-import scikitplot as sp
-from scikitplot import corpus
+import os
+import sys
+from pathlib import Path
+from pprint import pprint
+
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import pandas as pd
+
+import scikitplot as sp  # noqa: F401  (kept for side effects / version logging)
 from scikitplot.corpus import (
-    SourceType,
-    DocumentReader,
-    CorpusDocument,
     CorpusPipeline,
+    ExportFormat,
+    FixedWindowChunker,
+    FixedWindowChunkerConfig,
+    NLPEnricher,
+    EnricherConfig,
     SentenceBackend,
     SentenceChunker,
     SentenceChunkerConfig,
-    ExportFormat,
-    EnricherConfig,
-    NLPEnricher,
-    WordChunkerConfig,
+    SourceType,
     StemmingBackend,
-    LemmatizationBackend,
-    WordChunker,
-    FixedWindowChunkerConfig,
-    FixedWindowChunker,
     StopwordSource,
-    WindowUnit,
     TokenizerBackend,
+    LemmatizationBackend,
+    WindowUnit,
+    WordChunker,
+    WordChunkerConfig,
 )
 
-# %%
-# 1. Word chunker by document
-# ----------------------------------------
-# via :class:`CorpusPipeline`
+# ---------------------------------------------------------------------------
+# Path resolution — always relative to this file, not caller's CWD.
+# ---------------------------------------------------------------------------
 
-pipeline_zip = CorpusPipeline(
-    chunker=WordChunker(
+_SCRIPT_DIR: Path = Path(__file__).resolve().parent
+_DATA_DIR: Path = _SCRIPT_DIR / "data"
+_OUTPUT_DIR: Path = _SCRIPT_DIR / "output"
+_IMAGE_PATH: Path = _DATA_DIR / "echo_of_the_wise" / "AI_Generated_Image_1ix.png"
+
+# Detect Jupyter environment once — used to guard IPython display utilities.
+_IN_JUPYTER: bool = "ipykernel" in sys.modules
+
+# ---------------------------------------------------------------------------
+# Helper: build a pipeline and run it on the shared image path.
+# ---------------------------------------------------------------------------
+
+
+def _run(chunker: object, label: str) -> object:
+    """Build a CorpusPipeline, run it, print head, return result.
+
+    Parameters
+    ----------
+    chunker : object
+        An instantiated chunker (WordChunker, SentenceChunker, etc.).
+    label : str
+        Human-readable label printed before the CSV head.
+
+    Returns
+    -------
+    object
+        The pipeline run result (carries ``output_path`` and ``source``).
+    """
+    pipeline = CorpusPipeline(
+        chunker=chunker,
+        output_dir=_OUTPUT_DIR,
+        export_format=ExportFormat.CSV,
+    )
+    result = pipeline.run(_IMAGE_PATH)
+
+    print(f"\n{'=' * 60}")
+    print(label)
+    print("=" * 60)
+    df = pd.read_csv(result.output_path)
+    pprint(df.head().to_dict())
+    return result
+
+
+# %%
+# 1. Word chunker — chunk_by="document"
+# ---------------------------------------
+# One chunk per image (all OCR text joined as a single document).
+# Demonstrates PORTER stemming + BUILTIN stopwords.
+
+result_word_doc = _run(
+    WordChunker(
         WordChunkerConfig(
             chunk_by="document",
             stemmer=StemmingBackend.PORTER,
@@ -59,30 +121,20 @@ pipeline_zip = CorpusPipeline(
             lowercase=True,
             remove_punctuation=True,
             min_token_length=2,
-            ngram_range=(1,1),
+            ngram_range=(1, 1),
         )
     ),
-    output_dir=Path("output/"),
-    export_format=ExportFormat.CSV,
+    label="Word chunker — chunk_by='document' (PORTER stemming)",
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
-result_zip
 
 # %%
-
-import pandas as pd
-from pprint import pprint
-
-print("Word chunker by document")
-pprint(pd.read_csv(result_zip.output_path).head().to_dict())
-
-# %%
-# 1. Word chunker by sentence
+# 2. Word chunker — chunk_by="sentence"
 # ----------------------------------------
-# via :class:`CorpusPipeline`
+# One chunk per sentence, each tokenised separately.
+# Demonstrates SNOWBALL stemming on English text.
 
-pipeline_zip = CorpusPipeline(
-    chunker=WordChunker(
+result_word_sent = _run(
+    WordChunker(
         WordChunkerConfig(
             chunk_by="sentence",
             stemmer=StemmingBackend.SNOWBALL,
@@ -93,120 +145,85 @@ pipeline_zip = CorpusPipeline(
             lowercase=True,
             remove_punctuation=True,
             min_token_length=2,
-            ngram_range=(1,1),
+            ngram_range=(1, 1),
         )
     ),
-    output_dir=Path("output/"),
-    export_format=ExportFormat.CSV,
+    label="Word chunker — chunk_by='sentence' (SNOWBALL stemming)",
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
-result_zip
 
 # %%
+# 3. Sentence chunker (NLTK backend)
+# ------------------------------------
+# Splits OCR text into individual sentences; preserves raw text with offsets.
 
-import pandas as pd
-from pprint import pprint
-
-print("Word chunker by sentence")
-pprint(pd.read_csv(result_zip.output_path).head().to_dict())
-
-# %%
-# 2. Sentence chunker
-# ----------------------------------------
-# via :class:`CorpusPipeline`
-
-pipeline_zip = CorpusPipeline(
-    chunker=SentenceChunker(
+result_sentence = _run(
+    SentenceChunker(
         SentenceChunkerConfig(
             backend=SentenceBackend.NLTK,
             nltk_language="english",
             strip_whitespace=True,
             include_offsets=True,
-        ),
+        )
     ),
-    output_dir=Path("output/"),
-    export_format=ExportFormat.CSV,
+    label="Sentence chunker (NLTK backend)",
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
-result_zip
 
 # %%
+# 4. Fixed Window chunker — unit=CHARS
+# --------------------------------------
+# Splits by character count regardless of word/sentence boundaries.
 
-import pandas as pd
-from pprint import pprint
-
-print("Sentence chunker")
-pprint(pd.read_csv(result_zip.output_path).head().to_dict())
-
-# %%
-# 3. Fixed Window chunker by chars
-# ----------------------------------------
-# via :class:`CorpusPipeline`
-
-pipeline_zip = CorpusPipeline(
-    chunker=FixedWindowChunker(
+result_fw_chars = _run(
+    FixedWindowChunker(
         FixedWindowChunkerConfig(
             unit=WindowUnit.CHARS,
+            window_size=512,
+            step_size=256,
             min_length=10,
         )
     ),
-    output_dir=Path("output/"),
-    export_format=ExportFormat.CSV,
+    label="Fixed Window chunker — unit=CHARS (window=512, step=256)",
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
-result_zip
 
 # %%
-
-import pandas as pd
-from pprint import pprint
-
-print("Fixed Window chunker by chars")
-pprint(pd.read_csv(result_zip.output_path).head().to_dict())
-
-# %%
-# 3. Fixed Window chunker by tokens
+# 5. Fixed Window chunker — unit=TOKENS
 # ----------------------------------------
-# via :class:`CorpusPipeline`
+# Splits by whitespace-delimited token count.
+# CJK text is auto-handled via character-level fallback.
 
-pipeline_zip = CorpusPipeline(
-    chunker=FixedWindowChunker(
+result_fw_tokens = _run(
+    FixedWindowChunker(
         FixedWindowChunkerConfig(
             unit=WindowUnit.TOKENS,
+            window_size=64,
+            step_size=32,
             min_length=10,
         )
     ),
-    output_dir=Path("output/"),
-    export_format=ExportFormat.CSV,
+    label="Fixed Window chunker — unit=TOKENS (window=64, step=32)",
 )
-result_zip = pipeline_zip.run(Path("data/echo_of_the_wise/AI_Generated_Image_1ix.png"))
-result_zip
 
 # %%
+# Display the source image
+# --------------------------
+# Renders inline in Jupyter; opens a matplotlib window otherwise.
 
-import pandas as pd
-from pprint import pprint
+print(f"\nSource image: {result_fw_tokens.source}")
 
-print("Fixed Window chunker by tokens")
-pprint(pd.read_csv(result_zip.output_path).head().to_dict())
+if _IN_JUPYTER:
+    # IPython display utilities — only import inside Jupyter to avoid
+    # ImportError in plain Python / CI environments.
+    from IPython.display import FileLink  # noqa: PLC0415
 
-# %%
+    display(FileLink(str(result_fw_tokens.source)))  # noqa: F821
 
-from IPython.display import FileLink, FileLinks
-
-# Replace 'path/to/your_file.csv' with your actual file path
-FileLink(result_zip.source)
-
-# %%
-
-# import matplotlib.pyplot as plt
-# import matplotlib.image as mpimg
-
-# plt.figure(dpi=300)  # Set DPI to 150
-# img = mpimg.imread(result_zip.source)
-# plt.imshow(img)
-# plt.axis('off')  # hides axes
-# plt.show()
+plt.figure(figsize=(8, 8), dpi=150)
+img = mpimg.imread(result_fw_tokens.source)
+plt.imshow(img)
+plt.axis("off")
+plt.title("Source image (OCR input)", fontsize=12)
+plt.tight_layout()
+plt.show()
 
 # %%
 #

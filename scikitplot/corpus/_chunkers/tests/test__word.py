@@ -455,3 +455,320 @@ class TestPureHelpers:
         )
         assert "the" not in out
         assert "fox" in out
+
+
+# ---------------------------------------------------------------------------
+# _to_gensim_bow — direct unit test
+# ---------------------------------------------------------------------------
+
+
+class TestToGensimBow:
+    """Direct tests for ``_to_gensim_bow``."""
+
+    def test_to_gensim_bow_produces_bow_vector(self) -> None:
+        """BoW vector must be a list of (int, int) tuples."""
+        try:
+            from gensim.corpora import Dictionary  # type: ignore[import-untyped]
+        except ImportError:
+            pytest.skip("gensim not installed")
+
+        from .._word import _to_gensim_bow  # noqa: PLC0415
+
+        tokens = ["cat", "dog", "cat"]
+        dictionary = Dictionary([tokens])
+        bow = _to_gensim_bow(tokens, dictionary)
+        assert isinstance(bow, list)
+        assert all(isinstance(item, tuple) and len(item) == 2 for item in bow)
+        counts = dict(bow)
+        # "cat" appears twice — count must be 2
+        cat_id = dictionary.token2id["cat"]
+        assert counts[cat_id] == 2
+
+    def test_to_gensim_bow_empty_tokens(self) -> None:
+        """Empty token list must produce an empty BoW vector."""
+        try:
+            from gensim.corpora import Dictionary  # type: ignore[import-untyped]
+        except ImportError:
+            pytest.skip("gensim not installed")
+
+        from .._word import _to_gensim_bow  # noqa: PLC0415
+
+        dictionary = Dictionary([["hello"]])
+        bow = _to_gensim_bow([], dictionary)
+        assert bow == []
+
+
+# ---------------------------------------------------------------------------
+# _resolve_custom_tokenizer / _resolve_custom_stemmer / _resolve_custom_lemmatizer
+# ---------------------------------------------------------------------------
+
+
+class TestResolveCustomHelpers:
+    """Direct tests for the three _resolve_custom_* helpers."""
+
+    def test_resolve_custom_tokenizer_none_raises_value_error(self) -> None:
+        """``custom_tokenizer=None`` must raise ``ValueError``."""
+        from .._word import TokenizerBackend, WordChunkerConfig, _resolve_custom_tokenizer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            tokenizer=TokenizerBackend.CUSTOM,
+            custom_tokenizer=None,
+        )
+        with pytest.raises(ValueError, match="custom_tokenizer"):
+            _resolve_custom_tokenizer(cfg)
+
+    def test_resolve_custom_tokenizer_raw_callable_wraps_in_function_tokenizer(
+        self,
+    ) -> None:
+        """A plain callable must be auto-wrapped in FunctionTokenizer."""
+        from .._custom_tokenizer import FunctionTokenizer  # noqa: PLC0415
+        from .._word import TokenizerBackend, WordChunkerConfig, _resolve_custom_tokenizer  # noqa: PLC0415
+
+        fn = lambda text: text.split()  # noqa: E731
+        cfg = WordChunkerConfig(
+            tokenizer=TokenizerBackend.CUSTOM,
+            custom_tokenizer=fn,
+        )
+        result = _resolve_custom_tokenizer(cfg)
+        assert isinstance(result, FunctionTokenizer)
+
+    def test_resolve_custom_tokenizer_non_protocol_raises_type_error(self) -> None:
+        """Non-callable, non-protocol object must raise TypeError."""
+        from .._word import TokenizerBackend, WordChunkerConfig, _resolve_custom_tokenizer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            tokenizer=TokenizerBackend.CUSTOM,
+            custom_tokenizer=42,  # type: ignore[arg-type]
+        )
+        with pytest.raises(TypeError, match="TokenizerProtocol"):
+            _resolve_custom_tokenizer(cfg)
+
+    def test_resolve_custom_stemmer_none_raises_value_error(self) -> None:
+        """``custom_stemmer=None`` must raise ``ValueError``."""
+        from .._word import StemmingBackend, WordChunkerConfig, _resolve_custom_stemmer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            stemmer=StemmingBackend.CUSTOM,
+            custom_stemmer=None,
+        )
+        with pytest.raises(ValueError, match="custom_stemmer"):
+            _resolve_custom_stemmer(cfg)
+
+    def test_resolve_custom_stemmer_raw_callable_wraps(self) -> None:
+        """A plain callable stemmer must be auto-wrapped in FunctionStemmer."""
+        from .._custom_tokenizer import FunctionStemmer  # noqa: PLC0415
+        from .._word import StemmingBackend, WordChunkerConfig, _resolve_custom_stemmer  # noqa: PLC0415
+
+        fn = lambda w: w[:4]  # noqa: E731
+        cfg = WordChunkerConfig(
+            stemmer=StemmingBackend.CUSTOM,
+            custom_stemmer=fn,
+        )
+        result = _resolve_custom_stemmer(cfg)
+        assert isinstance(result, FunctionStemmer)
+
+    def test_resolve_custom_stemmer_non_protocol_raises_type_error(self) -> None:
+        """Non-callable, non-protocol object must raise TypeError."""
+        from .._word import StemmingBackend, WordChunkerConfig, _resolve_custom_stemmer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            stemmer=StemmingBackend.CUSTOM,
+            custom_stemmer="not_a_stemmer",  # type: ignore[arg-type]
+        )
+        with pytest.raises(TypeError, match="StemmerProtocol"):
+            _resolve_custom_stemmer(cfg)
+
+    def test_resolve_custom_lemmatizer_none_raises_value_error(self) -> None:
+        """``custom_lemmatizer=None`` must raise ``ValueError``."""
+        from .._word import LemmatizationBackend, WordChunkerConfig, _resolve_custom_lemmatizer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            lemmatizer=LemmatizationBackend.CUSTOM,
+            custom_lemmatizer=None,
+        )
+        with pytest.raises(ValueError, match="custom_lemmatizer"):
+            _resolve_custom_lemmatizer(cfg)
+
+    def test_resolve_custom_lemmatizer_raw_callable_wraps(self) -> None:
+        """A plain callable lemmatizer must be auto-wrapped in FunctionLemmatizer."""
+        from .._custom_tokenizer import FunctionLemmatizer  # noqa: PLC0415
+        from .._word import LemmatizationBackend, WordChunkerConfig, _resolve_custom_lemmatizer  # noqa: PLC0415
+
+        fn = lambda w: w.lower()  # noqa: E731
+        cfg = WordChunkerConfig(
+            lemmatizer=LemmatizationBackend.CUSTOM,
+            custom_lemmatizer=fn,
+        )
+        result = _resolve_custom_lemmatizer(cfg)
+        assert isinstance(result, FunctionLemmatizer)
+
+    def test_resolve_custom_lemmatizer_non_protocol_raises_type_error(self) -> None:
+        """Non-callable, non-protocol object must raise TypeError."""
+        from .._word import LemmatizationBackend, WordChunkerConfig, _resolve_custom_lemmatizer  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(
+            lemmatizer=LemmatizationBackend.CUSTOM,
+            custom_lemmatizer=99,  # type: ignore[arg-type]
+        )
+        with pytest.raises(TypeError, match="LemmatizerProtocol"):
+            _resolve_custom_lemmatizer(cfg)
+
+
+# ---------------------------------------------------------------------------
+# WordChunker constructor — edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestWordChunkerConstructor:
+    """WordChunker constructor and config-property coverage."""
+
+    def test_default_config_is_word_chunker_config(self) -> None:
+        """Default constructor must produce a ``WordChunkerConfig`` instance."""
+        from .._word import WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker()
+        assert isinstance(chunker._cfg, WordChunkerConfig)
+
+    def test_custom_config_stored(self) -> None:
+        """Provided config must be stored and accessible."""
+        from .._word import TokenizerBackend, WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        cfg = WordChunkerConfig(tokenizer=TokenizerBackend.SIMPLE, min_token_length=3)
+        chunker = WordChunker(cfg)
+        assert chunker._cfg is cfg
+
+    def test_remove_numbers_filters_numeric_tokens(self) -> None:
+        """Setting ``remove_numbers=True`` must drop purely numeric tokens."""
+        from .._word import WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(WordChunkerConfig(remove_numbers=True))
+        result = chunker.chunk("There are 42 cats and 7 dogs.")
+        tokens = result.chunks[0].metadata["tokens"]
+        assert "42" not in tokens
+        assert "7" not in tokens
+
+    def test_max_token_length_filters_long_tokens(self) -> None:
+        """``max_token_length`` must discard tokens exceeding the limit."""
+        from .._word import WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(WordChunkerConfig(max_token_length=4))
+        result = chunker.chunk("cat hippopotamus dog")
+        tokens = result.chunks[0].metadata["tokens"]
+        assert "hippopotamus" not in tokens
+        assert "cat" in tokens
+
+    def test_include_offsets_true_sets_nonzero_start(self) -> None:
+        """When offsets are enabled, at least one chunk should have start=0."""
+        from .._word import WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(WordChunkerConfig(include_offsets=True))
+        result = chunker.chunk("Hello world test.")
+        # Offsets enabled — start_char of first chunk must be 0
+        assert result.chunks[0].start_char == 0
+
+
+# ---------------------------------------------------------------------------
+# Lancaster stemmer path in _get_stemmer
+# ---------------------------------------------------------------------------
+
+
+class TestLancasterStemmer:
+    """Cover the LANCASTER branch of ``_get_stemmer``."""
+
+    def test_lancaster_stems_tokens(self) -> None:
+        """LANCASTER backend must stem tokens without error."""
+        try:
+            import nltk  # noqa: F401
+        except ImportError:
+            pytest.skip("nltk not installed")
+
+        from .._word import StemmingBackend, WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(
+            WordChunkerConfig(stemmer=StemmingBackend.LANCASTER)
+        )
+        result = chunker.chunk("The cats are running quickly.")
+        tokens = result.chunks[0].metadata["tokens"]
+        assert isinstance(tokens, list)
+        assert len(tokens) > 0
+
+    def test_lancaster_stemmer_key_in_metadata(self) -> None:
+        """Metadata must report the stemmer backend used."""
+        try:
+            import nltk  # noqa: F401
+        except ImportError:
+            pytest.skip("nltk not installed")
+
+        from .._word import StemmingBackend, WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(
+            WordChunkerConfig(stemmer=StemmingBackend.LANCASTER)
+        )
+        result = chunker.chunk("Running quickly across fields.")
+        assert result.chunks[0].metadata["stemmer"] == "lancaster"
+
+
+# ---------------------------------------------------------------------------
+# chunk_batch with extra_metadata
+# ---------------------------------------------------------------------------
+
+
+class TestChunkBatchExtraMetadata:
+    """Verify extra_metadata propagation in WordChunker.chunk_batch."""
+
+    def test_extra_metadata_present_in_all_results(
+        self, default_chunker: WordChunker
+    ) -> None:
+        """extra_metadata keys must appear in every batch result's metadata."""
+        texts = [TEXT, SHORT_TEXT]
+        extra = {"pipeline": "batch_test", "run_id": 7}
+        results = default_chunker.chunk_batch(texts, extra_metadata=extra)
+        for r in results:
+            assert r.metadata.get("pipeline") == "batch_test"
+            assert r.metadata.get("run_id") == 7
+
+    def test_batch_preserves_doc_ids_with_extra_metadata(
+        self, default_chunker: WordChunker
+    ) -> None:
+        """doc_ids and extra_metadata must co-exist in batch output."""
+        texts = [TEXT, SHORT_TEXT]
+        results = default_chunker.chunk_batch(
+            texts,
+            doc_ids=["d1", "d2"],
+            extra_metadata={"version": 1},
+        )
+        assert results[0].metadata["doc_id"] == "d1"
+        assert results[1].metadata["doc_id"] == "d2"
+        for r in results:
+            assert r.metadata["version"] == 1
+
+
+# ---------------------------------------------------------------------------
+# _process_tokens — advanced branches
+# ---------------------------------------------------------------------------
+
+
+class TestProcessTokensAdvanced:
+    """Cover unchecked branches in ``_process_tokens``."""
+
+    def test_no_lowercase_preserves_case(self) -> None:
+        """``lowercase=False`` must preserve token casing."""
+        from .._word import WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(WordChunkerConfig(lowercase=False, remove_punctuation=False))
+        result = chunker.chunk("Hello World")
+        tokens = result.chunks[0].metadata["tokens"]
+        # At least one capitalised token must survive
+        assert any(t[0].isupper() for t in tokens if t)
+
+    def test_stopwords_none_disables_filtering(self) -> None:
+        """``StopwordSource.NONE`` must disable all stopword filtering."""
+        from .._word import StopwordSource, WordChunker, WordChunkerConfig  # noqa: PLC0415
+
+        chunker = WordChunker(
+            WordChunkerConfig(stopwords=StopwordSource.NONE, min_token_length=1)
+        )
+        result = chunker.chunk("the cat sat on the mat")
+        tokens = result.chunks[0].metadata["tokens"]
+        # "the" should survive because stopwords are disabled
+        assert "the" in tokens

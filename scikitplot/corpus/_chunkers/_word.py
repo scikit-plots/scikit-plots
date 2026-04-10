@@ -25,11 +25,25 @@ from __future__ import annotations
 import logging
 import re
 import string
+import unicodedata
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
-from typing import Any, Final
+from typing import Any, Callable, Final, List, Optional, Union  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
+from ._custom_tokenizer import (
+    FunctionLemmatizer,
+    FunctionStemmer,
+    FunctionTokenizer,
+    LemmatizerProtocol,
+    StemmerProtocol,
+    TokenizerProtocol,
+)
+from ._language_data import (  # noqa: F401
+    NLTK_STOPWORD_LANGUAGES,
+    coerce_language,
+    resolve_stopwords,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +61,30 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 _WHITESPACE_RE: Final[re.Pattern[str]] = re.compile(r"\s+")
-_PUNCT_TABLE: Final[dict[int, None]] = str.maketrans("", "", string.punctuation)
+_PUNCT_TABLE: Final[dict] = str.maketrans("", "", string.punctuation)
+
+# Snowball supports a fixed set of languages; guard against silent crashes.
+# Source: nltk.stem.snowball.SnowballStemmer.languages (NLTK 3.x)
+_SNOWBALL_SUPPORTED_LANGUAGES: Final[frozenset] = frozenset(
+    [
+        "arabic",
+        "danish",
+        "dutch",
+        "english",
+        "finnish",
+        "french",
+        "german",
+        "hungarian",
+        "italian",
+        "norwegian",
+        "porter",
+        "portuguese",
+        "romanian",
+        "russian",
+        "spanish",
+        "swedish",
+    ]
+)
 
 # Minimal built-in English stopword set (no external deps required).
 _BUILTIN_STOPWORDS: Final[frozenset[str]] = frozenset(
@@ -160,28 +197,81 @@ _BUILTIN_STOPWORDS: Final[frozenset[str]] = frozenset(
 
 
 class TokenizerBackend(str, Enum):
-    """Word tokenisation backend."""
+    """Word tokenisation backend.
 
-    SIMPLE = "simple"  # regex whitespace + punctuation strip (no deps)
-    NLTK = "nltk"  # nltk.word_tokenize
-    SPACY = "spacy"  # spacy tokenizer
+    Values
+    ------
+    SIMPLE
+        Regex whitespace split + ASCII punctuation strip.  No external deps.
+    NLTK
+        ``nltk.word_tokenize``.  Requires ``nltk`` and ``punkt_tab`` data.
+    SPACY
+        spaCy pipeline tokenizer.  Requires ``spacy`` and a loaded model.
+    CUSTOM
+        User-supplied :class:`~._custom_tokenizer.TokenizerProtocol` or
+        ``Callable[[str], list[str]]`` stored in
+        :attr:`WordChunkerConfig.custom_tokenizer`.
+        Use this to plug in MeCab (Japanese), jieba (Chinese),
+        camel-tools (Arabic/Ottoman), stanza (100+ languages), or any
+        HuggingFace / third-party tokenizer.
+    """
+
+    SIMPLE = "simple"
+    NLTK = "nltk"
+    SPACY = "spacy"
+    CUSTOM = "custom"
 
 
 class StemmingBackend(str, Enum):
-    """Stemming algorithm."""
+    """Stemming algorithm.
+
+    Values
+    ------
+    NONE
+        No stemming applied.
+    PORTER
+        NLTK PorterStemmer — English only.
+    SNOWBALL
+        NLTK SnowballStemmer — English, German, French, Spanish, Dutch,
+        Portuguese, Italian, Swedish, Norwegian, Danish, Finnish, Russian,
+        Hungarian, Romanian.  Unsupported languages raise ``ValueError``
+        at construction time.
+    LANCASTER
+        NLTK LancasterStemmer — English only, aggressive.
+    CUSTOM
+        User-supplied :class:`~._custom_tokenizer.StemmerProtocol` or
+        ``Callable[[str], str]`` stored in
+        :attr:`WordChunkerConfig.custom_stemmer`.
+    """
 
     NONE = "none"
-    PORTER = "porter"  # nltk PorterStemmer
-    SNOWBALL = "snowball"  # nltk SnowballStemmer
-    LANCASTER = "lancaster"  # nltk LancasterStemmer
+    PORTER = "porter"
+    SNOWBALL = "snowball"
+    LANCASTER = "lancaster"
+    CUSTOM = "custom"
 
 
 class LemmatizationBackend(str, Enum):
-    """Lemmatization backend."""
+    """Lemmatization backend.
+
+    Values
+    ------
+    NONE
+        No lemmatization applied.
+    NLTK_WORDNET
+        NLTK WordNetLemmatizer — English only.
+    SPACY
+        spaCy ``.lemma_`` — language depends on loaded model.
+    CUSTOM
+        User-supplied :class:`~._custom_tokenizer.LemmatizerProtocol` or
+        ``Callable[[str, Optional[str]], str]`` stored in
+        :attr:`WordChunkerConfig.custom_lemmatizer`.
+    """
 
     NONE = "none"
-    NLTK_WORDNET = "nltk_wordnet"  # nltk WordNetLemmatizer
-    SPACY = "spacy"  # spacy .lemma_
+    NLTK_WORDNET = "nltk_wordnet"
+    SPACY = "spacy"
+    CUSTOM = "custom"
 
 
 class StopwordSource(str, Enum):
@@ -206,14 +296,28 @@ class WordChunkerConfig(ChunkerConfig):
     ----------
     tokenizer : TokenizerBackend
         Word tokenisation strategy.
+    custom_tokenizer : TokenizerProtocol or Callable[[str], list[str]] or None
+        User-supplied tokenizer used when ``tokenizer=TokenizerBackend.CUSTOM``.
+        Accepts any object satisfying :class:`~._custom_tokenizer.TokenizerProtocol`
+        *or* a plain callable.  Callables are auto-wrapped in
+        :class:`~._custom_tokenizer.FunctionTokenizer`.
+        Example libraries: MeCab, jieba, camel-tools, Stanza, HuggingFace.
     stemmer : StemmingBackend
         Stemming algorithm.  Applied after lowercasing, before stopword
         removal.  Mutually exclusive with *lemmatizer* (stemmer takes
         precedence when both are not ``NONE``).
+    custom_stemmer : StemmerProtocol or Callable[[str], str] or None
+        User-supplied stemmer used when ``stemmer=StemmingBackend.CUSTOM``.
     lemmatizer : LemmatizationBackend
         Lemmatization backend.  Applied when *stemmer* is ``NONE``.
+    custom_lemmatizer : LemmatizerProtocol or Callable or None
+        User-supplied lemmatizer used when
+        ``lemmatizer=LemmatizationBackend.CUSTOM``.
     stopwords : StopwordSource
         Source of stopword list used for filtering.
+    custom_stopwords : frozenset[str] or None
+        Additional stopwords merged with the source list.  Lowercasing
+        is applied before membership testing, so case does not matter.
     spacy_model : str or None
         spaCy model name. Required for ``SPACY`` tokenizer/lemmatizer.
     nltk_language : str
@@ -221,7 +325,13 @@ class WordChunkerConfig(ChunkerConfig):
     lowercase : bool
         Convert all tokens to lowercase before processing.
     remove_punctuation : bool
-        Strip punctuation-only tokens.
+        Strip ASCII punctuation-only tokens.
+    strip_unicode_punctuation : bool
+        Strip *all* Unicode punctuation from tokens (superset of
+        *remove_punctuation*).  Handles CJK punctuation (``。！？``),
+        Arabic punctuation (``،؟``), and all other ``unicodedata``
+        ``P*`` category characters.  When ``True``, *remove_punctuation*
+        is implicitly satisfied and need not be set separately.
     remove_numbers : bool
         Drop tokens that are purely numeric.
     min_token_length : int
@@ -241,20 +351,56 @@ class WordChunkerConfig(ChunkerConfig):
     build_gensim_corpus : bool
         If ``True``, attach a ``gensim``-compatible ``(token_id, count)``
         BoW representation to each chunk's metadata (requires Gensim).
-    """
+
+    Notes
+    -----
+    **User note (multi-language):** For CJK text, set
+    ``tokenizer=TokenizerBackend.CUSTOM`` with a character-level or
+    morpheme-level tokenizer (jieba, MeCab, kss).  Set
+    ``remove_punctuation=False, strip_unicode_punctuation=True`` to
+    strip CJK punctuation without removing ideographs.
+
+    For Arabic / Ottoman / Persian, use ``tokenizer=TokenizerBackend.CUSTOM``
+    with camel-tools or Stanza.  Set ``nltk_language="arabic"`` when using
+    NLTK stopwords.
+
+    **Developer note:** Callable fields (``custom_tokenizer``,
+    ``custom_stemmer``, ``custom_lemmatizer``) are excluded from ``__hash__``
+    and ``__eq__`` (``hash=False, compare=False``) so that two configs with
+    identical settings but different callable objects are treated as equal
+    for caching purposes.  Compare callables explicitly when identity matters.
+    """  # noqa: D205, RUF002
 
     tokenizer: TokenizerBackend = TokenizerBackend.SIMPLE
+    custom_tokenizer: Any = field(default=None, hash=False, compare=False)
     stemmer: StemmingBackend = StemmingBackend.NONE
+    custom_stemmer: Any = field(default=None, hash=False, compare=False)
     lemmatizer: LemmatizationBackend = LemmatizationBackend.NONE
+    custom_lemmatizer: Any = field(default=None, hash=False, compare=False)
     stopwords: StopwordSource = StopwordSource.BUILTIN
+    custom_stopwords: frozenset | None = None
     spacy_model: str | None = None
-    nltk_language: str = "english"
+    nltk_language: str | list[str] | None = "english"
+    """Language(s) for NLTK stopwords, Snowball stemmer, and NLTK tokenizer.
+
+    Accepts:
+
+    * ``"en"`` or ``"english"``  — single language (backward-compatible)
+    * ``["en", "ar"]``           — multi-language: union stopwords for both
+    * ``None``                   — auto-detect from text using detect_script
+
+    All ISO 639-1 codes (``"en"``, ``"ar"``, ``"hi"``, …) and NLTK names
+    (``"english"``, ``"arabic"``, …) are accepted.  Regional aliases such
+    as ``"chilean_spanish"``, ``"new_zealand_english"``, and ``"ottoman_turkish"``
+    are resolved automatically.  200+ languages via :mod:`._language_data`.
+    """
     lowercase: bool = True
     remove_punctuation: bool = True
+    strip_unicode_punctuation: bool = False
     remove_numbers: bool = False
     min_token_length: int = 2
     max_token_length: int | None = None
-    ngram_range: tuple[int, int] = (1, 1)
+    ngram_range: tuple = (1, 1)
     chunk_by: str = "document"  # "document" | "sentence"
     include_offsets: bool = False
     build_gensim_corpus: bool = False
@@ -467,15 +613,20 @@ def _get_nltk_lemmatizer() -> Any:
 # ---------------------------------------------------------------------------
 
 
-def _load_stopwords(source: StopwordSource, language: str) -> frozenset[str]:
+def _load_stopwords(
+    source: StopwordSource,
+    language: str | list[str] | None,
+) -> frozenset:
     """Load stopwords from the specified source.
 
     Parameters
     ----------
     source : StopwordSource
         Where to load stopwords from.
-    language : str
-        Language identifier for NLTK/spaCy sources.
+    language : str or list[str] or None
+        Language identifier(s) for NLTK/spaCy sources.  Accepts ISO codes,
+        NLTK names, lists thereof, or ``None`` (falls back to English).
+        When a list is provided the stopword sets are unioned.
 
     Returns
     -------
@@ -501,12 +652,27 @@ def _load_stopwords(source: StopwordSource, language: str) -> frozenset[str]:
             raise ImportError(
                 "StopwordSource.NLTK requires 'nltk'. Install with: pip install nltk"
             ) from exc
-        try:
-            return frozenset(stopwords.words(language))
-        except LookupError:
-            logger.info("Downloading NLTK 'stopwords' corpus.")
-            nltk.download("stopwords", quiet=True)
-            return frozenset(stopwords.words(language))
+        langs = coerce_language(language, default="english")
+        result: set = set()
+        for lang in langs:
+            if lang not in NLTK_STOPWORD_LANGUAGES:
+                # Fall through to built-in for this language
+                from ._language_data import BUILTIN_LANG_STOPWORDS  # noqa: PLC0415
+
+                builtin = BUILTIN_LANG_STOPWORDS.get(lang)
+                if builtin:
+                    result |= builtin
+                continue
+            try:
+                result |= set(stopwords.words(lang))
+            except LookupError:
+                logger.info("Downloading NLTK 'stopwords' corpus.")
+                nltk.download("stopwords", quiet=True)
+                try:
+                    result |= set(stopwords.words(lang))
+                except OSError:
+                    logger.warning("NLTK stopwords for %r unavailable.", lang)
+        return frozenset(result)
 
     if source == StopwordSource.SPACY:
         try:
@@ -567,17 +733,48 @@ def _to_gensim_bow(tokens: list[str], dictionary: Any) -> list[tuple[int, int]]:
     return dictionary.doc2bow(tokens)
 
 
+def _strip_unicode_punct(tok: str) -> str:
+    """Strip all Unicode punctuation from *tok* using ``unicodedata`` categories.
+
+    Removes characters whose Unicode category starts with ``"P"``
+    (``Po``, ``Ps``, ``Pe``, ``Pi``, ``Pf``, ``Pd``, ``Pc``).
+    This covers CJK punctuation (``。！？、``), Arabic punctuation
+    (``،؟؛``), and all standard Latin punctuation — a strict superset
+    of :data:`_PUNCT_TABLE`.
+
+    Parameters
+    ----------
+    tok : str
+        Input token.
+
+    Returns
+    -------
+    str
+        Token with all Unicode punctuation characters removed.
+
+    Examples
+    --------
+    >>> _strip_unicode_punct("hello.")
+    'hello'
+    >>> _strip_unicode_punct("世界。")
+    '世界'
+    >>> _strip_unicode_punct("مرحبا،")
+    'مرحبا'
+    """  # noqa: RUF002
+    return "".join(c for c in tok if not unicodedata.category(c).startswith("P"))
+
+
 # ---------------------------------------------------------------------------
 # Core processing pipeline — pure function
 # ---------------------------------------------------------------------------
 
 
-def _process_tokens(
-    tokens: list[str],
+def _process_tokens(  # noqa: PLR0912
+    tokens: list,
     cfg: WordChunkerConfig,
-    stopwords: frozenset[str],
-    spacy_doc: Any | None = None,
-) -> list[str]:
+    stopwords: frozenset,
+    spacy_doc: Any = None,
+) -> list:
     """Apply the full normalisation pipeline to raw tokens.
 
     Processing order:
@@ -605,15 +802,20 @@ def _process_tokens(
     list[str]
         Normalised token list.
     """
-    result: list[str] = []
+    result = []
 
-    for _idx, tok in enumerate(tokens):
+    for tok in tokens:
         # 1. Lowercase.
         if cfg.lowercase:
             tok = tok.lower()  # noqa: PLW2901
 
-        # 2. Remove punctuation-only tokens.
-        if cfg.remove_punctuation:
+        # 2a. Strip ALL Unicode punctuation (superset of ASCII).
+        if cfg.strip_unicode_punctuation:
+            tok = _strip_unicode_punct(tok)  # noqa: PLW2901
+            if not tok:
+                continue
+        elif cfg.remove_punctuation:
+            # 2b. ASCII-only punctuation strip (legacy behaviour).
             stripped = tok.translate(_PUNCT_TABLE)
             if not stripped:
                 continue
@@ -623,8 +825,11 @@ def _process_tokens(
         if cfg.remove_numbers and tok.isnumeric():
             continue
 
-        # 4. Stopword removal.
-        if tok in stopwords:
+        # 4. Stopword removal (check both base set and custom additions).
+        tok_lower = tok.lower() if not cfg.lowercase else tok
+        if tok_lower in stopwords:
+            continue
+        if cfg.custom_stopwords and tok_lower in cfg.custom_stopwords:
             continue
 
         # 5. Length filter.
@@ -635,24 +840,142 @@ def _process_tokens(
 
         result.append(tok)
 
-    # 6a. Stemming.
+    # 6a. Stemming (takes precedence over lemmatization).
     if cfg.stemmer != StemmingBackend.NONE:
-        stemmer = _get_stemmer(cfg.stemmer, cfg.nltk_language)
-        result = [stemmer.stem(t) for t in result]
+        if cfg.stemmer == StemmingBackend.CUSTOM:
+            stemmer_obj = _resolve_custom_stemmer(cfg)
+            result = [stemmer_obj.stem(t) for t in result]
+        else:
+            stemmer_obj = _get_stemmer(cfg.stemmer, cfg.nltk_language)
+            result = [stemmer_obj.stem(t) for t in result]
         return result  # noqa: RET504
 
     # 6b. Lemmatization (only when stemming is disabled).
     if cfg.lemmatizer == LemmatizationBackend.NLTK_WORDNET:
-        lemmatizer = _get_nltk_lemmatizer()
-        result = [lemmatizer.lemmatize(t) for t in result]
+        lemmatizer_obj = _get_nltk_lemmatizer()
+        result = [lemmatizer_obj.lemmatize(t) for t in result]
     elif cfg.lemmatizer == LemmatizationBackend.SPACY and spacy_doc is not None:
         spacy_tokens = [t for t in spacy_doc if not t.is_space]
-        lemma_map: dict[str, str] = {
-            t.text.lower(): t.lemma_.lower() for t in spacy_tokens
-        }
+        lemma_map = {t.text.lower(): t.lemma_.lower() for t in spacy_tokens}
         result = [lemma_map.get(t, t) for t in result]
+    elif cfg.lemmatizer == LemmatizationBackend.CUSTOM:
+        lemmatizer_obj = _resolve_custom_lemmatizer(cfg)
+        result = [lemmatizer_obj.lemmatize(t) for t in result]
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Custom backend resolvers — pure functions
+# ---------------------------------------------------------------------------
+
+
+def _resolve_custom_tokenizer(cfg: WordChunkerConfig) -> TokenizerProtocol:
+    """Resolve the custom tokenizer from *cfg*.
+
+    Parameters
+    ----------
+    cfg : WordChunkerConfig
+        Active configuration.
+
+    Returns
+    -------
+    TokenizerProtocol
+        Ready tokenizer.
+
+    Raises
+    ------
+    ValueError
+        If no custom_tokenizer is set.
+    TypeError
+        If the provided object does not satisfy TokenizerProtocol.
+    """
+    obj = cfg.custom_tokenizer
+    if obj is None:
+        raise ValueError(
+            "WordChunkerConfig.custom_tokenizer must be set when "
+            "tokenizer=TokenizerBackend.CUSTOM."
+        )
+    if callable(obj) and not hasattr(obj, "tokenize"):
+        return FunctionTokenizer(obj, name="custom_tokenizer")
+    if not isinstance(obj, TokenizerProtocol):
+        raise TypeError(
+            f"custom_tokenizer must satisfy TokenizerProtocol "
+            f"(have a .tokenize(text) method), got {type(obj).__name__!r}."
+        )
+    return obj
+
+
+def _resolve_custom_stemmer(cfg: WordChunkerConfig) -> StemmerProtocol:
+    """Resolve the custom stemmer from *cfg*.
+
+    Parameters
+    ----------
+    cfg : WordChunkerConfig
+        Active configuration.
+
+    Returns
+    -------
+    StemmerProtocol
+        Ready stemmer.
+
+    Raises
+    ------
+    ValueError
+        If no custom_stemmer is set.
+    TypeError
+        If the provided object does not satisfy StemmerProtocol.
+    """
+    obj = cfg.custom_stemmer
+    if obj is None:
+        raise ValueError(
+            "WordChunkerConfig.custom_stemmer must be set when "
+            "stemmer=StemmingBackend.CUSTOM."
+        )
+    if callable(obj) and not hasattr(obj, "stem"):
+        return FunctionStemmer(obj, name="custom_stemmer")
+    if not isinstance(obj, StemmerProtocol):
+        raise TypeError(
+            f"custom_stemmer must satisfy StemmerProtocol "
+            f"(have a .stem(word) method), got {type(obj).__name__!r}."
+        )
+    return obj
+
+
+def _resolve_custom_lemmatizer(cfg: WordChunkerConfig) -> LemmatizerProtocol:
+    """Resolve the custom lemmatizer from *cfg*.
+
+    Parameters
+    ----------
+    cfg : WordChunkerConfig
+        Active configuration.
+
+    Returns
+    -------
+    LemmatizerProtocol
+        Ready lemmatizer.
+
+    Raises
+    ------
+    ValueError
+        If no custom_lemmatizer is set.
+    TypeError
+        If the provided object does not satisfy LemmatizerProtocol.
+    """
+    obj = cfg.custom_lemmatizer
+    if obj is None:
+        raise ValueError(
+            "WordChunkerConfig.custom_lemmatizer must be set when "
+            "lemmatizer=LemmatizationBackend.CUSTOM."
+        )
+    if callable(obj) and not hasattr(obj, "lemmatize"):
+        return FunctionLemmatizer(obj, name="custom_lemmatizer")
+    if not isinstance(obj, LemmatizerProtocol):
+        raise TypeError(
+            f"custom_lemmatizer must satisfy LemmatizerProtocol "
+            f"(have a .lemmatize(word) method), got {type(obj).__name__!r}."
+        )
+    return obj
 
 
 # ---------------------------------------------------------------------------
@@ -702,7 +1025,7 @@ class WordChunker:
     # Validation
     # ------------------------------------------------------------------
 
-    def _validate_config(self) -> None:
+    def _validate_config(self) -> None:  # noqa: PLR0912
         """Validate configuration at construction time.
 
         Raises
@@ -739,6 +1062,41 @@ class WordChunker:
                 "WordChunkerConfig.spacy_model must be set when using "
                 "SPACY tokenizer or lemmatizer."
             )
+        if (
+            self._cfg.tokenizer == TokenizerBackend.CUSTOM
+            and self._cfg.custom_tokenizer is None
+        ):
+            raise ValueError(
+                "WordChunkerConfig.custom_tokenizer must be set when "
+                "tokenizer=TokenizerBackend.CUSTOM."
+            )
+        if (
+            self._cfg.stemmer == StemmingBackend.CUSTOM
+            and self._cfg.custom_stemmer is None
+        ):
+            raise ValueError(
+                "WordChunkerConfig.custom_stemmer must be set when "
+                "stemmer=StemmingBackend.CUSTOM."
+            )
+        if (
+            self._cfg.lemmatizer == LemmatizationBackend.CUSTOM
+            and self._cfg.custom_lemmatizer is None
+        ):
+            raise ValueError(
+                "WordChunkerConfig.custom_lemmatizer must be set when "
+                "lemmatizer=LemmatizationBackend.CUSTOM."
+            )
+        # Guard SNOWBALL against unsupported languages (e.g. Arabic, CJK).
+        if self._cfg.stemmer == StemmingBackend.SNOWBALL:
+            langs = coerce_language(self._cfg.nltk_language, default="english")
+            for lang in langs:
+                if lang not in _SNOWBALL_SUPPORTED_LANGUAGES:
+                    raise ValueError(
+                        f"StemmingBackend.SNOWBALL does not support language "
+                        f"{lang!r}. "
+                        f"Supported: {sorted(_SNOWBALL_SUPPORTED_LANGUAGES)}. "
+                        f"Use StemmingBackend.CUSTOM to supply your own stemmer."
+                    )
         if self._cfg.build_gensim_corpus and self._gensim_dict is None:
             logger.warning(
                 "WordChunkerConfig.build_gensim_corpus=True but no "
@@ -750,11 +1108,12 @@ class WordChunker:
     # ------------------------------------------------------------------
 
     def _ensure_stopwords(self) -> None:
-        """Load stopwords on first use."""
+        """Load stopwords on first use (union across all specified languages)."""
         if not self._stopwords:
-            self._stopwords = _load_stopwords(
-                self._cfg.stopwords, self._cfg.nltk_language
-            )
+            base = _load_stopwords(self._cfg.stopwords, self._cfg.nltk_language)
+            if self._cfg.custom_stopwords:
+                base = base | frozenset(self._cfg.custom_stopwords)
+            self._stopwords = base
 
     def _ensure_spacy(self) -> None:
         """Load the spaCy model on first use."""
@@ -791,6 +1150,9 @@ class WordChunker:
         if self._cfg.tokenizer == TokenizerBackend.SPACY:
             assert self._cfg.spacy_model is not None  # noqa: S101
             return _tokenize_spacy(text, self._cfg.spacy_model)
+        if self._cfg.tokenizer == TokenizerBackend.CUSTOM:
+            tok = _resolve_custom_tokenizer(self._cfg)
+            return tok.tokenize(text)
         raise ValueError(
             f"Unsupported tokenizer: {self._cfg.tokenizer!r}."
         )  # pragma: no cover

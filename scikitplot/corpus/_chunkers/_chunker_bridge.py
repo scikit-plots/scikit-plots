@@ -46,6 +46,8 @@ __all__ = [
     "SentenceChunkerBridge",
     "WordChunkerBridge",
     "bridge_chunker",
+    "register_bridge",
+    "unregister_bridge",
 ]
 
 
@@ -262,6 +264,82 @@ _BRIDGE_MAP: dict[str, type[ChunkerBridge]] = {
     "FixedWindowChunker": FixedWindowChunkerBridge,
     "WordChunker": WordChunkerBridge,
 }
+
+
+def register_bridge(chunker_class: type, bridge_class: type[ChunkerBridge]) -> None:
+    """Register a custom bridge for a user-defined chunker class.
+
+    After registration, :func:`bridge_chunker` will automatically wrap
+    instances of *chunker_class* in *bridge_class*.
+
+    Parameters
+    ----------
+    chunker_class : type
+        The user-defined chunker class to register.  Matched by exact
+        ``type(chunker).__name__`` string so subclasses must be registered
+        separately if needed.
+    bridge_class : type[ChunkerBridge]
+        A :class:`ChunkerBridge` subclass that wraps *chunker_class*.
+
+    Raises
+    ------
+    TypeError
+        If *bridge_class* is not a subclass of :class:`ChunkerBridge`.
+
+    Examples
+    --------
+    >>> class MyChunker:
+    ...     def chunk(self, text, extra_metadata=None):
+    ...         from .._types import Chunk, ChunkResult
+    ...
+    ...         return ChunkResult(
+    ...             chunks=[
+    ...                 Chunk(text=text, start_char=0, end_char=len(text), metadata={})
+    ...             ],
+    ...             metadata={},
+    ...         )
+    >>> class MyChunkerBridge(ChunkerBridge):
+    ...     from .._schema import ChunkingStrategy
+    ...
+    ...     strategy = ChunkingStrategy.CUSTOM
+    ...
+    ...     def _call_inner(self, text, metadata):
+    ...         return self.inner.chunk(text, extra_metadata=metadata)
+    >>> register_bridge(MyChunker, MyChunkerBridge)
+    >>> bridged = bridge_chunker(MyChunker())
+    >>> hasattr(bridged, "strategy")
+    True
+    """
+    if not (isinstance(bridge_class, type) and issubclass(bridge_class, ChunkerBridge)):
+        raise TypeError(
+            f"register_bridge: bridge_class must be a ChunkerBridge subclass, "
+            f"got {bridge_class!r}."
+        )
+    key = chunker_class.__name__
+    if key in _BRIDGE_MAP:
+        logger.debug("register_bridge: overwriting existing bridge for %r.", key)
+    _BRIDGE_MAP[key] = bridge_class
+    logger.debug("register_bridge: registered %r → %s.", key, bridge_class.__name__)
+
+
+def unregister_bridge(chunker_class: type) -> None:
+    """Remove a previously registered bridge for *chunker_class*.
+
+    Parameters
+    ----------
+    chunker_class : type
+        The chunker class whose bridge should be removed.
+
+    Raises
+    ------
+    KeyError
+        If no bridge is registered for *chunker_class*.
+    """
+    key = chunker_class.__name__
+    if key not in _BRIDGE_MAP:
+        raise KeyError(f"unregister_bridge: no bridge registered for {key!r}.")
+    del _BRIDGE_MAP[key]
+    logger.debug("unregister_bridge: removed bridge for %r.", key)
 
 
 def bridge_chunker(chunker: Any) -> ChunkerBridge | Any:

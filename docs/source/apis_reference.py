@@ -1081,7 +1081,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("externals_-index"),
         "sections": [
             {
-                "title": "Sphinx extensions.",
+                "title": "Sphinx Extensions",
                 "description": (
                     _get_submodule("scikitplot._externals", "_sphinx_ext")
                     + "\n\n" +
@@ -1092,7 +1092,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
-                "title": "Sphinx extensions.",
+                "title": "Sphinx AI Extension",
                 "description": (
                     _get_submodule("scikitplot._externals._sphinx_ext", "_sphinx_ai_assistant")
                     + "\n\n" +

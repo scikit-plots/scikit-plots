@@ -221,3 +221,113 @@ class TestPureHelpers:
         windows = _windows_chars(text, window_size=5, step_size=5)
         for win_text, start, end in windows:
             assert text[start:end] == win_text
+
+
+# ---------------------------------------------------------------------------
+# _tokenize_whitespace — CJK auto-detect and edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestTokenizeWhitespace:
+    """Tests for the private ``_tokenize_whitespace`` helper."""
+
+    from .._fixed_window import _tokenize_whitespace  # noqa: PLC0415
+
+    def _tok(self, text: str) -> list:
+        from .._fixed_window import _tokenize_whitespace  # noqa: PLC0415
+
+        return _tokenize_whitespace(text)
+
+    def test_latin_whitespace_split(self) -> None:
+        """Latin text must be split on whitespace."""
+        result = self._tok("the quick brown fox")
+        assert result == ["the", "quick", "brown", "fox"]
+
+    def test_empty_string_returns_empty(self) -> None:
+        """Empty string must return an empty list."""
+        assert self._tok("") == []
+
+    def test_whitespace_only_returns_empty(self) -> None:
+        """Whitespace-only string must return an empty list."""
+        assert self._tok("   ") == []
+
+    def test_cjk_chinese_character_level(self) -> None:
+        """CJK text must be tokenised at the character level."""
+        result = self._tok("你好世界")
+        # Each ideograph becomes its own token
+        assert "你" in result
+        assert "世" in result
+        assert len(result) >= 3
+
+    def test_cjk_path_returns_nonempty(self) -> None:
+        """CJK text must produce a non-empty token list."""
+        result = self._tok("今日は良い天気です")
+        assert len(result) > 0
+
+    def test_mixed_cjk_latin_handled(self) -> None:
+        """Mixed CJK+Latin text must produce at least one token per word."""
+        result = self._tok("hello 世界 world")
+        assert len(result) >= 3
+
+    def test_single_latin_word(self) -> None:
+        """Single word must yield exactly one token."""
+        assert self._tok("hello") == ["hello"]
+
+
+# ---------------------------------------------------------------------------
+# chunk_batch with extra_metadata
+# ---------------------------------------------------------------------------
+
+
+class TestBatchExtraMetadata:
+    """Verify ``extra_metadata`` flows into batch results."""
+
+    def test_batch_extra_metadata_merged(
+        self, char_chunker: FixedWindowChunker
+    ) -> None:
+        extra = {"pipeline": "test", "version": 42}
+        results = char_chunker.chunk_batch([TEXT, TEXT[:60]], extra_metadata=extra)
+        for r in results:
+            assert r.metadata["pipeline"] == "test"
+            assert r.metadata["version"] == 42
+
+    def test_batch_with_doc_ids_and_extra_metadata(
+        self, char_chunker: FixedWindowChunker
+    ) -> None:
+        results = char_chunker.chunk_batch(
+            [TEXT, TEXT[:60]],
+            doc_ids=["doc_a", "doc_b"],
+            extra_metadata={"source": "test"},
+        )
+        assert results[0].metadata["doc_id"] == "doc_a"
+        assert results[1].metadata["doc_id"] == "doc_b"
+        for r in results:
+            assert r.metadata["source"] == "test"
+
+
+# ---------------------------------------------------------------------------
+# _windows_tokens — offset search fallback
+# ---------------------------------------------------------------------------
+
+
+class TestWindowsTokensFallback:
+    """Edge cases for ``_windows_tokens`` char-offset computation."""
+
+    def test_single_token_window(self) -> None:
+        """Single-token text must produce exactly one window."""
+        windows = _windows_tokens("hello", window_size=1, step_size=1)
+        assert len(windows) == 1
+        assert windows[0][0] == "hello"
+
+    def test_non_overlapping_tokens(self) -> None:
+        """Non-overlapping step must produce the expected number of windows."""
+        text = "one two three four"
+        windows = _windows_tokens(text, window_size=2, step_size=2)
+        assert len(windows) == 2
+
+    def test_window_char_start_non_negative(self) -> None:
+        """char_start for all windows must be >= 0."""
+        text = "alpha beta gamma delta"
+        windows = _windows_tokens(text, window_size=2, step_size=1)
+        for _, start, _ in windows:
+            assert start >= 0

@@ -38,6 +38,7 @@ import pytest
 
 from .._pipeline import CorpusPipeline, PipelineResult, create_corpus
 from .._schema import ExportFormat
+from .._schema import CorpusDocument
 
 
 # ---------------------------------------------------------------------------
@@ -61,8 +62,6 @@ def _make_result(
     output_path: pathlib.Path | None = None,
     export_format: ExportFormat | None = None,
 ) -> PipelineResult:
-    from .._schema import CorpusDocument  # noqa: PLC0415
-
     docs = [CorpusDocument.create(f"{source}", i, f"Sentence {i}.") for i in range(n_docs)]
     return PipelineResult(
         source=source,
@@ -134,8 +133,6 @@ class TestPipelineResult:
             r.source = "other.txt"  # type: ignore[misc]
 
     def test_empty_documents_list(self) -> None:
-        from .._schema import CorpusDocument  # noqa: PLC0415
-
         r = PipelineResult(
             source="empty.txt",
             documents=[],

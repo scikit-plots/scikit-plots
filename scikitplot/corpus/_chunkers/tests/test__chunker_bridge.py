@@ -545,3 +545,177 @@ class TestBridgeChunker:
         for offset, text in pairs:
             assert 0 <= offset <= len(source)
             assert len(text) > 0
+
+# ===========================================================================
+# register_bridge / unregister_bridge
+# ===========================================================================
+
+
+class TestRegisterBridge:
+    """Tests for :func:`register_bridge`."""
+
+    def setup_method(self) -> None:
+        """Ensure any custom bridge registered in a test is removed after."""
+        from .._chunker_bridge import _BRIDGE_MAP  # noqa: PLC0415
+
+        self._bridge_map_snapshot = dict(_BRIDGE_MAP)
+
+    def teardown_method(self) -> None:
+        """Restore _BRIDGE_MAP to pre-test state to prevent cross-test pollution."""
+        from .._chunker_bridge import _BRIDGE_MAP  # noqa: PLC0415
+
+        keys_to_remove = [k for k in _BRIDGE_MAP if k not in self._bridge_map_snapshot]
+        for k in keys_to_remove:
+            del _BRIDGE_MAP[k]
+
+    def test_register_then_bridge_chunker_uses_new_bridge(self) -> None:
+        """Registered bridge must be used by :func:`bridge_chunker`."""
+        from .._chunker_bridge import bridge_chunker, register_bridge  # noqa: PLC0415
+
+        class _MyChunker:
+            def chunk(self, text, extra_metadata=None):
+                return ChunkResult(chunks=[])
+
+        class _MyBridge(ChunkerBridge):
+            strategy = ChunkingStrategy.CUSTOM
+
+            def _call_inner(self, text, metadata):
+                return self.inner.chunk(text, extra_metadata=metadata)
+
+        register_bridge(_MyChunker, _MyBridge)
+        result = bridge_chunker(_MyChunker())
+        assert isinstance(result, _MyBridge)
+
+    def test_register_non_bridge_subclass_raises_type_error(self) -> None:
+        """Passing a non-ChunkerBridge class must raise TypeError."""
+        from .._chunker_bridge import register_bridge  # noqa: PLC0415
+
+        class _FakeChunker:
+            pass
+
+        class _NotABridge:
+            pass
+
+        with pytest.raises(TypeError, match="ChunkerBridge subclass"):
+            register_bridge(_FakeChunker, _NotABridge)  # type: ignore[arg-type]
+
+    def test_register_overwrite_logs_debug(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Re-registering an existing name must not raise; it overwrites silently."""
+        from .._chunker_bridge import _BRIDGE_MAP, register_bridge  # noqa: PLC0415
+
+        class _MyChunker2:
+            pass
+
+        class _BridgeA(ChunkerBridge):
+            strategy = ChunkingStrategy.PARAGRAPH
+
+            def _call_inner(self, text, metadata):
+                return self.inner.chunk(text)
+
+        class _BridgeB(ChunkerBridge):
+            strategy = ChunkingStrategy.SENTENCE
+
+            def _call_inner(self, text, metadata):
+                return self.inner.chunk(text)
+
+        register_bridge(_MyChunker2, _BridgeA)
+        register_bridge(_MyChunker2, _BridgeB)  # Overwrite — must not raise
+        assert _BRIDGE_MAP["_MyChunker2"] is _BridgeB
+
+    def test_register_uses_class_name_as_key(self) -> None:
+        """Bridge must be keyed by ``chunker_class.__name__``."""
+        from .._chunker_bridge import _BRIDGE_MAP, register_bridge  # noqa: PLC0415
+
+        class _UniqueNamedChunker:
+            pass
+
+        class _AnyBridge(ChunkerBridge):
+            strategy = ChunkingStrategy.FIXED_WINDOW
+
+            def _call_inner(self, text, metadata):
+                return ChunkResult(chunks=[])
+
+        register_bridge(_UniqueNamedChunker, _AnyBridge)
+        assert "_UniqueNamedChunker" in _BRIDGE_MAP
+        assert _BRIDGE_MAP["_UniqueNamedChunker"] is _AnyBridge
+
+
+class TestUnregisterBridge:
+    """Tests for :func:`unregister_bridge`."""
+
+    def setup_method(self) -> None:
+        from .._chunker_bridge import _BRIDGE_MAP  # noqa: PLC0415
+
+        self._bridge_map_snapshot = dict(_BRIDGE_MAP)
+
+    def teardown_method(self) -> None:
+        from .._chunker_bridge import _BRIDGE_MAP  # noqa: PLC0415
+
+        keys_to_remove = [k for k in _BRIDGE_MAP if k not in self._bridge_map_snapshot]
+        for k in keys_to_remove:
+            del _BRIDGE_MAP[k]
+        # Restore any that were removed during test
+        for k, v in self._bridge_map_snapshot.items():
+            if k not in _BRIDGE_MAP:
+                _BRIDGE_MAP[k] = v
+
+    def test_unregister_removes_bridge(self) -> None:
+        """Unregistered class must no longer appear in ``_BRIDGE_MAP``."""
+        from .._chunker_bridge import (  # noqa: PLC0415
+            _BRIDGE_MAP,
+            register_bridge,
+            unregister_bridge,
+        )
+
+        class _TempChunker:
+            pass
+
+        class _TempBridge(ChunkerBridge):
+            strategy = ChunkingStrategy.CUSTOM
+
+            def _call_inner(self, text, metadata):
+                return ChunkResult(chunks=[])
+
+        register_bridge(_TempChunker, _TempBridge)
+        assert "_TempChunker" in _BRIDGE_MAP
+        unregister_bridge(_TempChunker)
+        assert "_TempChunker" not in _BRIDGE_MAP
+
+    def test_unregister_unknown_raises_key_error(self) -> None:
+        """Unregistering an unknown class must raise ``KeyError``."""
+        from .._chunker_bridge import unregister_bridge  # noqa: PLC0415
+
+        class _NeverRegistered:
+            pass
+
+        with pytest.raises(KeyError):
+            unregister_bridge(_NeverRegistered)
+
+    def test_unregister_then_bridge_chunker_falls_through_to_warning(self) -> None:
+        """After unregistering, :func:`bridge_chunker` must not use the old bridge."""
+        from .._chunker_bridge import (  # noqa: PLC0415
+            bridge_chunker,
+            register_bridge,
+            unregister_bridge,
+        )
+        from unittest.mock import patch  # noqa: PLC0415
+
+        class _ChunkerX:
+            def chunk(self, text, extra_metadata=None):
+                return ChunkResult(chunks=[])
+
+        class _BridgeX(ChunkerBridge):
+            strategy = ChunkingStrategy.CUSTOM
+
+            def _call_inner(self, text, metadata):
+                return self.inner.chunk(text, extra_metadata=metadata)
+
+        register_bridge(_ChunkerX, _BridgeX)
+        unregister_bridge(_ChunkerX)
+
+        obj = _ChunkerX()
+        patch_path = "scikitplot.corpus._chunkers._chunker_bridge.logger"
+        with patch(patch_path) as mock_logger:
+            result = bridge_chunker(obj)
+        assert result is obj
+        assert mock_logger.warning.called

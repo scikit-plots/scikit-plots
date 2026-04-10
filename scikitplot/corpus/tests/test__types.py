@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from .. import _types as m
 from .._types import (
     BowVector,
     Chunk,
@@ -712,16 +713,12 @@ class TestMCPTypes:
 
 class TestPublicAPI:
     def test_all_exports_importable(self) -> None:
-        from .. import _types as m
-
         for name in m.__all__:
             assert hasattr(m, name), (
                 f"{name!r} listed in __all__ but not defined in _types."
             )
 
     def test_no_private_names_in_all(self) -> None:
-        from .. import _types as m
-
         for name in m.__all__:
             assert not name.startswith("_"), (
                 f"Private name {name!r} should not be in __all__."

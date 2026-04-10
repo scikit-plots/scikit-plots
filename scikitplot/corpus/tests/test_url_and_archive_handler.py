@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
+import ast
 import os
+import inspect
 import tempfile
 import zipfile
 from pathlib import Path
@@ -17,10 +19,15 @@ import pytest
 # Tests for _url_handler.classify_url
 # ---------------------------------------------------------------------------
 
-from scikitplot.corpus._url_handler import (
+from .. import _url_handler as m
+from .._url_handler import (
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_RETRY_BACKOFF_BASE,
+    _RETRYABLE_STATUS_CODES,
     URLKind,
     _classify_content_type,
     _detect_extension_from_magic,
+    _extract_http_status,
     _fixup_bin_extension,
     _infer_extension_from_headers,
     _make_temp_filename,
@@ -30,7 +37,19 @@ from scikitplot.corpus._url_handler import (
     infer_extension,
     probe_url_kind,
     resolve_url,
+    download_url,
 )
+from .._base import DocumentReader, DummyReader
+from .._corpus_builder import (
+    BuilderConfig,
+    CorpusBuilder,
+)
+from .._archive_handler import (
+    extract_archive,
+    is_archive,
+)
+from ..import _readers  # noqa: F401 — registers readers
+from .._readers._zip import ZipReader
 
 
 class TestClassifyURL:
@@ -546,11 +565,6 @@ class TestProbeUrlKind:
 # Tests for _archive_handler
 # ---------------------------------------------------------------------------
 
-from scikitplot.corpus._archive_handler import (
-    extract_archive,
-    is_archive,
-)
-
 
 class TestIsArchive:
     """Tests for is_archive."""
@@ -820,29 +834,23 @@ class TestResolveUrlInAll:
     """All public names must be in _url_handler.__all__ with no duplicates."""
 
     def test_resolve_url_in_all(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert "resolve_url" in m.__all__
 
     def test_classify_url_in_all(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert "classify_url" in m.__all__
 
     def test_download_url_in_all(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert "download_url" in m.__all__
 
     def test_probe_url_kind_in_all(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert "probe_url_kind" in m.__all__
 
     def test_infer_extension_in_all(self):
         """infer_extension must be exported as a public name."""
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert "infer_extension" in m.__all__
 
     def test_no_duplicate_names_in_all(self):
         """__all__ must contain no duplicate entries."""
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert len(m.__all__) == len(set(m.__all__)), (
             f"Duplicate names in __all__: "
             f"{[n for n in m.__all__ if m.__all__.count(n) > 1]}"
@@ -858,24 +866,19 @@ class TestDownloadableExtensions:
     """DocumentReader._DOWNLOADABLE_EXTENSIONS — used by from_url()."""
 
     def test_pdf_in_downloadable(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         assert ".pdf" in DocumentReader._DOWNLOADABLE_EXTENSIONS
 
     def test_mp3_in_downloadable(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         assert ".mp3" in DocumentReader._DOWNLOADABLE_EXTENSIONS
 
     def test_jpg_in_downloadable(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         assert ".jpg" in DocumentReader._DOWNLOADABLE_EXTENSIONS
 
     def test_zip_in_downloadable(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         assert ".zip" in DocumentReader._DOWNLOADABLE_EXTENSIONS
 
     def test_html_not_in_downloadable(self):
         """HTML pages should NOT be in downloadable — they go to WebReader."""
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         # .html may or may not be there, but .htm is not a download
         # The key check: .pdf, .mp3, .jpg must be present
         assert ".pdf" in DocumentReader._DOWNLOADABLE_EXTENSIONS
@@ -890,14 +893,9 @@ class TestZipReaderRegistration:
     """ZipReader must be registered for .zip, overriding ALTOReader."""
 
     def test_zip_registered(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
-        import scikitplot.corpus._readers  # noqa: PLC0415, F401
         assert ".zip" in DocumentReader._registry
 
     def test_zip_reader_is_zip_reader(self):
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
-        from scikitplot.corpus._readers._zip import ZipReader  # noqa: PLC0415
-        import scikitplot.corpus._readers  # noqa: PLC0415, F401
         assert DocumentReader._registry[".zip"] is ZipReader
 
 
@@ -912,14 +910,12 @@ class TestDummyReaderCheck:
     def test_existing_file_ok(self, tmp_path):
         f = tmp_path / "test.txt"
         f.write_text("hello")
-        from scikitplot.corpus._base import DummyReader  # noqa: PLC0415
         ok, errors = DummyReader.check(f)
         assert f in ok
         assert len(errors) == 0
 
     def test_missing_file_error(self, tmp_path):
         missing = tmp_path / "ghost.txt"
-        from scikitplot.corpus._base import DummyReader  # noqa: PLC0415
         ok, errors = DummyReader.check(missing)
         assert len(errors) == 1
         assert errors[0][0] == missing
@@ -928,14 +924,12 @@ class TestDummyReaderCheck:
         good = tmp_path / "good.txt"
         good.write_text("ok")
         bad = tmp_path / "missing.txt"
-        from scikitplot.corpus._base import DummyReader  # noqa: PLC0415
         ok, errors = DummyReader.check(good, bad)
         assert good in ok
         assert len(errors) == 1
 
     def test_raise_on_first(self, tmp_path):
         missing = tmp_path / "no.txt"
-        from scikitplot.corpus._base import DummyReader  # noqa: PLC0415
         with pytest.raises((ValueError, OSError)):
             DummyReader.check(missing, raise_on_first=True)
 
@@ -949,11 +943,6 @@ class TestDownloadUrlRetry:
     """download_url retries transient HTTP errors and raises on permanent ones."""
 
     def test_retry_constants_exported(self):
-        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
-            DEFAULT_MAX_RETRIES,
-            DEFAULT_RETRY_BACKOFF_BASE,
-            _RETRYABLE_STATUS_CODES,
-        )
         assert DEFAULT_MAX_RETRIES == 3
         assert DEFAULT_RETRY_BACKOFF_BASE == 1.0
         assert 429 in _RETRYABLE_STATUS_CODES
@@ -962,33 +951,20 @@ class TestDownloadUrlRetry:
         assert 403 not in _RETRYABLE_STATUS_CODES
 
     def test_extract_http_status_from_requests_error(self):
-        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
-            _extract_http_status,
-        )
         exc = Exception("oops")
         exc.response = type("R", (), {"status_code": 503})()
         assert _extract_http_status(exc) == 503
 
     def test_extract_http_status_from_urllib_error(self):
-        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
-            _extract_http_status,
-        )
         exc = Exception("oops")
         exc.code = 429
         assert _extract_http_status(exc) == 429
 
     def test_extract_http_status_none_when_no_code(self):
-        from scikitplot.corpus._url_handler import (  # noqa: PLC0415
-            _extract_http_status,
-        )
         assert _extract_http_status(Exception("plain")) is None
 
     def test_value_error_not_retried(self, tmp_path):
         """ValueError (SSRF, size exceeded) must propagate immediately."""
-        from unittest.mock import patch  # noqa: PLC0415
-
-        from scikitplot.corpus._url_handler import download_url  # noqa: PLC0415
-
         calls = []
 
         def _mock_download(*args, **kwargs):
@@ -1010,10 +986,6 @@ class TestDownloadUrlRetry:
 
     def test_permanent_404_not_retried(self, tmp_path):
         """HTTP 404 is permanent — must not retry."""
-        from unittest.mock import patch  # noqa: PLC0415
-
-        from scikitplot.corpus._url_handler import download_url  # noqa: PLC0415
-
         calls = []
 
         def _mock_download(*args, **kwargs):
@@ -1036,10 +1008,6 @@ class TestDownloadUrlRetry:
 
     def test_retries_exhausted_on_503(self, tmp_path):
         """503 is retried up to max_retries then raises."""
-        from unittest.mock import patch  # noqa: PLC0415
-
-        from scikitplot.corpus._url_handler import download_url  # noqa: PLC0415
-
         calls = []
 
         def _mock_download(*args, **kwargs):
@@ -1072,28 +1040,20 @@ class TestExpandSourcesEdgeCases:
     """_expand_sources must reject empty/whitespace sources without touching CWD."""
 
     def test_empty_string_skipped(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import CorpusBuilder  # noqa: PLC0415
-
         result = CorpusBuilder._expand_sources([""])
         assert result == [], "empty string must not expand to CWD"
 
     def test_whitespace_only_skipped(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import CorpusBuilder  # noqa: PLC0415
-
         result = CorpusBuilder._expand_sources(["   ", "\t", "\n"])
         assert result == [], "whitespace-only strings must be skipped"
 
     def test_valid_file_still_works(self, tmp_path):
         f = tmp_path / "doc.txt"
         f.write_text("hello")
-        from scikitplot.corpus._corpus_builder import CorpusBuilder  # noqa: PLC0415
-
         result = CorpusBuilder._expand_sources([str(f)])
         assert f in result
 
     def test_url_passthrough_unaffected(self):
-        from scikitplot.corpus._corpus_builder import CorpusBuilder  # noqa: PLC0415
-
         result = CorpusBuilder._expand_sources(["https://example.com/file.pdf"])
         assert result == ["https://example.com/file.pdf"]
 
@@ -1107,20 +1067,11 @@ class TestAddSourceType:
     """add() must accept and propagate source_type without mutating config."""
 
     def test_add_signature_has_source_type(self):
-        import inspect  # noqa: PLC0415
-
-        from scikitplot.corpus._corpus_builder import CorpusBuilder  # noqa: PLC0415
-
         sig = inspect.signature(CorpusBuilder.add)
         assert "source_type" in sig.parameters
 
     def test_config_source_type_restored_after_add(self, tmp_path):
         """Config must be unchanged whether add() succeeds or fails."""
-        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
-            BuilderConfig,
-            CorpusBuilder,
-        )
-
         f = tmp_path / "doc.txt"
         f.write_text("hello world test sentence paragraph here")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
@@ -1138,11 +1089,6 @@ class TestAddSourceType:
 
     def test_config_source_type_restored_even_on_error(self, tmp_path):
         """Config must restore even when build() raises inside add()."""
-        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
-            BuilderConfig,
-            CorpusBuilder,
-        )
-
         f = tmp_path / "doc.txt"
         f.write_text("hello")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
@@ -1157,7 +1103,6 @@ class TestAddSourceType:
         assert builder.config.source_type == original_type
 
     def test_config_restored_on_error(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import BuilderConfig, CorpusBuilder  # noqa: PLC0415
         f = tmp_path / "doc.txt"
         f.write_text("hello")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
@@ -1177,11 +1122,6 @@ class TestNFilteredPopulated:
     """BuildResult.n_filtered must reflect chunks removed by the reader filter."""
 
     def test_n_filtered_is_int(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
-            BuilderConfig,
-            CorpusBuilder,
-        )
-
         f = tmp_path / "doc.txt"
         f.write_text("Hello world. This is a test document with enough content.")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
@@ -1190,7 +1130,6 @@ class TestNFilteredPopulated:
         assert result.n_filtered >= 0
 
     def test_n_filtered_is_non_negative_int(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import BuilderConfig, CorpusBuilder  # noqa: PLC0415
         f = tmp_path / "doc.txt"
         f.write_text("Hello world. This is a test document with enough content.")
         builder = CorpusBuilder(BuilderConfig(chunker="paragraph"))
@@ -1209,15 +1148,10 @@ class TestZipReaderMembersCount:
 
     def test_valid_zip_members_count(self, tmp_path):
         """members_count is set correctly for a normal zip."""
-        import zipfile  # noqa: PLC0415
-
         zf_path = tmp_path / "bundle.zip"
         with zipfile.ZipFile(zf_path, "w") as zf:
             zf.writestr("a.txt", "hello")
             zf.writestr("b.txt", "world")
-
-        import scikitplot.corpus._readers  # noqa: F401, PLC0415 — registers readers
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
 
         reader = DocumentReader.create(zf_path)
         # Must not raise NameError about 'members'
@@ -1228,10 +1162,6 @@ class TestZipReaderMembersCount:
         """A corrupt zip must raise a zipfile error, not NameError on members."""
         bad_zip = tmp_path / "bad.zip"
         bad_zip.write_bytes(b"this is not a zip file at all")
-
-        import scikitplot.corpus._readers  # noqa: F401, PLC0415
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
-
         reader = DocumentReader.create(bad_zip)
         with pytest.raises(Exception) as exc_info:
             list(reader.get_documents())
@@ -1241,9 +1171,6 @@ class TestZipReaderMembersCount:
         )
 
     def test_valid_zip_no_error(self, tmp_path):
-        import zipfile  # noqa: PLC0415
-        import scikitplot.corpus._readers  # noqa: F401, PLC0415
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         zp = tmp_path / "bundle.zip"
         with zipfile.ZipFile(zp, "w") as zf:
             zf.writestr("a.txt", "hello")
@@ -1252,8 +1179,6 @@ class TestZipReaderMembersCount:
         assert isinstance(docs, list)
 
     def test_corrupt_zip_raises_zipfile_error_not_name_error(self, tmp_path):
-        import scikitplot.corpus._readers  # noqa: F401, PLC0415
-        from scikitplot.corpus._base import DocumentReader  # noqa: PLC0415
         bad = tmp_path / "bad.zip"
         bad.write_bytes(b"not a zip")
         with pytest.raises(Exception) as exc_info:
@@ -1271,11 +1196,6 @@ class TestSessionClosed:
 
     def test_probe_uses_session_context_manager(self):
         """_probe_with_requests must close session via context manager."""
-        import ast  # noqa: PLC0415
-        import inspect  # noqa: PLC0415
-
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
-
         src = inspect.getsource(m._probe_with_requests)
         tree = ast.parse(src)
         # Check for 'with requests.Session()' or 'with ... as session'
@@ -1294,11 +1214,6 @@ class TestSessionClosed:
 
     def test_download_uses_session_context_manager(self):
         """_download_with_requests must close session via context manager."""
-        import ast  # noqa: PLC0415
-        import inspect  # noqa: PLC0415
-
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
-
         src = inspect.getsource(m._download_with_requests)
         tree = ast.parse(src)
         has_with_session = any(
@@ -1315,7 +1230,6 @@ class TestSessionClosed:
         )
 
     def _has_with_session(self, fn) -> bool:
-        import ast, inspect  # noqa: PLC0415, E401
         src = inspect.getsource(fn)
         tree = ast.parse(src)
         return any(
@@ -1325,11 +1239,9 @@ class TestSessionClosed:
         )
 
     def test_probe_uses_context_manager(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert self._has_with_session(m._probe_with_requests)
 
     def test_download_uses_context_manager(self):
-        from scikitplot.corpus import _url_handler as m  # noqa: PLC0415
         assert self._has_with_session(m._download_with_requests)
 
 
@@ -1342,17 +1254,10 @@ class TestMaxWorkersParallel:
     """build() must use ThreadPoolExecutor when max_workers > 1."""
 
     def test_max_workers_1_is_default(self):
-        from scikitplot.corpus._corpus_builder import BuilderConfig  # noqa: PLC0415
-
         assert BuilderConfig().max_workers == 1
 
     def test_parallel_build_same_result_as_serial(self, tmp_path):
         """Parallel and serial ingestion must produce the same document count."""
-        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
-            BuilderConfig,
-            CorpusBuilder,
-        )
-
         # Write 4 small text files
         for i in range(4):
             (tmp_path / f"doc{i}.txt").write_text(
@@ -1370,11 +1275,6 @@ class TestMaxWorkersParallel:
 
     def test_parallel_errors_collected(self, tmp_path):
         """Errors from parallel workers must be collected, not silently dropped."""
-        from scikitplot.corpus._corpus_builder import (  # noqa: PLC0415
-            BuilderConfig,
-            CorpusBuilder,
-        )
-
         good = tmp_path / "good.txt"
         good.write_text("Valid document content here for testing.")
         bad = tmp_path / "bad.unsupported_ext_xyz"
@@ -1388,11 +1288,9 @@ class TestMaxWorkersParallel:
         assert str(bad) in str(result.errors[0][0])
 
     def test_default_max_workers_is_1(self):
-        from scikitplot.corpus._corpus_builder import BuilderConfig  # noqa: PLC0415
         assert BuilderConfig().max_workers == 1
 
     def test_parallel_same_doc_count_as_serial(self, tmp_path):
-        from scikitplot.corpus._corpus_builder import BuilderConfig, CorpusBuilder  # noqa: PLC0415
         for i in range(4):
             (tmp_path / f"doc{i}.txt").write_text(
                 f"Document number {i} contains enough text to pass the default filter."

@@ -221,6 +221,7 @@ def run_demo(
     Run a beginner-friendly end-to-end demo workflow.
 
     The workflow demonstrates:
+
     1) Export demo config shipped in the library into *your* project.
     2) Optionally customize the config (experiment name).
     3) Start a session and log a "train" run.
