@@ -119,7 +119,7 @@ result_word_doc = _run(
             lemmatizer=LemmatizationBackend.NLTK_WORDNET,
             stopwords=StopwordSource.BUILTIN,
             lowercase=True,
-            remove_punctuation=True,
+            remove_punctuation=False,
             min_token_length=2,
             ngram_range=(1, 1),
         )
@@ -143,7 +143,7 @@ result_word_sent = _run(
             lemmatizer=LemmatizationBackend.NLTK_WORDNET,
             stopwords=StopwordSource.BUILTIN,
             lowercase=True,
-            remove_punctuation=True,
+            remove_punctuation=False,
             min_token_length=2,
             ngram_range=(1, 1),
         )
@@ -217,13 +217,13 @@ if _IN_JUPYTER:
 
     display(FileLink(str(result_fw_tokens.source)))  # noqa: F821
 
-plt.figure(figsize=(8, 8), dpi=150)
-img = mpimg.imread(result_fw_tokens.source)
-plt.imshow(img)
-plt.axis("off")
-plt.title("Source image (OCR input)", fontsize=12)
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(8, 8), dpi=150)
+# img = mpimg.imread(result_fw_tokens.source)
+# plt.imshow(img)
+# plt.axis("off")
+# plt.title("Source image (OCR input)", fontsize=12)
+# plt.tight_layout()
+# plt.show()
 
 # %%
 #

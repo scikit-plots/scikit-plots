@@ -1,18 +1,11 @@
 # scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/__init__.py
 #
-# fmt: off
-# ruff: noqa
-# ruff: noqa: PGH004
-# flake8: noqa
-# pylint: skip-file
-# mypy: ignore-errors
-# type: ignore
-#
 # This module was copied and adapted from the sphinx-ai-assistant project.
 # https://github.com/mlazag/sphinx-ai-assistant
 #
-# Authors: Mladen Zagorac, The scikit-plots developers
+# Authors: Mladen Zagorac
 # SPDX-License-Identifier: MIT
+
 """
 Sphinx AI Assistant Extension
 ==============================
@@ -119,6 +112,7 @@ Standalone (non-Sphinx):
     from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
         process_html_directory,
     )
+
     stats = process_html_directory(
         "/path/to/site/_site",
         theme_preset="jekyll",
@@ -135,21 +129,26 @@ Jupyter notebook:
         display_jupyter_ai_button,
     )
     import matplotlib.pyplot as plt
+
     plt.plot([1, 2, 3])
     plt.show()
     display_jupyter_ai_button(
         content="A line chart showing values 1, 2, 3",
         providers=["claude", "chatgpt", "gemini"],
     )
-"""
+"""  # noqa: D205, D400
+
 from __future__ import annotations
 
 import importlib.util
 import json
+import multiprocessing
 import os
 import re
+import time  # noqa: F401
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import (
+from typing import (  # noqa: F401
     TYPE_CHECKING,
     Any,
     Dict,
@@ -161,19 +160,20 @@ from typing import (
 
 if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runtime
     from sphinx.application import Sphinx
-    from sphinx.builders.html import StandaloneHTMLBuilder
+    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: F401
 
 __all__ = [
-    "add_ai_assistant_context",
-    "generate_llms_txt",
-    "generate_markdown_files",
+    "_JUPYTER_CONTENT_SELECTORS",
     "AIAssistantDirective",
-    "display_jupyter_notebook_ai_button",
+    "add_ai_assistant_context",
     "display_jupyter_ai_button",
+    "display_jupyter_notebook_ai_button",
+    "generate_llms_txt",
     "generate_llms_txt_standalone",
-    "process_html_directory",
-    "html_to_markdown_converter",
+    "generate_markdown_files",
     "html_to_markdown",
+    "html_to_markdown_converter",
+    "process_html_directory",
 ]
 
 # ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ _VERSION: str = "0.3.0"
 # Module-level cached singletons (lazy, private)
 # ---------------------------------------------------------------------------
 
-_logger = None                   # sphinx.util.logging.getLogger — initialised lazily
+_logger = None  # sphinx.util.logging.getLogger — initialised lazily
 _SphinxMarkdownConverter = None  # markdownify subclass — built lazily
 
 # NOTE: ``bs4``, ``markdownify``, and ``IPython`` are intentionally NOT
@@ -196,6 +196,7 @@ _SphinxMarkdownConverter = None  # markdownify subclass — built lazily
 # ---------------------------------------------------------------------------
 # Internal helpers — dependency detection
 # ---------------------------------------------------------------------------
+
 
 def _has_markdown_deps() -> bool:
     """Return *True* if ``beautifulsoup4`` and ``markdownify`` are importable.
@@ -240,11 +241,12 @@ def _has_ipython() -> bool:
 # Internal helpers — type coercion
 # ---------------------------------------------------------------------------
 
+
 def _coerce_to_list(
     val: Any,
     *,
-    default: Optional[List[str]] = None,
-) -> List[str]:
+    default: list[str] | None = None,
+) -> list[str]:
     """Coerce ``str | list[str] | None`` to a plain ``list[str]``.
 
     Parameters
@@ -292,6 +294,7 @@ def _coerce_to_list(
 # Internal helpers — lazy singletons
 # ---------------------------------------------------------------------------
 
+
 def _get_logger():
     """Return (and lazily initialise) the Sphinx module logger.
 
@@ -305,9 +308,10 @@ def _get_logger():
     The logger is stored in the module-level ``_logger`` variable so that
     subsequent calls are O(1) dictionary lookups.
     """
-    global _logger
+    global _logger  # noqa: PLW0603
     if _logger is None:
-        from sphinx.util import logging as _sphinx_logging
+        from sphinx.util import logging as _sphinx_logging  # noqa: PLC0415
+
         _logger = _sphinx_logging.getLogger(__name__)
     return _logger
 
@@ -328,11 +332,11 @@ def _build_converter_class():
     ``markdownify`` is only imported when Markdown conversion is first
     requested.
     """
-    global _SphinxMarkdownConverter
+    global _SphinxMarkdownConverter  # noqa: PLW0603
     if _SphinxMarkdownConverter is not None:
         return _SphinxMarkdownConverter
 
-    from markdownify import MarkdownConverter  # type: ignore[import]
+    from markdownify import MarkdownConverter  # type: ignore[import]  # noqa: PLC0415
 
     class _SphinxMarkdownConverterImpl(MarkdownConverter):
         """Markdownify converter tuned for Sphinx HTML output.
@@ -376,8 +380,8 @@ def _build_converter_class():
             str
                 Fenced code block or inline backtick span.
             """
-            content = text if text else (el.get_text() or "")
-            classes: List[str] = list(el.get("class") or [])
+            content = text or (el.get_text() or "")
+            classes: list[str] = list(el.get("class") or [])
             language = ""
             for cls in classes:
                 if cls.startswith("highlight-"):
@@ -416,14 +420,14 @@ def _build_converter_class():
             -----
             This method reads (but never mutates) the original element.
             """
-            classes: List[str] = list(el.get("class") or [])
+            classes: list[str] = list(el.get("class") or [])
             if "admonition" in classes:
                 title_el = el.find("p", class_="admonition-title")
                 if title_el:
                     title_text = title_el.get_text(strip=True)
                     content = (text or "").strip()
                     if content.startswith(title_text):
-                        content = content[len(title_text):].strip()
+                        content = content[len(title_text) :].strip()
                     return f"\n> **{title_text}**\n> {content}\n"
             return text or ""
 
@@ -455,7 +459,7 @@ def _build_converter_class():
             code_el = el.find("code")
             if code_el:
                 return self.convert_code(code_el, code_el.get_text(), False)
-            content = text if text else (el.get_text() or "")
+            content = text or (el.get_text() or "")
             return f"\n```\n{content}\n```\n" if content else ""
 
     _SphinxMarkdownConverter = _SphinxMarkdownConverterImpl
@@ -527,7 +531,7 @@ def _build_converter_class():
 #: .. [2] https://ai.google.dev/gemma/docs/core
 #: .. [3] https://huggingface.co/google/gemma-4-31B
 #: .. [4] https://ollama.com/blog/anthropic-compatible
-_OLLAMA_RECOMMENDED_MODELS: Tuple[str, ...] = (
+_OLLAMA_RECOMMENDED_MODELS: tuple[str, ...] = (
     # Anthropic-API-compatible via Ollama
     "qwen3:latest",
     "qwen3:8b",
@@ -588,12 +592,10 @@ _OLLAMA_RECOMMENDED_MODELS: Tuple[str, ...] = (
 #:
 #: Setting ``type = "custom"`` marks a user-defined endpoint.  Combine with
 #: ``api_base_url`` to point at any OpenAI-compatible local or internal server.
-_DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
-
+_DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
     # ==================================================================
     # ── TIER 1: Enabled by default ────────────────────────────────────
     # ==================================================================
-
     # ------------------------------------------------------------------ Claude
     "claude": {
         "enabled": True,
@@ -608,7 +610,6 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "model": "claude-sonnet-4-6",
         "type": "web",
     },
-
     # ------------------------------------------------------------------ Gemini
     "gemini": {
         "enabled": True,
@@ -617,13 +618,11 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "icon": "gemini.svg",
         "url_template": "https://gemini.google.com/app?q={prompt}",
         "prompt_template": (
-            "Hi! Please review this documentation page: {url}\n\n"
-            "I have questions."
+            "Hi! Please review this documentation page: {url}\n\nI have questions."
         ),
         "model": "gemini-2.5-flash",
         "type": "web",
     },
-
     # ----------------------------------------------------------------- ChatGPT
     "chatgpt": {
         "enabled": True,
@@ -631,17 +630,13 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "description": "Ask OpenAI ChatGPT about this page",
         "icon": "chatgpt.svg",
         "url_template": "https://chatgpt.com/?q={prompt}",
-        "prompt_template": (
-            "Read {url} so I can ask questions about it."
-        ),
+        "prompt_template": "Read {url} so I can ask questions about it.",
         "model": "gpt-4o",
         "type": "web",
     },
-
     # ==================================================================
     # ── TIER 2: Local / fully offline ─────────────────────────────────
     # ==================================================================
-
     # ------------------------------------------------------------------ Ollama
     # Requires local Ollama server (https://ollama.com) + Open WebUI or
     # any compatible front-end.  Set ``enabled: True`` and optionally
@@ -675,17 +670,13 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "icon": "ollama.svg",
         "url_template": "http://localhost:3000/?q={prompt}",
         "api_base_url": "http://localhost:11434",
-        "prompt_template": (
-            "Please review this content and answer questions: {url}"
-        ),
+        "prompt_template": "Please review this content and answer questions: {url}",
         "model": "llama3.2:latest",
         "type": "local",
     },
-
     # ==================================================================
     # ── TIER 3: Custom / user-defined endpoint ─────────────────────────
     # ==================================================================
-
     # ------------------------------------------------------------------ Custom
     # Stub for any user-defined LLM endpoint (private server, internal
     # corporate LLM, OpenAI-compatible proxy, etc.).
@@ -708,17 +699,13 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "icon": "custom.svg",
         "url_template": "",
         "api_base_url": "",
-        "prompt_template": (
-            "Please review this content: {url}\n\n{content}"
-        ),
+        "prompt_template": "Please review this content: {url}\n\n{content}",
         "model": "",
         "type": "custom",
     },
-
     # ==================================================================
     # ── TIER 4: Others — alphabetical ─────────────────────────────────
     # ==================================================================
-
     # ----------------------------------------------------------------- Copilot
     "copilot": {
         "enabled": False,
@@ -732,7 +719,6 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "model": "gpt-4o",
         "type": "web",
     },
-
     # --------------------------------------------------------------- DeepSeek
     # DeepSeek R1 and V3 are strong open models; also available via Ollama
     # locally (``ollama pull deepseek-r1:latest``).
@@ -742,13 +728,10 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "description": "Ask DeepSeek AI about this page",
         "icon": "deepseek.svg",
         "url_template": "https://chat.deepseek.com/?q={prompt}",
-        "prompt_template": (
-            "Please read this documentation: {url}\n\nI have questions."
-        ),
+        "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
         "model": "deepseek-reasoner",
         "type": "web",
     },
-
     # -------------------------------------------------------------------- Groq
     # Groq provides extremely fast open-source LLM inference.
     "groq": {
@@ -757,13 +740,10 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "description": "Ask Groq (fast LLM inference) about this page",
         "icon": "groq.svg",
         "url_template": "https://console.groq.com/playground?q={prompt}",
-        "prompt_template": (
-            "Please read: {url}"
-        ),
+        "prompt_template": "Please read: {url}",
         "model": "llama-3.3-70b-versatile",
         "type": "web",
     },
-
     # ----------------------------------------------------------- HuggingFace
     # HuggingFace Chat supports many open-source models (Llama, Mistral,
     # Qwen, Gemma, etc.) freely.  Gemma 4 (31B, Apache-2.0) is available at
@@ -783,7 +763,6 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "model": "meta-llama/Llama-3.3-70B-Instruct",
         "type": "web",
     },
-
     # ----------------------------------------------------------------- Mistral
     "mistral": {
         "enabled": False,
@@ -791,13 +770,10 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "description": "Ask Mistral AI Le Chat about this page",
         "icon": "mistral.svg",
         "url_template": "https://chat.mistral.ai/chat?q={prompt}",
-        "prompt_template": (
-            "Please read this documentation: {url}\n\nI have questions."
-        ),
+        "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
         "model": "mistral-large-latest",
         "type": "web",
     },
-
     # --------------------------------------------------------------- Perplexity
     "perplexity": {
         "enabled": False,
@@ -805,13 +781,10 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
         "description": "Ask Perplexity AI about this page",
         "icon": "perplexity.svg",
         "url_template": "https://www.perplexity.ai/?q={prompt}",
-        "prompt_template": (
-            "Explain this documentation page: {url}"
-        ),
+        "prompt_template": "Explain this documentation page: {url}",
         "model": "sonar-pro",
         "type": "web",
     },
-
     # ----------------------------------------------------------------- You.com
     "you": {
         "enabled": False,
@@ -828,7 +801,7 @@ _DEFAULT_PROVIDERS: Dict[str, Dict[str, Any]] = {
 }
 
 #: Required top-level keys for every provider dict.
-_PROVIDER_REQUIRED_KEYS: Tuple[str, ...] = (
+_PROVIDER_REQUIRED_KEYS: tuple[str, ...] = (
     "enabled",
     "label",
     "description",
@@ -874,7 +847,7 @@ _LOCALHOST_RE = re.compile(
 #:         "transport"   : str,   # "sse" | "stdio"
 #:         "mcpb_url"    : str,   # (claude_desktop) mcpb:// deep-link URL
 #:     }
-_DEFAULT_MCP_TOOLS: Dict[str, Dict[str, Any]] = {
+_DEFAULT_MCP_TOOLS: dict[str, dict[str, Any]] = {
     "vscode": {
         "enabled": False,
         "type": "vscode",
@@ -934,7 +907,8 @@ _SCRIPT_CLOSE_RE = re.compile(r"</", re.IGNORECASE)
 
 
 def _safe_json_for_script(obj: Any) -> str:
-    """Serialise *obj* to a JSON string safe for inline ``<script>`` injection.
+    r"""
+    Serialise *obj* to a JSON string safe for inline ``<script>`` injection.
 
     Parameters
     ----------
@@ -963,7 +937,7 @@ def _safe_json_for_script(obj: Any) -> str:
     Examples
     --------
     >>> _safe_json_for_script({"url": "https://example.com/</script>"})
-    '{"url": "https://example.com/<\\\\/script>"}'
+    '{"url": "https://example.com/<\\/script>"}'
     """
     raw = json.dumps(obj, ensure_ascii=True, separators=(", ", ": "))
     return _SCRIPT_CLOSE_RE.sub(r"<\\/", raw)
@@ -1034,8 +1008,7 @@ def _validate_base_url(url: str) -> str:
     url = url.strip()
     if url and not _URL_SCHEME_RE.match(url):
         raise ValueError(
-            f"ai_assistant_base_url must start with http:// or https://; "
-            f"got {url!r}"
+            f"ai_assistant_base_url must start with http:// or https://; got {url!r}"
         )
     return url.rstrip("/")
 
@@ -1153,13 +1126,13 @@ def _validate_css_selector(selector: str) -> bool:
     --------
     >>> _validate_css_selector('div[role="main"]')
     True
-    >>> _validate_css_selector('<script>bad</script>')
+    >>> _validate_css_selector("<script>bad</script>")
     False
     """
     return not bool(_DANGEROUS_CSS_CHARS_RE.search(selector))
 
 
-def _validate_mcp_tool(tool: Dict[str, Any], name: str = "") -> List[str]:
+def _validate_mcp_tool(tool: dict[str, Any], name: str = "") -> list[str]:
     """Validate a single MCP tool configuration dict.
 
     Parameters
@@ -1185,24 +1158,23 @@ def _validate_mcp_tool(tool: Dict[str, Any], name: str = "") -> List[str]:
 
     Examples
     --------
-    >>> _validate_mcp_tool({"enabled": False, "type": "vscode",
-    ...                     "label": "VS Code", "description": "x"})
+    >>> _validate_mcp_tool(
+    ...     {"enabled": False, "type": "vscode", "label": "VS Code", "description": "x"}
+    ... )
     []
     """
-    errors: List[str] = []
+    errors: list[str] = []
     prefix = f"MCP tool {name!r}: " if name else "MCP tool: "
     for key in ("enabled", "type", "label", "description"):
         if key not in tool:
             errors.append(f"{prefix}missing required key {key!r}")
     server_url = str(tool.get("server_url", "")).strip()
     if server_url and not _URL_SCHEME_RE.match(server_url):
-        errors.append(
-            f"{prefix}server_url {server_url!r} must use http:// or https://"
-        )
+        errors.append(f"{prefix}server_url {server_url!r} must use http:// or https://")
     return errors
 
 
-def _sanitize_selectors(selectors: List[str]) -> List[str]:
+def _sanitize_selectors(selectors: list[str]) -> list[str]:
     """Filter out empty or unsafe CSS selectors from a list.
 
     Parameters
@@ -1224,7 +1196,7 @@ def _sanitize_selectors(selectors: List[str]) -> List[str]:
     return [s for s in selectors if s.strip() and _validate_css_selector(s)]
 
 
-def _validate_provider(provider: Dict[str, Any], name: str = "") -> List[str]:
+def _validate_provider(provider: dict[str, Any], name: str = "") -> list[str]:
     """Validate a provider configuration dict.
 
     Parameters
@@ -1255,7 +1227,7 @@ def _validate_provider(provider: Dict[str, Any], name: str = "") -> List[str]:
     >>> _validate_provider({"enabled": True, "label": "X", ...})  # doctest: +SKIP
     []
     """
-    errors: List[str] = []
+    errors: list[str] = []
     prefix = f"Provider {name!r}: " if name else "Provider: "
 
     for key in _PROVIDER_REQUIRED_KEYS:
@@ -1270,9 +1242,7 @@ def _validate_provider(provider: Dict[str, Any], name: str = "") -> List[str]:
 
     url_tpl = str(provider.get("url_template", ""))
     if not _validate_provider_url_template(url_tpl):
-        errors.append(
-            f"{prefix}url_template {url_tpl!r} must use http:// or https://"
-        )
+        errors.append(f"{prefix}url_template {url_tpl!r} must use http:// or https://")
 
     if ptype == "local":
         api_url = str(provider.get("api_base_url", ""))
@@ -1286,10 +1256,10 @@ def _validate_provider(provider: Dict[str, Any], name: str = "") -> List[str]:
 
 
 def _filter_providers(
-    providers: Dict[str, Any],
+    providers: dict[str, Any],
     *,
     require_enabled: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return a copy of *providers* with unsafe entries removed.
 
     Parameters
@@ -1312,7 +1282,7 @@ def _filter_providers(
     with dangerous URL schemes (``javascript:``, ``data:``, etc.) are
     always removed regardless of *require_enabled*.
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for name, prov in providers.items():
         url_tpl = str(prov.get("url_template", ""))
         if not _validate_provider_url_template(url_tpl):
@@ -1328,7 +1298,7 @@ def _filter_providers(
 # ---------------------------------------------------------------------------
 
 #: Mapping of ``html_theme`` names to ordered CSS selector tuples.
-_THEME_SELECTOR_PRESETS: Dict[str, Tuple[str, ...]] = {
+_THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
     "pydata_sphinx_theme": (
         "article.bd-article",
         "div.bd-article-container article",
@@ -1460,9 +1430,9 @@ _THEME_SELECTOR_PRESETS: Dict[str, Tuple[str, ...]] = {
 
 
 def _resolve_content_selectors(
-    preset: Optional[str],
-    custom_selectors: List[str],
-) -> Tuple[str, ...]:
+    preset: str | None,
+    custom_selectors: list[str],
+) -> tuple[str, ...]:
     """Merge theme-preset and user-defined CSS selectors into one ordered tuple.
 
     Parameters
@@ -1485,16 +1455,14 @@ def _resolve_content_selectors(
     >>> _resolve_content_selectors("furo", ["div.custom"])  # doctest: +SKIP
     ('div.custom', 'article[role="main"]', 'div.page', ...)
     """
-    preset_sels: Tuple[str, ...] = ()
+    preset_sels: tuple[str, ...] = ()
     if preset:
         preset_sels = _THEME_SELECTOR_PRESETS.get(str(preset).strip(), ())
 
     seen: set = set()
-    merged: List[str] = []
+    merged: list[str] = []
     for sel in (
-        list(custom_selectors)
-        + list(preset_sels)
-        + list(_DEFAULT_CONTENT_SELECTORS)
+        list(custom_selectors) + list(preset_sels) + list(_DEFAULT_CONTENT_SELECTORS)
     ):
         if sel not in seen:
             seen.add(sel)
@@ -1508,11 +1476,13 @@ def _resolve_content_selectors(
 # Markdown conversion — public helpers
 # ---------------------------------------------------------------------------
 
+
 def html_to_markdown(
     html_content: str,
-    strip_tags: Union[str, List[str], None] = None,
+    strip_tags: str | list[str] | None = None,
 ) -> str:
-    """Convert an HTML string to Markdown using the Sphinx-tuned converter.
+    r"""
+    Convert an HTML string to Markdown using the Sphinx-tuned converter.
 
     Parameters
     ----------
@@ -1543,12 +1513,13 @@ def html_to_markdown(
     Examples
     --------
     >>> html_to_markdown("<h1>Hello</h1><p>World</p>")  # doctest: +SKIP
-    '# Hello\\n\\nWorld\\n\\n'
+    '# Hello\n\nWorld\n\n'
     """
-    tags: List[str] = _coerce_to_list(strip_tags, default=["script", "style"])
+    tags: list[str] = _coerce_to_list(strip_tags, default=["script", "style"])
 
     try:
-        from bs4 import BeautifulSoup as _BS  # noqa: PLC0415
+        from bs4 import BeautifulSoup as _BS  # noqa: N814, PLC0415
+
         soup = _BS(html_content, "html.parser")
         for tag in soup(tags):
             tag.decompose()
@@ -1556,7 +1527,7 @@ def html_to_markdown(
     except ImportError:
         pass
 
-    ConverterClass = _build_converter_class()
+    ConverterClass = _build_converter_class()  # noqa: N806
     return ConverterClass(
         heading_style="ATX",
         bullets="*",
@@ -1574,30 +1545,31 @@ html_to_markdown_converter = html_to_markdown
 # ---------------------------------------------------------------------------
 
 #: CSS selectors tried in order to locate the main page content.
-_DEFAULT_CONTENT_SELECTORS: Tuple[str, ...] = (
-    "article.bd-article",               # pydata-sphinx-theme ≥ 0.13
-    'div[role="main"]',                 # pydata (older), RTD, generic
-    'article[role="main"]',             # Furo theme
-    "div.rst-content",                  # Read the Docs theme
-    "div.document",                     # Sphinx Classic / Alabaster
-    "div.body",                         # Older Sphinx themes
-    "div.bd-article-container article", # pydata nested wrapper
-    "div.content",                      # Haiku / Scrolls
-    "div.section",                      # Bootstrap / older Sphinx
-    "div.md-content",                   # MkDocs / Material
-    "article.md-content__inner",        # MkDocs Material inner
-    "div.vp-doc",                       # VitePress
-    "section.page-inner",               # GitBook
-    "article.post-content",             # Jekyll
-    "article",                          # Generic / Hugo / Docusaurus
-    "main",                             # Generic HTML5
+_DEFAULT_CONTENT_SELECTORS: tuple[str, ...] = (
+    "article.bd-article",  # pydata-sphinx-theme ≥ 0.13
+    'div[role="main"]',  # pydata (older), RTD, generic
+    'article[role="main"]',  # Furo theme
+    "div.rst-content",  # Read the Docs theme
+    "div.document",  # Sphinx Classic / Alabaster
+    "div.body",  # Older Sphinx themes
+    "div.bd-article-container article",  # pydata nested wrapper
+    "div.content",  # Haiku / Scrolls
+    "div.section",  # Bootstrap / older Sphinx
+    "div.md-content",  # MkDocs / Material
+    "article.md-content__inner",  # MkDocs Material inner
+    "div.vp-doc",  # VitePress
+    "section.page-inner",  # GitBook
+    "article.post-content",  # Jekyll
+    "article",  # Generic / Hugo / Docusaurus
+    "main",  # Generic HTML5
 )
 
 
 def _process_html_file_worker(
-    args: Tuple[str, str, str, List[str], List[str], List[str]],
-) -> Tuple[str, str, str]:
-    """Extended worker: convert one HTML file to Markdown with separate I/O dirs.
+    args: tuple[str, str, str, list[str], list[str], list[str]],
+) -> tuple[str, str, str]:
+    """
+    Extend worker: convert one HTML file to Markdown with separate I/O dirs.
 
     This function is intentionally **at module scope** so that it can be
     serialised by :mod:`multiprocessing`.
@@ -1669,7 +1641,7 @@ def _process_html_file_worker(
         return ("skipped", rel_str, "")
 
     try:
-        from bs4 import BeautifulSoup  # type: ignore[import]
+        from bs4 import BeautifulSoup  # type: ignore[import]  # noqa: PLC0415
 
         html_content = html_file.read_text(encoding="utf-8", errors="replace")
         soup = BeautifulSoup(html_content, "html.parser")
@@ -1700,8 +1672,8 @@ def _process_html_file_worker(
 
 
 def _process_single_html_file(
-    args: Tuple[str, str, List[str], List[str], List[str]],
-) -> Tuple[str, str, str]:
+    args: tuple[str, str, list[str], list[str], list[str]],
+) -> tuple[str, str, str]:
     """Process one HTML file and write the companion ``.md`` file.
 
     This is the original 5-tuple worker kept for backward compatibility.
@@ -1724,35 +1696,38 @@ def _process_single_html_file(
     _process_html_file_worker : Extended 6-tuple worker.
     """
     html_file_str, outdir_str, exclude_patterns, selectors, strip_tags = args
-    return _process_html_file_worker((
-        html_file_str,
-        outdir_str,
-        outdir_str,        # output_dir == input_dir → inline mode
-        exclude_patterns,
-        selectors,
-        strip_tags,
-    ))
+    return _process_html_file_worker(
+        (
+            html_file_str,
+            outdir_str,
+            outdir_str,  # output_dir == input_dir → inline mode
+            exclude_patterns,
+            selectors,
+            strip_tags,
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
 # Standalone (non-Sphinx) HTML directory processor  — PUBLIC
 # ---------------------------------------------------------------------------
 
+
 def process_html_directory(
-    input_dir: Union[str, Path],
+    input_dir: str | Path,
     *,
-    output_dir: Optional[Union[str, Path]] = None,
-    selectors: Optional[List[str]] = None,
-    theme_preset: Optional[str] = None,
-    exclude_patterns: Optional[List[str]] = None,
-    strip_tags: Optional[List[str]] = None,
-    max_workers: Optional[int] = None,
+    output_dir: str | Path | None = None,
+    selectors: list[str] | None = None,
+    theme_preset: str | None = None,
+    exclude_patterns: list[str] | None = None,
+    strip_tags: list[str] | None = None,
+    max_workers: int | None = None,
     recursive: bool = True,
     generate_llms: bool = False,
     base_url: str = "",
-    llms_txt_max_entries: Optional[int] = None,
+    llms_txt_max_entries: int | None = None,
     llms_txt_full_content: bool = False,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Walk any HTML directory tree and convert pages to Markdown.
 
     This function is entirely **Sphinx-free** and works with any
@@ -1820,10 +1795,6 @@ def process_html_directory(
     >>> print(stats)
     {"generated": 42, "skipped": 3, "errors": 0}
     """
-    import multiprocessing
-    import time
-    from concurrent.futures import ProcessPoolExecutor, as_completed
-
     input_path = Path(input_dir).resolve()
     if not input_path.exists():
         raise ValueError(f"input_dir does not exist: {input_path}")
@@ -1843,13 +1814,17 @@ def process_html_directory(
 
     if exclude_patterns is None:
         exclude_patterns = [
-            "genindex", "search", "py-modindex", "_sources", "_static",
+            "genindex",
+            "search",
+            "py-modindex",
+            "_sources",
+            "_static",
         ]
 
     if strip_tags is None:
         strip_tags = ["script", "style", "nav", "footer", "header"]
 
-    effective_selectors: List[str] = list(
+    effective_selectors: list[str] = list(
         _resolve_content_selectors(theme_preset, selectors or [])
     )
 
@@ -1858,9 +1833,7 @@ def process_html_directory(
 
     cpu_count = multiprocessing.cpu_count() or 1
     workers: int = (
-        max(1, min(cpu_count, 8))
-        if max_workers is None
-        else max(1, int(max_workers))
+        max(1, min(cpu_count, 8)) if max_workers is None else max(1, int(max_workers))
     )
 
     args_list = [
@@ -1878,10 +1851,7 @@ def process_html_directory(
     generated = skipped = errors = 0
 
     with ProcessPoolExecutor(max_workers=workers) as executor:
-        futures = {
-            executor.submit(_process_html_file_worker, a): a
-            for a in args_list
-        }
+        futures = {executor.submit(_process_html_file_worker, a): a for a in args_list}
         for future in as_completed(futures):
             try:
                 status, _rel, _msg = future.result()
@@ -1910,13 +1880,14 @@ def process_html_directory(
 # Standalone llms.txt generator — PUBLIC
 # ---------------------------------------------------------------------------
 
+
 def generate_llms_txt_standalone(
-    md_root: Union[str, Path],
+    md_root: str | Path,
     *,
     base_url: str = "",
-    output_file: Optional[Union[str, Path]] = None,
+    output_file: str | Path | None = None,
     project_name: str = "Documentation",
-    max_entries: Optional[int] = None,
+    max_entries: int | None = None,
     full_content: bool = False,
 ) -> Path:
     """Write ``llms.txt`` from an existing set of ``.md`` files.
@@ -1973,9 +1944,7 @@ def generate_llms_txt_standalone(
         md_files = md_files[:cap]
 
     out_path = (
-        Path(output_file).resolve()
-        if output_file is not None
-        else root / "llms.txt"
+        Path(output_file).resolve() if output_file is not None else root / "llms.txt"
     )
 
     with out_path.open("w", encoding="utf-8") as fh:
@@ -1999,663 +1968,20 @@ def generate_llms_txt_standalone(
 
 
 # ---------------------------------------------------------------------------
-# Jupyter notebook AI button — PUBLIC
+# Jupyter notebook AI button — re-exported from _jupyter submodule
 # ---------------------------------------------------------------------------
-
-#: CSS selectors tried by the Jupyter widget to locate cell output content.
-#: JupyterLab and classic Notebook use different DOM structures.
-_JUPYTER_CONTENT_SELECTORS: Tuple[str, ...] = (
-    # JupyterLab ≥ 4
-    ".jp-OutputArea-output",
-    ".jp-OutputArea",
-    # JupyterLab 3
-    ".lm-Widget.jp-OutputArea-child",
-    # Classic Notebook
-    ".output_area",
-    ".output_text",
-    ".output_html",
-    # VSCode Jupyter
-    ".cell-output-ipywidget-background",
-    # Fallback
-    ".output",
+# Developer note: The full Jupyter widget implementation lives in _jupyter.py.
+# This package is Sphinx-free and IPython-optional; all shared validators and
+# constants (e.g. _DEFAULT_PROVIDERS, _safe_json_for_script) are defined above
+# in this file and imported into _jupyter.py via relative import.  The public
+# symbols are re-exported here so existing call sites continue to work without
+# modification.
+from ._jupyter import (  # noqa: E402
+    _JUPYTER_CONTENT_SELECTORS,
+    _build_jupyter_widget_html,
+    display_jupyter_ai_button,
+    display_jupyter_notebook_ai_button,
 )
-
-
-def _build_jupyter_widget_html(
-    content: Optional[str] = None,
-    *,
-    providers: Union[str, List[str], None] = None,
-    provider_configs: Optional[Dict[str, Any]] = None,
-    position: str = "inline",
-    page_url: str = "",
-    widget_id: Optional[str] = None,
-    intention: Optional[str] = None,
-    custom_context: Optional[str] = None,
-    custom_prompt_prefix: Optional[str] = None,
-    notebook_mode: bool = False,
-    include_outputs: bool = True,
-    include_raw_image: bool = False,
-    mcp_tools: Optional[Dict[str, Any]] = None,
-) -> str:
-    """Build self-contained HTML+JS for the Jupyter AI button strip.
-
-    Parameters
-    ----------
-    content : str or None, optional
-        Explicit text content to include in the AI prompt.  When ``None``
-        and *notebook_mode* is ``False``, the widget JS captures text from
-        the surrounding Jupyter output area automatically.  When ``None``
-        and *notebook_mode* is ``True``, all visible notebook cells are
-        captured.
-    providers : str or list of str or None, optional
-        Ordered list of provider names to show as buttons.  A bare ``str``
-        is accepted and treated as a single-element list.  Defaults to
-        ``["claude", "chatgpt", "gemini", "ollama"]``.
-    provider_configs : dict or None, optional
-        Full provider config overrides.  Merged over
-        :data:`_DEFAULT_PROVIDERS`.
-    position : str, optional
-        One of ``"inline"`` (default) or ``"floating"``.
-    page_url : str, optional
-        URL embedded in provider prompt templates as ``{url}``.
-    widget_id : str or None, optional
-        Unique DOM ID for the widget.  Auto-generated when ``None``.
-    intention : str or None, optional
-        User's stated goal for this AI interaction (e.g.
-        ``"explain this chart"``, ``"find the bug"``, ``"review notebook"``).
-        Prepended to the prompt as ``"Goal: <intention>"``.
-    custom_context : str or None, optional
-        Additional background context injected after *intention* and before
-        the provider's prompt template.
-    custom_prompt_prefix : str or None, optional
-        Raw text prepended *before* everything else in the final prompt.
-    notebook_mode : bool, optional
-        When ``True`` the JS walks the entire notebook DOM, collecting all
-        cell inputs and (optionally) their outputs into a single prompt.
-    include_outputs : bool, optional
-        When *notebook_mode* is ``True``, controls whether cell outputs are
-        included alongside cell inputs.  Defaults to ``True``.
-    include_raw_image : bool, optional
-        When ``True``, the widget JS scans ``<img>`` and ``<canvas>``
-        elements in the captured output area and appends image metadata
-        (dimensions, alt text, type) to the prompt.  For ``<canvas>``
-        elements the pixel content is converted to a compact base64 PNG
-        thumbnail (max 300 × 300 px) and included inline.  Defaults to
-        ``False``.
-
-        .. note::
-            Full-resolution base64 images exceed most URL length limits
-            (~2 KB).  The thumbnail is a compressed preview for context;
-            for high-fidelity vision analysis, paste the image directly
-            into the AI provider's chat interface.
-
-    mcp_tools : dict or None, optional
-        MCP tool configurations to surface alongside provider buttons.
-        Each value is a dict matching :data:`_DEFAULT_MCP_TOOLS` schema.
-        When ``None``, no MCP buttons are rendered.
-
-    Returns
-    -------
-    str
-        Self-contained HTML string (no external resources required).
-
-    Notes
-    -----
-    The generated widget:
-
-    * Is fully self-contained (no external CSS/JS dependencies).
-    * Escapes all user-supplied strings through :func:`_safe_json_for_script`
-      before embedding them in the ``<script>`` block — prevents XSS.
-    * Captures surrounding cell output text via
-      :data:`_JUPYTER_CONTENT_SELECTORS` when *content* is ``None`` and
-      *notebook_mode* is ``False``.
-    * In *notebook_mode* traverses ``.jp-Cell`` / ``.cell`` elements in
-      document order, optionally including ``.jp-OutputArea`` text.
-    * Validates provider ``url_template`` before rendering buttons;
-      providers with dangerous schemes are silently skipped.
-    * *intention*, *custom_context*, *custom_prompt_prefix*, and all
-      MCP tool fields are sanitised via :func:`_safe_json_for_script`;
-      no raw string interpolation into JS occurs.
-    * When *include_raw_image* is ``True``, ``<canvas>`` elements are
-      captured via ``toDataURL()``; cross-origin images are skipped
-      gracefully (browser security policy prevents reading foreign pixels).
-    """
-    import hashlib
-    import time as _time
-
-    # ── Generate stable widget ID ────────────────────────────────────────────
-    if widget_id is None:
-        raw_id = f"{_time.monotonic_ns()}_{content!r}_{notebook_mode}"
-        widget_id = "ai-btn-" + hashlib.md5(raw_id.encode()).hexdigest()[:8]
-
-    # ── Resolve provider list ────────────────────────────────────────────────
-    provider_list: List[str] = _coerce_to_list(
-        providers, default=["claude", "chatgpt", "gemini", "ollama"]
-    )
-
-    # ── Merge default configs with any user overrides ────────────────────────
-    merged_configs: Dict[str, Any] = {}
-    for pname in provider_list:
-        base = dict(_DEFAULT_PROVIDERS.get(pname, {}))
-        if provider_configs and pname in provider_configs:
-            base.update(provider_configs[pname])
-        merged_configs[pname] = base
-
-    # ── Security: filter providers with unsafe url_template ──────────────────
-    safe_configs = _filter_providers(merged_configs)
-
-    # ── Build button specs list (preserves requested order) ──────────────────
-    buttons = []
-    for pname in provider_list:
-        cfg = safe_configs.get(pname, {})
-        if not cfg:
-            continue
-        buttons.append({
-            "name": pname,
-            "label": str(cfg.get("label", pname)),
-            "url_template": str(cfg.get("url_template", "")),
-            "prompt_template": str(cfg.get("prompt_template", "Ask about: {url}")),
-            "type": str(cfg.get("type", "web")),
-            "enabled": bool(cfg.get("enabled", True)),
-        })
-
-    # ── Validate page URL ────────────────────────────────────────────────────
-    validated_page_url = ""
-    if page_url:
-        try:
-            validated_page_url = _validate_base_url(page_url)
-        except ValueError:
-            validated_page_url = ""
-
-    # ── Validate and serialise MCP tools ────────────────────────────────────
-    safe_mcp: Dict[str, Any] = {}
-    if mcp_tools:
-        for tname, tcfg in mcp_tools.items():
-            errs = _validate_mcp_tool(tcfg, name=tname)
-            if not errs:
-                safe_mcp[tname] = tcfg
-
-    # ── Serialise everything through _safe_json_for_script (XSS guard) ───────
-    buttons_json          = _safe_json_for_script(buttons)
-    content_json          = _safe_json_for_script(content)
-    selectors_json        = _safe_json_for_script(list(_JUPYTER_CONTENT_SELECTORS))
-    page_url_json         = _safe_json_for_script(validated_page_url)
-    intention_json        = _safe_json_for_script(intention)
-    custom_context_json   = _safe_json_for_script(custom_context)
-    prompt_prefix_json    = _safe_json_for_script(custom_prompt_prefix)
-    notebook_mode_json    = "true" if notebook_mode else "false"
-    include_outputs_json  = "true" if include_outputs else "false"
-    include_raw_image_json = "true" if include_raw_image else "false"
-    mcp_tools_json        = _safe_json_for_script(safe_mcp)
-
-    position_style = (
-        "position:fixed;bottom:16px;right:16px;z-index:9999;"
-        if position == "floating"
-        else "margin:8px 0;display:inline-block;"
-    )
-
-    html = f"""
-<div id="{widget_id}" style="{position_style}font-family:sans-serif;">
-  <style>
-    #{widget_id} .ai-btn-strip {{
-      display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-      padding:6px 8px;
-      background:rgba(255,255,255,0.92);
-      border:1px solid #ddd;border-radius:8px;
-      box-shadow:0 1px 4px rgba(0,0,0,.08);
-    }}
-    #{widget_id} .ai-btn {{
-      display:inline-flex;align-items:center;gap:5px;
-      padding:4px 10px;font-size:12px;font-weight:500;
-      border:1px solid #ccc;border-radius:5px;
-      background:#fff;color:#333;cursor:pointer;
-      transition:background .15s,box-shadow .15s;
-      white-space:nowrap;text-decoration:none;
-    }}
-    #{widget_id} .ai-btn:hover {{
-      background:#f5f5f5;box-shadow:0 1px 3px rgba(0,0,0,.12);
-    }}
-    #{widget_id} .ai-btn.local-disabled {{
-      opacity:.5;cursor:not-allowed;
-    }}
-    #{widget_id} .ai-btn-label {{font-size:11px;color:#888;margin-right:4px;}}
-  </style>
-  <div class="ai-btn-strip">
-    <span class="ai-btn-label">Ask AI:</span>
-    <div id="{widget_id}-buttons"></div>
-  </div>
-  <script>
-  (function() {{
-    var BUTTONS          = {buttons_json};
-    var EXPLICIT_CONTENT = {content_json};
-    var SELECTORS        = {selectors_json};
-    var PAGE_URL         = {page_url_json};
-    var INTENTION        = {intention_json};
-    var CUSTOM_CONTEXT   = {custom_context_json};
-    var PROMPT_PREFIX    = {prompt_prefix_json};
-    var NOTEBOOK_MODE    = {notebook_mode_json};
-    var INCLUDE_OUTPUTS  = {include_outputs_json};
-    var INCLUDE_RAW_IMAGE = {include_raw_image_json};
-    var MCP_TOOLS        = {mcp_tools_json};
-
-    function getCellContent() {{
-      var root = document.getElementById("{widget_id}");
-      var outputArea = root ? root.closest(
-        ".jp-OutputArea, .output_area, .cell-output, .output"
-      ) : null;
-      if (outputArea) {{
-        for (var i = 0; i < SELECTORS.length; i++) {{
-          var el = outputArea.querySelector(SELECTORS[i]);
-          if (el) return el.innerText || el.textContent || "";
-        }}
-        return outputArea.innerText || outputArea.textContent || "";
-      }}
-      return "";
-    }}
-
-    function getNotebookContent() {{
-      var cells = document.querySelectorAll(
-        ".jp-Cell, .cell, .code_cell, .text_cell, .markdown_cell"
-      );
-      if (!cells.length) return getCellContent();
-      var parts = [];
-      var idx = 0;
-      cells.forEach(function(cell) {{
-        idx++;
-        var inputEl = cell.querySelector(
-          ".jp-InputArea-editor, .input_area, .CodeMirror-code, .cm-content"
-        );
-        var inputText = inputEl
-          ? (inputEl.innerText || inputEl.textContent || "").trim()
-          : "";
-        if (!inputText) return;
-        parts.push("--- Cell " + idx + " ---");
-        parts.push(inputText);
-        if (INCLUDE_OUTPUTS) {{
-          var outputEl = cell.querySelector(
-            ".jp-OutputArea, .output_area, .output"
-          );
-          var outputText = outputEl
-            ? (outputEl.innerText || outputEl.textContent || "").trim()
-            : "";
-          if (outputText) {{
-            parts.push("Output:");
-            parts.push(outputText);
-          }}
-        }}
-      }});
-      return parts.join("\n");
-    }}
-
-    function getContent() {{
-      if (EXPLICIT_CONTENT !== null && EXPLICIT_CONTENT !== undefined) {{
-        return String(EXPLICIT_CONTENT);
-      }}
-      return NOTEBOOK_MODE ? getNotebookContent() : getCellContent();
-    }}
-
-    /* ── Capture images/canvas from output area (raw image mode) ── */
-    function captureImages(outputArea) {{
-      if (!INCLUDE_RAW_IMAGE || !outputArea) return "";
-      var parts = [];
-      // Canvas elements (matplotlib, plotly SVG-to-canvas, etc.)
-      var canvases = outputArea.querySelectorAll("canvas");
-      canvases.forEach(function(cv) {{
-        try {{
-          var w = cv.width, h = cv.height;
-          if (!w || !h) return;
-          // Create thumbnail at max 300px
-          var scale = Math.min(1, 300 / Math.max(w, h));
-          var tw = Math.round(w * scale), th = Math.round(h * scale);
-          var tc = document.createElement("canvas");
-          tc.width = tw; tc.height = th;
-          var ctx = tc.getContext("2d");
-          if (ctx) {{
-            ctx.drawImage(cv, 0, 0, tw, th);
-            var dataUrl = tc.toDataURL("image/png", 0.6);
-            parts.push("[Canvas " + w + "x" + h + "px | thumbnail:" + dataUrl + "]");
-          }}
-        }} catch(e) {{ parts.push("[Canvas: cross-origin, cannot read]"); }}
-      }});
-      // <img> elements
-      var imgs = outputArea.querySelectorAll("img");
-      imgs.forEach(function(img) {{
-        var src = img.src || "";
-        var alt = img.alt || "image";
-        var w = img.naturalWidth || img.width || 0;
-        var h = img.naturalHeight || img.height || 0;
-        if (src.startsWith("data:")) {{
-          parts.push("[Image (base64, " + w + "x" + h + "): " + alt + " | " + src + "]");
-        }} else if (src) {{
-          parts.push("[Image: " + alt + " (" + w + "x" + h + "px) src=" + src + "]");
-        }}
-      }});
-      return parts.length ? "\n\n[Visual outputs]\n" + parts.join("\n") : "";
-    }}
-
-    function buildPrompt(btn, content) {{
-      var parts = [];
-      if (PROMPT_PREFIX)    parts.push(String(PROMPT_PREFIX));
-      if (INTENTION)        parts.push("Goal: " + String(INTENTION));
-      if (CUSTOM_CONTEXT)   parts.push("Context: " + String(CUSTOM_CONTEXT));
-      // Append image metadata when include_raw_image=True
-      var root = document.getElementById("{widget_id}");
-      var outputArea = root ? root.closest(
-        ".jp-OutputArea, .output_area, .cell-output, .output"
-      ) : (document.querySelector(".jp-OutputArea") || null);
-      var imageText = captureImages(outputArea);
-      if (imageText) content = content + imageText;
-      var main = btn.prompt_template
-        .replace(/\\{{url\\}}/g, PAGE_URL || window.location.href)
-        .replace(/\\{{content\\}}/g, content);
-      parts.push(main);
-      return parts.join("\n\n");
-    }}
-
-    function buildUrl(btn) {{
-      var content = getContent();
-      var prompt = buildPrompt(btn, content);
-      return btn.url_template.replace(/\\{{prompt\\}}/g, encodeURIComponent(prompt));
-    }}
-
-    var container = document.getElementById("{widget_id}-buttons");
-    BUTTONS.forEach(function(btn) {{
-      var isLocal = btn.type === "local";
-      var a = document.createElement("a");
-      a.className = "ai-btn" + (isLocal && !btn.enabled ? " local-disabled" : "");
-      a.textContent = btn.label;
-      a.title = isLocal ? "Local provider \u2014 requires local AI server" : btn.label;
-      if (!isLocal || btn.enabled) {{
-        a.href = "#";
-        a.onclick = function(e) {{
-          e.preventDefault();
-          var url = buildUrl(btn);
-          if (url) window.open(url, "_blank", "noopener,noreferrer");
-        }};
-      }}
-      container.appendChild(a);
-    }});
-
-    /* ── MCP tool buttons ── */
-    if (MCP_TOOLS && typeof MCP_TOOLS === "object") {{
-      var mcpKeys = Object.keys(MCP_TOOLS);
-      if (mcpKeys.length > 0) {{
-        var sep = document.createElement("span");
-        sep.style.cssText = "width:1px;background:#ddd;align-self:stretch;margin:0 4px;";
-        container.appendChild(sep);
-        var mcpLabel = document.createElement("span");
-        mcpLabel.className = "ai-btn-label";
-        mcpLabel.textContent = "MCP:";
-        mcpLabel.style.marginLeft = "4px";
-        container.appendChild(mcpLabel);
-        mcpKeys.forEach(function(tname) {{
-          var tcfg = MCP_TOOLS[tname];
-          if (!tcfg || !tcfg.enabled) return;
-          var btn2 = document.createElement("a");
-          btn2.className = "ai-btn";
-          btn2.textContent = String(tcfg.label || tname);
-          btn2.title = String(tcfg.description || tname);
-          var sUrl = String(tcfg.server_url || tcfg.mcpb_url || "");
-          if (sUrl) {{
-            btn2.href = sUrl;
-            btn2.target = "_blank";
-            btn2.rel = "noopener noreferrer";
-          }}
-          container.appendChild(btn2);
-        }});
-      }}
-    }}
-  }})();
-  </script>
-</div>"""
-    return html
-
-
-def display_jupyter_ai_button(
-    content: Optional[str] = None,
-    *,
-    providers: Union[str, List[str], None] = None,
-    provider_configs: Optional[Dict[str, Any]] = None,
-    position: str = "inline",
-    page_url: str = "",
-    widget_id: Optional[str] = None,
-    intention: Optional[str] = None,
-    custom_context: Optional[str] = None,
-    custom_prompt_prefix: Optional[str] = None,
-    notebook_mode: bool = False,
-    include_outputs: bool = True,
-    include_raw_image: bool = False,
-    mcp_tools: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Inject an AI-assistant button strip into the current Jupyter output cell.
-
-    Call this function directly after a visualisation or cell output to add
-    one-click buttons that send the cell content to Claude, ChatGPT, Gemini,
-    Ollama (local), or any other configured AI provider.
-
-    Parameters
-    ----------
-    content : str or None, optional
-        Explicit text/description to include in the AI prompt.  When
-        ``None`` and *notebook_mode* is ``False``, the widget JS captures
-        text from the surrounding Jupyter output area automatically
-        (supports JupyterLab >= 3, classic Notebook, and VS Code Jupyter).
-        When ``None`` and *notebook_mode* is ``True``, all visible
-        notebook cells are captured.
-    providers : str or list of str or None, optional
-        Ordered list of provider names to show.  A bare ``str`` is treated
-        as a single-element list.  Valid names: ``"claude"``,
-        ``"chatgpt"``, ``"gemini"``, ``"ollama"``, ``"mistral"``,
-        ``"perplexity"``, ``"copilot"``, ``"groq"``, ``"you"``.
-        Defaults to ``["claude", "chatgpt", "gemini", "ollama"]``.
-    provider_configs : dict or None, optional
-        Per-provider config overrides merged over :data:`_DEFAULT_PROVIDERS`.
-    position : str, optional
-        ``"inline"`` (default) or ``"floating"``.
-    page_url : str, optional
-        URL embedded in provider prompt templates as ``{url}``.
-    widget_id : str or None, optional
-        Unique DOM ID.  Auto-generated when ``None``.
-    intention : str or None, optional
-        User's stated goal (e.g. ``"explain this chart"``, ``"fix the error"``).
-        Prepended to the prompt as ``"Goal: <intention>"``.
-    custom_context : str or None, optional
-        Additional background context injected into the prompt.
-    custom_prompt_prefix : str or None, optional
-        Raw text prepended before everything else in the final prompt.
-    notebook_mode : bool, optional
-        When ``True``, captures all notebook cells instead of just the
-        current output area.
-    include_outputs : bool, optional
-        When *notebook_mode* is ``True``, whether to include cell outputs.
-        Defaults to ``True``.
-    include_raw_image : bool, optional
-        When ``True``, scans ``<img>`` and ``<canvas>`` elements in the
-        output area and appends image metadata (and thumbnails for canvas
-        elements) to the AI prompt.  Defaults to ``False``.
-    mcp_tools : dict or None, optional
-        MCP tool configs to render as "Connect" buttons beside the AI
-        provider buttons.  Each value must match :data:`_DEFAULT_MCP_TOOLS`
-        schema.  When ``None``, no MCP buttons are shown.
-
-    Returns
-    -------
-    None
-        The widget is displayed via :func:`IPython.display.display`.
-
-    Raises
-    ------
-    ImportError
-        If IPython is not installed.
-    ValueError
-        If *position* is not ``"inline"`` or ``"floating"``.
-
-    Notes
-    -----
-    **Security**: All user-supplied strings are serialised through
-    :func:`_safe_json_for_script` before embedding in the ``<script>``
-    block, preventing XSS.
-
-    Examples
-    --------
-    After a matplotlib plot:
-
-    .. code-block:: python
-
-        from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-            display_jupyter_ai_button,
-        )
-        import matplotlib.pyplot as plt
-        plt.plot([1, 2, 3])
-        plt.show()
-        display_jupyter_ai_button(
-            content="A line chart showing values 1, 2, 3.",
-            providers=["claude", "chatgpt", "gemini"],
-            intention="Explain the trend",
-            include_raw_image=True,
-        )
-    """
-    if position not in {"inline", "floating"}:
-        raise ValueError(
-            f"position must be 'inline' or 'floating'; got {position!r}"
-        )
-
-    try:
-        from IPython.display import display, HTML  # type: ignore[import]
-    except ImportError as exc:
-        raise ImportError(
-            "display_jupyter_ai_button requires IPython. "
-            "Install with: pip install ipython"
-        ) from exc
-
-    html = _build_jupyter_widget_html(
-        content=content,
-        providers=providers,
-        provider_configs=provider_configs,
-        position=position,
-        page_url=page_url,
-        widget_id=widget_id,
-        intention=intention,
-        custom_context=custom_context,
-        custom_prompt_prefix=custom_prompt_prefix,
-        notebook_mode=notebook_mode,
-        include_outputs=include_outputs,
-        include_raw_image=include_raw_image,
-        mcp_tools=mcp_tools,
-    )
-    display(HTML(html))
-
-
-def display_jupyter_notebook_ai_button(
-    intention: Optional[str] = None,
-    *,
-    providers: Union[str, List[str], None] = None,
-    provider_configs: Optional[Dict[str, Any]] = None,
-    position: str = "inline",
-    page_url: str = "",
-    widget_id: Optional[str] = None,
-    include_outputs: bool = True,
-    include_raw_image: bool = False,
-    custom_context: Optional[str] = None,
-    custom_prompt_prefix: Optional[str] = None,
-    mcp_tools: Optional[Dict[str, Any]] = None,
-) -> None:
-    """Send the entire Jupyter notebook to an AI provider for review.
-
-    A convenience wrapper around :func:`display_jupyter_ai_button` with
-    ``notebook_mode=True``.  Call this anywhere in your notebook to let an
-    AI review, interpret, or debug the full notebook content.
-
-    The JS widget traverses every ``.jp-Cell`` (or ``.cell`` in classic
-    Notebook) in DOM order, collecting input code and optionally cell
-    outputs into a single structured prompt.
-
-    Parameters
-    ----------
-    intention : str or None, optional
-        Your stated goal for the AI review.  Common values:
-
-        * ``"Review this notebook for errors"``
-        * ``"Explain what this analysis does"``
-        * ``"Fix the failing cell"``
-        * ``"Suggest improvements to this code"``
-
-        When ``None`` no goal annotation is added.
-    providers : str or list of str or None, optional
-        Provider names to show as buttons.  A bare ``str`` is treated as a
-        single-element list.  Defaults to
-        ``["claude", "chatgpt", "gemini", "ollama"]``.
-    provider_configs : dict or None, optional
-        Per-provider config overrides merged over :data:`_DEFAULT_PROVIDERS`.
-    position : str, optional
-        ``"inline"`` (default) or ``"floating"``.
-    page_url : str, optional
-        URL embedded in provider prompt templates as ``{url}``.
-    widget_id : str or None, optional
-        Unique DOM ID.  Auto-generated when ``None``.
-    include_outputs : bool, optional
-        When ``True`` (default), cell outputs are included in the captured
-        text.  Set to ``False`` to send only source code.
-    include_raw_image : bool, optional
-        When ``True``, captures canvas/image thumbnails from all cell output
-        areas and appends them to the prompt.  Defaults to ``False``.
-    custom_context : str or None, optional
-        Additional background context (domain, data description, etc.).
-    custom_prompt_prefix : str or None, optional
-        Raw text prepended before everything else in the final prompt.
-    mcp_tools : dict or None, optional
-        MCP tool configs rendered as "Connect" buttons.  When ``None``,
-        no MCP buttons are shown.
-
-    Returns
-    -------
-    None
-        The widget is displayed via :func:`IPython.display.display`.
-
-    Raises
-    ------
-    ImportError
-        If IPython is not installed.
-    ValueError
-        If *position* is not ``"inline"`` or ``"floating"``.
-
-    Notes
-    -----
-    **DOM traversal**: The JS uses ``document.querySelectorAll`` with
-    ``.jp-Cell, .cell, .code_cell, .text_cell, .markdown_cell``.  This
-    covers JupyterLab >= 3 and classic Notebook.  VS Code Jupyter and
-    other environments fall back gracefully to cell-level capture.
-
-    Examples
-    --------
-    At the end of a notebook to request a full review:
-
-    .. code-block:: python
-
-        from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-            display_jupyter_notebook_ai_button,
-        )
-        display_jupyter_notebook_ai_button(
-            intention="Review this notebook for bugs and suggest improvements",
-            providers=["claude", "chatgpt"],
-            include_outputs=True,
-        )
-    """
-    display_jupyter_ai_button(
-        content=None,
-        providers=providers,
-        provider_configs=provider_configs,
-        position=position,
-        page_url=page_url,
-        widget_id=widget_id,
-        intention=intention,
-        custom_context=custom_context,
-        custom_prompt_prefix=custom_prompt_prefix,
-        notebook_mode=True,
-        include_outputs=include_outputs,
-        include_raw_image=include_raw_image,
-        mcp_tools=mcp_tools,
-    )
 
 # ---------------------------------------------------------------------------
 # Build-time hooks (Sphinx layer)
@@ -2666,13 +1992,14 @@ def display_jupyter_notebook_ai_button(
 # Sphinx RST directive and role
 # ---------------------------------------------------------------------------
 
+
 def _build_ai_assistant_directive_node(
-    providers: List[str],
+    providers: list[str],
     position: str,
-    intention: Optional[str],
-    custom_context: Optional[str],
+    intention: str | None,
+    custom_context: str | None,
     page_url: str,
-    mcp_tools: Optional[Dict[str, Any]],
+    mcp_tools: dict[str, Any] | None,
     include_raw_image: bool,
 ) -> str:
     """Return a self-contained HTML widget snippet for embedding in RST.
@@ -2754,12 +2081,13 @@ class AIAssistantDirective:
     required_arguments = 0
     optional_arguments = 0
     has_content = False
-    option_spec: Dict[str, Any] = {}  # populated in setup() after docutils import
+    # populated in setup() after docutils import
+    option_spec: dict[str, Any] = {}  # noqa: RUF012
 
-    def run(self) -> List[Any]:  # type: ignore[type-arg]
+    def run(self) -> list[Any]:  # type: ignore[type-arg]
         """Generate the raw HTML node for this directive."""
         try:
-            from docutils import nodes  # type: ignore[import]
+            from docutils import nodes  # type: ignore[import]  # noqa: PLC0415
         except ImportError:
             return []
 
@@ -2769,10 +2097,9 @@ class AIAssistantDirective:
         intention_raw = str(self.options.get("intention", "")).strip() or None
         custom_context_raw = str(self.options.get("custom_context", "")).strip() or None
         page_url = str(self.options.get("page_url", "")).strip()
-        include_raw_image = (
-            str(self.options.get("include_raw_image", "false")).strip().lower()
-            in ("true", "1", "yes")
-        )
+        include_raw_image = str(
+            self.options.get("include_raw_image", "false")
+        ).strip().lower() in ("true", "1", "yes")
 
         html = _build_ai_assistant_directive_node(
             providers=providers,
@@ -2793,8 +2120,8 @@ def _ai_ask_role(
     text: str,
     lineno: int,
     inliner: Any,
-    options: Optional[Dict[str, Any]] = None,
-    content: Optional[List[str]] = None,
+    options: dict[str, Any] | None = None,
+    content: list[str] | None = None,
 ) -> Any:
     """Sphinx ``:ai_ask:`` inline role.
 
@@ -2832,7 +2159,7 @@ def _ai_ask_role(
         ``([node], [])`` — single raw HTML node and empty messages list.
     """
     try:
-        from docutils import nodes  # type: ignore[import]
+        from docutils import nodes  # type: ignore[import]  # noqa: PLC0415
     except ImportError:
         return [], []
 
@@ -2840,14 +2167,14 @@ def _ai_ask_role(
     html = _build_jupyter_widget_html(
         content=None,
         providers=["claude", "chatgpt", "gemini"],
-        intention=safe_text if safe_text else None,
+        intention=safe_text or None,
         position="inline",
     )
     raw_node = nodes.raw("", html, format="html")
     return [raw_node], []
 
 
-def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> None:
+def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     """Post-build hook: generate ``.md`` companions for every ``.html`` file.
 
     Registered with Sphinx's ``build-finished`` event in :func:`setup`.
@@ -2870,12 +2197,13 @@ def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> No
     None
         All per-file errors are logged as warnings; the hook never raises.
     """
+    # flake8: noqa: F811
+    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: PLC0415
+
     if exception is not None:
         return
 
     log = _get_logger()
-
-    from sphinx.builders.html import StandaloneHTMLBuilder
 
     builder = app.builder
     if not isinstance(builder, StandaloneHTMLBuilder):
@@ -2893,32 +2221,24 @@ def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> No
         )
         return
 
-    import multiprocessing
-    import time
-    from concurrent.futures import ProcessPoolExecutor, as_completed
-
     outdir = Path(builder.outdir)
-    exclude_patterns: List[str] = list(
+    exclude_patterns: list[str] = list(
         app.config.ai_assistant_markdown_exclude_patterns
     )
 
-    preset: Optional[str] = (
-        getattr(app.config, "ai_assistant_theme_preset", None) or None
-    )
-    selectors: List[str] = list(
+    preset: str | None = getattr(app.config, "ai_assistant_theme_preset", None) or None
+    selectors: list[str] = list(
         _resolve_content_selectors(
             preset,
             list(app.config.ai_assistant_content_selectors),
         )
     )
-    strip_tags: List[str] = list(
+    strip_tags: list[str] = list(
         getattr(app.config, "ai_assistant_strip_tags", ["script", "style"])
     )
 
     html_files = list(outdir.rglob("*.html"))
-    log.info(
-        f"AI Assistant: Generating Markdown for {len(html_files)} HTML files…"
-    )
+    log.info(f"AI Assistant: Generating Markdown for {len(html_files)} HTML files…")
 
     max_workers_cfg = app.config.ai_assistant_max_workers
     cpu_count = multiprocessing.cpu_count() or 1
@@ -2937,10 +2257,7 @@ def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> No
     t0 = time.monotonic()
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(_process_single_html_file, a): a
-            for a in args_list
-        }
+        futures = {executor.submit(_process_single_html_file, a): a for a in args_list}
         for future in as_completed(futures):
             try:
                 status, rel_path, message = future.result()
@@ -2956,9 +2273,7 @@ def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> No
                     log.debug(f"AI Assistant: Skipped {rel_path}: {message}")
             else:
                 errors += 1
-                log.warning(
-                    f"AI Assistant: Failed to convert {rel_path}: {message}"
-                )
+                log.warning(f"AI Assistant: Failed to convert {rel_path}: {message}")
 
     elapsed = time.monotonic() - t0
     log.info(
@@ -2967,7 +2282,9 @@ def generate_markdown_files(app: "Sphinx", exception: Optional[Exception]) -> No
     )
 
 
-def generate_llms_txt(app: "Sphinx", exception: Optional[Exception]) -> None:
+def generate_llms_txt(  # noqa: PLR0911
+    app: Sphinx, exception: Exception | None
+) -> None:
     """Post-build hook: write ``llms.txt`` listing all generated ``.md`` URLs.
 
     Registered with Sphinx's ``build-finished`` event in :func:`setup`.
@@ -2994,7 +2311,7 @@ def generate_llms_txt(app: "Sphinx", exception: Optional[Exception]) -> None:
     if not app.config.ai_assistant_generate_llms_txt:
         return
 
-    from sphinx.builders.html import StandaloneHTMLBuilder
+    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: PLC0415
 
     if not isinstance(app.builder, StandaloneHTMLBuilder):
         return
@@ -3018,7 +2335,7 @@ def generate_llms_txt(app: "Sphinx", exception: Optional[Exception]) -> None:
         log.debug("AI Assistant: No .md files found; skipping llms.txt")
         return
 
-    max_entries: Optional[int] = getattr(
+    max_entries: int | None = getattr(
         app.config, "ai_assistant_llms_txt_max_entries", None
     )
     if max_entries is not None:
@@ -3051,13 +2368,10 @@ def generate_llms_txt(app: "Sphinx", exception: Optional[Exception]) -> None:
             else:
                 fh.write(f"{line}\n")
 
-    log.info(
-        f"AI Assistant: llms.txt written with {len(md_files)} entries"
-    )
+    log.info(f"AI Assistant: llms.txt written with {len(md_files)} entries")
 
 
-
-def _cfg_str(config: Any, key: str) -> Optional[str]:
+def _cfg_str(config: Any, key: str) -> str | None:
     """Safely read a string config value; returns ``None`` for non-str values.
 
     Parameters
@@ -3103,10 +2417,10 @@ def _cfg_bool(config: Any, key: str, default: bool = False) -> bool:
 
 
 def add_ai_assistant_context(
-    app: "Sphinx",
+    app: Sphinx,
     pagename: str,
     templatename: str,
-    context: Dict[str, Any],
+    context: dict[str, Any],
     doctree: Any,
 ) -> None:
     """Inject AI-assistant configuration into each HTML page's template context.
@@ -3150,10 +2464,10 @@ def add_ai_assistant_context(
         )
         position_val = "sidebar"
 
-    providers_raw: Dict[str, Any] = dict(app.config.ai_assistant_providers)
+    providers_raw: dict[str, Any] = dict(app.config.ai_assistant_providers)
     providers_safe = _filter_providers(providers_raw)
 
-    config: Dict[str, Any] = {
+    config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
         "features": dict(app.config.ai_assistant_features),
@@ -3169,7 +2483,9 @@ def add_ai_assistant_context(
         "intention": _cfg_str(app.config, "ai_assistant_intention"),
         "customContext": _cfg_str(app.config, "ai_assistant_custom_context"),
         "customPromptPrefix": _cfg_str(app.config, "ai_assistant_custom_prompt_prefix"),
-        "includeRawImage": _cfg_bool(app.config, "ai_assistant_include_raw_image", False),
+        "includeRawImage": _cfg_bool(
+            app.config, "ai_assistant_include_raw_image", False
+        ),
         "notebookMode": _cfg_bool(app.config, "ai_assistant_notebook_mode", False),
         "includeOutputs": _cfg_bool(app.config, "ai_assistant_include_outputs", True),
     }
@@ -3180,16 +2496,16 @@ def add_ai_assistant_context(
         context["metatags"] = ""
 
     safe_json = _safe_json_for_script(config)
-    context["metatags"] += (
-        f"\n<script>\nwindow.AI_ASSISTANT_CONFIG = {safe_json};\n</script>\n"
-    )
+    _script = f"\n<script>\nwindow.AI_ASSISTANT_CONFIG = {safe_json};\n</script>\n"
+    context["metatags"] += f"{_script}"
 
 
 # ---------------------------------------------------------------------------
 # Sphinx extension entry point
 # ---------------------------------------------------------------------------
 
-def setup(app: "Sphinx") -> Dict[str, Any]:
+
+def setup(app: Sphinx) -> dict[str, Any]:
     """Register the AI-assistant extension with a Sphinx application.
 
     Parameters
@@ -3307,19 +2623,22 @@ def setup(app: "Sphinx") -> Dict[str, Any]:
 
     # ---- Sphinx RST directive and role -------------------------------------
     try:
-        from docutils.parsers.rst import Directive, directives  # type: ignore[import]
+        from docutils.parsers.rst import (  # type: ignore[import]  # noqa: PLC0415
+            Directive,
+            directives,
+        )
 
         # Bind option_spec so directives.unchanged is available
         AIAssistantDirective.option_spec = {
-            "providers":         directives.unchanged,
-            "position":          directives.unchanged,
-            "intention":         directives.unchanged,
-            "custom_context":    directives.unchanged,
-            "page_url":          directives.unchanged,
+            "providers": directives.unchanged,
+            "position": directives.unchanged,
+            "intention": directives.unchanged,
+            "custom_context": directives.unchanged,
+            "page_url": directives.unchanged,
             "include_raw_image": directives.unchanged,
         }
         # Make AIAssistantDirective inherit from Directive properly
-        AIAssistantDirectiveRegistered = type(
+        AIAssistantDirectiveRegistered = type(  # noqa: N806
             "AIAssistantDirectiveRegistered",
             (Directive,),
             dict(AIAssistantDirective.__dict__),
