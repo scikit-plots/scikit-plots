@@ -425,7 +425,7 @@ def _check_importable(name: str) -> dict[str, Any]:
 
 def pure_python_prereqs() -> dict[str, Any]:
     """
-    Check prerequisites for **Scenario 1**: newbie, pure Python, setuptools only.
+    Check prerequisites pure Python, setuptools only.
 
     No Cython, pybind11, or NumPy is required.  Only setuptools (for
     building pure-Python packages with a ``setup.py``) is checked.
@@ -453,7 +453,7 @@ def pure_python_prereqs() -> dict[str, Any]:
 
 def cython_cpp_prereqs() -> dict[str, Any]:
     """
-    Check prerequisites for **Scenario 2**: newbie, compile C++ via Cython.
+    Check prerequisites compile C++ via Cython.
 
     Requires Cython only.  NumPy is optional; setuptools is optional (the
     Cython compiler transpiles the ``.pyx`` to C++ which can be compiled
@@ -481,7 +481,7 @@ def cython_cpp_prereqs() -> dict[str, Any]:
 
 def full_stack_prereqs() -> dict[str, Any]:
     """
-    Check prerequisites for **Scenario 3**: pro, full stack.
+    Check prerequisites full stack setuptools, Cython, pybind11, and NumPy.
 
     Validates setuptools, Cython, pybind11, and NumPy — the full set
     required for scientific extension development with C-API bindings.
@@ -519,7 +519,7 @@ def full_stack_prereqs() -> dict[str, Any]:
 
 def pybind11_only_prereqs() -> dict[str, Any]:
     """
-    Check prerequisites for **Scenario 4**: master, pybind11 only.
+    Check prerequisites pybind11 only.
 
     Only pybind11 is required.  Cython and setuptools are NOT required
     for header-only pybind11 projects that use CMake or a custom build.
@@ -546,7 +546,7 @@ def pybind11_only_prereqs() -> dict[str, Any]:
 
 def c_api_prereqs() -> dict[str, Any]:
     """
-    Check prerequisites for **Scenario 5**: master, own C-API.
+    Check prerequisites own custom C-API.
 
     Validates Cython (for ``.pyx`` transpilation), NumPy (for
     ``numpy/arrayobject.h``), and setuptools (for the build extension
@@ -593,7 +593,7 @@ def pybind11_include() -> Path | None:
 
     Notes
     -----
-    **Scenario 4 / 3 user note**: pass the result to ``include_dirs``::
+    **User note**: pass the result to ``include_dirs``::
 
         inc = pybind11_include()
         if inc is None:
@@ -626,7 +626,7 @@ def numpy_include() -> Path | None:
 
     Notes
     -----
-    **Scenario 3 / 5 user note**: this is equivalent to passing
+    **User note**: this is equivalent to passing
     ``numpy_support=True`` to the public API, but gives you an explicit
     path you can inspect or pass to a custom compiler.
 
@@ -661,8 +661,8 @@ def collect_c_api_sources(  # noqa: PLR0912
     """
     Collect C/C++ source files from one or more files, directories, or globs.
 
-    This is the primary helper for **Scenario 5** (master, own C-API with
-    single/multi files or folder hierarchies).
+    This is the primary helper (own C-API with single/multi files or
+    folder hierarchies).
 
     Parameters
     ----------
@@ -697,19 +697,19 @@ def collect_c_api_sources(  # noqa: PLR0912
 
     Notes
     -----
-    **Scenario 5a** — single C file::
+    — single C file::
 
         sources = collect_c_api_sources("mylib.c")
 
-    **Scenario 5b** — multiple files::
+    — multiple files::
 
         sources = collect_c_api_sources("add.c", "mul.c", "div.c")
 
-    **Scenario 5c** — folder with headers ignored automatically::
+    — folder with headers ignored automatically::
 
         sources = collect_c_api_sources("src/mylib/")
 
-    **Scenario 5d** — nested folder tree::
+    — nested folder tree::
 
         sources = collect_c_api_sources("src/", recursive=True)
 
@@ -789,7 +789,7 @@ def collect_header_dirs(
     """
     Collect unique directories that contain C/C++ header files.
 
-    This complements :func:`collect_c_api_sources` for **Scenario 5**:
+    This complements :func:`collect_c_api_sources`:
     given a source tree, automatically discover all directories containing
     ``.h`` / ``.hpp`` headers and return them as an ``include_dirs`` list.
 
@@ -811,7 +811,7 @@ def collect_header_dirs(
 
     Notes
     -----
-    **Scenario 5d** user note::
+    User note::
 
         inc_dirs = collect_header_dirs("include/", "third_party/mylib/")
         result = compile_and_load(code, include_dirs=inc_dirs)
@@ -861,7 +861,7 @@ def collect_header_dirs(
 
 class PybindCompiler:
     """
-    Built-in custom compiler for **Scenario 4**: pybind11-only projects.
+    Built-in custom compiler: pybind11-only projects.
 
     This compiler wraps the standard Cython+setuptools pipeline but
     automatically injects the pybind11 include directory and sets
@@ -1011,7 +1011,7 @@ class PybindCompiler:
 
 class CApiCompiler:
     """
-    Built-in custom compiler for **Scenario 5**: NumPy C-API projects.
+    Built-in custom compiler: NumPy C-API projects.
 
     Wraps the Cython+setuptools pipeline with automatic NumPy include
     injection and support for multi-file C-API source trees.

@@ -18,6 +18,10 @@ omit =
     */scikitplot/config/cbook.py
     */scikitplot/experimental/*
     */scikitplot/externals/*
+    # ❌ Ignore all externals EXCEPT target
+    # ✅ Re-include target (coverage.py supports this)
+    # !*/scikitplot/externals/_sphinx_ext/*
+    # !*/scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/*
     */scikitplot/dummy.py
     */third_party/*
     */tools/*

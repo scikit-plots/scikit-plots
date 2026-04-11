@@ -74,9 +74,17 @@ ignore:
   - "scikitplot/_min_dependencies.py"
   - "scikitplot/ml_package_versions.py"
   - "scikitplot/cexperimental"
-  # ✅ Do not ignore the whole "cexternals" folder if you want coverage for annoy
-  # - "scikitplot/cexternals"
+
+  # cexternals: ignore only private (_*) parts
   - "scikitplot/cexternals/_*"  # → matches any directory starting with _
   - "scikitplot/cexternals/_*/**/*"  # → recursively ignore everything inside those directories
+
   - "scikitplot/experimental"
-  - "scikitplot/externals"
+
+  # Ignore everything in externals
+  - "scikitplot/externals/**"  # ❌ closed everything
+  # ✅ Re-include step-by-step (IMPORTANT)
+  # - "!scikitplot/externals/_sphinx_ext"  # ✅ reopen level 1
+  # - "!scikitplot/externals/_sphinx_ext/**"  # ✅ allow traversal
+  # - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant"  # ✅ final includes
+  # - "!scikitplot/externals/_sphinx_ext/_sphinx_ai_assistant/**"

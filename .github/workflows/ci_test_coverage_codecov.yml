@@ -84,6 +84,7 @@ jobs:
           pip install -U setuptools
 
           pip install polars pyarrow
+          pip install beautifulsoup4 markdownify
 
       - name: Build Library
         run: |
