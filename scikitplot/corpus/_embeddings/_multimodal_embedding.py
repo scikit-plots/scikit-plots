@@ -130,7 +130,10 @@ def _make_clip_fn(
         """Lazily load CLIP model and processor on first call."""
         try:
             import torch  # noqa: PLC0415
-            from transformers import CLIPModel, CLIPProcessor  # noqa: PLC0415
+            from transformers import (  # type: ignore[] # noqa: PLC0415
+                CLIPModel,
+                CLIPProcessor,
+            )
         except ImportError as exc:
             raise ImportError(
                 "CLIP image embedding requires transformers and torch:\n"
@@ -309,7 +312,10 @@ def _make_whisper_encoder_fn(
         """Lazily load Whisper encoder model and processor on first call."""
         try:
             import torch  # noqa: PLC0415
-            from transformers import WhisperModel, WhisperProcessor  # noqa: PLC0415
+            from transformers import (  # type: ignore[] # noqa: PLC0415
+                WhisperModel,
+                WhisperProcessor,
+            )
         except ImportError as exc:
             raise ImportError(
                 "Whisper audio embedding requires transformers and torch:\n"
@@ -408,7 +414,7 @@ def _make_wav2vec_fn(
         """Lazily load wav2vec2/HuBERT model and feature extractor on first call."""
         try:
             import torch  # noqa: PLC0415
-            from transformers import (  # noqa: PLC0415
+            from transformers import (  # noqa: PLC0415 # type: ignore[]
                 AutoFeatureExtractor,
                 AutoModel,
             )
@@ -504,10 +510,24 @@ def _make_linear_projection(
     reproducibility across runs on the same machine.
     """
     rng = np.random.default_rng(seed=in_dim + out_dim)
-    # Orthonormal columns via QR decomposition for better geometry
-    raw = rng.standard_normal((in_dim, out_dim)).astype(np.float32)
-    q, _ = np.linalg.qr(raw)
-    W = q[:, :out_dim].astype(np.float32)  # (in_dim, out_dim)  # noqa: N806
+    # Orthonormal columns via QR decomposition for better geometry.
+    #
+    # np.linalg.qr(M, N) returns Q of shape (M, min(M,N)).
+    # For downsampling (in_dim >= out_dim): QR of (in_dim, out_dim) → Q is
+    #   (in_dim, out_dim) — take all columns → W is (in_dim, out_dim). ✓
+    # For upsampling (in_dim < out_dim): QR of (in_dim, out_dim) → Q is
+    #   (in_dim, in_dim) — WRONG shape (in_dim, in_dim) not (in_dim, out_dim).
+    #   Fix: QR the *transposed* problem (out_dim, in_dim) → Q is (out_dim, in_dim),
+    #   then transpose to get W = (in_dim, out_dim). ✓
+    if in_dim >= out_dim:
+        raw = rng.standard_normal((in_dim, out_dim)).astype(np.float32)
+        q, _ = np.linalg.qr(raw)
+        W = q[:, :out_dim].astype(np.float32)  # (in_dim, out_dim)  # noqa: N806
+    else:
+        # Upsampling: QR on transposed problem, then transpose back.
+        raw = rng.standard_normal((out_dim, in_dim)).astype(np.float32)
+        q, _ = np.linalg.qr(raw)
+        W = q[:, :in_dim].T.astype(np.float32)  # (in_dim, out_dim)  # noqa: N806
 
     def project(vecs: npt.NDArray) -> npt.NDArray:
         """Apply the random orthonormal projection to *vecs*.
@@ -1077,8 +1097,94 @@ class MultimodalEmbeddingEngine:
     # Internal routing helpers
     # ------------------------------------------------------------------
 
+    def _align_dims(self, *vecs: npt.NDArray) -> list[npt.NDArray]:
+        r"""Align embedding matrices to a common column dimension.
+
+        The target dimension is::
+
+            target = self.projection_dim          # if explicitly set
+                   or max(v.shape[1] for v in vecs)  # otherwise (no info loss)
+
+        Using ``max`` gives **deterministic output size** without requiring
+        the caller to know the text/image/audio dims in advance, and
+        preserves the highest-dimensional embedding without truncation.
+
+        Parameters
+        ----------
+        *vecs : ndarray of shape (N, D_i)
+            One or more embedding matrices.  All must share the same ``N``
+            (batch size); column counts ``D_i`` may differ.
+
+        Returns
+        -------
+        list[ndarray]
+            Matrices all sharing the same column count, in the same order
+            as the inputs.  Matrices whose column count already equals the
+            target are returned as-is (no copy).
+
+        Notes
+        -----
+        **User note:** Set ``projection_dim`` explicitly for production
+        deployments to avoid non-deterministic random projections.
+
+        **Developer note:** The projection matrix is seeded from
+        ``(in_dim, out_dim)`` so repeated calls with the same shapes are
+        deterministic within a process.  For production use, supply
+        ``custom_projection_fn`` instead.
+        """
+        if not vecs:
+            return []
+
+        dims = [v.shape[1] for v in vecs]
+        if len(set(dims)) == 1:
+            return list(vecs)  # already aligned — no copy needed
+
+        target_dim: int = (
+            self.projection_dim if self.projection_dim is not None else max(dims)
+        )
+
+        aligned: list[npt.NDArray] = []
+        for v in vecs:
+            if v.shape[1] == target_dim:
+                aligned.append(v)
+            else:
+                proj_fn = self._get_projection_fn(v.shape[1], target_dim)
+                aligned.append(proj_fn(v))
+        return aligned
+
     def _embed_multimodal(self, docs: list[Any]) -> npt.NDArray:
-        """Fuse text + image embeddings per ``multimodal_fusion`` strategy."""
+        r"""Fuse text + image embeddings per ``multimodal_fusion`` strategy.
+
+        Supports ``"mean"``, ``"concat"``, ``"text_only"``, ``"image_only"``.
+        For ``"mean"`` and ``"concat"`` with mismatched embedding dimensions,
+        :meth:`_align_dims` is called **before** arithmetic, so the operation
+        always succeeds regardless of model output sizes.
+
+        Modality resolution from ``doc.raw_tensor``:
+
+        * 3-D array ``(H, W, C)``  → image (passed to :meth:`embed_images`).
+        * 1-D array ``(samples,)`` → audio waveform (:meth:`embed_audio`).
+        * ``None``                 → zero image placeholder.
+
+        Parameters
+        ----------
+        docs : list[CorpusDocument]
+            Documents with ``modality == "multimodal"``.
+
+        Returns
+        -------
+        ndarray of shape (N, D)
+            Fused embedding matrix.
+
+        Notes
+        -----
+        **Developer note:** ``_align_dims`` is always called before fusion
+        arithmetic, even when shapes currently match, because
+        ``embed_texts`` and ``embed_images`` may return different shapes
+        depending on the underlying models.  Calling ``_align_dims`` first
+        is the only correct approach and eliminates the need for per-path
+        shape checks.
+        """
         texts = [
             getattr(d, "normalized_text", None) or getattr(d, "text", None) or ""
             for d in docs
@@ -1095,33 +1201,56 @@ class MultimodalEmbeddingEngine:
             ]
             return self.embed_images(safe)
 
+        # ── Embed text ────────────────────────────────────────────────
         text_vecs = self.embed_texts(texts)
 
-        safe = [
-            a if a is not None else np.zeros((224, 224, 3), dtype=np.uint8)
+        # ── Embed image (3-D raw_tensor → image; else placeholder) ───
+        safe_imgs = [
+            (
+                a
+                if (a is not None and np.ndim(a) == 3)  # noqa: PLR2004
+                else np.zeros((224, 224, 3), dtype=np.uint8)
+            )
             for a in arrays
         ]
-        img_vecs = self.embed_images(safe)
+        img_vecs = self.embed_images(safe_imgs)
+
+        # ── Embed audio when raw_tensor is a 1-D waveform ─────────────
+        has_audio = any(a is not None and np.ndim(a) == 1 for a in arrays)
+        audio_vecs: npt.NDArray | None = None
+        if has_audio:
+            safe_audio = [
+                (
+                    a.astype(np.float32)
+                    if (a is not None and np.ndim(a) == 1)
+                    else np.zeros(16000, dtype=np.float32)
+                )
+                for a in arrays
+            ]
+            audio_vecs = self.embed_audio(safe_audio)
+
+        # ── Fusion ────────────────────────────────────────────────────
+        parts: list[npt.NDArray] = [text_vecs, img_vecs]
+        if audio_vecs is not None:
+            parts.append(audio_vecs)
+
+        # _align_dims handles ALL dim-mismatch cases (upsampling and
+        # downsampling) before any arithmetic.  No per-branch shape check.
+        aligned = self._align_dims(*parts)
 
         if self.multimodal_fusion == "concat":
-            return np.concatenate([text_vecs, img_vecs], axis=1).astype(np.float32)
-
-        # "mean" — requires same dim (or projection_dim will align later)
-        if text_vecs.shape[1] == img_vecs.shape[1]:
-            fused = (text_vecs + img_vecs) / 2.0
+            fused = np.concatenate(aligned, axis=1).astype(np.float32)
         else:
-            # Mismatched dims: project both to text dim before mean
-            if img_vecs.shape[1] != text_vecs.shape[1]:
-                proj = self._get_projection_fn(img_vecs.shape[1], text_vecs.shape[1])
-                img_vecs = proj(img_vecs)
-            fused = (text_vecs + img_vecs) / 2.0
+            # "mean": stack aligned modalities and average across modality axis.
+            stack = np.stack(aligned, axis=0)  # (n_modalities, N, D)
+            fused = stack.mean(axis=0).astype(np.float32)
 
         if self.normalize:
             norms = np.linalg.norm(fused, axis=1, keepdims=True)
             norms = np.where(norms == 0, 1.0, norms)
-            fused = fused / norms
+            fused = (fused / norms).astype(np.float32)
 
-        return fused.astype(np.float32)
+        return fused
 
     def _maybe_project(self, vecs: npt.NDArray) -> npt.NDArray:
         """Project *vecs* to ``projection_dim`` when set."""
@@ -1492,7 +1621,7 @@ class LLMTrainingExporter:
             If ``transformers`` is not installed.
         """
         try:
-            from transformers import AutoTokenizer  # noqa: PLC0415
+            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
         except ImportError as exc:
             raise ImportError(
                 "to_huggingface_training_dataset requires transformers:\n"

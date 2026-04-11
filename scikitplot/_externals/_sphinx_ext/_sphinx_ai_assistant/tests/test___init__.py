@@ -1684,10 +1684,11 @@ class TestPublicApiSurface:
         # Should default to None (accepts None, str, list)
         assert p.default is None
 
-    def test_notebook_ai_button_default_include_outputs_true(self):
+    def test_notebook_ai_button_default_include_outputs_false(self):
+        """include_outputs defaults to False since v0.4.0 — opt-in for cell outputs."""
         import inspect
         sig = inspect.signature(_mod.display_jupyter_notebook_ai_button)
-        assert sig.parameters["include_outputs"].default is True
+        assert sig.parameters["include_outputs"].default is False
 
     def test_notebook_ai_button_default_intention_none(self):
         import inspect

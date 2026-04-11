@@ -510,15 +510,20 @@ def _tokenize_spacy(text: str, model_name: str) -> list[str]:
 _STEMMER_CACHE: dict[tuple[StemmingBackend, str], Any] = {}
 
 
-def _get_stemmer(backend: StemmingBackend, language: str) -> Any:
+def _get_stemmer(
+    backend: StemmingBackend,
+    language: str | list[str] | None,
+) -> Any:
     """Return a cached NLTK stemmer instance.
 
     Parameters
     ----------
     backend : StemmingBackend
         Stemmer variant.
-    language : str
-        Language string for Snowball.
+    language : str or list[str] or None
+        Language specifier for Snowball.  Accepts the same forms as
+        :func:`~._language_data.coerce_language`.  When a list is given
+        the **first** Snowball-supported language is used.
 
     Returns
     -------
@@ -529,8 +534,23 @@ def _get_stemmer(backend: StemmingBackend, language: str) -> Any:
     ------
     ImportError
         If NLTK is not installed.
+    ValueError
+        If no Snowball-supported language can be resolved.
     """
-    key = (backend, language)
+    # Resolve language to a single canonical string before cache key lookup.
+    # coerce_language handles str | list[str] | None uniformly.
+    if backend == StemmingBackend.SNOWBALL:
+        langs = coerce_language(language, default="english")
+        # Select the first language in the list that Snowball supports.
+        resolved_lang: str = "english"
+        for lang in langs:
+            if lang in _SNOWBALL_SUPPORTED_LANGUAGES:
+                resolved_lang = lang
+                break
+    else:
+        resolved_lang = "english"  # unused for Porter/Lancaster
+
+    key = (backend, resolved_lang)
     if key in _STEMMER_CACHE:
         return _STEMMER_CACHE[key]
 
@@ -549,7 +569,7 @@ def _get_stemmer(backend: StemmingBackend, language: str) -> Any:
     if backend == StemmingBackend.PORTER:
         stemmer = PorterStemmer()
     elif backend == StemmingBackend.SNOWBALL:
-        stemmer = SnowballStemmer(language)
+        stemmer = SnowballStemmer(resolved_lang)
     elif backend == StemmingBackend.LANCASTER:
         stemmer = LancasterStemmer()
     else:
@@ -613,7 +633,7 @@ def _get_nltk_lemmatizer() -> Any:
 # ---------------------------------------------------------------------------
 
 
-def _load_stopwords(
+def _load_stopwords(  # noqa: PLR0912
     source: StopwordSource,
     language: str | list[str] | None,
 ) -> frozenset:
@@ -679,10 +699,39 @@ def _load_stopwords(
             import spacy  # type: ignore[import-untyped]  # noqa: PLC0415
         except ImportError as exc:
             raise ImportError("StopwordSource.SPACY requires 'spacy'.") from exc
-        # Use en_core_web_sm as a reference if no model loaded yet.
-        lang = language or "en"
-        nlp = spacy.blank(lang)
-        return frozenset(nlp.Defaults.stop_words)
+        # Resolve language to a single ISO 639-1 code for spacy.blank().
+        # coerce_language returns NLTK names ("english", "arabic", …).
+        # spacy.blank() needs 2-letter ISO codes ("en", "ar", …).
+        from ._language_data import (  # noqa: PLC0415
+            ISO_TO_NLTK,
+        )
+        from ._language_data import (  # noqa: PLC0415
+            coerce_language as _cl,
+        )
+
+        langs = _cl(language, default="english")
+        first_nltk = langs[0] if langs else "english"
+        # Reverse-map NLTK name → ISO code for spacy.blank()
+        _NLTK_TO_ISO: dict[str, str] = {  # noqa: N806
+            v: k
+            for k, v in ISO_TO_NLTK.items()  # noqa: N806
+            if len(k) == 2  # noqa: PLR2004
+        }  # noqa: PLR2004
+        iso_code = _NLTK_TO_ISO.get(first_nltk, "en")
+
+        result_sw: set = set()
+        for lng in langs:
+            iso = _NLTK_TO_ISO.get(lng, "en")
+            try:
+                nlp = spacy.blank(iso)
+                result_sw |= nlp.Defaults.stop_words
+            except Exception:  # noqa: BLE001
+                # Unknown ISO code → fall back to English
+                try:  # noqa: SIM105
+                    result_sw |= spacy.blank("en").Defaults.stop_words
+                except Exception:  # noqa: BLE001
+                    pass
+        return frozenset(result_sw)
 
     raise ValueError(f"Unknown stopword source: {source!r}.")  # pragma: no cover
 

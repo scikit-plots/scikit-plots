@@ -5,7 +5,8 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Tests for scikitplot.corpus._enrichers._nlp_enricher (rewritten).
+"""
+Tests for scikitplot.corpus._enrichers._nlp_enricher (rewritten).
 
 Covers:
 - EnricherConfig validation: all params, types, edge cases
@@ -1080,13 +1081,16 @@ class TestStemmingAdvanced:
     def test_snowball_stems_tokens(self) -> None:
         """Snowball backend (mocked) must stem each token."""
         mock_stemmer = MagicMock()
-        mock_stemmer.stem.side_effect = lambda w: w[:4]
+        # Use an explicit mapping so expected values are unambiguous.
+        # (lambda w: w[:4] would give "runn", "jump", "play" — misleading.)
+        _stems = {"running": "runn", "jumping": "jump", "playing": "play"}
+        mock_stemmer.stem.side_effect = _stems.__getitem__
         enricher = NLPEnricher(
             EnricherConfig(stemmer="snowball", stemmer_language="english")
         )
         enricher._stemmer_obj = mock_stemmer
         result = enricher._stem(["running", "jumping", "playing"])
-        assert result == ["run", "jump", "play"]
+        assert result == ["runn", "jump", "play"]
 
     def test_lancaster_stems_tokens(self) -> None:
         """Lancaster backend (mocked) must stem each token."""

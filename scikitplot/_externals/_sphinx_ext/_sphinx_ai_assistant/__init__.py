@@ -162,6 +162,9 @@ if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runti
     from sphinx.application import Sphinx
     from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: F401
 
+# NOTE: ``bs4``, ``markdownify``, and ``IPython`` are intentionally NOT
+# imported at module scope.  All callers import them locally when needed.
+
 __all__ = [
     "_JUPYTER_CONTENT_SELECTORS",
     "AIAssistantDirective",
@@ -188,10 +191,6 @@ _VERSION: str = "0.3.0"
 
 _logger = None  # sphinx.util.logging.getLogger — initialised lazily
 _SphinxMarkdownConverter = None  # markdownify subclass — built lazily
-
-# NOTE: ``bs4``, ``markdownify``, and ``IPython`` are intentionally NOT
-# imported at module scope.  All callers import them locally when needed.
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers — dependency detection
@@ -1986,7 +1985,6 @@ from ._jupyter import (  # noqa: E402
 # ---------------------------------------------------------------------------
 # Build-time hooks (Sphinx layer)
 # ---------------------------------------------------------------------------
-
 
 # ---------------------------------------------------------------------------
 # Sphinx RST directive and role

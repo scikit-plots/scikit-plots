@@ -810,7 +810,7 @@ class NLPEnricher:
     def _filter_tokens(
         self,
         tokens: list[str],
-        stopwords: frozenset[str],
+        stopwords: frozenset | None = None,
     ) -> list[str]:
         """Apply lowercase, punctuation, stopword, and length filters.
 
@@ -818,14 +818,27 @@ class NLPEnricher:
         ----------
         tokens : list[str]
             Raw token list from the tokenizer.
-        stopwords : frozenset[str]
-            Active stopword set.
+        stopwords : frozenset[str] or None, optional
+            Active stopword set.  When ``None``, the stopword set is
+            resolved lazily from the configured language(s).  This is
+            the backward-compatible form used by
+            :class:`~scikitplot.corpus._custom_hooks.CustomNLPEnricher`
+            and any external wrapper that does not pre-resolve stopwords.
 
         Returns
         -------
         list[str]
             Filtered token list.
+
+        Notes
+        -----
+        **Developer note:** Passing ``None`` triggers a full
+        :meth:`_get_stopwords_for` round-trip.  Pre-resolve and pass
+        explicitly in hot paths (e.g. ``enrich_documents`` loops).
         """
+        if stopwords is None:
+            langs = self._resolve_languages("")
+            stopwords = self._get_stopwords_for(langs)
         cfg = self.config
         result: list[str] = []
 
@@ -1260,11 +1273,125 @@ class NLPEnricher:
 
         return self._stemmer_obj
 
+    # ------------------------------------------------------------------
+    # Backward-compatibility shims
+    # These provide a stable public surface for CustomNLPEnricher and
+    # any user code that wraps NLPEnricher, regardless of internal
+    # method refactors across library versions.
+    # ------------------------------------------------------------------
+
+    def _tokenize(self, text: str) -> list[str]:
+        """Tokenize *text* and return a token list (no spaCy Doc).
+
+        Compatibility shim over :meth:`_tokenize_with_spacy`.
+        Callers that only need token strings (not the spaCy Doc object)
+        should use this method.  :class:`CustomNLPEnricher` uses this
+        as the fallback when a custom tokenizer raises.
+
+        Parameters
+        ----------
+        text : str
+            Input text to tokenize.
+
+        Returns
+        -------
+        list[str]
+            Token strings.
+
+        Notes
+        -----
+        **Developer note:** Delegates to :meth:`_tokenize_with_spacy`
+        and discards the second element of the returned tuple.  When the
+        spaCy Doc is needed (POS tags, NER), call
+        :meth:`_tokenize_with_spacy` directly.
+        """
+        tokens, _ = self._tokenize_with_spacy(text)
+        return tokens
+
+    @property
+    def _stopwords(self) -> frozenset:
+        """Return the active stopword set for the configured language(s).
+
+        Compatibility property replacing the old ``self._stopwords``
+        instance attribute.  Resolves and returns the union stopword set
+        for :attr:`EnricherConfig.language`.
+
+        :class:`CustomNLPEnricher` reads this to temporarily override
+        stopwords without needing to know about ``_stopwords_cache``.
+
+        Returns
+        -------
+        frozenset[str]
+            Resolved stopword set for the current language config.
+        """
+        langs = self._resolve_languages("")
+        return self._get_stopwords_for(langs)
+
+    @_stopwords.setter
+    def _stopwords(self, value: frozenset) -> None:
+        """Store a one-shot stopword override in the cache.
+
+        :class:`CustomNLPEnricher` uses this to temporarily inject a
+        custom stopword set.  The override key ``__override__`` is
+        consumed automatically by the next :meth:`_get_stopwords_for`
+        call that encounters it.
+
+        Parameters
+        ----------
+        value : frozenset[str]
+            Replacement stopword set.
+        """
+        self._stopwords_cache["__override__"] = value
+
+    def _lemmatize_tokens(self, tokens: list[str]) -> list[str] | None:
+        """Lemmatize *tokens* without requiring an external spaCy Doc.
+
+        Compatibility shim for :class:`CustomNLPEnricher` and any
+        wrapper that calls lemmatization without managing the spaCy Doc
+        object directly.  When the spaCy lemmatizer is configured, a
+        fresh spaCy Doc is created internally from ``tokens``.
+
+        Parameters
+        ----------
+        tokens : list[str]
+            Filtered token list.
+
+        Returns
+        -------
+        list[str] or None
+            Lemma list, or ``None`` when no lemmatizer is configured.
+
+        Notes
+        -----
+        **Developer note:** Calls :meth:`_lemmatize` with
+        ``spacy_doc=None``.  For the spaCy backend this triggers an
+        internal ``nlp(" ".join(tokens))`` call, which is slightly less
+        accurate than passing a Doc parsed from the full original text.
+        Use :meth:`_lemmatize` with a pre-parsed Doc for best results.
+        """
+        return self._lemmatize(tokens, spacy_doc=None)
+
     def __repr__(self) -> str:
-        return (
-            f"NLPEnricher("
-            f"tokenizer={self.config.tokenizer!r}, "
-            f"lemmatizer={self.config.lemmatizer!r}, "
-            f"stemmer={self.config.stemmer!r}, "
-            f"keyword_extractor={self.config.keyword_extractor!r})"
-        )
+        cfg = self.config
+        parts = [
+            f"tokenizer={cfg.tokenizer!r}",
+            f"lemmatizer={cfg.lemmatizer!r}",
+            f"stemmer={cfg.stemmer!r}",
+            f"keyword_extractor={cfg.keyword_extractor!r}",
+        ]
+        # Show enabled extended-field flags so the repr is fully informative
+        flags = [
+            name
+            for name in (
+                "pos_tags",
+                "ner_entities",
+                "sentence_count",
+                "char_count",
+                "type_token_ratio",
+                "save_token_scores",
+            )
+            if getattr(cfg, name, False)
+        ]
+        if flags:
+            parts.append("enabled_fields=[" + ", ".join(repr(f) for f in flags) + "]")
+        return "NLPEnricher(" + ", ".join(parts) + ")"

@@ -467,14 +467,15 @@ class TestDisplayJupyterNotebookAiButton:
             _, kwargs = mock_btn.call_args
             assert kwargs.get("providers") == "claude"
 
-    def test_include_outputs_default_true(self):
+    def test_include_outputs_default_false(self):
+        """include_outputs defaults to False since v0.4.0 — opt-in for cell outputs."""
         with patch(
             "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button()
             _, kwargs = mock_btn.call_args
-            assert kwargs.get("include_outputs") is True
+            assert kwargs.get("include_outputs") is False
 
     def test_floating_position_accepted(self):
         with patch(
@@ -743,3 +744,200 @@ class TestDisplayNotebookAiButtonRawImageMcp:
         sig = inspect.signature(_mod.display_jupyter_notebook_ai_button)
         assert "mcp_tools" in sig.parameters
         assert sig.parameters["mcp_tools"].default is None
+
+
+# ---------------------------------------------------------------------------
+# New tests: Sphinx-identical structure, fixed positioning, Copy page UX
+# ---------------------------------------------------------------------------
+
+
+class TestJupyterWidgetSphinxIdenticalStructure:
+    """Verify the Jupyter widget HTML matches the Sphinx split-button structure."""
+
+    def _html(self, **kw):
+        return _mod._build_jupyter_widget_html(widget_id="t1", **kw)
+
+    def test_copy_page_primary_button_text(self):
+        """Primary button must say 'Copy page' (Sphinx-identical)."""
+        html = self._html()
+        assert "Copy page" in html
+
+    def test_view_as_markdown_in_dropdown(self):
+        """Dropdown must include 'View as Markdown' item."""
+        html = self._html()
+        assert "View as Markdown" in html
+
+    def test_copy_page_description_in_dropdown(self):
+        """Dropdown Copy page item must include Markdown-for-LLMs description."""
+        html = self._html()
+        assert "Markdown for LLMs" in html
+
+    def test_view_as_markdown_description_in_dropdown(self):
+        """View as Markdown description must be present."""
+        html = self._html()
+        assert "View this page as Markdown" in html
+
+    def test_split_button_structure_classes(self):
+        """Widget must have ai-split class (Sphinx-identical CSS)."""
+        html = self._html()
+        assert "ai-split" in html
+
+    def test_divider_class_present(self):
+        """Split divider class must be present."""
+        html = self._html()
+        assert "ai-div" in html
+
+    def test_toggle_button_present(self):
+        """Arrow toggle button must be present."""
+        html = self._html()
+        assert "ai-tog" in html
+
+    def test_fixed_positioning_in_js(self):
+        """Dropdown must use fixed positioning (VS Code overflow fix)."""
+        html = self._html()
+        assert "position:fixed" in html
+        assert "getBoundingClientRect" in html
+
+    def test_svgs_inlined_for_copy_and_markdown(self):
+        """Copy and Markdown SVG data URIs must be inlined."""
+        html = self._html()
+        assert "data:image/svg+xml;base64," in html
+
+    def test_separator_between_utility_and_ai_rows(self):
+        """A separator must appear between utility rows and AI provider rows."""
+        html = self._html(providers=["claude"])
+        # ai-sep class must appear more than once (at least one real separator)
+        assert "ai-sp" in html  # portal CSS class for separator
+
+    def test_ai_provider_row_present_after_separator(self):
+        """AI provider rows are rendered via BUTTONS.forEach after utility items."""
+        html = self._html(providers=["claude"])
+        view_pos = html.find('"View as Markdown"')
+        foreach_pos = html.find("BUTTONS.forEach")
+        assert view_pos > 0 and foreach_pos > view_pos
+
+    def test_copy_page_before_view_as_markdown(self):
+        """Copy page must appear before View as Markdown in the HTML."""
+        html = self._html()
+        copy_pos = html.find("Copy page")
+        view_pos = html.find("View as Markdown")
+        assert copy_pos < view_pos
+
+    def test_view_as_markdown_in_js_menu_build(self):
+        """View as Markdown menu item must be built before AI provider items in JS."""
+        html = self._html(providers=["claude"])
+        # The JS menu construction: "View as Markdown" makeItem call must
+        # appear before the BUTTONS.forEach loop that renders AI providers.
+        view_pos = html.find('"View as Markdown"')
+        buttons_foreach_pos = html.find("BUTTONS.forEach")
+        assert view_pos > 0, "View as Markdown makeItem call missing"
+        assert buttons_foreach_pos > 0, "BUTTONS.forEach loop missing"
+        assert view_pos < buttons_foreach_pos
+
+    def test_inline_position_margin(self):
+        """Inline position must add bottom margin to prevent cramping."""
+        html = self._html(position="inline")
+        assert "margin:" in html
+
+    def test_floating_position_fixed(self):
+        """Floating position must use position:fixed on the container."""
+        html = self._html(position="floating")
+        assert "position:fixed;bottom:16px;right:16px" in html
+
+    def test_mcp_separator_only_when_mcp_enabled(self):
+        """MCP section separator JS must be conditional on MCP keys."""
+        html = self._html(providers=["claude"])
+        # The JS condition `mcpKeys.length > 0` guards the separator
+        assert "mcpKeys.length > 0" in html
+
+    def test_disabled_mcp_tool_not_in_safe_mcp_js(self):
+        """Disabled MCP tools must not appear in the MCP_TOOLS JS variable."""
+        tool = {
+            "enabled": False, "type": "vscode", "label": "MyDisabledTool",
+            "description": "desc", "server_url": "https://x.com/sse",
+            "server_name": "x", "transport": "sse",
+        }
+        html = self._html(mcp_tools={"vscode": tool})
+        # The disabled tool label must not appear in the JSON payload
+        assert "MyDisabledTool" not in html
+
+
+class TestJupyterWidgetMdUrlLogic:
+    """Verify .md URL derivation mirrors Sphinx getMarkdownUrl() logic."""
+
+    def _html(self, **kw):
+        return _mod._build_jupyter_widget_html(widget_id="t2", **kw)
+
+    def test_get_md_url_js_present(self):
+        """getMdUrl JS function must be inlined in the widget."""
+        html = self._html()
+        assert "getMdUrl" in html
+
+    def test_html_to_md_url_derivation_in_js(self):
+        """getMdUrl must replace .html with .md in JS (Sphinx-identical)."""
+        html = self._html()
+        assert ".html" in html and ".md" in html
+        # JS logic
+        assert "slice(0, -5) + '.md'" in html or "endsWith('.html')" in html
+
+    def test_page_url_embedded_in_js(self):
+        """Validated page_url must be serialised into the widget JS."""
+        html = self._html(page_url="https://docs.example.com/page.html")
+        assert "docs.example.com" in html
+
+    def test_invalid_page_url_excluded(self):
+        """A javascript: page_url must be excluded from the widget."""
+        html = self._html(page_url="javascript:evil()")
+        assert "javascript" not in html
+
+    def test_context_url_uses_md_when_page_url_set(self):
+        """When PAGE_URL is set, prompt uses getMdUrl() — JS logic present."""
+        html = self._html(page_url="https://docs.example.com/api.html")
+        assert "getMdUrl" in html
+        # The JS variable PAGE_URL should be set
+        assert "docs.example.com" in html
+
+
+class TestJupyterIncludeOutputsDefault:
+    """Verify include_outputs default changed to False (v0.4.0)."""
+
+    def test_display_function_default_false(self):
+        import inspect
+        sig = inspect.signature(_mod.display_jupyter_ai_button)
+        assert sig.parameters["include_outputs"].default is False
+
+    def test_notebook_function_default_false(self):
+        import inspect
+        sig = inspect.signature(_mod.display_jupyter_notebook_ai_button)
+        assert sig.parameters["include_outputs"].default is False
+
+    def test_build_widget_default_false(self):
+        import inspect
+        sig = inspect.signature(_mod._build_jupyter_widget_html)
+        assert sig.parameters["include_outputs"].default is False
+
+    def test_include_outputs_false_emits_false_in_js(self):
+        html = _mod._build_jupyter_widget_html(
+            widget_id="io1", include_outputs=False
+        )
+        assert "INCLUDE_OUTPUTS  = false" in html
+
+    def test_include_outputs_true_emits_true_in_js(self):
+        html = _mod._build_jupyter_widget_html(
+            widget_id="io2", include_outputs=True
+        )
+        assert "INCLUDE_OUTPUTS  = true" in html
+
+
+class TestJupyterIncludeRawImageDefault:
+    """Verify include_raw_image remains False by default."""
+
+    def test_display_function_default_false(self):
+        import inspect
+        sig = inspect.signature(_mod.display_jupyter_ai_button)
+        assert sig.parameters["include_raw_image"].default is False
+
+    def test_notebook_function_default_false(self):
+        import inspect
+        sig = inspect.signature(_mod.display_jupyter_notebook_ai_button)
+        assert sig.parameters["include_raw_image"].default is False

@@ -40,7 +40,14 @@
         const dropdown = createDropdown();
 
         container.appendChild(button);
-        container.appendChild(dropdown);
+
+        // PORTAL PATTERN — do NOT append dropdown to the container.
+        // Jupyter/VSCode cells create isolated CSS stacking contexts.
+        // Any child of the cell (regardless of z-index) is clipped behind the
+        // next cell. Appending the dropdown directly to document.body with
+        // position:fixed bypasses the stacking context entirely — the same
+        // approach VS Code uses for its own menus, tooltips, and panels.
+        document.body.appendChild(dropdown);
 
         // Insert into the appropriate location based on configuration
         const position = window.AI_ASSISTANT_CONFIG?.position || 'sidebar';
@@ -286,6 +293,40 @@
         const mainButton = document.getElementById('ai-assistant-button-main');
         const dropdownButton = document.getElementById('ai-assistant-button-dropdown');
 
+        /**
+         * Compute and apply fixed position for the portal dropdown.
+         *
+         * The dropdown uses position:fixed so coordinates are relative to the
+         * viewport, not the document. getBoundingClientRect() returns viewport-
+         * relative values — exactly what we need. No scroll-offset arithmetic.
+         *
+         * Horizontal flip: if left-aligned positioning would push the dropdown's
+         * right edge past the viewport, align its right edge to the button's
+         * right edge instead.
+         *
+         * @param {Element} triggerEl - The button that opened the dropdown.
+         */
+        function repositionDropdown(triggerEl) {
+            const rect = triggerEl.getBoundingClientRect();
+            const DROPDOWN_WIDTH = 215;  // must match CSS width
+            const GAP_PX = 4;           // visual gap between button and menu
+            const MARGIN_PX = 8;        // minimum distance from viewport edges
+
+            let left = rect.left;
+            const viewportWidth = window.innerWidth;
+
+            // Flip to right-align when the menu would overflow the right edge
+            if (left + DROPDOWN_WIDTH > viewportWidth - MARGIN_PX) {
+                left = rect.right - DROPDOWN_WIDTH;
+            }
+
+            // Clamp to left margin (handles narrow viewports)
+            left = Math.max(MARGIN_PX, left);
+
+            dropdown.style.top  = (rect.bottom + GAP_PX) + 'px';
+            dropdown.style.left = left + 'px';
+        }
+
         // Main button - direct copy action
         mainButton.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -296,13 +337,41 @@
         dropdownButton.addEventListener('click', function(e) {
             e.stopPropagation();
             const isOpen = dropdown.style.display !== 'none';
-            dropdown.style.display = isOpen ? 'none' : 'block';
-            dropdownButton.setAttribute('aria-expanded', !isOpen);
+            if (isOpen) {
+                dropdown.style.display = 'none';
+                dropdownButton.setAttribute('aria-expanded', 'false');
+            } else {
+                // Compute viewport-relative position BEFORE making visible.
+                // This prevents a one-frame flash at the wrong position.
+                repositionDropdown(dropdownButton);
+                dropdown.style.display = 'block';
+                dropdownButton.setAttribute('aria-expanded', 'true');
+            }
         });
 
-        // Close dropdown when clicking outside
+        // Close dropdown when clicking outside.
+        // The dropdown is now a body child, so button.contains() is correct —
+        // button is the trigger container, dropdown is the menu.
         document.addEventListener('click', function(e) {
             if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+                dropdownButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close on any scroll (capture phase catches VSCode's notebook scroller,
+        // inner cell scrollers, and the outer page scroller simultaneously).
+        // Standard VS Code UX: menus close when the page moves.
+        window.addEventListener('scroll', function() {
+            if (dropdown.style.display !== 'none') {
+                dropdown.style.display = 'none';
+                dropdownButton.setAttribute('aria-expanded', 'false');
+            }
+        }, true /* capture */);
+
+        // Close and invalidate position on resize (fixed coords become stale).
+        window.addEventListener('resize', function() {
+            if (dropdown.style.display !== 'none') {
                 dropdown.style.display = 'none';
                 dropdownButton.setAttribute('aria-expanded', 'false');
             }

@@ -184,8 +184,11 @@ class TestFunctionSentenceSplitter:
 
 class TestFunctionStemmer:
     def test_stem_truncates(self) -> None:
+        # lambda w: w[:4] truncates "running" (7 chars) to "runn", not "run".
+        # The test verifies FunctionStemmer correctly delegates to the callable.
         st = FunctionStemmer(lambda w: w[:4] if len(w) > 4 else w)
-        assert st.stem("running") == "run"
+        assert st.stem("running") == "runn"   # 7 > 4 → "running"[:4] == "runn"
+        assert st.stem("run") == "run"         # 3 ≤ 4 → returned unchanged
 
     def test_stem_identity(self) -> None:
         st = FunctionStemmer(lambda w: w)

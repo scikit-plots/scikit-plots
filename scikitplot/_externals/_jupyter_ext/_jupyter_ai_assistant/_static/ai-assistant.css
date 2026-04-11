@@ -105,20 +105,29 @@
     transform: rotate(180deg);
 }
 
-/* Dropdown */
+/* Dropdown — portal pattern.
+ *
+ * VSCode Jupyter cells create isolated CSS stacking contexts via overflow,
+ * transform, or isolation properties. Any position:absolute child — regardless
+ * of z-index — is clipped to that cell's layer and appears behind the next cell.
+ *
+ * Fix: the dropdown is appended directly to document.body (see ai-assistant.js)
+ * and positioned with position:fixed + coordinates from getBoundingClientRect().
+ * This completely escapes the cell stacking context.
+ *
+ * top/left are intentionally absent here — they are set dynamically by JS.
+ */
 .ai-assistant-dropdown {
-    position: absolute;
-    top: calc(100% + 0.2rem);
-    left: auto;
-    right: auto;
+    position: fixed;
     width: 215px;
     background-color: var(--color-background-primary, #fff);
     border: 1px solid var(--color-foreground-border, #e1e4e5);
     border-radius: 4px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     padding: 0.25rem;
-    z-index: 10000;
-    /* Ensure visibility */
+    /* Must exceed VSCode notebook cell z-index (~10000) and Jupyter cell outputs.
+     * 99999 is the canonical ceiling used by VS Code's own overlay components. */
+    z-index: 99999;
     pointer-events: auto;
 }
 
@@ -246,11 +255,7 @@
         display: none;
     }
 
-    .ai-assistant-dropdown {
-        right: 0;
-        left: auto;
-        min-width: 215px;
-    }
+    /* Dropdown left/right are set dynamically by JS — no static override needed. */
 
     .ai-assistant-notification {
         left: 1rem;
@@ -288,13 +293,8 @@
     padding: 0 0.75rem; /* More padding on right to balance left */
 }
 
-.toc-drawer .ai-assistant-dropdown,
-.toc-sidebar .ai-assistant-dropdown,
-.sidebar-secondary .ai-assistant-dropdown {
-    left: 0;
-    right: auto;
-    min-width: 215px;
-}
+/* Dropdown left/right are now computed dynamically by JS (portal pattern).
+ * Static CSS overrides are intentionally removed to avoid conflicts. */
 
 /* Also fix focus outline for menu items */
 .ai-assistant-menu-item:focus {

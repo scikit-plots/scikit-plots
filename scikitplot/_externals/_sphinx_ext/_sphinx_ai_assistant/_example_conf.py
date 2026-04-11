@@ -33,6 +33,41 @@ pydata-sphinx-theme renders the main article content inside::
 
 so the CSS selectors are configured accordingly.  For other themes see the
 comments next to each selector value.
+
+Widget structure (v0.4.0)
+--------------------------
+Both the Sphinx extension and the Jupyter widget now share an identical
+split-button UX:
+
+    ┌────────────────────────┬──┐
+    │  📄  Copy page         │▾ │
+    └────────────────────────┴──┘
+
+Clicking **Copy page** (primary) copies the page/cell content as Markdown
+to the clipboard and briefly shows "Copied!".
+
+Clicking **▾** opens a dropdown:
+
+    ┌─────────────────────────────────────┐
+    │  📄  Copy page                      │  → copy Markdown to clipboard
+    │  [M]  View as Markdown              │  → open .md URL in new tab
+    │─────────────────────────────────────│
+    │  🔶  Ask Claude                     │  → open Claude with page context
+    │      Ask Claude about this page     │
+    │  🟢  Ask ChatGPT                    │
+    │      Ask ChatGPT about this page    │
+    │  🔵  Ask Gemini                     │
+    │  ...                                │
+    │─────────────────────────────────────│  (only when MCP tools enabled)
+    │  🔷  Connect to VS Code             │
+    └─────────────────────────────────────┘
+
+Jupyter defaults (v0.4.0 changes)
+-----------------------------------
+* ``include_outputs`` now defaults to ``False`` in all Jupyter functions.
+  Pass ``include_outputs=True`` explicitly to include cell output text.
+* ``include_raw_image`` remains ``False`` by default.  Pass
+  ``include_raw_image=True`` to capture canvas/img thumbnails.
 """
 
 # ---------------------------------------------------------------------------
@@ -101,6 +136,8 @@ ai_assistant_enabled = True
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
 # "title"    → next to the page heading
+# "floating" → fixed floating button at bottom-right corner
+# "none"     → disabled (do not render the button)
 ai_assistant_position = "sidebar"
 
 # ---------------------------------------------------------------------------
@@ -124,7 +161,7 @@ ai_assistant_content_selector = "article.bd-article"
 # to locate the main content element in each HTML file.  The first selector
 # that matches is used.
 ai_assistant_content_selectors = [
-    "article.bd-article",      # pydata-sphinx-theme ≥ 0.13
+    "article.bd-article",      # pydata-sphinx-theme >= 0.13
     'div[role="main"]',        # pydata-sphinx-theme (older), RTD
     'article[role="main"]',    # Furo
     "div.document",            # Classic / Alabaster
@@ -132,6 +169,11 @@ ai_assistant_content_selectors = [
     "div.body",                # Very old themes
     "article",                 # Last-resort fallback
 ]
+
+# Optionally specify a theme preset to add theme-specific selectors
+# automatically.  Supported: "pydata_sphinx_theme", "furo", "mkdocs",
+# "mkdocs_material", "jekyll", "hugo", "docusaurus", "vitepress", etc.
+# ai_assistant_theme_preset = "pydata_sphinx_theme"
 
 # ---------------------------------------------------------------------------
 # AI Assistant — Markdown file generation
@@ -150,6 +192,10 @@ ai_assistant_markdown_exclude_patterns = [
     "_static",           # Static assets have no readable prose
 ]
 
+# HTML tags stripped (with their content) before Markdown conversion.
+# "nav", "footer", "header" are stripped to remove site chrome.
+ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
+
 # Maximum number of parallel worker processes for Markdown generation.
 # None → auto-detect (CPU count, capped at 8).
 ai_assistant_max_workers = None
@@ -166,25 +212,85 @@ ai_assistant_generate_llms_txt = True
 # Falls back to html_baseurl when empty.
 ai_assistant_base_url = ""  # use html_baseurl above
 
+# Limit the number of entries in llms.txt (None = unlimited)
+ai_assistant_llms_txt_max_entries = None
+
+# When True, embed the full Markdown content of each page inside llms.txt.
+# Warning: produces a very large file for large documentation sites.
+ai_assistant_llms_txt_full_content = False
+
 # ---------------------------------------------------------------------------
 # AI Assistant — feature flags
 # ---------------------------------------------------------------------------
 
 ai_assistant_features = {
-    # Copy page content as Markdown to clipboard
+    # Copy page content as Markdown to clipboard (primary button action)
     "markdown_export": True,
     # Open raw Markdown of the current page in a new browser tab
     "view_markdown": True,
-    # Render deep-links to Claude / ChatGPT with page context
+    # Render deep-links to Claude / ChatGPT / Gemini with page context
     "ai_chat": True,
     # Show MCP server installation buttons
     "mcp_integration": False,
 }
 
 # ---------------------------------------------------------------------------
+# AI Assistant — prompt customisation
+# ---------------------------------------------------------------------------
+
+# Optional goal annotation prepended to all AI prompts as "Goal: <text>".
+# Set to None to omit.
+ai_assistant_intention = None
+# Example: ai_assistant_intention = "Help me understand the API"
+
+# Optional background context injected into all AI prompts.
+ai_assistant_custom_context = None
+# Example: ai_assistant_custom_context = "This is a Python ML library."
+
+# Optional raw prefix prepended before everything else in the final prompt.
+ai_assistant_custom_prompt_prefix = None
+
+# ---------------------------------------------------------------------------
+# AI Assistant — Jupyter / notebook settings
+# ---------------------------------------------------------------------------
+
+# When True, the widget JS captures all notebook cells (notebook review mode).
+# Typically set per-call via display_jupyter_notebook_ai_button().
+ai_assistant_notebook_mode = False
+
+# When True (Sphinx builds), include cell outputs in captured content.
+# Note: In Jupyter Python functions, include_outputs defaults to False since
+# v0.4.0 — pass include_outputs=True explicitly when needed.
+ai_assistant_include_outputs = True
+
+# When True, capture canvas/img thumbnails and append to the AI prompt.
+# Defaults to False — set True only when visual output is important.
+ai_assistant_include_raw_image = False
+
+# ---------------------------------------------------------------------------
 # AI Assistant — AI provider configuration
 # ---------------------------------------------------------------------------
 
+# Full provider registry.  Each provider must include all required keys:
+# enabled, label, description, icon, url_template, prompt_template, model, type.
+#
+# Tip: import _DEFAULT_PROVIDERS to extend rather than replace:
+#   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+#       _DEFAULT_PROVIDERS,
+#   )
+#   ai_assistant_providers = {
+#       **_DEFAULT_PROVIDERS,
+#       "claude": {**_DEFAULT_PROVIDERS["claude"], "enabled": True},
+#   }
+#
+# Providers support:
+#   type = "web"    — opens a browser tab with pre-filled prompt
+#   type = "local"  — local AI server (e.g. Ollama); disabled by default
+#   type = "api"    — API-only provider
+#   type = "custom" — user-defined endpoint
+#
+# url_template: {prompt} placeholder is replaced with the encoded prompt
+# prompt_template: {url} is the page Markdown URL; {content} is page text
 ai_assistant_providers = {
     "claude": {
         "enabled": True,
@@ -193,9 +299,11 @@ ai_assistant_providers = {
         "icon": "claude.svg",
         "url_template": "https://claude.ai/new?q={prompt}",
         "prompt_template": (
-            "Get familiar with the documentation at {url} "
-            "so I can ask questions about it."
+            "Hi! Please read this documentation page: {url}\n\n"
+            "I have questions about it."
         ),
+        "model": "claude-sonnet-4-6",
+        "type": "web",
     },
     "chatgpt": {
         "enabled": True,
@@ -203,17 +311,41 @@ ai_assistant_providers = {
         "description": "Ask ChatGPT about this documentation page.",
         "icon": "chatgpt.svg",
         "url_template": "https://chatgpt.com/?q={prompt}",
-        "prompt_template": (
-            "Get familiar with the documentation at {url} "
-            "so I can ask questions about it."
-        ),
+        "prompt_template": "Read {url} so I can ask questions about it.",
+        "model": "gpt-4o",
+        "type": "web",
     },
-    # Uncomment to add Perplexity or any other AI chat service:
-    # "perplexity": {
-    #     "enabled": True,
-    #     "label": "Ask Perplexity",
-    #     "url_template": "https://www.perplexity.ai/?q={prompt}",
-    #     "prompt_template": "Explain this documentation page: {url}",
+    "gemini": {
+        "enabled": True,
+        "label": "Ask Gemini",
+        "description": "Ask Google Gemini about this documentation page.",
+        "icon": "gemini.svg",
+        "url_template": "https://gemini.google.com/app?q={prompt}",
+        "prompt_template": "Please review this documentation: {url}\n\nI have questions.",
+        "model": "gemini-2.5-flash",
+        "type": "web",
+    },
+    # Uncomment and configure to enable additional providers:
+    # "ollama": {
+    #     "enabled": True,  # requires local Ollama server
+    #     "label": "Ask Ollama (Local)",
+    #     "description": "Ask a locally running Ollama model — fully offline.",
+    #     "icon": "ollama.svg",
+    #     "url_template": "http://localhost:3000/?q={prompt}",
+    #     "api_base_url": "http://localhost:11434",
+    #     "prompt_template": "Please review this content: {url}",
+    #     "model": "qwen3:latest",   # or llama3.2:latest, gemma3:latest, etc.
+    #     "type": "local",
+    # },
+    # "deepseek": {
+    #     "enabled": False,
+    #     "label": "Ask DeepSeek",
+    #     "description": "Ask DeepSeek AI about this page.",
+    #     "icon": "deepseek.svg",
+    #     "url_template": "https://chat.deepseek.com/?q={prompt}",
+    #     "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
+    #     "model": "deepseek-reasoner",
+    #     "type": "web",
     # },
 }
 
@@ -241,3 +373,54 @@ ai_assistant_mcp_tools = {
         "mcpb_url": "https://docs.example.com/_static/your-mcpb-config.zip",
     },
 }
+
+# ---------------------------------------------------------------------------
+# AI Assistant — Jupyter notebook usage examples
+# ---------------------------------------------------------------------------
+# (These are not conf.py settings — they are usage examples for notebooks.)
+
+# Basic usage after a matplotlib plot:
+#
+#   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+#       display_jupyter_ai_button,
+#   )
+#   import matplotlib.pyplot as plt
+#
+#   plt.plot([1, 2, 3])
+#   plt.show()
+#   display_jupyter_ai_button(
+#       content="A line chart showing values 1, 2, 3.",
+#       providers=["claude", "chatgpt", "gemini"],
+#       intention="Explain the trend",
+#       # include_raw_image=True,   # opt-in: capture canvas/img thumbnails
+#   )
+
+# Full notebook review (at the end of a notebook):
+#
+#   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+#       display_jupyter_notebook_ai_button,
+#   )
+#   display_jupyter_notebook_ai_button(
+#       intention="Review this notebook for bugs and suggest improvements",
+#       providers=["claude", "chatgpt"],
+#       include_outputs=True,    # opt-in: include cell outputs (tracebacks, etc.)
+#   )
+
+# With Ollama (fully local, offline):
+#
+#   display_jupyter_ai_button(
+#       providers=["ollama"],
+#       provider_configs={
+#           "ollama": {"enabled": True, "model": "qwen3:latest"},
+#       },
+#       intention="Explain this analysis",
+#   )
+
+# With Markdown URL context (recommended when page_url is known):
+#
+#   display_jupyter_ai_button(
+#       page_url="https://docs.example.com/api/module.html",
+#       # Widget will derive https://docs.example.com/api/module.md
+#       # and use it in all AI provider prompts — same as Sphinx widget.
+#       providers=["claude", "chatgpt"],
+#   )

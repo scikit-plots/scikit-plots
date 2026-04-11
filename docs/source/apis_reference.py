@@ -493,7 +493,40 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
         "description": _get_guide("corpus-index"),
         "sections": [
             {
-                "title": "Base",
+                "title": "Adapter layer",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # LLM consumer adapters
+                    "to_langchain_documents",
+                    "to_langgraph_state",
+                    "to_mcp_resources",
+                    "to_mcp_tool_result",
+                    "to_huggingface_dataset",
+                    "to_rag_tuples",
+                    "to_jsonl",
+                    # ML / tensor adapters (new)
+                    "to_numpy_arrays",
+                    "to_tensorflow_dataset",
+                    "to_torch_dataloader",
+                    # Retriever / server adapters
+                    "LangChainCorpusRetriever",
+                    "MCPCorpusServer",
+                ],
+            },
+            {
+                "title": "Archive-within-archive",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "extract_archive",
+                    "is_archive",
+                ],
+            },
+            {
+                "title": "Base Classes",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
@@ -527,10 +560,52 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "SentenceChunkerBridge",
                     "WordChunkerBridge",
                     "bridge_chunker",
+                    "register_bridge",
+                    "unregister_bridge",
+                    # _custom_tokenizer
+                    # Protocols
+                    "TokenizerProtocol",
+                    "SentenceSplitterProtocol",
+                    "StemmerProtocol",
+                    "LemmatizerProtocol",
+                    # Callable wrappers
+                    "FunctionTokenizer",
+                    "FunctionSentenceSplitter",
+                    "FunctionStemmer",
+                    "FunctionLemmatizer",
+                    # Registry
+                    "CustomTokenizerRegistry",
+                    "register_tokenizer",
+                    "get_tokenizer",
+                    "register_sentence_splitter",
+                    "get_sentence_splitter",
+                    "register_stemmer",
+                    "get_stemmer",
+                    "register_lemmatizer",
+                    "get_lemmatizer",
+                    # Script detection
+                    "ScriptType",
+                    "detect_script",
+                    "is_cjk_char",
+                    "is_rtl_char",
+                    "split_cjk_chars",
+                    "MULTI_SCRIPT_SENTENCE_RE_PATTERN",
                     # _fixed_window
                     "FixedWindowChunker",
                     "FixedWindowChunkerConfig",
                     "WindowUnit",
+                    # _language_data
+                    # Core lookup tables
+                    "ISO_TO_NLTK",
+                    "ISO_TO_NAME",
+                    "NLTK_TO_ISO",
+                    "NLTK_STOPWORD_LANGUAGES",
+                    "BUILTIN_LANG_STOPWORDS",
+                    # Helpers
+                    "coerce_language",
+                    "resolve_stopwords",
+                    "iso_to_nltk",
+                    "nltk_to_iso",
                     # _paragraph
                     "ParagraphChunker",
                     "ParagraphChunkerConfig",
@@ -616,6 +691,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Metadata",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "CollectionManifest",
+                    "CorpusStats",
+                    "compute_stats",
+                    "provenance_from_filename",
+                ],
+            },
+            {
                 "title": "Normalizers",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -653,20 +740,41 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 #     _get_submodule("scikitplot.corpus", "__init__")
                 # ),
                 "autosummary": [
+                    # alto
                     "ALTOReader",
+                    # audio
                     "AudioReader",
+                    # custom
                     "CustomReader",
+                    "normalize_extractor_output",
+                    # image
                     "ImageReader",
-                    "MarkdownReader",
+                    # pdf
                     "PDFReader",
+                    # text
+                    "MarkdownReader",
                     "ReSTReader",
-                    "TEIReader",
                     "TextReader",
+                    # vidoe
                     "VideoReader",
+                    # web
                     "WebReader",
-                    "XMLReader",
                     "YouTubeReader",
+                    # xml
+                    "TEIReader",
+                    "XMLReader",
+                    # zip
                     "ZipReader",
+                ],
+            },
+            {
+                "title": "Registry",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "ComponentRegistry",
+                    "registry",
                 ],
             },
             {
@@ -681,6 +789,30 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Schema",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    # Enumerations
+                    "SectionType",
+                    "ChunkingStrategy",
+                    "ExportFormat",
+                    "SourceType",
+                    "MatchMode",
+                    # New enumerations
+                    "Modality",
+                    "ErrorPolicy",
+                    # Core document type
+                    "CorpusDocument",
+                    # Promoted-key registry (used by _base.py get_documents routing)
+                    "_PROMOTED_RAW_KEYS",
+                    # Bulk helpers
+                    "documents_to_pandas",
+                    "documents_to_polars",
+                ],
+            },
+            {
                 "title": "Source",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")
@@ -689,6 +821,34 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "CorpusSource",
                     "SourceEntry",
                     "SourceKind",
+                ],
+            },
+            {
+                "title": "Storage",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "InMemoryStorage",
+                    "JSONLStorage",
+                    "QueryResult",
+                    "SQLiteStorage",
+                    "StorageBase",
+                    "StorageQuery",
+                ],
+            },
+            {
+                "title": "URL",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "URLKind",
+                    "classify_url",
+                    "download_url",
+                    "infer_extension",
+                    "probe_url_kind",
+                    "resolve_url",
                 ],
             },
         ],
@@ -1101,8 +1261,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 "autosummary": [
                     "_sphinx_ai_assistant.AIAssistantDirective",
                     "_sphinx_ai_assistant.add_ai_assistant_context",
-                    "_sphinx_ai_assistant.display_jupyter_ai_button",
-                    "_sphinx_ai_assistant.display_jupyter_notebook_ai_button",
                     "_sphinx_ai_assistant.generate_llms_txt",
                     "_sphinx_ai_assistant.generate_llms_txt_standalone",
                     "_sphinx_ai_assistant.generate_markdown_files",
