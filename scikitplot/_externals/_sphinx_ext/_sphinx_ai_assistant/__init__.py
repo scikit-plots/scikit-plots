@@ -172,6 +172,20 @@ _logger = None  # sphinx.util.logging.getLogger — initialised lazily
 _SphinxMarkdownConverter = None  # markdownify subclass — built lazily
 
 # ---------------------------------------------------------------------------
+# Internal helpers — resolve max workers ProcessPoolExecutor
+# ---------------------------------------------------------------------------
+
+
+def _resolve_max_workers(cfg):
+    if cfg in (None, "auto"):
+        return os.cpu_count() or 1
+    try:
+        return max(1, int(cfg))
+    except Exception:  # noqa: BLE001
+        return 1
+
+
+# ---------------------------------------------------------------------------
 # Internal helpers — dependency detection
 # ---------------------------------------------------------------------------
 
