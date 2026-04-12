@@ -57,6 +57,8 @@ import io
 import json
 import sys
 import types
+import re
+from urllib.parse import urlparse
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -1342,7 +1344,15 @@ class TestProcessHtmlDirectory:
         md_files = list(site.rglob("*.md"))
         if md_files:
             llms = (site / "llms.txt").read_text(encoding="utf-8")
-            assert "https://example.com" in llms
+            # assert "https://example.com" in llms
+            # lines = [line.strip() for line in llms.splitlines() if line.strip()]
+            urls = re.findall(r'https?://[^\s]+', llms)
+            assert urls, "No URLs found"
+            parsed_urls = [urlparse(u) for u in urls]
+            assert any(
+                p.scheme == "https" and p.netloc == "example.com"
+                for p in parsed_urls
+            )
 
 
 # ===========================================================================
