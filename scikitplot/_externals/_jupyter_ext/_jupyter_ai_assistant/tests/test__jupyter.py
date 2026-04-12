@@ -1,7 +1,7 @@
-# tests/_externals/_sphinx_ext/_sphinx_ai_assistant/test__jupyter.py
+# tests/_externals/_sphinx_ext/_jupyter_ai_assistant/test__jupyter.py
 """
 Test suite for the ``_jupyter`` submodule:
-  scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter
+  scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter
 
 Coverage targets
 ----------------
@@ -30,8 +30,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _mod
-import scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter as _jmod
+import scikitplot._externals._sphinx_ext._jupyter_ai_assistant as _mod
+import scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter as _jmod
 
 
 def _extract_page_url(html):
@@ -364,7 +364,7 @@ class TestDisplayJupyterAiButtionNewParams:
     def test_intention_forwarded(self, ipython_mock):
         mock_display, mock_html = ipython_mock
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -374,7 +374,7 @@ class TestDisplayJupyterAiButtionNewParams:
 
     def test_custom_context_forwarded(self, ipython_mock):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -384,7 +384,7 @@ class TestDisplayJupyterAiButtionNewParams:
 
     def test_notebook_mode_forwarded(self, ipython_mock):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -394,7 +394,7 @@ class TestDisplayJupyterAiButtionNewParams:
 
     def test_include_outputs_false_forwarded(self, ipython_mock):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -404,7 +404,7 @@ class TestDisplayJupyterAiButtionNewParams:
 
     def test_single_string_provider_forwarded(self, ipython_mock):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -414,7 +414,7 @@ class TestDisplayJupyterAiButtionNewParams:
 
     def test_custom_prompt_prefix_forwarded(self, ipython_mock):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             "._build_jupyter_widget_html"
         ) as mock_build:
             mock_build.return_value = "<div/>"
@@ -444,7 +444,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_delegates_to_display_jupyter_ai_button(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button(
@@ -461,7 +461,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_notebook_mode_always_true(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button()
@@ -470,7 +470,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_content_always_none(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button()
@@ -480,7 +480,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_single_string_provider_accepted(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button(providers="claude")
@@ -490,7 +490,7 @@ class TestDisplayJupyterNotebookAiButton:
     def test_include_outputs_default_false(self):
         """include_outputs defaults to False since v0.4.0 — opt-in for cell outputs."""
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button()
@@ -499,7 +499,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_floating_position_accepted(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button(position="floating")
@@ -508,7 +508,7 @@ class TestDisplayJupyterNotebookAiButton:
 
     def test_custom_prompt_prefix_forwarded(self):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button(
@@ -729,7 +729,7 @@ class TestDisplayNotebookAiButtonRawImageMcp:
 
     def _call_with_mock(self, **kwargs):
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter"
+            "scikitplot._externals._sphinx_ext._jupyter_ai_assistant._jupyter"
             ".display_jupyter_ai_button"
         ) as mock_btn:
             _mod.display_jupyter_notebook_ai_button(**kwargs)

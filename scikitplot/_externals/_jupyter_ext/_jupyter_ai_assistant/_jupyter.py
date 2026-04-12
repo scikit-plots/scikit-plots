@@ -1,4 +1,4 @@
-# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_jupyter.py
+# scikitplot/_externals/_jupyter_ext/_jupyter_ai_assistant/_jupyter.py
 #
 # flake8: noqa: D213
 #
@@ -16,7 +16,7 @@ markdownify.  IPython is imported lazily inside :func:`display_jupyter_ai_button
 only when the display function is actually called.
 
 This module is an internal submodule of
-:mod:`scikitplot._externals._sphinx_ext._sphinx_ai_assistant`.
+:mod:`scikitplot._externals._sphinx_ext._jupyter_ai_assistant`.
 Its public symbols are re-exported from the parent ``__init__.py`` so
 callers import from the parent package as usual.
 
@@ -72,6 +72,41 @@ Design notes
     are opt-in — pass ``include_outputs=True`` explicitly when needed.
   - ``include_raw_image`` defaults to ``False`` (unchanged).
 
+Widget structure (v0.4.0)
+--------------------------
+Both the Sphinx extension and the Jupyter widget now share an identical
+split-button UX:
+
+    ┌────────────────────────┬──┐
+    │  📄  Copy page         │▾ │
+    └────────────────────────┴──┘
+
+Clicking **Copy page** (primary) copies the page/cell content as Markdown
+to the clipboard and briefly shows "Copied!".
+
+Clicking **▾** opens a dropdown:
+
+    ┌─────────────────────────────────────┐
+    │  📄  Copy page                      │  → copy Markdown to clipboard
+    │  [M]  View as Markdown              │  → open .md URL in new tab
+    │─────────────────────────────────────│
+    │  🔶  Ask Claude                     │  → open Claude with page context
+    │      Ask Claude about this page     │
+    │  🟢  Ask ChatGPT                    │
+    │      Ask ChatGPT about this page    │
+    │  🔵  Ask Gemini                     │
+    │  ...                                │
+    │─────────────────────────────────────│  (only when MCP tools enabled)
+    │  🔷  Connect to VS Code             │
+    └─────────────────────────────────────┘
+
+Jupyter defaults (v0.4.0 changes)
+-----------------------------------
+* ``include_outputs`` now defaults to ``False`` in all Jupyter functions.
+  Pass ``include_outputs=True`` explicitly to include cell output text.
+* ``include_raw_image`` remains ``False`` by default.  Pass
+  ``include_raw_image=True`` to capture canvas/img thumbnails.
+
 Notes
 -----
 **Developer note**: This module is imported by the parent ``__init__.py``
@@ -84,7 +119,7 @@ After a matplotlib plot in a Jupyter cell:
 
 .. code-block:: python
 
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+    from scikitplot._externals._sphinx_ext._jupyter_ai_assistant import (
         display_jupyter_ai_button,
     )
     import matplotlib.pyplot as plt
@@ -101,7 +136,7 @@ At the end of a notebook for a full review:
 
 .. code-block:: python
 
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+    from scikitplot._externals._sphinx_ext._jupyter_ai_assistant import (
         display_jupyter_notebook_ai_button,
     )
 
@@ -1093,7 +1128,7 @@ def display_jupyter_ai_button(
 
     .. code-block:: python
 
-        from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+        from scikitplot._externals._sphinx_ext._jupyter_ai_assistant import (
             display_jupyter_ai_button,
         )
         import matplotlib.pyplot as plt
@@ -1227,7 +1262,7 @@ def display_jupyter_notebook_ai_button(
 
     .. code-block:: python
 
-        from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+        from scikitplot._externals._sphinx_ext._jupyter_ai_assistant import (
             display_jupyter_notebook_ai_button,
         )
 

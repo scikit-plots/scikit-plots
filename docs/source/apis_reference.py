@@ -1259,7 +1259,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     _get_guide("externals_-sphinx_ext_-sphinx_ai_assistant_-index")
                 ),
                 "autosummary": [
-                    "_sphinx_ai_assistant.AIAssistantDirective",
                     "_sphinx_ai_assistant.add_ai_assistant_context",
                     "_sphinx_ai_assistant.generate_llms_txt",
                     "_sphinx_ai_assistant.generate_llms_txt_standalone",
