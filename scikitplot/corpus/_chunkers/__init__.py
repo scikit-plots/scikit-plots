@@ -1,3 +1,10 @@
+# scikitplot/corpus/_chunkers/__init__.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 r"""
 scikitplot.corpus._chunkers
 ==========================
@@ -37,20 +44,26 @@ from __future__ import annotations
 
 from . import (
     _chunker_bridge,
+    _custom_tokenizer,
     _fixed_window,
+    _language_data,
     _paragraph,
     _sentence,
     _word,
 )
 from ._chunker_bridge import *  # noqa: F403
+from ._custom_tokenizer import *  # noqa: F403
 from ._fixed_window import *  # noqa: F403
+from ._language_data import *  # noqa: F403
 from ._paragraph import *  # noqa: F403
 from ._sentence import *  # noqa: F403
 from ._word import *  # noqa: F403
 
 __all__ = []
 __all__ += _chunker_bridge.__all__
+__all__ += _custom_tokenizer.__all__
 __all__ += _fixed_window.__all__
+__all__ += _language_data.__all__
 __all__ += _paragraph.__all__
 __all__ += _sentence.__all__
 __all__ += _word.__all__

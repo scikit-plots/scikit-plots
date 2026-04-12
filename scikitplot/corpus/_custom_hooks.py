@@ -774,24 +774,36 @@ class CustomNLPEnricher:
         return self._inner._tokenize(text)
 
     def _filter_tokens(self, tokens: list[str]) -> list[str]:
-        """Filter tokens; use custom stopwords when provided."""
+        """Filter tokens; use custom stopwords when provided.
+
+        When ``custom_stopwords`` is set, the stopword set is temporarily
+        overridden on the inner enricher via the ``_stopwords`` property
+        setter, then restored after filtering.
+        """
         if self.custom_config.custom_stopwords is not None:
-            # Temporarily replace the inner stopword set
+            # Store the previous set, inject the override, filter, restore.
+            # _stopwords property setter writes to _stopwords_cache["__override__"]
             _prev = self._inner._stopwords
             self._inner._stopwords = self.custom_config.custom_stopwords
-            result = self._inner._filter_tokens(tokens)
+            result = self._inner._filter_tokens(
+                tokens, self.custom_config.custom_stopwords
+            )
             self._inner._stopwords = _prev
             return result
         return self._inner._filter_tokens(tokens)
 
     def _lemmatize(self, tokens: list[str]) -> list[str] | None:
-        """Lemmatize using custom callable or built-in backend."""
+        """Lemmatize using custom callable or built-in backend.
+
+        Falls back to :meth:`NLPEnricher._lemmatize_tokens` which does
+        not require a spaCy Doc to be threaded through.
+        """
         if self.custom_config.custom_lemmatizer is not None:
             try:
                 return self.custom_config.custom_lemmatizer(tokens)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("CustomNLPEnricher: custom_lemmatizer raised: %s", exc)
-        return self._inner._lemmatize(tokens)
+        return self._inner._lemmatize_tokens(tokens)
 
     def _stem(self, tokens: list[str]) -> list[str] | None:
         """Stem using custom callable or built-in backend."""

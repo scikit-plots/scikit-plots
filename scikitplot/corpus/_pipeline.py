@@ -1,4 +1,11 @@
-"""
+# scikitplot/corpus/_pipeline.py
+#
+# Flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+r"""
 scikitplot.corpus._pipeline
 ============================
 High-level orchestration of the full corpus ingestion pipeline:
@@ -44,6 +51,8 @@ from timeit import default_timer as timer
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union  # noqa: F401
 
 from ._base import ChunkerBase, DocumentReader, FilterBase, _is_url, _MultiSourceReader
+from ._enrichers._nlp_enricher import NLPEnricher
+from ._normalizers._text_normalizer import TextNormalizer
 from ._schema import CorpusDocument, ExportFormat
 
 logger = logging.getLogger(__name__)
@@ -172,6 +181,28 @@ class CorpusPipeline:
         Signature: ``(source: str, n_done: int, n_total_estimate: int) → None``.
         ``n_total_estimate`` is ``-1`` when the total is unknown.
         Default: ``None``.
+    normalizer : TextNormalizer or None, optional
+        When provided, ``normalized_text`` is populated on every document
+        after chunking/filtering and before embedding.  Insert between the
+        filter and embedding stages to clean OCR noise, collapsed whitespace,
+        ligatures, and other artefacts.  Default: ``None`` (skip).
+    enricher : NLPEnricher or None, optional
+        When provided, NLP enrichment fields (``tokens``, ``lemmas``,
+        ``stems``, ``keywords``, and optional metadata such as ``pos_tags``,
+        ``ner_entities``, ``sentence_count``, ``char_count``,
+        ``type_token_ratio``, ``token_scores``) are populated on every
+        document after normalisation and before embedding.  Supports
+        200+ world languages via the ``language`` parameter of
+        :class:`~._enrichers._nlp_enricher.EnricherConfig`.
+        Default: ``None`` (skip).
+    default_language : str or list[str] or None, optional
+        ISO 639-1 language code (or list of codes, or ``None``) applied to
+        all documents when the reader cannot detect language.  Accepts ISO
+        639-1 two-letter codes (``"en"``, ``"ar"``), NLTK names
+        (``"english"``, ``"arabic"``), lists (``["en", "ar"]``), or ``None``
+        (auto-detect per document via :func:`~._custom_tokenizer.detect_script`).
+        Forwarded to the reader; the enricher uses its own ``language``
+        config when set.  Default: ``None``.
     reader_kwargs : dict or None, optional
         Extra keyword arguments forwarded to every reader constructed by
         this pipeline — both :meth:`~scikitplot.corpus._base.DocumentReader.create`
@@ -299,7 +330,9 @@ class CorpusPipeline:
         embedding_engine: Any | None = None,
         output_dir: pathlib.Path | None = None,
         export_format: ExportFormat | None = ExportFormat.CSV,
-        default_language: str | None = None,
+        normalizer: TextNormalizer | None = None,
+        enricher: NLPEnricher | None = None,
+        default_language: str | list | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
     ) -> None:
@@ -316,6 +349,8 @@ class CorpusPipeline:
         self.embedding_engine = embedding_engine
         self.output_dir = pathlib.Path(output_dir) if output_dir is not None else None
         self.export_format = export_format
+        self.normalizer = normalizer
+        self.enricher = enricher
         self.default_language = default_language
         self.progress_callback = progress_callback
         self.reader_kwargs = reader_kwargs or {}
@@ -487,6 +522,34 @@ class CorpusPipeline:
         )
 
         documents, n_read, n_omitted = self._collect_documents(reader, source_label)
+
+        # Normalisation stage (optional, before enrichment and embedding)
+        if self.normalizer is not None and documents:
+            try:
+                documents = self.normalizer.normalize_documents(documents)
+                logger.debug(
+                    "CorpusPipeline: normalizer ran on %d documents.", len(documents)
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "CorpusPipeline: normalizer raised %s: %s — documents unchanged.",
+                    type(exc).__name__,
+                    exc,
+                )
+
+        # NLP enrichment stage (optional, before embedding)
+        if self.enricher is not None and documents:
+            try:
+                documents = self.enricher.enrich_documents(documents)
+                logger.debug(
+                    "CorpusPipeline: enricher ran on %d documents.", len(documents)
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "CorpusPipeline: enricher raised %s: %s — documents unchanged.",
+                    type(exc).__name__,
+                    exc,
+                )
 
         # URL sources pass embed source_path=None (no stable mtime for cache key).
         n_embedded = 0
@@ -992,40 +1055,57 @@ def create_corpus(
     *,
     chunker: ChunkerBase | None = None,
     filter_: FilterBase | None = None,
+    normalizer: TextNormalizer | None = None,
+    enricher: NLPEnricher | None = None,
     filename_override: str | None = None,
     export_format: ExportFormat = ExportFormat.CSV,
-    default_language: str | None = None,
+    default_language: str | list | None = None,
 ) -> PipelineResult:
-    """
-    Create and export a corpus from a single source file.
+    """Create and export a corpus from a single source file.
 
     Convenience wrapper around :class:`CorpusPipeline` for the common
-    single-file, single-output use case. Directly replaces remarx's
+    single-file, single-output use case.  Directly replaces remarx's
     ``create_corpus()`` function.
 
     Parameters
     ----------
     input_file : pathlib.Path or str
-        Path to the input file.
+        Path to the input file (local) or an ``http(s)://`` URL string.
     output_path : pathlib.Path or str
         Path for the exported corpus file.
     chunker : ChunkerBase or None, optional
-        Text chunker. Default: ``None`` (one doc per raw chunk).
+        Text chunker.  Default: ``None`` (one doc per raw chunk).
     filter_ : FilterBase or None, optional
-        Document filter. Default: ``None`` (:class:`DefaultFilter`).
+        Document filter.  Default: ``None`` (:class:`DefaultFilter`).
+    normalizer : TextNormalizer or None, optional
+        When provided, ``normalized_text`` is populated on every document
+        after chunking/filtering.  Cleans OCR noise, ligatures, and
+        whitespace artefacts before embedding.  Default: ``None`` (skip).
+    enricher : NLPEnricher or None, optional
+        When provided, NLP fields (``tokens``, ``lemmas``, ``stems``,
+        ``keywords``, and optional extended metadata) are populated on every
+        document after normalisation.  Supports 200+ world languages via
+        :class:`~._enrichers._nlp_enricher.EnricherConfig.language`.
+        Default: ``None`` (skip).
     filename_override : str or None, optional
-        Override the ``source_file`` label.
+        Override the ``source_file`` label in generated documents.
     export_format : ExportFormat, optional
-        Output format. Default: :attr:`ExportFormat.CSV`.
-    default_language : str or None, optional
-        ISO 639-1 language code. Default: ``None``.
+        Output format.  Default: :attr:`~._schema.ExportFormat.CSV`.
+    default_language : str or list[str] or None, optional
+        ISO 639-1 code(s) or NLTK language name(s) applied when the reader
+        cannot detect language.  Accepts ``"en"``, ``"english"``,
+        ``["en", "ar"]``, or ``None`` (auto-detect).  Default: ``None``.
 
     Returns
     -------
     PipelineResult
+        Immutable summary including the document list, counts, timing, and
+        output path.
 
     Examples
     --------
+    Basic single-file corpus:
+
     >>> from pathlib import Path
     >>> from scikitplot.corpus._pipeline import create_corpus
     >>> result = create_corpus(
@@ -1034,10 +1114,37 @@ def create_corpus(
     ... )
     >>> len(result.documents)
     312
+
+    With normalisation and NLP enrichment:
+
+    >>> from scikitplot.corpus import TextNormalizer, NLPEnricher, EnricherConfig
+    >>> result = create_corpus(
+    ...     input_file=Path("scan.png"),
+    ...     output_path=Path("output/scan.csv"),
+    ...     normalizer=TextNormalizer(),
+    ...     enricher=NLPEnricher(
+    ...         EnricherConfig(
+    ...             language="en",
+    ...             keyword_extractor="tfidf",
+    ...             sentence_count=True,
+    ...             char_count=True,
+    ...         )
+    ...     ),
+    ... )
+
+    Multi-language corpus:
+
+    >>> result = create_corpus(
+    ...     input_file=Path("multilang.txt"),
+    ...     output_path=Path("output/multilang.csv"),
+    ...     enricher=NLPEnricher(EnricherConfig(language=["en", "ar", "hi"])),
+    ... )
     """
     pipeline = CorpusPipeline(
         chunker=chunker,
         filter_=filter_,
+        normalizer=normalizer,
+        enricher=enricher,
         default_language=default_language,
     )
     return pipeline.run(

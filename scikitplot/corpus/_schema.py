@@ -1268,7 +1268,7 @@ class CorpusDocument:
         >>> doc.word_count
         3
         """
-        return len(self.text.split())
+        return len(self.text.split()) if self.text is not None else 0
 
     @property
     def char_count(self) -> int:
@@ -1280,7 +1280,7 @@ class CorpusDocument:
         int
             Character count.
         """
-        return len(self.text)
+        return len(self.text) if self.text is not None else 0
 
     # ------------------------------------------------------------------
     # Validation (Issues S-5)
@@ -1570,7 +1570,6 @@ class CorpusDocument:
         raw = f"{st_val}:{source_file}:{chunk_index}:{text_prefix}"
         return hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
 
-    @classmethod
     @staticmethod
     def make_content_hash(
         text: str | None = None,

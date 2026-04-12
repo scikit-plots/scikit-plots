@@ -1,3 +1,10 @@
+# scikitplot/corpus/_readers/_xml.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers.xml
 ==============================
@@ -144,7 +151,7 @@ def _parse_xml_lxml(content: bytes) -> Any:
         If content is not valid XML.
     """
     try:
-        from lxml import etree  # noqa: PLC0415
+        from lxml import etree  # type: ignore[] # noqa: PLC0415
     except ImportError as exc:
         raise ImportError(
             "lxml is required for XMLReader (primary parser)."
@@ -204,43 +211,120 @@ def _parse_xml(content: bytes) -> Any:
         raise ValueError(f"XMLReader: could not parse XML content: {exc}") from exc
 
 
-def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[Any]:
+def _clark_to_prefix(
+    xpath: str, namespaces: dict[str, str]
+) -> tuple[str, dict[str, str]]:
+    """Convert Clark-notation ``{uri}tag`` in *xpath* to ``prefix:tag`` form.
+
+    lxml's XPath engine does **not** accept Clark notation (``{uri}tag``)
+    in XPath expressions — it requires a namespace prefix registered in the
+    ``namespaces`` dict.  stdlib's ``iterfind`` accepts Clark notation
+    natively but also handles the prefixed form when a ``namespaces`` dict
+    is provided.
+
+    For each unique namespace URI found in *xpath*, this function:
+
+    1. Reuses an existing prefix from *namespaces* when one is already
+       mapped to that URI.
+    2. Otherwise auto-generates a stable prefix ``_ns0``, ``_ns1``, … and
+       adds it to a copy of *namespaces*.
+
+    Parameters
+    ----------
+    xpath : str
+        XPath expression that may contain ``{uri}tag`` Clark notation.
+    namespaces : dict[str, str]
+        Existing prefix → URI namespace mapping (may be empty or ``None``).
+
+    Returns
+    -------
+    tuple[str, dict[str, str]]
+        ``(rewritten_xpath, updated_namespaces)`` — safe to pass to both
+        ``root.xpath()`` and ``root.iterfind()``.
+
+    Examples
+    --------
+    >>> _clark_to_prefix(".//{http://tei-c.org/ns/1.0}p", {})
+    ('.//_ns0:p', {'_ns0': 'http://tei-c.org/ns/1.0'})
     """
-    Run an XPath query against a root element.
+    import re  # noqa: PLC0415
+
+    ns_map: dict[str, str] = dict(namespaces or {})
+    # Reverse mapping: URI → existing prefix
+    uri_to_prefix: dict[str, str] = {v: k for k, v in ns_map.items()}
+
+    counter = 0
+
+    def _replace(match: re.Match) -> str:  # type: ignore[type-arg]
+        nonlocal counter
+        uri = match.group(1)
+        local = match.group(2)
+        if uri in uri_to_prefix:
+            prefix = uri_to_prefix[uri]
+        else:
+            # Generate a stable, collision-free auto-prefix.
+            prefix = f"_ns{counter}"
+            while prefix in ns_map:
+                counter += 1
+                prefix = f"_ns{counter}"
+            counter += 1
+            ns_map[prefix] = uri
+            uri_to_prefix[uri] = prefix
+        return f"{prefix}:{local}"
+
+    rewritten = re.sub(r"\{([^}]+)\}(\w+)", _replace, xpath)
+    return rewritten, ns_map
+
+
+def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[Any]:
+    """Run an XPath query against a root element.
 
     Supports both lxml elements (``root.xpath()``) and stdlib elements
     (``root.findall()`` with limited XPath subset).
+
+    Clark-notation ``{uri}tag`` in *xpath* is automatically rewritten to
+    ``prefix:tag`` form for lxml compatibility (lxml does not accept Clark
+    notation in XPath expressions).  The rewrite is transparent to callers
+    — the stdlib path accepts both forms natively.
 
     Parameters
     ----------
     root : Element
         Document root element.
     xpath : str
-        XPath 1.0 expression.
+        XPath 1.0 expression.  Clark notation ``{uri}tag`` is accepted and
+        will be rewritten automatically when required.
     namespaces : dict
-        Prefix-to-namespace-URI mapping (used by lxml only).
+        Prefix-to-namespace-URI mapping.  May be ``None`` or empty; any
+        namespace URIs embedded in Clark notation will be auto-registered.
 
     Returns
     -------
     list of Element
         Matching elements in document order.
+
+    Notes
+    -----
+    **Developer note:** lxml's ``.xpath()`` method requires namespace
+    prefixes to be declared in the ``namespaces`` kwarg — it cannot
+    resolve bare ``{uri}`` references.  :func:`_clark_to_prefix` handles
+    this conversion so callers can use whichever notation they prefer.
     """
     # lxml: has .xpath() with full XPath 1.0 support
     if hasattr(root, "xpath"):
+        # Always rewrite Clark notation → prefix:tag for lxml.
+        lxml_xpath, lxml_ns = _clark_to_prefix(xpath, namespaces or {})
         try:
-            results = root.xpath(xpath, namespaces=namespaces or None)
+            results = root.xpath(lxml_xpath, namespaces=lxml_ns or None)
             return [r for r in results if not isinstance(r, str)]
         except Exception as exc:  # noqa: BLE001
             logger.warning("XMLReader: lxml XPath error for %r: %s", xpath, exc)
             return []
 
-    # stdlib ElementTree: limited XPath subset via findall
-
+    # stdlib ElementTree: limited XPath subset via iterfind.
+    # iterfind accepts Clark notation natively; also works with prefix:tag
+    # when a namespaces dict is provided.
     try:
-        # Evaluation: eager Memory: allocates full list
-        # return root.findall(xpath, namespaces or None) or []
-        # Evaluation: lazy Memory: minimal (streaming)
-        # return root.iterfind(xpath, namespaces or None) or []
         return list(root.iterfind(xpath, namespaces or None)) or []
     except Exception as exc:  # noqa: BLE001
         logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)

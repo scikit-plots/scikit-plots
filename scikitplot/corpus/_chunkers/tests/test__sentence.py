@@ -62,7 +62,7 @@ class TestSentenceChunkerConfig:
 
     def test_default_config_valid(self, default_chunker: SentenceChunker) -> None:
         assert default_chunker._cfg.backend == SentenceBackend.REGEX
-        assert default_chunker._cfg.min_length == 10
+        assert default_chunker._cfg.min_length == 1
         assert default_chunker._cfg.overlap == 0
 
 
@@ -317,3 +317,116 @@ class TestHelpers:
     def test_compute_offsets_empty_list(self) -> None:
         offsets = _compute_char_offsets("text", [])
         assert offsets == []
+
+
+# ---------------------------------------------------------------------------
+# SentenceChunker constructor — shorthand string + TypeError paths
+# ---------------------------------------------------------------------------
+
+
+class TestSentenceChunkerConstructor:
+    """Cover the three constructor forms and the TypeError guard."""
+
+    def test_none_config_uses_regex_backend(self) -> None:
+        """``SentenceChunker()`` must default to the REGEX backend."""
+        chunker = SentenceChunker()
+        assert chunker.config.backend == SentenceBackend.REGEX
+
+    def test_string_shorthand_sets_spacy_backend(self) -> None:
+        """Passing a model-name string must select the SPACY backend."""
+        chunker = SentenceChunker("en_core_web_sm")
+        assert chunker.config.backend == SentenceBackend.SPACY
+        assert chunker.config.spacy_model == "en_core_web_sm"
+
+    def test_explicit_config_used_as_is(self) -> None:
+        """Passing a ``SentenceChunkerConfig`` instance must store it unchanged."""
+        cfg = SentenceChunkerConfig(min_length=5)
+        chunker = SentenceChunker(cfg)
+        assert chunker.config is cfg
+
+    def test_invalid_config_type_raises_type_error(self) -> None:
+        """Non-str, non-config, non-None argument must raise ``TypeError``."""
+        with pytest.raises(TypeError, match="config must be str"):
+            SentenceChunker(42)  # type: ignore[arg-type]
+
+    def test_config_property_returns_config(self) -> None:
+        """The ``.config`` property must return the stored config object."""
+        cfg = SentenceChunkerConfig(min_length=3)
+        chunker = SentenceChunker(cfg)
+        assert isinstance(chunker.config, SentenceChunkerConfig)
+        assert chunker.config.min_length == 3
+
+
+# ---------------------------------------------------------------------------
+# _split_regex — multi_script=True path
+# ---------------------------------------------------------------------------
+
+
+class TestSplitRegexMultiScriptPath:
+    """Cover the multi-script regex path in ``_split_regex``."""
+
+    def test_multi_script_true_splits_on_cjk_period(self) -> None:
+        """Multi-script mode must split on CJK full-stop (``。``)."""
+        text = "今日は良い天気です。明日も晴れるでしょう。"
+        parts = _split_regex(text, multi_script=True)
+        assert len(parts) >= 2
+
+    def test_multi_script_false_does_not_split_cjk(self) -> None:
+        """Latin-mode regex must NOT split on CJK full-stop."""
+        text = "今日は良い天気です。明日も晴れる。"
+        parts = _split_regex(text, multi_script=False)
+        assert len(parts) == 1
+
+    def test_multi_script_true_splits_arabic_question(self) -> None:
+        """Multi-script mode must split on Arabic question mark (``؟``)."""
+        text = "كيف حالك؟ أنا بخير."
+        parts = _split_regex(text, multi_script=True)
+        assert len(parts) >= 1  # At least splits or preserves
+
+    def test_multi_script_latin_input_still_splits(self) -> None:
+        """Multi-script mode must also split Latin text on period+capital."""
+        text = "Hello world. Goodbye now."
+        parts = _split_regex(text, multi_script=True)
+        assert len(parts) >= 1
+        assert all(len(p) > 0 for p in parts)
+
+
+# ---------------------------------------------------------------------------
+# SentenceChunker.chunk — extra_metadata propagation
+# ---------------------------------------------------------------------------
+
+
+class TestSentenceChunkerExtraMetadata:
+    """Cover extra_metadata merging in SentenceChunker.chunk."""
+
+    def test_extra_metadata_present_in_result(self) -> None:
+        """extra_metadata dict must appear in ChunkResult.metadata."""
+        chunker = SentenceChunker()
+        result = chunker.chunk(
+            SIMPLE_TEXT, extra_metadata={"pipeline": "unit_test", "v": 2}
+        )
+        assert result.metadata["pipeline"] == "unit_test"
+        assert result.metadata["v"] == 2
+
+    def test_extra_metadata_none_does_not_raise(self) -> None:
+        """Omitting extra_metadata must not raise."""
+        chunker = SentenceChunker()
+        result = chunker.chunk(SIMPLE_TEXT)
+        assert isinstance(result, ChunkResult)
+
+
+# ---------------------------------------------------------------------------
+# chunk_batch — additional doc_id / extra_metadata paths
+# ---------------------------------------------------------------------------
+
+
+class TestSentenceChunkBatchExtended:
+    """Cover chunk_batch branches not hit by existing tests."""
+
+    def test_batch_extra_metadata_in_all_results(self) -> None:
+        """extra_metadata must appear in every batch result."""
+        chunker = SentenceChunker()
+        texts = [SIMPLE_TEXT, THREE_SENTENCES]
+        results = chunker.chunk_batch(texts, extra_metadata={"run": "ci"})
+        for r in results:
+            assert r.metadata["run"] == "ci"

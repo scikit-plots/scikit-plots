@@ -55,9 +55,10 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Final
+from typing import Any, Final, Optional  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
+from ._custom_tokenizer import ScriptType, detect_script, split_cjk_chars
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,15 @@ class FixedWindowChunkerConfig(ChunkerConfig):
 
 
 def _tokenize_whitespace(text: str) -> list[str]:
-    """Split *text* into whitespace-delimited tokens.
+    """Split *text* into tokens, respecting CJK no-space languages.
+
+    For Latin/spaced text, splits on whitespace (unchanged behaviour).
+    For CJK text (Chinese, Japanese, Korean), auto-detects via
+    :func:`~._custom_tokenizer.detect_script` and falls back to
+    character-level tokenisation via
+    :func:`~._custom_tokenizer.split_cjk_chars`, which preserves
+    Latin/numeric runs as contiguous tokens while making each CJK
+    ideograph its own token.
 
     Parameters
     ----------
@@ -135,8 +144,23 @@ def _tokenize_whitespace(text: str) -> list[str]:
     -------
     list[str]
         Token list.
-    """
-    return _WHITESPACE_RE.split(text.strip())
+
+    Notes
+    -----
+    **User note:** Without this fix, Chinese/Japanese/Korean text with no
+    whitespace produced a single token equal to the entire text, making
+    ``unit=TOKENS`` useless for those languages.
+
+    **Developer note:** Detection samples the first 200 characters and
+    adds negligible overhead (<1 µs per call on typical CPython).
+    """  # noqa: RUF002
+    stripped = text.strip()
+    if not stripped:
+        return []
+    script = detect_script(stripped[:200])
+    if script == ScriptType.CJK:
+        return split_cjk_chars(stripped)
+    return _WHITESPACE_RE.split(stripped)
 
 
 def _windows_chars(

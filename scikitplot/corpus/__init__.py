@@ -1,3 +1,10 @@
+# scikitplot/corpus/__init__.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus
 ==================
@@ -9,7 +16,7 @@ module, preserving all proven design patterns while resolving every known
 correctness, robustness, and maintainability issue identified during the
 migration audit.
 
-The Universal/Standard NLP/ML Workflow:
+Standardized NLP/ML Workflow:
 ``Sourcing → Reading → Chunking → Filtering → Normalizing → Embedding → Exporting``.
 
 .. seealso::

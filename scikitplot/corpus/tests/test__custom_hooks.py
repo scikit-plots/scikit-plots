@@ -62,7 +62,10 @@ from .._custom_hooks import (
     HookableCorpusPipeline,
     PipelineHooks,
 )
+from .._chunkers._fixed_window import FixedWindowChunker
+from .._corpus_builder import BuilderConfig
 from .._schema import ChunkingStrategy, CorpusDocument
+from .._similarity._similarity import SearchConfig, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -658,7 +661,6 @@ class TestFactoryCorpusBuilder:
         assert result is not None
 
     def test_chunker_factory_override(self, tmp_txt: pathlib.Path) -> None:
-        from .._chunkers._fixed_window import FixedWindowChunker
         factories = BuilderFactories(
             chunker_factory=lambda: FixedWindowChunker()
         )
@@ -681,7 +683,6 @@ class TestFactoryCorpusBuilder:
         assert builder._result is not None
 
     def test_search_delegates(self, tmp_txt: pathlib.Path) -> None:
-        from .._corpus_builder import BuilderConfig
         builder = FactoryCorpusBuilder(config=BuilderConfig(build_index=True))
         builder.build(tmp_txt)
         results = builder.search("simple", match_mode="strict")
@@ -725,8 +726,6 @@ class TestCustomSimilarityIndex:
         assert idx.has_embeddings is False
 
     def test_search_uses_custom_scorer_fn(self) -> None:
-        from .._similarity._similarity import SearchConfig, SearchResult
-
         expected_result = [SearchResult(doc=_doc("x"), score=1.0, match_mode="custom")]
 
         def my_scorer(
@@ -752,7 +751,6 @@ class TestCustomSimilarityIndex:
         idx = CustomSimilarityIndex()
         docs = [_doc("quick brown fox"), _doc("machine learning")]
         idx.build(docs)
-        from .._similarity._similarity import SearchConfig
         cfg = SearchConfig(match_mode="strict")
         results = idx.search("brown", config=cfg)
         assert len(results) == 1
@@ -772,7 +770,6 @@ class TestCustomSimilarityIndex:
         assert idx._scorer_name == "named_scorer"
 
     def test_search_passes_config_override_to_inner(self) -> None:
-        from .._similarity._similarity import SearchConfig
         idx = CustomSimilarityIndex()
         docs = [_doc("alpha"), _doc("beta"), _doc("gamma")]
         idx.build(docs)

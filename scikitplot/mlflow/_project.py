@@ -207,8 +207,8 @@ def get_project_markers(*, config_path: Path | None = None) -> tuple[str, ...]:
     """
     Resolve project markers deterministically.
 
-    Resolution order
-    ----------------
+    Resolution order:
+
     1) If `config_path` provided and contains ``[project].markers``, use that.
     2) Else if env var ``SCIKITPLOT_PROJECT_MARKERS`` is set, use that (strict JSON list).
     3) Else use current module default set via :func:`set_project_markers` (or built-in default).
@@ -355,8 +355,8 @@ def _is_probably_local_path(value: str) -> bool:
     r"""
     Return True if `value` is a local filesystem path (not an MLflow URI).
 
-    Deterministic rule
-    ------------------
+    Deterministic rule:
+
     - If it contains '://' => URI (remote or file-style), not a local path
     - Else if it matches '<scheme>:' (e.g., 's3:', 'gs:', 'dbfs:', 'file:') => URI
       except Windows drive paths like 'C:\...'
@@ -427,8 +427,8 @@ def normalize_mlflow_store_values(
     """
     Normalize local store values for consistent multi-script usage.
 
-    Deterministic normalization rules
-    --------------------------------
+    Deterministic normalization rules:
+
     - If backend_store_uri starts with "sqlite:///" => normalize the filesystem path to absolute.
     - Else if backend_store_uri is a local path => normalize to absolute.
     - For default_artifact_root: if it is a local path => normalize to absolute.

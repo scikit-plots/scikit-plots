@@ -67,9 +67,17 @@ import logging
 import re
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
-from typing import Any, Final
+from typing import Any, Final, List, Optional, Union  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
+from ._custom_tokenizer import (
+    MULTI_SCRIPT_SENTENCE_RE_PATTERN,
+    FunctionSentenceSplitter,
+    ScriptType,
+    SentenceSplitterProtocol,
+    detect_script,
+)
+from ._language_data import coerce_language
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +91,7 @@ __all__ = [
 # Constants
 # ---------------------------------------------------------------------------
 
-_DEFAULT_MIN_LEN: Final[int] = 10
+_DEFAULT_MIN_LEN: Final[int] = 1
 _DEFAULT_OVERLAP: Final[int] = 0
 _ABBREV_PLACEHOLDER: Final[str] = "\x00ABR\x00"
 
@@ -134,9 +142,18 @@ _ABBREVIATIONS: Final[frozenset[str]] = frozenset(
     ]
 )
 
-_SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = re.compile(
+# Latin-script boundary (legacy default when no script hint supplied).
+_SENTENCE_BOUNDARY_RE_LATIN: Final[re.Pattern[str]] = re.compile(
     r"(?<=[.!?])\s+(?=[A-Z\"\'\(\[])"
 )
+
+# Multi-script boundary — covers CJK, Arabic, Devanagari, Ethiopic, etc.
+_SENTENCE_BOUNDARY_RE_MULTI: Final[re.Pattern[str]] = re.compile(
+    MULTI_SCRIPT_SENTENCE_RE_PATTERN
+)
+
+# Default alias kept for backward-compatibility with any code importing it.
+_SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = _SENTENCE_BOUNDARY_RE_LATIN
 
 
 # ---------------------------------------------------------------------------
@@ -145,11 +162,31 @@ _SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = re.compile(
 
 
 class SentenceBackend(str, Enum):
-    """Supported sentence-splitting backends."""
+    """Supported sentence-splitting backends.
+
+    Values
+    ------
+    REGEX
+        Pure-Python regex heuristics.  No external dependencies.
+        Latin-optimised by default; set ``script_hint`` to enable
+        multi-script boundary patterns.
+    NLTK
+        NLTK Punkt sentence tokenizer.  Supports many Latin-script
+        languages via the ``nltk_language`` parameter.
+    SPACY
+        spaCy sentence segmentation pipeline (``senter`` component).
+        Language depends on loaded model (``spacy_model`` parameter).
+    CUSTOM
+        User-supplied :class:`~._custom_tokenizer.SentenceSplitterProtocol`
+        or ``Callable[[str], list[str]]`` stored in
+        :attr:`SentenceChunkerConfig.custom_splitter`.  Use PySBD,
+        CAMeL Tools, Stanza, or any custom segmenter.
+    """
 
     REGEX = "regex"
     NLTK = "nltk"
     SPACY = "spacy"
+    CUSTOM = "custom"
 
 
 @dataclass(frozen=True)
@@ -169,8 +206,11 @@ class SentenceChunkerConfig(ChunkerConfig):
     spacy_model : str or None
         Spacy model name, e.g. ``"en_core_web_sm"``.
         Required when *backend* is ``SPACY``.
-    nltk_language : str
-        Language string forwarded to ``nltk.tokenize.sent_tokenize``.
+    nltk_language : str or list[str] or None
+        Language(s) forwarded to ``nltk.tokenize.sent_tokenize``.
+        Accepts ISO 639-1 codes, NLTK names, lists, or ``None``
+        (auto-detect from text).  See :data:`nltk_language` field
+        docstring for full details.
     strip_whitespace : bool
         Strip leading/trailing whitespace from each sentence.
     include_offsets : bool
@@ -181,9 +221,47 @@ class SentenceChunkerConfig(ChunkerConfig):
     min_length: int = _DEFAULT_MIN_LEN
     overlap: int = _DEFAULT_OVERLAP
     spacy_model: str | None = None
-    nltk_language: str = "english"
+    nltk_language: Any = field(default="english", hash=False, compare=False)
+    """Language(s) for the NLTK Punkt sentence tokenizer.
+
+    Accepts:
+
+    * ``"english"``        — NLTK language name (backward-compatible default)
+    * ``"en"``             — ISO 639-1 two-letter code, resolved automatically
+    * ``["en", "de"]``     — multi-language: first NLTK-supported language used
+    * ``None``             — auto-detect from text via :func:`detect_script`
+
+    When a list is provided, the **first** NLTK-compatible language in the
+    list is used (NLTK's Punkt tokenizer handles one language per call).
+    For documents with mixed languages, prefer ``backend=SentenceBackend.REGEX``
+    with ``script_hint=None`` (auto-detect) or ``SentenceBackend.CUSTOM``
+    with a language-aware splitter.
+
+    Supports 200+ languages via :mod:`._language_data`.  ISO codes, NLTK
+    names, and regional aliases (e.g. ``"chilean_spanish"``) all resolve.
+    """
     strip_whitespace: bool = True
     include_offsets: bool = True
+    custom_splitter: Any = field(default=None, hash=False, compare=False)
+    """User-supplied splitter for ``backend=SentenceBackend.CUSTOM``.
+
+    Accepts any object with a ``split(text: str) -> list[str]`` method
+    (:class:`~._custom_tokenizer.SentenceSplitterProtocol`) or a plain
+    callable, which is auto-wrapped in
+    :class:`~._custom_tokenizer.FunctionSentenceSplitter`.
+    """
+    script_hint: str | None = None
+    """Optional Unicode script hint for the REGEX backend.
+
+    When set to ``"multi"`` (or any non-``None`` value), the REGEX backend
+    uses :data:`~._custom_tokenizer.MULTI_SCRIPT_SENTENCE_RE_PATTERN` which
+    covers CJK (``。！？``), Arabic (``؟``), Devanagari (``।``), Ethiopic
+    (``።``), and Latin terminators.  When ``None`` (default), the legacy
+    Latin-only regex is used.
+
+    Valid values: ``None`` (Latin), ``"multi"`` (all scripts), or any
+    :class:`~._custom_tokenizer.ScriptType` value string.
+    """  # noqa: RUF001
 
 
 # ---------------------------------------------------------------------------
@@ -226,33 +304,52 @@ def _restore_abbreviations(text: str) -> str:
     return text.replace(_ABBREV_PLACEHOLDER, ".")
 
 
-def _split_regex(text: str) -> list[str]:
+def _split_regex(text: str, multi_script: bool = False) -> list[str]:
     """Split *text* by sentence boundaries using regex heuristics.
 
     Parameters
     ----------
     text : str
         Input document text.
+    multi_script : bool, optional
+        When ``True``, use the multi-script regex
+        (:data:`_SENTENCE_BOUNDARY_RE_MULTI`) that covers CJK, Arabic,
+        Devanagari, Ethiopic, and Latin terminators.
+        When ``False`` (default), use the Latin-only regex.
 
     Returns
     -------
     list[str]
-        Raw sentence fragments (abbreviation placeholders still present).
+        Raw sentence fragments (abbreviation placeholders still present
+        for the Latin-only path; not applicable for multi-script).
     """
-    protected = _protect_abbreviations(text)
-    parts = _SENTENCE_BOUNDARY_RE.split(protected)
+    pattern = (
+        _SENTENCE_BOUNDARY_RE_MULTI if multi_script else _SENTENCE_BOUNDARY_RE_LATIN
+    )
+    if multi_script:
+        # Multi-script: no abbreviation protection needed (covers all scripts)
+        parts = pattern.split(text)
+    else:
+        protected = _protect_abbreviations(text)
+        parts = pattern.split(protected)
     return parts  # noqa: RET504
 
 
-def _split_nltk(text: str, language: str) -> list[str]:
+def _split_nltk(
+    text: str,
+    language: str | list[str] | None,
+) -> list[str]:
     """Split *text* using the NLTK Punkt sentence tokenizer.
 
     Parameters
     ----------
     text : str
         Input document text.
-    language : str
-        NLTK language identifier.
+    language : str or list[str] or None
+        Language specifier. Accepts ISO codes, NLTK names, lists thereof,
+        or ``None`` (falls back to ``"english"``).  When a list is provided
+        the **first** NLTK-compatible language entry is used — Punkt handles
+        one language per call.
 
     Returns
     -------
@@ -276,12 +373,23 @@ def _split_nltk(text: str, language: str) -> list[str]:
             "SentenceBackend.NLTK requires 'nltk'. Install with: pip install nltk"
         ) from exc
 
+    # Resolve language specifier: str | list[str] | None → first NLTK name.
+    from ._language_data import NLTK_STOPWORD_LANGUAGES  # noqa: PLC0415
+
+    langs = coerce_language(language, default="english")
+    # Select first language that NLTK's Punkt supports; fall back to english.
+    resolved_lang = "english"
+    for lang in langs:
+        if lang in NLTK_STOPWORD_LANGUAGES:
+            resolved_lang = lang
+            break
+
     try:
-        return sent_tokenize(text, language=language)
+        return sent_tokenize(text, language=resolved_lang)
     except LookupError:
         logger.info("NLTK punkt model missing — downloading 'punkt_tab'.")
         nltk.download("punkt_tab", quiet=True)
-        return sent_tokenize(text, language=language)
+        return sent_tokenize(text, language=resolved_lang)
 
 
 def _split_spacy(
@@ -514,6 +622,14 @@ class SentenceChunker:
                 "SentenceChunkerConfig.spacy_model must be set "
                 "when backend=SentenceBackend.SPACY."
             )
+        if (
+            self._cfg.backend == SentenceBackend.CUSTOM
+            and self._cfg.custom_splitter is None
+        ):
+            raise ValueError(
+                "SentenceChunkerConfig.custom_splitter must be set "
+                "when backend=SentenceBackend.CUSTOM."
+            )
 
     # ------------------------------------------------------------------
     # Internal split dispatch
@@ -533,15 +649,39 @@ class SentenceChunker:
             Sentence strings from the backend.
         """
         if self._cfg.backend == SentenceBackend.REGEX:
-            raw = _split_regex(text)
+            # Determine whether multi-script mode is needed.
+            hint = (self._cfg.script_hint or "").lower()
+            use_multi = hint not in ("", "latin")
+            if not use_multi:
+                # Auto-detect script when no explicit hint given.
+                script = detect_script(text[:300])
+                use_multi = script not in (ScriptType.LATIN, ScriptType.UNKNOWN)
+            raw = _split_regex(text, multi_script=use_multi)
+            if use_multi:
+                return raw
             return [_restore_abbreviations(s) for s in raw]
         if self._cfg.backend == SentenceBackend.NLTK:
-            return _split_nltk(text, self._cfg.nltk_language)
+            return _split_nltk(text, self._cfg.nltk_language)  # handles str|list|None
         if self._cfg.backend == SentenceBackend.SPACY:
             # Guaranteed non-None by _validate_config.
             assert self._cfg.spacy_model is not None  # noqa: S101
             # Pass the instance cache so spacy.load() is called at most once.
             return _split_spacy(text, self._cfg.spacy_model, self._nlp_cache)
+        if self._cfg.backend == SentenceBackend.CUSTOM:
+            splitter = self._cfg.custom_splitter
+            if splitter is None:
+                raise ValueError(
+                    "SentenceChunkerConfig.custom_splitter must be set when "
+                    "backend=SentenceBackend.CUSTOM."
+                )
+            if callable(splitter) and not hasattr(splitter, "split"):
+                splitter = FunctionSentenceSplitter(splitter, name="custom_splitter")
+            if not isinstance(splitter, SentenceSplitterProtocol):
+                raise TypeError(
+                    f"custom_splitter must satisfy SentenceSplitterProtocol "
+                    f"(have a .split(text) method), got {type(splitter).__name__!r}."
+                )
+            return splitter.split(text)
         raise ValueError(
             f"Unsupported backend: {self._cfg.backend!r}."
         )  # pragma: no cover

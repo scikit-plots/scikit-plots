@@ -79,6 +79,14 @@ def _make_config(**overrides: Any) -> MagicMock:
     }
     cfg.ai_assistant_providers = {}
     cfg.ai_assistant_mcp_tools = {}
+    # Prompt customisation config values
+    cfg.ai_assistant_intention = None
+    cfg.ai_assistant_custom_context = None
+    cfg.ai_assistant_custom_prompt_prefix = None
+    cfg.ai_assistant_include_raw_image = False
+    cfg.ai_assistant_notebook_mode = False
+    cfg.ai_assistant_include_outputs = True
+    cfg.ai_assistant_ollama_model = "llama3.2:latest"
     # Standard Sphinx values
     cfg.html_baseurl = ""
     cfg.html_static_path = []
