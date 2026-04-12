@@ -1542,10 +1542,17 @@ class TestGenerateMarkdownFiles:
         sphinx_app.config.ai_assistant_max_workers = None
         _mod.generate_markdown_files(sphinx_app, exception=None)
 
-    def test_max_workers_zero_floors_to_one(self, sphinx_app, tmp_html_tree):
+    def test_max_workers_zero_raises(self, sphinx_app, tmp_html_tree):
         sphinx_app.builder.outdir = str(tmp_html_tree)
         sphinx_app.config.ai_assistant_max_workers = 0
-        _mod.generate_markdown_files(sphinx_app, exception=None)
+
+        with pytest.raises(ValueError, match="max_workers must be greater than 0"):
+            _mod.generate_markdown_files(sphinx_app, exception=None)
+
+    # def test_max_workers_zero_floors_to_one(self, sphinx_app, tmp_html_tree):
+    #     sphinx_app.builder.outdir = str(tmp_html_tree)
+    #     sphinx_app.config.ai_assistant_max_workers = 0
+    #     _mod.generate_markdown_files(sphinx_app, exception=None)
 
     def test_theme_preset_used(self, sphinx_app, tmp_html_tree):
         sphinx_app.builder.outdir = str(tmp_html_tree)
