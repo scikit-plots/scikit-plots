@@ -1178,6 +1178,75 @@ class TestProcessHtmlFileWorker:
         status, _, _ = self._call(html, tmp_path, tmp_path)
         assert status in ("success", "skipped", "error")  # no exception
 
+    def test_no_double_bs4_parse(self, tmp_path):
+        """
+        Worker must NOT call html_to_markdown (which re-parses via BeautifulSoup).
+
+        Pre-fix root cause: ``_process_html_file_worker`` called
+        ``html_to_markdown(str(main_content), strip_tags=...)`` which
+        internally ran ``BeautifulSoup(html_content, "html.parser")`` while
+        the full-page ``soup`` was still alive in the caller's frame.  With
+        886 pages x 8 concurrent workers this doubled per-worker peak memory
+        and triggered the Linux OOM killer at ~70% (620/886).
+
+        The fix strips tags in-place on the already-parsed BS4 tree, frees
+        ``soup`` explicitly with ``del soup``, then calls the markdownify
+        converter class directly — no second BeautifulSoup parse, no call to
+        ``html_to_markdown``.
+
+        Asserting ``html_to_markdown.assert_not_called()`` is the exact
+        behavioral invariant: if the worker ever delegates to ``html_to_markdown``
+        again, the second parse returns and this test fails.
+        """
+        html = tmp_path / "page.html"
+        html.write_text(
+            '<html><body>'
+            '<article>Good content<nav>skip me</nav></article>'
+            '</body></html>',
+            encoding="utf-8",
+        )
+        import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _m
+
+        with patch.object(_m, "html_to_markdown", wraps=_m.html_to_markdown) as mock_h2m:
+            status, _, _ = self._call(html, tmp_path, tmp_path, strip=["nav"])
+
+        assert status == "success", "worker must succeed"
+        md = (tmp_path / "page.md").read_text(encoding="utf-8")
+        assert "Good content" in md, "main content must be preserved"
+        assert "skip me" not in md, "stripped tag content must be absent"
+        # Core OOM-regression invariant: the worker must NEVER call html_to_markdown.
+        mock_h2m.assert_not_called()
+
+    def test_strip_tags_inplace_before_serialise(self, tmp_path):
+        """
+        Stripped content must be absent even from the serialised snippet.
+
+        Verifies the in-place decompose path: nav/footer/script removed on
+        the BS4 tree before str() is called, so the converter never sees them.
+        """
+        html = tmp_path / "page.html"
+        html.write_text(
+            "<html><body><article>"
+            "<h1>Title</h1>"
+            "<nav>sidebar</nav>"
+            "<p>Body text</p>"
+            "<footer>footer blurb</footer>"
+            "<script>evil()</script>"
+            "</article></body></html>",
+            encoding="utf-8",
+        )
+        status, _, _ = self._call(
+            html, tmp_path, tmp_path,
+            strip=["nav", "footer", "script"],
+        )
+        assert status == "success"
+        md = (tmp_path / "page.md").read_text(encoding="utf-8")
+        assert "Title" in md
+        assert "Body text" in md
+        assert "sidebar" not in md
+        assert "footer blurb" not in md
+        assert "evil" not in md
+
 
 # ===========================================================================
 # 24. _process_single_html_file (5-tuple wrapper)
@@ -2199,10 +2268,13 @@ class TestEdgeCases:
         assert isinstance(_mod.html_to_markdown("   \n\t  "), str)
 
     def test_process_file_converter_crash_returns_error(self, tmp_path):
+        # Pre-fix: this patched html_to_markdown.  Post-fix: the worker calls
+        # _build_converter_class() directly, bypassing html_to_markdown, so
+        # we must simulate a converter crash at that call site instead.
         html = tmp_path / "page.html"
         html.write_text("<html><body><article>OK</article></body></html>", encoding="utf-8")
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant.html_to_markdown",
+            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._build_converter_class",
             side_effect=RuntimeError("converter exploded"),
         ):
             status, _, msg = _mod._process_single_html_file((
@@ -2211,10 +2283,11 @@ class TestEdgeCases:
         assert status == "error" and "converter exploded" in msg
 
     def test_6tuple_worker_converter_crash_returns_error(self, tmp_path):
+        # Same as above for the 6-tuple worker variant.
         html = tmp_path / "page.html"
         html.write_text("<html><body><article>OK</article></body></html>", encoding="utf-8")
         with patch(
-            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant.html_to_markdown",
+            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._build_converter_class",
             side_effect=RuntimeError("worker crash"),
         ):
             status, _, msg = _mod._process_html_file_worker((

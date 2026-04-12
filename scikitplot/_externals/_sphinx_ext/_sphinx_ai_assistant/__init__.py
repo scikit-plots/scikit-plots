@@ -1812,10 +1812,34 @@ def _process_html_file_worker(
         if main_content is None:
             return ("skipped", rel_str, "No main content element found")
 
-        markdown_content = html_to_markdown(
-            str(main_content),
-            strip_tags=list(strip_tags),
-        )
+        # ---- OOM fix: single-parse path ------------------------------------
+        # Root cause: calling html_to_markdown(str(main_content), ...) caused
+        # a *second* BeautifulSoup parse inside html_to_markdown, while the
+        # full-page ``soup`` was still alive (main_content is a live reference
+        # into it).  With 8 concurrent workers and large Sphinx API pages this
+        # doubled per-worker peak memory and triggered the Linux OOM killer.
+        #
+        # Fix:
+        #   1. Strip unwanted tags in-place on the already-parsed tree.
+        #   2. Serialise to a plain string (one allocation, no new tree).
+        #   3. Null main_content and del soup — CPython refcount hits zero and
+        #      the full-page tree is reclaimed *before* markdownify allocates.
+        #   4. Call the markdownify converter directly; no second bs4 parse.
+        for _tag_name in strip_tags:
+            for _el in list(main_content.find_all(_tag_name)):
+                _el.decompose()
+
+        html_snippet = str(main_content)
+        main_content = None  # release reference into soup
+        del soup  # free full-page parse tree immediately
+
+        ConverterClass = _build_converter_class()  # noqa: N806
+        markdown_content = ConverterClass(
+            heading_style="ATX",
+            bullets="*",
+            strong_em_symbol="**",
+            strip=list(strip_tags),  # belt-and-suspenders for markdownify
+        ).convert(html_snippet)
 
         # Mirror the relative path under output_dir
         md_file = output_dir / rel_path.with_suffix(".md")
