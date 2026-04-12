@@ -732,6 +732,14 @@ ai_assistant_providers = {
     #     "model": "deepseek-reasoner",
     #     "type": "web",
     # },
+
+    # Uncomment to add Perplexity or any other AI chat service:
+    # "perplexity": {
+    #     "enabled": True,
+    #     "label": "Ask Perplexity",
+    #     "url_template": "https://www.perplexity.ai/?q={prompt}",
+    #     "prompt_template": "Explain this documentation page: {url}",
+    # },
 }
 
 # ---------------------------------------------------------------------------

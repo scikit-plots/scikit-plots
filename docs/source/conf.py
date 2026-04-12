@@ -1705,7 +1705,8 @@ for old_link in old_links_dict:
 ##########################################################################
 
 # Base URL — used by llms.txt and AI provider prompt templates
-html_baseurl = "https://docs.example.com"
+# html_baseurl = "https://docs.example.com"
+html_baseurl = "https://scikit-plots.github.io"
 
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
@@ -1767,32 +1768,102 @@ ai_assistant_features = {
     # Render deep-links to Claude / ChatGPT with page context
     "ai_chat": True,
     # Show MCP server installation buttons
-    "mcp_integration": False,
+    "mcp_integration": True,
 }
 
 ai_assistant_providers = {
+    # --- Tier 1: enabled by default ----------------------------------------
+
     "claude": {
+        # Enabled: users can click "Ask Claude" without any setup.
         "enabled": True,
+        # Button label shown inside the AI-assistant panel.
         "label": "Ask Claude",
+        # Tooltip / screen-reader accessible description.
         "description": "Ask Claude about this documentation page.",
+        # SVG icon filename in _static/.  Falls back to a base64 data URI
+        # from ``_static/_PROVIDER_META`` if the file is absent on disk.
         "icon": "claude.svg",
+        # URL template: {prompt} is substituted with the URL-encoded prompt.
+        # Claude's ?q= parameter accepts the full prompt string directly.
         "url_template": "https://claude.ai/new?q={prompt}",
+        # Prompt template: {url} → absolute URL of the page's .md companion;
+        # {content} → raw Markdown text (can be large for long pages).
+        # Using {url} keeps prompts short; Claude fetches and reads the page.
         "prompt_template": (
-            "Get familiar with the documentation at {url} "
-            "so I can ask questions about it."
+            "Hi! Please read this documentation page: {url}\n\n"
+            "I have questions about it."
         ),
+        # Model identifier.  Forwarded to the widget for future API-mode use.
+        "model": "claude-sonnet-4-6",
+        # "web" opens a browser tab; no API key is required from the user.
+        "type": "web",
     },
+
     "chatgpt": {
         "enabled": True,
         "label": "Ask ChatGPT",
         "description": "Ask ChatGPT about this documentation page.",
         "icon": "chatgpt.svg",
         "url_template": "https://chatgpt.com/?q={prompt}",
-        "prompt_template": (
-            "Get familiar with the documentation at {url} "
-            "so I can ask questions about it."
-        ),
+        # ChatGPT's browsing mode fetches and reads the URL when told to.
+        "prompt_template": "Read {url} so I can ask questions about it.",
+        "model": "gpt-4o",
+        "type": "web",
     },
+
+    "gemini": {
+        "enabled": True,
+        "label": "Ask Gemini",
+        "description": "Ask Google Gemini about this documentation page.",
+        "icon": "gemini.svg",
+        "url_template": "https://gemini.google.com/app?q={prompt}",
+        "prompt_template": "Please review this documentation: {url}\n\nI have questions.",
+        "model": "gemini-2.5-flash",
+        "type": "web",
+    },
+
+    # --- Tier 2: disabled by default — uncomment and configure to enable ---
+
+    # Ollama — fully offline, privacy-preserving local inference.
+    # Prerequisites:
+    #   1. Install Ollama: https://ollama.com
+    #   2. Pull a model:  ollama pull qwen3:latest
+    #   3. Start server:  ollama serve   (runs at http://localhost:11434)
+    #   4. Set "enabled": True below.
+    #
+    # Supported models (pull with ``ollama pull <model>``):
+    #   qwen3:latest, llama3.3:latest, llama3.2:latest, gemma3:latest,
+    #   deepseek-r1:latest, phi4-mini:latest, mistral:latest, codellama:latest
+    #
+    # Security: api_base_url MUST remain a loopback address.
+    # ``_validate_ollama_url`` rejects any remote URL to prevent the widget
+    # from exfiltrating documentation content to external servers.
+    # "ollama": {
+    #     "enabled": True,
+    #     "label": "Ask Ollama (Local)",
+    #     "description": "Fully offline local inference — no data leaves your machine.",
+    #     "icon": "ollama.svg",
+    #     "url_template": "http://localhost:3000/?q={prompt}",
+    #     "api_base_url": "http://localhost:11434",   # loopback only
+    #     "prompt_template": "Please review this content: {url}",
+    #     "model": "qwen3:latest",
+    #     "type": "local",
+    # },
+
+    # DeepSeek — strong open-weight reasoning models.
+    # Also available via Ollama: ollama pull deepseek-r1:latest
+    # "deepseek": {
+    #     "enabled": False,
+    #     "label": "Ask DeepSeek",
+    #     "description": "Ask DeepSeek AI about this page.",
+    #     "icon": "deepseek.svg",
+    #     "url_template": "https://chat.deepseek.com/?q={prompt}",
+    #     "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
+    #     "model": "deepseek-reasoner",
+    #     "type": "web",
+    # },
+
     # Uncomment to add Perplexity or any other AI chat service:
     # "perplexity": {
     #     "enabled": True,
