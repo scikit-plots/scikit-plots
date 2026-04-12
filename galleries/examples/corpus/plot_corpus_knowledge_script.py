@@ -60,7 +60,8 @@ from scikitplot.corpus import (
 # Path resolution — always relative to this file, not caller's CWD.
 # ---------------------------------------------------------------------------
 
-_SCRIPT_DIR: Path = Path(__file__).resolve().parent
+# _SCRIPT_DIR: Path = Path(__file__).resolve().parent
+_SCRIPT_DIR = Path.cwd()
 _DATA_DIR: Path = _SCRIPT_DIR / "data"
 _OUTPUT_DIR: Path = _SCRIPT_DIR / "output"
 _IMAGE_PATH: Path = _DATA_DIR / "echo_of_the_wise" / "AI_Generated_Image_1ix.png"
