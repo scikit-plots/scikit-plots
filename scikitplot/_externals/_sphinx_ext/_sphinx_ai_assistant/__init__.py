@@ -5,6 +5,9 @@
 #
 # Authors: Mladen Zagorac
 # SPDX-License-Identifier: MIT
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Sphinx AI Assistant Extension

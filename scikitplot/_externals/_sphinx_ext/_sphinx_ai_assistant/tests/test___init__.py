@@ -2252,3 +2252,310 @@ class TestEdgeCases:
         """Every symbol in __all__ must be importable from the module."""
         for name in _mod.__all__:
             assert hasattr(_mod, name), f"{name!r} in __all__ but not in module"
+
+
+# ===========================================================================
+# 41. Targeted coverage — 8 tests for the 21 remaining uncovered lines
+#
+# Each test targets one specific uncovered code path:
+#
+#   Test 1  lines 1414-1418  _resolve_icon inner except ImportError
+#           lines 1423-1425  _resolve_icon outer except ImportError
+#   Test 2  lines 1679-1681  html_to_markdown bs4 ImportError path
+#   Test 3  lines 1789-1790  _process_html_file_worker ValueError after guard
+#   Test 4  lines 2014-2015  process_html_directory future raises exception
+#   Test 5  line  2022       process_html_directory "error" status branch
+#   Test 6  lines 2222-2227  generate_markdown_files future raises exception
+#   Test 7  line  2233       generate_markdown_files skipped with message
+#   Test 8  lines 2235-2236  generate_markdown_files "error" status branch
+# ===========================================================================
+
+_CANONICAL = "scikitplot._externals._sphinx_ext._sphinx_ai_assistant"
+_CANONICAL_STATIC = _CANONICAL + "._static"
+
+
+class TestTargetedCoverage:
+    """
+    8 focused tests that cover the 21 remaining uncovered executable lines.
+
+    Notes
+    -----
+    **Developer note** — each test uses the minimal mock surface required to
+    reach the specific branch.  No existing test logic is duplicated.
+
+    ProcessPoolExecutor / as_completed mocking pattern
+    ---------------------------------------------------
+    ``generate_markdown_files`` and ``process_html_directory`` both use::
+
+        futures = {executor.submit(worker, a): a for a in args_list}
+        for future in as_completed(futures):
+
+    The mock executor's ``submit()`` always returns the same ``mock_future``,
+    so ``futures == {mock_future: args}``.  A custom ``mock_as_completed``
+    helper yields ``futures.keys()`` — which is exactly ``{mock_future}`` —
+    so ``future.result()`` is always called on the mock we control.
+    """
+
+    # -----------------------------------------------------------------------
+    # Test 1 — _resolve_icon: inner except ImportError (lines 1414-1418)
+    #          + outer except ImportError (lines 1423-1425)
+    #
+    # Strategy: temporarily delete ``_SVG_DEFAULT`` from the live ``_static``
+    # module so that the first inner ``from ._static import _SVG_DEFAULT``
+    # succeeds for ``_PROVIDER_META`` but fails for ``_SVG_DEFAULT``, which:
+    #   1. fires the inner except (line 1414) and re-runs the imports,
+    #   2. the re-run also fails on ``_SVG_DEFAULT`` → outer except (1423)
+    #      returns ``icon_filename`` unchanged (line 1425).
+    # -----------------------------------------------------------------------
+
+    def test_resolve_icon_inner_and_outer_except_import_error(
+        self, tmp_path: Path
+    ) -> None:
+        """Lines 1414-1418 + 1423-1425: _SVG_DEFAULT missing triggers both excepts."""
+        static_mod = sys.modules.get(_CANONICAL_STATIC)
+        if static_mod is None:
+            pytest.skip("_static module not registered in sys.modules — run via conftest")
+
+        # Use an empty directory so the icon file is absent → enters the try block.
+        static_dir = tmp_path / "_static"
+        static_dir.mkdir()
+
+        original_svg = getattr(static_mod, "_SVG_DEFAULT", None)
+        try:
+            if hasattr(static_mod, "_SVG_DEFAULT"):
+                delattr(static_mod, "_SVG_DEFAULT")
+            result = _mod._resolve_icon("missing.svg", "claude", static_dir=static_dir)
+        finally:
+            # Always restore the original attribute so sibling tests are unaffected.
+            if original_svg is not None:
+                static_mod._SVG_DEFAULT = original_svg
+
+        # Outer except fallback must return the original filename unchanged.
+        assert result == "missing.svg"
+
+    # -----------------------------------------------------------------------
+    # Test 2 — html_to_markdown: bs4 ImportError path (lines 1679-1681)
+    #
+    # Strategy: inject ``None`` for the ``bs4`` key in ``sys.modules`` before
+    # calling ``html_to_markdown``.  Python treats ``sys.modules[name] = None``
+    # as a sentinel meaning "this module is known to be unimportable", so
+    # ``from bs4 import BeautifulSoup`` raises ``ImportError`` and the except
+    # block at line 1679 fires.  markdownify's ``strip=`` option handles tag
+    # removal without bs4, so the function still returns valid Markdown.
+    # -----------------------------------------------------------------------
+
+    def test_html_to_markdown_bs4_import_error_path(self) -> None:
+        """Lines 1679-1681: bs4 absent → except ImportError fires, result still valid."""
+        with patch.dict(sys.modules, {"bs4": None}):
+            result = _mod.html_to_markdown("<h1>Title</h1><p>Body</p>")
+
+        # The function must succeed and return the converted Markdown.
+        assert isinstance(result, str)
+        assert "Title" in result
+
+    # -----------------------------------------------------------------------
+    # Test 3 — _process_html_file_worker: ValueError branch (lines 1789-1790)
+    #
+    # Strategy: mock ``_is_path_within`` to return ``True`` (bypass the
+    # path-traversal guard at line 1784), but pass a ``html_file`` that is
+    # NOT literally relative to ``input_dir`` — so the subsequent
+    # ``html_file.relative_to(input_dir)`` call at line 1788 raises
+    # ``ValueError``, reaching the except branch at line 1789.
+    #
+    # This models a real race condition where symlink resolution makes
+    # ``_is_path_within`` (which uses ``resolve()``) see the file as inside
+    # the tree, but the literal (unresolved) path is outside it.
+    # -----------------------------------------------------------------------
+
+    def test_worker_relative_to_value_error(self, tmp_path: Path) -> None:
+        """Lines 1789-1790: _is_path_within passes but relative_to raises ValueError."""
+        html_file = tmp_path / "page.html"
+        html_file.write_text(
+            "<html><body><article>content</article></body></html>",
+            encoding="utf-8",
+        )
+        # An unrelated sibling directory — html_file is not relative to it.
+        unrelated = tmp_path / "unrelated"
+        unrelated.mkdir()
+
+        with patch.object(_mod, "_is_path_within", return_value=True):
+            status, _, msg = _mod._process_html_file_worker((
+                str(html_file),
+                str(unrelated),  # input_dir: html_file is not relative to this
+                str(unrelated),  # output_dir: same
+                [],
+                ["article"],
+                ["script"],
+            ))
+
+        assert status == "error"
+        assert "outside input directory" in msg
+
+    # -----------------------------------------------------------------------
+    # Test 4 — process_html_directory: future raises (lines 2014-2015)
+    #
+    # Strategy: replace ``ProcessPoolExecutor`` with a mock that returns a
+    # single failing future.  A custom ``mock_as_completed`` yields the keys
+    # of the futures dict (the mock future), so ``future.result()`` raises
+    # ``RuntimeError`` and the except branch at line 2014 increments errors.
+    # -----------------------------------------------------------------------
+
+    def test_process_html_directory_future_exception_counted_as_error(
+        self, tmp_path: Path
+    ) -> None:
+        """Lines 2014-2015: future.result() raises → except Exception, errors += 1."""
+        site = tmp_path / "site"
+        site.mkdir()
+        (site / "page.html").write_text(
+            "<html><body><main>content</main></body></html>", encoding="utf-8"
+        )
+
+        mock_future = MagicMock()
+        mock_future.result.side_effect = RuntimeError("worker process killed")
+
+        mock_exec = MagicMock()
+        mock_exec.__enter__ = MagicMock(return_value=mock_exec)
+        mock_exec.__exit__ = MagicMock(return_value=False)
+        mock_exec.submit.return_value = mock_future
+
+        def _mock_as_completed(fut_dict):
+            yield from fut_dict.keys()
+
+        with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
+            with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
+                stats = _mod.process_html_directory(site, max_workers=1)
+
+        assert stats["errors"] >= 1
+
+    # -----------------------------------------------------------------------
+    # Test 5 — process_html_directory: "error" status branch (line 2022)
+    #
+    # Strategy: same executor mock pattern, but ``future.result()`` succeeds
+    # and returns an ``("error", ...)`` 3-tuple — the ``else`` branch at
+    # line 2021 runs and ``errors += 1`` at line 2022 fires.
+    # -----------------------------------------------------------------------
+
+    def test_process_html_directory_error_status_increments_errors(
+        self, tmp_path: Path
+    ) -> None:
+        """Line 2022: worker returns 'error' status → else branch errors += 1."""
+        site = tmp_path / "site"
+        site.mkdir()
+        (site / "page.html").write_text(
+            "<html><body><main>content</main></body></html>", encoding="utf-8"
+        )
+
+        mock_future = MagicMock()
+        mock_future.result.return_value = ("error", "page.html", "conversion failed")
+
+        mock_exec = MagicMock()
+        mock_exec.__enter__ = MagicMock(return_value=mock_exec)
+        mock_exec.__exit__ = MagicMock(return_value=False)
+        mock_exec.submit.return_value = mock_future
+
+        def _mock_as_completed(fut_dict):
+            yield from fut_dict.keys()
+
+        with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
+            with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
+                stats = _mod.process_html_directory(site, max_workers=1)
+
+        assert stats["errors"] >= 1
+
+    # -----------------------------------------------------------------------
+    # Test 6 — generate_markdown_files: future raises (lines 2222-2227)
+    #
+    # Strategy: same mock pattern applied to the Sphinx hook.  The hook
+    # discovers HTML files from ``tmp_html_tree``, builds args_list, then
+    # submits them.  Our mock executor returns a failing future, which the
+    # mock ``as_completed`` yields.  ``future.result()`` raises, reaching
+    # lines 2222-2227 (except block: errors += 1, log.warning, continue).
+    # -----------------------------------------------------------------------
+
+    def test_generate_markdown_files_future_exception_continues(
+        self, sphinx_app: MagicMock, tmp_html_tree: Path
+    ) -> None:
+        """Lines 2222-2227: future.result() raises → errors counted, loop continues."""
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.ai_assistant_max_workers = 1
+
+        mock_future = MagicMock()
+        mock_future.result.side_effect = RuntimeError("subprocess OOM killed")
+
+        mock_exec = MagicMock()
+        mock_exec.__enter__ = MagicMock(return_value=mock_exec)
+        mock_exec.__exit__ = MagicMock(return_value=False)
+        mock_exec.submit.return_value = mock_future
+
+        def _mock_as_completed(fut_dict):
+            yield from fut_dict.keys()
+
+        with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
+            with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
+                # Must not raise — the hook swallows per-file errors.
+                _mod.generate_markdown_files(sphinx_app, exception=None)
+
+    # -----------------------------------------------------------------------
+    # Test 7 — generate_markdown_files: "skipped" with non-empty message
+    #          (line 2233)
+    #
+    # Strategy: future returns ("skipped", rel_path, "No main content found").
+    # Line 2230 increments skipped; line 2232 ``if message:`` is True so
+    # line 2233 ``log.debug(...)`` fires.
+    # -----------------------------------------------------------------------
+
+    def test_generate_markdown_files_skipped_with_message_logged(
+        self, sphinx_app: MagicMock, tmp_html_tree: Path
+    ) -> None:
+        """Line 2233: skipped status with non-empty message triggers log.debug."""
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.ai_assistant_max_workers = 1
+
+        mock_future = MagicMock()
+        mock_future.result.return_value = (
+            "skipped",
+            "page.html",
+            "No main content element found",
+        )
+
+        mock_exec = MagicMock()
+        mock_exec.__enter__ = MagicMock(return_value=mock_exec)
+        mock_exec.__exit__ = MagicMock(return_value=False)
+        mock_exec.submit.return_value = mock_future
+
+        def _mock_as_completed(fut_dict):
+            yield from fut_dict.keys()
+
+        with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
+            with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
+                _mod.generate_markdown_files(sphinx_app, exception=None)
+
+    # -----------------------------------------------------------------------
+    # Test 8 — generate_markdown_files: "error" status branch (lines 2235-2236)
+    #
+    # Strategy: future returns ("error", rel_path, "markdownify crashed").
+    # Line 2234 ``else:`` fires; line 2235 increments errors and line 2236
+    # calls ``log.warning(f"... Failed to convert ...")`` — both covered.
+    # -----------------------------------------------------------------------
+
+    def test_generate_markdown_files_error_status_logged_as_warning(
+        self, sphinx_app: MagicMock, tmp_html_tree: Path
+    ) -> None:
+        """Lines 2235-2236: 'error' status → errors += 1, log.warning fired."""
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.ai_assistant_max_workers = 1
+
+        mock_future = MagicMock()
+        mock_future.result.return_value = ("error", "page.html", "markdownify crashed")
+
+        mock_exec = MagicMock()
+        mock_exec.__enter__ = MagicMock(return_value=mock_exec)
+        mock_exec.__exit__ = MagicMock(return_value=False)
+        mock_exec.submit.return_value = mock_future
+
+        def _mock_as_completed(fut_dict):
+            yield from fut_dict.keys()
+
+        with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
+            with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
+                _mod.generate_markdown_files(sphinx_app, exception=None)
