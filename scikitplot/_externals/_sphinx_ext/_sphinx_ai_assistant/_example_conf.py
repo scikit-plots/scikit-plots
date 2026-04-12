@@ -11,8 +11,9 @@
 # This module was adapted from the sphinx-ai-assistant project.
 # https://github.com/mlazag/sphinx-ai-assistant/blob/main/example_conf.py
 #
-# Authors: Mladen Zagorac, The scikit-plots developers
+# Authors: Mladen Zagorac
 # SPDX-License-Identifier: MIT
+
 """
 Example Sphinx ``conf.py`` for the AI-assistant extension.
 
@@ -33,41 +34,6 @@ pydata-sphinx-theme renders the main article content inside::
 
 so the CSS selectors are configured accordingly.  For other themes see the
 comments next to each selector value.
-
-Widget structure (v0.4.0)
---------------------------
-Both the Sphinx extension and the Jupyter widget now share an identical
-split-button UX:
-
-    ┌────────────────────────┬──┐
-    │  📄  Copy page         │▾ │
-    └────────────────────────┴──┘
-
-Clicking **Copy page** (primary) copies the page/cell content as Markdown
-to the clipboard and briefly shows "Copied!".
-
-Clicking **▾** opens a dropdown:
-
-    ┌─────────────────────────────────────┐
-    │  📄  Copy page                      │  → copy Markdown to clipboard
-    │  [M]  View as Markdown              │  → open .md URL in new tab
-    │─────────────────────────────────────│
-    │  🔶  Ask Claude                     │  → open Claude with page context
-    │      Ask Claude about this page     │
-    │  🟢  Ask ChatGPT                    │
-    │      Ask ChatGPT about this page    │
-    │  🔵  Ask Gemini                     │
-    │  ...                                │
-    │─────────────────────────────────────│  (only when MCP tools enabled)
-    │  🔷  Connect to VS Code             │
-    └─────────────────────────────────────┘
-
-Jupyter defaults (v0.4.0 changes)
------------------------------------
-* ``include_outputs`` now defaults to ``False`` in all Jupyter functions.
-  Pass ``include_outputs=True`` explicitly to include cell output text.
-* ``include_raw_image`` remains ``False`` by default.  Pass
-  ``include_raw_image=True`` to capture canvas/img thumbnails.
 """
 
 # ---------------------------------------------------------------------------
@@ -251,23 +217,6 @@ ai_assistant_custom_context = None
 ai_assistant_custom_prompt_prefix = None
 
 # ---------------------------------------------------------------------------
-# AI Assistant — Jupyter / notebook settings
-# ---------------------------------------------------------------------------
-
-# When True, the widget JS captures all notebook cells (notebook review mode).
-# Typically set per-call via display_jupyter_notebook_ai_button().
-ai_assistant_notebook_mode = False
-
-# When True (Sphinx builds), include cell outputs in captured content.
-# Note: In Jupyter Python functions, include_outputs defaults to False since
-# v0.4.0 — pass include_outputs=True explicitly when needed.
-ai_assistant_include_outputs = True
-
-# When True, capture canvas/img thumbnails and append to the AI prompt.
-# Defaults to False — set True only when visual output is important.
-ai_assistant_include_raw_image = False
-
-# ---------------------------------------------------------------------------
 # AI Assistant — AI provider configuration
 # ---------------------------------------------------------------------------
 
@@ -373,54 +322,3 @@ ai_assistant_mcp_tools = {
         "mcpb_url": "https://docs.example.com/_static/your-mcpb-config.zip",
     },
 }
-
-# ---------------------------------------------------------------------------
-# AI Assistant — Jupyter notebook usage examples
-# ---------------------------------------------------------------------------
-# (These are not conf.py settings — they are usage examples for notebooks.)
-
-# Basic usage after a matplotlib plot:
-#
-#   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-#       display_jupyter_ai_button,
-#   )
-#   import matplotlib.pyplot as plt
-#
-#   plt.plot([1, 2, 3])
-#   plt.show()
-#   display_jupyter_ai_button(
-#       content="A line chart showing values 1, 2, 3.",
-#       providers=["claude", "chatgpt", "gemini"],
-#       intention="Explain the trend",
-#       # include_raw_image=True,   # opt-in: capture canvas/img thumbnails
-#   )
-
-# Full notebook review (at the end of a notebook):
-#
-#   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-#       display_jupyter_notebook_ai_button,
-#   )
-#   display_jupyter_notebook_ai_button(
-#       intention="Review this notebook for bugs and suggest improvements",
-#       providers=["claude", "chatgpt"],
-#       include_outputs=True,    # opt-in: include cell outputs (tracebacks, etc.)
-#   )
-
-# With Ollama (fully local, offline):
-#
-#   display_jupyter_ai_button(
-#       providers=["ollama"],
-#       provider_configs={
-#           "ollama": {"enabled": True, "model": "qwen3:latest"},
-#       },
-#       intention="Explain this analysis",
-#   )
-
-# With Markdown URL context (recommended when page_url is known):
-#
-#   display_jupyter_ai_button(
-#       page_url="https://docs.example.com/api/module.html",
-#       # Widget will derive https://docs.example.com/api/module.md
-#       # and use it in all AI provider prompts — same as Sphinx widget.
-#       providers=["claude", "chatgpt"],
-#   )

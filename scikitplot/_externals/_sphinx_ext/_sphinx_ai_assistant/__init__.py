@@ -10,19 +10,16 @@
 Sphinx AI Assistant Extension
 ==============================
 
-A Sphinx extension — and standalone HTML post-processor — that adds
-AI-assistant features to any documentation site, including one-click
-Markdown export, AI chat deep-links, MCP tool integration, automated
-``llms.txt`` generation, Jupyter notebook cell integration, and support
-for any static-HTML site generator (not only Sphinx).
+A Sphinx extension that adds AI-assistant features to documentation pages,
+including one-click Markdown export, AI chat deep-links, MCP tool
+integration, and automated ``llms.txt`` generation.
 
 The module has **two distinct layers**:
 
 Core layer (Sphinx-free)
     Importable without Sphinx, BeautifulSoup, or markdownify.  All
     security helpers, the HTML→Markdown converter, the multi-process
-    HTML walker, the standalone directory processor, and the Jupyter
-    widget live here.
+    HTML walker, the standalone directory processor.
 
 Sphinx layer
     ``setup()``, ``generate_markdown_files()``, ``generate_llms_txt()``,
@@ -45,10 +42,6 @@ generate_llms_txt_standalone : callable
     requiring a Sphinx build.
 html_to_markdown : callable
     Convert an HTML string to Markdown.
-display_jupyter_ai_button : callable
-    Inject an AI-assistant button strip into the current Jupyter notebook
-    output cell so users can ask Claude, ChatGPT, Gemini, Ollama, or any
-    configured provider about any visualisation or cell output.
 
 Public API (Sphinx extension)
 ------------------------------
@@ -59,7 +52,7 @@ Notes
 -----
 **Developer note** — import discipline:
 
-Every import of ``sphinx.*``, ``bs4``, ``markdownify``, and ``IPython``
+Every import of ``sphinx.*``, ``bs4``, ``markdownify``
 lives *inside* the function or class body that needs it, guarded by a
 try/except where appropriate.  Nothing is imported at module scope except
 the standard library.  This keeps ``import time`` cost near zero and
@@ -91,16 +84,16 @@ References
 
 Examples
 --------
-Sphinx ``conf.py``:
+Sphinx Register in ``conf.py``:
 
 .. code-block:: python
 
     extensions = [
         "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
     ]
-    html_theme = "pydata_sphinx_theme"
+    html_theme = "pydata_sphinx_theme"  # scikit-learn / NumPy style
     ai_assistant_enabled = True
-    ai_assistant_theme_preset = "pydata_sphinx_theme"
+    ai_assistant_theme_preset = "pydata_sphinx_theme"  # auto-selects CSS selectors
     ai_assistant_generate_markdown = True
     ai_assistant_generate_llms_txt = True
     html_baseurl = "https://docs.example.com"
@@ -120,22 +113,6 @@ Standalone (non-Sphinx):
         base_url="https://example.com",
     )
     print(stats)  # {"generated": 42, "skipped": 3, "errors": 0}
-
-Jupyter notebook:
-
-.. code-block:: python
-
-    from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-        display_jupyter_ai_button,
-    )
-    import matplotlib.pyplot as plt
-
-    plt.plot([1, 2, 3])
-    plt.show()
-    display_jupyter_ai_button(
-        content="A line chart showing values 1, 2, 3",
-        providers=["claude", "chatgpt", "gemini"],
-    )
 """  # noqa: D205, D400
 
 from __future__ import annotations
@@ -145,6 +122,7 @@ import json
 import multiprocessing
 import os
 import re
+import sys
 import time  # noqa: F401
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -166,11 +144,9 @@ if TYPE_CHECKING:  # pragma: no cover — only for type checkers, never at runti
 # imported at module scope.  All callers import them locally when needed.
 
 __all__ = [
-    "_JUPYTER_CONTENT_SELECTORS",
-    "AIAssistantDirective",
+    "_resolve_icon",
+    "_write_progress_bar",
     "add_ai_assistant_context",
-    "display_jupyter_ai_button",
-    "display_jupyter_notebook_ai_button",
     "generate_llms_txt",
     "generate_llms_txt_standalone",
     "generate_markdown_files",
@@ -183,7 +159,7 @@ __all__ = [
 # Version
 # ---------------------------------------------------------------------------
 
-_VERSION: str = "0.3.0"
+_VERSION: str = "0.2.0"
 
 # ---------------------------------------------------------------------------
 # Module-level cached singletons (lazy, private)
@@ -234,6 +210,80 @@ def _has_ipython() -> bool:
     True
     """
     return importlib.util.find_spec("IPython") is not None
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers — progress reporting
+# ---------------------------------------------------------------------------
+
+
+def _write_progress_bar(
+    current: int,
+    total: int,
+    *,
+    label: str = "Converting",
+    bar_len: int = 50,
+    stream: Any = None,
+    part: int = 1,
+    total_parts: int = 1,
+) -> None:
+    r"""Write an ASCII progress bar to *stream* (defaults to :data:`sys.stdout`).
+
+    Parameters
+    ----------
+    current : int
+        Number of items completed so far.
+    total : int
+        Total number of items.  When ``0`` or negative the function returns
+        immediately to avoid division-by-zero.
+    label : str, optional
+        Short label printed before the bar.
+    bar_len : int, optional
+        Width of the bar in ``=``/``-`` characters.
+    stream : file-like object or None, optional
+        Output stream.  Defaults to :data:`sys.stdout`.
+    part : int, optional
+        Current part number (used only when *total_parts* > 1).
+    total_parts : int, optional
+        Total number of parts (used to prefix the bar with ``Part N/M``).
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Uses a carriage-return ``\\r`` so successive calls overwrite the same
+    terminal line.  A newline is written when *current* >= *total* so the
+    finalised bar is left visible in the scroll buffer.
+
+    This function follows the ``sys.stdout.write`` / ``sys.stdout.flush``
+    pattern — the same approach used by reporthook-style progress tracking
+    (see :func:`urllib.request.urlretrieve`).  It is safe in non-TTY
+    environments (CI, pipes) — the output simply contains ``\\r`` characters.
+
+    Examples
+    --------
+    >>> _write_progress_bar(3, 10, label="HTML→Markdown")  # doctest: +SKIP
+    Converting: [===============-----------------------------------] 30.0% (3/10)
+    """
+    if total <= 0:
+        return
+    out = stream if stream is not None else sys.stdout
+    percent = round(100.0 * current / total, 1)
+    filled = int(bar_len * current // total)
+    bar = "=" * filled + "-" * (bar_len - filled)
+    if total_parts == 1:
+        out.write(f"\r{label}: [{bar}] {percent}% ({current}/{total})")
+    else:
+        out.write(
+            f"\rPart {part}/{total_parts} {label}: [{bar}] {percent}%"
+            f" ({current}/{total})"
+        )
+    out.flush()
+    if current >= total:
+        out.write("\n")
+        out.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -939,6 +989,7 @@ def _safe_json_for_script(obj: Any) -> str:
     '{"url": "https://example.com/<\\/script>"}'
     """
     raw = json.dumps(obj, ensure_ascii=True, separators=(", ", ": "))
+    # Replace every '</' to prevent script-injection regardless of tag name
     return _SCRIPT_CLOSE_RE.sub(r"<\\/", raw)
 
 
@@ -974,7 +1025,14 @@ def _is_path_within(path: Path, parent: Path) -> bool:
 
 
 _URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+#: Characters that have no valid place in a CSS selector and signal an
+#: HTML-injection attempt.  Note: brackets ``[]`` and quotes ``"'`` are
+#: intentionally allowed because attribute selectors legitimately use them
+#: (e.g. ``div[role="main"]``).
 _DANGEROUS_CSS_CHARS_RE = re.compile(r"[<>]")
+
+#: Widget positions accepted by the JavaScript widget.
 _ALLOWED_POSITIONS: frozenset = frozenset({"sidebar", "title", "floating", "none"})
 
 
@@ -1293,81 +1351,174 @@ def _filter_providers(
 
 
 # ---------------------------------------------------------------------------
+# Inline SVG icon fallback
+# ---------------------------------------------------------------------------
+
+
+def _resolve_icon(
+    icon_filename: str,
+    entry_name: str,
+    static_dir: Path | None = None,
+) -> str:
+    """Return *icon_filename* if it exists on disk, else a base64 data URI.
+
+    Parameters
+    ----------
+    icon_filename : str
+        Filename of the SVG icon (e.g. ``"claude.svg"``).  Returned as-is
+        when the file exists in *static_dir*.
+    entry_name : str
+        Lower-cased provider or MCP-tool name used to look up the fallback
+        icon in :data:`_PROVIDER_META` (e.g. ``"claude"``, ``"ollama"``).
+    static_dir : pathlib.Path or None, optional
+        Path to the ``_static`` directory.  When ``None``, the module's own
+        ``_static/`` subdirectory is used.
+
+    Returns
+    -------
+    str
+        Either *icon_filename* (file found on disk) or a ``data:image/svg+xml``
+        base64 URI from :data:`_PROVIDER_META`.  Falls back to *icon_filename*
+        unchanged if the ``_static`` subpackage cannot be imported.
+
+    Notes
+    -----
+    This function is called at Sphinx build time — the ``_static`` subpackage
+    is always present in a correct installation.  The ``ImportError`` fallback
+    exists only for robustness in incomplete or test environments.
+
+    Examples
+    --------
+    >>> _resolve_icon("claude.svg", "claude")  # doctest: +SKIP
+    'claude.svg'                               # when file exists
+    >>> _resolve_icon("missing.svg", "claude")  # doctest: +SKIP
+    'data:image/svg+xml;base64,…'             # base64 fallback
+    """
+    if static_dir is None:
+        static_dir = Path(__file__).parent / "_static"
+
+    if (static_dir / icon_filename).is_file():
+        return icon_filename  # file present — use normal static serving
+
+    # File absent — look up base64 fallback from _static subpackage.
+    try:
+        # Try canonical absolute name first (installed package), then
+        # relative to handle bootstrap / isolated test environments.
+        try:
+            from ._static import (  # noqa: PLC0415
+                _PROVIDER_META as _pm,  # noqa: N811
+            )
+            from ._static import (  # noqa: PLC0415
+                _SVG_DEFAULT as _sd,  # noqa: N811
+            )
+        except ImportError:
+            from ._static import (  # type: ignore[no-redef]  # noqa: PLC0415
+                _PROVIDER_META as _pm,  # noqa: N811
+            )
+            from ._static import (  # noqa: PLC0415
+                _SVG_DEFAULT as _sd,  # noqa: N811
+            )
+        key = str(entry_name).lower()
+        return _pm.get(key, {}).get("icon", _sd)
+    except ImportError:
+        # _static subpackage unavailable — return original filename unchanged.
+        return icon_filename
+
+
+# ---------------------------------------------------------------------------
 # Theme selector presets
 # ---------------------------------------------------------------------------
 
 #: Mapping of ``html_theme`` names to ordered CSS selector tuples.
+#: Each tuple lists selectors from most-specific to least-specific.
+#: Used by :func:`_resolve_content_selectors` when
+#: ``ai_assistant_theme_preset`` is set.
 _THEME_SELECTOR_PRESETS: dict[str, tuple[str, ...]] = {
+    # scikit-learn / NumPy / SciPy / pandas style
     "pydata_sphinx_theme": (
         "article.bd-article",
         "div.bd-article-container article",
         'div[role="main"]',
         "main",
     ),
+    # Furo — https://pradyunsg.me/furo/
     "furo": (
         'article[role="main"]',
         "div.page",
         "main",
     ),
+    # sphinx-book-theme (shares markup with pydata)
     "sphinx_book_theme": (
         "article.bd-article",
         'div[role="main"]',
         "main",
     ),
+    # Read the Docs — https://sphinx-rtd-theme.readthedocs.io/
     "sphinx_rtd_theme": (
         "div.rst-content",
         'div[role="main"]',
         "main",
     ),
+    # Alabaster — Sphinx default
     "alabaster": (
         "div.document",
         'div[role="main"]',
         "div.body",
         "main",
     ),
+    # Sphinx Classic
     "classic": (
         "div.body",
         "div.document",
         "main",
     ),
+    # Nature
     "nature": (
         "div.body",
         'div[role="main"]',
         "main",
     ),
+    # Agogo
     "agogo": (
         "div.document",
         'div[role="main"]',
         "main",
     ),
+    # Haiku
     "haiku": (
         "div.content",
         'div[role="main"]',
         "main",
     ),
+    # Scrolls
     "scrolls": (
         "div.content",
         "main",
     ),
+    # Press
     "press": (
         "div.body",
         "main",
     ),
+    # Bootstrap / sphinx-bootstrap-theme
     "bootstrap": (
         "div.section",
         "div.body",
         "main",
     ),
+    # Piccolo / sphinx-piccolo-theme
     "piccolo_theme": (
         "div.document",
         'div[role="main"]',
         "main",
     ),
+    # Insegel
     "insegel": (
         "div.rst-content",
         'div[role="main"]',
         "main",
     ),
+    # Groundwork
     "groundwork": (
         "div.body",
         'div[role="main"]',
@@ -1516,6 +1667,8 @@ def html_to_markdown(
     """
     tags: list[str] = _coerce_to_list(strip_tags, default=["script", "style"])
 
+    # Lazy bs4 import — avoids module-scope ImportError when bs4 is absent.
+    # TypeError (BeautifulSoup is None) and ImportError are both handled here.
     try:
         from bs4 import BeautifulSoup as _BS  # noqa: N814, PLC0415
 
@@ -1524,6 +1677,7 @@ def html_to_markdown(
             tag.decompose()
         html_content = str(soup)
     except ImportError:
+        # bs4 not installed; markdownify's strip= option handles tag removal.
         pass
 
     ConverterClass = _build_converter_class()  # noqa: N806
@@ -1544,6 +1698,7 @@ html_to_markdown_converter = html_to_markdown
 # ---------------------------------------------------------------------------
 
 #: CSS selectors tried in order to locate the main page content.
+#: Each theme uses a different element; we probe until one matches.
 _DEFAULT_CONTENT_SELECTORS: tuple[str, ...] = (
     "article.bd-article",  # pydata-sphinx-theme ≥ 0.13
     'div[role="main"]',  # pydata (older), RTD, generic
@@ -1848,6 +2003,8 @@ def process_html_directory(
     ]
 
     generated = skipped = errors = 0
+    total_files = len(args_list)
+    processed = 0
 
     with ProcessPoolExecutor(max_workers=workers) as executor:
         futures = {executor.submit(_process_html_file_worker, a): a for a in args_list}
@@ -1856,13 +2013,15 @@ def process_html_directory(
                 status, _rel, _msg = future.result()
             except Exception:  # noqa: BLE001
                 errors += 1
-                continue
-            if status == "success":
-                generated += 1
-            elif status == "skipped":
-                skipped += 1
             else:
-                errors += 1
+                if status == "success":
+                    generated += 1
+                elif status == "skipped":
+                    skipped += 1
+                else:
+                    errors += 1
+            processed += 1
+            _write_progress_bar(processed, total_files, label="HTML→Markdown")
 
     if generate_llms:
         generate_llms_txt_standalone(
@@ -1967,209 +2126,8 @@ def generate_llms_txt_standalone(
 
 
 # ---------------------------------------------------------------------------
-# Jupyter notebook AI button — re-exported from _jupyter submodule
-# ---------------------------------------------------------------------------
-# Developer note: The full Jupyter widget implementation lives in _jupyter.py.
-# This package is Sphinx-free and IPython-optional; all shared validators and
-# constants (e.g. _DEFAULT_PROVIDERS, _safe_json_for_script) are defined above
-# in this file and imported into _jupyter.py via relative import.  The public
-# symbols are re-exported here so existing call sites continue to work without
-# modification.
-from ._jupyter import (  # noqa: E402
-    _JUPYTER_CONTENT_SELECTORS,
-    _build_jupyter_widget_html,
-    display_jupyter_ai_button,
-    display_jupyter_notebook_ai_button,
-)
-
-# ---------------------------------------------------------------------------
 # Build-time hooks (Sphinx layer)
 # ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Sphinx RST directive and role
-# ---------------------------------------------------------------------------
-
-
-def _build_ai_assistant_directive_node(
-    providers: list[str],
-    position: str,
-    intention: str | None,
-    custom_context: str | None,
-    page_url: str,
-    mcp_tools: dict[str, Any] | None,
-    include_raw_image: bool,
-) -> str:
-    """Return a self-contained HTML widget snippet for embedding in RST.
-
-    Parameters
-    ----------
-    providers : list of str
-        Provider names to show.
-    position : str
-        Widget position (``"inline"`` or ``"floating"``).
-    intention : str or None
-        User goal annotation prepended to prompts.
-    custom_context : str or None
-        Additional background context.
-    page_url : str
-        URL for the ``{url}`` prompt placeholder.
-    mcp_tools : dict or None
-        MCP tool configs for "Connect" buttons.
-    include_raw_image : bool
-        Whether to capture image/canvas elements.
-
-    Returns
-    -------
-    str
-        Raw HTML string safe for embedding in a Sphinx ``raw`` directive.
-    """
-    return _build_jupyter_widget_html(
-        content=None,
-        providers=providers or ["claude", "chatgpt", "gemini"],
-        position=position,
-        page_url=page_url,
-        intention=intention,
-        custom_context=custom_context,
-        include_raw_image=include_raw_image,
-        mcp_tools=mcp_tools,
-    )
-
-
-class AIAssistantDirective:
-    """Sphinx ``.. ai-assistant::`` directive.
-
-    Embeds the AI-assistant button widget inline in any RST page.
-    Works in both Sphinx documentation pages and standalone HTML files.
-
-    Usage in RST
-    ------------
-    .. code-block:: rst
-
-        .. ai-assistant::
-           :providers: claude, chatgpt, gemini
-           :position: inline
-           :intention: Help me understand this page
-           :include_raw_image: false
-
-    Options
-    -------
-    providers : str, optional
-        Comma-separated list of provider names.  Defaults to
-        ``claude, chatgpt, gemini``.
-    position : str, optional
-        ``"inline"`` (default) or ``"floating"``.
-    intention : str, optional
-        Goal annotation prepended to all prompts.
-    custom_context : str, optional
-        Extra context injected into all prompts.
-    page_url : str, optional
-        Explicit URL for ``{url}`` in prompt templates.
-    include_raw_image : str, optional
-        ``"true"`` to capture canvas/image elements.  Defaults to
-        ``"false"``.
-
-    Notes
-    -----
-    This directive is registered by :func:`setup` as ``ai-assistant``.
-    It generates a ``raw:: html`` node so it works with any HTML builder.
-    """
-
-    # Docutils directive interface — populated by Sphinx when registered
-    required_arguments = 0
-    optional_arguments = 0
-    has_content = False
-    # populated in setup() after docutils import
-    option_spec: dict[str, Any] = {}  # noqa: RUF012
-
-    def run(self) -> list[Any]:  # type: ignore[type-arg]
-        """Generate the raw HTML node for this directive."""
-        try:
-            from docutils import nodes  # type: ignore[import]  # noqa: PLC0415
-        except ImportError:
-            return []
-
-        providers_raw = str(self.options.get("providers", "claude,chatgpt,gemini"))
-        providers = [p.strip() for p in providers_raw.split(",") if p.strip()]
-        position = str(self.options.get("position", "inline")).strip()
-        intention_raw = str(self.options.get("intention", "")).strip() or None
-        custom_context_raw = str(self.options.get("custom_context", "")).strip() or None
-        page_url = str(self.options.get("page_url", "")).strip()
-        include_raw_image = str(
-            self.options.get("include_raw_image", "false")
-        ).strip().lower() in ("true", "1", "yes")
-
-        html = _build_ai_assistant_directive_node(
-            providers=providers,
-            position=position,
-            intention=intention_raw,
-            custom_context=custom_context_raw,
-            page_url=page_url,
-            mcp_tools=None,
-            include_raw_image=include_raw_image,
-        )
-        raw_node = nodes.raw("", html, format="html")
-        return [raw_node]
-
-
-def _ai_ask_role(
-    name: str,
-    rawtext: str,
-    text: str,
-    lineno: int,
-    inliner: Any,
-    options: dict[str, Any] | None = None,
-    content: list[str] | None = None,
-) -> Any:
-    """Sphinx ``:ai_ask:`` inline role.
-
-    Creates an inline AI-query link.  The role text becomes the
-    ``intention`` annotation in the prompt, and the current page URL is
-    used as context.
-
-    Usage in RST
-    ------------
-    .. code-block:: rst
-
-        Read the API reference :ai_ask:`How does this function work?` and
-        ask Claude for clarification.
-
-    Parameters
-    ----------
-    name : str
-        Role name (``"ai_ask"``).
-    rawtext : str
-        Raw RST source text.
-    text : str
-        The interpreted text (the question / intention).
-    lineno : int
-        Line number in the source document.
-    inliner : docutils.parsers.rst.states.Inliner
-        The RST inliner.
-    options : dict or None, optional
-        Role options.
-    content : list or None, optional
-        Role content (unused).
-
-    Returns
-    -------
-    tuple
-        ``([node], [])`` — single raw HTML node and empty messages list.
-    """
-    try:
-        from docutils import nodes  # type: ignore[import]  # noqa: PLC0415
-    except ImportError:
-        return [], []
-
-    safe_text = str(text).strip()
-    html = _build_jupyter_widget_html(
-        content=None,
-        providers=["claude", "chatgpt", "gemini"],
-        intention=safe_text or None,
-        position="inline",
-    )
-    raw_node = nodes.raw("", html, format="html")
-    return [raw_node], []
 
 
 def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
@@ -2252,6 +2210,8 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     ]
 
     generated = skipped = errors = 0
+    total_files = len(args_list)
+    processed = 0
     t0 = time.monotonic()
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -2262,6 +2222,8 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 log.warning(f"AI Assistant: Worker error: {exc}")
+                processed += 1
+                _write_progress_bar(processed, total_files, label="HTML→Markdown")
                 continue
             if status == "success":
                 generated += 1
@@ -2272,6 +2234,8 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
             else:
                 errors += 1
                 log.warning(f"AI Assistant: Failed to convert {rel_path}: {message}")
+            processed += 1
+            _write_progress_bar(processed, total_files, label="HTML→Markdown")
 
     elapsed = time.monotonic() - t0
     log.info(
@@ -2302,15 +2266,14 @@ def generate_llms_txt(  # noqa: PLR0911
     ----------
     .. [1] https://llmstxt.org/
     """
+    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: PLC0415
+
     if exception is not None:
         return
     if not app.config.ai_assistant_generate_markdown:
         return
     if not app.config.ai_assistant_generate_llms_txt:
         return
-
-    from sphinx.builders.html import StandaloneHTMLBuilder  # noqa: PLC0415
-
     if not isinstance(app.builder, StandaloneHTMLBuilder):
         return
 
@@ -2465,12 +2428,30 @@ def add_ai_assistant_context(
     providers_raw: dict[str, Any] = dict(app.config.ai_assistant_providers)
     providers_safe = _filter_providers(providers_raw)
 
+    # Resolve icons: replace missing SVG filenames with inline base64 data URIs
+    # so the widget renders correctly even when optional SVG files are absent.
+    _static_dir = Path(__file__).parent / "_static"
+    providers_resolved: dict[str, Any] = {
+        name: {
+            **prov,
+            "icon": _resolve_icon(str(prov.get("icon", "")), name, _static_dir),
+        }
+        for name, prov in providers_safe.items()
+    }
+    mcp_tools_resolved: dict[str, Any] = {
+        name: {
+            **tool,
+            "icon": _resolve_icon(str(tool.get("icon", "")), name, _static_dir),
+        }
+        for name, tool in dict(app.config.ai_assistant_mcp_tools).items()
+    }
+
     config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
         "features": dict(app.config.ai_assistant_features),
-        "providers": providers_safe,
-        "mcp_tools": dict(app.config.ai_assistant_mcp_tools),
+        "providers": providers_resolved,
+        "mcp_tools": mcp_tools_resolved,
         "baseUrl": (
             getattr(app.config, "html_baseurl", "")
             or app.config.ai_assistant_base_url
@@ -2484,8 +2465,6 @@ def add_ai_assistant_context(
         "includeRawImage": _cfg_bool(
             app.config, "ai_assistant_include_raw_image", False
         ),
-        "notebookMode": _cfg_bool(app.config, "ai_assistant_notebook_mode", False),
-        "includeOutputs": _cfg_bool(app.config, "ai_assistant_include_outputs", True),
     }
 
     context["ai_assistant_config"] = config
@@ -2504,7 +2483,11 @@ def add_ai_assistant_context(
 
 
 def setup(app: Sphinx) -> dict[str, Any]:
-    """Register the AI-assistant extension with a Sphinx application.
+    """
+    Register the AI-assistant extension with a Sphinx application.
+
+    This is the canonical Sphinx extension entry point.  Sphinx calls it
+    automatically when the extension is listed in ``conf.py extensions``.
 
     Parameters
     ----------
@@ -2517,15 +2500,95 @@ def setup(app: Sphinx) -> dict[str, Any]:
         Sphinx extension metadata::
 
             {
-                "version": "0.3.0",
+                "version": "0.2.0",
                 "parallel_read_safe": True,
                 "parallel_write_safe": True,
             }
+
+    Notes
+    -----
+    **Config values registered** (all are *html*-rebuild-triggering):
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Name
+         - Default
+         - Description
+       * - ``ai_assistant_enabled``
+         - ``True``
+         - Master switch.
+       * - ``ai_assistant_position``
+         - ``"sidebar"``
+         - ``"sidebar"``, ``"title"``, ``"floating"``, or ``"none"``.
+       * - ``ai_assistant_content_selector``
+         - ``"article"``
+         - CSS selector for the page's main content area (client-side).
+       * - ``ai_assistant_content_selectors``
+         - ``_DEFAULT_CONTENT_SELECTORS``
+         - Ordered CSS selectors for server-side Markdown extraction.
+       * - ``ai_assistant_theme_preset``
+         - ``None``
+         - Theme name to auto-select CSS selectors (e.g.
+           ``"pydata_sphinx_theme"``).  Merged with
+           ``ai_assistant_content_selectors``.
+       * - ``ai_assistant_generate_markdown``
+         - ``True``
+         - Generate ``.md`` files after build.
+       * - ``ai_assistant_markdown_exclude_patterns``
+         - ``["genindex", "search", "py-modindex"]``
+         - Path substrings to exclude.
+       * - ``ai_assistant_strip_tags``
+         - ``["script", "style", "nav", "footer"]``
+         - HTML tags stripped (with content) before Markdown conversion.
+       * - ``ai_assistant_generate_llms_txt``
+         - ``True``
+         - Generate ``llms.txt`` after build.
+       * - ``ai_assistant_base_url``
+         - ``""``
+         - Base URL for ``llms.txt`` entries.
+       * - ``ai_assistant_max_workers``
+         - ``None``
+         - Max parallel workers; ``None`` → auto (CPU count, capped at 8).
+       * - ``ai_assistant_llms_txt_max_entries``
+         - ``None``
+         - Cap on the number of entries in ``llms.txt`` (``None`` → all).
+       * - ``ai_assistant_llms_txt_full_content``
+         - ``False``
+         - Embed full Markdown content in ``llms.txt``.
+       * - ``ai_assistant_features``
+         - (see source)
+         - Feature-flag dict.
+       * - ``ai_assistant_providers``
+         - (see source)
+         - AI provider configuration dict.
+       * - ``ai_assistant_mcp_tools``
+         - (see source)
+         - MCP tool configuration dict.
+
+    Examples
+    --------
+    In ``conf.py``:
+
+    .. code-block:: python
+
+        extensions = [
+            "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+        ]
+        html_theme = "pydata_sphinx_theme"
+        ai_assistant_enabled = True
+        ai_assistant_theme_preset = "pydata_sphinx_theme"
+        ai_assistant_position = "sidebar"
+        ai_assistant_generate_markdown = True
+        ai_assistant_generate_llms_txt = True
+        html_baseurl = "https://docs.myproject.org"
     """
     # ---- Core toggles ------------------------------------------------------
     app.add_config_value("ai_assistant_enabled", True, "html")
     app.add_config_value("ai_assistant_position", "sidebar", "html")
     app.add_config_value("ai_assistant_content_selector", "article", "html")
+
+    # ---- Content selectors (server-side Markdown extraction) ---------------
     app.add_config_value(
         "ai_assistant_content_selectors",
         list(_DEFAULT_CONTENT_SELECTORS),
@@ -2570,29 +2633,24 @@ def setup(app: Sphinx) -> dict[str, Any]:
         "html",
     )
 
+    # ---- Ollama / local model config helper --------------------------------
+    # Expose the recommended model list so conf.py can reference it:
+    #   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+    #       _OLLAMA_RECOMMENDED_MODELS,
+    #   )
+    app.add_config_value(
+        "ai_assistant_ollama_model",
+        "llama3.2:latest",
+        "html",
+    )
+
     # ---- MCP tool configuration -------------------------------------------
+    # NOTE: Use the full _DEFAULT_MCP_TOOLS registry (vscode, claude_desktop,
+    # cursor, windsurf, generic) so conf.py inherits all defaults and only
+    # needs to override the entries it customises.
     app.add_config_value(
         "ai_assistant_mcp_tools",
-        {
-            "vscode": {
-                "enabled": False,
-                "type": "vscode",
-                "label": "Connect to VS Code",
-                "description": "Install MCP server in VS Code",
-                "icon": "vscode.svg",
-                "server_name": "",
-                "server_url": "",
-                "transport": "sse",
-            },
-            "claude_desktop": {
-                "enabled": False,
-                "type": "claude_desktop",
-                "label": "Connect to Claude",
-                "description": "Download and install MCP extension",
-                "icon": "claude.svg",
-                "mcpb_url": "",
-            },
-        },
+        dict(_DEFAULT_MCP_TOOLS),
         "html",
     )
 
@@ -2601,15 +2659,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_custom_context", None, "html")
     app.add_config_value("ai_assistant_custom_prompt_prefix", None, "html")
     app.add_config_value("ai_assistant_include_raw_image", False, "html")
-    app.add_config_value("ai_assistant_notebook_mode", False, "html")
-    app.add_config_value("ai_assistant_include_outputs", True, "html")
-
-    # ---- Ollama / local model config helper --------------------------------
-    # Expose the recommended model list so conf.py can reference it:
-    #   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
-    #       _OLLAMA_RECOMMENDED_MODELS,
-    #   )
-    app.add_config_value("ai_assistant_ollama_model", "llama3.2:latest", "html")
 
     # ---- Static files ------------------------------------------------------
     static_path = Path(__file__).parent / "_static"
@@ -2618,33 +2667,6 @@ def setup(app: Sphinx) -> dict[str, Any]:
 
     app.add_css_file("ai-assistant.css")
     app.add_js_file("ai-assistant.js")
-
-    # ---- Sphinx RST directive and role -------------------------------------
-    try:
-        from docutils.parsers.rst import (  # type: ignore[import]  # noqa: PLC0415
-            Directive,
-            directives,
-        )
-
-        # Bind option_spec so directives.unchanged is available
-        AIAssistantDirective.option_spec = {
-            "providers": directives.unchanged,
-            "position": directives.unchanged,
-            "intention": directives.unchanged,
-            "custom_context": directives.unchanged,
-            "page_url": directives.unchanged,
-            "include_raw_image": directives.unchanged,
-        }
-        # Make AIAssistantDirective inherit from Directive properly
-        AIAssistantDirectiveRegistered = type(  # noqa: N806
-            "AIAssistantDirectiveRegistered",
-            (Directive,),
-            dict(AIAssistantDirective.__dict__),
-        )
-        app.add_directive("ai-assistant", AIAssistantDirectiveRegistered)
-        app.add_role("ai_ask", _ai_ask_role)
-    except Exception:  # noqa: BLE001
-        pass  # Docutils unavailable; directive/role silently skipped
 
     # ---- Event hooks -------------------------------------------------------
     app.connect("html-page-context", add_ai_assistant_context)

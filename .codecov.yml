@@ -50,7 +50,7 @@ codecov:
     manual_trigger: true
 
   #max_report_age can be listed in hours '#h' (hours) or '#d' (days)
-  max_report_age: '12h' #equates to 12 hours
+  max_report_age: '24h' # '12h' equates to 12 hours
 
 # https://docs.codecov.com/docs/codecovyml-reference#comment
 # https://docs.codecov.com/docs/pull-request-comments
