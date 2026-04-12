@@ -21,15 +21,30 @@ in ``__init__``.
 """
 from __future__ import annotations
 
+import re
 import sys
 import types
 from typing import Any
+from urllib.parse import urlparse
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _mod
 import scikitplot._externals._sphinx_ext._sphinx_ai_assistant._jupyter as _jmod
+
+
+def _extract_page_url(html):
+    """
+    url = _extract_page_url(html)
+    parsed = urlparse(url)
+    assert parsed.netloc == "docs.example.com"
+    """
+    import re
+    match = re.search(r'PAGE_URL\s*=\s*"([^"]+)"', html)
+    assert match
+    return match.group(1)
+
 
 # ===========================================================================
 # 1. Jupyter widget HTML builder (new)
@@ -128,7 +143,12 @@ class TestBuildJupyterWidgetHtml:
         result = _mod._build_jupyter_widget_html(
             page_url="https://docs.example.com/page"
         )
-        assert "docs.example.com" in result
+        # assert "docs.example.com" in result
+        match = re.search(r'PAGE_URL\s*=\s*"([^"]+)"', result)
+        assert match
+        parsed = urlparse(match.group(1))
+        assert parsed.scheme == "https"
+        assert parsed.netloc == "docs.example.com"
 
     def test_provider_configs_override_defaults(self):
         """provider_configs merges over _DEFAULT_PROVIDERS."""
@@ -883,7 +903,11 @@ class TestJupyterWidgetMdUrlLogic:
     def test_page_url_embedded_in_js(self):
         """Validated page_url must be serialised into the widget JS."""
         html = self._html(page_url="https://docs.example.com/page.html")
-        assert "docs.example.com" in html
+        # assert "docs.example.com" in html
+        match = re.search(r'PAGE_URL\s*=\s*"([^"]+)"', html)
+        assert match
+        parsed = urlparse(match.group(1))
+        assert parsed.netloc == "docs.example.com"
 
     def test_invalid_page_url_excluded(self):
         """A javascript: page_url must be excluded from the widget."""
@@ -895,7 +919,11 @@ class TestJupyterWidgetMdUrlLogic:
         html = self._html(page_url="https://docs.example.com/api.html")
         assert "getMdUrl" in html
         # The JS variable PAGE_URL should be set
-        assert "docs.example.com" in html
+        # assert "docs.example.com" in html
+        match = re.search(r'PAGE_URL\s*=\s*"([^"]+)"', html)
+        assert match
+        parsed = urlparse(match.group(1))
+        assert parsed.netloc == "docs.example.com"
 
 
 class TestJupyterIncludeOutputsDefault:
