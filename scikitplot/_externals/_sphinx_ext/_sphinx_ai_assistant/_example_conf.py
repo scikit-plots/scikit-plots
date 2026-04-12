@@ -378,7 +378,7 @@ ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
 #
 # Maximum number of parallel worker processes for Markdown generation.
 #
-#   None  — auto: max(1, min(cpu_count, 8)).  Scales to the local machine
+#   None  — auto: os.cpu_count() or 1.  Scales to the local machine
 #           without overwhelming CI containers (which often have 2 CPUs).
 #   1     — single process.  Use for debugging — stack traces are clean and
 #           sequential, and pdb works normally inside workers.
@@ -389,7 +389,7 @@ ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
 # worker functions (``_process_single_html_file``, ``_process_html_file_worker``)
 # MUST be defined at module scope — not as lambdas or closures — so the
 # multiprocessing pickle protocol can serialise them across process boundaries.
-ai_assistant_max_workers = None
+ai_assistant_max_workers = 1  # None or >=1
 
 # ---------------------------------------------------------------------------
 # AI Assistant — llms.txt generation

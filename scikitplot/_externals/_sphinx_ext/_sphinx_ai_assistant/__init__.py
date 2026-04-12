@@ -120,9 +120,9 @@ Standalone (non-Sphinx):
 
 from __future__ import annotations
 
+# import multiprocessing
 import importlib.util
 import json
-import multiprocessing
 import os
 import re
 import sys
@@ -1939,7 +1939,7 @@ def process_html_directory(
         to ``["script", "style", "nav", "footer", "header"]``.
     max_workers : int or None, optional
         Maximum parallel worker processes.  ``None`` → auto-detect (CPU
-        count, capped at 8).
+        count or 1).
     recursive : bool, optional
         When ``True`` (default), recurse into subdirectories.  When
         ``False``, only the top-level ``.html`` files are processed.
@@ -2012,11 +2012,6 @@ def process_html_directory(
     glob_fn = input_path.rglob if recursive else input_path.glob
     html_files = list(glob_fn("*.html"))
 
-    cpu_count = multiprocessing.cpu_count() or 1
-    workers: int = (
-        max(1, min(cpu_count, 8)) if max_workers is None else max(1, int(max_workers))
-    )
-
     args_list = [
         (
             str(f),
@@ -2033,7 +2028,9 @@ def process_html_directory(
     total_files = len(args_list)
     processed = 0
 
-    with ProcessPoolExecutor(max_workers=workers) as executor:
+    # multiprocessing.cpu_count() os.cpu_count() or 1
+    # Parallel(n_jobs=4)(delayed(func)(x) for x in data)
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_process_html_file_worker, a): a for a in args_list}
         for future in as_completed(futures):
             try:
@@ -2223,14 +2220,6 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     html_files = list(outdir.rglob("*.html"))
     log.info(f"AI Assistant: Generating Markdown for {len(html_files)} HTML files…")
 
-    max_workers_cfg = app.config.ai_assistant_max_workers
-    cpu_count = multiprocessing.cpu_count() or 1
-    max_workers: int = (
-        max(1, min(cpu_count, 8))
-        if max_workers_cfg is None
-        else max(1, int(max_workers_cfg))
-    )
-
     args_list = [
         (str(f), str(outdir), list(exclude_patterns), selectors, strip_tags)
         for f in html_files
@@ -2241,7 +2230,10 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     processed = 0
     t0 = time.monotonic()
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    # multiprocessing.cpu_count() os.cpu_count() or 1
+    # Parallel(n_jobs=4)(delayed(func)(x) for x in data)
+    max_workers_cfg = app.config.ai_assistant_max_workers
+    with ProcessPoolExecutor(max_workers=max_workers_cfg) as executor:
         futures = {executor.submit(_process_single_html_file, a): a for a in args_list}
         for future in as_completed(futures):
             try:
@@ -2267,7 +2259,7 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     elapsed = time.monotonic() - t0
     log.info(
         f"AI Assistant: {generated} generated, {skipped} skipped, "
-        f"{errors} errors — {elapsed:.1f}s ({max_workers} workers)"
+        f"{errors} errors — {elapsed:.1f}s ({max_workers_cfg} workers)"
     )
 
 
@@ -2576,7 +2568,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
          - Base URL for ``llms.txt`` entries.
        * - ``ai_assistant_max_workers``
          - ``None``
-         - Max parallel workers; ``None`` → auto (CPU count, capped at 8).
+         - Max parallel workers; ``None`` → auto (CPU count or 1).
        * - ``ai_assistant_llms_txt_max_entries``
          - ``None``
          - Cap on the number of entries in ``llms.txt`` (``None`` → all).
@@ -2637,7 +2629,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
     app.add_config_value("ai_assistant_generate_llms_txt", True, "html")
     app.add_config_value("ai_assistant_base_url", "", "html")
-    app.add_config_value("ai_assistant_max_workers", None, "html")
+    app.add_config_value("ai_assistant_max_workers", 1, "html")  # None or >=1
     app.add_config_value("ai_assistant_llms_txt_max_entries", None, "html")
     app.add_config_value("ai_assistant_llms_txt_full_content", False, "html")
 

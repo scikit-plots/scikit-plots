@@ -1749,8 +1749,8 @@ ai_assistant_markdown_exclude_patterns = [
 ]
 
 # Maximum number of parallel worker processes for Markdown generation.
-# None → auto-detect (CPU count, capped at 8).
-ai_assistant_max_workers = None
+# None → os.cpu_count() or 1.
+ai_assistant_max_workers = 1
 
 # Write an llms.txt index file listing all generated .md page URLs.
 # See: https://llmstxt.org/
