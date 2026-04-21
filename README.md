@@ -122,6 +122,12 @@
   <img alt="Coverage Status" height="17"
    src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
  </a>
+ <!-- OpenSSF Scorecard https://securityscorecards.dev/ -->
+ <!-- https://github.com/marketplace/actions/ossf-scorecard-action#workflow-setup-required -->
+ <a href="https://securityscorecards.dev/viewer/?uri=github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://img.shields.io/ossf-scorecard/github.com/scikit-plots/scikit-plots?style=flat-square&label=OpenSSF%20Scorecard&color=green">
+ </a>
  <!-- GitHub Actions -->
  <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
  <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
@@ -181,6 +187,8 @@
 
  <h4>Single line functions for detailed visualizations. </h4>
  <p>The quickest and easiest way to go from analysis... </p>
+ <!-- RON: (Republic of Nomos) -->
+ <!-- "Nomos is the governing concept for machine learning systems, providing the simple deterministic foundation that empowers autonomous, customizable, and user-sovereign execution across any environment." -->
 
  <p>
   Explore the full features of Scikit-plots:
@@ -992,7 +1000,7 @@ https://emojidb.org/
 ﷲ ☯ 🏛️ 🕋 ⛪ 🕇 ♰ 🗺
 --------------------------------
 🔻 To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
-✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
+←→ ✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
 
 ֎🇦🇮 ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥
 

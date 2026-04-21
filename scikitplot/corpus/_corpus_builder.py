@@ -287,7 +287,7 @@ class BuildResult:
     index : SimilarityIndex or None
         Built similarity index (if ``build_index=True``).
     errors : list[tuple[str, Exception]]
-        ``(source_path, exception)`` pairs for failed sources.
+        ``(input_path, exception)`` pairs for failed sources.
 
     Notes
     -----
@@ -521,7 +521,7 @@ class CorpusBuilder:
 
     def build(  # noqa: PLR0912
         self,
-        sources: str | Path | Sequence[str | Path],
+        input_path: str | Path | Sequence[str | Path],
         *,
         source_title: str | None = None,
         source_author: str | None = None,
@@ -531,7 +531,7 @@ class CorpusBuilder:
 
         Parameters
         ----------
-        sources : str, Path, or Sequence[str | Path]
+        input_path : str, Path, or Sequence[str | Path]
             File path(s), directory path(s), or URL(s).  Accepts:
 
             - A single file path: ``"hamlet.txt"``
@@ -553,7 +553,7 @@ class CorpusBuilder:
         Raises
         ------
         ValueError
-            If no valid sources are found.
+            If no valid input_path sources are found.
         """
         cfg = self.config
         title = source_title or cfg.source_title
@@ -561,15 +561,15 @@ class CorpusBuilder:
         coll_id = collection_id or cfg.collection_id
 
         # Normalise sources to a list
-        if isinstance(sources, (str, Path)):  # noqa: SIM108
-            source_list = [sources]
+        if isinstance(input_path, (str, Path)):  # noqa: SIM108
+            source_list = [input_path]
         else:
-            source_list = list(sources)
+            source_list = list(input_path)
 
         # Expand directories
         expanded = self._expand_sources(source_list)
         if not expanded:
-            raise ValueError(f"No valid sources found in: {source_list!r}")
+            raise ValueError(f"No valid input_path sources found in: {source_list!r}")
 
         result = BuildResult(n_sources=len(expanded))
 
@@ -587,7 +587,7 @@ class CorpusBuilder:
 
             n_workers = min(cfg.max_workers, len(expanded))
             logger.info(
-                "build(): parallel ingestion of %d sources with %d workers.",
+                "build(): parallel ingestion of %d input_path sources with %d workers.",
                 len(expanded),
                 n_workers,
             )
@@ -684,7 +684,7 @@ class CorpusBuilder:
 
     def add(
         self,
-        sources: str | Path | Sequence[str | Path],
+        input_path: str | Path | Sequence[str | Path],
         *,
         source_title: str | None = None,
         source_author: str | None = None,
@@ -700,7 +700,7 @@ class CorpusBuilder:
 
         Parameters
         ----------
-        sources : str, Path, or Sequence[str | Path]
+        input_path : str, Path, or Sequence[str | Path]
             File path(s), directory path(s), or URL(s) to add.
         source_title : str or None, optional
             Override title for new sources.
@@ -770,7 +770,7 @@ class CorpusBuilder:
         try:
             # Build new sources (this replaces self._result)
             new_result = self.build(
-                sources,
+                input_path,
                 source_title=source_title,
                 source_author=source_author,
                 collection_id=collection_id,
@@ -1085,7 +1085,7 @@ class CorpusBuilder:
 
     @staticmethod
     def _expand_sources(  # noqa: PLR0912
-        sources: list[str | Path],
+        input_path: list[str | Path],
     ) -> list[str | Path]:
         """Expand directories, glob patterns, and validate paths.
 
@@ -1110,7 +1110,7 @@ class CorpusBuilder:
         supported = set(DocumentReader.supported_types())
         expanded: list[str | Path] = []
 
-        for src in sources:
+        for src in input_path:
             src_str = str(src)
 
             # 1. URL — pass through
@@ -1464,7 +1464,7 @@ class CorpusBuilder:
         temp_dir = self._get_temp_dir()
         local_path = download_url(
             resolved,
-            dest_dir=temp_dir,
+            output_path=temp_dir,
             max_bytes=cfg.max_download_bytes,
             timeout=cfg.download_timeout,
             max_retries=cfg.download_max_retries,

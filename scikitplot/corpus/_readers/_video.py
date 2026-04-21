@@ -467,7 +467,7 @@ class VideoReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the video file.
     transcribe : bool, optional
         When ``True``, fall back to Whisper transcription if no companion
@@ -545,14 +545,14 @@ class VideoReader(DocumentReader):
     Subtitle-only (no transcription):
 
     >>> from pathlib import Path
-    >>> reader = VideoReader(input_file=Path("lecture.mp4"))
+    >>> reader = VideoReader(input_path=Path("lecture.mp4"))
     >>> docs = list(reader.get_documents())
     >>> print(f"Subtitle cues: {len(docs)}")
 
     With Whisper fallback:
 
     >>> reader = VideoReader(
-    ...     input_file=Path("interview.mp4"),
+    ...     input_path=Path("interview.mp4"),
     ...     transcribe=True,
     ...     whisper_model="small",
     ...     default_language="en",
@@ -627,7 +627,7 @@ class VideoReader(DocumentReader):
     ...              "timecode_end": seg.end}
     ...             for seg in result.segments]
     >>> reader = VideoReader(
-    ...     input_file=Path("lecture.mp4"),
+    ...     input_path=Path("lecture.mp4"),
     ...     custom_extractor=cloud_transcribe,
     ... )
     """
@@ -698,7 +698,7 @@ class VideoReader(DocumentReader):
         ImportError
             If ``transcribe=True`` and Whisper is not installed.
         """
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"VideoReader: {self.file_name} is {file_size:,} bytes,"
@@ -717,7 +717,7 @@ class VideoReader(DocumentReader):
             )
             try:
                 raw = self.custom_extractor(
-                    self.input_file, **self.custom_extractor_kwargs
+                    self.input_path, **self.custom_extractor_kwargs
                 )
             except Exception as exc:
                 raise RuntimeError(
@@ -738,7 +738,7 @@ class VideoReader(DocumentReader):
             return
 
         # --- Strategy 1: companion subtitle file ---
-        subtitle_result = _find_subtitle(self.input_file)
+        subtitle_result = _find_subtitle(self.input_path)
         if subtitle_result is not None:
             sub_path, sub_fmt = subtitle_result
             cues = _parse_subtitle(sub_path, sub_fmt, self.subtitle_frame_rate)
@@ -773,7 +773,7 @@ class VideoReader(DocumentReader):
                 self.whisper_model,
             )
             segments = _transcribe_whisper(
-                self.input_file,
+                self.input_path,
                 self.whisper_model,
                 self.default_language,
             )

@@ -82,7 +82,7 @@ class _Doc:
         modality: str = "text",
         raw_tensor: Any = None,
         doc_id: str = "deadbeef01234567",
-        source_file: str = "test.txt",
+        input_path: str = "test.txt",
         source_type: str = "article",
         chunk_index: int = 0,
         content_hash: str | None = None,
@@ -94,7 +94,7 @@ class _Doc:
         self.modality = modality
         self.raw_tensor = raw_tensor
         self.doc_id = doc_id
-        self.source_file = source_file
+        self.input_path = input_path
         self.source_type = source_type
         self.chunk_index = chunk_index
         self.content_hash = content_hash
@@ -108,7 +108,7 @@ class _Doc:
             modality=self.modality,
             raw_tensor=self.raw_tensor,
             doc_id=self.doc_id,
-            source_file=self.source_file,
+            input_path=self.input_path,
             source_type=self.source_type,
             chunk_index=self.chunk_index,
             content_hash=self.content_hash,

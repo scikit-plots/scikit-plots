@@ -25,15 +25,23 @@ on:
       push_wheels:
         # Can be 'true' or 'false'. Default is 'false'.
         # Warning: this will overwrite existing wheels.
-        description: >
+        description: >-
           Push wheels to Anaconda.org if the build succeeds
         required: false
         default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
   # pull_request:
   #   branches:
   #     - main
-  #     ## Release branches
-  #     - maintenance/**
+  #     - maintenance/**  # Release branches
+  #   paths-ignore:
+  #     - '**.pyi'
+  #     - '**.md'
+  #     - '**.rst'
+  #     - 'tools/stubtest/**'
   # Note: this workflow gets triggered on the same schedule as the
   # wheels.yml workflow to upload WASM wheels to Anaconda.org.
   # schedule:
@@ -48,6 +56,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
 
 env:
   FORCE_COLOR: 3
@@ -141,10 +152,10 @@ jobs:
           upload_wheels  # Required WHEEL_FILE_PATH
 
   # build-wasm-emscripten:
-  #   permissions:
-  #     contents: read  # to fetch code (actions/checkout)
   #   name: Build NumPy distribution for Pyodide
   #   runs-on: ubuntu-22.04
+  #   permissions:
+  #     contents: read  # to fetch code (actions/checkout)
   #   # To enable this workflow on a fork, comment out:
   #   if: github.repository == 'numpy/numpy'
   #   steps:
@@ -158,6 +169,7 @@ jobs:
   #     - uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e  # v3.3.1
   #       env:
   #         CIBW_PLATFORM: pyodide
+  #         CIBW_BUILD: cp312-*
 
   #     - name: Upload wheel artifact(s)
   #       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0

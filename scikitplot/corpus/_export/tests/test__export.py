@@ -107,14 +107,14 @@ class TestComputeCsvFieldnames:
         assert names == ["doc_id"]
 
     def test_stable_identity_order_across_calls(self) -> None:
-        rows = [{"source_file": "f", "doc_id": "d", "text": "t", "chunk_index": 0}]
+        rows = [{"input_path": "f", "doc_id": "d", "text": "t", "chunk_index": 0}]
         n1 = _compute_csv_fieldnames(rows)
         n2 = _compute_csv_fieldnames(rows)
         assert n1 == n2
 
     def test_all_standard_identity_fields_ordered(self) -> None:
         identity = [
-            "doc_id", "source_file", "chunk_index", "text",
+            "doc_id", "input_path", "chunk_index", "text",
             "section_type", "chunking_strategy", "language",
             "source_type", "source_title", "source_author",
         ]

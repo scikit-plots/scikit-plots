@@ -199,8 +199,8 @@ _BUILTIN_STOPWORDS: Final[frozenset[str]] = frozenset(
 class TokenizerBackend(str, Enum):
     """Word tokenisation backend.
 
-    Values
-    ------
+    Attributes
+    ----------
     SIMPLE
         Regex whitespace split + ASCII punctuation strip.  No external deps.
     NLTK
@@ -225,8 +225,8 @@ class TokenizerBackend(str, Enum):
 class StemmingBackend(str, Enum):
     """Stemming algorithm.
 
-    Values
-    ------
+    Attributes
+    ----------
     NONE
         No stemming applied.
     PORTER
@@ -254,8 +254,8 @@ class StemmingBackend(str, Enum):
 class LemmatizationBackend(str, Enum):
     """Lemmatization backend.
 
-    Values
-    ------
+    Attributes
+    ----------
     NONE
         No lemmatization applied.
     NLTK_WORDNET

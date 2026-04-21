@@ -68,7 +68,9 @@ All optional dependencies are imported lazily.
 from __future__ import annotations
 
 import logging
+import pathlib
 from dataclasses import dataclass, field  # noqa: F401
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple  # noqa: F401
 
 from typing_extensions import Self
@@ -971,7 +973,7 @@ class HookableCorpusPipeline:
         Filter applied after chunking.
     embedding_engine : EmbeddingEngine or None, optional
         Embedding backend.
-    output_dir : pathlib.Path or None, optional
+    output_path : pathlib.Path or None, optional
         Output directory for exports.
     export_format : ExportFormat or None, optional
         Default export format.
@@ -1011,7 +1013,7 @@ class HookableCorpusPipeline:
             pre_read_hook=lambda src: logger.info("Reading: %s", src),
             post_read_hook=lambda src, docs: [d for d in docs if len(d.text) > 50],
         )
-        pipeline = HookableCorpusPipeline(hooks=hooks, output_dir=Path("out/"))
+        pipeline = HookableCorpusPipeline(hooks=hooks, output_path=Path("out/"))
         result = pipeline.run(Path("corpus.pdf"))
     """  # noqa: D205
 
@@ -1021,7 +1023,7 @@ class HookableCorpusPipeline:
         chunker: Any | None = None,
         filter_: Any | None = None,
         embedding_engine: Any | None = None,
-        output_dir: Any | None = None,
+        output_path: Any | None = None,
         export_format: Any | None = None,
         default_language: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
@@ -1040,8 +1042,8 @@ class HookableCorpusPipeline:
             filter_.
         embedding_engine : Any or None, optional
             embedding_engine.
-        output_dir : Any or None, optional
-            output_dir.
+        output_path : Any or None, optional
+            output_path.
         export_format : Any or None, optional
             export_format.
         default_language : str or None, optional
@@ -1074,7 +1076,7 @@ class HookableCorpusPipeline:
             chunker=chunker,
             filter_=effective_filter,
             embedding_engine=embedding_engine,
-            output_dir=pathlib.Path(output_dir) if output_dir else None,
+            output_path=pathlib.Path(output_path) if output_path else None,
             export_format=fmt,
             default_language=default_language,
             progress_callback=progress_callback,
@@ -1084,7 +1086,7 @@ class HookableCorpusPipeline:
         self.chunker = self._pipeline.chunker
         self.filter_ = effective_filter
         self.embedding_engine = self._pipeline.embedding_engine
-        self.output_dir = self._pipeline.output_dir
+        self.output_path = self._pipeline.output_path
         self.export_format = self._pipeline.export_format
         self.default_language = default_language
         self.reader_kwargs = self._pipeline.reader_kwargs
@@ -1095,7 +1097,7 @@ class HookableCorpusPipeline:
 
     def run(
         self,
-        input_file: Any,
+        input_path: str | pathlib.Path,
         *,
         output_path: Any | None = None,
         export_format: Any | None = None,
@@ -1106,7 +1108,7 @@ class HookableCorpusPipeline:
 
         Parameters
         ----------
-        input_file : pathlib.Path or str
+        input_path : str or pathlib.Path
             Path or URL.
         output_path : pathlib.Path or None, optional
             output_path.
@@ -1119,13 +1121,13 @@ class HookableCorpusPipeline:
         -------
         PipelineResult
         """
-        source_label = str(input_file)
+        source_label = str(input_path)
 
         # pre_read_hook
         self._call_hook("pre_read_hook", source_label)
 
         result = self._pipeline.run(
-            input_file,
+            input_path,
             output_path=output_path,
             export_format=export_format,
             filename_override=filename_override,
@@ -1290,14 +1292,14 @@ def _replace_result_docs(result: Any, docs: list[Any]) -> Any:
     from ._pipeline import PipelineResult  # noqa: PLC0415
 
     return PipelineResult(
-        source=result.source,
-        documents=list(docs),
+        input_path=result.input_path,
         output_path=result.output_path,
+        export_format=result.export_format,
+        documents=list(docs),
         n_read=result.n_read,
         n_omitted=result.n_omitted,
         n_embedded=result.n_embedded,
         elapsed_seconds=result.elapsed_seconds,
-        export_format=result.export_format,
     )
 
 
@@ -1557,13 +1559,15 @@ class FactoryCorpusBuilder:
     # Delegate all public methods to inner builder
     # ------------------------------------------------------------------
 
-    def build(self, sources: Any, **kwargs: Any) -> Any:
+    def build(
+        self, input_path: str | Path | Sequence[str | Path], **kwargs: Any
+    ) -> Any:
         """Build corpus — delegates to inner builder with factory overrides."""
-        return self._inner.build(sources, **kwargs)
+        return self._inner.build(input_path, **kwargs)
 
-    def add(self, sources: Any, **kwargs: Any) -> Any:
+    def add(self, input_path: str | Path | Sequence[str | Path], **kwargs: Any) -> Any:
         """Add sources to existing corpus — delegates to inner builder."""
-        return self._inner.add(sources, **kwargs)
+        return self._inner.add(input_path, **kwargs)
 
     def search(self, query: str, **kwargs: Any) -> Any:
         """Search corpus — delegates to inner builder."""

@@ -65,7 +65,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **metric perf**
+        **metric analysis**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -75,7 +75,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **corpus generation**
+        **remarks generation**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -85,7 +85,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **cython realtime pkg/mod generation**
+        **live, on demand generation**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -95,7 +95,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **decile-wise perf**
+        **decile-wise analysis**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -135,7 +135,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **mlflow workflow automation**
+        **workflow automation**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -145,7 +145,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **high-performance numerical functions**
+        **lightweight high-performance**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -175,7 +175,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **seaborn**
+        **seaborn based**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -185,7 +185,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **stats**
+        **extended by astropy**
         ^^^
         .. toctree::
             :maxdepth: 3
@@ -195,7 +195,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **visualkeras**
+        **tensorflow keras**
         ^^^
         .. toctree::
             :maxdepth: 3

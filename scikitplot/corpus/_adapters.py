@@ -77,7 +77,7 @@ def _doc_metadata(doc: Any) -> dict[str, Any]:
     # Provenance
     for key in (
         "doc_id",
-        "source_file",
+        "input_path",
         "chunk_index",
         "source_type",
         "source_title",
@@ -310,7 +310,7 @@ def to_mcp_resources(
                 "uri": f"{uri_prefix}{doc_id}",
                 "name": meta.get(
                     "source_title",
-                    meta.get("source_file", doc_id),
+                    meta.get("input_path", doc_id),
                 ),
                 "mimeType": "text/plain",
                 "text": text,
@@ -363,7 +363,7 @@ def to_mcp_tool_result(
                 "text": text,
                 "annotations": {
                     "doc_id": meta.get("doc_id"),
-                    "source_file": meta.get("source_file"),
+                    "input_path": meta.get("input_path"),
                     "source_title": meta.get("source_title"),
                     "chunk_index": meta.get("chunk_index"),
                     "score": meta.get("score"),
@@ -408,7 +408,7 @@ def to_huggingface_dataset(
     columns: dict[str, list] = {
         "doc_id": [],
         "text": [],
-        "source_file": [],
+        "input_path": [],
         "source_type": [],
         "source_title": [],
         "chunk_index": [],
@@ -419,7 +419,7 @@ def to_huggingface_dataset(
     for doc in documents:
         columns["doc_id"].append(getattr(doc, "doc_id", ""))
         columns["text"].append(_get_text(doc))
-        columns["source_file"].append(getattr(doc, "source_file", ""))
+        columns["input_path"].append(getattr(doc, "input_path", ""))
         st = getattr(doc, "source_type", None)
         columns["source_type"].append(str(st) if st is not None else "unknown")
         columns["source_title"].append(getattr(doc, "source_title", None) or "")
@@ -807,7 +807,7 @@ def to_numpy_arrays(
         Stack ``embedding`` fields when all documents have embeddings.
         Default: ``True``.
     include_metadata : bool, optional
-        Include ``doc_ids``, ``source_files``, ``source_types`` columns.
+        Include ``doc_ids``, ``input_paths``, ``source_types`` columns.
         Default: ``True``.
     dtype_map : dict[str, Any] or None, optional
         Override dtypes, e.g. ``{"raw_tensor": "float32"}``.
@@ -823,7 +823,7 @@ def to_numpy_arrays(
           (only when all shapes match)
         - ``"embeddings"`` — ndarray shape ``(N, D)``
         - ``"doc_ids"`` — list[str]
-        - ``"source_files"`` — list[str]
+        - ``"input_paths"`` — list[str]
         - ``"source_types"`` — list[str]
         - ``"modalities"`` — list[str]
         - ``"content_hashes"`` — list[str | None]
@@ -855,7 +855,7 @@ def to_numpy_arrays(
 
     if include_metadata:
         result["doc_ids"] = [getattr(d, "doc_id", "") for d in documents]
-        result["source_files"] = [getattr(d, "source_file", "") for d in documents]
+        result["input_paths"] = [getattr(d, "input_path", "") for d in documents]
         result["source_types"] = [
             str(getattr(d, "source_type", "unknown")) for d in documents
         ]

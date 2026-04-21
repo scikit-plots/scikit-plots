@@ -1,0 +1,126 @@
+# This workflow uses actions that are not certified by GitHub. They are provided
+# by a third-party and are governed by separate terms of service, privacy
+# policy, and support documentation.
+#
+# https://openssf.org/
+# https://github.com/ossf/scorecard/blob/main/.github/workflows/scorecard-analysis.yml
+# https://github.com/numpy/numpy/blob/main/.github/workflows/pixi-packages.yml
+#
+---
+name: "CI 🛡️ Security Standards OpenSSF Scorecard"
+
+on:
+  # For Branch-Protection check. Only the default branch is supported. See
+  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection
+  branch_protection_rule:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+    # Only the default branch is supported.
+    branches:  # ["main"]
+    - main
+  # To guarantee Maintained check is occasionally updated. See
+  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
+  schedule:
+    ## Automatically built and released every night (or at a regular interval, often nightly)
+    ## Cron schedule for automated runs
+    ## https://crontab.cronhub.io
+    ##        ┌────────────────────── minute (0 - 59)
+    ##        │  ┌─────────────────── hour (0 - 23)
+    ##        │  │ ┌───────────────── day of the month (1 - 31)
+    ##        │  │ │ ┌─────────────── month (1 - 12 or JAN-DEC)
+    ##        │  │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+    ##        │  │ │ │ │
+    ## cron: "11 1 * * SUN,WED"  # Runs every Sunday and Wednesday at 01:11 UTC
+    - cron: '11 11 * * 1'
+
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
+  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
+  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
+  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
+  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
+  cancel-in-progress: true
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+# permissions: {}  # Declare default permissions as read only.
+permissions: read-all
+
+## Global environment variables (available to all jobs and steps)
+## Job-level environment variables (override global, scoped to this job)
+## Step-level environment variables (override job + global, scoped to this step)
+
+jobs:
+  analyze:
+    name: Scorecards supply-chain security analysis
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Needed to upload the results to code-scanning dashboard.
+      security-events: write
+      # Needed for GitHub OIDC token if publish_results is true
+      # Needed to publish results and get a badge (see publish_results below).
+      id-token: write
+
+    # `publish_results: true` only works when run from the default branch. conditional can be removed if disabled.
+    # if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    steps:
+      ## 📥 Checkout the Git repository into the runner
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Fetch Hugo themes (true OR recursive)
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: "Run analysis"
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Scorecard team runs a weekly scan of public GitHub repos,
+          # see https://github.com/ossf/scorecard#public-data.
+          # Setting `publish_results: true` helps us scale by leveraging your workflow to
+          # extract the results instead of relying on our own infrastructure to run scans.
+          # And it's free for you!
+          #
+          # Publish results to OpenSSF REST API for easy access by consumers.
+          # Allows the repository to include the Scorecard badge.
+          # See https://github.com/ossf/scorecard-action#publishing-results.
+          publish_results: true
+
+      # Upload the results as artifacts (optional). Commenting out will disable
+      # uploads of run results in SARIF format to the repository Actions tab.
+      # https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      # Upload the results to GitHub's code scanning dashboard (optional).
+      # Commenting out will disable upload of results to your repo's Code Scanning dashboard
+      - name: "Upload to code-scanning"
+        uses: github/codeql-action/upload-sarif@38697555549f1db7851b81482ff19f1fa5c4fedc # v4.34.1
+        with:
+          sarif_file: results.sarif

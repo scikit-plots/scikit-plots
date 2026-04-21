@@ -136,7 +136,7 @@ _F = TypeVar("_F", bound="FilterBase")  # noqa: PYI018
 
 # ---------------------------------------------------------------------------
 # URL detection helper — used by DocumentReader.create() to auto-route
-# string inputs that look like URLs without the caller needing from_url().
+# string input_path that look like URLs without the caller needing from_url().
 # ---------------------------------------------------------------------------
 
 _URL_RE = re.compile(r"https?://", re.IGNORECASE)
@@ -325,7 +325,7 @@ class FilterBase(abc.ABC):
 
         Notes
         -----
-        Must never raise for a valid ``CorpusDocument``. Unexpected inputs
+        Must never raise for a valid ``CorpusDocument``. Unexpected input_path
         should return ``False`` defensively rather than raising, unless the
         error indicates a programming error (e.g. ``None`` passed instead of
         a document).
@@ -354,7 +354,7 @@ class DefaultFilter(FilterBase):
     The letter check uses ``re.compile(r'[^\\W\\d_]', re.UNICODE)`` which
     matches any Unicode letter (including accented and non-Latin characters)
     while excluding digits and underscore. This is more robust than
-    remarx's original ``^[\\W\\d]+$`` which could pass on some Unicode inputs.
+    remarx's original ``^[\\W\\d]+$`` which could pass on some Unicode input_path.
 
     Examples
     --------
@@ -447,7 +447,7 @@ class DocumentReader(abc.ABC):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Absolute or relative path to the source file. Must exist and be
         readable when :meth:`get_documents` is called.
     chunker : ChunkerBase or None, optional
@@ -461,7 +461,7 @@ class DocumentReader(abc.ABC):
         filter (``lambda doc: True``) to disable filtering entirely.
         Default: ``None`` (uses ``DefaultFilter``).
     filename_override : str or None, optional
-        Override the ``source_file`` field in generated documents.
+        Override the ``input_path`` field in generated documents.
         Useful when the reader receives a temporary file but should label
         documents with the original filename. Default: ``None``.
     default_language : str or None, optional
@@ -535,7 +535,7 @@ class DocumentReader(abc.ABC):
     ...     file_type = ".myext"
     ...
     ...     def get_raw_chunks(self):
-    ...         yield {"text": self.input_file.read_text("utf-8")}
+    ...         yield {"text": self.input_path.read_text("utf-8")}
     """
 
     # ------------------------------------------------------------------
@@ -578,7 +578,7 @@ class DocumentReader(abc.ABC):
     # Instance fields
     # ------------------------------------------------------------------
 
-    input_file: pathlib.Path
+    input_path: pathlib.Path
     """
     Path to the source file.
 
@@ -600,7 +600,7 @@ class DocumentReader(abc.ABC):
     """
 
     filename_override: str | None = field(default=None)
-    """Override for the ``source_file`` label in generated documents."""
+    """Override for the ``input_path`` label in generated documents."""
 
     default_language: str | None = field(default=None)
     """ISO 639-1 language code to assign when the source has no language info."""
@@ -609,14 +609,14 @@ class DocumentReader(abc.ABC):
     """
     Original URI for URL-based readers (web pages, YouTube videos).
 
-    Set this to the full URL string when ``input_file`` is a synthetic
+    Set this to the full URL string when ``input_path`` is a synthetic
     ``pathlib.Path`` wrapping a URL.  File-based readers leave this
     ``None``.
 
     Examples
     --------
     >>> reader = WebReader(
-    ...     input_file=Path("https://example.com/article"),
+    ...     input_path=Path("https://example.com/article"),
     ...     source_uri="https://example.com/article",
     ... )
     """
@@ -637,7 +637,7 @@ class DocumentReader(abc.ABC):
     entirely for this reader instance.
 
     When set, :meth:`_iter_raw_chunks` calls
-    ``custom_extractor(self.input_file, **custom_extractor_kwargs)`` and
+    ``custom_extractor(self.input_path, **custom_extractor_kwargs)`` and
     normalises the return value through
     :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
     The built-in :meth:`get_raw_chunks` implementation is **not** called.
@@ -712,9 +712,9 @@ class DocumentReader(abc.ABC):
         """
         if self.filter_ is None:
             object.__setattr__(self, "filter_", DefaultFilter())
-        # Coerce input_file to pathlib.Path if a string was passed
-        if not isinstance(self.input_file, pathlib.Path):
-            object.__setattr__(self, "input_file", pathlib.Path(self.input_file))
+        # Coerce input_path to pathlib.Path if a string was passed
+        if not isinstance(self.input_path, pathlib.Path):
+            object.__setattr__(self, "input_path", pathlib.Path(self.input_path))
         # Validate custom_extractor when provided
         if self.custom_extractor is not None and not callable(self.custom_extractor):
             raise TypeError(
@@ -732,7 +732,7 @@ class DocumentReader(abc.ABC):
         Effective filename used in document labels.
 
         Returns ``filename_override`` when set; otherwise returns
-        ``input_file.name``.
+        ``input_path.name``.
 
         Returns
         -------
@@ -742,11 +742,11 @@ class DocumentReader(abc.ABC):
         Examples
         --------
         >>> from pathlib import Path
-        >>> reader = TextReader(input_file=Path("/data/corpus.txt"))
+        >>> reader = TextReader(input_path=Path("/data/corpus.txt"))
         >>> reader.file_name
         'corpus.txt'
         """
-        return self.filename_override or self.input_file.name
+        return self.filename_override or self.input_path.name
 
     # ------------------------------------------------------------------
     # Input validation
@@ -759,7 +759,7 @@ class DocumentReader(abc.ABC):
         Raises
         ------
         ValueError
-            If ``input_file`` does not exist or is not a regular file.
+            If ``input_path`` does not exist or is not a regular file.
 
         Notes
         -----
@@ -774,10 +774,10 @@ class DocumentReader(abc.ABC):
             ...
         ValueError: Input file does not exist: missing.txt
         """
-        if not self.input_file.exists():
-            raise ValueError(f"Input file does not exist: {self.input_file}")
-        if not self.input_file.is_file():
-            raise ValueError(f"Input path is not a regular file: {self.input_file}")
+        if not self.input_path.exists():
+            raise ValueError(f"Input file does not exist: {self.input_path}")
+        if not self.input_path.is_file():
+            raise ValueError(f"Input path is not a regular file: {self.input_path}")
 
     # ------------------------------------------------------------------
     # Abstract interface — subclasses must implement
@@ -823,7 +823,7 @@ class DocumentReader(abc.ABC):
         :meth:`get_raw_chunks`.
 
         When :attr:`custom_extractor` is set, calls it with
-        ``(self.input_file, **self.custom_extractor_kwargs)`` and normalises
+        ``(self.input_path, **self.custom_extractor_kwargs)`` and normalises
         the return value via
         :func:`~scikitplot.corpus._readers._custom.normalize_extractor_output`.
         When :attr:`custom_extractor` is ``None``, delegates to
@@ -870,7 +870,7 @@ class DocumentReader(abc.ABC):
             )
             kw: dict[str, Any] = self.custom_extractor_kwargs or {}
             try:
-                raw = self.custom_extractor(self.input_file, **kw)
+                raw = self.custom_extractor(self.input_path, **kw)
             except Exception as exc:
                 raise RuntimeError(
                     f"{self.file_name}: custom_extractor {extractor_name!r} "
@@ -964,7 +964,7 @@ class DocumentReader(abc.ABC):
         -----
         The global ``chunk_index`` counter is monotonically increasing across
         **all** raw chunks and sub-chunks for a single file, ensuring that
-        ``(source_file, chunk_index)`` is a unique key within one reader run.
+        ``(input_path, chunk_index)`` is a unique key within one reader run.
 
         Omitted-document statistics are logged at INFO level after processing
         each file.
@@ -1046,7 +1046,7 @@ class DocumentReader(abc.ABC):
                     resolved_source_type = SourceType.UNKNOWN
 
                 doc = CorpusDocument.create(
-                    source_file=self.file_name,
+                    input_path=self.file_name,
                     chunk_index=chunk_index,
                     text=chunk_text,
                     section_type=section_type,
@@ -1239,7 +1239,7 @@ class DocumentReader(abc.ABC):
     @classmethod
     def create(
         cls,
-        *inputs: pathlib.Path | str,
+        *input_path: str | pathlib.Path,
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,
         filename_override: str | None = None,
@@ -1264,7 +1264,7 @@ class DocumentReader(abc.ABC):
 
         Parameters
         ----------
-        *inputs : pathlib.Path or str
+        *input_path : str or pathlib.Path
             One or more source paths or URL strings.  Each element is
             classified independently:
 
@@ -1287,13 +1287,13 @@ class DocumentReader(abc.ABC):
             Filter injected into every reader. Default: ``None``
             (:class:`DefaultFilter`).
         filename_override : str or None, optional
-            Override the ``source_file`` label.  Only applied when
-            *inputs* contains exactly one source.  Default: ``None``.
+            Override the ``input_path`` label.  Only applied when
+            *input_path* contains exactly one source.  Default: ``None``.
         default_language : str or None, optional
             ISO 639-1 language code applied to all sources.
             Default: ``None``.
         source_type : SourceType, list[SourceType or None], or None, optional
-            Semantic label for the source kind.  When *inputs* has more
+            Semantic label for the source kind.  When *input_path* has more
             than one element you may pass a list of the same length to
             assign a distinct type per source; ``None`` entries in the
             list mean "infer from extension / URL".  A single value is
@@ -1319,19 +1319,19 @@ class DocumentReader(abc.ABC):
         Returns
         -------
         DocumentReader
-            A single reader when *inputs* has exactly one element (backward
+            A single reader when *input_path* has exactly one element (backward
             compatible with every existing call site).  A
-            :class:`_MultiSourceReader` when *inputs* has more than one
+            :class:`_MultiSourceReader` when *input_path* has more than one
             element — it implements the same ``get_documents()`` interface
             and chains documents from all sub-readers in order.
 
         Raises
         ------
         ValueError
-            If *inputs* is empty, or if a source URL is invalid, or if no
+            If *input_path* is empty, or if a source URL is invalid, or if no
             reader is registered for a file's extension.
         TypeError
-            If any element of *inputs* is not a ``str`` or
+            If any element of *input_path* is not a ``str`` or
             :class:`pathlib.Path`.
 
         Notes
@@ -1342,7 +1342,7 @@ class DocumentReader(abc.ABC):
         paths.  This means you no longer need to call :meth:`from_url`
         explicitly — just pass the URL string to :meth:`create`.
 
-        **Per-source source_type:** When passing multiple inputs with
+        **Per-source source_type:** When passing multiple input_path with
         different media types, supply a list::
 
             DocumentReader.create(
@@ -1383,16 +1383,16 @@ class DocumentReader(abc.ABC):
         ... )
         >>> docs = list(reader.get_documents())  # chained stream from all three
         """
-        if not inputs:
+        if not input_path:
             raise ValueError("DocumentReader.create: at least one source is required.")
 
-        # Validate and normalise source_type to a list aligned with inputs.
-        n = len(inputs)
+        # Validate and normalise source_type to a list aligned with input_path.
+        n = len(input_path)
         if isinstance(source_type, list):
             if len(source_type) != n:
                 raise ValueError(
                     f"DocumentReader.create: source_type list length "
-                    f"({len(source_type)}) must match the number of inputs ({n})."
+                    f"({len(source_type)}) must match the number of input_path ({n})."
                 )
             type_list: list[Any] = list(source_type)
         else:
@@ -1400,10 +1400,10 @@ class DocumentReader(abc.ABC):
 
         # Build one sub-reader per input.
         readers: list[DocumentReader] = []
-        for idx, raw in enumerate(inputs):
+        for idx, raw in enumerate(input_path):
             if not isinstance(raw, (str, pathlib.Path)):
                 raise TypeError(
-                    f"DocumentReader.create: inputs[{idx}] must be str or "
+                    f"DocumentReader.create: input_path[{idx}] must be str or "
                     f"pathlib.Path; got {type(raw).__name__!r}."
                 )
             st = type_list[idx]
@@ -1452,7 +1452,7 @@ class DocumentReader(abc.ABC):
     @classmethod
     def _create_one(
         cls,
-        input_file: pathlib.Path | str,
+        input_path: str | pathlib.Path,
         *,
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,
@@ -1475,14 +1475,14 @@ class DocumentReader(abc.ABC):
 
         Parameters
         ----------
-        input_file : pathlib.Path or str
+        input_path : str or pathlib.Path
             Path to the source file.
         chunker : ChunkerBase or None, optional
             Chunker to inject. Default: ``None``.
         filter_ : FilterBase or None, optional
             Filter to inject. Default: ``None`` (:class:`DefaultFilter`).
         filename_override : str or None, optional
-            Override for the ``source_file`` label. Default: ``None``.
+            Override for the ``input_path`` label. Default: ``None``.
         default_language : str or None, optional
             ISO 639-1 language code. Default: ``None``.
         source_type : SourceType or None, optional
@@ -1518,7 +1518,7 @@ class DocumentReader(abc.ABC):
         kept separate so :meth:`create` can call it in a loop for the
         multi-source case without duplicating the dispatch logic.
         """
-        path = pathlib.Path(input_file)
+        path = pathlib.Path(input_path)
         ext = path.suffix.lower()
         reader_cls = cls._registry.get(ext)
         if reader_cls is None:
@@ -1528,7 +1528,7 @@ class DocumentReader(abc.ABC):
                 f" Supported types: {supported}."
                 f" To add support for {ext!r}, either:\n"
                 f"  1. Use CustomReader directly:\n"
-                f"       reader = CustomReader(input_file=path, extractor=my_fn)\n"
+                f"       reader = CustomReader(input_path=path, extractor=my_fn)\n"
                 f"  2. Register globally via CustomReader.register():\n"
                 f"       CustomReader.register(name='MyReader',"
                 f" extensions=[{ext!r}], extractor=my_fn)\n"
@@ -1544,7 +1544,7 @@ class DocumentReader(abc.ABC):
             isbn=isbn,
         )
         return reader_cls(
-            input_file=path,
+            input_path=path,
             chunker=chunker,
             filter_=filter_,
             filename_override=filename_override,
@@ -1556,7 +1556,7 @@ class DocumentReader(abc.ABC):
     @classmethod
     def from_manifest(  # noqa: PLR0912
         cls,
-        manifest_path: pathlib.Path | str,
+        manifest_path: str | pathlib.Path,
         *,
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,
@@ -1581,7 +1581,7 @@ class DocumentReader(abc.ABC):
 
         Parameters
         ----------
-        manifest_path : pathlib.Path or str
+        manifest_path : str or pathlib.Path
             Path to the manifest file.  Supported formats:
 
             - ``.txt`` / ``.manifest`` — one source per line.
@@ -1784,7 +1784,7 @@ class DocumentReader(abc.ABC):
         filter_ : FilterBase or None, optional
             Filter to inject. Default: ``None`` (:class:`DefaultFilter`).
         filename_override : str or None, optional
-            Override for the ``source_file`` label. Default: ``None``.
+            Override for the ``input_path`` label. Default: ``None``.
         default_language : str or None, optional
             ISO 639-1 language code. Default: ``None``.
         source_type : SourceType or None, optional
@@ -1867,7 +1867,7 @@ class DocumentReader(abc.ABC):
                 isbn=isbn,
             )
             return reader_cls(
-                input_file=pathlib.Path(url),
+                input_path=pathlib.Path(url),
                 source_uri=url,
                 chunker=chunker,
                 filter_=filter_,
@@ -1926,7 +1926,7 @@ class DocumentReader(abc.ABC):
             resolved = resolve_url(url, kind=kind)
             tmp_dir = pathlib.Path(tempfile.mkdtemp(prefix="skplt_furl_"))
             try:
-                local_path = download_url(resolved, dest_dir=tmp_dir)
+                local_path = download_url(resolved, output_path=tmp_dir)
                 # Infer source_type from downloaded file's extension if not given
                 st = source_type
                 if st is None:
@@ -1985,7 +1985,7 @@ class DocumentReader(abc.ABC):
             isbn=isbn,
         )
         return reader_cls(
-            input_file=pathlib.Path(url),
+            input_path=pathlib.Path(url),
             source_uri=url,
             chunker=chunker,
             filter_=filter_,
@@ -2208,10 +2208,10 @@ class _MultiSourceReader:
 
     def __repr__(self) -> str:
         """Return ``_MultiSourceReader([...], n=N)``."""
-        sources = ", ".join(
+        input_path = ", ".join(
             getattr(r, "file_name", type(r).__name__) for r in self.readers
         )
-        return f"_MultiSourceReader([{sources}], n={len(self.readers)})"
+        return f"_MultiSourceReader([{input_path}], n={len(self.readers)})"
 
 
 # ===========================================================================
@@ -2229,7 +2229,7 @@ class DummyReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the file to check, or a synthetic path wrapping a URL.
     source_uri : str or None, optional
         When set, performs an HTTP HEAD request against this URI instead
@@ -2257,7 +2257,7 @@ class DummyReader(DocumentReader):
     >>> with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
     ...     _ = f.write(b"hello")
     ...     tmp = f.name
-    >>> reader = DummyReader(input_file=Path(tmp))
+    >>> reader = DummyReader(input_path=Path(tmp))
     >>> list(reader.get_documents())
     []
     >>> os.unlink(tmp)
@@ -2275,17 +2275,17 @@ class DummyReader(DocumentReader):
     @classmethod
     def check(
         cls,
-        *sources: pathlib.Path | str,
+        *input_path: str | pathlib.Path,
         timeout: int = 10,
         raise_on_first: bool = False,
     ) -> tuple[list[str | pathlib.Path], list[tuple[str | pathlib.Path, Exception]]]:
         """
-        Check accessibility of one or more sources without ingesting them.
+        Check accessibility of one or more input_path sources without ingesting them.
 
         Parameters
         ----------
-        *sources : pathlib.Path or str
-            File paths or URL strings to check.  Accepts the same inputs
+        *input_path : str or pathlib.Path
+            File paths or URL strings to check.  Accepts the same input_path
             as :meth:`DocumentReader.create`.
         timeout : int, optional
             HTTP timeout in seconds for URL checks. Default: 10.
@@ -2296,9 +2296,9 @@ class DummyReader(DocumentReader):
         Returns
         -------
         ok : list[str or pathlib.Path]
-            Sources that are accessible.
+            Sources input_path that are accessible.
         errors : list[tuple[str or pathlib.Path, Exception]]
-            ``(source, exception)`` pairs for inaccessible sources.
+            ``(input_path, exception)`` pairs for inaccessible sources.
 
         Raises
         ------
@@ -2326,7 +2326,7 @@ class DummyReader(DocumentReader):
         ok: list = []
         errors: list = []
 
-        for src in sources:
+        for src in input_path:
             try:
                 src_str = str(src)
                 if _URL_RE.match(src_str):
@@ -2388,8 +2388,8 @@ class DummyReader(DocumentReader):
     def validate_input(self) -> None:
         """Check source accessibility without reading content.
 
-        For file-based sources verifies existence and is_file.
-        For URL-based sources (``source_uri`` set) sends a HEAD request.
+        For file-based input_path sources verifies existence and is_file.
+        For URL-based input_path sources (``source_uri`` set) sends a HEAD request.
 
         Raises
         ------
@@ -2816,7 +2816,7 @@ class PipelineGuard:
             record = {
                 "doc_id": getattr(doc, "doc_id", None),
                 "content_hash": getattr(doc, "content_hash", None),
-                "source_file": getattr(doc, "source_file", None),
+                "input_path": getattr(doc, "input_path", None),
             }
             self._ckpt_file.write(json.dumps(record, ensure_ascii=False) + "\n")
             self._ckpt_file.flush()

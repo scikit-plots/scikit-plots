@@ -978,7 +978,7 @@ class TestDownloadUrlRetry:
             with pytest.raises(ValueError, match="size exceeded"):
                 download_url(
                     "https://example.com/file.pdf",
-                    dest_dir=tmp_path,
+                    output_path=tmp_path,
                     max_retries=3,
                 )
         # Must not retry on ValueError
@@ -1001,7 +1001,7 @@ class TestDownloadUrlRetry:
             with pytest.raises(Exception):
                 download_url(
                     "https://example.com/file.pdf",
-                    dest_dir=tmp_path,
+                    output_path=tmp_path,
                     max_retries=3,
                 )
         assert len(calls) == 1, "404 must not be retried"
@@ -1023,7 +1023,7 @@ class TestDownloadUrlRetry:
             with pytest.raises(Exception):
                 download_url(
                     "https://example.com/file.pdf",
-                    dest_dir=tmp_path,
+                    output_path=tmp_path,
                     max_retries=2,
                     retry_backoff=0.0,
                 )

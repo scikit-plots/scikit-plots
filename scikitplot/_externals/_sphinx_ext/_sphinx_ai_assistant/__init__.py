@@ -10,12 +10,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Sphinx AI Assistant Extension
-==============================
-
 A Sphinx extension that adds AI-assistant features to documentation pages,
 including one-click Markdown export, AI chat deep-links, MCP tool
-integration, and automated ``llms.txt`` generation.
+integration, and automated ``llms.txt`` generation. [1]_ [2]_ [3]_
 
 The module has **two distinct layers**:
 
@@ -34,8 +31,8 @@ All heavy optional dependencies (``sphinx``, ``bs4``, ``markdownify``,
 invoked.  Importing this module at the top level is always safe and has
 zero side effects.
 
-Public API (standalone / non-Sphinx)
--------------------------------------
+Public API (standalone / non-Sphinx):
+
 process_html_directory : callable
     Walk any HTML directory tree, convert pages to Markdown, optionally
     produce ``llms.txt``.  Works with Sphinx, MkDocs, Jekyll, plain HTML,
@@ -46,8 +43,8 @@ generate_llms_txt_standalone : callable
 html_to_markdown : callable
     Convert an HTML string to Markdown.
 
-Public API (Sphinx extension)
-------------------------------
+Public API (Sphinx extension):
+
 setup : callable
     Sphinx extension entry point.
 
@@ -87,7 +84,7 @@ References
 
 Examples
 --------
-Sphinx Register in ``conf.py``:
+Sphinx Register Sphinx AI Assistant Extension in ``conf.py``:
 
 .. code-block:: python
 

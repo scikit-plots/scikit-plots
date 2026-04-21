@@ -20,7 +20,7 @@ New coverage areas
   ``has_embedding`` for both text and raw-media documents
 * :class:`CorpusDocument.__repr__` — with and without an embedding
 * :meth:`CorpusDocument.validate` — every invariant not covered in the
-  primary suite (chunk_index < 0, empty doc_id / source_file, invalid
+  primary suite (chunk_index < 0, empty doc_id / input_path, invalid
   language, metadata type / key errors, page_number / paragraph_index /
   line_number < 0, scene_number < 1, timecode_start < 0, timecode_end < 0,
   char_start > char_end, non-float bbox elements, coerced and invalid
@@ -225,7 +225,7 @@ class TestReprMethod:
         doc = _make()
         assert doc.doc_id in repr(doc)
 
-    def test_repr_contains_source_file(self) -> None:
+    def test_repr_contains_input_path(self) -> None:
         doc = _make()
         assert "f.txt" in repr(doc)
 
@@ -259,24 +259,24 @@ class TestReprMethod:
 class TestValidateExtended:
     """Every validate() invariant not covered in the primary TestValidate suite."""
 
-    # --- doc_id / source_file ---
+    # --- doc_id / input_path ---
 
     def test_empty_doc_id_raises(self) -> None:
-        bad = CorpusDocument(doc_id="", source_file="f.txt",
+        bad = CorpusDocument(doc_id="", input_path="f.txt",
                              chunk_index=0, text="Hi.")
         with pytest.raises(ValueError, match="doc_id"):
             bad.validate()
 
     def test_whitespace_doc_id_raises(self) -> None:
-        bad = CorpusDocument(doc_id="   ", source_file="f.txt",
+        bad = CorpusDocument(doc_id="   ", input_path="f.txt",
                              chunk_index=0, text="Hi.")
         with pytest.raises(ValueError, match="doc_id"):
             bad.validate()
 
-    def test_empty_source_file_raises(self) -> None:
-        bad = CorpusDocument(doc_id="abc1234567890123", source_file="",
+    def test_empty_input_path_raises(self) -> None:
+        bad = CorpusDocument(doc_id="abc1234567890123", input_path="",
                              chunk_index=0, text="Hi.")
-        with pytest.raises(ValueError, match="source_file"):
+        with pytest.raises(ValueError, match="input_path"):
             bad.validate()
 
     # --- chunk_index ---
@@ -306,14 +306,14 @@ class TestValidateExtended:
     # --- section_type coercion / rejection ---
 
     def test_section_type_string_coerced_on_validate(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              section_type="footnote")  # type: ignore[arg-type]
         doc.validate()
         assert doc.section_type is SectionType.FOOTNOTE
 
     def test_section_type_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              section_type="not_valid")  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="section_type"):
@@ -322,14 +322,14 @@ class TestValidateExtended:
     # --- chunking_strategy coercion / rejection ---
 
     def test_chunking_strategy_string_coerced(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              chunking_strategy="paragraph")  # type: ignore[arg-type]
         doc.validate()
         assert doc.chunking_strategy is ChunkingStrategy.PARAGRAPH
 
     def test_chunking_strategy_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              chunking_strategy="char")  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="chunking_strategy"):
@@ -338,14 +338,14 @@ class TestValidateExtended:
     # --- source_type coercion / rejection ---
 
     def test_source_type_string_coerced(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              source_type="book")  # type: ignore[arg-type]
         doc.validate()
         assert doc.source_type is SourceType.BOOK
 
     def test_source_type_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              source_type="ebook")  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="source_type"):
@@ -364,13 +364,13 @@ class TestValidateExtended:
     # --- language ---
 
     def test_empty_language_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.", language="")
         with pytest.raises(ValueError, match="language"):
             doc.validate()
 
     def test_whitespace_language_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.", language="  ")
         with pytest.raises(ValueError, match="language"):
             doc.validate()
@@ -378,14 +378,14 @@ class TestValidateExtended:
     # --- metadata ---
 
     def test_metadata_not_dict_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              metadata=["key", "value"])  # type: ignore[arg-type]
         with pytest.raises(TypeError, match="metadata"):
             doc.validate()
 
     def test_metadata_non_string_keys_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", source_file="f.txt",
+        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
                              chunk_index=0, text="Hi.",
                              metadata={1: "bad_key"})  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="metadata"):
@@ -495,7 +495,7 @@ class TestMakeDocIdExtended:
         b = CorpusDocument.make_doc_id("f.txt", 1, "Hello")
         assert a != b
 
-    def test_different_source_file_gives_different_id(self) -> None:
+    def test_different_input_path_gives_different_id(self) -> None:
         a = CorpusDocument.make_doc_id("a.txt", 0, "Hello")
         b = CorpusDocument.make_doc_id("b.txt", 0, "Hello")
         assert a != b
@@ -593,7 +593,7 @@ class TestToPandasRow:
 
     def test_core_fields_present(self) -> None:
         row = CorpusDocument.create("f.txt", 0, "Hi.").to_pandas_row()
-        for key in ("doc_id", "text", "source_file", "chunk_index"):
+        for key in ("doc_id", "text", "input_path", "chunk_index"):
             assert key in row
 
     def test_embedding_excluded_default(self) -> None:
@@ -612,7 +612,7 @@ class TestToPolarsRow:
 
     def test_core_fields_present(self) -> None:
         row = CorpusDocument.create("f.txt", 0, "Hi.").to_polars_row()
-        for key in ("doc_id", "text", "source_file"):
+        for key in ("doc_id", "text", "input_path"):
             assert key in row
 
 
@@ -626,15 +626,15 @@ class TestFromDictExtended:
 
     def test_missing_doc_id_raises(self) -> None:
         with pytest.raises(ValueError, match="doc_id"):
-            CorpusDocument.from_dict({"source_file": "f.txt", "chunk_index": 0})
+            CorpusDocument.from_dict({"input_path": "f.txt", "chunk_index": 0})
 
-    def test_missing_source_file_raises(self) -> None:
-        with pytest.raises(ValueError, match="source_file"):
+    def test_missing_input_path_raises(self) -> None:
+        with pytest.raises(ValueError, match="input_path"):
             CorpusDocument.from_dict({"doc_id": "abc1234567890abc", "chunk_index": 0})
 
     def test_missing_chunk_index_raises(self) -> None:
         with pytest.raises(ValueError, match="chunk_index"):
-            CorpusDocument.from_dict({"doc_id": "abc1234567890abc", "source_file": "f.txt"})
+            CorpusDocument.from_dict({"doc_id": "abc1234567890abc", "input_path": "f.txt"})
 
     def test_bbox_list_restored_to_tuple(self) -> None:
         doc = CorpusDocument.create("f.txt", 0, "Hi.", bbox=(0.0, 0.0, 1.0, 1.0))

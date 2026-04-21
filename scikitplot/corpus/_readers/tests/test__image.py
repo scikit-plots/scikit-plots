@@ -95,7 +95,7 @@ def _make_reader(
     """Construct an ImageReader pointing at a real (tiny) temp file."""
     img_file = tmp_path / filename
     img_file.write_bytes(b"\x89PNG\r\n\x1a\n")  # PNG magic bytes — just needs to exist
-    return ImageReader(input_file=img_file, backend=backend, **kwargs)
+    return ImageReader(input_path=img_file, backend=backend, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -504,7 +504,7 @@ class TestGetRawChunksEdgeCases:
     def test_raises_value_error_when_file_too_large(self, tmp_path: pathlib.Path) -> None:
         img_file = tmp_path / "big.png"
         img_file.write_bytes(b"\x00" * 10)
-        reader = ImageReader(input_file=img_file, max_file_bytes=5)
+        reader = ImageReader(input_path=img_file, max_file_bytes=5)
 
         with pytest.raises(ValueError, match="exceeds max_file_bytes"):
             list(reader.get_raw_chunks())

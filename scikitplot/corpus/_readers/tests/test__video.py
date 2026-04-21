@@ -295,7 +295,7 @@ class TestCriticalV1YieldBoundary:
     def test_subtitle_path_yields_timecode_keys(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
-        reader = VideoReader(input_file=video)
+        reader = VideoReader(input_path=video)
 
         chunks = list(reader.get_raw_chunks())
 
@@ -308,7 +308,7 @@ class TestCriticalV1YieldBoundary:
 
     def test_transcription_path_yields_timecode_keys(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")  # no subtitle file
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "transcribed text"
@@ -331,7 +331,7 @@ class TestCriticalV1YieldBoundary:
     def test_subtitle_timecode_values_are_floats(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
-        reader = VideoReader(input_file=video)
+        reader = VideoReader(input_path=video)
 
         chunks = list(reader.get_raw_chunks())
 
@@ -341,7 +341,7 @@ class TestCriticalV1YieldBoundary:
 
     def test_transcription_timecode_values_are_rounded(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "hello"
@@ -367,7 +367,7 @@ class TestHighV3SubtitleSourceType:
     def test_subtitle_source_type_is_subtitle_enum_value(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
-        reader = VideoReader(input_file=video)
+        reader = VideoReader(input_path=video)
 
         chunks = list(reader.get_raw_chunks())
 
@@ -384,7 +384,7 @@ class TestHighV3SubtitleSourceType:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
 
-        chunks = list(VideoReader(input_file=video).get_raw_chunks())
+        chunks = list(VideoReader(input_path=video).get_raw_chunks())
         val = chunks[0]["source_type"]
 
         # Must be resolvable as a valid SourceType member without raising ValueError
@@ -400,7 +400,7 @@ class TestHighV3SubtitleSourceType:
 class TestHighV2TranscriptionSourceType:
     def test_transcription_source_type_is_video_enum_value(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "words here"
@@ -428,7 +428,7 @@ class TestHighV2TranscriptionSourceType:
         Verify it is never yielded.
         """
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "segment"
@@ -451,7 +451,7 @@ class TestHighV2TranscriptionSourceType:
     ) -> None:
         """source_type value must round-trip through SourceType() as VIDEO."""
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "text"
@@ -472,7 +472,7 @@ class TestHighV2TranscriptionSourceType:
     ) -> None:
         """transcript_type: 'whisper' must be in the chunk dict (goes to metadata)."""
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "words"
@@ -492,7 +492,7 @@ class TestHighV2TranscriptionSourceType:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
 
-        chunks = list(VideoReader(input_file=video).get_raw_chunks())
+        chunks = list(VideoReader(input_path=video).get_raw_chunks())
 
         for chunk in chunks:
             assert "transcript_type" not in chunk
@@ -731,23 +731,23 @@ class TestVideoReaderConstruction:
     def test_invalid_whisper_model_raises(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path)
         with pytest.raises(ValueError, match="whisper_model must be one of"):
-            VideoReader(input_file=video, whisper_model="xxl")
+            VideoReader(input_path=video, whisper_model="xxl")
 
     def test_valid_whisper_models_accepted(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path)
         for model in ("tiny", "base", "small", "medium", "large", "large-v2", "large-v3"):
-            r = VideoReader(input_file=video, whisper_model=model)
+            r = VideoReader(input_path=video, whisper_model=model)
             assert r.whisper_model == model
 
     def test_non_positive_frame_rate_raises(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path)
         with pytest.raises(ValueError, match="subtitle_frame_rate must be > 0"):
-            VideoReader(input_file=video, subtitle_frame_rate=0.0)
+            VideoReader(input_path=video, subtitle_frame_rate=0.0)
 
     def test_non_positive_max_file_bytes_raises(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path)
         with pytest.raises(ValueError, match="max_file_bytes must be > 0"):
-            VideoReader(input_file=video, max_file_bytes=0)
+            VideoReader(input_path=video, max_file_bytes=0)
 
 
 # ---------------------------------------------------------------------------
@@ -761,14 +761,14 @@ class TestYieldFramesField:
     def test_yield_frames_default_false(self):
         from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
         import pathlib  # noqa: PLC0415
-        reader = VideoReader(input_file=pathlib.Path("v.mp4"))
+        reader = VideoReader(input_path=pathlib.Path("v.mp4"))
         assert reader.yield_frames is False
 
     def test_yield_frames_field_settable(self):
         from scikitplot.corpus._readers._video import VideoReader  # noqa: PLC0415
         import pathlib  # noqa: PLC0415
         reader = VideoReader(
-            input_file=pathlib.Path("v.mp4"),
+            input_path=pathlib.Path("v.mp4"),
             yield_frames=True,
         )
         assert reader.yield_frames is True
@@ -795,7 +795,7 @@ class TestVideoReaderPostInit:
         # Should not raise for known sizes
         for size in ("tiny", "base", "small"):
             reader = VideoReader(
-                input_file=pathlib.Path("v.mp4"),
+                input_path=pathlib.Path("v.mp4"),
                 whisper_model=size,
             )
             assert reader.whisper_model == size
@@ -806,7 +806,7 @@ class TestVideoReaderPostInit:
         import pytest  # noqa: PLC0415
         with pytest.raises(ValueError):
             VideoReader(
-                input_file=pathlib.Path("v.mp4"),
+                input_path=pathlib.Path("v.mp4"),
                 whisper_model="not_a_real_model_xyz",
             )
 
@@ -814,7 +814,7 @@ class TestVideoReaderPostInit:
 class TestGetRawChunksEdgeCases:
     def test_file_too_large_raises_value_error(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path)
-        reader = VideoReader(input_file=video, max_file_bytes=4)
+        reader = VideoReader(input_path=video, max_file_bytes=4)
         with pytest.raises(ValueError, match="exceeds max_file_bytes"):
             list(reader.get_raw_chunks())
 
@@ -822,7 +822,7 @@ class TestGetRawChunksEdgeCases:
         self, tmp_path: pathlib.Path
     ) -> None:
         video = _make_video_file(tmp_path)
-        reader = VideoReader(input_file=video, transcribe=False)
+        reader = VideoReader(input_path=video, transcribe=False)
         chunks = list(reader.get_raw_chunks())
         assert chunks == []
 
@@ -830,7 +830,7 @@ class TestGetRawChunksEdgeCases:
         """When a subtitle is found, _transcribe_whisper must never be called."""
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         with patch("scikitplot.corpus._readers._video._transcribe_whisper") as mock_tw:
             list(reader.get_raw_chunks())
@@ -841,7 +841,7 @@ class TestGetRawChunksEdgeCases:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
 
-        chunks = list(VideoReader(input_file=video).get_raw_chunks())
+        chunks = list(VideoReader(input_path=video).get_raw_chunks())
 
         for chunk in chunks:
             assert chunk["section_type"] == SectionType.TEXT.value
@@ -850,14 +850,14 @@ class TestGetRawChunksEdgeCases:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.srt", SRT_SAMPLE)
 
-        chunks = list(VideoReader(input_file=video).get_raw_chunks())
+        chunks = list(VideoReader(input_path=video).get_raw_chunks())
 
         for chunk in chunks:
             assert chunk["subtitle_format"] == "srt"
 
     def test_transcription_subtitle_format_is_none(self, tmp_path: pathlib.Path) -> None:
         video = _make_video_file(tmp_path, "clip.mp4")
-        reader = VideoReader(input_file=video, transcribe=True)
+        reader = VideoReader(input_path=video, transcribe=True)
 
         seg = MagicMock()
         seg.text = "words"
@@ -875,7 +875,7 @@ class TestGetRawChunksEdgeCases:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.sbv", SBV_SAMPLE)
 
-        chunks = list(VideoReader(input_file=video).get_raw_chunks())
+        chunks = list(VideoReader(input_path=video).get_raw_chunks())
 
         assert len(chunks) == 2
         assert chunks[0]["source_type"] == SourceType.SUBTITLE.value
@@ -884,7 +884,7 @@ class TestGetRawChunksEdgeCases:
         video = _make_video_file(tmp_path, "clip.mp4")
         _make_subtitle_file(tmp_path, "clip.sub", SUB_SAMPLE)
 
-        reader = VideoReader(input_file=video, subtitle_frame_rate=30.0)
+        reader = VideoReader(input_path=video, subtitle_frame_rate=30.0)
         chunks = list(reader.get_raw_chunks())
 
         # Frame 25 at 30 fps = 25/30 ≈ 0.833...

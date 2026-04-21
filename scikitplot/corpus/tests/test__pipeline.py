@@ -13,7 +13,7 @@ Coverage
   invariant ``n_read - n_omitted == len(documents)``, ``__repr__``.
 * :class:`CorpusPipeline` — construction defaults; ``run()`` with a real
   ``TextReader`` source (tmp file); ``run()`` TypeError on bad input;
-  ``run()`` with no output (export skipped); ``run()`` with output_dir;
+  ``run()`` with no output (export skipped); ``run()`` with output_path;
   ``run_batch()`` with multiple files; ``run_batch()`` stop_on_error
   behaviour; ``run_batch()`` with mixed success/failure;
   ``run_batch()`` TypeError on non-str-or-Path element; progress_callback
@@ -64,14 +64,14 @@ def _make_result(
 ) -> PipelineResult:
     docs = [CorpusDocument.create(f"{source}", i, f"Sentence {i}.") for i in range(n_docs)]
     return PipelineResult(
-        source=source,
-        documents=docs,
+        input_path=source,
         output_path=output_path,
+        export_format=export_format,
+        documents=docs,
         n_read=n_read,
         n_omitted=n_omitted,
         n_embedded=n_embedded,
         elapsed_seconds=elapsed,
-        export_format=export_format,
     )
 
 
@@ -92,7 +92,7 @@ class TestPipelineResult:
 
     def test_source_stored(self) -> None:
         r = _make_result(source="chapter01.txt")
-        assert r.source == "chapter01.txt"
+        assert r.input_path == "chapter01.txt"
 
     def test_output_path_none_by_default(self) -> None:
         r = _make_result()
@@ -130,18 +130,18 @@ class TestPipelineResult:
     def test_frozen_dataclass_raises_on_mutation(self) -> None:
         r = _make_result()
         with pytest.raises((AttributeError, TypeError)):
-            r.source = "other.txt"  # type: ignore[misc]
+            r.input_path = "other.txt"  # type: ignore[misc]
 
     def test_empty_documents_list(self) -> None:
         r = PipelineResult(
-            source="empty.txt",
-            documents=[],
+            input_path="empty.txt",
             output_path=None,
+            export_format=None,
+            documents=[],
             n_read=0,
             n_omitted=0,
             n_embedded=0,
             elapsed_seconds=0.01,
-            export_format=None,
         )
         assert r.n_documents == 0
 
@@ -165,9 +165,9 @@ class TestCorpusPipelineConstruction:
         p = CorpusPipeline()
         assert p.embedding_engine is None
 
-    def test_default_output_dir_is_none(self) -> None:
+    def test_default_output_path_is_none(self) -> None:
         p = CorpusPipeline()
-        assert p.output_dir is None
+        assert p.output_path is None
 
     def test_default_language_is_none(self) -> None:
         p = CorpusPipeline()
@@ -175,11 +175,11 @@ class TestCorpusPipelineConstruction:
 
     def test_custom_params_stored(self) -> None:
         p = CorpusPipeline(
-            output_dir=pathlib.Path("/tmp"),
+            output_path=pathlib.Path("/tmp"),
             export_format=ExportFormat.JSONL,
             default_language="en",
         )
-        assert p.output_dir == pathlib.Path("/tmp")
+        assert p.output_path == pathlib.Path("/tmp")
         assert p.export_format is ExportFormat.JSONL
         assert p.default_language == "en"
 
@@ -201,7 +201,7 @@ class TestCorpusPipelineRun:
         f = _write_txt(tmp_path, "article.txt", "Some article content here.")
         pipeline = CorpusPipeline()
         result = pipeline.run(f)
-        assert "article" in result.source or "article.txt" in result.source
+        assert "article" in result.input_path or "article.txt" in result.input_path
 
     def test_run_produces_documents(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "First sentence. Second sentence.")
@@ -215,17 +215,17 @@ class TestCorpusPipelineRun:
         result = pipeline.run(f)
         assert result.elapsed_seconds >= 0.0
 
-    def test_run_no_export_when_no_output_dir(self, tmp_path: pathlib.Path) -> None:
+    def test_run_no_export_when_no_output_path(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Content.")
         pipeline = CorpusPipeline()
         result = pipeline.run(f)
         assert result.output_path is None
 
-    def test_run_with_output_dir_creates_file(self, tmp_path: pathlib.Path) -> None:
+    def test_run_with_output_path_creates_file(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Hello world content.")
         out_dir = tmp_path / "output"
         out_dir.mkdir()
-        pipeline = CorpusPipeline(output_dir=out_dir, export_format=ExportFormat.CSV)
+        pipeline = CorpusPipeline(output_path=out_dir, export_format=ExportFormat.CSV)
         result = pipeline.run(f)
         if result.output_path is not None:
             assert result.output_path.exists()
@@ -240,12 +240,12 @@ class TestCorpusPipelineRun:
 
     def test_run_type_error_on_int_input(self) -> None:
         pipeline = CorpusPipeline()
-        with pytest.raises(TypeError, match="input_file"):
+        with pytest.raises(TypeError, match="input_path"):
             pipeline.run(42)  # type: ignore[arg-type]
 
     def test_run_type_error_on_list_input(self) -> None:
         pipeline = CorpusPipeline()
-        with pytest.raises(TypeError, match="input_file"):
+        with pytest.raises(TypeError, match="input_path"):
             pipeline.run(["file.txt"])  # type: ignore[arg-type]
 
     def test_run_str_path_accepted(self, tmp_path: pathlib.Path) -> None:
@@ -258,7 +258,7 @@ class TestCorpusPipelineRun:
         f = _write_txt(tmp_path, "doc.txt", "Override test content.")
         pipeline = CorpusPipeline()
         result = pipeline.run(f, filename_override="custom_label.txt")
-        assert "custom_label" in result.source or result.n_documents >= 0
+        assert "custom_label" in result.input_path or result.n_documents >= 0
 
     def test_run_export_format_override(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Enough content to export here.")
@@ -355,10 +355,10 @@ class TestCorpusPipelineRunBatch:
         files = [_write_txt(tmp_path, f"file{i}.txt", f"Content {i}.") for i in range(3)]
         pipeline = CorpusPipeline()
         results = pipeline.run_batch(files)
-        sources = [r.source for r in results]
+        input_path = [r.input_path for r in results]
         # Sources must appear in a consistent order (not necessarily file order,
         # but the list must be stable between calls).
-        assert len(sources) == len(results)
+        assert len(input_path) == len(results)
 
     def test_run_batch_progress_callback_invoked(self, tmp_path: pathlib.Path) -> None:
         calls: list[tuple] = []
@@ -388,38 +388,38 @@ class TestCreateCorpus:
     def test_returns_pipeline_result(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "chapter.txt", "A complete chapter with good content.")
         out = tmp_path / "chapter.csv"
-        result = create_corpus(input_file=f, output_path=out)
+        result = create_corpus(input_path=f, output_path=out)
         assert isinstance(result, PipelineResult)
 
     def test_csv_file_created(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Enough text to create an output file.")
         out = tmp_path / "out.csv"
-        create_corpus(input_file=f, output_path=out)
+        create_corpus(input_path=f, output_path=out)
         assert out.exists()
 
     def test_output_path_in_result(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Text content for output path test.")
         out = tmp_path / "corpus.csv"
-        result = create_corpus(input_file=f, output_path=out)
+        result = create_corpus(input_path=f, output_path=out)
         assert result.output_path == out
 
     def test_str_paths_accepted(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Content for str path test.")
         out = tmp_path / "out.csv"
-        result = create_corpus(input_file=str(f), output_path=str(out))
+        result = create_corpus(input_path=str(f), output_path=str(out))
         assert isinstance(result, PipelineResult)
 
     def test_default_export_format_is_csv(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Content.")
         out = tmp_path / "out.csv"
-        result = create_corpus(input_file=f, output_path=out)
+        result = create_corpus(input_path=f, output_path=out)
         assert result.export_format in (ExportFormat.CSV, None)
 
     def test_custom_export_format_jsonl(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Sufficient content for JSONL export test.")
         out = tmp_path / "out.jsonl"
         result = create_corpus(
-            input_file=f, output_path=out, export_format=ExportFormat.JSONL
+            input_path=f, output_path=out, export_format=ExportFormat.JSONL
         )
         if result.n_documents > 0:
             assert out.exists()
@@ -428,14 +428,14 @@ class TestCreateCorpus:
         f = _write_txt(tmp_path, "doc.txt", "Content for filename override test.")
         out = tmp_path / "out.csv"
         result = create_corpus(
-            input_file=f, output_path=out, filename_override="custom.txt"
+            input_path=f, output_path=out, filename_override="custom.txt"
         )
         assert isinstance(result, PipelineResult)
 
     def test_default_language_forwarded(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "English text for language test.")
         out = tmp_path / "out.csv"
-        result = create_corpus(input_file=f, output_path=out, default_language="en")
+        result = create_corpus(input_path=f, output_path=out, default_language="en")
         # Documents should carry the default language when set.
         for doc in result.documents:
             lang = getattr(doc, "language", None)

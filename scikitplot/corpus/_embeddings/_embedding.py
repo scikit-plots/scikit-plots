@@ -13,7 +13,7 @@ Multi-backend text and multimodal embedding engine with file-based caching.
 Produces dense vector representations of text chunks. The embedding step
 is optional in the pipeline (``embed=False`` skips it entirely) and is
 triggered per-document or in batches. Results are cached to ``.npy``
-files keyed by a SHA-256 hash of ``(model_name, source_path, mtime, n_texts)``
+files keyed by a SHA-256 hash of ``(model_name, input_path, mtime, n_texts)``
 so that re-running the pipeline on an unchanged corpus is O(1).
 
 Original issues fixed (from remarx ``embeddings.py``)
@@ -98,14 +98,14 @@ _FLOAT_DTYPES = (np.float16, np.float32, np.float64)
 
 def _make_cache_key(
     model_name: str,
-    source_path: str,
+    input_path: str,
     source_mtime: float,
     n_texts: int,
 ) -> str:
     """
     Compute a deterministic 24-character hex cache key.
 
-    The key encodes ``(model_name, source_path, source_mtime, n_texts)``
+    The key encodes ``(model_name, input_path, source_mtime, n_texts)``
     so that any change to the model, source file path, modification time,
     or document count invalidates the cached embeddings.
 
@@ -113,7 +113,7 @@ def _make_cache_key(
     ----------
     model_name : str
         Name or identifier of the embedding model.
-    source_path : str
+    input_path : str
         Absolute path to the source file that produced the texts.
     source_mtime : float
         Modification time of the source file (``pathlib.Path.stat().st_mtime``).
@@ -131,7 +131,7 @@ def _make_cache_key(
     >>> len(k)
     24
     """
-    raw = f"{model_name}|{source_path}|{source_mtime:.6f}|{n_texts}"
+    raw = f"{model_name}|{input_path}|{source_mtime:.6f}|{n_texts}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
 
 
@@ -366,7 +366,7 @@ class EmbeddingEngine:
 
     Produces a 2-D ``float32`` numpy array of shape ``(n_texts, dim)``
     for a list of input strings. Embeddings are cached to ``.npy`` files
-    keyed by ``(model_name, source_path, mtime, n_texts)`` so that
+    keyed by ``(model_name, input_path, mtime, n_texts)`` so that
     unchanged corpora are served from disk in O(1).
 
     Parameters
@@ -433,7 +433,7 @@ class EmbeddingEngine:
     **Cache invalidation:** The cache key includes the source file's
     modification time. Any write to the source file (even a metadata
     update via ``touch``) invalidates the cache. If this is undesirable,
-    pass a stable ``source_path`` (e.g. a logical identifier rather than
+    pass a stable ``input_path`` (e.g. a logical identifier rather than
     the real path).
 
     **Normalisation:** When ``normalize=True``, zero-norm vectors (e.g.
@@ -466,7 +466,7 @@ class EmbeddingEngine:
     >>> from pathlib import Path
     >>> vecs, from_cache = engine.embed_with_cache(
     ...     texts,
-    ...     source_path=Path("corpus.txt"),
+    ...     input_path=Path("corpus.txt"),
     ... )
     """
 
@@ -605,16 +605,16 @@ class EmbeddingEngine:
     def embed_with_cache(
         self,
         texts: list[str],
-        source_path: pathlib.Path,
+        input_path: pathlib.Path,
     ) -> tuple[npt.NDArray[np.float32], bool]:
         """
-        Compute embeddings with file caching keyed to ``source_path``.
+        Compute embeddings with file caching keyed to ``input_path``.
 
         Parameters
         ----------
         texts : list of str
             Text strings to embed.
-        source_path : pathlib.Path
+        input_path : pathlib.Path
             Path to the source file that generated ``texts``. Used to
             build the cache key (path + mtime + len(texts)).
 
@@ -648,17 +648,17 @@ class EmbeddingEngine:
 
         # Build cache key
         try:
-            mtime = source_path.stat().st_mtime
+            mtime = input_path.stat().st_mtime
         except OSError:
             logger.warning(
                 "EmbeddingEngine: cannot stat %s; caching disabled for this call.",
-                source_path,
+                input_path,
             )
             return self.embed(texts), False
 
         key = _make_cache_key(
             model_name=self.model_name,
-            source_path=str(source_path.resolve()),
+            input_path=str(input_path.resolve()),
             source_mtime=mtime,
             n_texts=len(texts),
         )
@@ -688,7 +688,7 @@ class EmbeddingEngine:
     def embed_documents(
         self,
         documents: list[Any],
-        source_path: pathlib.Path | None = None,
+        input_path: pathlib.Path | None = None,
     ) -> list[Any]:
         """
         Embed a list of :class:`~scikitplot.corpus.schema.CorpusDocument`
@@ -698,7 +698,7 @@ class EmbeddingEngine:
         ----------
         documents : list of CorpusDocument
             Documents to embed. Each must have a non-empty ``text`` field.
-        source_path : pathlib.Path or None, optional
+        input_path : pathlib.Path or None, optional
             Source path for cache key. ``None`` disables caching.
 
         Returns
@@ -719,8 +719,8 @@ class EmbeddingEngine:
 
         texts = [doc.normalized_text or doc.text for doc in documents]
 
-        if source_path is not None and self.enable_cache:
-            embeddings, _ = self.embed_with_cache(texts, source_path)
+        if input_path is not None and self.enable_cache:
+            embeddings, _ = self.embed_with_cache(texts, input_path)
         else:
             embeddings = self.embed(texts)
 

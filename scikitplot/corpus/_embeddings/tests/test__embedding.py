@@ -764,20 +764,20 @@ class TestEmbeddingEngineEmbedDocuments:
         assert docs[0].embedding is None  # original unchanged
         assert out[0].embedding is not None
 
-    def test_with_source_path_uses_cache(self, tmp_path: pathlib.Path) -> None:
+    def test_with_input_path_uses_cache(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=4, cache_dir=tmp_path)
         src = tmp_path / "src.txt"
         src.write_text("data")
         docs = [_Doc("hello")]
-        out = e.embed_documents(docs, source_path=src)
+        out = e.embed_documents(docs, input_path=src)
         assert out[0].embedding is not None
         # A .npy cache file should have been created
         assert len(list(tmp_path.glob("*.npy"))) == 1
 
-    def test_without_source_path_no_cache_file(self, tmp_path: pathlib.Path) -> None:
+    def test_without_input_path_no_cache_file(self, tmp_path: pathlib.Path) -> None:
         e = _make_custom_engine(dim=4, cache_dir=tmp_path)
         docs = [_Doc("hello")]
-        e.embed_documents(docs, source_path=None)
+        e.embed_documents(docs, input_path=None)
         assert len(list(tmp_path.glob("*.npy"))) == 0
 
     def test_single_doc(self) -> None:
@@ -955,7 +955,7 @@ class TestEmbeddingEngineIntegration:
         src = tmp_path / "src.txt"
         src.write_text("data")
         docs = [_Doc(f"doc {i}") for i in range(4)]
-        out1 = e.embed_documents(docs, source_path=src)
-        out2 = e.embed_documents(docs, source_path=src)
+        out1 = e.embed_documents(docs, input_path=src)
+        out2 = e.embed_documents(docs, input_path=src)
         for d1, d2 in zip(out1, out2):
             np.testing.assert_array_equal(d1.embedding, d2.embedding)

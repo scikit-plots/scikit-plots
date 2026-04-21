@@ -69,7 +69,7 @@ class StorageQuery:
 
     Parameters
     ----------
-    source_file : str or None, optional
+    input_path : str or None, optional
         Filter to documents from this source file. Default: ``None`` (all).
     source_type : str or None, optional
         Filter to documents with this ``source_type`` value. Default: ``None``.
@@ -89,7 +89,7 @@ class StorageQuery:
         Zero-based result offset for pagination. Default: ``0``.
     """
 
-    source_file: str | None = None
+    input_path: str | None = None
     source_type: str | None = None
     language: str | None = None
     section_type: str | None = None
@@ -230,7 +230,7 @@ def _dict_to_doc(data: dict[str, Any]) -> CorpusDocument:
 
 def _matches_query(doc: CorpusDocument, q: StorageQuery) -> bool:
     """Return ``True`` if ``doc`` satisfies the non-full-text filters."""
-    if q.source_file and doc.source_file != q.source_file:
+    if q.input_path and doc.input_path != q.input_path:
         return False
     if q.source_type and doc.source_type.value != q.source_type:
         return False
@@ -546,7 +546,7 @@ class JSONLStorage(StorageBase):
 _CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS corpus_documents (
     doc_id          TEXT PRIMARY KEY,
-    source_file     TEXT NOT NULL,
+    input_path     TEXT NOT NULL,
     source_type     TEXT,
     section_type    TEXT,
     language        TEXT,
@@ -564,7 +564,7 @@ USING fts5(doc_id UNINDEXED, text);
 """
 
 _CREATE_INDEXES_SQL = [
-    "CREATE INDEX IF NOT EXISTS idx_source_file ON corpus_documents(source_file);",
+    "CREATE INDEX IF NOT EXISTS idx_input_path ON corpus_documents(input_path);",
     "CREATE INDEX IF NOT EXISTS idx_source_type ON corpus_documents(source_type);",
     "CREATE INDEX IF NOT EXISTS idx_language    ON corpus_documents(language);",
     "CREATE INDEX IF NOT EXISTS idx_collection  ON corpus_documents(collection_id);",
@@ -634,7 +634,7 @@ class SQLiteStorage(StorageBase):
         """Convert doc to a sqlite row dict."""
         return {
             "doc_id": doc.doc_id,
-            "source_file": doc.source_file,
+            "input_path": doc.input_path,
             "source_type": doc.source_type.value,
             "section_type": doc.section_type.value,
             "language": doc.language,
@@ -655,11 +655,11 @@ class SQLiteStorage(StorageBase):
         cursor.execute(
             """
             INSERT OR REPLACE INTO corpus_documents
-                (doc_id, source_file, source_type, section_type,
+                (doc_id, input_path, source_type, section_type,
                  language, collection_id, chunk_index, char_start,
                  char_end, json_data)
             VALUES
-                (:doc_id, :source_file, :source_type, :section_type,
+                (:doc_id, :input_path, :source_type, :section_type,
                  :language, :collection_id, :chunk_index, :char_start,
                  :char_end, :json_data)
             """,
@@ -738,9 +738,9 @@ class SQLiteStorage(StorageBase):
                 "doc_id IN (SELECT doc_id FROM corpus_fts WHERE text MATCH ?)"
             )
             params.append(q.full_text)
-        if q.source_file:
-            conditions.append("source_file = ?")
-            params.append(q.source_file)
+        if q.input_path:
+            conditions.append("input_path = ?")
+            params.append(q.input_path)
         if q.source_type:
             conditions.append("source_type = ?")
             params.append(q.source_type)

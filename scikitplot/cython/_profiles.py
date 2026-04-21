@@ -191,8 +191,6 @@ def apply_profile(
     """
     Apply a profile with strict precedence rules.
 
-    Precedence
-    ----------
     - If an explicit argument is provided by the user, it is kept unchanged.
     - Otherwise, the profile default is applied.
 

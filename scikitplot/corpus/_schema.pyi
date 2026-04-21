@@ -182,7 +182,7 @@ class SourceType(_StrEnumBase):
     @classmethod
     def infer(
         cls,
-        source: Any | None = ...,
+        input_path: Any | None = ...,
         *,
         mime_type: str | None = ...,
     ) -> Self: ...
@@ -239,7 +239,7 @@ class CorpusDocument:
     # Core
     # ------------------------------------------------------------------
     doc_id: str
-    source_file: str
+    input_path: str
     chunk_index: int
     text: str | None
     section_type: SectionType
@@ -336,7 +336,7 @@ class CorpusDocument:
     @classmethod
     def make_doc_id(
         cls,
-        source_file: str,
+        input_path: str,
         chunk_index: int,
         text: str | None,
         source_type: SourceType = ...,
@@ -344,7 +344,7 @@ class CorpusDocument:
     @classmethod
     def create(
         cls,
-        source_file: str,
+        input_path: str,
         chunk_index: int,
         text: str | None,
         section_type: SectionType = ...,

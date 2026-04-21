@@ -164,8 +164,8 @@ _SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = _SENTENCE_BOUNDARY_RE_LATIN
 class SentenceBackend(str, Enum):
     """Supported sentence-splitting backends.
 
-    Values
-    ------
+    Attributes
+    ----------
     REGEX
         Pure-Python regex heuristics.  No external dependencies.
         Latin-optimised by default; set ``script_hint`` to enable

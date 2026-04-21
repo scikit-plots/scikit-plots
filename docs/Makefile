@@ -105,6 +105,8 @@ clean: clean_basic
 	@echo "Removed $(SOURCEDIR)/jupyterlite_contents/"
 	@rm -rf "$(SOURCEDIR)/_tags/"
 	@echo "Removed $(SOURCEDIR)/_tags/"
+	@rm -rf "$(SOURCEDIR)/_contents/"
+	@echo "Removed $(SOURCEDIR)/_contents/"
 
 # Define a target to get the absolute path
 get_abs_path:

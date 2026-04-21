@@ -114,7 +114,7 @@ def _detect_encoding(raw: bytes) -> str:  # noqa: PLR0911
 
     # --- Stage 3: chardet (optional dependency) ---
     try:
-        import chardet  # noqa: PLC0415
+        import chardet  # type: ignore[] # noqa: PLC0415
 
         result = chardet.detect(raw[:_SNIFF_BYTES])
         confidence = result.get("confidence") or 0.0
@@ -157,7 +157,7 @@ class TextReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.txt`` file.
     encoding : str or None, optional
         Explicit encoding override. When ``None`` (default), encoding is
@@ -212,19 +212,19 @@ class TextReader(DocumentReader):
     Default usage (encoding auto-detected):
 
     >>> from pathlib import Path
-    >>> reader = TextReader(input_file=Path("corpus.txt"))
+    >>> reader = TextReader(input_path=Path("corpus.txt"))
     >>> docs = list(reader.get_documents())
 
     Explicit encoding:
 
-    >>> reader = TextReader(input_file=Path("corpus.txt"), encoding="utf-8")
+    >>> reader = TextReader(input_path=Path("corpus.txt"), encoding="utf-8")
 
     Subclass for Markdown:
 
     >>> @dataclass
     ... class MarkdownReader(TextReader):
     ...     file_type = ".md"
-    >>> reader = MarkdownReader(input_file=Path("notes.md"))
+    >>> reader = MarkdownReader(input_path=Path("notes.md"))
     """
 
     file_type: ClassVar[str] = ".txt"
@@ -281,7 +281,7 @@ class TextReader(DocumentReader):
         sub-chunking into sentences/paragraphs/windows is delegated to
         the injected :class:`~scikitplot.corpus._base.ChunkerBase`.
         """
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
 
         # Guard: reject oversized files before reading
         if file_size > self.max_file_bytes:
@@ -300,7 +300,7 @@ class TextReader(DocumentReader):
             )
         else:
             # Auto-detect from head bytes
-            with self.input_file.open("rb") as fh:
+            with self.input_path.open("rb") as fh:
                 head_bytes = fh.read(_SNIFF_BYTES)
             enc = _detect_encoding(head_bytes)
             logger.debug(
@@ -308,7 +308,7 @@ class TextReader(DocumentReader):
             )
 
         # Read full file with detected/explicit encoding
-        text = self.input_file.read_text(encoding=enc)
+        text = self.input_path.read_text(encoding=enc)
 
         if not text.strip():
             logger.warning(
@@ -351,7 +351,7 @@ class MarkdownReader(TextReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.md`` file.
 
     Attributes
@@ -370,7 +370,7 @@ class MarkdownReader(TextReader):
     Examples
     --------
     >>> from pathlib import Path
-    >>> reader = MarkdownReader(input_file=Path("README.md"))
+    >>> reader = MarkdownReader(input_path=Path("README.md"))
     >>> docs = list(reader.get_documents())
     """
 
@@ -389,7 +389,7 @@ class ReSTReader(TextReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.rst`` file.
 
     Attributes
@@ -408,7 +408,7 @@ class ReSTReader(TextReader):
     Examples
     --------
     >>> from pathlib import Path
-    >>> reader = ReSTReader(input_file=Path("CHANGES.rst"))
+    >>> reader = ReSTReader(input_path=Path("CHANGES.rst"))
     >>> docs = list(reader.get_documents())
     """
 

@@ -276,6 +276,7 @@ class HTMLStripNormalizer(NormalizerBase):
     Remove HTML and XML tags from the document text.
 
     Two modes are available:
+
     * ``use_beautifulsoup=False`` (default): regex-based stripping.
       Zero additional dependencies; handles well-formed HTML.
     * ``use_beautifulsoup=True``: uses ``bs4.BeautifulSoup`` for robust

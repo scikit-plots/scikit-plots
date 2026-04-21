@@ -34,6 +34,7 @@ repos:
           docs/source/user_guide/random/GoodPracticeRNG.pdf|\
           docs/source/.jupyterlite.doit.db|\
           galleries/.*|\
+          pixi-packages/scipy/pixi.lock|\
           third_party/.*|\
           .*searchindex.dat|\
           .*CDNOW_master.txt|\

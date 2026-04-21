@@ -178,14 +178,14 @@ class TestXMLReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f)
+        reader = XMLReader(input_path=f)
         docs = list(reader.get_documents())
         assert len(docs) > 0
         assert all(isinstance(d, CorpusDocument) for d in docs)
 
     def test_text_content_correct(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f)
+        reader = XMLReader(input_path=f)
         texts = [d.text for d in reader.get_documents()]
         assert any("First item" in t for t in texts)
         assert any("Second item" in t for t in texts)
@@ -194,7 +194,7 @@ class TestXMLReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, block_xpath=".//item")
+        reader = XMLReader(input_path=f, block_xpath=".//item")
         docs = list(reader.get_documents())
         assert len(docs) == 3  # three <item> elements
 
@@ -202,46 +202,46 @@ class TestXMLReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, block_xpath=".//nonexistent")
+        reader = XMLReader(input_path=f, block_xpath=".//nonexistent")
         docs = list(reader.get_documents())
         assert docs == []
 
     def test_empty_xml_yields_zero_docs(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "empty.xml", _EMPTY_XML)
-        reader = XMLReader(input_file=f)
+        reader = XMLReader(input_path=f)
         docs = list(reader.get_documents())
         assert docs == []
 
     def test_file_size_guard_raises(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, max_file_bytes=1)
+        reader = XMLReader(input_path=f, max_file_bytes=1)
         with pytest.raises(ValueError, match="max_file_bytes"):
             list(reader.get_documents())
 
     def test_encoding_override(self, tmp_path: pathlib.Path) -> None:
         content = _SIMPLE_XML
         f = _write(tmp_path, "data.xml", content)
-        reader = XMLReader(input_file=f, encoding="utf-8", block_xpath=".//item")
+        reader = XMLReader(input_path=f, encoding="utf-8", block_xpath=".//item")
         docs = list(reader.get_documents())
         assert len(docs) == 3
 
     def test_section_type_is_text(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, block_xpath=".//item")
+        reader = XMLReader(input_path=f, block_xpath=".//item")
         docs = list(reader.get_documents())
         for doc in docs:
             assert doc.section_type == SectionType.TEXT
 
-    def test_source_file_set_correctly(self, tmp_path: pathlib.Path) -> None:
+    def test_input_path_set_correctly(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, block_xpath=".//item")
+        reader = XMLReader(input_path=f, block_xpath=".//item")
         docs = list(reader.get_documents())
         for doc in docs:
-            assert "data.xml" in doc.source_file
+            assert "data.xml" in doc.input_path
 
     def test_chunk_index_sequential(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
-        reader = XMLReader(input_file=f, block_xpath=".//item")
+        reader = XMLReader(input_path=f, block_xpath=".//item")
         docs = list(reader.get_documents())
         indices = [d.chunk_index for d in docs]
         assert indices == list(range(len(docs)))
@@ -261,7 +261,7 @@ class TestXMLReader:
         # Note: stdlib's iterfind requires the prefix to be present in the tag
         # or the URI to be used in the path if no prefix is defined in the XML.
         reader = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=".//{http://www.tei-c.org/ns/1.0}p",
             namespaces=None,
         )
@@ -271,7 +271,7 @@ class TestXMLReader:
 
         # Test 2: Using the 'namespaces' kwarg with a prefix
         reader_with_ns = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=".//t:p",
             namespaces={"t": ns_uri},
         )
@@ -286,7 +286,7 @@ class TestXMLReader:
         f = _write(tmp_path, "data.xml", _SIMPLE_XML)
         # text_xpath=".//item" on each <group> element
         reader = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=".//group",
             text_xpath=".//item",
         )
@@ -306,18 +306,18 @@ class TestTEIReader:
     ) -> None:
         f = _write(tmp_path, "tei.xml", _TEI_DRAMA)
         with pytest.raises(ValueError, match="max_file_bytes"):
-            TEIReader(input_file=f, max_file_bytes=0)
+            TEIReader(input_path=f, max_file_bytes=0)
 
     def test_max_file_bytes_negative_raises(
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "tei.xml", _TEI_DRAMA)
         with pytest.raises(ValueError, match="max_file_bytes"):
-            TEIReader(input_file=f, max_file_bytes=-1)
+            TEIReader(input_path=f, max_file_bytes=-1)
 
     def test_file_size_guard_raises(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "tei.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f, max_file_bytes=1)
+        reader = TEIReader(input_path=f, max_file_bytes=1)
         with pytest.raises(ValueError, match="max_file_bytes"):
             list(reader.get_documents())
 
@@ -325,7 +325,7 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         assert len(docs) > 0
         assert all(isinstance(d, CorpusDocument) for d in docs)
@@ -334,7 +334,7 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         verse_docs = [d for d in docs if d.section_type == SectionType.VERSE]
         assert len(verse_docs) >= 2  # two <l> elements
@@ -343,7 +343,7 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f, include_stage_directions=True)
+        reader = TEIReader(input_path=f, include_stage_directions=True)
         docs = list(reader.get_documents())
         stage = [d for d in docs if d.section_type == SectionType.STAGE_DIRECTION]
         assert len(stage) >= 1
@@ -352,14 +352,14 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f, include_stage_directions=False)
+        reader = TEIReader(input_path=f, include_stage_directions=False)
         docs = list(reader.get_documents())
         stage = [d for d in docs if d.section_type == SectionType.STAGE_DIRECTION]
         assert len(stage) == 0
 
     def test_dialogue_chunks_present(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         dialogue = [d for d in docs if d.section_type == SectionType.DIALOGUE]
         # At least one dialogue chunk (prose <p> inside <sp>)
@@ -369,7 +369,7 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f, include_speaker_tags=True)
+        reader = TEIReader(input_path=f, include_speaker_tags=True)
         docs = list(reader.get_documents())
         texts = [d.text for d in docs]
         assert any("HAMLET" in t for t in texts)
@@ -378,7 +378,7 @@ class TestTEIReader:
         self, tmp_path: pathlib.Path
     ) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f, include_speaker_tags=False)
+        reader = TEIReader(input_path=f, include_speaker_tags=False)
         docs = list(reader.get_documents())
         # Verse lines and prose should NOT start with "HAMLET:"
         for doc in docs:
@@ -387,7 +387,7 @@ class TestTEIReader:
 
     def test_act_number_populated(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         acts = [d.act for d in docs if d.act is not None]
         assert len(acts) > 0
@@ -395,7 +395,7 @@ class TestTEIReader:
 
     def test_scene_number_populated(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         scenes = [d.scene_number for d in docs if d.scene_number is not None]
         assert len(scenes) > 0
@@ -403,7 +403,7 @@ class TestTEIReader:
 
     def test_no_namespace_tei_parsed(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "king.xml", _TEI_NO_NAMESPACE)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         assert len(docs) >= 1
 
@@ -415,20 +415,20 @@ class TestTEIReader:
   <text><body></body></text>
 </TEI>"""
         f = _write(tmp_path, "empty.xml", empty_tei)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         assert docs == []
 
-    def test_source_file_set_on_docs(self, tmp_path: pathlib.Path) -> None:
+    def test_input_path_set_on_docs(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         for doc in docs:
-            assert "hamlet.xml" in doc.source_file
+            assert "hamlet.xml" in doc.input_path
 
     def test_chunk_index_sequential(self, tmp_path: pathlib.Path) -> None:
         f = _write(tmp_path, "hamlet.xml", _TEI_DRAMA)
-        reader = TEIReader(input_file=f)
+        reader = TEIReader(input_path=f)
         docs = list(reader.get_documents())
         indices = [d.chunk_index for d in docs]
         assert indices == list(range(len(docs)))

@@ -257,13 +257,13 @@ class WebReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Wrap the URL string as ``pathlib.Path(url)`` when constructing
         directly. Use :meth:`~scikitplot.corpus._base.DocumentReader.from_url`
         for the canonical construction path.
     source_uri : str or None, optional
         The original URL string. Set automatically by ``from_url()``.
-        If ``None``, ``str(input_file)`` is used as the URL.
+        If ``None``, ``str(input_path)`` is used as the URL.
     timeout : int, optional
         HTTP request timeout in seconds. Default: 30.
     max_response_bytes : int, optional
@@ -337,7 +337,7 @@ class WebReader(DocumentReader):
 
     >>> from pathlib import Path
     >>> url = "https://en.wikipedia.org/wiki/Python"
-    >>> reader = WebReader(input_file=Path(url), source_uri=url)
+    >>> reader = WebReader(input_path=Path(url), source_uri=url)
     """
 
     file_type: ClassVar[str] = ":url"
@@ -405,14 +405,14 @@ class WebReader(DocumentReader):
         return self.filename_override or self._effective_url()
 
     def _effective_url(self) -> str:
-        """Return the URL to fetch: ``source_uri`` or ``str(input_file)``.
+        """Return the URL to fetch: ``source_uri`` or ``str(input_path)``.
 
         Returns
         -------
         str
             The URL used for the HTTP request.
         """
-        return self.source_uri or str(self.input_file)
+        return self.source_uri or str(self.input_path)
 
     def _build_headers(self) -> dict[str, str]:
         """Build the request headers dict with a default User-Agent."""
@@ -488,7 +488,7 @@ class WebReader(DocumentReader):
 
         logger.info("WebReader: fetching %s.", url)
         validate_url_safety(
-            self.source_uri or str(self.input_file),
+            self.source_uri or str(self.input_path),
             allow_private_networks=self.allow_private_networks,
         )
         response = requests.get(
@@ -579,7 +579,7 @@ class YouTubeReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Wrap the YouTube URL as ``pathlib.Path(url)`` when constructing
         directly. Use :meth:`~scikitplot.corpus._base.DocumentReader.from_url`
         for the canonical construction path.
@@ -718,9 +718,9 @@ class YouTubeReader(DocumentReader):
         Returns
         -------
         str
-            ``source_uri`` when set, otherwise ``str(input_file)``.
+            ``source_uri`` when set, otherwise ``str(input_path)``.
         """
-        return self.source_uri or str(self.input_file)
+        return self.source_uri or str(self.input_path)
 
     # ------------------------------------------------------------------
     # DocumentReader contract

@@ -663,8 +663,8 @@ class MultimodalEmbeddingEngine:
     >>> exporter = LLMTrainingExporter(engine)
     >>> exporter.to_openai_finetuning_jsonl(docs, Path("train.jsonl"))
 
-    Developer note
-    --------------
+    Developer note:
+
     ``projection_dim`` with ``custom_projection_fn=None`` uses a random
     orthonormal projection (QR decomposition).  For production fine-tuning
     replace this with a learned adapter trained on your downstream task.
@@ -783,7 +783,7 @@ class MultimodalEmbeddingEngine:
     def embed_documents(
         self,
         documents: list[Any],
-        source_path: pathlib.Path | None = None,
+        input_path: pathlib.Path | None = None,
     ) -> list[Any]:
         """
         Embed all documents in-place (via ``doc.replace(embedding=...)``)
@@ -802,7 +802,7 @@ class MultimodalEmbeddingEngine:
         ----------
         documents : list[CorpusDocument]
             Documents to embed.
-        source_path : pathlib.Path or None, optional
+        input_path : pathlib.Path or None, optional
             Used as the cache-key anchor.  Pass the source file path for
             per-file caching.  Default: ``None`` (no file cache).
 
@@ -1020,10 +1020,10 @@ class MultimodalEmbeddingEngine:
     def embed_documents_with_cache(
         self,
         documents: list[Any],
-        source_path: pathlib.Path,
+        input_path: pathlib.Path,
     ) -> list[Any]:
         """
-        Embed documents with SHA-256 cache keyed to *source_path*.
+        Embed documents with SHA-256 cache keyed to *input_path*.
 
         Cache key: ``SHA256(modality_tag + backend + model + path + mtime + N)[:24]``.
 
@@ -1031,7 +1031,7 @@ class MultimodalEmbeddingEngine:
         ----------
         documents : list[CorpusDocument]
             Documents to embed.
-        source_path : pathlib.Path
+        input_path : pathlib.Path
             Source file path.  Used to build the cache key (path + mtime).
 
         Returns
@@ -1043,19 +1043,19 @@ class MultimodalEmbeddingEngine:
             pathlib.Path.home() / ".cache" / "scikitplot" / "embeddings"
         )
         if not self.enable_cache:
-            return self.embed_documents(documents, source_path=source_path)
+            return self.embed_documents(documents, input_path=input_path)
 
         # Build modality-aware cache key
         modalities = sorted({str(getattr(d, "modality", "text")) for d in documents})
         tag = "+".join(modalities)
         try:
-            mtime = source_path.stat().st_mtime
+            mtime = input_path.stat().st_mtime
         except OSError:
-            return self.embed_documents(documents, source_path=source_path)
+            return self.embed_documents(documents, input_path=input_path)
 
         raw_key = (
             f"{tag}:{self.text_model}:{self.image_model}:"
-            f"{self.audio_model}:{source_path!s}:{mtime}:{len(documents)}"
+            f"{self.audio_model}:{input_path!s}:{mtime}:{len(documents)}"
         )
         key = hashlib.sha256(raw_key.encode()).hexdigest()[:24]
         cache_path = cache_dir / f"{key}.npy"
@@ -1067,7 +1067,7 @@ class MultimodalEmbeddingEngine:
                 if cached.shape[0] == len(documents):
                     logger.info(
                         "MultimodalEmbeddingEngine: cache hit for %s (%d docs).",
-                        source_path.name,
+                        input_path.name,
                         len(documents),
                     )
                     return [
@@ -1078,7 +1078,7 @@ class MultimodalEmbeddingEngine:
                 logger.warning("MultimodalEmbeddingEngine: cache load failed: %s", exc)
 
         # Compute
-        docs_out = self.embed_documents(documents, source_path=source_path)
+        docs_out = self.embed_documents(documents, input_path=input_path)
         embeddings = np.stack(
             [d.embedding for d in docs_out],
             axis=0,  # noqa: B009
@@ -1541,7 +1541,7 @@ class LLMTrainingExporter:
                 # Provenance metadata (optional enrichment)
                 record["metadata"] = {
                     "doc_id": getattr(doc, "doc_id", None),
-                    "source_file": getattr(doc, "source_file", None),
+                    "input_path": getattr(doc, "input_path", None),
                     "source_type": str(getattr(doc, "source_type", "")),
                     "modality": str(getattr(doc, "modality", "text")),
                     "chunk_index": getattr(doc, "chunk_index", None),
@@ -1748,7 +1748,7 @@ class LLMTrainingExporter:
         -------
         matrix : ndarray shape (N, D) float32
         metadata : pandas.DataFrame or dict[str, list]
-            Metadata table with ``doc_id``, ``source_file``,
+            Metadata table with ``doc_id``, ``input_path``,
             ``source_type``, ``modality``, ``content_hash``,
             ``chunk_index`` columns.  Returns plain dict when
             pandas is not installed.
@@ -1774,7 +1774,7 @@ class LLMTrainingExporter:
         if include_metadata:
             meta = {
                 "doc_id": [getattr(d, "doc_id", "") for d in documents],
-                "source_file": [getattr(d, "source_file", "") for d in documents],
+                "input_path": [getattr(d, "input_path", "") for d in documents],
                 "source_type": [str(getattr(d, "source_type", "")) for d in documents],
                 "modality": [str(getattr(d, "modality", "text")) for d in documents],
                 "content_hash": [getattr(d, "content_hash", None) for d in documents],

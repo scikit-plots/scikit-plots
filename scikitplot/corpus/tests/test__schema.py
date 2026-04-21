@@ -467,7 +467,7 @@ class TestRoundTrip:
 
     def _full_doc(self):
         return CorpusDocument.create(
-            source_file="hamlet.txt", chunk_index=5,
+            input_path="hamlet.txt", chunk_index=5,
             text="To be or not to be.",
             section_type=SectionType.DIALOGUE,
             chunking_strategy=ChunkingStrategy.SENTENCE,

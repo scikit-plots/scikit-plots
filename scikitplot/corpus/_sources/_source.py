@@ -95,8 +95,8 @@ class SourceKind(_StrEnumBase):
     """
     Discriminant for the kind of source an entry represents.
 
-    Values
-    ------
+    Attributes
+    ----------
     FILE
         A local filesystem path to a single file.
     URL

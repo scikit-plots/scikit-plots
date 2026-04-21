@@ -18,7 +18,7 @@ from ..._schema import CorpusDocument
 
 
 def _make_doc(
-    source_file: str = "f.txt",
+    input_path: str = "f.txt",
     chunk_index: int = 0,
     text: str = "This is a sample sentence here.",
     language: str | None = "en",
@@ -26,7 +26,7 @@ def _make_doc(
     source_date: str | None = None,
 ) -> CorpusDocument:
     return CorpusDocument.create(
-        source_file=source_file,
+        input_path=input_path,
         chunk_index=chunk_index,
         text=text,
         language=language,

@@ -76,14 +76,14 @@ class PipelineResult:
 
     Parameters
     ----------
-    source : str
+    input_path : str
         Input source identifier (file path, URL, or batch label).
-    documents : list of CorpusDocument
-        All documents produced (after chunking, filtering, and optional
-        embedding). Empty list if the source yielded no usable text.
     output_path : pathlib.Path or None
         Path to the exported file, or ``None`` when no export was
         requested (``output_path=None`` in the pipeline call).
+    documents : list of CorpusDocument
+        All documents produced (after chunking, filtering, and optional
+        embedding). Empty list if the source yielded no usable text.
     n_read : int
         Total raw chunks yielded by the reader before filtering.
     n_omitted : int
@@ -111,14 +111,14 @@ class PipelineResult:
     487
     """
 
-    source: str
-    documents: list[CorpusDocument]
+    input_path: str
     output_path: pathlib.Path | None
+    export_format: ExportFormat | None
+    documents: list[CorpusDocument]
     n_read: int
     n_omitted: int
     n_embedded: int
     elapsed_seconds: float
-    export_format: ExportFormat | None
 
     @property
     def n_documents(self) -> int:
@@ -128,12 +128,14 @@ class PipelineResult:
     def __repr__(self) -> str:
         return (
             f"PipelineResult("
-            f"source={self.source!r},"
+            f"input_path={self.input_path!r},"
+            f" output_path={self.output_path},"
+            f" export_format={self.export_format},"
             f" n_documents={self.n_documents},"
+            f" n_read={self.n_read},"
             f" n_omitted={self.n_omitted},"
             f" n_embedded={self.n_embedded},"
-            f" elapsed={self.elapsed_seconds:.1f}s,"
-            f" output={self.output_path})"
+            f" elapsed_seconds={self.elapsed_seconds:.1f}s)"
         )
 
 
@@ -166,7 +168,7 @@ class CorpusPipeline:
         chunking/filtering. Embeddings are stored in
         :attr:`~scikitplot.corpus._schema.CorpusDocument.embedding`.
         Default: ``None`` (no embedding).
-    output_dir : pathlib.Path or None, optional
+    output_path : pathlib.Path or None, optional
         Directory where exported files are written. When ``None``,
         export is skipped unless ``output_path`` is supplied explicitly
         in a :meth:`run` call. Default: ``None``.
@@ -178,7 +180,7 @@ class CorpusPipeline:
         cannot detect language. Default: ``None``.
     progress_callback : callable or None, optional
         Called after each batch of documents is processed.
-        Signature: ``(source: str, n_done: int, n_total_estimate: int) → None``.
+        Signature: ``(input_path: str, n_done: int, n_total_estimate: int) → None``.
         ``n_total_estimate`` is ``-1`` when the total is unknown.
         Default: ``None``.
     normalizer : TextNormalizer or None, optional
@@ -249,7 +251,7 @@ class CorpusPipeline:
     chunker : ChunkerBase or None
     filter_ : FilterBase or None
     embedding_engine : EmbeddingEngine or None
-    output_dir : pathlib.Path or None
+    output_path : pathlib.Path or None
     export_format : ExportFormat or None
     default_language : str or None
 
@@ -277,7 +279,7 @@ class CorpusPipeline:
     >>> from scikitplot.corpus._chunkers import SentenceChunker
     >>> pipeline = CorpusPipeline(
     ...     chunker=SentenceChunker("en_core_web_sm"),
-    ...     output_dir=Path("output/"),
+    ...     output_path=Path("output/"),
     ... )
     >>> result = pipeline.run(Path("corpus.txt"))
     >>> print(result)
@@ -289,7 +291,7 @@ class CorpusPipeline:
     >>> pipeline = CorpusPipeline(
     ...     chunker=SentenceChunker("en_core_web_sm"),
     ...     embedding_engine=engine,
-    ...     output_dir=Path("output/"),
+    ...     output_path=Path("output/"),
     ...     export_format=ExportFormat.PARQUET,
     ... )
     >>> results = pipeline.run_batch(list(Path("corpus/").glob("*.txt")))
@@ -302,7 +304,7 @@ class CorpusPipeline:
 
     >>> pipeline = CorpusPipeline(
     ...     reader_kwargs={"transcribe": True, "whisper_model": "small"},
-    ...     output_dir=Path("output/"),
+    ...     output_path=Path("output/"),
     ... )
     >>> result = pipeline.run_url(
     ...     "https://archive.org/details/tale_two_cities_librivox/"
@@ -318,7 +320,7 @@ class CorpusPipeline:
     ...             ".jpg": {"backend": "easyocr"},
     ...         },
     ...     },
-    ...     output_dir=Path("output/"),
+    ...     output_path=Path("output/"),
     ... )
     >>> result = pipeline.run(Path("WHO-EURO-2025.zip"))
     """
@@ -328,7 +330,7 @@ class CorpusPipeline:
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,
         embedding_engine: Any | None = None,
-        output_dir: pathlib.Path | None = None,
+        output_path: pathlib.Path | None = None,
         export_format: ExportFormat | None = ExportFormat.CSV,
         normalizer: TextNormalizer | None = None,
         enricher: NLPEnricher | None = None,
@@ -347,7 +349,9 @@ class CorpusPipeline:
         self.chunker = bridge_chunker(chunker) if chunker is not None else None
         self.filter_ = filter_
         self.embedding_engine = embedding_engine
-        self.output_dir = pathlib.Path(output_dir) if output_dir is not None else None
+        self.output_path = (
+            pathlib.Path(output_path) if output_path is not None else None
+        )
         self.export_format = export_format
         self.normalizer = normalizer
         self.enricher = enricher
@@ -361,7 +365,7 @@ class CorpusPipeline:
 
     def run(
         self,
-        input_file: pathlib.Path | str,
+        input_path: str | pathlib.Path,
         *,
         output_path: pathlib.Path | None = None,
         export_format: ExportFormat | None = None,
@@ -377,7 +381,7 @@ class CorpusPipeline:
 
         Parameters
         ----------
-        input_file : pathlib.Path or str
+        input_path : str or pathlib.Path
             Path to a local file **or** an ``http(s)://`` URL string.
             A ``str`` that starts with ``http://`` or ``https://``
             (case-insensitive) is treated as a URL and routed through
@@ -386,12 +390,12 @@ class CorpusPipeline:
             dispatched by extension via the reader registry.
         output_path : pathlib.Path or None, optional
             Explicit output file path.  When ``None``, the path is
-            derived from ``output_dir`` and the input stem.  If both
+            derived from ``output_path`` and the input stem.  If both
             are ``None``, export is skipped.
         export_format : ExportFormat or None, optional
             Override the pipeline-level ``export_format`` for this call.
         filename_override : str or None, optional
-            Override the ``source_file`` label in generated documents.
+            Override the ``input_path`` label in generated documents.
             Ignored for URL sources.
 
         Returns
@@ -402,12 +406,12 @@ class CorpusPipeline:
         Raises
         ------
         TypeError
-            If *input_file* is not a ``str`` or :class:`pathlib.Path`.
+            If *input_path* is not a ``str`` or :class:`pathlib.Path`.
         ValueError
             If a local file path does not exist, or no reader is
             registered for the file extension.
         ValueError
-            If *input_file* is a URL string and the URL is invalid or
+            If *input_path* is a URL string and the URL is invalid or
             cannot be resolved.
 
         See Also
@@ -426,16 +430,16 @@ class CorpusPipeline:
         URL string — no separate ``run_url`` call needed:
 
         >>> result = pipeline.run("https://en.wikipedia.org/wiki/Python")
-        >>> result.source
+        >>> result.input_path
         'https://en.wikipedia.org/wiki/Python'
         """
-        if not isinstance(input_file, (str, pathlib.Path)):
+        if not isinstance(input_path, (str, pathlib.Path)):
             raise TypeError(
-                f"CorpusPipeline.run: input_file must be str or pathlib.Path;"
-                f" got {type(input_file).__name__!r}."
+                f"CorpusPipeline.run: input_path must be str or pathlib.Path;"
+                f" got {type(input_path).__name__!r}."
             )
         return self._run_source(
-            input_file,
+            input_path,
             output_path=output_path,
             export_format=export_format,
             filename_override=filename_override,
@@ -447,17 +451,17 @@ class CorpusPipeline:
 
     def _run_source(
         self,
-        source: pathlib.Path | str,
+        input_path: pathlib.Path | str,
         *,
         output_path: pathlib.Path | None = None,
         export_format: ExportFormat | None = None,
         filename_override: str | None = None,
     ) -> PipelineResult:
         """
-        Dispatch a single source — URL or local file — to the correct reader.
+        Dispatch a single input_path — URL or local file — to the correct reader.
 
         This is the single implementation backing both :meth:`run` and
-        each item of :meth:`run_batch`.  It tests the raw ``source`` value
+        each item of :meth:`run_batch`.  It tests the raw ``input_path`` value
         with :func:`~scikitplot.corpus._base._is_url` **before** any
         ``pathlib.Path`` conversion, preventing silent URL mangling.
         ``pathlib.Path`` collapses ``https://`` → ``https:/`` on POSIX
@@ -466,14 +470,14 @@ class CorpusPipeline:
 
         Parameters
         ----------
-        source : pathlib.Path or str
+        input_path : pathlib.Path or str
             A local file path or an ``http(s)://`` URL string.
         output_path : pathlib.Path or None, optional
             Explicit output file path override.
         export_format : ExportFormat or None, optional
             Override the pipeline-level ``export_format``.
         filename_override : str or None, optional
-            Override the ``source_file`` label.  Silently ignored for
+            Override the ``input_path`` label.  Silently ignored for
             URL sources (URLs have no meaningful stable local filename).
 
         Returns
@@ -484,7 +488,7 @@ class CorpusPipeline:
         -----
         **Routing rule (applied in this order):**
 
-        1. ``_is_url(source)`` is ``True`` (str matching ``^https?://``)
+        1. ``_is_url(input_path)`` is ``True`` (str matching ``^https?://``)
            → URL path: pass as a raw string to
            :meth:`~scikitplot.corpus._base.DocumentReader.create`, which
            delegates to ``from_url()``.
@@ -496,15 +500,15 @@ class CorpusPipeline:
         """
         import re as _re  # noqa: PLC0415
 
-        is_url = _is_url(source)
+        is_url = _is_url(input_path)
         start = timer()
 
         if is_url:
-            source_str = str(source)
+            source_str = str(input_path)
             source_label = source_str
             log_name = source_str[:80]
         else:
-            input_path = pathlib.Path(source)
+            input_path = pathlib.Path(input_path)
             source_label = str(input_path)
             log_name = input_path.name
 
@@ -513,7 +517,7 @@ class CorpusPipeline:
         # Pass URL strings raw (not wrapped in Path) so DocumentReader.create()
         # can route them via _is_url().  Local paths are explicitly converted.
         reader = DocumentReader.create(
-            source_str if is_url else pathlib.Path(source),
+            source_str if is_url else pathlib.Path(input_path),
             chunker=self.chunker,
             filter_=self.filter_,
             filename_override=None if is_url else filename_override,
@@ -551,17 +555,17 @@ class CorpusPipeline:
                     exc,
                 )
 
-        # URL sources pass embed source_path=None (no stable mtime for cache key).
+        # URL sources pass embed input_path=None (no stable mtime for cache key).
         n_embedded = 0
         if self.embedding_engine is not None and documents:
-            embed_path = None if is_url else pathlib.Path(source)
+            embed_path = None if is_url else pathlib.Path(input_path)
             documents, n_embedded = self._embed_documents(documents, embed_path)
 
         # Output stem: sanitised URL slug or file stem.
         if is_url:
             stem = _re.sub(r"[^\w.-]", "_", source_str)[:60]
         else:
-            stem = pathlib.Path(source).stem
+            stem = pathlib.Path(input_path).stem
 
         fmt = export_format if export_format is not None else self.export_format
         resolved_output = self._resolve_output_path(stem, output_path, fmt)
@@ -578,14 +582,14 @@ class CorpusPipeline:
         )
 
         return PipelineResult(
-            source=source_label,
-            documents=documents,
+            input_path=source_label,
             output_path=resolved_output,
+            export_format=fmt,
+            documents=documents,
             n_read=n_read,
             n_omitted=n_omitted,
             n_embedded=n_embedded,
             elapsed_seconds=round(elapsed, 3),
-            export_format=fmt,
         )
 
     def run_url(
@@ -604,8 +608,8 @@ class CorpusPipeline:
         :class:`PipelineResult` objects is returned.  The single-URL form
         returns a single :class:`PipelineResult` (backwards compatible).
 
-        Supported URL shapes
-        --------------------
+        Supported URL shapes:
+
         * Single video — ``watch?v=``, ``youtu.be/``, ``/shorts/``,
           ``/embed/``, ``/live/``
         * Video + playlist context — ``watch?v=…&list=…``
@@ -720,7 +724,7 @@ class CorpusPipeline:
         # URL sources: no file-based cache (no stable mtime)
         n_embedded = 0
         if self.embedding_engine is not None and documents:
-            documents, n_embedded = self._embed_documents(documents, source_path=None)
+            documents, n_embedded = self._embed_documents(documents, input_path=None)
 
         fmt = export_format if export_format is not None else self.export_format
         # Derive a filename from URL if no explicit path
@@ -738,14 +742,14 @@ class CorpusPipeline:
         )
 
         return PipelineResult(
-            source=url,
-            documents=documents,
+            input_path=url,
             output_path=resolved_output,
+            export_format=fmt,
+            documents=documents,
             n_read=n_read,
             n_omitted=n_omitted,
             n_embedded=n_embedded,
             elapsed_seconds=round(elapsed, 3),
-            export_format=fmt,
         )
 
     # ------------------------------------------------------------------
@@ -824,20 +828,20 @@ class CorpusPipeline:
         ...         "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         ...     ]
         ... )
-        >>> [r.source for r in results]
+        >>> [r.input_path for r in results]
         ['local_report.pdf', 'https://...', 'https://...']
         """
         results: list[PipelineResult] = []
         total = len(input_files)
 
-        for idx, source in enumerate(input_files):
-            if not isinstance(source, (str, pathlib.Path)):
+        for idx, i_path in enumerate(input_files):
+            if not isinstance(i_path, (str, pathlib.Path)):
                 raise TypeError(
                     f"CorpusPipeline.run_batch: input_files[{idx}] must be"
-                    f" str or pathlib.Path; got {type(source).__name__!r}."
+                    f" str or pathlib.Path; got {type(i_path).__name__!r}."
                 )
             # Build a human-readable label for logging without Path-wrapping URLs.
-            log_label = str(source) if _is_url(source) else pathlib.Path(source).name
+            log_label = str(i_path) if _is_url(i_path) else pathlib.Path(i_path).name
             logger.info(
                 "CorpusPipeline.run_batch: [%d/%d] %s.",
                 idx + 1,
@@ -845,7 +849,7 @@ class CorpusPipeline:
                 log_label,
             )
             try:
-                result = self._run_source(source, export_format=export_format)
+                result = self._run_source(i_path, export_format=export_format)
                 results.append(result)
             except Exception as exc:  # noqa: BLE001
                 if stop_on_error:
@@ -859,7 +863,7 @@ class CorpusPipeline:
 
             if self.progress_callback is not None:
                 done = sum(r.n_documents for r in results)
-                self.progress_callback(str(source), done, -1)
+                self.progress_callback(str(i_path), done, -1)
 
         logger.info(
             "CorpusPipeline.run_batch: processed %d/%d sources, %d total documents.",
@@ -945,7 +949,7 @@ class CorpusPipeline:
     def _embed_documents(  # noqa: D417
         self,
         documents: list[CorpusDocument],
-        source_path: pathlib.Path | None,
+        input_path: pathlib.Path | None,
     ) -> tuple:
         """
         Embed documents using the configured embedding engine.
@@ -953,7 +957,7 @@ class CorpusPipeline:
         Parameters
         ----------
         documents : list of CorpusDocument
-        source_path : pathlib.Path or None
+        input_path : pathlib.Path or None
 
         Returns
         -------
@@ -963,7 +967,7 @@ class CorpusPipeline:
         logger.info("CorpusPipeline: embedding %d documents.", len(documents))
         embedded = self.embedding_engine.embed_documents(
             documents,
-            source_path=source_path,
+            input_path=input_path,
         )
         n_embedded = sum(1 for d in embedded if d.has_embedding)
         return embedded, n_embedded
@@ -977,7 +981,7 @@ class CorpusPipeline:
         """
         Determine the output file path.
 
-        Priority: explicit ``output_path`` > derived from ``output_dir``
+        Priority: explicit ``output_path`` > derived from ``output_path``
         > ``None`` (no export).
 
         Parameters
@@ -993,9 +997,9 @@ class CorpusPipeline:
         """
         if explicit_path is not None:
             return explicit_path
-        if self.output_dir is not None and fmt is not None:
+        if self.output_path is not None and fmt is not None:
             suffix = _FORMAT_SUFFIX.get(fmt, ".csv")
-            return self.output_dir / f"{stem}{suffix}"
+            return self.output_path / f"{stem}{suffix}"
         return None
 
     def _export(  # noqa: D417
@@ -1050,7 +1054,7 @@ _FORMAT_SUFFIX: dict[ExportFormat, str] = {
 
 
 def create_corpus(
-    input_file: pathlib.Path | str,
+    input_path: pathlib.Path | str,
     output_path: pathlib.Path | str,
     *,
     chunker: ChunkerBase | None = None,
@@ -1069,7 +1073,7 @@ def create_corpus(
 
     Parameters
     ----------
-    input_file : pathlib.Path or str
+    input_path : pathlib.Path or str
         Path to the input file (local) or an ``http(s)://`` URL string.
     output_path : pathlib.Path or str
         Path for the exported corpus file.
@@ -1088,7 +1092,7 @@ def create_corpus(
         :class:`~._enrichers._nlp_enricher.EnricherConfig.language`.
         Default: ``None`` (skip).
     filename_override : str or None, optional
-        Override the ``source_file`` label in generated documents.
+        Override the ``input_path`` label in generated documents.
     export_format : ExportFormat, optional
         Output format.  Default: :attr:`~._schema.ExportFormat.CSV`.
     default_language : str or list[str] or None, optional
@@ -1109,7 +1113,7 @@ def create_corpus(
     >>> from pathlib import Path
     >>> from scikitplot.corpus._pipeline import create_corpus
     >>> result = create_corpus(
-    ...     input_file=Path("chapter01.txt"),
+    ...     input_path=Path("chapter01.txt"),
     ...     output_path=Path("output/chapter01.csv"),
     ... )
     >>> len(result.documents)
@@ -1119,7 +1123,7 @@ def create_corpus(
 
     >>> from scikitplot.corpus import TextNormalizer, NLPEnricher, EnricherConfig
     >>> result = create_corpus(
-    ...     input_file=Path("scan.png"),
+    ...     input_path=Path("scan.png"),
     ...     output_path=Path("output/scan.csv"),
     ...     normalizer=TextNormalizer(),
     ...     enricher=NLPEnricher(
@@ -1135,7 +1139,7 @@ def create_corpus(
     Multi-language corpus:
 
     >>> result = create_corpus(
-    ...     input_file=Path("multilang.txt"),
+    ...     input_path=Path("multilang.txt"),
     ...     output_path=Path("output/multilang.csv"),
     ...     enricher=NLPEnricher(EnricherConfig(language=["en", "ar", "hi"])),
     ... )
@@ -1148,7 +1152,7 @@ def create_corpus(
         default_language=default_language,
     )
     return pipeline.run(
-        input_file=pathlib.Path(input_file),
+        input_path=pathlib.Path(input_path),
         output_path=pathlib.Path(output_path),
         export_format=export_format,
         filename_override=filename_override,

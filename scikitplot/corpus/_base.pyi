@@ -106,7 +106,7 @@ class DocumentReader:
     file_types: ClassVar[list[str] | None]
 
     # Instance fields
-    input_file: pathlib.Path
+    input_path: pathlib.Path
     chunker: ChunkerBase | None
     filter_: FilterBase | None
     filename_override: str | None
@@ -165,7 +165,7 @@ class DocumentReader:
     @classmethod
     def create(
         cls,
-        *inputs: pathlib.Path | str,
+        *input_path: str | pathlib.Path,
         chunker: ChunkerBase | None = ...,
         filter_: FilterBase | None = ...,
         filename_override: str | None = ...,
@@ -182,7 +182,7 @@ class DocumentReader:
     @classmethod
     def _create_one(
         cls,
-        input_file: pathlib.Path | str,
+        input_path: str | pathlib.Path,
         *,
         chunker: ChunkerBase | None = ...,
         filter_: FilterBase | None = ...,
@@ -200,7 +200,7 @@ class DocumentReader:
     @classmethod
     def from_manifest(
         cls,
-        manifest_path: pathlib.Path | str,
+        manifest_path: str | pathlib.Path,
         *,
         chunker: ChunkerBase | None = ...,
         filter_: FilterBase | None = ...,
@@ -271,7 +271,7 @@ class DummyReader(DocumentReader):
     @classmethod
     def check(
         cls,
-        *sources: pathlib.Path | str,
+        *input_path: str | pathlib.Path,
         timeout: int = ...,
         raise_on_first: bool = ...,
     ) -> tuple[

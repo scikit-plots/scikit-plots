@@ -137,16 +137,16 @@ class CustomCompilerProtocol(Protocol):
     :class:`CompilerRegistry` and used as a drop-in replacement or
     supplement to the default Cython/setuptools compiler.
 
-    Required interface
-    ------------------
+    Required interface:
+
     ``name : str``
         Unique compiler name.  Must start with ``custom_`` or ``Custom``.
 
     ``__call__(source, *, build_dir, module_name, **kwargs) -> Path``
         Compile ``source`` and return the path to the built artifact.
 
-    Parameters of ``__call__``
-    --------------------------
+    Parameters
+    ----------
     source : str
         Source code to compile (pyx, C, C++, or backend-specific).
     build_dir : pathlib.Path
