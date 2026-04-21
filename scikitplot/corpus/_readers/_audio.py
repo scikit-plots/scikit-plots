@@ -1049,7 +1049,7 @@ class AudioReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the audio file.
     transcribe : bool, optional
         When ``True``, fall back to Whisper ASR if no companion file is
@@ -1177,7 +1177,7 @@ class AudioReader(DocumentReader):
     Companion LRC lyrics:
 
     >>> from pathlib import Path
-    >>> reader = AudioReader(input_file=Path("beethoven_moonlight.mp3"))
+    >>> reader = AudioReader(input_path=Path("beethoven_moonlight.mp3"))
     >>> docs = list(reader.get_documents())
     >>> for d in docs[:3]:
     ...     print(f"{d.timecode_start:.1f}s: {d.text[:50]}")
@@ -1185,7 +1185,7 @@ class AudioReader(DocumentReader):
     Whisper transcription:
 
     >>> reader = AudioReader(
-    ...     input_file=Path("lecture.mp3"),
+    ...     input_path=Path("lecture.mp3"),
     ...     transcribe=True,
     ...     whisper_model="small",
     ...     default_language="en",
@@ -1198,7 +1198,7 @@ class AudioReader(DocumentReader):
     ...     # Your classification model here
     ...     return [{"label": "bird", "confidence": 0.95, "text": "bird chirping"}]
     >>> reader = AudioReader(
-    ...     input_file=Path("forest_sounds.wav"),
+    ...     input_path=Path("forest_sounds.wav"),
     ...     classify=True,
     ...     classifier=my_classifier,
     ...     segment_duration=3.0,
@@ -1286,7 +1286,7 @@ class AudioReader(DocumentReader):
     ...              "timecode_end": s["end"]}
     ...             for s in result["segments"] if s["text"].strip()]
     >>> reader = AudioReader(
-    ...     input_file=Path("interview.mp3"),
+    ...     input_path=Path("interview.mp3"),
     ...     custom_extractor=whisperx_extract,
     ...     custom_extractor_kwargs={"language": "de"},
     ... )
@@ -1377,7 +1377,7 @@ class AudioReader(DocumentReader):
         ImportError
             If ``transcribe=True`` and Whisper is not installed.
         """  # noqa: D205, D401
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"AudioReader: {self.file_name} is {file_size:,} bytes,"
@@ -1396,7 +1396,7 @@ class AudioReader(DocumentReader):
             )
             try:
                 raw = self.custom_extractor(
-                    self.input_file, **self.custom_extractor_kwargs
+                    self.input_path, **self.custom_extractor_kwargs
                 )
             except Exception as exc:
                 raise RuntimeError(
@@ -1419,7 +1419,7 @@ class AudioReader(DocumentReader):
         yielded_any = False
 
         # --- Strategy 1: companion transcript / lyrics file ---
-        companion_result = _find_companion(self.input_file)
+        companion_result = _find_companion(self.input_path)
         if companion_result is not None:
             comp_path, comp_fmt = companion_result
             cues, comp_meta = _parse_companion(
@@ -1464,7 +1464,7 @@ class AudioReader(DocumentReader):
                 # Add audio features if requested
                 if self.extract_features and "timecode_start" in cue:
                     features = _extract_audio_features(
-                        self.input_file,
+                        self.input_path,
                         offset=cue["timecode_start"],
                         duration=(
                             cue.get("timecode_end", cue["timecode_start"] + 5.0)
@@ -1488,7 +1488,7 @@ class AudioReader(DocumentReader):
                 self.whisper_model,
             )
             segments = _transcribe_whisper(
-                self.input_file,
+                self.input_path,
                 self.whisper_model,
                 self.default_language,
             )
@@ -1510,7 +1510,7 @@ class AudioReader(DocumentReader):
                 # Add audio features if requested
                 if self.extract_features:
                     features = _extract_audio_features(
-                        self.input_file,
+                        self.input_path,
                         offset=seg["timecode_start"],
                         duration=seg["timecode_end"] - seg["timecode_start"],
                     )
@@ -1528,7 +1528,7 @@ class AudioReader(DocumentReader):
                 self.segment_overlap,
             )
             labels = _classify_audio(
-                self.input_file,
+                self.input_path,
                 self.classifier,
                 self.segment_duration,
                 self.segment_overlap,
@@ -1551,7 +1551,7 @@ class AudioReader(DocumentReader):
                 # Add audio features if requested
                 if self.extract_features:
                     features = _extract_audio_features(
-                        self.input_file,
+                        self.input_path,
                         offset=lbl["timecode_start"],
                         duration=lbl["timecode_end"] - lbl["timecode_start"],
                     )

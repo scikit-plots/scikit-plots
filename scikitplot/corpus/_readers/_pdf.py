@@ -242,7 +242,7 @@ class PDFReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.pdf`` file.
     password : str, optional
         Decryption password for encrypted PDFs. Default: ``""`` (none).
@@ -307,14 +307,14 @@ class PDFReader(DocumentReader):
     Default usage (auto backend):
 
     >>> from pathlib import Path
-    >>> reader = PDFReader(input_file=Path("paper.pdf"))
+    >>> reader = PDFReader(input_path=Path("paper.pdf"))
     >>> docs = list(reader.get_documents())
     >>> print(f"Extracted {len(docs)} chunks from {reader.file_name}")
 
     Encrypted PDF with forced pypdf backend:
 
     >>> reader = PDFReader(
-    ...     input_file=Path("secure.pdf"),
+    ...     input_path=Path("secure.pdf"),
     ...     password="hunter2",
     ...     prefer_backend="pypdf",
     ... )
@@ -376,7 +376,7 @@ class PDFReader(DocumentReader):
     ...         return [{"text": p.extract_text() or "", "page_number": i}
     ...                 for i, p in enumerate(pdf.pages)]
     >>> reader = PDFReader(
-    ...     input_file=Path("paper.pdf"),
+    ...     input_path=Path("paper.pdf"),
     ...     prefer_backend="custom",
     ...     custom_extractor=pdfplumber_extract,
     ... )
@@ -487,7 +487,7 @@ class PDFReader(DocumentReader):
             )
             try:
                 raw = self.custom_extractor(
-                    self.input_file, **self.custom_extractor_kwargs
+                    self.input_path, **self.custom_extractor_kwargs
                 )
             except Exception as exc:
                 raise RuntimeError(
@@ -507,7 +507,7 @@ class PDFReader(DocumentReader):
             yield from chunks
             return
 
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"PDFReader: {self.file_name} is {file_size:,} bytes, which"
@@ -566,10 +566,10 @@ class PDFReader(DocumentReader):
     def _count_pages(self) -> int | None:
         """Return total page count using the best available backend."""
         if self.prefer_backend == "pypdf":
-            return _count_pdf_pages_pypdf(self.input_file, self.password)
-        count = _count_pdf_pages_pdfminer(self.input_file)
+            return _count_pdf_pages_pypdf(self.input_path, self.password)
+        count = _count_pdf_pages_pdfminer(self.input_path)
         if count is None:
-            count = _count_pdf_pages_pypdf(self.input_file, self.password)
+            count = _count_pdf_pages_pypdf(self.input_path, self.password)
         return count
 
     def _extract_page(self, page_idx: int) -> str | None:
@@ -588,14 +588,14 @@ class PDFReader(DocumentReader):
             page index is out of range.
         """
         if self.prefer_backend == "pypdf":
-            return _extract_page_text_pypdf(self.input_file, page_idx, self.password)
+            return _extract_page_text_pypdf(self.input_path, page_idx, self.password)
 
         if self.prefer_backend == "pdfminer":
-            return _extract_page_text_pdfminer(self.input_file, page_idx)
+            return _extract_page_text_pdfminer(self.input_path, page_idx)
 
         # Auto mode: pdfminer primary, pypdf fallback per-page
         try:
-            text = _extract_page_text_pdfminer(self.input_file, page_idx)
+            text = _extract_page_text_pdfminer(self.input_path, page_idx)
         except ImportError:
             text = None
 
@@ -605,7 +605,7 @@ class PDFReader(DocumentReader):
         # pdfminer returned empty or failed — try pypdf
         try:
             fallback = _extract_page_text_pypdf(
-                self.input_file, page_idx, self.password
+                self.input_path, page_idx, self.password
             )
         except ImportError as e:
             if text is None:

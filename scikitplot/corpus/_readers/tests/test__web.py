@@ -79,7 +79,7 @@ _YT_ID  = "rwPISgZcYIk"
 
 def _yt_reader(**kwargs: Any) -> YouTubeReader:
     return YouTubeReader(
-        input_file=pathlib.Path(_YT_URL),
+        input_path=pathlib.Path(_YT_URL),
         source_uri=_YT_URL,
         **kwargs,
     )
@@ -139,7 +139,7 @@ def _make_yt_api_mock(transcript_list: MagicMock) -> MagicMock:
 
 def _make_web_reader(url: str = "https://example.com") -> WebReader:
     return WebReader(
-        input_file=pathlib.Path(url),
+        input_path=pathlib.Path(url),
         source_uri=url,
     )
 
@@ -510,7 +510,7 @@ class TestYoutubeReaderErrors:
 
     def test_invalid_youtube_url_raises_value_error(self) -> None:
         reader = YouTubeReader(
-            input_file=pathlib.Path("https://example.com/notYT"),
+            input_path=pathlib.Path("https://example.com/notYT"),
             source_uri="https://example.com/notYT",
         )
         with pytest.raises(ValueError, match="YouTube"):

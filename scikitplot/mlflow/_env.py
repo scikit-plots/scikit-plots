@@ -88,6 +88,7 @@ def parse_dotenv(path: str) -> dict[str, str]:
     Notes
     -----
     Strict behavior:
+
     - Empty lines and comments beginning with `#` are ignored
     - No shell expansion is performed
     - Optional leading `export ` is supported

@@ -21,7 +21,7 @@
 .. _corpus-index:
 
 ======================================================================
-Corpus Generation
+Corpus (Remarks) Generation
 ======================================================================
 
 .. image:: /_static/user_guide/scikitplot_corpus_architecture.svg

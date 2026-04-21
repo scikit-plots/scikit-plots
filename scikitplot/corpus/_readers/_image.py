@@ -217,7 +217,7 @@ def _ocr_easyocr(
         If ``easyocr`` or ``numpy`` is not installed.
     """
     try:
-        import easyocr  # noqa: PLC0415
+        import easyocr  # type: ignore[] # noqa: PLC0415
         import numpy as np  # noqa: PLC0415
     except ImportError as exc:
         raise ImportError(
@@ -263,7 +263,7 @@ class ImageReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the image file.
     backend : str, optional
         OCR backend to use. One of ``"tesseract"`` (default) or
@@ -340,13 +340,13 @@ class ImageReader(DocumentReader):
     Default Tesseract backend:
 
     >>> from pathlib import Path
-    >>> reader = ImageReader(input_file=Path("scan.png"), ocr_lang="eng")
+    >>> reader = ImageReader(input_path=Path("scan.png"), ocr_lang="eng")
     >>> docs = list(reader.get_documents())
     >>> print(docs[0].text[:100])
 
     Multi-page TIFF:
 
-    >>> reader = ImageReader(input_file=Path("document.tiff"))
+    >>> reader = ImageReader(input_path=Path("document.tiff"))
     >>> docs = list(reader.get_documents())
     >>> print(f"Extracted {len(docs)} pages")
     """
@@ -410,7 +410,7 @@ class ImageReader(DocumentReader):
     ...     return [{"text": line.text, "confidence": line.confidence}
     ...             for line in result.text_lines]
     >>> reader = ImageReader(
-    ...     input_file=Path("scan.png"),
+    ...     input_path=Path("scan.png"),
     ...     backend="custom",
     ...     custom_extractor=surya_extract,
     ... )
@@ -526,7 +526,7 @@ class ImageReader(DocumentReader):
             )
             try:
                 raw = self.custom_extractor(
-                    self.input_file, **self.custom_extractor_kwargs
+                    self.input_path, **self.custom_extractor_kwargs
                 )
             except Exception as exc:
                 raise RuntimeError(
@@ -555,7 +555,7 @@ class ImageReader(DocumentReader):
                 "  pip install Pillow"
             ) from exc
 
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"ImageReader: {self.file_name} is {file_size:,} bytes,"
@@ -566,7 +566,7 @@ class ImageReader(DocumentReader):
             "ImageReader: opening %s (backend=%s).", self.file_name, self.backend
         )
 
-        with Image.open(self.input_file) as img:
+        with Image.open(self.input_path) as img:
             frames = self._extract_frames(img)
             total = len(frames)
             logger.debug("ImageReader: %d frame(s) in %s.", total, self.file_name)

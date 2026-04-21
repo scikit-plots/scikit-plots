@@ -47,7 +47,7 @@ class _MockDoc:
     doc_id: str = "abc123"
     text: str | None = "Hello world."
     normalized_text: str | None = None
-    source_file: str = "test.txt"
+    input_path: str = "test.txt"
     source_type: str = "book"
     source_title: str | None = None
     source_author: str | None = None
@@ -101,7 +101,7 @@ def sample_doc() -> _MockDoc:
     return _MockDoc(
         doc_id="d001",
         text="The  first  computer  was  huge.  It occupied a room.",
-        source_file="history.txt",
+        input_path="history.txt",
         chunk_index=0,
         content_hash="a" * 32,
     )
@@ -120,7 +120,7 @@ def sample_docs() -> list[_MockDoc]:
         _MockDoc(
             doc_id=f"d{i:03d}",
             text=t,
-            source_file="corpus.txt",
+            input_path="corpus.txt",
             chunk_index=i,
             content_hash=f"{i:032d}",
         )
@@ -444,7 +444,7 @@ class TestNumpyArrayAdapter:
         except ImportError:
             pytest.skip("numpy not available")
         assert "doc_ids" in arrays
-        assert "source_files" in arrays
+        assert "input_paths" in arrays
         assert "modalities" in arrays
         assert "content_hashes" in arrays
 
@@ -940,7 +940,7 @@ class TestLLMTrainingExporter:
             LLMTrainingExporter,
         )
         try:
-            from transformers import AutoTokenizer  # noqa: PLC0415
+            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
         except ImportError:
             pytest.skip("transformers not available")
 
@@ -957,7 +957,7 @@ class TestLLMTrainingExporter:
             LLMTrainingExporter,
         )
         try:
-            from transformers import AutoTokenizer  # noqa: PLC0415
+            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
         except ImportError:
             pytest.skip("transformers not available")
 
@@ -1125,7 +1125,7 @@ class TestCorpusPipelineRun:
         )
 
     def test_run_url_source_label_preserved(self):
-        """PipelineResult.source equals the original URL string."""
+        """PipelineResult.input_path equals the original URL string."""
         from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
 
         pipeline = CorpusPipeline()
@@ -1137,7 +1137,7 @@ class TestCorpusPipelineRun:
         with patch("scikitplot.corpus._pipeline.DocumentReader.create", return_value=mock_reader):
             result = pipeline.run(url)
 
-        assert result.source == url
+        assert result.input_path == url
 
     def test_run_bad_type_raises_type_error(self):
         """run(42) raises TypeError immediately."""
@@ -1149,7 +1149,7 @@ class TestCorpusPipelineRun:
 
 
 class TestCorpusPipelineRunBatch:
-    """run_batch() — mixed inputs, URL pass-through, type guard."""
+    """run_batch() — mixed input_path, URL pass-through, type guard."""
 
     def _make_pipeline(self):
         from scikitplot.corpus._pipeline import CorpusPipeline  # noqa: PLC0415
@@ -1168,9 +1168,9 @@ class TestCorpusPipelineRunBatch:
             from scikitplot.corpus._pipeline import PipelineResult  # noqa: PLC0415
             from scikitplot.corpus._schema import ExportFormat  # noqa: PLC0415
             return PipelineResult(
-                source=str(source), documents=[], output_path=None,
-                n_read=0, n_omitted=0, n_embedded=0,
-                elapsed_seconds=0.0, export_format=None,
+                input_path=str(source), output_path=None, export_format=None,
+                documents=[], n_read=0, n_omitted=0, n_embedded=0,
+                elapsed_seconds=0.0,
             )
 
         with patch.object(pipeline, "_run_source", side_effect=fake_run_source):
@@ -1196,9 +1196,9 @@ class TestCorpusPipelineRunBatch:
         def fake_run_source(source, **kw):
             call_sources.append(source)
             return PipelineResult(
-                source=str(source), documents=[], output_path=None,
-                n_read=0, n_omitted=0, n_embedded=0,
-                elapsed_seconds=0.0, export_format=None,
+                input_path=str(source), output_path=None, export_format=None,
+                documents=[], n_read=0, n_omitted=0, n_embedded=0,
+                elapsed_seconds=0.0,
             )
 
         with patch.object(pipeline, "_run_source", side_effect=fake_run_source):
@@ -1238,9 +1238,9 @@ class TestCorpusPipelineRunBatch:
 
         pipeline = CorpusPipeline()
         ok_result = PipelineResult(
-            source="https://ok.com", documents=[], output_path=None,
-            n_read=0, n_omitted=0, n_embedded=0,
-            elapsed_seconds=0.0, export_format=None,
+            input_path="https://ok.com", output_path=None, export_format=None,
+            documents=[], n_read=0, n_omitted=0, n_embedded=0,
+            elapsed_seconds=0.0,
         )
 
         def side_effect(source, **kw):
@@ -1255,7 +1255,7 @@ class TestCorpusPipelineRunBatch:
             )
 
         assert len(results) == 1
-        assert results[0].source == "https://ok.com"
+        assert results[0].input_path == "https://ok.com"
 
 
 class TestCollectDocumentsCounters:

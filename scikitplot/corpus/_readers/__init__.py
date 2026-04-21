@@ -128,7 +128,7 @@ from __future__ import annotations
 # registration overwrites ALTOReader's ".zip" registration.  This makes
 # DocumentReader.create("corpus.zip") dispatch to the generic ZipReader
 # which handles any content mix.  To use ALTOReader directly, instantiate
-# it explicitly: ALTOReader(input_file=Path("alto.zip")).
+# it explicitly: ALTOReader(input_path=Path("alto.zip")).
 from .._base import DummyReader  # noqa: F401 — registers :dummy
 from . import (
     _alto,

@@ -35,11 +35,11 @@ Design invariants
   SSRF attacks where an attacker's URL 302-redirects to ``http://169.254.169.254``.
 * **Deterministic temp paths:** Downloaded files use a SHA-256 prefix of the URL
   as the filename stem so repeated downloads of the same URL hit the same path
-  (enables naive caching when ``dest_dir`` is reused across builds).
+  (enables naive caching when ``output_path`` is reused across builds).
 * **Content-type fallback:** When the URL path has no recognisable extension,
   the ``Content-Type`` header is used to infer one.
 * **Caller owns cleanup:** The caller is responsible for deleting the returned
-  temp file or the ``dest_dir`` after processing.  ``CorpusBuilder`` uses a
+  temp file or the ``output_path`` after processing.  ``CorpusBuilder`` uses a
   ``tempfile.TemporaryDirectory`` context manager for this.
 
 Python compatibility
@@ -341,8 +341,8 @@ class URLKind(_StrEnumBase):
     """
     Classification of a URL for routing to the correct handler.
 
-    Values
-    ------
+    Attributes
+    ----------
     WEB_PAGE
         General web page — route to ``WebReader``.
     YOUTUBE
@@ -556,6 +556,13 @@ def probe_url_kind(
     **Thread safety**: This function is stateless and safe to call
     from multiple threads.
 
+    Developer note:
+
+    The function tries ``requests`` first (better redirect + timeout
+    handling).  It falls back to ``urllib.request`` if requests is not
+    installed.  The SSRF check is applied before connecting when
+    ``skip_ssrf_check=False``.
+
     Examples
     --------
     >>> # An API endpoint returning a PDF with no extension in path
@@ -569,13 +576,6 @@ def probe_url_kind(
     >>> kind = probe_url_kind("https://www.example.com/about")
     >>> kind == URLKind.WEB_PAGE
     True  # Content-Type: text/html
-
-    Developer note
-    --------------
-    The function tries ``requests`` first (better redirect + timeout
-    handling).  It falls back to ``urllib.request`` if requests is not
-    installed.  The SSRF check is applied before connecting when
-    ``skip_ssrf_check=False``.
     """
     if not isinstance(url, str) or not re.match(r"https?://", url, re.IGNORECASE):
         raise ValueError(
@@ -611,8 +611,8 @@ def _probe_content_type(url: str, *, timeout: int) -> str:
     or a connection error, a streaming GET is attempted and immediately
     closed after reading the headers.  Both paths respect *timeout*.
 
-    Developer note
-    --------------
+    Developer note:
+
     ``requests`` is preferred over ``urllib`` because it handles
     redirects automatically (important for CDN/API links that redirect
     to the actual file).  ``urllib`` is used as a stdlib fallback.
@@ -1307,7 +1307,7 @@ def _extract_http_status(exc: BaseException) -> int | None:
 def download_url(
     url: str,
     *,
-    dest_dir: str | Path | None = None,
+    output_path: str | Path | None = None,
     max_bytes: int = DEFAULT_MAX_DOWNLOAD_BYTES,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_redirects: int = DEFAULT_MAX_REDIRECTS,
@@ -1322,7 +1322,7 @@ def download_url(
     ----------
     url : str
         URL to download. Must be ``http://`` or ``https://``.
-    dest_dir : str, Path, or None, optional
+    output_path : str, Path, or None, optional
         Directory to write the downloaded file into. If ``None``,
         ``tempfile.gettempdir()`` is used. Default: ``None``.
     max_bytes : int, optional
@@ -1394,12 +1394,12 @@ def download_url(
     if not skip_ssrf_check:
         _validate_url_security(url)
 
-    # Resolve dest_dir
-    if dest_dir is None:  # noqa: SIM108
-        dest_dir = Path(tempfile.gettempdir())
+    # Resolve output_path
+    if output_path is None:  # noqa: SIM108
+        output_path = Path(tempfile.gettempdir())
     else:
-        dest_dir = Path(dest_dir)
-    dest_dir.mkdir(parents=True, exist_ok=True)
+        output_path = Path(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     last_exc: Exception | None = None
     total_attempts = max(1, max_retries + 1)
@@ -1424,7 +1424,7 @@ def download_url(
             try:
                 dest_path = _download_with_requests(
                     url,
-                    dest_dir=dest_dir,
+                    output_path=output_path,
                     max_bytes=max_bytes,
                     timeout=timeout,
                     max_redirects=max_redirects,
@@ -1434,7 +1434,7 @@ def download_url(
                 logger.debug("requests library not available; falling back to urllib.")
                 dest_path = _download_with_urllib(
                     url,
-                    dest_dir=dest_dir,
+                    output_path=output_path,
                     max_bytes=max_bytes,
                     timeout=timeout,
                 )
@@ -1469,7 +1469,7 @@ def download_url(
 def _download_with_requests(
     url: str,
     *,
-    dest_dir: Path,
+    output_path: Path,
     max_bytes: int,
     timeout: int,
     max_redirects: int,
@@ -1482,7 +1482,7 @@ def _download_with_requests(
     ----------
     url : str
         URL to download.
-    dest_dir : Path
+    output_path : Path
         Destination directory.
     max_bytes : int
         Maximum download size.
@@ -1537,7 +1537,7 @@ def _download_with_requests(
         # Infer extension
         ext = _infer_extension_from_headers(response.headers, url)
         filename = _make_temp_filename(url, ext)
-        dest_path = dest_dir / filename
+        dest_path = output_path / filename
 
         # Stream download with size guard
         downloaded = 0
@@ -1567,7 +1567,7 @@ def _download_with_requests(
 def _download_with_urllib(
     url: str,
     *,
-    dest_dir: Path,
+    output_path: Path,
     max_bytes: int,
     timeout: int,
 ) -> Path:
@@ -1578,7 +1578,7 @@ def _download_with_urllib(
     ----------
     url : str
         URL to download.
-    dest_dir : Path
+    output_path : Path
         Destination directory.
     max_bytes : int
         Maximum download size.
@@ -1609,7 +1609,7 @@ def _download_with_urllib(
     # Infer extension
     ext = _infer_extension_from_headers(response.headers, url)
     filename = _make_temp_filename(url, ext)
-    dest_path = dest_dir / filename
+    dest_path = output_path / filename
 
     # Stream download
     downloaded = 0

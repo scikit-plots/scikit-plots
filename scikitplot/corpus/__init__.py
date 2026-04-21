@@ -39,7 +39,7 @@ Batch processing with sentence chunking:
 >>> pipeline = CorpusPipeline(
 ...     # chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
 ...     chunker=SentenceChunker("en_core_web_sm"),  # default backend spacy
-...     output_dir=Path("output/"),
+...     output_path=Path("output/"),
 ...     export_format=ExportFormat.PARQUET,
 ... )
 >>> results = pipeline.run_batch(list(Path("corpus/").glob("*.txt")))
@@ -82,7 +82,7 @@ Convenience function (direct replacement for remarx ``create_corpus``):
 
 >>> from scikitplot.corpus import create_corpus
 >>> result = create_corpus(
-...     input_file=Path("chapter01.txt"),
+...     input_path=Path("chapter01.txt"),
 ...     output_path=Path("output/chapter01.csv"),
 ... )
 
@@ -111,6 +111,7 @@ from . import (
     _chunkers,
     _corpus_builder,
     _custom_hooks,
+    _downloader,
     _embeddings,
     _enrichers,
     _export,
@@ -131,6 +132,7 @@ from ._base import *  # noqa: F403  # Base classes
 from ._chunkers import *  # noqa: F403
 from ._corpus_builder import *  # noqa: F403  # --- Unified builder (the user-friendly orchestration API) ---
 from ._custom_hooks import *  # noqa: F403
+from ._downloader import *  # noqa: F403
 from ._embeddings import *  # noqa: F403  # Embeddings by sentence-transformer
 from ._enrichers import *  # noqa: F403  # --- NLP enricher ---
 from ._export import *  # noqa: F403
@@ -152,6 +154,7 @@ __all__ += _base.__all__
 __all__ += _chunkers.__all__
 __all__ += _corpus_builder.__all__
 __all__ += _custom_hooks.__all__
+__all__ += _downloader.__all__
 __all__ += _embeddings.__all__
 __all__ += _enrichers.__all__
 __all__ += _export.__all__

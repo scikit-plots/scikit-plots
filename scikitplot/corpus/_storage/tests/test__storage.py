@@ -27,7 +27,7 @@ from ..._schema import CorpusDocument
 
 
 def _make_doc(
-    source_file: str = "f.txt",
+    input_path: str = "f.txt",
     chunk_index: int = 0,
     text: str = "Hello world test.",
     language: str | None = "en",
@@ -35,7 +35,7 @@ def _make_doc(
     collection_id: str | None = "col1",
 ) -> CorpusDocument:
     return CorpusDocument.create(
-        source_file=source_file,
+        input_path=input_path,
         chunk_index=chunk_index,
         text=text,
         language=language,
@@ -53,7 +53,7 @@ class TestStorageQuery:
         q = StorageQuery()
         assert q.limit == 100
         assert q.offset == 0
-        assert q.source_file is None
+        assert q.input_path is None
 
     def test_frozen(self) -> None:
         q = StorageQuery()
@@ -140,13 +140,13 @@ class BackendContract:
         assert len(result.documents) == 2
         assert result.total == 6
 
-    def test_query_by_source_file(self) -> None:
+    def test_query_by_input_path(self) -> None:
         doc_a = CorpusDocument.create("a.txt", 0, "text from a file here.")
         doc_b = CorpusDocument.create("b.txt", 0, "text from b file here.")
         self.store.save_batch([doc_a, doc_b])
-        result = self.store.query(StorageQuery(source_file="a.txt", limit=10))
+        result = self.store.query(StorageQuery(input_path="a.txt", limit=10))
         assert result.total == 1
-        assert result.documents[0].source_file == "a.txt"
+        assert result.documents[0].input_path == "a.txt"
 
     def test_query_by_language(self) -> None:
         doc_en = CorpusDocument.create("f.txt", 0, "English text here now.", language="en")

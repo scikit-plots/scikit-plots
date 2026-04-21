@@ -148,7 +148,7 @@ class TestXMLReaderNamespace:
         ).encode("utf-8")
         f = self._write(tmp_path, "ns_clark.xml", xml)
         reader = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=f".//{{{ns_uri}}}p",
             namespaces=None,
         )
@@ -169,7 +169,7 @@ class TestXMLReaderNamespace:
         ).encode("utf-8")
         f = self._write(tmp_path, "ns_prefix.xml", xml)
         reader = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=".//tei:p",
             namespaces={"tei": ns_uri},
         )
@@ -182,7 +182,7 @@ class TestXMLReaderNamespace:
 
         xml = b'<?xml version="1.0"?><root><p>Simple paragraph text here.</p></root>'
         f = self._write(tmp_path, "no_ns.xml", xml)
-        reader = XMLReader(input_file=f, block_xpath=".//p")
+        reader = XMLReader(input_path=f, block_xpath=".//p")
         docs = list(reader.get_documents())
         assert len(docs) == 1
         assert "Simple" in docs[0].text
@@ -200,7 +200,7 @@ class TestXMLReaderNamespace:
         ).encode("utf-8")
         f = self._write(tmp_path, "multi_ns.xml", xml)
         reader = XMLReader(
-            input_file=f,
+            input_path=f,
             block_xpath=f".//{{{ns_uri}}}p",
         )
         docs = list(reader.get_documents())

@@ -147,7 +147,7 @@ class ZipReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.zip`` archive.
     max_files : int, optional
         Maximum number of files allowed in the archive.  Archives
@@ -171,7 +171,7 @@ class ZipReader(DocumentReader):
     wins.  To use :class:`ALTOReader` on a known ALTO archive, instantiate
     it directly::
 
-        reader = ALTOReader(input_file=Path("alto_corpus.zip"))
+        reader = ALTOReader(input_path=Path("alto_corpus.zip"))
 
     **Temporary directory:** Extracted files land in
     ``tempfile.mkdtemp()``.  The directory is deleted automatically when
@@ -184,6 +184,15 @@ class ZipReader(DocumentReader):
     the members.  This means you can pass ``transcribe=True`` and it will
     reach any :class:`AudioReader` or :class:`VideoReader` instances
     created for audio/video members.
+
+    Developer note:
+
+    :class:`ZipReader` is intentionally **not** recursive for nested ZIPs.
+    An inner ``.zip`` file will be dispatched back to :class:`ZipReader`
+    (since it is now the registered handler for ``".zip"``), achieving
+    one level of recursion per nesting depth without any special-case
+    logic.  This is safe because each level uses its own temporary
+    directory.
 
     Examples
     --------
@@ -200,19 +209,10 @@ class ZipReader(DocumentReader):
     Explicit instantiation with custom limits:
 
     >>> reader = ZipReader(
-    ...     input_file=Path("large_corpus.zip"),
+    ...     input_path=Path("large_corpus.zip"),
     ...     max_files=500,
     ...     max_total_bytes=500 * 1024 * 1024,
     ... )
-
-    Developer note
-    --------------
-    :class:`ZipReader` is intentionally **not** recursive for nested ZIPs.
-    An inner ``.zip`` file will be dispatched back to :class:`ZipReader`
-    (since it is now the registered handler for ``".zip"``), achieving
-    one level of recursion per nesting depth without any special-case
-    logic.  This is safe because each level uses its own temporary
-    directory.
     """
 
     file_type: ClassVar[str] = ".zip"
@@ -242,7 +242,7 @@ class ZipReader(DocumentReader):
     Example — transcribe MP3 files but not others::
 
         ZipReader(
-            input_file=Path("corpus.zip"),
+            input_path=Path("corpus.zip"),
             reader_kwargs={
                 ".mp3": {"transcribe": True, "whisper_model": "small"},
                 ".mp4": {"transcribe": True},
@@ -309,7 +309,7 @@ class ZipReader(DocumentReader):
         ------
         dict[str, Any]
             Raw chunk dicts from each member reader's
-            ``get_raw_chunks()`` call.  The ``source_file`` key is set
+            ``get_raw_chunks()`` call.  The ``input_path`` key is set
             to ``"<archive_name>/<member_name>"`` for provenance.
 
         Raises
@@ -329,7 +329,7 @@ class ZipReader(DocumentReader):
         chunks forwarded; the files themselves are not streamed — each
         member is fully extracted before its reader is called.
         """
-        archive_path = self.input_file
+        archive_path = self.input_path
         archive_name = archive_path.name
         supported = set(DocumentReader.supported_types())
 
@@ -408,7 +408,7 @@ class ZipReader(DocumentReader):
 
                     # ── Dispatch to correct reader ────────────────────
                     provenance = dict(self.source_provenance)
-                    provenance["source_file"] = f"{archive_name}/{member_path}"
+                    provenance["input_path"] = f"{archive_name}/{member_path}"
 
                     # Infer source_type from member extension when not set
                     member_st = provenance.get("source_type")

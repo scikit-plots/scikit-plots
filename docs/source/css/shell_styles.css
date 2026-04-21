@@ -31,7 +31,7 @@
     align-items: stretch;  /* Ensure all children stretch to the same height */
     margin: auto;
     width: 100%;  /* Full width of the parent container */
-    height: 66.6vh;  /* Set the parent container to take 100% of its container's height */
+    height: 75vh;  /* Set the parent container to take 100% of its container's height */
     max-width: 1500px;
     min-height: 500px;
 }
@@ -42,14 +42,14 @@
     text-align: left;
     padding: 0 1px;
     width: auto;
-    height: 100%;
+    height: 75vh;
 }
 
 /* Code section (takes 33% of the width) */
 .shell-lesson.code-content {
     flex: 0 0 33.3%;  /* Takes 33.3% of the width */
     width: auto;  /* Allowing the code container to resize based on content */
-    height: 100%;  /* Make sure this section stretches to match height of parent */
+    height: 75vh;  /* Make sure this section stretches to match height of parent */
     overflow-y: auto;  /* Enable scrolling if content overflows */
 }
 
@@ -57,18 +57,18 @@
 .shell-lesson.shell-content {
     flex: 0 0 66.6%;  /* Takes 66.6% of the width */
     width: auto;
-    height: 100%;  /* Make sure this section stretches to match height of parent */
+    height: 75vh;  /* Make sure this section stretches to match height of parent */
 }
 
 /* Code highlighting and background styling */
 .shell-lesson .highlight {
-    height: 100%;
+    height: 75vh;
     background-color: var(--code-bg);  /* Theme code background */
     color: var(--code-fg);  /* Theme code foreground */
 }
 
 .shell-lesson .highlight pre {
-    height: 100%;
+    height: 75vh;
     background-color: var(--pst-gray-800);
 }
 
@@ -79,11 +79,17 @@
 
 .shell-lesson > p {
     margin: 1px 0 1px 0;
-    font-size: 1rem;  /* Responsive font size */
+    margin-bottom: 1px !important;
+    font-size: 0.8rem;  /* Responsive font size */
+}
+
+.shell-lesson > ul {
+    margin-bottom: 1px !important;
 }
 
 .shell-lesson > ul > li {
-    font-size: 0.8rem;  /* Responsive font size */
+    padding-inline-start: 1.3rem !important;
+    font-size: 0.6rem;  /* Responsive font size */
 }
 
 .highlight:not(:last-child) {
@@ -95,10 +101,17 @@
 }
 
 .numpy-shell {
-    flex: 2;
+    display: block;     /* stability */
+    /* flex: 2; */
+    flex: none;   /* VERY important in flex layouts prevent flex interference */
+    /* border: none; */
     border: 1px solid var(--bd-border-color);  /* Theme border color */
     border-radius: var(--bd-radius-md);  /* Theme border radius */
-    height: 100%;  /* Make sure this section stretches to match height of parent */
+    height: 75vh;  /* Make sure this section stretches to match height of parent */
+    /* min-height: 50vh; */
+    /* resize: vertical; */
+    resize: both;     /* enables X + Y resizing */
+    overflow: auto;   /* REQUIRED for resize to work */
 }
 
 /* Code editor specific styling */

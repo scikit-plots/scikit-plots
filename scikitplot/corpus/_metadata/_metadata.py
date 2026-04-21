@@ -266,8 +266,8 @@ class CorpusStats:
         Map of ``SectionType.value`` → document count.
     source_type_counts : dict[str, int]
         Map of ``SourceType.value`` → document count.
-    source_file_counts : dict[str, int]
-        Map of ``source_file`` → document count.
+    input_path_counts : dict[str, int]
+        Map of ``input_path`` → document count.
     collection_ids : list[str]
         Sorted unique ``collection_id`` values (``None`` excluded).
     has_embeddings : int
@@ -430,7 +430,7 @@ def compute_stats(docs: Sequence[CorpusDocument]) -> CorpusStats:
         source_type_cnt[src_key] = source_type_cnt.get(src_key, 0) + 1
 
         # Source file distribution
-        sf = doc.source_file
+        sf = doc.input_path
         source_file_cnt[sf] = source_file_cnt.get(sf, 0) + 1
 
         # Collection IDs

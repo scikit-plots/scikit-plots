@@ -225,14 +225,15 @@ References:
 	:caption: Project
 	:hidden:
 
-	Release History <whats_new/index.rst>
+	Cheatsheet <cheatsheet/index.rst>
+	Code of Conduct <project/code_of_conduct.rst>
+	Community <project/community.rst>
 	{%- if development_link | default(false) %}
 	{#- if development_link is defined and development_link #}
 	Developer's Guide <{{ development_link }}>
 	{#- else #}
 	{%- endif %}
-	Community <project/community.rst>
-	Code of Conduct <project/code_of_conduct.rst>
 	Governance Process <project/governance.rst>
+	Release History <whats_new/index.rst>
 	Roadmap <project/roadmap.rst>
 	About Us | Project <project/index.rst>

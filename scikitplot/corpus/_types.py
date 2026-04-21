@@ -472,7 +472,7 @@ class Document:
         Full raw document text.  Must not be empty.
     content_type : ContentType
         MIME-style type of the document payload.
-    source : str or None
+    input_path : str or None
         Human-readable origin descriptor (file path, URL, database key).
     status : DocumentStatus
         Current lifecycle state.  Defaults to ``PENDING``.
@@ -496,7 +496,7 @@ class Document:
     doc_id: str
     text: str
     content_type: ContentType = ContentType.PLAIN_TEXT
-    source: str | None = None
+    input_path: str | None = None
     status: DocumentStatus = DocumentStatus.PENDING
     metadata: MetadataDict = field(default_factory=dict)
     checksum: str | None = None
@@ -505,7 +505,7 @@ class Document:
     def new(
         text: str,
         content_type: ContentType = ContentType.PLAIN_TEXT,
-        source: str | None = None,
+        input_path: str | None = None,
         metadata: MetadataDict | None = None,
     ) -> Document:
         """Construct a :class:`Document` with an auto-generated UUID4 ID.
@@ -516,7 +516,7 @@ class Document:
             Raw document text.
         content_type : ContentType
             MIME type of the content.
-        source : str, optional
+        input_path : str, optional
             Origin descriptor.
         metadata : MetadataDict, optional
             Extra metadata.
@@ -537,7 +537,7 @@ class Document:
             doc_id=str(uuid.uuid4()),
             text=text,
             content_type=content_type,
-            source=source,
+            input_path=input_path,
             metadata=metadata or {},
         )
 
@@ -554,7 +554,7 @@ class Document:
             doc_id=self.doc_id,
             text=self.text,
             content_type=self.content_type,
-            source=self.source,
+            input_path=self.input_path,
             status=self.status,
             metadata=self.metadata,
             checksum=digest,
@@ -577,7 +577,7 @@ class Document:
             doc_id=self.doc_id,
             text=self.text,
             content_type=self.content_type,
-            source=self.source,
+            input_path=self.input_path,
             status=status,
             metadata=self.metadata,
             checksum=self.checksum,

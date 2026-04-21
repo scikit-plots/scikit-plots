@@ -223,7 +223,7 @@ extensions = [
     "sphinx.ext.ifconfig",  # Include content based on configuration
     "sphinx.ext.extlinks",  # Markup to shorten external links by extlinks
     "sphinx.ext.intersphinx",  # Link to other projects’ documentation
-    "sphinx.ext.linkcode",  # Add external links to source code
+    "sphinx.ext.linkcode",  # Add external links to source code 'sphinx.ext.linkcode', 'numpydoc.linkcode'
     # 'sphinx.ext.viewcode',          # Add links to highlighted source code
     # "sphinx.ext.graphviz",          # Add Graphviz graphs
     "sphinx.ext.imgconverter",  # A reference image converter using Imagemagick
@@ -286,7 +286,7 @@ extensions = [
     "_sphinx_ext.sklearn_ext.sphinx_issues",  # Custom extension for managing and displaying issues.
     "_sphinx_ext.sklearn_ext.move_gallery_links",  # Custom extension for rearranging gallery links.
     # sp: Custom extensions
-    "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
+    # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
     # Tags and other utility extensions (load last if they depend on others)
     # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
@@ -295,6 +295,7 @@ extensions = [
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
     # scikitplot lib
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
 ]
 
 # %%
@@ -390,6 +391,21 @@ except ImportError:
         "if you want JupyterLite links to appear in each example"
     )
     with_jupyterlite = False
+
+# -----------------------------------------------------------------------------
+# Interactive documentation examples via JupyterLite
+# -----------------------------------------------------------------------------
+
+global_enable_try_examples = True
+try_examples_global_button_text = "Try it in your browser!"
+try_examples_global_warning_text = (
+    "scikit-plots's interactive examples are experimental and may not always work"
+    " as expected, with high load times especially on low-resource platforms,"
+    " and the version of scikit-plots might not be in sync with the one you are"
+    " browsing the documentation for. If you encounter any issues, please"
+    " report them on the"
+    " [scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues)."
+)
 
 # %%
 #
@@ -789,8 +805,8 @@ master_doc = "index"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = [
-    "_templates",
     # 'templates',
+    "_templates",
 ]
 
 ##########################################################################
@@ -814,7 +830,7 @@ templates_path = [
 
 # https://pydata-sphinx-theme.readthedocs.io/en/stable/examples/gallery.html#other-projects-using-this-theme
 # html_theme = "furo"
-html_theme = "pydata_sphinx_theme"  # scikit-learn
+html_theme = "pydata_sphinx_theme"  # scikit-learn like
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -1480,11 +1496,12 @@ def linkcode_resolve(domain, info):
 
 
 ##########################################################################
-## Extension: copybutton
+## Extension: sphinx-copybutton configurations
 ##########################################################################
 
 # Specify how to identify the prompt when copying code snippets
-copybutton_prompt_text = r">>> | \.\.\."
+# copybutton_prompt_text = r">>> | \.\.\."
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
 copybutton_exclude = "style"
 
@@ -1673,6 +1690,88 @@ sass_targets = {
 # — like layout.html, page.html, or theme-specific templates
 # such as alabaster, sphinx_rtd_theme, etc.
 # ✅ This only affects HTML output, not RST content or jinja template.
+
+# ---------------------------------------------------------------------------
+# Page Component Injection Map
+# ---------------------------------------------------------------------------
+# Controls which Jinja templates are injected into which pages,
+# and exactly WHERE inside the article they are placed.
+#
+# This is the ONLY file to edit when adding, removing, or repositioning
+# components. layout.html never needs editing.
+#
+# Keys
+# ----
+# template : str
+#     Jinja template filename. Must exist in templates_path.
+#     Missing file = silently skipped, build never breaks.
+#
+# selector : str
+#     CSS selector identifying the target element INSIDE the article.
+#     The component is inserted relative to this element.
+#
+#     Stable sphinx-gallery selectors (do not change across versions):
+#       ".sphx-glr-thumbnails"   gallery thumbnail grid
+#       "article.bd-article"     full article container
+#       ".bd-article-container"  article + header + footer
+#       "section > p:first-of-type" first paragraph in section
+#
+# position : str
+#     insertAdjacentHTML position relative to selector element.
+#     One of four standard DOM values:
+#       "beforebegin"  before the element itself     ← ABOVE thumbnails
+#       "afterbegin"   inside, before first child
+#       "beforeend"    inside, after last child
+#       "afterend"     after the element itself      ← BELOW thumbnails
+#
+# Fallback behavior
+# -----------------
+# If selector not found on page → component is dropped silently.
+# If template missing           → component is dropped silently.
+# Both failures are logged to browser console for debugging.
+#
+# Position semantics diagram
+# --------------------------
+# <!-- beforebegin -->
+# <div class="sphx-glr-thumbnails">
+#   <!-- afterbegin -->
+#   ...existing content...
+#   <!-- beforeend -->
+# </div>
+# <!-- afterend -->
+# ---------------------------------------------------------------------------
+#
+# Structure before and/or after
+# -----------------------------
+# html_context["page_components"] : dict
+#     Key   : exact pagename string
+#             Source: DOCUMENTATION_OPTIONS.pagename in built HTML
+#             Find:   grep "DOCUMENTATION_OPTIONS.pagename" build/html/.../index.html
+#     Value : dict with keys:
+#             "before" : list[str] - templates injected ABOVE page content
+#             "after"  : list[str] - templates injected BELOW page content
+#
+# Rules
+# -----
+# - Templates must exist in a directory listed in templates_path
+# - Missing template = silently skipped (build never breaks)
+# - Empty list [] = nothing injected for that position
+# - Omitting "before"/"after" key = treated as empty list
+# - pagename "index" is the main page — handled by index.html directly,
+#   DO NOT add it here (would render shell twice)
+#
+# Adding a new page
+# -----------------
+# Add one entry to page_components. Do not touch layout.html.
+#
+# Example
+# -------
+# "auto_examples/index": {
+#     "before": ["shell.html"],
+#     "after":  [],
+# },
+# ---------------------------------------------------------------------------
+# Merge into existing html_context if you already have one
 html_context = {
     # "github_user": "scikit-plots",
     # "github_repo": "scikit-plots",
@@ -1690,6 +1789,43 @@ html_context = {
     # version_info_extension.py 'releaselevel'
     # See https://github.com/scikit-learn/scikit-learn/pull/22550
     "is_devrelease": _is_devrelease,
+    "page_components": {
+        # Gallery: Jupyter Notebooks index
+        # Places shell ABOVE the thumbnail grid, inside the article
+        "auto_examples/00-jupyter_notebooks/index": {
+            "template": "shell_interactive_skplt_tutorials.html",
+            "selector": ".sphx-glr-thumbnails",
+            "position": "beforebegin",
+        },
+        # Examples:
+        # Place shell AFTER the thumbnail grid on the main examples page:
+        # "auto_examples/index": {
+        #     "template": "shell_interactive_skplt_tutorials.html",
+        #     "selector": ".sphx-glr-thumbnails",
+        #     "position": "afterend",
+        # },
+        #
+        # Place shell at the very top inside the article body:
+        # "getting_started": {
+        #     "template": "shell_interactive_skplt_tutorials.html",
+        #     "selector": "article.bd-article",
+        #     "position": "afterbegin",
+        # },
+        # Sphinx Gallery — Jupyter Notebooks index before and/or after
+        # "auto_examples/00-jupyter_notebooks/index": {
+        #     "before": [],
+        #     "after":  ["shell_interactive_skplt_tutorials.html"],
+        # },
+        # Add more pages here, for example:
+        # "auto_examples/index": {
+        #     "before": ["shell_interactive_skplt_tutorials.html"],
+        #     "after":  [],
+        # },
+        # "getting_started": {
+        #     "before": [],
+        #     "after":  ["shell_interactive_skplt_tutorials.html"],
+        # },
+    },
 }
 
 # redirects dictionary maps from old links to new links
@@ -1947,6 +2083,15 @@ gallery_dirs = ["auto_examples"]
 # Sphinx Gallery Configuration
 # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/gen_gallery.py#L81
 sphinx_gallery_conf = {
+    # "plot_gallery": os.getenv("SPHINX_GALLERY_DISABLE") != "1",
+    # "abort_on_example_error": False,   # CRITICAL: do not stop build
+    # "only_warn_on_example_error": True,
+    # "capture_repr": ("_repr_html_", "__repr__"),
+    # "matplotlib_animations": False,
+    # "expected_failing_examples": [
+    #     "examples/plot_requires_xgboost.py",
+    #     "examples/plot_requires_torch.py",
+    # ],
     # Backreferences and linking to function docs
     # Links examples to APIs documentation
     "backreferences_dir": os.path.join("modules", "generated"),
@@ -2123,14 +2268,14 @@ development_link = (
     if _is_devrelease
     else "https://scikit-plots.github.io/dev/devel/index.html"
 )
-
+index_template_kwargs = {
+    "development_link": development_link,
+}
 url_rst_templates = [
     (
         "index",  # rst_template_name
         "index",  # rst_target_name
-        {  # kwargs
-            "development_link": development_link,
-        },
+        index_template_kwargs,  # kwargs
     )
 ]
 
@@ -2147,7 +2292,10 @@ rst_templates: list[tuple[str, str, dict[str, any]]] = [
         "apis/index",
         "apis/index",
         {
-            "APIS_REFERENCE": sorted(APIS_REFERENCE.items(), key=lambda x: x[0]),
+            # Within each group → standard alphabetical order
+            # All (False, …) → public first
+            # Then (True, …) → private
+            "APIS_REFERENCE": sorted(APIS_REFERENCE.items(), key=lambda x: (x[0].startswith("_"), x[0])),
             "DEPRECATED_APIS_REFERENCE": sorted(
                 DEPRECATED_APIS_REFERENCE.items(), key=lambda x: x[0], reverse=True
             ),

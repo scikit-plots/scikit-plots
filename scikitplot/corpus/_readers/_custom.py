@@ -311,7 +311,7 @@ class CustomReader(DocumentReader):
     .. code-block:: python
 
         reader = CustomReader(
-            input_file=Path("report.xyz"),
+            input_path=Path("report.xyz"),
             extractor=my_extractor_fn,
         )
         docs = list(reader.get_documents())
@@ -329,7 +329,7 @@ class CustomReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the source file (or a synthetic path for non-filesystem
         resources — set ``validate_file=False`` in that case).
     extractor : callable or None, optional
@@ -366,9 +366,9 @@ class CustomReader(DocumentReader):
         Default: :attr:`~scikitplot.corpus._schema.SectionType.TEXT`.
     validate_file : bool, optional
         When ``True`` (default), :meth:`validate_input` checks that
-        ``input_file`` exists and is a regular file before extraction.
+        ``input_path`` exists and is a regular file before extraction.
         Set to ``False`` for non-filesystem sources (network streams,
-        in-memory paths) where ``input_file`` is a synthetic path.
+        in-memory paths) where ``input_path`` is a synthetic path.
         Default: ``True``.
     chunker : ChunkerBase or None, optional
         Inherited from :class:`~scikitplot.corpus._base.DocumentReader`.
@@ -435,7 +435,7 @@ class CustomReader(DocumentReader):
     ...         ]
     >>>
     >>> reader = CustomReader(
-    ...     input_file=Path("report.pdf"),
+    ...     input_path=Path("report.pdf"),
     ...     extractor=pdfplumber_extract,
     ... )
     >>> docs = list(reader.get_documents())
@@ -476,7 +476,7 @@ class CustomReader(DocumentReader):
     ...     return data.decode("utf-8")
     >>>
     >>> reader = CustomReader(
-    ...     input_file=Path("stream://channel/42"),
+    ...     input_path=Path("stream://channel/42"),
     ...     extractor=stream_extractor,
     ...     validate_file=False,
     ... )
@@ -533,7 +533,7 @@ class CustomReader(DocumentReader):
     """
     When ``False``, skip the filesystem existence check in
     :meth:`validate_input`.  Use for non-filesystem resources where
-    :attr:`input_file` is a synthetic path.
+    :attr:`input_path` is a synthetic path.
     """
 
     # ------------------------------------------------------------------
@@ -601,7 +601,7 @@ class CustomReader(DocumentReader):
         """
         Call the user-supplied extractor and yield normalised raw chunk dicts.
 
-        Calls ``self.extractor(self.input_file, **self.reader_kwargs)``
+        Calls ``self.extractor(self.input_path, **self.reader_kwargs)``
         and normalises the return value with :func:`normalize_extractor_output`.
 
         Yields
@@ -646,7 +646,7 @@ class CustomReader(DocumentReader):
         logger.debug("CustomReader: reader_kwargs=%r.", self.reader_kwargs)
 
         try:
-            raw = self.extractor(self.input_file, **self.reader_kwargs)
+            raw = self.extractor(self.input_path, **self.reader_kwargs)
         except Exception as exc:
             raise RuntimeError(
                 f"CustomReader: extractor {extractor_name!r} raised an error "

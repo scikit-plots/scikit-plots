@@ -312,7 +312,7 @@ def _compute_csv_fieldnames(rows):
     # Stable ordering: identity fields first
     identity_order = [
         "doc_id",
-        "source_file",
+        "input_path",
         "chunk_index",
         "text",
         "section_type",

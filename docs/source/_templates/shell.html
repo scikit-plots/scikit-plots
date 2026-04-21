@@ -3,28 +3,35 @@
   "intro": [
     {
       "title": "Try scikit-plots",
-      "text": "Use the interactive shell to try `scikit-plots` in the browser."
+      "text": "Use the interactive shell to try scikit-plots in the browser."
     },
   ]
 } %}
 {%- set intro = shell.intro %}
 
 <div class="hero-right">
+
   <!-- Include title section -->
   <div class="flex-column shell-title-container">
-    {%- for item in intro %}
-      <div class="shell-title">{{ item.title }}</div>
-      <div class="shell-content-message">
-        <p>{{ item.text }}</p>
-        <!-- 🔔 &#x1F514; -->
-        <p style="font-size:12.5px;">🔔
-          <b>Note:</b>
-          <span style="color:turquoise;">Pyodide</span> uses older, compatible versions of some PyPI packages;
-          <span style="color:red;">latest versions may not be supported</span>.
-        </p>
-      </div>
-    {%- endfor %}
+  {%- for item in intro %}
+    <div class="shell-title">{{ item.title }}</div>
+    <div class="shell-content-message">
+      <!-- Don’t inject HTML without | safe → will render as text -->
+        <!-- Use the interactive shell to try <strong>scikit-plots</strong> in the browser. -->
+      <p>
+        <span>{{ item.text | replace("scikit-plots", "<strong>scikit-plots</strong>") | trim | safe }}</span>
+      </p>
+      <!-- 🔔 &#x1F514; -->
+      <p style="font-size:12.5px;">🔔
+        <b>Note:</b>
+        <span style="color:turquoise;">Pyodide</span> uses older, compatible versions of some PyPI packages;
+        <span style="color:red;">latest versions may not be supported</span>.
+      </p>
+    </div>
+  {%- endfor %}
   </div>
+
+  <!-- Open in new tab -->
   <div>
     <!-- Import Font Awesome icons for the link buttons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -83,28 +90,40 @@
       <ul class="demo-links">
         <!-- Non-clickable label-style item -->
         <li>
+          <!-- Open in new tab -->
+          <a href="./auto_examples/00-jupyter_notebooks/index.html" target="_blank" title="Try JupyterLab, a multi-document app">
           <!-- Using span instead of label (label is for form inputs) -->
           <span title="Opens all links in a new browser tab">
-            <i class="fa-solid fa-external-link"></i>       <!-- Link icon -->
-            Open in new tab                                 <!-- Text next to icon -->
+            <!-- Link icon -->
+            <i class="fa-solid fa-external-link"></i>
+            <!-- Text next to icon -->
+            Open Tutorial Notebooks in new tab.
           </span>
+          </a>
         </li>
         <!-- JupyterLab link item -->
         <li>
-          <a href="./lite/lab/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb"
+          <!-- Open in new tab -->
+          <!-- <a href="./lite/lab/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb" -->
+          <a href="./lite/lab/index.html"
             target="_blank"
-            title="Try JupyterLab, a multi-document app">  <!-- Open in new tab -->
-            <i class="fa-solid fa-flask"></i>               <!-- Flask icon -->
-            Lab                                             <!-- Text label -->
+            title="Try JupyterLab, a multi-document app">
+            <!-- Flask icon -->
+            <i class="fa-solid fa-flask"></i>
+            <!-- Text label -->
+            Lab
           </a>
         </li>
         <!-- RetroLab link item -->
         <li>
-          <a href="./lite/notebooks/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb"
+          <!-- <a href="./lite/notebooks/index.html?path=auto_examples%2Fcalibration%2Fplot_calibration_script.ipynb" -->
+          <a href="./lite/tree/index.html"
             target="_blank"
             title="Try RetroLab, a single-document app">
-            <i class="fa-solid fa-book"></i>                <!-- Book icon -->
-            Retro                                           <!-- Text label -->
+            <!-- Book icon -->
+            <i class="fa-solid fa-book"></i>
+            <!-- Text label -->
+            Retro
           </a>
         </li>
         <!-- REPL link item -->
@@ -112,21 +131,22 @@
           <a href="./lite/repl/index.html?kernel=python&code=import%20this"
             target="_blank"
             title="Try REPL, a minimal console app">
-            <i class="fa-solid fa-terminal"></i>            <!-- Terminal icon -->
-            REPL                                            <!-- Text label -->
+            <!-- Terminal icon -->
+            <i class="fa-solid fa-terminal"></i>
+            <!-- Text label -->
+            REPL
           </a>
         </li>
       </ul>
     </div>
   </div>
+
   <!-- Include code sample and editor section -->
   <div class="numpy-shell-container">
-
     <!-- Include Python example code section -->
     {% include 'shell_py_example.html' %}
 
     <!-- Include interactive shell section -->
     {% include 'shell_interactive.html' %}
-
   </div>
 </div>

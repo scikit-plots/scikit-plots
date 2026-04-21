@@ -155,7 +155,7 @@ def is_archive(path: str | Path) -> bool:
 
 def extract_archive(
     archive_path: str | Path,
-    dest_dir: str | Path,
+    output_path: str | Path,
     *,
     supported_extensions: frozenset[str] | None = None,
     max_files: int = DEFAULT_MAX_FILES,
@@ -168,7 +168,7 @@ def extract_archive(
     ----------
     archive_path : str or Path
         Path to the archive file.
-    dest_dir : str or Path
+    output_path : str or Path
         Directory to extract files into. Created if it does not exist.
     supported_extensions : frozenset[str] or None, optional
         Whitelist of file extensions to include from the archive.
@@ -202,7 +202,7 @@ def extract_archive(
     Notes
     -----
     **ZipSlip prevention:** Every extracted member's resolved path is
-    verified to fall within *dest_dir*. Members with path-traversal
+    verified to fall within *output_path*. Members with path-traversal
     components (``../``) are logged as warnings and skipped.
 
     **Symlinks:** Symbolic links inside archives are always skipped.
@@ -215,15 +215,15 @@ def extract_archive(
     ['.pdf', '.txt', '.txt']
     """
     archive_path = Path(archive_path)
-    dest_dir = Path(dest_dir)
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    output_path = Path(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     name_lower = archive_path.name.lower()
 
     if zipfile.is_zipfile(archive_path):
         return _extract_zip(
             archive_path,
-            dest_dir,
+            output_path,
             supported_extensions=supported_extensions,
             max_files=max_files,
             max_total_bytes=max_total_bytes,
@@ -234,7 +234,7 @@ def extract_archive(
     ):
         return _extract_tar(
             archive_path,
-            dest_dir,
+            output_path,
             supported_extensions=supported_extensions,
             max_files=max_files,
             max_total_bytes=max_total_bytes,
@@ -276,7 +276,7 @@ def _is_within(child: Path, parent: Path) -> bool:
 
 def _extract_zip(
     archive_path: Path,
-    dest_dir: Path,
+    output_path: Path,
     *,
     supported_extensions: frozenset[str] | None,
     max_files: int,
@@ -289,7 +289,7 @@ def _extract_zip(
     ----------
     archive_path : Path
         ZIP file path.
-    dest_dir : Path
+    output_path : Path
         Extraction destination.
     supported_extensions : frozenset[str] or None
         Extension whitelist (``None`` = accept all).
@@ -329,12 +329,12 @@ def _extract_zip(
                 continue
 
             # ZipSlip guard
-            target = (dest_dir / info.filename).resolve()
-            if not _is_within(target, dest_dir):
+            target = (output_path / info.filename).resolve()
+            if not _is_within(target, output_path):
                 logger.warning(
                     "ZipSlip detected: %s escapes %s. Skipping.",
                     info.filename,
-                    dest_dir,
+                    output_path,
                 )
                 continue
 
@@ -370,7 +370,7 @@ def _extract_zip(
         "extract_archive: extracted %d files from %s → %s",
         len(extracted),
         archive_path,
-        dest_dir,
+        output_path,
     )
     return extracted
 
@@ -382,7 +382,7 @@ def _extract_zip(
 
 def _extract_tar(  # noqa: PLR0912
     archive_path: Path,
-    dest_dir: Path,
+    output_path: Path,
     *,
     supported_extensions: frozenset[str] | None,
     max_files: int,
@@ -395,7 +395,7 @@ def _extract_tar(  # noqa: PLR0912
     ----------
     archive_path : Path
         TAR file path.
-    dest_dir : Path
+    output_path : Path
         Extraction destination.
     supported_extensions : frozenset[str] or None
         Extension whitelist (``None`` = accept all).
@@ -450,12 +450,12 @@ def _extract_tar(  # noqa: PLR0912
                 continue
 
             # ZipSlip guard (tarfiles can also contain path traversal)
-            target = (dest_dir / member.name).resolve()
-            if not _is_within(target, dest_dir):
+            target = (output_path / member.name).resolve()
+            if not _is_within(target, output_path):
                 logger.warning(
                     "Path traversal detected: %s escapes %s. Skipping.",
                     member.name,
-                    dest_dir,
+                    output_path,
                 )
                 continue
 
@@ -498,6 +498,6 @@ def _extract_tar(  # noqa: PLR0912
         "extract_archive: extracted %d files from %s → %s",
         len(extracted),
         archive_path,
-        dest_dir,
+        output_path,
     )
     return extracted

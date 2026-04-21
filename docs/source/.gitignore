@@ -1,4 +1,5 @@
 # Sphinx documentation
+_contents/
 **_tags/
 **/apis/*.rst
 **auto_examples/

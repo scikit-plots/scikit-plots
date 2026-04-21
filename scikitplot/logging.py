@@ -708,6 +708,7 @@ class GoogleLogFormatter(_logging.Formatter):
         logging Formatter.
     """
 
+    #: time.localtime
     converter = time.localtime
 
     def __init__(

@@ -127,7 +127,7 @@ class TestTextReader:
     def test_reads_utf8_file(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_text("Hello, world!", encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         chunks = list(reader.get_raw_chunks())
         assert len(chunks) == 1
         assert "Hello, world!" in chunks[0]["text"]
@@ -135,28 +135,28 @@ class TestTextReader:
     def test_section_type_in_chunk(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_text("Content.", encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         assert "section_type" in chunk
 
     def test_explicit_encoding_latin1(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_bytes("café".encode("latin-1"))
-        reader = TextReader(input_file=f, encoding="latin-1")
+        reader = TextReader(input_path=f, encoding="latin-1")
         chunk = next(reader.get_raw_chunks())
         assert "café" in chunk["text"]
 
     def test_explicit_encoding_utf8(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_text("Ångström", encoding="utf-8")
-        reader = TextReader(input_file=f, encoding="utf-8")
+        reader = TextReader(input_path=f, encoding="utf-8")
         chunk = next(reader.get_raw_chunks())
         assert "Ångström" in chunk["text"]
 
     def test_utf8_bom_stripped(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_bytes(b"\xef\xbb\xbfHello BOM world")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         # BOM must not appear in the decoded text.
         assert "\ufeff" not in chunk["text"]
@@ -165,7 +165,7 @@ class TestTextReader:
     def test_max_file_bytes_rejects_large_file(self, tmp_path: Path) -> None:
         f = tmp_path / "big.txt"
         f.write_bytes(b"x" * 200)
-        reader = TextReader(input_file=f, max_file_bytes=100)
+        reader = TextReader(input_path=f, max_file_bytes=100)
         with pytest.raises(ValueError, match="max_file_bytes"):
             list(reader.get_raw_chunks())
 
@@ -173,32 +173,32 @@ class TestTextReader:
         f = tmp_path / "doc.txt"
         f.write_text("x", encoding="utf-8")
         with pytest.raises(ValueError, match="max_file_bytes"):
-            TextReader(input_file=f, max_file_bytes=0)
+            TextReader(input_path=f, max_file_bytes=0)
 
     def test_empty_file_yields_no_chunks(self, tmp_path: Path) -> None:
         f = tmp_path / "empty.txt"
         f.write_text("", encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         assert list(reader.get_raw_chunks()) == []
 
     def test_whitespace_only_file_yields_no_chunks(self, tmp_path: Path) -> None:
         f = tmp_path / "ws.txt"
         f.write_text("   \n\t  \n", encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         assert list(reader.get_raw_chunks()) == []
 
     def test_multiline_content_preserved(self, tmp_path: Path) -> None:
         content = "Line one.\nLine two.\nLine three."
         f = tmp_path / "multi.txt"
         f.write_text(content, encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         assert chunk["text"] == content
 
     def test_get_documents_returns_corpus_documents(self, tmp_path: Path) -> None:
         f = tmp_path / "doc.txt"
         f.write_text("The quick brown fox.", encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         docs = list(reader.get_documents())
         assert len(docs) >= 1
         # Each returned item must have a doc_id and text attribute.
@@ -216,7 +216,7 @@ class TestTextReader:
         content = "Привет мир. 你好世界. مرحبا بالعالم."
         f = tmp_path / "unicode.txt"
         f.write_text(content, encoding="utf-8")
-        reader = TextReader(input_file=f)
+        reader = TextReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         assert "Привет" in chunk["text"]
         assert "你好" in chunk["text"]
@@ -225,7 +225,7 @@ class TestTextReader:
         content = "word " * 10_000  # ~50KB
         f = tmp_path / "large.txt"
         f.write_text(content, encoding="utf-8")
-        reader = TextReader(input_file=f, max_file_bytes=1_000_000)
+        reader = TextReader(input_path=f, max_file_bytes=1_000_000)
         chunk = next(reader.get_raw_chunks())
         assert len(chunk["text"]) > 1000
 
@@ -234,14 +234,14 @@ class TestTextReader:
         f = tmp_path / "exact.txt"
         f.write_bytes(content)
         # Equal to limit must NOT raise (> not >=).
-        reader = TextReader(input_file=f, max_file_bytes=50)
+        reader = TextReader(input_path=f, max_file_bytes=50)
         chunks = list(reader.get_raw_chunks())
         assert len(chunks) == 1
 
     def test_one_byte_over_max_file_bytes_raises(self, tmp_path: Path) -> None:
         f = tmp_path / "over.txt"
         f.write_bytes(b"x" * 51)
-        reader = TextReader(input_file=f, max_file_bytes=50)
+        reader = TextReader(input_path=f, max_file_bytes=50)
         with pytest.raises(ValueError, match="max_file_bytes"):
             list(reader.get_raw_chunks())
 
@@ -262,7 +262,7 @@ class TestMarkdownReader:
     def test_reads_markdown_file(self, tmp_path: Path) -> None:
         f = tmp_path / "readme.md"
         f.write_text("# Heading\n\nParagraph here.", encoding="utf-8")
-        reader = MarkdownReader(input_file=f)
+        reader = MarkdownReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         assert "Heading" in chunk["text"]
         assert "Paragraph" in chunk["text"]
@@ -282,7 +282,7 @@ class TestReSTReader:
     def test_reads_rst_file(self, tmp_path: Path) -> None:
         f = tmp_path / "changes.rst"
         f.write_text("Title\n=====\n\nSome content here.", encoding="utf-8")
-        reader = ReSTReader(input_file=f)
+        reader = ReSTReader(input_path=f)
         chunk = next(reader.get_raw_chunks())
         assert "Title" in chunk["text"]
 
@@ -372,47 +372,47 @@ class TestZipReaderConstruction:
 
     def test_default_max_files(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
-        r = ZipReader(input_file=zpath)
+        r = ZipReader(input_path=zpath)
         assert r.max_files == 10_000
 
     def test_default_max_total_bytes(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
-        r = ZipReader(input_file=zpath)
+        r = ZipReader(input_path=zpath)
         assert r.max_total_bytes == 2 * 1024 * 1024 * 1024
 
     def test_max_files_zero_raises(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
         with pytest.raises(ValueError, match="max_files"):
-            ZipReader(input_file=zpath, max_files=0)
+            ZipReader(input_path=zpath, max_files=0)
 
     def test_max_total_bytes_zero_raises(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
         with pytest.raises(ValueError, match="max_total_bytes"):
-            ZipReader(input_file=zpath, max_total_bytes=0)
+            ZipReader(input_path=zpath, max_total_bytes=0)
 
     def test_max_files_negative_raises(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
         with pytest.raises(ValueError, match="max_files"):
-            ZipReader(input_file=zpath, max_files=-1)
+            ZipReader(input_path=zpath, max_files=-1)
 
     def test_reader_kwargs_normalises_extension(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
-        r = ZipReader(input_file=zpath, reader_kwargs={"TXT": {}})
+        r = ZipReader(input_path=zpath, reader_kwargs={"TXT": {}})
         assert ".txt" in r.reader_kwargs
 
     def test_reader_kwargs_not_dict_raises(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
         with pytest.raises(TypeError, match="reader_kwargs"):
-            ZipReader(input_file=zpath, reader_kwargs="bad")  # type: ignore[arg-type]
+            ZipReader(input_path=zpath, reader_kwargs="bad")  # type: ignore[arg-type]
 
     def test_reader_kwargs_value_not_dict_raises(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
         with pytest.raises(TypeError, match="reader_kwargs"):
-            ZipReader(input_file=zpath, reader_kwargs={".txt": "bad"})  # type: ignore[dict-item]
+            ZipReader(input_path=zpath, reader_kwargs={".txt": "bad"})  # type: ignore[dict-item]
 
     def test_reader_kwargs_leading_dot_preserved(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
-        r = ZipReader(input_file=zpath, reader_kwargs={".txt": {"encoding": "utf-8"}})
+        r = ZipReader(input_path=zpath, reader_kwargs={".txt": {"encoding": "utf-8"}})
         assert ".txt" in r.reader_kwargs
         assert r.reader_kwargs[".txt"]["encoding"] == "utf-8"
 
@@ -436,7 +436,7 @@ class TestZipReaderGetRawChunks:
 
     def test_reads_txt_member(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {"doc.txt": "Hello from zip."})
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         assert len(chunks) >= 1
         assert any("Hello from zip." in c.get("text", "") for c in chunks)
@@ -446,7 +446,7 @@ class TestZipReaderGetRawChunks:
             ".hidden": "secret",
             "visible.txt": "Hello visible.",
         })
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         # Only visible.txt should contribute.
         all_text = " ".join(c.get("text", "") for c in chunks)
@@ -457,7 +457,7 @@ class TestZipReaderGetRawChunks:
             "__MACOSX/._doc.txt": "garbage",
             "doc.txt": "Real content.",
         })
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
         assert "Real content." in all_text
@@ -467,7 +467,7 @@ class TestZipReaderGetRawChunks:
         zpath = self._make_zip(tmp_path, {
             f"file{i}.txt": "x" for i in range(5)
         })
-        reader = ZipReader(input_file=zpath, max_files=2, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, max_files=2, skip_unsupported=True)
         with pytest.raises(ValueError, match="max_files"):
             list(reader.get_raw_chunks())
 
@@ -479,13 +479,13 @@ class TestZipReaderGetRawChunks:
             "b.txt": big,
             "c.txt": big,
         })
-        reader = ZipReader(input_file=zpath, max_total_bytes=500, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, max_total_bytes=500, skip_unsupported=True)
         with pytest.raises(ValueError, match="max_total_bytes"):
             list(reader.get_raw_chunks())
 
     def test_unsupported_ext_raises_when_skip_false(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {"data.xyz123": "content"})
-        reader = ZipReader(input_file=zpath, skip_unsupported=False)
+        reader = ZipReader(input_path=zpath, skip_unsupported=False)
         with pytest.raises(ValueError, match="unsupported extension"):
             list(reader.get_raw_chunks())
 
@@ -494,14 +494,14 @@ class TestZipReaderGetRawChunks:
             "data.xyz123": "garbage",
             "doc.txt": "Good content.",
         })
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
         assert "Good content." in all_text
 
     def test_empty_zip_yields_nothing(self, tmp_path: Path) -> None:
         zpath = self._make_zip(tmp_path, {})
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         assert list(reader.get_raw_chunks()) == []
 
     def test_multiple_txt_members_all_yielded(self, tmp_path: Path) -> None:
@@ -510,7 +510,7 @@ class TestZipReaderGetRawChunks:
             "b.txt": "Content B.",
             "c.txt": "Content C.",
         })
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)
         assert "Content A." in all_text
@@ -525,7 +525,7 @@ class TestZipReaderGetRawChunks:
             info = zipfile.ZipInfo("../../../etc/passwd")
             zf.writestr(info, "root:x:0:0")
             zf.writestr("safe.txt", "Safe content here.")
-        reader = ZipReader(input_file=zpath, skip_unsupported=True)
+        reader = ZipReader(input_path=zpath, skip_unsupported=True)
         # Must not raise; the traversal member is skipped.
         chunks = list(reader.get_raw_chunks())
         all_text = " ".join(c.get("text", "") for c in chunks)

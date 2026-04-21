@@ -411,7 +411,7 @@ for query, mode in queries:
         print("  (no results)")
     for i, res in enumerate(results):
         text_preview = res.doc.text[:90].replace("\n", " ")
-        src = res.doc.source_title or res.doc.source_file
+        src = res.doc.source_title or res.doc.input_path
         print(f"  [{i+1}] score={res.score:.4f}  src={src}")
         print(f"      {text_preview!r}…")
 

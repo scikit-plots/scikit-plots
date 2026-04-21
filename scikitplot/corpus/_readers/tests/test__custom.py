@@ -195,7 +195,7 @@ class TestCustomReaderDirect:
         def extractor(path: pathlib.Path, **kw: Any) -> str:
             return path.read_text()
 
-        reader = CustomReader(input_file=tmp_txt, extractor=extractor)
+        reader = CustomReader(input_path=tmp_txt, extractor=extractor)
         docs = list(reader.get_documents())
         assert len(docs) == 1
         assert "hello world" in docs[0].text
@@ -205,7 +205,7 @@ class TestCustomReaderDirect:
         def extractor(path: pathlib.Path, **kw: Any) -> list[str]:
             return ["sentence one is here", "sentence two is here today"]
 
-        reader = CustomReader(input_file=tmp_txt, extractor=extractor)
+        reader = CustomReader(input_path=tmp_txt, extractor=extractor)
         docs = list(reader.get_documents())
         # Both strings have enough words to pass DefaultFilter
         assert len(docs) == 2
@@ -218,7 +218,7 @@ class TestCustomReaderDirect:
                 {"text": "page two text here now", "page_number": 1},
             ]
 
-        reader = CustomReader(input_file=tmp_txt, extractor=extractor)
+        reader = CustomReader(input_path=tmp_txt, extractor=extractor)
         docs = list(reader.get_documents())
         assert len(docs) == 2
         assert docs[0].page_number == 0
@@ -233,7 +233,7 @@ class TestCustomReaderDirect:
             return "the quick brown fox jumps over"
 
         reader = CustomReader(
-            input_file=tmp_txt,
+            input_path=tmp_txt,
             extractor=extractor,
             reader_kwargs={"language": "en", "model": "large"},
         )
@@ -245,7 +245,7 @@ class TestCustomReaderDirect:
             return "the quick brown fox jumps over"
 
         reader = CustomReader(
-            input_file=tmp_txt,
+            input_path=tmp_txt,
             extractor=extractor,
             default_source_type=SourceType.PODCAST,
         )
@@ -258,7 +258,7 @@ class TestCustomReaderDirect:
             return [{"text": "the quick brown fox", "source_type": SourceType.RESEARCH.value}]
 
         reader = CustomReader(
-            input_file=tmp_txt,
+            input_path=tmp_txt,
             extractor=extractor,
             default_source_type=SourceType.PODCAST,
         )
@@ -272,7 +272,7 @@ class TestCustomReaderDirect:
 
         fake_path = tmp_path / "does_not_exist.xyz"
         reader = CustomReader(
-            input_file=fake_path,
+            input_path=fake_path,
             extractor=extractor,
             validate_file=False,
         )
@@ -285,7 +285,7 @@ class TestCustomReaderDirect:
             return "x"
 
         fake_path = tmp_path / "missing.txt"
-        reader = CustomReader(input_file=fake_path, extractor=extractor)
+        reader = CustomReader(input_path=fake_path, extractor=extractor)
         with pytest.raises(ValueError, match="does not exist"):
             list(reader.get_documents())
 
@@ -293,12 +293,12 @@ class TestCustomReaderDirect:
         def bad_extractor(path: pathlib.Path, **kw: Any) -> str:
             raise OSError("disk failure")
 
-        reader = CustomReader(input_file=tmp_txt, extractor=bad_extractor)
+        reader = CustomReader(input_path=tmp_txt, extractor=bad_extractor)
         with pytest.raises(RuntimeError, match="raised an error"):
             list(reader.get_documents())
 
     def test_raises_when_extractor_is_none_at_call_time(self, tmp_txt: pathlib.Path) -> None:
-        reader = CustomReader(input_file=tmp_txt, extractor=None)
+        reader = CustomReader(input_path=tmp_txt, extractor=None)
         with pytest.raises(ValueError, match="extractor is not set"):
             list(reader.get_documents())
 
@@ -306,12 +306,12 @@ class TestCustomReaderDirect:
 
     def test_raises_type_error_on_non_callable_extractor(self, tmp_txt: pathlib.Path) -> None:
         with pytest.raises(TypeError, match="extractor must be callable"):
-            CustomReader(input_file=tmp_txt, extractor="not_a_function")  # type: ignore[arg-type]
+            CustomReader(input_path=tmp_txt, extractor="not_a_function")  # type: ignore[arg-type]
 
     def test_raises_value_error_on_bad_extension_prefix(self, tmp_txt: pathlib.Path) -> None:
         with pytest.raises(ValueError, match="must start with"):
             CustomReader(
-                input_file=tmp_txt,
+                input_path=tmp_txt,
                 extractor=lambda p, **kw: "x",
                 extensions=["pdf"],  # missing leading dot
             )
@@ -321,7 +321,7 @@ class TestCustomReaderDirect:
         def extractor(path: pathlib.Path, **kw: Any) -> list[str]:
             return ["ok", "short", "this sentence has enough words to pass filter"]
 
-        reader = CustomReader(input_file=tmp_txt, extractor=extractor)
+        reader = CustomReader(input_path=tmp_txt, extractor=extractor)
         docs = list(reader.get_documents())
         # Only the last string passes DefaultFilter(min_words=3, min_chars=10)
         assert len(docs) == 1
@@ -425,7 +425,7 @@ class TestCustomReaderRegister:
         p = tmp_path / "file.xyz5"
         p.write_text("dummy")
         # Instance override: language="de" wins
-        reader = Cls(input_file=p, reader_kwargs={"language": "de"})
+        reader = Cls(input_path=p, reader_kwargs={"language": "de"})
         list(reader.get_documents())
         assert received["language"] == "de"
 
@@ -500,7 +500,7 @@ class TestCustomReaderRegister:
             validate_file=False,
         )
         non_existent = tmp_path / "fake.stream"
-        reader = Cls(input_file=non_existent)
+        reader = Cls(input_path=non_existent)
         docs = list(reader.get_documents())
         assert len(docs) == 1
 
@@ -523,7 +523,7 @@ class TestPDFReaderCustomExtractor:
             ]
 
         reader = PDFReader(
-            input_file=tmp_pdf,
+            input_path=tmp_pdf,
             prefer_backend="custom",
             custom_extractor=fake_pdf_extract,
         )
@@ -542,7 +542,7 @@ class TestPDFReaderCustomExtractor:
             return [{"text": "the quick brown fox jumps", "page_number": 0}]
 
         reader = PDFReader(
-            input_file=tmp_pdf,
+            input_path=tmp_pdf,
             prefer_backend="custom",
             custom_extractor=ext,
             custom_extractor_kwargs={"strategy": "hi_res"},
@@ -554,14 +554,14 @@ class TestPDFReaderCustomExtractor:
         from .._pdf import PDFReader
 
         with pytest.raises(ValueError, match="requires a 'custom_extractor'"):
-            PDFReader(input_file=tmp_pdf, prefer_backend="custom")
+            PDFReader(input_path=tmp_pdf, prefer_backend="custom")
 
     def test_raises_on_non_callable_custom_extractor(self, tmp_pdf: pathlib.Path) -> None:
         from .._pdf import PDFReader
 
         with pytest.raises(TypeError, match="custom_extractor must be callable"):
             PDFReader(
-                input_file=tmp_pdf,
+                input_path=tmp_pdf,
                 prefer_backend="custom",
                 custom_extractor="not_callable",  # type: ignore[arg-type]
             )
@@ -573,7 +573,7 @@ class TestPDFReaderCustomExtractor:
             raise ValueError("corrupt PDF")
 
         reader = PDFReader(
-            input_file=tmp_pdf,
+            input_path=tmp_pdf,
             prefer_backend="custom",
             custom_extractor=bad_ext,
         )
@@ -594,7 +594,7 @@ class TestPDFReaderCustomExtractor:
 
         # prefer_backend=None → auto mode (pdfminer/pypdf); custom_extractor ignored
         reader = PDFReader(
-            input_file=tmp_pdf,
+            input_path=tmp_pdf,
             prefer_backend=None,
             custom_extractor=should_not_be_called,
         )
@@ -613,7 +613,7 @@ class TestPDFReaderCustomExtractor:
     def test_invalid_prefer_backend_raises(self, tmp_pdf: pathlib.Path) -> None:
         from .._pdf import PDFReader
         with pytest.raises(ValueError, match="prefer_backend must be one of"):
-            PDFReader(input_file=tmp_pdf, prefer_backend="unrecognised")
+            PDFReader(input_path=tmp_pdf, prefer_backend="unrecognised")
 
 
 # ===========================================================================
@@ -633,7 +633,7 @@ class TestImageReaderCustomExtractor:
             ]
 
         reader = ImageReader(
-            input_file=tmp_image,
+            input_path=tmp_image,
             backend="custom",
             custom_extractor=fake_ocr,
         )
@@ -652,7 +652,7 @@ class TestImageReaderCustomExtractor:
             return [{"text": "the extracted text here", "confidence": 0.9}]
 
         reader = ImageReader(
-            input_file=tmp_image,
+            input_path=tmp_image,
             backend="custom",
             custom_extractor=ext,
             custom_extractor_kwargs={"langs": ["en", "de"]},
@@ -663,7 +663,7 @@ class TestImageReaderCustomExtractor:
     def test_raises_when_custom_backend_but_no_extractor(self, tmp_image: pathlib.Path) -> None:
         from .._image import ImageReader
 
-        reader = ImageReader(input_file=tmp_image, backend="custom")
+        reader = ImageReader(input_path=tmp_image, backend="custom")
         with pytest.raises(ValueError, match="requires a 'custom_extractor'"):
             list(reader.get_documents())
 
@@ -672,7 +672,7 @@ class TestImageReaderCustomExtractor:
 
         with pytest.raises(TypeError, match="custom_extractor must be callable"):
             ImageReader(
-                input_file=tmp_image,
+                input_path=tmp_image,
                 backend="custom",
                 custom_extractor=42,  # type: ignore[arg-type]
             )
@@ -684,7 +684,7 @@ class TestImageReaderCustomExtractor:
             raise OSError("cannot read image")
 
         reader = ImageReader(
-            input_file=tmp_image,
+            input_path=tmp_image,
             backend="custom",
             custom_extractor=bad_ext,
         )
@@ -703,7 +703,7 @@ class TestImageReaderCustomExtractor:
             return "the text from image here"
 
         reader = ImageReader(
-            input_file=tmp_image,
+            input_path=tmp_image,
             backend="custom",
             custom_extractor=ext,
         )
@@ -739,7 +739,7 @@ class TestAudioReaderCustomExtractor:
             ]
 
         reader = AudioReader(
-            input_file=tmp_audio,
+            input_path=tmp_audio,
             custom_extractor=fake_asr,
         )
         docs = list(reader.get_documents())
@@ -758,7 +758,7 @@ class TestAudioReaderCustomExtractor:
             return [{"text": "the quick brown fox jumps over here", "timecode_start": 0.0}]
 
         reader = AudioReader(
-            input_file=tmp_audio,
+            input_path=tmp_audio,
             custom_extractor=ext,
             custom_extractor_kwargs={"language": "de", "model": "large-v3"},
         )
@@ -770,7 +770,7 @@ class TestAudioReaderCustomExtractor:
         from .._audio import AudioReader
 
         with pytest.raises(TypeError, match="custom_extractor must be callable"):
-            AudioReader(input_file=tmp_audio, custom_extractor="bad")  # type: ignore[arg-type]
+            AudioReader(input_path=tmp_audio, custom_extractor="bad")  # type: ignore[arg-type]
 
     def test_custom_extractor_runtime_error_wrapped(self, tmp_audio: pathlib.Path) -> None:
         from .._audio import AudioReader
@@ -779,7 +779,7 @@ class TestAudioReaderCustomExtractor:
             raise ConnectionError("API unreachable")
 
         reader = AudioReader(
-            input_file=tmp_audio,
+            input_path=tmp_audio,
             custom_extractor=bad_ext,
         )
         with pytest.raises(RuntimeError, match="raised an error"):
@@ -797,7 +797,7 @@ class TestAudioReaderCustomExtractor:
         txt = tmp_path / "episode.txt"
         txt.write_text("line one of the transcript\nline two of the transcript\n")
 
-        reader = AudioReader(input_file=mp3, custom_extractor=None)
+        reader = AudioReader(input_path=mp3, custom_extractor=None)
         docs = list(reader.get_documents())
         # Companion .txt file was found and used
         assert any("transcript" in d.text for d in docs)
@@ -808,7 +808,7 @@ class TestAudioReaderCustomExtractor:
         def ext(path: pathlib.Path, **kw: Any) -> str:
             return "the quick brown fox jumps over"
 
-        reader = AudioReader(input_file=tmp_audio, custom_extractor=ext)
+        reader = AudioReader(input_path=tmp_audio, custom_extractor=ext)
         docs = list(reader.get_documents())
         assert docs[0].source_type == SourceType.AUDIO
 
@@ -836,7 +836,7 @@ class TestVideoReaderCustomExtractor:
             ]
 
         reader = VideoReader(
-            input_file=tmp_video,
+            input_path=tmp_video,
             custom_extractor=fake_transcribe,
         )
         docs = list(reader.get_documents())
@@ -854,7 +854,7 @@ class TestVideoReaderCustomExtractor:
             return [{"text": "the quick brown fox jumps here", "timecode_start": 0.0}]
 
         reader = VideoReader(
-            input_file=tmp_video,
+            input_path=tmp_video,
             custom_extractor=ext,
             custom_extractor_kwargs={"language": "fr"},
         )
@@ -865,7 +865,7 @@ class TestVideoReaderCustomExtractor:
         from .._video import VideoReader
 
         with pytest.raises(TypeError, match="custom_extractor must be callable"):
-            VideoReader(input_file=tmp_video, custom_extractor=99)  # type: ignore[arg-type]
+            VideoReader(input_path=tmp_video, custom_extractor=99)  # type: ignore[arg-type]
 
     def test_custom_extractor_runtime_error_wrapped(self, tmp_video: pathlib.Path) -> None:
         from .._video import VideoReader
@@ -873,7 +873,7 @@ class TestVideoReaderCustomExtractor:
         def bad_ext(path: pathlib.Path, **kw: Any) -> str:
             raise TimeoutError("API timed out")
 
-        reader = VideoReader(input_file=tmp_video, custom_extractor=bad_ext)
+        reader = VideoReader(input_path=tmp_video, custom_extractor=bad_ext)
         with pytest.raises(RuntimeError, match="raised an error"):
             list(reader.get_documents())
 
@@ -891,7 +891,7 @@ class TestVideoReaderCustomExtractor:
             "2\n00:00:05,000 --> 00:00:08,000\nAnd here is another subtitle line.\n\n"
         )
 
-        reader = VideoReader(input_file=mp4, custom_extractor=None)
+        reader = VideoReader(input_path=mp4, custom_extractor=None)
         docs = list(reader.get_documents())
         assert any("subtitle" in d.text.lower() for d in docs)
 

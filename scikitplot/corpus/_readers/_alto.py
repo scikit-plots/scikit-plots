@@ -234,7 +234,7 @@ def _parse_xml_bytes(content: bytes) -> Any:
         If neither parser can parse the bytes.
     """
     try:
-        from lxml import etree  # noqa: PLC0415
+        from lxml import etree  # type: ignore[] # noqa: PLC0415
 
         return etree.fromstring(content)
     except ImportError:
@@ -523,7 +523,7 @@ class ALTOReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.zip`` archive containing ALTO XML files.
     granularity : str, optional
         Chunking level within each ALTO page. One of:
@@ -602,7 +602,7 @@ class ALTOReader(DocumentReader):
     Default block-level chunking:
 
     >>> from pathlib import Path
-    >>> reader = ALTOReader(input_file=Path("newspaper_scan.zip"))
+    >>> reader = ALTOReader(input_path=Path("newspaper_scan.zip"))
     >>> docs = list(reader.get_documents())
     >>> print(f"Blocks extracted: {len(docs)}")
     >>> print(f"Page 0 confidence: {docs[0].confidence:.3f}")
@@ -610,7 +610,7 @@ class ALTOReader(DocumentReader):
     Line-level granularity:
 
     >>> reader = ALTOReader(
-    ...     input_file=Path("book_scan.zip"),
+    ...     input_path=Path("book_scan.zip"),
     ...     granularity="line",
     ... )
 
@@ -697,7 +697,7 @@ class ALTOReader(DocumentReader):
         zipfile.BadZipFile
             If the file is not a valid ZIP archive.
         """
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"ALTOReader: {self.file_name} is {file_size:,} bytes, which"
@@ -705,12 +705,12 @@ class ALTOReader(DocumentReader):
                 f" Increase max_file_bytes or split the archive."
             )
 
-        if not zipfile.is_zipfile(self.input_file):
+        if not zipfile.is_zipfile(self.input_path):
             raise zipfile.BadZipFile(
                 f"ALTOReader: {self.file_name} is not a valid ZIP archive."
             )
 
-        with zipfile.ZipFile(self.input_file, "r") as zf:
+        with zipfile.ZipFile(self.input_path, "r") as zf:
             xml_entries = _sorted_xml_members(zf)
             if not xml_entries:
                 logger.warning(

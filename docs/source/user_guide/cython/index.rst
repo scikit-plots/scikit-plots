@@ -19,16 +19,16 @@
 
 .. _cython-index:
 
-PKG/MOD Realtime-Inplace Generation
+Instant PKG/MOD Generation
 ======================================================================
 
 Examples relevant to the :py:mod:`~.cython` module.
 
 A lightweight runtime Cython development kit with caching, pinning,
-garbage collection, and templating support.
+garbage collection, and templating support. ``"Simple Foundation. Truly Sovereign."``
 
-:mod:`scikitplot.cython` enables real-time, in-place (in-situ) generation of
-low-level Cython packages and modules for immediate use and testing.
+:mod:`scikitplot.cython` enables real-time, in-place (in-situ) live, on demand
+generation of low-level Cython packages and modules for immediate use and testing, at runtime.
 
 .. rubric:: Quiskstart
 

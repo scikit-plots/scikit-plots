@@ -87,11 +87,11 @@ def _run(chunker: object, label: str) -> object:
     Returns
     -------
     object
-        The pipeline run result (carries ``output_path`` and ``source``).
+        The pipeline run result (carries ``output_path`` and ``input_path``).
     """
     pipeline = CorpusPipeline(
         chunker=chunker,
-        output_dir=_OUTPUT_DIR,
+        output_path=_OUTPUT_DIR,
         export_format=ExportFormat.CSV,
     )
     result = pipeline.run(_IMAGE_PATH)
@@ -209,17 +209,17 @@ result_fw_tokens = _run(
 # --------------------------
 # Renders inline in Jupyter; opens a matplotlib window otherwise.
 
-print(f"\nSource image: {result_fw_tokens.source}")
+print(f"\nSource image: {result_fw_tokens.input_path}")
 
 if _IN_JUPYTER:
     # IPython display utilities — only import inside Jupyter to avoid
     # ImportError in plain Python / CI environments.
     from IPython.display import FileLink  # noqa: PLC0415
 
-    display(FileLink(str(result_fw_tokens.source)))  # noqa: F821
+    display(FileLink(str(result_fw_tokens.input_path)))  # noqa: F821
 
 # plt.figure(figsize=(8, 8), dpi=150)
-# img = mpimg.imread(result_fw_tokens.source)
+# img = mpimg.imread(result_fw_tokens.input_path)
 # plt.imshow(img)
 # plt.axis("off")
 # plt.title("Source image (OCR input)", fontsize=12)

@@ -69,7 +69,7 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
     #     logger.warning("File does not exist here: %s", app.builder.outdir)
     #     return
 
-    if pagename == "apis/index":  # "apis/index"
+    if pagename in ["apis/index"]:  # "apis/index"
         # External: jQuery (highest priority, must load first)
         app.add_js_file(
             "https://code.jquery.com/jquery-3.7.1.js",
@@ -95,7 +95,7 @@ def add_js_css_files(app: Sphinx, pagename, templatename, context, doctree):
             priority=500,  # Custom CSS
         )
         # logger.info("Adding JS and CSS files for page: %s", pagename)
-    elif pagename == "index":
+    elif pagename in ["index", "auto_examples/00-jupyter_notebooks/index"]:
         # External: Include Prism.js for syntax highlighting
         app.add_js_file(
             "https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"

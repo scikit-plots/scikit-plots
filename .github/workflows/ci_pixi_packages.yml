@@ -1,0 +1,72 @@
+# https://github.com/numpy/numpy/blob/main/.github/workflows/pixi-packages.yml
+#
+---
+name: CI 📦 Pixi Packages Tests
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  # pull_request:
+  #   branches:
+  #     - main
+  #     - maintenance/**
+  #   paths-ignore:
+  #     - '**.pyi'
+  #     - '**.md'
+  #     - '**.rst'
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  # get_commit_message:
+  #   name: Get commit message
+  #   uses: ./.github/workflows/commit_message.yml
+
+  build_packages:
+    name: Build Pixi packages
+    # needs: get_commit_message
+    # if: >
+    #   needs.get_commit_message.outputs.message == 1
+    #   && (github.repository == 'scipy/scipy' || github.repository == '')
+    runs-on: ${{ matrix.runs-on }}
+
+    strategy:
+      ## Ensure that a pixi builder finishes even if another fails
+      fail-fast: false
+      ## Dynamic Environment Variables Using Matrix Context
+      matrix:
+        runs-on: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-2025]
+        package_variant:
+          - default
+          - freethreading
+          # - asan
+          # TSan CI runs for longer than 30 minutes due to slow
+          # stdlib bytecode compilation step. Disable or parallelize
+          # byte compilation once rattler-build has support.
+          # See https://github.com/prefix-dev/pixi/pull/5737
+          # - tsan-freethreading
+
+    # To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    steps:
+      ## 📥 Checkout the Git repository into the runner
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: recursive  # Fetch Hugo themes (true OR recursive)
+          # fetch-tags: true
+          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          lfs: true
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
+        with:
+          pixi-version: v0.64.0
+          run-install: false
+
+      - name: Build
+        # run: pixi build
+        run: pixi build --path="pixi-packages/${{ matrix.package_variant }}"

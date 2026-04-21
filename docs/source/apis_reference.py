@@ -652,6 +652,22 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                 ],
             },
             {
+                "title": "Downloader",
+                # "description": (
+                #     _get_submodule("scikitplot.corpus", "__init__")
+                # ),
+                "autosummary": [
+                    "AnyDownloader",
+                    "BaseDownloader",
+                    "CustomDownloader",
+                    "DownloadResult",
+                    "GitHubDownloader",
+                    "GoogleDriveDownloader",
+                    "WebDownloader",
+                    "YouTubeDownloader",
+                ],
+            },
+            {
                 "title": "Embeddings",
                 # "description": (
                 #     _get_submodule("scikitplot.corpus", "__init__")

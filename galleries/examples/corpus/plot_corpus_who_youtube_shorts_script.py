@@ -37,7 +37,7 @@ from scikitplot.corpus import (
 
 pipeline = CorpusPipeline(
     chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
-    output_dir=Path("output/"),
+    output_path=Path("output/"),
     export_format=ExportFormat.CSV,
 )
 pipeline

@@ -358,9 +358,13 @@ def _linkcode_resolve(
 # ---------------------------------------------------------------------------
 
 
+# TODO: Wrap in a real function so Sphinx doesn't complain plain `partial`
+# make_linkcode_resolve(domain, info) ~ linkcode_resolve(domain, info)
+# This function is used by `sphinx.ext.linkcode` to provide
+# "View source" links in the documentation.
 def make_linkcode_resolve(
-    package: str,
-    url_fmt: str,
+    package: str | None = None,
+    url_fmt: str | None = None,
     revision: str | None = None,
 ) -> Callable[[str, dict[str, str]], str | None]:
     """
@@ -419,8 +423,19 @@ def make_linkcode_resolve(
             revision="v0.4.0",
         )
     """
+    if package is None:
+        package = "scikitplot"
+    if url_fmt is None:
+        url_fmt = (
+            "https://github.com/scikit-plots/"
+            "scikit-plots/blob/{revision}/"
+            "{package}/{path}#L{lineno}"
+        )
     if revision is None:
         revision = _get_git_revision()
     return partial(
-        _linkcode_resolve, revision=revision, package=package, url_fmt=url_fmt
+        _linkcode_resolve,
+        revision=revision,
+        package=package,
+        url_fmt=url_fmt,
     )

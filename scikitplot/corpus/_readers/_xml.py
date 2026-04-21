@@ -366,7 +366,7 @@ class XMLReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the ``.xml`` file.
     block_xpath : str, optional
         XPath expression selecting the elements whose text content becomes
@@ -430,20 +430,20 @@ class XMLReader(DocumentReader):
     Default usage (all elements with text):
 
     >>> from pathlib import Path
-    >>> reader = XMLReader(input_file=Path("corpus.xml"))
+    >>> reader = XMLReader(input_path=Path("corpus.xml"))
     >>> docs = list(reader.get_documents())
 
     XPath targeting ``<p>`` elements only:
 
     >>> reader = XMLReader(
-    ...     input_file=Path("document.xml"),
+    ...     input_path=Path("document.xml"),
     ...     block_xpath=".//p",
     ... )
 
     With TEI namespace:
 
     >>> reader = XMLReader(
-    ...     input_file=Path("hamlet.xml"),
+    ...     input_path=Path("hamlet.xml"),
     ...     block_xpath=".//tei:p | .//tei:l",
     ...     namespaces={"tei": "http://www.tei-c.org/ns/1.0"},
     ... )
@@ -502,14 +502,14 @@ class XMLReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes`` or is not valid XML.
         """
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"XMLReader: {self.file_name} is {file_size:,} bytes, which"
                 f" exceeds max_file_bytes={self.max_file_bytes:,}."
             )
 
-        content = self.input_file.read_bytes()
+        content = self.input_path.read_bytes()
         if self.encoding is not None:
             # Re-encode as UTF-8 after decoding with the explicit encoding
             content = content.decode(self.encoding).encode("utf-8")
@@ -588,7 +588,7 @@ class TEIReader(DocumentReader):
 
     Parameters
     ----------
-    input_file : pathlib.Path
+    input_path : pathlib.Path
         Path to the TEI ``.xml`` file.
     include_stage_directions : bool, optional
         When ``True`` (default), stage directions are included as
@@ -649,7 +649,7 @@ class TEIReader(DocumentReader):
     Examples
     --------
     >>> from pathlib import Path
-    >>> reader = TEIReader(input_file=Path("hamlet_tei.xml"))
+    >>> reader = TEIReader(input_path=Path("hamlet_tei.xml"))
     >>> docs = list(reader.get_documents())
     >>> verse = [d for d in docs if d.section_type.value == "verse"]
     >>> print(f"Verse lines: {len(verse)}")
@@ -657,7 +657,7 @@ class TEIReader(DocumentReader):
     Filter out stage directions:
 
     >>> reader = TEIReader(
-    ...     input_file=Path("hamlet_tei.xml"),
+    ...     input_path=Path("hamlet_tei.xml"),
     ...     include_stage_directions=False,
     ... )
     """
@@ -711,10 +711,10 @@ class TEIReader(DocumentReader):
             suffix other than ``.xml``.
         """
         super().validate_input()
-        if self.input_file.suffix.lower() != ".xml":
+        if self.input_path.suffix.lower() != ".xml":
             raise ValueError(
                 f"TEIReader: expected a .xml file; got"
-                f" {self.input_file.suffix!r} ({self.input_file})."
+                f" {self.input_path.suffix!r} ({self.input_path})."
             )
 
     def get_raw_chunks(self) -> Generator[dict[str, Any], None, None]:
@@ -743,14 +743,14 @@ class TEIReader(DocumentReader):
         ValueError
             If the file exceeds ``max_file_bytes`` or is not valid XML.
         """
-        file_size = self.input_file.stat().st_size
+        file_size = self.input_path.stat().st_size
         if file_size > self.max_file_bytes:
             raise ValueError(
                 f"TEIReader: {self.file_name} is {file_size:,} bytes, which"
                 f" exceeds max_file_bytes={self.max_file_bytes:,}."
             )
 
-        content = self.input_file.read_bytes()
+        content = self.input_path.read_bytes()
         root = _parse_xml(content)
 
         ns_uri = _detect_tei_namespace(root)

@@ -2065,6 +2065,7 @@ cdef class KissBitGenerator:
     Notes
     -----
     The bit_width parameter determines internal generator:
+
     - 32: Uses Kiss32Random (faster, period ~2^121)
     - 64: Uses Kiss64Random (slower, period ~2^250)
     - NumPy BitGenerator protocol compatible

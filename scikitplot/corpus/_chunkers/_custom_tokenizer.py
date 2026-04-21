@@ -463,7 +463,7 @@ class FunctionLemmatizer:
 
     Examples
     --------
-    >>> lm = FunctionLemmatizer(lambda w, pos=None: w.lower())
+    >>> lm = FunctionLemmatizer(lambda w: w.lower(), pos=None)
     >>> lm.lemmatize("Running", pos="v")
     'running'
     """  # noqa: D205
@@ -803,8 +803,8 @@ from enum import Enum  # noqa: E402 (after __future__ guard)
 class ScriptType(str, Enum):
     """Dominant Unicode script detected in a text sample.
 
-    Values
-    ------
+    Attributes
+    ----------
     LATIN
         Latin script (English, French, German, Spanish, Portuguese,
         Romanian, Turkish, Vietnamese, etc.) — left-to-right.

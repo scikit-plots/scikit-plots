@@ -26,7 +26,7 @@ Design invariants
 * ``CorpusDocument.validate()`` must succeed before a document leaves any
   pipeline stage. Fail fast with actionable ``ValueError`` messages.
 * ``doc_id`` is a deterministic 16-character SHA-1 prefix derived from
-  ``(source_type, source_file, chunk_index, text[:64])``. Identical inputs
+  ``(source_type, input_path, chunk_index, text[:64])``. Identical inputs
   always yield the same id, making deduplication and caching reliable.
 * The ``embedding`` field is typed ``Optional[Any]`` at runtime so that numpy
   is **not** imported here. The companion ``_schema.pyi`` stub provides full
@@ -157,8 +157,8 @@ class Modality(_StrEnumBase):
     **MULTIMODAL** — document carries both ``text`` and a ``raw_tensor``
     (e.g. an image with its OCR transcript).
 
-    Reader-to-modality mapping
-    --------------------------
+    Reader-to-modality mapping:
+
     - ``TextReader / PDFReader / XMLReader / WebReader / YouTubeReader``
       → ``TEXT``
     - ``ImageReader(yield_raw=False)`` → ``TEXT``
@@ -434,9 +434,7 @@ class SourceType(_StrEnumBase):
     Every value is a plain lowercase string that round-trips through CSV,
     JSON, Parquet, and database storage without loss.
 
-    Reader affinity
-    ---------------
-    Each value maps to the reader most likely to handle it:
+    Reader affinity, Each value maps to the reader most likely to handle it:
 
     ==========================  ========================  ===========================
     SourceType value            Default reader            Typical file extension
@@ -624,7 +622,7 @@ class SourceType(_StrEnumBase):
     @classmethod
     def infer(  # noqa: PLR0911, PLR0912
         cls,
-        source: str | pathlib.Path | None = None,
+        input_path: str | pathlib.Path | None = None,
         *,
         mime_type: str | None = None,
     ) -> Self:
@@ -633,24 +631,24 @@ class SourceType(_StrEnumBase):
 
         Parameters
         ----------
-        source : str, pathlib.Path, or None, optional
+        input_path : str, pathlib.Path, or None, optional
             File path or URL string.  The extension (lower-case) is
             extracted and looked up in the internal extension map.
             ``None`` falls through to *mime_type* lookup.  Default: ``None``.
         mime_type : str or None, optional
             MIME type string (e.g. ``"application/pdf"``).  Used when
-            *source* has no recognisable extension (e.g. extensionless
+            *input_path* has no recognisable extension (e.g. extensionless
             API URLs).  Default: ``None``.
 
         Returns
         -------
         SourceType
             Inferred type, or :attr:`SourceType.UNKNOWN` when neither
-            *source* nor *mime_type* yields a match.
+            *input_path* nor *mime_type* yields a match.
 
         Notes
         -----
-        **Priority:** extension (from *source*) wins over *mime_type*.
+        **Priority:** extension (from *input_path*) wins over *mime_type*.
 
         **Use case — ZipReader:** Each member is passed to
         :meth:`infer` so that ``source_type`` is never ``UNKNOWN``
@@ -679,8 +677,8 @@ class SourceType(_StrEnumBase):
         import os as _os  # noqa: PLC0415
 
         # Extension lookup
-        if source is not None:
-            path_str = str(source)
+        if input_path is not None:
+            path_str = str(input_path)
             name_lower = _os.path.basename(path_str).lower()
             # Compound extensions first
             for compound in (".tar.gz", ".tar.bz2", ".tar.xz"):
@@ -912,15 +910,15 @@ class CorpusDocument:
     ----------
     doc_id : str
         Stable 16-character hex identifier. Generated deterministically from
-        ``(source_type, source_file, chunk_index, text[:64])`` via
+        ``(source_type, input_path, chunk_index, text[:64])`` via
         :meth:`make_doc_id` if not supplied. Must be non-empty.
-    source_file : str
+    input_path : str
         Name or relative path of the original source file. Must be non-empty.
-        Set from ``input_file.name`` by readers; do **not** include absolute
+        Set from ``input_path.name`` by readers; do **not** include absolute
         paths to keep corpora portable across machines.
     chunk_index : int
         Zero-based ordinal of this chunk within the source document. Must be
-        >= 0. Unique per ``(source_file, chunking_strategy)`` pair.
+        >= 0. Unique per ``(input_path, chunking_strategy)`` pair.
     text : str
         Cleaned, segmented text content of this chunk. Must be non-empty after
         stripping whitespace.
@@ -1035,7 +1033,7 @@ class CorpusDocument:
     Creating from factory with auto-generated id:
 
     >>> doc = CorpusDocument.create(
-    ...     source_file="corpus.xml",
+    ...     input_path="corpus.xml",
     ...     chunk_index=3,
     ...     text="Das Kapital ist ein Werk von Marx.",
     ...     source_type=SourceType.BOOK,
@@ -1061,7 +1059,7 @@ class CorpusDocument:
 
     REQUIRED_FIELDS: ClassVar[tuple[str, ...]] = (
         "doc_id",
-        "source_file",
+        "input_path",
     )
     """Fields that must be non-empty strings for :meth:`validate` to pass.
 
@@ -1081,7 +1079,7 @@ class CorpusDocument:
     doc_id: str
     """Stable 16-character hex identifier for this chunk."""
 
-    source_file: str
+    input_path: str
     """Name of the original source file (not an absolute path)."""
 
     chunk_index: int
@@ -1315,7 +1313,7 @@ class CorpusDocument:
         >>> doc.validate()  # no exception
 
         >>> bad = CorpusDocument(
-        ...     doc_id="", source_file="f.txt", chunk_index=0, text="Hello."
+        ...     doc_id="", input_path="f.txt", chunk_index=0, text="Hello."
         ... )
         >>> bad.validate()
         Traceback (most recent call last):
@@ -1510,7 +1508,7 @@ class CorpusDocument:
     @classmethod
     def make_doc_id(
         cls,
-        source_file: str,
+        input_path: str,
         chunk_index: int,
         text: str,
         source_type: SourceType = SourceType.UNKNOWN,
@@ -1519,12 +1517,12 @@ class CorpusDocument:
         Compute a deterministic 16-character hex document identifier.
 
         The id is a SHA-1 prefix of
-        ``"{source_type}:{source_file}:{chunk_index}:{text[:64]}"``.
+        ``"{source_type}:{input_path}:{chunk_index}:{text[:64]}"``.
         Identical inputs always produce the same id.
 
         Parameters
         ----------
-        source_file : str
+        input_path : str
             Name of the source file (not a full path).
         chunk_index : int
             Zero-based chunk position within the document.
@@ -1567,7 +1565,7 @@ class CorpusDocument:
         # modalities) legitimately have no text.  Use an empty string prefix
         # so the hash is still deterministic and unique per (source, chunk).
         text_prefix = text[:64] if text is not None else ""
-        raw = f"{st_val}:{source_file}:{chunk_index}:{text_prefix}"
+        raw = f"{st_val}:{input_path}:{chunk_index}:{text_prefix}"
         return hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
 
     @staticmethod
@@ -1607,7 +1605,7 @@ class CorpusDocument:
     @classmethod
     def create(  # noqa: D417
         cls,
-        source_file: str,
+        input_path: str,
         chunk_index: int,
         text: str | None,
         # Core classification
@@ -1670,7 +1668,7 @@ class CorpusDocument:
 
         Parameters
         ----------
-        source_file : str
+        input_path : str
             Name of the source file.
         chunk_index : int
             Zero-based chunk position.
@@ -1755,7 +1753,7 @@ class CorpusDocument:
         Examples
         --------
         >>> doc = CorpusDocument.create(
-        ...     source_file="corpus.txt",
+        ...     input_path="corpus.txt",
         ...     chunk_index=0,
         ...     text="Hello world.",
         ...     source_type=SourceType.BOOK,
@@ -1766,11 +1764,11 @@ class CorpusDocument:
         False
         """
         resolved_id = doc_id or cls.make_doc_id(
-            source_file, chunk_index, text, source_type
+            input_path, chunk_index, text, source_type
         )
         instance = cls(
             doc_id=resolved_id,
-            source_file=source_file,
+            input_path=input_path,
             chunk_index=chunk_index,
             text=text,
             section_type=section_type,
@@ -1935,7 +1933,7 @@ class CorpusDocument:
         d: dict[str, Any] = {
             # Core
             "doc_id": self.doc_id,
-            "source_file": self.source_file,
+            "input_path": self.input_path,
             "chunk_index": self.chunk_index,
             "text": self.text,
             "section_type": self.section_type.value,
@@ -2136,7 +2134,7 @@ class CorpusDocument:
         # text is optional for raw-media documents (modality != TEXT).
         # The required-keys check only enforces the fields that must always
         # be present regardless of modality.
-        required_keys = {"doc_id", "source_file", "chunk_index"}
+        required_keys = {"doc_id", "input_path", "chunk_index"}
         missing = required_keys - set(data)
         if missing:
             raise ValueError(
@@ -2169,7 +2167,7 @@ class CorpusDocument:
             return [str(s) for s in val] if val is not None else None
 
         return cls.create(
-            source_file=data["source_file"],
+            input_path=data["input_path"],
             chunk_index=int(data["chunk_index"]),
             text=data.get("text"),
             section_type=SectionType(data.get("section_type", SectionType.TEXT.value)),
@@ -2229,7 +2227,7 @@ class CorpusDocument:
         Returns
         -------
         str
-            ``CorpusDocument(source_file=..., chunk_index=..., words=...[, emb=...])``.
+            ``CorpusDocument(input_path=..., chunk_index=..., words=...[, emb=...])``.
         """
         emb_info = (
             f", embedding=<array shape={getattr(self.embedding, 'shape', '?')}>"
@@ -2239,7 +2237,7 @@ class CorpusDocument:
         return (
             f"CorpusDocument("
             f"doc_id={self.doc_id!r}, "
-            f"source_file={self.source_file!r}, "
+            f"input_path={self.input_path!r}, "
             f"chunk_index={self.chunk_index}, "
             f"source_type={self.source_type.value!r}, "
             f"section_type={self.section_type.value!r}, "

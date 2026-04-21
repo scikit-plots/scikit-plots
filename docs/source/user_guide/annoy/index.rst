@@ -21,7 +21,7 @@
 .. _annoy-index:
 
 ======================================================================
-ANNoy Vector Database (Approximate Nearest Neighbors)
+ANNoy Vector Database
 ======================================================================
 
 ANNOY (Approximate Nearest Neighbors Oh Yeah): The core data structure are random projection trees,
