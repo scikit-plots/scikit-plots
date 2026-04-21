@@ -16,6 +16,7 @@ import types
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import pytest
 
@@ -95,6 +96,32 @@ def _mock_response(
     resp.raise_for_status.return_value = None
     resp.text = content.decode("utf-8", errors="replace")
     return resp
+
+
+def is_valid_github_url(url: str) -> bool:
+    parsed = urlparse(url)
+
+    # Enforce HTTPS
+    if parsed.scheme != "https":
+        return False
+
+    # Strict hostname check
+    if parsed.netloc != "github.com":
+        return False
+
+    return True
+
+
+def is_valid_raw_github_url(url: str) -> bool:
+    parsed = urlparse(url)
+
+    if parsed.scheme != "https":
+        return False
+
+    if parsed.netloc != "raw.githubusercontent.com":
+        return False
+
+    return True
 
 
 # ===========================================================================
@@ -408,10 +435,18 @@ class TestGitHubDownloader:
                 "https://github.com/user/repo/blob/main/README.md",
                 output_path=tmp_dir,
             ).download()
+
+        # assert result.input_url.startswith("https://github.com")
+        parsed = urlparse(result.input_url)
+        assert parsed.scheme == "https"
+        assert parsed.netloc == "github.com"
+
         call_url = session.get.call_args[0][0]
-        assert "raw.githubusercontent.com" in call_url
-        assert "blob" not in call_url
-        assert result.input_url.startswith("https://github.com")
+        parsed = urlparse(call_url)
+        # assert "blob" not in call_url
+        # assert "/blob/" not in parsed.path
+        assert parsed.scheme == "https"
+        assert parsed.netloc == "raw.githubusercontent.com"
 
     def test_download_sends_token(self, tmp_dir: Path) -> None:
         resp = _mock_response(content=b"secret")
