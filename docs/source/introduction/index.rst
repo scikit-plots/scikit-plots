@@ -22,7 +22,7 @@
 
    <br/>
 
-:raw-html:`<div style="text-align: center"><strong>` Welcome to Scikit-plots 101
+:raw-html:`<div style="text-align: center"><strong>` 🤗 Welcome to Scikit-plots 101
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 

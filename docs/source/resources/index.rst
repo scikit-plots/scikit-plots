@@ -21,9 +21,9 @@
 
    <br/>
 
-.. _scikit-plots-examples-tutorials:
+.. _resources-index:
 
-:raw-html:`<div style="text-align: center"><strong>` 🤓 Scikit-plots Examples & Tutorials
+:raw-html:`<div style="text-align: center"><strong>` 🎓 Learn
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 
@@ -44,20 +44,14 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _examples-index:
+.. grid:: 1 1 1 1
 
-Examples
-======================================================================
+    .. grid-item-card::
+        :padding: 3
 
-This is the gallery of examples that showcase how scikit-plots can be used.
-Some examples demonstrate the use of the :ref:`APIs Reference <apis_ref-index>`
-in general and some demonstrate specific applications in tutorial form.
-Also check out our :ref:`user guide <user-guide-index>` for more detailed
-illustrations.
+        **external**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
 
-This page contains example plots. Click on any image to see the full image
-and source code.
-
-.. admonition:: Tagging!
-
-    You can also browse the example gallery by :ref:`tags <tagoverview>`.
+            External Resources <./external_resources.rst>

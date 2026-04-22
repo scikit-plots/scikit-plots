@@ -23,7 +23,7 @@
 
 .. _scikit-plots-documentation:
 
-:raw-html:`<div style="text-align: center"><strong>` Scikit-plots Documentation
+:raw-html:`<div style="text-align: center"><strong>` 📚 Scikit-plots Documentation
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 

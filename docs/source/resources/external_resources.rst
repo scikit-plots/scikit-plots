@@ -1,7 +1,3 @@
-:orphan:
-
-.. _resources-index:
-
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -19,10 +15,11 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-******************
-External resources
-******************
+.. _external_resources:
 
+******************
+External Resources
+******************
 
 ============================
 Books, chapters and articles

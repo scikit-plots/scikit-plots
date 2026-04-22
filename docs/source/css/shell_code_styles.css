@@ -1,9 +1,7 @@
-/* Custom styles for code container and copy button */
-.code-container {
-    position: relative;
-    display: inline-block;
-    width: 100%;
-    font-size: 10.5px;
+/* Padding for the code block to make room for the copy button */
+pre {
+    padding-top: 10px;
+    padding-right: 60px; /* Make room for the copy button */
 }
 
 /* Copy button styles */
@@ -27,9 +25,4 @@
 }
 .copy-btn.copied {
     color: green;
-}
-/* Padding for the code block to make room for the copy button */
-pre {
-    padding-top: 10px;
-    padding-right: 60px; /* Make room for the copy button */
 }

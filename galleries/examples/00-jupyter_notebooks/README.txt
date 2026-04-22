@@ -1,6 +1,7 @@
 .. _jupyter_notebooks_examples:
 
-jupyter notebooks
+Jupyter Notebooks
 ----------------------------------------------------------------------
 
-`Sample Notebooks <https://github.com/scikit-plots/scikit-plots/tree/main/galleries/examples/00-jupyter_notebooks>`__.
+.. seealso::
+  * `Sample Notebooks <https://github.com/scikit-plots/scikit-plots/tree/main/galleries/examples/00-jupyter_notebooks>`__.
