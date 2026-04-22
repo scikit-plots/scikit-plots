@@ -19,7 +19,7 @@
       <a href="#{{ item.title | trim | lower | replace(' ', '-') }}"
         target="_self"
         title="Try scikit-plots directly in your browser—no installation required.">
-        <h2>{{ item.title }}</h2>
+        <h2 id="{{ item.title | trim | lower | replace(' ', '-') }}">{{ item.title }}</h2>
       </a>
     </div>
     <div class="shell-content-message">
