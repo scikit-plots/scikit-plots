@@ -235,5 +235,6 @@ References:
 	{%- endif %}
 	Governance Process <project/governance.rst>
 	Release History <whats_new/index.rst>
+	Resources <resources/index.rst>
 	Roadmap <project/roadmap.rst>
 	About Us | Project <project/index.rst>

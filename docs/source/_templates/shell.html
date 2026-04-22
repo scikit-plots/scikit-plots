@@ -14,17 +14,33 @@
   <!-- Include title section -->
   <div class="flex-column shell-title-container">
   {%- for item in intro %}
-    <div class="shell-title">{{ item.title }}</div>
+    <div class="shell-title">
+      <!-- https://www.w3schools.com/tags/att_a_target.asp -->
+      <a href="#{{ item.title | trim | lower | replace(' ', '-') }}"
+        target="_self"
+        title="Try scikit-plots directly in your browser—no installation required.">
+        <h2>{{ item.title }}</h2>
+      </a>
+    </div>
     <div class="shell-content-message">
       <!-- Don’t inject HTML without | safe → will render as text -->
         <!-- Use the interactive shell to try <strong>scikit-plots</strong> in the browser. -->
       <p>
-        <span>{{ item.text | replace("scikit-plots", "<strong>scikit-plots</strong>") | trim | safe }}</span>
+        <span>{{ item.text | trim | replace("scikit-plots", "<a href='https://scikit-plots.github.io/' target='_blank'><strong>scikit-plots</strong></a>") | safe }}</span>
       </p>
       <!-- 🔔 &#x1F514; -->
       <p style="font-size:12.5px;">🔔
         <b>Note:</b>
-        <span style="color:turquoise;">Pyodide</span> uses older, compatible versions of some PyPI packages;
+        <a href="https://pyodide.org/en/stable"
+          target="_blank"
+          title="Pyodide is a Python distribution for the browser and Node.js based on WebAssembly. WebAssembly describes a memory-safe, sandboxed execution environment that may even be implemented inside existing JavaScript virtual machines. When embedded in the web, WebAssembly will enforce the same-origin and permissions security policies of the browser.">
+          <span style="color:turquoise;">Pyodide</span>
+        </a>
+        <a href="https://webassembly.org/docs/security"
+          target="_blank"
+          title="The security model of WebAssembly has two important goals: (1) protect users from buggy or malicious modules, and (2) provide developers with useful primitives and mitigations for developing safe applications, within the constraints of (1).">
+          <span style="color:turquoise;">(security note)</span>
+        </a>uses older, compatible versions of some PyPI packages;
         <span style="color:red;">latest versions may not be supported</span>.
       </p>
     </div>
@@ -32,7 +48,7 @@
   </div>
 
   <!-- Open in new tab -->
-  <div>
+  <div class="demo-links-container">
     <!-- Import Font Awesome icons for the link buttons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -86,7 +102,7 @@
       }
     </style>
     <!-- Start of the visual list -->
-    <div class="demo-links-wrapper">
+    <div class="demo-links-container links-content">
       <ul class="demo-links">
         <!-- Non-clickable label-style item -->
         <li>
