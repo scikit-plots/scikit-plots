@@ -1,10 +1,87 @@
+# https://docs.codecov.com/docs/adding-the-codecov-token
 # https://docs.codecov.com/docs/codecovyml-reference
-# https://docs.codecov.com/docs/codecovyml-reference#coveragestatus
 # https://docs.codecov.com/docs/commit-status#project-status
+#
+---
+
+# https://docs.codecov.com/docs/codecovyml-reference#codecov
+codecov:
+  #max_report_age can be listed in hours '#h' (hours) or '#d' (days)
+  max_report_age: '71h' # off, '12h' equates to 12 hours
+  # The user that you will use to serve as the bot connection to Codecov
+  # This bot user must have permissions on the repo and Codecov (by logging in)
+  # bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
+  # archive:
+  #   # How to disable archiving - In your codecov.yml, set the following line to false as follows:
+  #   uploads: false
+  notify:
+    # notification blocks. See: https://docs.codecov.io/docs/codecovyml-reference#section-coverage-notify
+    # Prevent coverage status to upload multiple times for parallel and long
+    # running CI pipelines. This configuration is particularly useful on PRs
+    # to avoid confusion. Note that this value is set to the number of Azure
+    # Pipeline jobs uploading coverage reports.
+    after_n_builds: 1  # 7
+    wait_for_ci: yes
+    manual_trigger: true
+    require_ci_to_pass: false
+
+# https://docs.codecov.com/docs/codecovyml-reference#comment
+# https://docs.codecov.com/docs/pull-request-comments
+# comment:  # this is a top-level key
+#   layout: " diff, flags, files"
+#   behavior: default
+#   require_changes: false        # learn more in the Requiring Changes section below
+#   require_base: false           # [true :: must have a base report to post]
+#   require_head: true            # [true :: must have a head report to post]
+#   hide_project_coverage: false  # [true :: only show coverage on the git diff]
+comment: false  # Disable comment
+# slack_app: true
+
+# https://docs.codecov.com/docs/coverage-configuration
+# https://docs.codecov.com/docs/codecovyml-reference#coverage
 coverage:
+  # https://docs.codecov.com/docs/codecovyml-reference#coveragestatus
   status:
+    # changes: false
+    # default_rules:
+    #   flag_coverage_not_uploaded_behavior: include
+    # https://docs.codecov.com/docs/commit-status#patch-status
+    patch:
+      default:
+        # basic
+        # Be tolerant on slight code coverage diff on PRs to limit
+        # noisy red coverage status on github PRs.
+        # Note: The coverage stats are still uploaded
+        # to codecov so that PR reviewers can see uncovered lines
+        target: auto
+        threshold: 1%
+        # base: auto
+        # advanced
+        # branches:
+        #   - master
+        # if_ci_failed: error #success, failure, error, ignore
+        # only_pulls: false
+        # flags:
+        #   - "unit"
+        # paths:
+        #   - "src"
+      # library:
+      #   target: 50%
+      #   if_no_uploads: error
+      #   if_not_found: success
+      #   if_ci_failed: error
+      #   paths:
+      #     - '!lib/.*/tests/.*'
+      # tests:
+      #   target: auto
+      #   if_no_uploads: error
+      #   if_not_found: success
+      #   if_ci_failed: error
+      #   paths:
+      #     - 'lib/.*/tests/.*'
+    # https://docs.codecov.com/docs/commit-status#project-status
     project:
-      default: # This can be anything, but it needs to exist as the name
+      default:  # default is the status check's name, not default settings
         # Commits pushed to main should not make the overall
         # project coverage decrease by more than 1%:
         # basic settings
@@ -14,54 +91,17 @@ coverage:
         # adjust accordingly based on how flaky your tests are
         # this allows a 1% drop from the previous base commit coverage
         threshold: 1%  # the leniency in hitting the target
+        # base: auto
+        # flags:
+        #   - unit
+        # paths:
+        #   - "src"
         # advanced settings
         # branches:
         #   - master
         # if_ci_failed: error #success, failure, error, ignore
         # informational: false
         # only_pulls: false
-    patch:
-      # https://docs.codecov.com/docs/commit-status#patch-status
-      default:
-        # Be tolerant on slight code coverage diff on PRs to limit
-        # noisy red coverage status on github PRs.
-        # Note: The coverage stats are still uploaded
-        # to codecov so that PR reviewers can see uncovered lines
-        target: auto
-        threshold: 1%
-
-codecov:
-  # The user that you will use to serve as the bot connection to Codecov
-  # This bot user must have permissions on the repo and Codecov (by logging in)
-  # bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
-
-  # archive:
-  #   # How to disable archiving - In your codecov.yml, set the following line to false as follows:
-  #   uploads: false
-
-  notify:
-    # notification blocks. See: https://docs.codecov.io/docs/codecovyml-reference#section-coverage-notify
-    # Prevent coverage status to upload multiple times for parallel and long
-    # running CI pipelines. This configuration is particularly useful on PRs
-    # to avoid confusion. Note that this value is set to the number of Azure
-    # Pipeline jobs uploading coverage reports.
-    after_n_builds: 6
-    wait_for_ci: yes
-    manual_trigger: true
-
-  #max_report_age can be listed in hours '#h' (hours) or '#d' (days)
-  max_report_age: '24h' # '12h' equates to 12 hours
-
-# https://docs.codecov.com/docs/codecovyml-reference#comment
-# https://docs.codecov.com/docs/pull-request-comments
-# comment:                  # this is a top-level key
-#   layout: " diff, flags, files"
-#   behavior: default
-#   require_changes: false  # learn more in the Requiring Changes section below
-#   require_base: false        # [true :: must have a base report to post]
-#   require_head: true       # [true :: must have a head report to post]
-#   hide_project_coverage: false # [true :: only show coverage on the git diff]
-comment: false  # Disable comment
 
 # https://docs.codecov.com/docs/codecovyml-reference#ignore
 # https://docs.codecov.com/docs/ignoring-paths
