@@ -9,8 +9,8 @@ All formats are written **atomically**: data is first written to a
 partially-written files from being read by downstream processes if the
 export is interrupted.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Only ``csv``, ``json``, and ``pickle`` (all stdlib)
 and ``numpy`` are hard requirements. All other backends are optional.
 """  # noqa: D205, D400

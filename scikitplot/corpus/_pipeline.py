@@ -21,8 +21,8 @@ This module provides :class:`CorpusPipeline`, which replaces the
 - Structured result objects with timing, counts, and output paths
 - Progress hooks for long-running jobs
 
-Original issues fixed (from remarx ``create.py``)
---------------------------------------------------
+Original issues fixed (from remarx ``create.py``):
+
 1. **Single-file only** — ``run_batch`` processes any number of files.
 2. **CSV only** — all :attr:`~scikitplot.corpus._schema.ExportFormat`
    values are supported via :func:`~scikitplot.corpus._export.export_documents`.
@@ -36,8 +36,8 @@ Original issues fixed (from remarx ``create.py``)
    timings, output path, and the document list for downstream use.
 7. **f-string logging** — all log calls use ``%`` formatting.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. ``numpy`` is required for embedding. All other
 dependencies are optional lazy imports.
 """  # noqa: D205, D400

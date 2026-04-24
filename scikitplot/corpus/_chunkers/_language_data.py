@@ -22,8 +22,8 @@ need to:
   ``stopwords`` corpus (Thai, Vietnamese, Malay, Swahili, Hindi,
   Filipino, Zulu, Afrikaans, Classical Latin, Ancient Greek, …).
 
-Multi-language ``str | list[str] | None`` helpers
---------------------------------------------------
+Multi-language ``str | list[str] | None`` helpers:
+
 :func:`coerce_language` normalises any of these forms into a canonical
 list of NLTK-compatible language strings:
 
@@ -34,8 +34,8 @@ list of NLTK-compatible language strings:
 
 :func:`resolve_stopwords` unions stopwords across all requested languages.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  No external dependencies.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400

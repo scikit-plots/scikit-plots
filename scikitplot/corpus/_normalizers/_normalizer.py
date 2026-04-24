@@ -3,8 +3,8 @@ scikitplot.corpus._normalizers._normalizer
 ==========================================
 Concrete normaliser implementations.
 
-Design invariants
------------------
+Design invariants:
+
 * Every normaliser is **side-effect free**: it returns a new
   :class:`~scikitplot.corpus._schema.CorpusDocument` via ``replace()``
   and never mutates the input.
@@ -15,8 +15,8 @@ Design invariants
 * All optional dependencies are guarded by ``ImportError`` at call time
   with an actionable install instruction.
 
-Available normalisers
----------------------
+Available normalisers:
+
 :class:`UnicodeNormalizer`
     NFC/NFD/NFKC/NFKD Unicode normalisation. Zero dependencies.
 
@@ -39,8 +39,8 @@ Available normalisers
 :class:`NormalizationPipeline`
     Chain multiple normalisers; applies them in order.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No ``match``, no ``StrEnum``, ``from __future__ import
 annotations`` throughout.
 """  # noqa: D205, D400

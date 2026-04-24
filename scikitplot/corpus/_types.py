@@ -19,8 +19,8 @@ protocol, enumeration, and type alias used across:
   - Pipeline             (``_pipeline``)
   - Registry             (``_registry``)
 
-Design principles
------------------
+Design principles:
+
 * All public types are ``dataclass(frozen=True)`` or ``Protocol`` — no
   mutable shared state.
 * Every field has an explicit type annotation and default where safe.
@@ -29,8 +29,8 @@ Design principles
   in their respective submodules inherit from them.
 * No circular imports: this module imports only from the standard library.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No external dependencies.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400

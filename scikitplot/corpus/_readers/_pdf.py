@@ -23,8 +23,8 @@ Extracts text from PDF files page-by-page using a two-backend cascade:
 Both backends are optional; ``ImportError`` is raised at first
 ``get_raw_chunks()`` call (not at import time) if neither is available.
 
-Design notes
-------------
+Design notes:
+
 * One raw chunk per PDF page — each page becomes one (or more) CorpusDocument
   instances depending on the injected chunker.
 * ``page_number`` (zero-based) is a promoted first-class field.
@@ -33,8 +33,8 @@ Design notes
 * Encrypted PDFs are opened with ``password`` when supplied.
 * Pages that yield no text after stripping are logged and skipped.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Zero runtime imports at module level. ``pdfminer.six`` and
 ``pypdf`` are optional lazy imports.
 """  # noqa: D205, D400

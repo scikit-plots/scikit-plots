@@ -12,8 +12,8 @@ OCR-based text extraction from raster image files.
 
 Supported formats: PNG, JPEG/JPG, GIF, WEBP, TIFF/TIF, BMP.
 
-Backend chain
--------------
+Backend chain:
+
 1. **pytesseract** (primary) — wraps Google's Tesseract OCR engine.
    Installed via ``pip install pytesseract``; requires ``tesseract``
    binary on ``PATH``.  Returns per-word confidence scores that are
@@ -25,14 +25,14 @@ Backend chain
    raises ``ImportError`` with actionable install instructions rather
    than silently yielding empty text.
 
-Multi-frame support
--------------------
+Multi-frame support:
+
 GIF and TIFF files may contain multiple frames or pages. Each frame is
 extracted and yielded as a separate chunk with a ``page_number`` metadata
 key. Single-frame images yield exactly one chunk.
 
-Design
-------
+Design:
+
 * **Lazy imports** — neither ``PIL``, ``pytesseract``, nor ``easyocr``
   is imported at module level. ``ImportError`` only fires at first
   ``get_raw_chunks()`` call, never at import time.
@@ -44,8 +44,8 @@ Design
   finer-grained section detection (title vs body) can post-process
   ``metadata["image_width"]`` and ``metadata["image_height"]``.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. ``Pillow``, ``pytesseract``, and ``easyocr`` are
 all optional runtime dependencies.
 """  # noqa: D205, D400

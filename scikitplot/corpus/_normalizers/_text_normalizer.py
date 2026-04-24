@@ -13,8 +13,8 @@ that populates ``CorpusDocument.normalized_text`` from ``doc.text``.
 Downstream components (``EmbeddingEngine``, BM25 retrieval, MCP
 servers) should prefer ``normalized_text`` when present.
 
-Design Rationale
-----------------
+Design Rationale:
+
 Raw ``text`` from PDF, OCR, and subtitle readers carries artefacts
 (hyphenation splits, ligatures, header/footer noise, double
 whitespace, invisible Unicode control chars) that degrade both dense

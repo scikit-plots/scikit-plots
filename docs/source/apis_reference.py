@@ -1270,18 +1270,18 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
             {
                 "title": "Sphinx AI Extension",
                 "description": (
-                    _get_submodule("scikitplot._externals._sphinx_ext", "_sphinx_ai_assistant")
+                    _get_submodule("scikitplot._externals", "_sphinx_ext._sphinx_ai_assistant")
                     + "\n\n" +
                     _get_guide("externals_-sphinx_ext_-sphinx_ai_assistant_-index")
                 ),
                 "autosummary": [
-                    "_sphinx_ai_assistant.add_ai_assistant_context",
-                    "_sphinx_ai_assistant.generate_llms_txt",
-                    "_sphinx_ai_assistant.generate_llms_txt_standalone",
-                    "_sphinx_ai_assistant.generate_markdown_files",
-                    "_sphinx_ai_assistant.html_to_markdown",
-                    "_sphinx_ai_assistant.html_to_markdown_converter",
-                    "_sphinx_ai_assistant.process_html_directory",
+                    "_sphinx_ext._sphinx_ai_assistant.add_ai_assistant_context",
+                    "_sphinx_ext._sphinx_ai_assistant.generate_llms_txt",
+                    "_sphinx_ext._sphinx_ai_assistant.generate_llms_txt_standalone",
+                    "_sphinx_ext._sphinx_ai_assistant.generate_markdown_files",
+                    "_sphinx_ext._sphinx_ai_assistant.html_to_markdown",
+                    "_sphinx_ext._sphinx_ai_assistant.html_to_markdown_converter",
+                    "_sphinx_ext._sphinx_ai_assistant.process_html_directory",
                 ],
             },
         ],

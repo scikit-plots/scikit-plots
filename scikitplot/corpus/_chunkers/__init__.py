@@ -15,8 +15,8 @@ return ``list[tuple[int, str]]`` — a list of ``(char_start, chunk_text)``
 pairs where ``char_start`` is the character offset of the chunk within the
 input text block.
 
-Available chunkers
-------------------
+Available chunkers:
+
 :class:`SentenceChunker`
     Sentence-boundary segmentation via spaCy. Language-agnostic through
     configurable model names. Caches loaded models as instance attributes.
@@ -31,8 +31,8 @@ Available chunkers
     whitespace-delimited word tokens or raw characters. No external
     dependencies.
 
-Quick usage
------------
+Examples
+--------
 >>> from scikitplot.corpus._chunkers import SentenceChunker, ParagraphChunker
 >>> chunker = ParagraphChunker()
 >>> chunks = chunker.chunk("Para one.\n\nPara two.")

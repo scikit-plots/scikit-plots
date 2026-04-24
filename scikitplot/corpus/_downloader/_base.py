@@ -8,8 +8,8 @@ scikitplot.corpus._downloader._base
 =====================================
 Abstract base class and shared contracts for all ``[xxx]Downloader`` classes.
 
-Design Invariants
------------------
+Design Invariants:
+
 * **Dataclass-based.** Every concrete downloader is a ``@dataclass`` so all
   parameters are explicit, introspectable, and repr-friendly.
 * **Security-first defaults.**  SSRF prevention, scheme allowlist, SSL

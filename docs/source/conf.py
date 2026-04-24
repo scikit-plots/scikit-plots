@@ -262,8 +262,6 @@ extensions = [
     # "_sphinx_ext.skplt_ext.sphinx_tabs_patch",   # <-- must come BEFORE sphinx_tabs.tabs
     'scikitplot.externals._sphinxext.sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
-    "sphinx_tags",  # Needs to be loaded *after* autodoc.
-    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     #
     # 'nbsphinx',                     # to publish Jupyter notebooks as documentation pages.
     # 'myst_parser',                  # Markdown parser (.md files) with Sphinx
@@ -286,11 +284,13 @@ extensions = [
     "_sphinx_ext.sklearn_ext.override_pst_pagetoc",  # Custom extension for overriding page TOC in certain cases.
     "_sphinx_ext.sklearn_ext.sphinx_issues",  # Custom extension for managing and displaying issues.
     "_sphinx_ext.sklearn_ext.move_gallery_links",  # Custom extension for rearranging gallery links.
+    # local skplt or scikitplot lib: Custom extensions
+    "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
+    "sphinx_tags",  # Needs to be loaded *after* autodoc.
+    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     "_sphinx_ext.sklearn_ext.search_filter",  # Custom extension
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
-    # local skplt or scikitplot lib: Custom extensions
     "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
-    "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
     # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",

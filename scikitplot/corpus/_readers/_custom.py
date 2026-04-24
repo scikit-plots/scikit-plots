@@ -26,8 +26,8 @@ This module provides two public objects:
     proprietary ASR/OCR APIs, in-memory buffers — without subclassing the
     full :class:`DocumentReader` contract.
 
-Extractor callable contract
-----------------------------
+Extractor callable contract:
+
 Every extractor function passed to :class:`CustomReader` or to the
 ``custom_extractor`` parameter of the built-in readers **must** accept a
 :class:`pathlib.Path` as its first positional argument and may accept
@@ -46,8 +46,8 @@ are promoted to first-class :class:`~scikitplot.corpus._schema.CorpusDocument`
 fields by the downstream pipeline.  Unrecognised keys land in
 ``CorpusDocument.metadata``.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  Zero runtime imports at module level.  All optional
 dependencies are imported lazily inside ``get_raw_chunks``.
 """  # noqa: D205, D400

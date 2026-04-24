@@ -1952,19 +1952,19 @@ cdef class Index(BaseIndex):
         """
         Distance metric name.
 
-        Returns
-        -------
-        metric : str or None
-            Canonical metric name, or None if not configured.
+        Possible Values:
 
-        Possible Values
-        ---------------
         * "angular" : cosine-like distance
         * "euclidean" : L2 distance
         * "manhattan" : L1 distance
         * "dot" : negative dot product
         * "hamming" : bitwise Hamming distance
         * None : not yet configured (lazy mode)
+
+        Returns
+        -------
+        metric : str or None
+            Canonical metric name, or None if not configured.
 
         Notes
         -----

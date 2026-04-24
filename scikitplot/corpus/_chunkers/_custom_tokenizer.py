@@ -12,8 +12,8 @@ This module is the single extension point for plugging any third-party
 NLP library into :class:`~._word.WordChunker` and
 :class:`~._sentence.SentenceChunker` without modifying core code.
 
-Supported extension points
---------------------------
+Supported extension points:
+
 * **Tokenization** — ``WordChunkerConfig(tokenizer=TokenizerBackend.CUSTOM,
   custom_tokenizer=<TokenizerProtocol>)``.  Works with MeCab (Japanese),
   jieba (Chinese), camel-tools (Arabic/Ottoman), stanza (100+ languages),
@@ -30,15 +30,20 @@ Supported extension points
 * **Lemmatization** — ``WordChunkerConfig(lemmatizer=LemmatizationBackend.CUSTOM,
   custom_lemmatizer=<LemmatizerProtocol>)``.
 
-Script detection
-----------------
+Script detection:
+
 :func:`detect_script` returns a :class:`ScriptType` member describing the
 dominant Unicode script in a text sample.  Chunkers use this to auto-configure
 sentence-boundary patterns and punctuation stripping for CJK / RTL / ancient
 scripts without the caller needing to pass explicit hints.
 
-Usage examples
---------------
+Python compatibility:
+
+Python 3.8-3.15.  No external dependencies.
+``from __future__ import annotations`` for all annotations.
+
+Examples
+--------
 Wrap a plain callable as a tokenizer:
 
 >>> tok = FunctionTokenizer(str.split)
@@ -59,11 +64,6 @@ Detect script:
 <ScriptType.LATIN: 'latin'>
 >>> detect_script("こんにちは")
 <ScriptType.CJK: 'cjk'>
-
-Python compatibility
---------------------
-Python 3.8-3.15.  No external dependencies.
-``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400
 
 from __future__ import annotations

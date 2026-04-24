@@ -5,7 +5,6 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-
 """
 Sphinx Gallery doc-build utilities for scikit-plots.
 
@@ -258,6 +257,52 @@ _JUPYTERLITE_WARNING_MESSAGE: str = (
 )
 
 
+def _get_cell_source(cell: dict) -> str:
+    r"""Normalise a notebook cell ``source`` field to a plain string.
+
+    The nbformat v4 specification defines ``source`` as a *multiline_string*,
+    which may be either a ``str`` or a ``list[str]``.  When sphinx-gallery
+    constructs notebook objects in memory (rather than reading from disk via
+    ``nbformat.read``), cells arrive with ``source`` as ``list[str]``, where
+    each element already carries its trailing newline.  This helper absorbs
+    both representations so call sites can always work with a plain ``str``.
+
+    Parameters
+    ----------
+    cell : dict
+        A single nbformat v4 cell dict.
+
+    Returns
+    -------
+    str
+        The cell source as a single string.  An empty string is returned when
+        the ``source`` key is absent.
+
+    Notes
+    -----
+    **Developer — join separator:** When ``source`` is a ``list``, the
+    elements are joined with ``""`` (empty string), *not* ``"\n"``.  Each
+    element already contains its trailing newline character per the nbformat
+    spec; inserting an extra ``"\n"`` would double the line endings.
+
+    **Developer — type guard:** Only ``list`` triggers the join path.  Any
+    other non-str type (e.g. ``None``, ``int``) falls through to the
+    ``str()`` conversion so the function is maximally defensive without
+    masking genuine schema violations upstream.
+    """
+    src = cell.get("source", "")
+    if isinstance(src, list):
+        return "".join(src)
+    if isinstance(src, str):
+        return src
+    # Defensive fallback: log and coerce unexpected types rather than crash.
+    logger.warning(
+        "_get_cell_source: unexpected source type %r in cell; coercing to str.",
+        type(src),
+    )
+    return str(src)
+
+
 def notebook_modification_function(
     notebook_content: dict,
     notebook_filename: str,
@@ -402,7 +447,7 @@ def notebook_modification_function(
     # Abort if the marker cell has already been injected (e.g. incremental
     # Sphinx build calling this function twice on the same notebook object).
     already_modified = any(
-        _JUPYTERLITE_CELL_MARKER in cell.get("source", "")
+        _JUPYTERLITE_CELL_MARKER in _get_cell_source(cell)
         for cell in notebook_content["cells"]
         if isinstance(cell, dict)
     )
@@ -419,7 +464,7 @@ def notebook_modification_function(
     # appearing exclusively in outputs or metadata cannot trigger false-positive
     # injections.
     notebook_content_str: str = "\n".join(
-        cell.get("source", "")
+        _get_cell_source(cell)
         for cell in notebook_content["cells"]
         if isinstance(cell, dict)
     )

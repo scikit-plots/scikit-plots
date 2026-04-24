@@ -14,8 +14,8 @@ Pure Python — no external dependencies. Suitable for RAG pipelines that
 require fixed-size text chunks for embedding and retrieval, where sentence
 or paragraph boundaries are either absent or not semantically meaningful.
 
-Design
-------
+Design:
+
 Two unit modes are supported:
 
 ``unit="words"``
@@ -28,8 +28,8 @@ Two unit modes are supported:
     The window is measured in characters. Chunks are exact character slices
     of the input, without any token alignment.
 
-Overlap
--------
+Overlap:
+
 ``overlap`` controls how many units (words or chars) the next window
 reuses from the current one. Overlap must be in ``[0, window_size)``.
 Step size is computed as ``step = window_size - overlap``.
@@ -37,14 +37,14 @@ Step size is computed as ``step = window_size - overlap``.
 - ``overlap=0`` → non-overlapping windows
 - ``overlap=window_size-1`` → maximum overlap (advances 1 unit per step)
 
-Character offsets
------------------
+Character offsets:
+
 ``char_start`` in each returned tuple is the absolute character offset of the
 **first character** of the chunk within the input string. This is consistent
 with spaCy's ``sent.start_char`` convention.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No external dependencies.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400

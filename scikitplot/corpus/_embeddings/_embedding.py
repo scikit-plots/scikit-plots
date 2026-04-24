@@ -16,8 +16,8 @@ triggered per-document or in batches. Results are cached to ``.npy``
 files keyed by a SHA-256 hash of ``(model_name, input_path, mtime, n_texts)``
 so that re-running the pipeline on an unchanged corpus is O(1).
 
-Original issues fixed (from remarx ``embeddings.py``)
-------------------------------------------------------
+Original issues fixed (from remarx ``embeddings.py``):
+
 1. **Model reload on every call** — models are cached in a thread-safe
    per-instance dict; the same ``EmbeddingEngine`` object reuses loaded
    models across all calls.
@@ -35,8 +35,8 @@ Original issues fixed (from remarx ``embeddings.py``)
 7. **No shape/dtype validation on cache load** — loaded arrays are
    validated for shape, dtype, and row count before use.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. ``numpy`` is required. ``sentence_transformers``,
 ``openai``, and ``tiktoken`` are optional; graceful ``ImportError`` at
 call time when not installed.

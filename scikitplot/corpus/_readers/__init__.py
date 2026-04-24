@@ -9,8 +9,8 @@ available via :meth:`~scikitplot.corpus._base.DocumentReader.create` (for
 file-based sources) and
 :meth:`~scikitplot.corpus._base.DocumentReader.from_url` (for URLs).
 
-Available readers
------------------
+Available readers:
+
 
 **File-based (via** ``DocumentReader.create(path)`` **)**
 
@@ -82,8 +82,8 @@ Available readers
     without producing documents.  Use :meth:`DummyReader.check` for batch
     pre-flight validation of file or URL sources.
 
-Quick usage
------------
+Examples
+--------
 File-based:
 
 >>> from pathlib import Path

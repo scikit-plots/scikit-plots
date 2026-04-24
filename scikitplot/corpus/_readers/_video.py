@@ -13,8 +13,8 @@ automatic speech recognition (transcription).
 
 Supported formats: MP4, AVI, MKV, MOV, WEBM, M4V, WMV, FLV.
 
-Extraction strategy
--------------------
+Extraction strategy:
+
 Two strategies are attempted in order, stopping at the first success:
 
 1. **Companion subtitle file** (zero dependencies, instant).
@@ -33,8 +33,8 @@ Two strategies are attempted in order, stopping at the first success:
       on first use. In CI/Docker, pre-cache the weights or use subtitle
       files instead.
 
-Format support details
------------------------
+Format support details:
+
 ``SRT``
     Sub Rip Text. Index line + HH:MM:SS,mmm timecodes + text block.
 ``WebVTT`` (``.vtt``)
@@ -46,8 +46,8 @@ Format support details
     MicroDVD frame-based format — timecodes converted to seconds using
     the ``frame_rate`` parameter (default 25 fps).
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. All transcription dependencies are optional lazy
 imports. The subtitle parser is pure Python (stdlib only).
 """  # noqa: D205, D400

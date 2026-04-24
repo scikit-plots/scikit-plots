@@ -13,8 +13,8 @@ Sentence-boundary segmentation via spaCy, NLTK, or regex.
 This module is a ground-up rewrite of remarx's ``segment.py``. Every failure
 mode from the original is resolved at its root cause:
 
-Original issues resolved
-------------------------
+Original issues resolved:
+
 1. **Model reload on every call** — models are cached in a per-instance dict
    (``SentenceChunker._nlp_cache``) keyed by model name; repeated calls are
    O(1) dict lookups.  The cache is created in ``__init__`` and passed
@@ -36,8 +36,8 @@ Original issues resolved
 8. **No download gate** — auto-download is behind an explicit ``auto_download``
    flag and logs a warning before mutating the environment.
 
-Constructor convenience
------------------------
+Constructor convenience:
+
 ``SentenceChunker`` accepts three equivalent forms:
 
 .. code-block:: python
@@ -55,8 +55,8 @@ Constructor convenience
         )
     )
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  No use of ``match``, ``StrEnum``, or ``Self``.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400
