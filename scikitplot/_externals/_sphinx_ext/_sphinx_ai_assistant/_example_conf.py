@@ -76,18 +76,35 @@ extensions = [
 # projects (scikit-learn, NumPy, SciPy, pandas, Matplotlib).
 #
 # The extension supports every Sphinx theme through its theme-preset system.
-# Common preset names accepted by ``ai_assistant_theme_preset`` (below):
-#   "pydata_sphinx_theme"  — scikit-learn / NumPy / SciPy / pandas style
-#   "furo"                 — Furo theme (https://pradyunsg.me/furo/)
-#   "sphinx_rtd_theme"     — Read the Docs theme
-#   "sphinx_book_theme"    — Jupyter Book / sphinx-book-theme
-#   "alabaster"            — Sphinx default theme
-#   "classic"              — Sphinx Classic
-#   "mkdocs"               — MkDocs (non-Sphinx, standalone use)
-#   "mkdocs_material"      — MkDocs Material
-#   "jekyll"               — Jekyll static sites
-#   "hugo"                 — Hugo static sites
-#   "plain_html"           — Generic HTML5 without a framework
+# All preset names accepted by ``ai_assistant_theme_preset`` (below):
+#
+#   Sphinx themes:
+#     "pydata_sphinx_theme"  — scikit-learn / NumPy / SciPy / pandas style
+#     "furo"                 — Furo theme (https://pradyunsg.me/furo/)
+#     "sphinx_rtd_theme"     — Read the Docs theme
+#     "sphinx_book_theme"    — Jupyter Book / sphinx-book-theme
+#     "alabaster"            — Sphinx default theme
+#     "classic"              — Sphinx Classic
+#     "nature"               — Sphinx Nature theme
+#     "agogo"                — Sphinx Agogo theme
+#     "haiku"                — Sphinx Haiku theme
+#     "scrolls"              — Sphinx Scrolls theme
+#     "press"                — Sphinx Press theme
+#     "bootstrap"            — sphinx-bootstrap-theme
+#     "piccolo_theme"        — sphinx-piccolo-theme
+#     "insegel"              — Insegel theme
+#     "groundwork"           — Groundwork theme
+#
+#   Non-Sphinx static site generators:
+#     "mkdocs"               — MkDocs (non-Sphinx, standalone use)
+#     "mkdocs_material"      — MkDocs Material
+#     "jekyll"               — Jekyll static sites
+#     "hugo"                 — Hugo static sites
+#     "hexo"                 — Hexo static sites
+#     "docusaurus"           — Docusaurus (Meta)
+#     "vitepress"            — VitePress (Vue-powered)
+#     "gitbook"              — GitBook
+#     "plain_html"           — Generic HTML5 without a framework
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
@@ -374,14 +391,16 @@ ai_assistant_markdown_exclude_patterns = [
 ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
 
 # Type:    int or None
-# Default: None  (auto-detect)
+# Default: 1  (single worker; set None for auto cpu_count)
 #
 # Maximum number of parallel worker processes for Markdown generation.
 #
+#   1     — single process (extension default).  Use for CI and debugging —
+#           stack traces are clean and sequential, and pdb works normally
+#           inside workers.
 #   None  — auto: os.cpu_count() or 1.  Scales to the local machine
 #           without overwhelming CI containers (which often have 2 CPUs).
-#   1     — single process.  Use for debugging — stack traces are clean and
-#           sequential, and pdb works normally inside workers.
+#           Pass ``None`` or ``"auto"`` to enable auto-detection.
 #   N > 1 — explicit cap.  Useful to limit memory usage on memory-constrained
 #           machines when converting very large HTML files.
 #
@@ -389,7 +408,52 @@ ai_assistant_strip_tags = ["script", "style", "nav", "footer"]
 # worker functions (``_process_single_html_file``, ``_process_html_file_worker``)
 # MUST be defined at module scope — not as lambdas or closures — so the
 # multiprocessing pickle protocol can serialise them across process boundaries.
-ai_assistant_max_workers = 1  # None or >=1
+# ``_resolve_max_workers`` translates ``None`` / ``"auto"`` / positive integers
+# to a safe value before the executor is created; it raises ``ValueError`` for
+# zero or negative inputs so errors surface before any process is spawned.
+ai_assistant_max_workers = 1  # None / "auto" or a positive integer
+
+# ---------------------------------------------------------------------------
+# AI Assistant — Ollama default model
+# ---------------------------------------------------------------------------
+
+# Type:    str
+# Default: "llama3.2:latest"
+#
+# Default Ollama model used when the ``ollama`` provider is enabled and no
+# ``model`` override is given inside ``ai_assistant_providers["ollama"]``.
+# The widget JS reads this value to pre-select the model in the Ollama panel.
+#
+# User note: Pull any model from the recommended list with
+# ``ollama pull <model>`` before setting it here.
+#
+# Recommended models (all freely available via ``ollama pull``):
+#   Anthropic-API-compatible:
+#     "qwen3:latest"         — Alibaba Qwen 3 (excellent code + reasoning)
+#     "qwen3:8b"             — Qwen 3 8 B (fast, lower RAM)
+#     "llama3.3:latest"      — Meta Llama 3.3 70 B (strong general model)
+#     "llama3.2:latest"      — Meta Llama 3.2 (lightweight, fast)
+#     "glm4:latest"          — THUDM GLM-4 (strong multilingual)
+#   Google Gemma (Apache-2.0):
+#     "gemma3:latest"        — Google Gemma 3 (predecessor; Gemma 4 in progress)
+#     "gemma3:12b"           — Gemma 3 12 B
+#     "gemma3:4b"            — Gemma 3 4 B (very fast)
+#   Code-specialised:
+#     "codellama:latest"     — Meta Code Llama
+#     "deepseek-r1:latest"   — DeepSeek R1 reasoning model (locally)
+#     "deepseek-coder-v2:latest" — DeepSeek Coder V2
+#     "phi4:latest"          — Microsoft Phi-4
+#     "phi4-mini:latest"     — Phi-4 Mini (very fast)
+#     "mistral:latest"       — Mistral 7 B
+#
+# The full list is available as ``_OLLAMA_RECOMMENDED_MODELS`` in __init__.py.
+#
+# Developer note: This value is passed by ``add_ai_assistant_context`` into
+# the per-page ``window.AI_ASSISTANT_CONFIG`` JSON object under the
+# ``ollamaModel`` key.  It can be overridden at runtime by the user via the
+# widget UI.  Registered in ``setup()`` as a Sphinx config value with
+# ``rebuild = "html"``.
+ai_assistant_ollama_model = "llama3.2:latest"
 
 # ---------------------------------------------------------------------------
 # AI Assistant — llms.txt generation
@@ -494,7 +558,7 @@ ai_assistant_llms_txt_full_content = True
 #       the ``.md`` files actually exist on the server.
 #
 #   "ai_chat"
-#       Show the row of AI-provider buttons (Claude, ChatGPT, Gemini, …).
+#       Show the row of AI-provider buttons (ChatGPT, Claude, Gemini, …).
 #       Each button opens the provider's web UI with a pre-filled prompt
 #       containing the page URL and/or Markdown content.
 #       Set False to remove all provider buttons while keeping the widget.
@@ -574,13 +638,40 @@ ai_assistant_custom_context = None
 #   ai_assistant_custom_prompt_prefix = "You are a helpful Python expert.\n\n"
 ai_assistant_custom_prompt_prefix = None
 
+# Type:    bool
+# Default: False
+#
+# When True, the widget captures a screenshot of the current page (via the
+# browser's Canvas API) and encodes it as a base64 data-URI that is appended
+# to the prompt sent to AI providers that accept image input (e.g. ChatGPT-4o,
+# Claude, Gemini).
+#
+# User note: Enable only when visual context (diagrams, rendered plots,
+# layout screenshots) is genuinely useful for the documentation page type.
+# Each screenshot inflates the prompt significantly — typically 100–400 KB
+# base64 per page — and consumes the provider's vision-token budget.  Most
+# text-heavy documentation pages gain nothing from this option.
+#
+# Security note: Raw image data is embedded directly in the URL-encoded
+# prompt or POST body.  Ensure your CSP permits the ``data:`` URI scheme for
+# the image source if you restrict it.  The extension never uploads images to
+# Anthropic-controlled servers — all data goes directly from the user's
+# browser to the chosen AI provider.
+#
+# Developer note: ``add_ai_assistant_context`` reads this value via
+# ``_cfg_bool`` and serialises it into
+# ``window.AI_ASSISTANT_CONFIG.includeRawImage``.  The widget JS then
+# conditionally captures a screenshot when the user clicks an AI-provider
+# button.  Registered in ``setup()`` with ``rebuild = "html"``.
+ai_assistant_include_raw_image = False
+
 # ---------------------------------------------------------------------------
 # AI Assistant — AI provider configuration
 # ---------------------------------------------------------------------------
 
 # Type:    dict[str, dict]
 # Default: _DEFAULT_PROVIDERS  (12 providers; 3 enabled by default —
-#          claude, gemini, chatgpt — 9 disabled)
+#          chatgpt, claude, gemini — 9 disabled)
 #
 # Full AI provider registry.  Keys are short identifiers (e.g. "claude",
 # "ollama"); values are provider config dicts.
@@ -600,10 +691,21 @@ ai_assistant_custom_prompt_prefix = None
 #   "model"            str   — model identifier forwarded to the widget JS
 #   "type"             str   — "web" | "local" | "api" | "custom"
 #
-# Optional key:
+# Optional keys:
 #   "api_base_url"     str   — base endpoint for "local" / "api" type
 #                              providers (e.g. "http://localhost:11434" for
 #                              Ollama).
+#   "fetch_mode"       str   — controls what the widget injects into the prompt:
+#                              "url"     → pass the page URL (default; Claude /
+#                                          ChatGPT read URLs autonomously).
+#                              "content" → inject pre-extracted Markdown body
+#                                          instead of the URL.  Required for
+#                                          providers that do NOT reliably fetch
+#                                          arbitrary external URLs.
+#                              "both"    → include both URL "url" and Markdown content "content".
+#                              "paste"   → instruct the user to paste content
+#                                          manually.
+#                              Omitting ``fetch_mode`` defaults to ``"url"``.
 #
 # Provider type semantics:
 #   "web"    — Opens a browser tab with the prompt pre-filled via a URL
@@ -643,13 +745,27 @@ ai_assistant_custom_prompt_prefix = None
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
 
+    "chatgpt": {
+        "enabled": True,
+        "label": "Ask ChatGPT",
+        "description": "Ask OpenAI ChatGPT about this page",
+        "icon": "chatgpt.svg",
+        "url_template": "https://chatgpt.com/?q={prompt}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
+        "model": "gpt-4o",
+        "type": "web",
+    },
+
     "claude": {
         # Enabled: users can click "Ask Claude" without any setup.
         "enabled": True,
         # Button label shown inside the AI-assistant panel.
         "label": "Ask Claude",
         # Tooltip / screen-reader accessible description.
-        "description": "Ask Claude about this documentation page.",
+        "description": "Ask Anthropic Claude about this page",
         # SVG icon filename in _static/.  Falls back to a base64 data URI
         # from ``_static/_PROVIDER_META`` if the file is absent on disk.
         "icon": "claude.svg",
@@ -660,7 +776,7 @@ ai_assistant_providers = {
         # {content} → raw Markdown text (can be large for long pages).
         # Using {url} keeps prompts short; Claude fetches and reads the page.
         "prompt_template": (
-            "Hi! Please read this documentation page: {url}\n\n"
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
             "I have questions about it."
         ),
         # Model identifier.  Forwarded to the widget for future API-mode use.
@@ -669,41 +785,40 @@ ai_assistant_providers = {
         "type": "web",
     },
 
-    "chatgpt": {
-        "enabled": True,
-        "label": "Ask ChatGPT",
-        "description": "Ask ChatGPT about this documentation page.",
-        "icon": "chatgpt.svg",
-        "url_template": "https://chatgpt.com/?q={prompt}",
-        # ChatGPT's browsing mode fetches and reads the URL when told to.
-        "prompt_template": "Read {url} so I can ask questions about it.",
-        "model": "gpt-4o",
-        "type": "web",
-    },
-
     "gemini": {
         "enabled": True,
         "label": "Ask Gemini",
-        "description": "Ask Google Gemini about this documentation page.",
+        "description": "Ask Google Gemini about this page",
         "icon": "gemini.svg",
         "url_template": "https://gemini.google.com/app?q={prompt}",
-        "prompt_template": "Please review this documentation: {url}\n\nI have questions.",
+        "prompt_template": (
+            "Hi! Please review this documentation content: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "gemini-2.5-flash",
         "type": "web",
     },
 
-    # --- Tier 2: disabled by default — uncomment and configure to enable ---
+    # --- Tier 2: local / fully offline ------------------------------------
 
     # Ollama — fully offline, privacy-preserving local inference.
     # Prerequisites:
     #   1. Install Ollama: https://ollama.com
-    #   2. Pull a model:  ollama pull qwen3:latest
-    #   3. Start server:  ollama serve   (runs at http://localhost:11434)
+    #   2. Pull a model:   ollama pull qwen3:latest
+    #   3. Start server:   ollama serve   (runs at http://localhost:11434)
     #   4. Set "enabled": True below.
     #
-    # Supported models (pull with ``ollama pull <model>``):
-    #   qwen3:latest, llama3.3:latest, llama3.2:latest, gemma3:latest,
-    #   deepseek-r1:latest, phi4-mini:latest, mistral:latest, codellama:latest
+    # Recommended models (pull with ``ollama pull <model>``):
+    #   Anthropic-API-compatible:
+    #     qwen3:latest, qwen3:8b, qwen3:14b, qwen3:32b
+    #     glm4:latest, llama3.3:latest, llama3.2:latest
+    #     llama3.2:3b, llama3.2:1b
+    #   Google Gemma (Apache-2.0):
+    #     gemma3:latest, gemma3:12b, gemma3:4b
+    #     (once available: gemma4:latest via HuggingFace)
+    #   Code-specialised:
+    #     codellama:latest, deepseek-r1:latest, deepseek-coder-v2:latest
+    #     phi4:latest, phi4-mini:latest, mistral:latest
     #
     # Security: api_base_url MUST remain a loopback address.
     # ``_validate_ollama_url`` rejects any remote URL to prevent the widget
@@ -711,13 +826,64 @@ ai_assistant_providers = {
     # "ollama": {
     #     "enabled": True,
     #     "label": "Ask Ollama (Local)",
-    #     "description": "Fully offline local inference — no data leaves your machine.",
+    #     "description": (
+    #         "Ask a locally running Ollama model — fully offline, "
+    #         "privacy-preserving. Supports Gemma 4, Qwen 3, Llama 3.3, "
+    #         "DeepSeek R1, Phi-4, Mistral and more."
+    #     ),
     #     "icon": "ollama.svg",
     #     "url_template": "http://localhost:3000/?q={prompt}",
     #     "api_base_url": "http://localhost:11434",   # loopback only
-    #     "prompt_template": "Please review this content: {url}",
-    #     "model": "qwen3:latest",
+    #     "prompt_template": "Please review this content and answer questions: {url}",
+    #     "model": "qwen3:latest",  # or any _OLLAMA_RECOMMENDED_MODELS entry
     #     "type": "local",
+    # },
+
+    # --- Tier 3: custom / user-defined endpoint ---------------------------
+
+    # Custom — stub for any user-defined LLM endpoint (private server,
+    # internal corporate LLM, OpenAI-compatible proxy, etc.).
+    # Override ``api_base_url``, ``model``, and optionally ``url_template``.
+    #
+    #   from scikitplot._externals._sphinx_ext._sphinx_ai_assistant import (
+    #       _DEFAULT_PROVIDERS,
+    #   )
+    #   ai_assistant_providers = {
+    #       **_DEFAULT_PROVIDERS,
+    #       "custom": {
+    #           **_DEFAULT_PROVIDERS["custom"],
+    #           "enabled": True,
+    #           "label": "Ask Internal AI",
+    #           "api_base_url": "http://internal-llm.corp/v1",
+    #           "model": "company-llm-v2",
+    #       },
+    #   }
+    # "custom": {
+    #     "enabled": False,
+    #     "label": "Ask Custom AI",
+    #     "description": "Ask your custom or self-hosted AI endpoint",
+    #     "icon": "custom.svg",
+    #     "url_template": "",
+    #     "api_base_url": "",
+    #     "prompt_template": "Please review this content: {url}\n\n",
+    #     "model": "",
+    #     "type": "custom",
+    # },
+
+    # --- Tier 4: others — disabled by default (alphabetical) --------------
+
+    # Copilot — Microsoft Copilot (GPT-4o powered).
+    # "copilot": {
+    #     "enabled": False,
+    #     "label": "Ask Copilot",
+    #     "description": "Ask Microsoft Copilot about this page",
+    #     "icon": "copilot.svg",
+    #     "url_template": "https://copilot.microsoft.com/?q={prompt}",
+    #     "prompt_template": (
+    #         "Please review this documentation: {url}\n\nI have questions."
+    #     ),
+    #     "model": "gpt-4o",
+    #     "type": "web",
     # },
 
     # DeepSeek — strong open-weight reasoning models.
@@ -725,7 +891,7 @@ ai_assistant_providers = {
     # "deepseek": {
     #     "enabled": False,
     #     "label": "Ask DeepSeek",
-    #     "description": "Ask DeepSeek AI about this page.",
+    #     "description": "Ask DeepSeek AI about this page",
     #     "icon": "deepseek.svg",
     #     "url_template": "https://chat.deepseek.com/?q={prompt}",
     #     "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
@@ -733,12 +899,72 @@ ai_assistant_providers = {
     #     "type": "web",
     # },
 
-    # Uncomment to add Perplexity or any other AI chat service:
+    # Groq — extremely fast open-source LLM inference.
+    # "groq": {
+    #     "enabled": False,
+    #     "label": "Ask Groq",
+    #     "description": "Ask Groq (fast LLM inference) about this page",
+    #     "icon": "groq.svg",
+    #     "url_template": "https://console.groq.com/playground?q={prompt}",
+    #     "prompt_template": "Please read: {url}",
+    #     "model": "llama-3.3-70b-versatile",
+    #     "type": "web",
+    # },
+
+    # HuggingFace Chat — supports many open-source models (Llama, Mistral,
+    # Qwen, Gemma 4 (31 B, Apache-2.0), etc.) for free.
+    # "huggingface": {
+    #     "enabled": False,
+    #     "label": "Ask HuggingFace",
+    #     "description": (
+    #         "Ask HuggingFace Chat about this page — supports Llama, Qwen, "
+    #         "Gemma 4, Mistral and other open models for free"
+    #     ),
+    #     "icon": "huggingface.svg",
+    #     "url_template": "https://huggingface.co/chat/?q={prompt}",
+    #     "prompt_template": (
+    #         "Please read this documentation and answer my questions: {url}"
+    #     ),
+    #     "model": "meta-llama/Llama-3.3-70B-Instruct",
+    #     "type": "web",
+    # },
+
+    # Mistral — Mistral AI Le Chat.
+    # "mistral": {
+    #     "enabled": False,
+    #     "label": "Ask Mistral",
+    #     "description": "Ask Mistral AI Le Chat about this page",
+    #     "icon": "mistral.svg",
+    #     "url_template": "https://chat.mistral.ai/chat?q={prompt}",
+    #     "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
+    #     "model": "mistral-large-latest",
+    #     "type": "web",
+    # },
+
+    # Uncomment to add Perplexity:
     # "perplexity": {
-    #     "enabled": True,
+    #     "enabled": False,
     #     "label": "Ask Perplexity",
+    #     "description": "Ask Perplexity AI about this page",
+    #     "icon": "perplexity.svg",
     #     "url_template": "https://www.perplexity.ai/?q={prompt}",
     #     "prompt_template": "Explain this documentation page: {url}",
+    #     "model": "sonar-pro",
+    #     "type": "web",
+    # },
+
+    # Uncomment to add You.com:
+    # "you": {
+    #     "enabled": False,
+    #     "label": "Ask You.com",
+    #     "description": "Ask You.com AI about this page",
+    #     "icon": "you.svg",
+    #     "url_template": "https://you.com/?q={prompt}",
+    #     "prompt_template": (
+    #         "Please review this documentation: {url}\n\nI have questions."
+    #     ),
+    #     "model": "default",
+    #     "type": "web",
     # },
 }
 
@@ -791,7 +1017,7 @@ ai_assistant_providers = {
 ai_assistant_mcp_tools = {
     "vscode": {
         # Enable once your MCP server is deployed at a stable HTTPS URL.
-        "enabled": False,
+        "enabled": False,  # set True to show the VS Code button
         # Widget renders a VS Code "Install Extension" style deep-link that
         # opens VS Code and installs / activates the MCP server.
         "type": "vscode",
@@ -811,7 +1037,7 @@ ai_assistant_mcp_tools = {
 
     "claude_desktop": {
         # Enable once you have a deployable mcpb:// bundle or config ZIP.
-        "enabled": False,
+        "enabled": False,  # set True to show the Claude button
         # Widget renders a Claude Desktop "mcpb://" deep-link button that
         # opens Claude Desktop and installs the MCP server configuration.
         "type": "claude_desktop",
@@ -821,5 +1047,57 @@ ai_assistant_mcp_tools = {
         # mcpb:// URL (Claude Desktop's custom protocol for MCP bundles), or
         # an https:// URL pointing to a downloadable MCP config ZIP archive.
         "mcpb_url": "https://docs.example.com/_static/your-mcpb-config.zip",
+    },
+
+    "cursor": {
+        # Enable once your MCP server is deployed at a stable HTTPS URL.
+        "enabled": False,
+        # Widget renders a Cursor IDE "Install MCP Server" style deep-link
+        # that opens Cursor and activates the MCP server integration.
+        "type": "cursor",
+        "label": "Connect to Cursor",
+        "description": "Connect the MCP server to Cursor IDE.",
+        "icon": "cursor.svg",
+        # Unique identifier shown in the Cursor MCP server sidebar entry.
+        "server_name": "your-docs-mcp-server",
+        # SSE endpoint URL of your deployed MCP server.
+        # Use https:// for production; http://localhost is accepted locally.
+        "server_url": "https://your-docs-mcp-server/sse",
+        # Transport protocol:
+        #   "sse"   — HTTP Server-Sent Events (standard for remote servers)
+        #   "stdio" — standard I/O pipes (local command-line MCP servers)
+        "transport": "sse",
+    },
+
+    "windsurf": {
+        # Enable once your MCP server is deployed at a stable HTTPS URL.
+        "enabled": False,
+        # Widget renders a Windsurf IDE "Install MCP Server" style deep-link
+        # that opens Windsurf and activates the MCP server integration.
+        "type": "windsurf",
+        "label": "Connect to Windsurf",
+        "description": "Connect the MCP server to Windsurf IDE.",
+        "icon": "windsurf.svg",
+        # Unique identifier shown in the Windsurf MCP server sidebar entry.
+        "server_name": "your-docs-mcp-server",
+        # SSE endpoint URL of your deployed MCP server.
+        "server_url": "https://your-docs-mcp-server/sse",
+        "transport": "sse",
+    },
+
+    "generic": {
+        # Generic fallback for any MCP-compatible client not covered above.
+        # Enable to surface a plain "Connect MCP Server" button that exposes
+        # the server_url to users who configure their client manually.
+        "enabled": False,
+        "type": "generic",
+        "label": "Connect MCP Server",
+        "description": "Connect any MCP-compatible server.",
+        "icon": "vscode.svg",
+        # Unique identifier used in generic MCP server configs.
+        "server_name": "your-docs-mcp-server",
+        # SSE endpoint URL of your deployed MCP server.
+        "server_url": "https://your-docs-mcp-server/sse",
+        "transport": "sse",
     },
 }

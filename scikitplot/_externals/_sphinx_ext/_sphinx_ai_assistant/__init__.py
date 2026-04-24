@@ -1,5 +1,7 @@
 # scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/__init__.py
 #
+# flake8: noqa: D213
+#
 # This module was copied and adapted from the sphinx-ai-assistant project.
 # https://github.com/mlazag/sphinx-ai-assistant
 #
@@ -152,6 +154,7 @@ __all__ = [
     "generate_markdown_files",
     "html_to_markdown",
     "html_to_markdown_converter",
+    "plot_corpus_knowledge",
     "process_html_directory",
 ]
 
@@ -173,13 +176,66 @@ _SphinxMarkdownConverter = None  # markdownify subclass — built lazily
 # ---------------------------------------------------------------------------
 
 
-def _resolve_max_workers(cfg):
-    if cfg in (None, "auto"):
-        return os.cpu_count() or 1
+def _resolve_max_workers(cfg: Any) -> int | None:
+    """Resolve the ``ai_assistant_max_workers`` config value to a safe integer.
+
+    Parameters
+    ----------
+    cfg : Any
+        Raw config value.  Accepted inputs:
+
+        * ``None`` or ``"auto"`` — return ``None`` (let
+          :class:`~concurrent.futures.ProcessPoolExecutor` auto-detect via
+          :func:`os.cpu_count`).
+        * Any positive integer — returned unchanged.
+        * Zero or negative integer — raises :exc:`ValueError`.
+        * Non-numeric string — raises :exc:`ValueError`.
+
+    Returns
+    -------
+    int or None
+        Positive integer, or ``None`` for auto-detection.
+
+    Raises
+    ------
+    ValueError
+        When *cfg* is zero, negative, or cannot be cast to ``int``.
+
+    Notes
+    -----
+    **Developer note** — this is the single authoritative place that
+    translates user-facing config into a value safe to pass to
+    :class:`~concurrent.futures.ProcessPoolExecutor`.  All callers
+    (``generate_markdown_files``, ``process_html_directory``) must use this
+    function rather than consuming ``max_workers`` config directly.
+
+    The Python stdlib raises ``ValueError: max_workers must be greater than 0``
+    for non-positive integers, but only after acquiring resources.  This
+    function rejects those values eagerly — before any worker is spawned —
+    so error messages are clear and no process leak can occur.
+
+    Examples
+    --------
+    >>> _resolve_max_workers(None)  # auto-detect
+    >>> _resolve_max_workers("auto")  # auto-detect
+    >>> _resolve_max_workers(4)
+    4
+    >>> _resolve_max_workers(0)  # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    ValueError: max_workers must be greater than 0; got 0
+    """
+    if cfg is None or cfg == "auto":
+        return None  # let ProcessPoolExecutor use its own default (cpu_count)
     try:
-        return max(1, int(cfg))
-    except Exception:  # noqa: BLE001
-        return 1
+        n = int(cfg)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"max_workers must be a positive integer or None/'auto'; got {cfg!r}"
+        ) from exc
+    if n <= 0:
+        raise ValueError(f"max_workers must be greater than 0; got {n}")
+    return n
 
 
 # ---------------------------------------------------------------------------
@@ -659,19 +715,47 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
     # ==================================================================
     # ── TIER 1: Enabled by default ────────────────────────────────────
     # ==================================================================
+    # ----------------------------------------------------------------- ChatGPT
+    "chatgpt": {
+        "enabled": True,
+        "label": "Ask ChatGPT",
+        "description": "Ask OpenAI ChatGPT about this page",
+        "icon": "chatgpt.svg",
+        "url_template": "https://chatgpt.com/?q={prompt}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
+        "model": "gpt-4o",
+        "type": "web",
+        # "fetch_mode": "url",
+    },
     # ------------------------------------------------------------------ Claude
     "claude": {
+        # Enabled: users can click "Ask Claude" without any setup.
         "enabled": True,
+        # Button label shown inside the AI-assistant panel.
         "label": "Ask Claude",
+        # Tooltip / screen-reader accessible description.
         "description": "Ask Anthropic Claude about this page",
+        # SVG icon filename in _static/.  Falls back to a base64 data URI
+        # from ``_static/_PROVIDER_META`` if the file is absent on disk.
         "icon": "claude.svg",
+        # URL template: {prompt} is substituted with the URL-encoded prompt.
+        # Claude's ?q= parameter accepts the full prompt string directly.
         "url_template": "https://claude.ai/new?q={prompt}",
+        # Prompt template: {url} → absolute URL of the page's .md companion;
+        # {content} → raw Markdown text (can be large for long pages).
+        # Using {url} keeps prompts short; Claude fetches and reads the page.
         "prompt_template": (
             "Hi! Please read this documentation page: {url}\n\n"
             "I have questions about it."
         ),
+        # Model identifier.  Forwarded to the widget for future API-mode use.
         "model": "claude-sonnet-4-6",
+        # "web" opens a browser tab; no API key is required from the user.
         "type": "web",
+        # "fetch_mode": "url",
     },
     # ------------------------------------------------------------------ Gemini
     "gemini": {
@@ -681,21 +765,12 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "gemini.svg",
         "url_template": "https://gemini.google.com/app?q={prompt}",
         "prompt_template": (
-            "Hi! Please review this documentation page: {url}\n\nI have questions."
+            "Hi! Please review this documentation content: {url}\n\n"  # + "{content}"
+            "I have questions about it."
         ),
         "model": "gemini-2.5-flash",
         "type": "web",
-    },
-    # ----------------------------------------------------------------- ChatGPT
-    "chatgpt": {
-        "enabled": True,
-        "label": "Ask ChatGPT",
-        "description": "Ask OpenAI ChatGPT about this page",
-        "icon": "chatgpt.svg",
-        "url_template": "https://chatgpt.com/?q={prompt}",
-        "prompt_template": "Read {url} so I can ask questions about it.",
-        "model": "gpt-4o",
-        "type": "web",
+        # "fetch_mode": "url",
     },
     # ==================================================================
     # ── TIER 2: Local / fully offline ─────────────────────────────────
@@ -733,9 +808,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "ollama.svg",
         "url_template": "http://localhost:3000/?q={prompt}",
         "api_base_url": "http://localhost:11434",
-        "prompt_template": "Please review this content and answer questions: {url}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "llama3.2:latest",
         "type": "local",
+        # "fetch_mode": "url",
     },
     # ==================================================================
     # ── TIER 3: Custom / user-defined endpoint ─────────────────────────
@@ -762,9 +841,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "custom.svg",
         "url_template": "",
         "api_base_url": "",
-        "prompt_template": "Please review this content: {url}\n\n{content}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "",
         "type": "custom",
+        # "fetch_mode": "url",
     },
     # ==================================================================
     # ── TIER 4: Others — alphabetical ─────────────────────────────────
@@ -777,10 +860,12 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "copilot.svg",
         "url_template": "https://copilot.microsoft.com/?q={prompt}",
         "prompt_template": (
-            "Please review this documentation: {url}\n\nI have questions."
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
         ),
         "model": "gpt-4o",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # --------------------------------------------------------------- DeepSeek
     # DeepSeek R1 and V3 are strong open models; also available via Ollama
@@ -791,9 +876,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "description": "Ask DeepSeek AI about this page",
         "icon": "deepseek.svg",
         "url_template": "https://chat.deepseek.com/?q={prompt}",
-        "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "deepseek-reasoner",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # -------------------------------------------------------------------- Groq
     # Groq provides extremely fast open-source LLM inference.
@@ -803,9 +892,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "description": "Ask Groq (fast LLM inference) about this page",
         "icon": "groq.svg",
         "url_template": "https://console.groq.com/playground?q={prompt}",
-        "prompt_template": "Please read: {url}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "llama-3.3-70b-versatile",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # ----------------------------------------------------------- HuggingFace
     # HuggingFace Chat supports many open-source models (Llama, Mistral,
@@ -821,10 +914,12 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "huggingface.svg",
         "url_template": "https://huggingface.co/chat/?q={prompt}",
         "prompt_template": (
-            "Please read this documentation and answer my questions: {url}"
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
         ),
         "model": "meta-llama/Llama-3.3-70B-Instruct",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # ----------------------------------------------------------------- Mistral
     "mistral": {
@@ -833,9 +928,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "description": "Ask Mistral AI Le Chat about this page",
         "icon": "mistral.svg",
         "url_template": "https://chat.mistral.ai/chat?q={prompt}",
-        "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "mistral-large-latest",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # --------------------------------------------------------------- Perplexity
     "perplexity": {
@@ -844,9 +943,13 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "description": "Ask Perplexity AI about this page",
         "icon": "perplexity.svg",
         "url_template": "https://www.perplexity.ai/?q={prompt}",
-        "prompt_template": "Explain this documentation page: {url}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "sonar-pro",
         "type": "web",
+        # "fetch_mode": "url",
     },
     # ----------------------------------------------------------------- You.com
     "you": {
@@ -856,10 +959,12 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
         "icon": "you.svg",
         "url_template": "https://you.com/?q={prompt}",
         "prompt_template": (
-            "Please review this documentation: {url}\n\nI have questions."
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
         ),
         "model": "default",
         "type": "web",
+        # "fetch_mode": "url",
     },
 }
 
@@ -877,6 +982,26 @@ _PROVIDER_REQUIRED_KEYS: tuple[str, ...] = (
 
 #: Accepted values for ``provider["type"]``.
 _PROVIDER_TYPES: frozenset = frozenset({"web", "local", "api", "custom"})
+
+#: Accepted values for the optional ``provider["fetch_mode"]`` field.
+#:
+#: Semantics:
+#:
+#: * ``"url"``     — the prompt contains the page URL and the LLM is
+#:                   expected to fetch/read it autonomously.  Works reliably
+#:                   for Claude and ChatGPT; use only when the provider
+#:                   supports URL ingestion.
+#: * ``"content"`` — the prompt contains pre-extracted Markdown content
+#:                   instead of (or in addition to) the URL.  Required for
+#:                   Gemini and any provider that does **not** reliably
+#:                   ingest arbitrary external URLs from query params.
+#: * ``"both"``    — the prompt includes both URL and content.
+#: * ``"paste"``   — the prompt instructs the user to paste content manually.
+#:
+#: Providers that omit ``fetch_mode`` default to ``"url"`` for backward
+#: compatibility.  The widget JS reads this field to decide whether to
+#: inject ``{content}`` (Markdown) or ``{url}`` into the prompt template.
+_PROVIDER_FETCH_MODES: frozenset = frozenset({"url", "content", "both", "paste"})
 
 #: Regex matching localhost or loopback origins; used to validate Ollama URLs.
 _LOCALHOST_RE = re.compile(
@@ -1292,6 +1417,13 @@ def _validate_provider(provider: dict[str, Any], name: str = "") -> list[str]:
     * ``"url_template"`` passes :func:`_validate_provider_url_template`.
     * For ``type == "local"``, ``"api_base_url"`` (if present) passes
       :func:`_validate_ollama_url`.
+    * ``"fetch_mode"`` (optional) must be one of :data:`_PROVIDER_FETCH_MODES`
+      when present.  Omitting it is valid; it defaults to ``"url"`` at
+      runtime.
+
+    The ``fetch_mode`` check enforces correctness of provider configurations
+    at definition time rather than silently accepting unknown strings that
+    the widget JS would later ignore.
 
     Examples
     --------
@@ -1322,6 +1454,14 @@ def _validate_provider(provider: dict[str, Any], name: str = "") -> list[str]:
                 f"{prefix}api_base_url {api_url!r} must target localhost / "
                 f"127.0.0.1 for local providers"
             )
+
+    # Optional fetch_mode — validate only when explicitly set.
+    fetch_mode = provider.get("fetch_mode")
+    if fetch_mode is not None and str(fetch_mode) not in _PROVIDER_FETCH_MODES:
+        errors.append(
+            f"{prefix}fetch_mode {fetch_mode!r} must be one of "
+            f"{sorted(_PROVIDER_FETCH_MODES)} (or omitted)"
+        )
 
     return errors
 
@@ -2039,9 +2179,10 @@ def process_html_directory(
     total_files = len(args_list)
     processed = 0
 
-    # multiprocessing.cpu_count() os.cpu_count() or 1
-    # Parallel(n_jobs=4)(delayed(func)(x) for x in data)
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    # Validate and resolve max_workers before spawning any processes.
+    # Raises ValueError for 0 or negative values; returns None for auto-detect.
+    resolved_workers = _resolve_max_workers(max_workers)
+    with ProcessPoolExecutor(max_workers=resolved_workers) as executor:
         futures = {executor.submit(_process_html_file_worker, a): a for a in args_list}
         for future in as_completed(futures):
             try:
@@ -2161,6 +2302,247 @@ def generate_llms_txt_standalone(
 
 
 # ---------------------------------------------------------------------------
+# Corpus knowledge graph — PUBLIC (Sphinx-free)
+# ---------------------------------------------------------------------------
+
+
+def plot_corpus_knowledge(  # noqa: PLR0912
+    root_dir: str | Path,
+    *,
+    file_ext: str = ".md",
+    max_pages: int | None = None,
+    include_links: bool = True,
+    base_url: str = "",
+    output_file: str | Path | None = None,
+) -> dict[str, Any]:
+    r"""Analyse a documentation corpus and return a knowledge graph.
+
+    Walks *root_dir* for files matching *file_ext*, extracts page titles,
+    headings, and internal hyperlinks, and returns a structured graph dict
+    suitable for further analysis, serialisation to JSON, or visualisation
+    with optional matplotlib / networkx.
+
+    This function is **Sphinx-free** and works on any static-site output
+    directory (Sphinx, MkDocs, Jekyll, Hugo, plain Markdown repos).
+
+    Parameters
+    ----------
+    root_dir : str or pathlib.Path
+        Root directory to scan recursively.
+    file_ext : str, optional
+        File extension to collect.  Defaults to ``".md"``.  Use ``".html"``
+        to scan raw HTML output (link extraction uses ``href`` attributes in
+        that case).
+    max_pages : int or None, optional
+        Cap on the number of pages to include.  ``None`` means unlimited.
+    include_links : bool, optional
+        When ``True`` (default), extract internal hyperlinks from each page
+        to build the graph edges.  Set to ``False`` for a fast node-only
+        summary.
+    base_url : str, optional
+        Base URL stripped from absolute links to normalise them to relative
+        paths.  If non-empty, must start with ``http://`` or ``https://``.
+    output_file : str or pathlib.Path or None, optional
+        When provided, the returned dict is serialised as JSON and written
+        to this path.  The parent directory is created automatically.
+
+    Returns
+    -------
+    dict
+        A knowledge graph dict with the following structure::
+
+            {
+                "root": str,          # resolved root_dir path
+                "file_ext": str,      # file_ext used
+                "pages": {
+                    "rel/path.md": {
+                        "title": str,        # first heading or filename stem
+                        "headings": [str],   # all headings found (h1-h3)
+                        "links": [str],      # internal relative links
+                        "size_bytes": int,
+                    },
+                    ...
+                },
+                "edges": [               # directed link graph
+                    {"from": "a.md", "to": "b.md"},
+                    ...
+                ],
+                "stats": {
+                    "total_pages": int,
+                    "total_edges": int,
+                    "total_headings": int,
+                    "isolated_pages": int, # pages with no in/out links
+                    "avg_links_per_page": float,
+                },
+            }
+
+    Raises
+    ------
+    ValueError
+        If *root_dir* does not exist, is not a directory, *file_ext* does not
+        start with ``"."``, or *base_url* is non-empty and uses a non-HTTP
+        scheme.
+    TypeError
+        If *max_pages* is non-None and cannot be cast to a non-negative int.
+
+    Notes
+    -----
+    **User note** — the returned dict is always present regardless of whether
+    *output_file* is given, so callers can immediately post-process the graph
+    without reading the file back.
+
+    **Developer note** — link extraction uses a lightweight regex rather than
+    a full Markdown parser so that this function has zero additional
+    dependencies.  The regex matches the ``[text](url)`` Markdown link syntax
+    and the ``href="..."`` HTML attribute.  Absolute links are kept only when
+    they begin with *base_url*; all others are skipped.  Relative links are
+    resolved relative to the page's directory using :func:`pathlib.Path`
+    semantics so that ``../api/module.md`` from ``docs/guide.md`` correctly
+    resolves to ``api/module.md``.
+
+    **Security note** — *root_dir* is resolved with
+    :func:`~pathlib.Path.resolve` before every file is checked with
+    :func:`_is_path_within` to prevent path-traversal.
+
+    Examples
+    --------
+    >>> graph = plot_corpus_knowledge("/docs/_build")  # doctest: +SKIP
+    >>> print(graph["stats"])
+    {"total_pages": 42, "total_edges": 118, ...}
+
+    >>> # Write to JSON for downstream tooling
+    >>> plot_corpus_knowledge(
+    ...     "/docs/_build",
+    ...     output_file="/tmp/corpus_graph.json",
+    ... )  # doctest: +SKIP
+    """
+    root = Path(root_dir).resolve()
+    if not root.exists():
+        raise ValueError(f"root_dir does not exist: {root}")
+    if not root.is_dir():
+        raise ValueError(f"root_dir is not a directory: {root}")
+    if not file_ext.startswith("."):
+        raise ValueError(f"file_ext must start with '.'; got {file_ext!r}")
+
+    validated_base = _validate_base_url(base_url)  # raises ValueError for bad schemes
+
+    if max_pages is not None:
+        try:
+            max_pages = max(0, int(max_pages))
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                f"max_pages must be a non-negative integer or None; got {max_pages!r}"
+            ) from exc
+
+    # --- Regex patterns (stdlib only, no markdown parser) -------------------
+    # Markdown link: [text](url) — captures the URL part.
+    _MD_LINK_RE = re.compile(r"\[(?:[^\[\]]*)\]\(([^)]+)\)")  # noqa: N806
+    # HTML href attribute.
+    _HTML_HREF_RE = re.compile(r'href=["\']([^"\']+)["\']', re.IGNORECASE)  # noqa: N806
+    # Markdown headings: # Title, ## Sub, ### Sub-sub.
+    _MD_HEADING_RE = re.compile(r"^#{1,3}\s+(.+)", re.MULTILINE)  # noqa: N806
+    # HTML headings <h1>...</h1> through <h3>.
+    _HTML_HEADING_RE = re.compile(  # noqa: N806
+        r"<h[1-3][^>]*>([^<]+)</h[1-3]>", re.IGNORECASE
+    )
+
+    is_md = file_ext.lower() in (".md", ".markdown", ".rst")
+    link_re = _MD_LINK_RE if is_md else _HTML_HREF_RE
+    heading_re = _MD_HEADING_RE if is_md else _HTML_HEADING_RE
+
+    all_files = sorted(root.rglob(f"*{file_ext}"))
+    if max_pages is not None:
+        all_files = all_files[:max_pages]
+
+    pages: dict[str, dict[str, Any]] = {}
+    edges: list[dict[str, str]] = []
+
+    for page_path in all_files:
+        # Path-traversal guard.
+        if not _is_path_within(page_path, root):
+            continue
+        try:
+            rel = str(page_path.relative_to(root)).replace(os.sep, "/")
+            text = page_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+
+        # --- Title: first heading, or stem if no heading found. ------------
+        headings = [m.group(1).strip() for m in heading_re.finditer(text)]
+        title = headings[0] if headings else page_path.stem
+
+        # --- Links: internal relative paths only. --------------------------
+        internal_links: list[str] = []
+        if include_links:
+            for m in link_re.finditer(text):
+                raw = m.group(1).strip()
+                # Drop anchors, query params, mailto, and mailto-style strings.
+                raw = raw.split("#")[0].split("?")[0]
+                if not raw:
+                    continue
+                # Absolute link: keep only if it starts with base_url.
+                if raw.startswith(("http://", "https://")):
+                    if validated_base and raw.startswith(validated_base):
+                        # Strip base to make it relative.
+                        raw = raw[len(validated_base) :].lstrip("/")
+                    else:
+                        continue  # external link — skip
+                # Resolve relative to page directory.
+                resolved = (page_path.parent / raw).resolve()
+                if not _is_path_within(resolved, root):
+                    continue
+                try:
+                    link_rel = str(resolved.relative_to(root)).replace(os.sep, "/")
+                except ValueError:
+                    continue
+                internal_links.append(link_rel)
+
+            for target in internal_links:
+                edges.append({"from": rel, "to": target})
+
+        pages[rel] = {
+            "title": title,
+            "headings": headings,
+            "links": internal_links,
+            "size_bytes": page_path.stat().st_size,
+        }
+
+    # --- Stats --------------------------------------------------------------
+    page_keys = set(pages)
+    linked_pages: set[str] = set()
+    for e in edges:
+        linked_pages.add(e["from"])
+        linked_pages.add(e["to"])
+    isolated = len([p for p in page_keys if p not in linked_pages])
+    total_headings = sum(len(v["headings"]) for v in pages.values())
+    avg_links = (len(edges) / len(pages)) if pages else 0.0
+
+    graph: dict[str, Any] = {
+        "root": str(root),
+        "file_ext": file_ext,
+        "pages": pages,
+        "edges": edges,
+        "stats": {
+            "total_pages": len(pages),
+            "total_edges": len(edges),
+            "total_headings": total_headings,
+            "isolated_pages": isolated,
+            "avg_links_per_page": round(avg_links, 3),
+        },
+    }
+
+    if output_file is not None:
+        out_path = Path(output_file).resolve()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(
+            json.dumps(graph, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    return graph
+
+
+# ---------------------------------------------------------------------------
 # Build-time hooks (Sphinx layer)
 # ---------------------------------------------------------------------------
 
@@ -2241,10 +2623,12 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     processed = 0
     t0 = time.monotonic()
 
-    # multiprocessing.cpu_count() os.cpu_count() or 1
-    # Parallel(n_jobs=4)(delayed(func)(x) for x in data)
+    # Validate and resolve max_workers before spawning any processes.
+    # _resolve_max_workers raises ValueError for 0/negative values and
+    # returns None for None/"auto" (ProcessPoolExecutor auto-detects).
     max_workers_cfg = app.config.ai_assistant_max_workers
-    with ProcessPoolExecutor(max_workers=max_workers_cfg) as executor:
+    resolved_workers = _resolve_max_workers(max_workers_cfg)
+    with ProcessPoolExecutor(max_workers=resolved_workers) as executor:
         futures = {executor.submit(_process_single_html_file, a): a for a in args_list}
         for future in as_completed(futures):
             try:
@@ -2270,7 +2654,7 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
     elapsed = time.monotonic() - t0
     log.info(
         f"AI Assistant: {generated} generated, {skipped} skipped, "
-        f"{errors} errors — {elapsed:.1f}s ({max_workers_cfg} workers)"
+        f"{errors} errors — {elapsed:.1f}s ({resolved_workers or 'auto'} workers)"
     )
 
 
