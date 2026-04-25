@@ -1,0 +1,71 @@
+# binder/environment.yml
+#
+# Derived from: scikitplot/cexternals/_annoy/src/annoylib.h
+#
+# WHY EACH DECISION IS MADE
+# ─────────────────────────
+# annoylib.h SIMD dispatch (lines 519-566):
+#   NO_MANUAL_VECTORIZATION forces ANNOYLIB_SIMD_SCALAR unconditionally.
+#   Without it, GCC enables ANNOYLIB_USE_AVX when __AVX__ is defined,
+#   which the compiler sets when -march=native or -mavx2 is passed.
+#   On Binder GKE nodes that lack AVX2 (Sandy Bridge / Ivy Bridge era),
+#   the resulting .so SIGILL-kills the kernel on import.
+#
+# annoylib.h C++ requirement (line 289-291):
+#   Hard #error for __cplusplus < 201103L → must compile with C++11+.
+#   ANNOYLIB_MULTITHREADED_BUILD needs shared_timed_mutex → C++14 (line 244).
+#   We set cxx_standard=14 to be safe.
+#
+# annoylib.h float16_t path (lines 317-439):
+#   __F16C__ triggers hardware intrinsics (_mm_cvtps_ph etc.) which
+#   require the F16C CPU feature (Haswell+).  Binder may run on older
+#   nodes.  Compiling with -march=x86-64-v2 (SSE4.2, no AVX/F16C)
+#   suppresses __F16C__, activating the pure-C++ software float16 path
+#   (lines 379-436) — no CPU feature required.
+#
+# conda-forge policy:
+#   conda-forge builds NumPy/SciPy/pandas targeting x86-64-v2 by policy,
+#   so they cannot SIGILL on pre-Haswell nodes.  Using conda-forge for
+#   these deps avoids a second SIGILL source independent of annoylib.
+#
+name: scikit-plots-binder
+
+channels:
+  - conda-forge   # CPU-generic builds (x86-64-v2 baseline by policy)
+  - defaults
+
+dependencies:
+  # ── Python runtime ──────────────────────────────────────────────────
+  - python=3.12
+
+  # ── Core scientific stack (conda-forge: CPU-generic, no AVX2 wheels) ─
+  # - numpy>=1.24
+  # - scipy>=1.11
+  # - pandas>=2.0
+  # - matplotlib>=3.7
+  # - seaborn>=0.13
+
+  # ── Build toolchain for source compilation of scikit-plots ──────────
+  # annoylib.h line 289: requires C++11; C++14 needed for multithreaded build.
+  # GCC from conda-forge respects CXXFLAGS set in postBuild.
+  - gxx_linux-64>=12   # GCC C++ compiler
+  - gcc_linux-64>=12
+
+  # ── Notebook runtime ─────────────────────────────────────────────────
+  - jupyterlab>=4.0
+  - ipywidgets
+
+  # ── pip-installed packages ───────────────────────────────────────────
+  - pip
+  - pip:
+      # Install scikit-plots from the nightly staging index.
+      # --no-binary ensures source compilation on this node.
+      # The node's GCC will only emit instructions the node's CPU supports,
+      # eliminating the AVX2 SIGILL that prebuilt wheels can trigger.
+      # CXXFLAGS set in postBuild (see binder/postBuild) propagate here.
+      - --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple
+      - --extra-index-url https://pypi.org/simple
+      - --no-binary scikit-plots
+      - scikit-plots
+  - pip:
+      - -r requirements.txt

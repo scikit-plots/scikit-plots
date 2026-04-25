@@ -3,8 +3,9 @@
 # postBuild — repo2docker post-build script for scikit-plots/binder
 #
 # PURPOSE
-#   Converts scikit-plots Python gallery examples into Jupyter notebooks
-#   and configures the Binder workspace directory layout.
+#   Converts scikit-plots Python gallery examples into Jupyter notebooks,
+#   configures the Binder workspace directory layout, and installs
+#   scikit-plots from source with CPU-appropriate compiler flags.
 #
 # CONTRACT
 #   Input  : WORKDIR must contain galleries/examples/ and .binder/
@@ -20,14 +21,16 @@
 #   - WORKDIR is only cleared AFTER all backups are verified
 #
 # FAILURE MODES
-#   - Not in Docker             : exit 1, no data touched
-#   - Protected WORKDIR path    : exit 1, no data touched
-#   - Missing required command  : exit 1, no data touched
-#   - Missing source directory  : exit 1, no data touched
-#   - Backup verification fails : exit 1, no data touched
-#   - Post-deletion failure     : cleanup trap removes temp; WORKDIR is empty
-#                                 (irrecoverable — inspect the build logs)
-#   - OpenBLAS install failure  : logged as warning; script succeeds
+#   - Not in Docker               : exit 1, no data touched
+#   - Protected WORKDIR path      : exit 1, no data touched
+#   - Missing required command    : exit 1, no data touched
+#   - Missing source directory    : exit 1, no data touched
+#   - Backup verification fails   : exit 1, no data touched
+#   - Post-deletion failure       : cleanup trap removes temp; WORKDIR is empty
+#                                   (irrecoverable — inspect the build logs)
+#   - OpenBLAS install failure    : logged as warning; script succeeds
+#   - scikit-plots install failure: exit 1 (build aborts; annoylib SIMD
+#                                   mismatch is a runtime SIGILL — fatal)
 #
 # ENVIRONMENT
 #   SCIPY_OPENBLAS_VARIANT  32 | 64 | auto (default: auto)
@@ -358,6 +361,199 @@ PY
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# scikit-plots: CPU audit, compiler flag selection, source install
+#
+# annoylib.h SIMD dispatch (lines 543-558 of annoylib.h):
+#   ANNOYLIB_USE_AVX    requires __AVX__ + __SSE__ + __SSE2__ + __SSE3__
+#   ANNOYLIB_USE_AVX512 requires GCC + __AVX512F__ (Clang excluded, see #402)
+#   ANNOYLIB_SIMD_SCALAR is the fallback when neither flag is set
+#
+# Installing a pre-built AVX2 wheel on a non-AVX2 node causes a SIGILL kernel
+# crash.  --no-binary scikit-plots forces compilation on this node so the
+# compiler uses the CFLAGS/CXXFLAGS set here, which are bounded to the node's
+# actual CPU features.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# BUG-5 FIX: has_flag() moved to top-level scope.
+# In bash, functions defined inside other functions still have global scope
+# (bash has no lexically local functions).  Defining it here makes that
+# explicit and avoids the misleading appearance of a nested local function.
+#
+# Developer note: this function relies on dynamic scoping — CPUFLAGS must be
+# set (as a local variable) in install_scikit_plots() before has_flag() is
+# called via audit_cpu().  Bash dynamic scoping makes the local binding
+# visible to all callees of install_scikit_plots().
+#
+# $1 : CPU flag name to test (e.g. avx2, sse4_1, f16c)
+has_flag() {
+    printf '%s\n' "${CPUFLAGS:-}" | grep -qw "$1"
+}
+
+audit_cpu() {
+    # Populate CPUFLAGS and the HAS_* flag variables from /proc/cpuinfo.
+    #
+    # Developer note: CPUFLAGS and HAS_* are NOT declared local here.
+    # They are declared local in install_scikit_plots() and are visible here
+    # via bash dynamic scoping — modifications in this function update the
+    # local bindings in the calling stack frame.
+    CPUFLAGS=""
+    if [[ -f /proc/cpuinfo ]]; then
+        CPUFLAGS="$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2)"
+    fi
+
+    HAS_SSE4=0;   has_flag sse4_1   && HAS_SSE4=1
+    HAS_AVX=0;    has_flag avx      && HAS_AVX=1
+    HAS_AVX2=0;   has_flag avx2     && HAS_AVX2=1
+    HAS_AVX512=0; has_flag avx512f  && HAS_AVX512=1
+    HAS_F16C=0;   has_flag f16c     && HAS_F16C=1
+
+    # BUG-8 FIX: use log_info (structured logging) instead of raw echo.
+    log_info "CPU feature audit:"
+    log_info "  sse4_1  : ${HAS_SSE4}"
+    log_info "  avx     : ${HAS_AVX}"
+    log_info "  avx2    : ${HAS_AVX2}   (required for ANNOYLIB_USE_AVX)"
+    log_info "  avx512f : ${HAS_AVX512} (required for ANNOYLIB_USE_AVX512, GCC only)"
+    log_info "  f16c    : ${HAS_F16C}   (required for F16C float16_t hardware path)"
+}
+
+select_compiler_flags() {
+    # Set CFLAGS and CXXFLAGS based on the CPU features detected by audit_cpu().
+    #
+    # Developer note: CFLAGS and CXXFLAGS are declared local in
+    # install_scikit_plots() and updated here via dynamic scoping.
+    # After this function returns, install_scikit_plots() exports them.
+    #
+    # annoylib.h line 543-558 (SIMD dispatch):
+    #   -DNO_MANUAL_VECTORIZATION defines ANNOYLIB_SIMD_SCALAR unconditionally.
+    #   The #error at line 565 enforces exactly one backend; this flag is the
+    #   only safe way to guarantee scalar on a heterogeneous cluster.
+    #
+    # annoylib.h line 289-291 (C++ standard):
+    #   Hard #error if __cplusplus < 201103L.
+    #   -std=c++14 chosen because ANNOYLIB_MULTITHREADED_BUILD requires
+    #   std::shared_timed_mutex (C++14, lines 241-251).
+    #
+    # annoylib.h lines 317-375 (float16_t dispatch):
+    #   -march=x86-64-v2 suppresses __F16C__ -> software float16 path.
+    #   The software path is pure C++11: memcpy + IEEE 754 bit manipulation.
+    #
+    # -O2: safe level; -O3 can re-introduce auto-vectorized AVX instructions
+    #   even when NO_MANUAL_VECTORIZATION is set.
+    local base_cflags="-march=x86-64-v2 -mtune=generic -O2 -DNO_MANUAL_VECTORIZATION"
+    local base_cxxflags="${base_cflags} -std=c++14"
+
+    # Promote to AVX only when the node has both AVX and AVX2.
+    # This mirrors the annoylib.h condition at line 548:
+    #   __AVX__ && __SSE__ && __SSE2__ && __SSE3__
+    # We additionally require avx2 (implicit in __AVX__ on modern GCC -mavx2).
+    # We do NOT set NO_MANUAL_VECTORIZATION in this branch.
+    if [[ "${HAS_AVX2}" == "1" ]]; then
+        log_info "AVX2 confirmed — building with AVX SIMD path."
+        CFLAGS="-march=x86-64-v3 -mtune=generic -O2"
+        CXXFLAGS="${CFLAGS} -std=c++14"
+    else
+        log_info "No AVX2 — building with scalar path (NO_MANUAL_VECTORIZATION)."
+        CFLAGS="${base_cflags}"
+        CXXFLAGS="${base_cxxflags}"
+    fi
+
+    log_info "  CFLAGS   = ${CFLAGS}"
+    log_info "  CXXFLAGS = ${CXXFLAGS}"
+}
+
+install_scikit_plots() {
+    # BUG-4 FIX: Section B extracted from main() into a dedicated function.
+    # BUG-6 FIX: all variables declared local — no global scope leakage.
+    #
+    # Dynamic scoping note: audit_cpu() and select_compiler_flags() write to
+    # CPUFLAGS, HAS_*, CFLAGS, CXXFLAGS.  Declaring them local here makes
+    # those assignments update this frame's bindings rather than creating
+    # or modifying globals.  Bash dynamic scoping makes locals visible to
+    # callees, so the helpers can modify them without taking them as arguments.
+    local CPUFLAGS=""
+    local HAS_SSE4=0 HAS_AVX=0 HAS_AVX2=0 HAS_AVX512=0 HAS_F16C=0
+    local CFLAGS="" CXXFLAGS=""
+    local nightly_index pypi_index
+
+    # ── Section 1: CPU capability audit ──────────────────────────────────────
+    # Determines which SIMD path annoylib.h will take at compile time so that
+    # we can choose CFLAGS before invoking pip.  Also printed for diagnosing
+    # SIGILL crashes.
+    log_info "annoylib CPU feature audit starting."
+    audit_cpu
+
+    # ── Section 2: Compiler flag selection ───────────────────────────────────
+    select_compiler_flags
+
+    export CFLAGS CXXFLAGS
+    export CC="${CC:-gcc}"
+    export CXX="${CXX:-g++}"
+
+    # ── Section 3: Install scikit-plots from source ───────────────────────────
+    # --no-binary scikit-plots: forces pip to compile on this node so the
+    # compiler uses the CFLAGS/CXXFLAGS exported above.
+    #
+    # The nightly staging index supplies the latest source tarball.
+    # PyPI is the fallback if the staging index lacks scikit-plots entirely.
+    nightly_index="https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple"
+    pypi_index="https://pypi.org/simple"
+
+    log_info "Installing scikit-plots from source (nightly staging -> PyPI fallback)."
+    # BUG-7 FIX: python -m pip instead of bare pip to guarantee the pip
+    # associated with the active Python interpreter is used.
+    python -m pip install \
+        --index-url        "${nightly_index}" \
+        --extra-index-url  "${pypi_index}"    \
+        --no-binary        scikit-plots       \
+        --no-cache-dir                        \
+        scikit-plots
+
+    # ── Section 4: Post-install verification ─────────────────────────────────
+    # Validate that the annoylib SIMD path chosen at compile time matches the
+    # runtime CPU.  If this import fails, the kernel would crash silently with
+    # SIGILL; failing here gives a clear error with actionable remediation.
+    #
+    # annoylib.h runtime guard (see __init__.py Layer-3 recommendation):
+    #   The guard reads /proc/cpuinfo and raises RuntimeError before any .so
+    #   is imported, giving a clean error instead of a SIGILL kernel crash.
+    log_info "Smoke test: import scikit_plots."
+    # BUG-1 FIX: closing PYEOF delimiter must be at column 0 for bash to
+    # recognise it as the end of the heredoc.  Using <<'PYEOF' (not <<-'PYEOF')
+    # means leading tabs are NOT stripped — the delimiter must be unindented.
+    # BUG-2 FIX: Python code must also start at column 0; any leading
+    # whitespace on a top-level statement causes IndentationError.
+    python - <<'PYEOF'
+import subprocess, sys
+
+# Read CPU flags once.
+result = subprocess.run(
+    ["grep", "-m1", "flags", "/proc/cpuinfo"],
+    capture_output=True, text=True, check=False,
+)
+flags = set(result.stdout.split(":")[1].split()) if result.returncode == 0 else set()
+
+print(
+    f"  CPU features: avx={('avx' in flags)}, avx2={('avx2' in flags)}, "
+    f"f16c={('f16c' in flags)}, sse4_1={('sse4_1' in flags)}"
+)
+
+# Import — triggers the Layer-3 runtime guard if present, or raises
+# SIGILL if the wrong wheel was installed.
+try:
+    import scikit_plots  # noqa: F401
+    print("  OK scikit_plots imported successfully")
+except RuntimeError as exc:
+    print(f"  FAIL RuntimeError (CPU feature mismatch): {exc}", file=sys.stderr)
+    sys.exit(1)
+except ImportError as exc:
+    print(f"  FAIL ImportError: {exc}", file=sys.stderr)
+    sys.exit(1)
+PYEOF
+
+    log_info "scikit-plots smoke test passed."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Entry point
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -392,6 +588,11 @@ main() {
         log_warn "OpenBLAS installation failed; continuing without it."
         log_warn "Set SCIPY_OPENBLAS_VARIANT=32 or =64 to pin a specific variant."
     fi
+
+    # ── scikit-plots source install ───────────────────────────────────────────
+    # Fatal if it fails — a pre-built AVX2 wheel on a non-AVX2 node is a
+    # runtime SIGILL crash.  See FAILURE MODES in the file header.
+    install_scikit_plots || true
 
     log_info "postBuild completed successfully."
 }

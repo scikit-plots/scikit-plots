@@ -4642,7 +4642,9 @@ public:
       }
 
       if (error) {
-          *error = strdup("missing parameter: f");
+        // FIX — use the project-canonical allocator
+        // *error = strdup("missing parameter: f");
+        *error = dup_cstr("missing parameter: f");
       }
       return false;
   }

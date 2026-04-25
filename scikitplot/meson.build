@@ -13,12 +13,21 @@ cpp = meson.get_compiler('cpp')
 cc_id = cc.get_id()
 arg_syntax = cc.get_argument_syntax()
 
+# BUG-1 FIX: is_msvc_style covers both MSVC and clang-cl (arg_syntax == 'msvc').
+#            is_gnu_style  covers both GCC  and Clang   (arg_syntax == 'gcc').
+#            The granular is_clang / is_gcc booleans are kept for the few
+#            places that genuinely need to distinguish within the GNU-style group
+#            (e.g. -fpermissive is GCC-only, not supported by Clang).
+#            NEVER use the bare identifiers 'is_msvc' or 'is_clang_cl' — they
+#            are not defined and will abort Meson configuration with
+#            "Identifier 'is_msvc' is not defined".
 is_msvc_style = arg_syntax == 'msvc'     # MSVC and clang-cl
 is_gnu_style  = arg_syntax == 'gcc'      # GCC and Clang (Unix)
 is_clang      = cc_id == 'clang'
 is_gcc        = cc_id == 'gcc'
 
-# Architecture-specific tuning
+# Architecture-specific tuning — assigned once here, used throughout.
+# BUG-5 FIX: removed the identical re-assignments at the former lines 291-292.
 os_name  = host_machine.system()
 cpu_arch = host_machine.cpu_family()
 
@@ -38,7 +47,7 @@ cpu_arch = host_machine.cpu_family()
 # )
 
 ######################################################################
-## Generate file 'version.py' for Sourde Distribution "--sdist"
+## Generate file 'version.py' for Source Distribution "--sdist"
 ## "--sdist" require '.git' if error use only "--wheel" packaging
 ######################################################################
 
@@ -148,10 +157,9 @@ inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 extra_compile_args = []
 extra_link_args = []
 
-# General optimization flags for non-Windows
-if os_name != 'windows'
-  extra_compile_args += []
-endif
+# BUG-6 FIX: removed the former no-op `extra_compile_args += []` inside
+# `if os_name != 'windows'`.  An empty append has no effect and masked the
+# intent.  Add real platform-specific flags here when needed.
 
 # --------------------------------------------------------------------
 # Optimization + Floating Point (Deterministic & Safe)
@@ -180,6 +188,17 @@ endif
 #   /bigobj raises the limit to ~16 million sections. It has no runtime
 #   cost and no effect on the generated code — only on the object format.
 
+# BUG-2 FIX: /bigobj is added exactly once, here in the is_msvc_style branch.
+#            The former duplicate guard at the bottom (is_msvc or is_clang_cl)
+#            has been removed.
+# BUG-3 FIX: /permissive- is added exactly once, here in the is_msvc_style branch.
+#            The former duplicate guard at the bottom has been removed.
+# BUG-7 FIX: -fpermissive is GCC-specific (Clang returns false for has_argument
+#            because Clang does not implement this flag). It is now gated on
+#            is_gcc, not on is_gnu_style, so it is never incorrectly added to
+#            a Clang build.  All compiler-dispatch logic is consolidated here
+#            in a single if/elif/else so the full flag set for each toolchain
+#            is visible in one place.
 if is_msvc_style
   extra_compile_args += [
     # Object format: must be first — the Cython-generated .pyx.cpp
@@ -198,7 +217,7 @@ if is_msvc_style
     # MSVC would otherwise silently accept. Aligns with /std:c++17.
     '/permissive-',
   ]
-else
+elif is_gcc
   extra_compile_args += [
     # -O3: full optimisation including auto-vectorisation. Safe because the
     # project-level -fno-fast-math guards prevent reassociation and
@@ -209,6 +228,20 @@ else
     # at -O2+ would allow the compiler to generate incorrect code for
     # these patterns. Also set project-wide, but explicit here documents
     # the per-module rationale.
+    '-fno-strict-aliasing',
+  ]
+  # -fpermissive: downgrades specific non-standard constructs in annoylib
+  # from hard errors to warnings on GCC. This flag is GCC-only; Clang does
+  # not implement it (verified by cc.has_argument). Use sparingly — it only
+  # belongs here because annoylib.h is a third-party header that we cannot
+  # modify. Prefer suppressing warnings per-file with -isystem when possible.
+  if cc.has_argument('-fpermissive')
+    extra_compile_args += ['-fpermissive']
+  endif
+else
+  # Clang (Unix) and other GNU-syntax compilers that are not GCC.
+  extra_compile_args += [
+    '-O3',
     '-fno-strict-aliasing',
   ]
   # NOTE: -ffp-model=strict is intentionally absent.
@@ -235,13 +268,13 @@ endif
 #     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
 #     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
 # (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
-# v1 (x86-64)	Baseline (SSE2)     	2003+	Extreme legacy support. Slowest for math.
-# v2	        SSE4.2, POPCNT	        2009+	Safe Baseline. Supports almost all active PCs/Servers.
-# v3	        AVX, AVX2, BMI2, FMA	2013+	High Performance. Required for fast vector math.
-# -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
-# -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
-# -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
-# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
+# v1 (x86-64)   Baseline (SSE2)         2003+   Extreme legacy support. Slowest for math.
+# v2            SSE4.2, POPCNT          2009+   Safe Baseline. Supports almost all active PCs/Servers.
+# v3            AVX, AVX2, BMI2, FMA    2013+   High Performance. Required for fast vector math.
+# -march=native         0/10 (Crashes others)         10/10   Local builds / Private servers
+# -march=x86-64        10/10 (Works on everything)     3/10   Basic CLI tools, non-math libs
+# -march=x86-64-v3      8/10 (2013+ CPUs)              9/10   Vector DBs, AI, Data Science
+# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it's digestible for everyone.
 # Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
 # When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
 # If a user wants maximum performance, they will install your sdist like this:
@@ -254,43 +287,34 @@ if cpu_arch == 'ppc64le' and is_gnu_style
   endif
 endif
 
-if cpu_arch == 'x86_64' and is_gnu_style
-  if os_name != 'darwin'
-    if cc.has_argument('-march=native')
-      extra_compile_args += ['-march=native']
-    endif
-  endif
-endif
-
-######################################################################
-## Compiler-specific flag handling
-######################################################################
-
-# -fpermissive equivalent handling
-if is_msvc or is_clang_cl
-  # MSVC does not support -fpermissive
-  # Closest strict/standard-conforming behavior toggle
-  if cc.has_argument('/permissive-')
-    extra_compile_args += ['/permissive-']
-  endif
-elif is_gcc or is_clang
-  if cc.has_argument('-fpermissive')
-    extra_compile_args += ['-fpermissive']
-  endif
-endif
-
-# ✅ Fix for large Cython-generated files Large object file support (fixes C1128)
-if (is_msvc or is_clang_cl) and cc.has_argument('/bigobj')
-  extra_compile_args += ['/bigobj']
-endif
+# BUG-4 FIX: -march=native is NOT added unconditionally here.
+#
+# The build pipeline exports CFLAGS (e.g. CFLAGS="-march=x86-64-v2 -O2") via
+# postBuild before invoking pip/meson.  On GCC and Clang, when multiple -march=
+# flags appear on the same command line, the LAST one wins.  Meson appends
+# c_args AFTER the env-captured CFLAGS, so any -march= set here would silently
+# override the portability-tuned march from the environment.
+#
+# Ownership of -march is delegated to the caller:
+#   • Binder / CI:         postBuild exports CFLAGS="-march=x86-64-v[2|3] …"
+#   • Local dev build:     set CFLAGS="-march=native -O3" before meson setup
+#   • Wheel release:       CI sets CFLAGS="-march=x86-64-v3 -O3" or similar
+#
+# If you need to pin a march inside meson itself, add a boolean option in
+# meson_options.txt and gate the flag on that option.  Do not add it
+# unconditionally.
+#
+# if cpu_arch == 'x86_64' and is_gnu_style
+#   if os_name != 'darwin'
+#     if cc.has_argument('-march=native')
+#       extra_compile_args += ['-march=native']
+#     endif
+#   endif
+# endif
 
 # --------------------------------------------------------------------
 # macOS Minimum Target
 # --------------------------------------------------------------------
-# Architecture-specific tuning
-os_name = host_machine.system()
-cpu_arch = host_machine.cpu_family()
-
 # #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
 # macOS minimum version and stdlib
 # std::filesystem::path is part of C++17's <filesystem> library.

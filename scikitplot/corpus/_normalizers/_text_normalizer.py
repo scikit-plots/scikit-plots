@@ -122,21 +122,23 @@ class NormalizerConfig:
     Pass an explicit list to run only a named subset, e.g.
     ``steps=["unicode", "whitespace"]``.
 
-    Valid step names
-    ----------------
-    ``"unicode"``
+    Notes
+    -----
+    Valid step names:
+
+    ``"unicode"`` :
         Apply ``unicode_form`` normalisation.
-    ``"ligatures"``
+    ``"ligatures"`` :
         Expand typographic ligatures (requires ``expand_ligatures=True``).
-    ``"control_chars"``
+    ``"control_chars"`` :
         Strip Unicode control characters (requires ``strip_control_chars=True``).
-    ``"hyphenation"``
+    ``"hyphenation"`` :
         Re-join hyphenated line-breaks (requires ``fix_hyphenation=True``).
-    ``"whitespace"``
+    ``"whitespace"`` :
         Collapse runs of whitespace (requires ``collapse_whitespace=True``).
-    ``"lowercase"``
+    ``"lowercase"`` :
         Convert to lowercase (requires ``lowercase=True``).
-    ``"custom"``
+    ``"custom"`` :
         Apply ``custom_pipeline`` callables.
     """
 
