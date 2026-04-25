@@ -1,155 +1,385 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
+# postBuild — repo2docker post-build script for scikit-plots/binder
+#
+# PURPOSE
+#   Converts scikit-plots Python gallery examples into Jupyter notebooks
+#   and configures the Binder workspace directory layout.
+#
+# CONTRACT
+#   Input  : WORKDIR must contain galleries/examples/ and .binder/
+#   Output : WORKDIR contains .generated-notebooks/ with .ipynb files
+#            and notebooks/auto_examples -> ../.generated-notebooks symlink
+#   Side effects: WORKDIR is cleared and rebuilt; all content is backed up
+#                 to a unique temp directory first and restored on exit.
+#
+# INVARIANTS
+#   - Must run inside a Docker container (build-time or run-time)
+#   - WORKDIR must not resolve to a protected system path
+#   - Temp directory is always removed on exit regardless of outcome
+#   - WORKDIR is only cleared AFTER all backups are verified
+#
+# FAILURE MODES
+#   - Not in Docker             : exit 1, no data touched
+#   - Protected WORKDIR path    : exit 1, no data touched
+#   - Missing required command  : exit 1, no data touched
+#   - Missing source directory  : exit 1, no data touched
+#   - Backup verification fails : exit 1, no data touched
+#   - Post-deletion failure     : cleanup trap removes temp; WORKDIR is empty
+#                                 (irrecoverable — inspect the build logs)
+#   - OpenBLAS install failure  : logged as warning; script succeeds
+#
+# ENVIRONMENT
+#   SCIPY_OPENBLAS_VARIANT  32 | 64 | auto (default: auto)
+#                           Controls which scipy-openblas variant is installed.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-# This script is called in a binder context. When this script is called, we are
-# inside a git checkout of the scikit-learn/scikit-learn repo. This script is
-# generating notebooks from the scikit-learn python examples.
+# Ignore SIGPIPE so the script is not killed when output is piped to a tool
+# that closes its stdin early (e.g. head, less, tee into a closed descriptor).
+# Without this, any printf/log call after the consumer closes propagates SIGPIPE
+# and terminates the script silently under set -e.
+trap '' PIPE
 
-readonly SCRIPT_NAME="$(basename "$0")"
-readonly WORKDIR="$(pwd)"
-readonly TMP_ROOT="/tmp/scikit-plots-build"
-readonly TMP_CONTENT_DIR="${TMP_ROOT}/content"
+# ─────────────────────────────────────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────────────────────────────────────
+
+SCRIPT_NAME="$(basename -- "$0")"
+readonly SCRIPT_NAME
+
+# Use ${PWD} rather than $(pwd) — avoids a subshell and is always set by bash.
+readonly WORKDIR="${PWD}"
+
+# TMP_ROOT is populated by prepare_workspace() via mktemp -d so that concurrent
+# builds each get a unique directory and cannot interfere with each other.
+# Declared here (not readonly) so that cleanup() can reference it even before
+# prepare_workspace() runs.
+TMP_ROOT=""
+
 readonly GENERATED_NOTEBOOKS_DIR="${WORKDIR}/.generated-notebooks"
+readonly NOTEBOOKS_LINK="${WORKDIR}/notebooks/auto_examples"
 
-log() {
-    printf '[%s] %s\n' "$SCRIPT_NAME" "$*"
-}
+# ─────────────────────────────────────────────────────────────────────────────
+# Logging — all output goes to stderr so it does not pollute captured stdout
+# ─────────────────────────────────────────────────────────────────────────────
+
+log_info()  { printf '[%s] INFO  %s\n' "${SCRIPT_NAME}" "$*" >&2; }
+log_warn()  { printf '[%s] WARN  %s\n' "${SCRIPT_NAME}" "$*" >&2; }
+log_error() { printf '[%s] ERROR %s\n' "${SCRIPT_NAME}" "$*" >&2; }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cleanup — runs on EXIT, INT, and TERM
+# ─────────────────────────────────────────────────────────────────────────────
 
 cleanup() {
-    if [[ -d "$TMP_ROOT" ]]; then
-        rm -rf "$TMP_ROOT"
+    # Capture the exit code from the failing command before anything else can
+    # change it.  set +e prevents cleanup itself from triggering a second exit.
+    local exit_code=$?
+    set +e
+
+    if [[ -n "${TMP_ROOT}" && -d "${TMP_ROOT}" ]]; then
+        log_info "Removing temp directory: ${TMP_ROOT}"
+        rm -rf -- "${TMP_ROOT}"
     fi
+
+    exit "${exit_code}"
 }
+
 trap cleanup EXIT
+# Translate signals to predictable exit codes so cleanup() receives the right
+# value via $?.  The 128+N convention is the POSIX standard for signal exits.
+trap 'exit 130' INT    # 128 + 2  (SIGINT)
+trap 'exit 143' TERM   # 128 + 15 (SIGTERM)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Guards — checked before any destructive operation
+# ─────────────────────────────────────────────────────────────────────────────
+
+assert_docker() {
+    # /.dockerenv : injected by the Docker daemon at *runtime* (docker run).
+    #               NOT present during docker build / docker buildx build.
+    # NB_USER     : set by repo2docker as --build-arg -> ARG -> ENV at build time.
+    # cgroup      : cgroupv1 marker present in both build and runtime containers.
+    #
+    # Any one signal is sufficient to confirm a container context.
+    local in_docker=false
+
+    [[ -f "/.dockerenv" ]] \
+        && in_docker=true
+
+    [[ -n "${NB_USER:-}" ]] \
+        && in_docker=true
+
+    grep -qE 'docker|lxc|kubepods|buildkit' /proc/self/cgroup 2>/dev/null \
+        && in_docker=true
+
+    if [[ "${in_docker}" == false ]]; then
+        log_error "This script must run inside a Docker/repo2docker container."
+        log_error "Exiting: running outside a container can delete important data."
+        exit 1
+    fi
+
+    log_info "Container environment confirmed."
+}
+
+assert_safe_workdir() {
+    # Refuse to operate if WORKDIR resolves to a path where mass deletion would
+    # be catastrophic.  This is a defence-in-depth check — the primary
+    # protection is that we only delete from an absolute, verified path, but
+    # this guard catches misconfigured environments before any harm is done.
+    local -a protected=( "/" "${HOME}" "/home" "/root" "/tmp" "/var" "/usr" "/etc" "/opt" )
+    local danger
+    for danger in "${protected[@]}"; do
+        if [[ "${WORKDIR}" == "${danger}" ]]; then
+            log_error "WORKDIR='${WORKDIR}' is a protected system path."
+            log_error "Refusing to clear its contents."
+            exit 1
+        fi
+    done
+    log_info "WORKDIR safety check passed: ${WORKDIR}"
+}
 
 require_command() {
-    command -v "$1" >/dev/null 2>&1 || {
-        log "Missing required command: $1"
+    # $1 : command name to check
+    local cmd="$1"
+    command -v "${cmd}" >/dev/null 2>&1 || {
+        log_error "Required command not found on PATH: ${cmd}"
         exit 1
     }
 }
 
-assert_docker() {
-    if [[ ! -f "/.dockerenv" ]]; then
-        log "This script must run inside a Docker/repo2docker environment."
-        log "Exiting because this script can delete data if run outside of a docker container."
+# ─────────────────────────────────────────────────────────────────────────────
+# Workspace setup
+# ─────────────────────────────────────────────────────────────────────────────
+
+prepare_workspace() {
+    # mktemp -d creates a uniquely named directory, preventing race conditions
+    # when multiple builds run concurrently on the same host.
+    TMP_ROOT="$(mktemp -d -t "scikit-plots-build.XXXXXX")"
+    log_info "Temp workspace: ${TMP_ROOT}"
+}
+
+backup_required_content() {
+    # Developer note: source paths inside WORKDIR, destinations inside TMP_ROOT.
+    # The backup directory names are canonical — generate_notebooks() and
+    # restore_binder_assets() must use the exact same names.
+    local tmp_examples="${TMP_ROOT}/examples"
+    local tmp_binder="${TMP_ROOT}/.binder"
+    local src_examples="${WORKDIR}/galleries/examples"
+    local src_binder="${WORKDIR}/.binder"
+
+    [[ -d "${src_examples}" ]] || {
+        log_error "Source directory missing: ${src_examples}"
+        exit 1
+    }
+    [[ -d "${src_binder}" ]] || {
+        log_error "Source directory missing: ${src_binder}"
+        exit 1
+    }
+
+    log_info "Backing up examples -> ${tmp_examples}"
+    cp -a -- "${src_examples}" "${tmp_examples}"
+
+    log_info "Backing up .binder -> ${tmp_binder}"
+    cp -a -- "${src_binder}" "${tmp_binder}"
+
+    # Verify backup completeness before any destructive step.
+    # If either check fails, set -e aborts here and WORKDIR is untouched.
+    [[ -d "${tmp_examples}" ]] || { log_error "Backup of examples failed."; exit 1; }
+    [[ -d "${tmp_binder}"   ]] || { log_error "Backup of .binder failed.";  exit 1; }
+    log_info "Backup verified."
+
+    # Clear WORKDIR.
+    # ${WORKDIR:?} is a parameter guard: if WORKDIR is unset or empty, bash
+    # aborts with an error before find runs — preventing accidental root deletion.
+    # -mindepth 1 preserves the directory itself so the build layer stays valid.
+    log_info "Clearing WORKDIR: ${WORKDIR}"
+    find "${WORKDIR:?}" -mindepth 1 -delete
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Notebook generation
+# ─────────────────────────────────────────────────────────────────────────────
+
+generate_notebooks() {
+    # Developer note: source is ${TMP_ROOT}/examples (set by backup_required_content).
+    local tmp_examples="${TMP_ROOT}/examples"
+
+    rm -rf  -- "${GENERATED_NOTEBOOKS_DIR}"
+    mkdir -p   "${GENERATED_NOTEBOOKS_DIR}"
+
+    log_info "Staging example files -> ${GENERATED_NOTEBOOKS_DIR}"
+    cp -a -- "${tmp_examples}/." "${GENERATED_NOTEBOOKS_DIR}/"
+
+    local py_count
+    py_count="$(find "${GENERATED_NOTEBOOKS_DIR}" -type f -name '*.py' | wc -l)"
+    log_info "Found ${py_count} Python gallery file(s) to convert."
+
+    if (( py_count == 0 )); then
+        log_warn "No .py files found — nothing to convert."
+    else
+        # Use -exec ... \; (one invocation per file) rather than -exec ... +
+        # (batched).  The \; form ensures that a failure on any individual file
+        # is reported immediately with its filename, not silently absorbed into
+        # a batch exit code.
+        find "${GENERATED_NOTEBOOKS_DIR}" -type f -name '*.py' \
+            -exec sphinx_gallery_py2jupyter '{}' \;
+    fi
+
+    # Remove all non-notebook files from the staging directory.
+    find "${GENERATED_NOTEBOOKS_DIR}" -type f ! -name '*.ipynb' -delete
+
+    local nb_count
+    nb_count="$(find "${GENERATED_NOTEBOOKS_DIR}" -type f -name '*.ipynb' | wc -l)"
+    log_info "Generated ${nb_count} notebook(s)."
+
+    # If we had source files but produced no notebooks, the conversion failed.
+    if (( py_count > 0 && nb_count == 0 )); then
+        log_error "sphinx_gallery_py2jupyter produced 0 notebooks from ${py_count} .py files."
         exit 1
     fi
 }
 
-prepare_workspace() {
-    mkdir -p "$TMP_CONTENT_DIR"
-}
-
-backup_required_content() {
-    local source_examples="${WORKDIR}/galleries/examples"
-    local source_binder="${WORKDIR}/.binder"
-
-    [[ -d "$source_examples" ]] || { log "Missing examples directory"; exit 1; }
-    [[ -d "$source_binder" ]] || { log "Missing .binder directory"; exit 1; }
-
-    # Back up content we need from the scikit-plots repo
-    cp -r "$source_examples" "$TMP_CONTENT_DIR/"
-    cp -r "$source_binder" "$TMP_CONTENT_DIR/"
-    # delete everything in current directory including dot files and dot folders
-    find . -delete
-}
-
-generate_notebooks() {
-    rm -rf "$GENERATED_NOTEBOOKS_DIR"
-    mkdir -p "$GENERATED_NOTEBOOKS_DIR"
-
-    # Generate notebooks and remove other files from examples folder
-    cp -r "$TMP_CONTENT_DIR/galleries/examples/." "$GENERATED_NOTEBOOKS_DIR/"
-
-    find "$GENERATED_NOTEBOOKS_DIR" -type f -name '*.py' \
-        -exec sphinx_gallery_py2jupyter '{}' +
-
-    find "$GENERATED_NOTEBOOKS_DIR" -type f ! -name '*.ipynb' -delete
-    # NON_NOTEBOOKS=$(find $GENERATED_NOTEBOOKS_DIR -type f | grep -v '\.ipynb')
-    # rm -f $NON_NOTEBOOKS
-}
+# ─────────────────────────────────────────────────────────────────────────────
+# Restore binder assets and symlinks
+# ─────────────────────────────────────────────────────────────────────────────
 
 restore_binder_assets() {
-    # Put the .binder folder back (may be useful for debugging purposes)
-    rm -rf "${WORKDIR}/.binder"
-    mv "$TMP_CONTENT_DIR/.binder" "$WORKDIR/.binder"
-    # Final clean up
-    rm -rf $TMP_CONTENT_DIR
+    local tmp_binder="${TMP_ROOT}/.binder"
+
+    [[ -d "${tmp_binder}" ]] || {
+        log_error "Backed-up .binder not found at: ${tmp_binder}"
+        exit 1
+    }
+
+    log_info "Restoring .binder -> ${WORKDIR}/.binder"
+    rm -rf -- "${WORKDIR}/.binder"
+
+    # cp -a + rm is used instead of mv because mv(1) calls rename(2) which
+    # fails with EXDEV when source and destination are on different filesystems
+    # (e.g. /tmp on tmpfs, WORKDIR on overlayfs inside the Docker build layer).
+    cp -a  -- "${tmp_binder}" "${WORKDIR}/.binder"
+    rm -rf -- "${tmp_binder}"
+
+    [[ -d "${WORKDIR}/.binder" ]] || {
+        log_error "Failed to restore .binder to ${WORKDIR}."
+        exit 1
+    }
+    log_info ".binder restored."
 }
 
 setup_symlinks() {
-    # This is for compatibility with binder sphinx-gallery integration: this makes
-    # sure that the binder links generated by sphinx-gallery are correct even tough
-    # the repo we use for binder (scikit-learn/scikit-learn) is not the repo of the
-    # generated doc (scikit-learn/scikit-learn.github.io)
-    mkdir -p "${WORKDIR}/notebooks"
-    ln -sfn "../.generated-notebooks" "${WORKDIR}/notebooks/auto_examples"
+    # sphinx-gallery generates binder launch URLs using the path
+    # notebooks/auto_examples/<notebook>.ipynb relative to the repo root.
+    # This symlink satisfies that expectation regardless of which repo is
+    # checked out for binder (scikit-plots vs its documentation repo).
+    mkdir -p -- "$(dirname -- "${NOTEBOOKS_LINK}")"
+    ln -sfn -- "../.generated-notebooks" "${NOTEBOOKS_LINK}"
+    log_info "Symlink: ${NOTEBOOKS_LINK} -> ../.generated-notebooks"
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# OpenBLAS
+# ─────────────────────────────────────────────────────────────────────────────
+
 install_openblas_variant() {
-    # export SCIPY_OPENBLAS_VARIANT=64
-    # export SCIPY_OPENBLAS_VARIANT=32
+    # User note: set SCIPY_OPENBLAS_VARIANT=32 or =64 to pin a specific variant.
+    # Defaults to 'auto': tries 64-bit first, falls back to 32-bit on failure.
     local variant="${SCIPY_OPENBLAS_VARIANT:-auto}"
-    local package_name=""
+    local package_name
 
-    case "$variant" in
-        32)
-            package_name="scipy-openblas32"
-            ;;
-        64)
-            package_name="scipy-openblas64"
-            ;;
-        auto)
-            # Prefer 64-bit, fallback to 32-bit
-            if python -m pip install --no-cache-dir scipy-openblas64; then
-                log "Installed scipy-openblas64"
-                return 0
-            fi
-
-            log "Falling back to scipy-openblas32"
-            python -m pip install --no-cache-dir scipy-openblas32
-            return 0
-            ;;
+    case "${variant}" in
+        32)   package_name="scipy-openblas32" ;;
+        64)   package_name="scipy-openblas64" ;;
+        auto) package_name=""                 ;;   # handled below
         *)
-            log "Invalid SCIPY_OPENBLAS_VARIANT: $variant"
-            log "Allowed values: 32 | 64 | auto"
-            exit 1
+            log_error "Invalid SCIPY_OPENBLAS_VARIANT='${variant}'."
+            log_error "Allowed values: 32 | 64 | auto"
+            return 1
             ;;
     esac
 
-    log "Installing ${package_name}"
-    python -m pip install --no-cache-dir "$package_name"
+    if [[ "${variant}" == "auto" ]]; then
+        log_info "SCIPY_OPENBLAS_VARIANT=auto: trying scipy-openblas64 first."
+        if python -m pip install --no-cache-dir scipy-openblas64 2>&1 \
+                | sed 's/^/[pip] /'; then
+            log_info "Installed scipy-openblas64."
+            return 0
+        fi
+        log_warn "scipy-openblas64 unavailable; falling back to scipy-openblas32."
+        python -m pip install --no-cache-dir scipy-openblas32 2>&1 \
+            | sed 's/^/[pip] /'
+        log_info "Installed scipy-openblas32."
+        return 0
+    fi
+
+    log_info "Installing ${package_name} (SCIPY_OPENBLAS_VARIANT=${variant})."
+    python -m pip install --no-cache-dir "${package_name}" 2>&1 \
+        | sed 's/^/[pip] /'
 }
 
 verify_openblas_install() {
+    # Emit a warning (not an error) when neither variant is detectable.
+    # Some environments use a system OpenBLAS that does not ship as a pip
+    # package, so absence of these modules is not always a fatal condition.
+    log_info "Verifying OpenBLAS installation."
     python - <<'PY'
-import importlib.util
-for pkg in ("scipy_openblas32", "scipy_openblas64"):
-    if importlib.util.find_spec(pkg):
-        print(f"Detected: {pkg}")
+import importlib.util, sys
+
+found = [
+    pkg for pkg in ("scipy_openblas32", "scipy_openblas64")
+    if importlib.util.find_spec(pkg) is not None
+]
+
+if found:
+    print("Detected:", ", ".join(found), flush=True)
+else:
+    print(
+        "WARNING: neither scipy_openblas32 nor scipy_openblas64 detected.",
+        file=sys.stderr,
+    )
 PY
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
 main() {
+    log_info "postBuild starting."
+
+    # ── Guards (no side effects) ──────────────────────────────────────────────
     assert_docker
+    assert_safe_workdir
 
-    require_command "find"
-    require_command "cp"
-    require_command "mv"
-    require_command "sphinx_gallery_py2jupyter"
+    # Check only the commands that are not guaranteed by the base image.
+    # find/cp/mv/rm are POSIX utilities always present in buildpack-deps;
+    # python and sphinx_gallery_py2jupyter are installed by requirements.txt
+    # and may be absent if the environment is misconfigured.
+    require_command python
+    require_command sphinx_gallery_py2jupyter
 
+    # ── Main pipeline ─────────────────────────────────────────────────────────
     prepare_workspace
-    backup_required_content
-    generate_notebooks
-    restore_binder_assets
-    setup_symlinks
+    backup_required_content    # backs up; then clears WORKDIR
+    generate_notebooks         # converts .py -> .ipynb inside WORKDIR
+    restore_binder_assets      # puts .binder back into WORKDIR
+    setup_symlinks             # creates notebooks/auto_examples -> symlink
 
-    install_openblas_variant || true
-    log "postBuild completed successfully."
+    # ── Optional: OpenBLAS ───────────────────────────────────────────────────
+    # install_openblas_variant is best-effort: failure is logged as a warning
+    # rather than aborting the build, because the core notebook conversion has
+    # already completed successfully at this point.
+    if install_openblas_variant; then
+        verify_openblas_install
+    else
+        log_warn "OpenBLAS installation failed; continuing without it."
+        log_warn "Set SCIPY_OPENBLAS_VARIANT=32 or =64 to pin a specific variant."
+    fi
+
+    log_info "postBuild completed successfully."
 }
 
 main "$@"

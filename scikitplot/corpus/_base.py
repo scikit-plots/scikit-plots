@@ -647,7 +647,6 @@ class DocumentReader(abc.ABC):
     without any subclassing — simply pass a callable at construction time.
 
     Callable contract
-    -----------------
     ::
 
         def my_extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
