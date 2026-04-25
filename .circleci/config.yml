@@ -194,12 +194,15 @@ commands:
           name: "🛠️ Install system dependencies"
           command: |
             sudo apt-get install --fix-missing -y --no-install-recommends \
+              build-essential \
+              pkg-config \
               ninja-build \
               ccache \
               cm-super \
               graphviz \
               ffmpeg \
               inkscape \
+              cmake \
               make \
               gfortran \
               libopenblas-dev \

@@ -1,0 +1,16 @@
+build-essential
+pkg-config
+ninja-build
+ccache
+cm-super
+graphviz
+ffmpeg
+inkscape
+cmake
+make
+gfortran
+libopenblas-dev
+liblapack-dev
+libgmp-dev
+libmpfr-dev
+tesseract-ocr
