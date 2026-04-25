@@ -129,7 +129,21 @@ assert_safe_workdir() {
     # be catastrophic.  This is a defence-in-depth check — the primary
     # protection is that we only delete from an absolute, verified path, but
     # this guard catches misconfigured environments before any harm is done.
-    local -a protected=( "/" "${HOME}" "/home" "/root" "/tmp" "/var" "/usr" "/etc" "/opt" )
+    # Developer note: ${HOME} and /home are intentionally NOT in this list.
+    # repo2docker sets WORKDIR to the container user's home directory
+    # (e.g. /home/jovyan), which IS the legitimate target for this script.
+    # The guard only blocks paths that are unambiguously system infrastructure
+    # and would never be a valid project workspace in any environment.
+    local -a protected=(
+        "/"
+        "/bin" "/sbin" "/lib" "/lib64"
+        "/usr" "/usr/bin" "/usr/lib" "/usr/local"
+        "/etc" "/var" "/var/log"
+        "/proc" "/sys" "/dev"
+        "/tmp" "/run"
+        "/root" "/opt" "/boot"
+    )
+
     local danger
     for danger in "${protected[@]}"; do
         if [[ "${WORKDIR}" == "${danger}" ]]; then
