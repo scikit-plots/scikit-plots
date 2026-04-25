@@ -1,237 +1,95 @@
 /**
- * ============================================================================
- * ai-assistant.css  —  Sphinx AI Assistant Widget Styles
- * ============================================================================
+ * Sphinx AI Assistant Styles
  *
- * ┌─────────────────────────────────────────────────────────────────────────┐
- * │                         MIND MAP — CSS OVERVIEW                        │
- * └─────────────────────────────────────────────────────────────────────────┘
+ * Styles for the AI assistant dropdown and UI elements.
  *
- *  ai-assistant.css
- *  │
- *  ├── 1. WIDGET STRUCTURE (layout & sizing)
- *  │       ├── .ai-assistant-container     → outer wrapper that holds everything
- *  │       ├── .ai-assistant-button        → split-button bar (main + dropdown arrow)
- *  │       │       ├── .ai-assistant-button-main     → "Copy page" clickable area
- *  │       │       ├── .ai-assistant-button-divider  → 1px vertical line separator
- *  │       │       └── .ai-assistant-button-dropdown → arrow chevron clickable area
- *  │       └── .ai-assistant-dropdown      → the floating menu panel
- *  │               ├── .ai-assistant-menu-item          → each clickable row
- *  │               │       ├── .ai-assistant-menu-item-title       → icon + label
- *  │               │       └── .ai-assistant-menu-item-description → helper text
- *  │               └── .ai-assistant-menu-separator     → thin divider line
- *  │
- *  ├── 2. INTERACTIVE STATES (feedback to the user)
- *  │       ├── :hover          → subtle background tint when mouse hovers
- *  │       ├── :active         → slightly darker tint when mouse is pressed
- *  │       ├── :focus-visible  → visible blue ring ONLY for keyboard users
- *  │       └── .ai-assistant-button-success → green tint after "Copied!"
- *  │
- *  ├── 3. NOTIFICATION TOAST (temporary pop-up message)
- *  │       ├── .ai-assistant-notification        → default (info / blue) toast
- *  │       ├── .ai-assistant-notification.show   → fades + slides in
- *  │       └── .ai-assistant-notification.error  → red variant for errors
- *  │
- *  ├── 4. RESPONSIVE ADJUSTMENTS
- *  │       └── @media (max-width: 768px)  → hides button text on small screens
- *  │
- *  ├── 5. THEME-SPECIFIC OVERRIDES
- *  │       ├── .theme-furo .ai-assistant-container  → Furo sidebar spacing
- *  │       └── .toc-drawer / .toc-sidebar / .sidebar-secondary  → sidebar context
- *  │
- *  └── 6. DARK MODE SYSTEM (three-layer cascade)
- *          ├── Layer 1 — Icon styles (.ai-assistant-theme-icon)
- *          ├── Layer 2 — CSS variable overrides (html[data-ai-theme="dark"])
- *          │       ├── --color-*       → shared Sphinx base variables
- *          │       ├── --bs-*          → Bootstrap 5 / pydata-sphinx-theme
- *          │       ├── --pst-color-*   → pydata-sphinx-theme semantic tokens
- *          │       └── --color-sidebar-* / --color-toc-* → Furo sidebar tokens
- *          ├── Layer 3 — Raw element fallback (body, a, code, pre)
- *          ├── Light mode reset (html[data-ai-theme="light"])
- *          └── Widget self-styling in dark mode
+ * Theme variable resolution order (three-layer fallback):
+ *   1. PyData Sphinx Theme  --pst-color-*   (auto-updates on light/dark switch)
+ *   2. Furo theme           --color-*       (for Furo compatibility)
+ *   3. Hardcoded safe value                 (last-resort baseline)
  *
- * ─────────────────────────────────────────────────────────────────────────────
- * KEY CONCEPTS FOR NEWBIES
- * ─────────────────────────────────────────────────────────────────────────────
+ * Dark-mode overrides use [data-bs-theme="dark"] (PyData / Bootstrap 5 convention).
+ * Do NOT use prefers-color-scheme here — the page theme is user-controlled via the
+ * PyData theme-switcher button, not the OS preference.
  *
- *  CSS Custom Properties (CSS Variables)
- *  ───────────────────────────────────────
- *  Syntax:  --my-variable: value;      ← define it
- *           color: var(--my-variable, fallback);  ← use it
- *
- *  The second argument after the comma is the FALLBACK — the value used when
- *  the variable hasn't been defined (e.g. on a Sphinx theme that doesn't set it).
- *  This makes our widget work on ANY Sphinx theme without crashing.
- *
- *  Flexbox in a nutshell
- *  ─────────────────────
- *  display: flex        → children line up in a row (default) or column
- *  align-items: center  → centre children on the CROSS axis (vertically in a row)
- *  justify-content      → position children on the MAIN axis (horizontally in a row)
- *  flex-shrink: 0       → "never squish this element, even if space is tight"
- *  gap: X               → spacing BETWEEN children (like margin but smarter)
- *
- *  Positioning
- *  ───────────
- *  position: relative   → element stays in normal flow; its children can be
- *                         positioned relative to IT instead of the page
- *  position: absolute   → element is pulled out of normal flow and placed
- *                         relative to its nearest position:relative ancestor
- *  position: fixed      → always relative to the viewport (browser window)
- *  z-index              → stacking order; higher = in front of lower
- *
- *  CSS Transitions
- *  ───────────────
- *  transition: property duration easing
- *  Example: transition: background-color 0.15s ease
- *           → when background-color changes, animate it over 0.15 seconds
- *             using the "ease" curve (starts fast, slows at the end)
- *
- * ─────────────────────────────────────────────────────────────────────────────
+ * Only .ai-assistant-* selectors are defined here.
+ * No global overrides; no interference with the host Sphinx theme.
  */
 
+/* ── Container ──────────────────────────────────────────────────────────── */
 
-/* =============================================================================
- * 1. WIDGET STRUCTURE
- * =============================================================================
- *
- * Visual structure (what you see on the page):
- *
- *  ┌──────────────────────────────────────────────────────┐
- *  │  .ai-assistant-container  (position: relative)       │
- *  │  ┌─────────────────────────────────────────────────┐ │
- *  │  │  .ai-assistant-button  (inline-flex row)        │ │
- *  │  │  ┌──────────────┬───┬──────┐                   │ │
- *  │  │  │  button-main │ | │  ▼   │  ← split-button   │ │
- *  │  │  │  "Copy page" │   │arrow │                   │ │
- *  │  │  └──────────────┴───┴──────┘                   │ │
- *  │  └─────────────────────────────────────────────────┘ │
- *  │  ┌─────────────────────────────────────────────────┐ │
- *  │  │  .ai-assistant-dropdown  (hidden by default)    │ │
- *  │  │  ┌─────────────────────────────────────────┐   │ │
- *  │  │  │  menu-item  (Copy page)                 │   │ │
- *  │  │  ├─────────────────────────────────────────┤   │ │
- *  │  │  │  ─── separator ───                      │   │ │
- *  │  │  ├─────────────────────────────────────────┤   │ │
- *  │  │  │  menu-item  (Open in Claude)            │   │ │
- *  │  │  └─────────────────────────────────────────┘   │ │
- *  │  └─────────────────────────────────────────────────┘ │
- *  └──────────────────────────────────────────────────────┘
- * ============================================================================= */
-
-/* ── Outer container ──────────────────────────────────────────────────────── */
 .ai-assistant-container {
-    /*
-     * position: relative  is crucial here.
-     * The dropdown panel (.ai-assistant-dropdown) uses position: absolute,
-     * which means "place me relative to my nearest positioned ancestor".
-     * By setting position: relative on the container, we make THIS element
-     * that anchor, so the dropdown appears directly below the button
-     * instead of jumping to the top-left corner of the page.
-     */
     position: relative;
-
-    /*
-     * z-index: 10 ensures the widget sits in front of most page content
-     * but below the dropdown panel itself (which uses z-index: 10000).
-     * Think of z-index as layers in Photoshop — higher number = on top.
-     */
     z-index: 10;
-
-    /* A little breathing room above the widget */
     margin-top: 0.7rem;
 }
 
-/* Consistent vertical centering for any <img> inside the container */
 .ai-assistant-container img {
     margin-top: 5px;
     margin-bottom: 5px;
 }
 
-/* ── Split-button bar ─────────────────────────────────────────────────────── */
-/*
- * WHY A SPLIT BUTTON?
- * A "split button" is a common UI pattern where one button has two clickable
- * zones: the main action (left part) and a secondary action revealed by
- * the dropdown arrow (right part).
- *
- * We use display: inline-flex + align-items: stretch so both child <button>
- * elements fill the full height of the container — their click areas touch
- * the very top and bottom edges, making them easier to click.
- */
-.ai-assistant-button {
-    position: relative;     /* anchor for any absolutely positioned children */
-    display: inline-flex;   /* lay children in a row; "inline" so it only takes content width */
-    align-items: stretch;   /* children stretch to match container height (important for divider) */
-    height: 35px;
-    background-color: transparent; /* no fill — inherits page background */
+/* ── Trigger button (split-button wrapper) ──────────────────────────────── */
 
-    /*
-     * var(--color-foreground-border, rgba(0,0,0,0.2))
-     *     ↑ CSS variable name        ↑ fallback value
-     * Sphinx themes define --color-foreground-border.
-     * If the theme doesn't define it, we fall back to a translucent grey.
-     */
-    border: 1px solid var(--color-foreground-border, rgba(0, 0, 0, 0.2));
-    border-radius: 4px;     /* softly rounded corners */
-    overflow: hidden;       /* clips hover backgrounds to the rounded corners */
+.ai-assistant-button {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    height: 35px;
+    background-color: transparent;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
+    border-radius: 4px;
+    overflow: hidden;
 }
 
-/* ── Shared styles for both button zones ─────────────────────────────────── */
+/* ── Button halves (main action + dropdown chevron) ─────────────────────── */
+
 .ai-assistant-button-main,
 .ai-assistant-button-dropdown {
-    display: flex;           /* flex so we can align the icon + label vertically */
-    align-items: center;     /* vertically centre the icon and text */
+    display: flex;
+    align-items: center;
     background: transparent;
-    border: none;            /* removes default <button> border (we use the container's) */
-
+    border: none;
     /*
-     * var() with fallback — uses the theme's foreground colour if available,
-     * otherwise falls back to near-black (#1a1a1a).
+     * --pst-color-text-base:       PyData body text colour (light: dark, dark: light)
+     * --color-foreground-primary:  Furo equivalent
+     * #1a1a1a:                     last-resort dark fallback
      */
-    color: var(--color-foreground-primary, #1a1a1a);
-
-    font-size: 0.875rem;    /* 14px — slightly smaller than body text */
-    font-weight: 500;        /* medium weight — more readable than normal (400) */
-    cursor: pointer;         /* show the hand cursor so users know this is clickable */
-
-    /*
-     * transition: background-color 0.15s ease
-     * When the background-color changes (on :hover), animate it smoothly
-     * over 150ms instead of snapping instantly.  This makes the UI feel
-     * polished and responsive without being distracting.
-     */
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #1a1a1a)
+    );
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
-/* Main "Copy page" button gets horizontal padding + gap between icon and text */
 .ai-assistant-button-main {
-    gap: 0.5rem;         /* space between the icon and the "Copy page" text */
-    padding: 0 0.75rem;  /* left/right breathing room; top/bottom = 0 (height is fixed) */
+    gap: 0.5rem;
+    padding: 0 0.75rem;
 }
 
-/* Dropdown arrow button — slightly less padding since it only contains an icon */
 .ai-assistant-button-dropdown {
     padding: 0 0.5rem;
 }
 
-/* ── Vertical divider between the two button zones ───────────────────────── */
-/*
- * This is NOT a <hr> element — it's a <span> styled to look like a line.
- * align-self: stretch (inherited via align-items: stretch on the parent)
- * makes it fill the full height of the button bar automatically.
- */
+/* ── Divider between the two halves ─────────────────────────────────────── */
+
 .ai-assistant-button-divider {
     width: 1px;
-    background-color: var(--color-foreground-border, rgba(0, 0, 0, 0.2));
-    align-self: stretch; /* fills full height of the flex container */
+    background-color: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
+    align-self: stretch;
 }
 
-/* ── Icon images ──────────────────────────────────────────────────────────── */
-/*
- * flex-shrink: 0  means "never squish this icon even in tight spaces".
- * Without it, a flex container might compress the icon to make room for text.
- */
+/* ── Icons ──────────────────────────────────────────────────────────────── */
+
 .ai-assistant-icon {
     width: 16px;
     height: 16px;
@@ -244,320 +102,266 @@
     height: 16px;
     display: inline-block;
     flex-shrink: 0;
-    opacity: 0.7;   /* slightly dimmed — it's secondary UI, less prominent */
-
-    /*
-     * transition: transform 0.2s ease
-     * When the dropdown opens, JavaScript adds aria-expanded="true" to the
-     * button.  The CSS rule below then rotates this icon 180°.
-     * The transition makes it animate smoothly instead of snapping.
-     */
+    opacity: 0.7;
     transition: transform 0.2s ease;
 }
 
+/*
+ * Utility icons (arrow-down, copy-to-clipboard, markdown, checked,
+ * comment-discussion) use hardcoded #878787 strokes.  In dark mode the
+ * surrounding background darkens while the icon stays grey → lower contrast.
+ * brightness(1.6) lifts the grey to ~#d8d8d8 which reads clearly on dark
+ * surfaces without altering brand icon colours.
+ *
+ * Brand icons (claude.svg, chatgpt.svg, ai-tools.svg) must keep their brand
+ * colours — mark them with class="ai-brand-icon" in the HTML to exclude them.
+ */
+[data-bs-theme="dark"] .ai-assistant-icon:not(.ai-brand-icon),
+[data-bs-theme="dark"] .ai-assistant-dropdown-icon,
+[data-bs-theme="dark"] .ai-assistant-menu-icon:not(.ai-brand-icon) {
+    filter: brightness(1.6);
+}
 
-/* =============================================================================
- * 2. INTERACTIVE STATES
- * =============================================================================
- *
- * Good interactive design gives users visual feedback at every interaction stage:
- *
- *   Default   → normal appearance
- *   :hover    → user's mouse is over the element (not yet clicked)
- *   :active   → user is pressing the mouse button right now
- *   :focus    → element received focus (e.g. tabbed to with keyboard)
- *   :focus-visible → focus ring shown ONLY for keyboard/assistive users
- *
- * WHY separate :focus and :focus-visible?
- *   When a mouse user clicks a button, the browser gives it :focus too.
- *   Showing a focus ring on mouse click looks wrong (and most browsers
- *   now hide it by default).  :focus-visible fires ONLY when the browser
- *   decides the user needs to see where focus is (keyboard navigation,
- *   screen readers).  This is the modern accessible approach.
- * ============================================================================= */
+/* ── Hover / active states ──────────────────────────────────────────────── */
 
-/* Hover: subtle grey tint */
+/*
+ * Hover tints must invert between light and dark mode:
+ *   light mode → slight dark tint   rgba(0,0,0,   0.06)
+ *   dark  mode → slight light tint  rgba(255,255,255, 0.08)
+ *
+ * There is no single PST or Bootstrap 5 variable that encodes this
+ * directionality, so we use explicit [data-bs-theme] overrides — the same
+ * mechanism PyData itself uses internally.
+ */
 .ai-assistant-button-main:hover,
 .ai-assistant-button-dropdown:hover {
-    background-color: var(--color-background-hover, rgba(0, 0, 0, 0.05));
-    /* rgba(0,0,0,0.05) = 5% black — almost invisible tint, just enough feedback */
+    background-color: rgba(0, 0, 0, 0.06);
 }
 
-/* Active (press): slightly darker than hover */
+[data-bs-theme="dark"] .ai-assistant-button-main:hover,
+[data-bs-theme="dark"] .ai-assistant-button-dropdown:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
 .ai-assistant-button-main:active,
 .ai-assistant-button-dropdown:active {
-    background-color: var(--color-background-active, rgba(0, 0, 0, 0.1));
-    /* 10% black — twice the hover opacity, clearly "pressed" */
+    background-color: rgba(0, 0, 0, 0.12);
 }
 
-/* ── Success state ─────────────────────────────────────────────────────────
- * After the user clicks "Copy page", JavaScript temporarily adds this class.
- * The green tint + "Copied!" text gives clear visual confirmation.
- * After 2 seconds, the class is removed and the button resets. */
+[data-bs-theme="dark"] .ai-assistant-button-main:active,
+[data-bs-theme="dark"] .ai-assistant-button-dropdown:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Success state (copy-confirmation flash) ─────────────────────────────── */
+
 .ai-assistant-button-main.ai-assistant-button-success {
-    background-color: rgba(76, 175, 80, 0.1);
-    /* Material Design green (#4CAF50) at 10% opacity — unmistakably "success" */
+    background-color: rgba(76, 175, 80, 0.15);
 }
 
-/* ── Focus ring ────────────────────────────────────────────────────────────
- * outline: none   → remove the default browser focus ring for ALL focus events.
- * We then add it back ONLY for keyboard users with :focus-visible below.
- * This pattern is now standard for accessible, visually clean UIs. */
+[data-bs-theme="dark"] .ai-assistant-button-main.ai-assistant-button-success {
+    background-color: rgba(76, 175, 80, 0.25);
+}
+
+/* ── Focus rings (keyboard-only via :focus-visible) ─────────────────────── */
+
 .ai-assistant-button-main:focus,
 .ai-assistant-button-dropdown:focus {
     outline: none;
 }
 
-/* Show a clear focus ring when navigating with keyboard (Tab key) */
 .ai-assistant-button-main:focus-visible,
 .ai-assistant-button-dropdown:focus-visible {
-    /*
-     * outline-offset: -2px  draws the ring INSIDE the element border.
-     * Without this, the ring would appear outside and might get clipped
-     * by the parent's overflow: hidden.
-     */
-    outline: 2px solid var(--color-brand-primary, #2980b9);
+    outline: 2px solid var(
+        --pst-color-primary,
+        var(--color-brand-primary, #2980b9)
+    );
     outline-offset: -2px;
 }
 
-/* ── Chevron rotation when dropdown is open ────────────────────────────────
- *
- * The attribute selector [aria-expanded="true"] targets the dropdown button
- * ONLY when the dropdown is open (JS sets aria-expanded="true").
- *
- * transform: rotate(180deg) flips the ▼ arrow to point ▲ (upward),
- * visually communicating "click to close".  The transition (defined above
- * on .ai-assistant-dropdown-icon) makes this animate smoothly.
- */
+/* ── Chevron rotation when open ─────────────────────────────────────────── */
+
 .ai-assistant-button-dropdown[aria-expanded="true"] .ai-assistant-dropdown-icon {
     transform: rotate(180deg);
 }
 
+/* ── Expanded dropdown panel ────────────────────────────────────────────── */
 
-/* =============================================================================
- * DROPDOWN PANEL
- * =============================================================================
- *
- * The panel is hidden by default (display: none set in JavaScript).
- * When the user clicks the arrow button, JS sets display: block.
- *
- * position: absolute  — floats the panel OUT of normal document flow.
- *   top: calc(100% + 0.2rem)  → place the panel 100% of the button's height
- *                               below the button, plus 0.2rem gap.
- *   left/right: auto           → let the browser decide alignment; overridden
- *                               in sidebar context rules further below.
- *
- * z-index: 10000  — must be VERY high so the panel appears on top of
- * everything: sidebars, sticky headers, other widgets.  Common pattern.
- * ============================================================================= */
 .ai-assistant-dropdown {
     position: absolute;
-    top: calc(100% + 0.2rem);   /* just below the button + tiny gap */
+    top: calc(100% + 0.2rem);
     left: auto;
     right: auto;
     width: 215px;
-    background-color: var(--color-background-primary, #fff);
-    border: 1px solid var(--color-foreground-border, #e1e4e5);
-    border-radius: 4px;
-
     /*
-     * box-shadow creates the "floating card" look.
-     * Two layers:
-     *   1st: 0 10px 15px -3px rgba(0,0,0,0.1) → large soft shadow (depth)
-     *   2nd: 0 4px 6px -2px rgba(0,0,0,0.05)  → small tight shadow (edge)
-     * The negative blur-spread (-3px, -2px) tightens the shadow edges.
+     * --pst-color-surface:         PyData elevated-surface colour.
+     *   light mode → white / near-white
+     *   dark  mode → dark panel colour (e.g. #1f232a in PST defaults)
+     * --color-background-primary:  Furo equivalent.
+     * #fff:                        absolute last resort — only fires when
+     *                              neither PST nor Furo CSS vars exist.
      */
-    box-shadow:
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
-
-    padding: 0.25rem;   /* small inset so items don't touch the panel edges */
+    background-color: var(
+        --pst-color-surface,
+        var(--color-background-primary, #fff)
+    );
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+    border-radius: 4px;
+    /*
+     * Shadow is asymmetric between modes: dark surfaces need a heavier shadow
+     * to convey the same perceived elevation against a dark background.
+     */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.12),
+                0 4px 6px  -2px rgba(0, 0, 0, 0.07);
+    padding: 0.25rem;
     z-index: 10000;
-    pointer-events: auto; /* ensures clicks register even inside complex layouts */
+    pointer-events: auto;
 }
 
-/*
- * Force display when inline style says "display: block".
- * Some Sphinx theme stylesheets use !important broadly, which can accidentally
- * override our display property.  This rule counters that with !important.
- */
+[data-bs-theme="dark"] .ai-assistant-dropdown {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45),
+                0 4px 6px  -2px rgba(0, 0, 0, 0.30);
+}
+
 .ai-assistant-dropdown[style*="display: block"] {
     display: block !important;
 }
 
+/* ── Menu items ─────────────────────────────────────────────────────────── */
 
-/* =============================================================================
- * MENU ITEMS
- * =============================================================================
- *
- * Each menu item is a <button> element styled to look like a list row.
- * Using <button> (not <a> or <div>) is important for accessibility:
- * - It's keyboard-focusable by default
- * - Screen readers announce it as a button
- * - It responds to Enter/Space key presses naturally
- *
- * Structure of each item:
- *
- *  ┌──────────────────────────────────────────────────────────┐
- *  │  .ai-assistant-menu-item  (button, full width)           │
- *  │  ┌────────────────────────────────────────────────────┐  │
- *  │  │  .ai-assistant-menu-item-content  (flex column)    │  │
- *  │  │  ┌──────────────────────────────────────────────┐  │  │
- *  │  │  │  .ai-assistant-menu-item-title  (flex row)   │  │  │
- *  │  │  │   [icon]  [Label text]                       │  │  │
- *  │  │  └──────────────────────────────────────────────┘  │  │
- *  │  │  ┌──────────────────────────────────────────────┐  │  │
- *  │  │  │  .ai-assistant-menu-item-description         │  │  │
- *  │  │  │   Helper text below the label                │  │  │
- *  │  │  └──────────────────────────────────────────────┘  │  │
- *  │  └────────────────────────────────────────────────────┘  │
- *  └──────────────────────────────────────────────────────────┘
- * ============================================================================= */
 .ai-assistant-menu-item {
-    display: block;       /* override default inline-block for <button> */
-    width: 100%;          /* stretch to fill the dropdown panel */
-    min-height: 55px;     /* tall enough to show icon + description text */
-    text-align: left;     /* default <button> alignment is centered — fix it */
+    display: block;
+    width: 100%;
+    min-height: 55px;
+    text-align: left;
     background: none;
     border: none;
     border-radius: 4px;
-    color: var(--color-foreground-primary, #1a1a1a);
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #1a1a1a)
+    );
     font-size: 0.875rem;
     cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
-/* ── Item content wrapper — vertical flex column ─────────────────────────── */
 .ai-assistant-menu-item-content {
     display: flex;
-    flex-direction: column;  /* stack title row on top of description */
-    gap: 0.375rem;           /* small gap between title and description */
+    flex-direction: column;
+    gap: 0.375rem;
 }
 
-/* ── Title row — icon + label side by side ───────────────────────────────── */
 .ai-assistant-menu-item-title {
     display: flex;
     align-items: center;
-    gap: 0.5rem;        /* space between icon and label text */
-    font-weight: 500;   /* medium weight for the label */
+    gap: 0.5rem;
+    font-weight: 500;
 }
 
-/* Icon inside the title row */
 .ai-assistant-menu-item-title .ai-assistant-menu-icon {
     width: 16px;
     height: 16px;
     display: inline-block;
-    flex-shrink: 0;  /* never shrink the icon */
+    flex-shrink: 0;
 }
 
-/* ── Description text ──────────────────────────────────────────────────────
- * Shown below the label.  Smaller, muted colour — secondary information. */
 .ai-assistant-menu-item-description {
     font-size: 11px;
-    color: var(--color-foreground-secondary, #666);  /* muted grey */
-    line-height: 1.3;   /* tighter line height for compact multi-line text */
-    padding-left: 0;    /* intentionally not indented under the icon */
-    margin-top: -5px;   /* pull description closer to the title */
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #666)
+    );
+    line-height: 1.3;
+    padding-left: 0;
+    margin-top: -5px;
 }
 
-/* ── Menu item hover / active / focus states ─────────────────────────────── */
 .ai-assistant-menu-item:hover {
-    background-color: var(--color-background-hover, #f5f5f5);
+    background-color: rgba(0, 0, 0, 0.06);
 }
 
-/* Remove default focus ring for mouse users */
+[data-bs-theme="dark"] .ai-assistant-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
 .ai-assistant-menu-item:focus {
     outline: none;
 }
 
-/* Re-add accessible focus ring for keyboard users */
 .ai-assistant-menu-item:focus-visible {
-    outline: 2px solid var(--color-brand-primary, #2980b9);
+    outline: 2px solid var(
+        --pst-color-primary,
+        var(--color-brand-primary, #2980b9)
+    );
     outline-offset: -2px;
 }
 
-/* Active / pressed state */
 .ai-assistant-menu-item:active {
-    background-color: var(--color-background-active, #e8e8e8);
+    background-color: rgba(0, 0, 0, 0.12);
 }
 
-/* ── Menu separator line ─────────────────────────────────────────────────── */
-/*
- * A thin horizontal rule visually groups related menu items.
- * Using a <div> styled as a 1px rule (not <hr>) gives precise control
- * over colour and spacing via CSS variables.
- */
+[data-bs-theme="dark"] .ai-assistant-menu-item:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Menu separator ─────────────────────────────────────────────────────── */
+
 .ai-assistant-menu-separator {
     height: 1px;
     margin: 0.25rem 0;
-    background-color: var(--color-foreground-border, #e1e4e5);
+    background-color: var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
 }
 
+/* ── Toast notification ─────────────────────────────────────────────────── */
 
-/* =============================================================================
- * 3. NOTIFICATION TOAST
- * =============================================================================
- *
- * A "toast" is a small temporary message that appears, then fades away.
- * Named after toast popping up from a toaster.
- *
- * ANIMATION TRICK — how the slide-in + fade works:
- *
- *   1. The element is created in JavaScript with opacity: 0 and
- *      transform: translateY(-1rem) — invisible and shifted UP by 1rem.
- *
- *   2. After a 10ms delay, JS adds the .show class.
- *
- *   3. The transition property (below) detects the change and smoothly
- *      animates opacity from 0→1 and translateY from -1rem→0 over 0.3s.
- *      The result: the toast "slides down" from the top as it fades in.
- *
- *   4. After 3 seconds, JS removes .show — the same transition runs in
- *      reverse (fades out + slides up).
- *
- *   5. After the animation completes (300ms), JS removes the element from
- *      the DOM entirely.
- *
- * position: fixed  → always in the top-right corner of the VIEWPORT,
- *                    regardless of scroll position.
- * ============================================================================= */
 .ai-assistant-notification {
     position: fixed;
     top: 1rem;
     right: 1rem;
     padding: 0.75rem 1.25rem;
-    background-color: var(--color-brand-primary, #2980b9);  /* blue by default */
-    color: white;
+    background-color: var(
+        --pst-color-primary,
+        var(--color-brand-primary, #2980b9)
+    );
+    /*
+     * Notification text is always white: it sits on a coloured brand surface,
+     * not on the theme background.  Must NOT inherit --pst-color-text-base.
+     */
+    color: #fff;
     border-radius: 4px;
-    box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15),
+                0 2px 4px -1px rgba(0, 0, 0, 0.10);
     font-size: 0.875rem;
     font-weight: 500;
-    z-index: 10000;  /* must be on top of everything */
-
-    /* Initial hidden state — invisible and shifted 1rem above final position */
+    z-index: 10000;
     opacity: 0;
     transform: translateY(-1rem);
-
-    /* Animate BOTH opacity AND position changes over 300ms */
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* .show class is added by JS — triggers the animated reveal */
 .ai-assistant-notification.show {
     opacity: 1;
-    transform: translateY(0);  /* back to natural position */
+    transform: translateY(0);
 }
 
-/* Error variant — red background instead of brand blue */
 .ai-assistant-notification.error {
-    background-color: #e74c3c;  /* Material Design Red 600 — universally recognized as error */
+    background-color: #e74c3c;
 }
 
-/* ── SVG icon fallback ────────────────────────────────────────────────────── */
+/* ── Inline SVG icon stroke colour (when SVG is embedded, not <img>) ────── */
+
 .svg-icon path {
-    stroke: var(--color-foreground-border, rgba(0, 0, 0, 0.2));
+    stroke: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
 }
 
 .svg-icon.filter-icon {
@@ -566,42 +370,27 @@
     z-index: 1;
 }
 
+/* ── Responsive ─────────────────────────────────────────────────────────── */
 
-/* =============================================================================
- * 4. RESPONSIVE ADJUSTMENTS
- * =============================================================================
- *
- * @media (max-width: 768px) is a "media query" — CSS that only applies when
- * the viewport (browser window) is 768px wide or NARROWER.
- * 768px is the conventional breakpoint for tablets/mobile.
- *
- * On small screens we:
- *   - Hide the "Copy page" button text (icon-only saves space)
- *   - Align the dropdown to the right edge (avoids overflow off the left)
- *   - Stretch the notification full-width with centered text
- * ============================================================================= */
 @media (max-width: 768px) {
     .ai-assistant-container {
         margin-bottom: 0.75rem;
     }
 
     .ai-assistant-button {
-        font-size: 0.8125rem;  /* 13px — slightly smaller on mobile */
+        font-size: 0.8125rem;
     }
 
-    /* Hide text label; icon alone is sufficient on small screens */
     .ai-assistant-button-text {
         display: none;
     }
 
-    /* Anchor dropdown to the right edge on mobile to prevent overflow */
     .ai-assistant-dropdown {
         right: 0;
         left: auto;
         min-width: 215px;
     }
 
-    /* Full-width centered notification on mobile */
     .ai-assistant-notification {
         left: 1rem;
         right: 1rem;
@@ -609,448 +398,41 @@
     }
 }
 
+/* ── Furo theme: container spacing ─────────────────────────────────────── */
 
-/* =============================================================================
- * 5. THEME-SPECIFIC OVERRIDES
- * =============================================================================
- *
- * Different Sphinx documentation themes (Furo, pydata, Alabaster, etc.) use
- * different HTML structures and CSS class names.  We target their specific
- * class names to inject our widget seamlessly into each layout.
- *
- * SELECTOR SPECIFICITY NOTE:
- * ".theme-furo .ai-assistant-container" is MORE specific than
- * ".ai-assistant-container" alone, so these rules override the base styles
- * above without needing !important.
- * ============================================================================= */
-
-/* Furo theme — zero top margin (Furo already provides internal padding) */
 .theme-furo .ai-assistant-container {
     margin-top: 0;
-    padding: 0 1rem 1rem;  /* horizontal padding matches Furo's sidebar rhythm */
+    padding: 0 1rem 1rem;
 }
 
-/*
- * When the widget is injected into a SIDEBAR (the right table-of-contents panel),
- * we target the sidebar's container class and adjust the widget's layout.
- *
- * Three sidebar class names are targeted to cover different Sphinx themes:
- *   .toc-drawer     → Furo's right sidebar drawer
- *   .toc-sidebar    → Furo's right sidebar (alternative selector)
- *   .sidebar-secondary → generic Sphinx secondary sidebar
- */
+/* ── PyData / generic: sidebar placement ────────────────────────────────── */
+
 .toc-drawer .ai-assistant-container,
 .toc-sidebar .ai-assistant-container,
 .sidebar-secondary .ai-assistant-container {
     display: block;
     position: relative;
     z-index: 100;
-    padding-top: 1rem;  /* spacing above the widget when inside the sidebar */
+    padding-top: 1rem;
 }
 
-/* Sidebar context: button should only be as wide as its content (not full-width) */
 .toc-drawer .ai-assistant-button,
 .toc-sidebar .ai-assistant-button,
 .sidebar-secondary .ai-assistant-button {
-    width: fit-content;  /* shrink-wrap to content width */
-    margin: 0;           /* left-aligned (no auto margins) */
+    width: fit-content;
+    margin: 0;
 }
 
-/* Extra horizontal padding on the dropdown button in sidebar context */
 .toc-drawer .ai-assistant-button-dropdown,
 .toc-sidebar .ai-assistant-button-dropdown,
 .sidebar-secondary .ai-assistant-button-dropdown {
-    padding: 0 0.75rem;  /* extra right padding to balance the left padding */
+    padding: 0 0.75rem;
 }
 
-/* Sidebar dropdown: open to the RIGHT (left: 0) instead of floating freely */
 .toc-drawer .ai-assistant-dropdown,
 .toc-sidebar .ai-assistant-dropdown,
 .sidebar-secondary .ai-assistant-dropdown {
-    left: 0;      /* anchor left edge of dropdown to left edge of container */
-    right: auto;  /* don't constrain the right edge */
+    left: 0;
+    right: auto;
     min-width: 215px;
-}
-
-/* Duplicate focus-visible rules for menu items (covers sidebar context too) */
-.ai-assistant-menu-item:focus {
-    outline: none;
-}
-
-.ai-assistant-menu-item:focus-visible {
-    outline: 2px solid var(--color-brand-primary, #2980b9);
-    outline-offset: -2px;
-}
-
-
-/* =============================================================================
- * 6. DARK MODE SYSTEM
- * =============================================================================
- *
- * ┌─────────────────────────────────────────────────────────────────────────┐
- * │  MIND MAP — How the 3-layer dark mode cascade works                    │
- * └─────────────────────────────────────────────────────────────────────────┘
- *
- *  User clicks "Color scheme: Dark"
- *          │
- *          ▼
- *  JS (applyThemeMode) sets THREE attributes on <html>:
- *      data-bs-theme="dark"   ← Bootstrap 5 / pydata-sphinx-theme reads this
- *      data-theme="dark"      ← Furo reads this
- *      data-ai-theme="dark"   ← OUR CSS reads this (all three layers below)
- *          │
- *          ├── Layer 1: Icon styles (.ai-assistant-theme-icon)
- *          │       → The sun/moon/half-circle SVG always matches text colour
- *          │         because it uses stroke="currentColor"
- *          │
- *          ├── Layer 2: CSS variable overrides (html[data-ai-theme="dark"])
- *          │       → Redefines ALL colour variables used by any Sphinx theme
- *          │         Groups: --color-* | --bs-* | --pst-color-* | --color-sidebar-*
- *          │         Safe for themes with native dark mode (duplicate values are harmless)
- *          │
- *          └── Layer 3: Raw element fallback (html[data-ai-theme="dark"]:not(...))
- *                  → Directly targets <body>, <a>, <code>, <pre>
- *                  → ONLY fires for themes WITHOUT native dark support
- *                    (Alabaster, sphinx-rtd-theme)
- *                  → :not([data-bs-theme]) guard prevents conflicts with
- *                    pydata-sphinx-theme and Furo
- *
- * WHY THREE SEPARATE LAYERS?
- * ─────────────────────────────────────────────────────────────────────────
- * The Sphinx ecosystem has many themes, each using different conventions:
- *
- *  pydata-sphinx-theme  → uses Bootstrap 5's data-bs-theme attribute
- *  Furo                 → uses its own data-theme attribute + CSS variables
- *  Alabaster            → NO native dark mode at all
- *  sphinx-rtd-theme     → NO native dark mode at all
- *
- * No single approach covers all of them.  The three-layer system works like
- * a safety net: each layer handles a different class of theme, and they
- * don't interfere with each other.
- *
- * =============================================================================
- *
- * Layer 1 — Theme toggle icon (sun / moon / half-circle)
- * ──────────────────────────────────────────────────────
- * The icon is an inline SVG string injected by _themeIcon() in the JS.
- * It uses stroke="currentColor" on all paths, so no colour override is
- * needed here in either light or dark mode — the icon always matches its
- * surrounding text colour automatically.
- *
- * flex / inline-flex sizing keeps the icon vertically centred with the
- * label text inside .ai-assistant-menu-item-title regardless of line height.
- */
-
-/* ── Layer 1: Icon wrapper ────────────────────────────────────────────────── */
-.ai-assistant-theme-icon {
-    display: inline-flex;   /* flex so we can centre the <svg> inside */
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;   /* never compress this icon in narrow sidebars */
-
-    /*
-     * color: var(...) defines the text colour, which SVG's currentColor
-     * inherits.  This single property cascades into the icon's stroke colour.
-     */
-    color: var(--color-foreground-primary, #1a1a1a);
-}
-
-/* The <svg> inside the icon wrapper */
-.ai-assistant-theme-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;  /* inherit the icon wrapper's color property */
-    fill: none;            /* default — paths that need fill override this */
-}
-
-
-/* =============================================================================
- * Layer 2 — CSS-variable overrides (ALL Sphinx themes)
- * =============================================================================
- *
- * WHY REDEFINE CSS VARIABLES INSTEAD OF CHANGING COLOURS DIRECTLY?
- * ─────────────────────────────────────────────────────────────────
- * Sphinx themes use CSS custom properties (variables) for ALL their colours.
- * For example, Furo defines:
- *   --color-background-primary: #fff;  (light mode)
- *   --color-foreground-primary: #1a1a1a;
- *
- * If we simply override the variables on <html> in dark mode, EVERY component
- * in the theme that uses those variables automatically gets dark colours —
- * without us needing to target each element individually.
- *
- * This is the most powerful way to add dark mode to a CSS variable–based theme.
- *
- * VARIABLE GROUPS (colour system tiers):
- * ─────────────────────────────────────
- *  --color-*           → shared Sphinx base variables (Furo, Alabaster, generic)
- *  --bs-*              → Bootstrap 5 variables (pydata-sphinx-theme)
- *  --pst-color-*       → pydata-sphinx-theme semantic tokens
- *  --color-sidebar-*   → Furo left sidebar tokens
- *  --color-toc-*       → Furo right table-of-contents tokens
- *
- * color-scheme: dark
- * ─────────────────
- *   Tells the BROWSER (not just our CSS) that this page is in dark mode.
- *   This makes the browser style its own UI elements (scrollbars, form inputs,
- *   date pickers) in dark mode automatically.
- */
-html[data-ai-theme="dark"] {
-    color-scheme: dark; /* browser scrollbars, inputs, selections → dark mode */
-
-    /* ── Shared Sphinx base-theme CSS custom properties ──────────────────── */
-    --color-background-primary:        #1a1a1a; /* main page background        */
-    --color-background-secondary:      #242424; /* sidebar / card background   */
-    --color-background-hover:          #2e2e2e; /* hover state on buttons      */
-    --color-background-active:         #383838; /* active / pressed state      */
-    --color-background-border:         #3a3a3a; /* border between regions      */
-
-    --color-foreground-primary:        #e2e2e2; /* body text                   */
-    --color-foreground-secondary:      #ababab; /* muted / secondary text      */
-    --color-foreground-muted:          #808080; /* placeholders, disabled text */
-    --color-foreground-border:         #484848; /* dividers, input borders     */
-
-    --color-brand-primary:             #5b9bd5; /* links and accents           */
-    --color-brand-content:             #5b9bd5; /* inline code links           */
-
-    --color-highlight-on-target:       rgba(255, 255, 255, 0.06);
-    --color-admonition-background:     rgba(255, 255, 255, 0.04);
-
-    /* ── Code block colours ──────────────────────────────────────────────── */
-    /*
-     * #2b2b2b is intentionally different from the page background #1a1a1a.
-     * This "warm dark grey" keeps code blocks visually distinct from prose
-     * without needing a high-contrast border.
-     */
-    --color-code-background:           #2b2b2b;
-    --color-code-foreground:           #d4d4d4;
-    --color-code-border:               #3c3c3c;
-
-    /* ── Bootstrap 5 / pydata-sphinx-theme (--bs-*) ─────────────────────── */
-    /*
-     * pydata-sphinx-theme builds on Bootstrap 5 variables.
-     * Setting data-bs-theme="dark" on <html> normally activates Bootstrap's
-     * full dark palette automatically.  These overrides are "belt-and-suspenders"
-     * for custom Bootstrap builds that may have removed dark-mode support.
-     */
-    --bs-body-bg:                      #1a1a1a;
-    --bs-body-color:                   #e2e2e2;
-    --bs-border-color:                 #484848;
-    --bs-secondary-bg:                 #242424;
-    --bs-tertiary-bg:                  #2e2e2e;
-    --bs-link-color:                   #5b9bd5;
-    --bs-code-bg:                      #2b2b2b;
-
-    /* ── pydata-sphinx-theme semantic tokens (--pst-color-*) ────────────── */
-    /*
-     * These tokens map onto Bootstrap variables but are used in pydata's own
-     * Jinja templates.  Providing them ensures navbars, sidebars, and article
-     * containers pick up the correct colours even without full Bootstrap
-     * dark-mode activation.
-     */
-    --pst-color-background:            #1a1a1a;
-    --pst-color-on-background:         #e2e2e2;
-    --pst-color-surface:               #242424;
-    --pst-color-on-surface:            #e2e2e2;
-    --pst-color-border:                #484848;
-    --pst-color-secondary:             #ababab;
-    --pst-color-link:                  #5b9bd5;
-    --pst-color-link-hover:            #7bb3e0;
-    --pst-color-inline-code-links:     #5b9bd5;
-
-    /* ── Furo sidebar and TOC tokens ─────────────────────────────────────── */
-    /*
-     * Furo uses a separate namespace for its sidebar and TOC panel.
-     * These tokens are independent of the shared --color-* block above
-     * and must be overridden separately to keep the panels consistent.
-     */
-    --color-sidebar-background:             #1e1e1e;
-    --color-sidebar-search-background:      #242424;
-    --color-sidebar-item-background--hover: #2e2e2e;
-    --color-toc-item-text--hover:           #e2e2e2;
-    --color-toc-background:                 transparent;
-}
-
-
-/* =============================================================================
- * Layer 3 — Raw element fallback (themes WITHOUT native dark mode only)
- * =============================================================================
- *
- * HOW THE :not() GUARD WORKS:
- * ─────────────────────────────────────────────────────────────────────────
- *
- *  html[data-ai-theme="dark"]:not([data-bs-theme]) body
- *       ↑ we're in dark mode        ↑ but the theme hasn't set data-bs-theme
- *
- * applyThemeMode() ALWAYS sets data-bs-theme on <html>.
- * So normally, :not([data-bs-theme]) is NEVER true.
- *
- * Why keep it?
- *   1. Documents the design intent explicitly.
- *   2. Protects against edge cases where a theme or script removes data-bs-theme.
- *
- * In practice, :not([data-theme]) is the useful guard for themes like Alabaster
- * that never set data-theme themselves.  These themes have no native dark mode,
- * so we fall back to directly styling their <body>, <a>, <code>, and <pre>.
- *
- * The :not() guard ensures these fallback rules NEVER apply to pydata or Furo,
- * which handle their own dark mode and would conflict with direct element styling.
- * ============================================================================= */
-
-/* Body: page background + primary text colour */
-html[data-ai-theme="dark"]:not([data-bs-theme]) body,
-html[data-ai-theme="dark"]:not([data-theme]) body {
-    background-color: #1a1a1a;
-    color: #e2e2e2;
-}
-
-/* Hyperlinks: blue with ≈5.1:1 contrast against #1a1a1a (WCAG AA compliant) */
-html[data-ai-theme="dark"]:not([data-bs-theme]) a,
-html[data-ai-theme="dark"]:not([data-theme]) a {
-    color: #5b9bd5;
-}
-
-/* Inline and fenced code blocks */
-html[data-ai-theme="dark"]:not([data-bs-theme]) code,
-html[data-ai-theme="dark"]:not([data-theme]) code,
-html[data-ai-theme="dark"]:not([data-bs-theme]) pre,
-html[data-ai-theme="dark"]:not([data-theme]) pre {
-    background-color: #2b2b2b;
-    color: #d4d4d4;
-}
-
-
-/* =============================================================================
- * Light mode explicit reset
- * =============================================================================
- *
- * When the user switches back from dark → light, we need to tell the BROWSER
- * to restore its own UI chrome (scrollbars, inputs, date pickers) to light mode.
- *
- * Without this rule, the browser may keep dark scrollbars even after the page
- * background reverts to white, creating a jarring mixed appearance.
- *
- * We don't need to reset any CSS variable values here — the theme's original
- * stylesheet already has the correct light-mode values and they were never
- * removed, just overridden.  Removing data-ai-theme="dark" (which JS does when
- * switching to light) causes Layer 2 overrides to stop applying automatically.
- * ============================================================================= */
-html[data-ai-theme="light"] {
-    color-scheme: light; /* restore browser chrome to light mode */
-}
-
-
-/* =============================================================================
- * Widget self-styling in dark mode
- * =============================================================================
- *
- * The widget's button and dropdown ALSO need dark mode colours.
- * We cannot rely on the host Sphinx theme to do this — the widget's CSS classes
- * are not part of any theme's stylesheet.
- *
- * All values use CSS custom properties with FALLBACK LITERALS so the widget
- * renders correctly even on themes that haven't defined these variables.
- *
- * Pattern:  background-color: var(--color-background-secondary, #242424)
- *                              ↑ use theme variable if available  ↑ hardcoded fallback
- *
- * This means the widget "upgrades" itself when a theme defines the variables,
- * but always has a working fallback if the theme doesn't.
- * ============================================================================= */
-
-/* Button frame and dropdown panel */
-html[data-ai-theme="dark"] .ai-assistant-button,
-html[data-ai-theme="dark"] .ai-assistant-dropdown {
-    background-color: var(--color-background-secondary, #242424);
-    border-color: var(--color-foreground-border, #484848);
-    color: var(--color-foreground-primary, #e2e2e2);
-}
-
-/* Button text colour for both zones */
-html[data-ai-theme="dark"] .ai-assistant-button-main,
-html[data-ai-theme="dark"] .ai-assistant-button-dropdown {
-    color: var(--color-foreground-primary, #e2e2e2);
-}
-
-/* Hover states in dark mode */
-html[data-ai-theme="dark"] .ai-assistant-button-main:hover,
-html[data-ai-theme="dark"] .ai-assistant-button-dropdown:hover {
-    background-color: var(--color-background-hover, #2e2e2e);
-}
-
-/* Menu item text colour */
-html[data-ai-theme="dark"] .ai-assistant-menu-item {
-    color: var(--color-foreground-primary, #e2e2e2);
-}
-
-/* Menu item hover in dark mode */
-html[data-ai-theme="dark"] .ai-assistant-menu-item:hover {
-    background-color: var(--color-background-hover, #2e2e2e);
-}
-
-/* Description text (muted secondary colour) */
-html[data-ai-theme="dark"] .ai-assistant-menu-item-description {
-    color: var(--color-foreground-secondary, #ababab);
-}
-
-/* Horizontal divider lines between menu sections */
-html[data-ai-theme="dark"] .ai-assistant-menu-separator {
-    background-color: var(--color-foreground-border, #484848);
-}
-
-/* Theme toggle icon — inherits text foreground colour */
-html[data-ai-theme="dark"] .ai-assistant-theme-icon {
-    color: var(--color-foreground-primary, #e2e2e2);
-}
-
-/* Toast notification background */
-html[data-ai-theme="dark"] .ai-assistant-notification {
-    background-color: var(--color-brand-primary, #5b9bd5);
-}
-
-
-/* =============================================================================
- * <img> icon inversion in dark mode
- * =============================================================================
- *
- * PROBLEM:
- *   The copy, arrow, and provider icons are PNG/SVG files loaded via <img> tags.
- *   They were designed for LIGHT backgrounds — dark strokes on a transparent bg.
- *   In dark mode they become nearly invisible (dark icon on dark background).
- *
- * SOLUTION: CSS filter: invert(1)
- *   invert(1) flips every pixel's colour: dark → light, light → dark.
- *   This turns "dark stroke on transparent" into "light stroke on transparent".
- *
- * REFINEMENT: brightness(0.85)
- *   Pure inversion produces pure white (#fff), which can be too bright/glaring
- *   on a dark background.  brightness(0.85) pulls it back to ~#d9d9d9 (off-white),
- *   which is softer and more comfortable to read.
- *
- * EXCLUSION — why inline SVG icons are NOT inverted:
- *   The theme toggle sun/moon/half-circle is an INLINE SVG using
- *   stroke="currentColor".  It already inherits the correct foreground colour
- *   from .ai-assistant-theme-icon's color property.
- *   Applying filter: invert(1) a SECOND time would produce wrong results
- *   (it would turn the light icon back to dark in dark mode).
- *   We explicitly set filter: none on those SVG elements to prevent this.
- * ============================================================================= */
-
-/* Apply inversion to <img>-based icons */
-html[data-ai-theme="dark"] .ai-assistant-icon,
-html[data-ai-theme="dark"] .ai-assistant-menu-icon,
-html[data-ai-theme="dark"] .ai-assistant-dropdown-icon {
-    filter: invert(1) brightness(0.85);
-}
-
-/* If the theme icon ever uses an <img> fallback, invert it too */
-html[data-ai-theme="dark"] .ai-assistant-theme-icon img {
-    filter: invert(1) brightness(0.85);
-}
-
-/* Inline SVG already uses currentColor — do NOT invert a second time */
-html[data-ai-theme="dark"] .ai-assistant-theme-icon svg {
-    filter: none;
 }

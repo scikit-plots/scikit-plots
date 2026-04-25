@@ -34,4 +34,4 @@ shapely
 # --prefer-binary
 # --no-binary :all:
 # --no-binary scikit-plots
-scikit-plots
+# scikit-plots
