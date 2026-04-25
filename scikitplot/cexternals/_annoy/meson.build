@@ -80,143 +80,6 @@ if not dep_lua.found()
   )
 endif
 
-######################################################################
-## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
-######################################################################
-
-cc = meson.get_compiler('c')
-cpp = meson.get_compiler('cpp')
-
-cc_id = cc.get_id()
-arg_syntax = cc.get_argument_syntax()
-
-is_msvc_style = arg_syntax == 'msvc'     # MSVC and clang-cl
-is_gnu_style  = arg_syntax == 'gcc'      # GCC and Clang (Unix)
-is_clang      = cc_id == 'clang'
-is_gcc        = cc_id == 'gcc'
-
-# Architecture-specific tuning
-os_name  = host_machine.system()
-cpu_arch = host_machine.cpu_family()
-
-# Base compile and link flags
-extra_compile_args = []
-extra_link_args = []
-
-# --------------------------------------------------------------------
-# Optimization + Floating Point (Deterministic & Safe)
-# --------------------------------------------------------------------
-#
-# FP model policy for this module:
-#   • The project-level meson.build already sets the canonical FP model
-#     for all compilers via add_project_arguments:
-#       MSVC / clang-cl → /fp:precise  (IEEE-754, FMA, SIMD enabled)
-#       GCC / Clang     → -fno-fast-math guards
-#   • We do NOT repeat /fp:precise or -ffp-model=strict here.
-#     Repeating /fp:precise is harmless but noisy; -ffp-model=strict
-#     is the Clang equivalent of /fp:strict and disables FMA — wrong.
-#   • annoylib uses Inf in distance calculations (e.g. infinite distances
-#     for unset neighbours). /fp:fast and -ffast-math are therefore
-#     explicitly forbidden: they allow the compiler to ignore IEEE-754
-#     Inf/NaN propagation and would silently corrupt results.
-#
-# /bigobj rationale:
-#   The Cython-generated annoylib.pyx.cpp is a very large translation
-#   unit (100 000+ lines of C++). The default COFF object file format
-#   limits an object to 65 535 sections. With MSVC or clang-cl, the
-#   template-heavy annoylib code exceeds this limit, producing:
-#     fatal error C1128: number of sections exceeded object file format
-#                        limit: compile with /bigobj
-#   /bigobj raises the limit to ~16 million sections. It has no runtime
-#   cost and no effect on the generated code — only on the object format.
-
-if is_msvc_style
-  extra_compile_args += [
-    # Object format: must be first — the Cython-generated .pyx.cpp
-    # exceeds the default 65 535-section COFF limit (C1128 fatal error).
-    '/bigobj',
-    # Optimisation: /O2 = maximise speed (same as Meson's optimization=2).
-    # The per-target override_options sets optimization=3, which maps to
-    # /O2 on MSVC (MSVC has no /O3). Listing it here makes the intent
-    # explicit and ensures it is present even without override_options.
-    '/O2',
-    # Suppress MSVC warnings about 'unsafe' C runtime functions (strcpy,
-    # sprintf, etc.) used throughout the C annoy header. These are
-    # internal implementation details; the warnings add no safety value.
-    '/D_CRT_SECURE_NO_WARNINGS',
-    # Strict C++ conformance mode: reject non-standard extensions that
-    # MSVC would otherwise silently accept. Aligns with /std:c++17.
-    '/permissive-',
-  ]
-else
-  extra_compile_args += [
-    # -O3: full optimisation including auto-vectorisation. Safe because the
-    # project-level -fno-fast-math guards prevent reassociation and
-    # Inf/NaN suppression.
-    '-O3',
-    # -fno-strict-aliasing: annoylib casts raw memory buffers between
-    # pointer types (float*, uint64_t*, etc.). Strict aliasing assumptions
-    # at -O2+ would allow the compiler to generate incorrect code for
-    # these patterns. Also set project-wide, but explicit here documents
-    # the per-module rationale.
-    '-fno-strict-aliasing',
-  ]
-  # NOTE: -ffp-model=strict is intentionally absent.
-  # It is Clang's equivalent of /fp:strict and disables FMA, which costs
-  # 10-20 % performance with no scientific accuracy benefit for annoylib.
-  # The project-level -fno-fast-math already prevents unsafe reassociation
-  # and guarantees correct Inf propagation.
-endif
-
-# Make sure we have the right definition when compiling as a shared library on Windows.
-# if get_option('default_library') != 'static' and host_machine.system() == 'windows'
-# 	add_project_arguments('-DLUA_BUILD_AS_DLL', language: 'c')
-# 	extra_compile_args += [ '-DLUA_BUILD_AS_DLL' ]
-# endif
-
-# General optimization flags for non-Windows
-if os_name != 'windows'
-  extra_compile_args += []
-endif
-
-# --------------------------------------------------------------------
-# Architecture tuning (portable-safe)
-# --------------------------------------------------------------------
-
-if cpu_arch == 'ppc64le' and is_gnu_style
-  if cc.has_argument('-mcpu=native')
-    extra_compile_args += ['-mcpu=native']
-  endif
-endif
-
-if cpu_arch == 'x86_64' and is_gnu_style
-  if os_name != 'darwin'
-    if cc.has_argument('-march=native')
-      extra_compile_args += ['-march=native']
-    endif
-  endif
-endif
-
-# --------------------------------------------------------------------
-# macOS Minimum Target
-# --------------------------------------------------------------------
-
-# #349: something with OS X Mojave causes libstd not to be found '-mmacosx-version-min=10.12'
-# macOS minimum version and stdlib
-# std::filesystem::path is part of C++17's <filesystem> library.
-# On macOS, the <filesystem> implementation requires at least macOS 10.15 (Catalina) with Xcode 11+.
-
-if os_name == 'darwin' and is_gnu_style
-  if cc.has_argument('-mmacosx-version-min=10.15')
-    extra_compile_args += ['-mmacosx-version-min=10.15']
-    extra_link_args += [
-      '-mmacosx-version-min=10.15',
-      '-stdlib=libc++',
-      # '-lomp',
-    ]
-  endif
-endif
-
 ## ⚠️ Automatically handle internally
 ## AVX, AVX2, AVX-512, and a generic fallback.
 ## annoy-simd-cp313-win_amd64.whl → AVX baseline
@@ -244,8 +107,11 @@ endif
 #   message('⚠️ No SIMD acceleration available, falling back to scalar mode')
 # endif
 
-message('Final compile args: ' + ' '.join(extra_compile_args))
-message('Final link args: ' + ' '.join(extra_link_args))
+# Make sure we have the right definition when compiling as a shared library on Windows.
+# if get_option('default_library') != 'static' and host_machine.system() == 'windows'
+# 	add_project_arguments('-DLUA_BUILD_AS_DLL', language: 'c')
+# 	extra_compile_args += [ '-DLUA_BUILD_AS_DLL' ]
+# endif
 
 annoy_core_sources = [
   # 'src/annoyluamodule.cc',  # (Lua binding)

@@ -108,15 +108,15 @@ if cpu_arch == 'ppc64le'
   extra_compile_args += ['-mcpu=native']
 endif
 
-if cpu_arch == 'x86_64'
-  # do not apply march on Intel Darwin
-  if os_name != 'darwin'
-    if cc.has_argument('-march=native')
-      # Not all CPUs have march as a tuning parameter
-      extra_compile_args += ['-march=native']
-    endif
-  endif
-endif
+# if cpu_arch == 'x86_64'
+#   # do not apply march on Intel Darwin
+#   if os_name != 'darwin'
+#     if cc.has_argument('-march=native')
+#       # Not all CPUs have march as a tuning parameter
+#       extra_compile_args += ['-march=native']
+#     endif
+#   endif
+# endif
 
 # Multithreaded build flag (Python 3 or non-Windows Py2 equivalent)
 # We can safely always enable this — modern environments all support threads

@@ -1,6 +1,7 @@
 --find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
 --find-links https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/scikit-learn
 --pre
+
 cython
 pybind11
 pybind11-global
@@ -20,7 +21,6 @@ seaborn
 scikit-image
 
 scikit-learn
-scikit-plots
 statsmodels
 
 ipython
@@ -30,3 +30,8 @@ sphinx-gallery
 h5py
 tables
 shapely
+
+# --prefer-binary
+# --no-binary :all:
+--no-binary scikit-plots
+scikit-plots

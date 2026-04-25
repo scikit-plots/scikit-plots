@@ -1,7 +1,7 @@
 # cython: wraparound=False, nonecheck=False, boundscheck=False, cdivision=True
 # cython: language_level=3, binding=True, embedsignature=True, annotation_typing=True
 # distutils: language = c++
-# distutils: extra_compile_args = -std=c++14 -O3 -march=native -DNDEBUG
+# distutils: extra_compile_args = -std=c++14 -O3 -DNDEBUG
 # distutils: extra_link_args = -std=c++14
 
 """

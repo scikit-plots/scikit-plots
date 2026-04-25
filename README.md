@@ -594,6 +594,60 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
  </ul>
 </div>
 
+<!--
+  # Source distribution (raw source code archive)
+  # Think of -march as a strict requirement and -mtune as a strong suggestion.
+  # - march=cpu-type (Machine Architecture): Dictates the minimum hardware requirement.
+  # It allows the compiler to use special instruction sets (like SSE4, AVX, AVX2) specific to that CPU.
+  # Code compiled with a specific -march will not run on processors that do not support those instructions.
+  # - mtune=cpu-type (Machine Tune): Optimizes the ordering and scheduling of instructions to run as fast as possible on the specified CPU,
+  # but it does not use instructions that would break compatibility.
+  # The code will still run everywhere, it just might be slightly less efficient on CPUs other than the tuned target.
+  # For most extensions, you should rely on the default settings of setuptools, scikit-build, or maturin (for Rust).
+  # They default to safe baselines. If you are passing CFLAGS (and CXXFLAGS for C++) manually, use:
+  #     CFLAGS="-O3 -march=x86-64 -mtune=generic"
+  #     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
+  #     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
+  # (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
+  # v1 (x86-64)	Baseline (SSE2)     	2003+	Extreme legacy support. Slowest for math.
+  # v2	        SSE4.2, POPCNT	        2009+	Safe Baseline. Supports almost all active PCs/Servers.
+  # v3	        AVX, AVX2, BMI2, FMA	2013+	High Performance. Required for fast vector math.
+  # -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
+  # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
+  # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
+  # Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
+  # Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
+  # When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
+  # If a user wants maximum performance, they will install your sdist like this:
+  #   export CFLAGS="-march=native -O3"
+  #   pip install your-package --no-binary your-package
+-->
+
+
+<!-- <h3>🚀 Optimization Hint: Building from Source</h3>
+<h4>1. Tell the compiler to target your exact CPU architecture</h4>
+<pre><code class="language-sh">export CFLAGS="-march=native -O3"
+export CXXFLAGS="-march=native -O3"</code></pre> -->
+
+<h4>2. Force pip to compile from source instead of downloading a wheel</h4>
+<pre><code class="language-sh">pip install your-package-name --no-binary your-package-name
+pip install scikit-plots --no-binary=scikit-plots</code></pre>
+<blockquote style="border-left: 4px solid #f0a500; padding-left: 12px; color: #555;">
+  <strong>⚠️ Important Note</strong><br>
+  <code>-march=native</code> creates binaries optimized for the <em>current machine only</em>.<br>
+  Builds produced this way <strong>may not run on different CPUs</strong> and can fail with errors such as:
+  <pre><code>Illegal instruction (core dumped)</code></pre>
+</blockquote>
+
+<!--
+<h4>CI Step: Test sdist Installation with Native Optimization</h4>
+<pre><code class="language-yaml">- name: "Test sdist installation (Native Optimization)"
+run: |
+  export CFLAGS="-march=native -O3"
+  export CXXFLAGS="-march=native -O3"
+  pip install dist/*.tar.gz
+  # Run a quick smoke test to ensure no SIGILL on the build runner
+  python -c "import your_package; print('Native build successful!')"</code></pre> -->
 
 <div>
  <h3>
@@ -608,16 +662,19 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
   </a>)
  </h3>
 
+<h4>Install a Single Package from Source</h4>
+
 ```sh
-## pip install package Installs wheel (.whl) if available, else source
+## pip install package Installs wheel (.whl) if available, else source  # pip install scikit-plots
 ## pip install --no-binary=package package # Forces source installation only the specified package
 pip install --no-binary=scikit-plots scikit-plots
 ```
 ```sh
 ## pip install --no-binary=:all: package # Forces source installation for Package + all dependencies
-## This forces scikit-plots and all its dependencies to be installed from source (from .tar.gz).
+## This forces scikit-plots AND all its dependencies to be installed from source (from .tar.gz).
 pip install --no-binary=:all: scikit-plots
 ```
+
 ```sh
 ## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
 ## https://pypi.org/project/scikit-plots/#history

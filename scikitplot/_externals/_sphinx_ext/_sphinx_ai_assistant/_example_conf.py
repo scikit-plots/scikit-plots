@@ -580,6 +580,7 @@ ai_assistant_features = {
     "view_markdown": True,
     "ai_chat": True,
     "mcp_integration": True,
+    "theme_toggle": True,   # False ← disable toggle on this site
 }
 
 # ---------------------------------------------------------------------------

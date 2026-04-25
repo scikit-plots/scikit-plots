@@ -3036,6 +3036,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
             "view_markdown": True,
             "ai_chat": True,
             "mcp_integration": True,
+            "theme_toggle": True,  # dark / light / system color-scheme toggle
         },
         "html",
     )

@@ -4,6 +4,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 ######################################################################
+## Platform and Compiler Flags and Dependencies (replicating setup.py logic)
+######################################################################
+
+cc = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
+
+cc_id = cc.get_id()
+arg_syntax = cc.get_argument_syntax()
+
+is_msvc_style = arg_syntax == 'msvc'     # MSVC and clang-cl
+is_gnu_style  = arg_syntax == 'gcc'      # GCC and Clang (Unix)
+is_clang      = cc_id == 'clang'
+is_gcc        = cc_id == 'gcc'
+
+# Architecture-specific tuning
+os_name  = host_machine.system()
+cpu_arch = host_machine.cpu_family()
+
+######################################################################
 ## Install actual python sources (.py)
 ## https://mesonbuild.com/Python-module.html#install_sources
 ######################################################################
@@ -129,21 +148,119 @@ inc_dir_numcpp = include_directories(_numcpp_inc_dir)
 extra_compile_args = []
 extra_link_args = []
 
-extra_compile_args += [
-  # '-DNUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE',  # Use Boost
-  # '-DNUMCPP_USE_MULTITHREAD',  # Enable multithreading support
-  '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
-  '-DNUMCPP_NO_USE_BOOST',  # Disable Boost features
-]
+# General optimization flags for non-Windows
+if os_name != 'windows'
+  extra_compile_args += []
+endif
 
-######################################################################
-## Optional NumCpp threading (disabled by default)
-######################################################################
+# --------------------------------------------------------------------
+# Optimization + Floating Point (Deterministic & Safe)
+# --------------------------------------------------------------------
+#
+# FP model policy for this module:
+#   • The project-level meson.build already sets the canonical FP model
+#     for all compilers via add_project_arguments:
+#       MSVC / clang-cl → /fp:precise  (IEEE-754, FMA, SIMD enabled)
+#       GCC / Clang     → -fno-fast-math guards
+#   • We do NOT repeat /fp:precise or -ffp-model=strict here.
+#     Repeating /fp:precise is harmless but noisy; -ffp-model=strict
+#     is the Clang equivalent of /fp:strict and disables FMA — wrong.
+#   • annoylib uses Inf in distance calculations (e.g. infinite distances
+#     for unset neighbours). /fp:fast and -ffast-math are therefore
+#     explicitly forbidden: they allow the compiler to ignore IEEE-754
+#     Inf/NaN propagation and would silently corrupt results.
+#
+# /bigobj rationale:
+#   The Cython-generated annoylib.pyx.cpp is a very large translation
+#   unit (100 000+ lines of C++). The default COFF object file format
+#   limits an object to 65 535 sections. With MSVC or clang-cl, the
+#   template-heavy annoylib code exceeds this limit, producing:
+#     fatal error C1128: number of sections exceeded object file format
+#                        limit: compile with /bigobj
+#   /bigobj raises the limit to ~16 million sections. It has no runtime
+#   cost and no effect on the generated code — only on the object format.
 
-# Uncomment only if TBB or threading dependency is satisfied
-# if dependency('tbb', required: false).found()
-#   extra_compile_args += ['-DNUMCPP_USE_MULTITHREAD']
-# endif
+if is_msvc_style
+  extra_compile_args += [
+    # Object format: must be first — the Cython-generated .pyx.cpp
+    # exceeds the default 65 535-section COFF limit (C1128 fatal error).
+    '/bigobj',
+    # Optimisation: /O2 = maximise speed (same as Meson's optimization=2).
+    # The per-target override_options sets optimization=3, which maps to
+    # /O2 on MSVC (MSVC has no /O3). Listing it here makes the intent
+    # explicit and ensures it is present even without override_options.
+    '/O2',
+    # Suppress MSVC warnings about 'unsafe' C runtime functions (strcpy,
+    # sprintf, etc.) used throughout the C annoy header. These are
+    # internal implementation details; the warnings add no safety value.
+    '/D_CRT_SECURE_NO_WARNINGS',
+    # Strict C++ conformance mode: reject non-standard extensions that
+    # MSVC would otherwise silently accept. Aligns with /std:c++17.
+    '/permissive-',
+  ]
+else
+  extra_compile_args += [
+    # -O3: full optimisation including auto-vectorisation. Safe because the
+    # project-level -fno-fast-math guards prevent reassociation and
+    # Inf/NaN suppression.
+    '-O3',
+    # -fno-strict-aliasing: annoylib casts raw memory buffers between
+    # pointer types (float*, uint64_t*, etc.). Strict aliasing assumptions
+    # at -O2+ would allow the compiler to generate incorrect code for
+    # these patterns. Also set project-wide, but explicit here documents
+    # the per-module rationale.
+    '-fno-strict-aliasing',
+  ]
+  # NOTE: -ffp-model=strict is intentionally absent.
+  # It is Clang's equivalent of /fp:strict and disables FMA, which costs
+  # 10-20 % performance with no scientific accuracy benefit for annoylib.
+  # The project-level -fno-fast-math already prevents unsafe reassociation
+  # and guarantees correct Inf propagation.
+endif
+
+# --------------------------------------------------------------------
+# Architecture tuning (portable-safe)
+# --------------------------------------------------------------------
+# Source distribution (raw source code archive)
+# Think of -march as a strict requirement and -mtune as a strong suggestion.
+# - march=cpu-type (Machine Architecture): Dictates the minimum hardware requirement.
+# It allows the compiler to use special instruction sets (like SSE4, AVX, AVX2) specific to that CPU.
+# Code compiled with a specific -march will not run on processors that do not support those instructions.
+# - mtune=cpu-type (Machine Tune): Optimizes the ordering and scheduling of instructions to run as fast as possible on the specified CPU,
+# but it does not use instructions that would break compatibility.
+# The code will still run everywhere, it just might be slightly less efficient on CPUs other than the tuned target.
+# For most extensions, you should rely on the default settings of setuptools, scikit-build, or maturin (for Rust).
+# They default to safe baselines. If you are passing CFLAGS (and CXXFLAGS for C++) manually, use:
+#     CFLAGS="-O3 -march=x86-64 -mtune=generic"
+#     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
+#     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
+# (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
+# v1 (x86-64)	Baseline (SSE2)     	2003+	Extreme legacy support. Slowest for math.
+# v2	        SSE4.2, POPCNT	        2009+	Safe Baseline. Supports almost all active PCs/Servers.
+# v3	        AVX, AVX2, BMI2, FMA	2013+	High Performance. Required for fast vector math.
+# -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
+# -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
+# -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
+# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
+# Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
+# When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
+# If a user wants maximum performance, they will install your sdist like this:
+#   export CFLAGS="-march=native -O3"
+#   pip install your-package --no-binary your-package
+
+if cpu_arch == 'ppc64le' and is_gnu_style
+  if cc.has_argument('-mcpu=native')
+    extra_compile_args += ['-mcpu=native']
+  endif
+endif
+
+if cpu_arch == 'x86_64' and is_gnu_style
+  if os_name != 'darwin'
+    if cc.has_argument('-march=native')
+      extra_compile_args += ['-march=native']
+    endif
+  endif
+endif
 
 ######################################################################
 ## Compiler-specific flag handling
@@ -190,10 +307,38 @@ if os_name == 'darwin' and is_gnu_style
   endif
 endif
 
+message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    'Final compile args: ' + ' '.join(extra_compile_args))
+message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    'Final link args   : ' + ' '.join(extra_link_args))
+
+######################################################################
+## Optional NumCpp threading (disabled by default)
+######################################################################
+
+extra_compile_args_numcpp = []
+
+# Uncomment only if TBB or threading dependency is satisfied
+# if dependency('tbb', required: false).found()
+#   extra_compile_args_numcpp += [
+#   '-DNUMCPP_USE_MULTITHREAD',
+# ]
+# endif
+extra_compile_args_numcpp += [
+  # '-DNUMCPP_INCLUDE_BOOST_PYTHON_INTERFACE',  # Use Boost
+  # '-DNUMCPP_USE_MULTITHREAD',  # Enable multithreading support
+  '-DNUMCPP_INCLUDE_PYBIND_PYTHON_INTERFACE',
+  '-DNUMCPP_NO_USE_BOOST',  # Disable Boost features
+]
+
 # Optionally export for parent meson.build if used as subproject
 dep_numcpp = declare_dependency(
   include_directories: inc_dir_numcpp,
-  compile_args: extra_compile_args,
+  compile_args: extra_compile_args + extra_compile_args_numcpp,
   link_args: extra_link_args,
 )
 

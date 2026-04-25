@@ -101,7 +101,10 @@ dep_all += [null_dep]
 dep_openmp = dependency('openmp', required : false)
 
 if dep_openmp.found()
-  message('OpenMP found! Enabling multithreading support.')
+  message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    'OpenMP found! Enabling multithreading support.')
   dep_all += [dep_openmp]
   # returns a list of compiler flags (e.g., ['-fopenmp'] for GCC/Clang or /openmp for MSVC).
   # cython_c_flags += dep_openmp.compile_args()
@@ -111,7 +114,10 @@ if dep_openmp.found()
   # Add OpenMP link flags
   # add_project_link_arguments(openmp_dep.get_link_args(), language : 'cpp')
 else
-  message('OpenMP not found. Building without multithreading.')
+  message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    'OpenMP not found. Building without multithreading.')
 endif
 
 ######################################################################
@@ -891,7 +897,10 @@ py = mod_py.find_installation(pure: false)  # Find system Python
 
 # Get Python version as a string, e.g. '3.8'
 ver_py = py.language_version()
-message('Python version:', ver_py)
+message(
+    '\n' +
+    BLUE + '[INFO]' + RESET +
+    'Python version:', ver_py)
 
 # Get the Python Dependencies
 # dep = dependency('python3', required: true)
