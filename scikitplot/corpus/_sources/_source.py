@@ -3,8 +3,8 @@ scikitplot.corpus._sources._source
 ====================================
 Concrete implementation of :class:`CorpusSource`.
 
-Design invariants
------------------
+Design invariants:
+
 * ``CorpusSource`` is immutable (frozen dataclass). Mutating state
   returns a new instance via helper class methods.
 * ``iter_entries()`` is always a generator — never loads all paths into
@@ -18,8 +18,8 @@ Design invariants
   so downstream readers inherit corpus-level metadata (author, title, etc.)
   without repeating it per file.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No use of ``match``, walrus operator only in 3.8-safe
 positions. ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400

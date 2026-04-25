@@ -52,8 +52,8 @@ Video
     CLIP applied per sampled frame, then mean-pooled. Requires the image
     backend to be available.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  ``numpy`` is required.  All other dependencies are
 optional and raise ``ImportError`` at call time when missing.
 """  # noqa: D205, D400

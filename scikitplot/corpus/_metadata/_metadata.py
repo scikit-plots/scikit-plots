@@ -3,8 +3,8 @@ scikitplot.corpus._metadata._metadata
 ========================================
 Corpus metadata types and statistics computation.
 
-Design invariants
------------------
+Design invariants:
+
 * :class:`CollectionManifest` is a frozen dataclass — configuration is
   always validated at construction via :meth:`validate`.
 * :class:`CorpusStats` is frozen and carries only JSON-safe values
@@ -15,8 +15,8 @@ Design invariants
   no I/O. Returns a ``dict`` that can be passed directly as
   ``source_provenance`` to :class:`~scikitplot.corpus._sources.CorpusSource`.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No external dependencies.
 """  # noqa: D205, D400
 

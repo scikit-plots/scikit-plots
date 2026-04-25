@@ -16,8 +16,8 @@ pipeline layers.  Every class defined here is a drop-in replacement for its
 base-class counterpart — users pass callable hooks and factory functions
 without subclassing anything.
 
-Architecture overview
----------------------
+Architecture overview:
+
 
 .. code-block:: text
 
@@ -34,8 +34,8 @@ Layer 1 is implemented directly in :class:`~scikitplot.corpus._base.DocumentRead
 via the ``custom_extractor`` and ``custom_extractor_kwargs`` dataclass fields — no
 import from this module is required to use it.  Layers 2-8 are provided here.
 
-Single-import convenience
--------------------------
+Single-import convenience:
+
 All public names are re-exported from this module so a single import covers
 every customization point::
 
@@ -59,8 +59,8 @@ every customization point::
         CustomSimilarityIndex,
     )
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  ``from __future__ import annotations`` throughout.
 All optional dependencies are imported lazily.
 """  # noqa: D205, D400

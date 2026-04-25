@@ -14,8 +14,8 @@ string keys to:
 The registry is populated automatically when built-in components are
 imported, and accepts third-party registrations at runtime.
 
-Usage
------
+Examples
+--------
 >>> from scikitplot.corpus._registry import ComponentRegistry, registry
 >>> registry.list_chunkers()
 ['fixed_window', 'paragraph', 'sentence']

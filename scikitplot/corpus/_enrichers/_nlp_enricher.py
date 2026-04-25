@@ -26,16 +26,16 @@ Extended fields written to ``CorpusDocument.metadata`` when enabled:
 - ``token_scores``      — ``{token: tfidf_score}`` mapping
 - ``type_token_ratio``  — lexical diversity (unique tokens / total tokens)
 
-Multi-language support
-----------------------
+Multi-language support:
+
 ``language: str | list[str] | None`` accepts:
 
 * ``None``          — auto-detect per document using :func:`detect_script`
 * ``"en"``          — single language ISO code or NLTK name
 * ``["en", "ar"]``  — union stopwords for mixed-language documents
 
-Supported languages
--------------------
+Supported languages:
+
 200+ world languages via :mod:`~._language_data`.  Stopwords are
 unioned across all specified languages.  Tokenisation uses:
 
@@ -44,8 +44,8 @@ unioned across all specified languages.  Tokenisation uses:
 - ``"spacy"``   — requires a loaded spaCy model
 - ``"custom"``  — any callable or :class:`~._custom_tokenizer.TokenizerProtocol`
 
-Backends are lazy-loaded
--------------------------
+Backends are lazy-loaded:
+
 No NLP library is imported at module level.  Each backend is imported on
 first use and cached per instance.  The enricher functions with zero optional
 deps (falls back to regex tokenisation when NLTK/spaCy are absent).

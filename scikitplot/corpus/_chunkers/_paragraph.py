@@ -14,8 +14,8 @@ Pure Python — no external dependencies. Suitable for plain text, pre-processed
 XML body text, and any format where paragraph boundaries are expressed by one
 or more consecutive blank lines (``\n\n``).
 
-Design
-------
+Design:
+
 A "blank line" is any line that contains only whitespace characters.
 The split regex ``\n\s*\n+`` matches one newline, any amount of
 whitespace (including none), followed by one or more additional newlines.
@@ -26,15 +26,15 @@ This correctly handles:
 - Extra blank lines (``\n\n\n``) collapsed to one boundary
 - Lines containing only spaces or tabs between newlines
 
-Character offsets
------------------
+Character offsets:
+
 ``char_start`` in each returned tuple is the absolute offset of the **first
 non-whitespace character** of the paragraph within the input string. This
 matches spaCy's ``sent.start_char`` convention used by
 :class:`~scikitplot.corpus._chunkers.SentenceChunker`.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No external dependencies.
 ``from __future__ import annotations`` for all annotations.
 """  # noqa: D205, D400

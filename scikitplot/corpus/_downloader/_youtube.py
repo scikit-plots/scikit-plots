@@ -5,7 +5,7 @@
 
 r"""
 scikitplot.corpus._downloader._youtube
-=========================================
+======================================
 YouTube content downloader with mode-based dispatch.
 
 :class:`YouTubeDownloader` downloads content from a YouTube video URL.

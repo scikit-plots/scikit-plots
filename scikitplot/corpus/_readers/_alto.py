@@ -8,15 +8,15 @@ ZIP archive. Each XML file in the archive corresponds to one page of a
 scanned document; each ``<TextBlock>`` or ``<TextLine>`` becomes one raw
 chunk carrying physical layout metadata.
 
-ALTO standard versions supported
----------------------------------
+ALTO standard versions supported:
+
 v2 (``http://www.loc.gov/standards/alto/ns-v2#``)
 v3 (``http://www.loc.gov/standards/alto/ns-v3#``)
 v4 (``http://www.loc.gov/standards/alto/ns-v4#``)
 No namespace (older files)
 
-Promoted first-class fields per chunk
---------------------------------------
+Promoted first-class fields per chunk:
+
 ``page_number``
     Zero-based index of the page within the archive, ordered by the
     natural sort of the XML filenames.
@@ -32,14 +32,14 @@ Promoted first-class fields per chunk
     Value of ``<Processing>/<processingStepSettings>`` or the
     ``<Software>`` description from the ALTO header when available.
 
-Security
---------
+Security:
+
 ZIP path entries are validated against ZipSlip attacks: any entry whose
 resolved path would escape the destination directory is rejected with
 ``ValueError`` before extraction.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Uses only stdlib: ``zipfile``, ``xml.etree.ElementTree``
 (with optional ``lxml`` for speed). No runtime dependencies at import time.
 """  # noqa: D205, D400

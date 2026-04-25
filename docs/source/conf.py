@@ -254,8 +254,7 @@ extensions = [
     #
     # https://sphinx-extensions.readthedocs.io/en/latest/
     # https://sphinx-extensions.readthedocs.io/en/latest/sphinx-prompt.html
-    # "sphinx-prompt",  # Add prompts and outputs to your documentation
-    "sphinx_prompt",  # Add prompts and outputs to your documentation
+    "sphinx_prompt",  # Add prompts and outputs to your documentation "sphinx-prompt"
     "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
     "sphinx_design",  # Add design components and elements to documentation.
@@ -285,17 +284,16 @@ extensions = [
     "_sphinx_ext.sklearn_ext.override_pst_pagetoc",  # Custom extension for overriding page TOC in certain cases.
     "_sphinx_ext.sklearn_ext.sphinx_issues",  # Custom extension for managing and displaying issues.
     "_sphinx_ext.sklearn_ext.move_gallery_links",  # Custom extension for rearranging gallery links.
-    # sp: Custom extensions
-    # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
+    # local skplt or scikitplot lib: Custom extensions
     "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
-    # Tags and other utility extensions (load last if they depend on others)
-    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     "sphinx_tags",  # Needs to be loaded *after* autodoc.
+    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     "_sphinx_ext.sklearn_ext.search_filter",  # Custom extension
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
-    # scikitplot lib
-    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
+    # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
+    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
 ]
 
 # %%
@@ -376,11 +374,17 @@ try:
     import jupyter_sphinx  # type: ignore[] # noqa: F401  # pylint: disable=W0611
 
     # https://jupyter-sphinx.readthedocs.io/en/latest/setup.html#enabling-the-extension
+    # jupyter_sphinx = execute notebooks/code during documentation build time
+    # If you want precomputed outputs baked into docs, use jupyter_sphinx
+    # (During build Build server / CI Real Python kernel).
     extensions.append("jupyter_sphinx")
 
     import jupyterlite_sphinx  # type: ignore[] # noqa: F401  # pylint: disable=W0611
 
     # https://jupyterlite-sphinx.readthedocs.io/en/latest/installation.html
+    # jupyterlite_sphinx = run notebooks/code in the user’s browser at documentation viewing time
+    # If you want live, browser-based execution with no server, use jupyterlite_sphinx
+    # (No backend needed User browser Pyodide / WebAssembly).
     extensions.append("jupyterlite_sphinx")
     with_jupyterlite = True
 except ImportError:
@@ -1775,8 +1779,8 @@ sass_targets = {
 html_context = {
     # "github_user": "scikit-plots",
     # "github_repo": "scikit-plots",
-    # "github_version": "main",
-    # "doc_path": "docs",
+    # "github_version": "main",   # branch the docs are built from
+    # "doc_path": "docs",         # path to the docs directory inside the repo
 
     # 'repl_url': repl_url,  # populated by the extension
     # "shell": {
@@ -1843,6 +1847,7 @@ for old_link in old_links_dict:
 # Base URL — used by llms.txt and AI provider prompt templates
 # html_baseurl = "https://docs.example.com"
 html_baseurl = "https://scikit-plots.github.io"
+ai_assistant_enabled = True
 
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
@@ -1880,13 +1885,13 @@ ai_assistant_markdown_exclude_patterns = [
     "genindex",
     "search",
     "py-modindex",
-    "_sources",          # Sphinx source download files
-    "_static",           # Static assets have no readable prose
+    "_sources",          # Sphinx rst source download files — no prose
+    "_static",           # CSS, JS, images — not documentation text
 ]
 
 # Maximum number of parallel worker processes for Markdown generation.
 # None → os.cpu_count() or 1.
-ai_assistant_max_workers = 1
+ai_assistant_max_workers = 1  # None / "auto" or a positive integer
 
 # Write an llms.txt index file listing all generated .md page URLs.
 # See: https://llmstxt.org/
@@ -1909,14 +1914,26 @@ ai_assistant_features = {
 
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
-
+    "chatgpt": {
+        "enabled": True,
+        "label": "Ask ChatGPT",
+        "description": "Ask OpenAI ChatGPT about this page",
+        "icon": "chatgpt.svg",
+        "url_template": "https://chatgpt.com/?q={prompt}",
+        "prompt_template": (
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
+        "model": "gpt-4o",
+        "type": "web",
+    },
     "claude": {
         # Enabled: users can click "Ask Claude" without any setup.
         "enabled": True,
         # Button label shown inside the AI-assistant panel.
         "label": "Ask Claude",
         # Tooltip / screen-reader accessible description.
-        "description": "Ask Claude about this documentation page.",
+        "description": "Ask Anthropic Claude about this page",
         # SVG icon filename in _static/.  Falls back to a base64 data URI
         # from ``_static/_PROVIDER_META`` if the file is absent on disk.
         "icon": "claude.svg",
@@ -1927,7 +1944,7 @@ ai_assistant_providers = {
         # {content} → raw Markdown text (can be large for long pages).
         # Using {url} keeps prompts short; Claude fetches and reads the page.
         "prompt_template": (
-            "Hi! Please read this documentation page: {url}\n\n"
+            "Hi! Please read this documentation page: {url}\n\n"  # + "{content}"
             "I have questions about it."
         ),
         # Model identifier.  Forwarded to the widget for future API-mode use.
@@ -1935,98 +1952,74 @@ ai_assistant_providers = {
         # "web" opens a browser tab; no API key is required from the user.
         "type": "web",
     },
-
-    "chatgpt": {
-        "enabled": True,
-        "label": "Ask ChatGPT",
-        "description": "Ask ChatGPT about this documentation page.",
-        "icon": "chatgpt.svg",
-        "url_template": "https://chatgpt.com/?q={prompt}",
-        # ChatGPT's browsing mode fetches and reads the URL when told to.
-        "prompt_template": "Read {url} so I can ask questions about it.",
-        "model": "gpt-4o",
-        "type": "web",
-    },
-
     "gemini": {
         "enabled": True,
         "label": "Ask Gemini",
-        "description": "Ask Google Gemini about this documentation page.",
+        "description": "Ask Google Gemini about this page",
         "icon": "gemini.svg",
         "url_template": "https://gemini.google.com/app?q={prompt}",
-        "prompt_template": "Please review this documentation: {url}\n\nI have questions.",
+        "prompt_template": (
+            "Hi! Please review this documentation content: {url}\n\n"  # + "{content}"
+            "I have questions about it."
+        ),
         "model": "gemini-2.5-flash",
         "type": "web",
     },
-
-    # --- Tier 2: disabled by default — uncomment and configure to enable ---
-
-    # Ollama — fully offline, privacy-preserving local inference.
-    # Prerequisites:
-    #   1. Install Ollama: https://ollama.com
-    #   2. Pull a model:  ollama pull qwen3:latest
-    #   3. Start server:  ollama serve   (runs at http://localhost:11434)
-    #   4. Set "enabled": True below.
-    #
-    # Supported models (pull with ``ollama pull <model>``):
-    #   qwen3:latest, llama3.3:latest, llama3.2:latest, gemma3:latest,
-    #   deepseek-r1:latest, phi4-mini:latest, mistral:latest, codellama:latest
-    #
-    # Security: api_base_url MUST remain a loopback address.
-    # ``_validate_ollama_url`` rejects any remote URL to prevent the widget
-    # from exfiltrating documentation content to external servers.
-    # "ollama": {
-    #     "enabled": True,
-    #     "label": "Ask Ollama (Local)",
-    #     "description": "Fully offline local inference — no data leaves your machine.",
-    #     "icon": "ollama.svg",
-    #     "url_template": "http://localhost:3000/?q={prompt}",
-    #     "api_base_url": "http://localhost:11434",   # loopback only
-    #     "prompt_template": "Please review this content: {url}",
-    #     "model": "qwen3:latest",
-    #     "type": "local",
-    # },
-
-    # DeepSeek — strong open-weight reasoning models.
-    # Also available via Ollama: ollama pull deepseek-r1:latest
-    # "deepseek": {
-    #     "enabled": False,
-    #     "label": "Ask DeepSeek",
-    #     "description": "Ask DeepSeek AI about this page.",
-    #     "icon": "deepseek.svg",
-    #     "url_template": "https://chat.deepseek.com/?q={prompt}",
-    #     "prompt_template": "Please read this documentation: {url}\n\nI have questions.",
-    #     "model": "deepseek-reasoner",
-    #     "type": "web",
-    # },
-
-    # Uncomment to add Perplexity or any other AI chat service:
-    # "perplexity": {
-    #     "enabled": True,
-    #     "label": "Ask Perplexity",
-    #     "url_template": "https://www.perplexity.ai/?q={prompt}",
-    #     "prompt_template": "Explain this documentation page: {url}",
-    # },
 }
 
 ai_assistant_mcp_tools = {
     "vscode": {
-        "enabled": False,                 # set True to show the VS Code button
+        # Enable once your MCP server is deployed at a stable HTTPS URL.
+        "enabled": False,  # set True to show the VS Code button
+        # Widget renders a VS Code "Install Extension" style deep-link that
+        # opens VS Code and installs / activates the MCP server.
         "type": "vscode",
         "label": "Connect to VS Code",
         "description": "Install your MCP server directly into VS Code.",
         "icon": "vscode.svg",
+        # Unique identifier shown in the VS Code MCP server sidebar entry.
         "server_name": "your-docs-mcp-server",
+        # SSE endpoint URL of your deployed MCP server.
+        # Use https:// for production; http://localhost is accepted locally.
         "server_url": "https://your-docs-mcp-server/sse",
-        "transport": "sse",               # "sse" or "stdio"
+        # Transport protocol:
+        #   "sse"   — HTTP Server-Sent Events (standard for remote servers)
+        #   "stdio" — standard I/O pipes (local command-line MCP servers)
+        "transport": "sse",
     },
+
     "claude_desktop": {
-        "enabled": False,                 # set True to show the Claude button
+        # Enable once you have a deployable mcpb:// bundle or config ZIP.
+        "enabled": False,  # set True to show the Claude button
+        # Widget renders a Claude Desktop "mcpb://" deep-link button that
+        # opens Claude Desktop and installs the MCP server configuration.
         "type": "claude_desktop",
         "label": "Connect to Claude",
         "description": "Download and run the Claude MCP bundle.",
         "icon": "claude.svg",
+        # mcpb:// URL (Claude Desktop's custom protocol for MCP bundles), or
+        # an https:// URL pointing to a downloadable MCP config ZIP archive.
         "mcpb_url": "https://docs.example.com/_static/your-mcpb-config.zip",
+    },
+
+    "cursor": {
+        # Enable once your MCP server is deployed at a stable HTTPS URL.
+        "enabled": False,
+        # Widget renders a Cursor IDE "Install MCP Server" style deep-link
+        # that opens Cursor and activates the MCP server integration.
+        "type": "cursor",
+        "label": "Connect to Cursor",
+        "description": "Connect the MCP server to Cursor IDE.",
+        "icon": "cursor.svg",
+        # Unique identifier shown in the Cursor MCP server sidebar entry.
+        "server_name": "your-docs-mcp-server",
+        # SSE endpoint URL of your deployed MCP server.
+        # Use https:// for production; http://localhost is accepted locally.
+        "server_url": "https://your-docs-mcp-server/sse",
+        # Transport protocol:
+        #   "sse"   — HTTP Server-Sent Events (standard for remote servers)
+        #   "stdio" — standard I/O pipes (local command-line MCP servers)
+        "transport": "sse",
     },
 }
 
@@ -2037,13 +2030,18 @@ ai_assistant_mcp_tools = {
 jupyter_sphinx_thebelab_config = {
     # Binder integration
     "binderOptions": {
+        "dependencies": "./binder/requirements.txt",
         "org": "scikit-plots",
         "repo": "scikit-plots",
-        "branch": (
-            gh_branch
-        ),  # Can be any branch, tag, or commit hash. Use a branch that hosts your docs.
-        "dependencies": "./binder/requirements.txt",
-    }
+        # Can be any branch, tag, or commit hash. Use a branch that hosts your docs.
+        "branch": gh_branch,
+    },
+    "requestKernel": True,
+    "selector": "div.highlight",
+    "kernelOptions": {
+        "name": "python3",
+        "path": ".",
+    },
 }
 
 ##########################################################################
@@ -2150,7 +2148,8 @@ sphinx_gallery_conf = {
         "min_df": 12,
     },
     "reset_modules": (  # reset loaded modules between examples
-        "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
+        # "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
+        "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite.reset_others",
         "matplotlib",
         "seaborn",
     ),
@@ -2173,7 +2172,9 @@ sphinx_gallery_conf = {
 if with_jupyterlite:
     sphinx_gallery_conf["jupyterlite"] = {
         "notebook_modification_function": (
-            "_sphinx_ext.skplt_ext.sg_doc_build.notebook_modification_function"
+            # "_sphinx_ext.skplt_ext.sg_doc_build.notebook_modification_function"
+            "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite"
+            ".notebook_modification_function"
         ),
     }
 

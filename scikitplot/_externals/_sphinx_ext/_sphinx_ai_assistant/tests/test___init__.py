@@ -1,5 +1,7 @@
 # tests/_externals/_sphinx_ext/_sphinx_ai_assistant/test___init__.py
 #
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,6 +54,7 @@ Coverage targets
 """
 from __future__ import annotations
 
+import importlib
 import inspect
 import io
 import json
@@ -64,12 +67,11 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from bs4 import BeautifulSoup
 
 # conftest._bootstrap_submodule() has already run before this import;
 # the module is registered under its canonical dotted path.
 import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _mod
-
-_EXT = _mod
 
 
 # ===========================================================================
@@ -423,11 +425,28 @@ class TestDefaultProviders:
             )
 
     def test_all_prompt_templates_have_url_placeholder(self):
+        """Every provider prompt_template must declare the placeholder it uses.
+
+        * URL-mode providers (``fetch_mode`` omitted or ``"url"``/``"both"``)
+          must contain ``{url}`` — the widget JS substitutes the page URL.
+        * Content-mode providers (``fetch_mode == "content"`` or ``"paste"``)
+          must contain ``{content}`` — the widget JS injects Markdown.
+
+        This invariant ensures the widget always has a substitution target and
+        never emits a prompt with a bare ``{url}`` or ``{content}`` literal.
+        """
         for name, cfg in _mod._DEFAULT_PROVIDERS.items():
             pt = cfg.get("prompt_template", "")
-            assert "{url}" in pt, (
-                f"Provider {name!r} prompt_template missing {{url}}"
-            )
+            mode = cfg.get("fetch_mode", "url")
+            if mode in ("content", "paste"):
+                assert "{content}" in pt, (
+                    f"Provider {name!r} fetch_mode={mode!r} but "
+                    f"prompt_template missing {{content}}"
+                )
+            else:
+                assert "{url}" in pt, (
+                    f"Provider {name!r} prompt_template missing {{url}}"
+                )
 
     def test_claude_model_is_current(self):
         assert _mod._DEFAULT_PROVIDERS["claude"]["model"] == "claude-sonnet-4-6"
@@ -618,7 +637,6 @@ class TestSphinxMarkdownConverter:
         self.instance = self.Cls(heading_style="ATX", bullets="*")
 
     def _el(self, tag, attrs=None, text=""):
-        from bs4 import BeautifulSoup
         attrs_str = " ".join(f'{k}="{v}"' for k, v in (attrs or {}).items())
         return BeautifulSoup(f"<{tag} {attrs_str}>{text}</{tag}>", "html.parser").find(tag)
 
@@ -648,7 +666,6 @@ class TestSphinxMarkdownConverter:
         assert "```bash" in self.instance.convert_code(el, "ls", False)
 
     def test_div_admonition_title_bolded(self):
-        from bs4 import BeautifulSoup
         html = '<div class="admonition note"><p class="admonition-title">Note</p><p>Content.</p></div>'
         el = BeautifulSoup(html, "html.parser").find("div")
         result = self.instance.convert_div(el, "Note\n\nContent.", False)
@@ -659,12 +676,10 @@ class TestSphinxMarkdownConverter:
         assert self.instance.convert_div(el, "plain", False) == "plain"
 
     def test_div_admonition_no_title_returns_text(self):
-        from bs4 import BeautifulSoup
         el = BeautifulSoup('<div class="admonition">No title.</div>', "html.parser").find("div")
         assert self.instance.convert_div(el, "No title.", False) == "No title."
 
     def test_div_does_not_mutate_element(self):
-        from bs4 import BeautifulSoup
         html = '<div class="admonition warning"><p class="admonition-title">W</p><p>X</p></div>'
         el = BeautifulSoup(html, "html.parser").find("div")
         children_before = list(el.children)
@@ -672,14 +687,12 @@ class TestSphinxMarkdownConverter:
         assert list(el.children) == children_before
 
     def test_pre_with_code_delegates_to_convert_code(self):
-        from bs4 import BeautifulSoup
         html = '<pre><code class="highlight-python">x = 1</code></pre>'
         el = BeautifulSoup(html, "html.parser").find("pre")
         result = self.instance.convert_pre(el, "", False)
         assert "```python" in result
 
     def test_pre_without_code_wraps_in_fenced_block(self):
-        from bs4 import BeautifulSoup
         html = "<pre>raw text</pre>"
         el = BeautifulSoup(html, "html.parser").find("pre")
         result = self.instance.convert_pre(el, "raw text", False)
@@ -918,7 +931,6 @@ class TestStaticSubpackage:
 
     @pytest.fixture(autouse=True)
     def _import_static(self):
-        import importlib
         self._static = importlib.import_module(
             "scikitplot._externals._sphinx_ext._sphinx_ai_assistant._static"
         )
@@ -1205,9 +1217,7 @@ class TestProcessHtmlFileWorker:
             '</body></html>',
             encoding="utf-8",
         )
-        import scikitplot._externals._sphinx_ext._sphinx_ai_assistant as _m
-
-        with patch.object(_m, "html_to_markdown", wraps=_m.html_to_markdown) as mock_h2m:
+        with patch.object(_mod, "html_to_markdown", wraps=_mod.html_to_markdown) as mock_h2m:
             status, _, _ = self._call(html, tmp_path, tmp_path, strip=["nav"])
 
         assert status == "success", "worker must succeed"
@@ -1815,9 +1825,8 @@ class TestAddAiAssistantContext:
         _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", ctx, None)
         assert ctx["ai_assistant_config"]["customContext"] == "Python ML library"
 
-    def _make_local_app(self, tmp_html_tree):
-        from conftest import _make_app  # noqa: PLC0415 — on sys.path via pytest
-        return _make_app(str(tmp_html_tree))
+    def _make_local_app(self, sphinx_app, tmp_html_tree):
+        return sphinx_app(tmp_html_tree)
 
 
 # ===========================================================================
@@ -2649,3 +2658,515 @@ class TestTargetedCoverage:
         with patch(f"{_CANONICAL}.ProcessPoolExecutor", return_value=mock_exec):
             with patch(f"{_CANONICAL}.as_completed", side_effect=_mock_as_completed):
                 _mod.generate_markdown_files(sphinx_app, exception=None)
+
+
+# ===========================================================================
+# 42. _resolve_max_workers — strict validation
+# ===========================================================================
+
+class TestResolveMaxWorkers:
+    """Tests for the rewritten _resolve_max_workers helper.
+
+    Invariants
+    ----------
+    * None / "auto"       → None   (ProcessPoolExecutor auto-detects)
+    * positive int        → int    (returned unchanged)
+    * str of positive int → int    (cast successfully)
+    * 0                   → ValueError
+    * negative int        → ValueError
+    * non-numeric string  → ValueError
+    """
+
+    def test_none_returns_none(self):
+        assert _mod._resolve_max_workers(None) is None
+
+    def test_auto_string_returns_none(self):
+        assert _mod._resolve_max_workers("auto") is None
+
+    def test_positive_int_returned(self):
+        assert _mod._resolve_max_workers(4) == 4
+
+    def test_one_is_minimum_valid(self):
+        assert _mod._resolve_max_workers(1) == 1
+
+    def test_large_int_returned(self):
+        assert _mod._resolve_max_workers(128) == 128
+
+    def test_string_positive_int_cast(self):
+        assert _mod._resolve_max_workers("8") == 8
+
+    def test_zero_raises_value_error(self):
+        with pytest.raises(ValueError, match="max_workers must be greater than 0"):
+            _mod._resolve_max_workers(0)
+
+    def test_zero_error_includes_value(self):
+        with pytest.raises(ValueError, match="got 0"):
+            _mod._resolve_max_workers(0)
+
+    def test_negative_raises_value_error(self):
+        with pytest.raises(ValueError, match="max_workers must be greater than 0"):
+            _mod._resolve_max_workers(-1)
+
+    def test_large_negative_raises(self):
+        with pytest.raises(ValueError):
+            _mod._resolve_max_workers(-999)
+
+    def test_non_numeric_string_raises_value_error(self):
+        # Line 230-231: non-castable string → TypeError/ValueError caught → re-raise
+        with pytest.raises(ValueError, match="positive integer or None"):
+            _mod._resolve_max_workers("abc")
+
+    def test_non_numeric_string_error_includes_repr(self):
+        with pytest.raises(ValueError, match="'abc'"):
+            _mod._resolve_max_workers("abc")
+
+    def test_float_string_raises(self):
+        # "3.5" cannot be int()-cast directly — must raise
+        with pytest.raises(ValueError):
+            _mod._resolve_max_workers("3.5")
+
+    def test_none_list_raises(self):
+        with pytest.raises((ValueError, TypeError)):
+            _mod._resolve_max_workers([4])
+
+    def test_generate_markdown_files_zero_raises(self, sphinx_app, tmp_html_tree):
+        """generate_markdown_files must propagate ValueError from _resolve_max_workers."""
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.ai_assistant_max_workers = 0
+        with pytest.raises(ValueError, match="max_workers must be greater than 0"):
+            _mod.generate_markdown_files(sphinx_app, exception=None)
+
+    def test_generate_markdown_files_none_auto_detects(self, sphinx_app, tmp_html_tree):
+        """max_workers=None must not raise — auto-detection path."""
+        sphinx_app.builder.outdir = str(tmp_html_tree)
+        sphinx_app.config.ai_assistant_max_workers = None
+        _mod.generate_markdown_files(sphinx_app, exception=None)
+
+    def test_process_html_directory_zero_raises(self, tmp_path):
+        """process_html_directory must propagate ValueError for max_workers=0."""
+        site = tmp_path / "site"
+        site.mkdir()
+        (site / "index.html").write_text(
+            "<html><body><main>Hello</main></body></html>", encoding="utf-8"
+        )
+        with pytest.raises(ValueError, match="max_workers must be greater than 0"):
+            _mod.process_html_directory(site, max_workers=0)
+
+    def test_process_html_directory_none_auto_detects(self, tmp_path):
+        """process_html_directory with max_workers=None must not raise."""
+        site = tmp_path / "site"
+        site.mkdir()
+        (site / "index.html").write_text(
+            "<html><body><main>Hello</main></body></html>", encoding="utf-8"
+        )
+        stats = _mod.process_html_directory(site, max_workers=None)
+        assert isinstance(stats, dict)
+
+
+# ===========================================================================
+# 43. fetch_mode field
+# ===========================================================================
+
+class TestFetchMode:
+    """Tests for the new optional fetch_mode provider field.
+
+    Design invariants
+    -----------------
+    * _PROVIDER_FETCH_MODES is a frozenset of 4 canonical values.
+    * fetch_mode is optional: omitting it is valid (defaults to "url" at
+      runtime in the widget JS).
+    """
+
+    def test_fetch_modes_frozenset(self):
+        assert isinstance(_mod._PROVIDER_FETCH_MODES, frozenset)
+
+    def test_fetch_modes_has_four_values(self):
+        assert len(_mod._PROVIDER_FETCH_MODES) == 4
+
+    def test_fetch_modes_complete(self):
+        assert {"url", "content", "both", "paste"} == _mod._PROVIDER_FETCH_MODES
+
+
+# ===========================================================================
+# 44. plot_corpus_knowledge — all branches
+# ===========================================================================
+
+class TestPlotCorpusKnowledge:
+    """Comprehensive tests for plot_corpus_knowledge.
+
+    Each test targets a specific branch or edge case so that the full
+    function body is covered.  Tests are independent and use tmp_path
+    fixtures to avoid cross-test interference.
+    """
+
+    # ---- helpers -----------------------------------------------------------
+
+    def _make_corpus(self, root: Path) -> Path:
+        """Minimal 3-page corpus with internal links and headings."""
+        (root / "index.md").write_text(
+            "# Home\n\nWelcome.\n\n[Guide](guide.md)\n",
+            encoding="utf-8",
+        )
+        (root / "guide.md").write_text(
+            "# Guide\n\n## Installation\n\nSee [API](api/module.md).\n",
+            encoding="utf-8",
+        )
+        sub = root / "api"
+        sub.mkdir()
+        (sub / "module.md").write_text(
+            "# Module Reference\n\nNo links here.\n",
+            encoding="utf-8",
+        )
+        return root
+
+    # ---- structure ---------------------------------------------------------
+
+    def test_returns_dict(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert isinstance(g, dict)
+
+    def test_top_level_keys(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert set(g.keys()) == {"root", "file_ext", "pages", "edges", "stats"}
+
+    def test_root_is_resolved_path(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["root"] == str(tmp_path.resolve())
+
+    def test_file_ext_recorded(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, file_ext=".md")
+        assert g["file_ext"] == ".md"
+
+    def test_stats_keys(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert set(g["stats"].keys()) == {
+            "total_pages", "total_edges", "total_headings",
+            "isolated_pages", "avg_links_per_page",
+        }
+
+    def test_page_entry_keys(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        for rel, page in g["pages"].items():
+            assert set(page.keys()) == {"title", "headings", "links", "size_bytes"}
+
+    # ---- page count --------------------------------------------------------
+
+    def test_three_pages_found(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["stats"]["total_pages"] == 3
+
+    def test_pages_use_forward_slash_paths(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        for rel in g["pages"]:
+            assert "\\" not in rel
+
+    # ---- title extraction --------------------------------------------------
+
+    def test_title_from_h1_heading(self, tmp_path):
+        (tmp_path / "page.md").write_text("# My Title\n\nBody.\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["title"] == "My Title"
+
+    def test_title_fallback_to_stem_when_no_heading(self, tmp_path):
+        (tmp_path / "noheading.md").write_text("Just a paragraph.\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["noheading.md"]["title"] == "noheading"
+
+    def test_headings_list_populated(self, tmp_path):
+        (tmp_path / "page.md").write_text(
+            "# H1\n\n## H2\n\n### H3\n\n#### H4 ignored\n",
+            encoding="utf-8",
+        )
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        # Only h1-h3 captured
+        assert g["pages"]["page.md"]["headings"] == ["H1", "H2", "H3"]
+
+    def test_headings_empty_for_no_headings(self, tmp_path):
+        (tmp_path / "page.md").write_text("No headings here.\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["headings"] == []
+
+    def test_total_headings_stat(self, tmp_path):
+        (tmp_path / "a.md").write_text("# A\n## AA\n", encoding="utf-8")
+        (tmp_path / "b.md").write_text("# B\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["stats"]["total_headings"] == 3
+
+    # ---- link extraction ---------------------------------------------------
+
+    def test_internal_link_creates_edge(self, tmp_path):
+        (tmp_path / "index.md").write_text(
+            "# Index\n\n[Guide](guide.md)\n", encoding="utf-8"
+        )
+        (tmp_path / "guide.md").write_text("# Guide\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert {"from": "index.md", "to": "guide.md"} in g["edges"]
+
+    def test_total_edges_stat(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        # index→guide, guide→api/module → 2 edges
+        assert g["stats"]["total_edges"] == 2
+
+    def test_avg_links_per_page(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        # 2 edges / 3 pages = 0.667
+        assert abs(g["stats"]["avg_links_per_page"] - round(2 / 3, 3)) < 0.001
+
+    def test_anchor_links_stripped(self, tmp_path):
+        (tmp_path / "index.md").write_text(
+            "# I\n\n[Section](guide.md#install)\n", encoding="utf-8"
+        )
+        (tmp_path / "guide.md").write_text("# G\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert {"from": "index.md", "to": "guide.md"} in g["edges"]
+
+    def test_pure_anchor_link_skipped(self, tmp_path):
+        (tmp_path / "page.md").write_text(
+            "# P\n\n[Top](#top)\n", encoding="utf-8"
+        )
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["links"] == []
+
+    def test_query_param_link_stripped(self, tmp_path):
+        (tmp_path / "index.md").write_text(
+            "# I\n\n[Search](guide.md?q=foo)\n", encoding="utf-8"
+        )
+        (tmp_path / "guide.md").write_text("# G\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert {"from": "index.md", "to": "guide.md"} in g["edges"]
+
+    def test_external_http_link_skipped(self, tmp_path):
+        (tmp_path / "page.md").write_text(
+            "# P\n\n[External](https://example.com/docs)\n", encoding="utf-8"
+        )
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["links"] == []
+        assert g["edges"] == []
+
+    def test_external_link_kept_when_matches_base_url(self, tmp_path):
+        (tmp_path / "index.md").write_text(
+            "# I\n\n[Guide](https://docs.example.com/guide.md)\n", encoding="utf-8"
+        )
+        (tmp_path / "guide.md").write_text("# G\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(
+            tmp_path, base_url="https://docs.example.com"
+        )
+        assert {"from": "index.md", "to": "guide.md"} in g["edges"]
+
+    def test_external_link_from_different_domain_skipped(self, tmp_path):
+        (tmp_path / "page.md").write_text(
+            "# P\n\n[Other](https://other.com/page.md)\n", encoding="utf-8"
+        )
+        g = _mod.plot_corpus_knowledge(
+            tmp_path, base_url="https://docs.example.com"
+        )
+        assert g["pages"]["page.md"]["links"] == []
+
+    # ---- include_links=False -----------------------------------------------
+
+    def test_include_links_false_no_edges(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, include_links=False)
+        assert g["edges"] == []
+        assert g["stats"]["total_edges"] == 0
+
+    def test_include_links_false_empty_links_per_page(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, include_links=False)
+        for page in g["pages"].values():
+            assert page["links"] == []
+
+    # ---- isolated pages ----------------------------------------------------
+
+    def test_isolated_pages_counted(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, include_links=False)
+        # api/module.md has no in or out links → isolated
+        assert g["stats"]["isolated_pages"] == 3
+
+    def test_all_isolated_when_no_links(self, tmp_path):
+        (tmp_path / "a.md").write_text("# A\n", encoding="utf-8")
+        (tmp_path / "b.md").write_text("# B\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path, include_links=False)
+        assert g["stats"]["isolated_pages"] == 2
+
+    # ---- max_pages ---------------------------------------------------------
+
+    def test_max_pages_limits_results(self, tmp_path):
+        for i in range(5):
+            (tmp_path / f"page{i}.md").write_text(f"# Page{i}\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path, max_pages=2)
+        assert g["stats"]["total_pages"] == 2
+
+    def test_max_pages_zero_returns_empty(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, max_pages=0)
+        assert g["stats"]["total_pages"] == 0
+        assert g["pages"] == {}
+        assert g["edges"] == []
+
+    def test_max_pages_none_means_unlimited(self, tmp_path):
+        self._make_corpus(tmp_path)
+        g = _mod.plot_corpus_knowledge(tmp_path, max_pages=None)
+        assert g["stats"]["total_pages"] == 3
+
+    def test_max_pages_non_numeric_raises_type_error(self, tmp_path):
+        self._make_corpus(tmp_path)
+        with pytest.raises(TypeError, match="non-negative integer"):
+            _mod.plot_corpus_knowledge(tmp_path, max_pages="notanint")
+
+    # ---- HTML mode ---------------------------------------------------------
+
+    def test_html_file_ext_uses_href_extraction(self, tmp_path):
+        (tmp_path / "index.html").write_text(
+            '<html><body><h1>Home</h1><a href="guide.html">Guide</a></body></html>',
+            encoding="utf-8",
+        )
+        (tmp_path / "guide.html").write_text(
+            "<html><body><h1>Guide</h1></body></html>",
+            encoding="utf-8",
+        )
+        g = _mod.plot_corpus_knowledge(tmp_path, file_ext=".html")
+        assert g["stats"]["total_pages"] == 2
+        assert {"from": "index.html", "to": "guide.html"} in g["edges"]
+
+    def test_html_heading_extraction(self, tmp_path):
+        (tmp_path / "page.html").write_text(
+            "<html><body><h1>Title</h1><h2>Sub</h2></body></html>",
+            encoding="utf-8",
+        )
+        g = _mod.plot_corpus_knowledge(tmp_path, file_ext=".html")
+        assert "Title" in g["pages"]["page.html"]["headings"]
+        assert "Sub" in g["pages"]["page.html"]["headings"]
+
+    def test_markdown_extension_treated_as_md(self, tmp_path):
+        (tmp_path / "page.markdown").write_text(
+            "# Title\n\n[other](other.markdown)\n", encoding="utf-8"
+        )
+        (tmp_path / "other.markdown").write_text("# Other\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path, file_ext=".markdown")
+        assert g["stats"]["total_pages"] == 2
+
+    # ---- output_file -------------------------------------------------------
+
+    def test_output_file_written(self, tmp_path):
+        self._make_corpus(tmp_path)
+        out = tmp_path / "graph.json"
+        _mod.plot_corpus_knowledge(tmp_path, output_file=out)
+        assert out.exists()
+
+    def test_output_file_is_valid_json(self, tmp_path):
+        self._make_corpus(tmp_path)
+        out = tmp_path / "graph.json"
+        _mod.plot_corpus_knowledge(tmp_path, output_file=out)
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert "stats" in data and "pages" in data
+
+    def test_output_file_parent_created(self, tmp_path):
+        self._make_corpus(tmp_path)
+        nested = tmp_path / "does_not_exist" / "subdir" / "graph.json"
+        _mod.plot_corpus_knowledge(tmp_path, output_file=nested)
+        assert nested.exists()
+
+    def test_output_file_none_no_file_written(self, tmp_path):
+        self._make_corpus(tmp_path)
+        _mod.plot_corpus_knowledge(tmp_path, output_file=None)
+        assert not any(tmp_path.glob("*.json"))
+
+    def test_return_value_identical_with_and_without_output_file(self, tmp_path):
+        self._make_corpus(tmp_path)
+        out = tmp_path / "graph.json"
+        g_returned = _mod.plot_corpus_knowledge(tmp_path, output_file=out)
+        g_from_file = json.loads(out.read_text(encoding="utf-8"))
+        assert g_returned["stats"] == g_from_file["stats"]
+        assert g_returned["pages"].keys() == g_from_file["pages"].keys()
+
+    # ---- error conditions --------------------------------------------------
+
+    def test_nonexistent_root_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="does not exist"):
+            _mod.plot_corpus_knowledge(tmp_path / "nonexistent")
+
+    def test_file_as_root_raises(self, tmp_path):
+        f = tmp_path / "file.md"
+        f.write_text("# X\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="not a directory"):
+            _mod.plot_corpus_knowledge(f)
+
+    def test_bad_file_ext_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="must start with '.'"):
+            _mod.plot_corpus_knowledge(tmp_path, file_ext="md")
+
+    def test_bad_base_url_scheme_raises(self, tmp_path):
+        with pytest.raises(ValueError):
+            _mod.plot_corpus_knowledge(tmp_path, base_url="javascript:evil()")
+
+    def test_ftp_base_url_raises(self, tmp_path):
+        with pytest.raises(ValueError):
+            _mod.plot_corpus_knowledge(tmp_path, base_url="ftp://example.com")
+
+    # ---- empty corpus ------------------------------------------------------
+
+    def test_empty_directory(self, tmp_path):
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["stats"]["total_pages"] == 0
+        assert g["stats"]["total_edges"] == 0
+        assert g["stats"]["avg_links_per_page"] == 0.0
+        assert g["pages"] == {}
+
+    def test_avg_links_zero_for_empty_corpus(self, tmp_path):
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["stats"]["avg_links_per_page"] == 0.0
+
+    # ---- size_bytes --------------------------------------------------------
+
+    def test_size_bytes_positive(self, tmp_path):
+        (tmp_path / "page.md").write_text("# Hello\n", encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["size_bytes"] > 0
+
+    def test_size_bytes_correct(self, tmp_path):
+        content = "# Hello\n"
+        p = tmp_path / "page.md"
+        p.write_text(content, encoding="utf-8")
+        g = _mod.plot_corpus_knowledge(tmp_path)
+        assert g["pages"]["page.md"]["size_bytes"] == p.stat().st_size
+
+    # ---- in __all__ --------------------------------------------------------
+
+    def test_plot_corpus_knowledge_in_all(self):
+        assert "plot_corpus_knowledge" in _mod.__all__
+
+    def test_plot_corpus_knowledge_callable(self):
+        assert callable(_mod.plot_corpus_knowledge)
+
+    # ---- OSError resilience ------------------------------------------------
+
+    def test_oserror_on_read_skips_page(self, tmp_path):
+        """A page that raises OSError during read must be skipped, not crash."""
+        (tmp_path / "ok.md").write_text("# OK\n", encoding="utf-8")
+        (tmp_path / "bad.md").write_text("# Bad\n", encoding="utf-8")
+
+        original_read = Path.read_text
+
+        def _flaky_read(self, *args, **kwargs):
+            if self.name == "bad.md":
+                raise OSError("permission denied")
+            return original_read(self, *args, **kwargs)
+
+        with patch.object(Path, "read_text", _flaky_read):
+            g = _mod.plot_corpus_knowledge(tmp_path)
+
+        # Only the readable page should appear
+        assert "ok.md" in g["pages"]
+        assert "bad.md" not in g["pages"]

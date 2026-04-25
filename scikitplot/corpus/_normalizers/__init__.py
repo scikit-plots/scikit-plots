@@ -1,6 +1,6 @@
 """
 scikitplot.corpus._normalizers
-================================
+==============================
 Text normalisation pipeline for :class:`~scikitplot.corpus._schema.CorpusDocument`.
 
 Each normaliser receives a ``CorpusDocument`` and returns a new instance

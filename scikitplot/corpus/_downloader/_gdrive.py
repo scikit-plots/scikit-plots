@@ -11,15 +11,15 @@ Google Drive share-link downloader.
 :class:`GoogleDriveDownloader` accepts any public Google Drive share URL and
 resolves it to a direct download URL before streaming the file locally.
 
-Supported URL forms
--------------------
+Supported URL forms:
+
 * ``https://drive.google.com/file/d/FILE_ID/view?usp=sharing``
 * ``https://drive.google.com/file/d/FILE_ID/view``
 * ``https://drive.google.com/open?id=FILE_ID``
 * ``https://drive.google.com/uc?export=download&id=FILE_ID`` (already direct)
 
-Google Drive "confirm" anti-virus bypass
------------------------------------------
+Google Drive "confirm" anti-virus bypass:
+
 For files larger than ~25 MB, Google Drive injects an interstitial page
 asking the user to confirm the download.  The ``Content-Disposition`` header
 in the initial response carries a ``confirm=xxx`` token.  This class

@@ -23,15 +23,15 @@ Two readers are provided:
     caption track first; falls back to auto-generated captions.
     No audio download or transcription is performed.
 
-Registration
-------------
+Registration:
+
 Both readers are registered under special ``":"`` keys
 (``":url"`` and ``":youtube"``) rather than file extensions.
 They are accessed exclusively via
 :meth:`~scikitplot.corpus._base.DocumentReader.from_url`.
 
-Dependencies (all optional lazy imports)
------------------------------------------
+Dependencies (all optional lazy imports):
+
 - ``requests`` — HTTP fetch for :class:`WebReader`
 - ``beautifulsoup4`` — HTML parsing for :class:`WebReader`
 - ``youtube-transcript-api`` — YouTube transcript for :class:`YouTubeReader`
@@ -39,8 +39,8 @@ Dependencies (all optional lazy imports)
 None of these are imported at module level. ``ImportError`` fires only
 at first ``get_raw_chunks()`` call.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Zero stdlib dependencies beyond what is already used
 in ``scikitplot.corpus._base``.
 """  # noqa: D205, D400

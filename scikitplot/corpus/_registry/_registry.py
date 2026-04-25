@@ -3,8 +3,8 @@ scikitplot.corpus._registry._registry
 =========================================
 Central component registry for the scikitplot corpus pipeline.
 
-Design invariants
------------------
+Design invariants:
+
 * :class:`ComponentRegistry` is a simple, transparent dict wrapper.
   No metaclass magic, no global state beyond the module-level
   ``registry`` singleton.
@@ -19,8 +19,8 @@ Design invariants
   :meth:`ComponentRegistry.register_builtins`) to avoid circular
   imports during package initialisation.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. No external dependencies. ``from __future__ import
 annotations`` throughout.
 """  # noqa: D205, D400

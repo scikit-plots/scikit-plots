@@ -16,8 +16,8 @@ This module provides a single public function :func:`extract_archive` that:
 3. **Returns** a sorted list of extracted file paths that have extensions
    registered in the :class:`~scikitplot.corpus._base.DocumentReader` registry.
 
-Security invariants
--------------------
+Security invariants:
+
 * **ZipSlip prevention:** Every extracted member's resolved path is checked
   to ensure it falls within the destination directory. Path-traversal
   entries (e.g. ``../../etc/passwd``) are skipped with a warning.
@@ -29,8 +29,8 @@ Security invariants
 * **Hidden file / ``__pycache__`` exclusion:** Same rules as
   ``CorpusBuilder._expand_sources``.
 
-Design invariants
------------------
+Design invariants:
+
 * Zero optional dependencies — ``zipfile``, ``tarfile`` are stdlib.
 * Caller owns cleanup of the destination directory.
 * Archive-within-archive (nested) is **not** recursed. If a user ships a
@@ -39,8 +39,8 @@ Design invariants
   registry handles it via ``ALTOReader`` (which already handles ``zip``
   extension) or is skipped if no reader is registered.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8 through 3.15.
 """  # noqa: D205, D400
 

@@ -16,8 +16,8 @@ All downloaders share the :class:`BaseDownloader` contract:
 * Size cap enforced during streaming (``max_bytes``).
 * Context-manager lifecycle — ``with XxxDownloader(...) as dl:`` auto-cleans.
 
-Public API
-----------
+Public API:
+
 ``DownloadResult``
     Immutable transfer object returned by every downloader's ``.download()``.
 ``BaseDownloader``

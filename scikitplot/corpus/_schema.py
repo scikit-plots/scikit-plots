@@ -19,8 +19,8 @@ packages (numpy, pandas, polars, etc.).
 Heavy-dependency imports are deferred to method bodies and guarded under
 ``TYPE_CHECKING`` for static analysis only.
 
-Design invariants
------------------
+Design invariants:
+
 * All public classes are immutable-friendly: mutating state returns a new
   instance via :meth:`CorpusDocument.replace`.
 * ``CorpusDocument.validate()`` must succeed before a document leaves any
@@ -36,8 +36,8 @@ Design invariants
   fields. Every key in a raw-chunk dict that is **not** in this set and is not
   ``"text"`` or ``"section_type"`` flows into ``metadata``.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Supports Python 3.8 through 3.15. All PEP-604 (``X | Y``) and PEP-585
 (``dict[str, X]``) annotations are valid under ``from __future__ import
 annotations``, which makes all annotations lazy strings at runtime.

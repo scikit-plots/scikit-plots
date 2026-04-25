@@ -4,8 +4,8 @@ scikitplot.corpus._storage._storage
 Storage backend implementations for persisting and retrieving
 :class:`~scikitplot.corpus._schema.CorpusDocument` collections.
 
-Design invariants
------------------
+Design invariants:
+
 * ``StorageBase`` defines the minimum contract: ``save``, ``save_batch``,
   ``get``, ``query``. All implementations must satisfy it exactly.
 * Documents are stored and returned as validated
@@ -21,8 +21,8 @@ Design invariants
   ``JSONLStorage`` (SQLiteStorage uses WAL and is safer for concurrent
   writes).
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Only stdlib used: ``json``, ``sqlite3``, ``threading``,
 ``pathlib``, ``dataclasses``.
 """  # noqa: D205, D400

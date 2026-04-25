@@ -25,8 +25,8 @@ The caller — typically
 receives a local :class:`pathlib.Path` that can be passed directly to
 :meth:`~scikitplot.corpus._base.DocumentReader.create`.
 
-Design invariants
------------------
+Design invariants:
+
 * **Zero optional dependencies at import time.** ``urllib`` and ``http``
   are stdlib. ``requests`` is imported lazily in ``_download_with_requests``
   and falls back to ``urllib.request`` if unavailable.
@@ -42,8 +42,8 @@ Design invariants
   temp file or the ``output_path`` after processing.  ``CorpusBuilder`` uses a
   ``tempfile.TemporaryDirectory`` context manager for this.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8 through 3.15. ``from __future__ import annotations`` for PEP-604.
 """  # noqa: D205, D400
 

@@ -9,8 +9,8 @@ pipeline resolves into a stream of ``(input, provenance)`` pairs, feeding
 :meth:`~scikitplot.corpus._base.DocumentReader.create` or
 :meth:`~scikitplot.corpus._base.DocumentReader.from_url`.
 
-Why this exists
----------------
+Why this exists:
+
 :class:`~scikitplot.corpus._pipeline.CorpusPipeline` accepts individual
 files or explicit lists. Real corpora often need to express:
 
@@ -21,8 +21,8 @@ files or explicit lists. Real corpora often need to express:
 :class:`CorpusSource` encapsulates that logic in one place so the pipeline
 never needs to know where documents come from.
 
-Usage
------
+Examples
+--------
 >>> from pathlib import Path
 >>> from scikitplot.corpus._sources import CorpusSource, SourceKind
 >>> src = CorpusSource.from_directory(Path("corpus/"), pattern="*.txt")

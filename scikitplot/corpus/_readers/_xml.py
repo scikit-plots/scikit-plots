@@ -27,8 +27,8 @@ Both readers use ``lxml`` as the primary XML parser (preferred for
 namespace handling and XPath 1.0 compliance) with
 ``xml.etree.ElementTree`` as a stdlib fallback.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. ``lxml`` is an optional dependency; the stdlib parser
 handles well-formed UTF-8 XML without it.
 """  # noqa: D205, D400

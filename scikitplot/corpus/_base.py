@@ -34,8 +34,8 @@ independent concerns of the pipeline:
     rejects documents below a minimum word count and those whose text
     contains no Unicode letter characters (punctuation/digit-only noise).
 
-Design invariants
------------------
+Design invariants:
+
 * ``DocumentReader`` subclasses are ``dataclass``-decorated so that
   construction is type-safe and consistent with remarx's proven pattern.
 * ``get_raw_chunks()`` is the **only** abstract method readers must
@@ -49,8 +49,8 @@ Design invariants
   ``OSError`` and ``IOError`` from file I/O propagate uncaught so the
   caller can decide the recovery strategy.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Supports Python 3.8 through 3.15. Uses ``from __future__ import
 annotations`` for PEP-604/585 annotation syntax. Uses ``TypeVar`` instead
 of ``Self`` (Python 3.11+). Uses ``(str, Enum)`` mixin instead of
@@ -647,7 +647,6 @@ class DocumentReader(abc.ABC):
     without any subclassing — simply pass a callable at construction time.
 
     Callable contract
-    -----------------
     ::
 
         def my_extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput

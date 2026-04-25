@@ -1,10 +1,32 @@
+--find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
 --find-links https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/scikit-learn
 --pre
-matplotlib
-scikit-image
+cython
+pybind11
+pybind11-global
+blis
+
+# numpy
+# scipy-openblas32
+# scipy-openblas64
+scipy
 pandas
-seaborn
-Pillow
-sphinx-gallery
-scikit-learn
+pyarrow
 polars
+
+matplotlib
+pillow
+seaborn
+scikit-image
+
+scikit-learn
+scikit-plots
+statsmodels
+
+ipython
+ipykernel
+
+sphinx-gallery
+h5py
+tables
+shapely

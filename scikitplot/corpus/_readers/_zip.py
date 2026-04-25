@@ -17,8 +17,8 @@ choose between :class:`ALTOReader` (which only handles ALTO XML zips) and
 the ``_archive_handler`` + ``CorpusBuilder`` path, :class:`ZipReader`
 handles *any* ZIP containing *any* mix of supported media.
 
-Why this reader exists
-----------------------
+Why this reader exists:
+
 The previous state of the codebase had a gap:
 
 * :class:`ALTOReader` registers on ``".zip"`` but only handles ALTO XML.
@@ -32,8 +32,8 @@ is called, the registry now returns :class:`ZipReader` (it overrides
 :class:`ALTOReader` for ``".zip"``).  :class:`ALTOReader` remains available
 by instantiating it directly when you know the archive contains ALTO XML.
 
-Design invariants
------------------
+Design invariants:
+
 * **ZipSlip prevention** — every extracted path is checked against the
   destination directory via ``path.resolve().relative_to(dest.resolve())``.
 * **Bomb prevention** — configurable ``max_files`` and ``max_total_bytes``
@@ -50,8 +50,8 @@ Design invariants
   ``close()`` is called).  In normal iterator usage, cleanup happens when
   ``get_documents()`` returns.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15.  Zero optional dependencies — ``zipfile`` is stdlib.
 """  # noqa: D205, D400
 

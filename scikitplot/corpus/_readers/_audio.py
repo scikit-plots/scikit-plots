@@ -13,8 +13,8 @@ automatic speech recognition (Whisper), and optional audio classification.
 
 Supported formats: MP3, WAV, FLAC, OGG, M4A, WMA, AAC, AIFF, OPUS, WV.
 
-Extraction strategy
--------------------
+Extraction strategy:
+
 Three strategies are attempted in order, stopping at the first success:
 
 1. **Companion transcript / lyrics file** (zero dependencies, instant).
@@ -40,8 +40,8 @@ Three strategies are attempted in order, stopping at the first success:
       on first use. In CI/Docker, pre-cache the weights or use companion
       transcript files instead.
 
-Companion file formats
-----------------------
+Companion file formats:
+
 ``LRC``
     Timestamped lyrics format. ``[MM:SS.xx]`` or ``[HH:MM:SS.xx]``
     timecodes per line. Supports enhanced LRC with word-level timestamps
@@ -53,24 +53,8 @@ Companion file formats
     Plain-text transcript. No timecodes; entire file yielded as one
     chunk per line (or as a single chunk if ``txt_as_single_chunk=True``).
 
-Scenario support
-----------------
-**Scenario 11 — Beethoven MP3 + Music Notes Book**
-    Reads Beethoven MP3 files via Whisper ASR or companion ``.lrc`` files.
-    Each segment carries ``timecode_start`` / ``timecode_end`` for temporal
-    alignment against book text. ``source_type = SourceType.AUDIO``.
-    ``SimilarityIndex`` performs STRICT / KEYWORD / SEMANTIC matching
-    between audio-derived text and music-notes book text.
+Python compatibility:
 
-**Scenario 12 — Animal Sounds + Children's Book (Bremen)**
-    Reads animal sound files via audio classification (bird, donkey, cat,
-    dog, rooster). Each chunk carries ``audio_label`` in ``metadata`` and
-    a text description (e.g. ``"bird call"``). ``SimilarityIndex`` matches
-    ``audio_label`` or generated text against children's book text via
-    KEYWORD or SEMANTIC match.
-
-Python compatibility
---------------------
 Python 3.8-3.15. All audio dependencies are optional lazy imports.
 The LRC parser is pure Python (stdlib only).
 """  # noqa: D205, D400

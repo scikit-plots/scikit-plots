@@ -9,8 +9,8 @@ chain so that documents written in any encoding — UTF-8, UTF-16,
 Latin-1, Windows-1252, and more — are read correctly without manual
 configuration.
 
-Original issues fixed (from remarx ``text_input.py``)
-------------------------------------------------------
+Original issues fixed (from remarx ``text_input.py``):
+
 1. **Hard-coded UTF-8** — replaced by a three-stage encoding detection
    chain: BOM → chardet (if installed) → Latin-1 last resort.
 2. **BOM character leaking** — BOM bytes are stripped before returning
@@ -22,8 +22,8 @@ Original issues fixed (from remarx ``text_input.py``)
 5. **Single extension** — ``TextReader`` handles ``.txt``; subclasses
    can trivially register ``.md`` / ``.rst`` by setting ``file_type``.
 
-Python compatibility
---------------------
+Python compatibility:
+
 Python 3.8-3.15. Zero external runtime dependencies (``chardet`` is
 optional and probed at call time).
 """  # noqa: D205, D400
