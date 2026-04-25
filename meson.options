@@ -60,3 +60,14 @@ option('pythran', type: 'feature', value: 'auto',
                      'to either pure Python code or Cython code, depending on ' +
                      'the implementation). ' +
                      'A feature option has three states: "enabled", "disabled" or "auto".')
+# scikitplot
+option('enable-native',
+  type: 'boolean',
+  value: true,
+  description: 'Optimize for the local build machine (-march=native). Note: This makes the binary non-portable.'
+)
+option('disable-native',
+  type: 'boolean',
+  value: false,
+  description: 'If true, uses portable (x86-64-v3) instead of -march=native for PyPI.'
+)

@@ -1,6 +1,6 @@
 # cython: wraparound=False, nonecheck=False, boundscheck=False, cdivision=True, language_level=3, binding=True, embedsignature=True
 # distutils: language = c++
-# distutils: extra_compile_args = -std=c++14 -O3 -march=native -DNDEBUG -pthread -DANNOYLIB_MULTITHREADED_BUILD
+# distutils: extra_compile_args = -std=c++14 -O3 -DNDEBUG -pthread -DANNOYLIB_MULTITHREADED_BUILD
 # distutils: extra_link_args = -std=c++14
 # cython: warn.unused=False
 #

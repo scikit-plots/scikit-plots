@@ -37,6 +37,34 @@ with open('README.rst', encoding='utf-8') as fobj:
 # Various platform-dependent extras
 extra_compile_args = ['-D_CRT_SECURE_NO_WARNINGS', '-fpermissive']
 extra_link_args = []
+
+# Source distribution (raw source code archive)
+# Think of -march as a strict requirement and -mtune as a strong suggestion.
+# - march=cpu-type (Machine Architecture): Dictates the minimum hardware requirement.
+# It allows the compiler to use special instruction sets (like SSE4, AVX, AVX2) specific to that CPU.
+# Code compiled with a specific -march will not run on processors that do not support those instructions.
+# - mtune=cpu-type (Machine Tune): Optimizes the ordering and scheduling of instructions to run as fast as possible on the specified CPU,
+# but it does not use instructions that would break compatibility.
+# The code will still run everywhere, it just might be slightly less efficient on CPUs other than the tuned target.
+# For most extensions, you should rely on the default settings of setuptools, scikit-build, or maturin (for Rust).
+# They default to safe baselines. If you are passing CFLAGS (and CXXFLAGS for C++) manually, use:
+#     CFLAGS="-O3 -march=x86-64 -mtune=generic"
+#     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
+#     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
+# (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
+# v1 (x86-64)	Baseline (SSE2)     	2003+	Extreme legacy support. Slowest for math.
+# v2	        SSE4.2, POPCNT	        2009+	Safe Baseline. Supports almost all active PCs/Servers.
+# v3	        AVX, AVX2, BMI2, FMA	2013+	High Performance. Required for fast vector math.
+# -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
+# -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
+# -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
+# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
+# Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
+# When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
+# If a user wants maximum performance, they will install your sdist like this:
+#   export CFLAGS="-march=native -O3"
+#   pip install your-package --no-binary your-package
+
 if platform.machine() == 'ppc64le':
     extra_compile_args += ['-mcpu=native',]
 

@@ -2,18 +2,31 @@
 # https://docs.codecov.com/docs/codecovyml-reference
 # https://docs.codecov.com/docs/commit-status#project-status
 #
+# https://docs.codecov.com/docs/codecov-yaml#frequently-asked-questions
+# Can I name the file .codecov.yml?
+# Yes, you can name the file codecov.yml or .codecov.yml. However,
+# the file must still be located in the repository root, dev/, or
+# .github/ directories
+# cat .codecov.yml | curl --data-binary @- https://codecov.io/validate
+#
 ---
 
 # https://docs.codecov.com/docs/codecovyml-reference#codecov
 codecov:
-  #max_report_age can be listed in hours '#h' (hours) or '#d' (days)
-  max_report_age: '71h' # off, '12h' equates to 12 hours
+  # max_report_age can be listed in hours '#h' (hours) or '#d' (days)
+  # unquoted — matches Codecov canonical form
+  # Disabled: this CI build legitimately runs for ~3 hours (Cython build +
+  # heavy ML deps). Any finite max_report_age is a liability. Set to 'off'
+  # to disable the age check entirely.
+  # Ref: https://docs.codecov.com/docs/codecovyml-reference#codecovmax_report_age
+  max_report_age: off  # 71h # off, '12h' equates to 12 hours
   # The user that you will use to serve as the bot connection to Codecov
   # This bot user must have permissions on the repo and Codecov (by logging in)
   # bot: <bot-username> #this is a username for Github/Gitlab/Bitbucket
   # archive:
   #   # How to disable archiving - In your codecov.yml, set the following line to false as follows:
   #   uploads: false
+  require_ci_to_pass: false
   notify:
     # notification blocks. See: https://docs.codecov.io/docs/codecovyml-reference#section-coverage-notify
     # Prevent coverage status to upload multiple times for parallel and long
@@ -21,9 +34,11 @@ codecov:
     # to avoid confusion. Note that this value is set to the number of Azure
     # Pipeline jobs uploading coverage reports.
     after_n_builds: 1  # 7
-    wait_for_ci: yes
-    manual_trigger: true
-    require_ci_to_pass: false
+    wait_for_ci: true
+    # FIXED: was true — manual_trigger: true tells Codecov to NOT auto-process
+    # notifications, requiring a manual trigger in the UI. This is incorrect
+    # for automated CI and compounds age-check failures on long-running builds.
+    manual_trigger: false
 
 # https://docs.codecov.com/docs/codecovyml-reference#comment
 # https://docs.codecov.com/docs/pull-request-comments
@@ -60,6 +75,7 @@ coverage:
         # branches:
         #   - master
         # if_ci_failed: error #success, failure, error, ignore
+        if_ci_failed: ignore   # cancelled job is not a coverage failure
         # only_pulls: false
         # flags:
         #   - "unit"
@@ -100,6 +116,7 @@ coverage:
         # branches:
         #   - master
         # if_ci_failed: error #success, failure, error, ignore
+        if_ci_failed: ignore   # cancelled job is not a coverage failure
         # informational: false
         # only_pulls: false
 
@@ -115,7 +132,7 @@ ignore:
   - "scikitplot/ml_package_versions.py"
   - "scikitplot/cexperimental"
 
-  # cexternals: ignore only private (_*) parts
+  # cexternals: ignore only private (_*) parts, not the whole package
   - "scikitplot/cexternals/_*"  # → matches any directory starting with _
   - "scikitplot/cexternals/_*/**/*"  # → recursively ignore everything inside those directories
 
