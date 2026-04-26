@@ -271,11 +271,12 @@ dependencies = [
   # "pytz>=2020.1",
   # "tzdata>=2023.3",
 
-  # --- Machine Learning ---
-  "scikit-learn>=1.3.0rc1",                 # Machine learning >=1.6.0
   # sklearn Runtime dependencies
   "joblib>=1.2.0",                          # Performance / Parallelism
   "threadpoolctl>=3.1.0",                   # Performance / Parallelism
+
+  # --- Machine Learning ---
+  "scikit-learn>=1.3.0rc1",                 # Machine learning >=1.6.0
 ]
 
 ######################################################################

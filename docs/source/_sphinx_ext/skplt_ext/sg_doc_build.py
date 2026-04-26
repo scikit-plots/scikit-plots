@@ -15,6 +15,11 @@ try:
 except Exception:
     pass
 
+import scikitplot as sp
+
+_version_raw = sp.version.full_version
+release = _version_raw.split("+")[0].strip()
+
 
 def notebook_modification_function(notebook_content, notebook_filename):
     """Implement JupyterLite-specific modifications of notebooks."""
@@ -32,11 +37,11 @@ def notebook_modification_function(notebook_content, notebook_filename):
 
     message_class = "warning"
     message = (
-        "Running the scikit-plots examples in JupyterLite is experimental and you may"
+        f"Running the **scikit-plots {release}** examples in JupyterLite is experimental and you may"
         " encounter some unexpected behavior.\n\nThe main difference is that imports"
         " will take a lot longer than usual, for example the first `import scikitplot`"
         "can take roughly 10-20s.\n\nIf you notice problems, feel free to open an"
-        " [issue](https://github.com/scikit-plots/scikit-plots/issues/new/choose)"
+        " [scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose)"
         " about it."
     )
 
@@ -72,10 +77,11 @@ def notebook_modification_function(notebook_content, notebook_filename):
     # dependencies first, and then scikit-learn from Anaconda.org.
     if "dev" in release:  # defined `release` in conf.py
         dev_docs_specific_code = [
+            "import micropip",
             "import piplite",
-            "import joblib",
             "import threadpoolctl",
-            "import scipy",
+            "import joblib",
+            # "import scipy",
             "import scikit-learn",
             # "await piplite.install(\n"
             # f"  'scikit-learn=={release}',\n"

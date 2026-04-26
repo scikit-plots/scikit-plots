@@ -171,8 +171,8 @@ except ImportError:
 # Customisation: extend this tuple to add project-specific optional packages.
 _PYODIDE_CONDITIONAL_PACKAGES: tuple[tuple[str, str], ...] = (
     ("import seaborn", "%pip install seaborn"),
-    ("import plotly.express", "%pip install plotly"),
     ("import skimage", "%pip install scikit-image"),
+    ("import plotly.express", "%pip install plotly"),
     ("import polars", "%pip install polars"),
 )
 
@@ -224,9 +224,11 @@ _PYODIDE_HTTP_SETUP: tuple[str, ...] = (
 #
 # Customisation: extend this tuple to add or remove conditional base imports.
 _PYODIDE_REQUIRED_IMPORTS: tuple[tuple[str, str], ...] = (
+    ("import numpy", "import numpy"),
+    ("import scipy", "import scipy"),
     ("import matplotlib", "import matplotlib"),
     ("import pandas", "import pandas"),
-    ("import numpy", "import numpy"),
+    ("from sklearn", "import sklearn"),
 )
 
 # First line of every Pyodide setup code cell.  Used as an idempotency marker
@@ -234,7 +236,7 @@ _PYODIDE_REQUIRED_IMPORTS: tuple[tuple[str, str], ...] = (
 # does not prepend a duplicate cell.
 _JUPYTERLITE_CELL_MARKER: str = "# JupyterLite-specific code"
 
-_JUPYTERLITE_WARNING_TEMPLATE: str = "\n".join(
+_JUPYTERLITE_WARNING_TEMPLATE: str = "\n".join(  # noqa: FLY002
     [
         "<div class='alert alert-{message_class}'>",
         "",
@@ -247,12 +249,12 @@ _JUPYTERLITE_WARNING_TEMPLATE: str = "\n".join(
 )
 
 _JUPYTERLITE_WARNING_MESSAGE: str = (
-    "Running the **scikit-plots {version}** examples in JupyterLite is "
-    "experimental and you may encounter some unexpected behavior.\n\n"
-    "The main difference is that imports will take a lot longer than usual. "
-    "For example, the first `import scikitplot` can take roughly 10-20 s.\n\n"
-    "If you notice problems, feel free to open an "
-    "[issue](https://github.com/scikit-plots/scikit-plots/issues/new/choose) "
+    "- Running the **scikit-plots {version}** examples in JupyterLite is "
+    "experimental and you may encounter some unexpected behavior.\n"
+    "- The main difference is that imports will take a lot longer than usual. "
+    "For example, the first `import scikitplot` can take roughly 10-20 s.\n"
+    "- If you notice problems, feel free to open an "
+    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose) "
     "about it."
 )
 
@@ -420,6 +422,7 @@ def notebook_modification_function(
     >>> len(nb["cells"])
     2
     """
+    # notebook_content_str = str(notebook_content)
     # --- Input validation ---
     if not isinstance(notebook_content, dict) or not isinstance(
         notebook_content.get("cells"), list
@@ -481,7 +484,7 @@ def notebook_modification_function(
     # --- 2. Pyodide setup code cell ---
     code_lines: list[str] = [_JUPYTERLITE_CELL_MARKER]
 
-    # Conditional package installs (e.g. seaborn, plotly, scikit-image, polars).
+    # Conditional package installs (e.g. seaborn, scikit-image, plotly, polars).
     for token, pip_line in _PYODIDE_CONDITIONAL_PACKAGES:
         if token in notebook_content_str:
             code_lines.append(pip_line)
@@ -499,6 +502,60 @@ def notebook_modification_function(
         if token in notebook_content_str:
             code_lines.append(import_line)
 
+    # User code
+    #    ↓
+    # piplite (optional wrapper)
+    #    ↓
+    # micropip (real installer)
+    #    ↓
+    # Pyodide package resolution / wheel fetch
+    #    ↓
+    # Browser runtime
+    #
+    # Work around https://github.com/jupyterlite/pyodide-kernel/issues/166
+    # and https://github.com/pyodide/micropip/issues/223 by installing the
+    # dependencies first, and then scikit-learn from Anaconda.org.
+    dev_docs_specific_code = [
+        "import numpy",
+        "import scipy",
+        "import matplotlib",
+        "import pandas",
+        "import joblib",
+        "import threadpoolctl",
+    ]
+    for pkg in dev_docs_specific_code:
+        if pkg not in code_lines:
+            code_lines.append(import_line)
+    if "dev" not in _RELEASE_VERSION:  # defined `release` in conf.py
+        code_lines.extend(
+            [
+                "import sklearn",
+                "import piplite",
+                "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
+                "await piplite.install(\n"
+                f"  'scikit-plots=={_RELEASE_VERSION}',\n"
+                "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
+                ")",
+            ]
+        )
+    else:
+        code_lines.extend(
+            [
+                "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
+                "# Download scikit-plots *pyodide_20XX_0_wasm32.whl",
+                "# import micropip",
+                "import piplite",
+                "await piplite.install(\n"
+                "  'scikit-learn',\n"
+                "   index_urls='https://pypi.anaconda.org/scientific-python-nightly-wheels/simple',\n"
+                ")",
+                "import sklearn",
+                "await piplite.install(\n"
+                f"  'scikit-plots=={_RELEASE_VERSION}',\n"
+                "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
+                ")",
+            ]
+        )
     add_code_cell(prepend_cells, "\n".join(code_lines))
 
     # --- Verify sphinx_gallery API contract ---

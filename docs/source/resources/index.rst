@@ -21,9 +21,9 @@
 
    <br/>
 
-.. _resources-index:
+.. _learning-resources:
 
-:raw-html:`<div style="text-align: center"><strong>` 🎓 Learn
+:raw-html:`<div style="text-align: center"><strong>` 🎓 Learning Resources
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 
@@ -43,6 +43,12 @@
 .. # https://documatt.com/restructuredtext-reference/element/admonition.html
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+
+.. _resources-index:
+
+======================================================================
+Resources
+======================================================================
 
 .. grid:: 1 1 1 1
 

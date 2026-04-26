@@ -109,9 +109,6 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
         uint32_t get_default_seed() nogil
 
         @staticmethod
-        uint32_t get_seed() nogil
-
-        @staticmethod
         uint32_t normalize_seed(uint32_t seed) nogil
 
         # Instance methods
@@ -149,9 +146,6 @@ cdef extern from "../../cexternals/_annoy/src/kissrandom.h" namespace "Annoy" no
         # Static methods
         @staticmethod
         uint64_t get_default_seed() nogil
-
-        @staticmethod
-        uint64_t get_seed() nogil
 
         @staticmethod
         uint64_t normalize_seed(uint64_t seed) nogil

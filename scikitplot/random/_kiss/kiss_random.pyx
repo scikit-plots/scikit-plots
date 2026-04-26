@@ -95,6 +95,7 @@ from __future__ import annotations
 # import os
 import sys
 # import json
+import time
 import platform
 # import struct
 import threading
@@ -127,7 +128,9 @@ cnp.import_array()
 # Cython-level imports
 from libc.stdint cimport uint32_t, uint64_t
 from libc.stddef cimport size_t
-from cpython.pycapsule cimport PyCapsule_New  # PyCapsule_GetPointer
+
+# from cpython.pycapsule cimport PyCapsule_GetPointer
+from cpython.pycapsule cimport PyCapsule_New
 
 # C-level Import C++ classes from our .pxd declarations
 from scikitplot.random._kiss.kiss_random cimport CKiss32Random, CKiss64Random
@@ -405,9 +408,9 @@ def _add_metadata(state: dict) -> dict:
     state.setdefault("__version__", SERIALIZATION_VERSION)
     state.setdefault("metadata", {})
     state["metadata"].update({
+        "platform": platform.platform(),
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
-        "platform": platform.platform(),
     })
     return state
 
@@ -2099,6 +2102,11 @@ cdef class KissBitGenerator:
     cdef readonly object lock
     cdef bitgen_t _bitgen
     cdef int _bit_width
+    # Capsule is created once in __init__ and returned on every .capsule access.
+    # Lifetime safety: NumPy's Generator holds a Python reference to this
+    # KissBitGenerator, which prevents garbage collection while the capsule
+    # is live.  The capsule does NOT own _bitgen; the extension-type object does.
+    cdef object _capsule
 
     cdef public object seed_seq  # readonly
 
@@ -2145,12 +2153,25 @@ cdef class KissBitGenerator:
         # Create lock
         self.lock = threading.RLock()
 
-        # Setup bitgen_t for NumPy
+        # Setup bitgen_t for NumPy.
+        # All four function-pointer slots must be non-NULL.  NumPy's C-level
+        # distribution code calls next_uint32 and next_double directly without
+        # a null-check — leaving them NULL causes an immediate SIGSEGV.
         self._bitgen.state = <void*>self._rng
-        self._bitgen.next_uint64 = &kiss_random_raw
-        self._bitgen.next_uint32 = NULL
-        self._bitgen.next_double = NULL
-        self._bitgen.next_raw = &kiss_random_raw
+        self._bitgen.next_uint64 = &kiss64_next_uint64
+        self._bitgen.next_uint32 = &kiss64_next_uint32
+        self._bitgen.next_double = &kiss64_next_double
+        self._bitgen.next_raw = &kiss64_next_uint64
+
+        # Create the PyCapsule exactly once and store it on the instance.
+        # Returning the *same* capsule object on every .capsule access is
+        # required: NumPy's Generator compares capsule identity on assignment
+        # and some distributions cache the pointer internally.
+        self._capsule = PyCapsule_New(
+            <void *>&self._bitgen,
+            "BitGenerator",
+            NULL,
+        )
 
         # Initialize RNG based on bit width
         # if self._bit_width == 32:
@@ -2289,14 +2310,28 @@ cdef class KissBitGenerator:
 
     @property
     def capsule(self):
-        """Get PyCapsule for NumPy C API (protocol requirement)."""
-        # Create capsule for NumPy - THIS IS CRITICAL
-        # Without this, np.random.Generator(bg) will fail with AttributeError
-        return PyCapsule_New(
-            <void *>&self._bitgen,
-            "BitGenerator",
-            NULL
-        )
+        """
+        PyCapsule for NumPy C API (BitGenerator protocol requirement).
+
+        Returns
+        -------
+        PyCapsule
+            Wraps the internal ``bitgen_t`` struct pointer under the name
+            ``"BitGenerator"``.
+
+        Notes
+        -----
+        - The same capsule object is returned on every access.  NumPy's
+          ``Generator`` caches the pointer; a new capsule per call would
+          break pointer identity checks and could expose a dangling pointer
+          if the previous capsule were retained after the generator's state
+          changed.
+        - The capsule does **not** own ``_bitgen``.  The ``KissBitGenerator``
+          extension-type object owns it, and Python's reference counting keeps
+          the object alive as long as any ``numpy.random.Generator`` built on
+          top of it is alive.
+        """
+        return self._capsule
 
     # @property
     # def seed_seq(self):
@@ -2338,11 +2373,26 @@ cdef class KissBitGenerator:
         self.set_state(state)
 
     def __reduce__(self):
-        """Custom pickle protocol."""
+        """
+        Custom pickle protocol.
+
+        Returns
+        -------
+        tuple
+            ``(callable, args, state)`` triple consumed by pickle.
+
+        Notes
+        -----
+        The third element is the full state dict returned by
+        ``__getstate__()``.  Returning ``None`` here (the previous behaviour)
+        meant ``__setstate__`` was never called, so any values generated after
+        construction were silently discarded on unpickling — the restored
+        generator always restarted from position 0 for that seed.
+        """
         return (
             self.__class__,
-            (self.seed_seq,),  # Constructor args
-            None,  # No additional state
+            (),               # __init__ is called with no args (seed=None default)
+            self.__getstate__(),
         )
 
     def __reduce_ex__(self, protocol):
@@ -2537,29 +2587,73 @@ cdef class KissBitGenerator:
         Parameters
         ----------
         cnt : int
-            Number of values to generate
-        method : {'uint64', 'uint32', 'double'}
-            Method to benchmark
+            Number of values to generate.  Must be >= 1.
+        method : {'uint64', 'uint32', 'double'}, default='uint64'
+            Slot to exercise:
+
+            - ``'uint64'`` — Python-visible ``random_raw()`` (measures full
+              Python API overhead).
+            - ``'uint32'`` — raw C++ ``kiss()`` call (measures core RNG
+              throughput with minimal Python overhead).
+            - ``'double'`` — ``random_raw()`` followed by float division
+              (measures Python API + scalar arithmetic overhead).
+
+        Notes
+        -----
+        The ``'uint32'`` branch uses a typed ``cdef uint64_t`` local so that
+        the C++ return value is **not** boxed into a Python ``int`` object on
+        each iteration.  Boxing would (a) measure allocator overhead instead
+        of RNG throughput, and (b) trigger a GCC ``-Wstringop-overflow``
+        false positive under Python 3.13t's atomic ``Py_INCREF`` expansion.
+
+        Examples
+        --------
+        >>> bg = KissBitGenerator(42)
+        >>> bg._benchmark(1_000_000, method="uint64")
         """
-        import time
+        # cdef declarations must precede all Python executable statements.
+        # 'import time' was moved to the module-level imports for this reason.
+        cdef size_t i
+        cdef size_t _cnt = <size_t>cnt
+        # Typed sink variable — keeps kiss() results at C level, no boxing.
+        cdef uint64_t _val
+
+        if cnt < 1:
+            raise ValueError(f"cnt must be >= 1, got {cnt}")
 
         start = time.perf_counter()
 
-        if method == "uint64":
-            for _ in range(cnt):
-                self.random_raw()
-        elif method == "uint32":
-            for _ in range(cnt):
-                self._rng.kiss()
-        elif method == "double":
-            for _ in range(cnt):
-                self.random_raw() / (2**64)
+        # int64, uint64, double
+        if method in ["uint64", "double"]:
+            if method == "uint64":
+                # Measures full Python-API round-trip including GIL overhead.
+                for i in range(_cnt):
+                    self.random_raw()
+            elif method == "double":
+                # Measures Python API + float division overhead.
+                for i in range(_cnt):
+                    self.random_raw() / (2**64)
+        # int32, uint32, float
+        elif method in ["uint32", "float"]:
+            if method == "uint32":
+                # Measures raw C++ RNG throughput.  Result is captured in a typed
+                # local so no Python int object is created on the heap.
+                with self.lock:
+                    for i in range(_cnt):
+                        _val = self._rng.kiss()
+            elif method == "float":
+                # Measures Python API + float division overhead.
+                with self.lock:
+                    for i in range(_cnt):
+                        _val = self._rng.kiss() / (2**32)
         else:
-            raise ValueError(f"Invalid method: {method}")
+            raise ValueError(
+                f"method must be 'uint64', 'uint32', 'float', or 'double'; got {method!r}"
+            )
 
         elapsed = time.perf_counter() - start
-        print(f"Generated {cnt:,} {method} values in {elapsed:.3f}s")
-        print(f"Rate: {cnt/elapsed:,.0f} values/sec")
+        print(f"Generated {cnt:,} {method} values in {elapsed:.4f}s")
+        print(f"Rate: {cnt / elapsed:,.0f} values/sec")
 
 
 # ===========================================================================
