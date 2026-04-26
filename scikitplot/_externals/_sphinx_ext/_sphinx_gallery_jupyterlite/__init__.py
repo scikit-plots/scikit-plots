@@ -228,7 +228,7 @@ _PYODIDE_REQUIRED_IMPORTS: tuple[tuple[str, str], ...] = (
     ("import scipy", "import scipy"),
     ("import matplotlib", "import matplotlib"),
     ("import pandas", "import pandas"),
-    ("from sklearn", "import sklearn"),
+    # ("from sklearn", "import sklearn"),
 )
 
 # First line of every Pyodide setup code cell.  Used as an idempotency marker
@@ -525,17 +525,19 @@ def notebook_modification_function(
     ]
     for pkg in dev_docs_specific_code:
         if pkg not in code_lines:
-            code_lines.append(import_line)
+            code_lines.append(pkg)
     if "dev" not in _RELEASE_VERSION:  # defined `release` in conf.py
         code_lines.extend(
             [
                 "import sklearn",
-                "import piplite",
                 "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
+                "# Download scikit-plots *pyodide_20XX_0_wasm32.whl",
+                "import piplite",
                 "await piplite.install(\n"
                 f"  'scikit-plots=={_RELEASE_VERSION}',\n"
                 "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
                 ")",
+                "import scikitplot as sp; sp.show_versions()",
             ]
         )
     else:
@@ -554,6 +556,7 @@ def notebook_modification_function(
                 f"  'scikit-plots=={_RELEASE_VERSION}',\n"
                 "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
                 ")",
+                "import scikitplot as sp; sp.show_versions()",
             ]
         )
     add_code_cell(prepend_cells, "\n".join(code_lines))

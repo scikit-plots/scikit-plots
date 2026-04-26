@@ -414,7 +414,7 @@ global_enable_try_examples = True
 try_examples_global_button_text = "Try it in your browser!"
 try_examples_global_warning_text = (
     "# JupyterLite warning\n\n"
-    "- Running the **scikit-plots {version}** interactive examples in JupyterLite is "
+    f"- Running the **scikit-plots {version}** interactive examples in JupyterLite is "
     "experimental and may not always work as expected.\n"
     "- With high load times especially on low-resource platforms, and the version of "
     "scikit-plots might not be in sync with the one you are browsing the documentation for.\n"
@@ -430,6 +430,7 @@ try_examples_global_warning_text = (
     f"  'scikit-plots=={release}',\n"
     "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
     ")\n"
+    "import scikitplot as sp; sp.show_versions()\n"
     "```"
 )
 
@@ -814,7 +815,8 @@ exclude_patterns = [  # glob-style
 master_doc = "index"
 
 # The encoding of source files.
-# source_encoding = 'utf-8-sig'  # paste Unicode (⚠️, ✅, 🐢, ⚡️ etc.) directly in the .rst file. ✅ ✅ ❌ ⚠️ 🐢 ⚡ 🐍 🪶 🧪 🚀 ⏱️ 💡 ⚖️ 🧪 🧠 🚫
+# source_encoding = 'utf-8-sig'  # paste Unicode (⚠️, ✅, 🐢, ⚡️ etc.) directly in the .rst file.
+# ✅ ✅ ❌ ⚠️ 🐢 ⚡ 🐍 🪶 🧪 🚀 ⏱️ 💡 ⚖️ 🧪 🧠 🚫
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -999,20 +1001,22 @@ html_theme_options = {
     "navigation_with_keys": False,
     # Use html_sidebars that map page patterns to list of sidebar templates
     "primary_sidebar_end": [],
+    # https://sphinx-gallery.github.io/stable/advanced.html#example
+    # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/doc/conf.py#L170
+    # "secondary_sidebar_items": ["page-toc", "sg_download_links", "sg_launcher_links"],
     # When specified as a dictionary, the keys should follow glob-style patterns, as in
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
     # In particular, "**" specifies the default for all pages
     # Use :html_theme.sidebar_secondary.remove: for file-wide removal
-    # "secondary_sidebar_items": {"**": ["page-toc", "sourcelink"]},
     "secondary_sidebar_items": {
         "**": [
             # "edit-this-page",
             "page-toc",
-            "sourcelink",
             # Sphinx-Gallery-specific sidebar components
             # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
             "sg_download_links",
             "sg_launcher_links",
+            # "sourcelink",
         ],
     },
     # -- Announcement ---------------------------------------------------------
