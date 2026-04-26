@@ -396,6 +396,16 @@ except ImportError:
     )
     with_jupyterlite = False
 
+# Build in the current directory
+# jupyterlite_dir = "/path/to/your/lite/dir"
+# # Build-time configuration for JupyterLite
+# jupyterlite_config = "jupyter_lite_config.json"
+# # Override plugins and extension settings
+# jupyterlite_overrides = "overrides.json"
+# jupyterlite_new_tab_button_text = "My custom JupyterLite button text"
+# notebooklite_new_tab_button_text = "My custom NotebookLite button text"
+# replite_new_tab_button_text = "My custom Replite button text"
+# voici_new_tab_button_text = "My custom Voici button text"
 # -----------------------------------------------------------------------------
 # Interactive documentation examples via JupyterLite
 # -----------------------------------------------------------------------------
@@ -403,12 +413,24 @@ except ImportError:
 global_enable_try_examples = True
 try_examples_global_button_text = "Try it in your browser!"
 try_examples_global_warning_text = (
-    "scikit-plots's interactive examples are experimental and may not always work"
-    " as expected, with high load times especially on low-resource platforms,"
-    " and the version of scikit-plots might not be in sync with the one you are"
-    " browsing the documentation for. If you encounter any issues, please"
-    " report them on the"
-    " [scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues)."
+    "# JupyterLite warning\n\n"
+    "- Running the **scikit-plots {version}** interactive examples in JupyterLite is "
+    "experimental and may not always work as expected.\n"
+    "- With high load times especially on low-resource platforms, and the version of "
+    "scikit-plots might not be in sync with the one you are browsing the documentation for.\n"
+    "- If you encounter any issues, please report them on the "
+    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose)."
+    "\n\n"
+    "```python\n"
+    "# Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
+    "# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
+    "# import micropip\n"
+    "import piplite\n"
+    "await piplite.install(\n"
+    f"  'scikit-plots=={release}',\n"
+    "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
+    ")\n"
+    "```"
 )
 
 # %%
@@ -987,8 +1009,10 @@ html_theme_options = {
             # "edit-this-page",
             "page-toc",
             "sourcelink",
-            # "sg_download_links",
-            # "sg_launcher_links",
+            # Sphinx-Gallery-specific sidebar components
+            # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            "sg_download_links",
+            "sg_launcher_links",
         ],
     },
     # -- Announcement ---------------------------------------------------------
@@ -1008,6 +1032,7 @@ _html_secondary_sidebars = {
     "user_guide/decile/index": [],
     "whats_new/index": [],
     "_tags/tagsindex": [],
+    "auto_examples/00-jupyter_notebooks/index": [],
 }
 for k, v in _html_secondary_sidebars.items():
     html_theme_options["secondary_sidebar_items"][k] = v
@@ -1080,6 +1105,7 @@ html_sidebars = {
     # "related_projects": [],
     # "support": [],
     # "teams/about": [],
+    "auto_examples/00-jupyter_notebooks/index": [],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -1909,7 +1935,7 @@ ai_assistant_features = {
     # Render deep-links to Claude / ChatGPT with page context
     "ai_chat": True,
     # Show MCP server installation buttons
-    "mcp_integration": True,
+    "mcp_integration": False,
 }
 
 ai_assistant_providers = {
@@ -2059,8 +2085,6 @@ jupyter_sphinx_thebelab_config = {
 ##########################################################################
 ## Extension: sphinx_gallery_conf
 ##########################################################################
-
-
 # Import your custom sorting classes (uncomment if needed)
 # from _sphinx_ext.skplt_ext.sg_custom_sorting import (
 #   SubSectionTitleOrder, SKExampleTitleSortKey)
@@ -2081,37 +2105,62 @@ gallery_dirs = ["auto_examples"]
 # Sphinx Gallery Configuration
 # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/gen_gallery.py#L81
 sphinx_gallery_conf = {
-    # "plot_gallery": os.getenv("SPHINX_GALLERY_DISABLE") != "1",
-    # "abort_on_example_error": False,   # CRITICAL: do not stop build
-    # "only_warn_on_example_error": True,
-    # "capture_repr": ("_repr_html_", "__repr__"),
-    # "matplotlib_animations": False,
-    # "expected_failing_examples": [
-    #     "examples/plot_requires_xgboost.py",
-    #     "examples/plot_requires_torch.py",
-    # ],
-    # Backreferences and linking to function docs
-    # Links examples to APIs documentation
-    "backreferences_dir": os.path.join("modules", "generated"),
-    # Specify the module to document
-    "doc_module": ("scikitplot", "sklearn", "matplotlib"),
-    # Linking to external packages for reference URLs
-    "reference_url": {
-        "scikitplot": None,  # Will link to local module documentation
-        # Example linking to external package docs
-        "numpy": "https://numpy.org/doc/stable/",
-        "matplotlib": "https://matplotlib.org/stable/",
-    },
-    "show_memory": False,  # Set to True if memory_profiler is available and needed
+    # Build examples in parallel
+    "parallel": 2,  # True
     # Directories for input example scripts and generated output galleries
     # Directory where your examples are stored
     "examples_dirs": examples_dirs,  # List of folders with example scripts
     # Directory where the output gallery will be saved
     "gallery_dirs": gallery_dirs,  # List of folders where galleries will be generated
-    # "ignore_pattern": r'__init__\\.py',
     # Only run files with filenames matching this pattern (default is ".py")
     # "filename_pattern": r'/plot',  # re.escape(os.sep) + "plot" gives: "/plot" or gives: "\\\\plot"
     # 'filename_pattern': r'^((?!(sg|skip)).)*$',
+    # "ignore_pattern": r'__init__\\.py',
+    # Specify the module to document
+    # Optionally sort the examples within subsections (uncomment if needed): sorts subsections based on titles
+    # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
+    # Use an instance of FileNameSortKey
+    "subsection_order": FileNameSortKey(examples_dirs),  # list of folder
+    # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
+    # "ExampleTitleSortKey",  # See https://sphinx-gallery.github.io/stable/configuration.html#sorting-gallery-examples for alternatives
+    "within_subsection_order": "FileNameSortKey",
+    "show_memory": False,  # Set to True if memory_profiler is available and needed
+    # "write_computation_times": False,
+    # Linking to internal|external packages for reference URLs
+    "reference_url": {
+        # Will link to local module documentation uses None
+        "scikitplot": None,
+        # Example linking to external package docs
+        "numpy": "https://numpy.org/doc/stable/",
+        "matplotlib": "https://matplotlib.org/stable/",
+    },
+    # Backreferences and linking to function docs, Links examples to APIs documentation
+    "backreferences_dir": os.path.join("modules", "generated"),
+    "doc_module": ("scikitplot", "sklearn", "matplotlib"),
+    "inspect_global_variables": False,  # Optional Avoid generating too many cross-links
+    # Optional Additional options
+    "remove_config_comments": True,  # <<-- THIS hides config-only comments in the rendered gallery
+    "line_numbers": False,  # sphinx_gallery_line_numbers = True
+    # https://sphinx-gallery.github.io/stable/configuration.html#making-cell-magic-executable-in-notebooks
+    "promote_jupyter_magic": True,  # Making cell magic executable in notebooks
+    "first_notebook_cell": (
+        "# This cell is added by Sphinx-Gallery\n"
+        "# It can be customized to whatever you like\n"
+    ),
+    "last_notebook_cell": "# This is the last cell",
+    # By default, Sphinx-Gallery will reset modules before each example is run.
+    "reset_modules_order": "both",  # 'before' or 'after'
+    "reset_modules": (  # reset loaded modules between examples
+        # "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
+        "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite.reset_others",
+        "matplotlib",
+        "seaborn",
+    ),
+    "recommender": {
+        "enable": True,
+        "n_examples": 4,
+        "min_df": 12,
+    },
     # Binder integration
     # https://sphinx-gallery.github.io/stable/configuration.html#generate-binder-links-for-gallery-notebooks-experimental
     "binder": {
@@ -2131,42 +2180,15 @@ sphinx_gallery_conf = {
         # A prefix to prepend to any filepaths in Binder links.
         # 'filepath_prefix': '<prefix>'
     },
-    # Optional Additional options
-    "line_numbers": False,  # sphinx_gallery_line_numbers = True
-    "first_notebook_cell": (
-        "# This cell is added by Sphinx-Gallery\n"
-        "# It can be customized to whatever you like\n"
-    ),
-    "last_notebook_cell": "# This is the last cell",
-    # Optional
-    "inspect_global_variables": False,  # Avoid generating too many cross-links
-    # <<-- THIS hides config-only comments in the rendered gallery
-    "remove_config_comments": True,
-    "recommender": {
-        "enable": True,
-        "n_examples": 4,
-        "min_df": 12,
-    },
-    "reset_modules": (  # reset loaded modules between examples
-        # "_sphinx_ext.skplt_ext.sg_doc_build.reset_others",
-        "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite.reset_others",
-        "matplotlib",
-        "seaborn",
-    ),
-    # By default, Sphinx-Gallery will reset modules before each example is run.
-    "reset_modules_order": "both",  # 'before' or 'after'
-    # Optionally sort the examples within subsections (uncomment if needed)
-    # Optional sorting: sorts subsections based on titles
-    # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
-    # Use an instance of FileNameSortKey
-    "subsection_order": FileNameSortKey(examples_dirs),
-    # Options: 'NumberOfCodeLinesSortKey' (default), 'FileNameSortKey', 'FileSizeSortKey', 'ExampleTitleSortKey'
-    "within_subsection_order": "FileNameSortKey",
-    # Making cell magic executable in notebooks
-    # https://sphinx-gallery.github.io/stable/configuration.html#making-cell-magic-executable-in-notebooks
-    "promote_jupyter_magic": True,
-    # Build examples in parallel
-    "parallel": 2,
+    # "plot_gallery": os.getenv("SPHINX_GALLERY_DISABLE") != "1",
+    # "abort_on_example_error": False,   # CRITICAL: do not stop build
+    # "only_warn_on_example_error": True,
+    # "capture_repr": ("_repr_html_", "__repr__"),
+    # "matplotlib_animations": False,
+    # "expected_failing_examples": [
+    #     "examples/plot_requires_xgboost.py",
+    #     "examples/plot_requires_torch.py",
+    # ],
 }
 # Add JupyterLite configuration if enabled
 if with_jupyterlite:
@@ -2204,10 +2226,10 @@ for examples_dir, gallery_dir in zip(examples_dirs, gallery_dirs):
 ##########################################################################
 
 # Config for sphinxext.opengraph
+ogp_site_name = "scikit-plots"
 ogp_site_url = "https://scikit-plots.github.io/stable/"
 ogp_image = "https://scikit-plots.github.io/stable/_static/scikit-plots-logo-small.png"
 ogp_use_first_image = True
-ogp_site_name = "scikit-plots"
 
 ##########################################################################
 ## Extension: _sphinxext

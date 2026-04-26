@@ -2487,27 +2487,27 @@ class AnnoyIndexInterface
   // ─────────────────────────────────────────────────────────────────────────
 
   // Dimension management
-  virtual int get_f() const noexcept = 0;
-  virtual bool set_f(int f, char** error = NULL) noexcept = 0;
+  virtual int get_f() const noexcept override = 0;
+  virtual bool set_f(int f, char** error = NULL) noexcept override = 0;
 
   // Configuration
   virtual void set_seed(R seed) noexcept = 0;
-  virtual void set_verbose(bool verbosity) noexcept = 0;
+  virtual void set_verbose(bool verbosity) noexcept override = 0;
   /// Typed overload — preferred over the bool version for new callers.
-  virtual void set_verbose(AnnoyVerbose level) noexcept {
+  virtual void set_verbose(AnnoyVerbose level) noexcept override {
     set_verbose(annoy_verbose_level(level) > 0);
   }
 
   // Core operations
   virtual bool add_item(S item, const T* embedding, char** error = NULL) noexcept = 0;
-  virtual bool build(int n_trees = -1, int n_threads = -1, char** error = NULL) noexcept = 0;
-  virtual bool unbuild(char** error = NULL) noexcept = 0;
+  virtual bool build(int n_trees = -1, int n_threads = -1, char** error = NULL) noexcept override = 0;
+  virtual bool unbuild(char** error = NULL) noexcept override = 0;
 
   // Disk I/O
-  virtual bool save(const char* filename, bool prefault = false, char** error = NULL) noexcept = 0;
-  virtual bool load(const char* filename, bool prefault = false, char** error = NULL) noexcept = 0;
-  virtual bool on_disk_build(const char* filename, char** error = NULL) noexcept = 0;
-  virtual void unload() noexcept = 0;
+  virtual bool save(const char* filename, bool prefault = false, char** error = NULL) noexcept override = 0;
+  virtual bool load(const char* filename, bool prefault = false, char** error = NULL) noexcept override = 0;
+  virtual bool on_disk_build(const char* filename, char** error = NULL) noexcept override = 0;
+  virtual void unload() noexcept override = 0;
 
   // Accessors
   virtual S get_n_items() const noexcept = 0;
@@ -2522,25 +2522,25 @@ class AnnoyIndexInterface
                                  std::vector<S>* result, std::vector<T>* distances = NULL) const noexcept = 0;
 
   // Serialization
-  virtual std::vector<uint8_t> serialize(char** error = NULL) const noexcept = 0;
+  virtual std::vector<uint8_t> serialize(char** error = NULL) const noexcept override = 0;
   // virtual bool deserialize(const std::vector<uint8_t>& bytes, ...)
   // Pointer allows null Pointer implies ownership ambiguity
   virtual bool deserialize(
     std::vector<uint8_t>* bytes,
     bool prefault = false,
     char** error = NULL
-  ) noexcept = 0;
+  ) noexcept override = 0;
 
   // sklearn compatibility
   virtual bool get_params(
     std::vector<std::pair<std::string,
     std::string>>& params
-  ) const noexcept = 0;
+  ) const noexcept override = 0;
   virtual bool set_params(
     const std::vector<std::pair<std::string,
     std::string>>& params,
     char** error = NULL
-  ) noexcept = 0;
+  ) noexcept override = 0;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Bridge implementations of AnnoyIndexInterfaceBase widened API (_w)
@@ -3726,7 +3726,7 @@ public:
   }
 
   /// Typed enum overload — preferred; maps directly to leveled storage.
-  void set_verbose(AnnoyVerbose level) noexcept {
+  void set_verbose(AnnoyVerbose level) noexcept override {
     set_verbose_level(annoy_verbose_level(level));
   }
 
@@ -4861,7 +4861,7 @@ public:
   }
 
   /// Typed enum overload — delegates through to the underlying AnnoyIndex.
-  void set_verbose(AnnoyVerbose level) noexcept {
+  void set_verbose(AnnoyVerbose level) noexcept override {
     _verbose = annoy_verbose_level(level);
     _params.verbose = _verbose;
     _index.set_verbose(level);
