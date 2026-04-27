@@ -9,10 +9,14 @@
 # This module was copied from the annoy project.
 # https://github.com/spotify/annoy/blob/main/annoy/__init__.pyi
 
-from typing import TYPE_CHECKING, Sized, TypeAlias, TypeVar, overload, runtime_checkable
-from typing import Iterable, Iterator, List, Tuple
-from typing_extensions import Literal, LiteralString, Protocol
-from typing import TypedDict
+# Only imports when type checking
+from typing import TYPE_CHECKING, cast, overload, runtime_checkable
+from typing import TypedDict, Protocol
+
+if TYPE_CHECKING:
+    from typing import Sized, TypeAlias, TypeVar
+    from typing import Iterable, Iterator, List, Tuple
+    from typing_extensions import Literal, LiteralString
 
 from . import annoylib
 

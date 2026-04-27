@@ -1,7 +1,11 @@
 # scikitplot/annoy/_mixins/_meta.pyi
-"""Typing stubs for :mod:`~scikitplot.annoy._mixins._meta`."""  # noqa: PYI021
+#
+# flake8: noqa: E301
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
-# from __future__ import annotations
+"""Typing stubs for :mod:`~scikitplot.annoy._mixins._meta`."""  # noqa: PYI021
 
 import os
 from collections.abc import Mapping

@@ -11,6 +11,9 @@
 
 import re
 from collections.abc import Callable
+
+# Only imports when type checking
+from typing import TYPE_CHECKING, final, overload, type_check_only
 from typing import (
     Any,
     ClassVar,
@@ -19,9 +22,8 @@ from typing import (
     Literal as L,
     NamedTuple,
     TypeVar,
-    final,
-    type_check_only,
 )
+# TODO: import from typing (requires Python >=3.13)
 from typing_extensions import TypeIs
 
 __all__ = ["VERSION_PATTERN", "InvalidVersion", "LegacyVersion", "Version", "parse"]

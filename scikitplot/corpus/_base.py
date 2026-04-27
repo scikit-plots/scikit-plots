@@ -66,22 +66,30 @@ import re
 import sys  # noqa: F401
 import types
 from dataclasses import dataclass, field
+
+# Only imports when type checking
 from typing import (  # noqa: F401
     TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
     Dict,
+    Final,
+    FrozenSet,
     Generator,
     Iterator,
     List,
     Optional,
+    Protocol,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
     Union,
 )
 
-from typing_extensions import Self  # noqa: F401
+if TYPE_CHECKING:
+    from typing_extensions import Self  # noqa: F401
 
 from ._schema import (
     _PROMOTED_RAW_KEYS,

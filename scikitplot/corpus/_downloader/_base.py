@@ -37,9 +37,30 @@ import shutil
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional  # noqa: F401
 
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        Any,
+        Callable,
+        ClassVar,
+        Dict,
+        Final,
+        Generator,
+        Iterator,
+        List,
+        Optional,
+        Protocol,
+        Sequence,
+        Tuple,
+        Type,
+        TypeVar,
+        Union,
+    )
+
+    from typing_extensions import Self  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

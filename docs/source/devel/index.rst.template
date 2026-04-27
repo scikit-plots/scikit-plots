@@ -137,6 +137,7 @@ Here you'll find all the guidance and resources you need to quickly start contri
          :caption: docker
 
          Docker Guidelines <guide_docker.rst>
+         Docker Recovery Guide <guide_docker_wsl_recovery_sphinx.rst>
          Python Env Manager Guide <guide_python_env_manager.rst>
 
 

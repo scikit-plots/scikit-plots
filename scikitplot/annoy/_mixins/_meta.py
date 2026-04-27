@@ -25,9 +25,14 @@ import json
 import os
 from collections.abc import Mapping
 from enum import Enum
-from typing import Any, TypedDict, cast
 
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING, TypedDict, cast
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from typing_extensions import Self
 
 from .._utils import atomic_write_text, backend_for, lock_for, read_text
 

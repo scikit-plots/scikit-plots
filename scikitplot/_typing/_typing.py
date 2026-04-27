@@ -166,11 +166,30 @@ if TYPE_CHECKING:
         ParamSpec,
         Protocol,
         SupportsIndex,
+        TypedDict,
         # TypeAlias,  # 3.10+
         TypeVar,
         Union,
         overload,
     )
+
+    # -------------------------
+    # Self (3.11+ only)
+    # -------------------------
+    # if sys.version_info >= (3, 11):
+    #     from typing import Self
+    # else:
+    #     from typing import TypeVar
+    #     Self = TypeVar("Self", bound=object)
+
+    # -------------------------
+    # TypeAlias (3.10+ only)
+    # -------------------------
+    # if sys.version_info >= (3, 10):
+    #     from typing import TypeAlias
+    # else:
+    #     # fallback: no-op marker for older Python
+    #     TypeAlias = object
 
     # Compatibility shim for `TypeAlias` in Python < 3.10
     try:

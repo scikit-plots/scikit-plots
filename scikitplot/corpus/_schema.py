@@ -54,23 +54,30 @@ import sys
 import warnings
 from dataclasses import asdict, dataclass, field, fields  # noqa: F401
 from enum import Enum
+
+# Only imports when type checking
 from typing import (  # noqa: F401
     TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
     Dict,
+    Final,
     FrozenSet,
+    Generator,
     Iterator,
     List,
     Optional,
     Protocol,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
     Union,
 )
 
-from typing_extensions import Self  # noqa: F401
+if TYPE_CHECKING:
+    from typing_extensions import Self  # noqa: F401
 
 if TYPE_CHECKING:
     # Imported only for static analysis; never executed at runtime.

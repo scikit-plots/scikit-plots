@@ -85,10 +85,14 @@ from cpython.exc cimport PyErr_SetString, PyErr_Format, PyErr_NoMemory, PyErr_Oc
 import warnings  # no-cython-lint
 import json  # no-cython-lint
 import pickle  # no-cython-lint
-from typing import Any, Dict, Optional  # no-cython-lint
-from typing import Optional, Union, List, Tuple, Sequence  # no-cython-lint
 from threading import RLock
-from typing_extensions import Self  # no-cython-lint
+
+# Only imports when type checking
+from typing import TYPE_CHECKING, overload  # no-cython-lint
+
+if TYPE_CHECKING:
+    from typing import Any, Dict, List, Optional, Sequence, Tuple, Union  # no-cython-lint
+    from typing_extensions import Self  # no-cython-lint
 
 # Import declarations from .pxd file
 from .annoylib cimport (

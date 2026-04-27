@@ -70,15 +70,31 @@ from __future__ import annotations
 
 import logging
 import unicodedata  # noqa: F401
-from typing import Any, Callable, Dict, Final, List, Optional, Tuple, Type  # noqa: F401
 
-try:
-    from typing import Protocol, runtime_checkable
-except ImportError:  # Python 3.7 shim (not needed at 3.8+ but harmless)
-    from typing_extensions import (  # type: ignore[assignment]
-        Protocol,
-        runtime_checkable,
-    )
+# Python 3.7 shim (not needed at 3.8+ but harmless)
+# Only imports when type checking
+from typing import (  # noqa: F401
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Final,
+    Generator,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
+
+if TYPE_CHECKING:
+    from typing_extensions import Self  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

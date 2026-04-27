@@ -37,9 +37,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass  # noqa: F401
 from enum import Enum  # noqa: F401
 from pathlib import Path  # noqa: F401
-from typing import Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
 
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 from .._utils import backend_for, lock_for
 
