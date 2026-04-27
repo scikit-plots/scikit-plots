@@ -68,28 +68,27 @@ import types
 from dataclasses import dataclass, field
 
 # Only imports when type checking
-from typing import TYPE_CHECKING
+from typing import (  # noqa: F401
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Final,
+    FrozenSet,
+    Generator,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 if TYPE_CHECKING:
-    from typing import (  # noqa: F401
-        Any,
-        Callable,
-        ClassVar,
-        Dict,
-        Final,
-        FrozenSet,
-        Generator,
-        Iterator,
-        List,
-        Optional,
-        Protocol,
-        Sequence,
-        Tuple,
-        Type,
-        TypeVar,
-        Union,
-    )
-
     from typing_extensions import Self  # noqa: F401
 
 from ._schema import (

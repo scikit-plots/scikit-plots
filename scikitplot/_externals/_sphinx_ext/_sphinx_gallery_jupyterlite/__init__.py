@@ -81,7 +81,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     # Sphinx is an optional build-time dependency.  Importing it at runtime
     # would prevent this module from being imported in environments that
     # only install scikit-plots for inference (not documentation builds).

@@ -29,13 +29,13 @@ logger.info("This is a info message from the sp logger.")
 # Only imports when type checking
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    # Heavy import, only for type checking
-    # Only imports when type checking, not at runtime
-    from typing import Final, LiteralString
-    from typing_extensions import LiteralString
+# if TYPE_CHECKING:
+# Heavy import, only for type checking
+# Only imports when type checking, not at runtime
+from typing import Final, LiteralString
+from typing_extensions import LiteralString
 
-    pass  # Usage as str type 'tf'
+# pass  # Usage as str type 'tf'
 
 __numpy_version__: Final[LiteralString]
 _BUILT_WITH_MESON: Final[bool]

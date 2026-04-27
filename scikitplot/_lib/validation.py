@@ -118,7 +118,7 @@ else:
 
 
 # Define random number generator types
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     SeedType = Union[IntNumber, np.random.Generator, np.random.RandomState, None]
     GeneratorType = TypeVar(
         "GeneratorType", bound=Union[np.random.Generator, np.random.RandomState]
