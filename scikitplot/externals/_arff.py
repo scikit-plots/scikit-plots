@@ -160,8 +160,44 @@ __version__ = '2.4.0'
 
 import re
 import csv
-from typing import TYPE_CHECKING
-from typing import Optional, List, Dict, Any, Iterator, Union, Tuple
+
+# Only imports when type checking
+from typing import TYPE_CHECKING, overload
+
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        Any,
+        Callable,
+        ClassVar,
+        Dict,
+        Final,
+        FrozenSet,
+        Generator,
+        Iterator,
+        List,
+        Protocol,
+        Sequence,
+        Optional,
+        Tuple,
+        Type,
+        TypeVar,
+        Union,
+    )
+    from typing_extensions import Self, TypeAlias  # noqa: F401
+
+    ArffDenseDataType = Iterator[List]
+    ArffSparseDataType = Tuple[List, ...]
+
+    # typing_extensions is available when mypy is installed
+    from typing_extensions import TypedDict
+
+    # ArffContainerType = Dict[str, Any]
+    class ArffContainerType(TypedDict):
+        description: str
+        relation: str
+        attributes: List
+        data: Union[ArffDenseDataType, ArffSparseDataType]
+
 
 # CONSTANTS ===================================================================
 _SIMPLE_TYPES = ['NUMERIC', 'REAL', 'INTEGER', 'STRING']
@@ -178,23 +214,6 @@ _RE_QUOTE_CHARS = re.compile(r'["\'\\\s%,\000-\031]', re.UNICODE)
 _RE_ESCAPE_CHARS = re.compile(r'(?=["\'\\%])|[\n\r\t\000-\031]')
 _RE_SPARSE_LINE = re.compile(r'^\s*\{.*\}\s*$', re.UNICODE)
 _RE_NONTRIVIAL_DATA = re.compile('["\'{}\\s]', re.UNICODE)
-
-ArffDenseDataType = Iterator[List]
-ArffSparseDataType = Tuple[List, ...]
-
-
-if TYPE_CHECKING:
-    # typing_extensions is available when mypy is installed
-    from typing_extensions import TypedDict
-
-    class ArffContainerType(TypedDict):
-        description: str
-        relation: str
-        attributes: List
-        data: Union[ArffDenseDataType, ArffSparseDataType]
-
-else:
-    ArffContainerType = Dict[str, Any]
 
 
 def _build_re_values():

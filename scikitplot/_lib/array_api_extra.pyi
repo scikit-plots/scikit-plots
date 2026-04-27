@@ -4,8 +4,11 @@
 # flake8: noqa
 # type: ignore
 
-from typing import Final, LiteralString
+# Only imports when type checking
+from typing import TYPE_CHECKING
 
-from typing_extensions import LiteralString
+if TYPE_CHECKING:
+    from typing import Final, LiteralString
+    from typing_extensions import LiteralString
 
 __version__: Final[LiteralString]

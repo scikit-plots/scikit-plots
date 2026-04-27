@@ -71,9 +71,30 @@ import logging
 import pathlib
 from dataclasses import dataclass, field  # noqa: F401
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple  # noqa: F401
 
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import (  # noqa: F401
+        Any,
+        Callable,
+        ClassVar,
+        Dict,
+        Final,
+        Generator,
+        Iterator,
+        List,
+        Optional,
+        Protocol,
+        Sequence,
+        Tuple,
+        Type,
+        TypeVar,
+        Union,
+    )
+
+    from typing_extensions import Self  # noqa: F401
 
 from ._base import ChunkerBase, FilterBase
 from ._normalizers._normalizer import NormalizerBase

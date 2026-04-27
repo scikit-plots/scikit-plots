@@ -3259,31 +3259,71 @@ cdef class KissGenerator:
         float or ndarray
             Normal samples
 
+        Notes
+        -----
+        Uses the Box-Muller transform:
+            z = sqrt(-2 * log(u1)) * cos(2 * pi * u2)
+        where u1, u2 are i.i.d. Uniform(0, 1).
+
+        u1 is clamped away from zero to prevent log(0) = -inf.  Since
+        KissBitGenerator.random() maps [0, 2^64-1] onto [0.0, 1.0) and zero
+        is a valid raw value, u1 == 0.0 is possible (probability 1/2^64).
+
+        The size != None path is fully vectorized in NumPy's C layer.
+        No Python list or scalar boxing is performed, which avoids the
+        GCC -Wstringop-overflow false positives triggered by Python 3.13t's
+        free-threaded Py_INCREF atomic operations.
+
         Examples
         --------
         >>> gen = KissGenerator(42)
         >>> gen.normal(0, 1, size=1000)
         array([...])
         """
+        # Smallest positive normalized float64 — used as log-zero guard.
+        # Denormalized minimum (5e-324) is theoretically smaller but
+        # normalized (2.225e-308) is safer for reproducibility across
+        # platforms that may flush denormals to zero.
+        cdef double _tiny = 2.2250738585072014e-308  # np.finfo(np.float64).tiny
+
         if size is None:
-            u1, u2 = self.random(), self.random()
-            z = np.sqrt(-2 * np.log(u1)) * np.cos(2 * np.pi * u2)
-            return loc + scale * z
+            # Single scalar sample.
+            u1 = self.random()
+            u2 = self.random()
+            # Guard: clamp to avoid log(0) = -inf.
+            if u1 == 0.0:
+                u1 = _tiny
+            z = np.sqrt(-2.0 * np.log(u1)) * np.cos(2.0 * np.pi * u2)
+            return float(loc + scale * z)
 
         if isinstance(size, int):
             size = (size,)
 
         n_total = int(np.prod(size))
-        n_pairs = (n_total + 1) // 2
 
-        samples = []
-        for _ in range(n_pairs):
-            u1, u2 = self.random(), self.random()
-            z1 = np.sqrt(-2 * np.log(u1)) * np.cos(2 * np.pi * u2)
-            z2 = np.sqrt(-2 * np.log(u1)) * np.sin(2 * np.pi * u2)
-            samples.extend([z1, z2])
+        # Fully vectorized Box-Muller.
+        #
+        # The previous loop-based implementation (samples = []; for ...:
+        # samples.extend([z1, z2])) boxed every z1/z2 as a Python float
+        # and allocated a Python list per iteration.  Under Python 3.13t
+        # free-threaded, each Python object allocation triggers Py_INCREF
+        # via atomic ops, which GCC's IPA analysis incorrectly flags as
+        # -Wstringop-overflow.
+        #
+        # By keeping all arithmetic inside NumPy's C layer we:
+        #   1. Eliminate all Python scalar boxing.
+        #   2. Reduce Python object lifecycle events to two (u1, u2 arrays).
+        #   3. Gain significant performance on large size values.
+        u1 = self.random(n_total)   # float64 ndarray, shape (n_total,)
+        u2 = self.random(n_total)   # float64 ndarray, shape (n_total,)
 
-        result = loc + scale * np.array(samples[:n_total])
+        # Guard: replace any exact zero with the smallest normal float64.
+        # np.maximum with out= is an in-place operation — no copy.
+        np.maximum(u1, _tiny, out=u1)
+
+        mag = np.sqrt(-2.0 * np.log(u1))          # magnitude
+        angle = 2.0 * np.pi * u2                  # phase
+        result = loc + scale * (mag * np.cos(angle))
         return result.reshape(size)
 
     def permutation(self, x, axis=0):

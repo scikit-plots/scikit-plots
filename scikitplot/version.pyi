@@ -9,8 +9,12 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
-# from typing_extensions import LiteralString
-from typing import Final, LiteralString
+# Only imports when type checking
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # from typing_extensions import LiteralString
+    from typing import Final, LiteralString
 
 __all__ = (
     "__git_hash__",

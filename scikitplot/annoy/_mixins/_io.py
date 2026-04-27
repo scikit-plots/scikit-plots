@@ -27,12 +27,17 @@ import contextlib  # noqa: F401
 import os
 import shutil  # noqa: F401
 import tempfile  # noqa: F401
-from collections.abc import Callable  # noqa: F401
 from os import PathLike
 from pathlib import Path  # noqa: F401
 
-# from typing import Callable
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # from typing import Callable
+    from collections.abc import Callable  # noqa: F401
+
+    from typing_extensions import Self
 
 from .._utils import backend_for, ensure_parent_dir, lock_for
 

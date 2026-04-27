@@ -31,17 +31,21 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import (  # noqa: F401
     Any,
+    Callable,
     ClassVar,
     Dict,
+    Final,
     FrozenSet,
+    Generator,
     Iterator,
     List,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     Type,
     TypeVar,
-    overload,
+    Union,
 )
 
 import numpy as np

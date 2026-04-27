@@ -31,10 +31,14 @@ scikitplot.cexternals._annoy.Annoy
 
 from __future__ import annotations
 
+# import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
 import threading
 
-# import uuid  # f"annoy-{uuid.uuid4().hex}.annoy"
-from typing_extensions import Self
+# Only imports when type checking
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 from ..cexternals._annoy import Annoy
 from ._mixins._io import IndexIOMixin

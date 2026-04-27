@@ -30,14 +30,18 @@ import pathlib
 import types
 from dataclasses import dataclass
 from typing import (  # noqa: F401
-    TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
     Dict,
+    Final,
+    FrozenSet,
     Generator,
     Iterator,
     List,
     Optional,
+    Protocol,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
