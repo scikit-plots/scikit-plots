@@ -11,12 +11,12 @@
 
 # Only imports when type checking
 from typing import TYPE_CHECKING, cast, overload, runtime_checkable
+from typing import TypedDict, Protocol
 
 if TYPE_CHECKING:
     from typing import Sized, TypeAlias, TypeVar
     from typing import Iterable, Iterator, List, Tuple
-    from typing import TypedDict
-    from typing_extensions import Literal, LiteralString, Protocol
+    from typing_extensions import Literal, LiteralString
 
 from . import annoylib
 

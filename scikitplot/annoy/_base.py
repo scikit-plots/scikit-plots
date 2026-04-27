@@ -37,8 +37,13 @@ import threading
 # Only imports when type checking
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
+if TYPE_CHECKING:  # pragma: no cover
+    from typing_extensions import Self, override  # noqa: F401
+else:
+
+    def override(func):
+        return func
+
 
 from ..cexternals._annoy import Annoy
 from ._mixins._io import IndexIOMixin

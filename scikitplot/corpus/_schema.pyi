@@ -1,4 +1,10 @@
 # scikitplot/corpus/_schema.pyi
+#
+# flake8: noqa: E301,E701
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 # ============================================================
 # Type stubs for scikitplot.corpus._schema
 #

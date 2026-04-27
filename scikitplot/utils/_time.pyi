@@ -1,3 +1,7 @@
+# scikitplot/utils/_time.pyi
+#
+# flake8: noqa: E301
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 

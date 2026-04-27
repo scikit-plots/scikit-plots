@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Heavy import, only for type checking
     # Only imports when type checking, not at runtime
+    # from typing_extensions import LiteralString
     from typing import Final, LiteralString
-    from typing_extensions import LiteralString
 
 CITATION = Final[LiteralString]
 

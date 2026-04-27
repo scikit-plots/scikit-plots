@@ -33,17 +33,15 @@ import gzip
 import os
 import pickle
 import zlib
+from collections.abc import Mapping
 from dataclasses import dataclass  # noqa: F401
 from enum import Enum  # noqa: F401
 from pathlib import Path  # noqa: F401
 
 # Only imports when type checking
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from typing import Any, ClassVar, Literal, TypeAlias  # noqa: F401
-
     from typing_extensions import Self
 
 from .._utils import backend_for, lock_for

@@ -54,10 +54,10 @@ Tip: set ``include_distances=True`` and/or ``return_labels=True`` to return dist
 
 # Only imports when type checking
 from typing import TYPE_CHECKING, cast, overload, runtime_checkable
+from typing import Any, Mapping, Sequence, Sized, TypedDict, Protocol
 
 if TYPE_CHECKING:
-    from typing import Any, Mapping, Sequence, Sized, TypedDict
-    from typing_extensions import Literal, NotRequired, Protocol, Required, Self, TypeAlias
+    from typing_extensions import Literal, NotRequired, Required, Self, TypeAlias
 
 __backend__: Literal["cpp"]
 

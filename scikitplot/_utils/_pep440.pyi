@@ -10,22 +10,21 @@
 # https://github.com/numpy/numpy/blob/main/numpy/_utils/
 
 import re
+from collections.abc import Callable
 
 # Only imports when type checking
 from typing import TYPE_CHECKING, final, overload, type_check_only
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import (
-        Any,
-        ClassVar,
-        Final,
-        Generic,
-        Literal as L,
-        NamedTuple,
-        TypeVar,
-    )
-    from typing_extensions import TypeIs
+from typing import (
+    Any,
+    ClassVar,
+    Final,
+    Generic,
+    Literal as L,
+    NamedTuple,
+    TypeVar,
+)
+# TODO: import from typing (requires Python >=3.13)
+from typing_extensions import TypeIs
 
 __all__ = ["VERSION_PATTERN", "InvalidVersion", "LegacyVersion", "Version", "parse"]
 

@@ -14,11 +14,9 @@ from _typeshed import SupportsLenAndGetItem
 
 # Only imports when type checking
 from typing import TYPE_CHECKING, overload
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
-    from typing import Any, Final, TypeAlias, TypeVar
-    from typing_extensions import TypeIs
+from collections.abc import Callable, Mapping
+from typing import Any, Final, TypeAlias, TypeVar
+from typing_extensions import TypeIs
 
 __all__ = ["formatargspec", "getargspec"]
 

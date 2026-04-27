@@ -17,13 +17,35 @@
 <!-- https://simpleicons.org/ -->
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
 <div align="center">
- <!-- codespaces -->
- <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
- <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
-  <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
-  <img alt="Open in GitHub Codespaces" height="17px" width="auto"
-  src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
+ <!-- Anaconda Nightly Conda -->
+ <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
+ <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="Anaconda Nightly Wheels Version" height="17"
+   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Version%20Nightly&color=orange">
  </a>
+ <!-- Anaconda Nightly Daily, Weekly, or Monthly Downloads -->
+ <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg -->
+ <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="Anaconda Nightly Wheels Downloads" height="17"
+   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads%20Nightly&color=orange">
+ </a>
+ <!-- GitHub Actions -->
+ <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
+ <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="GitHub Actions CI Build Wheels Status" height="17"
+   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=githubactions&label=GitHub%20Actions%20%7C%20Wheels%20Conda&color=olivegreen">
+ </a>
+ <!-- CircleCI -->
+ <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
+ <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank"
+  rel="noopener noreferrer">
+  <img alt="CircleCI Status" height="17"
+   src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
+ </a>
+ <br>
  <!-- PyPI -->
  <!-- https://opensource.com/article/21/3/python-package-index-json-apis-requests -->
  <!-- https://www.piwheels.org/project/scikit-plots/json/ -->
@@ -37,13 +59,6 @@
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI Downloads" height="17"
    src="https://img.shields.io/pypi/dm/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20|%20Downloads&color=green">
- </a>
- <!-- pepy.tech -->
- <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
- <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
- <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Pepy Total Downloads" height="17"
-   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total%20Downloads&color=green">
  </a>
  <!-- Anaconda Stable Conda -->
  <!-- https://anaconda.org/conda-forge/scikit-plots/badges/version.svg -->
@@ -66,20 +81,7 @@
   <img alt="Anaconda Stable Wheels Release Date" height="17"
   src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
  </a> -->
- <!-- Anaconda Nightly Conda -->
- <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="Anaconda Nightly Wheels Version" height="17"
-   src="https://img.shields.io/conda/v/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Version%20Nightly&color=orange">
- </a>
- <!-- Anaconda Nightly Daily, Weekly, or Monthly Downloads -->
- <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/downloads.svg -->
- <a href="https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="Anaconda Nightly Wheels Downloads" height="17"
-   src="https://img.shields.io/conda/d/scikit-plots-wheels-staging-nightly/scikit-plots?style=flat-square&logo=anaconda&label=conda%20|%20Downloads%20Nightly&color=orange">
- </a>
+ <br>
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
@@ -96,15 +98,24 @@
   <img alt="🐋 Docker Image Size (tag)" height="17"
    src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
  </a>
- <!-- pre-commit -->
- <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
-  <img alt="pre-commit Status" height="17"
-   src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
+ <!-- pepy.tech -->
+ <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
+ <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
+ <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Pepy Total Downloads" height="17"
+   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total%20Downloads&color=green">
  </a>
- <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="pre-commit.ci Status" height="17"
-   src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
+ <br>
+ <!-- codecov -->
+ <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
+ </a>
+ <!-- OpenSSF Scorecard https://securityscorecards.dev/ -->
+ <!-- https://github.com/marketplace/actions/ossf-scorecard-action#workflow-setup-required -->
+ <a href="https://securityscorecards.dev/viewer/?uri=github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://img.shields.io/ossf-scorecard/github.com/scikit-plots/scikit-plots?style=flat-square&label=OpenSSF%20Scorecard&color=green">
  </a>
  <!-- Code Style - Ruff -->
  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
@@ -117,35 +128,17 @@
   <img alt="PyPI - Types" height="17"
    src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
  </a>
- <!-- codecov -->
- <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Coverage Status" height="17"
-   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
- </a>
- <!-- OpenSSF Scorecard https://securityscorecards.dev/ -->
- <!-- https://github.com/marketplace/actions/ossf-scorecard-action#workflow-setup-required -->
- <a href="https://securityscorecards.dev/viewer/?uri=github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Coverage Status" height="17"
-   src="https://img.shields.io/ossf-scorecard/github.com/scikit-plots/scikit-plots?style=flat-square&label=OpenSSF%20Scorecard&color=green">
- </a>
- <!-- GitHub Actions -->
- <!-- https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml/badge.svg -->
- <a href="https://github.com/scikit-plots/scikit-plots/actions/workflows/ci_wheels_conda.yml" target="_blank"
+ <!-- pre-commit -->
+ <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
   rel="noopener noreferrer">
-  <img alt="GitHub Actions CI Build Wheels Status" height="17"
-   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=githubactions&label=GitHub%20Actions%20%7C%20Wheels%20Conda&color=olivegreen">
+  <img alt="pre-commit.ci Status" height="17"
+   src="https://results.pre-commit.ci/badge/github/scikit-plots/scikit-plots/main.svg">
  </a>
- <!-- CircleCI -->
- <!-- https://dl.circleci.com/status-badge/img/gh/scikit-plots/scikit-plots/tree/main.svg?style=shield -->
- <a href="https://dl.circleci.com/status-badge/redirect/gh/scikit-plots/scikit-plots/tree/main" target="_blank"
-  rel="noopener noreferrer">
-  <img alt="CircleCI Status" height="17"
-   src="https://img.shields.io/circleci/build/github/scikit-plots/scikit-plots/main?style=flat-square&logo=circleci&label=CircleCI%20%7C%20Docs%20Build&color=olivegreen">
+ <a href="https://github.com/pre-commit/pre-commit" target="_blank" rel="noopener noreferrer">
+  <img alt="pre-commit Status" height="17"
+   src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
  </a>
- <!-- Documentation -->
- <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
- </a>
+ <br>
  <!-- PyPI - pyversions -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="PyPI - pyversions" height="17"
@@ -162,6 +155,23 @@
  <!-- Zenodo -->
  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
   <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+ </a>
+ <br>
+ <!-- codespaces -->
+ <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
+ <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
+  <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
+  <img alt="Open in GitHub Codespaces" height="17px" width="auto"
+  src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
+ </a>
+ <!-- jupyterlite -->
+ <!-- https://img.shields.io/badge/try-lite_now-ffff00?logo=jupyter&logoColor=orange -->
+ <a href="https://scikit-plots.github.io/dev/lite/lab/index.html" target="_blank" rel="noopener noreferrer">
+  <img alt="jupyterlite-badge" height="17" src="https://jupyterlite.rtfd.io/en/latest/_static/badge.svg">
+ </a>
+ <!-- Documentation -->
+ <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
  </a>
 </div>
 

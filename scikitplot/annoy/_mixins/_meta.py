@@ -23,14 +23,14 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+from collections.abc import Mapping
 from enum import Enum
 
 # Only imports when type checking
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from typing import Any, TypedDict
+    from typing import Any
 
     from typing_extensions import Self
 
