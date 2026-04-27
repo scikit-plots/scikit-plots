@@ -2907,7 +2907,7 @@ cdef class Index(BaseIndex):
     # Parameter Management (sklearn-style)
     # =========================================================================
 
-    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
         """
         Get parameters (sklearn-style).
 
@@ -3052,7 +3052,7 @@ cdef class Index(BaseIndex):
     # Serialization Support (Pickle Protocol)
     # =========================================================================
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:
         """
         Return state for pickling.
 
@@ -3071,7 +3071,7 @@ cdef class Index(BaseIndex):
         """
         return self.get_state()
 
-    def __setstate__(self, state: Dict[str, Any]) -> None:
+    def __setstate__(self, state: dict[str, Any]) -> None:
         """
         Restore state from pickle.
 
@@ -3121,7 +3121,7 @@ cdef class Index(BaseIndex):
         """
         return self.__reduce__()
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """
         Get complete state dictionary.
 
@@ -3181,7 +3181,7 @@ cdef class Index(BaseIndex):
 
         return state
 
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         """
         Restore state from dictionary.
 
@@ -3302,7 +3302,7 @@ cdef class Index(BaseIndex):
                     raise RuntimeError("Failed to deserialize index (unknown error)")
         return self
 
-    def serialize(self) -> Dict[str, Any]:
+    def serialize(self) -> dict[str, Any]:
         """
         Serialize to JSON-compatible dictionary.
 
@@ -3336,7 +3336,7 @@ cdef class Index(BaseIndex):
         return state
 
     @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> Self:
+    def deserialize(cls, data: dict[str, Any]) -> Self:
         """
         Deserialize from dictionary.
 
@@ -3381,7 +3381,7 @@ cdef class Index(BaseIndex):
 
         return instance
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Alias for serialize().
 
@@ -3393,7 +3393,7 @@ cdef class Index(BaseIndex):
         return self.serialize()
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Self:
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         """
         Alias for deserialize().
 

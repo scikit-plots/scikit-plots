@@ -103,7 +103,7 @@ import secrets
 import warnings
 from collections.abc import Sequence
 from contextlib import contextmanager
-from typing import Any, Optional, Union  # Mapping
+from typing import Any, Optional, Union  # Mapping  # no-cython-lint
 
 # NumPy integration
 import numpy as np
@@ -937,7 +937,7 @@ class KissSeedSequence:
         return cls.deserialize(data)
 
     @property
-    def state(self) -> dict[str, Any]:
+    def state(self) -> dict:
         """
         Get current state as dictionary.
 
@@ -2270,7 +2270,7 @@ cdef class KissBitGenerator:
 
         return result.reshape(size)
 
-    def spawn(self, n_children: int) -> list["KissBitGenerator"]:
+    def spawn(self, n_children: int) -> list[KissBitGenerator]:
         """
         Create independent child BitGenerators (NumPy protocol).
 
