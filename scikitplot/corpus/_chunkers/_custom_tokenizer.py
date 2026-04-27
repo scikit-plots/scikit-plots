@@ -73,27 +73,27 @@ import unicodedata  # noqa: F401
 
 # Python 3.7 shim (not needed at 3.8+ but harmless)
 # Only imports when type checking
-from typing import TYPE_CHECKING, runtime_checkable
+from typing import (  # noqa: F401
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Final,
+    Generator,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 if TYPE_CHECKING:
-    from typing import (  # noqa: F401
-        Any,
-        Callable,
-        ClassVar,
-        Dict,
-        Final,
-        Generator,
-        Iterator,
-        List,
-        Optional,
-        Protocol,
-        Sequence,
-        Tuple,
-        Type,
-        TypeVar,
-        Union,
-    )
-
     from typing_extensions import Self  # noqa: F401
 
 logger = logging.getLogger(__name__)
