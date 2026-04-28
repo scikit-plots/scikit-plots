@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+# .binder/start — repo2docker pre-launch hook for scikit-plots/.binder
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# PURPOSE
+#   Executed by repo2docker immediately before the notebook server starts.
+#   All commands run as the container user (NB_USER, typically jovyan).
+#
+# CONTRACT
+#   Input  : "$@" — the notebook server command prepared by repo2docker
+#   Output : process table — exec replaces this shell with the server process
+#
+# INVARIANTS
+#   - Must be executable (chmod +x) and owned by NB_USER
+#   - Must end with exec "$@" so that the server inherits the shell's PID
+#     and receives SIGTERM correctly when the container stops
+#
+# FAILURE MODES
+#   - Any command before exec exits non-zero : repo2docker aborts the session
+#   - exec failure                           : shell exits non-zero; session aborts
+#
+# NOTE: Keep this file minimal and fast.  Every command added here runs on
+#   every Binder session start and delays the user's notebook appearing.
+
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+# Ignore SIGPIPE so the script is not killed when output is piped to a tool
+# that closes its stdin early (e.g. head, less, tee into a closed descriptor).
+# Without this, any printf/log call after the consumer closes propagates SIGPIPE
+# and terminates the script silently under set -e.
+trap '' PIPE
+
+# echo "Starting Binder session..."
+printf '[start] INFO  Binder session starting.\n' >&2
+## what username do i have?
+# whoami
+## what user id do i have?
+# id -u
+## what is the current working directory?
+# pwd
+## who is the owner of the files in the users home directory?
+# ls -alh ~
+# exec replaces this shell with the notebook server process.
+# This is required by repo2docker: the server must own the shell's PID so that
+# it receives SIGTERM correctly when the container is stopped or restarted.
+exec "$@"

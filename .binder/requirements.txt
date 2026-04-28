@@ -1,5 +1,6 @@
---find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
+--no-cache-dir
 --find-links https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/scikit-learn
+--find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
 --pre
 
 cython
@@ -23,8 +24,10 @@ scikit-image
 scikit-learn
 statsmodels
 
+jupyter-contrib-nbextensions
 ipython
 ipykernel
+ipywidgets
 
 sphinx-gallery
 h5py
@@ -34,4 +37,6 @@ shapely
 # --prefer-binary
 # --no-binary :all:
 # --no-binary scikit-plots
-# scikit-plots
+# Install scikit-plots from the nightly staging index via --find-links above.
+# --pre allows pre-release version strings produced by the staging build.
+scikit-plots

@@ -268,9 +268,10 @@ endif
 #     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
 #     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
 # (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
-# v1 (x86-64)   Baseline (SSE2)         2003+   Extreme legacy support. Slowest for math.
-# v2            SSE4.2, POPCNT          2009+   Safe Baseline. Supports almost all active PCs/Servers.
-# v3            AVX, AVX2, BMI2, FMA    2013+   High Performance. Required for fast vector math.
+# v1 (x86-64)	 Baseline (SSE2)       	 2003+	Extreme legacy support. Slowest for math. Original 64-bit CPUs (AMD Opteron, Intel Core 2)
+# v2	         SSSE3,  SSE4.2, POPCNT	 2009+	Safe Baseline. Supports almost all active PCs/Servers. Intel Nehalem (2008), AMD Jaguar
+# v3	         AVX, AVX2, BMI2, FMA	   2013+	High Performance. Required for fast vector math. Intel Haswell (2013), AMD Zen
+# v4         	 AVX-512	               2017+  Intel Skylake-X (2017), AMD Zen 4
 # -march=native         0/10 (Crashes others)         10/10   Local builds / Private servers
 # -march=x86-64        10/10 (Works on everything)     3/10   Basic CLI tools, non-math libs
 # -march=x86-64-v3      8/10 (2013+ CPUs)              9/10   Vector DBs, AI, Data Science
@@ -280,13 +281,7 @@ endif
 # If a user wants maximum performance, they will install your sdist like this:
 #   export CFLAGS="-march=native -O3"
 #   pip install your-package --no-binary your-package
-
-if cpu_arch == 'ppc64le' and is_gnu_style
-  if cc.has_argument('-mcpu=native')
-    extra_compile_args += ['-mcpu=native']
-  endif
-endif
-
+#
 # BUG-4 FIX: -march=native is NOT added unconditionally here.
 #
 # The build pipeline exports CFLAGS (e.g. CFLAGS="-march=x86-64-v2 -O2") via
@@ -304,13 +299,19 @@ endif
 # meson_options.txt and gate the flag on that option.  Do not add it
 # unconditionally.
 #
-# if cpu_arch == 'x86_64' and is_gnu_style
-#   if os_name != 'darwin'
-#     if cc.has_argument('-march=native')
-#       extra_compile_args += ['-march=native']
-#     endif
-#   endif
-# endif
+if cpu_arch == 'x86_64' and is_gnu_style
+  if os_name != 'darwin'
+    if cc.has_argument('-march=native')
+      extra_compile_args += ['-march=native']
+    endif
+  endif
+endif
+
+if cpu_arch == 'ppc64le' and is_gnu_style
+  if cc.has_argument('-mcpu=native')
+    extra_compile_args += ['-mcpu=native']
+  endif
+endif
 
 # --------------------------------------------------------------------
 # macOS Minimum Target
