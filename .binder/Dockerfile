@@ -8,6 +8,7 @@
 #
 # Local testing:
 #   docker build -t binder-test .
+#   # Simulate exactly what MyBinder runs:
 #   docker run --rm -p 8888:8888 binder-test \
 #       jupyter notebook --NotebookApp.default_url=/lab/ --ip=0.0.0.0 --port=8888
 #   # Inspect uid and file ownership inside the container:
@@ -112,12 +113,31 @@ USER root
 RUN chown -R "${NB_UID}:${NB_GID}" "${HOME}"
 USER ${NB_USER}
 
-# ── Default command (local testing only) ─────────────────────────────────────
-# Binder overrides CMD at runtime with its own jupyter invocation, so this
-# instruction has no effect on Binder deployments.  It is provided solely so
-# that `docker run <image>` works out-of-the-box during local development,
-# matching what Binder passes: JupyterLab on all interfaces.
+# ── Entrypoint & default command ─────────────────────────────────────────────
+# ENTRYPOINT [] clears any entrypoint inherited from the base image.
+#
+# Binder requirement: the container must accept the full jupyter invocation
+# that MyBinder passes at launch time, including the port, token, and other
+# arguments injected by JupyterHub:
+#
+#   docker run <image> jupyter notebook \
+#       --NotebookApp.default_url=/lab/ \
+#       --ip=0.0.0.0 \
+#       --port=<N> \
+#       --NotebookApp.token=<T>
+#
+# If the base image defines an ENTRYPOINT that does not exec "$@", Docker
+# passes those arguments to that entrypoint instead of to jupyter.  The
+# jupyter server never starts on the expected port, so JupyterHub's health
+# check times out and "Spawn failed" is reported — even though the container
+# itself is running.
+#
+# Clearing the entrypoint here ensures Docker treats CMD as the complete
+# command.  MyBinder overrides CMD entirely at runtime, so this instruction
+# has no effect on Binder deployments.  It is provided solely so that
+# `docker run <image>` works out-of-the-box during local development.
 #
 # --no-browser suppresses the attempt to open a browser tab, which always
 # fails inside a Docker container and produces a confusing error message.
+ENTRYPOINT []
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--no-browser"]
