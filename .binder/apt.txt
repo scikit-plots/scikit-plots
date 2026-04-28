@@ -1,16 +1,38 @@
+# .binder/apt.txt
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# System packages installed by repo2docker via apt-get before any Python
+# environment is built.  One package name per line; blank lines and comments
+# are ignored by repo2docker.
+#
+# Note: this file is processed only when repo2docker builds the image without
+# a Dockerfile.  When .binder/Dockerfile is present, repo2docker uses it
+# directly and apt.txt is ignored.  In that case the base image must already
+# provide (or the Dockerfile must install) equivalent system packages.
+
+# ── Build toolchain ───────────────────────────────────────────────────────────
+# build-essential: meta-package providing gcc, g++, make, dpkg-dev, libc6-dev.
+# Note: make is already a dependency of build-essential; it is not listed again.
 build-essential
-pkg-config
-ninja-build
-ccache
-cm-super
-graphviz
-ffmpeg
-inkscape
-cmake
-make
-gfortran
-libopenblas-dev
-liblapack-dev
-libgmp-dev
-libmpfr-dev
-tesseract-ocr
+pkg-config        # helper used by cmake and meson to locate system libraries
+ninja-build       # fast build system used by scikit-plots' CMake configuration
+ccache            # compiler cache; dramatically speeds up repeated C/C++ builds
+cmake             # cross-platform build system required for compiled extensions
+gfortran          # Fortran compiler; required by scipy and LAPACK build paths
+
+# ── Numeric / BLAS / arbitrary-precision math ─────────────────────────────────
+libopenblas-dev   # OpenBLAS headers; fallback BLAS for packages that probe syslibs
+liblapack-dev     # LAPACK headers; required by scipy's build system probe
+libgmp-dev        # GNU Multiple Precision Arithmetic Library (used by sympy/mpmath)
+libmpfr-dev       # Multi-Precision Floating-Point Library (used by mpmath)
+
+# ── Visualization and media ───────────────────────────────────────────────────
+cm-super          # LaTeX Computer Modern fonts for high-quality matplotlib output
+graphviz          # graph layout engine; used by sphinx-gallery and networkx plots
+ffmpeg            # video encoder/decoder; required by matplotlib animations
+inkscape          # SVG renderer; used by sphinx-gallery for SVG figure export
+
+# ── OCR ───────────────────────────────────────────────────────────────────────
+tesseract-ocr     # OCR engine; required by pytesseract (used in example notebooks)

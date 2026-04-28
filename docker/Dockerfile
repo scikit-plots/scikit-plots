@@ -1,5 +1,5 @@
 # docker/Dockerfile
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,6 +73,8 @@ ARG RUN_POST_CREATE=1
 ## Set environment variable to avoid interactive prompts during builds
 ## Prevent apt install tzinfo from asking our location (assumes UTC)
 ENV DEBIAN_FRONTEND=noninteractive
+
+MAINTAINER The scikit-plots developers <scikit-plots.github.io/dev>
 
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"

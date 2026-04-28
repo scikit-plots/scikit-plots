@@ -77,6 +77,9 @@ import jinja2
 # logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 
+_PY_ = Path(__file__)
+HERE = _PY_.parent
+ROOT = HERE.parent
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -211,7 +214,7 @@ print(f"gh_branch: {gh_branch}")
 # https://pypi.org/project/sphinx-substitution-extensions/
 # https://pypi.org/project/sphinxcontrib-globalsubs/
 extensions = [
-    # Core extensions
+    # first-party sphinx extensions
     #
     "sphinx.ext.autodoc",  # Include documentation from docstrings
     "sphinx.ext.autosummary",  # Generate autodoc summaries
@@ -234,6 +237,8 @@ extensions = [
     # "sphinx.ext.coverage",          # Collect doc coverage stats
     # "sphinx.ext.githubpages",       # Publish HTML docs in GitHub Pages
     "sphinx.ext.doctest",  # Test snippets in the documentation
+    # for routing
+    # "sphinxext.rediraffe",  # rediraffe_redirects = {"try/index": "_static/index"}
     #
     # https://sphinx-automodapi.readthedocs.io/en/latest/index.html#
     # "sphinx_automodapi.automodapi",
@@ -869,16 +874,16 @@ html_theme_options = {
     # -- General configuration ------------------------------------------------
     "logo": {
         "alt_text": "scikit-plots homepage",
-        "image_relative": "logos/scikit-plots-logo-small.png",
         "image_light": "logos/scikit-plots-logo-small.png",
         "image_dark": "logos/scikit-plots-logo-small.png",
+        "image_relative": "logos/scikit-plots-logo-small.png",
     },
     # -- Search and Edit ------------------------------------------------------
     "search_bar_text": "Search the docs ...",
     "use_edit_page_button": True,
     # -- Appearance Settings --------------------------------------------------
-    "pygments_light_style": "tango",
-    "pygments_dark_style": "monokai",
+    "pygments_light_style": "tango",  # "github-light",
+    "pygments_dark_style": "monokai",  # "github-dark",
     # If the version compares greater than the preferred version
     # (or if the version match contains the strings "dev", "rc" or "pre"),
     # the announcement will say they are viewing an unstable development version instead.
@@ -1079,10 +1084,13 @@ html_js_files = [
 # so a file named "default.css" will overwrite the builtin "default.css".
 # Any folder listed here is accessible via `pathto` or use Relative Path
 html_static_path = [
+    # docs stuff
     "_static",
     # 'images',
     "css",
     "js",
+    # as-built application, extensions, contents, and patched jupyter-lite.json
+    # "../build/docs-app",
 ]
 
 # Add any extra paths that contain custom files (such as robots.txt or
@@ -2376,3 +2384,12 @@ for rst_template_name, rst_target_name, kwargs in rst_templates:
     # Render the template with kwargs variables and write to the target
     with (Path(f"{rst_target_name}.rst")).open("w", encoding="utf-8") as f:
         f.write(t.render(**kwargs))
+
+# https://github.com/jupyterlite/jupyterlite/blob/main/docs/conf.py#L131C2-L140C6
+# def setup(app):
+#     # Enable Plausible.io stats
+#     app.add_js_file("https://plausible.io/js/pa-eNfnVmf5sGWJaB1mfLZJF.js", loading_method="async")
+#     app.add_js_file(
+#         filename=None,
+#         body="window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({hashBasedRouting:true})",
+#     )

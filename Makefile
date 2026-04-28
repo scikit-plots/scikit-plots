@@ -941,6 +941,10 @@ git_verify_remote_head:
 		exit 1; \
 	fi
 
+# cat -A Makefile | sed -n '940,960p'
+yml:
+	@python tools/scripts/check_yaml.py
+
 ######################################################################
 ## Git Tag
 ## Use := for immediate expansion consistently.
@@ -957,7 +961,7 @@ endif
 # Get scikitplot version if installed, else fallback to 0.0.0
 # echo $(scikitplot -V | awk '{print $$3}' || echo 0.0.0)
 # VERSION := $(shell scikitplot -V | awk '{print $$3}')
-VERSION := $(shell command -v scikitplot >$(NULL_DEVICE) 2>&1 && scikitplot -V | awk '{print $$3}' || echo 0.0.0)
+# VERSION := $(shell command -v scikitplot >$(NULL_DEVICE) 2>&1 && scikitplot -V | awk '{print $$3}' || echo 0.0.0)
 
 # VERSION := $(shell python -c "import importlib; print(getattr(importlib.import_module('scikitplot'), '__version__', '0.0.0'))")
 # VERSION := $(shell python -c "import scikitplot; print(scikitplot.__version__) if hasattr(scikitplot, '__version__') else print('0.0.0')" 2>$(NULL_DEVICE) || echo "0.0.0")

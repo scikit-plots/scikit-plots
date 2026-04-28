@@ -157,17 +157,22 @@
   <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
  </a>
  <br>
+ <!-- jupyterlite -->
+ <!-- https://img.shields.io/badge/try-lite_now-ffff00?logo=jupyter&logoColor=orange -->
+ <a href="https://scikit-plots.github.io/dev/lite/lab/index.html" target="_blank" rel="noopener noreferrer">
+  <img alt="jupyterlite-badge" height="17" src="https://jupyterlite.rtfd.io/en/latest/_static/badge.svg">
+ </a>
+ <!-- mybinder.org -->
+ <!-- https://img.shields.io/badge/try-lite_now-ffff00?logo=jupyter&logoColor=orange -->
+ <a href="https://mybinder.org/v2/gh/scikit-plots/scikit-plots/main?urlpath=lab" target="_blank" rel="noopener noreferrer">
+  <img alt="binder-badge" height="17" src="https://mybinder.org/badge_logo.svg">
+ </a>
  <!-- codespaces -->
  <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
  <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
   <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
   <img alt="Open in GitHub Codespaces" height="17px" width="auto"
   src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
- </a>
- <!-- jupyterlite -->
- <!-- https://img.shields.io/badge/try-lite_now-ffff00?logo=jupyter&logoColor=orange -->
- <a href="https://scikit-plots.github.io/dev/lite/lab/index.html" target="_blank" rel="noopener noreferrer">
-  <img alt="jupyterlite-badge" height="17" src="https://jupyterlite.rtfd.io/en/latest/_static/badge.svg">
  </a>
  <!-- Documentation -->
  <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
@@ -619,9 +624,10 @@ pip install git+https://github.com/scikit-plots/scikit-plots.git@v0.3.7
   #     CFLAGS="-O3 -march=x86-64-v2 -mtune=generic"  # For safer, broader compatibility (2009+)
   #     CFLAGS="-O3 -march=x86-64-v3 -mtune=generic"  # For maximum performance on 95% of modern hardware (2013+)
   # (Note: If you want to drop support for ancient pre-2009 CPUs, -march=x86-64-v2 is becoming the new modern baseline).
-  # v1 (x86-64)	Baseline (SSE2)     	2003+	Extreme legacy support. Slowest for math.
-  # v2	        SSE4.2, POPCNT	        2009+	Safe Baseline. Supports almost all active PCs/Servers.
-  # v3	        AVX, AVX2, BMI2, FMA	2013+	High Performance. Required for fast vector math.
+  # v1 (x86-64)	 Baseline (SSE2)       	 2003+	Extreme legacy support. Slowest for math. Original 64-bit CPUs (AMD Opteron, Intel Core 2)
+  # v2	         SSSE3,  SSE4.2, POPCNT	 2009+	Safe Baseline. Supports almost all active PCs/Servers. Intel Nehalem (2008), AMD Jaguar
+  # v3	         AVX, AVX2, BMI2, FMA	   2013+	High Performance. Required for fast vector math. Intel Haswell (2013), AMD Zen
+  # v4         	 AVX-512	               2017+  Intel Skylake-X (2017), AMD Zen 4
   # -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
   # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
   # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science

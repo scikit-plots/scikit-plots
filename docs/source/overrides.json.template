@@ -1,0 +1,23 @@
+{#-
+ # https://github.com/jupyterlite/jupyterlite/blob/main/examples/overrides.json
+-#}
+{
+  "jupyterlab-tour:user-tours": {
+    "tours": [
+      {
+        "id": "scikit-plots",
+        "label": "Welcome to scikit-plots",
+        "steps": [
+          {
+            "target": "#jp-MainLogo",
+            "content": "This is scikit-plots."
+          }
+        ],
+        "options": {}
+      }
+    ]
+  },
+  "@jupyterlab/github:drive": {
+    "defaultRepo": "scikit-plots/scikit-plots"
+  }
+}
