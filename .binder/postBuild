@@ -387,8 +387,8 @@ main() {
     fi
 
     # ── Jupyter extensions ───────────────────────────────────────────────────
-    require_command jupyter
-    setup_jupyter_extensions
+    # require_command jupyter
+    # setup_jupyter_extensions
 
     log_info "postBuild completed successfully."
 }
