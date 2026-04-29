@@ -91,7 +91,54 @@ RUN id -u "${NB_USER}" >/dev/null 2>&1 || \
 #   NOTE: the correct flag is --no-cache-dir, NOT --no-cache.
 #         --no-cache is not a recognised pip option and is silently ignored,
 #         leaving the cache active and the build non-reproducible.
-USER ${NB_USER}
+# ── Jupyter packages ──────────────────────────────────────────────────────────
+# Binder requirement: notebook and jupyterlab must be installed via pip.
+# jupyterhub is additionally required for authenticated Binder deployments
+# (JupyterHub single-user server mode).
+#
+# Placed BEFORE the COPY step so Docker can cache this layer independently of
+# source-code changes.  Editing a notebook or gallery script will not re-trigger
+# a full package download on the next build.
+#
+# User note:
+#   `python -m pip` is preferred over the bare `pip` command.  In environments
+#   where multiple Python versions are installed (e.g. conda + system Python),
+#   bare `pip` resolves via PATH and may invoke a different interpreter's pip
+#   than `python` itself, leading to packages being installed into the wrong
+#   site-packages tree.  `python -m pip` always uses the pip that belongs to
+#   the current `python` binary, eliminating the ambiguity.
+#
+# Developer note:
+#   --no-cache-dir disables pip's HTTP response cache (~/.cache/pip).
+#   This keeps the image layer size-minimal and fully reproducible: two
+#   builds from the same Dockerfile always download the same bytes without
+#   relying on a warm local cache.
+#   NOTE: the correct flag is --no-cache-dir, NOT --no-cache.
+#         --no-cache is not a recognised pip option and is silently ignored,
+#         leaving the cache active and the build non-reproducible.
+#
+# CRITICAL — install as root, not as NB_USER:
+#   When pip runs as a non-root user whose home directory is $HOME
+#   (/home/jovyan), and the base image's system Python is root-owned,
+#   pip falls back to a user-scheme install:
+#
+#     ~/.local/bin/jupyter
+#     ~/.local/bin/jupyterhub-singleuser
+#     ~/.local/lib/python3.x/site-packages/{notebook,jupyterlab,jupyterhub}/
+#
+#   postBuild then calls:
+#     find "${WORKDIR:?}" -mindepth 1 -delete      # WORKDIR == HOME == /home/jovyan
+#
+#   That single find deletes ~/.local/ entirely, destroying every binary and
+#   package that pip just installed.  The build succeeds (postBuild reuses
+#   the base image's older jupyter for its extension calls), but at spawn-time
+#   MyBinder invokes jupyterhub-singleuser — which is gone.  The container
+#   exits immediately and JupyterHub reports "Spawn failed:".
+#
+#   Installing as root targets the system site-packages tree
+#   (/usr/local/lib/python3.x/site-packages/), which is entirely outside
+#   $HOME and therefore unaffected by postBuild's workspace reset.
+USER root
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir notebook jupyterlab jupyterhub
 
