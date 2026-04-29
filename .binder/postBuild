@@ -237,13 +237,22 @@ backup_required_content() {
     #   which user context pip uses, and makes the invariant explicit and
     #   auditable here.
     #
-    #   -not \( -path "${WORKDIR}/.local" -prune \) prunes the entire subtree:
-    #   both the .local directory entry itself and everything beneath it are
-    #   excluded from deletion in a single, efficient prune operation.
+    #   WHY -maxdepth 1 + rm -rf instead of find ... -prune ... -delete:
+    #   GNU find treats -delete as implicitly enabling -depth (post-order
+    #   traversal).  When -depth is active, -prune is silently ignored and
+    #   GNU find >= 4.9 (Ubuntu 24.04) exits with status 1 and prints:
+    #     "find: The -delete action automatically turns on -depth, but
+    #      -prune does nothing when -depth is in effect."
+    #   Under set -Eeuo pipefail that exit-1 aborts the script.
+    #
+    #   The fix: enumerate only immediate children (-maxdepth 1), skip
+    #   '.local' with ! -name, and delegate recursive removal to rm -rf.
+    #   This is semantically equivalent to the original intent — delete
+    #   everything in WORKDIR except .local — with no prune/depth conflict.
     log_info "Clearing WORKDIR (preserving .local): ${WORKDIR}"
-    find "${WORKDIR:?}" -mindepth 1 \
-        -not \( -path "${WORKDIR}/.local" -prune \) \
-        -delete
+    find "${WORKDIR:?}" -mindepth 1 -maxdepth 1 \
+        ! -name '.local' \
+        -exec rm -rf -- {} +
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
