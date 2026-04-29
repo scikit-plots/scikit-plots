@@ -35,7 +35,7 @@ IFS=$'\n\t'
 trap '' PIPE
 
 # echo "Starting Binder session..."
-printf '[start] INFO  Binder session starting.\n' >&2
+printf '[start] INFO  Binder session start...\n' >&2
 ## what username do i have?
 # whoami
 ## what user id do i have?
