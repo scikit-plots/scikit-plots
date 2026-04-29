@@ -213,8 +213,35 @@ backup_required_content() {
     # ${WORKDIR:?} is a parameter guard: if WORKDIR is unset or empty, bash
     # aborts with an error before find runs — preventing accidental root deletion.
     # -mindepth 1 preserves the directory itself so the build layer stays valid.
-    log_info "Clearing WORKDIR: ${WORKDIR}"
-    find "${WORKDIR:?}" -mindepth 1 -delete
+    #
+    # CRITICAL — exclude ${WORKDIR}/.local from deletion:
+    #   When the Dockerfile installs jupyter packages as a non-root user and
+    #   the base image's Python is system/root-owned, pip falls back to a
+    #   user-scheme install under ~/.local/:
+    #
+    #     ~/.local/bin/jupyter
+    #     ~/.local/bin/jupyterhub-singleuser        ← MyBinder's spawn command
+    #     ~/.local/lib/python3.x/site-packages/…
+    #
+    #   Without this exclusion, find deletes ~/.local/ entirely.  The build
+    #   still succeeds (postBuild's own `jupyter` calls resolve to the base
+    #   image's copy), but at spawn-time MyBinder invokes jupyterhub-singleuser
+    #   which is gone, the container exits instantly, and JupyterHub reports
+    #   "Spawn failed:" after retrying three times.
+    #
+    #   The primary fix is to install jupyter packages as root in the Dockerfile
+    #   (so pip uses /usr/local/lib/… instead of ~/.local/lib/…).  This
+    #   exclusion is defense-in-depth: it guarantees correctness regardless of
+    #   which user context pip uses, and makes the invariant explicit and
+    #   auditable here.
+    #
+    #   -not \( -path "${WORKDIR}/.local" -prune \) prunes the entire subtree:
+    #   both the .local directory entry itself and everything beneath it are
+    #   excluded from deletion in a single, efficient prune operation.
+    log_info "Clearing WORKDIR (preserving .local): ${WORKDIR}"
+    find "${WORKDIR:?}" -mindepth 1 \
+        -not \( -path "${WORKDIR}/.local" -prune \) \
+        -delete
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
