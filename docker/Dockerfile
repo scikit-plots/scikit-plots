@@ -74,8 +74,7 @@ ARG RUN_POST_CREATE=1
 ## Prevent apt install tzinfo from asking our location (assumes UTC)
 ENV DEBIAN_FRONTEND=noninteractive
 
-MAINTAINER The scikit-plots developers <scikit-plots.github.io/dev>
-
+# MAINTAINER The scikit-plots developers <scikit-plots.github.io/dev>
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
 LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 # LABEL org.opencontainers.image.authors="The scikit-plots developers <scikit-plots.github.io/dev>"
@@ -100,9 +99,9 @@ USER root
 ## Needed for string substitution in RUN commands
 ## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 ## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
-# RUN bash -lc 'set -Eeuo pipefail; \
 # -c Runs commands in a non-interactive shell, not a login shell.
 # -lc Runs commands in a login shell (still non-interactive), so bash reads login startup files.
+# RUN bash -lc 'set -Eeuo pipefail; \
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ######################################################################

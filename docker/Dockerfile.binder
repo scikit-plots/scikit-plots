@@ -139,6 +139,7 @@ RUN id -u "${NB_USER}" >/dev/null 2>&1 || \
 #   (/usr/local/lib/python3.x/site-packages/), which is entirely outside
 #   $HOME and therefore unaffected by postBuild's workspace reset.
 USER root
+WORKDIR ${HOME}
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
     python -m pip install --no-cache-dir notebook jupyterlab jupyterhub
 
@@ -154,11 +155,11 @@ RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # Note: use COPY (not RUN git clone) here.  mybinder.org caches Docker layers;
 # a git clone inside a RUN instruction does not invalidate the cache when the
 # repository is updated, so stale content would be served from cache.
-WORKDIR ${HOME}
 COPY . ${HOME}
-USER root
 RUN chown -R "${NB_UID}:${NB_GID}" "${HOME}"
-USER ${NB_USER}
+
+# Activate if needed:
+# USER ${NB_USER}
 
 # ── Entrypoint & default command ─────────────────────────────────────────────
 # ENTRYPOINT [] clears any entrypoint inherited from the base image.

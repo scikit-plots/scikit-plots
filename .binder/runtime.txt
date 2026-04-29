@@ -13,5 +13,6 @@
 # remain equivalent.
 #
 # R runtime (disabled; uncomment — and remove the python line — to switch):
+# r-<YYYY>-<MM>-<DD>
 # r-4.3.2-2024-01-10
 python-3.13
