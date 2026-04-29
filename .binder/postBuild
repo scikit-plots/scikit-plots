@@ -280,6 +280,7 @@ generate_notebooks() {
         # (batched).  The \; form ensures that a failure on any individual file
         # is reported immediately with its filename, not silently absorbed into
         # a batch exit code.
+        # find $GENERATED_NOTEBOOKS_DIR -name '*.py' -exec sphinx_gallery_py2jupyter '{}' +
         find "${GENERATED_NOTEBOOKS_DIR}" -type f -name '*.py' \
             -exec sphinx_gallery_py2jupyter '{}' \;
     fi
@@ -316,6 +317,8 @@ restore_binder_assets() {
     # cp -a + rm is used instead of mv because mv(1) calls rename(2) which
     # fails with EXDEV when source and destination are on different filesystems
     # (e.g. /tmp on tmpfs, WORKDIR on overlayfs inside the Docker build layer).
+    # cp -r → may break environments (permissions lost)
+    # cp -a → preserves UID/GID and file integrity
     cp -a  -- "${tmp_binder}" "${WORKDIR}/.binder"
     rm -rf -- "${tmp_binder}"
 
