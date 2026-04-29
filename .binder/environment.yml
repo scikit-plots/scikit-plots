@@ -11,7 +11,8 @@ channels:
 
 dependencies:
   # ── Python runtime ──────────────────────────────────────────────────
-  - python=3.13
+  # TODO: python=3.13 voyager>=1.2.5   ❌ remove/replace voyager or comment
+  - python=3.12
   # - r-base=4.3.2
   # - r-tidyverse
 
@@ -40,10 +41,6 @@ dependencies:
   # the full package list, including scikit-plots (resolved via --find-links
   # to the staging index).  A single pip block ensures those global flags
   # apply uniformly to every package and avoids duplicate index config.
-  # pip install --no-cache-dir --no-binary=scikit-plots \
-  # --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple \
-  # --extra-index-url https://pypi.org/simple \
-  # scikit-plots
   - pip
   - pip:
     - -r ../requirements/build.txt
