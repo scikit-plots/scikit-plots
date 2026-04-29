@@ -201,46 +201,14 @@
  </h3>
 
  <h4>Single line functions for detailed visualizations. </h4>
- <p>The quickest and easiest way to go from analysis... </p>
  <!-- RON: (Republic of Nomos) -->
  <!-- "Nomos is the governing concept for machine learning systems, providing the simple deterministic foundation that empowers autonomous, customizable, and user-sovereign execution across any environment." -->
-
- <p>
+ <p>The quickest and easiest way to go from analysis...
   Explore the full features of Scikit-plots:
   <a href="https://scikit-plots.github.io/dev/devel/index.html" target="_blank" rel="noopener noreferrer">
    https://scikit-plots.github.io/dev/devel/index.html
   </a>
  </p>
-
- <p>⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g.,
-  astropy.stats, arrat-api-compat, arrat-api-extra) </p>
-</div>
-
-
-<!-- Scikit-plots Docker -->
-<div>
- <h3>
-  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-   🐋 Scikit-plots Runtime Docker Images
-  </a>:
- </h3>
-
- <p>
-  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-   🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
-  </a>
- </p>
-
- 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
-
-```bash
-## docker run -it --rm scikitplot/scikit-plots:latest
-docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
-```
-```bash
-## docker run -it scikitplot/scikit-plots:latest
-docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
-```
 </div>
 
 
@@ -254,6 +222,9 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 
  <h4> 🧠 Gotchas: </h4>
  <ul>
+  <li>⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g.,
+  astropy.stats, arrat-api-compat, arrat-api-extra).
+  </li>
   <li>⚠️ (Recommended): Use a Virtual Environmentt (like
    <a href="https://docs.python.org/3/library/venv.html" target="_blank" rel="noopener noreferrer">
     <code>venv</code>
@@ -312,15 +283,42 @@ docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/sci
 
 ## ⚠️ Ensure installed the lost packages "Build and Runtime dependencies".
 
-## ✅ Use Remote Git branch, Remote Git specific commit, Remote Git tag / release
+## ✅ (Optionally) Use Remote Git branch, Remote Git specific commit, Remote Git tag / release
 # pip install "git+https://github.com/scikit-plots/scikit-plots.git@&lt;commit_sha&gt;" -v
 # pip install "git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0" -v
 pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
 
-## ✅ Clone locally + install:
+## ✅ (Optionally) Clone locally + install:
 git clone https://github.com/scikit-plots/scikit-plots.git
 cd scikit-plots
 python -m pip install --no-cache-dir . -v</code></pre>
+</div>
+
+
+<!-- Scikit-plots Docker -->
+<div>
+ <h3>
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+   🐋 Scikit-plots Runtime Docker Images
+  </a>:
+ </h3>
+
+ <p>
+  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+   🐳 Explore on Docker Hub Pre-built Docker images for running <code>scikit-plots</code> on demand — with Python 3.11.
+  </a>
+ </p>
+
+ 🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
+
+```bash
+## docker run -it --rm scikitplot/scikit-plots:latest
+docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
+```
+```bash
+## docker run -it scikitplot/scikit-plots:latest
+docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
+```
 </div>
 
 
