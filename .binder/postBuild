@@ -8,42 +8,39 @@
 #   Jupyter notebook extensions for the Binder environment.
 #
 # CONTRACT
-#   Input  : WORKDIR must contain galleries/examples/ and .binder/
+#   Input  : WORKDIR must be the root of a git repository containing
+#            galleries/examples/ and .binder/
 #   Output : WORKDIR contains .generated-notebooks/ with .ipynb files
 #            and notebooks/auto_examples -> ../.generated-notebooks symlink
 #   Side effects: WORKDIR is cleared and rebuilt; all content is backed up
 #                 to a unique temp directory first and restored on exit.
 #
 # INVARIANTS
-#   - Must run inside a Docker container (build-time or run-time)
-#   - WORKDIR must not resolve to a protected system path
+#   - Must run inside a repo2docker build context (REPO_DIR is set)
+#   - WORKDIR must be inside a git repository (repo content, not system paths)
 #   - Temp directory is always removed on exit regardless of outcome
 #   - WORKDIR is only cleared AFTER all backups are verified
 #
 # FAILURE MODES
-#   - Not in Docker               : exit 1, no data touched
-#   - Protected WORKDIR path      : exit 1, no data touched
+#   - REPO_DIR not set            : exit 1, no data touched
+#   - WORKDIR not a git repo      : exit 1, no data touched
 #   - Missing required command    : exit 1, no data touched
 #   - Missing source directory    : exit 1, no data touched
 #   - Backup verification fails   : exit 1, no data touched
 #   - Post-deletion failure       : cleanup trap removes temp; WORKDIR is empty
 #                                   (irrecoverable — inspect the build logs)
 #   - OpenBLAS install failure    : logged as warning; script succeeds
-#   - Jupyter extension failure   : exit 1; require_command jupyter guards
-#                                   against a missing interpreter; each
-#                                   jupyter command aborts on non-zero exit
+#   - Jupyter extension failure   : exit 1
 #
 # ENVIRONMENT
+#   REPO_DIR                Set by repo2docker at build time. Required.
 #   SCIPY_OPENBLAS_VARIANT  32 | 64 | auto (default: auto)
-#                           Controls which scipy-openblas variant is installed.
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 # Ignore SIGPIPE so the script is not killed when output is piped to a tool
 # that closes its stdin early (e.g. head, less, tee into a closed descriptor).
-# Without this, any printf/log call after the consumer closes propagates SIGPIPE
-# and terminates the script silently under set -e.
 trap '' PIPE
 
 printf '[start] INFO  Binder session postBuild...\n' >&2
@@ -80,22 +77,18 @@ log_error() { printf '[%s] ERROR %s\n' "${SCRIPT_NAME}" "$*" >&2; }
 # ─────────────────────────────────────────────────────────────────────────────
 
 cleanup() {
-    # Capture the exit code from the failing command before anything else can
-    # change it.  set +e prevents cleanup itself from triggering a second exit.
     local exit_code=$?
     set +e
-
     if [[ -n "${TMP_ROOT}" && -d "${TMP_ROOT}" ]]; then
         log_info "Removing temp directory: ${TMP_ROOT}"
         rm -rf -- "${TMP_ROOT}"
     fi
-
     exit "${exit_code}"
 }
 
 trap cleanup EXIT
 # Translate signals to predictable exit codes so cleanup() receives the right
-# value via $?.  The 128+N convention is the POSIX standard for signal exits.
+# value via $?. The 128+N convention is the POSIX standard for signal exits.
 trap 'exit 130' INT    # 128 + 2  (SIGINT)
 trap 'exit 143' TERM   # 128 + 15 (SIGTERM)
 
@@ -103,62 +96,32 @@ trap 'exit 143' TERM   # 128 + 15 (SIGTERM)
 # Guards — checked before any destructive operation
 # ─────────────────────────────────────────────────────────────────────────────
 
-assert_docker() {
-    # /.dockerenv : injected by the Docker daemon at *runtime* (docker run).
-    #               NOT present during docker build / docker buildx build.
-    # NB_USER     : set by repo2docker as --build-arg -> ARG -> ENV at build time.
-    # cgroup      : cgroupv1 marker present in both build and runtime containers.
-    #
-    # Any one signal is sufficient to confirm a container context.
-    local in_docker=false
-
-    [[ -f "/.dockerenv" ]] \
-        && in_docker=true
-
-    [[ -n "${NB_USER:-}" ]] \
-        && in_docker=true
-
-    grep -qE 'docker|lxc|kubepods|buildkit' /proc/self/cgroup 2>/dev/null \
-        && in_docker=true
-
-    if [[ "${in_docker}" == false ]]; then
-        log_error "This script must run inside a Docker/repo2docker container."
-        log_error "Exiting: running outside a container can delete important data."
+assert_repo2docker() {
+    # REPO_DIR is injected by repo2docker as a build-time environment variable.
+    # Its presence is the authoritative signal that we are running inside a
+    # repo2docker build context, where it is safe to clear and rebuild WORKDIR.
+    # This is the same check used by scikit-learn's canonical postBuild.
+    if [[ -z "${REPO_DIR:-}" ]]; then
+        log_error "REPO_DIR is not set."
+        log_error "This script must run inside a repo2docker build context."
+        log_error "Exiting: running outside repo2docker can delete important data."
         exit 1
     fi
-
-    log_info "Container environment confirmed."
+    log_info "repo2docker context confirmed (REPO_DIR=${REPO_DIR})."
 }
 
-assert_safe_workdir() {
-    # Refuse to operate if WORKDIR resolves to a path where mass deletion would
-    # be catastrophic.  This is a defence-in-depth check — the primary
-    # protection is that we only delete from an absolute, verified path, but
-    # this guard catches misconfigured environments before any harm is done.
-    # Developer note: ${HOME} and /home are intentionally NOT in this list.
-    # repo2docker sets WORKDIR to the container user's home directory
-    # (e.g. /home/jovyan), which IS the legitimate target for this script.
-    # The guard only blocks paths that are unambiguously system infrastructure
-    # and would never be a valid project workspace in any environment.
-    local -a protected=(
-        "/"
-        "/bin" "/sbin" "/lib" "/lib64"
-        "/usr" "/usr/bin" "/usr/lib" "/usr/local"
-        "/etc" "/var" "/var/log"
-        "/proc" "/sys" "/dev"
-        "/tmp" "/run"
-        "/root" "/opt" "/boot"
-    )
-
-    local danger
-    for danger in "${protected[@]}"; do
-        if [[ "${WORKDIR}" == "${danger}" ]]; then
-            log_error "WORKDIR='${WORKDIR}' is a protected system path."
-            log_error "Refusing to clear its contents."
-            exit 1
-        fi
-    done
-    log_info "WORKDIR safety check passed: ${WORKDIR}"
+assert_git_repo() {
+    # Confirm WORKDIR is inside a git repository.
+    # repo2docker clones the target repo into REPO_DIR and runs postBuild
+    # with cwd = REPO_DIR. The presence of a .git tree confirms we are
+    # operating on repo content (e.g. /home/jovyan/scikit-plots,
+    # /work/scikit-plots), not an arbitrary system directory.
+    if ! git -C "${WORKDIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        log_error "WORKDIR='${WORKDIR}' is not inside a git repository."
+        log_error "Refusing to clear its contents."
+        exit 1
+    fi
+    log_info "Git repository confirmed: ${WORKDIR}"
 }
 
 require_command() {
@@ -182,8 +145,8 @@ prepare_workspace() {
 }
 
 backup_required_content() {
-    # Developer note: source paths inside WORKDIR, destinations inside TMP_ROOT.
-    # The backup directory names are canonical — generate_notebooks() and
+    # Developer note: source paths are inside WORKDIR; destinations are inside
+    # TMP_ROOT. Backup directory names are canonical — generate_notebooks() and
     # restore_binder_assets() must use the exact same names.
     local tmp_examples="${TMP_ROOT}/examples"
     local tmp_binder="${TMP_ROOT}/.binder"
@@ -211,39 +174,16 @@ backup_required_content() {
     [[ -d "${tmp_binder}"   ]] || { log_error "Backup of .binder failed.";  exit 1; }
     log_info "Backup verified."
 
-    # Clear WORKDIR.
+    # Clear all repo content from WORKDIR.
     # ${WORKDIR:?} is a parameter guard: if WORKDIR is unset or empty, bash
-    # aborts with an error before find runs — preventing accidental root deletion.
-    # -mindepth 1 preserves the directory itself so the build layer stays valid.
-    #
-    # CRITICAL — exclude ${WORKDIR}/.local from deletion:
-    #   When the Dockerfile installs jupyter packages as a non-root user and
-    #   the base image's Python is system/root-owned, pip falls back to a
-    #   user-scheme install under ~/.local/:
-    #
-    #     ~/.local/bin/jupyter
-    #     ~/.local/bin/jupyterhub-singleuser        ← MyBinder's spawn command
-    #     ~/.local/lib/python3.x/site-packages/…
-    #
-    #   Without this exclusion, find deletes ~/.local/ entirely.  The build
-    #   still succeeds (postBuild's own `jupyter` calls resolve to the base
-    #   image's copy), but at spawn-time MyBinder invokes jupyterhub-singleuser
-    #   which is gone, the container exits instantly, and JupyterHub reports
-    #   "Spawn failed:" after retrying three times.
-    #
-    #   The primary fix is to install jupyter packages as root in the Dockerfile
-    #   (so pip uses /usr/local/lib/… instead of ~/.local/lib/…).  This
-    #   exclusion is defense-in-depth: it guarantees correctness regardless of
-    #   which user context pip uses, and makes the invariant explicit and
-    #   auditable here.
-    #
-    #   -not \( -path "${WORKDIR}/.local" -prune \) prunes the entire subtree:
-    #   both the .local directory entry itself and everything beneath it are
-    #   excluded from deletion in a single, efficient prune operation.
-    log_info "Clearing WORKDIR (preserving .local): ${WORKDIR}"
-    find "${WORKDIR:?}" -mindepth 1 \
-        -not \( -path "${WORKDIR}/.local" -prune \) \
-        -delete
+    # aborts before find runs — preventing accidental deletion from the wrong path.
+    # -mindepth 1 preserves the WORKDIR directory itself so the build layer
+    # stays valid. -delete enables post-order traversal automatically (equivalent
+    # to -depth), which is correct: leaf entries are removed before their parents.
+    log_info "Clearing WORKDIR: ${WORKDIR}"
+    find "${WORKDIR:?}" -mindepth 1 -delete
+    # delete everything in current directory including dot files and dot folders
+    # find . -delete
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -268,7 +208,7 @@ generate_notebooks() {
         log_warn "No .py files found — nothing to convert."
     else
         # Use -exec ... \; (one invocation per file) rather than -exec ... +
-        # (batched).  The \; form ensures that a failure on any individual file
+        # (batched). The \; form ensures that a failure on any individual file
         # is reported immediately with its filename, not silently absorbed into
         # a batch exit code.
         find "${GENERATED_NOTEBOOKS_DIR}" -type f -name '*.py' \
@@ -304,9 +244,10 @@ restore_binder_assets() {
     log_info "Restoring .binder -> ${WORKDIR}/.binder"
     rm -rf -- "${WORKDIR}/.binder"
 
-    # cp -a + rm is used instead of mv because mv(1) calls rename(2) which
-    # fails with EXDEV when source and destination are on different filesystems
-    # (e.g. /tmp on tmpfs, WORKDIR on overlayfs inside the Docker build layer).
+    # cp -a preserves UID/GID and file integrity.
+    # mv(1) fails with EXDEV when source and destination are on different
+    # filesystems (e.g. /tmp on tmpfs vs WORKDIR on overlayfs inside Docker
+    # build layers). cp -a + rm avoids that cross-device restriction.
     cp -a  -- "${tmp_binder}" "${WORKDIR}/.binder"
     rm -rf -- "${tmp_binder}"
 
@@ -340,10 +281,9 @@ install_openblas_variant() {
     case "${variant}" in
         32)   package_name="scipy-openblas32" ;;
         64)   package_name="scipy-openblas64" ;;
-        auto) package_name=""                 ;;   # handled below
+        auto) package_name=""                 ;;
         *)
-            log_error "Invalid SCIPY_OPENBLAS_VARIANT='${variant}'."
-            log_error "Allowed values: 32 | 64 | auto"
+            log_error "Invalid SCIPY_OPENBLAS_VARIANT='${variant}'. Allowed values: 32 | 64 | auto"
             return 1
             ;;
     esac
@@ -399,24 +339,20 @@ PY
 # ─────────────────────────────────────────────────────────────────────────────
 
 setup_jupyter_extensions() {
-    # User note: configures Jupyter Notebook (classic) extensions.
-    # jupyter_contrib_nbextensions must already be installed via
-    # requirements.txt or environment.yml before this function runs.
+    # Configures Jupyter Notebook (classic) extensions.
+    # jupyter_contrib_nbextensions must be installed via requirements.txt or
+    # environment.yml before this function runs.
     #
     # Developer note: `jupyter labextension install` was the JupyterLab 1.x/2.x
-    # API and was completely removed in JupyterLab 4.  Lab extensions are now
+    # API and was completely removed in JupyterLab 4. Lab extensions are now
     # distributed as Python packages and auto-registered at pip-install time
-    # (e.g. ipywidgets ships its lab extension automatically since 7.6).
-    # Do NOT add `jupyter labextension install` calls here.
+    # (e.g. ipywidgets since 7.6). Do NOT add `jupyter labextension install`
+    # calls here.
     log_info "Installing contrib notebook extensions (classic Notebook)."
     jupyter contrib nbextension install --user
 
     log_info "Enabling widgetsnbextension (classic Notebook)."
     jupyter nbextension enable --py widgetsnbextension
-    ## Install a JupyterLab extension for demonstration purposes
-    # jupyter serverextension enable --sys-prefix jupyter_server_proxy
-    # jupyter labextension install @jupyterlab/latex
-    # jupyter labextension install @jupyterlab/geojson-extension jupyterlab-drawio
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -427,19 +363,14 @@ main() {
     log_info "postBuild starting."
 
     # ── Guards (no side effects) ──────────────────────────────────────────────
-    assert_docker
-    assert_safe_workdir
-
-    # Check only the commands that are not guaranteed by the base image.
-    # find/cp/mv/rm are POSIX utilities always present in buildpack-deps;
-    # python and sphinx_gallery_py2jupyter are installed by requirements.txt
-    # and may be absent if the environment is misconfigured.
+    assert_repo2docker
+    assert_git_repo
     require_command python
     require_command sphinx_gallery_py2jupyter
 
     # ── Main pipeline ─────────────────────────────────────────────────────────
     prepare_workspace
-    backup_required_content    # backs up; then clears WORKDIR
+    backup_required_content    # backs up content; then clears WORKDIR
     generate_notebooks         # converts .py -> .ipynb inside WORKDIR
     restore_binder_assets      # puts .binder back into WORKDIR
     setup_symlinks             # creates notebooks/auto_examples -> symlink
@@ -454,9 +385,11 @@ main() {
         log_warn "OpenBLAS installation failed; continuing without it."
         log_warn "Set SCIPY_OPENBLAS_VARIANT=32 or =64 to pin a specific variant."
     fi
+
     # ── Jupyter extensions ───────────────────────────────────────────────────
     require_command jupyter
     setup_jupyter_extensions
+
     log_info "postBuild completed successfully."
 }
 
