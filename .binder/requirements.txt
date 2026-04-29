@@ -1,7 +1,9 @@
-# --no-cache-dir
 --find-links https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/scikit-learn
 --find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
 --pre
+# --prefer-binary
+# --no-binary :all:
+# --no-binary=scikit-plots
 
 cython
 pybind11
@@ -34,15 +36,16 @@ h5py
 tables
 shapely
 
-# TODO: ⚠️ Prevent runtime crashes caused by host-specific CPU instructions
-# (e.g., binaries built with -march=native). Ensure builds target a portable
-# baseline or perform runtime CPU feature detection before loading extensions.
-# Use: source build `python -m pip install .`
-#
-# --prefer-binary
-# --no-binary :all:
-# --no-binary scikit-plots
 # Install scikit-plots from the nightly staging index via --find-links above.
 # --pre allows pre-release version strings produced by the staging build.
 # scikit-plots
+
+# TODO: ⚠️ Prevent runtime crashes caused by host-specific CPU instructions
+# (e.g., binaries built with -march=native). Ensure builds target a portable
+# baseline or perform runtime CPU feature detection before loading extensions.
+# Use: source build `git+https://github.com/scikit-plots/scikit-plots.git@main`
+# pip install --no-cache-dir --no-binary=scikit-plots \
+#   --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple \
+#   --extra-index-url https://pypi.org/simple \
+#   scikit-plots
 git+https://github.com/scikit-plots/scikit-plots.git@main

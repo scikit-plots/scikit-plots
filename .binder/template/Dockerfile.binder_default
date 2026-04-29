@@ -1,0 +1,95 @@
+# ⏳ repo2docker rules
+#    ↓
+# ✔ Docker base image
+#   ↓
+# ✔ APT install (system deps)
+#   ↓
+# ✔ Conda env solve (Python 3.13)
+#   ↓
+# ✔ repo2docker pip phase:
+#      - build.txt
+#      - requirements.txt
+#   ↓
+# ✔ final runtime image
+---
+FROM buildpack-deps:24.04
+
+# =========================================================
+# System layer (APT - from your build log)
+# =========================================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    locales \
+    gettext-base \
+    less \
+    unzip \
+    build-essential \
+    ccache \
+    cmake \
+    ffmpeg \
+    gfortran \
+    graphviz \
+    inkscape \
+    pkg-config \
+    tesseract-ocr \
+    libgmp-dev \
+    liblapack-dev \
+    libmpfr-dev \
+    libopenblas-dev \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
+
+# Locale setup
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
+
+# =========================================================
+# User setup (Binder default)
+# =========================================================
+RUN useradd -m -u 1000 -s /bin/bash jovyan || true
+USER jovyan
+WORKDIR /home/jovyan
+
+# =========================================================
+# Copy project source
+# =========================================================
+COPY --chown=1000:1000 src/ /home/jovyan/
+
+# =========================================================
+# Conda / Mamba environment (UPDATED STATE)
+# =========================================================
+COPY .binder/environment.yml /tmp/environment.yml
+
+RUN mamba env update -n base -f /tmp/environment.yml && \
+    mamba clean --all -f -y
+
+# =========================================================
+# Python environment details (from your log)
+# =========================================================
+# Python: 3.13
+# Packages resolved:
+#   - notebook
+#   - jupyterlab
+#   - jupyterhub
+#   - jupyter_contrib_nbextensions
+#   - ipywidgets
+#   - pip
+
+# =========================================================
+# Pip phase (NOW ACTIVE IN YOUR BUILD)
+# =========================================================
+# repo2docker runs internally:
+#   pip install -r ../requirements/build.txt
+#   pip install -r requirements.txt
+#
+# IMPORTANT:
+# - This is NOT a Docker RUN step
+# - This is executed by conda's pip integration layer
+
+# =========================================================
+# Final environment inspection
+# =========================================================
+RUN conda list || true
+
+# =========================================================
+# Runtime
+# =========================================================
+CMD ["bash"]
