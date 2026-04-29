@@ -42,6 +42,7 @@ dependencies:
   # apply uniformly to every package and avoids duplicate index config.
   - pip
   - pip:
+    - -r ../requirements/build.txt
     - -r requirements.txt
   # - pip:
   #   - --no-cache-dir
