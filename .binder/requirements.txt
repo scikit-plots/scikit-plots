@@ -1,6 +1,6 @@
+# --no-cache-dir
 --find-links https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/scikit-learn
 --find-links https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots
---no-cache-dir
 --pre
 
 cython

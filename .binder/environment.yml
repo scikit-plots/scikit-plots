@@ -40,15 +40,11 @@ dependencies:
   # the full package list, including scikit-plots (resolved via --find-links
   # to the staging index).  A single pip block ensures those global flags
   # apply uniformly to every package and avoids duplicate index config.
+  # pip install --no-cache-dir --no-binary=scikit-plots \
+  # --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple \
+  # --extra-index-url https://pypi.org/simple \
+  # scikit-plots
   - pip
   - pip:
     - -r ../requirements/build.txt
     - -r requirements.txt
-  # - pip:
-  #   - --no-cache-dir
-  #   # Install scikit-plots from the nightly staging index.
-  #   # --no-binary ensures source compilation on this node.
-  #   - --index-url https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple
-  #   - --extra-index-url https://pypi.org/simple
-  #   # - --no-binary scikit-plots
-  #   - scikit-plots
