@@ -88,13 +88,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Build Wheels Packages
-        uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e  # v3.3.1
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Wheel-cp312-pyodide_wasm32
           path: ./wheelhouse/*.whl
@@ -102,7 +102,7 @@ jobs:
           # include-hidden-files: true
 
       - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
         with:
           ## for installation of anaconda-client, required for upload to
           ## anaconda.org
@@ -166,13 +166,13 @@ jobs:
   #         fetch-tags: true
   #         persist-credentials: false
 
-  #     - uses: pypa/cibuildwheel@298ed2fb2c105540f5ed055e8a6ad78d82dd3a7e  # v3.3.1
+  #     - uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
   #       env:
   #         CIBW_PLATFORM: pyodide
   #         CIBW_BUILD: cp312-*
 
   #     - name: Upload wheel artifact(s)
-  #       uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+  #       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
   #       with:
   #         name: cp312-pyodide_wasm32
   #         path: ./wheelhouse/*.whl
