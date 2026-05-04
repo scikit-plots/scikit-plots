@@ -252,8 +252,9 @@ else
 endif
 
 # --------------------------------------------------------------------
-# Architecture tuning (portable-safe)
+# Architecture tuning (portable-safe?)
 # --------------------------------------------------------------------
+# TODO: Numpy like cpu optimization for annoy vector DB?
 # Source distribution (raw source code archive)
 # Think of -march as a strict requirement and -mtune as a strong suggestion.
 # - march=cpu-type (Machine Architecture): Dictates the minimum hardware requirement.
@@ -275,41 +276,17 @@ endif
 # -march=native         0/10 (Crashes others)         10/10   Local builds / Private servers
 # -march=x86-64        10/10 (Works on everything)     3/10   Basic CLI tools, non-math libs
 # -march=x86-64-v3      8/10 (2013+ CPUs)              9/10   Vector DBs, AI, Data Science
-# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it's digestible for everyone.
-# Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
-# When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
-# If a user wants maximum performance, they will install your sdist like this:
-#   export CFLAGS="-march=native -O3"
-#   pip install your-package --no-binary your-package
 #
-# BUG-4 FIX: -march=native is NOT added unconditionally here.
-#
-# The build pipeline exports CFLAGS (e.g. CFLAGS="-march=x86-64-v2 -O2") via
-# postBuild before invoking pip/meson.  On GCC and Clang, when multiple -march=
-# flags appear on the same command line, the LAST one wins.  Meson appends
-# c_args AFTER the env-captured CFLAGS, so any -march= set here would silently
-# override the portability-tuned march from the environment.
-#
-# Ownership of -march is delegated to the caller:
-#   • Binder / CI:         postBuild exports CFLAGS="-march=x86-64-v[2|3] …"
-#   • Local dev build:     set CFLAGS="-march=native -O3" before meson setup
-#   • Wheel release:       CI sets CFLAGS="-march=x86-64-v3 -O3" or similar
-#
-# If you need to pin a march inside meson itself, add a boolean option in
-# meson_options.txt and gate the flag on that option.  Do not add it
-# unconditionally.
-#
-if cpu_arch == 'x86_64' and is_gnu_style
+if is_gnu_style and cpu_arch == 'ppc64le'
+  if cc.has_argument('-mcpu=native')
+    extra_compile_args += ['-mcpu=native']
+  endif
+endif
+if is_gnu_style and cpu_arch == 'x86_64'
   if os_name != 'darwin'
     if cc.has_argument('-march=native')
       extra_compile_args += ['-march=native']
     endif
-  endif
-endif
-
-if cpu_arch == 'ppc64le' and is_gnu_style
-  if cc.has_argument('-mcpu=native')
-    extra_compile_args += ['-mcpu=native']
   endif
 endif
 
@@ -377,6 +354,7 @@ dep_numcpp = declare_dependency(
 # After those, subdirs with the most heavy builds should come first
 # (that parallelizes better)
 # below can be needs to be to be before ... since ... cimport *.pxd
+subdir('_core')
 subdir('config')
 
 # c submodules

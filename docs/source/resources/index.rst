@@ -55,6 +55,16 @@ Resources
     .. grid-item-card::
         :padding: 3
 
+        **data**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Data Resources <./data_resources.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
         **external**
         ^^^
         .. toctree::

@@ -8,11 +8,46 @@ ci:
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
   autofix_prs: false
 
+# files: ^(.*\.(py|json|md|sh|yaml|yml|in|cfg|txt|rst|toml|precommit-toml|wordlist))$
+# exclude: ^(\.[^/]*cache/.*)$
+
 # rm -rf ~/.cache/pre-commit
 # pre-commit clean
 # pre-commit autoupdate
 # pre-commit install
 repos:
+  # Optional: Spell Checking
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words" [--ignore-words-list=ser]
+        # files: \.(py|rst|md)$
+        # If one configures codespell using the pyproject.toml file instead use:
+        additional_dependencies:
+          # pyproject.toml (only if the tomli library is available for Python < 3.11)
+          - tomli
+        exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
+          (?x)(
+            ^scikitplot/_core/ |  # exclude folder
+            ^tests/data/ |  # exclude test data folder
+            \.svg$ |        # exclude all .svg files
+            \.lock$         # exclude lock files
+          )
+
+  # Optional: Custom Hook for RST Errors and Unicode Replacement
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon.
+      - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst.
+      - id: text-unicode-replacement-char  # Forbid files with a UTF-8 Unicode replacement character.
+
+  # - repo: https://github.com/Lucas-C/pre-commit-hooks-markup
+  #   rev: v1.0.1
+  #   hooks:
+  #     - id: rst-linter
+
   # Critical Checks: Sensitive data, large files, and merge conflicts
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -76,6 +111,15 @@ repos:
         description: This hook trims trailing whitespace.
         exclude_types: [svg]  # Python Covered by Ruff W291?
       - id: mixed-line-ending  # Checks for mixed line endings.
+
+  # Optional: Cython Linting
+  - repo: https://github.com/MarcoGorelli/cython-lint
+    rev: v0.18.1
+    hooks:
+      # TODO: add the double-quote-cython-strings hook when it's usability has improved:
+      # possibility to pass a directory and use it as a check instead of auto-formatter.
+      - id: cython-lint
+      - id: double-quote-cython-strings
 
   # Code Quality: Formatter flake8 vs ruff-format can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
@@ -191,41 +235,6 @@ repos:
     rev: v1.9.0
     hooks:
       - id: zizmor
-
-  # Optional: Custom Hook for RST Errors and Unicode Replacement
-  - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.10.0
-    hooks:
-      - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon.
-      - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst.
-      - id: text-unicode-replacement-char  # Forbid files with a UTF-8 Unicode replacement character.
-
-  # Optional: Spell Checking
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
-    hooks:
-      - id: codespell
-        args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words" [--ignore-words-list=ser]
-        # files: \.(py|rst|md)$
-        # If one configures codespell using the pyproject.toml file instead use:
-        additional_dependencies:
-          # pyproject.toml (only if the tomli library is available for Python < 3.11)
-          - tomli
-        exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
-          (?x)(
-            ^tests/data/ |  # exclude test data folder
-            \.svg$ |        # exclude all .svg files
-            \.lock$         # exclude lock files
-          )
-
-  # Optional: Cython Linting
-  - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.18.1
-    hooks:
-      # TODO: add the double-quote-cython-strings hook when it's usability has improved:
-      # possibility to pass a directory and use it as a check instead of auto-formatter.
-      - id: cython-lint
-      - id: double-quote-cython-strings
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie

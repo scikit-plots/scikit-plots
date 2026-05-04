@@ -59,13 +59,6 @@ extra_link_args = []
 # -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
 # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
 # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
-# Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
-# Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
-# When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
-# If a user wants maximum performance, they will install your sdist like this:
-#   export CFLAGS="-march=native -O3"
-#   pip install your-package --no-binary your-package
-
 if platform.machine() == 'ppc64le':
     extra_compile_args += ['-mcpu=native',]
 

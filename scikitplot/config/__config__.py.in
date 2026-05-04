@@ -123,6 +123,15 @@ CONFIG = _cleanup(
       "path": r"@PYTHON_PATH@",
       "version": "@PYTHON_VERSION@",
     },
+    # "SIMD Extensions": {
+    #     "baseline": __cpu_baseline__,
+    #     "found": [
+    #         feature for feature in __cpu_dispatch__ if __cpu_features__[feature]
+    #     ],
+    #     "not found": [
+    #         feature for feature in __cpu_dispatch__ if not __cpu_features__[feature]
+    #     ],
+    # },
   }
 )
 
@@ -133,6 +142,7 @@ CONFIG = _cleanup(
 def _check_pyyaml():
   import yaml
   return yaml
+
 
 # Define the Enum class for display modes
 class DisplayModes(Enum):
@@ -151,6 +161,7 @@ class DisplayModes(Enum):
       return "Displays output to the terminal."
     elif self == DisplayModes.dicts:
       return "Displays output as dictionaries."
+
 
 # Function that accepts either raw value or Enum member
 def _set_display_mode(mode:str = 'stdout'):
@@ -174,7 +185,10 @@ def _set_display_mode(mode:str = 'stdout'):
     print("Invalid type. Mode must be a string or a DisplayModes Enum member.")
     return
 
-def show_config(mode=DisplayModes.stdout.value): # Value of the enum member
+
+def show_config(
+  mode=DisplayModes.stdout.value,  # Value of the enum member
+):
   """
   Show libraries and system information on which SciPy was built
   and is being used

@@ -36,3 +36,4 @@ inkscape          # SVG renderer; used by sphinx-gallery for SVG figure export
 
 # ── OCR ───────────────────────────────────────────────────────────────────────
 tesseract-ocr     # OCR engine; required by pytesseract (used in example notebooks)
+jq

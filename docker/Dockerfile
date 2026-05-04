@@ -388,12 +388,17 @@ ARG TARGETARCH
 # RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
 # Optional: reuse your post-create orchestration during build
 # NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
+## NOTE: TARGETARCH is only auto-injected by Docker BuildKit when --platform is passed
+## (e.g., docker buildx build --platform linux/amd64). CI systems like Red Hat Quay
+## do not inject it automatically. Fall back to `uname -m` when unset.
+## Handle both Docker names (amd64/arm64) and Linux kernel names (x86_64/aarch64).
 RUN set -Eeuo pipefail; \
   if [ "${RUN_POST_CREATE}" = "1" ]; then \
-    case "${TARGETARCH}" in \
+    _arch="${TARGETARCH:-$(uname -m)}"; \
+    case "${_arch}" in \
       amd64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
       arm64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
-      *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 2 ;; \
+      *) echo "Unsupported arch=${_arch} (TARGETARCH=${TARGETARCH:-unset})" >&2; exit 2 ;; \
     esac; \
     \
     POST_CREATE_STRICT=0 \
