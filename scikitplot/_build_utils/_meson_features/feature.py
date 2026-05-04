@@ -117,7 +117,7 @@ class KwargConfilctAttr(KwargInfo):
         )
         super().__init__(
             opt_name, types,
-            converter = lambda values: self.convert(
+            convertor = lambda values: self.convert(  # codespell:ignore
                 func_name, opt_name, values
             ),
             default = default

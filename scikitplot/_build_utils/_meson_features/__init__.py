@@ -10,6 +10,7 @@
 #
 # from __future__ import annotations: makes annotations lazy (PEP 563/749).
 # Safe here: no runtime annotation evaluation in this file.
+# https://github.com/numpy/meson
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

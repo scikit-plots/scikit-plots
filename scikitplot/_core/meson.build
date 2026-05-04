@@ -67,6 +67,7 @@ endforeach
 #   cpp_args: cpp_args_common,
 # )
 
+## https://ermig1979.github.io/Simd/
 # py.extension_module('_simd',
 #   [
 #     'src/common/npy_cpu_features.c',
@@ -117,15 +118,18 @@ _cpu_common_sources = files(
 #     'src/common',
 #     'src/__cpu__',
 #   ],
-#   # c_args: c_args_common,
-#   # cpp_args: cpp_args_common,
+#   c_args: c_args_common,
+#   cpp_args: cpp_args_common,
 #   dependencies: [dep_all],
 # )
 
-# The __cpu__ Python extension module
+# # The __cpu__ Python extension module
 # py.extension_module(
 #   '__cpu__',
-#   sources: ['src/__cpu__/__cpu.c'] + _cpu_common_sources,
+#   sources: [
+#     'src/__cpu__/__cpu.c',
+#     # _cpu_common_sources,
+#   ],
 #   include_directories: _core_inc,
 #   link_with: __cpu_mtargets.static_lib('__cpu_mtargets'),
 #   dependencies: [dep_all],

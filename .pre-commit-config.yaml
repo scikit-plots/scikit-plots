@@ -48,6 +48,12 @@ repos:
   #   hooks:
   #     - id: rst-linter
 
+  # Documentation and Specialized Linting
+  - repo: https://github.com/woodruffw/zizmor-pre-commit
+    rev: v1.9.0
+    hooks:
+      - id: zizmor
+
   # Critical Checks: Sensitive data, large files, and merge conflicts
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -111,6 +117,23 @@ repos:
         description: This hook trims trailing whitespace.
         exclude_types: [svg]  # Python Covered by Ruff W291?
       - id: mixed-line-ending  # Checks for mixed line endings.
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.16.0
+    hooks:
+      - id: mypy
+        pass_filenames: false  # Prevent passing filenames to the hook.
+        args: [--config-file=.mypy.ini, --follow-imports=skip]
+        # Use regex to specify the files to check
+        files: scikitplot/externals/_seaborn/_(core|marks|stats)/
+        # additional_dependencies: [pytest==6.2.4]
+        additional_dependencies: [pytest, numpy]
+        # exclude: utils
+
+  # - repo: https://github.com/pre-commit/mirrors-prettier
+  #   rev: v4.0.0-alpha.8
+  #   hooks:
+  #     - id: prettier
 
   # Optional: Cython Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
@@ -212,29 +235,6 @@ repos:
           # - --config=pyproject.toml   # Optional: use custom config file
         # verbose: true  # Force Ruff to show which files were modified
         # types_or: [ python, pyi ]
-
-  # - repo: https://github.com/pre-commit/mirrors-prettier
-  #   rev: v4.0.0-alpha.8
-  #   hooks:
-  #     - id: prettier
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.16.0
-    hooks:
-      - id: mypy
-        pass_filenames: false  # Prevent passing filenames to the hook.
-        args: [--config-file=.mypy.ini, --follow-imports=skip]
-        # Use regex to specify the files to check
-        files: scikitplot/externals/_seaborn/_(core|marks|stats)/
-        # additional_dependencies: [pytest==6.2.4]
-        additional_dependencies: [pytest, numpy]
-        # exclude: utils
-
-  # Documentation and Specialized Linting
-  - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.9.0
-    hooks:
-      - id: zizmor
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie

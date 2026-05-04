@@ -5,6 +5,26 @@ A standalone, architecture-aware CPU feature detection and runtime-dispatch laye
 > **Origin:** adapted from [NumPy's `meson_cpu`](https://github.com/mesonbuild/meson/issues/12572) infrastructure.
 > Upstream reference: [https://github.com/numpy/numpy/tree/main/meson_cpu](https://github.com/numpy/numpy/tree/main/meson_cpu)
 
+### highway
+
+- https://github.com/google/highway
+- https://google.github.io/highway/en/master/
+- https://chromium.googlesource.com/external/github.com/google/highway/+/refs/heads/upstream/master/
+
+See Also:
+---------
+- https://en.wikipedia.org/wiki/Single_instruction,_multiple_data
+- https://en.cppreference.com/cpp/experimental/simd
+- [simplifycpp.org](https://simplifycpp.org):
+    - [mini_booklet_SIMD_in_Modern_CPP.pdf](https://simplifycpp.org/books/minibooklet/mini_booklet_SIMD_in_Modern_CPP.pdf)
+    - https://simplifycpp.org/?id=cpu
+- [github.com/ermig1979/Simd](https://github.com/ermig1979/Simd)
+    - https://github.com/ermig1979/Simd
+    - https://ermig1979.github.io/Simd/
+    - https://ermig1979.github.io/Simd/help/index.html
+    - https://simd.sourceforge.net/index.html
+- https://github.com/jfalcou/eve
+
 ---
 
 ## Overview

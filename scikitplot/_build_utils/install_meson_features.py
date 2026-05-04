@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
 #
-# fmt: off
-# ruff: noqa
-# ruff: noqa: PGH004
-# flake8: noqa
-# pylint: skip-file
-# mypy: ignore-errors
-# type: ignore
-#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
