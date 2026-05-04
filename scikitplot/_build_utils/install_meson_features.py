@@ -53,8 +53,25 @@ against the corresponding destination file.  Only when the check returns
 
 Copy is performed to a ``<dst>.tmp`` directory first.  Only after the
 copy succeeds is the previous destination removed and the temp directory
-renamed into place.  A failed copy leaves the previous installation
-intact.
+moved into place via ``shutil.move``.  A failed copy leaves the previous
+installation intact.
+
+**Windows compatibility**
+
+Two Windows-specific problems are handled explicitly:
+
+1. ``shutil.rmtree`` raises ``PermissionError`` on read-only files.
+   ``shutil.copytree`` uses ``copy2`` by default, which preserves the
+   source file's read-only attribute.  Files checked out of git are
+   often read-only on Windows.  ``_rmtree`` registers an error handler
+   that clears the read-only bit and retries, using ``onexc`` on
+   Python >= 3.12 (where ``onerror`` is deprecated) and ``onerror``
+   on older versions.
+
+2. ``os.rename`` can fail on Windows immediately after ``shutil.rmtree``
+   because Windows file-system handles may still be open asynchronously.
+   ``shutil.move`` is used instead; it calls ``os.replace`` internally
+   and handles the edge cases that ``os.rename`` does not.
 
 References
 ----------
@@ -74,7 +91,71 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import sys
+
+
+def _rmtree_error_handler(*args: object) -> None:
+    """Clear the read-only bit on *path* and retry *func*.
+
+    Compatible with both the legacy ``onerror`` callback signature
+    ``(func, path, exc_info)`` used by Python < 3.12 and the new
+    ``onexc`` callback signature ``(func, path, exc)`` introduced in
+    Python 3.12.  Both signatures pass ``func`` as the first positional
+    argument and ``path`` as the second; only the third argument differs,
+    and this handler does not need it.
+
+    Parameters
+    ----------
+    args[0] : callable
+        The ``shutil`` internal function that failed (e.g. ``os.unlink``).
+    args[1] : str
+        The filesystem path that triggered the error.
+    args[2] : object
+        Either a ``(type, value, traceback)`` tuple (``onerror``) or an
+        exception instance (``onexc``).  Unused by this handler.
+
+    Notes
+    -----
+    Silently ignores a second failure after chmod so that callers do not
+    crash when a file is locked by another process.  The outer caller
+    will detect the incomplete removal and report a clear error.
+    """
+    func, path = args[0], args[1]
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except OSError:
+        pass
+
+
+def _rmtree(path: str) -> None:
+    """Remove *path* recursively, handling read-only files on Windows.
+
+    On POSIX, delegates to ``shutil.rmtree`` directly.  On Windows,
+    registers ``_rmtree_error_handler`` so that read-only files are
+    made writable before deletion.  Uses ``onexc`` on Python >= 3.12
+    and ``onerror`` on older releases.
+
+    Parameters
+    ----------
+    path : str
+        Directory to remove.
+
+    Raises
+    ------
+    OSError
+        If removal still fails after the read-only workaround (e.g. the
+        file is locked by another process).
+    """
+    if sys.platform != "win32":
+        shutil.rmtree(path)
+        return
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=_rmtree_error_handler)
+    else:
+        shutil.rmtree(path, onerror=_rmtree_error_handler)
 
 
 def _needs_update(src_dir: str, dst_dir: str) -> bool:
@@ -164,27 +245,31 @@ def main() -> None:
     mods_dir = os.path.dirname(_mods.__file__)
     dst_dir = os.path.join(mods_dir, "features")
 
-    # Always overwrite — meson setup is the authoritative trigger.
-    # if os.path.isdir(dst_dir):
-    #     shutil.rmtree(dst_dir)
-
     if not _needs_update(src_dir, dst_dir):
         print(f"features module up-to-date: {dst_dir}")
         return
 
-    # Atomic-ish replacement: copy to a temp name then rename.
+    # Atomic-ish replacement: copy to a temp name then move into place.
+    #
+    # shutil.move is used instead of os.rename because on Windows,
+    # os.rename can fail immediately after shutil.rmtree while file-system
+    # handles are still being released asynchronously.  shutil.move uses
+    # os.replace internally and handles these edge cases.
     dst_tmp = dst_dir + ".tmp"
     if os.path.exists(dst_tmp):
-        shutil.rmtree(dst_tmp)
+        _rmtree(dst_tmp)
 
     try:
         shutil.copytree(src_dir, dst_tmp)
         if os.path.isdir(dst_dir):
-            shutil.rmtree(dst_dir)
-        os.rename(dst_tmp, dst_dir)
+            _rmtree(dst_dir)
+        shutil.move(dst_tmp, dst_dir)
     except Exception as exc:
         if os.path.exists(dst_tmp):
-            shutil.rmtree(dst_tmp, ignore_errors=True)
+            try:
+                _rmtree(dst_tmp)
+            except OSError:
+                pass
         print(
             f"ERROR: failed to install features module to {dst_dir!r}:\n"
             f"       {exc}\n"
