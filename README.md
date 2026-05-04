@@ -260,14 +260,8 @@
   # -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
   # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
   # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
-  # Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
-  # Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
-  # When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
-  # If a user wants maximum performance, they will install your sdist like this:
-  #   export CFLAGS="-march=native -O3"
-  #   pip install your-package --no-binary your-package
 -->
-<h4>🚀 Tips: Troubleshooting CPU architecture pip downloading a wheel:</h4>
+<h4>🚀 Tips: Troubleshooting CPU architecture pip downloading a wheel, try:</h4>
 
 <blockquote style="border-left: 4px solid #f0a500; padding-left: 12px; color: #555;">
   <strong>⚠️ Important Note</strong><br>
@@ -276,12 +270,7 @@
   <pre><code>Illegal instruction (core dumped)</code></pre>
 </blockquote>
 
-<pre><code class="language-sh">## TODO: ⚠️ Prevent runtime crashes caused by host-specific CPU instructions
-## (e.g., binaries built with -march=native). Ensure builds target a portable
-## baseline or perform runtime CPU feature detection before loading extensions.
-# pip install scikit-plots
-
-## ⚠️ Ensure installed the lost packages "Build and Runtime dependencies".
+<pre><code class="language-sh">## ⚠️ Ensure installed the lost packages "Build and Runtime dependencies".
 
 ## ✅ (Optionally) Use Remote Git branch, Remote Git specific commit, Remote Git tag / release
 # pip install "git+https://github.com/scikit-plots/scikit-plots.git@&lt;commit_sha&gt;" -v
@@ -291,7 +280,12 @@ pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
 ## ✅ (Optionally) Clone locally + install:
 git clone https://github.com/scikit-plots/scikit-plots.git
 cd scikit-plots
-python -m pip install --no-cache-dir . -v</code></pre>
+python -m pip install --no-cache-dir . -v
+
+## TODO: Prevent runtime crashes caused by host-specific CPU instructions
+## (e.g., binaries built with -march=native). Ensure builds target a portable
+## baseline or perform runtime CPU feature detection before loading extensions.
+# pip install scikit-plots</code></pre>
 </div>
 
 
@@ -706,16 +700,21 @@ pip install --no-binary=:all: scikit-plots
 ```
 
 ```sh
-## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots
+## (Optionally) Install offline downloaded a source distribution (.tar.gz) of scikit-plots (wget or curl -O)
+## PyPi Source Link: /packages/source/<first-letter>/<normalized-name>/<filename>
+## https://files.pythonhosted.org/packages/af/3a/a7eb68ff8075e09f3b6e13de548fc71c999ee01abff441cc6506862bba09/scikit_plots-0.4.0.post11.tar.gz
+## https://files.pythonhosted.org/packages/source/s/scikit-plots/scikit_plots-0.4.0.post11.tar.gz
+curl -O https://files.pythonhosted.org/packages/source/s/scikit-plots/scikit_plots-0.4.0.post11.tar.gz
+pip install ./scikit_plots-0.4.0.post11.tar.gz
+```
+
+```sh
 ## https://pypi.org/project/scikit-plots/#history
 ## pip install --require-hashes -r requirements.txt
-## sha256sum scikit_plots-0.4.0.post7.tar.gz
-## shasum -a 256 scikit_plots-0.4.0.post7.tar.gz
-## Get-FileHash scikit_plots-0.4.0.post7.tar.gz -Algorithm SHA256
-## scikit-plots==0.4.0.post7 --hash=sha256:<your-computed-hash-here>
-# wget https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post7.tar.gz
-curl -O https://files.pythonhosted.org/packages/bd/a0/f0d8ee33124071f93c84eeae8aa729978ca5db9b34998437effd1ead344b/scikit_plots-0.4.0.post7.tar.gz
-pip install ./scikit_plots-0.4.0.post7.tar.gz
+## sha256sum ./scikit_plots-0.4.0.post11.tar.gz
+## shasum -a 256 ./scikit_plots-0.4.0.post11.tar.gz
+## Get-FileHash scikit_plots-0.4.0.post11.tar.gz -Algorithm SHA256
+## scikit-plots==0.4.0.post11 --hash=sha256:<your-computed-hash-here>
 ```
 
   <h3>
@@ -1116,14 +1115,18 @@ https://emojidb.org/
  ⚠︎ ☠︎ ☢︎ ☣︎ ⛔ ✖︎ ❗
  ☢️ ☣️ 🛑 ⛔ ⚠️ ⚡❌ 🚨 🌋
  ☮️ ☯️ ⚙️
- 📍 🗝️ 🔍 🔎 🕵️‍♂️ 🕵️‍♀️ 🧐 👀 👁️ 📝 🔬
- 🚧 🚦 🚥
+ 📍 🗝️ 🔍 🔎 🕵️‍♂️ 🕵️‍♀️ 🧐 👀 👁️ 📝 🔬 🤓
+ 🚧 🚦 🚥 💯 ⚖️
 
- 𝄞 ✍︎ ✍🏻 ✍️ 🪶 ✎ᝰ.📓🗒 ˎˊ˗ 🖍 𓂃✍︎  𓂃🖌 ✒️ ⬇ ↓ 🖋  🖌 🗝 🕊
+ 𝄞 ✍︎ ✍🏻 ✍️ 🪶 ✎ᝰ.📓🗒 ˎˊ˗ 🖍 𓂃✍︎  𓂃🖌 ✒️ ⬇ ↓ 🖋  🖌 🗝 🕊 🛡 🎧 🆔 🪪
+
+ 🐳 🦭 🐋 🐬 🐟 🧩 🐞 🦋 🪲 🕷️ 🐛 🦠 🦖 🦗 🐢 🦎 🦆 🦢 🦇 🪳 🦜 🕷 𐂂 𓃶 𓆝 𓆟 𓆞 𓆝 𓆟 𓅰 𓅬 𓅭 𓅮 𓅯 𓆝 𓆟 𓆞
 
  🔄 ➡️ ↖️ ⬇️ ✏️ ✎ ☰ 🧾 📝 ⬜ ⃣ 🔍︎ 🔎 ⌕ ⌗ ⏱ 🏍 ⟳ 𓍝 ↳ ➥ ✐ᝰ. ➜] ↯  ⃢▸
 
-🔗 🤖 ⚙️ 🇦🇮 🌐 ⭐ ✨ 💫 🧭 📍 🌍
+🔗 🤖 👾 ⚙️ 🇦🇮 🌐 ⚡ ⭐ ✨ 🌟 💫 🪐 🧭 📍 🌍 ˙✧ 📷 ⋆｡˚
+
+🏷️ 🔖 🧮 💥 💣 ✷ ☄️ 🚀 🔎 🔍 💿 💽 📤 📥 ➜] ⬇️ ⬆️ 🗃️ ➡️ ⓘ
 
 Core labels (most useful)
 

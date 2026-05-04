@@ -331,10 +331,27 @@ configure_file(
   output : CPU_CONF_CONFIG,
   configuration : configuration_data(main_config)
 )
+# Rule of thumb — declare all args before any build targets
+# before any static_library() call cause
+# ERROR: Tried to use 'add_project_arguments' after a build target has been declared.
 add_project_arguments(
   '-I' + meson.current_build_dir(),
   language: ['c', 'cpp']
 )
+
+configure_file(
+  input : 'main_config.h.in',
+  output : CPU_CONF_CONFIG,
+  configuration : configuration_data(main_config),
+  install: true,
+  install_dir: py.get_install_dir() / 'scikitplot/config',
+  install_tag: 'python-runtime',
+)
+# cpu_build_inc = include_directories(meson.current_build_dir())
+# cpu_build_inc = include_directories('.')
+# cpu_dep = declare_dependency(
+#   include_directories: cpu_build_inc
+# )
 
 message(
 '''

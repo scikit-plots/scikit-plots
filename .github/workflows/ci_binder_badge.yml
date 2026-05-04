@@ -1,10 +1,12 @@
 # https://github.com/manics/action-binderbadge
+# https://github.com/jupyterhub/repo2docker-action/blob/master/.github/workflows/binder.yaml
 ---
 name: "binder-badge"
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
   # pull_request_target:
+  #   types: [opened, reopened]
 
 jobs:
   badge:
@@ -15,7 +17,23 @@ jobs:
       pull-requests: write
 
     steps:
-      # - uses: manics/action-binderbadge@main
-      - uses: manics/action-binderbadge@99560b89939071823821e105afc83aaa87927e03  #v3.0.0
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+      # # - uses: manics/action-binderbadge@main
+      # - uses: manics/action-binderbadge@99560b89939071823821e105afc83aaa87927e03  #v3.0.0
+      #   with:
+      #     githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: comment on PR with Binder link
+      if: github.event == 'pull_request'
+      uses: actions/github-script@v1
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          var BRANCH_NAME = process.env.BRANCH_NAME;
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left: Launch a binder notebook on this branch`
+          })
+      env:
+        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}

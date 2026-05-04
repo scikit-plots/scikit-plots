@@ -22,7 +22,7 @@ name: "CI 📘 Docs Preview Link Post CircleCI"
 # "status" too many action trigger
 on: # [status]
   workflow_dispatch: # Allows manual triggering of the workflow
-  # status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
+  status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
     # branches: [ "main", "*.X" ]
     # branches:
     #   - main
@@ -127,9 +127,9 @@ jobs:
           # api_token: ${{ env.CIRCLE_TOKEN }}
           api-token: ${{ secrets.CIRCLE_TOKEN }}  # Only if CircleCI project is private
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          artifact-path: 0/docs/build/html/stable/index.html
-          circleci-jobs: build_docs
           job-title: 📘 Check the rendered Preview Docs here!
+          circleci-jobs: build_docs
+          artifact-path: 0/docs/build/html/stable/index.html
 
       # - name: "🔗 Print redirected docs preview URL"
       #   # "url": "https://output.circle-artifacts.com/output/job/[JOB-ID]/artifacts/0/docs/build/html/stable/index.html"

@@ -1,4 +1,4 @@
-### [🐋 Scikit-plots Runtime Docker Images][hub.docker.com]
+## [🐋 Scikit-plots Runtime Docker Images][hub.docker.com]
 
 These containers are a quick way to run or try scikit-plots. The source is available on [GitHub][scikit-plots-github]⁠. For building scikit-plots or extensions for scikit-plots, please see: [the scikit-plots Build Dockerfiles][scikit-plots-docker] and 📘 see: [the scikit-plots Env Manager][scikit-plots-github.io-docker].
 
@@ -7,14 +7,58 @@ These containers are a quick way to run or try scikit-plots. The source is avail
 [scikit-plots-github.io-docker]: https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html
 [scikit-plots-docker]: https://github.com/scikit-plots/scikit-plots/tree/main/docker
 
-See Also:
----------
-- 🤗 https://huggingface.co/scikit-plots
-
+- [scikitplot/scikit-plots:latest-jupyter-python-3.12](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
+- [scikitplot/scikit-plots:latest-python-3.11](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
 
 ---
 
-## Base Image Tags
+## Quickstart: Drop-in volume-mount examples
+
+```sh
+# (os-agnostic) Bash scikitplot/scikit-plots:latest
+docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891 scikitplot/scikit-plots:latest
+```
+
+```sh
+# POSIX Shells (Git Bash / WSL / Linux / macOS)
+docker run -it -v "$((pwd -W>/dev/null 2>&1 && pwd -W)||pwd):/work" scikitplot/scikit-plots
+```
+
+```sh
+# PowerShell (man Resolve-Path `-v "$((Resolve-Path .).Path -replace '\\','/'):/work"`)
+docker run -it -v "$(pwd):/work" scikitplot/scikit-plots:latest
+```
+
+```sh
+# CMD (help cd)
+docker run -it -v "%cd%:/work" scikitplot/scikit-plots:latest
+```
+
+| Shell          | Path Handling Tips                                           | CWD Syntax                                                              | Escape `\$()`, `\`               | Escape Newline (`\n`)             |
+|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------|-----------------------------------|
+| CMD            | Use full Windows paths like `C:\Users\Me\...` and quote them | `./`, `%cd%`                                                            | Use `^` to escape special chars  | Use `^` at end of line            |
+| PowerShell     | Wrap paths in `"`, use env vars like `$Env:VAR`              | `./`, `"$(pwd)"`, `"${PWD}"`, `"$PWD"`, `"$PWD.Path"`                   | Use backtick `` ` ``             | Use backtick `` ` `` at end       |
+| Git-Bash       | Defaults to `/c/Users/...`; use `$(pwd -W)` for Windows paths| `$(pwd -W)`, `$(pwd -P)`, `"$(cd ~/notebooks && pwd -W)"`               | Standard POSIX (`\`, `\$()`)     | Use `\` at end of line            |
+| WSL            | Use Linux-style paths like `/mnt/c/Users/...`                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
+| Linux/macOS    | Native POSIX paths work as-is                                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
+
+**Notes:**
+- In powershell `$(pwd)` == `$PWD` == `(Resolve-Path ./).Path -replace '\\','/'`
+  - In powershell `Resolve-Path .` (or simply `$PWD`) gives the absolute path; the `-replace` swaps backslashes for forward slashes
+- In Git Bash, the shell tries to behave like Linux (POSIX-style).
+  - `pwd`      # → /c/Users/you/project/notebooks (POSIX-style)
+  - `pwd -W`   # → C:/Users/you/project/notebooks (Windows-style)
+- In POSIX shells (Git Bash, WSL, Linux/macOS): `$(pwd)` == `$PWD` == `$(realpath ./)`
+  - `echo $( bash -c 'uname -sr' )`
+  - `echo $( bash -c '(uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd' )`
+  - `echo $( (uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || (wslpath >/dev/null 2>&1 && wslpath -w pwd) || pwd' )`
+  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || pwd' )`
+  - ✅ `echo $( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd )`
+
+---
+
+## 🏷️ Base Image Tags
 
 Images built are based on [python:latest][scikit-plots-jupyter], [jupyter/tensorflow-notebook:latest][scikit-plots-jupyter], etc.
 
@@ -47,54 +91,6 @@ docker run scikitplot/scikit-plots:latest
 
 ---
 
-## Quickstart
-
-<!-- "https://github.com/scikit-plots/scikit-plots.github.io/raw/main/dev/_static/plot_directive/introduction/quick_start_tf.png" -->
-<div align=center>
- <img
-  src="https://github.com/scikit-plots/scikit-plots/raw/main/docker/scripts/bash-screenshot.png"
-  alt="docker/scripts/bash-screenshot.png" width="62.5%" height="365.6px">
-</div>
-
-### Drop-in volume-mount examples
-```sh
-# Quickstart bash scikitplot/scikit-plots:latest
-docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" -p 8891:8891  scikitplot/scikit-plots:latest-python-3.11
-
-# POSIX shells (Git Bash / WSL / Linux / macOS)
-docker run -it -v "$( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd ):/work" image
-
-# PowerShell (man Resolve-Path)
-# docker run -v "$((Resolve-Path .).Path -replace '\\','/'):/work" image
-docker run -it -v "$(pwd):/work" image
-
-# CMD (help cd)
-docker run -it -v "%cd%:/work" image
-```
-
-| Shell          | Path Handling Tips                                           | CWD Syntax                                                              | Escape `\$()`, `\`               | Escape Newline (`\n`)             |
-|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------|-----------------------------------|
-| CMD            | Use full Windows paths like `C:\Users\Me\...` and quote them | `./`, `%cd%`                                                            | Use `^` to escape special chars  | Use `^` at end of line            |
-| PowerShell     | Wrap paths in `"`, use env vars like `$Env:VAR`              | `./`, `"$(pwd)"`, `"${PWD}"`, `"$PWD"`, `"$PWD.Path"`                   | Use backtick `` ` ``             | Use backtick `` ` `` at end       |
-| Git-Bash       | Defaults to `/c/Users/...`; use `$(pwd -W)` for Windows paths| `$(pwd -W)`, `$(pwd -P)`, `"$(cd ~/notebooks && pwd -W)"`               | Standard POSIX (`\`, `\$()`)     | Use `\` at end of line            |
-| WSL            | Use Linux-style paths like `/mnt/c/Users/...`                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
-| Linux/macOS    | Native POSIX paths work as-is                                | `./`, `"$(pwd)"`, `"$PWD"`, `$(realpath ./)`, `$(realpath ~/notebooks)` | Standard POSIX                   | Use `\` at end of line            |
-
-**Notes:**
-- In powershell `$(pwd)` == `$PWD` == `(Resolve-Path ./).Path -replace '\\','/'`
-  - In powershell `Resolve-Path .` (or simply `$PWD`) gives the absolute path; the `-replace` swaps backslashes for forward slashes
-- In Git Bash, the shell tries to behave like Linux (POSIX-style).
-  - `pwd`      # → /c/Users/you/project/notebooks (POSIX-style)
-  - `pwd -W`   # → C:/Users/you/project/notebooks (Windows-style)
-- In POSIX shells (Git Bash, WSL, Linux/macOS): `$(pwd)` == `$PWD` == `$(realpath ./)`
-  - `echo $( bash -c 'uname -sr' )`
-  - `echo $( bash -c '(uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd' )`
-  - `echo $( (uname -o 2>/dev/null | grep -qi msys && pwd -W) || pwd )`
-  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || (wslpath >/dev/null 2>&1 && wslpath -w pwd) || pwd' )`
-  - `echo $( bash -c '(pwd -W >/dev/null 2>&1 && pwd -W) || pwd' )`
-  - ✅ `echo $( (pwd -W >/dev/null 2>&1 && pwd -W) || pwd )`
-
----
 
 ## Getting Started
 
@@ -222,3 +218,7 @@ pre-commit install
 
 ✍️ Ready for Development...
 [install-the-development-version-of-scikit-plots](https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html#install-the-development-version-of-scikit-plots)
+
+See Also:
+---------
+- 🤗 https://huggingface.co/scikit-plots

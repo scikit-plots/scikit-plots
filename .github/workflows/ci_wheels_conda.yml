@@ -784,19 +784,13 @@ jobs:
       # -march=native	    0/10 (Crashes others)	    10/10	Local builds / Private servers
       # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
       # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
-      # Wheel Strategy: Use -march=x86-64-v3. You are the chef cooking the meal; you must make sure it’s digestible for everyone.
-      # Sdist Strategy: Use -march=native (as an option). The user is the chef cooking in their own kitchen; they can optimize for their specific oven.
-      # When building the sdist, you don't actually compile anything, so the -march flag doesn't matter yet. The sdist is just a .tar.gz.
-      # If a user wants maximum performance, they will install your sdist like this:
-      #   export CFLAGS="-march=native -O3"
-      #   pip install your-package --no-binary your-package
       - name: "📦 Build Source Distribution (.tar.gz, sdist) of a Python package"
         run: |
           pip install -r requirements/build.txt
 
           # meson setup builddir && meson dist -C builddir
           # meson setup builddir && meson dist -C builddir --allow-dirty --no-tests --formats gztar
-          python -m build --sdist -Csetup-args=-Dallow-noblas=true
+          python -m build --sdist -Csetup-args=-Dallow-noblas=true -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dcpu-dispatch=none
 
       - name: Test the sdist
         run: |
@@ -807,7 +801,9 @@ jobs:
           pip install -r requirements/test.txt
 
           python -m pip cache purge
-          python -m pip install -v dist/*.gz -Csetup-args=-Dallow-noblas=true
+          # python -m pip install . -v -Csetup-args=-Dallow-noblas=true -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dcpu-dispatch=none
+          # python -m pip install --no-build-isolation --no-cache-dir -e. -v -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dcpu-dispatch=none
+          python -m pip install -v dist/*.gz -Csetup-args=-Dallow-noblas=true -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dcpu-dispatch=none
 
           ## Can't import "scikitplot" within "scikitplot" src directory
           cd dist

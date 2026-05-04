@@ -12,6 +12,13 @@ if [[ -z "${REPO_DIR}" ]]; then
     exit 1
 fi
 
+# python -m pip install --no-build-isolation --no-cache-dir -e .[build,dev,test,doc] -v
+python -m pip install --no-build-isolation --no-cache-dir . -v
+python -m pip install --upgrade \
+    ipywidgets \
+    ipympl \
+    altair
+
 # Back up content we need from the scikit-learn repo
 TMP_CONTENT_DIR=/tmp/scikit-learn
 mkdir -p $TMP_CONTENT_DIR

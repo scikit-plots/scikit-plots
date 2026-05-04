@@ -17,3 +17,23 @@
 #else
     #define SKPLT_TLS
 #endif
+
+#mesondefine SKPLT_VISIBILITY_HIDDEN
+
+#ifndef SKPLT_NO_EXPORT
+  #define SKPLT_NO_EXPORT SKPLT_VISIBILITY_HIDDEN
+#endif
+
+/*
+ * Defined to 1 or 0. Note that Pyodide hardcodes NPY_NO_SMP (and other defines
+ * in this header) for better cross-compilation, so don't rename them without a
+ * good reason.
+ */
+#mesondefine SKPLT_NO_SMP
+
+/* Always allow threading unless it was explicitly disabled at build time */
+#if !SKPLT_NO_SMP
+  #define SKPLT_ALLOW_THREADS 1
+#else
+  #define SKPLT_ALLOW_THREADS 0
+#endif

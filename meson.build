@@ -849,6 +849,31 @@ if is_mingw and ff.get_id() != 'gcc'
   )
 endif
 
+# We install libnpymath and libnpyrandom; ensure they're using a `.lib` rather
+# than a `.a` file extension in order not to break including them in a
+# distutils-based build (see gh-23981 and
+# https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa)
+if is_windows and cc.get_id() in ['msvc', 'clang-cl']
+  name_prefix_staticlib = ''
+  name_suffix_staticlib = 'lib'
+else
+  name_prefix_staticlib = []
+  name_suffix_staticlib = []
+endif
+
+# Enable UNIX large file support on 32-bit systems (64 bit off_t,
+# lseek -> lseek64, etc.)
+cflags_large_file_support = []
+if host_machine.system() == 'aix'
+  cflags_large_file_support += '-D_LARGE_FILES'
+else
+  cflags_large_file_support += [
+    '-D_FILE_OFFSET_BITS=64',
+    '-D_LARGEFILE_SOURCE=1',
+    '-D_LARGEFILE64_SOURCE=1',
+  ]
+endif
+
 ######################################################################
 ## macOS 14
 ######################################################################
@@ -1405,16 +1430,17 @@ link_with += [npymath_lib]
 ######################################################################
 
 # Share this object across multiple modules.
-fortranobject_lib = static_library('_fortranobject',
-  fortranobject_c,
-  c_args: _global_np_args,
-  dependencies: dep_py,
-  include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
-  gnu_symbol_visibility: 'hidden',
-)
-link_with += [fortranobject_lib]
+# fortranobject_lib = static_library('_fortranobject',
+#   fortranobject_c,
+#   c_args: _global_np_args,
+#   dependencies: dep_py,
+#   include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
+#   gnu_symbol_visibility: 'hidden',
+# )
+# link_with += [fortranobject_lib]
+
 fortranobject_dep = declare_dependency(
-  link_with: fortranobject_lib,
+  # link_with: fortranobject_lib,
   include_directories: [inc_dir_np, inc_dir_f2py],  # nested accepts
 )
 
@@ -1558,6 +1584,16 @@ gen_tempita = generator(cli_tempita,
 # cli_copier = find_program(['cp', 'scikitplot/_build_utils/copyfiles.py'], required: false)
 
 ######################################################################
+## py src_file_cli
+######################################################################
+
+src_file_cli = find_program('scikitplot/_build_utils/process_src_template.py', required: false)
+src_file = generator(src_file_cli,
+  arguments : ['@INPUT@', '--outfile', '@OUTPUT@'],
+  output : '@BASENAME@'
+)
+
+######################################################################
 ## Installation tags
 ## https://mesonbuild.com/Installing.html#installing
 ## https://mesonbuild.com/Installing.html#installation-tags
@@ -1594,9 +1630,33 @@ message(
   '@0@'.format(py.get_install_dir())
 )
 
+# ── 1. Install _meson_features into the active meson's module directory ─────
+#
+#   run_command() executes BEFORE import() is evaluated, so the copy is in
+#   place by the time meson resolves import('features').
+#
+#   The script is idempotent: subsequent `meson setup` calls are cheap.
+#
+_build_utils = meson.project_source_root() / 'scikitplot/_build_utils'
+run_command(
+    [
+        py,
+        files(_build_utils / 'install_meson_features.py'),
+        _build_utils / '_meson_features',
+    ],
+    check: true,
+)
+# ── 2. Now import resolves to mesonbuild.modules.features ───────────────────
+mod_features = import('features')
+
 ######################################################################
 ## Next
 ######################################################################
+
+# Rule of thumb — declare all args before any build targets
+# before any static_library() call cause
+# ERROR: Tried to use 'add_project_arguments' after a build target has been declared.
+subdir('meson_cpu')
 
 # Not Need anymore we copying all submodules into 'scikitplot'
 # subdir('third_party')

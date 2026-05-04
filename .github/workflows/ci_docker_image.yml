@@ -93,14 +93,20 @@ concurrency:
 permissions:
   ## only required for workflows in private repositories
   contents: read  # for actions/checkout to fetch code
+  # packages: write  # for docker to push to registry
 
 
+# https://github.com/jupyterhub/repo2docker-action
+# https://github.com/scikit-hep/pyhf/blob/main/.github/workflows/docker.yml
 # https://github.com/jupyterhub/binderhub/blob/main/.github/workflows/test-docker-build.yaml
 # https://github.com/jupyterhub/binderhub/blob/main/helm-chart/chartpress.yaml
 # https://github.com/jupyterhub/chartpress
 jobs:
   docker:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
+    permissions:
+      contents: read
+      # packages: write  # for docker to push to registry
 
     ## https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions
     # if: startsWith-endsWith( matrix.service[0], 'jupyter' ), contains( matrix.service[0], 'python-3.11' )
@@ -147,9 +153,9 @@ jobs:
       # REPO_NAME: ${{ github.event.repository.name }}  # or in shell: $(basename "$GITHUB_REPOSITORY")
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN : ${{ secrets.DOCKERHUB_TOKEN }}
-      COMPOSE_FILE: docker/docker-compose.yml
-      PY_VERSION: 3.11
-      SCIKITPLOT_VERSION: 0.4.0.post11  # install latest release on PyPI
+      # PY_VERSION: 3.11
+      # SCIKITPLOT_VERSION: 0.4.0.post11  # install latest release on PyPI
+      # COMPOSE_FILE: docker/docker-compose.yml
 
     ## To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
@@ -166,44 +172,6 @@ jobs:
           echo "Available storage:"
           sudo df -h
 
-      ## https://github.com/sagemath/sage/blob/develop/.github/workflows/docker.yml
-      ## https://github.com/jlumbroso/free-disk-space
-      # - name: Free Disk Space (Ubuntu)
-      #   uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be #v1.3.1
-      #   if: inputs.free_disk_space
-      #   continue-on-error: true
-      #   with:
-      #     # this might remove tools that are actually needed,
-      #     # if set to "true" but frees about 6 GB
-      #     tool-cache: false
-      #     # all of these default to true, but feel free to set to
-      #     # "false" if necessary for your workflow
-      #     # => Android library: Saved 14GiB
-      #     # => .NET runtime: Saved 2.7GiB
-      #     # => Haskell runtime: Saved 0B
-      #     # => Large misc. packages: Saved 5.3GiB
-      #     # => Tool cache: Saved 5.9GiB
-      #     # => Swap storage: Saved 4.0GiB
-      #     android: true
-      #     dotnet: true
-      #     haskell: true
-      #     large-packages: false
-      #     docker-images: false
-      #     swap-storage: false
-      ## https://github.com/easimon/maximize-build-space
-      # - name: Github Maximize build disk space (Ubuntu)
-      #   uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c #v10
-      #   if: inputs.free_disk_space
-      #   continue-on-error: true
-      #   with:
-      #     # need space in /var for Docker images
-      #     # root-reserve-mb:      30000
-      #     remove-dotnet:        true   # (frees ~17 GB)
-      #     remove-android:       true   # (frees ~11 GB)
-      #     remove-haskell:       true   # (frees ~2.7 GB)
-      #     remove-codeql:        false  # (frees ~5.4 GB)
-      #     remove-docker-images: false  # (frees ~3 GB)
-
       ## 📥 Checkout the Git repository into the runner
       - name: "⬇️ Checkout (cloned) repository with full history"
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -215,13 +183,12 @@ jobs:
           ## Gets the correct commit message for pull request
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-      - name: 🧠 Extract Git context
+      - name: 🔖 Export "branch" or "tag" from Git context
         id: gitref
         run: |
           REF_TYPE=""
           VERSION_TAG=""
           BRANCH_TAG=""
-
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             REF_TYPE="tag"
             VERSION_TAG="${GITHUB_REF#refs/tags/v}"  # strip leading 'v'
@@ -230,76 +197,38 @@ jobs:
             BRANCH_NAME="${GITHUB_REF#refs/heads/}"
             BRANCH_TAG="${BRANCH_NAME//\//-}"  # Replace slashes with dashes
           fi
-
+          # Export "branch" or "tag"
           echo "ref_type=$REF_TYPE" >> "$GITHUB_OUTPUT"
           echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
           echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
 
-      ## Authenticate with Docker Hub (scikitplot user)
-      ## https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
-      ## Ensure required secrets exist
-      # - name: Check Docker Hub secrets
-      #   run: |
-      #     if [[ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
-      #       echo "❌ Missing DOCKERHUB_TOKEN"
-      #       exit 0
-      #     fi
-      ################################################################
-      ## Docker build (multi-arch) — canonical Buildx workflow
-      ################################################################
-      ## - Uses Docker-maintained GitHub Actions:
-      ##   * docker/setup-qemu-action (emulation for arm64)
-      ##   * docker/setup-buildx-action (Buildx builder)
-      ##   * docker/login-action (registry auth)
-      ##   * docker/build-push-action (build + cache + push)
-      ##
-      ## - Deterministic:
-      ##   * No continue-on-error
-      ##   * Push is enabled only when tags are computed AND credentials exist
-      ##   * PRs build only (no push)
-      ################################################################
-
-      - name: ⚙️ Set up QEMU (multi-arch emulation for docker buildx)
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
-
-      - name: 🧱 Set up Docker Buildx (for chartpress multi-arch builds)
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
-
-      ## https://github.com/jupyterhub/binderhub/blob/main/.github/workflows/test-docker-build.yaml
-      # - name: Build a multiple architecture Docker image
-      #   run: |
-      #     cd helm-chart
-      #     chartpress \
-      #         --builder docker-buildx \
-      #         --platform linux/amd64 --platform linux/arm64
-
-      - name: 🧮 Compute Docker build plan (tags, dockerfile, push)
+      - name: 🏷️ Prepare Compute Docker build plan (tags, dockerfile, push)
         id: docker_plan
         shell: bash
         env:
+          IMAGE_NAMESPACE: ${{ matrix.service[1] }}
+          IMAGE_REPO: ${{ matrix.service[2] }}
           REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
           VERSION: ${{ steps.gitref.outputs.version_tag }}
           BRANCH: ${{ steps.gitref.outputs.branch_tag }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          IMAGE_NAMESPACE: ${{ matrix.service[1] }}
-          IMAGE_REPO: ${{ matrix.service[2] }}
+          # { tag: "python-3.11", ref_tag: "ref_tags-python-3.11", alias: "latest", alias2: "latest-python-3.11" }
           TAG: ${{ matrix.tag.tag }}
           REF_TAG: ${{ matrix.tag.ref_tag }}
           ALIAS: ${{ matrix.tag.alias }}
           ALIAS2: ${{ matrix.tag.alias2 }}
+          # Docker Login
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
-
+          # "scikitplot/scikit-plots"
           IMAGE_NAME="${IMAGE_NAMESPACE}/${IMAGE_REPO}"
-
           # Select Dockerfile based on image flavor (TAG).
           case "${TAG}" in
             python-3.11) DOCKERFILE_PATH="docker/Dockerfile.python" ;;
             jupyter)     DOCKERFILE_PATH="docker/Dockerfile" ;;
             *)           DOCKERFILE_PATH="docker/Dockerfile.python" ;;
           esac
-
           # Map git ref -> FINAL_TAG (push tag) deterministically.
           FINAL_TAG=""
           if [[ "${REF_TYPE}" == "tag" && "${REF_TAG}" == ref_tags-* ]]; then
@@ -316,7 +245,6 @@ jobs:
           else
             echo "No push policy for BRANCH=${BRANCH} REF_TYPE=${REF_TYPE}; build-only." >&2
           fi
-
           # Decide push behavior:
           # - Never push on PRs
           # - Push only when FINAL_TAG is present and Docker Hub credentials exist
@@ -325,7 +253,6 @@ jobs:
             [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]] || { echo "Missing Docker Hub credentials (DOCKERHUB_USERNAME/DOCKERHUB_TOKEN)" >&2; exit 2; }
             DO_PUSH="true"
           fi
-
           # Build tags list (newline-delimited for docker/build-push-action).
           TAGS=()
           if [[ -n "${FINAL_TAG}" ]]; then
@@ -335,7 +262,17 @@ jobs:
             # Deterministic local-only tag for build-only runs (no registry push).
             TAGS+=("${IMAGE_NAME}:ci-${GITHUB_SHA::12}")
           fi
+          echo "Dockerfile=${DOCKERFILE_PATH}" >&2
+          echo "Push=${DO_PUSH}" >&2
+          echo "Tags:" >&2
+          printf '  - %s\n' "${TAGS[@]}" >&2
 
+          # echo "steps.docker_plan.outputs.version=${VERSION}"
+          # echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          # echo "steps.docker_plan.outputs.tags=${TAGS}"
+          # echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "steps.docker_plan.outputs.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           {
             echo "image_name=${IMAGE_NAME}"
             echo "dockerfile=${DOCKERFILE_PATH}"
@@ -345,102 +282,120 @@ jobs:
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
-          echo "Dockerfile=${DOCKERFILE_PATH}" >&2
-          echo "Push=${DO_PUSH}" >&2
-          echo "Tags:" >&2
-          printf '  - %s\n' "${TAGS[@]}" >&2
+      ################################################################
+      ## Docker build (multi-arch) — canonical Buildx workflow
+      ################################################################
+      - name: ⚙️ Set up QEMU (multi-arch emulation for docker buildx)
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: 🧱 Set up Docker Buildx (for chartpress multi-arch builds)
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: 🔐 Login to Docker Hub
+        # if: steps.docker_plan.outputs.push == 'true'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         # if: steps.docker_plan.outputs.push == 'true'
         # continue-on-error: true
         with:
+          # registry: ghcr.io  # Login to GitHub Container Registry
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # - name: 🔐 Login to GitHub Container Registry
+      #   uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      #   # if: steps.docker_plan.outputs.push == 'true'
+      #   # continue-on-error: true
+      #   with:
+      #     registry: ghcr.io  # Login to GitHub Container Registry
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: 🏗️ Build (multi-arch) and Push
+        id: docker_build_release
+        # timeout-minutes: 60
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
-          file: ${{ steps.docker_plan.outputs.dockerfile }}
+          file: ${{ steps.docker_plan.outputs.dockerfile }}  # docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ steps.docker_plan.outputs.push }}
+          pull: true
           tags: ${{ steps.docker_plan.outputs.tags }}
-          # Canonical cache backend for GitHub Actions runners
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Canonical cache backend for GitHub Actions runners, This isolates caches.
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref_name }}
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.docker_plan.outputs.created }}
+          # load: true  # is for local daemon usability, not for multi-arch publishing.
+          # Disable extra OCI attestations for maximum registry/tool compatibility
+          # and stable digest expectations in multi-arch publishing.
+          # provenance: false
+          # sbom: false
+
+      # scikitplot/scikit-plots:sha-${GITHUB_SHA::8} corresponds to the tag, which resolves to the index digest.
+      # Index digest  — portable multi-platform reproducibility manifest list (what `docker pull` resolves).
+      # Manifest digest — one exact platform reproducibility image; use only when targeting a single architecture (e.g. linux/amd64 on Binder).
+      # - name: 🐳 Image index digest
+      #   continue-on-error: true
+      #   run: |
+      #     # For multi-arch builds this is returns the index digest, not per-platform digest.
+      #     # For multi-arch this is the manifest list / image index digest, not a single image digest.
+      #     echo "Digest: ${{ steps.docker_build_release.outputs.digest }}"
+
+      # scikitplot/scikit-plots:sha-<shortsha>
+      #     -> Index Digest (multi-platform manifest list)
+      #     -> chooses matching platform manifest (linux/amd64,linux/arm64)
+      #     -> downloads that platform image
+      - name: 🔎 Inspect pushed manifest
+        # if: steps.docker_plan.outputs.push == 'true'
+        continue-on-error: true
+        run: |
+          # docker images
+          docker buildx imagetools inspect \
+            scikitplot/scikit-plots:sha-${GITHUB_SHA::8}
+
+      # docker pull scikitplot/scikit-plots:latest
+      # docker run ... scikitplot/scikit-plots:sha-${GITHUB_SHA::8}
+      # Because GitHub runners are usually amd64, but explicit is safer and deterministic.
+      - name: 🧪 Smoke test published image check for curl and git
+        # if: steps.docker_plan.outputs.push == 'true'
+        continue-on-error: true
+        run: |
+          for i in {1..2}; do
+            if docker run --rm \
+              --platform linux/amd64 \
+              --entrypoint /bin/bash \
+              scikitplot/scikit-plots:sha-${GITHUB_SHA::8} \
+              -c "uname -m && command -v curl && command -v git && git --version"; then
+              # ends the script successfully.
+              exit 0
+            fi
+            echo "Retrying in 10s... ($i/5)"
+            sleep 10
+          done
+          echo "Smoke test failed after retries."
+          # exit 1
 
       - name: 🧹 Cleanup (optional)
         if: always()
         continue-on-error: true
-        run: docker system prune -f
+        run: |
+          docker system prune -f
+          echo "🔗 View at: https://hub.docker.com/u/${{ matrix.service[1] }}"
+          echo "🔗 View at: https://hub.docker.com/r/${{ matrix.service[1] }}/${{ matrix.service[2] }}"
 
       ################################################################
 
-      ## Cache Docker layers to speed up build (optional but speeds things up)
-      # - name: Cache Docker layers
-      #   uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-      #   with:
-      #     path: /tmp/.buildx-cache
-      #     key: ${{ runner.os }}-docker-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-docker-
-
-      # - name: 🏗️ Build and Push Multi-Arch Docker Image
-      #   if: contains(matrix.service[0], matrix.tag.tag)
-      #   env:
-      #     REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
-      #     VERSION: ${{ steps.gitref.outputs.version_tag }}
-      #     BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+      ## https://github.com/jupyterhub/binderhub/blob/main/.github/workflows/test-docker-build.yaml
+      # - name: 📦 Build a multiple architecture Docker image
       #   run: |
-      #     set -euo pipefail
-      #     CONTEXT_PATH=$(realpath ./)
-      #     IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
-      #     TAG_NAME="${{ matrix.tag.tag }}"
-      #     # SERVICE=${{ matrix.service[0] }}
-      #     # DOCKERFILE_PATH=docker/${SERVICE}/Dockerfile
-      #     if [[ "$TAG_NAME" == "python-3.11" ]]; then
-      #       DOCKERFILE_PATH=docker/Dockerfile.python
-      #     elif [[ "$TAG_NAME" == "jupyter" ]]; then
-      #       DOCKERFILE_PATH=docker/Dockerfile
-      #     else
-      #       # fallback default dockerfile
-      #       DOCKERFILE_PATH=docker/Dockerfile.python
-      #     fi
-      #     echo "🔧 Dockerfile: $DOCKERFILE_PATH"
-      #     echo "📦 Image: $IMAGE_NAME"
-      #     MATRIX_JSON='${{ toJSON(matrix.tag) }}'
-      #     FORMATTED_JSON=$(echo "$MATRIX_JSON" | jq -c 'if type=="array" then . else [.] end')
-      #     echo "$FORMATTED_JSON" | jq -c '.[]' | while read -r entry; do
-      #       TAG=$(echo "$entry" | jq -r '.tag')
-      #       REF_TAG=$(echo "$entry" | jq -r '.ref_tag')
-      #       ALIAS=$(echo "$entry" | jq -r '.alias // empty')
-      #       ALIAS2=$(echo "$entry" | jq -r '.alias2 // empty')
-      #       if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
-      #         SUFFIX="${REF_TAG#ref_tags-}"
-      #         FINAL_TAG="${VERSION}-${SUFFIX}"
-      #       elif [[ "$BRANCH" == "main" ]]; then
-      #         FINAL_TAG="$ALIAS"
-      #       elif [[ "$BRANCH" == maintenance-* ]]; then
-      #         BRANCH_VERSION="${BRANCH#maintenance-}"
-      #         FINAL_TAG="${BRANCH_VERSION}-${TAG}"
-      #       else
-      #         echo "⏭️ Skipping: unrecognized branch pattern $BRANCH"
-      #         continue
-      #       fi
-      #       TAGS=(--tag "$IMAGE_NAME:$FINAL_TAG")
-      #       [[ -n "$ALIAS2" ]] && TAGS+=(--tag "$IMAGE_NAME:$ALIAS2")
-      #       echo "🚀 Building and pushing:"
-      #       printf '  - %s\n' "${TAGS[@]}"
-      #       docker buildx build \
-      #         --platform linux/amd64,linux/arm64 \
-      #         --file "$DOCKERFILE_PATH" \
-      #         "${TAGS[@]}" \
-      #         --push \
-      #         "$CONTEXT_PATH"
-      #     done
-      #     echo "✅ All applicable tags pushed."
-      #     echo "🔗 View at: https://hub.docker.com/r/$IMAGE_NAME/tags"
+      #     cd helm-chart
+      #     chartpress \
+      #         --builder docker-buildx \
+      #         --platform linux/amd64 --platform linux/arm64
+
 
       ################################################################
       ## Docker Compose file (only host-native architecture)
@@ -456,18 +411,6 @@ jobs:
       #   run: |
       #     set -euo pipefail
 
-      #     SERVICE=${{ matrix.service[0] }}
-      #     IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
-      #     echo "🔨 Building $IMAGE_NAME from service $SERVICE..."
-
-      #     ## Build and run container detached
-      #     ## docker compose -f "$COMPOSE_FILE" build "$SERVICE"
-      #     ## docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
-      #     ## SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION:-} so for dev use SCIKITPLOT_VERSION= docker compose ...??
-      #     docker compose -f "$COMPOSE_FILE" up -d --build "$SERVICE"
-
-      #     ## then we pushing created containers image
-      #     ##
       #     ## docker ps -a --format '{{.Names}}'
       #     ## echo $(docker inspect --format='{{.Image}}' "scikit-plots_latest-jupyter")
       #     ## echo $(docker inspect --format='{{index .Config.Image}}' "scikit-plots_latest-jupyter")
@@ -680,3 +623,41 @@ jobs:
       #     echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
 
       ################################################################
+
+      ## https://github.com/sagemath/sage/blob/develop/.github/workflows/docker.yml
+      ## https://github.com/jlumbroso/free-disk-space
+      # - name: Free Disk Space (Ubuntu)
+      #   uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be #v1.3.1
+      #   if: inputs.free_disk_space
+      #   continue-on-error: true
+      #   with:
+      #     # this might remove tools that are actually needed,
+      #     # if set to "true" but frees about 6 GB
+      #     tool-cache: false
+      #     # all of these default to true, but feel free to set to
+      #     # "false" if necessary for your workflow
+      #     # => Android library: Saved 14GiB
+      #     # => .NET runtime: Saved 2.7GiB
+      #     # => Haskell runtime: Saved 0B
+      #     # => Large misc. packages: Saved 5.3GiB
+      #     # => Tool cache: Saved 5.9GiB
+      #     # => Swap storage: Saved 4.0GiB
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: false
+      #     docker-images: false
+      #     swap-storage: false
+      ## https://github.com/easimon/maximize-build-space
+      # - name: Github Maximize build disk space (Ubuntu)
+      #   uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c #v10
+      #   if: inputs.free_disk_space
+      #   continue-on-error: true
+      #   with:
+      #     # need space in /var for Docker images
+      #     # root-reserve-mb:      30000
+      #     remove-dotnet:        true   # (frees ~17 GB)
+      #     remove-android:       true   # (frees ~11 GB)
+      #     remove-haskell:       true   # (frees ~2.7 GB)
+      #     remove-codeql:        false  # (frees ~5.4 GB)
+      #     remove-docker-images: false  # (frees ~3 GB)

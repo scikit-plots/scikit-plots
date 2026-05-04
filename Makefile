@@ -647,6 +647,15 @@ dev: clean
 
 	@# find . -exec touch {} + && python -m pip install --no-build-isolation --no-cache-dir -e . -v
 
+## If using bash/zsh and want cleaner syntax (|& = stdout + stderr)
+# python -m pip install --no-build-isolation --no-cache-dir -e . -v |& tee build.log
+## Append instead of overwrite
+# python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee -a build.log
+## Keep colored output (optional)
+# PYTHONUNBUFFERED=1 python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log
+build:
+	@python -m pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log
+
 ######################################################################
 ## Meson Step-by-Step Compilation
 ######################################################################

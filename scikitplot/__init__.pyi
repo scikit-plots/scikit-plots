@@ -5,7 +5,7 @@
 # pylint: skip-file
 # mypy: ignore-errors
 # type: ignore
-
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 # SPDX-FileCopyrightText: 2024-present scikit-plots developers

@@ -139,6 +139,16 @@ configure_file(
 ## https://github.com/scipy/scipy/blob/main/scipy/meson.build#L153
 ######################################################################
 
+visibility_hidden = ''
+if cc.has_function_attribute('visibility:hidden') and host_machine.system() != 'cygwin'
+  visibility_hidden = '__attribute__((visibility("hidden")))'
+endif
+cdata.set('SKPLT_VISIBILITY_HIDDEN', visibility_hidden)
+
+# Build-time option to disable threading is stored and exposed in numpyconfig.h
+# Note: SMP is an old acronym for threading (Symmetric/Shared-memory MultiProcessing)
+cdata.set10('SKPLT_NO_SMP', get_option('disable-threading'))
+
 # Contains only TLS check results for now - name chosen for when more compiler
 # checks need adding in the future.
 # scipy_config_h
