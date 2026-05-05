@@ -118,15 +118,20 @@ annoy_core_sources = [
   'src/annoymodule.cc',  # (Python binding)
 ]
 
-annoy_static = static_library(
+# Linking static target scikitplot/cexternals/_annoy/libannoycore.a
+# https://github.com/numpy/numpy/blob/27b26e9e3f95e8af3611891ccd0ff53f3169cde2/numpy/random/meson.build#L11
+annoy_static_lib = static_library(
   'annoycore',
   annoy_core_sources,
   include_directories: inc_dir_annoy,
   dependencies: dep_list,
   cpp_args: cython_cpp_flags + extra_compile_args,
   link_args: extra_link_args,
-  install: false
-  # install_dir: np_dir / 'random/lib',
+  install: true,
+  install_dir: py.get_install_dir() / 'scikitplot/cexternals/_annoy/lib',
+  name_prefix: name_prefix_staticlib,
+  name_suffix: name_suffix_staticlib,
+  # gnu_symbol_visibility: 'hidden',
 )
 
 ######################################################################
@@ -156,7 +161,7 @@ annoy_extension_metadata = {
     'dependencies': dep_list,                     # External libraries and dependencies
     'link_with': [                                # Link with the created static library
       # version_link_args
-      annoy_static,
+      annoy_static_lib,
     ],
     'override_options': [
       # 'cython_language=c',                        # Ensure Cython knows to generate C code
