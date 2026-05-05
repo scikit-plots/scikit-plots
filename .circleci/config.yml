@@ -482,7 +482,10 @@ jobs:
       #       git config --global push.default simple;
       #       git add . > /dev/null;
       #       git commit -m "Docs build of $CIRCLE_SHA1";
+      #       # git push https://x-access-token:${TOKEN}@github.com/org/repo.git
       #       git push --set-upstream origin gh-pages --force
+      #     # env:
+      #     #   TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
 
 #########################################
 # Defining workflows gets us parallelism.
