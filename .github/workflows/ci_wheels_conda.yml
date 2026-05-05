@@ -651,9 +651,16 @@ jobs:
           # auto-activate-base: false
           # conda-remove-defaults: true
           # auto-update-conda: true
-          # python-version: '3.11'  # ${{ matrix.python[1] }}
+          python-version: "3.11"  # ${{ matrix.python[1] }}
           show-channel-urls: true
+          # mamba-version: "*"
           miniforge-version: latest
+          channels: conda-forge,defaults
+          # channel-priority: true
+          channel-priority: strict
+          # activate-environment: anaconda-client-env
+          # environment-file: etc/example-environment.yml
+          # environment-file: etc/example-explicit.conda.lock
           # 'Architecture of Miniconda that should be installed. This is automatically
           # detected by the runner. If you want to override it, you can use "x64",
           # "x86", "arm64", "aarch64", "s390x".'
@@ -834,9 +841,16 @@ jobs:
           # auto-activate-base: false
           # conda-remove-defaults: "true"
           # auto-update-conda: true
-          # python-version: "3.11"
+          python-version: "3.11"
           show-channel-urls: true
+          # mamba-version: "*"
           miniforge-version: latest
+          channels: conda-forge,defaults
+          # channel-priority: true
+          channel-priority: strict
+          # activate-environment: anaconda-client-env
+          # environment-file: etc/example-environment.yml
+          # environment-file: etc/example-explicit.conda.lock
 
       - name: "📥 Upload Scikit-plots Source (sdist) Package to Anaconda.org PyPI index"
         if: success()
@@ -948,9 +962,16 @@ jobs:
           # auto-activate-base: false
           # conda-remove-defaults: "true"
           # auto-update-conda: true
-          # python-version: "3.11"
+          python-version: "3.11"
           show-channel-urls: true
+          # mamba-version: "*"
           miniforge-version: latest
+          channels: conda-forge,defaults
+          # channel-priority: true
+          channel-priority: strict
+          # activate-environment: anaconda-client-env
+          # environment-file: etc/example-environment.yml
+          # environment-file: etc/example-explicit.conda.lock
 
       - name: "📥 Upload Scikit-plots WASM Wheel (.whl) Package to Anaconda.org PyPI index"
         if: success()
