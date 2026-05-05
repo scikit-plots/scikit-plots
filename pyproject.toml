@@ -589,14 +589,14 @@ extend = [
 
 ci32_requirements = [
   ## https://anaconda.org/conda-forge/blas
-  "scipy-openblas32==0.3.31.188.0",           # Keep this in sync with ci_requirements.txt
+  "scipy-openblas32==0.3.33.0.0",           # Keep this in sync with ci_requirements.txt
   "spin",                                   # https://github.com/scientific-python/spin
 ]
 
 ci_requirements = [
   ## https://anaconda.org/conda-forge/blas
   "scikit-plots[ci32_requirements]",        # Reference the 'core' group as a dependency
-  "scipy-openblas64==0.3.31.188.0",           # Keep this in sync with ci32_requirements.txt
+  "scipy-openblas64==0.3.33.0.0",           # Keep this in sync with ci32_requirements.txt
 ]
 
 ######################################################################
