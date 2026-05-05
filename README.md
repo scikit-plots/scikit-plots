@@ -16,6 +16,8 @@
 <!-- https://shields.io/docs/logos -->
 <!-- https://simpleicons.org/ -->
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
+<!-- https://github.com/Ileriayo/markdown-badges -->
+<!-- https://img.shields.io/badge/scikit-plots-olivegreen.svg?style=for-the-badge&labelColor=blue&logoColor=white -->
 <div align="center">
  <!-- Anaconda Nightly Conda -->
  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
@@ -85,7 +87,7 @@
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
-   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue">
+   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue&logoColor=blue">
  </a>
  <!-- 🐋 Docker Total Pulls 🐳 -->
  <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
@@ -94,16 +96,21 @@
    src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
  </a>
  <!-- 🐋 Docker Image Size (tag) 🐳 -->
+ <!-- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="🐋 Docker Image Size (tag)" height="17"
+   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
+ </a> -->
+ <!-- 🐋 Docker Image Size (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Size (tag)" height="17"
    src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
  </a>
- <!-- pepy.tech -->
- <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
- <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
- <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Pepy Total Downloads" height="17"
-   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total%20Downloads&color=green">
+ <!-- 🐋 https://quay.io/organization/scikit-plots 🐳 -->
+ <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
+ <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
+ <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="quay.io" height="17"
+   src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
  </a>
  <br>
  <!-- codecov -->
@@ -123,11 +130,6 @@
   <img alt="Code Style - Ruff" height="17"
    src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
  </a>
- <!-- PyPI - Types -->
- <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="PyPI - Types" height="17"
-   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
- </a>
  <!-- pre-commit -->
  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
   rel="noopener noreferrer">
@@ -138,11 +140,17 @@
   <img alt="pre-commit Status" height="17"
    src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit">
  </a>
+ <!-- pepy.tech -->
+ <!-- https://clickpy.clickhouse.com/dashboard/scikit-plots -->
+ <!-- https://static.pepy.tech/personalized-badge/scikit-plots?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=%F0%9F%93%A6+pepy.tech+%7C+Total+Downloads -->
+ <a href="https://pepy.tech/projects/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Pepy Total Downloads" height="17"
+   src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total&color=green">
+ </a>
  <br>
- <!-- PyPI - pyversions -->
- <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="PyPI - pyversions" height="17"
-   src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue">
+ <!-- Zenodo -->
+ <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
+  <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
  </a>
  <!-- GitHub License -->
  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/license.svg -->
@@ -152,9 +160,15 @@
   <img alt="GitHub License" height="17"
    src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
  </a>
- <!-- Zenodo -->
- <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
-  <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
+ <!-- PyPI - Types -->
+ <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="PyPI - Types" height="17"
+   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
+ </a>
+ <!-- PyPI - pyversions -->
+ <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="PyPI - pyversions" height="17"
+   src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue&logoColor=1f73b7">
  </a>
  <br>
  <!-- jupyterlite -->
