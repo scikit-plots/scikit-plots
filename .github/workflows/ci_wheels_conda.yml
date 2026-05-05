@@ -629,11 +629,11 @@ jobs:
         id: artifact-upload-step
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: >-
-            Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
-          path: ./wheelhouse/*.whl
           # if-no-files-found: error
           # include-hidden-files: true
+          path: ./wheelhouse/*.whl
+          name: >-
+            Wheel-${{ matrix.python[0] }}-${{ join(matrix.buildplat, '-') }}
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -675,7 +675,8 @@ jobs:
         run: |
           ## https://github.com/marketplace/actions/build-and-upload-conda-packages
           ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -qy anaconda-client
+          # conda install -qy anaconda-client
+          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
 
           set_upload_vars  # Required TOKEN, USERNAME
@@ -819,9 +820,10 @@ jobs:
         id: artifact-upload-step
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: sdist
-          path: ./dist/*.gz
+          # if-no-files-found: error
           # include-hidden-files: true
+          path: ./dist/*.gz
+          name: sdist
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -854,7 +856,8 @@ jobs:
         run: |
           ## https://github.com/marketplace/actions/build-and-upload-conda-packages
           ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -y anaconda-client
+          # conda install -qy anaconda-client
+          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
 
           set_upload_vars  # Required TOKEN, USERNAME
@@ -934,10 +937,10 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         continue-on-error: true
         with:
-          name: cp312-pyodide_wasm32
-          path: ./wheelhouse/*.whl
           # if-no-files-found: error
           # include-hidden-files: true
+          path: ./wheelhouse/*.whl
+          name: cp312-pyodide_wasm32
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -973,7 +976,8 @@ jobs:
         run: |
           ## https://github.com/marketplace/actions/build-and-upload-conda-packages
           ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -qy anaconda-client
+          # conda install -qy anaconda-client
+          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
 
           set_upload_vars  # Required TOKEN, USERNAME
