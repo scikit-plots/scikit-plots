@@ -1,8 +1,8 @@
-# Git Context	Tags Generated
-# Push to main       	 :latest, :main, :sha-abc1234, :dev
-# Push to dev	         :latest, :dev, :sha-abc1234 (if extended)
-# Push to feature/foo	 :latest, :feature-foo, :sha-abc1234
-# Push tag v1.0.0	     :latest, :v1.0.0, :sha-abc1234
+# Git Context          Tags Generated (both DockerHub + GHCR)
+# Push to main         :<alias>  :<alias2>           e.g. :latest  :latest-python-3.11
+# Push to maintenance  :<X.Y.x>-<flavor>             e.g. :0.3.x-python-3.11
+# Push tag vX.Y.Z      :<X.Y.Z>-<flavor>             e.g. :0.4.0-python-3.11
+# PR / feature branch  build-only, no push           ci-<12-char-sha> (local label)
 #
 # Pushing images
 # You can push a new image to this repository using the CLI:
@@ -38,7 +38,7 @@
 # export GITHUB_EVENT_NAME=pull_request
 # export GITHUB_SHA=0123456789abcdef0123456789abcdef01234567
 # export REF_TYPE=branch VERSION="" BRANCH=main
-# export IMAGE_NAMESPACE=scikitplot IMAGE_REPO=scikit-plots
+# export IMAGE_NAMESPACE=scikitplot IMAGE_REPO=scikit-plots GHCR_ORG=scikit-plots
 # export TAG=python-3.11 REF_TAG=ref_tags-python-3.11 ALIAS=latest-python-3.11 ALIAS2=latest
 # bash -euxo pipefail -c '...paste the run: | script body here...'
 ---
@@ -58,12 +58,12 @@ on:
     inputs:
       free_disk_space:                                  # Specify true/false
         description: 'free_disk_space pkg source'
-        required: false                                 # 👈 This makes the input mandatory
-        type: choice                                    # choice, boolean,
-        default: false                                  # 👈 Default
+        required: false                                 # 👈 Optional — workflow runs with the default if omitted
+        type: choice                                    # choice type always passes a string to ${{ inputs.* }}
+        default: 'false'                                # 👈 quoted string — unquoted 'false' is a YAML boolean
         options:
-          - true
-          - false                                       # Default
+          - 'true'
+          - 'false'                                     # Default
 
 
 ## simultaneity
@@ -90,10 +90,17 @@ concurrency:
 ## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 ## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+##
+## Principle of least privilege: grant permissions at job level only, not workflow level.
+## This way only the 'docker' job gets packages:write; any other jobs added later get
+## the minimal read-only defaults automatically.
+##
+## GITHUB_TOKEN is auto-provisioned by GitHub for every run — you never define it.
+## Its capabilities are controlled entirely by the permissions: block below.
+## packages:write is required for any GHCR push (public or private repository).
 permissions:
-  ## only required for workflows in private repositories
   contents: read  # for actions/checkout to fetch code
-  # packages: write  # for docker to push to registry
+  # packages: write  # intentionally NOT granted at workflow level — set per-job below
 
 
 # https://github.com/jupyterhub/repo2docker-action
@@ -106,7 +113,9 @@ jobs:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
     permissions:
       contents: read
-      # packages: write  # for docker to push to registry
+      packages: write      # required for GHCR push (ghcr.io); uses GITHUB_TOKEN
+      # attestations: write  # enable only when actions/attest step is active
+      # id-token: write      # enable only when using OIDC (cosign, sigstore, etc.)
 
     ## https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions
     # if: startsWith-endsWith( matrix.service[0], 'jupyter' ), contains( matrix.service[0], 'python-3.11' )
@@ -149,10 +158,12 @@ jobs:
 
     # Set your DockerHub username as a fixed env var
     # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context
     env:
-      # REPO_NAME: ${{ github.event.repository.name }}  # or in shell: $(basename "$GITHUB_REPOSITORY")
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN : ${{ secrets.DOCKERHUB_TOKEN }}
+      # REGISTRY: ghcr.io
+      # REPO_NAME: ${{ github.event.repository.name }}  # or in shell: $(basename "$GITHUB_REPOSITORY") full_repo_name: ${{ github.repository }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}  # ${{ github.actor }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}  # ${{ secrets.GITHUB_TOKEN }}
       # PY_VERSION: 3.11
       # SCIKITPLOT_VERSION: 0.4.0.post11  # install latest release on PyPI
       # COMPOSE_FILE: docker/docker-compose.yml
@@ -185,13 +196,21 @@ jobs:
 
       - name: 🔖 Export "branch" or "tag" from Git context
         id: gitref
+        shell: bash
         run: |
+          set -Eeuo pipefail
           REF_TYPE=""
           VERSION_TAG=""
           BRANCH_TAG=""
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             REF_TYPE="tag"
-            VERSION_TAG="${GITHUB_REF#refs/tags/v}"  # strip leading 'v'
+            # Two-step strip is required for idempotent version extraction:
+            #   Step 1: remove the fixed refs/tags/ prefix unconditionally.
+            #   Step 2: strip an optional leading 'v' (e.g. v1.0.0 → 1.0.0).
+            # Single-step '${GITHUB_REF#refs/tags/v}' fails for tags WITHOUT a 'v'
+            # prefix — e.g. refs/tags/1.0.0 would remain 'refs/tags/1.0.0' intact.
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"  # refs/tags/v1.0.0 → v1.0.0
+            VERSION_TAG="${VERSION_TAG#v}"           # v1.0.0 → 1.0.0  (no-op if no v)
           elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
             REF_TYPE="branch"
             BRANCH_NAME="${GITHUB_REF#refs/heads/}"
@@ -206,7 +225,11 @@ jobs:
         id: docker_plan
         shell: bash
         env:
-          IMAGE_NAMESPACE: ${{ matrix.service[1] }}
+          # GHCR: org is the GitHub organisation that owns this repo.
+          # github.repository_owner resolves correctly on forks too.
+          # No extra secret is needed – GITHUB_TOKEN covers packages:write.
+          GHCR_ORG: ${{ github.repository_owner }}
+          IMAGE_NAMESPACE: ${{ matrix.service[1] }}  #  ${{ github.repository }}
           IMAGE_REPO: ${{ matrix.service[2] }}
           REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
           VERSION: ${{ steps.gitref.outputs.version_tag }}
@@ -216,20 +239,34 @@ jobs:
           REF_TAG: ${{ matrix.tag.ref_tag }}
           ALIAS: ${{ matrix.tag.alias }}
           ALIAS2: ${{ matrix.tag.alias2 }}
-          # Docker Login
+          # Docker Hub credentials (optional – warn and skip DH tags if absent, GHCR still pushes)
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
-          # "scikitplot/scikit-plots"
-          IMAGE_NAME="${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+
+          # ── Registry image names ──────────────────────────────────────────────────
+          # DockerHub  : <org>/<repo>:<tag>          e.g. scikitplot/scikit-plots:latest
+          # GHCR       : ghcr.io/<org>/<repo>:<tag>  e.g. ghcr.io/scikit-plots/scikit-plots:latest
+          # Note: DockerHub org is "scikitplot" (no hyphen); GHCR org is the GitHub
+          # organisation name "scikit-plots" (with hyphen) — these intentionally differ.
+          DH_IMAGE_NAME="${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+          GHCR_IMAGE_NAME="ghcr.io/${GHCR_ORG}/${IMAGE_REPO}"
+
+          # ── Dockerfile selection (determined by image flavour) ────────────────────
           # Select Dockerfile based on image flavor (TAG).
           case "${TAG}" in
             python-3.11) DOCKERFILE_PATH="docker/Dockerfile.python" ;;
             jupyter)     DOCKERFILE_PATH="docker/Dockerfile" ;;
             *)           DOCKERFILE_PATH="docker/Dockerfile.python" ;;
           esac
-          # Map git ref -> FINAL_TAG (push tag) deterministically.
+
+          # ── Git-ref → FINAL_TAG mapping (deterministic, no heuristics) ───────────
+          # Rules:
+          #   Git tag  (refs/tags/vX.Y.Z) + ref_tags-* suffix → "<version>-<suffix>"
+          #   Branch "main"                                   → alias (e.g. "latest")
+          #   Branch "maintenance-X.Y.x"                      → "<X.Y.x>-<tag>"
+          #   Everything else (feature branches, PRs, …)      → build-only (no push)
           FINAL_TAG=""
           if [[ "${REF_TYPE}" == "tag" && "${REF_TAG}" == ref_tags-* ]]; then
             SUFFIX="${REF_TAG#ref_tags-}"
@@ -245,38 +282,64 @@ jobs:
           else
             echo "No push policy for BRANCH=${BRANCH} REF_TYPE=${REF_TYPE}; build-only." >&2
           fi
-          # Decide push behavior:
-          # - Never push on PRs
-          # - Push only when FINAL_TAG is present and Docker Hub credentials exist
+
+          # ── Tag list (newline-delimited for docker/build-push-action) ─────────────
+          # docker/build-push-action accepts tags from multiple registries in one list;
+          # a single build is produced and pushed to all registries simultaneously.
+          TAGS=()
+
+          if [[ -n "${FINAL_TAG}" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            # ── DockerHub tags ────────────────────────────────────────────────────
+            # DockerHub requires explicit credentials.  Warn and skip (don't hard-fail)
+            # so GHCR push still succeeds even when DH secrets are absent (e.g. forks).
+            if [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]]; then
+              TAGS+=("${DH_IMAGE_NAME}:${FINAL_TAG}")
+              [[ -n "${ALIAS2}" ]] && TAGS+=("${DH_IMAGE_NAME}:${ALIAS2}")
+            else
+              echo "⚠️  DOCKERHUB_USERNAME/DOCKERHUB_TOKEN not set; skipping DockerHub tags." >&2
+            fi
+            # ── GHCR tags ─────────────────────────────────────────────────────────
+            # GITHUB_TOKEN is always available (packages:write granted at job level).
+            # No credential check needed here.
+            TAGS+=("${GHCR_IMAGE_NAME}:${FINAL_TAG}")
+            [[ -n "${ALIAS2}" ]] && TAGS+=("${GHCR_IMAGE_NAME}:${ALIAS2}")
+          else
+            # Build-only (PR / feature branch / no matching policy):
+            # Use a deterministic local-only tag — never pushed to any registry.
+            TAGS+=("${DH_IMAGE_NAME}:ci-${GITHUB_SHA::12}")
+          fi
+
+          # ── Push flag ─────────────────────────────────────────────────────────────
+          # True when there are registry-qualified tags to push (GHCR always qualifies
+          # when FINAL_TAG is set and it's not a PR; DH is additive when creds exist).
           DO_PUSH="false"
           if [[ -n "${FINAL_TAG}" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
-            [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]] || { echo "Missing Docker Hub credentials (DOCKERHUB_USERNAME/DOCKERHUB_TOKEN)" >&2; exit 2; }
             DO_PUSH="true"
           fi
-          # Build tags list (newline-delimited for docker/build-push-action).
-          TAGS=()
-          if [[ -n "${FINAL_TAG}" ]]; then
-            TAGS+=("${IMAGE_NAME}:${FINAL_TAG}")
-            [[ -n "${ALIAS2}" ]] && TAGS+=("${IMAGE_NAME}:${ALIAS2}")
+
+          # ── Primary tag for downstream inspect / smoke-test steps ─────────────────
+          # Prefer GHCR (no pull-rate limits) when available; fall back to local ci tag.
+          if [[ -n "${FINAL_TAG}" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            PRIMARY_TAG="${GHCR_IMAGE_NAME}:${FINAL_TAG}"
           else
-            # Deterministic local-only tag for build-only runs (no registry push).
-            TAGS+=("${IMAGE_NAME}:ci-${GITHUB_SHA::12}")
+            PRIMARY_TAG="${DH_IMAGE_NAME}:ci-${GITHUB_SHA::12}"
           fi
-          echo "Dockerfile=${DOCKERFILE_PATH}" >&2
-          echo "Push=${DO_PUSH}" >&2
+
+          # ── Debug summary ─────────────────────────────────────────────────────────
+          echo "Dockerfile : ${DOCKERFILE_PATH}" >&2
+          echo "Push       : ${DO_PUSH}" >&2
+          echo "Primary tag: ${PRIMARY_TAG}" >&2
           echo "Tags:" >&2
           printf '  - %s\n' "${TAGS[@]}" >&2
 
-          # echo "steps.docker_plan.outputs.version=${VERSION}"
-          # echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          # echo "steps.docker_plan.outputs.tags=${TAGS}"
-          # echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          echo "steps.docker_plan.outputs.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          # ── Write step outputs ────────────────────────────────────────────────────
           {
-            echo "image_name=${IMAGE_NAME}"
+            echo "image_name=${DH_IMAGE_NAME}"
+            echo "ghcr_image_name=${GHCR_IMAGE_NAME}"
+            echo "primary_tag=${PRIMARY_TAG}"
             echo "dockerfile=${DOCKERFILE_PATH}"
             echo "push=${DO_PUSH}"
+            echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo "tags<<EOF"
             printf '%s\n' "${TAGS[@]}"
             echo "EOF"
@@ -291,26 +354,46 @@ jobs:
       - name: 🧱 Set up Docker Buildx (for chartpress multi-arch builds)
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
-      - name: 🔐 Login to Docker Hub
-        # if: steps.docker_plan.outputs.push == 'true'
+      - name: 🔐 Log in to Docker Hub
+        # Guard: only attempt login when we will actually push AND credentials are available.
+        # GitHub Actions sets env vars to empty string when a secret is absent (e.g. on forks),
+        # so 'env.DOCKERHUB_USERNAME != ""' is a safe empty-check that works in if: expressions.
+        # Skipping here is safe because docker_plan already omits DH tags when creds are absent.
+        if: >-
+          steps.docker_plan.outputs.push == 'true' &&
+          env.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        # if: steps.docker_plan.outputs.push == 'true'
-        # continue-on-error: true
         with:
-          # registry: ghcr.io  # Login to GitHub Container Registry
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}  # ${{ github.actor }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  # ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: 🔐 Login to GitHub Container Registry
-      #   uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-      #   # if: steps.docker_plan.outputs.push == 'true'
-      #   # continue-on-error: true
+      # https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images#publishing-images-to-github-packages
+      # https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+      #
+      # GHCR authentication rules:
+      #   - registry  : always "ghcr.io"
+      #   - username  : github.actor (the actor who triggered this run)
+      #                 ⚠️  Do NOT use DOCKERHUB_USERNAME here — it will cause a 401.
+      #   - password  : secrets.GITHUB_TOKEN (auto-provisioned; packages:write grants push)
+      #                 Works on forks too — no additional secrets needed.
+      - name: 🔐 Log in to the Container registry (GHCR)
+        # Guard: GITHUB_TOKEN is always available but login is only needed when pushing.
+        # Skipping on build-only runs avoids unnecessary network calls and potential
+        # transient auth failures that would abort an otherwise-valid build.
+        if: steps.docker_plan.outputs.push == 'true'
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io                      # GitHub Container Registry
+          username: ${{ github.actor }}          # must be the triggering actor
+          password: ${{ secrets.GITHUB_TOKEN }}  # auto-provisioned; no extra secret needed
+
+      # - name: Extract metadata (tags, labels) for Docker
+      #   id: meta
+      #   uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
       #   with:
-      #     registry: ghcr.io  # Login to GitHub Container Registry
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #     images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: 🏗️ Build (multi-arch) and Push
+      - name: 🏗️ (multi-arch) Build and Push Docker image
         id: docker_build_release
         # timeout-minutes: 60
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
@@ -320,19 +403,29 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ steps.docker_plan.outputs.push }}
           pull: true
-          tags: ${{ steps.docker_plan.outputs.tags }}
-          # Canonical cache backend for GitHub Actions runners, This isolates caches.
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref_name }}
-          cache-from: type=gha,scope=${{ github.workflow }}-${{ github.ref_name }}
-          labels: |
+          tags: ${{ steps.docker_plan.outputs.tags }}  # ${{ steps.meta.outputs.tags }}
+          labels: |  # ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.title=scikit-plots
+            org.opencontainers.image.description=scikit-plots ${{ matrix.tag.tag }} Docker image
+            org.opencontainers.image.version=${{ matrix.tag.alias }}
             org.opencontainers.image.source=${{ github.event.repository.html_url }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.created=${{ steps.docker_plan.outputs.created }}
+          # Canonical cache backend for GitHub Actions runners, This isolates caches.
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref_name }}
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ github.ref_name }}
           # load: true  # is for local daemon usability, not for multi-arch publishing.
           # Disable extra OCI attestations for maximum registry/tool compatibility
           # and stable digest expectations in multi-arch publishing.
           # provenance: false
           # sbom: false
+
+      # - name: Generate artifact attestation
+      #   uses: actions/attest@v4
+      #   with:
+      #     subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
 
       # scikitplot/scikit-plots:sha-${GITHUB_SHA::8} corresponds to the tag, which resolves to the index digest.
       # Index digest  — portable multi-platform reproducibility manifest list (what `docker pull` resolves).
@@ -344,35 +437,49 @@ jobs:
       #     # For multi-arch this is the manifest list / image index digest, not a single image digest.
       #     echo "Digest: ${{ steps.docker_build_release.outputs.digest }}"
 
-      # scikitplot/scikit-plots:sha-<shortsha>
-      #     -> Index Digest (multi-platform manifest list)
-      #     -> chooses matching platform manifest (linux/amd64,linux/arm64)
-      #     -> downloads that platform image
+      # steps.docker_plan.outputs.primary_tag points to GHCR when push=true (no pull-rate
+      # limits), or to the local ci-<sha> tag for build-only runs.
+      # Index digest  — portable multi-platform manifest list (what `docker pull` resolves).
+      # Manifest digest — single platform image; use only when targeting one arch (e.g. Binder).
+      #
+      # NOTE: imagetools inspect queries the REGISTRY — it cannot inspect a local-only image.
+      # Build-only runs produce a ci-<sha> tag that is never pushed, so this step must be
+      # gated on push==true to avoid a guaranteed failure on PRs and feature branches.
       - name: 🔎 Inspect pushed manifest
-        # if: steps.docker_plan.outputs.push == 'true'
+        if: steps.docker_plan.outputs.push == 'true'
         continue-on-error: true
+        env:
+          # Map the output to an env var here
+          PRIMARY_TAG: ${{ steps.docker_plan.outputs.primary_tag }}
         run: |
-          # docker images
-          docker buildx imagetools inspect \
-            scikitplot/scikit-plots:sha-${GITHUB_SHA::8}
+          # Use the shell variable syntax ($PRIMARY_TAG)
+          docker buildx imagetools inspect "$PRIMARY_TAG"
 
-      # docker pull scikitplot/scikit-plots:latest
-      # docker run ... scikitplot/scikit-plots:sha-${GITHUB_SHA::8}
+      # docker pull ghcr.io/scikit-plots/scikit-plots:latest
+      # docker run ... ${{ steps.docker_plan.outputs.primary_tag }}
       # Because GitHub runners are usually amd64, but explicit is safer and deterministic.
+      #
+      # NOTE: docker/build-push-action with multi-arch does NOT load the image into the
+      # local Docker daemon (load: true is incompatible with linux/amd64+linux/arm64).
+      # On build-only runs the ci-sha tag is never pushed and doesn't exist locally either,
+      # so docker run would fail. Gate on push==true so the runner pulls from GHCR.
       - name: 🧪 Smoke test published image check for curl and git
-        # if: steps.docker_plan.outputs.push == 'true'
+        if: steps.docker_plan.outputs.push == 'true'
         continue-on-error: true
+        env:
+          # Map the output to an env var here
+          PRIMARY_TAG: ${{ steps.docker_plan.outputs.primary_tag }}
         run: |
           for i in {1..2}; do
             if docker run --rm \
               --platform linux/amd64 \
               --entrypoint /bin/bash \
-              scikitplot/scikit-plots:sha-${GITHUB_SHA::8} \
+              "$PRIMARY_TAG" \
               -c "uname -m && command -v curl && command -v git && git --version"; then
               # ends the script successfully.
               exit 0
             fi
-            echo "Retrying in 10s... ($i/5)"
+            echo "Retrying in 10s... ($i/2)"
             sleep 10
           done
           echo "Smoke test failed after retries."
@@ -383,8 +490,9 @@ jobs:
         continue-on-error: true
         run: |
           docker system prune -f
-          echo "🔗 View at: https://hub.docker.com/u/${{ matrix.service[1] }}"
-          echo "🔗 View at: https://hub.docker.com/r/${{ matrix.service[1] }}/${{ matrix.service[2] }}"
+          echo "🔗 DockerHub org  : https://hub.docker.com/u/${{ matrix.service[1] }}"
+          echo "🔗 DockerHub image: https://hub.docker.com/r/${{ matrix.service[1] }}/${{ matrix.service[2] }}"
+          echo "🔗 GHCR image     : https://ghcr.io/${{ github.repository_owner }}/${{ matrix.service[2] }}"
 
       ################################################################
 

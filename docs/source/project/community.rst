@@ -1,5 +1,7 @@
-.. https://john-cd.com/cheatsheets/Markup_and_Documentation/reStructuredText/#official-restructuredtext-cheatsheet
+.. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
+.. https://snippets.documatt.com/
 
+.. https://john-cd.com/cheatsheets/Markup_and_Documentation/reStructuredText/#official-restructuredtext-cheatsheet
 .. https://waldyrious.net/rst-playground/
 .. https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
 
@@ -25,6 +27,14 @@ Scikit-Plots Community
 
 Welcome to the **Scikit-Plots** community hub and resources page! Here you can find links to our organization pages, download sources, and archives.
 
+.. |badge2| image:: https://img.shields.io/badge/scikit-plots-olivegreen.svg?style=for-the-badge&labelColor=blue&logoColor=white
+   :alt: Scikit-Plots badge
+   :target: https://github.com/scikit-plots/scikit-plots
+
+.. |badge| image:: https://img.shields.io/badge/scikit_plots-green.svg?style=for-the-badge&labelColor=blue&logoColor=white
+   :alt: Scikit-Plots badge
+   :target: https://github.com/scikit-plots/scikit-plots
+
 .. |linkedin| image:: https://img.shields.io/badge/scikit_plots-blue.svg?style=for-the-badge&label=linkedin&logo=linkedin&labelColor=blue&color=green
    :alt: Scikit-Plots on LinkedIn
    :target: https://www.linkedin.com/company/scikit-plots
@@ -37,7 +47,7 @@ Welcome to the **Scikit-Plots** community hub and resources page! Here you can f
    :alt: Scikit-Plots on Zenodo
    :target: https://zenodo.org/communities/scikit-plots
 
-|linkedin| |github_discussions| |zenodo|
+|badge2| |badge| |linkedin| |github_discussions| |zenodo|
 
 :bdg-primary:`community` :bdg-success:`open-source` :bdg-info:`python`
 

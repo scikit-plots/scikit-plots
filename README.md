@@ -84,6 +84,13 @@
   src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
  </a> -->
  <br>
+ <!-- 🐋 https://quay.io/organization/scikit-plots 🐳 -->
+ <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
+ <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
+ <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="quay.io" height="17"
+   src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
+ </a>
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
@@ -104,13 +111,6 @@
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Size (tag)" height="17"
    src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
- </a>
- <!-- 🐋 https://quay.io/organization/scikit-plots 🐳 -->
- <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
- <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
- <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="quay.io" height="17"
-   src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
  </a>
  <br>
  <!-- codecov -->
@@ -193,6 +193,8 @@
   <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
  </a>
 </div>
+
+<!-- [![](https://img.shields.io/badge/Copy%20Exercise-%E2%86%92-1f883d?style=for-the-badge&logo=github&labelColor=197935)](https://github.com/new?template_owner=skills&template_name=publish-docker-images&owner=%40me&name=skills-publish-docker-images&description=Exercise:+Publish+Docker+Images&visibility=public) -->
 
 <br>
 

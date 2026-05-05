@@ -420,7 +420,7 @@ global_enable_try_examples = True
 try_examples_global_button_text = "Try it in your browser!"
 try_examples_global_warning_text = (
     "# JupyterLite warning\n\n"
-    f"- Running the **scikit-plots {version}** interactive examples in JupyterLite is "
+    f"- Running the **scikit-plots {release}** interactive examples in JupyterLite is "
     "experimental and may not always work as expected.\n"
     "- With high load times especially on low-resource platforms, and the version of "
     "scikit-plots might not be in sync with the one you are browsing the documentation for.\n"
@@ -1018,11 +1018,11 @@ html_theme_options = {
         "**": [
             # "edit-this-page",
             "page-toc",
+            "sourcelink",
             # Sphinx-Gallery-specific sidebar components
             # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            # "sg_launcher_links",
             "sg_download_links",
-            "sg_launcher_links",
-            # "sourcelink",
         ],
     },
     # -- Announcement ---------------------------------------------------------
