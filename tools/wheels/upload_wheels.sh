@@ -7,6 +7,8 @@
 # https://github.com/numpy/numpy/blob/main/tools/wheels/upload_wheels.sh
 # https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
 
+set -Eeuo pipefail
+
 set_travis_vars() {
     ## Set env vars
     echo "TRAVIS_EVENT_TYPE is $TRAVIS_EVENT_TYPE"
@@ -44,41 +46,58 @@ upload_wheels() {
     echo PWD: "${PWD}"
     # echo "$(ls -lah)"
     printf "%s\n" "$(ls -lah)"
-
+    # Ensure conda is available
+    if ! command -v conda >/dev/null 2>&1; then
+        echo "conda not found" >&2
+        exit 1
+    fi
+    # Initialize shell (CRITICAL)
+    CONDA_BASE="$(conda info --base)"
+    # shellcheck disable=SC1090
+    source "${CONDA_BASE}/etc/profile.d/conda.sh"
+    # ---------------------------
+    # CHANNEL FIX (IMPORTANT)
+    # ---------------------------
+    conda config --add channels conda-forge  # primary source (newer builds, ARM support)
+    conda config --add channels defaults  # (Anaconda channel) → fallback for legacy packages
+    conda config --set channel_priority strict  # → prevents mixing incompatible builds
     ## https://github.com/marketplace/actions/build-and-upload-conda-packages
     ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
     # conda install -qy anaconda-client
     export PATH=$CONDA/bin:$PATH
-    conda create -n upload -y anaconda-client
-    source activate upload
-
-    if [[ ${ANACONDA_UPLOAD} == true ]]; then
-        if [[ -z ${TOKEN} ]]; then
-            echo no token set, not uploading
-        else
-            echo TOKEN found, looking files...
-            ## sdists are located under dist folder when built through setup.py
-            ## compgen is a Bash built-in that generates possible completions (filenames, commands, etc.).
-            ## -G uses a glob pattern (like *.gz) and returns matching filenames.
-            ## if ls ./dist/*.gz 1> /dev/null 2>&1; then
-            if compgen -G "./dist/*.gz"; then
-                echo "Found sdist..."
-                ## No quotes if you want globbing (e.g., *.gz) This will expand the glob correctly $ARTIFACTS_PATH/*
-                anaconda -t "${TOKEN}" upload --force -u "${USERNAME}" ./dist/*.gz
-            elif compgen -G "./wheelhouse/*.whl"; then
-                echo "Found wheel..."
-                ## Force a replacement if the remote file already exists -
-                ## nightlies will not have the commit ID in the filename, so
-                ## are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
-                ## No quotes if you want globbing (e.g., *.gz) This will expand the glob correctly $ARTIFACTS_PATH/*
-                anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" ./wheelhouse/*.whl
-            else
-                echo "Files do not exist"
-                return 1
-            fi
-            ## Your package is now available at http://anaconda.org/<USERNAME>/<PACKAGE>
-            # export PACKAGE="scikit-plots*"
-            echo "PyPI-style index: https://pypi.anaconda.org/$USERNAME/simple"
+    conda create -n upload -y -c conda-forge anaconda-client
+    # source activate upload
+    conda activate upload
+    # -----------------------------
+    # UPLOAD
+    # -----------------------------
+    if [[ "${ANACONDA_UPLOAD:-false}" == true ]]; then
+        if [[ -z "${TOKEN:-}" ]]; then
+            echo "no token set, not uploading"
+            return 0
         fi
+        echo "TOKEN found, looking files..."
+        ## sdists are located under dist folder when built through setup.py
+        ## compgen is a Bash built-in that generates possible completions (filenames, commands, etc.).
+        ## -G uses a glob pattern (like *.gz) and returns matching filenames.
+        ## if ls ./dist/*.gz 1> /dev/null 2>&1; then
+        if compgen -G "./dist/*.gz" > /dev/null; then
+            echo "Found sdist..."
+            ## No quotes if you want globbing (e.g., *.gz) This will expand the glob correctly $ARTIFACTS_PATH/*
+            anaconda -t "${TOKEN}" upload --force -u "${USERNAME}" ./dist/*.gz
+        elif compgen -G "./wheelhouse/*.whl" > /dev/null; then
+            echo "Found wheel..."
+            ## Force a replacement if the remote file already exists -
+            ## nightlies will not have the commit ID in the filename, so
+            ## are named the same (1.X.Y.dev0-<platform/interpreter-tags>)
+            ## No quotes if you want globbing (e.g., *.gz) This will expand the glob correctly $ARTIFACTS_PATH/*
+            anaconda -q -t "${TOKEN}" upload --force -u "${USERNAME}" ./wheelhouse/*.whl
+        else
+            echo "Files do not exist"
+            return 1
+        fi
+        ## Your package is now available at http://anaconda.org/<USERNAME>/<PACKAGE>
+        # export PACKAGE="scikit-plots*"
+        echo "PyPI-style index: https://pypi.anaconda.org/$USERNAME/simple"
     fi
 }
