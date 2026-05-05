@@ -47,27 +47,29 @@ upload_wheels() {
     # echo "$(ls -lah)"
     printf "%s\n" "$(ls -lah)"
     # Ensure conda is available
-    if ! command -v conda >/dev/null 2>&1; then
-        echo "conda not found" >&2
-        exit 1
-    fi
+    # if ! command -v conda >/dev/null 2>&1; then
+    #     echo "conda not found" >&2
+    #     exit 1
+    # fi
     # Initialize shell (CRITICAL)
-    CONDA_BASE="$(conda info --base)"
+    # CONDA_BASE="$(conda info --base)"
     # shellcheck disable=SC1090
-    source "${CONDA_BASE}/etc/profile.d/conda.sh"
+    # source "${CONDA_BASE}/etc/profile.d/conda.sh"
     # ---------------------------
     # CHANNEL FIX (IMPORTANT)
     # ---------------------------
-    conda config --add channels conda-forge  # primary source (newer builds, ARM support)
-    conda config --add channels defaults  # (Anaconda channel) → fallback for legacy packages
-    conda config --set channel_priority strict  # → prevents mixing incompatible builds
+    # conda config --add channels conda-forge  # primary source (newer builds, ARM support)
+    # conda config --add channels defaults  # (Anaconda channel) → fallback for legacy packages
+    # conda config --set channel_priority strict  # → prevents mixing incompatible builds
     ## https://github.com/marketplace/actions/build-and-upload-conda-packages
     ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
     # conda install -qy anaconda-client
     export PATH=$CONDA/bin:$PATH
-    conda create -n upload -y -c conda-forge anaconda-client
-    # source activate upload
-    conda activate upload
+    conda create -n upload -y anaconda-client || true
+    conda activate upload || true  # source activate upload
+    # conda's libmamba sharded repodata cache causes sqlite3 lock races on linux
+    # anaconda-client is unavailable via conda on win-arm64
+    pip install --no-cache-dir anaconda-client || true
     # -----------------------------
     # UPLOAD
     # -----------------------------
@@ -77,6 +79,7 @@ upload_wheels() {
             return 0
         fi
         echo "TOKEN found, looking files..."
+        # local artifacts_path="${ARTIFACTS_PATH:?ARTIFACTS_PATH must be set}"
         ## sdists are located under dist folder when built through setup.py
         ## compgen is a Bash built-in that generates possible completions (filenames, commands, etc.).
         ## -G uses a glob pattern (like *.gz) and returns matching filenames.
