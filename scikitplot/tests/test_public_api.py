@@ -123,6 +123,7 @@ def is_unexpected(name):
 
 # Skip public modules
 SKIP_LIST = [
+    "scikitplot._build_utils._meson_features",  # not module
     # root artifact
     "scikitplot.conftest",
     # optional
@@ -195,6 +196,7 @@ def test_all_modules_are_expected():
 # Stuff that clearly shouldn't be in the API and is detected by the next test
 # below
 SKIP_LIST_2 = [
+    "scikitplot._build_utils._meson_features",  # not module
     "scikitplot.experimental._template",
     # root artifact
     # "scikitplot.conftest",
