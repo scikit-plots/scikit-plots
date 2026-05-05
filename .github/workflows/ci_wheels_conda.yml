@@ -652,8 +652,8 @@ jobs:
           conda-remove-defaults: true
           auto-update-conda: true
           show-channel-urls: true
+          # python-version: '3.11'  # ${{ matrix.python[1] }}
           miniforge-version: latest
-          python-version: '3.11'  # ${{ matrix.python[1] }}
           # 'Architecture of Miniconda that should be installed. This is automatically
           # detected by the runner. If you want to override it, you can use "x64",
           # "x86", "arm64", "aarch64", "s390x".'
@@ -672,14 +672,10 @@ jobs:
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           ## commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN nightly
+          ARTIFACTS_PATH: wheelhouse
         run: |
-          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
-          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          # conda install -qy anaconda-client
-          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
-
-          set_upload_vars  # Required TOKEN, USERNAME
+          set_upload_vars  # export Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
           #
@@ -691,7 +687,7 @@ jobs:
           # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
           #
           # The tokens were originally generated at anaconda.org
-          upload_wheels  # Required WHEEL_FILE_PATH
+          upload_wheels  # Required ARTIFACTS_PATH
 
   build_sdist:
     name: "Build Source (sdist) Package"
@@ -839,8 +835,8 @@ jobs:
           conda-remove-defaults: "true"
           auto-update-conda: true
           show-channel-urls: true
+          # python-version: "3.11"
           miniforge-version: latest
-          python-version: "3.11"
 
       - name: "📥 Upload Scikit-plots Source (sdist) Package to Anaconda.org PyPI index"
         if: success()
@@ -853,13 +849,9 @@ jobs:
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           # commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN nightly
+          ARTIFACTS_PATH: dist
         run: |
-          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
-          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          # conda install -qy anaconda-client
-          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
-
           set_upload_vars  # Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
@@ -872,7 +864,7 @@ jobs:
           # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
           #
           # The tokens were originally generated at anaconda.org
-          upload_wheels  # Required WHEEL_FILE_PATH
+          upload_wheels  # Required ARTIFACTS_PATH
 
   build_wasm:
     name: Build WASM (WebAssembly/Emscripten/Pyodide) Package for Pyodide
@@ -957,8 +949,8 @@ jobs:
           conda-remove-defaults: "true"
           auto-update-conda: true
           show-channel-urls: true
+          # python-version: "3.11"
           miniforge-version: latest
-          python-version: "3.11"
 
       - name: "📥 Upload Scikit-plots WASM Wheel (.whl) Package to Anaconda.org PyPI index"
         if: success()
@@ -973,13 +965,9 @@ jobs:
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           ## commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
+          ARTIFACTS_PATH: wheelhouse
         run: |
-          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
-          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          # conda install -qy anaconda-client
-          conda create -n upload -y anaconda-client
           source tools/wheels/upload_wheels.sh
-
           set_upload_vars  # Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
@@ -992,4 +980,4 @@ jobs:
           # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
           #
           # The tokens were originally generated at anaconda.org
-          upload_wheels  # Required WHEEL_FILE_PATH
+          upload_wheels  # Required ARTIFACTS_PATH
