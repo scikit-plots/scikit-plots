@@ -1202,7 +1202,7 @@ if is_mingw
   # Manual add of MS_WIN64 macro when not using MSVC.
   # https://bugs.python.org/issue28267
   bitness = run_command(
-    '_build_utils/gcc_build_bitness.py',
+    files('scikitplot/_build_utils/gcc_build_bitness.py'),
     check: true
   ).stdout().strip()
   if bitness == '64'

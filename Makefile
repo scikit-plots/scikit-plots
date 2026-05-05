@@ -659,6 +659,9 @@ build:
 ######################################################################
 ## Meson Step-by-Step Compilation
 ######################################################################
+# $env:CC = "gcc"; $env:FC = "gfortran";
+# export CC=gcc; export FC=gfortran;
+# mamba install -c conda-forge openblas libgfortran5 pkg-config ninja meson-python numpy scipy cython pybind11
 
 ## build-me
 ## Compile the project using Meson for step-by-step debugging.

@@ -392,14 +392,19 @@ ARG TARGETARCH
 ## (e.g., docker buildx build --platform linux/amd64). CI systems like Red Hat Quay
 ## do not inject it automatically. Fall back to `uname -m` when unset.
 ## Handle both Docker names (amd64/arm64) and Linux kernel names (x86_64/aarch64).
+## Naming scheme                         amd64  arm64  x86_64  aarch64
+## Docker/BuildKit TARGETARCH            ✅    ✅     ✗       ✗
+## Linux uname -m                        ✗     ✗      ✅      ✅
+## Red Hat Quay (no BuildKit injection)  ✗     ✗      ✅      ✅
 RUN set -Eeuo pipefail; \
   if [ "${RUN_POST_CREATE}" = "1" ]; then \
     _arch="${TARGETARCH:-$(uname -m)}"; \
     case "${_arch}" in \
-      amd64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
-      arm64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
+      amd64 | x86_64) export MICROMAMBA_API_PLATFORM=linux-64 ;; \
+      arm64 | aarch64) export MICROMAMBA_API_PLATFORM=linux-aarch64 ;; \
       *) echo "Unsupported arch=${_arch} (TARGETARCH=${TARGETARCH:-unset})" >&2; exit 2 ;; \
     esac; \
+    echo "Resolved arch=${_arch} → MICROMAMBA_API_PLATFORM=${MICROMAMBA_API_PLATFORM}"; \
     \
     POST_CREATE_STRICT=0 \
     POST_CREATE_ENV_REQUIRED=1 \
