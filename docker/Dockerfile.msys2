@@ -1,0 +1,48 @@
+# docker/Dockerfile.msys2
+#
+## https://www.msys2.org/
+## https://github.com/msys2
+## https://github.com/msys2/msys2-docker
+## https://github.com/msys2/MINGW-packages
+## https://github.com/msys2/MSYS2-packages
+#
+## https://www.mingw-w64.org/
+## https://github.com/mingw-w64/mingw-w64
+#
+## MinGW-W64 compiler binaries
+## Release of 15.2.0-rt_v13-rev1 sha256:029bd02b5bce7c10fd9476165b3fe178239fe1838ad62516b5c3e0921bb283cf
+## https://github.com/niXman/mingw-builds-binaries/releases/download/15.2.0-rt_v13-rev1/x86_64-15.2.0-release-posix-seh-ucrt-rt_v13-rev1.7z
+## https://github.com/niXman/mingw-builds-binaries/releases
+## https://github.com/niXman/mingw-builds
+## https://github.com/digitalgust/mingw-w64/releases
+#
+## $env:CC = "gcc"; $env:FC = "gfortran";
+## export CC=gcc; export FC=gfortran;
+## mamba install -c conda-forge openblas libgfortran5 pkg-config ninja meson-python numpy scipy cython pybind11
+#
+# https://github.com/msys2/msys2-docker/blob/main/build-base/Dockerfile
+# https://github.com/pojntfx/hydrapp/blob/main/hydrapp/pkg/builders/msi/Dockerfile
+
+FROM debian:trixie AS build
+
+# Install WINE build dependencies
+RUN sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+RUN apt update && \
+    DEBIAN_FRONTEND="noninteractive" apt-get build-dep --install-recommends -y wine && \
+    # debian does not pull in i686 mingw (needed for building "experimental wow64" support)
+    DEBIAN_FRONTEND="noninteractive" apt-get install -y gcc-mingw-w64-i686 && \
+    DEBIAN_FRONTEND="noninteractive" apt-get install -y git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Build and install patched WINE (see https://github.com/msys2/MSYS2-packages/issues/682)
+RUN git clone --filter=tree:0 https://gitlab.winehq.org/jhol/wine.git /tmp/winesrc && \
+    cd /tmp/winesrc && \
+    # https://gitlab.winehq.org/jhol/wine/-/commits/msys2-hacks-22
+    git checkout 2aa524aec434517843ffa1d52ad1982f86fdd074 && \
+    ./configure --disable-tests --enable-win64 --with-mingw --enable-archs=x86_64,i386 && \
+    make -j $(nproc) && \
+    env DESTDIR=/wine make -j $(nproc) install && \
+    rm -rf /tmp/winesrc && \
+    # Clean things up
+    find /wine -type f -exec strip --strip-all {} \; && \
+    rm -Rf /wine/usr/local/include

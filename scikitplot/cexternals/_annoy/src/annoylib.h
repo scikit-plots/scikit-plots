@@ -262,8 +262,23 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-// only on non-Windows systems.
-#if !defined(_WIN32)
+// <unistd.h> declares ftruncate(), lseek(), close(), and other POSIX symbols
+// required by remap_memory_and_truncate() and on_disk_build().
+//
+// Inclusion matrix:
+//   Linux / macOS / *BSD : !_WIN32          → always include  ✓
+//   MinGW-w64 (32 or 64) : _WIN32 + MINGW32 → include        ✓
+//     MinGW-w64 ships a full POSIX compatibility layer; <unistd.h> exists
+//     and declares ftruncate().  __MINGW32__ is defined by both the 32-bit
+//     and 64-bit toolchain variants, so one guard covers both.
+//   Pure MSVC            : _WIN32 only      → skip            ✓
+//     MSVC has no <unistd.h>; its equivalent is _chsize_s() in <io.h>,
+//     which is already pulled in by the Windows platform block below.
+//
+// NOTE: This fix is intentional and consistent with the existing MinGW-aware
+// ANNOYLIB_FTRUNCATE_SIZE macro (see line ~580) which already branches on
+// __MINGW32__.  The missing include was the only gap.
+#if !defined(_WIN32) || defined(__MINGW32__)
   #include <unistd.h>
 #endif
 

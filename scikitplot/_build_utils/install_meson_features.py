@@ -280,7 +280,8 @@ def main() -> None:
         )
         sys.exit(1)
 
-    print(f"Installed features module: {src_dir!r} → {dst_dir!r}")
+    # → this cause win an invisible byte $'\302\203', print the safe ASCII.
+    print(f"Installed features module: {src_dir!r} -> {dst_dir!r}")
 
 
 if __name__ == "__main__":

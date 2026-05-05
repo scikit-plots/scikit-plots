@@ -874,6 +874,23 @@ else
   ]
 endif
 
+
+# ----------------------------
+# Build npymath static library
+# ----------------------------
+
+staticlib_cflags = []
+staticlib_cppflags = []
+if cc.get_id() == 'msvc'
+  # Disable voltbl section for vc142 to allow link using mingw-w64; see:
+  # https://github.com/matthew-brett/dll_investigation/issues/1#issuecomment-1100468171
+  # Needs to be added to static libraries that are shipped for reuse (i.e.,
+  # libnpymath and libnpyrandom)
+  if cc.has_argument('-d2VolatileMetadata-')
+     staticlib_cflags +=  '-d2VolatileMetadata-'
+  endif
+endif
+
 ######################################################################
 ## macOS 14
 ######################################################################
@@ -1202,7 +1219,7 @@ if is_mingw
   # Manual add of MS_WIN64 macro when not using MSVC.
   # https://bugs.python.org/issue28267
   bitness = run_command(
-    '_build_utils/gcc_build_bitness.py',
+    files('scikitplot/_build_utils/gcc_build_bitness.py'),
     check: true
   ).stdout().strip()
   if bitness == '64'

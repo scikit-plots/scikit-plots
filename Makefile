@@ -660,6 +660,26 @@ build:
 ## Meson Step-by-Step Compilation
 ######################################################################
 
+## https://www.msys2.org/
+## https://github.com/msys2
+## https://github.com/msys2/msys2-docker
+## https://github.com/msys2/MINGW-packages
+## https://github.com/msys2/MSYS2-packages
+#
+## https://www.mingw-w64.org/
+## https://github.com/mingw-w64/mingw-w64
+#
+## MinGW-W64 compiler binaries
+## Release of 15.2.0-rt_v13-rev1 sha256:029bd02b5bce7c10fd9476165b3fe178239fe1838ad62516b5c3e0921bb283cf
+## https://github.com/niXman/mingw-builds-binaries/releases/download/15.2.0-rt_v13-rev1/x86_64-15.2.0-release-posix-seh-ucrt-rt_v13-rev1.7z
+## https://github.com/niXman/mingw-builds-binaries/releases
+## https://github.com/niXman/mingw-builds
+## https://github.com/digitalgust/mingw-w64/releases
+#
+## $env:CC = "gcc"; $env:FC = "gfortran";
+## export CC=gcc; export FC=gfortran;
+## mamba install -c conda-forge openblas libgfortran5 pkg-config ninja meson-python numpy scipy cython pybind11
+
 ## build-me
 ## Compile the project using Meson for step-by-step debugging.
 ## Depends on 'clean'.
