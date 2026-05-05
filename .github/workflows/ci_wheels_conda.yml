@@ -649,10 +649,10 @@ jobs:
           # channels: conda-forge,defaults
           # channel-priority: true
           # auto-activate-base: false
-          conda-remove-defaults: true
-          auto-update-conda: true
-          show-channel-urls: true
+          # conda-remove-defaults: true
+          # auto-update-conda: true
           # python-version: '3.11'  # ${{ matrix.python[1] }}
+          show-channel-urls: true
           miniforge-version: latest
           # 'Architecture of Miniconda that should be installed. This is automatically
           # detected by the runner. If you want to override it, you can use "x64",
@@ -832,10 +832,10 @@ jobs:
           # environment will be activated after creation, and in future bash steps
           # environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
           # auto-activate-base: false
-          conda-remove-defaults: "true"
-          auto-update-conda: true
-          show-channel-urls: true
+          # conda-remove-defaults: "true"
+          # auto-update-conda: true
           # python-version: "3.11"
+          show-channel-urls: true
           miniforge-version: latest
 
       - name: "📥 Upload Scikit-plots Source (sdist) Package to Anaconda.org PyPI index"
@@ -946,10 +946,10 @@ jobs:
           ## environment will be activated after creation, and in future bash steps
           ## environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
           # auto-activate-base: false
-          conda-remove-defaults: "true"
-          auto-update-conda: true
-          show-channel-urls: true
+          # conda-remove-defaults: "true"
+          # auto-update-conda: true
           # python-version: "3.11"
+          show-channel-urls: true
           miniforge-version: latest
 
       - name: "📥 Upload Scikit-plots WASM Wheel (.whl) Package to Anaconda.org PyPI index"
