@@ -22,7 +22,7 @@ name: "CI 📘 Docs Preview Link Post CircleCI"
 # "status" too many action trigger
 on: # [status]
   workflow_dispatch: # Allows manual triggering of the workflow
-  status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
+  # status:  # Currently we dont need Useful for pull_request preview like "docs/readthedocs.org:"-style status check
     # branches: [ "main", "*.X" ]
     # branches:
     #   - main
