@@ -22,7 +22,7 @@
 #  && npm install -g yarn
 
 # FROM ubuntu:20.04
-FROM python:3.11-slim
+FROM python:3.11-slim@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
 # Install protoc
 ENV PROTOC_VERSION=3.19.4
 ENV PATH="/root/protoc/bin:${PATH}"
