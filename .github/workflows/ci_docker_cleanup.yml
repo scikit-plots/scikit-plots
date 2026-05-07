@@ -57,7 +57,7 @@
 #   Quay.io API        : https://docs.quay.io/api/swagger/
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: 🧹 Docker Registry — Cleanup Old Tags
+name: CI 🐋 Docker Registry 🧹 — Cleanup Old Tags
 
 on:
   workflow_dispatch:
