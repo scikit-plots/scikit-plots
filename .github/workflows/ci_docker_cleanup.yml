@@ -998,7 +998,7 @@ jobs:
             echo ""
             echo "| Registry        | Outcome |"
             echo "|-----------------|---------|"
-            echo "| Docker Hub      | \`${QUAY_TOKEN:-}\` |"
+            echo "| Docker Hub      | \`${DOCKER_HUB:-}\` |"
             echo "| GitHub GHCR     | \`${GHCR_HUB:-}\`       |"
             echo "| RedHat Quay     | \`${QUAY_HUB:-}\`       |"
             echo ""
