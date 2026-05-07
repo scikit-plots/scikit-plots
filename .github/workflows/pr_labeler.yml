@@ -96,8 +96,7 @@ jobs:
       # label based on PR glob files
       - name: label based on changed files
         # uses: thomasjpfan/labeler@v2.5.1
-        # uses: actions/labeler@ac9175f8a1f3625fd0d4fb234536d26811351594 # v4.3.0
-        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
         # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:
@@ -109,7 +108,7 @@ jobs:
 
       # label based on PR glob files
       - name: label based on module changed files
-        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
         # if: github.repository == 'scikit-plots/scikit-plots'
         continue-on-error: true
         with:

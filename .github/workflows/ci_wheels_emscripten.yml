@@ -72,6 +72,25 @@ jobs:
     permissions:
       contents: read  # to fetch code (actions/checkout)
 
+    env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
+      # https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#example-matching-an-array-of-strings
+      # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
+      # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' || matrix.buildplat[2] == 'win32' }}
+      IS_32_BIT: ${{ contains(fromJson('["x86", "win32"]'), matrix.buildplat[2]) }}
+      # upload to staging if it's a push to a maintenance branch
+      # and the last GIT COMMIT MESSAGE contains '[wheel build]'
+      # Check current EVENT is a "push" event
+      # Triggered for specific BRANCHES (e.g., main, maintenance/**)
+      # Triggered for TAGS starting with 'v'
+      IS_PUSH: >-
+        ${{ github.event.inputs.push_wheels == 'true' }}
+      # Checks if the EVENT is a "schedule" or manual "workflow_dispatch"
+      IS_SCHEDULE_DISPATCH: >-
+        ${{
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'schedule'
+        }}
+
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
 
@@ -95,14 +114,16 @@ jobs:
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        continue-on-error: true
         with:
-          name: Wheel-cp312-pyodide_wasm32
-          path: ./wheelhouse/*.whl
           # if-no-files-found: error
           # include-hidden-files: true
+          path: ./wheelhouse/*.whl
+          # name: cp3xx-pyodide_wasm32
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        continue-on-error: true
         with:
           ## for installation of anaconda-client, required for upload to
           ## anaconda.org
@@ -112,13 +133,20 @@ jobs:
           ## environment will be activated after creation, and in future bash steps
           ## environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
           # auto-activate-base: false
-          conda-remove-defaults: "true"
-          auto-update-conda: true
-          show-channel-urls: true
-          miniforge-version: latest
+          # conda-remove-defaults: "true"
+          # auto-update-conda: true
           python-version: "3.11"
+          show-channel-urls: true
+          # mamba-version: "*"
+          miniforge-version: latest
+          channels: conda-forge,defaults
+          # channel-priority: true
+          channel-priority: strict
+          # activate-environment: anaconda-client-env
+          # environment-file: etc/example-environment.yml
+          # environment-file: etc/example-explicit.conda.lock
 
-      - name: Upload Conda Wheels (.whl) Packages
+      - name: "📥 Upload Scikit-plots WASM Wheel (.whl) Package to Anaconda.org PyPI index"
         if: success()
         ## see https://github.com/marketplace/actions/setup-miniconda for why
         ## `-el {0}` is required.
@@ -131,12 +159,9 @@ jobs:
           SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
           ## commented out so the sdist doesn't upload to nightly
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
+          ARTIFACTS_PATH: wheelhouse
         run: |
-          ## https://github.com/marketplace/actions/build-and-upload-conda-packages
-          ## https://docs.anaconda.com/anacondaorg/user-guide/packages/standard-python-packages/
-          conda install -qy anaconda-client
           source tools/wheels/upload_wheels.sh
-
           set_upload_vars  # Required TOKEN, USERNAME
           # For cron jobs (restricted to main branch) or "Run workflow" trigger
           # an upload to:
@@ -149,7 +174,7 @@ jobs:
           # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
           #
           # The tokens were originally generated at anaconda.org
-          upload_wheels  # Required WHEEL_FILE_PATH
+          upload_wheels  # Required ARTIFACTS_PATH
 
   # build-wasm-emscripten:
   #   name: Build NumPy distribution for Pyodide
