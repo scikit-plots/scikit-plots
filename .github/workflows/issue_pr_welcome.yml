@@ -33,8 +33,8 @@ concurrency:
 # https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
   contents: read        # Only read access to repository contents
-  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
   issues: write         # Write access to issues (PRs are treated as issues)
+  pull-requests: write  # Full access to read and modify PRs (e.g., labels, comments)
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)

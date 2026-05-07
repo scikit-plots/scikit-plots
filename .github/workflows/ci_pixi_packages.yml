@@ -15,7 +15,7 @@ on:
   #     - '**.rst'
 
 permissions:
-  contents: read # to fetch code (actions/checkout)
+  contents: read  # to fetch code (actions/checkout)
 
 jobs:
   # get_commit_message:

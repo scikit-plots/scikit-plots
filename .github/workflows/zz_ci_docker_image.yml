@@ -17,6 +17,12 @@ on:
   # pull_request:
   #   branches: [ $default-branch ]
 
+
+permissions:
+  contents: read
+  packages: write
+
+
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: docker.io
@@ -24,6 +30,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   # Enable Docker Content Trust
   DOCKER_CONTENT_TRUST: 1  # export DOCKER_CONTENT_TRUST=1
+
 
 jobs:
   build:
@@ -34,10 +41,10 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
+      # packages: write
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
-      id-token: write
+      # id-token: write
 
     steps:
       - name: Checkout repository

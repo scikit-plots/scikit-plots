@@ -197,6 +197,8 @@
  </a>
 </div>
 
+<!-- https://www.bestpractices.dev/en/projects/12780/passing -->
+
 <!-- [![](https://img.shields.io/badge/Copy%20Exercise-%E2%86%92-1f883d?style=for-the-badge&logo=github&labelColor=197935)](https://github.com/new?template_owner=skills&template_name=publish-docker-images&owner=%40me&name=skills-publish-docker-images&description=Exercise:+Publish+Docker+Images&visibility=public) -->
 
 <br>

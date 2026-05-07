@@ -57,7 +57,9 @@ concurrency:
 ## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 # permissions: {}  # Declare default permissions as read only.
-permissions: read-all
+permissions:  # read-all
+  contents: read
+  security-events: read
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)

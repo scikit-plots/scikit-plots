@@ -124,6 +124,7 @@ on:
 
 ## Workflow-level permissions: minimal (principle of least privilege).
 ## packages:write is granted at job level only.
+# permissions: {}  # Declare default permissions as read only.
 permissions:
   contents: read
 

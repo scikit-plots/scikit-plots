@@ -24,5 +24,5 @@ def __getattr__(name: str) -> object:
     >>> from scikitplot._build_utils import _meson_features
     >>> _meson_features = None
     """
-    if name in ["_meson_features"]:
+    if name.startswith("_meson_features"):
         return None
