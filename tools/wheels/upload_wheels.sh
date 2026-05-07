@@ -9,6 +9,15 @@
 
 set -Eeuo pipefail
 
+# Especially with: `set -u` because it prevents unbound variable errors later.
+# The : command is the POSIX no-op builtin. Modifies current shell environment.
+# export IS_PUSH="${IS_PUSH:-false}"
+# if [ -z "${IS_PUSH:-}" ]; then
+#     IS_PUSH="false"
+# fi
+: "${IS_PUSH:="false"}"  # Default to "false" if IS_PUSH is not set
+: "${IS_SCHEDULE_DISPATCH:="false"}"  # Default to "false" if IS_PUSH is not set
+
 set_travis_vars() {
     ## Set env vars
     echo "TRAVIS_EVENT_TYPE is $TRAVIS_EVENT_TYPE"
