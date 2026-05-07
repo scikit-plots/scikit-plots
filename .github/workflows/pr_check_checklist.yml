@@ -2,16 +2,22 @@
 # https://github.com/wyozi/contextual-qa-checklist-action/blob/master/.github/workflows/checklist.yml
 # https://github.com/marketplace/actions/contextual-qa-checklists
 ---
-name: "PRs 📝 Checklist"  # 🗸 🗹 ✔️ ☑️ ✅ 📝 📄 🗒️ 📃 🧾
+# 🗸 🗹 ✔️ ☑️ ✅ 📝 📄 🗒️ 📃 🧾
+name: "PRs 📝 Checklist"
 
 on:
+  workflow_dispatch:
   ## Can write comments / labels on PR from fork?
   ## Use pull_request_target trigger if you're targeting a pull request from a fork:
   ## pull_request_target triggers run with the base repo code, and has write permissions.
   ## pull_request:  Safer alternative to pull_request_target:
   ## pull_request triggers run with the PR code, but no write access to secrets or repo.
-  pull_request_target: # zizmor: ignore[dangerous-triggers]
-    # types: [opened, reopened, synchronize, edited]  # Triggers only on these events
+  #
+  # pull_request_target is only dangerous if combined with an explicit checkout
+  # of the opener's code, which it isn't here. See
+  # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+  # pull_request_target: # zizmor: ignore[dangerous-triggers]
+  #   types: [opened]  # Triggers only on these events
 
 ## simultaneity
 ## This ensures that only one deployment to "production" can happen at a time.
@@ -55,16 +61,43 @@ jobs:
     if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
-      ## 📥 Checkout the Git repository into the runner
-      - name: "⬇️ Checkout (cloned) repository with full history"
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          persist-credentials: false  # Prevents accidental credential exposure
-          # submodules: true  # Fetch Hugo themes (true OR recursive)
-          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
-          lfs: true
-          ## Gets the correct commit message for pull request
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+      # ## 📥 Checkout the Git repository into the runner
+      # - name: "⬇️ Checkout (cloned) repository with full history"
+      #   uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      #   with:
+      #     persist-credentials: false  # Prevents accidental credential exposure
+      #     # submodules: true  # Fetch Hugo themes (true OR recursive)
+      #     fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+      #     lfs: true
+      #     ## Gets the correct commit message for pull request
+      #     ## ⚠️ using untrusted PR checkout inside pull_request_target
+      #     # ref: ${{ github.event.pull_request.head.sha || github.ref }}
+      #     ref: ${{ github.event.repository.default_branch }}
+      #     # Checkout ONLY trusted repository code from the base repository default branch.
+      #     #
+      #     # SECURITY IMPORTANT:
+      #     # This workflow runs under `pull_request_target`, which executes with
+      #     # elevated repository privileges (write-capable GITHUB_TOKEN and potentially
+      #     # access to repository secrets).
+      #     #
+      #     # NEVER checkout untrusted pull request head commits here, such as:
+      #     #
+      #     #   ref: ${{ github.event.pull_request.head.sha }}
+      #     #
+      #     # because PRs from forks are attacker-controlled.
+      #     #
+      #     # Checking out fork/PR code inside `pull_request_target` can enable
+      #     # supply-chain attacks where untrusted code executes with privileged
+      #     # repository permissions.
+      #     #
+      #     # Using the repository default branch ensures only trusted maintainer-owned
+      #     # code is checked out into the runner workspace.
+      #     #
+      #     # References:
+      #     # - GitHub Actions security guidance
+      #     # - OpenSSF Scorecard "Dangerous-Workflow"
+      #     # - pull_request_target security model
+      #     ref: ${{ github.event.repository.default_branch }}
 
       - name: Checklist
         # uses: ./

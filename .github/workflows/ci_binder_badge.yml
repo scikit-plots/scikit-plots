@@ -3,10 +3,10 @@
 ---
 name: "binder-badge"
 
+
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
-  # pull_request_target:
-  #   types: [opened, reopened]
+
 
 jobs:
   badge:

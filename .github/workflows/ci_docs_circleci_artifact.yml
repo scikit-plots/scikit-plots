@@ -52,8 +52,18 @@ concurrency:
 ## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
 ## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
-permissions: read-all  # to fetch code (actions/checkout)
-#  contents: read  # to fetch code (actions/checkout)
+##
+## Principle of least privilege: grant permissions at job level only, not workflow level.
+## This way only the 'docker' job gets packages:write; any other jobs added later get
+## the minimal read-only defaults automatically.
+##
+## GITHUB_TOKEN is auto-provisioned by GitHub for every run — you never define it.
+## Its capabilities are controlled entirely by the permissions: block below.
+## packages:write is required for any GHCR push (public or private repository).
+# permissions: {}  # Declare default permissions as read only.
+permissions:
+  contents: read  # for actions/checkout to fetch code
+  # packages: write  # intentionally NOT granted at workflow level — set per-job below
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
@@ -69,8 +79,8 @@ jobs:
 
     permissions:
       contents: read
-      statuses: write
-      pull-requests: write  # needed to remove PR labels
+      statuses: read
+      # pull-requests: write  # needed to remove PR labels
       # issues: write
 
     # To enable this workflow on a fork, comment out:
