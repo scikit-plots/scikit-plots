@@ -86,36 +86,6 @@
   src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
  </a> -->
  <br>
- <!-- 🐋 RedHat QUAY https://quay.io/organization/scikit-plots 🐳 -->
- <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
- <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
- <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="quay.io" height="17"
-   src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
- </a>
- <!-- 🐋 GHCR (GitHub Container Registry) Image Version (tag) 🐳 -->
- <!-- https://img.shields.io/badge/ghcr.io-blue?logo=github -->
- <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="ghcr.io" height="17"
-   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=github&label=ghcr.io&color=olivegreen">
- </a>
- <!-- 🐋 Docker Image Version (tag) 🐳 -->
- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="🐋 Docker Image Version (tag)" height="17"
-   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue&logoColor=blue">
- </a>
- <!-- 🐋 Docker Image Size (tag) 🐳 -->
- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="🐋 Docker Image Size (tag)" height="17"
-   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Size&color=green">
- </a>
- <!-- 🐋 Docker Total Pulls 🐳 -->
- <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="🐋 Docker Total Pulls" height="17"
-   src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
- </a>
- <br>
  <!-- Code Style - Ruff -->
  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
@@ -161,6 +131,10 @@
   <img alt="OpenSSF Best Practices" height="17"
    src="https://www.bestpractices.dev/projects/12780/badge">
  </a>
+ <!-- Documentation -->
+ <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
+  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
+ </a>
  <br>
  <!-- Zenodo -->
  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
@@ -180,6 +154,30 @@
    src="https://img.shields.io/pypi/pyversions/scikit-plots.svg?style=flat-square&logo=pypi&label=PyPI%20%7C%20Python&color=blue&logoColor=1f73b7">
  </a>
  <br>
+ <!-- codespaces -->
+ <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
+ <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
+  <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
+  <img alt="Open in GitHub Codespaces" height="17px" width="auto"
+  src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
+ </a>
+ <!-- 🐋 Docker Image Version (tag) 🐳 -->
+ <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="🐋 Docker Image Version (tag)" height="17"
+   src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue&logoColor=blue">
+ </a>
+ <!-- 🐋 Docker Image Size (tag) 🐳 -->
+ <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="🐋 Docker Image Size (tag)" height="17"
+   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Size&color=green">
+ </a>
+ <!-- 🐋 Docker Total Pulls 🐳 -->
+ <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
+ <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="🐋 Docker Total Pulls" height="17"
+   src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
+ </a>
+ <br>
  <!-- jupyterlite -->
  <!-- https://img.shields.io/badge/try-lite_now-ffff00?logo=jupyter&logoColor=orange -->
  <a href="https://scikit-plots.github.io/dev/lite/lab/index.html" target="_blank" rel="noopener noreferrer">
@@ -190,16 +188,18 @@
  <a href="https://mybinder.org/v2/gh/scikit-plots/scikit-plots/main?urlpath=lab" target="_blank" rel="noopener noreferrer">
   <img alt="binder-badge" height="17" src="https://mybinder.org/badge_logo.svg">
  </a>
- <!-- codespaces -->
- <!-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest"><img alt="Open in GitHub Codespaces" height="17px" width="auto" src="https://github.com/codespaces/badge.svg"></a> -->
- <a href="https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=889608023&skip_quickstart=true&machine=basicLinux32gb&devcontainer_path=.devcontainer%2Fscikit-plots_latest-python-3.x-slim%2Fdevcontainer.json&geo=EuropeWest" target="_blank" rel="noopener noreferrer">
-  <!-- https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue?style=flat-square&logo=github&label=%20&labelColor=rgb(56,56,56)&color=rgb(40,40,40) -->
-  <img alt="Open in GitHub Codespaces" height="17px" width="auto"
-  src="https://img.shields.io/badge/Open_in_GitHub_Codespaces-blue.svg?style=flat-square&logo=github&label=%20&labelColor=383838&color=282828">
+ <!-- 🐋 RedHat QUAY https://quay.io/organization/scikit-plots 🐳 -->
+ <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
+ <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
+ <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="quay.io" height="17"
+   src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
  </a>
- <!-- Documentation -->
- <a href="https://scikit-plots.github.io/dev" target="_blank" rel="noopener noreferrer">
-  <img alt="Documentation" height="17" src="https://img.shields.io/badge/Documentation-on%20github.io-brightgreen&logo=webauthn">
+ <!-- 🐋 GHCR (GitHub Container Registry) Image Version (tag) 🐳 -->
+ <!-- https://img.shields.io/badge/ghcr.io-blue?logo=github -->
+ <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="ghcr.io" height="17"
+   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=github&label=ghcr.io&color=olivegreen">
  </a>
 </div>
 
