@@ -274,9 +274,12 @@ jobs:
           IGNORED=0
           ERRORS=0
 
+          # Avoid: `set -x` in secret-bearing workflows.
+          AUTH_HEADER="Authorization: Bearer ${DH_JWT}"
+
           while [[ -n "${NEXT_URL}" ]]; do
             RESPONSE=$(curl -fsSL \
-              -H "Authorization: Bearer ${DH_JWT}" \
+              -H "${AUTH_HEADER}" \
               "${NEXT_URL}")
 
             # Validate shape before iterating; a non-array here means an API error.
@@ -327,7 +330,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${DH_JWT}" \
+                  -H "${AUTH_HEADER}" \
                   "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${TAG_NAME}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   DELETED=$(( DELETED + 1 ))
@@ -365,7 +368,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${DH_JWT}" \
+                  -H "${AUTH_HEADER}" \
                   "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${etag}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   echo "  🗑️  DELETED (explicit)  ${etag}"
@@ -477,9 +480,12 @@ jobs:
           ERRORS=0
           PAGE=1
 
+          # Avoid: `set -x` in secret-bearing workflows.
+          AUTH_HEADER="Authorization: Bearer ${GH_TOKEN}"
+
           while true; do
             RESPONSE=$(curl -fsSL \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "${AUTH_HEADER}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "${BASE_URL}?per_page=100&page=${PAGE}")
@@ -534,7 +540,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "${AUTH_HEADER}" \
                   -H "Accept: application/vnd.github+json" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
                   "${BASE_URL}/${VERSION_ID}")
@@ -581,7 +587,7 @@ jobs:
               EP=1
               while true; do
                 PAGE_RESP=$(curl -fsSL \
-                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "${AUTH_HEADER}" \
                   -H "Accept: application/vnd.github+json" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
                   "${BASE_URL}?per_page=100&page=${EP}")
@@ -626,7 +632,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "${AUTH_HEADER}" \
                   -H "Accept: application/vnd.github+json" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
                   "${BASE_URL}/${FOUND_ID}")
@@ -709,15 +715,29 @@ jobs:
       #     ${commit_info.short_sha}
       #     ${parsed_ref.branch}-${commit_info.short_sha}
       # ─────────────────────────────────────────────────────────────────────────
+      # Robot account authentication:
+      #   Username:
+      #     <namespace>+<robot-name>
+      #   Token/password:
+      #     <generated-robot-secret>
+      # REST API usage:
+      #   Authorization: Bearer <token>
+      # Docker login usage:
+      #   docker login quay.io \
+      #     -u "<namespace>+<robot-name>" \
+      #     -p "<token>"
+      # ─────────────────────────────────────────────────────────────────────────
       - name: 🧹 Cleanup old tags — RedHat Quay
         id: cleanup_quay
         if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'redhat_quay'
         continue-on-error: true
         shell: bash
         env:
+          # QUAY_ROBOT_USERNAME: scikit-plots+quay_bot  # for docker login
           # QUAY_TOKEN: set via repository secret (see generation guide above).
-          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}  # Repository Secret
         run: |
+          # Avoid: `set -x` in secret-bearing workflows.
           set -Eeuo pipefail
 
           echo "═══════════════════════════════════════════════════════════════"
@@ -773,8 +793,11 @@ jobs:
           QUAY_REPO="${QUAY_NAMESPACE}/${IMAGE_REPO}"
           QUAY_API="https://quay.io/api/v1/repository/${QUAY_REPO}"
 
+          # Avoid: `set -x` in secret-bearing workflows.
+          AUTH_HEADER="Authorization: Bearer ${QUAY_TOKEN}"
+
           AUTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${QUAY_TOKEN}" \
+            -H "${AUTH_HEADER}" \
             "${QUAY_API}")
           if [[ "${AUTH_CHECK}" == "401" || "${AUTH_CHECK}" == "403" ]]; then
             echo "❌ Quay authentication failed (HTTP ${AUTH_CHECK})." >&2
@@ -814,7 +837,7 @@ jobs:
 
           while true; do
             RESPONSE=$(curl -fsSL \
-              -H "Authorization: Bearer ${QUAY_TOKEN}" \
+              -H "${AUTH_HEADER}" \
               "${QUAY_API}/tag/?limit=100&page=${QPAGE}&onlyActiveTags=true")
 
             # Validate response shape.
@@ -875,7 +898,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${QUAY_TOKEN}" \
+                  -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${TAG_NAME}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   DELETED=$(( DELETED + 1 ))
@@ -919,7 +942,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "Authorization: Bearer ${QUAY_TOKEN}" \
+                  -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${etag}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   echo "  🗑️  DELETED (explicit)  ${etag}"
