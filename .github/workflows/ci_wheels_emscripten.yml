@@ -22,17 +22,17 @@ name: "CI 📦 Wheels Emscripten/Pyodide"  # WebAssembly frontend (via pyodide)
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
     inputs:
-      push_wheels:
+      anaconda_staging:
         # Can be 'true' or 'false'. Default is 'false'.
         # Warning: this will overwrite existing wheels.
         description: >-
-          Push wheels to Anaconda.org if the build succeeds
+          Push wheels to Anaconda.org if the build succeeds.
         required: false
-        default: 'false'
+        default: 'scikit-plots-wheels-staging-nightly'
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - 'scikit-plots-wheels-staging'          # 'true'
+          - 'scikit-plots-wheels-staging-nightly'  # 'false'
   # pull_request:
   #   branches:
   #     - main
@@ -76,14 +76,14 @@ jobs:
       # https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#example-matching-an-array-of-strings
       # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
       # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' || matrix.buildplat[2] == 'win32' }}
-      IS_32_BIT: ${{ contains(fromJson('["x86", "win32"]'), matrix.buildplat[2]) }}
+      # IS_32_BIT: ${{ contains(fromJson('["x86", "win32"]'), matrix.buildplat[2]) }}
       # upload to staging if it's a push to a maintenance branch
       # and the last GIT COMMIT MESSAGE contains '[wheel build]'
       # Check current EVENT is a "push" event
       # Triggered for specific BRANCHES (e.g., main, maintenance/**)
       # Triggered for TAGS starting with 'v'
       IS_PUSH: >-
-        ${{ github.event.inputs.push_wheels == 'true' }}
+        ${{ github.event.inputs.anaconda_staging == 'scikit-plots-wheels-staging' }}
       # Checks if the EVENT is a "schedule" or manual "workflow_dispatch"
       IS_SCHEDULE_DISPATCH: >-
         ${{
