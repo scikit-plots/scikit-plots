@@ -17,7 +17,9 @@
 <!-- https://simpleicons.org/ -->
 <!-- https://github.com/simple-icons/simple-icons/blob/master/slugs.md -->
 <!-- https://github.com/Ileriayo/markdown-badges -->
+<!-- https://github.com/marketplace/actions/dynamic-badges -->
 <!-- https://img.shields.io/badge/scikit-plots-olivegreen.svg?style=for-the-badge&labelColor=blue&logoColor=white -->
+<!-- https://api.github.com/repos/scikit-plots/scikit-plots/actions/runs -->
 <div align="center">
  <!-- Anaconda Nightly Conda -->
  <!-- https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/badges/version.svg -->
@@ -84,33 +86,34 @@
   src="https://img.shields.io/badge/17%20Nov%202025-blue.svg?style=flat-square&logo=condaforge&label=conda-forge%20|%20Last%20Updated&color=green">
  </a> -->
  <br>
- <!-- 🐋 https://quay.io/organization/scikit-plots 🐳 -->
+ <!-- 🐋 RedHat QUAY https://quay.io/organization/scikit-plots 🐳 -->
  <!-- 🐋 https://quay.io/repository/scikit-plots/scikit-plots 🐳 -->
  <!-- https://img.shields.io/badge/quay.io-image-blue?style=flat-square&logo=redhat -->
  <a href="https://quay.io/repository/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="quay.io" height="17"
    src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquay.io%2Fapi%2Fv1%2Frepository%2Fscikit-plots%2Fscikit-plots&query=tags.latest.last_modified&style=flat-square&logo=redhat&logoColor=red&label=quay.io">
  </a>
+ <!-- 🐋 GHCR (GitHub Container Registry) Image Version (tag) 🐳 -->
+ <!-- https://img.shields.io/badge/ghcr.io-blue?logo=github -->
+ <a href="https://github.com/scikit-plots/scikit-plots/pkgs/container/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="ghcr.io" height="17"
+   src="https://img.shields.io/github/actions/workflow/status/scikit-plots/scikit-plots/ci_wheels_conda.yml?style=flat-square&logo=github&label=ghcr.io&color=olivegreen">
+ </a>
  <!-- 🐋 Docker Image Version (tag) 🐳 -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Image Version (tag)" height="17"
    src="https://img.shields.io/docker/v/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Version&color=blue&logoColor=blue">
+ </a>
+ <!-- 🐋 Docker Image Size (tag) 🐳 -->
+ <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="🐋 Docker Image Size (tag)" height="17"
+   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Size&color=green">
  </a>
  <!-- 🐋 Docker Total Pulls 🐳 -->
  <!-- https://img.shields.io/docker/pulls/scikitplot/scikit-plots -->
  <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
   <img alt="🐋 Docker Total Pulls" height="17"
    src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
- </a>
- <!-- 🐋 Docker Image Size (tag) 🐳 -->
- <!-- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="🐋 Docker Image Size (tag)" height="17"
-   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
- </a> -->
- <!-- 🐋 Docker Image Size (tag) 🐳 -->
- <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="🐋 Docker Image Size (tag)" height="17"
-   src="https://img.shields.io/docker/image-size/scikitplot/scikit-plots/latest?sort=date&style=flat-square&logo=docker&label=docker%20|%20Image%20Size&color=green">
  </a>
  <br>
  <!-- codecov -->
@@ -1136,7 +1139,9 @@ https://emojidb.org/
 
  𝄞 ✍︎ ✍🏻 ✍️ 🪶 ✎ᝰ.📓🗒 ˎˊ˗ 🖍 𓂃✍︎  𓂃🖌 ✒️ ⬇ ↓ 🖋  🖌 🗝 🕊 🛡 🎧 🆔 🪪
 
- 🐳 🦭 🐋 🐬 🐟 🧩 🐞 🦋 🪲 🕷️ 🐛 🦠 🦖 🦗 🐢 🦎 🦆 🦢 🦇 🪳 🦜 🕷 𐂂 𓃶 𓆝 𓆟 𓆞 𓆝 𓆟 𓅰 𓅬 𓅭 𓅮 𓅯 𓆝 𓆟 𓆞
+ 🐳 🦭 🐋 🐬 🐟 🧩 🐞 🦋 🪲 🕷️ 🐛 🦠 🦖 🦗 🐢 🦎 🦆 🦢 🦇 🪳 🦜 🐱
+
+ 𓀀 🕷 𐂂 𓃶 𓃡 𓃠 𓆝 𓆟 𓆞 𓆝 𓆟 𓅰 𓅬 𓅭 𓅮 𓅯 𓆝 𓆟 𓆞
 
  🔄 ➡️ ↖️ ⬇️ ✏️ ✎ ☰ 🧾 📝 ⬜ ⃣ 🔍︎ 🔎 ⌕ ⌗ ⏱ 🏍 ⟳ 𓍝 ↳ ➥ ✐ᝰ. ➜] ↯  ⃢▸
 
