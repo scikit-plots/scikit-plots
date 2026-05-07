@@ -1,0 +1,998 @@
+# .github/workflows/ci_docker_cleanup.yml
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Docker Registry Storage Management — Delete old image tags after a push.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# PURPOSE
+#   Remove stale image tags from remote registries after every successful
+#   multi-arch Docker push.  Keeps storage tidy and tags unambiguous.
+#
+# TRIGGER MODES
+#   1. Automatic (workflow_run): fires when the main build workflow completes
+#      successfully.  All parameters fall back to safe defaults.
+#   2. Manual   (workflow_dispatch): full parameter control via GitHub UI or CLI.
+#
+# REGISTRY SUPPORT
+#   docker_hub    fully implemented  — Docker Hub v2 REST API (JWT auth)
+#   github_ghcr   fully implemented  — GitHub Packages API 2022-11-28 (GITHUB_TOKEN)
+#   redhat_quay   fully implemented  — Quay.io REST API v1 (Bearer QUAY_TOKEN)
+#
+# DELETION POLICY
+#   A tag is deleted when ALL conditions hold:
+#     1. Its push/update timestamp is BEFORE the cutoff date.
+#     2. Its name does NOT match any pattern in cleanup_ignore_patterns (POSIX ERE).
+#   For GHCR, a manifest version is deleted only when EVERY one of its tags
+#   satisfies both conditions above (protects multi-tagged manifests).
+#   If a tag has no recorded push timestamp it is KEPT (safe default).
+#
+# EXPLICIT TAG DELETION (cleanup_explicit_tags)
+#   A comma-separated list of tag names to forcibly remove from every target
+#   registry, regardless of age or ignore-pattern rules.  Each name is tried
+#   independently — missing tags are skipped silently (idempotent).
+#   For GHCR, deleting by tag requires locating and deleting the manifest
+#   version, which also removes ALL other tags on that digest; this is logged
+#   clearly before any action is taken.
+#   Explicit deletions honour dry-run mode.
+#
+# CUTOFF DATE
+#   cutoff = midnight UTC of (today − cleanup_keep_days)
+#   cleanup_keep_days=0 → cutoff is today at 00:00 UTC
+#     → tags pushed today (including the ones just pushed) are always kept.
+#   cleanup_keep_days=7 → cutoff is 7 days ago at 00:00 UTC
+#     → tags from the last 7 days are kept.
+#
+# SAFETY GUARANTEES
+#   • cleanup_dry_run defaults to 'true' — no deletes unless explicitly opted in.
+#   • Ignore patterns include common blessed tags by default.
+#   • continue-on-error: true per registry step — one registry failure never
+#     blocks cleanup of the remaining registries when target='all'.
+#   • Idempotent — running twice produces the same final state.
+#   • Fork guard — skipped on forks; cannot touch upstream registry credentials.
+#   • Missing credentials exit the step cleanly (skip, no failure).
+#
+# REFERENCES
+#   Docker Hub API v2  : https://docs.docker.com/docker-hub/api/latest/
+#   GitHub Packages API: https://docs.github.com/en/rest/packages
+#   Quay.io API        : https://docs.quay.io/api/swagger/
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: 🧹 Docker Registry — Cleanup Old Tags
+
+on:
+  workflow_dispatch:
+    inputs:
+      cleanup_registry:
+        description: >-
+          Registry target.
+          'all'  attempts every registry and ignores individual failures.
+          'none' skips cleanup entirely (useful to test build without cleanup).
+        required: false
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - docker_hub
+          - github_ghcr
+          - redhat_quay
+          - none
+      cleanup_keep_days:
+        description: >-
+          Retain tags whose push date is on or after midnight UTC of
+          (today − N days).  0 = keep today's tags only.  7 = keep last week.
+          Integer string, no fractions.
+        required: false
+        type: string
+        default: '0'
+      cleanup_ignore_patterns:
+        description: >-
+          Comma-separated POSIX ERE patterns (grep -E).  Tags matching ANY
+          pattern are always preserved regardless of age.  Whitespace around
+          commas is stripped automatically.
+          Example: ^latest$,^latest-,^main$,^maintenance-,^v[0-9]
+        required: false
+        type: string
+        default: '^latest$,^latest-,^main$,^maintenance-,^v[0-9]'
+      cleanup_explicit_tags:
+        description: >-
+          Comma-separated list of exact tag names to forcibly remove from
+          every targeted registry, regardless of age or ignore patterns.
+          Tags that are already absent are skipped silently (idempotent).
+          For GHCR, deleting a tag removes the entire manifest version and
+          ALL other tags sharing that digest — this is logged before acting.
+          Honours dry-run mode.  Leave empty to skip explicit deletion.
+          Example: dependabot_pip_scipy-openblas64-0.3.33.0.0-6f491e8,old-branch-abc123
+        required: false
+        type: string
+        default: ''
+      cleanup_dry_run:
+        description: >-
+          Dry run: enumerate candidates and print actions without executing them.
+          SAFE DEFAULT is 'true'.  Set to 'false' only when ready to delete.
+        required: false
+        type: choice
+        default: 'true'
+        options:
+          - 'true'
+          - 'false'
+  # workflow_run:
+  #   # Must match the exact 'name:' field in the build workflow exactly.
+  #   workflows:
+  #     - "CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push-action)"
+  #   types: [completed]
+
+
+## Workflow-level permissions: minimal (principle of least privilege).
+## packages:write is granted at job level only.
+permissions:
+  contents: read
+
+
+jobs:
+  cleanup_registry:
+    name: 🧹 Cleanup old Docker registry tags
+
+    # ── Trigger conditions ──────────────────────────────────────────────────
+    # Fork guard: only run on the canonical repository so fork PRs cannot
+    # accidentally delete tags from the upstream registries.
+    #
+    # workflow_run  : only when the upstream build actually succeeded.
+    # workflow_dispatch: honour 'none' to allow users to skip cleanup entirely.
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots' &&
+      (
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.conclusion == 'success') ||
+        (github.event_name == 'workflow_dispatch' &&
+         inputs.cleanup_registry != 'none')
+      )
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write   # Required: delete GHCR package versions via GITHUB_TOKEN.
+      contents: read
+
+    env:
+      # ── Fixed image coordinates — must stay in sync with ci_docker_image.yml ──
+      # DockerHub org  'scikitplot'          (no hyphen — matches Docker Hub account)
+      # GHCR org        github.repository_owner (with hyphen — matches GitHub org)
+      # QUAY_NAMESPACE  github.repository_owner (same org as GHCR)
+      #   → quay.io/${QUAY_NAMESPACE}/${IMAGE_REPO}
+      #   → quay.io/scikit-plots/scikit-plots  (mirrors ghcr.io/scikit-plots/scikit-plots)
+      IMAGE_NAMESPACE:  scikitplot
+      IMAGE_REPO:       scikit-plots
+      GHCR_ORG:         ${{ github.repository_owner }}
+      QUAY_NAMESPACE:   ${{ github.repository_owner }}
+
+      # ── Cleanup parameters — workflow_dispatch values or safe defaults ────────
+      # The '|| default' fallback activates when triggered by workflow_run (no
+      # inputs available) or when the user omits an optional input field.
+      CLEANUP_TARGET:   ${{ inputs.cleanup_registry          || 'all'  }}
+      KEEP_DAYS:        ${{ inputs.cleanup_keep_days         || '0'    }}
+      IGNORE_PATTERNS:  ${{ inputs.cleanup_ignore_patterns   || '^latest$,^latest-,^main$,^maintenance-,^v[0-9]' }}
+      EXPLICIT_TAGS:    ${{ inputs.cleanup_explicit_tags     || ''     }}
+      DRY_RUN:          ${{ inputs.cleanup_dry_run           || 'true' }}
+
+    steps:
+
+      # ════════════════════════════════════════════════════════════════════════
+      # Docker Hub
+      # ════════════════════════════════════════════════════════════════════════
+      - name: 🧹 Cleanup old tags — Docker Hub
+        id: cleanup_dockerhub
+        # Step runs when target is 'all' or exactly 'docker_hub'.
+        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'docker_hub'
+        # continue-on-error: isolates this registry's failure from others in
+        # 'all' mode; the job outcome is still reported in the summary step.
+        continue-on-error: true
+        shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "🐳  Docker Hub cleanup"
+          echo "    Image      : ${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+          echo "    Keep days  : ${KEEP_DAYS}"
+          echo "    Dry run    : ${DRY_RUN}"
+          echo "    Ignore     : ${IGNORE_PATTERNS}"
+          echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "═══════════════════════════════════════════════════════════════"
+
+          # ── Guard: credentials required ─────────────────────────────────────
+          # Docker Hub requires explicit username + token (unlike GHCR which uses
+          # the auto-provisioned GITHUB_TOKEN).  Warn and exit cleanly so the job
+          # step is marked 'success' — this is expected on forks and fresh repos.
+          if [[ -z "${DOCKERHUB_USERNAME:-}" || -z "${DOCKERHUB_TOKEN:-}" ]]; then
+            echo "⚠️  DOCKERHUB_USERNAME or DOCKERHUB_TOKEN is not set." >&2
+            echo "   Docker Hub cleanup skipped (credentials absent)." >&2
+            exit 0
+          fi
+
+          # ── Validate KEEP_DAYS is a non-negative integer ────────────────────
+          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
+            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
+            exit 1
+          fi
+
+          # ── Compute cutoff epoch ─────────────────────────────────────────────
+          # Cutoff = midnight UTC of (today − KEEP_DAYS days).
+          # Tags pushed on or after this point are unconditionally kept.
+          # Using midnight avoids race conditions with tags pushed moments ago.
+          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
+          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
+          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
+
+          # ── Authenticate: exchange credentials for Docker Hub JWT ────────────
+          # Docker Hub v2 returns a short-lived Bearer JWT.
+          # We use -f so curl exits non-zero on HTTP 4xx/5xx (covered by set -e).
+          DH_JWT=$(curl -fsSL \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${DOCKERHUB_USERNAME}\",\"password\":\"${DOCKERHUB_TOKEN}\"}" \
+            "https://hub.docker.com/v2/users/login" \
+            | jq -r '.token // empty')
+
+          if [[ -z "${DH_JWT}" ]]; then
+            echo "❌ Docker Hub login returned an empty token." >&2
+            exit 1
+          fi
+          echo "✅ Authenticated with Docker Hub."
+
+          # ── Helper: does a tag name match any ignore pattern? ────────────────
+          # Parses IGNORE_PATTERNS once per call (small overhead, explicit).
+          # Uses POSIX ERE (grep -E) for broad compatibility.
+          tag_is_ignored() {
+            local tag="$1"
+            local pattern
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
+            IFS="${OLD_IFS}"
+            for pattern in "${PATTERNS[@]}"; do
+              # Trim surrounding whitespace so "^latest$, ^main$" works too.
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              [[ -z "${pattern}" ]] && continue
+              if echo "${tag}" | grep -Eq "${pattern}"; then
+                return 0  # matched — tag is ignored
+              fi
+            done
+            return 1  # no match — tag is a deletion candidate
+          }
+
+          # ── Paginate through all tags ────────────────────────────────────────
+          # Docker Hub paginates with a 'next' URL; empty/null signals last page.
+          # 'ordering=last_updated' ensures newest tags come first (faster for
+          # typical use-cases where most recent tags are kept).
+          NEXT_URL="https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags?page_size=100&ordering=last_updated"
+          DELETED=0
+          KEPT=0
+          IGNORED=0
+          ERRORS=0
+
+          while [[ -n "${NEXT_URL}" ]]; do
+            RESPONSE=$(curl -fsSL \
+              -H "Authorization: Bearer ${DH_JWT}" \
+              "${NEXT_URL}")
+
+            # Validate shape before iterating; a non-array here means an API error.
+            if ! echo "${RESPONSE}" | jq -e '(.results | type) == "array"' > /dev/null 2>&1; then
+              echo "❌ Unexpected Docker Hub API response:" >&2
+              echo "${RESPONSE}" | head -c 500 >&2
+              exit 1
+            fi
+
+            # Advance pagination cursor (empty means last page).
+            NEXT_URL=$(echo "${RESPONSE}" | jq -r '.next // empty')
+
+            while IFS= read -r TAG_JSON; do
+              TAG_NAME=$(echo "${TAG_JSON}" | jq -r '.name // empty')
+              [[ -z "${TAG_NAME}" ]] && continue
+
+              # 'tag_last_pushed' is the canonical push timestamp; fall back to
+              # 'last_updated' for older tags that predate the field's introduction.
+              TAG_PUSHED=$(echo "${TAG_JSON}" | jq -r \
+                '.tag_last_pushed // .last_updated // empty')
+
+              # ── Ignore-list check (takes priority over date) ───────────────
+              if tag_is_ignored "${TAG_NAME}"; then
+                echo "  🔒 IGNORE  ${TAG_NAME}  (matches ignore pattern)"
+                IGNORED=$(( IGNORED + 1 ))
+                continue
+              fi
+
+              # ── Unknown push date → keep (safe default) ────────────────────
+              if [[ -z "${TAG_PUSHED}" ]]; then
+                echo "  ✅ KEEP    ${TAG_NAME}  (no push timestamp — kept by default)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Date check ─────────────────────────────────────────────────
+              TAG_EPOCH=$(date -u -d "${TAG_PUSHED}" +%s 2>/dev/null || echo 0)
+              if (( TAG_EPOCH >= CUTOFF_EPOCH )); then
+                echo "  ✅ KEEP    ${TAG_NAME}  (pushed ${TAG_PUSHED})"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Deletion candidate ─────────────────────────────────────────
+              echo "  🗑️  DELETE  ${TAG_NAME}  (pushed ${TAG_PUSHED}, before cutoff ${CUTOFF_DATE})"
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                DELETED=$(( DELETED + 1 ))  # count as "would delete" — no API call
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${DH_JWT}" \
+                  "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${TAG_NAME}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  DELETED=$(( DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "404" ]]; then
+                  # Already absent — idempotent, do not count as error.
+                  echo "    ℹ️  Tag already gone (HTTP 404) — skipping."
+                else
+                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
+                  ERRORS=$(( ERRORS + 1 ))
+                fi
+                sleep 0.3  # respect Docker Hub API rate limits
+              fi
+            done < <(echo "${RESPONSE}" | jq -c '.results[]')
+          done
+
+          # ── Explicit tag deletion ────────────────────────────────────────────
+          # Attempt to delete each tag named in EXPLICIT_TAGS, regardless of age
+          # or ignore-pattern matching.  Idempotent: absent tags are skipped.
+          if [[ -n "${EXPLICIT_TAGS:-}" ]]; then
+            echo ""
+            echo "🎯  Explicit tag cleanup (Docker Hub):"
+            EXPLICIT_DELETED=0
+            EXPLICIT_SKIPPED=0
+            EXPLICIT_ERRORS=0
+            OLD_IFS="${IFS}"
+            IFS=',' read -ra ETAG_LIST <<< "${EXPLICIT_TAGS}"
+            IFS="${OLD_IFS}"
+            for etag in "${ETAG_LIST[@]}"; do
+              etag="${etag#"${etag%%[![:space:]]*}"}"
+              etag="${etag%"${etag##*[![:space:]]}"}"
+              [[ -z "${etag}" ]] && continue
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                echo "  🗑️  WOULD DELETE (explicit)  ${etag}"
+                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${DH_JWT}" \
+                  "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${etag}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  echo "  🗑️  DELETED (explicit)  ${etag}"
+                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "404" ]]; then
+                  echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found — already removed)"
+                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
+                else
+                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${HTTP_STATUS})" >&2
+                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
+                fi
+                sleep 0.3
+              fi
+            done
+            echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
+          fi
+
+          # ── Step summary ──────────────────────────────────────────────────
+          if [[ "${DRY_RUN}" == 'true' ]]; then
+            DRY_LABEL=" (dry-run)"
+          else
+            DRY_LABEL=""
+          fi
+          echo ""
+          echo "📊 Docker Hub cleanup complete:"
+          echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
+          echo "   Kept    : ${KEPT}"
+          echo "   Ignored : ${IGNORED}"
+          echo "   Errors  : ${ERRORS}"
+
+          if [[ "${ERRORS}" -gt 0 ]]; then
+            exit 1
+          fi
+
+
+      # ════════════════════════════════════════════════════════════════════════
+      # GitHub GHCR
+      # ════════════════════════════════════════════════════════════════════════
+      # - name: Log in to registry
+      #   # This is where you will update the PAT to GITHUB_TOKEN
+      #   run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: 🧹 Cleanup old tags — GitHub GHCR
+        id: cleanup_ghcr
+        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'github_ghcr'
+        continue-on-error: true
+        shell: bash
+        env:
+          # GITHUB_TOKEN is auto-provisioned; packages:write is granted at job level.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "📦  GitHub GHCR cleanup"
+          echo "    Image      : ghcr.io/${GHCR_ORG}/${IMAGE_REPO}"
+          echo "    Keep days  : ${KEEP_DAYS}"
+          echo "    Dry run    : ${DRY_RUN}"
+          echo "    Ignore     : ${IGNORE_PATTERNS}"
+          echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "═══════════════════════════════════════════════════════════════"
+
+          # ── Validate KEEP_DAYS ──────────────────────────────────────────────
+          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
+            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
+            exit 1
+          fi
+
+          # ── Compute cutoff epoch ─────────────────────────────────────────────
+          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
+          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
+          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
+
+          # ── Helper: does ANY tag in the JSON array match an ignore pattern? ──
+          # Returns 0 (true = protected) if at least one tag matches.
+          # The whole manifest version is then kept, even if other tags would be
+          # candidates.  This prevents split-brain states where one tag on a
+          # shared digest is deleted and another preserved.
+          any_tag_is_ignored() {
+            local tags_json="$1"
+            local tag pattern
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
+            IFS="${OLD_IFS}"
+            while IFS= read -r tag; do
+              [[ -z "${tag}" ]] && continue
+              for pattern in "${PATTERNS[@]}"; do
+                pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+                pattern="${pattern%"${pattern##*[![:space:]]}"}"
+                [[ -z "${pattern}" ]] && continue
+                if echo "${tag}" | grep -Eq "${pattern}"; then
+                  return 0  # at least one tag is protected — keep entire version
+                fi
+              done
+            done < <(echo "${tags_json}" | jq -r '.[] // empty')
+            return 1  # no tags are protected — version is a candidate
+          }
+
+          # ── Paginate through all package versions ────────────────────────────
+          # GitHub's Packages API lists manifest versions (not individual tags).
+          # Each version can carry multiple tags.  Deletion removes the version
+          # and all its tags atomically.
+          # Endpoint: GET /orgs/{org}/packages/container/{package}/versions
+          BASE_URL="https://api.github.com/orgs/${GHCR_ORG}/packages/container/${IMAGE_REPO}/versions"
+          DELETED=0
+          KEPT=0
+          IGNORED=0
+          ERRORS=0
+          PAGE=1
+
+          while true; do
+            RESPONSE=$(curl -fsSL \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${BASE_URL}?per_page=100&page=${PAGE}")
+
+            # Validate response shape.
+            if ! echo "${RESPONSE}" | jq -e 'type == "array"' > /dev/null 2>&1; then
+              echo "❌ Unexpected GHCR API response (page ${PAGE}):" >&2
+              echo "${RESPONSE}" | head -c 500 >&2
+              exit 1
+            fi
+
+            VERSION_COUNT=$(echo "${RESPONSE}" | jq 'length')
+            if (( VERSION_COUNT == 0 )); then
+              break  # last page reached
+            fi
+
+            while IFS= read -r VERSION_JSON; do
+              VERSION_ID=$(echo "${VERSION_JSON}"  | jq -r '.id')
+              UPDATED_AT=$(echo "${VERSION_JSON}"  | jq -r '.updated_at // empty')
+              TAGS_JSON=$(echo "${VERSION_JSON}"   | jq -c '.metadata.container.tags // []')
+              # Build a display string; untagged manifests show as <untagged>.
+              TAGS_DISPLAY=$(echo "${TAGS_JSON}" | jq -r '.[]' \
+                | paste -sd ',' - 2>/dev/null || true)
+              [[ -z "${TAGS_DISPLAY}" ]] && TAGS_DISPLAY="<untagged>"
+
+              # ── Ignore-list check (whole version) ─────────────────────────
+              if any_tag_is_ignored "${TAGS_JSON}"; then
+                echo "  🔒 IGNORE  version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (has protected tag)"
+                IGNORED=$(( IGNORED + 1 ))
+                continue
+              fi
+
+              # ── Unknown update timestamp → keep ────────────────────────────
+              if [[ -z "${UPDATED_AT}" ]]; then
+                echo "  ✅ KEEP    version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (no timestamp)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Date check ─────────────────────────────────────────────────
+              VERSION_EPOCH=$(date -u -d "${UPDATED_AT}" +%s 2>/dev/null || echo 0)
+              if (( VERSION_EPOCH >= CUTOFF_EPOCH )); then
+                echo "  ✅ KEEP    version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (updated ${UPDATED_AT})"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Deletion candidate ─────────────────────────────────────────
+              echo "  🗑️  DELETE  version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (updated ${UPDATED_AT})"
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                DELETED=$(( DELETED + 1 ))
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${BASE_URL}/${VERSION_ID}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  DELETED=$(( DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "404" ]]; then
+                  echo "    ℹ️  Version already gone (HTTP 404) — skipping."
+                else
+                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
+                  ERRORS=$(( ERRORS + 1 ))
+                fi
+                sleep 0.3
+              fi
+            done < <(echo "${RESPONSE}" | jq -c '.[]')
+
+            PAGE=$(( PAGE + 1 ))
+          done
+
+          # ── Explicit tag deletion ────────────────────────────────────────────
+          # GHCR does not expose a "delete single tag" endpoint.  Tags live on
+          # manifest versions; deleting a version removes all tags on that digest.
+          # Procedure for each explicit tag:
+          #   1. Paginate versions to find the one whose tag list contains the name.
+          #   2. Log ALL tags that will be removed along with the target.
+          #   3. Delete the version (or dry-run log only).
+          # If the tag is not found in any version it is silently skipped.
+          if [[ -n "${EXPLICIT_TAGS:-}" ]]; then
+            echo ""
+            echo "🎯  Explicit tag cleanup (GHCR):"
+            EXPLICIT_DELETED=0
+            EXPLICIT_SKIPPED=0
+            EXPLICIT_ERRORS=0
+            OLD_IFS="${IFS}"
+            IFS=',' read -ra ETAG_LIST <<< "${EXPLICIT_TAGS}"
+            IFS="${OLD_IFS}"
+            for etag in "${ETAG_LIST[@]}"; do
+              etag="${etag#"${etag%%[![:space:]]*}"}"
+              etag="${etag%"${etag##*[![:space:]]}"}"
+              [[ -z "${etag}" ]] && continue
+
+              # Locate the version that carries this tag.
+              FOUND_ID=""
+              FOUND_ALL_TAGS=""
+              EP=1
+              while true; do
+                PAGE_RESP=$(curl -fsSL \
+                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${BASE_URL}?per_page=100&page=${EP}")
+                if ! echo "${PAGE_RESP}" | jq -e 'type == "array"' > /dev/null 2>&1; then
+                  echo "    ⚠️  Unexpected GHCR response during explicit lookup (page ${EP})" >&2
+                  break
+                fi
+                PAGE_COUNT=$(echo "${PAGE_RESP}" | jq 'length')
+                (( PAGE_COUNT == 0 )) && break
+
+                MATCH_ID=$(echo "${PAGE_RESP}" | jq -r \
+                  --arg t "${etag}" \
+                  '.[] | select((.metadata.container.tags // []) | any(. == $t)) | .id' \
+                  | head -1)
+                if [[ -n "${MATCH_ID}" ]]; then
+                  FOUND_ID="${MATCH_ID}"
+                  FOUND_ALL_TAGS=$(echo "${PAGE_RESP}" | jq -r \
+                    --arg t "${etag}" \
+                    '.[] | select((.metadata.container.tags // []) | any(. == $t))
+                         | .metadata.container.tags[]' \
+                    | paste -sd ',' - 2>/dev/null || true)
+                  break
+                fi
+                EP=$(( EP + 1 ))
+              done
+
+              if [[ -z "${FOUND_ID}" ]]; then
+                echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found in GHCR)"
+                EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
+                continue
+              fi
+
+              # Warn that all co-located tags will be removed with this version.
+              echo "  🗑️  $([ "${DRY_RUN}" == 'true' ] && echo 'WOULD DELETE' || echo 'DELETE') (explicit)"
+              echo "      target-tag : ${etag}"
+              echo "      version-id : ${FOUND_ID}"
+              echo "      all-tags   : [${FOUND_ALL_TAGS}]"
+              echo "      ⚠️  All tags on this manifest version are removed together."
+
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${BASE_URL}/${FOUND_ID}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  echo "      ✅ Deleted version ${FOUND_ID}"
+                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "404" ]]; then
+                  echo "      ℹ️  Version already gone (HTTP 404) — skipping."
+                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
+                else
+                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
+                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
+                fi
+                sleep 0.3
+              fi
+            done
+            echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
+          fi
+
+          # ── Step summary ──────────────────────────────────────────────────
+          if [[ "${DRY_RUN}" == 'true' ]]; then
+            DRY_LABEL=" (dry-run)"
+          else
+            DRY_LABEL=""
+          fi
+          echo ""
+          echo "📊 GHCR cleanup complete:"
+          echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
+          echo "   Kept    : ${KEPT}"
+          echo "   Ignored : ${IGNORED}"
+          echo "   Errors  : ${ERRORS}"
+
+          if [[ "${ERRORS}" -gt 0 ]]; then
+            exit 1
+          fi
+
+
+      # ════════════════════════════════════════════════════════════════════════
+      # RedHat Quay
+      # ════════════════════════════════════════════════════════════════════════
+      #
+      # REGISTRY COORDINATES
+      #   quay.io/${QUAY_NAMESPACE}/${IMAGE_REPO}
+      #   quay.io/scikit-plots/scikit-plots  (mirrors ghcr.io/scikit-plots/scikit-plots)
+      #   QUAY_NAMESPACE = github.repository_owner = GHCR_ORG (same value)
+      #
+      # QUAY_TOKEN — How to generate
+      # ─────────────────────────────────────────────────────────────────────────
+      # Option A — Robot Account (RECOMMENDED for CI):
+      #   Robot accounts are scoped, revokable, and auditable.  Preferred for
+      #   automated pipelines over personal OAuth tokens.
+      #   1. Visit https://quay.io/organization/<QUAY_NAMESPACE>?tab=robots
+      #   2. Click "Create Robot Account".
+      #   3. Grant "Write" (includes delete) access to the target repository.
+      #   4. Copy the generated token string.
+      #   5. Add it to GitHub Secrets as:  QUAY_TOKEN = <robot-token>
+      #   Robot token format: <namespace>+<robot-name>:<secret>
+      #
+      # Option B — OAuth Application Token:
+      #   1. Visit https://quay.io/user/<username>?tab=applications  (or org page)
+      #   2. Click "Create New Application" → choose a name (e.g. "ci-cleanup").
+      #   3. Click "Generate Token" → select scope: "Administer Repositories".
+      #   4. Copy the token.
+      #   5. Add it to GitHub Secrets as:  QUAY_TOKEN = <oauth-token>
+      #
+      # Option C — Encrypted Docker CLI Password (NOT for REST API calls):
+      #   https://quay.io/user/<username>?tab=settings → "Generate Encrypted Password"
+      #   This is only for `docker login quay.io`; it cannot authenticate REST API
+      #   calls.  Use Option A or B for this workflow.
+      #
+      # QUAY.IO BUILD TRIGGERS (informational — not managed by this workflow)
+      #   The repository quay.io/scikit-plots/scikit-plots uses a GitHub build
+      #   trigger (Dockerfile: /docker/Dockerfile.python, context: /).
+      #   Tagging options active on the trigger:
+      #     latest            (if default branch)
+      #     ${parsed_ref.branch}-${commit}
+      #   Other available tag template variables (for reference):
+      #     ${commit}
+      #     ${commit_info.short_sha}
+      #     ${parsed_ref.branch}-${commit_info.short_sha}
+      # ─────────────────────────────────────────────────────────────────────────
+      - name: 🧹 Cleanup old tags — RedHat Quay
+        id: cleanup_quay
+        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'redhat_quay'
+        continue-on-error: true
+        shell: bash
+        env:
+          # QUAY_TOKEN: set via repository secret (see generation guide above).
+          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "🔴  RedHat Quay cleanup"
+          echo "    Image      : quay.io/${QUAY_NAMESPACE}/${IMAGE_REPO}"
+          echo "    Keep days  : ${KEEP_DAYS}"
+          echo "    Dry run    : ${DRY_RUN}"
+          echo "    Ignore     : ${IGNORE_PATTERNS}"
+          echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "═══════════════════════════════════════════════════════════════"
+
+          # ── Guard: credentials required ─────────────────────────────────────
+          if [[ -z "${QUAY_TOKEN:-}" ]]; then
+            echo "⚠️  QUAY_TOKEN is not set." >&2
+            echo "   Quay cleanup skipped (credentials absent)." >&2
+            echo "   See the step comment block for token generation instructions." >&2
+            exit 0
+          fi
+
+          # ── Validate KEEP_DAYS is a non-negative integer ────────────────────
+          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
+            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
+            exit 1
+          fi
+
+          # ── Compute cutoff epoch ─────────────────────────────────────────────
+          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
+          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
+          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
+
+          # ── Helper: does a tag name match any ignore pattern? ────────────────
+          tag_is_ignored() {
+            local tag="$1"
+            local pattern
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
+            IFS="${OLD_IFS}"
+            for pattern in "${PATTERNS[@]}"; do
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              [[ -z "${pattern}" ]] && continue
+              if echo "${tag}" | grep -Eq "${pattern}"; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          # ── Verify API connectivity ──────────────────────────────────────────
+          # A quick HEAD-like check; also validates the token before running the
+          # full pagination loop.
+          QUAY_REPO="${QUAY_NAMESPACE}/${IMAGE_REPO}"
+          QUAY_API="https://quay.io/api/v1/repository/${QUAY_REPO}"
+
+          AUTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${QUAY_TOKEN}" \
+            "${QUAY_API}")
+          if [[ "${AUTH_CHECK}" == "401" || "${AUTH_CHECK}" == "403" ]]; then
+            echo "❌ Quay authentication failed (HTTP ${AUTH_CHECK})." >&2
+            echo "   Verify QUAY_TOKEN is valid and has write access to ${QUAY_REPO}." >&2
+            exit 1
+          fi
+          if [[ "${AUTH_CHECK}" == "404" ]]; then
+            echo "❌ Repository quay.io/${QUAY_REPO} not found (HTTP 404)." >&2
+            echo "   Verify QUAY_NAMESPACE and IMAGE_REPO are correct." >&2
+            exit 1
+          fi
+          if ! [[ "${AUTH_CHECK}" =~ ^2 ]]; then
+            echo "❌ Quay API check returned HTTP ${AUTH_CHECK}." >&2
+            exit 1
+          fi
+          echo "✅ Authenticated with Quay.io (HTTP ${AUTH_CHECK})."
+
+          # ── Paginate through all active tags ─────────────────────────────────
+          # Quay.io tag list API:
+          #   GET /api/v1/repository/{repo}/tag/
+          #       ?limit=100&page={N}&onlyActiveTags=true
+          # Response shape:
+          #   { "tags": [ { "name": str,
+          #                 "last_modified": "Tue, 06 May 2026 00:02:00 -0000",
+          #                 "manifest_digest": "sha256:...", ... } ],
+          #     "has_additional": bool }
+          # Pagination: increment 'page' while has_additional == true.
+          #
+          # Timestamp format: RFC 2822.
+          # GNU date (Ubuntu 24.04) parses RFC 2822 natively.
+          # Example: date -d "Tue, 06 May 2026 00:02:00 -0000" +%s
+          DELETED=0
+          KEPT=0
+          IGNORED=0
+          ERRORS=0
+          QPAGE=1
+
+          while true; do
+            RESPONSE=$(curl -fsSL \
+              -H "Authorization: Bearer ${QUAY_TOKEN}" \
+              "${QUAY_API}/tag/?limit=100&page=${QPAGE}&onlyActiveTags=true")
+
+            # Validate response shape.
+            if ! echo "${RESPONSE}" | jq -e '(.tags | type) == "array"' > /dev/null 2>&1; then
+              echo "❌ Unexpected Quay API response (page ${QPAGE}):" >&2
+              echo "${RESPONSE}" | head -c 500 >&2
+              exit 1
+            fi
+
+            TAG_COUNT=$(echo "${RESPONSE}" | jq '.tags | length')
+            if (( TAG_COUNT == 0 )); then
+              break  # last page reached
+            fi
+
+            while IFS= read -r TAG_JSON; do
+              TAG_NAME=$(echo "${TAG_JSON}" | jq -r '.name // empty')
+              [[ -z "${TAG_NAME}" ]] && continue
+
+              # last_modified is an RFC 2822 string, e.g.
+              # "Tue, 06 May 2026 00:02:00 -0000"
+              TAG_MODIFIED=$(echo "${TAG_JSON}" | jq -r '.last_modified // empty')
+
+              # ── Ignore-list check (takes priority over date) ─────────────
+              if tag_is_ignored "${TAG_NAME}"; then
+                echo "  🔒 IGNORE  ${TAG_NAME}  (matches ignore pattern)"
+                IGNORED=$(( IGNORED + 1 ))
+                continue
+              fi
+
+              # ── Unknown timestamp → keep (safe default) ──────────────────
+              if [[ -z "${TAG_MODIFIED}" ]]; then
+                echo "  ✅ KEEP    ${TAG_NAME}  (no timestamp — kept by default)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Parse RFC 2822 timestamp safely ──────────────────────────
+              TAG_EPOCH=$(date -u -d "${TAG_MODIFIED}" +%s 2>/dev/null || true)
+              if [[ -z "${TAG_EPOCH}" || ! "${TAG_EPOCH}" =~ ^[0-9]+$ ]]; then
+                echo "  ✅ KEEP    ${TAG_NAME}  (unparsable timestamp: '${TAG_MODIFIED}' — kept by default)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Date check ───────────────────────────────────────────────
+              if (( TAG_EPOCH >= CUTOFF_EPOCH )); then
+                echo "  ✅ KEEP    ${TAG_NAME}  (modified ${TAG_MODIFIED})"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
+
+              # ── Deletion candidate ───────────────────────────────────────
+              # Quay delete: DELETE /api/v1/repository/{repo}/tag/{tag}
+              # Returns 204 on success; 400 or 404 if the tag is already absent.
+              echo "  🗑️  DELETE  ${TAG_NAME}  (modified ${TAG_MODIFIED}, before cutoff ${CUTOFF_DATE})"
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                DELETED=$(( DELETED + 1 ))
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${QUAY_TOKEN}" \
+                  "${QUAY_API}/tag/${TAG_NAME}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  DELETED=$(( DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "400" || "${HTTP_STATUS}" == "404" ]]; then
+                  # Tag already absent (race condition or double run) — idempotent.
+                  echo "    ℹ️  Tag already gone (HTTP ${HTTP_STATUS}) — skipping."
+                else
+                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
+                  ERRORS=$(( ERRORS + 1 ))
+                fi
+                sleep 0.3  # respect Quay API rate limits
+              fi
+            done < <(echo "${RESPONSE}" | jq -c '.tags[]')
+
+            # Quay uses has_additional (bool) to signal more pages.
+            HAS_MORE=$(echo "${RESPONSE}" | jq -r '.has_additional // false')
+            [[ "${HAS_MORE}" == 'true' ]] || break
+            QPAGE=$(( QPAGE + 1 ))
+          done
+
+          # ── Explicit tag deletion ────────────────────────────────────────────
+          # Quay exposes a per-tag DELETE endpoint, so we delete the named tag
+          # directly without needing to locate a manifest version.
+          # Idempotent: HTTP 400/404 ("Invalid tag") → skip silently.
+          if [[ -n "${EXPLICIT_TAGS:-}" ]]; then
+            echo ""
+            echo "🎯  Explicit tag cleanup (Quay):"
+            EXPLICIT_DELETED=0
+            EXPLICIT_SKIPPED=0
+            EXPLICIT_ERRORS=0
+            OLD_IFS="${IFS}"
+            IFS=',' read -ra ETAG_LIST <<< "${EXPLICIT_TAGS}"
+            IFS="${OLD_IFS}"
+            for etag in "${ETAG_LIST[@]}"; do
+              etag="${etag#"${etag%%[![:space:]]*}"}"
+              etag="${etag%"${etag##*[![:space:]]}"}"
+              [[ -z "${etag}" ]] && continue
+              if [[ "${DRY_RUN}" == 'true' ]]; then
+                echo "  🗑️  WOULD DELETE (explicit)  ${etag}"
+                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+              else
+                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X DELETE \
+                  -H "Authorization: Bearer ${QUAY_TOKEN}" \
+                  "${QUAY_API}/tag/${etag}")
+                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                  echo "  🗑️  DELETED (explicit)  ${etag}"
+                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
+                elif [[ "${HTTP_STATUS}" == "400" || "${HTTP_STATUS}" == "404" ]]; then
+                  echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found — already removed)"
+                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
+                else
+                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${HTTP_STATUS})" >&2
+                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
+                fi
+                sleep 0.3
+              fi
+            done
+            echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
+          fi
+
+          # ── Step summary ──────────────────────────────────────────────────
+          if [[ "${DRY_RUN}" == 'true' ]]; then
+            DRY_LABEL=" (dry-run)"
+          else
+            DRY_LABEL=""
+          fi
+          echo ""
+          echo "📊 Quay cleanup complete:"
+          echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
+          echo "   Kept    : ${KEPT}"
+          echo "   Ignored : ${IGNORED}"
+          echo "   Errors  : ${ERRORS}"
+
+          if [[ "${ERRORS}" -gt 0 ]]; then
+            exit 1
+          fi
+
+
+      # ════════════════════════════════════════════════════════════════════════
+      # Job summary (always runs — captures outcomes even on step failures)
+      # ════════════════════════════════════════════════════════════════════════
+      - name: 📊 Registry cleanup — job summary
+        if: always()
+        shell: bash
+        env:
+          # Map the output to an env var here
+          DOCKER_HUB: ${{ steps.cleanup_dockerhub.outcome }}
+          GHCR_HUB: ${{ steps.cleanup_ghcr.outcome }}
+          QUAY_HUB: ${{ steps.cleanup_quay.outcome }}
+        run: |
+          {
+            echo "## 🧹 Docker Registry Cleanup"
+            echo ""
+            echo "### Step outcomes"
+            echo ""
+            echo "| Registry        | Outcome |"
+            echo "|-----------------|---------|"
+            echo "| Docker Hub      | \`${QUAY_TOKEN:-}\` |"
+            echo "| GitHub GHCR     | \`${GHCR_HUB:-}\`       |"
+            echo "| RedHat Quay     | \`${QUAY_HUB:-}\`       |"
+            echo ""
+            echo "### Run parameters"
+            echo ""
+            echo "| Parameter         | Value |"
+            echo "|-------------------|-------|"
+            echo "| Target            | \`${CLEANUP_TARGET}\`       |"
+            echo "| Keep days         | \`${KEEP_DAYS}\`            |"
+            echo "| Dry run           | \`${DRY_RUN}\`              |"
+            echo "| Ignore patterns   | \`${IGNORE_PATTERNS}\`      |"
+            echo "| Explicit tags     | \`${EXPLICIT_TAGS:-<none>}\` |"
+            echo ""
+            if [[ "${DRY_RUN}" == 'true' ]]; then
+              echo "> ℹ️  **Dry-run mode** — no tags were deleted."
+              echo "> Set \`cleanup_dry_run\` to \`false\` to execute deletions."
+            else
+              echo "> ⚠️  **Live mode** — deletions were executed."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
