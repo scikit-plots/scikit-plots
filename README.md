@@ -116,22 +116,16 @@
    src="https://img.shields.io/docker/pulls/scikitplot/scikit-plots?style=flat-square&logo=docker&label=docker%20|%20Pulls&color=green">
  </a>
  <br>
- <!-- codecov -->
- <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Coverage Status" height="17"
-   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
- </a>
- <!-- OpenSSF Scorecard https://securityscorecards.dev/ -->
- <!-- https://github.com/marketplace/actions/ossf-scorecard-action#workflow-setup-required -->
- <a href="https://securityscorecards.dev/viewer/?uri=github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="Coverage Status" height="17"
-   src="https://img.shields.io/ossf-scorecard/github.com/scikit-plots/scikit-plots?style=flat-square&label=OpenSSF%20Scorecard&color=green">
- </a>
  <!-- Code Style - Ruff -->
  <!-- https://img.shields.io/badge/code%20style-ruff-000000.svg -->
  <a href="https://github.com/astral-sh/ruff" target="_blank" rel="noopener noreferrer">
   <img alt="Code Style - Ruff" height="17"
    src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fastral-sh%2Fruff%2Fmain%2Fassets%2Fbadge%2Fv2.json&style=flat-square&logo=ruff&label=Code%20Style&color=black">
+ </a>
+ <!-- PyPI - Types -->
+ <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="PyPI - Types" height="17"
+   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
  </a>
  <!-- pre-commit -->
  <a href="https://results.pre-commit.ci/latest/github/scikit-plots/scikit-plots/main" target="_blank"
@@ -151,6 +145,23 @@
    src="https://img.shields.io/pepy/dt/scikit-plots?style=flat-square&logo=pypi&label=pepy.tech%20%7C%20Total&color=green">
  </a>
  <br>
+ <!-- codecov -->
+ <a href="https://codecov.io/gh/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://codecov.io/gh/scikit-plots/scikit-plots/branch/main/graph/badge.svg">
+ </a>
+ <!-- OpenSSF Scorecard https://securityscorecards.dev/ -->
+ <!-- https://github.com/marketplace/actions/ossf-scorecard-action#workflow-setup-required -->
+ <a href="https://securityscorecards.dev/viewer/?uri=github.com/scikit-plots/scikit-plots" target="_blank" rel="noopener noreferrer">
+  <img alt="Coverage Status" height="17"
+   src="https://img.shields.io/ossf-scorecard/github.com/scikit-plots/scikit-plots?style=flat-square&label=OpenSSF%20Scorecard&color=green">
+ </a>
+ <!-- OpenSSF Best Practices https://openssf.org/projects/best-practices-badge/ -->
+ <a href="https://www.bestpractices.dev/projects/12780" target="_blank" rel="noopener noreferrer">
+  <img alt="OpenSSF Best Practices" height="17"
+   src="https://www.bestpractices.dev/projects/12780/badge">
+ </a>
+ <br>
  <!-- Zenodo -->
  <a href="https://doi.org/10.5281/zenodo.13367000" target="_blank" rel="noopener noreferrer">
   <img alt="Zenodo DOI" height="17" src="https://zenodo.org/badge/DOI/10.5281/zenodo.13367000.svg">
@@ -162,11 +173,6 @@
   rel="noopener noreferrer">
   <img alt="GitHub License" height="17"
    src="https://img.shields.io/github/license/scikit-plots/scikit-plots?style=flat-square&logo=github&label=License&labelColor=gray&color=blue">
- </a>
- <!-- PyPI - Types -->
- <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">
-  <img alt="PyPI - Types" height="17"
-   src="https://img.shields.io/pypi/types/scikit-plots?style=flat-square&logo=pypi&label=PyPI%20%7C%20Types&color=orange">
  </a>
  <!-- PyPI - pyversions -->
  <a href="https://pypi.org/project/scikit-plots" target="_blank" rel="noopener noreferrer">

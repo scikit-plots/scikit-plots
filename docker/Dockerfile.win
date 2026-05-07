@@ -1,6 +1,13 @@
 # docker/Dockerfile.win
 
+# https://docs.docker.com/build/building/best-practices/
+# https://mcr.microsoft.com/v2/windows/server/tags/list
+# https://hub.docker.com/r/microsoft/windows-servercore/
+# https://hub.docker.com/_/microsoft-windows-server
+# https://hub.docker.com/_/microsoft-windows
+
 # https://docs.docker.com/reference/dockerfile#user
+# https://docs.docker.com/reference/dockerfile#shell
 FROM microsoft/windowsservercore
 # Create Windows user in the container
 RUN net user /add patrick

@@ -39,6 +39,7 @@
 
 ## ARG: You can override it during the docker build with --build-arg.
 ## Ubuntu 20.04 (focal), https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
+# ARG BASE_IMAGE=jupyter/scipy-notebook:latest@sha256:fca4bcc9cbd49d9a15e0e4df6c666adf17776c950da9fa94a4f0a045d5c4ad33
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 ARG SCIKITPLOT_VERSION=0.4.0.post11
 ARG PY_VERSION=3.12

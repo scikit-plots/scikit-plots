@@ -1,6 +1,6 @@
 # https://github.com/CodeSolid/dev-container-cpp/blob/main/.devcontainer/Dockerfile
 
-FROM ubuntu:23.10
+FROM ubuntu:23.10@sha256:fd7fe639db24c4e005643921beea92bc449aac4f4d40d60cd9ad9ab6456aec01
 
 COPY packages.txt /tmp/
 
