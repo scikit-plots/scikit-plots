@@ -25,7 +25,7 @@
 SHELL := bash
 
 
-.PHONY: help all clean publish
+.PHONY: help all clean publish newbr
 
 ######################################################################
 ## Makefile Variable Assignment Styles
@@ -861,7 +861,7 @@ git_clone:
 	git checkout -b <branch_name> --track origin/<branch_name>
 
 git_pre_push_check:
-	@set -euo pipefail; \
+	@set -Eeuo pipefail; \
 	echo ">> Pre-push checks..."; \
 	echo ">> [1/4] Working tree clean?"; \
 	git diff --quiet && git diff --cached --quiet || { echo "!! Dirty working tree. Commit/stash first."; exit 1; }; \
@@ -877,15 +877,106 @@ git_pre_push_check:
 infobr:
 	@git status -sb; git log -1 --oneline;
 
-newbr:
-	@set -euo pipefail; \
-	git switch main && git pull; \
-	git branch -d subpackage-bug-fix 2>/dev/null || true; \
-	git branch -D subpackage-bug-fix 2>/dev/null || true; \
-	git switch -c subpackage-bug-fix; \
-	git push -u origin subpackage-bug-fix; \
-	git branch && echo ">> New branch created and pushed successfully."
+## LOCAL:
+##   main
+##   subpackage-bug-fix
+## REMOTE:
+##   origin/main
+##   origin/subpackage-bug-fix
+##
+## git checkout main
+## git pull origin main
+## 1. Try safe delete (-d) discard stderr messages
+## 2. If that fails, force delete (-D) discard stderr messages
+## 3. If that also fails, ignore error
+## -d = safe delete
+## -D = FORCE delete --delete --force
+## git push origin --delete subpackage-bug-fix == git push origin :subpackage-bug-fix
+# newbr:
+# 	@set -Eeuo pipefail; \
+# 	git switch main; \
+# 	git pull origin main; \
+# 	git branch -d subpackage-bug-fix 2>/dev/null || git branch -D subpackage-bug-fix 2>/dev/null || true; \
+# 	git switch -c subpackage-bug-fix; \
+# 	git push -u origin subpackage-bug-fix; \
+# 	git branch && echo ">> New branch created and pushed successfully."
 
+## -----------------------------------------------------------------------------
+## Create a fresh feature branch from the latest origin/main
+##
+## Behavior
+## --------
+## 1. Switch to local main branch
+## 2. Synchronize with origin/main using fast-forward only
+## 3. Delete any existing local feature branch safely
+## 4. Recreate the feature branch from updated main
+## 5. Push branch to origin and set upstream tracking
+##
+## Properties
+## ----------
+## - Idempotent
+## - Fail-fast
+## - Safe against accidental merge commits
+## - Safe against stale local state
+## - Robust shell semantics
+## - Explicit error handling
+##
+## Requirements
+## ------------
+## - Git >= 2.23 (for `git switch`)
+## - Clean working tree recommended
+##
+## Usage
+## -----
+## make newbr
+## -----------------------------------------------------------------------------
+
+BRANCH_NAME ?= subpackage-bug-fix
+BASE_BRANCH ?= main
+REMOTE_NAME ?= origin
+
+newbr:
+	@set -Eeuo pipefail; \
+	\
+	echo ">> Verifying git repository ..."; \
+	git rev-parse --is-inside-work-tree >/dev/null; \
+	\
+	echo ">> Fetching latest remote references ..."; \
+	git fetch --prune "$(REMOTE_NAME)"; \
+	\
+	echo ">> Switching to $(BASE_BRANCH) ..."; \
+	git switch "$(BASE_BRANCH)"; \
+	\
+	echo ">> Synchronizing local $(BASE_BRANCH) with $(REMOTE_NAME)/$(BASE_BRANCH) ..."; \
+	git pull --ff-only "$(REMOTE_NAME)" "$(BASE_BRANCH)"; \
+	\
+	echo ">> Verifying clean working tree ..."; \
+	test -z "$$(git status --porcelain)" || { \
+		echo "ERROR: Working tree is not clean."; \
+		echo "Commit, stash, or discard changes before running this target."; \
+		exit 1; \
+	}; \
+	\
+	if git show-ref --verify --quiet "refs/heads/$(BRANCH_NAME)"; then \
+		echo ">> Removing existing local branch: $(BRANCH_NAME)"; \
+		git branch -D "$(BRANCH_NAME)"; \
+	fi; \
+	\
+	echo ">> Creating fresh branch: $(BRANCH_NAME)"; \
+	git switch -c "$(BRANCH_NAME)"; \
+	\
+	if git ls-remote --exit-code --heads "$(REMOTE_NAME)" "$(BRANCH_NAME)" >/dev/null 2>&1; then \
+		echo ">> Remote branch exists. Replacing remote branch safely ..."; \
+		git push --force-with-lease --set-upstream "$(REMOTE_NAME)" "$(BRANCH_NAME)"; \
+	else \
+		echo ">> Publishing new remote branch ..."; \
+		git push --set-upstream "$(REMOTE_NAME)" "$(BRANCH_NAME)"; \
+	fi; \
+	\
+	echo ">> Current branches:"; \
+	git branch --all; \
+	\
+	echo ">> Branch '$(BRANCH_NAME)' created and synchronized successfully."
 
 REMOTE ?= origin
 BASE   ?= main
