@@ -16,7 +16,7 @@
 # REGISTRY SUPPORT
 #   docker_hub    fully implemented  — Docker Hub v2 REST API (JWT auth)
 #   github_ghcr   fully implemented  — GitHub Packages API 2022-11-28 (GITHUB_TOKEN)
-#   redhat_quay   fully implemented  — Quay.io REST API v1 (Bearer QUAY_TOKEN)
+#   redhat_quay   fully implemented  — Quay.io REST API v1 (Bearer QUAY_ROBOT_TOKEN)
 #
 # DELETION POLICY
 #   A tag is deleted when ALL conditions hold:
@@ -187,6 +187,7 @@ jobs:
         # continue-on-error: isolates this registry's failure from others in
         # 'all' mode; the job outcome is still reported in the summary step.
         continue-on-error: true
+        # shell: bash -el {0}
         shell: bash
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -681,7 +682,7 @@ jobs:
       #   quay.io/scikit-plots/scikit-plots  (mirrors ghcr.io/scikit-plots/scikit-plots)
       #   QUAY_NAMESPACE = github.repository_owner = GHCR_ORG (same value)
       #
-      # QUAY_TOKEN — How to generate
+      # QUAY_ROBOT_TOKEN — How to generate
       # ─────────────────────────────────────────────────────────────────────────
       # Option A — Robot Account (RECOMMENDED for CI):
       #   Robot accounts are scoped, revokable, and auditable.  Preferred for
@@ -690,7 +691,7 @@ jobs:
       #   2. Click "Create Robot Account".
       #   3. Grant "Write" (includes delete) access to the target repository.
       #   4. Copy the generated token string.
-      #   5. Add it to GitHub Secrets as:  QUAY_TOKEN = <robot-token>
+      #   5. Add it to GitHub Secrets as:  QUAY_ROBOT_TOKEN = <robot-token>
       #   Robot token format: <namespace>+<robot-name>:<secret>
       #
       # Option B — OAuth Application Token:
@@ -698,7 +699,7 @@ jobs:
       #   2. Click "Create New Application" → choose a name (e.g. "ci-cleanup").
       #   3. Click "Generate Token" → select scope: "Administer Repositories".
       #   4. Copy the token.
-      #   5. Add it to GitHub Secrets as:  QUAY_TOKEN = <oauth-token>
+      #   5. Add it to GitHub Secrets as:  QUAY_ROBOT_TOKEN = <oauth-token>
       #
       # Option C — Encrypted Docker CLI Password (NOT for REST API calls):
       #   https://quay.io/user/<username>?tab=settings → "Generate Encrypted Password"
@@ -734,9 +735,8 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          # QUAY_ROBOT_USERNAME: scikit-plots+quay_bot  # for docker login
-          # QUAY_TOKEN: set via repository secret (see generation guide above).
-          QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}  # Repository Secret
+          QUAY_ROBOT_USERNAME: scikit-plots+quay_bot  # for docker login
+          QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}  # Repository Secret
         run: |
           # Avoid: `set -x` in secret-bearing workflows.
           set -Eeuo pipefail
@@ -751,8 +751,12 @@ jobs:
           echo "═══════════════════════════════════════════════════════════════"
 
           # ── Guard: credentials required ─────────────────────────────────────
-          if [[ -z "${QUAY_TOKEN:-}" ]]; then
-            echo "⚠️  QUAY_TOKEN is not set." >&2
+          # Quay robot accounts authenticate via HTTP Basic auth:
+          #   username = QUAY_ROBOT_USERNAME  (e.g. scikit-plots+quay_bot)
+          #   password = QUAY_ROBOT_TOKEN     (the robot secret)
+          # Both must be present; either absent means we cannot authenticate.
+          if [[ -z "${QUAY_ROBOT_USERNAME:-}" || -z "${QUAY_ROBOT_TOKEN:-}" ]]; then
+            echo "⚠️  QUAY_ROBOT_USERNAME or QUAY_ROBOT_TOKEN is not set." >&2
             echo "   Quay cleanup skipped (credentials absent)." >&2
             echo "   See the step comment block for token generation instructions." >&2
             exit 0
@@ -788,21 +792,27 @@ jobs:
             return 1
           }
 
+          # ── Build auth args for all Quay API calls ───────────────────────────
+          # Quay robot accounts use HTTP Basic auth (not OAuth Bearer).
+          # curl -u 'user:pass' handles Base64 encoding internally and never
+          # exposes the credential as a shell-visible header string.
+          # Format: <namespace>+<robot-name>:<robot-secret>
+          # Example: scikit-plots+quay_bot:<token>
+          QUAY_CURL_AUTH=(-u "${QUAY_ROBOT_USERNAME}:${QUAY_ROBOT_TOKEN}")
+
           # ── Verify API connectivity ──────────────────────────────────────────
-          # A quick HEAD-like check; also validates the token before running the
-          # full pagination loop.
+          # A quick GET validates credentials and repo existence before the full
+          # pagination loop.  Catches typos in QUAY_NAMESPACE / IMAGE_REPO early.
           QUAY_REPO="${QUAY_NAMESPACE}/${IMAGE_REPO}"
           QUAY_API="https://quay.io/api/v1/repository/${QUAY_REPO}"
 
-          # Avoid: `set -x` in secret-bearing workflows.
-          AUTH_HEADER="Authorization: Bearer ${QUAY_TOKEN}"
-
           AUTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "${AUTH_HEADER}" \
+            "${QUAY_CURL_AUTH[@]}" \
             "${QUAY_API}")
           if [[ "${AUTH_CHECK}" == "401" || "${AUTH_CHECK}" == "403" ]]; then
             echo "❌ Quay authentication failed (HTTP ${AUTH_CHECK})." >&2
-            echo "   Verify QUAY_TOKEN is valid and has write access to ${QUAY_REPO}." >&2
+            echo "   Verify QUAY_ROBOT_USERNAME and QUAY_ROBOT_TOKEN are correct" >&2
+            echo "   and the robot account has write access to ${QUAY_REPO}." >&2
             exit 1
           fi
           if [[ "${AUTH_CHECK}" == "404" ]]; then
@@ -838,7 +848,7 @@ jobs:
 
           while true; do
             RESPONSE=$(curl -fsSL \
-              -H "${AUTH_HEADER}" \
+              "${QUAY_CURL_AUTH[@]}" \
               "${QUAY_API}/tag/?limit=100&page=${QPAGE}&onlyActiveTags=true")
 
             # Validate response shape.
@@ -899,7 +909,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "${AUTH_HEADER}" \
+                  "${QUAY_CURL_AUTH[@]}" \
                   "${QUAY_API}/tag/${TAG_NAME}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   DELETED=$(( DELETED + 1 ))
@@ -943,7 +953,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  -H "${AUTH_HEADER}" \
+                  "${QUAY_CURL_AUTH[@]}" \
                   "${QUAY_API}/tag/${etag}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   echo "  🗑️  DELETED (explicit)  ${etag}"
@@ -983,6 +993,7 @@ jobs:
       # ════════════════════════════════════════════════════════════════════════
       # Job summary (always runs — captures outcomes even on step failures)
       # ════════════════════════════════════════════════════════════════════════
+      # https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#adding-a-job-summary
       - name: 📊 Registry cleanup — job summary
         if: always()
         shell: bash
