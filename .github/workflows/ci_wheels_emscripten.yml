@@ -16,6 +16,9 @@
 # |     |     Pyodide     |       | <-- .wasm file: CPython + Emscripten + numpy + ...
 # |     +-----------------+       |     Python compiled via Emscripten to WASM.
 # +-------------------------------+
+#
+# https://anaconda.org/channels/pyodide
+# https://github.com/pyodide/pyodide-recipes
 ---
 name: "CI 📦 Wheels Emscripten/Pyodide"  # WebAssembly frontend (via pyodide)
 
