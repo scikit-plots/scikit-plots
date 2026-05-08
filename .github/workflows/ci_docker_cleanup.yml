@@ -187,7 +187,6 @@ jobs:
         # continue-on-error: isolates this registry's failure from others in
         # 'all' mode; the job outcome is still reported in the summary step.
         continue-on-error: true
-        # shell: bash -el {0}
         shell: bash
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -751,12 +750,8 @@ jobs:
           echo "═══════════════════════════════════════════════════════════════"
 
           # ── Guard: credentials required ─────────────────────────────────────
-          # Quay robot accounts authenticate via HTTP Basic auth:
-          #   username = QUAY_ROBOT_USERNAME  (e.g. scikit-plots+quay_bot)
-          #   password = QUAY_ROBOT_TOKEN     (the robot secret)
-          # Both must be present; either absent means we cannot authenticate.
-          if [[ -z "${QUAY_ROBOT_USERNAME:-}" || -z "${QUAY_ROBOT_TOKEN:-}" ]]; then
-            echo "⚠️  QUAY_ROBOT_USERNAME or QUAY_ROBOT_TOKEN is not set." >&2
+          if [[ -z "${QUAY_ROBOT_TOKEN:-}" ]]; then
+            echo "⚠️  QUAY_ROBOT_TOKEN is not set." >&2
             echo "   Quay cleanup skipped (credentials absent)." >&2
             echo "   See the step comment block for token generation instructions." >&2
             exit 0
@@ -792,39 +787,64 @@ jobs:
             return 1
           }
 
-          # ── Build auth args for all Quay API calls ───────────────────────────
-          # Quay robot accounts use HTTP Basic auth (not OAuth Bearer).
-          # curl -u 'user:pass' handles Base64 encoding internally and never
-          # exposes the credential as a shell-visible header string.
-          # Format: <namespace>+<robot-name>:<robot-secret>
-          # Example: scikit-plots+quay_bot:<token>
-          QUAY_CURL_AUTH=(-u "${QUAY_ROBOT_USERNAME}:${QUAY_ROBOT_TOKEN}")
+          # ── Build auth header ────────────────────────────────────────────────
+          # Quay robot tokens are Bearer tokens for the REST API.
+          # QUAY_ROBOT_TOKEN must be ONLY the secret string — the alphanumeric
+          # value shown under "Token" in the Quay robot account settings.
+          # Do NOT include the robot username or a colon prefix:
+          #   ✅ Correct: QUAY_ROBOT_TOKEN = "abc123xyz..."
+          #   ❌ Wrong  : QUAY_ROBOT_TOKEN = "scikit-plots+quay_bot:abc123xyz..."
+          AUTH_HEADER="Authorization: Bearer ${QUAY_ROBOT_TOKEN}"
 
-          # ── Verify API connectivity ──────────────────────────────────────────
-          # A quick GET validates credentials and repo existence before the full
-          # pagination loop.  Catches typos in QUAY_NAMESPACE / IMAGE_REPO early.
           QUAY_REPO="${QUAY_NAMESPACE}/${IMAGE_REPO}"
           QUAY_API="https://quay.io/api/v1/repository/${QUAY_REPO}"
 
-          AUTH_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${QUAY_CURL_AUTH[@]}" \
-            "${QUAY_API}")
-          if [[ "${AUTH_CHECK}" == "401" || "${AUTH_CHECK}" == "403" ]]; then
-            echo "❌ Quay authentication failed (HTTP ${AUTH_CHECK})." >&2
-            echo "   Verify QUAY_ROBOT_USERNAME and QUAY_ROBOT_TOKEN are correct" >&2
-            echo "   and the robot account has write access to ${QUAY_REPO}." >&2
+          # ── Verify token validity ────────────────────────────────────────────
+          # IMPORTANT: Do NOT use ${QUAY_API} for the auth check.
+          # The repository is public — a GET on it returns HTTP 200 with ANY
+          # credentials (or none), making every token appear valid and masking
+          # auth failures silently before the deletion loop starts.
+          #
+          # Instead, check /api/v1/user/ which requires valid authentication:
+          #   200 → token valid, username logged for confirmation
+          #   401 → token invalid, expired, or in wrong format (username:secret)
+          #   403 → token recognised but has no API access
+          AUTH_CHECK_RESP=$(curl -s -w "\n%{http_code}" \
+            -H "${AUTH_HEADER}" \
+            "https://quay.io/api/v1/user/")
+          AUTH_CHECK=$(printf '%s' "${AUTH_CHECK_RESP}" | tail -1)
+          AUTH_CHECK_BODY=$(printf '%s' "${AUTH_CHECK_RESP}" | head -n -1)
+
+          if [[ "${AUTH_CHECK}" == "401" ]]; then
+            echo "❌ Quay token is invalid or in the wrong format (HTTP 401)." >&2
+            echo "   QUAY_ROBOT_TOKEN must be only the secret string, not 'user:secret'." >&2
             exit 1
           fi
-          if [[ "${AUTH_CHECK}" == "404" ]]; then
+          if [[ "${AUTH_CHECK}" == "403" ]]; then
+            echo "❌ Quay token recognised but access denied (HTTP 403)." >&2
+            echo "   Ensure the robot account has Admin permission on ${QUAY_REPO}." >&2
+            exit 1
+          fi
+          if ! [[ "${AUTH_CHECK}" =~ ^2 ]]; then
+            echo "❌ Quay /api/v1/user/ returned unexpected HTTP ${AUTH_CHECK}." >&2
+            exit 1
+          fi
+          ROBOT_NAME=$(printf '%s' "${AUTH_CHECK_BODY}" | jq -r '.username // "unknown"' 2>/dev/null || true)
+          echo "✅ Authenticated with Quay.io as: ${ROBOT_NAME} (HTTP ${AUTH_CHECK})."
+
+          # ── Verify repository exists ─────────────────────────────────────────
+          REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "${AUTH_HEADER}" \
+            "${QUAY_API}")
+          if [[ "${REPO_CHECK}" == "404" ]]; then
             echo "❌ Repository quay.io/${QUAY_REPO} not found (HTTP 404)." >&2
             echo "   Verify QUAY_NAMESPACE and IMAGE_REPO are correct." >&2
             exit 1
           fi
-          if ! [[ "${AUTH_CHECK}" =~ ^2 ]]; then
-            echo "❌ Quay API check returned HTTP ${AUTH_CHECK}." >&2
+          if ! [[ "${REPO_CHECK}" =~ ^2 ]]; then
+            echo "❌ Repository check returned HTTP ${REPO_CHECK}." >&2
             exit 1
           fi
-          echo "✅ Authenticated with Quay.io (HTTP ${AUTH_CHECK})."
 
           # ── Paginate through all active tags ─────────────────────────────────
           # Quay.io tag list API:
@@ -848,7 +868,7 @@ jobs:
 
           while true; do
             RESPONSE=$(curl -fsSL \
-              "${QUAY_CURL_AUTH[@]}" \
+              -H "${AUTH_HEADER}" \
               "${QUAY_API}/tag/?limit=100&page=${QPAGE}&onlyActiveTags=true")
 
             # Validate response shape.
@@ -907,17 +927,19 @@ jobs:
               if [[ "${DRY_RUN}" == 'true' ]]; then
                 DELETED=$(( DELETED + 1 ))
               else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                DEL_RESP=$(curl -s -w "\n%{http_code}" \
                   -X DELETE \
-                  "${QUAY_CURL_AUTH[@]}" \
+                  -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${TAG_NAME}")
+                HTTP_STATUS=$(printf '%s' "${DEL_RESP}" | tail -1)
+                DEL_BODY=$(printf '%s' "${DEL_RESP}" | head -n -1)
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   DELETED=$(( DELETED + 1 ))
                 elif [[ "${HTTP_STATUS}" == "400" || "${HTTP_STATUS}" == "404" ]]; then
                   # Tag already absent (race condition or double run) — idempotent.
                   echo "    ℹ️  Tag already gone (HTTP ${HTTP_STATUS}) — skipping."
                 else
-                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
+                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS}): ${DEL_BODY}" >&2
                   ERRORS=$(( ERRORS + 1 ))
                 fi
                 sleep 0.3  # respect Quay API rate limits
@@ -953,7 +975,7 @@ jobs:
               else
                 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
-                  "${QUAY_CURL_AUTH[@]}" \
+                  -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${etag}")
                 if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
                   echo "  🗑️  DELETED (explicit)  ${etag}"
