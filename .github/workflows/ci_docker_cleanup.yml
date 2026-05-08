@@ -695,10 +695,33 @@ jobs:
       #
       # Option B — OAuth Application Token:
       #   1. Visit https://quay.io/user/<username>?tab=applications  (or org page)
-      #   2. Click "Create New Application" → choose a name (e.g. "ci-cleanup").
+      #   2. Click "Create New Application" → choose a name (e.g. "scikitplot-ci").
       #   3. Click "Generate Token" → select scope: "Administer Repositories".
       #   4. Copy the token.
       #   5. Add it to GitHub Secrets as:  QUAY_ROBOT_TOKEN = <oauth-token>
+      #
+      # TOKEN TYPE: OAuth Application Token (NOT a robot account token)
+      #   Robot tokens use HTTP Basic Auth (user:secret) and cannot be used
+      #   as Bearer tokens.
+      #   Org OAuth Application tokens use Bearer auth and are the correct type.
+      #
+      # WHY NOT /api/v1/user/ FOR AUTH CHECK:
+      #   Quay has three token types:
+      #     Personal user tokens  → Bearer → /api/v1/user/ 200  ✅
+      #     Robot account tokens  → Basic Auth only
+      #     Org OAuth App tokens  → Bearer → /api/v1/user/ 401  ← fails for org tokens
+      #   Organisation OAuth Application tokens are org-scoped, not user-scoped.
+      #   The correct auth check is the repository's "can_admin" field, which is
+      #   only true when the token has "Administer Repositories" scope.
+      #
+      # HOW TO GENERATE:
+      #   1. https://quay.io/organization/scikit-plots?tab=OAuthApplications
+      #   2. Click "scikitplot-ci" → "Generate Token"
+      #   3. Tick ☑ "Administer Repositories" → "Generate Access Token" → Authorize
+      #   4. Copy the token (shown once only)
+      #   5. GitHub → Settings → Secrets → Actions:
+      #      ADD:    QUAY_OAUTH_TOKEN  ← paste token here
+      #      DELETE: QUAY_ROBOT_TOKEN  ← remove the old, wrong-type secret
       #
       # Option C — Encrypted Docker CLI Password (NOT for REST API calls):
       #   https://quay.io/user/<username>?tab=settings → "Generate Encrypted Password"
@@ -715,6 +738,13 @@ jobs:
       #     ${commit}
       #     ${commit_info.short_sha}
       #     ${parsed_ref.branch}-${commit_info.short_sha}
+      #
+      # IDEMPOTENCY GUARANTEES:
+      #   - HTTP 400/404 on tag DELETE → "already gone", not an error
+      #   - DRY_RUN=true → zero destructive API calls
+      #   - Tags matching IGNORE_PATTERNS → unconditionally kept
+      #   - Tags with missing/unparsable timestamps → kept (safe default)
+      #   - Missing credentials → exit 0 (soft-skip, job does not fail)
       # ─────────────────────────────────────────────────────────────────────────
       # Robot account authentication:
       #   Username:
@@ -728,14 +758,21 @@ jobs:
       #     -u "<namespace>+<robot-name>" \
       #     -p "<token>"
       # ─────────────────────────────────────────────────────────────────────────
-      - name: 🧹 Cleanup old tags — RedHat Quay
+      # export QUAY_OAUTH_TOKEN="<your-new-oauth-token>"
+      # bash quay_token_test.sh
+      - name: 🧹 Cleanup old tags — 🔴 RedHat Quay
         id: cleanup_quay
         if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'redhat_quay'
         continue-on-error: true
+        # shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
         shell: bash
         env:
           QUAY_ROBOT_USERNAME: scikit-plots+quay_bot  # for docker login
           QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}  # Repository Secret
+          # ── Secret: OAuth Application Token (not a robot account token) ────────
+          # OAuth Application Token — generated via the Applications tab in the
+          # Quay organisation settings, NOT a robot account token.
+          QUAY_OAUTH_TOKEN: ${{ secrets.QUAY_OAUTH_TOKEN }}
         run: |
           # Avoid: `set -x` in secret-bearing workflows.
           set -Eeuo pipefail
@@ -749,27 +786,47 @@ jobs:
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
           echo "═══════════════════════════════════════════════════════════════"
 
-          # ── Guard: credentials required ─────────────────────────────────────
-          if [[ -z "${QUAY_ROBOT_TOKEN:-}" ]]; then
-            echo "⚠️  QUAY_ROBOT_TOKEN is not set." >&2
+          # ── Guard: credentials required ──────────────────────────────────────
+          # Soft-skip with exit 0 so the job is not marked failed when the secret
+          # is absent (e.g. on forks or before the secret has been configured).
+          if [[ -z "${QUAY_OAUTH_TOKEN:-}" ]]; then
+            echo "⚠️  QUAY_OAUTH_TOKEN is not set." >&2
             echo "   Quay cleanup skipped (credentials absent)." >&2
-            echo "   See the step comment block for token generation instructions." >&2
+            echo "   To enable: generate an OAuth Application Token at" >&2
+            echo "   https://quay.io/organization/${QUAY_NAMESPACE}?tab=OAuthApplications" >&2
+            echo "   then add it as GitHub secret QUAY_OAUTH_TOKEN." >&2
             exit 0
           fi
 
-          # ── Validate KEEP_DAYS is a non-negative integer ────────────────────
+          # ── Guard: reject robot-account token format ──────────────────────────
+          # Robot tokens are "username:secret" pairs used with Basic Auth.
+          # A colon in QUAY_OAUTH_TOKEN is an unambiguous wrong-type indicator.
+          if [[ "${QUAY_OAUTH_TOKEN}" == *:* ]]; then
+            echo "❌ QUAY_OAUTH_TOKEN contains a colon — this is a robot account" >&2
+            echo "   'username:secret' pair, not an OAuth Application Token." >&2
+            echo "   Generate an OAuth token at:" >&2
+            echo "   https://quay.io/organization/${QUAY_NAMESPACE}?tab=OAuthApplications" >&2
+            exit 1
+          fi
+
+          # ── Validate KEEP_DAYS is a non-negative integer ─────────────────────
           if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
-            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
+            echo "❌ KEEP_DAYS must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
             exit 1
           fi
 
           # ── Compute cutoff epoch ─────────────────────────────────────────────
+          # Cutoff = midnight UTC of (today − KEEP_DAYS days).
+          # Using midnight avoids race conditions with tags pushed moments ago.
           TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
           CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
           CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
           echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
 
-          # ── Helper: does a tag name match any ignore pattern? ────────────────
+          # ── Helper: does a tag name match any ignore pattern? ─────────────────
+          # Parses IGNORE_PATTERNS (comma-separated ERE patterns).
+          # Trims surrounding whitespace from each pattern.
+          # Returns 0 (true) if the tag matches any pattern.
           tag_is_ignored() {
             local tag="$1"
             local pattern
@@ -777,89 +834,86 @@ jobs:
             IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
             IFS="${OLD_IFS}"
             for pattern in "${PATTERNS[@]}"; do
-              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
-              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"   # trim leading whitespace
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"   # trim trailing whitespace
               [[ -z "${pattern}" ]] && continue
               if echo "${tag}" | grep -Eq "${pattern}"; then
-                return 0
+                return 0  # matched — tag is protected
               fi
             done
-            return 1
+            return 1  # no match — tag is a deletion candidate
           }
 
-          # ── Build auth header ────────────────────────────────────────────────
-          # Quay robot tokens are Bearer tokens for the REST API.
-          # QUAY_ROBOT_TOKEN must be ONLY the secret string — the alphanumeric
-          # value shown under "Token" in the Quay robot account settings.
-          # Do NOT include the robot username or a colon prefix:
-          #   ✅ Correct: QUAY_ROBOT_TOKEN = "abc123xyz..."
-          #   ❌ Wrong  : QUAY_ROBOT_TOKEN = "scikit-plots+quay_bot:abc123xyz..."
-          AUTH_HEADER="Authorization: Bearer ${QUAY_ROBOT_TOKEN}"
+          # ── Build auth header ─────────────────────────────────────────────────
+          # OAuth Application tokens use Bearer authentication.
+          # NEVER use `set -x` — it would write the token to the runner log.
+          AUTH_HEADER="Authorization: Bearer ${QUAY_OAUTH_TOKEN}"
 
           QUAY_REPO="${QUAY_NAMESPACE}/${IMAGE_REPO}"
           QUAY_API="https://quay.io/api/v1/repository/${QUAY_REPO}"
 
-          # ── Verify token validity ────────────────────────────────────────────
-          # IMPORTANT: Do NOT use ${QUAY_API} for the auth check.
-          # The repository is public — a GET on it returns HTTP 200 with ANY
-          # credentials (or none), making every token appear valid and masking
-          # auth failures silently before the deletion loop starts.
+          # ── Verify token has admin access to the repository ───────────────────
+          # GET /api/v1/repository/{org}/{repo} response body:
           #
-          # Instead, check /api/v1/user/ which requires valid authentication:
-          #   200 → token valid, username logged for confirmation
-          #   401 → token invalid, expired, or in wrong format (username:secret)
-          #   403 → token recognised but has no API access
-          AUTH_CHECK_RESP=$(curl -s -w "\n%{http_code}" \
-            -H "${AUTH_HEADER}" \
-            "https://quay.io/api/v1/user/")
-          AUTH_CHECK=$(printf '%s' "${AUTH_CHECK_RESP}" | tail -1)
-          AUTH_CHECK_BODY=$(printf '%s' "${AUTH_CHECK_RESP}" | head -n -1)
-
-          if [[ "${AUTH_CHECK}" == "401" ]]; then
-            echo "❌ Quay token is invalid or in the wrong format (HTTP 401)." >&2
-            echo "   QUAY_ROBOT_TOKEN must be only the secret string, not 'user:secret'." >&2
-            exit 1
-          fi
-          if [[ "${AUTH_CHECK}" == "403" ]]; then
-            echo "❌ Quay token recognised but access denied (HTTP 403)." >&2
-            echo "   Ensure the robot account has Admin permission on ${QUAY_REPO}." >&2
-            exit 1
-          fi
-          if ! [[ "${AUTH_CHECK}" =~ ^2 ]]; then
-            echo "❌ Quay /api/v1/user/ returned unexpected HTTP ${AUTH_CHECK}." >&2
-            exit 1
-          fi
-          ROBOT_NAME=$(printf '%s' "${AUTH_CHECK_BODY}" | jq -r '.username // "unknown"' 2>/dev/null || true)
-          echo "✅ Authenticated with Quay.io as: ${ROBOT_NAME} (HTTP ${AUTH_CHECK})."
-
-          # ── Verify repository exists ─────────────────────────────────────────
-          REPO_CHECK=$(curl -s -o /dev/null -w "%{http_code}" \
+          #   Unauthenticated (public repo):
+          #     { "is_public": true }          — "can_admin" absent → default false
+          #   Authenticated, wrong scope:
+          #     { "can_admin": false, ... }    — present but false → cannot delete tags
+          #   Authenticated, "Administer Repositories" scope:
+          #     { "can_admin": true, ... }     — required for tag deletion
+          #   Repository not found:
+          #     HTTP 404
+          #
+          # This replaces the previous /api/v1/user/ check, which incorrectly
+          # returned 401 for Organisation OAuth Application tokens.  /api/v1/user/
+          # is scoped to personal accounts; org-scoped tokens are rejected there.
+          REPO_RESP=$(curl -s -w "\n%{http_code}" \
             -H "${AUTH_HEADER}" \
             "${QUAY_API}")
-          if [[ "${REPO_CHECK}" == "404" ]]; then
-            echo "❌ Repository quay.io/${QUAY_REPO} not found (HTTP 404)." >&2
-            echo "   Verify QUAY_NAMESPACE and IMAGE_REPO are correct." >&2
-            exit 1
-          fi
-          if ! [[ "${REPO_CHECK}" =~ ^2 ]]; then
-            echo "❌ Repository check returned HTTP ${REPO_CHECK}." >&2
-            exit 1
-          fi
+          REPO_HTTP=$(printf '%s' "${REPO_RESP}" | tail -1)
+          REPO_BODY=$(printf '%s' "${REPO_RESP}" | head -n -1)
 
-          # ── Paginate through all active tags ─────────────────────────────────
+          case "${REPO_HTTP}" in
+            2*)
+              CAN_ADMIN=$(printf '%s' "${REPO_BODY}" | \
+                jq -r '.can_admin // false' 2>/dev/null || echo "false")
+              if [[ "${CAN_ADMIN}" == "true" ]]; then
+                echo "✅ Token has admin access to quay.io/${QUAY_REPO}."
+              else
+                echo "❌ Token lacks 'Administer Repositories' scope (can_admin=${CAN_ADMIN})." >&2
+                echo "   Re-generate the token and tick ☑ 'Administer Repositories'." >&2
+                echo "   https://quay.io/organization/${QUAY_NAMESPACE}?tab=OAuthApplications" >&2
+                exit 1
+              fi
+              ;;
+            401)
+              echo "❌ Quay OAuth token rejected (HTTP 401)." >&2
+              echo "   The token may be expired, revoked, or not fully authorised." >&2
+              echo "   Re-generate at: https://quay.io/organization/${QUAY_NAMESPACE}?tab=OAuthApplications" >&2
+              exit 1
+              ;;
+            404)
+              echo "❌ Repository quay.io/${QUAY_REPO} not found (HTTP 404)." >&2
+              echo "   Verify QUAY_NAMESPACE='${QUAY_NAMESPACE}' and IMAGE_REPO='${IMAGE_REPO}'." >&2
+              exit 1
+              ;;
+            *)
+              echo "❌ Repository check returned unexpected HTTP ${REPO_HTTP}." >&2
+              echo "   Body: $(printf '%s' "${REPO_BODY}" | head -c 300)" >&2
+              exit 1
+              ;;
+          esac
+
+          # ── Paginate through all active tags ──────────────────────────────────
           # Quay.io tag list API:
           #   GET /api/v1/repository/{repo}/tag/
           #       ?limit=100&page={N}&onlyActiveTags=true
-          # Response shape:
+          # Response:
           #   { "tags": [ { "name": str,
           #                 "last_modified": "Tue, 06 May 2026 00:02:00 -0000",
-          #                 "manifest_digest": "sha256:...", ... } ],
+          #                 ... } ],
           #     "has_additional": bool }
-          # Pagination: increment 'page' while has_additional == true.
-          #
-          # Timestamp format: RFC 2822.
-          # GNU date (Ubuntu 24.04) parses RFC 2822 natively.
-          # Example: date -d "Tue, 06 May 2026 00:02:00 -0000" +%s
+          # Increment 'page' while has_additional == true.
           DELETED=0
           KEPT=0
           IGNORED=0
@@ -887,42 +941,41 @@ jobs:
               TAG_NAME=$(echo "${TAG_JSON}" | jq -r '.name // empty')
               [[ -z "${TAG_NAME}" ]] && continue
 
-              # last_modified is an RFC 2822 string, e.g.
-              # "Tue, 06 May 2026 00:02:00 -0000"
+              # last_modified is RFC 2822, e.g. "Tue, 06 May 2026 00:02:00 -0000"
               TAG_MODIFIED=$(echo "${TAG_JSON}" | jq -r '.last_modified // empty')
 
-              # ── Ignore-list check (takes priority over date) ─────────────
+              # Ignore-list check takes priority over date check.
               if tag_is_ignored "${TAG_NAME}"; then
                 echo "  🔒 IGNORE  ${TAG_NAME}  (matches ignore pattern)"
                 IGNORED=$(( IGNORED + 1 ))
                 continue
               fi
 
-              # ── Unknown timestamp → keep (safe default) ──────────────────
+              # Missing timestamp → keep (safe default — never delete unknowns).
               if [[ -z "${TAG_MODIFIED}" ]]; then
                 echo "  ✅ KEEP    ${TAG_NAME}  (no timestamp — kept by default)"
                 KEPT=$(( KEPT + 1 ))
                 continue
               fi
 
-              # ── Parse RFC 2822 timestamp safely ──────────────────────────
+              # Unparsable RFC 2822 timestamp → keep (safe default).
               TAG_EPOCH=$(date -u -d "${TAG_MODIFIED}" +%s 2>/dev/null || true)
               if [[ -z "${TAG_EPOCH}" || ! "${TAG_EPOCH}" =~ ^[0-9]+$ ]]; then
-                echo "  ✅ KEEP    ${TAG_NAME}  (unparsable timestamp: '${TAG_MODIFIED}' — kept by default)"
+                echo "  ✅ KEEP    ${TAG_NAME}  (unparsable timestamp '${TAG_MODIFIED}' — kept by default)"
                 KEPT=$(( KEPT + 1 ))
                 continue
               fi
 
-              # ── Date check ───────────────────────────────────────────────
+              # Date check: keep if at or after cutoff.
               if (( TAG_EPOCH >= CUTOFF_EPOCH )); then
                 echo "  ✅ KEEP    ${TAG_NAME}  (modified ${TAG_MODIFIED})"
                 KEPT=$(( KEPT + 1 ))
                 continue
               fi
 
-              # ── Deletion candidate ───────────────────────────────────────
-              # Quay delete: DELETE /api/v1/repository/{repo}/tag/{tag}
-              # Returns 204 on success; 400 or 404 if the tag is already absent.
+              # Deletion candidate.
+              # Quay DELETE /api/v1/repository/{repo}/tag/{tag}
+              # 204 on success; 400/404 if already absent (idempotent).
               echo "  🗑️  DELETE  ${TAG_NAME}  (modified ${TAG_MODIFIED}, before cutoff ${CUTOFF_DATE})"
               if [[ "${DRY_RUN}" == 'true' ]]; then
                 DELETED=$(( DELETED + 1 ))
@@ -931,31 +984,31 @@ jobs:
                   -X DELETE \
                   -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${TAG_NAME}")
-                HTTP_STATUS=$(printf '%s' "${DEL_RESP}" | tail -1)
+                DEL_HTTP=$(printf '%s' "${DEL_RESP}" | tail -1)
                 DEL_BODY=$(printf '%s' "${DEL_RESP}" | head -n -1)
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                if [[ "${DEL_HTTP}" =~ ^2 ]]; then
                   DELETED=$(( DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "400" || "${HTTP_STATUS}" == "404" ]]; then
-                  # Tag already absent (race condition or double run) — idempotent.
-                  echo "    ℹ️  Tag already gone (HTTP ${HTTP_STATUS}) — skipping."
+                elif [[ "${DEL_HTTP}" == "400" || "${DEL_HTTP}" == "404" ]]; then
+                  # Already absent — idempotent, not an error.
+                  echo "    ℹ️  Tag already gone (HTTP ${DEL_HTTP}) — skipping."
                 else
-                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS}): ${DEL_BODY}" >&2
+                  echo "    ⚠️  Delete failed (HTTP ${DEL_HTTP}): ${DEL_BODY}" >&2
                   ERRORS=$(( ERRORS + 1 ))
                 fi
-                sleep 0.3  # respect Quay API rate limits
+                sleep 0.3  # respect Quay API rate limits (~3 req/s sustained)
               fi
             done < <(echo "${RESPONSE}" | jq -c '.tags[]')
 
-            # Quay uses has_additional (bool) to signal more pages.
+            # has_additional (bool) signals more pages exist.
             HAS_MORE=$(echo "${RESPONSE}" | jq -r '.has_additional // false')
             [[ "${HAS_MORE}" == 'true' ]] || break
             QPAGE=$(( QPAGE + 1 ))
           done
 
-          # ── Explicit tag deletion ────────────────────────────────────────────
-          # Quay exposes a per-tag DELETE endpoint, so we delete the named tag
-          # directly without needing to locate a manifest version.
-          # Idempotent: HTTP 400/404 ("Invalid tag") → skip silently.
+          # ── Explicit tag deletion ─────────────────────────────────────────────
+          # Quay exposes a per-tag DELETE endpoint; no manifest lookup needed
+          # (unlike GHCR which requires finding the version ID first).
+          # Idempotent: HTTP 400/404 → skip silently.
           if [[ -n "${EXPLICIT_TAGS:-}" ]]; then
             echo ""
             echo "🎯  Explicit tag cleanup (Quay):"
@@ -966,25 +1019,25 @@ jobs:
             IFS=',' read -ra ETAG_LIST <<< "${EXPLICIT_TAGS}"
             IFS="${OLD_IFS}"
             for etag in "${ETAG_LIST[@]}"; do
-              etag="${etag#"${etag%%[![:space:]]*}"}"
-              etag="${etag%"${etag##*[![:space:]]}"}"
+              etag="${etag#"${etag%%[![:space:]]*}"}"  # trim leading whitespace
+              etag="${etag%"${etag##*[![:space:]]}"}"  # trim trailing whitespace
               [[ -z "${etag}" ]] && continue
               if [[ "${DRY_RUN}" == 'true' ]]; then
                 echo "  🗑️  WOULD DELETE (explicit)  ${etag}"
                 EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
               else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                EX_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
                   -X DELETE \
                   -H "${AUTH_HEADER}" \
                   "${QUAY_API}/tag/${etag}")
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+                if [[ "${EX_HTTP}" =~ ^2 ]]; then
                   echo "  🗑️  DELETED (explicit)  ${etag}"
                   EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "400" || "${HTTP_STATUS}" == "404" ]]; then
+                elif [[ "${EX_HTTP}" == "400" || "${EX_HTTP}" == "404" ]]; then
                   echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found — already removed)"
                   EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
                 else
-                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${HTTP_STATUS})" >&2
+                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${EX_HTTP})" >&2
                   EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
                 fi
                 sleep 0.3
@@ -995,11 +1048,13 @@ jobs:
           fi
 
           # ── Step summary ──────────────────────────────────────────────────
-          if [[ "${DRY_RUN}" == 'true' ]]; then
-            DRY_LABEL=" (dry-run)"
-          else
-            DRY_LABEL=""
-          fi
+          # if [[ "${DRY_RUN}" == 'true' ]]; then
+          #   DRY_LABEL=" (dry-run)"
+          # else
+          #   DRY_LABEL=""
+          # fi
+          DRY_LABEL=""
+          [[ "${DRY_RUN}" == 'true' ]] && DRY_LABEL=" (dry-run)"
           echo ""
           echo "📊 Quay cleanup complete:"
           echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
