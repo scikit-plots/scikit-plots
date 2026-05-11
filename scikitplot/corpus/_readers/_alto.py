@@ -1,6 +1,13 @@
+# scikitplot/corpus/_readers/_alto.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers.alto
-================================
+===============================
 ALTO XML reader for the scikitplot corpus pipeline.
 
 Reads ALTO XML files (Analyzed Layout and Text Object) packed inside a
@@ -381,6 +388,10 @@ def _extract_block_chunks(  # noqa: PLR0912
             chunks.append(
                 {
                     "text": text,
+                    # raw_text: same word-join as text; ALTO CONTENT attributes
+                    # are already the OCR engine's verbatim token output.
+                    # No HTML stripping or whitespace collapsing applied here.
+                    "raw_text": text,
                     "section_type": SectionType.TEXT.value,
                     "page_number": page_number,
                     "bbox": line_bbox,
@@ -415,6 +426,9 @@ def _extract_block_chunks(  # noqa: PLR0912
     return [
         {
             "text": text_block,
+            # raw_text: block-level word join — verbatim ALTO CONTENT tokens,
+            # no additional normalisation applied.
+            "raw_text": text_block,
             "section_type": SectionType.TEXT.value,
             "page_number": page_number,
             "bbox": block_bbox,
@@ -485,6 +499,9 @@ def _extract_page_chunks(
         return [
             {
                 "text": text,
+                # raw_text: page-level word join — verbatim ALTO CONTENT tokens
+                # aggregated across all blocks and lines on the page.
+                "raw_text": text,
                 "section_type": SectionType.TEXT.value,
                 "page_number": page_number,
                 "bbox": None,  # page-level chunk has no single bbox
@@ -626,7 +643,7 @@ class ALTOReader(DocumentReader):
     ... )
     """
 
-    file_type: ClassVar[str | None] = ".zip"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".zip"]
 
     granularity: str = field(default=_GRAN_BLOCK)

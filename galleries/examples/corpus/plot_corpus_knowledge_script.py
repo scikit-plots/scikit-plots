@@ -99,7 +99,33 @@ def _run(chunker: object, label: str) -> object:
     print(f"\n{'=' * 60}")
     print(label)
     print("=" * 60)
-    df = pd.read_csv(result.output_path)
+
+    # Guard 1: pipeline produced no documents — CSV is header-only.
+    # result.n_documents is always 0 in this case; skip pd.read_csv()
+    # so we never hit EmptyDataError even if the caller does not have
+    # the header-only fix deployed on the exporter side.
+    if result.n_documents == 0:
+        print("[WARNING] Pipeline produced 0 documents — CSV contains no data rows.")
+        return result
+
+    # Guard 2: output_path may be None when export is skipped (e.g. no
+    # output_path supplied to CorpusPipeline).  Should not happen in this
+    # script, but fail fast with a clear message rather than AttributeError.
+    if result.output_path is None:
+        print("[WARNING] No output_path in result — export was skipped.")
+        return result
+
+    # Guard 3: catch residual EmptyDataError for any edge-case where the
+    # exporter writes a zero-byte file (e.g. older exporter version).
+    try:
+        df = pd.read_csv(result.output_path)
+    except pd.errors.EmptyDataError:
+        print(
+            f"[WARNING] CSV at {result.output_path!s} is empty — "
+            "no rows to display.  Check exporter version."
+        )
+        return result
+
     pprint(df.head().to_dict())
     return result
 
@@ -205,6 +231,47 @@ result_fw_tokens = _run(
 )
 
 # %%
+# 6. Semantic Chunker with MultilangConfig
+# ----------------------------------------
+# Every chunk carries chunk.metadata["multilang"] with:
+#   script, script_direction, is_rtl, grapheme_count, codepoint_count,
+#   token_count, stopword_count, unique_token_count, avg_token_length,
+#   char_count, chunking_duration_ms, preprocessing_duration_ms,
+#   created_at_utc, layer2_strategy,
+#   semantemes[{surface, morphemes, lemma, stem, pos_tag, ...}],
+#   preprocessing_trace[{steps, raw_text, pipeline_fingerprint}]
+
+from scikitplot.corpus._chunkers import (
+    MultilangConfig,
+    SemanticChunker,
+    SemanticChunkerConfig,
+    SemanticBackend,
+)
+
+# Build MultilangConfig with all enhanced features enabled.
+ml = MultilangConfig(
+    include_raw_text=True,              # preserve pre-NFC raw text per chunk
+    include_preprocessing_trace=True,   # full audit trail: BOM strip, control strip, NFC
+    include_semantemes=True,            # SemantemeInfo per token
+    include_grapheme_counts=True,       # UAX #29 grapheme cluster counts
+    include_script_spans=True,          # per-script span list for mixed-script chunks
+)
+
+# Bug fix A: pass multilang_config=ml so the SemanticChunker uses the
+# configured feature flags, not its own default MultilangConfig.
+result_semantic = _run(                 # Bug fix B: renamed from result_fw_tokens
+    SemanticChunker(
+        SemanticChunkerConfig(
+            backend=SemanticBackend.HYBRID,
+            model_name="paraphrase-multilingual-mpnet-base-v2",
+            multilang_config=ml,        # <-- was missing: ml was built but discarded
+        )
+    ),
+    label="Semantic chunker (HYBRID backend, multilang enriched)",
+)
+
+
+# %%
 # Display the source image
 # --------------------------
 # Renders inline in Jupyter; opens a matplotlib window otherwise.
@@ -218,13 +285,13 @@ if _IN_JUPYTER:
 
     display(FileLink(str(result_fw_tokens.input_path)))  # noqa: F821
 
-# plt.figure(figsize=(8, 8), dpi=150)
-# img = mpimg.imread(result_fw_tokens.input_path)
-# plt.imshow(img)
-# plt.axis("off")
-# plt.title("Source image (OCR input)", fontsize=12)
-# plt.tight_layout()
-# plt.show()
+plt.figure(figsize=(4, 4), dpi=150)
+img = mpimg.imread(result_fw_tokens.input_path)
+plt.imshow(img)
+plt.axis("off")
+plt.title("Source image (OCR input)", fontsize=12)
+plt.tight_layout()
+plt.show()
 
 # %%
 #

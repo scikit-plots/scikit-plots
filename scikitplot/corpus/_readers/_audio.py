@@ -7,7 +7,7 @@
 
 """
 scikitplot.corpus._readers.audio
-=================================
+================================
 Text extraction from audio files via companion transcript/lyrics detection,
 automatic speech recognition (Whisper), and optional audio classification.
 
@@ -132,6 +132,8 @@ _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _VTT_HEADER = "WEBVTT"
 
 # Whisper backend identifiers
+# BUG-04: These constants are duplicated in _video.py. Both files must stay
+# in sync; a future refactor should extract them to a shared _whisper_common module.
 _WHISPER_BACKEND_FASTER = "faster-whisper"
 _WHISPER_BACKEND_OPENAI = "openai-whisper"
 
@@ -275,12 +277,15 @@ def _parse_lrc(  # noqa: PLR0912
             mins_str = ext_match.group(2)
             secs_str = ext_match.group(3)
             centis_str = ext_match.group(4)
-            text = ext_match.group(5)
+            # raw_text: verbatim match group before inline-tag stripping.
+            # Carried through the tuple so the cue dict can expose both forms
+            # for before/after comparison at the corpus level.
+            raw_text = ext_match.group(5)
             ts = _lrc_ts_to_seconds(mins_str, secs_str, centis_str, hours_str)
-            # Strip enhanced LRC inline tags
-            text = _LRC_INLINE_TAG_RE.sub("", text).strip()
+            # Strip enhanced LRC inline tags → cleaned form
+            text = _LRC_INLINE_TAG_RE.sub("", raw_text).strip()
             if text:
-                raw_cues.append((ts, text))
+                raw_cues.append((ts, text, raw_text))
             continue
 
         # Try standard format [MM:SS.xx]
@@ -289,12 +294,12 @@ def _parse_lrc(  # noqa: PLR0912
             mins_str = std_match.group(1)
             secs_str = std_match.group(2)
             centis_str = std_match.group(3)
-            text = std_match.group(4)
+            raw_text = std_match.group(4)
             ts = _lrc_ts_to_seconds(mins_str, secs_str, centis_str)
-            # Strip enhanced LRC inline tags
-            text = _LRC_INLINE_TAG_RE.sub("", text).strip()
+            # Strip enhanced LRC inline tags → cleaned form
+            text = _LRC_INLINE_TAG_RE.sub("", raw_text).strip()
             if text:
-                raw_cues.append((ts, text))
+                raw_cues.append((ts, text, raw_text))
 
     # Apply offset if present
     offset_ms = 0.0
@@ -312,7 +317,7 @@ def _parse_lrc(  # noqa: PLR0912
     # Sort by timestamp and build cue dicts with estimated end times
     raw_cues.sort(key=lambda c: c[0])
     cues: list[dict[str, Any]] = []
-    for i, (ts, text) in enumerate(raw_cues):
+    for i, (ts, text, raw_text) in enumerate(raw_cues):
         adjusted_ts = ts + offset_s
         adjusted_ts = max(adjusted_ts, 0.0)
         # Estimate end time from next cue's start
@@ -325,6 +330,9 @@ def _parse_lrc(  # noqa: PLR0912
         cues.append(
             {
                 "text": text,
+                # raw_text: verbatim cue content before LRC inline-tag
+                # stripping — enables before/after comparison downstream.
+                "raw_text": raw_text,
                 "timecode_start": round(adjusted_ts, 3),
                 "timecode_end": round(end_ts, 3),
                 "line_index": i,
@@ -402,6 +410,9 @@ def _parse_srt(srt_path: Path) -> list[dict[str, Any]]:
         cues.append(
             {
                 "text": text,
+                # raw_text: SRT has no HTML-stripping step; verbatim joined
+                # cue lines are both the raw and clean form.
+                "raw_text": text,
                 "timecode_start": _tc_to_seconds(
                     tc_match.group(1),
                     tc_match.group(2),
@@ -467,15 +478,19 @@ def _parse_vtt(vtt_path: Path) -> list[dict[str, Any]]:
         if tc_match is None:
             continue
 
-        text = " ".join(blines[text_start:]).strip()
-        # Strip HTML formatting tags
-        text = _HTML_TAG_RE.sub("", text).strip()
+        # raw_text: verbatim joined cue lines before HTML tag stripping.
+        # Kept separate so downstream code can compare original VTT markup
+        # against the cleaned plain-text form.
+        raw_text = " ".join(blines[text_start:]).strip()
+        # Strip HTML formatting tags → cleaned plain-text form
+        text = _HTML_TAG_RE.sub("", raw_text).strip()
         if not text:
             continue
 
         cues.append(
             {
                 "text": text,
+                "raw_text": raw_text,
                 "timecode_start": _tc_to_seconds(
                     tc_match.group(1),
                     tc_match.group(2),
@@ -523,14 +538,14 @@ def _parse_txt_companion(
     if as_single_chunk:
         text = raw.strip()
         if text:
-            return [{"text": text, "line_index": 0}]
+            return [{"text": text, "raw_text": text, "line_index": 0}]
         return []
 
     cues: list[dict[str, Any]] = []
     for i, line in enumerate(raw.splitlines()):
         text = line.strip()
         if text:
-            cues.append({"text": text, "line_index": i})
+            cues.append({"text": text, "raw_text": text, "line_index": i})
     return cues
 
 
@@ -647,6 +662,9 @@ def _transcribe_whisper(
             if text:
                 chunk: dict[str, Any] = {
                     "text": text,
+                    # raw_text: ASR output is already the verbatim
+                    # transcription — no pre-processing to undo.
+                    "raw_text": text,
                     "timecode_start": round(seg.start, 3),
                     "timecode_end": round(seg.end, 3),
                 }
@@ -676,6 +694,7 @@ def _transcribe_whisper(
             if text:
                 chunk = {
                     "text": text,
+                    "raw_text": text,
                     "timecode_start": round(seg["start"], 3),
                     "timecode_end": round(seg["end"], 3),
                 }
@@ -811,6 +830,9 @@ def _classify_audio(
         result.append(
             {
                 "text": text,
+                # raw_text: classifier label text has no pre-processing step;
+                # same value as text for consistent three-tier comparison.
+                "raw_text": text,
                 "timecode_start": round(offset, 3),
                 "timecode_end": round(offset + dur, 3),
                 "confidence": round(conf, 4),
@@ -1239,48 +1261,10 @@ class AudioReader(DocumentReader):
     max_file_bytes: int = field(default=5 * 1024 * 1024 * 1024)
     """Maximum audio file size. Default: 5 GB."""
 
-    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
-    """
-    User-supplied audio extraction callable.  When set, this callable is
-    called **first** — before companion-file detection, Whisper ASR, and
-    audio classification — and its output is used exclusively.
-
-    Signature::
-
-        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
-
-    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
-    ``list[dict]``.  Every dict must contain a ``"text"`` key.  Dicts may
-    also include ``"timecode_start"`` and ``"timecode_end"`` (float,
-    seconds) to populate the corresponding
-    :class:`~scikitplot.corpus._schema.CorpusDocument` fields.
-
-    Common use-cases: ``whisperX`` (speaker diarization), proprietary ASR
-    APIs (Google Cloud Speech, AWS Transcribe, Azure Speech), or any
-    library not supported by the built-in strategies.  Default: ``None``.
-
-    Examples
-    --------
-    >>> def whisperx_extract(path, language="en", **kw):
-    ...     import whisperx
-    ...     model = whisperx.load_model("large-v3", device="cpu")
-    ...     result = model.transcribe(str(path), language=language)
-    ...     return [{"text": s["text"].strip(),
-    ...              "timecode_start": s["start"],
-    ...              "timecode_end": s["end"]}
-    ...             for s in result["segments"] if s["text"].strip()]
-    >>> reader = AudioReader(
-    ...     input_path=Path("interview.mp3"),
-    ...     custom_extractor=whisperx_extract,
-    ...     custom_extractor_kwargs={"language": "de"},
-    ... )
-    """
-
-    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
-    """
-    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
-    call.  Only used when :attr:`custom_extractor` is set.  Default: ``{}``.
-    """
+    # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
+    # inherited from DocumentReader. Redeclaring them here changed the
+    # dataclass __init__ field order (subclass fields come after base fields
+    # in MRO but re-declaration moved them to the subclass position). Removed.
 
     def __post_init__(self) -> None:
         """Validate constructor fields and resolve companion file strategy.
@@ -1427,6 +1411,9 @@ class AudioReader(DocumentReader):
             for cue in cues:
                 chunk: dict[str, Any] = {
                     "text": cue["text"],
+                    # raw_text: promoted from parser (pre-strip form for LRC/VTT;
+                    # equals text for SRT/TXT where no HTML stripping occurs).
+                    "raw_text": cue.get("raw_text", cue["text"]),
                     "section_type": section,
                     "source_type": SourceType.AUDIO.value,
                     "companion_format": comp_fmt,
@@ -1484,6 +1471,8 @@ class AudioReader(DocumentReader):
             for seg in segments:
                 chunk = {
                     "text": seg["text"],
+                    # raw_text: ASR transcription — verbatim engine output.
+                    "raw_text": seg.get("raw_text", seg["text"]),
                     "section_type": SectionType.TRANSCRIPT.value,
                     "source_type": SourceType.AUDIO.value,
                     "timecode_start": seg["timecode_start"],
@@ -1525,6 +1514,8 @@ class AudioReader(DocumentReader):
             for lbl in labels:
                 chunk = {
                     "text": lbl["text"],
+                    # raw_text: classification label text — no pre-processing.
+                    "raw_text": lbl.get("raw_text", lbl["text"]),
                     "section_type": SectionType.TEXT.value,
                     "source_type": SourceType.AUDIO.value,
                     "timecode_start": lbl["timecode_start"],

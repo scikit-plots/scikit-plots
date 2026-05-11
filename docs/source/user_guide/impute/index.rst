@@ -72,7 +72,9 @@ Unlike exact KNN imputation :py:class:`~sklearn.impute.KNNImputer`, using Annoy 
 - Memory-efficient indexing of large datasets
 - Sharing of prebuilt indexes across processes
 
-Example: Your exact NumPy array example:
+.. rubric:: Examples
+
+Your exact NumPy array example:
 
 .. .. jupyter-execute
 .. .. code-block:: python

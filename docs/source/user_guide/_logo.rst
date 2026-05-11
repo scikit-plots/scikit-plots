@@ -26,8 +26,7 @@ This makes the logo easy to:
    ``sp._logo``; user code should prefer ``sp._logo`` when available.
 
 
-Quickstart
-----------
+.. rubric:: Examples
 
 .. .. jupyter-execute
 .. .. code-block:: python

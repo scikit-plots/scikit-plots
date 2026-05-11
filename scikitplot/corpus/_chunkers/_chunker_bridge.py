@@ -40,15 +40,76 @@ from .._schema import ChunkingStrategy
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ChunkedTextList",
     "ChunkerBridge",
     "FixedWindowChunkerBridge",
     "ParagraphChunkerBridge",
+    "SemanticChunkerBridge",
     "SentenceChunkerBridge",
     "WordChunkerBridge",
     "bridge_chunker",
     "register_bridge",
     "unregister_bridge",
 ]
+
+
+# ---------------------------------------------------------------------------
+# ChunkedTextList — backward-compatible list that carries chunk metadata
+# ---------------------------------------------------------------------------
+
+
+class ChunkedTextList(list):
+    """A ``list`` subclass that carries per-chunk metadata alongside ``(int, str)`` pairs.
+
+    Returned by every :class:`ChunkerBridge` subclass in place of a plain
+    ``list``.  Behaves identically to ``list`` for all existing callers
+    that unpack ``(char_start, chunk_text)`` pairs.
+
+    The extra ``chunk_metadata_list`` attribute lets :meth:`_base.DocumentReader.
+    get_documents` read multilang metadata and populate :class:`~._schema.
+    CorpusDocument` fields without breaking the existing ``(int, str)``
+    contract.
+
+    Parameters
+    ----------
+    pairs : list[tuple[int, str]]
+        The ``(char_start, chunk_text)`` tuples (standard contract).
+    chunk_metadata_list : list[dict]
+        One metadata dict per pair.  Must have the same length as *pairs*.
+        Each dict is ``chunk.metadata`` from the inner :class:`~._types.Chunk`.
+
+    Notes
+    -----
+    **Developer note:** Callers that only do ``for start, text in sub_chunks``
+    are unaffected — they never see ``chunk_metadata_list``.  Only
+    :meth:`_base.DocumentReader.get_documents` inspects this attribute.
+
+    Idempotency: ``ChunkedTextList`` is constructed once per ``chunk()``
+    call and never mutated after construction.
+
+    Examples
+    --------
+    >>> cl = ChunkedTextList([(0, "Hello")], [{"multilang": {"script": "latin"}}])
+    >>> for start, text in cl:
+    ...     print(start, text)
+    0 Hello
+    >>> cl.chunk_metadata_list[0]["multilang"]["script"]
+    'latin'
+    """
+
+    def __init__(
+        self,
+        pairs: list[tuple[int, str]],
+        chunk_metadata_list: list[dict[str, Any]],
+    ) -> None:
+        super().__init__(pairs)
+        if len(chunk_metadata_list) != len(pairs):
+            raise ValueError(
+                f"ChunkedTextList: pairs ({len(pairs)}) and "
+                f"chunk_metadata_list ({len(chunk_metadata_list)}) must have "
+                f"the same length."
+            )
+        self.chunk_metadata_list: list[dict[str, Any]] = chunk_metadata_list
 
 
 # ---------------------------------------------------------------------------
@@ -99,8 +160,16 @@ class ChunkerBridge(abc.ABC):
         self,
         text: str,
         metadata: dict[str, Any] | None = None,
-    ) -> list[tuple[int, str]]:
-        """Chunk *text* and return ``(char_start, chunk_text)`` pairs.
+    ) -> ChunkedTextList:
+        """Chunk *text* and return a :class:`ChunkedTextList` of ``(char_start, chunk_text)`` pairs.
+
+        Backward compatible — all existing callers that iterate ``(start, text)``
+        pairs continue to work unchanged.  Additionally, the
+        ``chunk_metadata_list`` attribute on the returned object carries the
+        per-chunk ``chunk.metadata`` dicts (including ``"multilang"`` when
+        :class:`MultilangConfig` is enabled) so
+        :meth:`_base.DocumentReader.get_documents` can populate
+        :class:`~._schema.CorpusDocument` multilang fields.
 
         Parameters
         ----------
@@ -113,10 +182,8 @@ class ChunkerBridge(abc.ABC):
 
         Returns
         -------
-        list[tuple[int, str]]
+        ChunkedTextList
             Each element is ``(char_offset, chunk_text)``.
-            If the inner chunker does not provide offsets, a
-            forward-cursor scan computes them.
         """
         result = self._call_inner(text, metadata)
         return self._to_tuples(text, result)
@@ -141,27 +208,40 @@ class ChunkerBridge(abc.ABC):
     def _to_tuples(
         source_text: str,
         chunk_result: Any,
-    ) -> list[tuple[int, str]]:
-        """Convert a ``ChunkResult`` to ``list[tuple[int, str]]``.
+    ) -> ChunkedTextList:
+        """Convert a ``ChunkResult`` to :class:`ChunkedTextList`.
 
         Uses chunk offsets if available, otherwise falls back to a
         forward-cursor ``str.find`` scan (O(n) total, not O(n²)).
+
+        The returned :class:`ChunkedTextList` also carries
+        ``chunk_metadata_list`` — a parallel list of ``chunk.metadata``
+        dicts so callers can promote multilang metadata to
+        :class:`~._schema.CorpusDocument` fields.
+
+        Parameters
+        ----------
+        source_text : str
+            Original raw text passed to the chunker.
+        chunk_result : ChunkResult
+            Output from the inner chunker.
+
+        Returns
+        -------
+        ChunkedTextList
+            Pairs of ``(char_start, chunk_text)`` with metadata attached.
         """
         pairs: list[tuple[int, str]] = []
+        metas: list[dict[str, Any]] = []
         cursor = 0
 
-        # ChunkResult has .chunks → list[Chunk]
-        # Chunk has .text, .char_start (int | None), .char_end
         chunks = getattr(chunk_result, "chunks", None)
         if chunks is None:
-            # Fallback: treat as single chunk
-            return [(0, source_text)]
+            # Fallback: treat as single chunk — no metadata
+            return ChunkedTextList([(0, source_text)], [{}])
 
         for ch in chunks:
             ch_text: str = ch.text
-            # Chunk (from _types.py) exposes start_char / end_char.
-            # A legacy guard also checks the old alias char_start so that
-            # third-party or schema-derived objects still work.
             ch_start = getattr(ch, "start_char", None)
             if ch_start is None:
                 ch_start = getattr(ch, "char_start", None)
@@ -170,15 +250,17 @@ class ChunkerBridge(abc.ABC):
                 pairs.append((ch_start, ch_text))
                 cursor = ch_start + len(ch_text)
             else:
-                # Forward-cursor scan — avoids O(n²)
                 idx = source_text.find(ch_text, cursor)
                 if idx == -1:
-                    # Chunker may have normalised whitespace; use cursor
                     idx = cursor
                 pairs.append((idx, ch_text))
                 cursor = idx + len(ch_text)
 
-        return pairs
+            # Carry chunk-level metadata (includes "multilang" when enabled)
+            ch_meta = getattr(ch, "metadata", None)
+            metas.append(dict(ch_meta) if ch_meta else {})
+
+        return ChunkedTextList(pairs, metas)
 
     def __repr__(self) -> str:
         return (
@@ -254,6 +336,44 @@ class WordChunkerBridge(ChunkerBridge):
         return self.inner.chunk(text, extra_metadata=metadata)
 
 
+class SemanticChunkerBridge(ChunkerBridge):
+    """Bridge for ``SemanticChunker`` → ``ChunkerBase`` contract.
+
+    The :class:`~._semantic.SemanticChunker` (Layer 3) is a new-style
+    chunker that returns :class:`~._types.ChunkResult` objects.  This
+    bridge adapts it to the ``ChunkerBase`` interface so it can be
+    passed directly to :class:`~._pipeline.CorpusPipeline` and
+    :class:`~._base.DocumentReader` without modification.
+
+    ``SEMANTIC`` is used as the strategy value.  If
+    :class:`~._schema.ChunkingStrategy` does not yet define a
+    ``SEMANTIC`` member, ``CUSTOM`` is used as a fallback so the
+    bridge never raises an :class:`AttributeError`.
+
+    Notes
+    -----
+    **User note:** Pass ``SemanticChunker(...)`` directly to
+    :class:`~._pipeline.CorpusPipeline` — the bridge is applied
+    automatically via :func:`bridge_chunker`.
+
+    **Developer note:** Multilang metadata in ``chunk.metadata["multilang"]``
+    flows through :class:`ChunkedTextList` to
+    :meth:`_base.DocumentReader.get_documents` which maps it to
+    :class:`~._schema.CorpusDocument` fields.
+    """
+
+    strategy: ClassVar[ChunkingStrategy] = getattr(
+        ChunkingStrategy, "SEMANTIC", ChunkingStrategy.CUSTOM
+    )
+
+    def _call_inner(
+        self,
+        text: str,
+        metadata: dict[str, Any] | None,
+    ) -> Any:
+        return self.inner.chunk(text, extra_metadata=metadata)
+
+
 # ---------------------------------------------------------------------------
 # Auto-detect factory
 # ---------------------------------------------------------------------------
@@ -263,6 +383,7 @@ _BRIDGE_MAP: dict[str, type[ChunkerBridge]] = {
     "ParagraphChunker": ParagraphChunkerBridge,
     "FixedWindowChunker": FixedWindowChunkerBridge,
     "WordChunker": WordChunkerBridge,
+    "SemanticChunker": SemanticChunkerBridge,
 }
 
 

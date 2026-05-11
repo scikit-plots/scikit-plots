@@ -7,7 +7,7 @@
 
 r"""
 scikitplot.corpus._readers._zip
-================================
+===============================
 Generic ZIP archive reader for the corpus pipeline.
 
 :class:`ZipReader` transparently extracts a ZIP file and dispatches each
@@ -215,13 +215,31 @@ class ZipReader(DocumentReader):
     ... )
     """
 
-    file_type: ClassVar[str] = ".zip"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".zip"]
 
     max_files: int = field(default=_DEFAULT_MAX_FILES)
     """Maximum file count inside the archive. Default: 10,000."""
 
     max_total_bytes: int = field(default=_DEFAULT_MAX_TOTAL_BYTES)
+    """
+    Maximum **cumulative uncompressed** bytes across all extracted ZIP members.
+
+    **BUG-10 clarification:** This is a different guard than
+    :attr:`~scikitplot.corpus._readers.ALTOReader.max_file_bytes` in
+    :class:`ALTOReader`.
+
+    * ``ZipReader.max_total_bytes`` — sum of all member sizes **after
+      extraction**.  Guards against ZIP bomb attacks where many small
+      compressed members expand to a huge total.
+
+    * ``ALTOReader.max_file_bytes`` — size of the ZIP archive file
+      **on disk before opening**.  A coarser, pre-flight guard.
+
+    Both limits exist because different threat models apply:
+    pre-download (file size) vs post-extraction (total expanded size).
+    Default: 10 GB.
+    """
     """Maximum cumulative extracted size. Default: 2 GB."""
 
     skip_unsupported: bool = field(default=True)

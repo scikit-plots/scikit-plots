@@ -7,7 +7,7 @@
 
 """
 scikitplot.corpus._base
-======================
+=======================
 Abstract base classes for all scikitplot.corpus pipeline components.
 
 Three abstract contracts are defined here, corresponding to the three
@@ -135,6 +135,71 @@ _LETTER_RE: re.Pattern[str] = re.compile(r"[^\W\d_]", re.UNICODE)
 _R = TypeVar("_R", bound="DocumentReader")  # noqa: PYI018
 _C = TypeVar("_C", bound="ChunkerBase")  # noqa: PYI018
 _F = TypeVar("_F", bound="FilterBase")  # noqa: PYI018
+
+
+def _slice_raw_text(
+    parent_raw: str | None,
+    per_chunk_meta: dict[str, Any],
+    char_start: int,
+    char_end: int,
+) -> str | None:
+    """Return the per-sub-chunk slice of *parent_raw* using character offsets.
+
+    Called from :meth:`DocumentReader.get_documents` to assign ``raw_text``
+    on each :class:`~._schema.CorpusDocument` when the MultilangMixin did
+    not already supply a sub-chunk-granular ``ml["raw_text"]``.
+
+    **Priority chain**:
+
+    1. ``per_chunk_meta["_raw_segment"]`` — set unconditionally by
+       :class:`~._chunkers._word.WordChunker` (pre-stemmed segment text).
+       WordChunker's ``char_start`` is always 0 for sentence-mode chunks
+       (offsets are relative to the segment, not the document), so slicing
+       ``parent_raw`` by those offsets produces the wrong content.
+       ``_raw_segment`` bypasses this by carrying the correct segment text.
+    2. ``parent_raw[char_start:char_end]`` — for chunkers with proper
+       absolute offsets in the source text (SentenceChunker, FixedWindow,
+       Paragraph, SemanticChunker).  The slice exactly covers this chunk.
+    3. ``parent_raw`` in full — single-chunk case (no splitting occurred,
+       ``char_start=0`` and ``char_end=len(parent_raw)``).
+
+    Parameters
+    ----------
+    parent_raw : str or None
+        Verbatim reader output (``provenance["raw_text"]``).
+    per_chunk_meta : dict
+        Per-chunk metadata dict from :class:`~._chunkers._chunker_bridge.
+        ChunkedTextList`.  May contain ``"_raw_segment"`` from WordChunker.
+    char_start : int
+        Start character offset of this sub-chunk within the source text.
+    char_end : int
+        Exclusive end offset (``char_start + len(chunk_text)``).
+
+    Returns
+    -------
+    str or None
+        Per-chunk raw text, or ``None`` if ``parent_raw`` is ``None``.
+
+    Notes
+    -----
+    **Developer note:** This function is the single source of truth for
+    raw_text slicing.  Every code path that computes ``raw_text`` for a
+    sub-chunk must go through here.  Direct slicing of ``parent_raw``
+    outside this function is an error.
+    """
+    if parent_raw is None:
+        return None
+    # Priority 1: WordChunker embeds pre-stemmed segment unconditionally.
+    raw_seg = per_chunk_meta.get("_raw_segment")
+    if raw_seg is not None:
+        return str(raw_seg)
+    # Priority 2: slice by absolute char offsets (SentenceChunker et al.)
+    if 0 <= char_start < char_end <= len(parent_raw):
+        sliced = parent_raw[char_start:char_end]
+        if sliced:
+            return sliced
+    # Priority 3: single chunk or offset out of bounds — return full text.
+    return parent_raw
 
 
 # ===========================================================================
@@ -1033,10 +1098,23 @@ class DocumentReader(abc.ABC):
             else:
                 sub_chunks = [(0, raw_text)] if raw_text.strip() else []
 
-            for char_start, chunk_text in sub_chunks:
+            # ChunkedTextList carries per-chunk metadata from the bridge.
+            # Plain list fallback (non-bridge chunkers) has no such attribute.
+            chunk_meta_list: list[dict[str, Any]] | None = getattr(
+                sub_chunks, "chunk_metadata_list", None
+            )
+
+            for sub_idx, (char_start, chunk_text) in enumerate(sub_chunks):
                 if not chunk_text.strip():
                     omitted += 1
                     continue
+
+                # Per-chunk metadata from the bridge (includes "multilang")
+                per_chunk_meta: dict[str, Any] = (
+                    chunk_meta_list[sub_idx]
+                    if chunk_meta_list is not None and sub_idx < len(chunk_meta_list)
+                    else {}
+                )
 
                 # Coerce source_type from string to enum if needed
                 raw_st = provenance.get("source_type", SourceType.UNKNOWN)
@@ -1051,6 +1129,10 @@ class DocumentReader(abc.ABC):
                         raw_st,
                     )
                     resolved_source_type = SourceType.UNKNOWN
+
+                # Extract multilang bundle from bridge metadata.
+                # Populated by MultilangMixin._ml_enrich_chunk() when enabled.
+                ml: dict[str, Any] = per_chunk_meta.get("multilang") or {}
 
                 doc = CorpusDocument.create(
                     input_path=self.file_name,
@@ -1081,11 +1163,103 @@ class DocumentReader(abc.ABC):
                     confidence=provenance.get("confidence"),
                     ocr_engine=provenance.get("ocr_engine"),
                     bbox=provenance.get("bbox"),
+                    # raw_text: per-chunk verbatim source text.
+                    #
+                    # Priority chain (see _slice_raw_text docstring):
+                    #   1. ml["raw_text"]           — MultilangMixin, most granular
+                    #   2. per_chunk_meta["_raw_segment"] — WordChunker pre-stemmed seg
+                    #   3. parent_raw[char_start:char_end] — offset-based slice
+                    #   4. parent_raw in full       — single-chunk fallback
+                    #
+                    # BUG FIX: previously the fallback was always provenance["raw_text"]
+                    # (the FULL parent raw text), so every sub-chunk got the ENTIRE
+                    # source text in raw_text regardless of how many chunks were produced.
+                    # The fix: slice by char_start:char_end for all properly-offset
+                    # chunkers; WordChunker supplies _raw_segment for char_start=0 cases.
+                    raw_text=(
+                        ml["raw_text"]
+                        if "raw_text" in ml
+                        else _slice_raw_text(
+                            provenance.get("raw_text"),
+                            per_chunk_meta,
+                            char_start,
+                            char_start + len(chunk_text),
+                        )
+                    ),
+                    # normalized_text: populated ONLY by TextNormalizer post-pipeline.
+                    #
+                    # Do NOT place ml["raw_text"] here. The previous design put the
+                    # pre-NFC OCR text in normalized_text as a "back-reference", but
+                    # TextNormalizer.normalize_documents() skips any document where
+                    # normalized_text is not None (line 435 of _text_normalizer.py).
+                    # This caused SemanticChunker + include_raw_text=True documents to
+                    # never receive NFKC normalization — a silent correctness failure.
+                    # The dedicated raw_text field (above) now serves that purpose.
                     normalized_text=provenance.get("normalized_text"),
                     tokens=provenance.get("tokens"),
                     lemmas=provenance.get("lemmas"),
                     stems=provenance.get("stems"),
                     keywords=provenance.get("keywords"),
+                    # ── Multilang fields (populated from ChunkedTextList) ──────
+                    # These map chunk.metadata["multilang"] → CorpusDocument fields.
+                    # All are None when MultilangConfig is disabled or not set.
+                    #
+                    # Rule: ALWAYS key-presence, NEVER `or` fallback.
+                    # `or` swallows every falsy value — 0, False, [], "" — each of
+                    # which is a distinct, informative state that must be preserved:
+                    #   is_mixed_script=False  → analysis ran, text is single-script
+                    #   script_spans=[]        → analysis ran, no spans found
+                    #   morphemes=[]           → semanteme analysis found no morphemes
+                    # Using `x or fallback` would silently replace any of these with
+                    # the provenance value, producing incorrect output with no error.
+                    script=(
+                        ml["script"] if "script" in ml else provenance.get("script")
+                    ),
+                    script_direction=(
+                        ml["script_direction"]
+                        if "script_direction" in ml
+                        else provenance.get("script_direction")
+                    ),
+                    grapheme_count=(
+                        ml["grapheme_count"]
+                        if "grapheme_count" in ml
+                        else provenance.get("grapheme_count")
+                    ),
+                    codepoint_count=(
+                        ml["codepoint_count"]
+                        if "codepoint_count" in ml
+                        else provenance.get("codepoint_count")
+                    ),
+                    is_mixed_script=(
+                        ml["is_mixed_script"]
+                        if "is_mixed_script" in ml
+                        else provenance.get("is_mixed_script")
+                    ),
+                    script_spans=(
+                        ml["script_spans"]
+                        if "script_spans" in ml
+                        else provenance.get("script_spans")
+                    ),
+                    chunking_unit=(
+                        ml["chunking_unit"]
+                        if "chunking_unit" in ml
+                        else provenance.get("chunking_unit")
+                    ),
+                    semanteme_count=(
+                        ml["semanteme_count"]
+                        if "semanteme_count" in ml
+                        else provenance.get("semanteme_count")
+                    ),
+                    morphemes=(
+                        ml["morphemes"]
+                        if "morphemes" in ml
+                        else provenance.get("morphemes")
+                    ),
+                    script_model_version=(
+                        ml["script_model_version"]
+                        if "script_model_version" in ml
+                        else provenance.get("script_model_version")
+                    ),
                 )
                 chunk_index += 1
 
@@ -2327,6 +2501,7 @@ class DummyReader(DocumentReader):
         >>> print(f"{len(ok)} OK, {len(errors)} failed")
         """
         import re as _re  # noqa: PLC0415
+        import urllib.error as _ue  # noqa: PLC0415
         import urllib.request as _ur  # noqa: PLC0415
 
         _URL_RE = _re.compile(r"https?://", _re.IGNORECASE)  # noqa: N806
@@ -2337,7 +2512,11 @@ class DummyReader(DocumentReader):
             try:
                 src_str = str(src)
                 if _URL_RE.match(src_str):
-                    # Try HEAD, fall back to GET if 405
+                    # Try HEAD; fall back to GET if server returns 405/501
+                    # BUG-07 fix: use urllib.error.HTTPError.code for clean
+                    # status checking instead of fragile string matching on
+                    # the error message ("405" in str(head_err) was fragile —
+                    # error message format is implementation-defined).
                     try:
                         req = _ur.Request(  # noqa: S310
                             src_str,
@@ -2345,16 +2524,17 @@ class DummyReader(DocumentReader):
                             headers={"User-Agent": "scikitplot-corpus/1.0"},
                         )
                         _ur.urlopen(req, timeout=timeout)  # noqa: S310
-                    except Exception as head_err:  # noqa: BLE001
-                        # 405 Method Not Allowed → try GET
-                        if "405" in str(head_err) or "501" in str(head_err):
+                    except _ue.HTTPError as head_err:
+                        # 405 Method Not Allowed or 501 Not Implemented:
+                        # server doesn't support HEAD — retry with GET.
+                        if head_err.code in (405, 501):
                             req2 = _ur.Request(  # noqa: S310
                                 src_str,
                                 headers={"User-Agent": "scikitplot-corpus/1.0"},
                             )
                             with _ur.urlopen(  # noqa: S310
                                 req2, timeout=timeout
-                            ) as resp:
+                            ) as _resp:
                                 pass  # opened successfully
                         else:
                             raise

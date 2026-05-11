@@ -28,7 +28,7 @@ Adds a **project-level configuration** mechanism so multiple scripts
 (e.g., `train.py`, `hpo.py`, `predict.py`) share the exact same MLflow settings,
 regardless of current working directory.
 
-.. rubric:: Quiskstart Template: Beginner workflow demo
+.. rubric:: Examples
 
 .. .. jupyter-execute
 .. .. code-block:: python
@@ -50,7 +50,7 @@ regardless of current working directory.
       overwrite=True,  # If config already exists: ./configs/mlflow.toml (use overwrite=True).
   )
 
-.. rubric:: Examples
+.. rubric:: Quiskstart Template: Beginner workflow demo
 
 * :ref:`sphx_glr_auto_examples_mlflow_plot_mlflow.py`: Example usage of
   :func:`~.workflow` using template.

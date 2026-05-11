@@ -210,6 +210,31 @@ commands:
               libgmp-dev \
               libmpfr-dev \
               tesseract-ocr
+
+            # List installed packs:
+            tesseract --list-langs  || true
+
+            # Expected output should include:
+            #   ara   (Arabic + Ottoman)
+            #   deu   (German)
+            #   ell   (Greek)
+            #   eng   (English)
+            #   heb   (Hebrew)
+            #   tur   (Turkish)
+            # Install missing packs (Debian/Ubuntu):
+            sudo apt-get install --fix-missing -y --no-install-recommends \
+              tesseract-ocr-deu \
+              tesseract-ocr-ara \
+              tesseract-ocr-heb \
+              tesseract-ocr-tur \
+              tesseract-ocr-ell
+
+            # Alternatively use EasyOCR which handles multilingual without pack installs:
+            # pip install easyocr
+            # Then in reader_kwargs:
+            #   "backend": "easyocr",
+            #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
+
   pip-install:
     description: Upgrade pip and setuptools and wheel to get as clean an install as possible
     steps:

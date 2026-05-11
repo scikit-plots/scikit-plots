@@ -7,7 +7,7 @@
 
 """
 scikitplot.corpus._readers._custom
-===================================
+==================================
 Fully user-customizable document reader for the corpus pipeline.
 
 This module provides two public objects:

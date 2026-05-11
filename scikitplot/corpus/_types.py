@@ -104,6 +104,11 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     # MCP
     "MCPToolInput",
     "MCPToolResult",
+    # Multilang / preprocessing (Layer 0–3)  # noqa: RUF003
+    "SemantemeInfo",
+    "PreprocessingStep",
+    "PreprocessingTrace",
+    "MultilangChunkMeta",
 ]
 
 
@@ -1291,3 +1296,625 @@ class MCPToolResult:
     content: Any
     is_error: bool = False
     error_message: str | None = None
+
+
+# ===========================================================================
+# Section N — Multilang / Preprocessing types (Layer 0-3)
+# ===========================================================================
+
+
+@dataclass(frozen=True)
+class SemantemeInfo:
+    """Rich semantic unit descriptor attached to each multilang chunk.
+
+    A *semanteme* is the smallest unit of meaning in a language.  Depending
+    on the script and chunking backend this may be a morpheme, a syllabic
+    aksara, a Han ideograph, or a grapheme cluster.
+
+    All fields are optional so that callers that do not have the full
+    analysis available can still populate a partial record.
+
+    Parameters
+    ----------
+    surface : str
+        The surface form as it appears in the normalised text.
+    script : str or None
+        :class:`~._chunkers._custom_tokenizer.ScriptType` value string of
+        this semanteme (e.g. ``"latin"``, ``"han"``).
+    direction : str or None
+        Writing direction: ``"ltr"``, ``"rtl"``, or ``"ttb"``.
+    morphemes : list[str] or None
+        Morpheme decomposition (e.g. MeCab or camel-tools output).
+        ``None`` when morphological analysis was not run.
+    lemma : str or None
+        Dictionary lemma of this semanteme.  ``None`` if unavailable.
+    pos_tag : str or None
+        Part-of-speech tag (language-specific tagset string).
+    stem : str or None
+        Stemmed form (Porter, Snowball, etc.).
+    grapheme_count : int or None
+        Number of UAX #29 grapheme clusters in ``surface``.
+    codepoint_count : int or None
+        Number of Unicode codepoints in ``surface``.
+    is_stopword : bool or None
+        ``True`` if this semanteme is a stopword in its detected language.
+    language_hint : str or None
+        ISO 639-1 / BCP-47 language code hint (e.g. ``"ja"``, ``"ar"``).
+    determinative : str or None
+        For Egyptian hieroglyphs: the determinative sign glyph.
+    raw_surface : str or None
+        Pre-normalisation surface form.  ``None`` when no normalisation
+        changed the text (idempotent normalisation).
+    embedding : list[float] or None
+        Per-semanteme dense embedding vector (if computed).  Allows
+        fine-grained semantic search at morpheme/aksara level.
+
+    Notes
+    -----
+    **Developer note:** ``SemantemeInfo`` is stored as a list in
+    ``MultilangChunkMeta.semantemes`` and serialised to
+    ``CorpusDocument.morphemes`` (list of surface strings) and
+    ``chunk.metadata["semantemes"]`` (list of dicts).
+
+    Examples
+    --------
+    >>> info = SemantemeInfo(
+    ...     surface="run", script="latin", lemma="run", stem="run", morphemes=["run"]
+    ... )
+    >>> info.surface
+    'run'
+    """
+
+    surface: str
+    script: str | None = None
+    direction: str | None = None
+    morphemes: list[str] | None = None
+    lemma: str | None = None
+    pos_tag: str | None = None
+    stem: str | None = None
+    grapheme_count: int | None = None
+    codepoint_count: int | None = None
+    is_stopword: bool | None = None
+    language_hint: str | None = None
+    determinative: str | None = None
+    raw_surface: str | None = None
+    embedding: list[float] | None = field(default=None, compare=False, hash=False)
+
+    def to_dict(self) -> MetadataDict:
+        """Serialise to a JSON-safe dict for ``chunk.metadata`` storage.
+
+        Returns
+        -------
+        MetadataDict
+            All fields; fields that are ``None`` are omitted to minimise
+            payload size.
+        """
+        out: MetadataDict = {"surface": self.surface}
+        for fname in (
+            "script",
+            "direction",
+            "morphemes",
+            "lemma",
+            "pos_tag",
+            "stem",
+            "grapheme_count",
+            "codepoint_count",
+            "is_stopword",
+            "language_hint",
+            "determinative",
+            "raw_surface",
+        ):
+            val = getattr(self, fname)
+            if val is not None:
+                out[fname] = val
+        # Embedding is included only when explicitly requested to avoid
+        # inflating small payloads.
+        return out
+
+    def with_embedding(self, vector: list[float]) -> SemantemeInfo:
+        """Return a copy of this record with an embedding vector attached.
+
+        Parameters
+        ----------
+        vector : list[float]
+            Dense embedding from any encoder (sentence-transformers, etc.).
+
+        Returns
+        -------
+        SemantemeInfo
+            New frozen instance.
+        """
+        return SemantemeInfo(
+            surface=self.surface,
+            script=self.script,
+            direction=self.direction,
+            morphemes=self.morphemes,
+            lemma=self.lemma,
+            pos_tag=self.pos_tag,
+            stem=self.stem,
+            grapheme_count=self.grapheme_count,
+            codepoint_count=self.codepoint_count,
+            is_stopword=self.is_stopword,
+            language_hint=self.language_hint,
+            determinative=self.determinative,
+            raw_surface=self.raw_surface,
+            embedding=vector,
+        )
+
+
+@dataclass(frozen=True)
+class PreprocessingStep:
+    """Record of a single preprocessing transformation applied to raw text.
+
+    Used to build a :class:`PreprocessingTrace` that makes the
+    preprocessing pipeline fully retrospective — every change is
+    documented with enough information to verify, replay, or invert it.
+
+    Parameters
+    ----------
+    name : str
+        Short identifier of the transformation (e.g.
+        ``"nfc_normalise"``, ``"strip_control"``, ``"bom_strip"``,
+        ``"whitespace_collapse"``, ``"ocr_correction"``).
+    description : str
+        Human-readable explanation of what this step does.
+    changed : bool
+        ``True`` if this step actually modified the text.
+        ``False`` when the text was already in the expected form
+        (idempotent execution).
+    char_delta : int
+        Change in codepoint count: ``len(after) - len(before)``.
+        Negative for stripping steps; zero for reordering steps.
+    grapheme_delta : int or None
+        Change in grapheme cluster count.  ``None`` if grapheme
+        counting was not available at this step (``regex`` not installed).
+    params : MetadataDict or None
+        Configuration parameters used for this step.  Must be
+        JSON-serialisable.  ``None`` if the step has no parameters.
+    input_hash : str or None
+        MD5 hex of the text *before* this step.  Allows exact change
+        detection without storing the full text.  ``None`` if not tracked.
+    output_hash : str or None
+        MD5 hex of the text *after* this step.
+
+    Notes
+    -----
+    **Developer note:** Hash all PreprocessingStep objects into a stable
+    fingerprint to build a preprocessing fingerprint for idempotency
+    verification on pipeline re-runs.  The fingerprint is:
+    ``hashlib.md5(",".join(s.name for s in trace.steps).encode()).hexdigest()``
+    """
+
+    name: str
+    description: str
+    changed: bool
+    char_delta: int
+    grapheme_delta: int | None = None
+    params: MetadataDict | None = None
+    input_hash: str | None = None
+    output_hash: str | None = None
+    # Timing (wall-clock seconds via time.perf_counter())
+    duration_s: float | None = None
+    """Wall-clock seconds this step took.  ``None`` when not timed."""
+
+    def to_dict(self) -> MetadataDict:
+        """Serialise to a JSON-safe dict.
+
+        Returns
+        -------
+        MetadataDict
+        """
+        out: MetadataDict = {
+            "name": self.name,
+            "description": self.description,
+            "changed": self.changed,
+            "char_delta": self.char_delta,
+        }
+        if self.grapheme_delta is not None:
+            out["grapheme_delta"] = self.grapheme_delta
+        if self.params:
+            out["params"] = self.params
+        if self.input_hash:
+            out["input_hash"] = self.input_hash
+        if self.output_hash:
+            out["output_hash"] = self.output_hash
+        if self.duration_s is not None:
+            out["duration_ms"] = round(self.duration_s * 1000, 3)
+        return out
+
+
+@dataclass(frozen=True)
+class PreprocessingTrace:
+    """Ordered audit trail of all preprocessing transformations.
+
+    Provides full retrospective visibility into how raw text was
+    transformed into the normalised text stored in
+    :attr:`~._schema.CorpusDocument.text`.
+
+    Parameters
+    ----------
+    raw_text : str or None
+        The original raw text *before any preprocessing*.
+        ``None`` when ``include_raw_text=False`` (the default, to save
+        memory on large corpora).
+    steps : list[PreprocessingStep]
+        Ordered list of transformations, from first applied to last.
+    final_text : str
+        The normalised text after all steps.
+    pipeline_fingerprint : str
+        MD5 hex digest of step names (``",".join(s.name for s in steps)``).
+        Use this to detect preprocessing pipeline changes across corpus
+        versions or pipeline runs.
+    total_char_delta : int
+        Sum of all ``PreprocessingStep.char_delta`` values.
+
+    Notes
+    -----
+    **User note:** Use ``PreprocessingTrace`` to:
+
+    * Verify that preprocessing was applied consistently across corpus
+      versions (compare ``pipeline_fingerprint``).
+    * Debug unexpected chunk boundaries by comparing
+      ``raw_text`` vs ``final_text``.
+    * Feed the raw text into a separate embedding index for raw-vs-normalised
+      retrieval comparison.
+
+    **Developer note:** ``PreprocessingTrace`` is stored in
+    ``chunk.metadata["preprocessing_trace"]`` as a dict (via
+    :meth:`to_dict`).  It is NOT stored in ``CorpusDocument`` fields
+    directly (too large); consumers must pull it from the chunk metadata.
+
+    Examples
+    --------
+    >>> step = PreprocessingStep(
+    ...     name="nfc_normalise", description="Apply NFC", changed=False, char_delta=0
+    ... )
+    >>> trace = PreprocessingTrace.build(
+    ...     raw_text="café", steps=[step], final_text="café"
+    ... )
+    >>> trace.pipeline_fingerprint
+    '...'
+    """
+
+    raw_text: str | None
+    steps: list[PreprocessingStep]
+    final_text: str
+    pipeline_fingerprint: str
+    total_char_delta: int
+
+    @staticmethod
+    def build(
+        raw_text: str | None,
+        steps: list[PreprocessingStep],
+        final_text: str,
+    ) -> PreprocessingTrace:
+        """Construct a :class:`PreprocessingTrace` from parts.
+
+        Parameters
+        ----------
+        raw_text : str or None
+            Original text before preprocessing.
+        steps : list[PreprocessingStep]
+            Ordered list of applied steps.
+        final_text : str
+            Text after all steps.
+
+        Returns
+        -------
+        PreprocessingTrace
+        """
+        import hashlib  # noqa: PLC0415
+
+        fp = hashlib.md5(  # noqa: S324
+            ",".join(s.name for s in steps).encode("utf-8")
+        ).hexdigest()
+        delta = sum(s.char_delta for s in steps)
+        return PreprocessingTrace(
+            raw_text=raw_text,
+            steps=steps,
+            final_text=final_text,
+            pipeline_fingerprint=fp,
+            total_char_delta=delta,
+        )
+
+    def to_dict(self, *, include_raw_text: bool = False) -> MetadataDict:
+        """Serialise to a JSON-safe dict for chunk metadata storage.
+
+        Parameters
+        ----------
+        include_raw_text : bool, optional
+            When ``True``, include ``raw_text`` in the output.
+            Default ``False`` to keep chunk metadata small.
+
+        Returns
+        -------
+        MetadataDict
+        """
+        out: MetadataDict = {
+            "steps": [s.to_dict() for s in self.steps],
+            "final_text": self.final_text,
+            "pipeline_fingerprint": self.pipeline_fingerprint,
+            "total_char_delta": self.total_char_delta,
+        }
+        if include_raw_text and self.raw_text is not None:
+            out["raw_text"] = self.raw_text
+        return out
+
+
+@dataclass(frozen=True)
+class MultilangChunkMeta:
+    """Per-chunk multilang analysis bundle — stored in ``chunk.metadata``.
+
+    Collects all Layer 0-3 artefacts for a single chunk in one place
+    so downstream consumers have a uniform access pattern regardless of
+    which chunker produced the chunk.
+
+    Parameters
+    ----------
+    script : str or None
+        Dominant :class:`~._chunkers._custom_tokenizer.ScriptType` value
+        string for this chunk.
+    script_direction : str or None
+        Writing direction: ``"ltr"``, ``"rtl"``, ``"ttb"``.
+    is_mixed_script : bool or None
+        ``True`` if the chunk contains codepoints from more than one script.
+    chunking_unit : str or None
+        Granularity: ``"word"``, ``"sentence"``, ``"paragraph"``,
+        ``"fixed_window"``, ``"grapheme_cluster"``, ``"semanteme"``.
+    grapheme_count : int or None
+        UAX #29 grapheme cluster count for ``chunk.text``.
+    codepoint_count : int or None
+        ``len(chunk.text)`` — stored explicitly for comparison.
+    semantemes : list[SemantemeInfo] or None
+        Per-semanteme analysis list.  ``None`` when semantic analysis
+        was not applied.
+    semanteme_count : int or None
+        ``len(semantemes)`` pre-computed for fast access.
+    morphemes : list[str] or None
+        Flat morpheme surface list (deduplicated from ``semantemes``).
+    script_spans : list[dict] or None
+        :class:`~._chunkers._custom_tokenizer.ScriptSpan` dicts for
+        mixed-script chunks.
+    script_model_version : str or None
+        Embedding model version used, format ``"name@version"``.
+    preprocessing_trace : PreprocessingTrace or None
+        Full audit trail of preprocessing steps.  ``None`` when
+        ``include_preprocessing_trace=False``.
+    raw_text : str or None
+        Original pre-processing text for this chunk's span.
+        ``None`` when ``include_raw_text=False``.
+    embedding : list[float] or None
+        Dense chunk-level embedding vector.  ``None`` until an embedder
+        is applied.  Use :meth:`with_embedding` to attach one.
+    language_hint : str or None
+        ISO 639-1 / BCP-47 detected language code.
+    model_name : str or None
+        Name of the embedding model (e.g.
+        ``"paraphrase-multilingual-mpnet-base-v2"``).
+
+    Notes
+    -----
+    **User note:** Access via ``chunk.metadata.get("multilang")`` — it is
+    stored as a dict (via :meth:`to_dict`).  If you need to attach an
+    embedding later, call :meth:`with_embedding` which returns a new
+    frozen instance without mutating the original.
+
+    **Developer note:** All chunkers populate this via
+    :class:`~._chunkers._multilang_mixin.MultilangMixin._build_multilang_meta`.
+    The mixin's ``_build_multilang_meta`` is the single authority for
+    constructing these objects — do not construct them inline in chunker code.
+    """
+
+    script: str | None = None
+    script_direction: str | None = None
+    is_mixed_script: bool | None = None
+    chunking_unit: str | None = None
+    grapheme_count: int | None = None
+    codepoint_count: int | None = None
+    semantemes: list[SemantemeInfo] | None = field(
+        default=None, compare=False, hash=False
+    )
+    semanteme_count: int | None = None
+    morphemes: list[str] | None = field(default=None, compare=False, hash=False)
+    script_spans: list[MetadataDict] | None = field(
+        default=None, compare=False, hash=False
+    )
+    script_model_version: str | None = None
+    preprocessing_trace: PreprocessingTrace | None = field(
+        default=None, compare=False, hash=False
+    )
+    raw_text: str | None = field(default=None, compare=False, hash=False)
+    embedding: list[float] | None = field(default=None, compare=False, hash=False)
+    language_hint: str | None = None
+    model_name: str | None = None
+    # ------------------------------------------------------------------
+    # Timing and pipeline provenance tracking
+    # ------------------------------------------------------------------
+    chunking_duration_ms: float | None = None
+    """Wall-clock time in milliseconds to produce this chunk.  Populated by
+    the chunker's :meth:`MultilangMixin._ml_build_meta`."""
+
+    preprocessing_duration_ms: float | None = None
+    """Wall-clock time in milliseconds for all preprocessing steps combined
+    (BOM strip + control strip + NFC normalisation)."""
+
+    layer2_strategy: str | None = None
+    """Name of the Layer 2 :class:`~._writing_system.SegmentationStrategy`
+    class that produced this chunk (e.g. ``"JapaneseStrategy"``,
+    ``"ArabicMorphologicalStrategy"``, ``"GraphemeClusterStrategy"``)."""
+
+    pipeline_id: str | None = None
+    """Optional pipeline run identifier injected by the caller for
+    correlation across large batch runs."""
+
+    created_at_utc: str | None = None
+    """ISO-8601 UTC timestamp of when this chunk was produced,
+    format ``YYYY-MM-DDTHH:MM:SS.ffffffZ``.  ``None`` when not tracked."""
+
+    char_offset_start: int | None = None
+    """Start character offset of this chunk in the *raw* (pre-NFC) text.
+    Allows exact re-location of the original source span for comparison."""
+
+    char_offset_end: int | None = None
+    """End character offset of this chunk in the *raw* (pre-NFC) text."""
+
+    token_count: int | None = None
+    """Number of whitespace tokens in ``chunk.text`` after normalisation."""
+
+    stopword_count: int | None = None
+    """Number of stopwords among the tokens (if stopword analysis was run)."""
+
+    unique_token_count: int | None = None
+    """Number of unique tokens (type count, not token count)."""
+
+    char_count: int | None = None
+    """Character count of ``chunk.text`` (``len(chunk.text)``)."""
+
+    avg_token_length: float | None = None
+    """Average token length in grapheme clusters."""
+
+    is_rtl: bool | None = None
+    """``True`` when ``script_direction == "rtl"``; precomputed for fast
+    dataframe filtering."""
+
+    def with_embedding(
+        self,
+        vector: list[float],
+        *,
+        model_name: str | None = None,
+        model_version: str | None = None,
+    ) -> MultilangChunkMeta:
+        """Return a copy with an embedding vector and optional model metadata.
+
+        Parameters
+        ----------
+        vector : list[float]
+            Dense embedding produced by any encoder.
+        model_name : str, optional
+            Name of the model used (e.g.
+            ``"paraphrase-multilingual-mpnet-base-v2"``).
+        model_version : str, optional
+            Model version string (e.g. ``"1.2.0"``).
+
+        Returns
+        -------
+        MultilangChunkMeta
+            New frozen instance.
+        """
+        ver = (
+            f"{model_name}@{model_version}"
+            if model_name and model_version
+            else (model_name or self.script_model_version)
+        )
+        return MultilangChunkMeta(
+            script=self.script,
+            script_direction=self.script_direction,
+            is_mixed_script=self.is_mixed_script,
+            chunking_unit=self.chunking_unit,
+            grapheme_count=self.grapheme_count,
+            codepoint_count=self.codepoint_count,
+            semantemes=self.semantemes,
+            semanteme_count=self.semanteme_count,
+            morphemes=self.morphemes,
+            script_spans=self.script_spans,
+            script_model_version=ver,
+            preprocessing_trace=self.preprocessing_trace,
+            raw_text=self.raw_text,
+            embedding=vector,
+            language_hint=self.language_hint,
+            model_name=model_name or self.model_name,
+            # Preserve all tracking fields unchanged
+            chunking_duration_ms=self.chunking_duration_ms,
+            preprocessing_duration_ms=self.preprocessing_duration_ms,
+            layer2_strategy=self.layer2_strategy,
+            pipeline_id=self.pipeline_id,
+            created_at_utc=self.created_at_utc,
+            char_offset_start=self.char_offset_start,
+            char_offset_end=self.char_offset_end,
+            token_count=self.token_count,
+            stopword_count=self.stopword_count,
+            unique_token_count=self.unique_token_count,
+            char_count=self.char_count,
+            avg_token_length=self.avg_token_length,
+            is_rtl=self.is_rtl,
+        )
+
+    def to_dict(
+        self,
+        *,
+        include_raw_text: bool = False,
+        include_preprocessing_trace: bool = False,
+        include_embedding: bool = False,
+        include_semanteme_detail: bool = True,
+    ) -> MetadataDict:
+        """Serialise to a JSON-safe dict for ``chunk.metadata["multilang"]``.
+
+        Parameters
+        ----------
+        include_raw_text : bool
+            Include ``raw_text`` in output.  Default ``False``.
+        include_preprocessing_trace : bool
+            Include the full preprocessing trace.  Default ``False``.
+        include_embedding : bool
+            Include the dense embedding vector.  Default ``False``.
+        include_semanteme_detail : bool
+            Include full ``semantemes`` list.  Default ``True``.
+            Set to ``False`` to include only ``semanteme_count``.
+
+        Returns
+        -------
+        MetadataDict
+            All non-None fields populated per the flag settings.
+        """
+        out: MetadataDict = {}
+        for scalar_field in (
+            "script",
+            "script_direction",
+            "is_mixed_script",
+            "chunking_unit",
+            "grapheme_count",
+            "codepoint_count",
+            "semanteme_count",
+            "script_model_version",
+            "language_hint",
+            "model_name",
+            # Timing + tracking
+            "chunking_duration_ms",
+            "preprocessing_duration_ms",
+            "layer2_strategy",
+            "pipeline_id",
+            "created_at_utc",
+            "char_offset_start",
+            "char_offset_end",
+            "token_count",
+            "stopword_count",
+            "unique_token_count",
+            "char_count",
+            "avg_token_length",
+            "is_rtl",
+        ):
+            val = getattr(self, scalar_field)
+            if val is not None:
+                out[scalar_field] = val
+
+        if self.morphemes is not None:
+            out["morphemes"] = list(self.morphemes)
+
+        if self.script_spans is not None:
+            out["script_spans"] = list(self.script_spans)
+
+        if include_semanteme_detail and self.semantemes is not None:
+            out["semantemes"] = [s.to_dict() for s in self.semantemes]
+
+        if include_raw_text and self.raw_text is not None:
+            out["raw_text"] = self.raw_text
+
+        if include_preprocessing_trace and self.preprocessing_trace is not None:
+            out["preprocessing_trace"] = self.preprocessing_trace.to_dict(
+                include_raw_text=include_raw_text
+            )
+
+        if include_embedding and self.embedding is not None:
+            out["embedding"] = list(self.embedding)
+
+        return out

@@ -33,6 +33,8 @@ For visualkeras for Keras / TensorFlow Models :py:class:`~tensorflow.keras.Model
 Documentation is available in the docstrings and
 online at https://github.com/paulgavrikov/visualkeras.
 
+.. rubric:: Examples
+
 .. .. jupyter-execute
 .. .. code-block:: python
 .. prompt:: python >>>

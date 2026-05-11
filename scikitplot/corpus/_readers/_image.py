@@ -385,42 +385,10 @@ class ImageReader(DocumentReader):
     compressed image bytes (JPEG/PNG/etc.) — useful for
     ``tf.io.decode_image`` or CV2 ``imdecode``.  Default: ``False``."""
 
-    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
-    """
-    User-supplied image extraction callable, active only when
-    ``backend="custom"``.
-
-    Signature::
-
-        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
-
-    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
-    ``list[dict]``.  Every dict must contain a ``"text"`` key.
-
-    Common use-cases: ``surya`` (document layout + OCR), ``docling``,
-    ``azure-cognitiveservices-vision``, AWS Textract clients, or any
-    library not supported by Tesseract / easyocr.  Ignored when
-    ``backend`` is not ``"custom"``.  Default: ``None``.
-
-    Examples
-    --------
-    >>> def surya_extract(path, **kw):
-    ...     from surya.ocr import run_ocr
-    ...     result = run_ocr([str(path)], langs=[["en"]])[0]
-    ...     return [{"text": line.text, "confidence": line.confidence}
-    ...             for line in result.text_lines]
-    >>> reader = ImageReader(
-    ...     input_path=Path("scan.png"),
-    ...     backend="custom",
-    ...     custom_extractor=surya_extract,
-    ... )
-    """
-
-    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
-    """
-    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
-    call.  Only used when ``backend="custom"``.  Default: ``{}``.
-    """
+    # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
+    # inherited from DocumentReader. Redeclaring them here changed the
+    # dataclass __init__ field order (subclass fields come after base fields
+    # in MRO but re-declaration moved them to the subclass position). Removed.
 
     # Internal: easyocr Reader instance (cached across frames to avoid
     # reloading ~100 MB model weights on every frame).
@@ -629,6 +597,19 @@ class ImageReader(DocumentReader):
 
                 _chunk: dict[str, Any] = {
                     "text": text,
+                    # raw_text: verbatim OCR bytes before any NLP processing.
+                    #
+                    # Populated here so CorpusDocument.raw_text carries the
+                    # exact Tesseract / easyocr output for user audit and
+                    # three-tier comparison (raw_text → text → normalized_text).
+                    #
+                    # NOTE: accuracy depends on ocr_lang.  With ocr_lang=None,
+                    # Tesseract uses English-only and silently garbles non-Latin
+                    # glyphs (Arabic, Hebrew, Greek) into Latin lookalikes.
+                    # The raw_text here accurately reflects what was returned —
+                    # it is NOT the visual content of the image.  Fix at the
+                    # pipeline caller by passing the correct ocr_lang string.
+                    "raw_text": text,
                     "section_type": SectionType.TEXT.value,
                     # promoted → CorpusDocument.source_type
                     "source_type": SourceType.IMAGE.value,

@@ -97,8 +97,8 @@ Design principles
 * Explicit ownership and lifetime control
 
 
-Basic example
--------------
+.. rubric:: Examples
+
 Map a file and access its contents without loading it fully:
 
     >>> from memmap import MemMap

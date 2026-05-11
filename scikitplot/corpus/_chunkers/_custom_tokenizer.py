@@ -125,7 +125,11 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     "is_cjk_char",
     "is_rtl_char",
     "split_cjk_chars",
+    "_split_cjk_chars_legacy",
     "MULTI_SCRIPT_SENTENCE_RE_PATTERN",
+    # Layer 1 — Script segmentation
+    "ScriptSpan",
+    "ScriptSegmenter",
 ]
 
 
@@ -863,20 +867,61 @@ class ScriptType(str, Enum):
     """
 
     LATIN = "latin"
+    # ------------------------------------------------------------------
+    # CJK — deprecated alias; kept for backward compatibility.
+    # New Layer-2 dispatch MUST use HAN / HIRAGANA / KATAKANA / HANGUL.
+    # ------------------------------------------------------------------
     CJK = "cjk"
+    # ------------------------------------------------------------------
+    # Granular East Asian scripts (Bug 2 fix — split from CJK bucket)
+    # ------------------------------------------------------------------
+    HAN = "han"
+    HIRAGANA = "hiragana"
+    KATAKANA = "katakana"
+    HANGUL = "hangul"
+    # ------------------------------------------------------------------
+    # RTL scripts
+    # ------------------------------------------------------------------
     ARABIC = "arabic"
     HEBREW = "hebrew"
+    # ------------------------------------------------------------------
+    # South and South-East Asian
+    # ------------------------------------------------------------------
     DEVANAGARI = "devanagari"
-    GREEK = "greek"
-    CYRILLIC = "cyrillic"
-    ETHIOPIC = "ethiopic"
-    GEORGIAN = "georgian"
-    EGYPTIAN = "egyptian"
     THAI = "thai"
     SOUTHEAST_ASIAN = "southeast_asian"
+    MYANMAR = "myanmar"
+    KHMER = "khmer"
     SOUTH_ASIAN = "south_asian"
-    ARMENIAN = "armenian"
     TIBETAN = "tibetan"
+    # ------------------------------------------------------------------
+    # European / Caucasian
+    # ------------------------------------------------------------------
+    GREEK = "greek"
+    CYRILLIC = "cyrillic"
+    ARMENIAN = "armenian"
+    GEORGIAN = "georgian"
+    # ------------------------------------------------------------------
+    # African
+    # ------------------------------------------------------------------
+    ETHIOPIC = "ethiopic"
+    # ------------------------------------------------------------------
+    # Ancient / historic
+    # ------------------------------------------------------------------
+    EGYPTIAN = "egyptian"
+    EGYPTIAN_HIEROGLYPHS = "egyptian_hieroglyphs"
+    # ------------------------------------------------------------------
+    # Central Asian
+    # ------------------------------------------------------------------
+    MONGOLIAN = "mongolian"
+    # ------------------------------------------------------------------
+    # Symbol / emoji classes (Bug 1 fix)
+    # ------------------------------------------------------------------
+    EMOJI = "emoji"
+    SYMBOLIC = "symbolic"
+    # ------------------------------------------------------------------
+    # Meta values
+    # ------------------------------------------------------------------
     MIXED = "mixed"
     UNKNOWN = "unknown"
 
@@ -935,11 +980,17 @@ def detect_script(  # noqa: PLR0912
     >>> detect_script("مرحبا بالعالم")
     <ScriptType.ARABIC: 'arabic'>
     >>> detect_script("こんにちは世界")
-    <ScriptType.CJK: 'cjk'>
+    <ScriptType.HIRAGANA: 'hiragana'>
     >>> detect_script("Ἡ γλῶσσα")
     <ScriptType.GREEK: 'greek'>
     >>> detect_script("12345 !@#$%")
     <ScriptType.UNKNOWN: 'unknown'>
+    >>> detect_script("😀🎉")
+    <ScriptType.EMOJI: 'emoji'>
+    >>> detect_script("你好世界")
+    <ScriptType.HAN: 'han'>
+    >>> detect_script("안녕하세요")
+    <ScriptType.HANGUL: 'hangul'>
     """
     if not text:
         return ScriptType.UNKNOWN
@@ -947,7 +998,11 @@ def detect_script(  # noqa: PLR0912
     sample = text[:sample_size]
     counts: dict[str, int] = {
         "latin": 0,
-        "cjk": 0,
+        # Granular East Asian (Bug 2 — CJK bucket split into four)
+        "han": 0,
+        "hiragana": 0,
+        "katakana": 0,
+        "hangul": 0,
         "arabic": 0,
         "hebrew": 0,
         "devanagari": 0,
@@ -956,31 +1011,55 @@ def detect_script(  # noqa: PLR0912
         "ethiopic": 0,
         "georgian": 0,
         "egyptian": 0,
+        "egyptian_hieroglyphs": 0,
         "thai": 0,
         "southeast_asian": 0,
+        "myanmar": 0,
+        "khmer": 0,
         "south_asian": 0,
         "armenian": 0,
         "tibetan": 0,
+        "mongolian": 0,
+        # Symbol classes (Bug 1 — emoji-only text was UNKNOWN)
+        "emoji": 0,
+        "symbolic": 0,
     }
 
     for ch in sample:
         cp = ord(ch)
 
-        # CJK Unified Ideographs + Extension A/B/C/D/E/F
+        # ── Han (Chinese logographs) ──────────────────────────────────
         if (
             0x4E00 <= cp <= 0x9FFF  # CJK Unified Ideographs  # noqa: PLR2004
             or 0x3400 <= cp <= 0x4DBF  # Extension A  # noqa: PLR2004
             or 0x20000 <= cp <= 0x2A6DF  # Extension B  # noqa: PLR2004
             or 0xF900 <= cp <= 0xFAFF  # CJK Compatibility Ideographs  # noqa: PLR2004
-            or 0x3040 <= cp <= 0x309F  # Hiragana  # noqa: PLR2004
-            or 0x30A0 <= cp <= 0x30FF  # Katakana  # noqa: PLR2004
-            or 0xAC00 <= cp <= 0xD7AF  # Hangul Syllables  # noqa: PLR2004
-            or 0x1100 <= cp <= 0x11FF  # Hangul Jamo  # noqa: PLR2004
             or 0x3000 <= cp <= 0x303F  # CJK Symbols and Punctuation  # noqa: PLR2004
         ):
-            counts["cjk"] += 1
+            counts["han"] += 1
 
-        # Arabic, Persian, Ottoman: base block + presentation forms
+        # ── Hiragana ──────────────────────────────────────────────────
+        elif 0x3040 <= cp <= 0x309F:  # noqa: PLR2004
+            counts["hiragana"] += 1
+
+        # ── Katakana (including half-width forms) ─────────────────────
+        elif (
+            0x30A0 <= cp <= 0x30FF  # noqa: PLR2004
+            or 0xFF65 <= cp <= 0xFF9F  # Half-width Katakana  # noqa: PLR2004
+        ):
+            counts["katakana"] += 1
+
+        # ── Hangul (syllables + Jamo + Extended A/B + Halfwidth) ──────
+        elif (
+            0xAC00 <= cp <= 0xD7AF  # Hangul Syllables  # noqa: PLR2004
+            or 0x1100 <= cp <= 0x11FF  # Hangul Jamo  # noqa: PLR2004
+            or 0xA960 <= cp <= 0xA97F  # Hangul Jamo Extended-A  # noqa: PLR2004
+            or 0xD7B0 <= cp <= 0xD7FF  # Hangul Jamo Extended-B  # noqa: PLR2004
+            or 0xFFA0 <= cp <= 0xFFDC  # Halfwidth Hangul  # noqa: PLR2004
+        ):
+            counts["hangul"] += 1
+
+        # ── Arabic, Persian, Ottoman: base block + presentation forms ─
         elif (
             0x0600 <= cp <= 0x06FF  # Arabic  # noqa: PLR2004
             or 0x0750 <= cp <= 0x077F  # Arabic Supplement  # noqa: PLR2004
@@ -989,48 +1068,64 @@ def detect_script(  # noqa: PLR0912
         ):
             counts["arabic"] += 1
 
-        # Hebrew
-        elif 0x0590 <= cp <= 0x05FF or 0xFB1D <= cp <= 0xFB4F:  # noqa: PLR2004
+        # ── Hebrew ────────────────────────────────────────────────────
+        elif (  # noqa: PLR2004
+            0x0590 <= cp <= 0x05FF or 0xFB1D <= cp <= 0xFB4F  # noqa: PLR2004
+        ):
             counts["hebrew"] += 1
 
-        # Devanagari (Hindi, Sanskrit, Marathi, Nepali)
+        # ── Devanagari (Hindi, Sanskrit, Marathi, Nepali) ─────────────
         elif 0x0900 <= cp <= 0x097F or 0xA8E0 <= cp <= 0xA8FF:  # noqa: PLR2004
             counts["devanagari"] += 1
 
-        # Greek (modern and ancient)
+        # ── Greek (modern and ancient) ────────────────────────────────
         elif 0x0370 <= cp <= 0x03FF or 0x1F00 <= cp <= 0x1FFF:  # noqa: PLR2004
             counts["greek"] += 1
 
-        # Cyrillic
+        # ── Cyrillic ──────────────────────────────────────────────────
         elif 0x0400 <= cp <= 0x04FF or 0x0500 <= cp <= 0x052F:  # noqa: PLR2004
             counts["cyrillic"] += 1
 
-        # Ethiopic (Amharic, Tigrinya)
+        # ── Ethiopic (Amharic, Tigrinya) ──────────────────────────────
         elif 0x1200 <= cp <= 0x137F or 0x1380 <= cp <= 0x139F:  # noqa: PLR2004
             counts["ethiopic"] += 1
 
-        # Georgian
+        # ── Georgian ──────────────────────────────────────────────────
         elif 0x10A0 <= cp <= 0x10FF:  # noqa: PLR2004
             counts["georgian"] += 1
 
-        # Coptic (proxy for Coptic-script ancient Egyptian)
+        # ── Coptic (proxy for Coptic-script ancient Egyptian) ─────────
         elif 0x2C80 <= cp <= 0x2CFF:  # noqa: PLR2004
             counts["egyptian"] += 1
 
-        # Thai
+        # ── Egyptian Hieroglyphs ──────────────────────────────────────
+        elif 0x13000 <= cp <= 0x1342F:  # noqa: PLR2004
+            counts["egyptian_hieroglyphs"] += 1
+
+        # ── Thai ──────────────────────────────────────────────────────
         elif 0x0E00 <= cp <= 0x0E7F:  # noqa: PLR2004
             counts["thai"] += 1
 
-        # Southeast Asian: Lao, Myanmar/Burmese, Khmer
+        # ── Myanmar / Burmese (split from southeast_asian) ────────────
+        elif 0x1000 <= cp <= 0x109F:  # noqa: PLR2004
+            counts["myanmar"] += 1
+
+        # ── Khmer (split from southeast_asian) ────────────────────────
+        elif 0x1780 <= cp <= 0x17FF:  # noqa: PLR2004
+            counts["khmer"] += 1
+
+        # ── Other Southeast Asian: Lao, Tai Tham ─────────────────────
         elif (
             0x0E80 <= cp <= 0x0EFF  # Lao  # noqa: PLR2004
-            or 0x1000 <= cp <= 0x109F  # Myanmar (Burmese)  # noqa: PLR2004
-            or 0x1780 <= cp <= 0x17FF  # Khmer  # noqa: PLR2004
             or 0x1A20 <= cp <= 0x1AAF  # Tai Tham  # noqa: PLR2004
         ):
             counts["southeast_asian"] += 1
 
-        # South Asian Dravidian: Tamil, Telugu, Kannada, Malayalam, Sinhala
+        # ── Mongolian ─────────────────────────────────────────────────
+        elif 0x1800 <= cp <= 0x18AF:  # noqa: PLR2004
+            counts["mongolian"] += 1
+
+        # ── South Asian Dravidian: Tamil, Telugu, Kannada, Malayalam, Sinhala
         elif (
             0x0B80 <= cp <= 0x0BFF  # Tamil  # noqa: PLR2004
             or 0x0C00 <= cp <= 0x0C7F  # Telugu  # noqa: PLR2004
@@ -1040,15 +1135,40 @@ def detect_script(  # noqa: PLR0912
         ):
             counts["south_asian"] += 1
 
-        # Armenian
+        # ── Armenian ──────────────────────────────────────────────────
         elif 0x0530 <= cp <= 0x058F:  # noqa: PLR2004
             counts["armenian"] += 1
 
-        # Tibetan
+        # ── Tibetan ───────────────────────────────────────────────────
         elif 0x0F00 <= cp <= 0x0FFF:  # noqa: PLR2004
             counts["tibetan"] += 1
 
-        # Latin: Basic + Extended A/B + Supplemental + IPA Extensions
+        # ── Emoji and Miscellaneous Symbols (Bug 1 fix) ───────────────
+        elif (
+            # Miscellaneous Symbols
+            0x2600 <= cp <= 0x27BF  # noqa: PLR2004
+            # Emoji/Misc Symbols & Pictographs
+            or 0x1F300 <= cp <= 0x1F9FF  # noqa: PLR2004
+            # Miscellaneous Technical
+            or 0x2300 <= cp <= 0x23FF  # noqa: PLR2004
+            # Chess / Symbols Extended-A
+            or 0x1FA00 <= cp <= 0x1FA9F  # noqa: PLR2004
+            # Symbols Extended-B
+            or 0x1FAD0 <= cp <= 0x1FAFF  # noqa: PLR2004
+        ):
+            counts["emoji"] += 1
+
+        # ── Mathematical / Musical Symbols ────────────────────────────
+        elif (
+            0x2100 <= cp <= 0x214F  # Letterlike Symbols  # noqa: PLR2004
+            or 0x2200 <= cp <= 0x22FF  # Mathematical Operators  # noqa: PLR2004
+            or 0x2A00 <= cp <= 0x2AFF  # Supplemental Math Operators  # noqa: PLR2004
+            or 0x1D400 <= cp <= 0x1D7FF  # Mathematical Alphanumeric  # noqa: PLR2004
+            or 0x1D100 <= cp <= 0x1D1FF  # Musical Symbols  # noqa: PLR2004
+        ):
+            counts["symbolic"] += 1
+
+        # ── Latin: Basic + Extended A/B + Supplemental + IPA ─────────
         elif (
             0x0041 <= cp <= 0x007A  # A-Z a-z  # noqa: PLR2004
             or 0x00C0 <= cp <= 0x024F  # Latin Extended  # noqa: PLR2004
@@ -1066,6 +1186,9 @@ def detect_script(  # noqa: PLR0912
     dominant_count = counts[dominant_key]
 
     if dominant_count / total >= majority_threshold:
+        # ScriptType.CJK is a deprecated alias; detect_script now returns the
+        # four granular East Asian values (HAN, HIRAGANA, KATAKANA, HANGUL).
+        # Legacy callers comparing against ScriptType.CJK must migrate.
         return ScriptType(dominant_key)
 
     return ScriptType.MIXED
@@ -1154,15 +1277,23 @@ def split_cjk_chars(text: str) -> list[str]:
     each CJK ideograph is its own token and each Latin/numeric word is
     its own token.
 
+    When the ``regex`` library (PyPI) is installed, iteration is over
+    grapheme clusters (``\X``), which is safe for ZWJ emoji sequences,
+    Devanagari conjuncts, and any multi-codepoint grapheme that might
+    occur in mixed-script text.  When ``regex`` is unavailable the
+    legacy codepoint-level implementation is used automatically via
+    :func:`_split_cjk_chars_legacy`.
+
     Parameters
     ----------
     text : str
-        Input text that may contain CJK characters.
+        Input text that may contain CJK characters (NFC normalized for
+        best results when non-CJK grapheme clusters are present).
 
     Returns
     -------
     list[str]
-        Mixed token list.
+        Mixed token list; external API is unchanged from the legacy version.
 
     Notes
     -----
@@ -1173,8 +1304,11 @@ def split_cjk_chars(text: str) -> list[str]:
     that CJK text is not treated as one giant "word" by whitespace
     splitters.
 
-    **Developer note:** Used by :func:`~._fixed_window._tokenize_whitespace`
-    when ``unit=TOKENS`` and the text is detected as CJK.
+    **Developer note:** Bug 3 fix — the original implementation iterated
+    raw codepoints via ``for ch in text:``, which is not grapheme-cluster-
+    safe.  After Layer 0 (GraphemeClusterNormalizer) is applied, use the
+    ``regex`` path.  The legacy path is preserved as
+    :func:`_split_cjk_chars_legacy` for environments without ``regex``.
 
     Examples
     --------
@@ -1185,25 +1319,73 @@ def split_cjk_chars(text: str) -> list[str]:
     >>> split_cjk_chars("abc 日本語 123")
     ['abc', '日', '本', '語', '123']
     """
+    try:
+        import regex as _regex  # noqa: PLC0415
+    except ImportError:
+        return _split_cjk_chars_legacy(text)
+
+    clusters = _regex.findall(r"\X", text)
     tokens: list[str] = []
     buf: list[str] = []
 
+    for cluster in clusters:
+        if cluster in (" ", "\t", "\n", "\r"):
+            if buf:
+                tokens.append("".join(buf))
+                buf = []
+        elif len(cluster) == 1 and is_cjk_char(cluster):
+            if buf:
+                tokens.append("".join(buf))
+                buf = []
+            tokens.append(cluster)
+        else:
+            buf.append(cluster)
+
+    if buf:
+        tokens.append("".join(buf))
+
+    return [t for t in tokens if t.strip()]
+
+
+def _split_cjk_chars_legacy(text: str) -> list[str]:
+    r"""Legacy codepoint-level CJK splitting (pre-Layer-0 implementation).
+
+    Kept as a fallback when the ``regex`` library is not installed.
+    Identical behaviour to the original ``split_cjk_chars`` — iterates
+    raw codepoints and is NOT grapheme-cluster-safe.
+
+    Parameters
+    ----------
+    text : str
+        Input text.
+
+    Returns
+    -------
+    list[str]
+        Mixed token list (CJK chars + non-CJK words).
+
+    Notes
+    -----
+    **Developer note:** Do not call this directly in new code.
+    :func:`split_cjk_chars` dispatches here automatically when ``regex``
+    is unavailable.
+    """
+    tokens: list[str] = []
+    buf: list[str] = []
     for ch in text:
         if ch in (" ", "\t", "\n", "\r"):
             if buf:
                 tokens.append("".join(buf))
                 buf = []
-        elif is_cjk_char(ch):
+        elif len(ch) == 1 and is_cjk_char(ch):
             if buf:
                 tokens.append("".join(buf))
                 buf = []
             tokens.append(ch)
         else:
             buf.append(ch)
-
     if buf:
         tokens.append("".join(buf))
-
     return [t for t in tokens if t.strip()]
 
 
@@ -1214,24 +1396,438 @@ def split_cjk_chars(text: str) -> list[str]:
 #: Compiled regex source for multi-script sentence boundary detection.
 #:
 #: Matches the gap between two sentences across Latin, CJK, Arabic/Persian,
-#: Devanagari, Ethiopic, and other scripts.  Intended to replace the
-#: Latin-only ``_SENTENCE_BOUNDARY_RE`` in :mod:`._sentence` when the
-#: text is non-Latin or mixed.
+#: Devanagari, Ethiopic, Armenian, Khmer, Myanmar, and other scripts.
+#: Intended to replace the Latin-only ``_SENTENCE_BOUNDARY_RE`` in
+#: :mod:`._sentence` when the text is non-Latin or mixed.
 #:
 #: Terminal characters covered:
 #:
 #: * ``.!?``      — ASCII (Latin, English)
 #: * ``。！？``   — CJK (Chinese, Japanese, Korean)  # noqa: RUF003
 #: * ``؟``        — Arabic question mark (U+061F)
-#: * ``。``        — Chinese/Japanese period (U+3002)
 #: * ``।``        — Devanagari (Hindi) full stop (U+0964)
 #: * ``۔``        — Urdu full stop (U+06D4)  # noqa: RUF003
 #: * ``።``        — Ethiopic full stop (U+1362)
 #: * ``…``        — Ellipsis (U+2026)
 #: * ``‼``        — Double exclamation (U+203C)
 #: * ``⁉``        — Exclamation question (U+2049)
+#: * ``։``        — Armenian full stop (U+0589)  [Bug 6 fix]  # noqa: RUF003
+#: * ``។``        — Khmer full stop (U+17D4)   [Bug 6 fix]
+#: * ``၊``        — Myanmar comma (U+104A)     [Bug 6 fix]
+#: * ``။``        — Myanmar full stop (U+104B)  [Bug 6 fix]
+#:
+#: .. note::
+#:    Thai has no dedicated sentence-terminal character — word and sentence
+#:    boundaries must be detected via dictionary-based segmentation
+#:    (``DictionaryBoundaryStrategy`` in Layer 2).  Thai text is therefore
+#:    handled correctly only after Layer 2 is applied; this pattern does
+#:    NOT improve Thai sentence splitting.
+#:
+#: .. note::
+#:    Pre-Layer-0 legacy pattern.  Uses stdlib ``re`` because it predates
+#:    the ``regex``-for-all-Unicode mandate and contains no ``\\X`` or
+#:    ``\\p{}`` syntax.  Do NOT add ``\\X`` or ``\\p{}`` here without
+#:    switching the compilation site (in ``_sentence.py``) to
+#:    ``regex.compile()`` first.  See Bug 5 in
+#:    ``multilang_chunker_final_review.md``.
 MULTI_SCRIPT_SENTENCE_RE_PATTERN: Final[str] = (
-    r"(?<=[.!?。！？؟।۔።…‼⁉])"  # preceded by a sentence terminal  # noqa: RUF001
+    r"(?<=[.!?。！？؟।۔።…‼⁉։។၊။])"  # sentence terminals  # noqa: RUF001
     r"[\s\u200b\u00a0]*"  # optional whitespace / ZWSP / NBSP
     r"(?=\S)"  # followed by any non-whitespace
 )
+
+
+# ===========================================================================
+# Section 6 — Layer 1: ScriptSpan + ScriptSegmenter
+# ===========================================================================
+
+from dataclasses import dataclass  # noqa: E402 (after top-level imports)
+
+
+@dataclass(frozen=True)
+class ScriptSpan:
+    r"""A contiguous span of text in a single Unicode script.
+
+    Produced by :class:`ScriptSegmenter` from NFC-normalised text.
+    All index fields refer to grapheme cluster indices (as produced by
+    ``regex.findall(r'\X', nfc_text)``), not raw codepoint offsets.
+
+    Parameters
+    ----------
+    text : str
+        The span text (NFC normalised).
+    script : ScriptType
+        Detected script for this span.
+    direction : str
+        Writing direction: ``"ltr"`` | ``"rtl"`` | ``"ttb"``.
+    start : int
+        Grapheme cluster index in the parent document (inclusive).
+    end : int
+        Grapheme cluster index in the parent document (exclusive).
+
+    Notes
+    -----
+    **Developer note:** Grapheme cluster indices (start, end) refer to the
+    ``regex.findall(r'\\X', nfc_text)`` list produced by
+    :class:`~._normalizers._normalizer.GraphemeClusterNormalizer`, not
+    codepoint offsets.  A single emoji with ZWJ may span 3+ codepoints
+    but occupies exactly 1 grapheme cluster index slot.
+
+    Examples
+    --------
+    >>> span = ScriptSpan(
+    ...     text="Hello", script=ScriptType.LATIN, direction="ltr", start=0, end=5
+    ... )
+    >>> span.script
+    <ScriptType.LATIN: 'latin'>
+    """
+
+    text: str
+    script: ScriptType
+    direction: str
+    start: int
+    end: int
+
+
+class ScriptSegmenter:
+    r"""Segment NFC-normalised text into contiguous Unicode script spans.
+
+    Uses ``regex`` Unicode Script property matching (``\p{Script=X}``)
+    rather than hard-coded codepoint ranges, so it automatically supports
+    new scripts added by future Unicode versions.
+
+    Common and Inherited codepoints (punctuation, combining marks) attach
+    to the preceding script span. If no preceding span exists they attach
+    to the following span.
+
+    Parameters
+    ----------
+    min_span_chars : int, optional
+        Minimum grapheme count for a span to be emitted as a standalone
+        span.  Spans shorter than this are merged into the adjacent
+        dominant span.  Default 1 (no merging).
+    inherit_direction : bool, optional
+        Common / Inherited codepoints inherit direction from the adjacent
+        span.  Default ``True``.
+    unknown_script_warning : bool, optional
+        Emit a ``logger.warning`` when a codepoint's script property is not
+        in the known ``ScriptType`` enum.  Default ``True``.
+        The span is still produced with :attr:`ScriptType.UNKNOWN`.
+
+    Raises
+    ------
+    ImportError
+        If the ``regex`` (PyPI) library is not installed.  Message includes
+        the exact ``pip install regex`` command.
+
+    Notes
+    -----
+    **User note:** Install ``regex`` with ``pip install regex`` before using
+    this class.  It is the only external dependency of Layer 1.
+
+    **Developer note:** Uses ``regex`` Unicode property syntax.  All spans
+    are produced in logical (storage) order — never reordered.
+    ``ScriptSegmenter`` is stateless; all state lives in local variables
+    within :meth:`segment`.
+
+    Idempotency guarantee:
+        Segmenting already-NFC text twice produces identical spans.
+
+    References
+    ----------
+    UAX #24 (Script Property): https://unicode.org/reports/tr24/
+    regex library: https://pypi.org/project/regex/
+
+    Examples
+    --------
+    >>> seg = ScriptSegmenter()
+    >>> spans = seg.segment("Hello مرحبا world")
+    >>> [s.script.value for s in spans]
+    ['latin', 'arabic', 'latin']
+    """
+
+    # Direction map: ScriptType value string → canonical direction string.
+    # TTB is stored as logical LTR (Unicode always stores in logical order).
+    DIRECTION_MAP: ClassVar[dict[str, str]] = {
+        "latin": "ltr",
+        "cyrillic": "ltr",
+        "greek": "ltr",
+        "armenian": "ltr",
+        "georgian": "ltr",
+        "ethiopic": "ltr",
+        "devanagari": "ltr",
+        "thai": "ltr",
+        "tibetan": "ltr",
+        "southeast_asian": "ltr",
+        "south_asian": "ltr",
+        # East Asian — modern horizontal; TTB is a rendering concern only
+        "han": "ltr",
+        "hiragana": "ltr",
+        "katakana": "ltr",
+        "hangul": "ltr",
+        "cjk": "ltr",  # legacy alias
+        # Central Asian
+        "mongolian": "ttb",  # traditional; stored LTR, rendered TTB
+        # RTL
+        "arabic": "rtl",
+        "hebrew": "rtl",
+        # Symbol / emoji
+        "emoji": "ltr",
+        "symbolic": "ltr",
+        # Ancient
+        "egyptian": "ltr",
+        "egyptian_hieroglyphs": "ltr",
+        "myanmar": "ltr",
+        "khmer": "ltr",
+        # Meta
+        "mixed": "ltr",
+        "unknown": "ltr",
+    }
+
+    # Mapping from regex Unicode Script property name → ScriptType value string.
+    SCRIPT_PROPERTY_MAP: ClassVar[dict[str, str]] = {
+        "Latin": "latin",
+        "Cyrillic": "cyrillic",
+        "Greek": "greek",
+        "Arabic": "arabic",
+        "Hebrew": "hebrew",
+        "Devanagari": "devanagari",
+        "Han": "han",
+        "Hiragana": "hiragana",
+        "Katakana": "katakana",
+        "Hangul": "hangul",
+        "Thai": "thai",
+        "Tibetan": "tibetan",
+        "Georgian": "georgian",
+        "Armenian": "armenian",
+        "Ethiopic": "ethiopic",
+        "Myanmar": "myanmar",
+        "Khmer": "khmer",
+        "Mongolian": "mongolian",
+        "Egyptian_Hieroglyphs": "egyptian_hieroglyphs",
+        "Coptic": "egyptian",
+        # Common / Inherited are handled separately
+        "Common": "_common",
+        "Inherited": "_inherited",
+    }
+
+    def __init__(
+        self,
+        *,
+        min_span_chars: int = 1,
+        inherit_direction: bool = True,
+        unknown_script_warning: bool = True,
+    ) -> None:
+        try:
+            import regex as _regex  # noqa: PLC0415
+
+            self._regex = _regex
+        except ImportError as exc:
+            raise ImportError(
+                "ScriptSegmenter requires the `regex` library (Layer 1). "
+                "Install it with: pip install regex"
+            ) from exc
+
+        if min_span_chars < 1:
+            raise ValueError(
+                f"ScriptSegmenter: min_span_chars must be >= 1, got {min_span_chars!r}."
+            )
+
+        self._min_span_chars = min_span_chars
+        self._inherit_direction = inherit_direction
+        self._unknown_script_warning = unknown_script_warning
+
+    def _get_cluster_script(self, cluster: str) -> str:
+        """Return the Script property name for the first codepoint of *cluster*.
+
+        Parameters
+        ----------
+        cluster : str
+            A single grapheme cluster (one or more codepoints).
+
+        Returns
+        -------
+        str
+            One of the ``SCRIPT_PROPERTY_MAP`` keys, ``"_common"``,
+            ``"_inherited"``, or ``"_unknown"`` for unmapped scripts.
+        """
+        if not cluster:
+            return "_common"
+        first_cp = cluster[0]
+        try:
+            prop = self._regex.regex.get_script(first_cp)  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            prop = None
+
+        if prop is None:
+            # Fallback: use Unicode general category for Common/Inherited.
+            import unicodedata  # noqa: PLC0415
+
+            cat = unicodedata.category(first_cp)
+            if cat in ("Cf", "Mn", "Mc", "Me"):
+                return "_inherited"
+            return "_common"
+
+        return self.SCRIPT_PROPERTY_MAP.get(prop, "_unknown")
+
+    def segment(self, text: str) -> list[ScriptSpan]:  # noqa: PLR0912
+        r"""Segment *text* into contiguous :class:`ScriptSpan` objects.
+
+        Parameters
+        ----------
+        text : str
+            NFC-normalised input text. Run
+            :class:`~._normalizers._normalizer.GraphemeClusterNormalizer`
+            first for correctness on non-Latin scripts.
+
+        Returns
+        -------
+        list[ScriptSpan]
+            Non-empty list of spans in logical order.  Returns a single
+            :attr:`ScriptType.UNKNOWN` span for empty input.
+
+        Notes
+        -----
+        **Developer note:** Common / Inherited codepoints (punctuation,
+        diacritics) are attributed to the preceding span; if there is no
+        preceding span they are deferred and attributed to the next span.
+        Whitespace-only spans are attributed to ``_common`` and merged
+        into adjacent spans.
+        """
+        if not text:
+            return [
+                ScriptSpan(
+                    text="",
+                    script=ScriptType.UNKNOWN,
+                    direction="ltr",
+                    start=0,
+                    end=0,
+                )
+            ]
+
+        clusters: list[str] = self._regex.findall(r"\X", text)
+        n_clusters = len(clusters)
+
+        # Build a parallel script-key list — one entry per grapheme cluster.
+        cluster_scripts: list[str] = []
+        for cluster in clusters:
+            cluster_scripts.append(self._get_cluster_script(cluster))
+
+        # Resolve Common / Inherited: attach to adjacent known script.
+        # Pass 1 — forward pass: attach to preceding.
+        resolved: list[str] = list(cluster_scripts)
+        last_known = "_common"
+        for i, sc in enumerate(cluster_scripts):
+            if sc not in ("_common", "_inherited", "_unknown"):
+                last_known = sc
+            else:
+                resolved[i] = last_known  # may still be "_common" at start
+
+        # Pass 2 — backward pass: attach leading Common/Inherited to first
+        # known script that follows.
+        first_known = "_common"
+        for sc in reversed(resolved):
+            if sc not in ("_common", "_inherited", "_unknown"):
+                first_known = sc
+                break
+        for i, sc in enumerate(resolved):
+            if sc in ("_common", "_inherited", "_unknown"):
+                resolved[i] = first_known
+            else:
+                break
+
+        # Edge case: if first_known is still "_common" after both passes, the
+        # ENTIRE text contains only Common/Inherited characters (all punctuation,
+        # digits, spaces, symbols — no letters from any known script).
+        # Replace remaining "_common" sentinels with "_unknown" so the span-build
+        # loop below maps them to ScriptType.UNKNOWN cleanly without emitting the
+        # "unrecognised script property" warning (which was designed for NEW Unicode
+        # scripts, not for this expected Common-only edge case).
+        if first_known == "_common":
+            resolved = [
+                "_unknown" if sc in ("_common", "_inherited", "_unknown") else sc
+                for sc in resolved
+            ]
+
+        # Build runs of identical resolved script keys.
+        spans: list[ScriptSpan] = []
+        i = 0
+        while i < n_clusters:
+            run_script_key = resolved[i]
+            j = i
+            while j < n_clusters and resolved[j] == run_script_key:
+                j += 1
+
+            run_text = "".join(clusters[i:j])
+
+            # Map script key → ScriptType (with unknown-script warning).
+            # NOTE: "_common" should no longer appear here after the resolution
+            # passes above.  If it does, it means a NEWLY ADDED Unicode script
+            # that shares the "Common" script property — warn as before.
+            try:
+                script_enum = ScriptType(run_script_key)
+            except ValueError:
+                if self._unknown_script_warning:
+                    logger.warning(
+                        "ScriptSegmenter: unrecognised script property %r "
+                        "at grapheme cluster index %d. Falling back to "
+                        "ScriptType.UNKNOWN. If this is a recently added "
+                        "Unicode script, update SCRIPT_PROPERTY_MAP.",
+                        run_script_key,
+                        i,
+                    )
+                script_enum = ScriptType.UNKNOWN
+
+            direction = self.DIRECTION_MAP.get(script_enum.value, "ltr")
+            spans.append(
+                ScriptSpan(
+                    text=run_text,
+                    script=script_enum,
+                    direction=direction,
+                    start=i,
+                    end=j,
+                )
+            )
+            i = j
+
+        # Merge very short spans into the adjacent dominant span.
+        if self._min_span_chars > 1 and len(spans) > 1:
+            spans = self._merge_short_spans(spans, self._min_span_chars)
+
+        return spans
+
+    @staticmethod
+    def _merge_short_spans(
+        spans: list[ScriptSpan],
+        min_chars: int,
+    ) -> list[ScriptSpan]:
+        """Merge spans shorter than *min_chars* into adjacent dominant span.
+
+        Parameters
+        ----------
+        spans : list[ScriptSpan]
+            Spans to merge.
+        min_chars : int
+            Minimum grapheme count threshold.
+
+        Returns
+        -------
+        list[ScriptSpan]
+            Merged span list (always non-empty).
+        """
+        merged: list[ScriptSpan] = []
+        for span in spans:
+            span_len = span.end - span.start
+            if span_len < min_chars and merged:
+                prev = merged[-1]
+                # Merge into previous span, keep previous script/direction.
+                merged[-1] = ScriptSpan(
+                    text=prev.text + span.text,
+                    script=prev.script,
+                    direction=prev.direction,
+                    start=prev.start,
+                    end=span.end,
+                )
+            else:
+                merged.append(span)
+        return merged

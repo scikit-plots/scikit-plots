@@ -418,6 +418,7 @@ except ImportError:
 # https://jupyterlite-sphinx.readthedocs.io/en/latest/directives/try_examples.html#global-configuration
 global_enable_try_examples = True
 try_examples_global_button_text = "Try it in your browser!"
+# To enforce exact visible length, combine truncation + padding:
 try_examples_global_warning_text = (
     "# JupyterLite warning\n\n"
     f"- Running the **scikit-plots {release}** interactive examples in JupyterLite is "
@@ -429,14 +430,10 @@ try_examples_global_warning_text = (
     "\n\n"
     "```python\n"
     "# Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
-    "# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
-    "# import micropip\n"
-    "import piplite\n"
-    "await piplite.install(\n"
-    f"  'scikit-plots=={release}',\n"
+    "import piplite; await piplite.install(  # import micropip\n"
+    f"   '{f'''scikit-plots=={release}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
     "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
-    ")\n"
-    "import scikitplot as sp; sp.show_versions()\n"
+    "); import sklearn; import scikitplot as sp; sp.show_versions();\n "
     "```"
 )
 
@@ -2321,9 +2318,17 @@ url_rst_templates = [
 
 from apis_reference import APIS_REFERENCE, DEPRECATED_APIS_REFERENCE
 
-# Define the templates and target files for conversion
+key = lambda m: (
+    "._" in m[0],                                            # internal/private modules
+    m[0].count(".") == 1 and m[0].endswith("externals"),     # top-level externals
+    m[0].count(".") == 1 and m[0].endswith("experimental"),  # top-level experimental
+    m[0]                                                     # stable fallback
+)
+
+# Define the templates and target files for conversion order
 # Each entry is in the format (template name, file name, kwargs for rendering)
 rst_templates: list[tuple[str, str, dict[str, any]]] = [
+    # ("index", "index", {"development_link": development_link}),
     (
         "apis/index",
         "apis/index",
@@ -2331,7 +2336,8 @@ rst_templates: list[tuple[str, str, dict[str, any]]] = [
             # Within each group → standard alphabetical order
             # All (False, …) → public first
             # Then (True, …) → private
-            "APIS_REFERENCE": sorted(APIS_REFERENCE.items(), key=lambda x: (x[0].startswith("_"), x[0])),
+            # "API_REFERENCE": sorted(API_REFERENCE.items(), key=lambda x: x[0]),
+            "APIS_REFERENCE": sorted(APIS_REFERENCE.items(), key=key),
             "DEPRECATED_APIS_REFERENCE": sorted(
                 DEPRECATED_APIS_REFERENCE.items(), key=lambda x: x[0], reverse=True
             ),
@@ -2339,13 +2345,16 @@ rst_templates: list[tuple[str, str, dict[str, any]]] = [
     ),
 ]
 
-# Convert each module APIs reference page
+# Convert each module APIs reference page HTML via Jinja
 for module in APIS_REFERENCE:
     rst_templates.append(
         (
             "apis/module",
             f"apis/{module}",
-            {"module": module, "module_info": APIS_REFERENCE[module]},
+            {
+                "module": module,
+                "module_info": APIS_REFERENCE[module],
+            },
         )
     )
 

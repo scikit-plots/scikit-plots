@@ -305,6 +305,26 @@ class CorpusDocument:
     keywords: list[str] | None
 
     # ------------------------------------------------------------------
+    # OCR provenance (ImageReader, AudioReader, VideoReader sources)
+    # ------------------------------------------------------------------
+    raw_text: str | None
+
+    # ------------------------------------------------------------------
+    # Multilang / multi-script (MultilangMixin output)
+    # ------------------------------------------------------------------
+    script: str | None
+    script_direction: str | None
+    grapheme_count: int | None
+    codepoint_count: int | None
+    is_mixed_script: bool | None
+    script_spans: list[dict[str, Any]] | None
+    chunking_unit: str | None
+    semanteme_count: int | None
+    morphemes: list[str] | None
+    determinative_groups: list[dict[str, Any]] | None
+    script_model_version: str | None
+
+    # ------------------------------------------------------------------
     # Raw media / multimodal
     # ------------------------------------------------------------------
     modality: Modality
@@ -390,10 +410,23 @@ class CorpusDocument:
         bbox: tuple[float, float, float, float] | None = ...,
         # NLP enrichment
         normalized_text: str | None = ...,
+        raw_text: str | None = ...,
         tokens: list[str] | None = ...,
         lemmas: list[str] | None = ...,
         stems: list[str] | None = ...,
         keywords: list[str] | None = ...,
+        # Multilang / multi-script fields
+        script: str | None = ...,
+        script_direction: str | None = ...,
+        grapheme_count: int | None = ...,
+        codepoint_count: int | None = ...,
+        is_mixed_script: bool | None = ...,
+        script_spans: list | None = ...,
+        chunking_unit: str | None = ...,
+        semanteme_count: int | None = ...,
+        morphemes: list[str] | None = ...,
+        determinative_groups: list | None = ...,
+        script_model_version: str | None = ...,
         # Raw media
         modality: Modality | None = ...,
         raw_bytes: bytes | None = ...,

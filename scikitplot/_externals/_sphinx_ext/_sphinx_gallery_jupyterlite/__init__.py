@@ -529,34 +529,27 @@ def notebook_modification_function(
     if "dev" not in _RELEASE_VERSION:  # defined `release` in conf.py
         code_lines.extend(
             [
-                "import sklearn",
                 "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
-                "# Download scikit-plots *pyodide_20XX_0_wasm32.whl",
-                "import piplite",
-                "await piplite.install(\n"
-                f"  'scikit-plots=={_RELEASE_VERSION}',\n"
-                "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
-                ")",
-                "import scikitplot as sp; sp.show_versions()",
+                "import piplite; await piplite.install(  # import micropip\n"
+                f"   '{f'''scikit-plots=={_RELEASE_VERSION}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
+                "   index_urls=['https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple'],\n"
+                "); import sklearn; import scikitplot as sp; sp.show_versions();",
             ]
         )
     else:
         code_lines.extend(
             [
+                "# https://pyodide.org/en/stable/usage/downloading-and-deploying.html#cdn",
+                "# PEP 503 'simple' Python package index for `pip/micropip/piplite`",
                 "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
-                "# Download scikit-plots *pyodide_20XX_0_wasm32.whl",
-                "# import micropip",
-                "import piplite",
-                "await piplite.install(\n"
-                "  'scikit-learn',\n"
-                "   index_urls='https://pypi.anaconda.org/scientific-python-nightly-wheels/simple',\n"
-                ")",
-                "import sklearn",
-                "await piplite.install(\n"
-                f"  'scikit-plots=={_RELEASE_VERSION}',\n"
-                "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
-                ")",
-                "import scikitplot as sp; sp.show_versions()",
+                "import piplite; await piplite.install(  # import micropip\n"
+                f"   '{f'''scikit-plots=={_RELEASE_VERSION}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
+                "   index_urls=[\n"
+                "      'https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
+                "      'https://pypi.anaconda.org/scientific-python-nightly-wheels/simple',\n"
+                "      'https://pypi.anaconda.org/pyodide/simple',\n"
+                "      'https://pypi.org/simple',\n"
+                "]); import sklearn; import scikitplot as sp; sp.show_versions();",
             ]
         )
     add_code_cell(prepend_cells, "\n".join(code_lines))
