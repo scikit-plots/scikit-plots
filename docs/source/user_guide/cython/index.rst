@@ -30,7 +30,15 @@ garbage collection, and templating support. ``"Simple Foundation. Truly Sovereig
 :mod:`scikitplot.cython` enables real-time, in-place (in-situ) live, on demand
 generation of low-level Cython packages and modules for immediate use and testing, at runtime.
 
-.. rubric:: Quiskstart
+* :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
+  :func:`~.compile_and_load` using template.
+
+.. seealso::
+  * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
+  * https://github.com/cython/cython
+  * https://cython.readthedocs.io/en/latest/index.html
+
+.. rubric:: Examples
 
 .. .. jupyter-execute
 .. .. code-block:: python
@@ -40,16 +48,6 @@ generation of low-level Cython packages and modules for immediate use and testin
 
   m = compile_and_load("def f(int n):\n    return n*n")
   m.f(10)
-
-.. rubric:: Examples
-
-* :ref:`sphx_glr_auto_examples_cython_plot_cython_template.py`: Example usage of
-  :func:`~.compile_and_load` using template.
-
-.. seealso::
-  * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
-  * https://github.com/cython/cython
-  * https://cython.readthedocs.io/en/latest/index.html
 
 .. grid:: 1 1 1 1
 

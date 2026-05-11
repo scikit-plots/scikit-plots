@@ -7,7 +7,7 @@
 
 r"""
 scikitplot.corpus._export
-==========================
+=========================
 Multi-format corpus export for
 :class:`~scikitplot.corpus._schema.CorpusDocument` lists.
 
@@ -105,6 +105,34 @@ _JSON_INDENT: int = 2
 
 #: CSV encoding used by all text-based exporters.
 _CSV_ENCODING: str = "utf-8"
+
+#: Stable, identity-first column ordering for CSV/pandas exports.
+#:
+#: Used both by :func:`_compute_csv_fieldnames` (as the priority prefix) and
+#: by the empty-document fast-path in :func:`_export_csv` /
+#: :func:`_export_pandas` to write a header-only file instead of zero bytes.
+#: A header-only file lets ``pd.read_csv()`` return an empty DataFrame with
+#: named columns rather than raising ``pandas.errors.EmptyDataError``.
+#:
+#: **Rationale for module-level constant:**  the list was previously
+#: inlined inside ``_compute_csv_fieldnames``, which meant it was only
+#: reachable at runtime when documents existed.  Hoisting it here makes the
+#: canonical column order the single source of truth for all callers.
+_CSV_IDENTITY_ORDER: list[str] = [
+    "doc_id",
+    "input_path",
+    "chunk_index",
+    # Three-tier OCR text fields — grouped for easy visual comparison:
+    "text",  # chunked form
+    "raw_text",  # pre-normalization OCR output (None for non-OCR sources)
+    "normalized_text",  # post-TextNormalizer NFKC form
+    "section_type",
+    "chunking_strategy",
+    "language",
+    "source_type",
+    "source_title",
+    "source_author",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -309,20 +337,8 @@ def _compute_csv_fieldnames(rows):
     for row in rows:
         all_keys.update(row.keys())
 
-    # Stable ordering: identity fields first
-    identity_order = [
-        "doc_id",
-        "input_path",
-        "chunk_index",
-        "text",
-        "section_type",
-        "chunking_strategy",
-        "language",
-        "source_type",
-        "source_title",
-        "source_author",
-    ]
-    fieldnames = [k for k in identity_order if k in all_keys]
+    # Stable ordering: identity fields first (single source of truth at module level).
+    fieldnames = [k for k in _CSV_IDENTITY_ORDER if k in all_keys]
     fieldnames += sorted(all_keys - set(fieldnames))
     return fieldnames
 
@@ -341,15 +357,40 @@ def _export_csv(  # noqa: D417
     :meth:`~scikitplot.corpus._schema.CorpusDocument.to_flat_dict`.
     Embeddings are never included (not suited to tabular cells).
 
+    When ``documents`` is empty a **header-only CSV** is written using
+    :data:`_CSV_IDENTITY_ORDER` as the column list.  This guarantees that
+    ``pd.read_csv(output_path)`` always succeeds and returns an empty
+    ``DataFrame`` with named columns instead of raising
+    ``pandas.errors.EmptyDataError``.
+
     Parameters
     ----------
     documents : list of CorpusDocument
     output_path : pathlib.Path
     include_embedding : bool
         Ignored for CSV — embeddings are always excluded.
+
+    Notes
+    -----
+    **Developer note:** A zero-byte file was written previously for the
+    empty case.  ``pandas.read_csv`` raises ``EmptyDataError`` on a
+    zero-byte file.  The header-only approach is consistent with what
+    ``pandas.DataFrame.to_csv`` produces for an empty ``DataFrame`` and
+    lets callers differentiate "empty corpus" from "missing file".
     """
+    buf = io.StringIO()
+
     if not documents:
-        _atomic_write_text(output_path, "")
+        # Write identity columns only — no rows.  Callers get a parseable,
+        # zero-row DataFrame rather than EmptyDataError.
+        writer = csv.DictWriter(
+            buf, fieldnames=_CSV_IDENTITY_ORDER, extrasaction="ignore"
+        )
+        writer.writeheader()
+        _atomic_write_text(output_path, buf.getvalue())
+        logger.debug(
+            "_export_csv: no documents — wrote header-only CSV to %s.", output_path
+        )
         return
 
     rows = [doc.to_flat_dict(include_embedding=False) for doc in documents]
@@ -582,6 +623,11 @@ def _export_pandas(  # noqa: D417
     Richer dtype handling than the stdlib CSV exporter. Embeddings are
     excluded regardless of ``include_embedding`` (not tabular-friendly).
 
+    When ``documents`` is empty a **header-only CSV** is written using
+    :data:`_CSV_IDENTITY_ORDER` as the column list.  This mirrors the
+    behaviour of :func:`_export_csv` and prevents
+    ``pandas.errors.EmptyDataError`` on the read side.
+
     Parameters
     ----------
     documents : list of CorpusDocument
@@ -593,6 +639,13 @@ def _export_pandas(  # noqa: D417
     ------
     ImportError
         If ``pandas`` is not installed.
+
+    Notes
+    -----
+    **Developer note:** ``pd.DataFrame([]).to_csv(...)`` writes only a
+    trailing newline (no header), which also triggers ``EmptyDataError``.
+    Constructing the empty DataFrame with explicit ``columns`` writes a
+    proper header row.
     """
     try:
         import pandas as pd  # noqa: PLC0415
@@ -603,8 +656,17 @@ def _export_pandas(  # noqa: D417
             "  pip install pandas"
         ) from exc
 
-    rows = [doc.to_pandas_row(include_embedding=False) for doc in documents]
-    df = pd.DataFrame(rows)
+    if not documents:
+        # Build a header-only DataFrame — columns defined, no rows.
+        # pd.DataFrame([]) would produce no columns and therefore no
+        # header, triggering EmptyDataError on re-read.
+        df = pd.DataFrame(columns=_CSV_IDENTITY_ORDER)
+        logger.debug(
+            "_export_pandas: no documents — wrote header-only CSV to %s.", output_path
+        )
+    else:
+        rows = [doc.to_pandas_row(include_embedding=False) for doc in documents]
+        df = pd.DataFrame(rows)
 
     tmp = output_path.with_name(output_path.name + ".tmp")
     try:

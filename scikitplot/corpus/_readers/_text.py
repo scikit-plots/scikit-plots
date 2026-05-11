@@ -1,6 +1,13 @@
+# scikitplot/corpus/_readers/_text.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._readers.text
-================================
+===============================
 Plain-text document reader for the scikitplot corpus pipeline.
 
 Handles ``.txt``, ``.md``, and ``.rst`` files (and any other extension
@@ -47,7 +54,8 @@ __all__ = [
 
 # Default upper bound for files read into memory in one shot.
 # 500 MB should be generous for any realistic text corpus file.
-_DEFAULT_MAX_FILE_BYTES: int = 500 * 1024 * 1024  # 500 MB
+# BUG-05 fix: renamed from _TEXT_DEFAULT_MAX_FILE_BYTES to be format-specific.
+_TEXT_DEFAULT_MAX_FILE_BYTES: int = 500 * 1024 * 1024  # 500 MB
 
 # Minimum confidence threshold for accepting chardet's encoding guess.
 _CHARDET_MIN_CONFIDENCE: float = 0.80
@@ -227,7 +235,7 @@ class TextReader(DocumentReader):
     >>> reader = MarkdownReader(input_path=Path("notes.md"))
     """
 
-    file_type: ClassVar[str] = ".txt"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".txt"]
 
     encoding: Optional[str] = field(default=None)  # noqa: UP045
@@ -236,7 +244,7 @@ class TextReader(DocumentReader):
     Example values: ``"utf-8"``, ``"latin-1"``, ``"windows-1252"``.
     """
 
-    max_file_bytes: int = field(default=_DEFAULT_MAX_FILE_BYTES)
+    max_file_bytes: int = field(default=_TEXT_DEFAULT_MAX_FILE_BYTES)
     """
     Maximum file size in bytes before rejecting. Default: 500 MB.
     """
@@ -326,6 +334,10 @@ class TextReader(DocumentReader):
 
         yield {
             "text": text,
+            # raw_text: full file content as read from disk before any
+            # downstream chunking or NLP — no pre-processing occurs in
+            # TextReader, so raw_text equals text by definition.
+            "raw_text": text,
             "section_type": SectionType.TEXT.value,
         }
 
@@ -374,7 +386,7 @@ class MarkdownReader(TextReader):
     >>> docs = list(reader.get_documents())
     """
 
-    file_type: ClassVar[str] = ".md"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".md"]
 
 
@@ -412,5 +424,5 @@ class ReSTReader(TextReader):
     >>> docs = list(reader.get_documents())
     """
 
-    file_type: ClassVar[str] = ".rst"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".rst"]

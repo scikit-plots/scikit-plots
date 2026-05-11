@@ -15,11 +15,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .module import Module
 
-if TYPE_CHECKING:
-    from ...interpreter import Interpreter  # type: ignore[]
+_ENABLED = (__package__ or "").startswith("meson")
+if _ENABLED:
+    from .module import Module
+
+    if TYPE_CHECKING:
+        from ...interpreter import Interpreter  # type: ignore[]
 
 
-def initialize(interpreter: "Interpreter") -> Module:
-    return Module()
+    def initialize(interpreter: "Interpreter") -> Module:
+        return Module()

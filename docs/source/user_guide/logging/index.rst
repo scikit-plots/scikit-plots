@@ -38,6 +38,8 @@ This module contains functions related to :py:mod:`~.logging` (Scikit-plots Logg
 Configuring the logging system
 ----------------------------------------------------------------------
 
+.. rubric:: Examples
+
 Get the root ``logger`` from ``module attr``:
 
 .. code-block:: python

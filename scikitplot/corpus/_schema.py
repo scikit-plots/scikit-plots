@@ -7,7 +7,7 @@
 
 """
 scikitplot.corpus._schema
-========================
+=========================
 Canonical data contracts for the scikitplot corpus pipeline.
 
 This module is the **single source of truth** for every data type that flows
@@ -871,6 +871,7 @@ _PROMOTED_RAW_KEYS: frozenset[str] = frozenset(
         "bbox",
         # NLP enrichment
         "normalized_text",
+        "raw_text",  # pre-processing form: HTML/tag-stripped, WS-joined, or ASR output before NLP (all readers)
         "tokens",
         "lemmas",
         "stems",
@@ -883,6 +884,18 @@ _PROMOTED_RAW_KEYS: frozenset[str] = frozenset(
         "raw_dtype",
         "frame_index",
         "content_hash",
+        # Multilang / multi-script (populated from MultilangMixin via bridge)
+        "script",
+        "script_direction",
+        "grapheme_count",
+        "codepoint_count",
+        "is_mixed_script",
+        "script_spans",
+        "chunking_unit",
+        "semanteme_count",
+        "morphemes",
+        "determinative_groups",
+        "script_model_version",
     }
 )
 """
@@ -1220,6 +1233,56 @@ class CorpusDocument:
     # NLP enrichment fields (Issue S-4)
     # ------------------------------------------------------------------
 
+    raw_text: str | None = field(default=None)
+    """Verbatim source text before any normalisation or NLP processing.
+
+    Populated by every reader in the corpus pipeline so that the
+    before/after transformation can always be compared at the document
+    level:
+
+    * :class:`~._readers._image.ImageReader` — exact Tesseract / easyocr
+      output bytes before any chunker or NLP step.
+    * :class:`~._readers._audio.AudioReader` — pre-LRC-inline-tag-strip
+      or pre-VTT-HTML-strip cue text; verbatim Whisper/NeMo ASR output;
+      classifier label text (no pre-processing, equals ``text``).
+    * :class:`~._readers._video.VideoReader` — pre-HTML-strip SRT/SBV/VTT
+      cue text; verbatim Whisper ASR output.
+    * :class:`~._readers._pdf.PDFReader` — backend extraction result
+      before ``.strip()`` (preserves original page boundary whitespace).
+    * :class:`~._readers._text.TextReader` — full file content as read;
+      no pre-processing occurs so ``raw_text == text``.
+    * :class:`~._readers._xml.XMLReader` /
+      :class:`~._readers._xml.TEIReader` — ``itertext()`` join before
+      ``_WS_RE`` whitespace collapsing.
+    * :class:`~._readers._alto.ALTOReader` — verbatim ALTO ``CONTENT``
+      attribute tokens; no additional normalisation, so ``raw_text == text``.
+    * :class:`~._readers._web.WebReader` — inner HTML of the matched
+      element (tags included) before ``get_text()`` strips them.
+    * :class:`~._readers._web.YouTubeReader` — pre-HTML-strip cue text
+      from the transcript API (may contain ``<c>`` tags or HTML entities).
+
+    Use this field to compare what each reader returned against:
+
+    * :attr:`text`            — the chunked form (post-chunker, no NLP)
+    * :attr:`normalized_text` — the post-:class:`TextNormalizer` form used
+                                for embedding
+
+    Three-tier comparison for quality audit::
+
+        raw_text        →  verbatim reader output before any cleaning
+        text            →  cleaned / chunked form
+        normalized_text →  NFKC + ligature expansion + hyphen-join + whitespace collapse
+
+    Notes
+    -----
+    For multilingual images, accuracy requires Tesseract to be invoked with
+    the correct ``ocr_lang`` string (e.g. ``"eng+deu+ara+heb+tur+ell"``).
+    With ``ocr_lang=None`` (the default), Tesseract uses English-only and
+    silently transliterates Arabic / Hebrew / Greek glyphs into Latin
+    lookalikes. ``raw_text`` then reflects that garbled output, NOT the
+    original script — the problem belongs to the pipeline caller, not here.
+    """
+
     normalized_text: str | None = field(default=None)
     """Normalised text used by the embedding engine."""
 
@@ -1234,6 +1297,115 @@ class CorpusDocument:
 
     keywords: list[str] | None = field(default=None, repr=False, compare=False)
     """Extracted keyphrases for topic-level matching."""
+
+    # ------------------------------------------------------------------
+    # Multilang / Multi-script fields (Layer 0-3 output)
+    # ------------------------------------------------------------------
+
+    script: str | None = field(default=None)
+    """Dominant script of this chunk.
+
+    Set to a :class:`~._chunkers._custom_tokenizer.ScriptType` value string
+    (e.g. ``"latin"``, ``"arabic"``, ``"han"``). ``None`` if the chunker was
+    script-unaware or no script was detected.
+    """
+
+    script_direction: str | None = field(default=None)
+    """Writing direction of the dominant script.
+
+    One of ``"ltr"`` (left-to-right), ``"rtl"`` (right-to-left), or
+    ``"ttb"`` (top-to-bottom, traditional Mongolian). ``None`` if not detected.
+    """
+
+    grapheme_count: int | None = field(default=None)
+    """Number of grapheme clusters in :attr:`text`.
+
+    This is the correct user-perceived character count as defined by
+    Unicode UAX #29.  Always ``<= len(text)`` because each grapheme
+    cluster is at least one codepoint. ``None`` if
+    :class:`~._normalizers._normalizer.GraphemeClusterNormalizer` has not
+    been applied.
+    """
+
+    codepoint_count: int | None = field(default=None)
+    """Number of Unicode codepoints in :attr:`text`.
+
+    Equal to ``len(text)``. Stored explicitly so downstream consumers can
+    compare grapheme vs. codepoint lengths without re-reading the text.
+    ``None`` if not computed.
+    """
+
+    is_mixed_script: bool | None = field(default=None)
+    """``True`` if the chunk contains codepoints from more than one Unicode
+    script block above a noise threshold. ``None`` if not analysed.
+    """
+
+    script_spans: list | None = field(default=None, repr=False, compare=False)
+    """For mixed-script chunks: list of ScriptSpan dicts.
+
+    Each element is a dict::
+
+        {
+            "text": str,        # span text (NFC)
+            "script": str,      # ScriptType value string
+            "direction": str,   # "ltr" | "rtl" | "ttb"
+            "start": int,       # grapheme cluster index (inclusive)
+            "end": int,         # grapheme cluster index (exclusive)
+        }
+
+    Integer indices refer to the grapheme cluster list produced by
+    :class:`~._normalizers._normalizer.GraphemeClusterNormalizer`.
+    ``None`` for single-script chunks or when script analysis was skipped.
+    """
+
+    chunking_unit: str | None = field(default=None)
+    """Granularity at which this chunk was produced.
+
+    One of ``"sentence"``, ``"paragraph"``, ``"word"``,
+    ``"grapheme_cluster"``, ``"semanteme"``, ``"morpheme"``,
+    ``"character"``, ``"fixed_window"``.  ``None`` for legacy chunks
+    produced before this field was introduced.
+    """
+
+    semanteme_count: int | None = field(default=None)
+    """Number of semantemes identified in this chunk.
+
+    Set by :class:`~._chunkers._semantic.SemanticChunker` only.
+    ``None`` if semantic chunking was not used.
+    """
+
+    morphemes: list[str] | None = field(default=None, repr=False, compare=False)
+    """Morpheme list if ``MORPHOLOGICAL`` or ``HYBRID`` backend was used.
+
+    Excluded from ``repr`` and equality comparisons (like ``tokens`` /
+    ``lemmas``). ``None`` if semantic chunking was not applied or a
+    non-morphological backend was selected.
+    """
+
+    determinative_groups: list | None = field(default=None, repr=False, compare=False)
+    """For Egyptian hieroglyphic chunks: list of determinative group dicts.
+
+    Each element is a dict::
+
+        {
+            "glyphs": str,          # raw glyph codepoints
+            "determinative": str,   # semantic category glyph
+            "category": str,        # human-readable category label
+        }
+
+    ``None`` for all non-hieroglyphic scripts.
+    """
+
+    script_model_version: str | None = field(default=None)
+    """Version of the embedding or dictionary model used during semantic
+    chunking.
+
+    Required for idempotency verification on pipeline re-runs.
+    Format: ``"<model_name>@<version>"``, e.g.
+    ``"paraphrase-multilingual-mpnet-base-v2@1.2.0"``.
+    ``None`` when the ``MORPHOLOGICAL`` backend was used (always idempotent)
+    or when semantic chunking was not applied.
+    """
 
     # ------------------------------------------------------------------
     # Properties
@@ -1653,6 +1825,7 @@ class CorpusDocument:
         bbox: tuple[float, ...] | None = None,
         # NLP enrichment (Issue S-4)
         normalized_text: str | None = None,
+        raw_text: str | None = None,
         tokens: list[str] | None = None,
         lemmas: list[str] | None = None,
         stems: list[str] | None = None,
@@ -1665,6 +1838,18 @@ class CorpusDocument:
         raw_dtype: str | None = None,
         frame_index: int | None = None,
         content_hash: str | None = None,
+        # Multilang / multi-script fields (from MultilangMixin)
+        script: str | None = None,
+        script_direction: str | None = None,
+        grapheme_count: int | None = None,
+        codepoint_count: int | None = None,
+        is_mixed_script: bool | None = None,
+        script_spans: list | None = None,
+        chunking_unit: str | None = None,
+        semanteme_count: int | None = None,
+        morphemes: list[str] | None = None,
+        determinative_groups: list | None = None,
+        script_model_version: str | None = None,
     ) -> CorpusDocument:
         """
         Validate factory constructor for :class:`CorpusDocument`.
@@ -1805,6 +1990,7 @@ class CorpusDocument:
             ocr_engine=ocr_engine,
             bbox=bbox,
             normalized_text=normalized_text,
+            raw_text=raw_text,
             tokens=tokens,
             lemmas=lemmas,
             stems=stems,
@@ -1839,6 +2025,18 @@ class CorpusDocument:
             frame_index=frame_index,
             content_hash=content_hash
             or cls.make_content_hash(text=text, raw_bytes=raw_bytes),
+            # Multilang / multi-script fields
+            script=script,
+            script_direction=script_direction,
+            grapheme_count=grapheme_count,
+            codepoint_count=codepoint_count,
+            is_mixed_script=is_mixed_script,
+            script_spans=script_spans,
+            chunking_unit=chunking_unit,
+            semanteme_count=semanteme_count,
+            morphemes=morphemes,
+            determinative_groups=determinative_groups,
+            script_model_version=script_model_version,
         )
         instance.validate()
         return instance
@@ -1975,10 +2173,29 @@ class CorpusDocument:
             "bbox": list(self.bbox) if self.bbox is not None else None,
             # NLP enrichment — lists are copied for isolation
             "normalized_text": self.normalized_text,
+            "raw_text": self.raw_text,
             "tokens": list(self.tokens) if self.tokens is not None else None,
             "lemmas": list(self.lemmas) if self.lemmas is not None else None,
             "stems": list(self.stems) if self.stems is not None else None,
             "keywords": list(self.keywords) if self.keywords is not None else None,
+            # Multilang / multi-script fields (Layer 0-3)
+            "script": self.script,
+            "script_direction": self.script_direction,
+            "grapheme_count": self.grapheme_count,
+            "codepoint_count": self.codepoint_count,
+            "is_mixed_script": self.is_mixed_script,
+            "script_spans": (
+                list(self.script_spans) if self.script_spans is not None else None
+            ),
+            "chunking_unit": self.chunking_unit,
+            "semanteme_count": self.semanteme_count,
+            "morphemes": list(self.morphemes) if self.morphemes is not None else None,
+            "determinative_groups": (
+                list(self.determinative_groups)
+                if self.determinative_groups is not None
+                else None
+            ),
+            "script_model_version": self.script_model_version,
             # Raw media — modality and lightweight scalar fields are always
             # serialised; raw_tensor and raw_bytes are excluded (too large /
             # not JSON-safe; callers that need them work with the object directly).
@@ -2212,10 +2429,23 @@ class CorpusDocument:
             bbox=bbox,
             # NLP enrichment
             normalized_text=data.get("normalized_text"),
+            raw_text=data.get("raw_text"),
             tokens=_restore_str_list("tokens"),
             lemmas=_restore_str_list("lemmas"),
             stems=_restore_str_list("stems"),
             keywords=_restore_str_list("keywords"),
+            # Multilang / multi-script fields (Layer 0-3)
+            script=data.get("script"),
+            script_direction=data.get("script_direction"),
+            grapheme_count=data.get("grapheme_count"),
+            codepoint_count=data.get("codepoint_count"),
+            is_mixed_script=data.get("is_mixed_script"),
+            script_spans=data.get("script_spans"),
+            chunking_unit=data.get("chunking_unit"),
+            semanteme_count=data.get("semanteme_count"),
+            morphemes=_restore_str_list("morphemes"),
+            determinative_groups=data.get("determinative_groups"),
+            script_model_version=data.get("script_model_version"),
             # Raw media
             modality=modality,
             frame_index=data.get("frame_index"),
@@ -2280,13 +2510,13 @@ def documents_to_pandas(
     -------
     pandas.DataFrame
         One row per document. Metadata fields are promoted to columns.
+        An empty DataFrame with schema columns is returned when ``docs`` is
+        empty rather than raising — an empty corpus is a valid pipeline result.
 
     Raises
     ------
     ImportError
         If ``pandas`` is not installed.
-    ValueError
-        If ``docs`` is empty.
 
     Examples
     --------
@@ -2295,8 +2525,6 @@ def documents_to_pandas(
     >>> len(df)
     3
     """  # noqa: D205
-    if not docs:
-        raise ValueError("documents_to_pandas: docs must be non-empty.")
     try:
         import pandas as pd  # noqa: PLC0415
     except ImportError as exc:
@@ -2304,6 +2532,29 @@ def documents_to_pandas(
             "pandas is required for documents_to_pandas()."
             " Install it with: pip install pandas"
         ) from exc
+    # Return an empty DataFrame with schema columns rather than raising.
+    # An empty corpus is a valid pipeline result (OCR returned no text,
+    # all chunks were filtered out, etc.).  ValueError surprises callers
+    # who check result.n_documents afterward anyway.
+    #
+    # Inlined column order to avoid a circular import with _export._export
+    # (which imports CorpusDocument from _schema).
+    if not docs:
+        _empty_columns = [
+            "doc_id",
+            "input_path",
+            "chunk_index",
+            "text",
+            "raw_text",
+            "normalized_text",
+            "section_type",
+            "chunking_strategy",
+            "language",
+            "source_type",
+            "source_title",
+            "source_author",
+        ]
+        return pd.DataFrame(columns=_empty_columns)
     rows = [d.to_pandas_row(include_embedding=include_embedding) for d in docs]
     return pd.DataFrame(rows)
 
@@ -2329,13 +2580,13 @@ def documents_to_polars(
     -------
     polars.DataFrame
         One row per document. Metadata fields are promoted to columns.
+        An empty DataFrame with schema columns is returned when ``docs`` is
+        empty rather than raising — an empty corpus is a valid pipeline result.
 
     Raises
     ------
     ImportError
         If ``polars`` is not installed.
-    ValueError
-        If ``docs`` is empty.
 
     Examples
     --------
@@ -2344,8 +2595,6 @@ def documents_to_polars(
     >>> len(df)
     3
     """  # noqa: D205
-    if not docs:
-        raise ValueError("documents_to_polars: docs must be non-empty.")
     try:
         import polars as pl  # noqa: PLC0415
     except ImportError as exc:
@@ -2353,5 +2602,28 @@ def documents_to_polars(
             "polars is required for documents_to_polars()."
             " Install it with: pip install polars"
         ) from exc
+    # Return an empty DataFrame with schema columns rather than raising.
+    # An empty corpus is a valid pipeline result (OCR returned no text,
+    # all chunks were filtered out, etc.).  ValueError surprises callers
+    # who check result.n_documents afterward anyway.
+    #
+    # Inlined column order to avoid a circular import with _export._export
+    # (which imports CorpusDocument from _schema).
+    if not docs:
+        _empty_columns = [
+            "doc_id",
+            "input_path",
+            "chunk_index",
+            "text",
+            "raw_text",
+            "normalized_text",
+            "section_type",
+            "chunking_strategy",
+            "language",
+            "source_type",
+            "source_title",
+            "source_author",
+        ]
+        return pl.DataFrame(schema=dict.fromkeys(_empty_columns, pl.Utf8))
     rows = [d.to_polars_row(include_embedding=include_embedding) for d in docs]
     return pl.DataFrame(rows)

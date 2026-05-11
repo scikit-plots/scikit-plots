@@ -64,7 +64,10 @@ __all__ = ["PDFReader"]
 
 # Maximum file size accepted before raising. 2 GB covers most real PDFs; very
 # large document sets should be split into individual files first.
-_DEFAULT_MAX_FILE_BYTES: int = 2 * 1024 * 1024 * 1024  # 2 GB
+# BUG-05 fix: renamed from _PDF_DEFAULT_MAX_FILE_BYTES to clarify this is
+# PDF-specific. _text.py has 500 MB, _xml.py has 200 MB (ClassVar) —
+# identical name across files implied a shared constant when each is independent.
+_PDF_DEFAULT_MAX_FILE_BYTES: int = 2 * 1024 * 1024 * 1024  # 2 GB
 
 
 # ---------------------------------------------------------------------------
@@ -332,7 +335,9 @@ class PDFReader(DocumentReader):
     >>> docs = list(reader.get_documents())
     """
 
-    file_type: ClassVar[str] = ".pdf"
+    # BUG-03 fix: file_type removed — file_types is the canonical
+    # registration mechanism. Defining both caused __init_subclass__
+    # to silently ignore file_type (file_types wins).
     file_types: ClassVar[list[str] | None] = [".pdf"]
 
     _VALID_BACKENDS: ClassVar[tuple[str, ...]] = ("pdfminer", "pypdf", "custom")
@@ -340,7 +345,7 @@ class PDFReader(DocumentReader):
     password: str = field(default="")
     """Decryption password for encrypted PDFs. Empty string means unencrypted."""
 
-    max_file_bytes: int = field(default=_DEFAULT_MAX_FILE_BYTES)
+    max_file_bytes: int = field(default=_PDF_DEFAULT_MAX_FILE_BYTES)
     """Maximum file size in bytes. Default: 2 GB."""
 
     prefer_backend: str | None = field(default=None)
@@ -352,41 +357,10 @@ class PDFReader(DocumentReader):
     When ``"custom"``, :attr:`custom_extractor` **must** be provided.
     """
 
-    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
-    """
-    User-supplied PDF extraction callable, active only when
-    ``prefer_backend="custom"``.
-
-    Signature::
-
-        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
-
-    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
-    ``list[dict]``.  Every dict must contain a ``"text"`` key.
-
-    Common use-cases: ``pdfplumber``, ``pymupdf`` (fitz), ``docling``,
-    ``surya``, or any proprietary PDF engine.  Ignored when
-    ``prefer_backend`` is not ``"custom"``.  Default: ``None``.
-
-    Examples
-    --------
-    >>> import pdfplumber
-    >>> def pdfplumber_extract(path, **kw):
-    ...     with pdfplumber.open(path) as pdf:
-    ...         return [{"text": p.extract_text() or "", "page_number": i}
-    ...                 for i, p in enumerate(pdf.pages)]
-    >>> reader = PDFReader(
-    ...     input_path=Path("paper.pdf"),
-    ...     prefer_backend="custom",
-    ...     custom_extractor=pdfplumber_extract,
-    ... )
-    """
-
-    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
-    """
-    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
-    call.  Only used when ``prefer_backend="custom"``.  Default: ``{}``.
-    """
+    # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
+    # inherited from DocumentReader. Redeclaring them here changed the
+    # dataclass __init__ field order (subclass fields come after base fields
+    # in MRO but re-declaration moved them to the subclass position). Removed.
 
     def __post_init__(self) -> None:
         """Validate PDF reader constructor fields.
@@ -548,6 +522,10 @@ class PDFReader(DocumentReader):
                 continue
             yield {
                 "text": stripped,
+                # raw_text: backend extraction result before leading/trailing
+                # whitespace removal — preserves original page boundary spacing
+                # for before/after comparison against the normalised form.
+                "raw_text": text,
                 "section_type": SectionType.TEXT.value,
                 "page_number": page_idx,
             }

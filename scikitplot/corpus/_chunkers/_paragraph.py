@@ -47,6 +47,8 @@ from dataclasses import dataclass
 from typing import Any, Final
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
+from ._multilang_mixin import MultilangConfig, MultilangMixin
+from ._sentence import _validate_text_input
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +102,8 @@ class ParagraphChunkerConfig(ChunkerConfig):
     strip_whitespace: bool = True
     include_offsets: bool = True
     merge_short: bool = False
+    # Multilang settings (all 5 chunkers)
+    multilang_config: Any = None  # MultilangConfig or None
 
 
 # ---------------------------------------------------------------------------
@@ -234,14 +238,34 @@ def _compute_char_offsets(source: str, segments: list[str]) -> list[tuple[int, i
 # ---------------------------------------------------------------------------
 
 
-class ParagraphChunker:
-    r"""
-    Split a document into paragraph-level :class:`~.._types.Chunk` objects.
+class ParagraphChunker(MultilangMixin):
+    r"""Split a document into paragraph-level :class:`~.._types.Chunk` objects.
+
+    Paragraph boundaries are blank lines (``\n\n``) — script-universal
+    and dependency-free.  Within each paragraph the dominant Unicode script
+    is detected and reported in ``chunk.metadata["multilang"]["script"]``.
 
     Parameters
     ----------
     config : ParagraphChunkerConfig, optional
         Chunker configuration.
+    multilang_config : MultilangConfig, optional
+        Multilang feature flags.  Overrides ``config.multilang_config``
+        when provided explicitly.  Default: ``MultilangConfig()``
+        (script detection + semanteme count only, no raw text / trace).
+
+    Notes
+    -----
+    **User note (multilang):** Blank-line paragraph splitting works for
+    every script.  Set ``multilang_config=MultilangConfig(
+    include_raw_text=True, include_preprocessing_trace=True)`` to attach
+    full preprocessing audit to each chunk.  To add embeddings after
+    chunking, call :meth:`attach_embedding_batch`.
+
+    **Developer note:** Inherits :class:`MultilangMixin`.  Initialised via
+    ``self._ml_init()``.  The ``chunk()`` method enriches each paragraph
+    chunk with a :class:`~.._types.MultilangChunkMeta` dict stored under
+    ``chunk.metadata["multilang"]``.
 
     Examples
     --------
@@ -250,11 +274,27 @@ class ParagraphChunker:
     >>> result = chunker.chunk(text)
     >>> len(result.chunks)
     2
+    >>> chunker_ml = ParagraphChunker(
+    ...     multilang_config=MultilangConfig(include_raw_text=True)
+    ... )
+    >>> result_ml = chunker_ml.chunk("مرحبا.\\n\\nHello.")
+    >>> result_ml.chunks[0].metadata["multilang"]["script"]
+    'arabic'
     """
 
-    def __init__(self, config: ParagraphChunkerConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: ParagraphChunkerConfig | None = None,
+        multilang_config: MultilangConfig | None = None,
+    ) -> None:
         self._cfg = config if config is not None else ParagraphChunkerConfig()
         self._validate_config()
+        ml_cfg = multilang_config or (
+            self._cfg.multilang_config
+            if isinstance(getattr(self._cfg, "multilang_config", None), MultilangConfig)
+            else None
+        )
+        self._ml_init(ml_cfg)
 
     # ------------------------------------------------------------------
     # Validation
@@ -296,7 +336,7 @@ class ParagraphChunker:
     # Public API
     # ------------------------------------------------------------------
 
-    def chunk(
+    def chunk(  # noqa: PLR0912
         self,
         text: str,
         doc_id: str | None = None,
@@ -327,8 +367,18 @@ class ParagraphChunker:
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, got {type(text).__name__!r}.")
+        # Bug 4 fix: NUL byte + lone surrogate rejection (shared guard)
+        _validate_text_input(text, "ParagraphChunker.chunk")
         if not text.strip():
             raise ValueError("text must not be empty or whitespace-only.")
+
+        # Multilang: build preprocessing trace from raw → NFC
+        raw_text = text
+        preprocessing_trace = None
+        if self._ml_cfg.enabled and (
+            self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
+        ):
+            text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
 
         paragraphs = _split_paragraphs(text, strip=self._cfg.strip_whitespace)
 
@@ -370,9 +420,24 @@ class ParagraphChunker:
                 meta["doc_id"] = doc_id
 
             start, end = offsets[idx]
-            chunks.append(
-                Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
-            )
+            chunk = Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
+            # Multilang enrichment
+            if self._ml_cfg.enabled:
+                # Use the paragraph text only (not overlap context) for script
+                para_raw = (
+                    raw_text[start:end]
+                    if self._ml_cfg.include_raw_text and start < end
+                    else None
+                )
+                ml_meta = self._ml_build_meta(
+                    para,
+                    chunking_unit="paragraph",
+                    tokens=para.split() if para else [],
+                    raw_text=para_raw,
+                    preprocessing_trace=preprocessing_trace,
+                )
+                chunk = self._ml_enrich_chunk(chunk, ml_meta)
+            chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
             "chunker": "paragraph",

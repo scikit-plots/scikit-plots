@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
 from typing import Any, Final, List, Optional, Union  # noqa: F401
@@ -78,13 +79,16 @@ from ._custom_tokenizer import (
     detect_script,
 )
 from ._language_data import coerce_language
+from ._multilang_mixin import MultilangConfig, MultilangMixin
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "MultilangConfig",
     "SentenceBackend",
     "SentenceChunker",
     "SentenceChunkerConfig",
+    "_validate_text_input",
 ]
 
 # ---------------------------------------------------------------------------
@@ -93,7 +97,12 @@ __all__ = [
 
 _DEFAULT_MIN_LEN: Final[int] = 1
 _DEFAULT_OVERLAP: Final[int] = 0
-_ABBREV_PLACEHOLDER: Final[str] = "\x00ABR\x00"
+
+# Bug 4 fix (Part A): sentinel changed from "\x00ABR\x00" (NUL bytes, which are
+# now rejected by _validate_text_input) to Unicode Private Use Area codepoints
+# (U+E000-U+F8FF) that never appear in natural-language text.
+# See: multilang_chunker_final_review.md § Bug 4.
+_ABBREV_PLACEHOLDER: Final[str] = "\ue000ABR\ue000"
 
 _ABBREVIATIONS: Final[frozenset[str]] = frozenset(
     [
@@ -154,6 +163,72 @@ _SENTENCE_BOUNDARY_RE_MULTI: Final[re.Pattern[str]] = re.compile(
 
 # Default alias kept for backward-compatibility with any code importing it.
 _SENTENCE_BOUNDARY_RE: Final[re.Pattern[str]] = _SENTENCE_BOUNDARY_RE_LATIN
+
+
+# ---------------------------------------------------------------------------
+# Input validation (Bug 4 fix — shared with _word.py)
+# ---------------------------------------------------------------------------
+
+
+def _validate_text_input(text: str, caller: str) -> None:
+    r"""Validate chunker text input for NUL bytes and lone surrogates.
+
+    Parameters
+    ----------
+    text : str
+        Input text to validate.
+    caller : str
+        Calling context name used in error messages
+        (e.g. ``"SentenceChunker.chunk"``).
+
+    Raises
+    ------
+    ValueError
+        If *text* contains a NUL byte (``\x00``).  NUL bytes corrupt
+        spaCy (C-level string truncation), SQLite FTS5 (zero-terminated
+        string truncation), and JSONL export (line-terminator confusion).
+        Fix with ``text.replace('\x00', '')`` before calling.
+    ValueError
+        If *text* contains a lone Unicode surrogate (U+D800-U+DFFF).
+        These are valid Python ``str`` values but invalid Unicode scalars.
+        Fix with ``text.encode('utf-8', errors='replace').decode('utf-8')``
+        or re-decode the source bytes with ``errors='surrogatepass'``.
+
+    Notes
+    -----
+    **Developer note:** This is a shared module-level guard called as the
+    very first line of ``SentenceChunker.chunk()`` and
+    ``WordChunker.chunk()``.  The guard must NOT be bypassed by any
+    internal caller — only raw external input is validated here.
+
+    The internal sentinel ``_ABBREV_PLACEHOLDER = "\uE000ABR\uE000"``
+    uses Unicode Private Use Area codepoints that never appear in natural
+    language.  This guard correctly ignores PUA codepoints because it only
+    tests for NUL (``\x00``) and surrogates (U+D800-U+DFFF).
+
+    Examples
+    --------
+    >>> _validate_text_input("Hello world", "SentenceChunker.chunk")
+    >>> _validate_text_input("\x00bad", "SentenceChunker.chunk")
+    Traceback (most recent call last):
+        ...
+    ValueError: SentenceChunker.chunk: text must not contain NUL bytes ...
+    """
+    if "\x00" in text:
+        raise ValueError(
+            f"{caller}: text must not contain NUL bytes (\\x00). "
+            "NUL bytes corrupt spaCy, SQLite FTS5, and JSONL output. "
+            "Strip them before calling: text.replace('\\x00', '')."
+        )
+    for i, ch in enumerate(text):
+        cp = ord(ch)
+        if 0xD800 <= cp <= 0xDFFF:  # noqa: PLR2004
+            raise ValueError(
+                f"{caller}: text contains a lone Unicode surrogate "
+                f"(U+{cp:04X}) at codepoint position {i}. "
+                "Re-decode the source bytes with errors='replace' or "
+                "errors='surrogatepass' before passing to the chunker."
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +337,14 @@ class SentenceChunkerConfig(ChunkerConfig):
     Valid values: ``None`` (Latin), ``"multi"`` (all scripts), or any
     :class:`~._custom_tokenizer.ScriptType` value string.
     """  # noqa: RUF001
+    multilang_config: Any = field(default=None, hash=False, compare=False)
+    """Multilang feature flags (:class:`MultilangConfig` or ``None``).
+
+    When set, each sentence chunk is enriched with a
+    ``chunk.metadata["multilang"]`` dict containing script detection,
+    grapheme counts, semanteme analysis, preprocessing trace, raw text,
+    and timing provenance fields.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -489,7 +572,7 @@ def _compute_char_offsets(source: str, segments: list[str]) -> list[tuple[int, i
 # ---------------------------------------------------------------------------
 
 
-class SentenceChunker:
+class SentenceChunker(MultilangMixin):
     """Split a document into sentence-level :class:`~.._types.Chunk` objects.
 
     Parameters
@@ -586,6 +669,14 @@ class SentenceChunker:
         self._nlp_cache: dict[str, Any] = {}
 
         self._validate_config()
+
+        # Multilang mixin init
+        ml_cfg = (
+            self._cfg.multilang_config
+            if isinstance(getattr(self._cfg, "multilang_config", None), MultilangConfig)
+            else None
+        )
+        self._ml_init(ml_cfg)
 
     # ------------------------------------------------------------------
     # Public read-only properties
@@ -721,8 +812,19 @@ class SentenceChunker:
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, got {type(text).__name__!r}.")
+        _validate_text_input(text, "SentenceChunker.chunk")
         if not text.strip():
             raise ValueError("text must not be empty or whitespace-only.")
+
+        # Multilang: preprocessing trace
+        raw_text = text
+        preprocessing_trace = None
+        preproc_start = time.perf_counter()
+        if self._ml_cfg.enabled and (
+            self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
+        ):
+            text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        preproc_ms = round((time.perf_counter() - preproc_start) * 1000, 3)
 
         raw = self._raw_sentences(text)
 
@@ -739,6 +841,7 @@ class SentenceChunker:
 
         chunks: list[Chunk] = []
         for idx, sent in enumerate(filtered):
+            chunk_start_t = time.perf_counter()
             overlap_start = max(0, idx - self._cfg.overlap)
             context = filtered[overlap_start:idx]
             full_text = " ".join([*context, sent]) if context else sent
@@ -753,9 +856,28 @@ class SentenceChunker:
                 meta["doc_id"] = doc_id
 
             start, end = offsets[idx]
-            chunks.append(
-                Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
-            )
+            chunk = Chunk(text=full_text, start_char=start, end_char=end, metadata=meta)
+
+            # Multilang enrichment
+            if self._ml_cfg.enabled:
+                sent_raw = (
+                    raw_text[start:end]
+                    if self._ml_cfg.include_raw_text and start < end
+                    else None
+                )
+                ml_meta = self._ml_build_meta(
+                    sent,
+                    chunking_unit="sentence",
+                    tokens=sent.split(),
+                    raw_text=sent_raw,
+                    preprocessing_trace=preprocessing_trace,
+                    chunking_start_time=chunk_start_t,
+                    preprocessing_duration_ms=preproc_ms,
+                    start_char=start,
+                    end_char=end,
+                )
+                chunk = self._ml_enrich_chunk(chunk, ml_meta)
+            chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
             "chunker": "sentence",

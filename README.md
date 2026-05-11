@@ -1213,6 +1213,8 @@ Risk / security / attention
 
 🚧 WIP: work in progress
 
+# backtick / grave accent `
+# straight quotes: " → curly double quote “ ” straight apostrophe ' → curly apostrophe ‘ ’ depending on position.  # noqa: RUF003
 Quick “ready-to-copy” mini legend
 
 ✅ Success | 💡 Tip | 🧠 Hint | ℹ️ Info | ⚠️ Caution | 🚨 Urgent | ❌ Error | 🔒 Security

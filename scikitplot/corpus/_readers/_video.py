@@ -150,6 +150,8 @@ _SUB_RE = re.compile(r"\{(\d+)\}\{(\d+)\}(.*)")
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 
 # Whisper backend identifiers
+# BUG-04 note: Duplicated from _audio.py — keep in sync.
+# TODO: extract to a shared _whisper_common module.
 _WHISPER_BACKEND_FASTER = "faster-whisper"
 _WHISPER_BACKEND_OPENAI = "openai-whisper"
 
@@ -191,10 +193,18 @@ def _parse_srt(content: str) -> list[dict[str, Any]]:
             continue
         start = _tc_to_seconds(*tc_match.groups()[:4])
         end = _tc_to_seconds(*tc_match.groups()[4:])
-        text = " ".join(lines[text_start:]).strip()
-        text = _HTML_TAG_RE.sub("", text).strip()
+        # raw_text: verbatim joined cue lines before HTML tag stripping.
+        raw_text = " ".join(lines[text_start:]).strip()
+        text = _HTML_TAG_RE.sub("", raw_text).strip()
         if text:
-            results.append({"text": text, "timecode_start": start, "timecode_end": end})
+            results.append(
+                {
+                    "text": text,
+                    "raw_text": raw_text,
+                    "timecode_start": start,
+                    "timecode_end": end,
+                }
+            )
     return results
 
 
@@ -246,10 +256,18 @@ def _parse_sbv(content: str) -> list[dict[str, Any]]:
             continue
         start = _tc_to_seconds(*m.groups()[:4])
         end = _tc_to_seconds(*m.groups()[4:])
-        text = " ".join(lines[1:]).strip()
-        text = _HTML_TAG_RE.sub("", text).strip()
+        # raw_text: verbatim joined lines before HTML tag stripping.
+        raw_text = " ".join(lines[1:]).strip()
+        text = _HTML_TAG_RE.sub("", raw_text).strip()
         if text:
-            results.append({"text": text, "timecode_start": start, "timecode_end": end})
+            results.append(
+                {
+                    "text": text,
+                    "raw_text": raw_text,
+                    "timecode_start": start,
+                    "timecode_end": end,
+                }
+            )
     return results
 
 
@@ -279,11 +297,19 @@ def _parse_sub(content: str, frame_rate: float = 25.0) -> list[dict[str, Any]]:
         start_f, end_f, text = m.group(1), m.group(2), m.group(3)
         start = int(start_f) / frame_rate
         end = int(end_f) / frame_rate
-        # MicroDVD uses | as line separator
-        text = text.replace("|", " ").strip()
-        text = _HTML_TAG_RE.sub("", text).strip()
+        # raw_text: pipe-separator replaced (structural normalisation) but
+        # HTML tags NOT yet stripped — enables before/after comparison.
+        raw_text = text.replace("|", " ").strip()
+        text = _HTML_TAG_RE.sub("", raw_text).strip()
         if text:
-            results.append({"text": text, "timecode_start": start, "timecode_end": end})
+            results.append(
+                {
+                    "text": text,
+                    "raw_text": raw_text,
+                    "timecode_start": start,
+                    "timecode_end": end,
+                }
+            )
     return results
 
 
@@ -401,6 +427,9 @@ def _transcribe_whisper(
                 results.append(
                     {
                         "text": text,
+                        # raw_text: ASR output is verbatim engine text;
+                        # no pre-processing step to undo.
+                        "raw_text": text,
                         "timecode_start": round(seg.start, 3),
                         "timecode_end": round(seg.end, 3),
                     }
@@ -428,6 +457,7 @@ def _transcribe_whisper(
                 results.append(
                     {
                         "text": text,
+                        "raw_text": text,
                         "timecode_start": round(seg.get("start", 0.0), 3),
                         "timecode_end": round(seg.get("end", 0.0), 3),
                     }
@@ -600,43 +630,10 @@ class VideoReader(DocumentReader):
         transcript.  For text-only pipelines, leave this at ``False``.
     """
 
-    custom_extractor: Callable[..., Any] | None = field(default=None, repr=False)
-    """
-    User-supplied video extraction callable.  When set, this callable is
-    called **first** — before subtitle detection and Whisper ASR — and its
-    output is used exclusively.
-
-    Signature::
-
-        def extractor(path: pathlib.Path, **kwargs) -> ExtractorOutput
-
-    where ``ExtractorOutput`` is ``str``, ``list[str]``, ``dict``, or
-    ``list[dict]``.  Every dict must contain a ``"text"`` key.  Dicts may
-    also include ``"timecode_start"`` and ``"timecode_end"`` (float,
-    seconds).
-
-    Common use-cases: ``whisperX`` with speaker diarization, cloud-based
-    video transcription APIs, or any library not supported by the built-in
-    strategies.  Default: ``None``.
-
-    Examples
-    --------
-    >>> def cloud_transcribe(path, language="en", **kw):
-    ...     result = cloud_api.transcribe_video(str(path), lang=language)
-    ...     return [{"text": seg.text, "timecode_start": seg.start,
-    ...              "timecode_end": seg.end}
-    ...             for seg in result.segments]
-    >>> reader = VideoReader(
-    ...     input_path=Path("lecture.mp4"),
-    ...     custom_extractor=cloud_transcribe,
-    ... )
-    """
-
-    custom_extractor_kwargs: dict[str, Any] = field(default_factory=dict)
-    """
-    Extra keyword arguments forwarded to :attr:`custom_extractor` on every
-    call.  Only used when :attr:`custom_extractor` is set.  Default: ``{}``.
-    """
+    # BUG-08/09 fix: custom_extractor and custom_extractor_kwargs are
+    # inherited from DocumentReader. Redeclaring them here changed the
+    # dataclass __init__ field order (subclass fields come after base fields
+    # in MRO but re-declaration moved them to the subclass position). Removed.
 
     def __post_init__(self) -> None:
         """Validate VideoReader fields.
@@ -751,6 +748,9 @@ class VideoReader(DocumentReader):
             for cue in cues:
                 yield {
                     "text": cue["text"],
+                    # raw_text: pre-HTML-strip form from subtitle parser
+                    # (SRT/SBV/VTT); equals text for formats with no HTML tags.
+                    "raw_text": cue.get("raw_text", cue["text"]),
                     "section_type": SectionType.TEXT.value,
                     "timecode_start": cue[
                         "timecode_start"
@@ -785,6 +785,8 @@ class VideoReader(DocumentReader):
             for seg in segments:
                 yield {
                     "text": seg["text"],
+                    # raw_text: ASR transcription — verbatim Whisper output.
+                    "raw_text": seg.get("raw_text", seg["text"]),
                     "section_type": SectionType.TEXT.value,
                     "timecode_start": seg[
                         "timecode_start"

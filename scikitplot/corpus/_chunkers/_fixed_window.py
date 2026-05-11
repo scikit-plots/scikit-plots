@@ -59,6 +59,8 @@ from typing import Any, Final, Optional  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
 from ._custom_tokenizer import ScriptType, detect_script, split_cjk_chars
+from ._multilang_mixin import MultilangConfig, MultilangMixin
+from ._sentence import _validate_text_input
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +119,8 @@ class FixedWindowChunkerConfig(ChunkerConfig):
     min_length: int = 10
     include_offsets: bool = True
     strip_whitespace: bool = True
+    # Multilang settings
+    multilang_config: Any = None  # MultilangConfig or None
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +162,12 @@ def _tokenize_whitespace(text: str) -> list[str]:
     if not stripped:
         return []
     script = detect_script(stripped[:200])
-    if script == ScriptType.CJK:
+    if script in (
+        ScriptType.CJK,  # deprecated alias — backward compat
+        ScriptType.HAN,  # Chinese logographs
+        ScriptType.HIRAGANA,  # Japanese Hiragana
+        ScriptType.KATAKANA,  # Japanese Katakana
+    ):
         return split_cjk_chars(stripped)
     return _WHITESPACE_RE.split(stripped)
 
@@ -247,13 +256,32 @@ def _windows_tokens(
 # ---------------------------------------------------------------------------
 
 
-class FixedWindowChunker:
+class FixedWindowChunker(MultilangMixin):
     """Produce fixed-size sliding-window chunks over a document.
+
+    Handles all scripts via :func:`~._custom_tokenizer.detect_script` and
+    :func:`~._custom_tokenizer.split_cjk_chars` for no-space East Asian scripts.
+    Multilang metadata is attached to each chunk when enabled.
 
     Parameters
     ----------
     config : FixedWindowChunkerConfig, optional
         Chunker configuration.
+    multilang_config : MultilangConfig, optional
+        Multilang feature flags.
+
+    Notes
+    -----
+    **User note (multilang):** Fixed-window chunking is script-aware for
+    token-unit mode (``unit=TOKENS``): CJK / Hiragana / Katakana text is
+    split at character level rather than whitespace.  Char-unit mode
+    (``unit=CHARS``) is strictly grapheme-cluster agnostic (raw codepoint
+    slices), which is safe for RAG pipelines that only need byte-aligned
+    embedding windows.
+
+    **Developer note:** Inherits :class:`MultilangMixin`.  Every chunk
+    produced by :meth:`chunk` carries ``metadata["multilang"]`` when
+    ``multilang_config.enabled=True``.
 
     Examples
     --------
@@ -266,9 +294,19 @@ class FixedWindowChunker:
     'The quick brown fox '
     """
 
-    def __init__(self, config: FixedWindowChunkerConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: FixedWindowChunkerConfig | None = None,
+        multilang_config: MultilangConfig | None = None,
+    ) -> None:
         self._cfg = config if config is not None else FixedWindowChunkerConfig()
         self._validate_config()
+        ml_cfg = multilang_config or (
+            self._cfg.multilang_config
+            if isinstance(getattr(self._cfg, "multilang_config", None), MultilangConfig)
+            else None
+        )
+        self._ml_init(ml_cfg)
 
     # ------------------------------------------------------------------
     # Validation
@@ -308,7 +346,7 @@ class FixedWindowChunker:
     # Public API
     # ------------------------------------------------------------------
 
-    def chunk(
+    def chunk(  # noqa: PLR0912
         self,
         text: str,
         doc_id: str | None = None,
@@ -339,8 +377,17 @@ class FixedWindowChunker:
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, got {type(text).__name__!r}.")
+        _validate_text_input(text, "FixedWindowChunker.chunk")
         if not text.strip():
             raise ValueError("text must not be empty or whitespace-only.")
+
+        # Multilang: preprocessing trace
+        raw_text = text
+        preprocessing_trace = None
+        if self._ml_cfg.enabled and (
+            self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
+        ):
+            text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
 
         if self._cfg.unit == WindowUnit.CHARS:
             raw_windows = _windows_chars(
@@ -369,9 +416,24 @@ class FixedWindowChunker:
             if doc_id is not None:
                 meta["doc_id"] = doc_id
 
-            chunks.append(
-                Chunk(text=win_text, start_char=start, end_char=end, metadata=meta)
-            )
+            chunk = Chunk(text=win_text, start_char=start, end_char=end, metadata=meta)
+
+            # Multilang enrichment
+            if self._ml_cfg.enabled:
+                win_raw = (
+                    raw_text[start:end]
+                    if self._ml_cfg.include_raw_text and start < end
+                    else None
+                )
+                ml_meta = self._ml_build_meta(
+                    win_text,
+                    chunking_unit="fixed_window",
+                    tokens=win_text.split() if win_text else [],
+                    raw_text=win_raw,
+                    preprocessing_trace=preprocessing_trace,
+                )
+                chunk = self._ml_enrich_chunk(chunk, ml_meta)
+            chunks.append(chunk)
 
         result_meta: dict[str, Any] = {
             "chunker": "fixed_window",

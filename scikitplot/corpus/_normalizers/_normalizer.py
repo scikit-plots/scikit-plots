@@ -1,3 +1,10 @@
+# scikitplot/corpus/_normalizers/_normalizer.py
+#
+# Flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
 """
 scikitplot.corpus._normalizers._normalizer
 ==========================================
@@ -51,7 +58,7 @@ import abc
 import logging
 import re
 import unicodedata
-from typing import Any, List, Optional, Sequence  # noqa: F401
+from typing import Any, ClassVar, List, Optional, Sequence  # noqa: F401
 
 from .._schema import CorpusDocument
 
@@ -59,6 +66,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "DedupLinesNormalizer",
+    "GraphemeClusterNormalizer",
     "HTMLStripNormalizer",
     "LanguageDetectionNormalizer",
     "LowercaseNormalizer",
@@ -715,3 +723,219 @@ class NormalizationPipeline(NormalizerBase):
     def __repr__(self) -> str:  # noqa: D105
         names = ", ".join(repr(n) for n in self.steps)
         return f"NormalizationPipeline([{names}])"
+
+
+# ===========================================================================
+# Layer 0 — GraphemeClusterNormalizer
+# ===========================================================================
+
+
+class GraphemeClusterNormalizer(NormalizerBase):
+    r"""Normalize text to NFC and compute grapheme cluster boundaries.
+
+    **This is the mandatory first step for all multilang processing.**
+    It MUST be placed before any chunker that operates on non-Latin,
+    mixed-script, or emoji-containing text.
+
+    After normalization the following :class:`~._schema.CorpusDocument`
+    fields are populated:
+
+    * ``text`` — NFC-normalised (or NFKC/NFD/NFKD as configured).
+    * ``grapheme_count`` — user-perceived character count (UAX #29).
+    * ``codepoint_count`` — raw ``len(text)`` after normalization.
+
+    Parameters
+    ----------
+    form : {"NFC", "NFD", "NFKC", "NFKD"}, optional
+        Unicode normalization form.  Default ``"NFC"``.
+        Use ``"NFC"`` for storage and comparison (canonical, composed).
+        Use ``"NFKC"`` only when you need compatibility folding
+        (``ﬁ`` → ``fi``, ``①`` → ``1``).
+    strip_bom : bool, optional
+        Strip Byte Order Mark (U+FEFF) from the start of ``text``.
+        Default ``True``.
+    strip_control : bool, optional
+        Strip C0/C1 control characters except ``\\n`` and ``\\t``.
+        This also strips NUL bytes (``\\x00``) — matching the
+        :func:`~._chunkers._sentence._validate_text_input` guard.
+        Default ``True``.
+    max_text_length : int or None, optional
+        Reject (raise :class:`ValueError`) documents whose grapheme count
+        exceeds this value.  Default ``None`` (no limit).  Set in
+        production to prevent OOM on adversarial inputs.
+    write_normalized_text : bool, optional
+        When ``True`` (default), write the NFC text back to
+        ``doc.text``.  Set to ``False`` to write to
+        ``doc.normalized_text`` instead and preserve the original in
+        ``doc.text``.
+
+    Raises
+    ------
+    ImportError
+        If the ``regex`` (PyPI) library is not installed.
+        Message includes ``pip install regex``.
+    ValueError
+        If ``form`` is not one of the four valid normalization forms.
+        If ``max_text_length`` is set and the text exceeds it.
+
+    Notes
+    -----
+    **User note:** Install ``regex`` with ``pip install regex``.
+    Place this normalizer **first** in any
+    :class:`NormalizationPipeline` that handles non-Latin scripts.
+
+    **Developer note:** Uses ``regex.findall(r'\\X', text)`` for grapheme
+    cluster splitting per UAX #29.  The ``\\X`` pattern matches extended
+    grapheme clusters including ZWJ emoji sequences, Devanagari conjunct
+    consonants, Arabic ligatures, and Hangul Jamo compositions.
+
+    NFC is idempotent: ``unicodedata.normalize('NFC', nfc_text) == nfc_text``.
+    Grapheme counting is read-only with respect to the clusters.
+
+    Idempotency guarantee::
+
+        normalize_doc(normalize_doc(doc)).text == normalize_doc(doc).text
+        normalize_doc(normalize_doc(doc)).grapheme_count
+            == normalize_doc(doc).grapheme_count
+
+    References
+    ----------
+    UAX #15 (Unicode Normalization): https://unicode.org/reports/tr15/
+    UAX #29 (Text Segmentation / Grapheme Clusters): https://unicode.org/reports/tr29/
+    regex library: https://pypi.org/project/regex/
+
+    Examples
+    --------
+    >>> norm = GraphemeClusterNormalizer()
+    >>> doc = CorpusDocument.create(
+    ...     input_path="f.txt",
+    ...     chunk_index=0,
+    ...     text="\U0001f468\u200d\U0001f469\u200d\U0001f467 calf\u00e9",
+    ... )
+    >>> out = norm.normalize_doc(doc)
+    >>> out.grapheme_count  # 7 clusters: family-ZWJ emoji + space + c a f é
+    7
+    >>> out.codepoint_count  # raw len()
+    10
+    """
+
+    _VALID_FORMS: frozenset[str] = frozenset({"NFC", "NFD", "NFKC", "NFKD"})
+    # Compiled once at first instantiation; shared across all instances.
+    _CONTROL_STRIP_RE: ClassVar[Any] = None  # type: ignore[assignment]
+
+    def __init__(
+        self,
+        form: str = "NFC",
+        *,
+        strip_bom: bool = True,
+        strip_control: bool = True,
+        max_text_length: int | None = None,
+        write_normalized_text: bool = True,
+    ) -> None:
+        try:
+            import regex as _regex  # noqa: PLC0415
+
+            self._regex = _regex
+        except ImportError as exc:
+            raise ImportError(
+                "GraphemeClusterNormalizer requires the `regex` library "
+                "(Layer 0 — multilang prerequisite). "
+                "Install it with: pip install regex"
+            ) from exc
+
+        if form not in self._VALID_FORMS:
+            raise ValueError(
+                f"GraphemeClusterNormalizer: form must be one of "
+                f"{sorted(self._VALID_FORMS)}, got {form!r}."
+            )
+        if max_text_length is not None and max_text_length < 1:
+            raise ValueError(
+                f"GraphemeClusterNormalizer: max_text_length must be >= 1 "
+                f"or None, got {max_text_length!r}."
+            )
+
+        self._form = form
+        self._strip_bom = strip_bom
+        self._strip_control = strip_control
+        self._max_text_length = max_text_length
+        self._write_normalized_text = write_normalized_text
+
+        if strip_control and self.__class__._CONTROL_STRIP_RE is None:
+            # Strips C0 (U+0000-U+001F except \n \t) and C1 (U+007F-U+009F).
+            # Compiled once; thread-safe under CPython GIL for dict assignment.
+            self.__class__._CONTROL_STRIP_RE = self._regex.compile(
+                r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]"
+            )
+
+    # ------------------------------------------------------------------
+    # NormalizerBase contract
+    # ------------------------------------------------------------------
+
+    def normalize_doc(self, doc: CorpusDocument) -> CorpusDocument:
+        """Normalize *doc* text to NFC and populate grapheme-cluster counts.
+
+        Parameters
+        ----------
+        doc : CorpusDocument
+            Document to normalize.  The ``text`` field is read; either
+            ``text`` or ``normalized_text`` is updated depending on
+            ``write_normalized_text``.
+
+        Returns
+        -------
+        CorpusDocument
+            The same document object with updated fields.
+
+        Raises
+        ------
+        ValueError
+            If ``max_text_length`` is set and the text exceeds it.
+        """
+        import unicodedata  # noqa: PLC0415
+
+        # Use normalized_text as input base if already set; else fall back
+        # to raw text.  This respects the existing pipeline convention.
+        text: str = doc.normalized_text if doc.normalized_text is not None else doc.text
+
+        # 1. Strip BOM if present at document start.
+        if self._strip_bom and text.startswith("\ufeff"):
+            text = text[1:]
+
+        # 2. Strip C0/C1 control characters (NUL byte caught here too).
+        if self._strip_control and self.__class__._CONTROL_STRIP_RE is not None:
+            text = self.__class__._CONTROL_STRIP_RE.sub("", text)
+
+        # 3. Apply Unicode normalization form.
+        text = unicodedata.normalize(self._form, text)
+
+        # 4. Compute grapheme clusters (UAX #29 extended grapheme clusters).
+        clusters: list[str] = self._regex.findall(r"\X", text)
+        n_clusters = len(clusters)
+
+        # 5. Enforce max_text_length guard.
+        if self._max_text_length is not None and n_clusters > self._max_text_length:
+            raise ValueError(
+                f"GraphemeClusterNormalizer: text exceeds "
+                f"max_text_length={self._max_text_length} "
+                f"(got {n_clusters} grapheme clusters). "
+                "Truncate the input or raise max_text_length."
+            )
+
+        # 6. Write back — always update the chosen output field.
+        if self._write_normalized_text:
+            doc.text = text
+        else:
+            doc.normalized_text = text
+
+        doc.grapheme_count = n_clusters
+        doc.codepoint_count = len(text)
+        return doc
+
+    def __repr__(self) -> str:  # noqa: D105
+        return (
+            f"GraphemeClusterNormalizer("
+            f"form={self._form!r}, "
+            f"strip_bom={self._strip_bom!r}, "
+            f"strip_control={self._strip_control!r}, "
+            f"max_text_length={self._max_text_length!r})"
+        )

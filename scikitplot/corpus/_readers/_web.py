@@ -7,7 +7,7 @@
 
 r"""
 scikitplot.corpus._readers._web
-================================
+===============================
 Text extraction from web URLs and YouTube videos.
 
 Two readers are provided:
@@ -340,14 +340,30 @@ class WebReader(DocumentReader):
     >>> reader = WebReader(input_path=Path(url), source_uri=url)
     """
 
-    file_type: ClassVar[str] = ":url"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [":url"]
 
     timeout: int = field(default=_DEFAULT_TIMEOUT)
     """HTTP request timeout in seconds."""
 
     max_response_bytes: int = field(default=_DEFAULT_MAX_BYTES)
-    """Maximum response body size. Default: 10 MB."""
+    """
+    Maximum streamed response body size in bytes.
+
+    **BUG-06 clarification:** WebReader enforces two independent byte limits:
+
+    1. ``max_content_bytes`` — checked against the ``Content-Length`` HTTP
+       header **before** reading the body.  Aborts early without downloading
+       anything when the server advertises an oversized response.
+       (Pre-download header check; server may omit the header.)
+
+    2. ``max_response_bytes`` — checked against the **actual bytes read**
+       during streaming.  Aborts mid-stream if the body exceeds this value,
+       even when no ``Content-Length`` header was sent.
+
+    Both limits must be > 0 (validated in ``__post_init__``).
+    Default: 10 MB.
+    """
 
     headers: dict[str, str] | None = field(default=None)
     """Extra HTTP request headers."""
@@ -366,22 +382,49 @@ class WebReader(DocumentReader):
 
         Notes
         -----
-        URL-based readers do not call ``super().__post_init__()`` because
-        ``validate_input`` for URLs performs a network check, not a
-        filesystem existence check.  Validation is deferred to the first
-        ``get_raw_chunks`` call.
+        **BUG-01 fix:** URL-based readers previously skipped
+        ``super().__post_init__()`` with a comment claiming it triggered
+        file validation.  That comment was wrong — file validation lives in
+        :meth:`validate_input`, which is **not** called by
+        ``super().__post_init__()``.  Calling ``super().__post_init__()``
+        gives us three things for free:
+
+        1. ``input_path`` coercion to ``pathlib.Path`` (needed when the
+           caller passes a bare URL string).
+        2. ``custom_extractor`` callable type-check.
+        3. ``filter_`` default resolution via :class:`DefaultFilter` — we
+           no longer need to duplicate that logic here.
+
+        Both :class:`WebReader` and :class:`YouTubeReader` override
+        :meth:`validate_input` to perform a URL format check rather than a
+        filesystem existence check, so calling ``super().__post_init__()``
+        is safe.
 
         Raises
         ------
         ValueError
-            If ``timeout <= 0`` or ``max_response_bytes <= 0``.
+            If ``timeout <= 0`` or ``max_response_bytes <= 0`` or
+            ``max_content_bytes <= 0``.
+        TypeError
+            If ``custom_extractor`` is provided but not callable.
         """
-        # URL readers do NOT call super().__post_init__ for file validation —
-        # we handle validation ourselves in validate_input().
-        from .._base import DefaultFilter  # noqa: PLC0415
+        # BUG-01 fix: call super().__post_init__() for input_path coercion,
+        # custom_extractor type-check, and filter_ DefaultFilter resolution.
+        # Safe: super().__post_init__() does NOT invoke validate_input().
+        super().__post_init__()
 
-        if self.filter_ is None:
-            object.__setattr__(self, "filter_", DefaultFilter())
+        if self.timeout <= 0:
+            raise ValueError(f"WebReader: timeout must be > 0; got {self.timeout!r}.")
+        if self.max_response_bytes <= 0:
+            raise ValueError(
+                f"WebReader: max_response_bytes must be > 0; "
+                f"got {self.max_response_bytes!r}."
+            )
+        if self.max_content_bytes <= 0:
+            raise ValueError(
+                f"WebReader: max_content_bytes must be > 0; "
+                f"got {self.max_content_bytes!r}."
+            )
 
     def validate_input(self) -> None:
         """
@@ -547,6 +590,10 @@ class WebReader(DocumentReader):
 
             yield {
                 "text": text,
+                # raw_text: inner HTML of the element before BeautifulSoup
+                # strips tags and collapses whitespace — preserves original
+                # markup for before/after comparison.
+                "raw_text": str(element),
                 "section_type": sec_type,
                 # promoted → CorpusDocument.source_type
                 "source_type": SourceType.WEB.value,
@@ -654,7 +701,7 @@ class YouTubeReader(DocumentReader):
     >>> print(f"Transcript cues: {len(docs)}")
     """
 
-    file_type: ClassVar[str] = ":youtube"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [":youtube"]
 
     preferred_language: str | None = field(default=None)
@@ -672,16 +719,24 @@ class YouTubeReader(DocumentReader):
     def __post_init__(self) -> None:
         """Initialise the YouTubeReader and parse the video ID from the URL.
 
+        Notes
+        -----
+        **BUG-01 fix:** Now calls ``super().__post_init__()`` to obtain
+        ``input_path`` coercion, ``custom_extractor`` type-check, and
+        ``filter_`` default resolution — all three were silently missing
+        before.  :meth:`validate_input` is overridden to check YouTube URL
+        format rather than filesystem existence, so ``super().__post_init__()``
+        is safe to call.
+
         Raises
         ------
         ValueError
             If the URL does not match any recognised YouTube pattern
             (watch, shorts, embed, live, youtu.be).
         """
-        from .._base import DefaultFilter  # noqa: PLC0415
-
-        if self.filter_ is None:
-            object.__setattr__(self, "filter_", DefaultFilter())
+        # BUG-01 fix: call super().__post_init__() — safe because
+        # super().__post_init__() does NOT call validate_input().
+        super().__post_init__()
 
     def validate_input(self) -> None:
         """
@@ -873,8 +928,9 @@ class YouTubeReader(DocumentReader):
 
         for cue in cues:
             # youtube-transcript-api returns dict or snippet objects
-            text = cue.get("text", "") if isinstance(cue, dict) else str(cue.text)
-            text = _HTML_TAG_RE.sub("", text).strip()
+            # raw_text: verbatim cue content before HTML tag stripping.
+            raw_text = cue.get("text", "") if isinstance(cue, dict) else str(cue.text)
+            text = _HTML_TAG_RE.sub("", raw_text).strip()
             if not text:
                 continue
 
@@ -887,6 +943,9 @@ class YouTubeReader(DocumentReader):
 
             yield {
                 "text": text,
+                # raw_text: pre-HTML-strip cue text from transcript API —
+                # may contain <c> colour/timing tags or &amp; entities.
+                "raw_text": raw_text,
                 "section_type": SectionType.TEXT.value,
                 "timecode_start": round(
                     start, 3

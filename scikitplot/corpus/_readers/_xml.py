@@ -129,6 +129,35 @@ def _element_text_content(element: Any) -> str:
     return _WS_RE.sub(" ", raw).strip()
 
 
+def _element_raw_text_content(element: Any) -> str:
+    """
+    Recursively extract all text content from an XML element **without**
+    whitespace normalisation.
+
+    Parameters
+    ----------
+    element : xml.etree.ElementTree.Element or lxml.etree._Element
+        Source XML element.
+
+    Returns
+    -------
+    str
+        Raw joined ``itertext()`` output — inter-element spaces preserved,
+        but ``_WS_RE`` collapsing NOT applied.  Used to populate
+        ``raw_text`` in yielded chunk dicts so callers can compare the
+        verbatim XML extraction against the normalised ``text`` field.
+
+    Notes
+    -----
+    **Developer note:** The only difference from :func:`_element_text_content`
+    is the absence of ``_WS_RE.sub``.  Both functions walk the same
+    ``itertext()`` sequence; this function exposes the pre-normalised form
+    for before/after comparison at the corpus level.
+    """  # noqa: D205
+    parts = list(element.itertext())
+    return " ".join(parts).strip()
+
+
 def _parse_xml_lxml(content: bytes) -> Any:
     """
     Parse XML bytes using lxml.
@@ -449,9 +478,12 @@ class XMLReader(DocumentReader):
     ... )
     """
 
-    file_type: ClassVar[str] = ".xml"
+    # BUG-03 fix: file_type removed — file_types used for registration.
     file_types: ClassVar[list[str] | None] = [".xml"]
 
+    # BUG-05 note: this is a ClassVar (class-scoped), unlike the module-level
+    # constants in _pdf.py (2 GB) and _text.py (500 MB). Renamed there to
+    # avoid the false impression of a shared cross-module default.
     _DEFAULT_MAX_FILE_BYTES: ClassVar[int] = 200 * 1024 * 1024  # 200 MB
 
     block_xpath: str = field(default=".//*")
@@ -531,7 +563,10 @@ class XMLReader(DocumentReader):
                 continue
             yield {
                 "text": text,
-                "section_type": SectionType.TEXT,
+                # raw_text: itertext join before _WS_RE whitespace-normalisation
+                # — enables before/after comparison against the cleaned text.
+                "raw_text": self._element_raw_text(element, ns),
+                "section_type": SectionType.TEXT.value,
             }
 
     # ------------------------------------------------------------------
@@ -561,6 +596,38 @@ class XMLReader(DocumentReader):
         else:
             raw = _element_text_content(element)
         return _WS_RE.sub(" ", raw).strip()
+
+    def _element_raw_text(self, element: Any, namespaces: dict[str, str]) -> str:
+        """
+        Extract raw (un-normalised) text from a single matched element.
+
+        Parameters
+        ----------
+        element : Element
+            Matched XML element.
+        namespaces : dict
+            Namespace map (unused by base implementation).
+
+        Returns
+        -------
+        str
+            Joined ``itertext()`` output **without** ``_WS_RE`` whitespace
+            collapsing.  Populated in chunk dicts as ``"raw_text"`` so
+            callers can compare verbatim XML extraction against the
+            normalised ``"text"`` field.
+
+        Notes
+        -----
+        **Developer note:** Mirrors :meth:`_element_text` exactly except
+        it delegates to :func:`_element_raw_text_content` instead of
+        :func:`_element_text_content`.  Override in subclasses alongside
+        ``_element_text`` when custom text extraction is needed.
+        """
+        if self.text_xpath is not None:
+            results = _xpath_elements(element, self.text_xpath, namespaces)
+            parts = [_element_raw_text_content(r) for r in results]
+            return " ".join(p for p in parts if p).strip()
+        return _element_raw_text_content(element)
 
 
 # ---------------------------------------------------------------------------
@@ -667,9 +734,13 @@ class TEIReader(DocumentReader):
     # or subclass it with a distinct file_type if needed.
     # Setting file_type to a sentinel prevents __init_subclass__ from
     # registering it while still satisfying the ClassVar declaration.
-    file_type: ClassVar[str] = ":tei"  # internal-only key, not a real extension
+    # BUG-03 fix: file_type removed — file_types used for registration.
+    # ":tei" is an internal-only key, not a real file extension.
     file_types: ClassVar[list[str] | None] = [":tei"]
 
+    # BUG-05 note: this is a ClassVar (class-scoped), unlike the module-level
+    # constants in _pdf.py (2 GB) and _text.py (500 MB). Renamed there to
+    # avoid the false impression of a shared cross-module default.
     _DEFAULT_MAX_FILE_BYTES: ClassVar[int] = 200 * 1024 * 1024  # 200 MB
 
     include_stage_directions: bool = field(default=True)
@@ -865,7 +936,9 @@ class TEIReader(DocumentReader):
             if text:
                 yield {
                     "text": text,
-                    "section_type": SectionType.STAGE_DIRECTION,
+                    # raw_text: un-normalised itertext join before _WS_RE.
+                    "raw_text": _element_raw_text_content(element),
+                    "section_type": SectionType.STAGE_DIRECTION.value,
                     "act": act,
                     "scene_number": scene,
                     "line_number": None,
@@ -890,7 +963,8 @@ class TEIReader(DocumentReader):
                 line_counter[0] += 1
                 yield {
                     "text": text,
-                    "section_type": SectionType.VERSE,
+                    "raw_text": _element_raw_text_content(element),
+                    "section_type": SectionType.VERSE.value,
                     "act": act,
                     "scene_number": scene,
                     "line_number": line_counter[0],
@@ -903,7 +977,8 @@ class TEIReader(DocumentReader):
             if text:
                 yield {
                     "text": text,
-                    "section_type": SectionType.TEXT,
+                    "raw_text": _element_raw_text_content(element),
+                    "section_type": SectionType.TEXT.value,
                     "act": act,
                     "scene_number": scene,
                     "line_number": None,
@@ -965,12 +1040,16 @@ class TEIReader(DocumentReader):
             text = _element_text_content(child)
             if not text:
                 continue
+            # raw_text: un-normalised itertext join before _WS_RE collapsing.
+            # Captured once per child; reused across all three yield branches.
+            raw_text = _element_raw_text_content(child)
 
             if local in _TEI_STAGE_TAGS:
                 if self.include_stage_directions:
                     yield {
                         "text": text,
-                        "section_type": SectionType.STAGE_DIRECTION,
+                        "raw_text": raw_text,
+                        "section_type": SectionType.STAGE_DIRECTION.value,
                         "act": act,
                         "scene_number": scene,
                         "line_number": None,
@@ -982,7 +1061,10 @@ class TEIReader(DocumentReader):
                 chunk_text = f"{speaker}: {text}" if speaker else text
                 yield {
                     "text": chunk_text,
-                    "section_type": SectionType.VERSE,
+                    # raw_text: speaker prefix NOT prepended — preserves the
+                    # verbatim child text for clean before/after comparison.
+                    "raw_text": raw_text,
+                    "section_type": SectionType.VERSE.value,
                     "act": act,
                     "scene_number": scene,
                     "line_number": line_counter[0],
@@ -993,7 +1075,8 @@ class TEIReader(DocumentReader):
             chunk_text = f"{speaker}: {text}" if speaker else text
             yield {
                 "text": chunk_text,
-                "section_type": SectionType.DIALOGUE,
+                "raw_text": raw_text,
+                "section_type": SectionType.DIALOGUE.value,
                 "act": act,
                 "scene_number": scene,
                 "line_number": None,

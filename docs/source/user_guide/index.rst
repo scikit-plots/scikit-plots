@@ -75,7 +75,7 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **remarks generation**
+        **remarks citation generation**
         ^^^
         .. toctree::
             :maxdepth: 3

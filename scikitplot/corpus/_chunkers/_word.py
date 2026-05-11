@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import re
 import string
+import time
 import unicodedata
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
@@ -44,6 +45,8 @@ from ._language_data import (  # noqa: F401
     coerce_language,
     resolve_stopwords,
 )
+from ._multilang_mixin import MultilangConfig, MultilangMixin
+from ._sentence import _validate_text_input  # Bug 4 fix — shared guard
 
 logger = logging.getLogger(__name__)
 
@@ -404,6 +407,15 @@ class WordChunkerConfig(ChunkerConfig):
     chunk_by: str = "document"  # "document" | "sentence"
     include_offsets: bool = False
     build_gensim_corpus: bool = False
+    multilang_config: Any = field(default=None, hash=False, compare=False)
+    """Multilang feature flags (:class:`MultilangConfig` or ``None``).
+
+    When set, each word chunk is enriched with a
+    ``chunk.metadata["multilang"]`` dict containing script detection,
+    semanteme info (tokens → SemantemeInfo list), grapheme counts,
+    preprocessing trace, raw text, stopword counts, timing, and other
+    provenance fields.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -1032,7 +1044,7 @@ def _resolve_custom_lemmatizer(cfg: WordChunkerConfig) -> LemmatizerProtocol:
 # ---------------------------------------------------------------------------
 
 
-class WordChunker:
+class WordChunker(MultilangMixin):
     """Process a document at word level, producing normalised token chunks.
 
     Each output :class:`~.._types.Chunk` contains:
@@ -1040,6 +1052,9 @@ class WordChunker:
     * ``text`` — space-joined normalised tokens (with optional n-grams).
     * ``metadata`` — token list, n-grams, token count, processing flags,
       optional Gensim BoW vector.
+    * ``metadata["multilang"]`` — script detection, semanteme analysis,
+      stopword counts, grapheme counts, preprocessing trace, timing, and
+      raw text (when ``MultilangConfig`` is set).
 
     Parameters
     ----------
@@ -1049,6 +1064,22 @@ class WordChunker:
         Pre-built Gensim dictionary.  When provided (and
         ``cfg.build_gensim_corpus`` is ``True``), each chunk's metadata
         includes a ``"bow"`` Gensim BoW vector.
+    multilang_config : MultilangConfig, optional
+        Multilang feature flags.  Overrides ``config.multilang_config``
+        when provided explicitly.
+
+    Notes
+    -----
+    **User note (multilang):** Set ``multilang_config=MultilangConfig(
+    include_semantemes=True, include_raw_text=True,
+    include_preprocessing_trace=True)`` to get the full per-token
+    semanteme analysis dict, preprocessing audit trail, and raw-vs-normalised
+    text comparison in every chunk.
+
+    **Developer note:** Inherits :class:`MultilangMixin`.  Token-level
+    metadata (``token_count``, ``stopword_count``, ``unique_token_count``)
+    is computed directly from the processed token list and forwarded to
+    :meth:`_ml_build_meta`.
 
     Examples
     --------
@@ -1063,12 +1094,20 @@ class WordChunker:
         self,
         config: WordChunkerConfig | None = None,
         gensim_dictionary: Any | None = None,
+        multilang_config: MultilangConfig | None = None,
     ) -> None:
         self._cfg = config if config is not None else WordChunkerConfig()
         self._gensim_dict = gensim_dictionary
-        self._stopwords: frozenset[str] = frozenset()  # loaded lazily
-        self._spacy_nlp: Any | None = None  # loaded lazily
+        self._stopwords: frozenset[str] = frozenset()
+        self._spacy_nlp: Any | None = None
         self._validate_config()
+        # Multilang mixin
+        ml_cfg = multilang_config or (
+            self._cfg.multilang_config
+            if isinstance(getattr(self._cfg, "multilang_config", None), MultilangConfig)
+            else None
+        )
+        self._ml_init(ml_cfg)
 
     # ------------------------------------------------------------------
     # Validation
@@ -1206,7 +1245,15 @@ class WordChunker:
             f"Unsupported tokenizer: {self._cfg.tokenizer!r}."
         )  # pragma: no cover
 
-    def _process_segment(self, text: str, doc_id: str | None, seg_index: int) -> Chunk:
+    def _process_segment(  # noqa: PLR0912
+        self,
+        text: str,
+        doc_id: str | None,
+        seg_index: int,
+        raw_text: str | None = None,
+        preprocessing_trace: Any = None,
+        preproc_ms: float | None = None,
+    ) -> Chunk:
         """Process a single text segment into a :class:`~.._types.Chunk`.
 
         Parameters
@@ -1217,12 +1264,21 @@ class WordChunker:
             Document identifier.
         seg_index : int
             Index of this segment within the document.
+        raw_text : str or None
+            Pre-normalised raw document text for raw-vs-normalised comparison.
+        preprocessing_trace : PreprocessingTrace or None
+            Audit trail from preprocessing pass.
+        preproc_ms : float or None
+            Preprocessing wall-clock duration in milliseconds.
 
         Returns
         -------
         Chunk
-            Processed word-level chunk.
+            Processed word-level chunk with optional multilang metadata.
         """
+        import time as _time  # noqa: PLC0415
+
+        chunk_start_t = _time.perf_counter()
         self._ensure_stopwords()
 
         spacy_doc: Any | None = None
@@ -1256,6 +1312,16 @@ class WordChunker:
             "tokenizer": self._cfg.tokenizer.value,
             "stemmer": self._cfg.stemmer.value,
             "lemmatizer": self._cfg.lemmatizer.value,
+            # _raw_segment: verbatim pre-stemmed / pre-stopword-filtered segment
+            # text.  Always included (unconditionally, NOT gated on MultilangConfig)
+            # so that _base.get_documents() can assign the correct per-chunk raw_text
+            # without requiring MultilangConfig to be enabled.
+            #
+            # Without this, WordChunker sentence-mode chunks ALL report char_start=0
+            # (offsets are relative to the segment, not the document), causing
+            # _base.get_documents() to fall through to the full parent raw_text for
+            # every chunk — the identical-raw_text duplication bug.
+            "_raw_segment": text,
         }
         if doc_id is not None:
             meta["doc_id"] = doc_id
@@ -1263,12 +1329,45 @@ class WordChunker:
         if self._cfg.build_gensim_corpus and self._gensim_dict is not None:
             meta["bow"] = _to_gensim_bow(processed, self._gensim_dict)
 
-        return Chunk(
+        chunk = Chunk(
             text=chunk_text,
-            start_char=0,  # word-level chunks do not track character offsets
+            start_char=0,
             end_char=len(text),
             metadata=meta,
         )
+
+        # Multilang enrichment
+        if self._ml_cfg.enabled:
+            stem_map: dict[str, str] | None = None
+            lemma_map: dict[str, str] | None = None
+            if self._cfg.stemmer.value != "none" and len(raw_tokens) == len(processed):
+                stem_map = dict(zip(raw_tokens, processed))
+            if self._cfg.lemmatizer.value != "none" and len(raw_tokens) == len(
+                processed
+            ):
+                lemma_map = dict(zip(raw_tokens, processed))
+            raw_token_map: dict[str, str] | None = None
+            if raw_text and self._ml_cfg.include_raw_text:
+                raw_token_map = {t: t for t in processed}
+            seg_raw = text if raw_text and self._ml_cfg.include_raw_text else None
+            ml_meta = self._ml_build_meta(
+                chunk_text,
+                chunking_unit="word",
+                tokens=list(processed),
+                stem_map=stem_map,
+                lemma_map=lemma_map,
+                stopword_set=self._stopwords or None,
+                raw_token_map=raw_token_map,
+                raw_text=seg_raw,
+                preprocessing_trace=preprocessing_trace,
+                chunking_start_time=chunk_start_t,
+                preprocessing_duration_ms=preproc_ms,
+                start_char=0,
+                end_char=len(text),
+            )
+            chunk = self._ml_enrich_chunk(chunk, ml_meta)
+
+        return chunk
 
     # ------------------------------------------------------------------
     # Public API
@@ -1305,11 +1404,21 @@ class WordChunker:
         """
         if not isinstance(text, str):
             raise TypeError(f"text must be str, got {type(text).__name__!r}.")
+        _validate_text_input(text, "WordChunker.chunk")
         if not text.strip():
             raise ValueError("text must not be empty or whitespace-only.")
 
+        # Multilang: preprocessing trace
+        raw_text = text
+        preprocessing_trace = None
+        preproc_start = time.perf_counter()
+        if self._ml_cfg.enabled and (
+            self._ml_cfg.include_preprocessing_trace or self._ml_cfg.include_raw_text
+        ):
+            text, preprocessing_trace = self._ml_build_preprocessing_trace(raw_text)
+        preproc_ms = round((time.perf_counter() - preproc_start) * 1000, 3)
+
         if self._cfg.chunk_by == "sentence":
-            # Split on sentence boundaries for sentence-level word chunks.
             from ._sentence import (  # noqa: PLC0415
                 SentenceChunker,
                 SentenceChunkerConfig,
@@ -1324,7 +1433,15 @@ class WordChunker:
             segments = [text]
 
         chunks: list[Chunk] = [
-            self._process_segment(seg, doc_id, idx) for idx, seg in enumerate(segments)
+            self._process_segment(
+                seg,
+                doc_id,
+                idx,
+                raw_text=raw_text,
+                preprocessing_trace=preprocessing_trace,
+                preproc_ms=preproc_ms,
+            )
+            for idx, seg in enumerate(segments)
         ]
 
         result_meta: dict[str, Any] = {
