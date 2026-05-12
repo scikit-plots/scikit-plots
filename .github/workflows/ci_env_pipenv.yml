@@ -14,12 +14,20 @@
 # --------------------
 # requirements/default.txt   → runtime (non-dev) packages  [pipenv install]
 # requirements/all.txt       → developer / CI packages      [pipenv install --dev]
-# Both files must exist in the repository root.  Missing files cause an
-# immediate, descriptive failure before any pipenv command is executed.
+# Both files may use -r/-c includes; all includes are resolved recursively and
+# validated before being handed to pipenv.
+#
+# VALIDATION
+# ----------
+# A pre-flight Python step (5b) flattens every -r/-c include chain into two
+# single-file representations and validates each resolved line.  Any invalid
+# PEP 508 specifier (e.g. bare globs such as "toml*") causes an immediate,
+# attributed error — with file name and line number — before any pipenv command
+# runs.
 #
 # OUTPUT LAYOUT
 # -------------
-# docker/env_pipenv/             ← root store (updated when UPDATE_ROOT_PIPENV=true)
+# docker/env_pipenv/              ← root store (updated when UPDATE_ROOT_PIPENV=true)
 # │   Pipfile
 # │   Pipfile.lock
 # │   README.md                  ← untouched
@@ -30,15 +38,16 @@
 # GENERATION STRATEGY
 # -------------------
 # Work is performed directly inside the versioned directory
-# (docker/env_pipenv/<pyXXX>/) so no staging or copy is needed:
+# (docker/env_pipenv/<pyXXX>/) — no staging or copy is required:
 #
 #   1. mkdir -p  <versioned-dir>
 #   2. rm -f     Pipfile  Pipfile.lock  (clean slate; ignore if absent)
-#   3. pipenv --python <version>        (writes fresh Pipfile)
-#   4. pipenv install -r requirements/default.txt
-#   5. pipenv install --dev -r requirements/all.txt
+#   3. export PIPENV_PIPFILE=<abs-path>/Pipfile  ← prevents parent-dir discovery
+#   4. pipenv --python <version>        (writes fresh Pipfile at pinned path)
+#   5. pipenv install    -r <flat-runtime.txt>
+#   6. pipenv install --dev -r <flat-dev.txt>
 #                                       (rewrites Pipfile + writes Pipfile.lock)
-#   6. rm -rf .venv                     (venv not committed)
+#   7. rm -rf .venv  /tmp/pipenv_flat/  (transient artefacts; never committed)
 #
 # If UPDATE_ROOT_PIPENV=true the two generated files are then copied to the
 # root store (docker/env_pipenv/) — only Pipfile and Pipfile.lock are touched.
@@ -141,23 +150,25 @@ jobs:
       UPDATE_ROOT_PIPENV: ${{ inputs.update_root_pipenv || 'true' }}
 
       # Canonical paths inside the repo.
-      PIPENV_STORE_DIR:  docker/env_pipenv   # root store
-      REQUIREMENTS_DIR:  requirements        # requirements/*.txt files
+      PIPENV_STORE_DIR: docker/env_pipenv   # root store (relative to GITHUB_WORKSPACE)
+      REQUIREMENTS_DIR: requirements        # where *.txt requirement files live
 
       # ── Pipenv behaviour knobs ──────────────────────────────────────────────
-      # Keep the virtualenv inside the working directory for clean isolation.
+      # Keep the virtualenv inside the versioned directory for clean isolation.
       # The .venv folder is removed after lock generation and is never committed.
       PIPENV_VENV_IN_PROJECT: '1'
-      # Do not inherit the system site-packages into the pipenv venv.
+      # Prevent pipenv from activating any outer / inherited virtualenv.
       PIPENV_IGNORE_VIRTUALENVS: '1'
       # Suppress the "courtesy notice" banner (CI noise reduction).
       PIPENV_VERBOSITY: '-1'
+      # NOTE: PIPENV_PIPFILE is set dynamically in step 5 (after VERSIONED_DIR
+      # is known from step 2) so it cannot be declared here at the job level.
 
     # ── Steps ─────────────────────────────────────────────────────────────────
     steps:
 
       # ── Step 1: Checkout ────────────────────────────────────────────────────
-      # persist-credentials: true  — needed so `git push` in step 10 works.
+      # persist-credentials: true  — needed so `git push` in step 11 works.
       # fetch-depth: 0             — full history for correct git operations.
       # lfs: true                  — pull any LFS-tracked assets.
       - name: "⬇️ Checkout repository (full history)"
@@ -176,13 +187,12 @@ jobs:
       # Transform the dotted version string into a compact directory name:
       #   3.11  → py311
       #   3.13t → py313t   (free-threaded variant; dots removed, suffix kept)
-      # This mapping is deterministic and collision-free across all listed
-      # versions.  The result is written to GITHUB_ENV so all subsequent steps
-      # can use ${{ env.VERSIONED_DIR }} without re-computing.
+      # All derived values are written to GITHUB_ENV so subsequent steps can
+      # consume them as ${{ env.* }} expressions or as plain $VAR shell refs.
       - name: "🔧 Derive PY_DIR and VERSIONED_DIR"
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
           # Remove all dots from the version string, then prepend "py".
           PY_DIR="py$(echo "${PY_VERSION}" | tr -d '.')"
@@ -209,9 +219,8 @@ jobs:
       - name: "📦 Install pipenv"
         shell: bash
         run: |
-          set -Eeuo pipefail
-          # confirm the correct interpreter is active
-          python --version
+          set -euo pipefail
+          python --version        # confirm the correct interpreter is active
           python -m pip install --upgrade pip pipenv
           pipenv --version
 
@@ -219,23 +228,37 @@ jobs:
       # ── Step 5: Validate requirements and prepare clean workspace ────────────
       #
       # FAIL-FAST VALIDATION
-      # Both requirements files must exist before any pipenv command runs.
-      # Missing files cause an immediate descriptive error — we never generate
-      # an empty or partial lock file.
+      # Both top-level requirements files must exist before any pipenv command
+      # runs.  Missing files produce an immediate, descriptive error.
       #
       # CLEAN SLATE
       # Any pre-existing Pipfile, Pipfile.lock, or .venv inside VERSIONED_DIR
       # are removed so the lock solve is always independent of prior state.
       # mkdir -p ensures the directory exists even on a first run.
+      #
+      # PIPENV_PIPFILE  (critical fix — prevents parent-dir Pipfile discovery)
+      # Root cause: pipenv walks UP the directory tree looking for a Pipfile.
+      # When docker/env_pipenv/Pipfile (the root store) already exists, pipenv
+      # finds it before reaching py311/ and uses the WRONG project root.
+      # This results in:
+      #   • The venv landing in docker/env_pipenv/.venv (not py311/.venv)
+      #   • The root Pipfile being overwritten instead of py311/Pipfile
+      # Fix: export PIPENV_PIPFILE to an absolute path inside py311/. This
+      # completely disables the directory-walk heuristic for this run.
+      #
+      # FLAT_DIR
+      # A temporary directory for the flattened requirements files produced by
+      # step 5b. Isolated per run via GITHUB_RUN_ID to prevent conflicts when
+      # multiple runs share the same runner (uncommon but possible).
       - name: "🧹 Validate requirements files and clean workspace"
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
           REQ_RUNTIME="${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/default.txt"
           REQ_DEV="${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/all.txt"
 
-          # ── Validate both requirements files exist ──────────────────────────
+          # ── Validate top-level requirements files exist ─────────────────────
           MISSING=0
           for req_file in "${REQ_RUNTIME}" "${REQ_DEV}"; do
             if [[ ! -f "${req_file}" ]]; then
@@ -248,9 +271,9 @@ jobs:
 
           if [[ "${MISSING}" -ne 0 ]]; then
             echo "" >&2
-            echo "Ensure both files exist in the repository:" >&2
-            echo "  ${REQUIREMENTS_DIR}/default.txt  (runtime dependencies)" >&2
-            echo "  ${REQUIREMENTS_DIR}/all.txt      (dev / CI dependencies)" >&2
+            echo "Ensure both files exist under ${REQUIREMENTS_DIR}/:" >&2
+            echo "  default.txt  (runtime dependencies)" >&2
+            echo "  all.txt      (dev / CI dependencies)" >&2
             exit 1
           fi
 
@@ -258,67 +281,310 @@ jobs:
           echo "REQ_RUNTIME=${REQ_RUNTIME}" >> "$GITHUB_ENV"
           echo "REQ_DEV=${REQ_DEV}"         >> "$GITHUB_ENV"
 
-          # ── Prepare versioned directory: clean slate ────────────────────────
-          mkdir -p "${VERSIONED_DIR}"
+          # ── Pin PIPENV_PIPFILE to the versioned directory ───────────────────
+          # Must be an absolute path so pipenv does not search parent dirs.
+          ABS_VERSIONED_DIR="${GITHUB_WORKSPACE}/${VERSIONED_DIR}"
+          echo "ABS_VERSIONED_DIR=${ABS_VERSIONED_DIR}"             >> "$GITHUB_ENV"
+          echo "PIPENV_PIPFILE=${ABS_VERSIONED_DIR}/Pipfile"        >> "$GITHUB_ENV"
 
-          # Remove any pre-existing lock artefacts and venv so the solve starts
-          # from a blank state regardless of what was previously committed.
-          rm -f  "${VERSIONED_DIR}/Pipfile"
-          rm -f  "${VERSIONED_DIR}/Pipfile.lock"
-          rm -rf "${VERSIONED_DIR}/.venv"
+          # ── Temporary directory for flattened requirements ───────────────────
+          FLAT_DIR="/tmp/pipenv_flat_${GITHUB_RUN_ID}"
+          mkdir -p "${FLAT_DIR}"
+          echo "FLAT_DIR=${FLAT_DIR}" >> "$GITHUB_ENV"
+
+          # ── Clean slate inside the versioned directory ──────────────────────
+          mkdir -p "${ABS_VERSIONED_DIR}"
+          rm -f  "${ABS_VERSIONED_DIR}/Pipfile"
+          rm -f  "${ABS_VERSIONED_DIR}/Pipfile.lock"
+          rm -rf "${ABS_VERSIONED_DIR}/.venv"
 
           echo ""
-          echo "Workspace prepared: ${VERSIONED_DIR}/"
-          ls -lah "${VERSIONED_DIR}/" || echo "(directory is now empty)"
+          echo "Workspace prepared : ${ABS_VERSIONED_DIR}/"
+          echo "PIPENV_PIPFILE     : ${ABS_VERSIONED_DIR}/Pipfile"
+          echo "Flat reqs dir      : ${FLAT_DIR}/"
+          ls -lah "${ABS_VERSIONED_DIR}/" || echo "(directory is now empty)"
+
+
+      # ── Step 5b: Flatten and validate requirements files ────────────────────
+      #
+      # WHY FLATTEN
+      # Pipenv processes -r includes by copying them into a temporary
+      # constraints file at a runner-controlled path.  Relative paths in
+      # nested -r directives (e.g. default.txt → -r legacy.txt) are resolved
+      # from that temp path, not from the original file's directory, which
+      # causes "file not found" failures for any multi-level include tree.
+      # Flattening collapses the entire include graph into two single files
+      # with all paths already resolved — no runtime path logic is needed.
+      #
+      # WHY VALIDATE
+      # Invalid PEP 508 specifiers (e.g. bare globs like "toml*" in legacy.txt)
+      # cause a late, cryptic resolver failure deep inside pipenv.
+      # Pre-validation surfaces the exact file, line number, and offending
+      # specifier BEFORE pipenv runs, giving a clear, actionable error.
+      #
+      # IMPLEMENTATION
+      # An inline Python script handles both concerns:
+      #   • Recursively follows -r and -c include directives, resolving paths
+      #     relative to each file's own directory (not cwd).
+      #   • Tracks visited files to prevent infinite loops from circular refs.
+      #   • Strips comments and blank lines.
+      #   • Validates each resolved line against known invalid patterns and
+      #     reports ALL violations with file:line attribution before exiting 1.
+      #   • Writes two flat output files consumed by step 6.
+      - name: "📋 Flatten and validate requirements files"
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Write the helper script to the flat dir (cleaned up in step 8).
+          cat > "${FLAT_DIR}/flatten_reqs.py" << 'PYEOF'
+"""
+Flatten requirements files by recursively resolving all -r/-c include
+directives, then validate every resolved line for known invalid patterns.
+
+Usage
+-----
+    python flatten_reqs.py <runtime_in> <dev_in> <runtime_out> <dev_out>
+
+Exit codes
+----------
+    0  Success — both output files written; all lines valid.
+    1  One or more invalid requirement specifiers found (reported to stderr).
+    2  A referenced requirements file does not exist (reported to stderr).
+"""
+from __future__ import annotations
+
+import os
+import re
+import sys
+from typing import Generator
+
+
+# ── Compiled patterns ──────────────────────────────────────────────────────────
+# Matches blank lines and pure comment lines.
+RE_BLANK_OR_COMMENT = re.compile(r"^\s*(#.*)?$")
+
+# Matches -r or -c include directives, capturing the path token.
+# Handles optional whitespace between the flag and the path.
+RE_INCLUDE = re.compile(r"^\s*(-r|-c)\s+(\S+)")
+
+# A valid pip "compatible release" uses ~=X.Y.* — the * is preceded by a dot
+# and a version number.  Any other trailing * on a package name is invalid.
+# This pattern matches the invalid form: bare name ending in * with no
+# preceding version operator (e.g. "toml*", "numpy*").
+RE_INVALID_BARE_GLOB = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._-]*\*"
+)
+
+
+# ── Core logic ─────────────────────────────────────────────────────────────────
+
+def flatten(
+    req_file: str,
+    visited: set[str] | None = None,
+) -> Generator[tuple[str, int, str], None, None]:
+    """
+    Recursively yield (source_file, lineno, line) for every resolved line.
+
+    Parameters
+    ----------
+    req_file : str
+        Absolute path to the requirements file to process.
+    visited : set of str or None
+        Accumulated set of already-visited absolute paths.
+        Prevents infinite recursion from circular -r includes.
+
+    Yields
+    ------
+    (source_file, lineno, line) : tuple of (str, int, str)
+        The absolute path of the originating file, the 1-based line number,
+        and the stripped requirement line (no trailing whitespace).
+    """
+    if visited is None:
+        visited = set()
+
+    req_file = os.path.abspath(req_file)
+
+    if not os.path.isfile(req_file):
+        print(f"ERROR: Requirements file not found: {req_file}", file=sys.stderr)
+        sys.exit(2)
+
+    if req_file in visited:
+        # Already processed — skip to prevent circular-include infinite loop.
+        return
+    visited.add(req_file)
+
+    file_dir = os.path.dirname(req_file)
+
+    with open(req_file, encoding="utf-8") as fh:
+        for lineno, raw_line in enumerate(fh, start=1):
+            line = raw_line.rstrip()
+
+            if RE_BLANK_OR_COMMENT.match(line):
+                continue
+
+            m = RE_INCLUDE.match(line)
+            if m:
+                # Resolve the included path relative to the current file's dir
+                # (same semantics as pip itself, not relative to cwd).
+                included = m.group(2)
+                if not os.path.isabs(included):
+                    included = os.path.join(file_dir, included)
+                yield from flatten(included, visited=visited)
+            else:
+                yield (req_file, lineno, line)
+
+
+def validate_and_write(
+    input_file: str,
+    output_file: str,
+    label: str,
+) -> list[str]:
+    """
+    Flatten *input_file*, validate each line, and write valid lines to
+    *output_file*.  Returns a list of error strings (empty when all pass).
+
+    Parameters
+    ----------
+    input_file : str
+        Top-level requirements file (may contain -r/-c includes).
+    output_file : str
+        Destination path for the flattened, validated output.
+    label : str
+        Human-readable label used in log and error messages.
+
+    Returns
+    -------
+    list of str
+        Error strings collected during validation.  Empty when all lines pass.
+    """
+    entries = list(flatten(input_file))
+    errors: list[str] = []
+    valid_lines: list[str] = []
+
+    for source, lineno, line in entries:
+        if RE_INVALID_BARE_GLOB.match(line):
+            pkg_name = line.rstrip("*")
+            errors.append(
+                f"  [{label}] {source}:{lineno}: "
+                f"invalid specifier (bare glob) → {line!r}\n"
+                f"    Fix: replace with a valid PEP 508 specifier, e.g.:\n"
+                f"      '{pkg_name}'            (unpinned)\n"
+                f"      '{pkg_name}>=<version>' (minimum version)\n"
+                f"      '~={pkg_name}1.0'       (compatible release)"
+            )
+        else:
+            valid_lines.append(line)
+
+    if not errors:
+        os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(valid_lines) + "\n")
+        print(f"✅ [{label}] {len(valid_lines)} requirements → {output_file}")
+
+    return errors
+
+
+def main() -> None:
+    if len(sys.argv) != 5:
+        print(
+            "Usage: flatten_reqs.py <runtime_in> <dev_in> <runtime_out> <dev_out>",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    runtime_in, dev_in, runtime_out, dev_out = sys.argv[1:]
+
+    all_errors: list[str] = []
+    all_errors.extend(validate_and_write(runtime_in, runtime_out, "runtime"))
+    all_errors.extend(validate_and_write(dev_in,     dev_out,     "dev"))
+
+    if all_errors:
+        print(
+            "\n❌ Invalid requirement specifiers detected.\n"
+            "   Fix the offending lines in the source requirements files,\n"
+            "   then re-run this workflow.\n",
+            file=sys.stderr,
+        )
+        for err in all_errors:
+            print(err, file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+PYEOF
+
+          # ── Execute the flatten + validate script ────────────────────────────
+          python3 "${FLAT_DIR}/flatten_reqs.py" \
+            "${REQ_RUNTIME}" \
+            "${REQ_DEV}" \
+            "${FLAT_DIR}/runtime.txt" \
+            "${FLAT_DIR}/dev.txt"
+
+          # Expose the flat file paths to step 6.
+          echo "REQ_RUNTIME_FLAT=${FLAT_DIR}/runtime.txt" >> "$GITHUB_ENV"
+          echo "REQ_DEV_FLAT=${FLAT_DIR}/dev.txt"         >> "$GITHUB_ENV"
+
+          echo ""
+          echo "── Flattened runtime requirements ─────────────────────────────"
+          cat "${FLAT_DIR}/runtime.txt"
+          echo ""
+          echo "── Flattened dev requirements ─────────────────────────────────"
+          cat "${FLAT_DIR}/dev.txt"
 
 
       # ── Step 6: Generate Pipfile and Pipfile.lock from scratch ───────────────
       #
-      # All pipenv commands run with VERSIONED_DIR as the working directory.
-      # PIPENV_VENV_IN_PROJECT=1 (set in job env) keeps the venv local to that
-      # directory so it never contaminates the repo root or other directories.
+      # PIPENV_PIPFILE (exported to GITHUB_ENV in step 5, picked up automatically
+      # by all subsequent steps) pins the exact absolute Pipfile path.
+      # Without this, pipenv walks up from docker/env_pipenv/py311/ and finds
+      # docker/env_pipenv/Pipfile (the root store), producing the wrong venv
+      # location and overwriting the wrong Pipfile.
+      #
+      # Flat requirement files (from step 5b) have all -r/-c includes already
+      # resolved and all lines pre-validated — no path ambiguity exists for
+      # pipenv's internal resolver.
       #
       # Command sequence:
       #   pipenv --python <version>
-      #       Creates a fresh Pipfile pinned to the requested Python version.
-      #       Does NOT read any pre-existing Pipfile — the directory was wiped
-      #       in step 5, so this always starts from a blank slate.
+      #       Creates a fresh Pipfile at PIPENV_PIPFILE, pinned to the requested
+      #       Python version.  The clean-slate wipe in step 5 guarantees no
+      #       prior Pipfile influences the new one.
       #
-      #   pipenv install -r <default.txt>
-      #       Parses the runtime requirements file and adds every package as a
-      #       non-dev dependency in Pipfile, then writes an initial lock.
+      #   pipenv install -r <flat-runtime.txt>
+      #       Adds each package as a non-dev [packages] entry in Pipfile and
+      #       writes an initial Pipfile.lock.
       #
-      #   pipenv install --dev -r <all.txt>
-      #       Parses the dev/CI requirements file and adds every package as a
-      #       [dev-packages] entry in Pipfile, then rewrites the full lock.
-      #
-      # After both installs Pipfile and Pipfile.lock in VERSIONED_DIR contain
-      # the complete, reproducible dependency graph — no copy step is required.
+      #   pipenv install --dev -r <flat-dev.txt>
+      #       Adds each package as a [dev-packages] entry and rewrites the full
+      #       Pipfile.lock with both runtime and dev dependencies resolved.
       - name: "🔒 Generate Pipfile and Pipfile.lock from scratch"
         shell: bash
-        working-directory: ${{ env.VERSIONED_DIR }}
+        working-directory: ${{ env.ABS_VERSIONED_DIR }}
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
-          echo "▶ Working directory : $(pwd)"
-          echo "▶ Python version    : ${PY_VERSION}"
-          echo "▶ Runtime deps      : ${REQ_RUNTIME}"
-          echo "▶ Dev deps          : ${REQ_DEV}"
+          echo "▶ Working directory    : $(pwd)"
+          echo "▶ PIPENV_PIPFILE       : ${PIPENV_PIPFILE}"
+          echo "▶ Python version       : ${PY_VERSION}"
+          echo "▶ Runtime deps (flat)  : ${REQ_RUNTIME_FLAT}"
+          echo "▶ Dev deps (flat)      : ${REQ_DEV_FLAT}"
           echo ""
 
           # 1. Bootstrap a brand-new Pipfile for this Python version.
           echo "── pipenv --python ${PY_VERSION} ──────────────────────────────"
           pipenv --python "${PY_VERSION}"
 
-          # 2. Import runtime (non-dev) dependencies from requirements/default.txt.
+          # 2. Import runtime (non-dev) dependencies.
           echo ""
-          echo "── pipenv install -r default.txt ──────────────────────────────"
-          pipenv install -r "${REQ_RUNTIME}"
+          echo "── pipenv install -r runtime.txt ──────────────────────────────"
+          pipenv install -r "${REQ_RUNTIME_FLAT}"
 
-          # 3. Import dev / CI dependencies from requirements/all.txt.
+          # 3. Import dev / CI dependencies.
           echo ""
-          echo "── pipenv install --dev -r all.txt ────────────────────────────"
-          pipenv install --dev -r "${REQ_DEV}"
+          echo "── pipenv install --dev -r dev.txt ────────────────────────────"
+          pipenv install --dev -r "${REQ_DEV_FLAT}"
 
           echo ""
           echo "✅ Generation complete."
@@ -327,17 +593,17 @@ jobs:
 
 
       # ── Step 7: Verify generated artifacts ──────────────────────────────────
-      # Confirms both files exist and are non-empty.  An empty or absent lock
-      # file would indicate a silent pipenv failure — we catch it here before
-      # any git operations.
+      # Confirms both files exist and are non-empty before any git operations.
+      # An empty or absent file indicates a silent pipenv failure that set -e
+      # alone may not catch (e.g. pipenv exits 0 but writes no lock).
       - name: "🔍 Verify generated artifacts in versioned directory"
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
           FAIL=0
           for artifact in "Pipfile" "Pipfile.lock"; do
-            target="${VERSIONED_DIR}/${artifact}"
+            target="${ABS_VERSIONED_DIR}/${artifact}"
             if [[ ! -f "${target}" ]]; then
               echo "❌ ERROR: Missing artifact: ${target}" >&2
               FAIL=1
@@ -358,25 +624,38 @@ jobs:
 
           echo ""
           echo "Versioned directory contents:"
-          ls -lh "${VERSIONED_DIR}/"
+          ls -lh "${ABS_VERSIONED_DIR}/"
 
 
-      # ── Step 8: Stage artifacts → versioned directory cleanup ────────────────
-      # Remove the .venv that pipenv created during the lock solve.
-      # The virtualenv is an implementation detail of the solve — it is not
-      # committed and is not needed after Pipfile.lock has been written.
-      - name: "🧹 Remove .venv from versioned directory"
+      # ── Step 8: Remove transient build artefacts ─────────────────────────────
+      # Removes the .venv created during the lock solve and the flat
+      # requirements directory produced in step 5b.
+      # Both are implementation details — they are not committed and are not
+      # needed after Pipfile.lock has been written.
+      # if: always() ensures cleanup runs even when an upstream step fails.
+      - name: "🧹 Remove .venv and flat requirements artefacts"
         if: always()
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
-          VENV_PATH="${VERSIONED_DIR}/.venv"
+          # Remove the in-project virtualenv.
+          # PIPENV_VENV_IN_PROJECT=1 places .venv next to the Pipfile, which is
+          # inside ABS_VERSIONED_DIR.
+          VENV_PATH="${ABS_VERSIONED_DIR}/.venv"
           if [[ -d "${VENV_PATH}" ]]; then
             rm -rf "${VENV_PATH}"
             echo "Removed: ${VENV_PATH}"
           else
             echo ".venv not present — nothing to remove."
+          fi
+
+          # Remove the temporary flat requirements directory.
+          if [[ -n "${FLAT_DIR:-}" && -d "${FLAT_DIR}" ]]; then
+            rm -rf "${FLAT_DIR}"
+            echo "Removed: ${FLAT_DIR}"
+          else
+            echo "Flat requirements dir not present — nothing to remove."
           fi
 
 
@@ -388,14 +667,16 @@ jobs:
         if: env.UPDATE_ROOT_PIPENV == 'true'
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
-          mkdir -p "${PIPENV_STORE_DIR}"
-          cp "${VERSIONED_DIR}/Pipfile"      "${PIPENV_STORE_DIR}/Pipfile"
-          cp "${VERSIONED_DIR}/Pipfile.lock" "${PIPENV_STORE_DIR}/Pipfile.lock"
+          ROOT_STORE="${GITHUB_WORKSPACE}/${PIPENV_STORE_DIR}"
+          mkdir -p "${ROOT_STORE}"
 
-          echo "Staged to: ${PIPENV_STORE_DIR}/"
-          ls -lh "${PIPENV_STORE_DIR}/Pipfile" "${PIPENV_STORE_DIR}/Pipfile.lock"
+          cp "${ABS_VERSIONED_DIR}/Pipfile"      "${ROOT_STORE}/Pipfile"
+          cp "${ABS_VERSIONED_DIR}/Pipfile.lock" "${ROOT_STORE}/Pipfile.lock"
+
+          echo "Staged to: ${ROOT_STORE}/"
+          ls -lh "${ROOT_STORE}/Pipfile" "${ROOT_STORE}/Pipfile.lock"
 
 
       # ── Step 10: Detect changes (idempotent guard) ────────────────────────────
@@ -407,7 +688,7 @@ jobs:
         id: changes
         shell: bash
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
           # Stage new/modified files for comparison (does not create a commit).
           git add --intent-to-add "${PIPENV_STORE_DIR}/"
@@ -435,7 +716,7 @@ jobs:
           # controllable branch names embedded in github.ref_name.
           REF_NAME: ${{ github.ref_name }}
         run: |
-          set -Eeuo pipefail
+          set -euo pipefail
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
