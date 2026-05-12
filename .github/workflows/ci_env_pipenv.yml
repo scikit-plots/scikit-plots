@@ -416,9 +416,31 @@ jobs:
           echo "▶ Dev deps (flat)      : ${REQ_DEV_FLAT}"
           echo ""
 
-          # 1. Bootstrap a brand-new Pipfile for this Python version.
-          echo "── pipenv --python ${PY_VERSION} ──────────────────────────────"
-          pipenv --python "${PY_VERSION}"
+          # 1. Write a minimal Pipfile pinned to the requested Python version.
+          #
+          #    ROOT CAUSE FIX: pipenv 2026.6.1 validates PIPENV_PIPFILE at
+          #    startup (Project.__init__ → Setting.__init__) and raises
+          #    RuntimeError("Given PIPENV_PIPFILE is not found!") when the
+          #    path does not yet exist on disk.  The former 'pipenv --python'
+          #    call was intended to CREATE the file, but the new guard fires
+          #    before any file-creation logic runs.
+          #
+          #    Fix: write the Pipfile directly with printf before invoking any
+          #    pipenv command.  Content is exactly what 'pipenv --python'
+          #    produces, keeping semantics identical while bypassing the guard.
+          echo "── Write Pipfile for Python ${PY_VERSION} ─────────────────────"
+          printf '%s\n' \
+            '[[source]]' \
+            'url = "https://pypi.org/simple"' \
+            'verify_ssl = true' \
+            'name = "pypi"' \
+            '' \
+            '[requires]' \
+            "python_version = \"${PY_VERSION}\"" \
+            > "${PIPENV_PIPFILE}"
+          echo "✅ Pipfile bootstrapped at ${PIPENV_PIPFILE}"
+          cat "${PIPENV_PIPFILE}"
+          echo ""
 
           # 2. Import runtime (non-dev) dependencies.
           echo ""

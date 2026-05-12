@@ -1,4 +1,9 @@
-"""
+# .github/scripts/flatten_reqs.py
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+r"""
 Flatten and validate requirements files for use with pipenv.
 
 Recursively resolves all ``-r``/``-c`` include directives, evaluates
@@ -61,13 +66,13 @@ Exit codes
 2
     A referenced requirements file does not exist (reported to stderr).
 """
+
 from __future__ import annotations
 
 import os
 import re
 import sys
 from typing import Generator
-
 
 # ── Compiled patterns ─────────────────────────────────────────────────────────
 
@@ -86,6 +91,7 @@ RE_INVALID_BARE_GLOB = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\*")
 
 
 # ── Marker evaluation ─────────────────────────────────────────────────────────
+
 
 def _parse_major_minor(python_version: str) -> str:
     """
@@ -118,7 +124,7 @@ def _parse_major_minor(python_version: str) -> str:
     return f"{parts[0]}.{parts[1]}"
 
 
-def _build_marker_env(python_version_mm: str) -> "dict[str, str] | None":
+def _build_marker_env(python_version_mm: str) -> dict[str, str] | None:
     """
     Build a PEP 508 marker environment dict with ``python_version`` overridden
     to *python_version_mm*.
@@ -140,18 +146,20 @@ def _build_marker_env(python_version_mm: str) -> "dict[str, str] | None":
     dict of str to str or None
         Marker environment dict on success; ``None`` when ``packaging`` is
         unavailable (caller treats this as "keep all lines").
-    """
+    """  # noqa: D205
     default_environment = None
 
-    try:
-        from packaging.markers import default_environment  # type: ignore[assignment]
+    try:  # noqa: SIM105
+        from packaging.markers import (  # noqa: PLC0415
+            default_environment,  # type: ignore[assignment]  # noqa: PLC0415
+        )
     except ImportError:
         pass
 
     if default_environment is None:
         try:
             # pip vendors packaging; use it as a fallback.
-            from pip._vendor.packaging.markers import (  # type: ignore[no-redef]
+            from pip._vendor.packaging.markers import (  # type: ignore[no-redef]  # noqa: PLC0415, TID251
                 default_environment,
             )
         except ImportError:
@@ -172,7 +180,7 @@ def _build_marker_env(python_version_mm: str) -> "dict[str, str] | None":
     return env
 
 
-def marker_applies(line: str, marker_env: "dict[str, str] | None") -> bool:
+def marker_applies(line: str, marker_env: dict[str, str] | None) -> bool:
     """
     Return ``False`` only when the line has an environment marker that
     evaluates to ``False`` for the given marker environment.
@@ -205,9 +213,19 @@ def marker_applies(line: str, marker_env: "dict[str, str] | None") -> bool:
         ``packaging.markers.default_environment()``.  This is intentional: the
         CI runner and the target Docker image share the same platform, so the
         evaluation is correct.
-    """
+    """  # noqa: D205
     if marker_env is None:
         return True  # Cannot evaluate; keep line to avoid silent drops.
+
+    # Strip inline comments before any further parsing.
+    # pip semantics: whitespace-preceded '#' begins a comment.
+    # Example: "tomli;python_version<'3.11'  # legacy" → strip " # legacy".
+    # Must happen BEFORE splitting on ';' so a '#' in a URL or VCS ref is
+    # never mis-identified as a comment boundary.
+    # The simple heuristic (r'\s+#.*$') matches pip's own comment-stripping
+    # and never triggers on version specifiers such as "~=1.0" or PEP 508
+    # extras (which contain no bare whitespace-preceded '#').
+    line = re.sub(r"\s+#.*$", "", line).rstrip()
 
     if ";" not in line:
         return True  # No marker — unconditionally applicable.
@@ -219,17 +237,20 @@ def marker_applies(line: str, marker_env: "dict[str, str] | None") -> bool:
     try:
         # Import here so the module-level import failure above is still caught.
         try:
-            from packaging.markers import Marker
+            from packaging.markers import Marker  # noqa: PLC0415
         except ImportError:
-            from pip._vendor.packaging.markers import Marker  # type: ignore[no-redef]
+            from pip._vendor.packaging.markers import (  # type: ignore[no-redef]  # noqa: PLC0415, TID251
+                Marker,
+            )
 
         return bool(Marker(marker_str).evaluate(environment=marker_env))
     except Exception:  # noqa: BLE001
-        # Unparseable or un-evaluable marker — keep; safe default.
+        # Unparsable or un-evaluable marker — keep; safe default.
         return True
 
 
 # ── Core logic ────────────────────────────────────────────────────────────────
+
 
 def flatten(
     req_file: str,
@@ -279,7 +300,10 @@ def flatten(
     req_file = os.path.abspath(req_file)
 
     if not os.path.isfile(req_file):
-        print(f"ERROR: Requirements file not found: {req_file}", file=sys.stderr)
+        print(  # noqa: T201
+            f"ERROR: Requirements file not found: {req_file}",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if req_file in visited:
@@ -312,7 +336,7 @@ def validate_and_write(
     input_file: str,
     output_file: str,
     label: str,
-    marker_env: "dict[str, str] | None",
+    marker_env: dict[str, str] | None,
 ) -> list[str]:
     """
     Flatten *input_file*, filter by environment markers, validate each
@@ -351,7 +375,7 @@ def validate_and_write(
     Developer note
         The output file always ends with a trailing newline so that tools
         consuming it (e.g. ``wc -l``, ``cat``) behave predictably.
-    """
+    """  # noqa: D205
     entries = list(flatten(input_file))
     errors: list[str] = []
     valid_lines: list[str] = []
@@ -362,7 +386,7 @@ def validate_and_write(
         if not marker_applies(line, marker_env):
             skipped += 1
             py_ver = (marker_env or {}).get("python_version", "?")
-            print(
+            print(  # noqa: T201
                 f"  [{label}] skipped (marker false for py{py_ver}): "
                 f"{os.path.basename(source)}:{lineno}: {line!r}"
             )
@@ -386,7 +410,7 @@ def validate_and_write(
         os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
         with open(output_file, "w", encoding="utf-8") as fh:
             fh.write("\n".join(valid_lines) + "\n")
-        print(
+        print(  # noqa: T201
             f"✅ [{label}] {len(valid_lines)} requirement(s) written, "
             f"{skipped} skipped by marker → {output_file}"
         )
@@ -404,13 +428,13 @@ def main() -> None:
     0
         Both flat files written successfully; all specifiers valid.
     1
-        Wrong argument count, unparseable Python version, or one or more
+        Wrong argument count, unparsable Python version, or one or more
         invalid specifiers found.  All errors are reported before exit.
     2
         A referenced requirements file does not exist.
-    """
+    """  # noqa: D205
     if len(sys.argv) != 6:  # noqa: PLR2004
-        print(
+        print(  # noqa: T201
             "Usage: flatten_reqs.py "
             "<runtime_in> <dev_in> <runtime_out> <dev_out> <python_version>",
             file=sys.stderr,
@@ -423,39 +447,39 @@ def main() -> None:
     try:
         python_version_mm = _parse_major_minor(python_version_raw)
     except ValueError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        print(f"ERROR: {exc}", file=sys.stderr)  # noqa: T201
         sys.exit(1)
 
     # ── Build the marker evaluation environment ────────────────────────────
     marker_env = _build_marker_env(python_version_mm)
     if marker_env is None:
-        print(
+        print(  # noqa: T201
             "WARNING: 'packaging' is not available; environment markers will "
             "not be evaluated and all lines will be passed to pipenv.",
             file=sys.stderr,
         )
     else:
-        print(f"Target Python version : {python_version_mm}")
-        print(f"Marker env python_version : {marker_env['python_version']}")
+        print(f"Target Python version : {python_version_mm}")  # noqa: T201
+        print(  # noqa: T201
+            f"Marker env python_version : {marker_env['python_version']}"
+        )
 
     # ── Flatten, filter, validate, and write both files ───────────────────
     all_errors: list[str] = []
     all_errors.extend(
         validate_and_write(runtime_in, runtime_out, "runtime", marker_env)
     )
-    all_errors.extend(
-        validate_and_write(dev_in, dev_out, "dev", marker_env)
-    )
+    all_errors.extend(validate_and_write(dev_in, dev_out, "dev", marker_env))
 
     if all_errors:
-        print(
+        print(  # noqa: T201
             "\n❌ Invalid requirement specifiers detected.\n"
             "   Fix the offending lines in the source requirements files,\n"
             "   then re-run this workflow.\n",
             file=sys.stderr,
         )
         for err in all_errors:
-            print(err, file=sys.stderr)
+            print(err, file=sys.stderr)  # noqa: T201
         sys.exit(1)
 
 
