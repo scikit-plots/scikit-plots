@@ -1,18 +1,52 @@
 ## [🐋 Scikit-plots Runtime Docker Images][hub.docker.com]
 
-These containers are a quick way to run or try scikit-plots. The source is available on [GitHub][scikit-plots-github]⁠. For building scikit-plots or extensions for scikit-plots, please see: [the scikit-plots Build Dockerfiles][scikit-plots-docker] and 📘 see: [the scikit-plots Env Manager][scikit-plots-github.io-docker].
+These containers are a quick way to run or try scikit-plots. The source is available on [GitHub][scikit-plots-github]⁠ and this file [hub.docker.com.md][hub.docker.com.md].
+<br> For building scikit-plots or extensions for scikit-plots, please see: [the scikit-plots Build Dockerfiles][scikit-plots-docker].
+
+> 📘 See Also: [`the scikit-plots Env Manager`][scikit-plots-github.io-docker].
 
 [hub.docker.com]: https://hub.docker.com/r/scikitplot/scikit-plots
+[hub.docker.com.md]: https://github.com/scikit-plots/scikit-plots/blob/main/docker/hub.docker.com.md
 [scikit-plots-github]: https://github.com/scikit-plots/scikit-plots
 [scikit-plots-github.io-docker]: https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html
 [scikit-plots-docker]: https://github.com/scikit-plots/scikit-plots/tree/main/docker
 
-- [scikitplot/scikit-plots:latest-jupyter-python-3.12](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
 - [scikitplot/scikit-plots:latest-python-3.11](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
+- [scikitplot/scikit-plots:latest-jupyter-python-3.12](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
 
 ---
 
-## Quickstart: Drop-in volume-mount examples
+## Quickstart
+
+### Run a Container with a Mounted Volume (Permanent External Folder Link)
+
+#### Onto VS Code's Extension
+
+- [`ms-vscode-remote.remote-containers`](https://github.com/microsoft/vscode-docs/blob/main/docs/devcontainers/tutorial.md)
+- [`ms-vscode-remote.vscode-remote-extensionpack`](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)
+```sh
+docker run -it -v "$(pwd):/work"  python:3.11-slim -c bash
+```
+```sh
+docker run -it -v "$(pwd):/work"  mambaorg/micromamba:2.4.0 -c bash
+```
+
+<!-- Scikit-plots favicon image -->
+<div align=center>
+ <a href="https://code.visualstudio.com/docs/devcontainers/containers" target="_blank" rel="noopener noreferrer">
+  <img alt="Scikit-plots" height="230"
+   src="https://code.visualstudio.com/assets/docs/devcontainers/containers/architecture-containers.png">
+ </a>
+</div>
+
+#### Onto Vscode or Browser as Notebook
+```sh
+docker run -it -v "$(pwd):/work" -p 8888:8888  jupyter/scipy-notebook:latest
+```
+
+### Scikit-plots Drop-in volume-mount
+
+#### Examples
 
 ```sh
 # (os-agnostic) Bash scikitplot/scikit-plots:latest
@@ -58,7 +92,9 @@ docker run -it -v "%cd%:/work" scikitplot/scikit-plots:latest
 
 ---
 
-## 🏷️ Base Image Tags
+## Getting Started
+
+### 🏷️ Base Image Tags
 
 Images built are based on [python:latest][scikit-plots-jupyter], [jupyter/tensorflow-notebook:latest][scikit-plots-jupyter], etc.
 
@@ -69,15 +105,15 @@ Images built are based on [python:latest][scikit-plots-jupyter], [jupyter/tensor
 
 ---
 
-## 🏷️ Optional Features
+### 🏷️ Optional Features
 
 - `-jupyter` tags include Jupyter and some scikit-plots tutorial notebooks.. They start a Jupyter notebook server on boot. Mount a volume to `/work/notebooks` to work on your own notebooks.
 
 ---
 
-## 🐳 Running Containers
+### 🐳 Running Containers
 
-### 👉 **latest** (partial pre-installed (e.g., gcc, g++, micromamba))
+#### 👉 **latest** (partial pre-installed (e.g., gcc, g++, micromamba))
 
 #### pull
 ```sh
@@ -90,9 +126,6 @@ docker run scikitplot/scikit-plots:latest
 ```
 
 ---
-
-
-## Getting Started
 
 #### run interactive shell (default entrypoint bash)
 ```sh
@@ -118,9 +151,9 @@ docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 
 ---
 
-## 👉 **latest-python-3.11** alias (**latest**) (partial pre-installed (e.g., gcc, g++, micromamba))
+### 👉 **latest-python-3.11** alias (**latest**) (partial pre-installed (e.g., gcc, g++, micromamba))
 
-### 🏷️ fast-minimal (default entrypoint bash)
+#### 🏷️ fast-minimal (default entrypoint bash)
 ```sh
 # docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
 docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c bash
@@ -128,14 +161,14 @@ docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c bash
 
 ---
 
-## 👉 **latest-jupyter** (full pre-installed (e.g., conda, mamba))
+### 👉 **latest-jupyter** (full pre-installed (e.g., conda, mamba))
 
-### 🏷️ pre-installed os/python packages (default entrypoint tini)
+#### 🏷️ pre-installed os/python packages (default entrypoint tini)
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash
 ```
 
-🛠️ See also pre-installed conda/mamba env:
+### 🛠️ See also pre-installed conda/mamba env:
 
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "conda info -e"
@@ -147,7 +180,7 @@ docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "which pyt
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "scikitplot -V"
 ```
 
-🛠️ Update system packages
+### 🛠️ Update system packages
 
 ```sh
 docker run -it --rm --user root scikitplot/scikit-plots:latest-jupyter bash -c "apt update"
@@ -155,13 +188,13 @@ docker run -it --rm --user root scikitplot/scikit-plots:latest-jupyter bash -c "
 
 ---
 
-## 🔧 Start a container, using the Python interpreter.
+### 🔧 Start a container, using the Python interpreter.
 
 💡 How to Connect Running Container:
 - (Recommended) Open Vscode and Attach to Running Container (Dev Containers)
 - (Optionally)  Open jupter notebook in browser
 
-### ✅ Cross-Compatible Docker Command path `$(pwd)`
+#### ✅ Cross-Compatible Docker Command path `$(pwd)`
 
 #### ⚠️ One-Line Command path for POSIX shells (Git Bash `$(pwd -W)`, WSL/Linux/macOS `$(pwd)`) and PowerShell `$(pwd)`:
 ```sh
@@ -216,7 +249,7 @@ git config --global --add safe.directory '*'
 pre-commit install
 ```
 
-✍️ Ready for Development...
+### ✍️ Ready for Development...
 [install-the-development-version-of-scikit-plots](https://scikit-plots.github.io/dev/devel/guide_qu_contribute.html#install-the-development-version-of-scikit-plots)
 
 See Also:
