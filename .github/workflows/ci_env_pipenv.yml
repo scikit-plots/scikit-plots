@@ -316,211 +316,55 @@ jobs:
       # Flattening collapses the entire include graph into two single files
       # with all paths already resolved — no runtime path logic is needed.
       #
+      # WHY FILTER ENVIRONMENT MARKERS
+      # Pipenv's internal constraint-file generator does not correctly handle
+      # PEP 508 environment markers that evaluate to False for the target
+      # Python version.  Instead of omitting the package, it writes an invalid
+      # glob specifier (e.g. "toml*") into its temporary constraints file.
+      # pip then rejects this specifier with:
+      #
+      #   ERROR: Invalid requirement: 'toml*': Expected semicolon …
+      #
+      # This is the root cause of the pipenv lock failures observed on
+      # Python 3.11 for packages declared with:
+      #
+      #   tomli;python_version<"3.11"
+      #   toml;python_version<"3.11"
+      #   importlib-metadata;python_version<"3.10"
+      #
+      # Pre-filtering removes every such line before pipenv runs, so the
+      # resolver never encounters the invalid constraint.
+      #
       # WHY VALIDATE
-      # Invalid PEP 508 specifiers (e.g. bare globs like "toml*" in legacy.txt)
-      # cause a late, cryptic resolver failure deep inside pipenv.
-      # Pre-validation surfaces the exact file, line number, and offending
-      # specifier BEFORE pipenv runs, giving a clear, actionable error.
+      # Invalid PEP 508 specifiers (e.g. bare globs such as "toml*") that
+      # appear directly in a source requirements file would cause a late,
+      # cryptic resolver failure deep inside pipenv.  Pre-validation surfaces
+      # the exact file, line number, and offending specifier BEFORE pipenv
+      # runs, giving a clear, actionable error.
       #
       # IMPLEMENTATION
-      # An inline Python script handles both concerns:
-      #   • Recursively follows -r and -c include directives, resolving paths
-      #     relative to each file's own directory (not cwd).
-      #   • Tracks visited files to prevent infinite loops from circular refs.
-      #   • Strips comments and blank lines.
-      #   • Validates each resolved line against known invalid patterns and
-      #     reports ALL violations with file:line attribution before exiting 1.
-      #   • Writes two flat output files consumed by step 6.
+      # The helper script .github/scripts/flatten_reqs.py handles all three
+      # concerns.  It is a standalone Python file (not an inline heredoc) to
+      # avoid the YAML literal-block-scalar indentation constraint: Python
+      # module-level code starts at column 1, which falls below the 10-space
+      # indentation required by the surrounding run: | block, causing the YAML
+      # parser to exit the block scalar early and fail with:
+      #
+      #   while scanning a simple key … could not find expected ':'
+      #
+      # Keeping the script as a repo file also makes it independently testable
+      # and reviewable outside of CI.
       - name: "📋 Flatten and validate requirements files"
         shell: bash
         run: |
           set -euo pipefail
 
-          # Write the helper script to the flat dir (cleaned up in step 8).
-          cat > "${FLAT_DIR}/flatten_reqs.py" << 'PYEOF'
-"""
-Flatten requirements files by recursively resolving all -r/-c include
-directives, then validate every resolved line for known invalid patterns.
-
-Usage
------
-    python flatten_reqs.py <runtime_in> <dev_in> <runtime_out> <dev_out>
-
-Exit codes
-----------
-    0  Success — both output files written; all lines valid.
-    1  One or more invalid requirement specifiers found (reported to stderr).
-    2  A referenced requirements file does not exist (reported to stderr).
-"""
-from __future__ import annotations
-
-import os
-import re
-import sys
-from typing import Generator
-
-
-# ── Compiled patterns ──────────────────────────────────────────────────────────
-# Matches blank lines and pure comment lines.
-RE_BLANK_OR_COMMENT = re.compile(r"^\s*(#.*)?$")
-
-# Matches -r or -c include directives, capturing the path token.
-# Handles optional whitespace between the flag and the path.
-RE_INCLUDE = re.compile(r"^\s*(-r|-c)\s+(\S+)")
-
-# A valid pip "compatible release" uses ~=X.Y.* — the * is preceded by a dot
-# and a version number.  Any other trailing * on a package name is invalid.
-# This pattern matches the invalid form: bare name ending in * with no
-# preceding version operator (e.g. "toml*", "numpy*").
-RE_INVALID_BARE_GLOB = re.compile(
-    r"^[A-Za-z0-9][A-Za-z0-9._-]*\*"
-)
-
-
-# ── Core logic ─────────────────────────────────────────────────────────────────
-
-def flatten(
-    req_file: str,
-    visited: set[str] | None = None,
-) -> Generator[tuple[str, int, str], None, None]:
-    """
-    Recursively yield (source_file, lineno, line) for every resolved line.
-
-    Parameters
-    ----------
-    req_file : str
-        Absolute path to the requirements file to process.
-    visited : set of str or None
-        Accumulated set of already-visited absolute paths.
-        Prevents infinite recursion from circular -r includes.
-
-    Yields
-    ------
-    (source_file, lineno, line) : tuple of (str, int, str)
-        The absolute path of the originating file, the 1-based line number,
-        and the stripped requirement line (no trailing whitespace).
-    """
-    if visited is None:
-        visited = set()
-
-    req_file = os.path.abspath(req_file)
-
-    if not os.path.isfile(req_file):
-        print(f"ERROR: Requirements file not found: {req_file}", file=sys.stderr)
-        sys.exit(2)
-
-    if req_file in visited:
-        # Already processed — skip to prevent circular-include infinite loop.
-        return
-    visited.add(req_file)
-
-    file_dir = os.path.dirname(req_file)
-
-    with open(req_file, encoding="utf-8") as fh:
-        for lineno, raw_line in enumerate(fh, start=1):
-            line = raw_line.rstrip()
-
-            if RE_BLANK_OR_COMMENT.match(line):
-                continue
-
-            m = RE_INCLUDE.match(line)
-            if m:
-                # Resolve the included path relative to the current file's dir
-                # (same semantics as pip itself, not relative to cwd).
-                included = m.group(2)
-                if not os.path.isabs(included):
-                    included = os.path.join(file_dir, included)
-                yield from flatten(included, visited=visited)
-            else:
-                yield (req_file, lineno, line)
-
-
-def validate_and_write(
-    input_file: str,
-    output_file: str,
-    label: str,
-) -> list[str]:
-    """
-    Flatten *input_file*, validate each line, and write valid lines to
-    *output_file*.  Returns a list of error strings (empty when all pass).
-
-    Parameters
-    ----------
-    input_file : str
-        Top-level requirements file (may contain -r/-c includes).
-    output_file : str
-        Destination path for the flattened, validated output.
-    label : str
-        Human-readable label used in log and error messages.
-
-    Returns
-    -------
-    list of str
-        Error strings collected during validation.  Empty when all lines pass.
-    """
-    entries = list(flatten(input_file))
-    errors: list[str] = []
-    valid_lines: list[str] = []
-
-    for source, lineno, line in entries:
-        if RE_INVALID_BARE_GLOB.match(line):
-            pkg_name = line.rstrip("*")
-            errors.append(
-                f"  [{label}] {source}:{lineno}: "
-                f"invalid specifier (bare glob) → {line!r}\n"
-                f"    Fix: replace with a valid PEP 508 specifier, e.g.:\n"
-                f"      '{pkg_name}'            (unpinned)\n"
-                f"      '{pkg_name}>=<version>' (minimum version)\n"
-                f"      '~={pkg_name}1.0'       (compatible release)"
-            )
-        else:
-            valid_lines.append(line)
-
-    if not errors:
-        os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
-        with open(output_file, "w", encoding="utf-8") as fh:
-            fh.write("\n".join(valid_lines) + "\n")
-        print(f"✅ [{label}] {len(valid_lines)} requirements → {output_file}")
-
-    return errors
-
-
-def main() -> None:
-    if len(sys.argv) != 5:
-        print(
-            "Usage: flatten_reqs.py <runtime_in> <dev_in> <runtime_out> <dev_out>",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    runtime_in, dev_in, runtime_out, dev_out = sys.argv[1:]
-
-    all_errors: list[str] = []
-    all_errors.extend(validate_and_write(runtime_in, runtime_out, "runtime"))
-    all_errors.extend(validate_and_write(dev_in,     dev_out,     "dev"))
-
-    if all_errors:
-        print(
-            "\n❌ Invalid requirement specifiers detected.\n"
-            "   Fix the offending lines in the source requirements files,\n"
-            "   then re-run this workflow.\n",
-            file=sys.stderr,
-        )
-        for err in all_errors:
-            print(err, file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
-PYEOF
-
-          # ── Execute the flatten + validate script ────────────────────────────
-          python3 "${FLAT_DIR}/flatten_reqs.py" \
+          python3 "${GITHUB_WORKSPACE}/.github/scripts/flatten_reqs.py" \
             "${REQ_RUNTIME}" \
             "${REQ_DEV}" \
             "${FLAT_DIR}/runtime.txt" \
-            "${FLAT_DIR}/dev.txt"
+            "${FLAT_DIR}/dev.txt" \
+            "${PY_VERSION}"
 
           # Expose the flat file paths to step 6.
           echo "REQ_RUNTIME_FLAT=${FLAT_DIR}/runtime.txt" >> "$GITHUB_ENV"
