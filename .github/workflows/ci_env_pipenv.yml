@@ -1,0 +1,360 @@
+# .github/workflows/ci_env_pipenv.yml
+#
+# PURPOSE
+# -------
+# Generate and commit updated Pipenv lock files into the repository so that
+# Docker images and developer environments can reproduce exact dependency
+# versions without running a network-dependent solve at build time.
+#
+# OUTPUT LAYOUT
+# -------------
+# docker/env_pipenv/          ← root store (updated when UPDATE_ROOT_PIPENV=true)
+# │   Pipfile
+# │   Pipfile.lock
+# │   README.md               ← untouched
+# └── py311/                  ← versioned store (always updated)
+#         Pipfile
+#         Pipfile.lock
+#
+# PIPFILE RESOLUTION ORDER (first match wins)
+# -------------------------------------------
+#   1. docker/env_pipenv/<pyXXX>/Pipfile    (versioned, most specific)
+#   2. docker/env_pipenv/Pipfile            (root store)
+#   3. Pipfile                              (repo root fallback)
+#   If none found → workflow fails fast with a clear error.
+#
+# IDEMPOTENCY
+# -----------
+# A commit is created ONLY when git detects actual file changes.
+# The commit message contains "[skip ci]" to prevent recursive triggers.
+#
+# CONCURRENCY
+# -----------
+# One run per branch at a time; newer runs cancel older in-progress ones.
+#
+# SECURITY
+# --------
+# • contents:write scoped to the single job that needs it (least privilege).
+# • All third-party action SHAs are pinned to an immutable commit hash.
+# • No secrets are printed; GITHUB_TOKEN usage is implicit via git push.
+# • Workflow only executes on the canonical repository, never on forks.
+---
+name: CI Env Pipenv
+
+
+# ─── Triggers ────────────────────────────────────────────────────────────────
+on:
+  workflow_dispatch:
+    inputs:
+      update_root_pipenv:
+        description: >-
+          Also copy the new Pipfile + Pipfile.lock to the root
+          docker/env_pipenv/ directory (in addition to the versioned sub-dir).
+        required: false
+        type: choice
+        default: 'true'
+        options:
+          - 'true'
+          - 'false'
+      py_version:
+        description: 'Python version to resolve dependencies against'
+        required: false
+        type: choice
+        default: '3.11'
+        options:
+          - '3.11'   # ← default; maps to docker/env_pipenv/py311/
+          - '3.12'   #            maps to docker/env_pipenv/py312/
+          - '3.13'   #            maps to docker/env_pipenv/py313/
+          - '3.13t'  #            maps to docker/env_pipenv/py313t/  (free-threaded)
+  # push:
+  #   branches:
+  #     - main
+  #     - maintenance/**
+  schedule:
+    # cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
+    - cron: '11 11 * * 1'
+
+
+# ─── Concurrency ─────────────────────────────────────────────────────────────
+# One run per branch / tag at a time.
+# On PRs:  github.head_ref  (source branch name, e.g. "feature/x")
+# On push: github.ref       (full ref,            e.g. "refs/heads/main")
+# Fallback: github.run_id   (unique per run — never cancels anything)
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.head_ref || github.ref || github.run_id
+    }}
+  cancel-in-progress: true
+
+
+# ─── Default permissions (deny-by-default; job overrides below) ──────────────
+permissions:
+  contents: read
+
+
+# ─── Jobs ────────────────────────────────────────────────────────────────────
+jobs:
+
+  update_pipenv:
+    # ── Identity ───────────────────────────────────────────────────────────────
+    name: >-
+      Update Pipenv Artifacts
+      (py${{ inputs.py_version || '3.11' }},
+       root=${{ inputs.update_root_pipenv || 'true' }})
+    runs-on: ubuntu-latest
+
+    # Guard: only run on the canonical repo, never on forks.
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    # Elevate write permission at job scope only (principle of least privilege).
+    permissions:
+      contents: write
+
+    # ── Environment variables ─────────────────────────────────────────────────
+    env:
+      # Resolve inputs; fall back to sensible defaults for push/schedule triggers
+      # (workflow_dispatch inputs are empty strings on those triggers, not absent).
+      PY_VERSION:         ${{ inputs.py_version         || '3.11' }}
+      UPDATE_ROOT_PIPENV: ${{ inputs.update_root_pipenv || 'true' }}
+
+      # Canonical path inside the repo where all Pipenv artifacts live.
+      PIPENV_STORE_DIR: docker/env_pipenv
+
+      # Keep the virtualenv inside the working directory for clean isolation.
+      PIPENV_VENV_IN_PROJECT: '1'
+      # Do not inherit the system site-packages into the pipenv venv.
+      PIPENV_NO_INHERIT: '1'
+      # Suppress the "courtesy notice" warning (CI noise reduction).
+      PIPENV_VERBOSITY: '-1'
+
+    # ── Steps ─────────────────────────────────────────────────────────────────
+    steps:
+
+      # ── Step 1: Checkout ────────────────────────────────────────────────────
+      # persist-credentials: true  — needed so `git push` in step 10 works
+      # fetch-depth: 0             — full history for correct git operations
+      # lfs: true                  — pull any LFS-tracked assets
+      - name: "⬇️ Checkout repository (full history)"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
+          lfs: true
+          # On a PR event use the source-branch HEAD commit; otherwise use the
+          # triggering ref (branch / tag / schedule SHA).
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+
+      # ── Step 2: Derive directory name from Python version ───────────────────
+      # Transform the dotted version string into a compact directory name:
+      #   3.11  → py311
+      #   3.13t → py313t
+      # This mapping is deterministic and collision-free across all listed versions.
+      - name: "🔧 Derive PY_DIR and VERSIONED_DIR"
+        shell: bash
+        run: |
+          # Remove all dots; prepend "py".
+          PY_DIR="py$(echo "${PY_VERSION}" | tr -d '.')"
+
+          VERSIONED_DIR="${PIPENV_STORE_DIR}/${PY_DIR}"
+
+          echo "PY_DIR=${PY_DIR}"                 >> "$GITHUB_ENV"
+          echo "VERSIONED_DIR=${VERSIONED_DIR}"   >> "$GITHUB_ENV"
+
+          echo "Python version : ${PY_VERSION}"
+          echo "Directory name : ${PY_DIR}"
+          echo "Versioned path : ${VERSIONED_DIR}"
+
+
+      # ── Step 3: Set up Python ────────────────────────────────────────────────
+      # Note: setup-python understands the '3.13t' free-threaded specifier.
+      - name: "🐍 Set up Python ${{ env.PY_VERSION }}"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PY_VERSION }}
+
+
+      # ── Step 4: Verify Python and install pipenv ─────────────────────────────
+      - name: "📦 Install pipenv"
+        shell: bash
+        run: |
+          # Confirm the correct interpreter is active.
+          python --version
+          python -c "import sys; assert sys.version_info >= (3, 11), \
+            f'Expected Python >= 3.11, got {sys.version}'"
+
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade pipenv
+
+          pipenv --version
+
+
+      # ── Step 5: Resolve source Pipfile ───────────────────────────────────────
+      # Priority (first existing file wins):
+      #   1. docker/env_pipenv/<pyXXX>/Pipfile  — version-specific, most accurate
+      #   2. docker/env_pipenv/Pipfile           — root store
+      #   3. Pipfile                             — repo root fallback
+      # Fail fast if no Pipfile can be found — never generate an empty lock.
+      - name: "🔍 Resolve source Pipfile"
+        shell: bash
+        run: |
+          if   [[ -f "${VERSIONED_DIR}/Pipfile" ]]; then
+            SRC_PIPFILE="${VERSIONED_DIR}/Pipfile"
+            echo "Source: versioned dir (${SRC_PIPFILE})"
+
+          elif [[ -f "${PIPENV_STORE_DIR}/Pipfile" ]]; then
+            SRC_PIPFILE="${PIPENV_STORE_DIR}/Pipfile"
+            echo "Source: root store (${SRC_PIPFILE})"
+
+          elif [[ -f "Pipfile" ]]; then
+            SRC_PIPFILE="Pipfile"
+            echo "Source: repo root (${SRC_PIPFILE})"
+
+          else
+            echo "::error::No Pipfile found in any of:" \
+              "${VERSIONED_DIR}/, ${PIPENV_STORE_DIR}/, or repo root."
+            echo "::error::Create a Pipfile in one of those locations before running this workflow."
+            exit 1
+          fi
+
+          # Export as an absolute path so subsequent steps are path-independent.
+          echo "SRC_PIPFILE=$(realpath "${SRC_PIPFILE}")" >> "$GITHUB_ENV"
+
+
+      # ── Step 6: Generate Pipfile.lock in an isolated temp workspace ──────────
+      # We work in a temp directory to avoid polluting the repo working tree
+      # during the lock solve and to ensure a clean venv scoped to this run.
+      #
+      # PIPENV_PYTHON controls which interpreter pipenv targets when resolving;
+      # this must match the version set up by actions/setup-python above.
+      - name: "🔒 Generate Pipfile.lock"
+        shell: bash
+        run: |
+          WORK_DIR="$(mktemp -d)"
+          echo "WORK_DIR=${WORK_DIR}" >> "$GITHUB_ENV"
+          echo "Working directory: ${WORK_DIR}"
+
+          # Copy the resolved Pipfile into the temp workspace.
+          cp "${SRC_PIPFILE}" "${WORK_DIR}/Pipfile"
+
+          cd "${WORK_DIR}"
+
+          # Lock all dependencies against the target Python version.
+          # --verbose surfaces resolver output for debugging failures.
+          # PIPENV_PYTHON must be the version string, not a path, when using
+          # actions/setup-python (the interpreter is already on PATH).
+          PIPENV_PYTHON="${PY_VERSION}" pipenv lock --verbose
+
+          # Validate that both output files exist and are non-empty.
+          [[ -s "${WORK_DIR}/Pipfile"      ]] || { echo "::error::Pipfile is empty after lock."; exit 1; }
+          [[ -s "${WORK_DIR}/Pipfile.lock" ]] || { echo "::error::Pipfile.lock was not generated."; exit 1; }
+
+          echo "✅ Pipfile.lock generated successfully."
+          echo "--- Pipfile.lock (first 30 lines) ---"
+          head -30 "${WORK_DIR}/Pipfile.lock"
+
+
+      # ── Step 7: Stage artifacts → versioned directory (always) ───────────────
+      - name: "📁 Stage artifacts → versioned directory (${VERSIONED_DIR})"
+        shell: bash
+        run: |
+          mkdir -p "${VERSIONED_DIR}"
+          cp "${WORK_DIR}/Pipfile"      "${VERSIONED_DIR}/Pipfile"
+          cp "${WORK_DIR}/Pipfile.lock" "${VERSIONED_DIR}/Pipfile.lock"
+          echo "Staged to: ${VERSIONED_DIR}/"
+          ls -lh "${VERSIONED_DIR}/"
+
+
+      # ── Step 8: Stage artifacts → root store (conditional) ───────────────────
+      # Only executed when UPDATE_ROOT_PIPENV is 'true'.
+      # This updates docker/env_pipenv/Pipfile and docker/env_pipenv/Pipfile.lock.
+      # Files not related to pipenv (README.md, *.zip) are never touched.
+      - name: "📁 Stage artifacts → root store (${PIPENV_STORE_DIR})"
+        if: env.UPDATE_ROOT_PIPENV == 'true'
+        shell: bash
+        run: |
+          mkdir -p "${PIPENV_STORE_DIR}"
+          cp "${WORK_DIR}/Pipfile"      "${PIPENV_STORE_DIR}/Pipfile"
+          cp "${WORK_DIR}/Pipfile.lock" "${PIPENV_STORE_DIR}/Pipfile.lock"
+          echo "Staged to: ${PIPENV_STORE_DIR}/"
+          ls -lh "${PIPENV_STORE_DIR}/Pipfile" "${PIPENV_STORE_DIR}/Pipfile.lock"
+
+
+      # ── Step 9: Detect changes (idempotent guard) ─────────────────────────────
+      # `git diff --quiet` exits 0 (no changes) or 1 (changes detected).
+      # We capture this as a job output so steps 10 and 11 can branch on it.
+      # This makes the workflow fully idempotent: repeated runs on an already
+      # up-to-date repo produce no commits.
+      - name: "🔎 Detect changes"
+        id: changes
+        shell: bash
+        run: |
+          git add --intent-to-add "${PIPENV_STORE_DIR}/"
+          if git diff --quiet HEAD -- "${PIPENV_STORE_DIR}/"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected — lock files are already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected:"
+            git diff --stat HEAD -- "${PIPENV_STORE_DIR}/"
+          fi
+
+
+      # ── Step 10: Commit and push ─────────────────────────────────────────────
+      # Only runs when changes were detected in step 9.
+      # [skip ci] in the commit message prevents this push from re-triggering
+      # the workflow, avoiding an infinite loop.
+      # The bot identity (github-actions[bot]) is the canonical CI committer.
+      - name: "💾 Commit and push updated Pipenv artifacts"
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        env:
+          # Map the output to an env var here
+          # github.ref_name may expand into attacker-controllable code
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          # git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add "${PIPENV_STORE_DIR}/"
+
+          # Compose a descriptive commit message.
+          COMMIT_MSG="chore(pipenv): update lock files for Python ${PY_VERSION} [skip ci]
+
+          Triggered by: ${{ github.event_name }}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Versioned dir: ${VERSIONED_DIR}
+          Root updated: ${UPDATE_ROOT_PIPENV}"
+
+          git commit -m "${COMMIT_MSG}"
+
+          # Push to the branch that triggered this workflow.
+          # github.ref_name is the short name (e.g. "main", "maintenance/2.x").
+          git push origin "HEAD:${REF_NAME}"
+          echo "✅ Pushed updated Pipenv artifacts."
+
+
+      # ── Step 11: No-op confirmation ──────────────────────────────────────────
+      # Provides an explicit, visible confirmation in the Actions log when the
+      # workflow runs successfully but has nothing new to commit.
+      - name: "✅ Lock files already up to date — nothing to commit"
+        if: steps.changes.outputs.changed == 'false'
+        shell: bash
+        run: |
+          echo "Lock files in ${PIPENV_STORE_DIR}/ are already up to date."
+          echo "No commit was created. This run is a no-op (idempotent)."
+
+
+      # ── Step 12: Cleanup temp workspace ──────────────────────────────────────
+      # Always runs, even on failure, to avoid leaving venvs in /tmp.
+      - name: "🧹 Cleanup temp workspace"
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${WORK_DIR}" && -d "${WORK_DIR}" ]]; then
+            rm -rf "${WORK_DIR}"
+            echo "Removed temp workspace: ${WORK_DIR}"
+          fi

@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Path and filename utilities.
+Path and filename (File/Folder) utilities.
 
 This module provides small, robust helpers for generating portable and
 collision-resistant file and folder names. The default format is designed to be:

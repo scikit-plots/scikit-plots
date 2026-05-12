@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 ## ✅ Declare default only once before FROM if you want a default.
+## python:3.11-slim@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
 # ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
 ARG SCIKITPLOT_VERSION=0.4.0.post11
-# python:3.11-slim@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
 ARG PY_VERSION=3.11
 ARG ENV_NAME
 

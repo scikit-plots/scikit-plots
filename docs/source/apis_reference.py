@@ -1863,7 +1863,7 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
           ],
         },
         {
-          "title": "File/Folder Utilities",
+          "title": "Path Utilities",
           "description": _get_submodule("scikitplot.utils", "_path"),
           "autosummary": [
             '_path.PathNamer',

@@ -1,0 +1,41 @@
+# docker/Dockerfile.micromamba
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+## ✅ Declare default only once before FROM if you want a default.
+## https://hub.docker.com/r/mambaorg/micromamba/tags?name=2.6.0
+# ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.6.0
+ARG MICROMAMBA_VERSION=latest
+
+## Use an official micromamba runtime as a parent image
+## https://hub.docker.com/r/mambaorg/micromamba
+# FROM ${MICROMAMBA_IMAGE} AS runtime
+FROM mambaorg/micromamba:${MICROMAMBA_VERSION} AS runtime
+
+# LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
+LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.authors="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.vendor="The scikit-plots developers <scikit-plots.github.io/dev>"
+# LABEL org.opencontainers.image.title="scikit-plots"
+# LABEL org.opencontainers.image.description="Scikit-plots Docker image with Jupyter Notebook support"
+# LABEL org.opencontainers.image.documentation="https://scikit-plots.github.io/dev"
+# LABEL org.opencontainers.image.source="https://github.com/scikit-plots/scikit-plots"
+# LABEL org.opencontainers.image.url="https://hub.docker.com/r/scikitplot/scikit-plots"
+# LABEL org.opencontainers.image.licenses="BSD-3-Clause"
+# LABEL org.opencontainers.image.version="latest"
+# LABEL org.opencontainers.image.revision="latest"
+
+## Fix DL4006
+## Needed for string substitution in RUN commands
+## Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+## Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
+# RUN bash -lc 'set -Eeuo pipefail; \
+SHELL ["/bin/bash", "-e", "-u", "-o", "pipefail", "-c"]
+
+## Optional: Expose port for Jupyter (adjust if needed)
+EXPOSE 8888-8890
+EXPOSE 8891
+
+## Configure container entrypoint
+ENTRYPOINT ["bash"]
