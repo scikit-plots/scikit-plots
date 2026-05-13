@@ -109,7 +109,6 @@ concurrency:
 # ── Minimal token permissions (principle of least privilege) ─────────────────
 permissions:
   contents: write        # push the lock-update branch
-  metadata: read         # always granted; listed explicitly for auditability
   pull-requests: write   # open / update the PR
 
 # ──────────────────────────────────────────────────────────────────────────────
