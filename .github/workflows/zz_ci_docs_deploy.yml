@@ -108,7 +108,7 @@ jobs:
           git push origin gh-pages
 
       - name: Deploy to GitHub Pages (Versioned)
-        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453
         # If you're changing the branch from main,
         # also change the `main` in `refs/heads/main`
         # below accordingly.
