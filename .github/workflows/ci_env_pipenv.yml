@@ -1,75 +1,15 @@
+# .github/workflows/ci_env_pipenv.yml
 # ──────────────────────────────────────────────────────────────────────────────
-# Workflow : Update Pipenv Artifacts
-# File     : .github/workflows/ci_env_pipenv.yml
-#
 # PURPOSE
 # -------
 # Regenerate docker/env_pipenv/<pyXYY>/Pipfile and Pipfile.lock from the
 # project's requirements/*.txt sources, then open (or update) a Pull Request
 # so branch-protection rules and required status checks are honoured.
 #
-# ROOT-CAUSE FIX (run 25767498708 — direct push rejected)
-# ────────────────────────────────────────────────────────
-# The previous workflow committed and pushed directly to `main`:
-#
-#   git push origin "HEAD:${REF_NAME}"   # REF_NAME = main
-#
-# GitHub rejected the push because the repository enforces:
-#   • Changes must be made through a pull request.
-#   • 2 required status checks must pass.
-#   • CodeQL scan must complete before merging.
-#
-# Fix: replace every manual git-commit/push block with
-# `peter-evans/create-pull-request@v8`.  That action:
-#   • Pushes changes to a dedicated branch (bot/pipenv-lock-pyXY).
-#   • Opens a PR against the base branch (main) — or updates the existing one.
-#   • Is idempotent: re-running the workflow updates the existing PR rather than
-#     opening duplicates.
-#   • Triggers CI (CodeQL, required checks) on the PR, satisfying protection rules.
-#   • Deletes the temporary branch automatically after the PR is merged.
-#
-# ROOT-CAUSE FIX (run 25769630725 — push to chore/ branch rejected)
-# ──────────────────────────────────────────────────────────────────
-# GitHub rejected the push to `chore/pipenv-lock-update-py3.11` with:
-#
-#   GH013: Repository rule violations found for refs/heads/chore/...
-#   • 2 of 2 required status checks are expected.
-#   • This branch must not contain merge commits.
-#     Found 1 violation: 6830b537efb3a5cd6af02f88d9c0d1a29d8ad351
-#
-# Root cause A — overly broad repository ruleset:
-#   The repository's ruleset that enforces "required status checks" and
-#   "no merge commits" is scoped to a branch pattern that matches
-#   `chore/*` in addition to `main`. Because (a) the new branch hasn't
-#   run any checks yet when first pushed, and (b) `main`'s history
-#   contains merge commits that are inherited by any branch created from it,
-#   BOTH violations are structurally unsatisfiable by automation.
-#
-#   ⚠️  ADMIN ACTION REQUIRED (cannot be fixed in YAML alone):
-#   In Settings → Rules → Rulesets, scope the rules for
-#   "required status checks" and "require linear history" ONLY to
-#   the `main` branch pattern — NOT to `chore/*`, `bot/*`, or `refs/heads/*`.
-#
-# Root cause B — wrong branch name prefix:
-#   Automation branches pushed by bots must NOT match any ruleset that
-#   enforces pre-push status checks or linear history.  Branch was renamed
-#   from `chore/pipenv-lock-update-py*` to `bot/pipenv-lock-py*` to avoid
-#   matching any `chore/**` ruleset patterns.
-#
-# Root cause C — expression bug in `update_root` matrix value:
-#   The expression `inputs.update_root_pipenv == 'true' || true` always
-#   evaluates to boolean `true` in GitHub Actions expression syntax because
-#   the literal `true` is truthy regardless of the left operand.
-#   This made it impossible for a user to set `update_root_pipenv=false`.
-#   Fixed to: `inputs.update_root_pipenv != 'false'`
-#   This correctly defaults to `true` for schedule/undeclared inputs while
-#   honouring an explicit `'false'` from workflow_dispatch.
-#
 # PERMISSIONS REQUIRED
 # ────────────────────
 # contents: write      — to push the lock-update branch
 # pull-requests: write — to open / update the PR
-# metadata: read       — implicitly granted; listed explicitly for clarity
 #
 # NOTE: PRs created via GITHUB_TOKEN DO trigger required CI checks on the
 # PR branch, satisfying branch-protection status-check requirements for
@@ -127,13 +67,8 @@ jobs:
           #   - py_version: "3.12"
           #     update_root: false
           - py_version: ${{ inputs.py_version || '3.11' }}
-            # FIX: `inputs.update_root_pipenv == 'true' || true` ALWAYS evaluated
-            # to boolean `true` in GHA expressions because the literal `true` is
-            # unconditionally truthy, making user input of 'false' impossible to
-            # honour.  The correct default-to-true-unless-explicitly-false form is:
-            #   inputs.update_root_pipenv != 'false'
-            # • When triggered by schedule:        inputs.update_root_pipenv == ''  → true
-            # • When triggered with input 'true':  inputs.update_root_pipenv == 'true' → true
+            # • When triggered by schedule:        inputs.update_root_pipenv == ''      → true
+            # • When triggered with input 'true':  inputs.update_root_pipenv == 'true'  → true
             # • When triggered with input 'false': inputs.update_root_pipenv == 'false' → false
             update_root: ${{ inputs.update_root_pipenv != 'false' }}
 
@@ -153,14 +88,6 @@ jobs:
 
       # ── 1. Checkout ───────────────────────────────────────────────────────
       ## 📥 Checkout the Git repository into the runner.
-      ##
-      ## FIX: removed `ref: ${{ github.event.pull_request.head.sha || github.ref }}`
-      ## The fallback to `github.event.pull_request.head.sha` added no value for
-      ## workflow_dispatch and schedule triggers (both have no PR context, so
-      ## pull_request.head.sha is always empty ''), and misled readers into
-      ## thinking this workflow is triggered by PR events.
-      ## `actions/checkout` defaults to `github.ref` when `ref` is omitted,
-      ## which is the correct behaviour here.
       ##
       ## `persist-credentials: false` is intentionally kept:
       ##   It prevents the short-lived GITHUB_TOKEN from being stored in the
@@ -420,26 +347,6 @@ jobs:
           ls -lh "${ROOT_STORE}/Pipfile" "${ROOT_STORE}/Pipfile.lock"
 
       # ── 11. Open / update Pull Request ────────────────────────────────────
-      #
-      # ROOT-CAUSE FIX (run 25767498708): replaces the previous
-      # `git commit && git push origin HEAD:main` block that was rejected
-      # by branch-protection rules.
-      #
-      # ROOT-CAUSE FIX (run 25769630725): the branch was renamed from
-      # `chore/pipenv-lock-update-py*` to `bot/pipenv-lock-py*`.
-      #
-      #   WHY: the repository's ruleset was enforcing "required status checks"
-      #   and "no merge commits" on branches matching `chore/**`.  Because:
-      #     (a) a freshly pushed branch has no checks yet → push blocked.
-      #     (b) any branch based on `main` inherits `main`'s merge commits →
-      #         linear-history rule is unsatisfiable without an admin fix.
-      #
-      #   The `bot/` prefix avoids any `chore/**` ruleset match.
-      #
-      #   ⚠️  LONG-TERM ADMIN ACTION STILL RECOMMENDED:
-      #   In Settings → Rules → Rulesets, scope rules for "required status
-      #   checks" and "require linear history" to `main` ONLY — not to
-      #   automation branch patterns like `chore/**` or `bot/**`.
       #
       # https://github.com/peter-evans/create-pull-request
       # peter-evans/create-pull-request:

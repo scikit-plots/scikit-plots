@@ -69,6 +69,7 @@ Detect script:
 from __future__ import annotations
 
 import logging
+import threading
 import unicodedata  # noqa: F401
 
 # Python 3.7 shim (not needed at 3.8+ but harmless)
@@ -538,17 +539,24 @@ class FunctionLemmatizer:
 
 
 class CustomTokenizerRegistry:
-    """Thread-safe(ish) module-level registry for named custom components.
+    """Thread-safe module-level registry for named custom components.
 
     Each registry holds a ``dict[str, Protocol]`` accessible via module-level
     helpers (:func:`register_tokenizer`, :func:`get_tokenizer`, etc.).
 
+    All ``register``, ``get``, ``names``, and ``__contains__`` operations
+    acquire an internal :class:`threading.RLock` to guarantee safety when
+    registering from worker threads (e.g. ``ThreadPoolExecutor`` batch jobs).
+
     Notes
     -----
-    **Developer note:** The registry is intentionally not thread-locked.
-    Registration happens at import/startup time; concurrent reads during
-    inference are safe because dict lookups in CPython are atomic under the
-    GIL.  If you register from a worker thread, synchronize externally.
+    **User note:** Register all custom components at application startup, before
+    spawning worker threads, to avoid any lock contention in hot paths.
+
+    **Developer note:** :class:`threading.RLock` (reentrant) is used instead of
+    :class:`threading.Lock` so that the same thread can call ``register`` from
+    within a ``get`` callback without deadlocking.  This is safe on CPython,
+    PyPy, and GraalPy.
 
     Raises
     ------
@@ -559,6 +567,7 @@ class CustomTokenizerRegistry:
     def __init__(self, kind: str) -> None:
         self._kind = kind
         self._store: dict[str, Any] = {}
+        self._lock: threading.RLock = threading.RLock()
 
     def register(self, name: str, instance: Any) -> None:
         """Register *instance* under *name*.
@@ -586,19 +595,20 @@ class CustomTokenizerRegistry:
             raise ValueError(
                 f"CustomTokenizerRegistry({self._kind!r}): name must be non-empty."
             )
-        if name in self._store:
+        with self._lock:
+            if name in self._store:
+                logger.debug(
+                    "CustomTokenizerRegistry(%r): overwriting existing entry %r.",
+                    self._kind,
+                    name,
+                )
+            self._store[name] = instance
             logger.debug(
-                "CustomTokenizerRegistry(%r): overwriting existing entry %r.",
+                "CustomTokenizerRegistry(%r): registered %r → %r.",
                 self._kind,
                 name,
+                type(instance).__name__,
             )
-        self._store[name] = instance
-        logger.debug(
-            "CustomTokenizerRegistry(%r): registered %r → %r.",
-            self._kind,
-            name,
-            type(instance).__name__,
-        )
 
     def get(self, name: str) -> Any:
         """Retrieve the component registered under *name*.
@@ -618,13 +628,14 @@ class CustomTokenizerRegistry:
         KeyError
             If *name* has not been registered.
         """
-        if name not in self._store:
-            available = list(self._store)
-            raise KeyError(
-                f"CustomTokenizerRegistry({self._kind!r}): {name!r} not registered. "
-                f"Available: {available}."
-            )
-        return self._store[name]
+        with self._lock:
+            if name not in self._store:
+                available = list(self._store)
+                raise KeyError(
+                    f"CustomTokenizerRegistry({self._kind!r}): {name!r} not registered. "
+                    f"Available: {available}."
+                )
+            return self._store[name]
 
     def names(self) -> list[str]:
         """Return all registered names.
@@ -634,13 +645,16 @@ class CustomTokenizerRegistry:
         list[str]
             Sorted list of registered keys.
         """
-        return sorted(self._store)
+        with self._lock:
+            return sorted(self._store)
 
     def __contains__(self, name: str) -> bool:
-        return name in self._store
+        with self._lock:
+            return name in self._store
 
     def __len__(self) -> int:
-        return len(self._store)
+        with self._lock:
+            return len(self._store)
 
     def __repr__(self) -> str:
         return f"CustomTokenizerRegistry(kind={self._kind!r}, entries={self.names()!r})"

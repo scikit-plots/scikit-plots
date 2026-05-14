@@ -36,6 +36,7 @@ import logging
 from typing import Any, ClassVar
 
 from .._schema import ChunkingStrategy
+from .._types import ChunkResult  # CRITICAL-02: bridge.chunk() returns ChunkResult
 
 logger = logging.getLogger(__name__)
 
@@ -160,16 +161,13 @@ class ChunkerBridge(abc.ABC):
         self,
         text: str,
         metadata: dict[str, Any] | None = None,
-    ) -> ChunkedTextList:
-        """Chunk *text* and return a :class:`ChunkedTextList` of ``(char_start, chunk_text)`` pairs.
+    ) -> ChunkResult:
+        """Chunk *text* and return a :class:`~.._types.ChunkResult`.
 
-        Backward compatible — all existing callers that iterate ``(start, text)``
-        pairs continue to work unchanged.  Additionally, the
-        ``chunk_metadata_list`` attribute on the returned object carries the
-        per-chunk ``chunk.metadata`` dicts (including ``"multilang"`` when
-        :class:`MultilangConfig` is enabled) so
-        :meth:`_base.DocumentReader.get_documents` can populate
-        :class:`~._schema.CorpusDocument` multilang fields.
+        **CRITICAL-02 (Phase 2):** Returns ``ChunkResult`` directly.
+        :meth:`DocumentReader.get_documents` now iterates
+        ``chunk_result.chunks`` instead of ``(char_start, chunk_text)``
+        tuples.
 
         Parameters
         ----------
@@ -177,16 +175,20 @@ class ChunkerBridge(abc.ABC):
             Raw text to chunk.
         metadata : dict[str, Any] or None, optional
             Raw-chunk metadata dict passed by ``get_documents()``.
-            Forwarded as ``extra_metadata`` to the inner chunker
-            where supported.
+            Forwarded as ``extra_metadata`` to the inner chunker.
 
         Returns
         -------
-        ChunkedTextList
-            Each element is ``(char_offset, chunk_text)``.
+        ChunkResult
+            Ordered list of :class:`~.._types.Chunk` objects with
+            ``text``, ``start_char``, ``end_char``, and ``metadata``.
+
+        Notes
+        -----
+        Use :meth:`_to_tuples` to convert to the legacy
+        ``list[tuple[int, str]]`` format if needed for backward compat.
         """
-        result = self._call_inner(text, metadata)
-        return self._to_tuples(text, result)
+        return self._call_inner(text, metadata)
 
     @abc.abstractmethod
     def _call_inner(
@@ -211,13 +213,14 @@ class ChunkerBridge(abc.ABC):
     ) -> ChunkedTextList:
         """Convert a ``ChunkResult`` to :class:`ChunkedTextList`.
 
+        .. deprecated:: 0.5.0
+            Internal pipeline use has been removed (CRITICAL-02).
+            :meth:`ChunkerBridge.chunk` now returns ``ChunkResult`` directly.
+            This method is retained as a **backward-compat utility** for user
+            code that calls it directly.  It will be removed in 0.7.0.
+
         Uses chunk offsets if available, otherwise falls back to a
         forward-cursor ``str.find`` scan (O(n) total, not O(n²)).
-
-        The returned :class:`ChunkedTextList` also carries
-        ``chunk_metadata_list`` — a parallel list of ``chunk.metadata``
-        dicts so callers can promote multilang metadata to
-        :class:`~._schema.CorpusDocument` fields.
 
         Parameters
         ----------

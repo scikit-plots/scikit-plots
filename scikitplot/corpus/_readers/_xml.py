@@ -233,10 +233,19 @@ def _parse_xml(content: bytes) -> Any:
     except ImportError:
         pass  # lxml not installed — fall through to stdlib
 
-    # stdlib fallback
+    # stdlib fallback — ET.fromstring raises xml.etree.ElementTree.ParseError
+    # for malformed XML, and UnicodeDecodeError for encoding problems.  Both
+    # are re-raised as ValueError with context for the caller.
+    # The broad fallback `Exception` is retained as a safety net since stdlib
+    # XML occasionally surfaces unexpected expat errors on exotic byte sequences.
+    import xml.etree.ElementTree as ET  # noqa: N814, PLC0415
+
     try:
         return _parse_xml_stdlib(content)
+    except (ET.ParseError, UnicodeDecodeError, ValueError) as exc:
+        raise ValueError(f"XMLReader: could not parse XML content: {exc}") from exc
     except Exception as exc:  # noqa: BLE001
+        # Catch-all: expat / codec errors that don't subclass the above.
         raise ValueError(f"XMLReader: could not parse XML content: {exc}") from exc
 
 
@@ -347,6 +356,11 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
             results = root.xpath(lxml_xpath, namespaces=lxml_ns or None)
             return [r for r in results if not isinstance(r, str)]
         except Exception as exc:  # noqa: BLE001
+            # Broad catch: lxml raises lxml.etree.XPathEvalError,
+            # lxml.etree.XPathSyntaxError, and lxml.etree.LxmlError
+            # depending on version and XPath expression.  Importing these
+            # names at module level would create a hard lxml dependency;
+            # catching Exception and logging is the correct pattern here.
             logger.warning("XMLReader: lxml XPath error for %r: %s", xpath, exc)
             return []
 
@@ -356,6 +370,10 @@ def _xpath_elements(root: Any, xpath: str, namespaces: dict[str, str]) -> list[A
     try:
         return list(root.iterfind(xpath, namespaces or None)) or []
     except Exception as exc:  # noqa: BLE001
+        # Broad catch: stdlib iterfind raises SyntaxError or ValueError for
+        # unsupported XPath expressions, but the exact type is undocumented
+        # and has changed across Python versions.  Log and return empty list
+        # so a single bad XPath does not abort the entire document read.
         logger.warning("XMLReader: stdlib XPath error for %r: %s", xpath, exc)
         return []
 
@@ -478,7 +496,9 @@ class XMLReader(DocumentReader):
     ... )
     """
 
-    # BUG-03 fix: file_type removed — file_types used for registration.
+    # BUG-03 fix: registration now uses file_types (plural).
+    # file_type (singular) retained as backward-compat alias.
+    file_type: ClassVar[str] = ".xml"
     file_types: ClassVar[list[str] | None] = [".xml"]
 
     # BUG-05 note: this is a ClassVar (class-scoped), unlike the module-level

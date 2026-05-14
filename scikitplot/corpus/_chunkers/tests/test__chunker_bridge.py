@@ -115,12 +115,22 @@ class _Concretebridge(ChunkerBridge):
 class TestChunkerBridgeBase:
     """Tests for shared ``ChunkerBridge`` logic."""
 
-    def test_chunk_delegates_to_call_inner(self) -> None:
-        """``chunk()`` must call ``_call_inner`` and convert the result."""
+    def test_chunk_returns_chunk_result(self) -> None:
+        """``chunk()`` must return a ``ChunkResult`` (CRITICAL-02)."""
         inner = _StubInner(_make_result(("Hello.", 0)))
         bridge = _Concretebridge(inner)
         result = bridge.chunk("Hello.", metadata={})
-        assert result == [(0, "Hello.")]
+        assert isinstance(result, ChunkResult)
+        assert len(result.chunks) == 1
+        assert result.chunks[0].text == "Hello."
+        assert result.chunks[0].start_char == 0
+
+    def test_chunk_delegates_to_call_inner(self) -> None:
+        """``chunk()`` must call ``_call_inner`` and return its ChunkResult."""
+        inner = _StubInner(_make_result(("Hello.", 0)))
+        bridge = _Concretebridge(inner)
+        result = bridge.chunk("Hello.", metadata={})
+        assert isinstance(result, ChunkResult)
         assert len(inner.calls) == 1
 
     def test_chunk_passes_metadata_to_inner(self) -> None:
@@ -136,9 +146,9 @@ class TestChunkerBridgeBase:
         """``metadata=None`` must not raise; inner receives ``None``."""
         inner = _StubInner(_make_result(("OK.", 0)))
         bridge = _Concretebridge(inner)
-        pairs = bridge.chunk("OK.", metadata=None)
-        assert isinstance(pairs, list)
-        assert pairs[0][1] == "OK."
+        result = bridge.chunk("OK.", metadata=None)
+        assert isinstance(result, ChunkResult)
+        assert result.chunks[0].text == "OK."
 
     def test_inner_stored(self) -> None:
         """The wrapped inner chunker must be accessible via ``.inner``."""
@@ -154,23 +164,19 @@ class TestChunkerBridgeBase:
         assert "_StubInner" in r
 
     # ------------------------------------------------------------------
-    # _to_tuples: offset path
+    # _to_tuples: kept as backward-compat utility — test directly
     # ------------------------------------------------------------------
 
     def test_to_tuples_uses_start_char_when_present(self) -> None:
-        """Chunks with ``start_char`` must use the fast offset path."""
+        """``_to_tuples`` must use ``start_char`` for the fast offset path."""
         result = _make_result(("foo", 0), ("bar", 5))
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk("foo  bar", metadata=None)
-        # The offset path returns start_char exactly as stored.
+        pairs = ChunkerBridge._to_tuples("foo  bar", result)
         assert pairs[0] == (0, "foo")
         assert pairs[1] == (5, "bar")
 
     def test_to_tuples_cursor_fallback_when_no_start_char_attribute(self) -> None:
         """Cursor-scan fallback triggers only when chunk has NO ``start_char`` attr."""
         source = "Hello world today."
-        # MagicMock(spec=["text"]) has no start_char, no char_start -> fallback.
         chunks = []
         for word in ("Hello", "world", "today."):
             m = MagicMock(spec=["text"])
@@ -178,94 +184,71 @@ class TestChunkerBridgeBase:
             chunks.append(m)
         fake_result = MagicMock()
         fake_result.chunks = chunks
-        inner2 = MagicMock()
-        inner2.chunk.return_value = fake_result
-        bridge = _Concretebridge(inner2)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, fake_result)
         for offset, text in pairs:
             assert 0 <= offset < len(source)
             assert source[offset : offset + len(text)] == text
 
     def test_to_tuples_zero_start_char_used_as_valid_offset(self) -> None:
-        """``start_char=0`` is a real offset; bridge must NOT treat it as absent."""
+        """``start_char=0`` is a real offset; _to_tuples must NOT treat it as absent."""
         source = "Hello world."
         result = _make_result(("Hello", 0), ("world.", 6))
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, result)
         assert pairs == [(0, "Hello"), (6, "world.")]
 
     def test_to_tuples_cursor_fallback_correct_order(self) -> None:
         """Cursor scan must not rewind — offsets must be non-decreasing."""
         source = "The cat sat on the mat."
         result = _make_result_no_offsets("The", "cat", "sat", "on", "the", "mat.")
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, result)
         offsets = [p[0] for p in pairs]
         assert offsets == sorted(offsets)
 
     def test_to_tuples_chunk_not_found_uses_cursor(self) -> None:
         """If ``find`` returns -1 (normalised text), use cursor as fallback offset."""
         source = "abc"
-        # Chunk text is not literally in source → triggers find == -1 branch.
         chunk = Chunk(text="xyz", start_char=0, end_char=0)
         result = ChunkResult(chunks=[chunk])
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, result)
         assert len(pairs) == 1
-        assert pairs[0][0] >= 0  # Must not raise; cursor fallback used.
+        assert pairs[0][0] >= 0
 
     def test_to_tuples_empty_chunk_list(self) -> None:
-        """Empty ``ChunkResult`` must return an empty list of pairs."""
+        """Empty ``ChunkResult`` must return an empty ChunkedTextList."""
         result = ChunkResult(chunks=[])
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk("Some text.", metadata=None)
+        pairs = ChunkerBridge._to_tuples("Some text.", result)
         assert pairs == []
 
     def test_to_tuples_no_chunks_attribute(self) -> None:
-        """When inner returns an object without ``chunks``, fall back to single chunk."""
+        """When object has no ``chunks`` attr, fall back to single chunk."""
         source = "Fallback text."
-        inner = MagicMock()
-        inner.chunk.return_value = object()  # No .chunks attribute.
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, object())  # No .chunks.
         assert pairs == [(0, source)]
 
     def test_to_tuples_single_chunk(self) -> None:
         """Single chunk with known offset must round-trip cleanly."""
         source = "One sentence only."
         result = _make_result(("One sentence only.", 0))
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, result)
         assert pairs == [(0, "One sentence only.")]
 
     def test_to_tuples_preserves_chunk_text(self) -> None:
         """Returned text must exactly match the ``Chunk.text`` value."""
         source = "Paragraph one.\n\nParagraph two."
         result = _make_result(("Paragraph one.", 0), ("Paragraph two.", 16))
-        inner = _StubInner(result)
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
+        pairs = ChunkerBridge._to_tuples(source, result)
         assert pairs[0][1] == "Paragraph one."
         assert pairs[1][1] == "Paragraph two."
 
     def test_to_tuples_char_start_alias_also_works(self) -> None:
-        """Legacy ``char_start`` attribute (non-Chunk objects) is also respected."""
-        # Simulate an object with old-style `char_start` (not `start_char`).
+        """Legacy ``char_start`` attribute is also respected by _to_tuples."""
         legacy_chunk = MagicMock()
         legacy_chunk.text = "Legacy."
-        del legacy_chunk.start_char        # No start_char attribute.
+        del legacy_chunk.start_char
         legacy_chunk.char_start = 7
         result = MagicMock()
         result.chunks = [legacy_chunk]
-        inner = MagicMock()
-        inner.chunk.return_value = result
-        bridge = _Concretebridge(inner)
-        pairs = bridge.chunk("0123456Legacy.", metadata=None)
+        pairs = ChunkerBridge._to_tuples("0123456Legacy.", result)
         assert pairs[0] == (7, "Legacy.")
 
 
@@ -287,13 +270,15 @@ class TestSentenceChunkerBridge:
         bridge.chunk("Hello.", metadata=meta)
         inner.chunk.assert_called_once_with("Hello.", extra_metadata=meta)
 
-    def test_returns_list_of_tuples(self) -> None:
+    def test_returns_chunk_result(self) -> None:
+        # CRITICAL-02: chunk() returns ChunkResult, not list[tuple].
         inner = MagicMock()
         inner.chunk.return_value = _make_result(("Hello.", 0))
         bridge = SentenceChunkerBridge(inner)
         result = bridge.chunk("Hello.", metadata=None)
-        assert isinstance(result, list)
-        assert all(isinstance(p, tuple) and len(p) == 2 for p in result)
+        assert isinstance(result, ChunkResult)
+        assert len(result.chunks) == 1
+        assert result.chunks[0].text == "Hello."
 
 
 class TestParagraphChunkerBridge:
@@ -310,14 +295,16 @@ class TestParagraphChunkerBridge:
         inner.chunk.assert_called_once_with("Para.", extra_metadata=meta)
 
     def test_multi_paragraph(self) -> None:
+        # CRITICAL-02: chunk() returns ChunkResult.
         source = "Para one.\n\nPara two."
         result = _make_result(("Para one.", 0), ("Para two.", 11))
         inner = _StubInner(result)
         bridge = ParagraphChunkerBridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
-        assert len(pairs) == 2
-        assert pairs[0][1] == "Para one."
-        assert pairs[1][1] == "Para two."
+        chunk_result = bridge.chunk(source, metadata=None)
+        assert isinstance(chunk_result, ChunkResult)
+        assert len(chunk_result.chunks) == 2
+        assert chunk_result.chunks[0].text == "Para one."
+        assert chunk_result.chunks[1].text == "Para two."
 
 
 class TestFixedWindowChunkerBridge:
@@ -333,14 +320,19 @@ class TestFixedWindowChunkerBridge:
         inner.chunk.assert_called_once_with("Text here.", extra_metadata={"window": 3})
 
     def test_windowed_offsets(self) -> None:
+        # CRITICAL-02: chunk() returns ChunkResult.
         source = "AABBCCDD"
         result = _make_result(("AABB", 0), ("BBCC", 2), ("CCDD", 4))
         inner = _StubInner(result)
         bridge = FixedWindowChunkerBridge(inner)
-        pairs = bridge.chunk(source, metadata=None)
-        assert pairs[0] == (0, "AABB")
-        assert pairs[1] == (2, "BBCC")
-        assert pairs[2] == (4, "CCDD")
+        chunk_result = bridge.chunk(source, metadata=None)
+        assert isinstance(chunk_result, ChunkResult)
+        assert chunk_result.chunks[0].start_char == 0
+        assert chunk_result.chunks[0].text == "AABB"
+        assert chunk_result.chunks[1].start_char == 2
+        assert chunk_result.chunks[1].text == "BBCC"
+        assert chunk_result.chunks[2].start_char == 4
+        assert chunk_result.chunks[2].text == "CCDD"
 
 
 class TestWordChunkerBridge:
@@ -512,7 +504,7 @@ class TestBridgeChunker:
     # ------------------------------------------------------------------
 
     def test_real_paragraph_chunker_integration(self) -> None:
-        """End-to-end: bridge real ParagraphChunker → tuple list."""
+        """End-to-end: bridge real ParagraphChunker → ChunkResult (CRITICAL-02)."""
         from .._paragraph import ParagraphChunker  # noqa: PLC0415
 
         chunker = ParagraphChunker()
@@ -520,15 +512,16 @@ class TestBridgeChunker:
         assert isinstance(bridged, ParagraphChunkerBridge)
 
         source = "First paragraph here.\n\nSecond paragraph here."
-        pairs = bridged.chunk(source, metadata={})
-        assert len(pairs) >= 2
-        for offset, text in pairs:
-            assert isinstance(offset, int)
-            assert isinstance(text, str)
-            assert len(text) > 0
+        chunk_result = bridged.chunk(source, metadata={})
+        assert isinstance(chunk_result, ChunkResult)
+        assert len(chunk_result.chunks) >= 2
+        for chunk in chunk_result.chunks:
+            assert isinstance(chunk.start_char, int)
+            assert isinstance(chunk.text, str)
+            assert len(chunk.text) > 0
 
     def test_real_fixed_window_chunker_integration(self) -> None:
-        """End-to-end: bridge real FixedWindowChunker → tuple list.
+        """End-to-end: bridge real FixedWindowChunker → ChunkResult (CRITICAL-02).
 
         Uses CHARS unit with window_size=10, step_size=5 so a 33-char
         source produces multiple non-empty windows.
@@ -540,11 +533,12 @@ class TestBridgeChunker:
         bridged = bridge_chunker(chunker)
         assert isinstance(bridged, FixedWindowChunkerBridge)
         source = "one two three four five six seven"   # 33 chars -> >=3 windows
-        pairs = bridged.chunk(source, metadata=None)
-        assert len(pairs) >= 1
-        for offset, text in pairs:
-            assert 0 <= offset <= len(source)
-            assert len(text) > 0
+        chunk_result = bridged.chunk(source, metadata=None)
+        assert isinstance(chunk_result, ChunkResult)
+        assert len(chunk_result.chunks) >= 1
+        for chunk in chunk_result.chunks:
+            assert 0 <= chunk.start_char <= len(source)
+            assert len(chunk.text) > 0
 
 # ===========================================================================
 # register_bridge / unregister_bridge

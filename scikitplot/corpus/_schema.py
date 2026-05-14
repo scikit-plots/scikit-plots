@@ -50,10 +50,9 @@ import hashlib
 import logging
 import pathlib  # noqa: F401
 import re
-import sys
 import warnings
 from dataclasses import asdict, dataclass, field, fields  # noqa: F401
-from enum import Enum
+from dataclasses import replace as _dc_replace
 
 # Only imports when type checking
 from typing import (  # noqa: F401
@@ -61,20 +60,20 @@ from typing import (  # noqa: F401
     Any,
     Callable,
     ClassVar,
-    Dict,
     Final,
-    FrozenSet,
     Generator,
     Iterator,
-    List,
-    Optional,
     Protocol,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
+
+# ---------------------------------------------------------------------------
+# StrEnum compatibility shim
+# MEDIUM-07 fix: import from the single centralised shim in _compat.py so
+# the backport is not duplicated across modules.
+# ---------------------------------------------------------------------------
+from ._compat import StrEnum as _StrEnumBase  # noqa: E402
 
 if TYPE_CHECKING:
     from typing_extensions import Self  # noqa: F401
@@ -100,11 +99,12 @@ __all__ = [  # noqa: RUF022
     "ErrorPolicy",
     # Core document type
     "CorpusDocument",
-    # Promoted-key registry (used by _base.py get_documents routing)
-    "_PROMOTED_RAW_KEYS",
     # Bulk helpers
     "documents_to_pandas",
     "documents_to_polars",
+    # Module-level constants (importable by tests and downstream consumers)
+    "_PROMOTED_RAW_KEYS",  # frozenset of raw-chunk keys promoted to first-class fields
+    "_SOURCE_EXT_MAP",  # MEDIUM-02: extension → SourceType lookup dict
 ]
 
 # ---------------------------------------------------------------------------
@@ -123,25 +123,6 @@ _DOI_PREFIX_RE: re.Pattern[str] = re.compile(r"^10\.\d{4,}")
 # TypeVar for Self-returning classmethods (Python 3.8+ compatible)
 # ---------------------------------------------------------------------------
 _T = TypeVar("_T", bound="CorpusDocument")  # noqa: PYI018
-
-
-# ---------------------------------------------------------------------------
-# StrEnum compatibility shim
-# Python 3.11+ ships enum.StrEnum; below that we replicate the contract via
-# the (str, Enum) mixin which ensures ``value == str(instance.value)``.
-# ---------------------------------------------------------------------------
-if sys.version_info >= (3, 11):  # pragma: >=3.11
-    from enum import StrEnum as _StrEnumBase  # type: ignore[attr-defined]
-else:  # pragma: <3.11
-
-    class _StrEnumBase(str, Enum):  # type: ignore[no-redef]
-        """Backport of ``enum.StrEnum`` for Python < 3.11."""
-
-
-# ===========================================================================
-# Public enumerations
-# ===========================================================================
-
 
 # ===========================================================================
 # Modality — primary content kind of a CorpusDocument
@@ -727,9 +708,22 @@ class SourceType(_StrEnumBase):
         return cls.UNKNOWN
 
 
-# Extension → SourceType lookup table (populated after class definition
-# so SourceType members are available).
-SourceType._EXT_MAP = {
+# ---------------------------------------------------------------------------
+# MEDIUM-02: Extension → SourceType lookup table.
+#
+# Previously this was a bare post-class attribute mutation:
+#     SourceType._EXT_MAP = { ... }
+# That pattern is fragile (import-order dependent), untypeable by static
+# analysis tools, and not idiomatic Python.
+#
+# Fix: declare as a named, ``Final``-typed module-level constant so it is
+# visible to mypy/pyright, importable in tests without going through the
+# class, and free from post-class mutation.  SourceType._EXT_MAP is then
+# wired to the same object — existing callers that reference ``cls._EXT_MAP``
+# (i.e., SourceType.infer()) continue to work without any change.
+# ---------------------------------------------------------------------------
+
+_SOURCE_EXT_MAP: Final[dict[str, SourceType]] = {
     # Text / document
     ".txt": SourceType.ARTICLE,
     ".md": SourceType.ARTICLE,
@@ -798,7 +792,13 @@ SourceType._EXT_MAP = {
     ".rs": SourceType.CODE,
     ".rb": SourceType.CODE,
     ".sh": SourceType.CODE,
-}  # type: ignore[assignment]
+}
+
+# Wire into the class variable so cls._EXT_MAP lookups in SourceType.infer()
+# resolve to the same object as _SOURCE_EXT_MAP.
+# The ClassVar declaration in SourceType provides the type annotation;
+# this line performs the single, explicit assignment.
+SourceType._EXT_MAP = _SOURCE_EXT_MAP  # type: ignore[assignment]
 
 
 class MatchMode(_StrEnumBase):
@@ -917,7 +917,7 @@ key names when yielding promoted fields.
 # ===========================================================================
 
 
-@dataclass
+@dataclass(frozen=True)
 class CorpusDocument:
     """
     Canonical representation of a single text chunk in a processed corpus.
@@ -947,7 +947,7 @@ class CorpusDocument:
         ``SectionType.TEXT``.
     chunking_strategy : ChunkingStrategy, optional
         Strategy used to produce this chunk. Default:
-        ``ChunkingStrategy.SENTENCE``.
+        ``ChunkingStrategy.NONE`` (whole document, no splitting applied).
     language : str or None, optional
         ISO 639-1 language code. Default: ``None``.
     char_start : int or None, optional
@@ -1111,8 +1111,14 @@ class CorpusDocument:
     section_type: SectionType = field(default=SectionType.TEXT)
     """Semantic role of this chunk."""
 
-    chunking_strategy: ChunkingStrategy = field(default=ChunkingStrategy.SENTENCE)
-    """Strategy used to produce this chunk."""
+    chunking_strategy: ChunkingStrategy = field(default=ChunkingStrategy.NONE)
+    """Strategy used to produce this chunk. Default: :attr:`ChunkingStrategy.NONE`.
+
+    Set explicitly by chunkers when they produce sub-chunks from a raw document.
+    ``NONE`` means no segmentation was applied — the whole document is one chunk.
+    Chunkers must always override this to their corresponding strategy value
+    so that downstream consumers can reproduce or verify segmentation.
+    """
 
     language: str | None = field(default=None)
     """ISO 639-1 language code, or ``None`` if unknown."""
@@ -1226,8 +1232,13 @@ class CorpusDocument:
     ocr_engine: str | None = field(default=None)
     """Name of the OCR engine used."""
 
-    bbox: tuple[float, ...] | None = field(default=None)
-    """Bounding box (x0, y0, x1, y1) of the text region."""
+    bbox: tuple[float, float, float, float] | None = field(default=None)
+    """Bounding box ``(x0, y0, x1, y1)`` of the text region in page coordinates.
+
+    All four values are floats. Invariants enforced by :meth:`validate`:
+    ``x0 < x1`` (non-zero width) and ``y0 < y1`` (non-zero height).
+    ``None`` for documents without a spatial layout (plain text, audio, etc.).
+    """
 
     # ------------------------------------------------------------------
     # NLP enrichment fields (Issue S-4)
@@ -1459,6 +1470,44 @@ class CorpusDocument:
         """
         return len(self.text) if self.text is not None else 0
 
+    def __post_init__(self) -> None:
+        """Coerce string-typed enum fields to their proper enum members.
+
+        Called automatically by the dataclass machinery immediately after
+        ``__init__``.  Coercion is done here (not in :meth:`validate`) so
+        that it works correctly with ``frozen=True`` — ``object.__setattr__``
+        is permitted inside ``__post_init__`` even on frozen dataclasses.
+
+        Notes
+        -----
+        CRITICAL-03 fix: ``CorpusDocument`` is now ``frozen=True``.
+        All mutation (including enum coercion) must happen here.
+        :meth:`validate` is now pure read-only validation with no side effects.
+
+        Raises
+        ------
+        ValueError
+            If a string value cannot be coerced to its target enum type.
+        """
+        _coerce_pairs: list[tuple[str, type]] = [
+            ("section_type", SectionType),
+            ("chunking_strategy", ChunkingStrategy),
+            ("source_type", SourceType),
+            ("modality", Modality),
+        ]
+        for field_name, enum_cls in _coerce_pairs:
+            val = getattr(self, field_name)
+            if val is not None and not isinstance(val, enum_cls):
+                try:
+                    object.__setattr__(self, field_name, enum_cls(val))
+                except ValueError as exc:
+                    valid = ", ".join(m.value for m in enum_cls)
+                    raise ValueError(
+                        f"CorpusDocument.{field_name} must be a"
+                        f" {enum_cls.__name__} member; got {val!r}."
+                        f" Valid values: {valid}"
+                    ) from exc
+
     # ------------------------------------------------------------------
     # Validation (Issues S-5)
     # ------------------------------------------------------------------
@@ -1531,43 +1580,30 @@ class CorpusDocument:
 
         # --- section_type must be a SectionType member -----------------
         if not isinstance(self.section_type, SectionType):
-            try:
-                object.__setattr__(self, "section_type", SectionType(self.section_type))
-            except ValueError as e:
-                valid = ", ".join(m.value for m in SectionType)
-                raise ValueError(
-                    f"CorpusDocument.section_type must be a SectionType"
-                    f" member; got {self.section_type!r}."
-                    f" Valid values: {valid}"
-                ) from e
+            valid = ", ".join(m.value for m in SectionType)
+            raise ValueError(  # noqa: TRY004
+                f"CorpusDocument.section_type must be a SectionType"
+                f" member; got {self.section_type!r}."
+                f" Valid values: {valid}"
+            )
 
         # --- chunking_strategy must be a ChunkingStrategy member -------
         if not isinstance(self.chunking_strategy, ChunkingStrategy):
-            try:
-                object.__setattr__(
-                    self,
-                    "chunking_strategy",
-                    ChunkingStrategy(self.chunking_strategy),
-                )
-            except ValueError as e:
-                valid = ", ".join(m.value for m in ChunkingStrategy)
-                raise ValueError(
-                    f"CorpusDocument.chunking_strategy must be a"
-                    f" ChunkingStrategy member; got"
-                    f" {self.chunking_strategy!r}. Valid values: {valid}"
-                ) from e
+            valid = ", ".join(m.value for m in ChunkingStrategy)
+            raise ValueError(  # noqa: TRY004
+                f"CorpusDocument.chunking_strategy must be a"
+                f" ChunkingStrategy member; got"
+                f" {self.chunking_strategy!r}. Valid values: {valid}"
+            )
 
         # --- source_type must be a SourceType member -------------------
         if not isinstance(self.source_type, SourceType):
-            try:
-                object.__setattr__(self, "source_type", SourceType(self.source_type))
-            except ValueError as e:
-                valid = ", ".join(m.value for m in SourceType)
-                raise ValueError(
-                    f"CorpusDocument.source_type must be a SourceType"
-                    f" member; got {self.source_type!r}."
-                    f" Valid values: {valid}"
-                ) from e
+            valid = ", ".join(m.value for m in SourceType)
+            raise ValueError(  # noqa: TRY004
+                f"CorpusDocument.source_type must be a SourceType"
+                f" member; got {self.source_type!r}."
+                f" Valid values: {valid}"
+            )
 
         # --- char offsets must be consistent when both are present -----
         if (
@@ -1659,8 +1695,8 @@ class CorpusDocument:
                     f" [0.0, 1.0] or None; got {self.confidence!r}"
                 )
 
-        # --- bbox must be a 4-tuple of floats when set -----------------
-        if self.bbox is not None:  # noqa: SIM102
+        # --- bbox must be a 4-tuple of floats with x0<x1 and y0<y1 ----------
+        if self.bbox is not None:
             if (
                 not isinstance(self.bbox, tuple)
                 or len(self.bbox) != 4  # noqa: PLR2004
@@ -1670,12 +1706,37 @@ class CorpusDocument:
                     f"CorpusDocument.bbox must be a 4-tuple of floats"
                     f" (x0, y0, x1, y1) or None; got {self.bbox!r}"
                 )
+            x0, y0, x1, y1 = self.bbox
+            if x0 >= x1:
+                raise ValueError(
+                    f"CorpusDocument.bbox invariant violated: x0 ({x0}) must"
+                    f" be < x1 ({x1}); got bbox={self.bbox!r}"
+                )
+            if y0 >= y1:
+                raise ValueError(
+                    f"CorpusDocument.bbox invariant violated: y0 ({y0}) must"
+                    f" be < y1 ({y1}); got bbox={self.bbox!r}"
+                )
 
         # --- doi: warn (not raise) on suspicious format ----------------
         if self.doi is not None and not _DOI_PREFIX_RE.match(self.doi):
             warnings.warn(
                 f"CorpusDocument.doi {self.doi!r} does not start with"
                 f" '10.XXXX/' — this may not be a valid DOI.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        # MEDIUM-06 fix: warn when input_path is absolute — absolute paths break
+        # corpus portability across machines and environments.
+        # We use PurePosixPath for the check so Windows absolute paths like
+        # "C:\\..." are also caught (they don't start with "/", but
+        # pathlib.Path.is_absolute() is cross-platform and handles both).
+        if self.input_path and pathlib.Path(self.input_path).is_absolute():
+            warnings.warn(
+                f"CorpusDocument.input_path {self.input_path!r} is an absolute "
+                f"path. Absolute paths break corpus portability across machines. "
+                f"Use input_path.name or a relative path instead.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -1789,7 +1850,7 @@ class CorpusDocument:
         text: str | None,
         # Core classification
         section_type: SectionType = SectionType.TEXT,
-        chunking_strategy: ChunkingStrategy = ChunkingStrategy.SENTENCE,
+        chunking_strategy: ChunkingStrategy = ChunkingStrategy.NONE,
         language: str | None = None,
         # Character offsets
         char_start: int | None = None,
@@ -1822,7 +1883,7 @@ class CorpusDocument:
         timecode_end: float | None = None,
         confidence: float | None = None,
         ocr_engine: str | None = None,
-        bbox: tuple[float, ...] | None = None,
+        bbox: tuple[float, float, float, float] | None = None,
         # NLP enrichment (Issue S-4)
         normalized_text: str | None = None,
         raw_text: str | None = None,
@@ -1869,7 +1930,7 @@ class CorpusDocument:
         section_type : SectionType, optional
             Semantic section label. Default: ``SectionType.TEXT``.
         chunking_strategy : ChunkingStrategy, optional
-            Segmentation strategy used. Default: ``ChunkingStrategy.SENTENCE``.
+            Segmentation strategy used. Default: ``ChunkingStrategy.NONE``.
         language : str or None, optional
             ISO 639-1 language code. Default: ``None``.
         char_start : int or None, optional
@@ -2084,19 +2145,19 @@ class CorpusDocument:
                 f" {unknown!r}."
                 f" Valid fields: {sorted(valid_fields)}"
             )
-        new_doc = copy.copy(self)
-        for key, val in changes.items():
-            object.__setattr__(new_doc, key, val)
-        # Deep-copy mutable container fields the caller did not replace
-        # to avoid shared-reference bugs.
+        # CRITICAL-03: now that CorpusDocument is frozen=True, use
+        # _dc_replace (dataclasses.replace) which correctly creates a new
+        # frozen instance and re-runs __post_init__ for enum coercion.
+        # Deep-copy mutable containers not being replaced so each call site
+        # gets an independent copy with no shared-reference bugs.
         if "metadata" not in changes:
-            object.__setattr__(new_doc, "metadata", copy.copy(self.metadata))
+            changes["metadata"] = copy.copy(self.metadata)
         for _list_field in ("tokens", "lemmas", "stems", "keywords"):
             if _list_field not in changes:
                 existing = getattr(self, _list_field)
                 if existing is not None:
-                    object.__setattr__(new_doc, _list_field, list(existing))
-        return new_doc
+                    changes[_list_field] = list(existing)
+        return _dc_replace(self, **changes)
 
     # ------------------------------------------------------------------
     # Serialisation / conversion (Issues S-6)
@@ -2367,8 +2428,8 @@ class CorpusDocument:
 
         # Restore bbox from list/tuple → tuple[float, ...]
         raw_bbox = data.get("bbox")
-        bbox: tuple[float, ...] | None = (
-            tuple(float(v) for v in raw_bbox) if raw_bbox is not None else None
+        bbox: tuple[float, float, float, float] | None = (
+            tuple(float(v) for v in raw_bbox) if raw_bbox is not None else None  # type: ignore[assignment]
         )
 
         # Restore raw_shape from list → tuple[int, ...]
@@ -2396,7 +2457,7 @@ class CorpusDocument:
             text=data.get("text"),
             section_type=SectionType(data.get("section_type", SectionType.TEXT.value)),
             chunking_strategy=ChunkingStrategy(
-                data.get("chunking_strategy", ChunkingStrategy.SENTENCE.value)
+                data.get("chunking_strategy", ChunkingStrategy.NONE.value)
             ),
             language=data.get("language"),
             char_start=data.get("char_start"),
@@ -2525,6 +2586,14 @@ def documents_to_pandas(
     >>> len(df)
     3
     """  # noqa: D205
+    # Validate non-empty BEFORE attempting any library import so the
+    # error is deterministic regardless of whether pandas is installed.
+    if not docs:
+        raise ValueError(
+            "documents_to_pandas() requires a non-empty list of CorpusDocument "
+            "objects.  An empty corpus has no schema to infer — pass at least one "
+            "document, or check len(documents) before calling."
+        )
     try:
         import pandas as pd  # noqa: PLC0415
     except ImportError as exc:
@@ -2532,14 +2601,9 @@ def documents_to_pandas(
             "pandas is required for documents_to_pandas()."
             " Install it with: pip install pandas"
         ) from exc
-    # Return an empty DataFrame with schema columns rather than raising.
-    # An empty corpus is a valid pipeline result (OCR returned no text,
-    # all chunks were filtered out, etc.).  ValueError surprises callers
-    # who check result.n_documents afterward anyway.
-    #
-    # Inlined column order to avoid a circular import with _export._export
-    # (which imports CorpusDocument from _schema).
-    if not docs:
+    # Legacy dead-code guard (unreachable after the ValueError above) kept
+    # for grep-safety — remove in 0.6.0 together with the surrounding refactor.
+    if not docs:  # pragma: no cover  # noqa: RET505
         _empty_columns = [
             "doc_id",
             "input_path",
@@ -2595,6 +2659,14 @@ def documents_to_polars(
     >>> len(df)
     3
     """  # noqa: D205
+    # Validate non-empty BEFORE attempting the polars import so the error
+    # is deterministic regardless of whether polars is installed.
+    if not docs:
+        raise ValueError(
+            "documents_to_polars() requires a non-empty list of CorpusDocument "
+            "objects.  An empty corpus has no schema to infer — pass at least one "
+            "document, or check len(documents) before calling."
+        )
     try:
         import polars as pl  # noqa: PLC0415
     except ImportError as exc:
@@ -2602,14 +2674,9 @@ def documents_to_polars(
             "polars is required for documents_to_polars()."
             " Install it with: pip install polars"
         ) from exc
-    # Return an empty DataFrame with schema columns rather than raising.
-    # An empty corpus is a valid pipeline result (OCR returned no text,
-    # all chunks were filtered out, etc.).  ValueError surprises callers
-    # who check result.n_documents afterward anyway.
-    #
-    # Inlined column order to avoid a circular import with _export._export
-    # (which imports CorpusDocument from _schema).
-    if not docs:
+    # Legacy dead-code guard (unreachable after the ValueError above) kept
+    # for grep-safety — remove in 0.6.0.
+    if not docs:  # pragma: no cover  # noqa: RET505
         _empty_columns = [
             "doc_id",
             "input_path",

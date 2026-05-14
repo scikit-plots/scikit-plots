@@ -84,6 +84,23 @@ _DEFAULT_MAX_TOTAL_BYTES: int = 2 * 1024 * 1024 * 1024
 #: Path components that trigger member exclusion.
 _SKIP_PARTS: frozenset[str] = frozenset({"__pycache__", "__MACOSX"})
 
+# CRITICAL-05: ALTO XML namespace URI byte-strings detected inside ZIP members.
+# Peaking at the first 2 KB of an XML member is sufficient — the root element
+# and its namespace declarations always appear within the first few hundred bytes.
+_ALTO_NAMESPACE_MARKERS: tuple[bytes, ...] = (
+    b"http://www.loc.gov/standards/alto/ns-v2#",
+    b"http://www.loc.gov/standards/alto/ns-v3#",
+    b"http://www.loc.gov/standards/alto/ns-v4#",
+    b"<alto ",  # ALTO root without namespace (legacy files)
+    b"<Alto ",  # alternate capitalisation seen in some OCR outputs
+)
+
+#: Number of XML members sampled when probing for ALTO content.
+_ALTO_PROBE_MEMBERS: int = 3
+
+#: Bytes read from the start of each XML member during ALTO probe.
+_ALTO_PROBE_BYTES: int = 2048
+
 
 def _should_skip(member_path: str) -> bool:
     """

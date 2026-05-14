@@ -120,7 +120,7 @@ class FixedWindowChunkerConfig(ChunkerConfig):
     include_offsets: bool = True
     strip_whitespace: bool = True
     # Multilang settings
-    multilang_config: Any = None  # MultilangConfig or None
+    multilang_config: MultilangConfig | None = None
 
 
 # ---------------------------------------------------------------------------

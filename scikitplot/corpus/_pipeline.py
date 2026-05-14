@@ -46,11 +46,26 @@ from __future__ import annotations
 
 import logging
 import pathlib
+import re  # MEDIUM-01b: stdlib, zero cost, no reason to defer
 from dataclasses import dataclass, field  # noqa: F401
 from timeit import default_timer as timer
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union  # noqa: F401
 
-from ._base import ChunkerBase, DocumentReader, FilterBase, _is_url, _MultiSourceReader
+from . import (  # noqa: F401
+    _readers,  # MEDIUM-01c: triggers reader-registry population at import time
+)
+from ._base import (
+    ChunkerBase,
+    DefaultFilter,
+    DocumentReader,
+    FilterBase,
+    _is_url,
+    _MultiSourceReader,
+)
+from ._chunkers._chunker_bridge import (  # MEDIUM-01a: always needed; not optional
+    bridge_chunker,
+)
+from ._embeddings._embedding import EmbeddingEngine
 from ._enrichers._nlp_enricher import NLPEnricher
 from ._normalizers._text_normalizer import TextNormalizer
 from ._schema import CorpusDocument, ExportFormat
@@ -114,7 +129,13 @@ class PipelineResult:
     input_path: str
     output_path: pathlib.Path | None
     export_format: ExportFormat | None
-    documents: list[CorpusDocument]
+    documents: tuple[CorpusDocument, ...]
+    """All documents produced by the pipeline run.
+
+    Stored as an immutable ``tuple`` to enforce the frozen-dataclass contract.
+    Use ``list(result.documents)`` if a mutable copy is needed.
+    ``len(result.documents) == result.n_documents``.
+    """
     n_read: int
     n_omitted: int
     n_embedded: int
@@ -175,9 +196,6 @@ class CorpusPipeline:
     export_format : ExportFormat or None, optional
         Default export format. Individual :meth:`run` calls can override.
         Default: :attr:`~scikitplot.corpus._schema.ExportFormat.CSV`.
-    default_language : str or None, optional
-        ISO 639-1 language code applied to all documents when the reader
-        cannot detect language. Default: ``None``.
     progress_callback : callable or None, optional
         Called after each batch of documents is processed.
         Signature: ``(input_path: str, n_done: int, n_total_estimate: int) → None``.
@@ -329,25 +347,25 @@ class CorpusPipeline:
         self,
         chunker: ChunkerBase | None = None,
         filter_: FilterBase | None = None,
-        embedding_engine: Any | None = None,
+        embedding_engine: EmbeddingEngine | None = None,
         output_path: pathlib.Path | None = None,
         export_format: ExportFormat | None = ExportFormat.CSV,
         normalizer: TextNormalizer | None = None,
         enricher: NLPEnricher | None = None,
-        default_language: str | list | None = None,
+        default_language: str | list[str] | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
     ) -> None:
         # Bridge new-style chunkers (SentenceChunker, ParagraphChunker,
-        # FixedWindowChunker, WordChunker) to the ChunkerBase contract
-        # (_base.py needs .strategy and chunk(text, metadata) → list[tuple]).
+        # FixedWindowChunker, WordChunker) to the ChunkerBase contract.
+        # CRITICAL-02 (Phase 2): bridge.chunk() now returns ChunkResult directly.
         # Already-compliant ChunkerBase subclasses are returned as-is.
-        from ._chunkers._chunker_bridge import (  # noqa: PLC0415
-            bridge_chunker,
-        )
-
+        # MEDIUM-01a: bridge_chunker is now imported at module level.
         self.chunker = bridge_chunker(chunker) if chunker is not None else None
-        self.filter_ = filter_
+        # MEDIUM-04 fix: store filter in private attribute so the public
+        # interface is `pipeline.filter` (no trailing underscore leaking out).
+        # `filter_` is kept as a backward-compat property below.
+        self._filter: FilterBase = filter_ if filter_ is not None else DefaultFilter()
         self.embedding_engine = embedding_engine
         self.output_path = (
             pathlib.Path(output_path) if output_path is not None else None
@@ -357,7 +375,76 @@ class CorpusPipeline:
         self.enricher = enricher
         self.default_language = default_language
         self.progress_callback = progress_callback
-        self.reader_kwargs = reader_kwargs or {}
+        # Explicit None check: distinguish "not provided" (None) from
+        # "explicitly empty" ({}).  Both produce an empty dict, but `or {}`
+        # would silently erase any falsy non-None value (e.g. a subclass
+        # override that evaluates to False).
+        self.reader_kwargs: dict[str, Any] = (
+            reader_kwargs if reader_kwargs is not None else {}
+        )
+
+    # ------------------------------------------------------------------
+    # MEDIUM-04: public properties for the filter attribute.
+    # The trailing-underscore `filter_` convention avoids shadowing the
+    # built-in `filter`, but it should not leak into the public attribute
+    # interface.  Callers can now use `pipeline.filter` cleanly.
+    # `pipeline.filter_` still works for backward compatibility.
+    # ------------------------------------------------------------------
+
+    @property
+    def filter(self) -> FilterBase:
+        """Active document filter applied after chunking.
+
+        Returns
+        -------
+        FilterBase
+            The current filter instance (never ``None`` — defaults to
+            :class:`~scikitplot.corpus._base.DefaultFilter`).
+
+        Notes
+        -----
+        MEDIUM-04 fix: exposes the filter without a trailing underscore so
+        the public interface is ``pipeline.filter``, not ``pipeline.filter_``.
+        """
+        return self._filter
+
+    @filter.setter
+    def filter(self, value: FilterBase) -> None:
+        """Replace the active filter.
+
+        Parameters
+        ----------
+        value : FilterBase
+            New filter instance.  Must be a :class:`FilterBase` subclass.
+
+        Raises
+        ------
+        TypeError
+            If *value* is not a :class:`FilterBase` instance.
+        """
+        if not isinstance(value, FilterBase):
+            raise TypeError(
+                f"CorpusPipeline.filter must be a FilterBase instance, "
+                f"got {type(value).__name__!r}."
+            )
+        self._filter = value
+
+    @property
+    def filter_(self) -> FilterBase:
+        """Backward-compat alias for :attr:`filter`.
+
+        .. deprecated:: 0.5.0
+            Use ``pipeline.filter`` (no trailing underscore).
+            ``filter_`` will be removed in 0.7.0.
+        """
+        # MEDIUM-04: keep working so existing code doesn't break immediately.
+        return self._filter
+
+    @filter_.setter
+    def filter_(self, value: FilterBase) -> None:
+        """Backward-compat alias setter for :attr:`filter`."""
+        # Delegate to the validated setter above.
+        self.filter = value
 
     # ------------------------------------------------------------------
     # Public API — single source
@@ -498,8 +585,7 @@ class CorpusPipeline:
         Both routes call the same ``DocumentReader.create()`` factory so
         any future factory changes apply automatically here.
         """
-        import re as _re  # noqa: PLC0415
-
+        # MEDIUM-01b: `re` is now imported at module level; no deferred import needed.
         is_url = _is_url(input_path)
         start = timer()
 
@@ -535,6 +621,11 @@ class CorpusPipeline:
                     "CorpusPipeline: normalizer ran on %d documents.", len(documents)
                 )
             except Exception as exc:  # noqa: BLE001
+                # Broad catch: normalizer is user-supplied or third-party NLP code
+                # (NLTK, spaCy, custom callables).  Any library-specific error
+                # (RuntimeError, OSError, LookupError, …) must be caught here so
+                # a single failing normalizer does not abort the whole pipeline.
+                # Documents are left unchanged and processing continues.
                 logger.warning(
                     "CorpusPipeline: normalizer raised %s: %s — documents unchanged.",
                     type(exc).__name__,
@@ -549,6 +640,8 @@ class CorpusPipeline:
                     "CorpusPipeline: enricher ran on %d documents.", len(documents)
                 )
             except Exception as exc:  # noqa: BLE001
+                # Broad catch: same reasoning as normalizer above — enricher
+                # wraps NLP libraries whose exception hierarchy is unpredictable.
                 logger.warning(
                     "CorpusPipeline: enricher raised %s: %s — documents unchanged.",
                     type(exc).__name__,
@@ -563,7 +656,7 @@ class CorpusPipeline:
 
         # Output stem: sanitised URL slug or file stem.
         if is_url:
-            stem = _re.sub(r"[^\w.-]", "_", source_str)[:60]
+            stem = re.sub(r"[^\w.-]", "_", source_str)[:60]
         else:
             stem = pathlib.Path(input_path).stem
 
@@ -585,7 +678,7 @@ class CorpusPipeline:
             input_path=source_label,
             output_path=resolved_output,
             export_format=fmt,
-            documents=documents,
+            documents=tuple(documents),
             n_read=n_read,
             n_omitted=n_omitted,
             n_embedded=n_embedded,
@@ -704,11 +797,10 @@ class CorpusPipeline:
                 f"run_url: url must be str or list[str], got {type(url).__name__!r}."
             )
 
-        import re  # noqa: PLC0415
-
-        from . import _readers  # noqa: F401, PLC0415
-
         start = timer()
+        # MEDIUM-01b/c: `re` and `_readers` are now imported at module level.
+        # The deferred `import re` and `from . import _readers` that were here
+        # have been removed — neither is optional or circular.
         logger.info("CorpusPipeline.run_url: processing %s.", url)
 
         reader = DocumentReader.from_url(
@@ -745,7 +837,7 @@ class CorpusPipeline:
             input_path=url,
             output_path=resolved_output,
             export_format=fmt,
-            documents=documents,
+            documents=tuple(documents),
             n_read=n_read,
             n_omitted=n_omitted,
             n_embedded=n_embedded,

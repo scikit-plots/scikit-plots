@@ -29,7 +29,7 @@ import time
 import unicodedata
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
-from typing import Any, Callable, Final, List, Optional, Union  # noqa: F401
+from typing import Any, Callable, Final, List, Literal, Optional, Union  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
 from ._custom_tokenizer import (
@@ -375,13 +375,19 @@ class WordChunkerConfig(ChunkerConfig):
     """  # noqa: D205, RUF002
 
     tokenizer: TokenizerBackend = TokenizerBackend.SIMPLE
-    custom_tokenizer: Any = field(default=None, hash=False, compare=False)
+    custom_tokenizer: TokenizerProtocol | Callable[[str], list[str]] | None = field(
+        default=None, hash=False, compare=False
+    )
     stemmer: StemmingBackend = StemmingBackend.NONE
-    custom_stemmer: Any = field(default=None, hash=False, compare=False)
+    custom_stemmer: StemmerProtocol | Callable[[str], str] | None = field(
+        default=None, hash=False, compare=False
+    )
     lemmatizer: LemmatizationBackend = LemmatizationBackend.NONE
-    custom_lemmatizer: Any = field(default=None, hash=False, compare=False)
+    custom_lemmatizer: LemmatizerProtocol | Callable[[str, str | None], str] | None = (
+        field(default=None, hash=False, compare=False)
+    )
     stopwords: StopwordSource = StopwordSource.BUILTIN
-    custom_stopwords: frozenset | None = None
+    custom_stopwords: frozenset[str] | None = None
     spacy_model: str | None = None
     nltk_language: str | list[str] | None = "english"
     """Language(s) for NLTK stopwords, Snowball stemmer, and NLTK tokenizer.
@@ -403,11 +409,13 @@ class WordChunkerConfig(ChunkerConfig):
     remove_numbers: bool = False
     min_token_length: int = 2
     max_token_length: int | None = None
-    ngram_range: tuple = (1, 1)
-    chunk_by: str = "document"  # "document" | "sentence"
+    ngram_range: tuple[int, int] = (1, 1)
+    chunk_by: Literal["document", "sentence"] = "document"
     include_offsets: bool = False
     build_gensim_corpus: bool = False
-    multilang_config: Any = field(default=None, hash=False, compare=False)
+    multilang_config: MultilangConfig | None = field(
+        default=None, hash=False, compare=False
+    )
     """Multilang feature flags (:class:`MultilangConfig` or ``None``).
 
     When set, each word chunk is enriched with a

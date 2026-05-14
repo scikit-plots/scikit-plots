@@ -56,13 +56,21 @@ class TestSplitRegexMultiScript:
         parts = _split_regex("Hello.World", multi_script=True)
         assert len(parts) >= 2
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "HIGH-04: _split_regex splits on the CJK period 。 (len==2 passes) "
+            "but the resulting part boundaries include the delimiter in the "
+            "wrong segment. parts[0] should strip to '\u4f60\u597d' and "
+            "parts[1] to '\u518d\u89c1'. Fix target: 0.5.0."
+        ),
+    )
     def test_cjk_multi_true_splits_on_cjk_period(self) -> None:
         # 你好。再见 — split at 。
         parts = _split_regex("你好。再见", multi_script=True)
         assert len(parts) == 2
-        # TODO: E   AssertionError
-        # assert parts[0].strip() == "你好"
-        # assert parts[1].strip() == "再见"
+        assert parts[0].strip() == "你好"
+        assert parts[1].strip() == "再见"
 
     def test_cjk_multi_false_does_not_split(self) -> None:
         # Latin-only regex doesn't know about 。

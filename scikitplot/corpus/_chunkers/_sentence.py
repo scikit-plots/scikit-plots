@@ -68,7 +68,7 @@ import re
 import time
 from dataclasses import dataclass, field  # noqa: F401
 from enum import Enum
-from typing import Any, Final, List, Optional, Union  # noqa: F401
+from typing import Any, Callable, Final, List, Optional, Union  # noqa: F401
 
 from .._types import Chunk, ChunkerConfig, ChunkResult
 from ._custom_tokenizer import (
@@ -296,7 +296,9 @@ class SentenceChunkerConfig(ChunkerConfig):
     min_length: int = _DEFAULT_MIN_LEN
     overlap: int = _DEFAULT_OVERLAP
     spacy_model: str | None = None
-    nltk_language: Any = field(default="english", hash=False, compare=False)
+    nltk_language: str | list[str] | None = field(
+        default="english", hash=False, compare=False
+    )
     """Language(s) for the NLTK Punkt sentence tokenizer.
 
     Accepts:
@@ -317,7 +319,9 @@ class SentenceChunkerConfig(ChunkerConfig):
     """
     strip_whitespace: bool = True
     include_offsets: bool = True
-    custom_splitter: Any = field(default=None, hash=False, compare=False)
+    custom_splitter: SentenceSplitterProtocol | callable[[str], list[str]] | None = (
+        field(default=None, hash=False, compare=False)
+    )
     """User-supplied splitter for ``backend=SentenceBackend.CUSTOM``.
 
     Accepts any object with a ``split(text: str) -> list[str]`` method
@@ -337,7 +341,9 @@ class SentenceChunkerConfig(ChunkerConfig):
     Valid values: ``None`` (Latin), ``"multi"`` (all scripts), or any
     :class:`~._custom_tokenizer.ScriptType` value string.
     """  # noqa: RUF001
-    multilang_config: Any = field(default=None, hash=False, compare=False)
+    multilang_config: MultilangConfig | None = field(
+        default=None, hash=False, compare=False
+    )
     """Multilang feature flags (:class:`MultilangConfig` or ``None``).
 
     When set, each sentence chunk is enriched with a

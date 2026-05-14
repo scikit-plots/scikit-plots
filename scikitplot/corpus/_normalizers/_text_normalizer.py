@@ -35,7 +35,7 @@ import logging
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Literal, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class NormalizerConfig:
     need strict equality on ``steps``, compare the lists explicitly.
     """
 
-    unicode_form: str = "NFKC"
+    unicode_form: Literal["NFC", "NFD", "NFKC", "NFKD", ""] = "NFKC"
     expand_ligatures: bool = True
     fix_hyphenation: bool = True
     collapse_whitespace: bool = True

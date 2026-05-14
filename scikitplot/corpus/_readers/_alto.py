@@ -643,8 +643,17 @@ class ALTOReader(DocumentReader):
     ... )
     """
 
-    # BUG-03 fix: file_type removed — file_types used for registration.
-    file_types: ClassVar[list[str] | None] = [".zip"]
+    # CRITICAL-05 / SEV-1.4 FIX:
+    # ALTOReader is intentionally NOT registered for ".zip" in the auto-registry.
+    # Registration is managed by ZipReader, which:
+    #   1. Owns the ".zip" extension exclusively.
+    #   2. Detects ALTO XML archives automatically via _detect_alto_archive().
+    #   3. Delegates the entire archive to ALTOReader when ALTO is detected.
+    #   4. Falls back to per-member dispatch for mixed-content ZIPs.
+    #
+    # To use ALTOReader on a known ALTO archive without auto-detection:
+    #   reader = ALTOReader(input_path=Path("newspaper_scans.zip"))
+    file_types: ClassVar[list[str] | None] = None
 
     granularity: str = field(default=_GRAN_BLOCK)
     """

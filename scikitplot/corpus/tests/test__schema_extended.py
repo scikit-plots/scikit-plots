@@ -313,11 +313,12 @@ class TestValidateExtended:
         assert doc.section_type is SectionType.FOOTNOTE
 
     def test_section_type_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
-                             chunk_index=0, text="Hi.",
-                             section_type="not_valid")  # type: ignore[arg-type]
+        # CorpusDocument is frozen (CRITICAL-03); __post_init__ coerces and
+        # validates enum fields eagerly at construction time, not in validate().
         with pytest.raises(ValueError, match="section_type"):
-            doc.validate()
+            CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
+                           chunk_index=0, text="Hi.",
+                           section_type="not_valid")  # type: ignore[arg-type]
 
     # --- chunking_strategy coercion / rejection ---
 
@@ -329,11 +330,11 @@ class TestValidateExtended:
         assert doc.chunking_strategy is ChunkingStrategy.PARAGRAPH
 
     def test_chunking_strategy_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
-                             chunk_index=0, text="Hi.",
-                             chunking_strategy="char")  # type: ignore[arg-type]
+        # Eager enum coercion in __post_init__ raises at construction time.
         with pytest.raises(ValueError, match="chunking_strategy"):
-            doc.validate()
+            CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
+                           chunk_index=0, text="Hi.",
+                           chunking_strategy="char")  # type: ignore[arg-type]
 
     # --- source_type coercion / rejection ---
 
@@ -345,11 +346,11 @@ class TestValidateExtended:
         assert doc.source_type is SourceType.BOOK
 
     def test_source_type_invalid_string_raises(self) -> None:
-        doc = CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
-                             chunk_index=0, text="Hi.",
-                             source_type="ebook")  # type: ignore[arg-type]
+        # Eager enum coercion in __post_init__ raises at construction time.
         with pytest.raises(ValueError, match="source_type"):
-            doc.validate()
+            CorpusDocument(doc_id="abc1234567890123", input_path="f.txt",
+                           chunk_index=0, text="Hi.",
+                           source_type="ebook")  # type: ignore[arg-type]
 
     # --- char offsets ---
 
