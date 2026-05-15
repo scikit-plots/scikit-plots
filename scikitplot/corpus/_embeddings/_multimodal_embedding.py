@@ -1630,14 +1630,11 @@ class LLMTrainingExporter:
 
         try:
             from datasets import Dataset  # noqa: PLC0415
-
-            has_datasets = True
-        except ImportError:
-            has_datasets = False
-            logger.warning(
-                "datasets library not installed; returning plain dict. "
-                "Install with: pip install datasets"
-            )
+        except ImportError as exc:
+            raise ImportError(
+                "to_huggingface_training_dataset requires datasets:\n"
+                "  pip install datasets"
+            ) from exc
 
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         if tokenizer.pad_token is None:
@@ -1713,10 +1710,7 @@ class LLMTrainingExporter:
         }
         if include_embeddings:
             data_dict["embedding"] = all_embeddings
-
-        if has_datasets:
-            return Dataset.from_dict(data_dict)
-        return data_dict
+        return Dataset.from_dict(data_dict)
 
     # ------------------------------------------------------------------
     # Embedding matrix export
