@@ -1,5 +1,7 @@
 # scikitplot/corpus/tests/test_orchestration.py
 #
+# flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -934,50 +936,122 @@ class TestLLMTrainingExporter:
         with pytest.raises(ValueError, match="embedding"):
             exporter.to_embedding_matrix(sample_docs)
 
+    # ------------------------------------------------------------------
+    # Shared tokenizer mock helper
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _make_mock_tokenizer(seq_len: int = 5) -> MagicMock:
+        """Return a minimal GPT-2-compatible tokenizer mock.
+
+        Root cause of SIGSEGV (exit code 139)
+        ---------------------------------------
+        ``AutoTokenizer.from_pretrained("gpt2")`` initialises the Rust
+        ``tokenizers`` library at C-level.  Under ``pytest --cov``, coverage
+        forks a subprocess; Rust's memory allocator conflicts with the
+        fork model, causing ``SIGSEGV`` (signal 11, exit 139).  The crash
+        is compounded by ``ctranslate2`` (faster-whisper) leaving CPU SIMD
+        state that the Rust tokenizers SIMD routines misread.
+
+        Fix
+        ---
+        Patch ``AutoTokenizer.from_pretrained`` to return this mock so that:
+        * No Rust binary is loaded.
+        * No network call is made (no vocab download).
+        * The test verifies the **logic** of ``to_huggingface_training_dataset``
+          (CLM labels == input_ids, MLM labels == input_ids, SFT key presence),
+          not the correctness of the GPT-2 tokenizer (not our code).
+
+        The mock is realistic: ``__call__`` returns ``input_ids`` and
+        ``attention_mask``; attributes mirror the GPT-2 tokenizer contract
+        that ``to_huggingface_training_dataset`` depends on.
+        """
+        ids = list(range(1, seq_len + 1))
+        mask = [1] * seq_len
+
+        tok = MagicMock()
+        # Attributes the implementation reads before calling the tokenizer
+        tok.pad_token = None
+        tok.eos_token = "<|endoftext|>"
+        tok.eos_token_id = 50256
+        tok.pad_token_id = 50256
+        tok.model_max_length = 1024
+        tok.is_fast = True
+
+        # tokenizer(text, ...) → {"input_ids": [...], "attention_mask": [...]}
+        tok.return_value = {"input_ids": ids, "attention_mask": mask}
+        tok.encode.return_value = ids
+        tok.decode.return_value = "hello world"
+        tok.batch_encode_plus.return_value = {
+            "input_ids": [ids],
+            "attention_mask": [mask],
+        }
+        return tok
+
+    # ------------------------------------------------------------------
+    # HuggingFace training dataset tests — all use mocked tokenizer
+    # ------------------------------------------------------------------
+
     def test_huggingface_clm_labels_equal_input_ids(self, sample_docs):
+        """CLM task: labels must equal input_ids (teacher-forcing identity).
+
+        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring for
+        the full root-cause explanation of why the real tokenizer causes
+        SIGSEGV in CI.
+        """
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        try:
-            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
-        except ImportError:
-            pytest.skip("transformers not available")
+        pytest.importorskip("transformers", reason="transformers not available")
 
         exporter = LLMTrainingExporter(engine=None)
-        ds_to_dict = exporter.to_huggingface_training_dataset(
-            sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="clm"
-        ).to_dict()
+        with patch(
+            "transformers.AutoTokenizer.from_pretrained",
+            return_value=self._make_mock_tokenizer(),
+        ):
+            ds_to_dict = exporter.to_huggingface_training_dataset(
+                sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="clm"
+            ).to_dict()
         assert ds_to_dict["input_ids"][0] == ds_to_dict["labels"][0]
 
     def test_huggingface_mlm_labels_equal_input_ids(self, sample_docs):
+        """MLM task: labels must equal input_ids before masking is applied.
+
+        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring.
+        """
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        try:
-            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
-        except ImportError:
-            pytest.skip("transformers not available")
+        pytest.importorskip("transformers", reason="transformers not available")
 
         exporter = LLMTrainingExporter(engine=None)
-        ds_to_dict = exporter.to_huggingface_training_dataset(
-            sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="mlm"
-        ).to_dict()
+        with patch(
+            "transformers.AutoTokenizer.from_pretrained",
+            return_value=self._make_mock_tokenizer(),
+        ):
+            ds_to_dict = exporter.to_huggingface_training_dataset(
+                sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="mlm"
+            ).to_dict()
         assert ds_to_dict["input_ids"][0] == ds_to_dict["labels"][0]
 
     def test_huggingface_sft_fallback(self, sample_docs):
-        """Without HF datasets installed, returns a plain dict."""
+        """SFT task: dataset must contain input_ids and labels columns.
+
+        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring.
+        """
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        try:
-            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
-        except ImportError:
-            pytest.skip("transformers not available")
+        pytest.importorskip("transformers", reason="transformers not available")
 
         exporter = LLMTrainingExporter(engine=None)
-        ds_to_dict = exporter.to_huggingface_training_dataset(
-            sample_docs, tokenizer_name="gpt2", max_length=64, task="sft"
-        ).to_dict()
+        with patch(
+            "transformers.AutoTokenizer.from_pretrained",
+            return_value=self._make_mock_tokenizer(),
+        ):
+            ds_to_dict = exporter.to_huggingface_training_dataset(
+                sample_docs, tokenizer_name="gpt2", max_length=64, task="sft"
+            ).to_dict()
         assert "input_ids" in ds_to_dict
         assert "labels" in ds_to_dict
         assert len(ds_to_dict["input_ids"]) > 0
