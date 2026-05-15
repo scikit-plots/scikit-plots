@@ -1,8 +1,11 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# https://yaml-multiline.info/
+#
 # https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
 # https://github.com/asottile/pyupgrade/pull/365
+---
 ci:
   autoupdate_schedule: 'monthly'
   autoupdate_commit_msg: 'chore: update pre-commit hooks'
@@ -30,9 +33,9 @@ repos:
         exclude: |  # '\.ipynb$'  # Excludes .ipynb files from codespell checks
           (?x)(
             ^scikitplot/_core/ |  # exclude folder
-            ^tests/data/ |  # exclude test data folder
-            \.svg$ |        # exclude all .svg files
-            \.lock$         # exclude lock files
+            ^tests/data/ |        # exclude test data folder
+            \.svg$ |              # exclude all .svg files
+            \.lock$               # exclude lock files
           )
 
   # Optional: Custom Hook for RST Errors and Unicode Replacement
@@ -67,29 +70,34 @@ repos:
       - id: check-added-large-files  # Prevent giant files from being committed.
         args: ["--enforce-all", "--maxkb=333"]  # 333 KB is the default size limit.
         exclude: "^(\
-          benchmarks/.*|\
-          docs/source/logos/.*|\
-          docs/source/_static/logos/.*|\
-          docs/source/_static/user_guide/corpus_any_to_any_architecture.png|\
-          docs/source/devel/sampledoc.pdf|\
-          docs/source/user_guide/random/GoodPracticeRNG.pdf|\
-          docs/source/.jupyterlite.doit.db|\
-          galleries/.*|\
-          pixi-packages/scipy/pixi.lock|\
-          third_party/.*|\
-          .*searchindex.dat|\
-          .*CDNOW_master.txt|\
-          .*example_transactions.csv|\
-          scikitplot/cexternals/annoy/ann.png|\
-          scikitplot/cexternals/_annoy/src/annoymodule.cc|\
-        )$"
+            benchmarks/.*|\
+            docs/source/logos/.*|\
+            docs/source/_static/logos/.*|\
+            docs/source/_static/user_guide/corpus_any_to_any_architecture.png|\
+            docs/source/devel/sampledoc.pdf|\
+            docs/source/user_guide/random/GoodPracticeRNG.pdf|\
+            docs/source/.jupyterlite.doit.db|\
+            galleries/.*|\
+            pixi-packages/scipy/pixi.lock|\
+            third_party/.*|\
+            .*searchindex.dat|\
+            .*CDNOW_master.txt|\
+            .*example_transactions.csv|\
+            scikitplot/cexternals/annoy/ann.png|\
+            scikitplot/cexternals/_annoy/src/annoymodule.cc|\
+          )$"
 
   # Syntax Validation: JSON, YAML, TOML, XML, etc.
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
       - id: check-json  # Attempts to load all json files to verify syntax.
-        exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
+        # exclude: "^(settings\\.json|\\.devcontainer/.*\\.json|benchmarks/asv\\.conf\\.json)$"
+        exclude: "^(\
+            \\.devcontainer/.*\\.json\
+            |\\.vscode/.*\\.json*\
+            |benchmarks/asv\\.conf\\.json\
+          )$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
         exclude: "^(\\.conda-forge-recipes/.*/.*\\.yaml)$"
       - id: check-toml  # Attempts to load all TOML files to verify syntax.

@@ -1693,7 +1693,9 @@ class LLMTrainingExporter:
             Training objective.
 
             ``"clm"`` — causal language model: ``labels = input_ids``.
-            ``"mlm"`` — masked language model: 15% random masking.
+            ``"mlm"`` — masked language model: ``labels = input_ids``
+            (dynamic token masking is delegated to
+            ``DataCollatorForLanguageModeling`` at training time).
             ``"sft"`` — supervised fine-tuning: requires
             ``label_field`` to be set.
 
@@ -1788,7 +1790,16 @@ class LLMTrainingExporter:
                 if task == "clm":
                     all_labels.append(list(chunk_ids))
                 elif task == "mlm":
-                    all_labels.append(self._mask_tokens(chunk_ids, tokenizer))
+                    # HuggingFace MLM convention: store labels = input_ids in the
+                    # dataset.  Dynamic masking (replacing tokens with [MASK] and
+                    # setting non-masked label positions to -100) is the
+                    # responsibility of DataCollatorForLanguageModeling at training
+                    # time, NOT the dataset builder.  Applying _mask_tokens here
+                    # was incorrect: it mutated labels instead of input_ids, at
+                    # build time instead of collation time, and produced no -100
+                    # sentinel values — all three deviations from the HuggingFace
+                    # contract.
+                    all_labels.append(list(chunk_ids))
                 elif task == "sft" and label_field is not None:
                     lbl = getattr(doc, label_field, None)
                     all_labels.append(str(lbl) if lbl is not None else "")
@@ -2028,7 +2039,34 @@ class LLMTrainingExporter:
         tokenizer: Any,
         mask_prob: float = 0.15,
     ) -> list[int]:
-        """Return a label list for MLM with 15% of tokens masked."""
+        """Replace a random subset of token positions with the mask token id.
+
+        .. note::
+            This utility replaces positions in-place (same length, same type).
+            It is **not** a complete MLM data-preparation routine: it does not
+            produce the ``-100`` sentinel labels required to ignore non-masked
+            positions in the loss, and it operates on whatever sequence is passed
+            in rather than producing paired ``(masked_input_ids, original_labels)``
+            tensors.  For HuggingFace MLM training use
+            ``DataCollatorForLanguageModeling(mlm=True)`` instead.
+
+        Parameters
+        ----------
+        input_ids : list[int]
+            Token id sequence to mask.
+        tokenizer : Any
+            Tokenizer whose ``mask_token_id`` attribute is used as the
+            replacement id.  Falls back to ``103`` (BERT ``[MASK]``) when the
+            attribute is absent or ``None``.
+        mask_prob : float, optional
+            Fraction of positions to replace.  Default: ``0.15``.
+
+        Returns
+        -------
+        list[int]
+            New list of the same length with ``mask_prob`` fraction of
+            positions replaced by ``mask_token_id``.
+        """
         import random  # noqa: PLC0415
 
         mask_id = getattr(tokenizer, "mask_token_id", None) or 103

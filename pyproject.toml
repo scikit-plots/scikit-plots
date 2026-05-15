@@ -534,6 +534,7 @@ cpu = [
   # "keras-nlp",                              # import keras_nlp
   "tensorflow-cpu",                         # import tensorflow as tf
   ##
+  "datasets",                               # datasets
   "transformers",                           # import transformers  # ⚠️ newer transformers does not support some tf models use keras_nlp
   "tf-keras",                               # keras compatibility
 ]
