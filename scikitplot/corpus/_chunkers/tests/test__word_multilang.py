@@ -115,17 +115,24 @@ class TestWordChunkerConfigCustomValidation:
                 )
             )
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "HIGH-04: WordChunker does not yet raise ValueError when "
+            "StemmingBackend.SNOWBALL is given an unsupported language "
+            "('arabic'). The validation exists for CJK scripts but not for "
+            "all SNOWBALL-unsupported languages. Fix target: 0.5.0."
+        ),
+    )
     def test_snowball_unsupported_language_raises(self) -> None:
         """SNOWBALL must reject languages it does not support."""
-        # TODO: E   Failed: DID NOT RAISE <class 'ValueError'>
-        # with pytest.raises(ValueError, match="SNOWBALL"):
-        #     WordChunker(
-        #         WordChunkerConfig(
-        #             stemmer=StemmingBackend.SNOWBALL,
-        #             nltk_language="arabic",  # not in SNOWBALL supported list
-        #         )
-        #     )
-        pass
+        with pytest.raises(ValueError, match="SNOWBALL"):
+            WordChunker(
+                WordChunkerConfig(
+                    stemmer=StemmingBackend.SNOWBALL,
+                    nltk_language="arabic",  # not in SNOWBALL supported list
+                )
+            )
 
     def test_snowball_cjk_language_raises(self) -> None:
         with pytest.raises(ValueError, match="SNOWBALL"):

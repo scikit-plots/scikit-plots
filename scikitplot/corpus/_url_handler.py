@@ -56,26 +56,15 @@ import mimetypes
 import os
 import re
 import socket
-import sys
 import tempfile
 import urllib.error  # noqa: F401
 import urllib.parse
 import urllib.request
-from enum import Enum
 from pathlib import Path
 from typing import Any, Optional, Tuple  # noqa: F401
 
-if sys.version_info >= (3, 11):
-    from enum import StrEnum as _StrEnumBase
-else:
-
-    class _StrEnumBase(str, Enum):  # type: ignore[no-redef]
-        """Backport of ``enum.StrEnum`` for Python < 3.11.
-
-        Enables direct string comparison: ``URLKind.WEB_PAGE == "web_page"``.
-        On Python 3.11+ the stdlib ``enum.StrEnum`` is used instead.
-        """
-
+# SEV-1.2 / MEDIUM-07: single _StrEnumBase definition lives in _schema.py
+from ._schema import _StrEnumBase
 
 logger = logging.getLogger(__name__)
 
@@ -659,8 +648,15 @@ def _probe_with_requests(url: str, *, timeout: int) -> str:
             if resp.status_code not in (405, 501):
                 ct = resp.headers.get("Content-Type", "")
                 return ct.split(";")[0].strip().lower()
-        except Exception:  # noqa: BLE001
-            pass
+        except (OSError, ValueError, RuntimeError) as _head_exc:
+            # SEV-1.4: HEAD may fail (network error, method not allowed, SSL,
+            # etc.). Fall through to GET-stream probe without raising.
+            logger.debug(
+                "_probe_with_requests: HEAD probe failed for %s (%s); "
+                "falling back to GET-stream.",
+                url,
+                _head_exc,
+            )
 
         # Fallback: GET with stream — read headers only, close immediately
         try:
@@ -668,7 +664,7 @@ def _probe_with_requests(url: str, *, timeout: int) -> str:
             resp.close()
             ct = resp.headers.get("Content-Type", "")
             return ct.split(";")[0].strip().lower()
-        except Exception as exc:  # noqa: BLE001
+        except (OSError, ValueError, RuntimeError) as exc:
             logger.debug("_probe_with_requests: GET stream probe failed: %s", exc)
             return ""
 
@@ -697,8 +693,14 @@ def _probe_with_urllib(url: str, *, timeout: int) -> str:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             ct = resp.headers.get("Content-Type", "")
             return ct.split(";")[0].strip().lower()
-    except Exception:  # noqa: BLE001
-        pass
+    except (OSError, urllib.error.URLError, ValueError) as _head_exc:
+        # SEV-1.4: HEAD may be rejected or network may fail; fall through
+        # to GET probe. Log at DEBUG — this is an expected fallback path.
+        logger.debug(
+            "_probe_with_urllib: HEAD probe failed for %s (%s); falling back to GET.",
+            url,
+            _head_exc,
+        )
 
     # HEAD failed — try GET and read only headers
     try:

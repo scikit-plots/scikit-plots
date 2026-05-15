@@ -20,10 +20,17 @@ from urllib.parse import urlparse
 
 import pytest
 
-from .... import corpus
+import importlib
+
+# Use importlib to reliably obtain the corpus package module object.
+# `from ... import __init__ as corpus` resolves to a method-wrapper on
+# CPython because `__init__` is a special attribute of the module type;
+# importlib.import_module() guarantees the real package module is returned.
+corpus = importlib.import_module("scikitplot.corpus")
 from ... import _readers  # noqa: F401
 from ..._base import DocumentReader, _MultiSourceReader
-from .. import __init__ as mod
+# Same fix for the _downloader sub-package module reference.
+mod = importlib.import_module("scikitplot.corpus._downloader")
 
 from .._base import (
     _ALLOWED_SCHEMES,

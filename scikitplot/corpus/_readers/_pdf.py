@@ -113,6 +113,11 @@ def _extract_page_text_pdfminer(pdf_path: Any, page_number: int) -> str | None:
         # extract_pages yields one LTPage per page; page_numbers is 0-based list
         pages = list(extract_pages(str(pdf_path), page_numbers=[page_number]))
     except Exception as exc:  # noqa: BLE001
+        # Broad catch: pdfminer can raise PDFSyntaxError, PDFEncryptionError,
+        # PDFPasswordIncorrect, PDFPageCountError, UnicodeDecodeError, OSError,
+        # and more depending on the PDF's internal structure and pdfminer version.
+        # All are equally unrecoverable for this page — log and return None so
+        # the caller falls through to the pypdf backup path.
         logger.debug(
             "PDFReader: pdfminer failed on page %d of %s: %s",
             page_number,
@@ -179,6 +184,9 @@ def _extract_page_text_pypdf(
             return None
         return reader.pages[page_number].extract_text() or ""
     except Exception as exc:  # noqa: BLE001
+        # Broad catch: pypdf raises PdfReadError, PdfStreamError, AssertionError,
+        # DependencyError, and others across versions for malformed or encrypted pages.
+        # Return None so the caller falls through to the next extraction strategy.
         logger.debug(
             "PDFReader: pypdf failed on page %d of %s: %s",
             page_number,
@@ -202,6 +210,9 @@ def _count_pdf_pages_pdfminer(pdf_path: Any) -> int | None:
             doc = PDFDocument(parser)
             return sum(1 for _ in PDFPage.create_pages(doc))
     except Exception as exc:  # noqa: BLE001
+        # Broad catch: pdfminer page-count raises same variety of errors as
+        # per-page extraction (see _extract_page_text_pdfminer).  Page count
+        # is best-effort; return None so the caller uses pypdf as fallback.
         logger.debug(
             "PDFReader: pdfminer page count failed for %s: %s",
             pdf_path,
@@ -222,6 +233,7 @@ def _count_pdf_pages_pypdf(pdf_path: Any, password: str) -> int | None:
             reader.decrypt(password)
         return len(reader.pages)
     except Exception as exc:  # noqa: BLE001
+        # Broad catch: same reasoning as pypdf per-page extraction above.
         logger.debug(
             "PDFReader: pypdf page count failed for %s: %s",
             pdf_path,

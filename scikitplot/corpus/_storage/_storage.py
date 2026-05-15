@@ -437,7 +437,12 @@ class JSONLStorage(StorageBase):
                     fh.write(json.dumps(data, ensure_ascii=False))
                     fh.write("\n")
             tmp.replace(self._path)
-        except Exception:
+        except Exception:  # noqa: BLE001
+            # Broad catch is correct here: this is a cleanup-and-reraise
+            # handler.  Any exception from the write (OSError, json.JSONEncodeError,
+            # MemoryError, etc.) must trigger tmp-file removal before propagating
+            # to the caller.  We never suppress — the bare ``raise`` below
+            # ensures the original exception propagates unchanged.
             if tmp.exists():
                 tmp.unlink()
             raise

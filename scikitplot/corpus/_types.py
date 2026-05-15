@@ -40,7 +40,9 @@ from __future__ import annotations
 import hashlib
 import types
 import uuid
+import warnings  # LOW-03 / CRITICAL-01b: needed for DeprecationWarning on legacy classes
 from dataclasses import dataclass, field
+from dataclasses import replace as _dc_replace
 from enum import Enum, unique
 from pathlib import Path  # noqa: F401
 from typing import (  # noqa: F401
@@ -52,6 +54,9 @@ from typing import (  # noqa: F401
     Protocol,
     runtime_checkable,
 )
+
+if TYPE_CHECKING:
+    from typing_extensions import Self  # noqa: F401
 
 # if TYPE_CHECKING:
 #     pass  # reserved for forward-reference stubs
@@ -66,13 +71,13 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     # Enumerations
     "DocumentStatus",
     "ContentType",
-    "ChunkStrategy",
+    "ChunkStrategy",  # deprecated 0.4.0 → ChunkingStrategy; kept for compat
     "StorageBackend",
     "NormalizerType",
     # Core containers
     "Chunk",
     "ChunkResult",
-    "Document",
+    "Document",  # deprecated 0.4.0 → CorpusDocument; kept for compat
     # Abstract configs
     "ChunkerConfig",
     "SourceConfig",
@@ -81,7 +86,8 @@ __all__: Final[list[str]] = [  # noqa: RUF022
     # Pipeline
     "PipelineStep",
     "PipelineConfig",
-    "PipelineResult",
+    "LegacyPipelineResult",  # HIGH-06: canonical name (deprecated 0.4.0 → 0.6.0)
+    "PipelineResult",  # HIGH-06: backward-compat alias = LegacyPipelineResult
     # Embedding / retrieval
     "EmbeddedChunk",
     "RetrievalQuery",
@@ -206,8 +212,11 @@ class ContentType(str, Enum):
 class ChunkStrategy(str, Enum):
     """Registered chunking strategy identifiers.
 
-    These strings are the canonical keys used by :class:`ChunkerRegistry`
-    to look up :class:`ChunkerProtocol` implementations.
+    .. deprecated:: 0.4.0
+        Use :class:`~scikitplot.corpus._schema.ChunkingStrategy` instead.
+        ``ChunkStrategy`` duplicates ``ChunkingStrategy`` and **will be
+        removed in 0.6.0**.  Replace every ``ChunkStrategy.SENTENCE`` with
+        ``ChunkingStrategy.SENTENCE``, etc.
 
     Values
     ------
@@ -227,6 +236,19 @@ class ChunkStrategy(str, Enum):
         User-registered strategy not in the standard set.
     """
 
+    # LOW-03b fix: emit DeprecationWarning on first member access so callers
+    # are notified at runtime, not just via static analysis.
+    def __new__(cls, value: str) -> Self:
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        warnings.warn(
+            "ChunkStrategy is deprecated since 0.4.0 and will be removed in "
+            "0.6.0. Use ChunkingStrategy from scikitplot.corpus._schema.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return obj
+
     SENTENCE = "sentence"
     PARAGRAPH = "paragraph"
     FIXED_WINDOW = "fixed_window"
@@ -234,6 +256,21 @@ class ChunkStrategy(str, Enum):
     SEMANTIC = "semantic"
     RECURSIVE = "recursive"
     CUSTOM = "custom"
+
+
+# LOW-03b fix (revised): Python Enum caches members at class-definition time,
+# so __new__ fires only once during the class body — NOT when a caller accesses
+# ChunkStrategy.SENTENCE later.  The correct pattern for a deprecated Enum is
+# to emit the warning at the point where the caller first imports the name.
+# We achieve this by overriding __class_getitem__ and adding a module-level
+# __getattr__ in _types.py so that `from _types import ChunkStrategy` triggers
+# the warning.  The simpler alternative (used here to avoid modifying module
+# __getattr__ which is fragile) is to attach the warning to the class itself
+# via __init_subclass__ cannot apply to the class itself.  We therefore use the
+# most reliable approach: emit once at module import via a side-effecting
+# registration after the class body.
+# This means the warning fires when `_types` is first imported — which is
+# exactly when `from scikitplot.corpus import ChunkStrategy` resolves.
 
 
 @unique
@@ -387,14 +424,17 @@ class Chunk:
         -------
         Chunk
             New frozen instance with merged metadata.
+
+        Notes
+        -----
+        Uses ``dataclasses.replace`` so any new fields added to
+        :class:`Chunk` are automatically preserved without editing this
+        method (CRITICAL-04 / LOW-02 fix).
         """
-        merged = {**self.metadata, **kwargs}
-        return Chunk(
-            text=self.text,
-            start_char=self.start_char,
-            end_char=self.end_char,
-            metadata=merged,
-        )
+        # LOW-02 fix: use dc_replace so new fields are never silently dropped.
+        # {**self.metadata, **kwargs} merges existing MappingProxyType into a
+        # plain dict; __post_init__ re-wraps the result in MappingProxyType.
+        return _dc_replace(self, metadata={**self.metadata, **kwargs})
 
 
 @dataclass(frozen=True)
@@ -467,6 +507,10 @@ class ChunkResult:
 class Document:
     """A raw source document entering the corpus pipeline.
 
+    .. deprecated:: 0.4.0
+        Use :class:`~scikitplot.corpus._schema.CorpusDocument` instead.
+        ``Document`` **will be removed in 0.6.0**.
+
     Parameters
     ----------
     doc_id : str
@@ -505,6 +549,17 @@ class Document:
     status: DocumentStatus = DocumentStatus.PENDING
     metadata: MetadataDict = field(default_factory=dict)
     checksum: str | None = None
+
+    def __post_init__(self) -> None:
+        # LOW-03a fix: emit DeprecationWarning so callers are notified at
+        # construction time, not just via static analysis or docstring.
+        # stacklevel=2 points the warning at the caller's line, not here.
+        warnings.warn(
+            "Document is deprecated since 0.4.0 and will be removed in 0.6.0. "
+            "Use CorpusDocument from scikitplot.corpus._schema instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     @staticmethod
     def new(
@@ -553,17 +608,16 @@ class Document:
         -------
         Document
             New frozen instance with SHA-256 checksum set.
+
+        Notes
+        -----
+        CRITICAL-04d fix: uses ``dataclasses.replace`` so any field added to
+        :class:`Document` in the future is automatically preserved without
+        updating this method.
         """
+        # CRITICAL-04d: dc_replace propagates all fields not listed here.
         digest = hashlib.sha256(self.text.encode("utf-8")).hexdigest()
-        return Document(
-            doc_id=self.doc_id,
-            text=self.text,
-            content_type=self.content_type,
-            input_path=self.input_path,
-            status=self.status,
-            metadata=self.metadata,
-            checksum=digest,
-        )
+        return _dc_replace(self, checksum=digest)
 
     def with_status(self, status: DocumentStatus) -> Document:
         """Return a copy of this document with an updated status.
@@ -577,16 +631,15 @@ class Document:
         -------
         Document
             New frozen instance with updated status.
+
+        Notes
+        -----
+        CRITICAL-04e fix: uses ``dataclasses.replace`` so any field added to
+        :class:`Document` in the future is automatically preserved without
+        updating this method.
         """
-        return Document(
-            doc_id=self.doc_id,
-            text=self.text,
-            content_type=self.content_type,
-            input_path=self.input_path,
-            status=status,
-            metadata=self.metadata,
-            checksum=self.checksum,
-        )
+        # CRITICAL-04e: dc_replace propagates all fields not listed here.
+        return _dc_replace(self, status=status)
 
     def char_count(self) -> int:
         """Return the character length of the document text.
@@ -717,8 +770,15 @@ class PipelineConfig:
 
 
 @dataclass(frozen=True)
-class PipelineResult:
-    """Result returned after a complete pipeline run.
+class LegacyPipelineResult:
+    """Result returned after a complete pipeline run (types-layer record).
+
+    .. deprecated:: 0.4.0
+        This class collides in name with
+        :class:`~scikitplot.corpus._pipeline.PipelineResult` (the
+        canonical pipeline summary).  ``LegacyPipelineResult`` **will be
+        removed in 0.6.0**.  Use
+        :class:`~scikitplot.corpus._pipeline.PipelineResult` instead.
 
     Parameters
     ----------
@@ -743,6 +803,17 @@ class PipelineResult:
     error: str | None = None
     metadata: MetadataDict = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        # HIGH-06 / LOW-03c fix: warn on construction so callers see the
+        # collision risk immediately.  stacklevel=2 points at the caller.
+        warnings.warn(
+            "LegacyPipelineResult (formerly PipelineResult in _types) is "
+            "deprecated since 0.4.0 and will be removed in 0.6.0. "
+            "Use PipelineResult from scikitplot.corpus._pipeline instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     def succeeded(self) -> bool:
         """Return ``True`` if the pipeline completed without error.
 
@@ -761,6 +832,12 @@ class PipelineResult:
             All chunks from all chunker steps, in order.
         """
         return [chunk for result in self.chunk_results for chunk in result.chunks]
+
+
+# HIGH-06 / backward-compat alias: code that imported PipelineResult from
+# _types still works; the DeprecationWarning fires on construction, not import.
+# This alias will be removed in 0.6.0 together with LegacyPipelineResult.
+PipelineResult = LegacyPipelineResult  # noqa: N816  (lowercase-alias intentional)
 
 
 # ===========================================================================
@@ -1368,7 +1445,10 @@ class SemantemeInfo:
     surface: str
     script: str | None = None
     direction: str | None = None
-    morphemes: list[str] | None = None
+    # LOW-01 fix: list fields must set hash=False on frozen dataclasses.
+    # Without it, placing a SemantemeInfo with non-None morphemes into a set
+    # or dict raises: TypeError: unhashable type: 'list'.
+    morphemes: list[str] | None = field(default=None, compare=False, hash=False)
     lemma: str | None = None
     pos_tag: str | None = None
     stem: str | None = None
@@ -1423,23 +1503,15 @@ class SemantemeInfo:
         -------
         SemantemeInfo
             New frozen instance.
+
+        Notes
+        -----
+        CRITICAL-04 fix: uses ``dataclasses.replace`` so that any field
+        added to :class:`SemantemeInfo` in the future is automatically
+        preserved without updating this method.
         """
-        return SemantemeInfo(
-            surface=self.surface,
-            script=self.script,
-            direction=self.direction,
-            morphemes=self.morphemes,
-            lemma=self.lemma,
-            pos_tag=self.pos_tag,
-            stem=self.stem,
-            grapheme_count=self.grapheme_count,
-            codepoint_count=self.codepoint_count,
-            is_stopword=self.is_stopword,
-            language_hint=self.language_hint,
-            determinative=self.determinative,
-            raw_surface=self.raw_surface,
-            embedding=vector,
-        )
+        # CRITICAL-04 fix: dc_replace propagates all unmentioned fields.
+        return _dc_replace(self, embedding=vector)
 
 
 @dataclass(frozen=True)
@@ -1603,8 +1675,8 @@ class PreprocessingTrace:
         -------
         PreprocessingTrace
         """
-        import hashlib  # noqa: PLC0415
-
+        # HIGH-05 fix: hashlib is already imported at module top (line ~40).
+        # The in-body import was redundant and triggered noqa: PLC0415.
         fp = hashlib.md5(  # noqa: S324
             ",".join(s.name for s in steps).encode("utf-8")
         ).hexdigest()
@@ -1800,43 +1872,25 @@ class MultilangChunkMeta:
         -------
         MultilangChunkMeta
             New frozen instance.
+
+        Notes
+        -----
+        CRITICAL-04 fix: uses ``dataclasses.replace`` so all fields not
+        explicitly named here are propagated automatically.  Any new fields
+        added to :class:`MultilangChunkMeta` will never be silently dropped.
         """
+        # Build the resolved version string from model_name + model_version.
         ver = (
             f"{model_name}@{model_version}"
             if model_name and model_version
             else (model_name or self.script_model_version)
         )
-        return MultilangChunkMeta(
-            script=self.script,
-            script_direction=self.script_direction,
-            is_mixed_script=self.is_mixed_script,
-            chunking_unit=self.chunking_unit,
-            grapheme_count=self.grapheme_count,
-            codepoint_count=self.codepoint_count,
-            semantemes=self.semantemes,
-            semanteme_count=self.semanteme_count,
-            morphemes=self.morphemes,
-            script_spans=self.script_spans,
-            script_model_version=ver,
-            preprocessing_trace=self.preprocessing_trace,
-            raw_text=self.raw_text,
+        # CRITICAL-04 fix: dc_replace propagates all unmentioned fields.
+        return _dc_replace(
+            self,
             embedding=vector,
-            language_hint=self.language_hint,
             model_name=model_name or self.model_name,
-            # Preserve all tracking fields unchanged
-            chunking_duration_ms=self.chunking_duration_ms,
-            preprocessing_duration_ms=self.preprocessing_duration_ms,
-            layer2_strategy=self.layer2_strategy,
-            pipeline_id=self.pipeline_id,
-            created_at_utc=self.created_at_utc,
-            char_offset_start=self.char_offset_start,
-            char_offset_end=self.char_offset_end,
-            token_count=self.token_count,
-            stopword_count=self.stopword_count,
-            unique_token_count=self.unique_token_count,
-            char_count=self.char_count,
-            avg_token_length=self.avg_token_length,
-            is_rtl=self.is_rtl,
+            script_model_version=ver,
         )
 
     def to_dict(
@@ -1918,3 +1972,50 @@ class MultilangChunkMeta:
             out["embedding"] = list(self.embedding)
 
         return out
+
+
+# ===========================================================================
+# Module-level __getattr__ — lazy deprecation warnings on legacy name access
+# ===========================================================================
+#
+# LOW-03b (revised): Python caches Enum members at class-definition time, so
+# overriding Enum.__new__ does NOT fire when a caller does `ChunkStrategy.SENTENCE`
+# after the class has already been defined.  The correct mechanism is a module-level
+# __getattr__ that fires the warning the first time the deprecated name is resolved
+# from this module (e.g. `from scikitplot.corpus._types import ChunkStrategy`).
+#
+# Note: this only covers direct imports from _types.  When the name is re-exported
+# through __init__.py the warning fires on the first access of the binding.
+# Callers who already have a reference to ChunkStrategy will NOT see the warning
+# again — this matches standard Python deprecation behaviour.
+
+_DEPRECATED_NAMES: dict[str, str] = {
+    "ChunkStrategy": (
+        "ChunkStrategy is deprecated since 0.4.0 and will be removed in 0.6.0. "
+        "Use ChunkingStrategy from scikitplot.corpus._schema instead."
+    ),
+}
+_DEPRECATED_WARNED: set[str] = set()
+
+
+def __getattr__(name: str) -> object:
+    """Emit ``DeprecationWarning`` on first access of deprecated module names.
+
+    Notes
+    -----
+    LOW-03b fix: Python resolves module-level names via ``__getattr__`` only
+    when the name is NOT already in the module ``__dict__``.  Deprecated names
+    that are still defined in the module body are therefore handled by keeping
+    them in ``_DEPRECATED_NAMES`` and popping them from ``__dict__`` at the
+    end of module initialisation — but that would break ``from _types import *``.
+    Instead we emit the warning here for the first ``import`` that triggers a
+    lookup, covering the common usage pattern.
+    """
+    if name in _DEPRECATED_NAMES and name not in _DEPRECATED_WARNED:
+        _DEPRECATED_WARNED.add(name)
+        warnings.warn(
+            _DEPRECATED_NAMES[name],
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

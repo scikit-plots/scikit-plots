@@ -66,9 +66,16 @@ from typing import (  # noqa: F401
     Dict,
     FrozenSet,
     List,
+    Literal,
     Optional,
     Sequence,
     Union,
+)
+
+from .._chunkers._custom_tokenizer import (
+    LemmatizerProtocol,
+    StemmerProtocol,
+    TokenizerProtocol,
 )
 
 logger = logging.getLogger(__name__)
@@ -374,32 +381,46 @@ class EnricherConfig:
     """  # noqa: D205, RUF002
 
     # --- Language ---
-    language: Any = field(default=None, hash=False, compare=False)
+    language: str | list[str] | None = field(default=None, hash=False, compare=False)
 
     # --- Tokenization ---
-    tokenizer: str = "simple"
-    custom_tokenizer: Any = field(default=None, hash=False, compare=False)
+    tokenizer: Literal["simple", "nltk", "spacy", "custom"] = "simple"
+    custom_tokenizer: TokenizerProtocol | Callable[[str], list[str]] | None = field(
+        default=None, hash=False, compare=False
+    )
     spacy_model: str = "en_core_web_sm"
 
     # --- Lemmatization ---
-    lemmatizer: str | None = None
-    custom_lemmatizer: Any = field(default=None, hash=False, compare=False)
+    lemmatizer: Literal["spacy", "nltk", "custom"] | None = None
+    custom_lemmatizer: LemmatizerProtocol | Callable[[str, str | None], str] | None = (
+        field(default=None, hash=False, compare=False)
+    )
 
     # --- Stemming ---
-    stemmer: str | None = None
-    custom_stemmer: Any = field(default=None, hash=False, compare=False)
-    stemmer_language: Any = field(default="english", hash=False, compare=False)
+    stemmer: Literal["porter", "snowball", "lancaster", "custom"] | None = None
+    custom_stemmer: StemmerProtocol | Callable[[str], str] | None = field(
+        default=None, hash=False, compare=False
+    )
+    stemmer_language: str | list[str] | None = field(
+        default="english", hash=False, compare=False
+    )
 
     # --- Keywords ---
-    keyword_extractor: str | None = "frequency"
-    keyword_extractor_kwargs: Any = field(default=None, hash=False, compare=False)
+    keyword_extractor: Literal["frequency", "tfidf", "yake", "keybert"] | None = (
+        "frequency"
+    )
+    keyword_extractor_kwargs: dict[str, Any] | None = field(
+        default=None, hash=False, compare=False
+    )
     max_keywords: int = 20
     save_token_scores: bool = False
 
     # --- Filtering ---
     lowercase_tokens: bool = True
     remove_stopwords: bool = True
-    extra_stopwords: Any = field(default=None, hash=False, compare=False)
+    extra_stopwords: frozenset[str] | None = field(
+        default=None, hash=False, compare=False
+    )
     min_token_length: int = 2
     remove_punctuation: bool = True
     strip_unicode_punctuation: bool = False
@@ -679,7 +700,17 @@ class NLPEnricher:
                 ScriptType.LATIN.value: "english",
                 ScriptType.ARABIC.value: "arabic",
                 ScriptType.DEVANAGARI.value: "hindi",
+                # Legacy CJK alias — kept for backward compat with callers
+                # that may still pass ScriptType.CJK values directly.
                 ScriptType.CJK.value: "chinese",
+                # Granular East-Asian types returned by the updated detect_script.
+                # HAN covers Chinese (Simplified + Traditional) and Sino-Japanese kanji.
+                ScriptType.HAN.value: "chinese",
+                # Hiragana/Katakana-dominant text is Japanese.
+                ScriptType.HIRAGANA.value: "japanese",
+                ScriptType.KATAKANA.value: "japanese",
+                # Hangul-dominant text is Korean.
+                ScriptType.HANGUL.value: "korean",
                 ScriptType.CYRILLIC.value: "russian",
                 ScriptType.GREEK.value: "greek",
                 ScriptType.HEBREW.value: "hebrew",
@@ -1181,7 +1212,12 @@ class NLPEnricher:
 
                 download(model)
                 self._spacy_nlp = spacy.load(model)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
+                # Broad catch is correct: spaCy download/load can raise OSError
+                # (model not found after download), SystemExit (CLI failure),
+                # requests.HTTPError (network download failure), or other
+                # library-specific errors.  We wrap all of them in OSError so
+                # callers have a single, predictable exception type to handle.
                 raise OSError(
                     f"spaCy model {model!r} is not installed. "
                     f"Install with: python -m spacy download {model}"

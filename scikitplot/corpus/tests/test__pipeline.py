@@ -36,6 +36,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from .._base import DefaultFilter
 from .._pipeline import CorpusPipeline, PipelineResult, create_corpus
 from .._schema import ExportFormat
 from .._schema import CorpusDocument
@@ -157,9 +158,11 @@ class TestCorpusPipelineConstruction:
         p = CorpusPipeline()
         assert p.chunker is None
 
-    def test_default_filter_is_none(self) -> None:
+    def test_default_filter_is_default_filter(self) -> None:
+        # MEDIUM-04 (Phase 1): filter_ is never None; defaults to DefaultFilter().
+        # The old assertion `p.filter_ is None` was stale — updated in Phase 2.
         p = CorpusPipeline()
-        assert p.filter_ is None
+        assert isinstance(p.filter_, DefaultFilter)
 
     def test_default_embedding_engine_is_none(self) -> None:
         p = CorpusPipeline()

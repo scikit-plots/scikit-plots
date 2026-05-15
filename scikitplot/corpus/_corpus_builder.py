@@ -112,6 +112,7 @@ if TYPE_CHECKING:
         Generator,
         Iterator,
         List,
+        Literal,
         Optional,
         Protocol,
         Sequence,
@@ -122,6 +123,9 @@ if TYPE_CHECKING:
     )
 
     from typing_extensions import Self  # noqa: F401
+
+    from ._base import ChunkerBase
+    from ._schema import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -206,14 +210,14 @@ class BuilderConfig:
     """
 
     # Chunking
-    chunker: str | Any = "sentence"
+    chunker: str | ChunkerBase | None = "sentence"
     chunker_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # Normalisation
     normalize: bool = True
-    normalizer_steps: list[str] = field(
-        default_factory=lambda: ["unicode", "whitespace"]
-    )
+    normalizer_steps: list[
+        Literal["unicode", "whitespace", "html_strip", "lowercase", "dedup_lines"]
+    ] = field(default_factory=lambda: ["unicode", "whitespace"])
     normalizer_kwargs: dict[str, Any] = field(default_factory=dict)
 
     # NLP enrichment
@@ -232,9 +236,9 @@ class BuilderConfig:
     # Provenance defaults
     source_title: str | None = None
     source_author: str | None = None
-    source_type: str | None = None
+    source_type: SourceType | str | None = None
     collection_id: str | None = None
-    default_language: str | None = None
+    default_language: str | list[str] | None = None
 
     # Filter
     filter_kwargs: dict[str, Any] = field(default_factory=dict)

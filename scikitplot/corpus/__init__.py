@@ -124,6 +124,7 @@ from . import (
     _similarity,
     _sources,
     _storage,
+    _types,  # CRITICAL-01: types layer was missing from exports entirely
     _url_handler,
 )
 from ._adapters import *  # noqa: F403  # --- Adapters (LangChain / LangGraph / MCP / HuggingFace / RAG) ---
@@ -141,10 +142,15 @@ from ._normalizers import *  # noqa: F403  # --- Text normaliser ---
 from ._pipeline import *  # noqa: F403
 from ._readers import *  # noqa: F403
 from ._registry import *  # noqa: F403  # Registry
+
+# CRITICAL-01: _schema imported before _types so that if both export a name,
+# the _schema (canonical) version wins.  _types exports only the types-layer
+# symbols, many of which are deprecated and carry DeprecationWarning.
 from ._schema import *  # noqa: F403  # Schema -- always first, zero optional dependencies
 from ._similarity import *  # noqa: F403  # --- Similarity index ---
 from ._sources import *  # noqa: F403  # Sources
 from ._storage import *  # noqa: F403  # Storage
+from ._types import *  # noqa: F403  # CRITICAL-01: Chunk, ChunkResult, ChunkerProtocol, etc.
 from ._url_handler import *  # noqa: F403  # --- URL handling (classification, resolution, secure download) ---
 
 __all__ = []
@@ -167,4 +173,5 @@ __all__ += _schema.__all__
 __all__ += _similarity.__all__
 __all__ += _sources.__all__
 __all__ += _storage.__all__
+__all__ += _types.__all__  # CRITICAL-01: Chunk, ChunkResult, ChunkerProtocol, …
 __all__ += _url_handler.__all__

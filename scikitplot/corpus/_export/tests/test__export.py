@@ -255,9 +255,16 @@ class TestExportCSV:
         assert out.exists()
 
     def test_empty_list_file_is_empty(self, tmp_path: pathlib.Path) -> None:
+        # The module writes a header-only CSV when the document list is empty
+        # (documented: guarantees the file is always openable as valid CSV by
+        # downstream tools). There must be zero *data* rows.
         out = tmp_path / "empty.csv"
         export_documents([], out, ExportFormat.CSV)
-        assert out.read_text(encoding="utf-8") == ""
+        content = out.read_text(encoding="utf-8")
+        data_rows = list(csv.DictReader(io.StringIO(content)))
+        assert data_rows == [], (
+            "empty document list must produce a CSV with no data rows"
+        )
 
     def test_non_empty_has_header(self, tmp_path: pathlib.Path) -> None:
         out = tmp_path / "out.csv"

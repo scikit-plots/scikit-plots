@@ -235,7 +235,10 @@ class TextReader(DocumentReader):
     >>> reader = MarkdownReader(input_path=Path("notes.md"))
     """
 
-    # BUG-03 fix: file_type removed — file_types used for registration.
+    # BUG-03 fix: registration now uses file_types (plural) so that a single
+    # reader can cover multiple extensions.  file_type (singular) is retained
+    # as a read-only backward-compat alias (first element of file_types).
+    file_type: ClassVar[str] = ".txt"
     file_types: ClassVar[list[str] | None] = [".txt"]
 
     encoding: Optional[str] = field(default=None)  # noqa: UP045
@@ -386,7 +389,9 @@ class MarkdownReader(TextReader):
     >>> docs = list(reader.get_documents())
     """
 
-    # BUG-03 fix: file_type removed — file_types used for registration.
+    # BUG-03 fix: registration now uses file_types (plural).
+    # file_type (singular) retained as backward-compat alias.
+    file_type: ClassVar[str] = ".md"
     file_types: ClassVar[list[str] | None] = [".md"]
 
 
@@ -424,5 +429,7 @@ class ReSTReader(TextReader):
     >>> docs = list(reader.get_documents())
     """
 
-    # BUG-03 fix: file_type removed — file_types used for registration.
+    # BUG-03 fix: registration now uses file_types (plural).
+    # file_type (singular) retained as backward-compat alias.
+    file_type: ClassVar[str] = ".rst"
     file_types: ClassVar[list[str] | None] = [".rst"]

@@ -73,19 +73,12 @@ from typing import (  # noqa: F401
     Any,
     Callable,
     ClassVar,
-    Dict,
     Final,
-    FrozenSet,
     Generator,
     Iterator,
-    List,
-    Optional,
     Protocol,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
 )
 
 if TYPE_CHECKING:
@@ -95,8 +88,13 @@ from ._schema import (
     _PROMOTED_RAW_KEYS,
     ChunkingStrategy,
     CorpusDocument,
+    Modality,  # HIGH-03: needed for supported_modalities ClassVar
     SectionType,
     SourceType,
+)
+from ._types import (  # CRITICAL-02: get_documents iterates ChunkResult
+    Chunk,
+    ChunkResult,
 )
 
 # if TYPE_CHECKING:
@@ -115,10 +113,9 @@ __all__ = [
     "FilterBase",
     # Pipeline resilience
     "PipelineGuard",
-    # Multi-source adapter (context manager)
-    "_MultiSourceReader",
-    # URL detection helper
-    "_is_url",
+    # Note: _MultiSourceReader and _is_url are intentionally NOT exported.
+    # They are internal implementation details importable as
+    # scikitplot.corpus._base._MultiSourceReader and _is_url for internal use only.
 ]
 
 # ---------------------------------------------------------------------------
@@ -285,33 +282,57 @@ class ChunkerBase(abc.ABC):
     this implementation provides. **Must** be defined on every concrete subclass.
     """
 
+    # HIGH-03a fix: version ClassVar so corpus snapshots can record exactly which
+    # chunker version produced each document — critical for reproducibility.
+    # Subclasses should override with their own SemVer string.
+    version: ClassVar[str] = "1.0.0"
+    """SemVer string for this chunker implementation.  Default: ``"1.0.0"``.
+    Subclasses must override to reflect their actual version so that corpus
+    snapshots remain reproducible after upgrades.
+    """
+
+    # HIGH-03b fix: declare which modalities this chunker handles.
+    # Default is TEXT-only; subclasses that handle VIDEO, AUDIO etc. override.
+    # assert_modality() enforces this at call time to prevent silent garbage output
+    # (e.g. a word-chunker applied to a VIDEO document).
+    supported_modalities: ClassVar[frozenset[Modality]] = frozenset({Modality.TEXT})
+    """Modalities this chunker can handle.  Default: ``{Modality.TEXT}``.
+    Subclasses that support additional modalities (e.g. AUDIO transcripts)
+    must override this set.
+    """
+
     @abc.abstractmethod
     def chunk(
         self,
         text: str,
         metadata: dict[str, Any] | None = None,
-    ) -> list[tuple[int, str]]:
+    ) -> ChunkResult:
         """
-        Segment ``text`` into a list of ``(char_start, chunk_text)`` tuples.
+        Segment ``text`` into a :class:`~._types.ChunkResult`.
+
+        **CRITICAL-02 (Phase 2):** Return type unified to ``ChunkResult``
+        across all implementations.  Callers iterate ``result.chunks``
+        directly; the intermediate ``list[tuple[int, str]]`` contract
+        has been retired.
 
         Parameters
         ----------
         text : str
             Raw text to segment. Must not be ``None``. Empty string input
-            must return an empty list (never raise).
+            must return a ``ChunkResult`` with an empty ``chunks`` list
+            (never raise).
         metadata : dict or None, optional
             Chunk-level metadata from the reader (e.g. page number, section
-            type). Made available so chunkers that need context — e.g. a
-            semantic chunker deciding boundaries based on section label —
-            can access it. Default: ``None``.
+            type). Available so chunkers that need context can access it.
+            Default: ``None``.
 
         Returns
         -------
-        list of (int, str)
-            Ordered list of ``(char_start, chunk_text)`` pairs.
-            ``char_start`` is the character offset of ``chunk_text`` within
-            the input ``text`` string. Must be non-negative and monotonically
-            non-decreasing across the list.
+        ChunkResult
+            Ordered list of :class:`~._types.Chunk` objects.
+            Each chunk carries ``text``, ``start_char``, ``end_char``, and
+            ``metadata``.  The list must be non-empty only when *text*
+            contains meaningful content.
 
         Raises
         ------
@@ -320,24 +341,85 @@ class ChunkerBase(abc.ABC):
 
         Notes
         -----
-        The return type is a list (not a generator) so callers can inspect
-        length without consuming the iterator. For very large texts, chunkers
-        should still return incrementally-built lists rather than loading
-        everything into memory at once.
+        **Backward compat:** :class:`~._chunkers._chunker_bridge.ChunkerBridge`
+        wraps all new-style standalone chunkers and returns ``ChunkResult``
+        from its ``chunk()`` method.  Pre-CRITICAL-02 user subclasses of
+        ``ChunkerBase`` that return ``list[tuple[int, str]]`` should migrate
+        to ``ChunkResult``; the pipeline will raise ``AttributeError`` if
+        ``chunk_result.chunks`` is not accessible.
         """
 
-    def __init_subclass__(cls, **kwargs: dict) -> None:
+    def assert_modality(self, doc_modality: Modality) -> None:
+        """Raise ``ValueError`` if this chunker cannot handle *doc_modality*.
+
+        Parameters
+        ----------
+        doc_modality : Modality
+            The modality of the document about to be chunked.
+
+        Raises
+        ------
+        ValueError
+            If *doc_modality* is not in :attr:`supported_modalities`.
+
+        Notes
+        -----
+        HIGH-03c fix: call this at the start of :meth:`chunk` to prevent
+        silent garbage output when the wrong chunker is applied to a
+        non-TEXT document.  Example::
+
+            def chunk(self, text, metadata=None):
+                self.assert_modality(
+                    Modality((metadata or {}).get("modality", Modality.TEXT))
+                )
+                ...
         """
-        Enforce that every concrete subclass declares ``strategy``.
+        if doc_modality not in self.supported_modalities:
+            raise ValueError(
+                f"{type(self).__name__!r} does not support modality "
+                f"{doc_modality!r}. Supported modalities: "
+                f"{sorted(m.value for m in self.supported_modalities)}."
+            )
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Enforce that every concrete subclass declares ``strategy``.
+
+        Raises
+        ------
+        TypeError
+            If a concrete subclass (no remaining ``__abstractmethods__``)
+            does not define a class-level ``strategy`` attribute of the
+            correct type.
+
+        Notes
+        -----
+        HIGH-03d fix: the original check used
+        ``if not getattr(cls, "__abstractmethods__", None)`` which is
+        ambiguous when ``__abstractmethods__`` is an *empty set* (falsy).
+        ``not bool(set())`` is ``True`` — correct, but the intent was
+        unclear.  The rewrite uses an explicit ``is_concrete`` variable and
+        also validates that ``strategy`` is a :class:`ChunkingStrategy`
+        *member* (not just any truthy value), catching accidental
+        ``strategy = "sentence"`` string assignments early.
         """
         super().__init_subclass__(**kwargs)
-        # Only enforce on concrete classes (those not still abstract)
-        if not getattr(cls, "__abstractmethods__", None):  # noqa: SIM102
+        # Concrete class = no unimplemented abstract methods remaining.
+        # An empty frozenset is falsy, so we use bool() explicitly.
+        is_concrete = not bool(getattr(cls, "__abstractmethods__", set()))
+        if is_concrete:  # noqa: SIM102
             if not hasattr(cls, "strategy"):
                 raise TypeError(
                     f"Concrete ChunkerBase subclass {cls.__name__!r} must"
                     f" define a class-level 'strategy' attribute"
                     f" (ChunkingStrategy member)."
+                )
+            # HIGH-03d: validate type so strategy="sentence" (str) gets a clear
+            # error instead of a confusing downstream failure.
+            if not isinstance(cls.strategy, ChunkingStrategy):
+                raise TypeError(
+                    f"{cls.__name__!r}.strategy must be a ChunkingStrategy "
+                    f"member, got {type(cls.strategy).__name__!r}: "
+                    f"{cls.strategy!r}."
                 )
 
 
@@ -769,13 +851,23 @@ class DocumentReader(abc.ABC):
 
     def __post_init__(self) -> None:
         """
-        Resolve ``filter_`` default and validate ``custom_extractor``.
+        Resolve defaults, auto-bridge chunker, and validate ``custom_extractor``.
 
         Notes
         -----
         We cannot use a mutable :class:`DefaultFilter` as a field default
         directly (Python dataclass restriction). ``__post_init__`` is the
         canonical place to set mutable defaults.
+
+        **CRITICAL-02 fix:** Any standalone new-style chunker
+        (``SentenceChunker``, ``ParagraphChunker``, ``FixedWindowChunker``,
+        ``WordChunker``, ``SemanticChunker``) passed as ``chunker=`` is
+        automatically wrapped by :func:`~._chunkers._chunker_bridge.bridge_chunker`
+        so that :meth:`get_documents` can always call
+        ``self.chunker.chunk(text, metadata=raw_chunk)`` with a uniform
+        keyword argument name, regardless of the chunker's native signature.
+        ``ChunkerBase`` subclasses that already expose ``metadata=`` are
+        returned as-is by :func:`bridge_chunker`.
 
         Raises
         ------
@@ -787,6 +879,18 @@ class DocumentReader(abc.ABC):
         # Coerce input_path to pathlib.Path if a string was passed
         if not isinstance(self.input_path, pathlib.Path):
             object.__setattr__(self, "input_path", pathlib.Path(self.input_path))
+        # CRITICAL-02: auto-bridge standalone chunkers so get_documents() can
+        # always call self.chunker.chunk(text, metadata=...) without knowing
+        # whether the caller passed a ChunkerBase subclass or a new-style
+        # standalone chunker.  Deferred import avoids triggering the full
+        # _chunkers package load at module import time (important for
+        # lightweight consumers that never use chunking).
+        if self.chunker is not None:
+            from ._chunkers._chunker_bridge import (  # noqa: PLC0415
+                bridge_chunker as _bridge_chunker,
+            )
+
+            object.__setattr__(self, "chunker", _bridge_chunker(self.chunker))
         # Validate custom_extractor when provided
         if self.custom_extractor is not None and not callable(self.custom_extractor):
             raise TypeError(
@@ -1009,7 +1113,7 @@ class DocumentReader(abc.ABC):
     # Concrete pipeline method — builds CorpusDocuments from raw chunks
     # ------------------------------------------------------------------
 
-    def get_documents(self) -> Generator[CorpusDocument, None, None]:
+    def get_documents(self) -> Generator[CorpusDocument, None, None]:  # noqa: PLR0912
         """
         Yield validated :class:`~scikitplot.corpus._schema.CorpusDocument`
         instances for the input file.
@@ -1092,28 +1196,33 @@ class DocumentReader(abc.ABC):
             # Merge source_provenance (reader-level) under chunk-level values
             provenance: dict[str, Any] = {**self.source_provenance, **promoted}
 
-            # Sub-chunk the raw text (or use it as-is when no chunker)
+            # Sub-chunk the raw text (or wrap in a single synthetic Chunk)
+            # CRITICAL-02 (Phase 2): chunker.chunk() now returns ChunkResult;
+            # iterate chunk_result.chunks directly.  The old ChunkedTextList
+            # list-of-tuples path is retired.
             if self.chunker is not None and raw_text.strip():
-                sub_chunks = self.chunker.chunk(raw_text, metadata=raw_chunk)
+                chunk_result: ChunkResult = self.chunker.chunk(
+                    raw_text, metadata=raw_chunk
+                )
+                _sub_chunk_items: list[Chunk] = chunk_result.chunks
+            elif raw_text.strip():
+                # No chunker — single synthetic Chunk preserving the raw text
+                _sub_chunk_items = [
+                    Chunk(text=raw_text, start_char=0, end_char=len(raw_text))
+                ]
             else:
-                sub_chunks = [(0, raw_text)] if raw_text.strip() else []
+                _sub_chunk_items = []
 
-            # ChunkedTextList carries per-chunk metadata from the bridge.
-            # Plain list fallback (non-bridge chunkers) has no such attribute.
-            chunk_meta_list: list[dict[str, Any]] | None = getattr(
-                sub_chunks, "chunk_metadata_list", None
-            )
-
-            for sub_idx, (char_start, chunk_text) in enumerate(sub_chunks):
+            for _sub_idx, _chunk in enumerate(_sub_chunk_items):
+                char_start: int = _chunk.start_char
+                chunk_text: str = _chunk.text
                 if not chunk_text.strip():
                     omitted += 1
                     continue
 
                 # Per-chunk metadata from the bridge (includes "multilang")
                 per_chunk_meta: dict[str, Any] = (
-                    chunk_meta_list[sub_idx]
-                    if chunk_meta_list is not None and sub_idx < len(chunk_meta_list)
-                    else {}
+                    dict(_chunk.metadata) if _chunk.metadata else {}
                 )
 
                 # Coerce source_type from string to enum if needed
@@ -1130,8 +1239,9 @@ class DocumentReader(abc.ABC):
                     )
                     resolved_source_type = SourceType.UNKNOWN
 
-                # Extract multilang bundle from bridge metadata.
+                # Extract multilang bundle from chunk metadata.
                 # Populated by MultilangMixin._ml_enrich_chunk() when enabled.
+                # CRITICAL-02: per_chunk_meta comes from _chunk.metadata directly.
                 ml: dict[str, Any] = per_chunk_meta.get("multilang") or {}
 
                 doc = CorpusDocument.create(
@@ -1200,8 +1310,9 @@ class DocumentReader(abc.ABC):
                     lemmas=provenance.get("lemmas"),
                     stems=provenance.get("stems"),
                     keywords=provenance.get("keywords"),
-                    # ── Multilang fields (populated from ChunkedTextList) ──────
+                    # ── Multilang fields (populated from chunk.metadata) ─────
                     # These map chunk.metadata["multilang"] → CorpusDocument fields.
+                    # CRITICAL-02: sourced from _chunk.metadata directly (not ChunkedTextList).
                     # All are None when MultilangConfig is disabled or not set.
                     #
                     # Rule: ALWAYS key-presence, NEVER `or` fallback.
@@ -2117,8 +2228,16 @@ class DocumentReader(abc.ABC):
                         )
 
                         st = _ST.infer(local_path)
-                    except Exception:  # noqa: BLE001
-                        pass
+                    except (AttributeError, ValueError, TypeError) as _infer_exc:
+                        # SEV-1.4: SourceType.infer() failed for this path — fall
+                        # back to UNKNOWN gracefully rather than swallowing all errors.
+                        logger.debug(
+                            "from_url: SourceType.infer(%r) failed (%s: %s);"
+                            " source_type will remain None.",
+                            local_path,
+                            type(_infer_exc).__name__,
+                            _infer_exc,
+                        )
                 reader = cls._create_one(
                     local_path,
                     chunker=chunker,
@@ -2142,7 +2261,8 @@ class DocumentReader(abc.ABC):
                     local_path,
                 )
                 return reader
-            except Exception:
+            # cleanup temp dir then re-raise unconditionally
+            except Exception:  # noqa: BLE001
                 import shutil  # noqa: PLC0415
 
                 shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -2180,7 +2300,7 @@ class DocumentReader(abc.ABC):
     # Registry auto-population via __init_subclass__
     # ------------------------------------------------------------------
 
-    def __init_subclass__(cls, **kwargs: dict) -> None:
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         """
         Auto-register concrete subclasses in the extension registry.
 
@@ -2868,8 +2988,14 @@ class PipelineGuard:
             try:
                 self._ckpt_file.flush()
                 self._ckpt_file.close()
-            except Exception:  # noqa: BLE001
-                pass
+            except OSError as _ckpt_exc:
+                # SEV-1.4: Only OS-level I/O errors are expected here (disk full,
+                # file descriptor already closed, etc.). Log so operators can act.
+                logger.warning(
+                    "PipelineGuard.close: could not flush/close checkpoint"
+                    " file handle: %s",
+                    _ckpt_exc,
+                )
             self._ckpt_file = None
 
     @property
@@ -2976,8 +3102,15 @@ class PipelineGuard:
                             self._checkpoint_ids.add(did)
                         if h:
                             self._seen_hashes.add(h)
-                    except json.JSONDecodeError:
-                        pass
+                    except json.JSONDecodeError as _json_exc:
+                        # SEV-1.4: Malformed checkpoint line — log at DEBUG so
+                        # operators can diagnose corrupted checkpoint files.
+                        logger.debug(
+                            "PipelineGuard: skipping malformed checkpoint"
+                            " line in %s: %s",
+                            self.checkpoint_path,
+                            _json_exc,
+                        )
             logger.info(
                 "PipelineGuard: loaded checkpoint with %d seen doc_ids from %s",
                 len(self._seen_ids),

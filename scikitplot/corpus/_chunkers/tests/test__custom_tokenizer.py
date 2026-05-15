@@ -341,18 +341,24 @@ class TestScriptType:
         for member in ScriptType:
             assert isinstance(member.value, str)
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "HIGH-04: ScriptType has grown extra members (e.g. ARMENIAN) "
+            "beyond the original expected set. The test expected a fixed "
+            "12-member enum but the actual enum has more. Either update "
+            "the expected set to match the current enum, or lock the enum "
+            "to the original 12. Fix target: 0.5.0."
+        ),
+    )
     def test_expected_members_present(self) -> None:
-        # expected = {
-        #     "LATIN", "CJK", "ARABIC", "HEBREW", "DEVANAGARI",
-        #     "GREEK", "CYRILLIC", "ETHIOPIC", "GEORGIAN", "EGYPTIAN",
-        #     "MIXED", "UNKNOWN",
-        # }
-        # actual = {m.name for m in ScriptType}
-        # assert sorted(expected) == sorted(actual)
-        # TODO: E   AssertionError
-        #         actual     = {'ARABIC', 'ARMENIAN', 'CJK', 'CYRILLIC', 'DEVANAGARI', 'EGYPTIAN', ...}
-        #         expected   = {'ARABIC', 'CJK', 'CYRILLIC', 'DEVANAGARI', 'EGYPTIAN', 'ETHIOPIC', ...}
-        pass
+        expected = {
+            "LATIN", "CJK", "ARABIC", "HEBREW", "DEVANAGARI",
+            "GREEK", "CYRILLIC", "ETHIOPIC", "GEORGIAN", "EGYPTIAN",
+            "MIXED", "UNKNOWN",
+        }
+        actual = {m.name for m in ScriptType}
+        assert sorted(expected) == sorted(actual)
 
 
 # ===========================================================================
@@ -371,14 +377,17 @@ class TestDetectScript:
         assert detect_script("Bonjour le monde, comment allez-vous?") == ScriptType.LATIN
 
     def test_cjk_chinese_simplified(self) -> None:
-        # "I study Chinese every day" in Mandarin
-        assert detect_script("我每天学习中文。") == ScriptType.CJK
+        # "I study Chinese every day" in Mandarin.
+        # detect_script now returns granular HAN instead of the legacy CJK alias.
+        assert detect_script("我每天学习中文。") == ScriptType.HAN
 
     def test_cjk_japanese_hiragana(self) -> None:
-        assert detect_script("こんにちは世界、元気ですか。") == ScriptType.CJK
+        # Mixed Hiragana + Han text; Hiragana chars are majority → HIRAGANA.
+        assert detect_script("こんにちは世界、元気ですか。") == ScriptType.HIRAGANA
 
     def test_cjk_korean_hangul(self) -> None:
-        assert detect_script("안녕하세요 세계입니다") == ScriptType.CJK
+        # Pure Hangul syllables → HANGUL.
+        assert detect_script("안녕하세요 세계입니다") == ScriptType.HANGUL
 
     def test_arabic(self) -> None:
         # "Hello world" in Arabic
@@ -418,10 +427,16 @@ class TestDetectScript:
     def test_unknown_empty_string(self) -> None:
         assert detect_script("") == ScriptType.UNKNOWN
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason=(
+            "HIGH-04: detect_script(\"!@#$%^&*()\"}) returns a non-UNKNOWN "
+            "value for pure punctuation/symbol input. The function should "
+            "classify symbol-only strings as UNKNOWN. Fix target: 0.5.0."
+        ),
+    )
     def test_unknown_symbols_only(self) -> None:
-        # TODO: E   AssertionError
-        # assert detect_script("!@#$%^&*()") == ScriptType.UNKNOWN
-        pass
+        assert detect_script("!@#$%^&*()") == ScriptType.UNKNOWN
 
     def test_mixed_latin_arabic(self) -> None:
         # 50/50 mix — should be MIXED

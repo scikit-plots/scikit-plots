@@ -31,7 +31,7 @@ import pathlib
 import re
 import sys
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum  # noqa: F401
 from typing import (  # noqa: F401
     Any,
     Dict,
@@ -43,13 +43,8 @@ from typing import (  # noqa: F401
     Tuple,
 )
 
-if sys.version_info >= (3, 11):
-    from enum import StrEnum as _StrEnumBase
-else:
-
-    class _StrEnumBase(str, Enum):  # type: ignore[no-redef]
-        """Backport of StrEnum for Python < 3.11."""
-
+# SEV-1.2 / MEDIUM-07: single _StrEnumBase definition lives in _schema.py
+from .._schema import _StrEnumBase
 
 logger = logging.getLogger(__name__)
 
