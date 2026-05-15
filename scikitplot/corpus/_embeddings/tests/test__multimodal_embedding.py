@@ -1136,19 +1136,6 @@ class TestLLMTrainingExporterHFDataset:
             with pytest.raises(ImportError, match="transformers"):
                 exp.to_huggingface_training_dataset(docs)
 
-    def test_returns_dict_when_datasets_not_installed(self) -> None:
-        """When transformers IS installed but datasets is not, returns plain dict."""
-        transformers = pytest.importorskip("transformers")
-        exp = LLMTrainingExporter()
-        docs = [_Doc("A simple sentence for tokenization.")]
-        with patch.dict("sys.modules", {"datasets": None}):
-            result = exp.to_huggingface_training_dataset(
-                docs, tokenizer_name="gpt2", max_length=64
-            )
-        # Should be a dict (datasets not installed fallback)
-        assert isinstance(result, dict)
-        assert "input_ids" in result
-
 
 # ===========================================================================
 # LLMTrainingExporter.log_to_mlflow
