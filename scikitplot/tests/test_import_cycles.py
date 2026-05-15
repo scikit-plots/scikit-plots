@@ -20,7 +20,7 @@ def import_module(module: str) -> tuple[str, int, str]:
     A tuple of (module name, return code, stderr output).
     """
     # If this submodule needs a heavy dep, skip if missing
-    if module in REQUIRES_HEAVY:
+    if module.startswith(tuple(REQUIRES_HEAVY)):
         return module, 0, "skip this submodule only"
 
     # with subprocess.Popen([sys.executable, "-c", f"import {module}"]) as process:
