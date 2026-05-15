@@ -70,6 +70,7 @@ from typing import Any, Callable, ClassVar, Generator, Optional  # noqa: F401
 import numpy as np
 import numpy.typing as npt
 
+from .._schema import CorpusDocument
 from ._embedding import EmbeddingEngine
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ __all__ = [
     "DEFAULT_TEXT_MODEL",
     "LLMTrainingExporter",
     "MultimodalEmbeddingEngine",
+    "_coerce_documents",  # exported for testing and advanced reuse
 ]
 
 # ---------------------------------------------------------------------------
@@ -92,6 +94,70 @@ DEFAULT_TEXT_MODEL: str = "all-MiniLM-L6-v2"
 
 #: Frames sampled per video when using CLIP
 _VIDEO_FRAME_SAMPLE: int = 8
+
+
+# ---------------------------------------------------------------------------
+# Document normalization helper
+# ---------------------------------------------------------------------------
+
+
+def _coerce_documents(
+    documents: CorpusDocument | list[CorpusDocument | None] | None,
+) -> list[CorpusDocument]:
+    """Normalize *documents* to list[CorpusDocument] — always safe to iterate.
+
+    Handles every valid input shape so all public methods share one
+    canonical normalization path:
+
+    * None                            → []  (no-op, idempotent)
+    * single :class:      → [doc]
+    * list[CorpusDocument] (no Nones) → same list object (identity, no copy)
+    * list with None entries      → new list with None entries filtered,
+                                            warning logged once
+
+    Parameters
+    ----------
+    documents : CorpusDocument | list[CorpusDocument | None] | None
+        Raw caller-supplied documents argument.
+
+    Returns
+    -------
+    list[CorpusDocument]
+        Non-None list, always safe to iterate. Empty list when input is
+        None or an all-None list.
+
+    Notes
+    -----
+    **Identity guarantee:** When *documents* is already a list with no
+    None entries the same list object is returned (no copy). Callers
+    that rely on out is original_list (e.g. _ensure_embedded) are
+    therefore unaffected for the common case.
+
+    **Thread safety:** Pure function — no shared state.
+
+    **Idempotency:** Calling _coerce_documents on an already-coerced
+    list is a no-op (returns the same object).
+    """
+    if documents is None:
+        return []
+
+    if not isinstance(documents, list):
+        # Single CorpusDocument (or any truthy non-list value)
+        return [documents]  # type: ignore[list-item]
+
+    # Already a list — filter None entries only when present (preserve identity
+    # for the clean case so existing identity assertions continue to pass).
+    none_count = sum(1 for d in documents if d is None)
+    if none_count == 0:
+        return documents  # type: ignore[return-value]  # identity: same object
+
+    logger.warning(
+        "_coerce_documents: filtered out %d None entr%s from document list. "
+        "Pass only CorpusDocument instances or None at the list level.",
+        none_count,
+        "y" if none_count == 1 else "ies",
+    )
+    return [d for d in documents if d is not None]  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -782,9 +848,9 @@ class MultimodalEmbeddingEngine:
 
     def embed_documents(
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         input_path: pathlib.Path | None = None,
-    ) -> list[Any]:
+    ) -> list[CorpusDocument]:
         """
         Embed all documents in-place (via ``doc.replace(embedding=...)``)
         and return the updated list.
@@ -800,8 +866,10 @@ class MultimodalEmbeddingEngine:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
-            Documents to embed.
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Documents to embed. ``None`` and empty list both return ``[]``.
+            A single :class:`CorpusDocument` is wrapped in a list automatically.
+            ``None`` entries inside a list are silently filtered out.
         input_path : pathlib.Path or None, optional
             Used as the cache-key anchor.  Pass the source file path for
             per-file caching.  Default: ``None`` (no file cache).
@@ -809,10 +877,13 @@ class MultimodalEmbeddingEngine:
         Returns
         -------
         list[CorpusDocument]
-            Same list with ``embedding`` fields populated.
+            Always a list. ``[]`` when input normalises to empty.
+            ``embedding`` field populated on every returned document.
         """  # noqa: D205
+        # Normalize: None / single-doc / list-with-Nones → clean list[CorpusDocument]
+        documents = _coerce_documents(documents)
         if not documents:
-            return documents
+            return []
 
         # Import here to avoid circular import
         try:
@@ -1019,9 +1090,9 @@ class MultimodalEmbeddingEngine:
 
     def embed_documents_with_cache(
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         input_path: pathlib.Path,
-    ) -> list[Any]:
+    ) -> list[CorpusDocument]:
         """
         Embed documents with SHA-256 cache keyed to *input_path*.
 
@@ -1029,16 +1100,22 @@ class MultimodalEmbeddingEngine:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
-            Documents to embed.
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Documents to embed. ``None``, a single doc, or a list (with
+            optional ``None`` entries that are silently filtered).
         input_path : pathlib.Path
             Source file path.  Used to build the cache key (path + mtime).
 
         Returns
         -------
         list[CorpusDocument]
-            Documents with embeddings populated.
+            Documents with embeddings populated. ``[]`` when input is empty.
         """
+        # Normalize to clean list[CorpusDocument] before any logic.
+        documents = _coerce_documents(documents)
+        if not documents:
+            return []
+
         cache_dir = self.cache_dir or (
             pathlib.Path.home() / ".cache" / "scikitplot" / "embeddings"
         )
@@ -1404,8 +1481,26 @@ class LLMTrainingExporter:
     # Ensure embeddings
     # ------------------------------------------------------------------
 
-    def _ensure_embedded(self, documents: list[Any]) -> list[Any]:
-        """Embed documents that lack embeddings, using ``self.engine``."""
+    def _ensure_embedded(
+        self,
+        documents: CorpusDocument | list[CorpusDocument] | None,
+    ) -> list[CorpusDocument]:
+        """Embed documents that lack embeddings, using ``self.engine``.
+
+        Parameters
+        ----------
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Input documents. ``None`` returns ``[]``. Single doc is wrapped.
+            ``None`` entries inside lists are filtered before processing.
+
+        Returns
+        -------
+        list[CorpusDocument]
+            All documents with ``embedding`` populated.
+        """
+        # Normalize to clean list; preserves list identity when no Nones present
+        # so callers doing `out is docs` continue to work on the fast path.
+        documents = _coerce_documents(documents)
         needs_embed = [d for d in documents if getattr(d, "embedding", None) is None]
         if not needs_embed:
             return documents
@@ -1441,7 +1536,7 @@ class LLMTrainingExporter:
 
     def to_openai_finetuning_jsonl(
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         output_path: pathlib.Path | str,
         *,
         system_prompt: str | None = None,
@@ -1466,8 +1561,9 @@ class LLMTrainingExporter:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
-            Documents to export.
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Documents to export. ``None`` and empty list write an empty file.
+            Single doc is wrapped automatically. ``None`` list entries filtered.
         output_path : pathlib.Path or str
             Destination ``.jsonl`` file.
         system_prompt : str or None, optional
@@ -1501,6 +1597,9 @@ class LLMTrainingExporter:
         separately.
         """
         import json  # noqa: PLC0415
+
+        # Normalize: None / single-doc / list-with-Nones → list[CorpusDocument]
+        documents = _coerce_documents(documents)
 
         prompt = system_prompt or self.default_system_prompt
         out = pathlib.Path(output_path)
@@ -1566,7 +1665,7 @@ class LLMTrainingExporter:
 
     def to_huggingface_training_dataset(  # noqa: PLR0912
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         *,
         tokenizer_name: str = "gpt2",
         max_length: int = 512,
@@ -1581,8 +1680,9 @@ class LLMTrainingExporter:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
-            Documents to tokenize.
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Documents to tokenize. ``None`` / empty list returns an empty dataset.
+            Single doc is wrapped automatically. ``None`` list entries filtered.
         tokenizer_name : str, optional
             HuggingFace tokenizer name or local path.
             Default: ``"gpt2"``.
@@ -1635,6 +1735,9 @@ class LLMTrainingExporter:
                 "to_huggingface_training_dataset requires datasets:\n"
                 "  pip install datasets"
             ) from exc
+
+        # Normalize: None / single-doc / list-with-Nones → list[CorpusDocument]
+        documents = _coerce_documents(documents)
 
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         if tokenizer.pad_token is None:
@@ -1718,7 +1821,7 @@ class LLMTrainingExporter:
 
     def to_embedding_matrix(
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         *,
         include_metadata: bool = True,
         output_path: pathlib.Path | str | None = None,
@@ -1728,9 +1831,11 @@ class LLMTrainingExporter:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
+        documents : CorpusDocument | list[CorpusDocument] | None
             Documents.  Those without embeddings are embedded via the
             engine when one is set, else raise ``ValueError``.
+            ``None`` / empty input returns an empty ``(0, 0)`` matrix.
+            Single doc is wrapped automatically. ``None`` list entries filtered.
         include_metadata : bool, optional
             Build a metadata DataFrame (or dict of lists).
             Default: ``True``.
@@ -1741,6 +1846,7 @@ class LLMTrainingExporter:
         Returns
         -------
         matrix : ndarray shape (N, D) float32
+            ``(0, 0)`` when no documents remain after normalization.
         metadata : pandas.DataFrame or dict[str, list]
             Metadata table with ``doc_id``, ``input_path``,
             ``source_type``, ``modality``, ``content_hash``,
@@ -1752,6 +1858,30 @@ class LLMTrainingExporter:
         ValueError
             If any document lacks an embedding and ``engine=None``.
         """
+        # Normalize first; _ensure_embedded also coerces but we want the
+        # empty-list fast-path before calling it to avoid misleading errors.
+        documents = _coerce_documents(documents)
+        if not documents:
+            _empty_meta: Any = (
+                {}
+                if not include_metadata
+                else {
+                    "doc_id": [],
+                    "input_path": [],
+                    "source_type": [],
+                    "modality": [],
+                    "content_hash": [],
+                    "chunk_index": [],
+                }
+            )
+            try:
+                import pandas as pd  # noqa: PLC0415
+
+                _empty_meta = pd.DataFrame(_empty_meta)
+            except ImportError:
+                pass
+            return np.empty((0, 0), dtype=np.float32), _empty_meta
+
         documents = self._ensure_embedded(documents)
 
         embeddings_list = [getattr(d, "embedding", None) for d in documents]
@@ -1813,7 +1943,7 @@ class LLMTrainingExporter:
 
     def log_to_mlflow(
         self,
-        documents: list[Any],
+        documents: CorpusDocument | list[CorpusDocument] | None,
         *,
         run_name: str | None = None,
         artifact_dir: str = "corpus_embeddings",
@@ -1824,8 +1954,9 @@ class LLMTrainingExporter:
 
         Parameters
         ----------
-        documents : list[CorpusDocument]
-            Documents with embeddings.
+        documents : CorpusDocument | list[CorpusDocument] | None
+            Documents with embeddings. ``None`` / empty input logs zero embeddings.
+            Single doc is wrapped automatically. ``None`` list entries filtered.
         run_name : str or None, optional
             MLflow run name.  Uses the active run when ``None``.
         artifact_dir : str, optional
@@ -1839,6 +1970,9 @@ class LLMTrainingExporter:
         ImportError
             If ``mlflow`` is not installed.
         """
+        # Normalize before any downstream call so len() and iteration are safe.
+        docs = _coerce_documents(documents)
+
         try:
             import mlflow  # noqa: PLC0415
         except ImportError as exc:
@@ -1849,7 +1983,7 @@ class LLMTrainingExporter:
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = pathlib.Path(tmp) / "embeddings"
-            matrix, _meta = self.to_embedding_matrix(documents, output_path=tmp_path)
+            matrix, _meta = self.to_embedding_matrix(docs, output_path=tmp_path)
 
             with mlflow.start_run(run_name=run_name or None):
                 if log_params and self.engine is not None:
@@ -1862,7 +1996,7 @@ class LLMTrainingExporter:
                         "audio_backend": getattr(eng, "audio_backend", ""),
                         "audio_model": getattr(eng, "audio_model", ""),
                         "projection_dim": str(getattr(eng, "projection_dim", None)),
-                        "n_documents": len(documents),
+                        "n_documents": len(docs),
                         "embedding_dim": (
                             matrix.shape[1] if matrix.ndim == 2 else 0  # noqa: PLR2004
                         ),
@@ -1871,7 +2005,7 @@ class LLMTrainingExporter:
 
                 mlflow.log_metrics(
                     {
-                        "n_embeddings": len(documents),
+                        "n_embeddings": len(docs),
                         "embedding_dim": (
                             matrix.shape[1] if matrix.ndim == 2 else 0  # noqa: PLR2004
                         ),
@@ -1881,7 +2015,7 @@ class LLMTrainingExporter:
 
         logger.info(
             "LLMTrainingExporter.log_to_mlflow: logged %d embeddings to MLflow.",
-            len(documents),
+            len(docs),
         )
 
     # ------------------------------------------------------------------

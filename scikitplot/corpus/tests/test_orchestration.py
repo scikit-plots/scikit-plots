@@ -934,6 +934,36 @@ class TestLLMTrainingExporter:
         with pytest.raises(ValueError, match="embedding"):
             exporter.to_embedding_matrix(sample_docs)
 
+    def test_huggingface_clm_labels_equal_input_ids(self, sample_docs):
+        from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
+            LLMTrainingExporter,
+        )
+        try:
+            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
+        except ImportError:
+            pytest.skip("transformers not available")
+
+        exporter = LLMTrainingExporter(engine=None)
+        ds_to_dict = exporter.to_huggingface_training_dataset(
+            sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="clm"
+        ).to_dict()
+        assert ds_to_dict["input_ids"][0] == ds_to_dict["labels"][0]
+
+    def test_huggingface_mlm_labels_equal_input_ids(self, sample_docs):
+        from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
+            LLMTrainingExporter,
+        )
+        try:
+            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
+        except ImportError:
+            pytest.skip("transformers not available")
+
+        exporter = LLMTrainingExporter(engine=None)
+        ds_to_dict = exporter.to_huggingface_training_dataset(
+            sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="mlm"
+        ).to_dict()
+        assert ds_to_dict["input_ids"][0] == ds_to_dict["labels"][0]
+
     def test_huggingface_sft_fallback(self, sample_docs):
         """Without HF datasets installed, returns a plain dict."""
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
@@ -945,27 +975,12 @@ class TestLLMTrainingExporter:
             pytest.skip("transformers not available")
 
         exporter = LLMTrainingExporter(engine=None)
-        result = exporter.to_huggingface_training_dataset(
-            sample_docs, tokenizer_name="gpt2", max_length=64, task="clm"
-        )
-        assert "input_ids" in result
-        assert "labels" in result
-        assert len(result["input_ids"]) > 0
-
-    def test_huggingface_clm_labels_equal_input_ids(self, sample_docs):
-        from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
-            LLMTrainingExporter,
-        )
-        try:
-            from transformers import AutoTokenizer  # type: ignore[] # noqa: PLC0415
-        except ImportError:
-            pytest.skip("transformers not available")
-
-        exporter = LLMTrainingExporter(engine=None)
-        result = exporter.to_huggingface_training_dataset(
-            sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="clm"
-        )
-        assert result["input_ids"][0] == result["labels"][0]
+        ds_to_dict = exporter.to_huggingface_training_dataset(
+            sample_docs, tokenizer_name="gpt2", max_length=64, task="sft"
+        ).to_dict()
+        assert "input_ids" in ds_to_dict
+        assert "labels" in ds_to_dict
+        assert len(ds_to_dict["input_ids"]) > 0
 
     def test_embedding_matrix_saves_files(self, sample_docs):
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
