@@ -658,46 +658,50 @@ class TestTranscribeWhisperBackends:
         assert results[0]["timecode_start"] == 0.5
         assert results[0]["timecode_end"] == 2.0
 
-    # No HF_TOKEN → SKIPPED → CI passes cleanly ✓
-    # HF_TOKEN set → test RUNS → real result    ✓
-    # @pytest.mark.xfail(
-    #     not os.environ.get("HF_TOKEN"),
-    #     reason="Please set a HF_TOKEN to enable higher rate limits and faster downloads.",
-    # )
-    # mock is complete, no network, no token needed
     def test_openai_whisper_fallback_when_faster_absent(self, tmp_path: pathlib.Path) -> None:
+        """faster-whisper absent → openai-whisper fallback is used.
+
+        Root cause of previous failure
+        -------------------------------
+        ``sys.modules.pop("faster_whisper", None)`` only removes the cached
+        entry.  When the package **is installed**, Python re-imports it from
+        the filesystem on the next ``from faster_whisper import ...``, so the
+        real model ran, hit HuggingFace, and tried to decode a zero-byte fake
+        mp4 → ``av.error.InvalidDataError``.
+
+        Fix
+        ---
+        Set ``sys.modules["faster_whisper"] = None``.  A ``None`` sentinel in
+        ``sys.modules`` causes Python to raise ``ImportError`` immediately
+        without touching the filesystem, regardless of whether the package is
+        installed.  The openai-whisper mock is then returned by the fallback
+        branch — no network, no HF_TOKEN, fully deterministic.
+        """
         ow = MagicMock()
         ow.load_model.return_value.transcribe.return_value = {
             "segments": [{"text": "fallback", "start": 1.0, "end": 2.5}]
         }
 
         video = _make_video_file(tmp_path, "v.mp4")
-        # with patch("scikitplot.corpus._readers._video._load_faster", side_effect=ImportError):
-        with patch.dict(sys.modules, {}, clear=False):
-            sys.modules.pop("faster_whisper", None)
-            sys.modules["whisper"] = ow
+        # None sentinel → ImportError on `from faster_whisper import ...`
+        # even when faster-whisper is installed on the system.
+        with patch.dict(sys.modules, {"faster_whisper": None, "whisper": ow}):
+            results = _transcribe_whisper(video, "base", "en")
 
-            results = _transcribe_whisper(
-                video, "base", "en"
-            )
-
-        # assert results == [
-        #     {
-        #         "text": "fallback",
-        #         "timecode_start": 1.0,
-        #         "timecode_end": 2.5,
-        #     }
-        # ]
         assert results[0]["text"] == "fallback"
         assert results[0]["timecode_start"] == 1.0
         assert results[0]["timecode_end"] == 2.5
 
-    @pytest.mark.xfail(reason="Please set a HF_TOKEN to enable higher rate limits and faster downloads.")
     def test_import_error_when_both_absent(self, tmp_path: pathlib.Path) -> None:
+        """Both backends absent → ImportError with actionable install hint.
+
+        Uses the None-sentinel pattern (see
+        ``test_openai_whisper_fallback_when_faster_absent`` docstring) to
+        guarantee both imports fail even when the packages are installed.
+        xfail removed — the test is fully mocked and deterministic.
+        """
         video = _make_video_file(tmp_path, "v.mp4")
-        with patch.dict(sys.modules, {}, clear=False):
-            sys.modules.pop("faster_whisper", None)
-            sys.modules.pop("whisper", None)
+        with patch.dict(sys.modules, {"faster_whisper": None, "whisper": None}):
             with pytest.raises(ImportError, match="faster-whisper"):
                 _transcribe_whisper(video, "base", None)
 
