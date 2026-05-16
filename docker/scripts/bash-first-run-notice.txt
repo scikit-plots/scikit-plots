@@ -9,6 +9,11 @@
 ⭐ 🌟  IMPORTANT: Complete Environment Setup
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+✅  Troubleshooting VsCode Guide "micromamba" Env:
+  $ # https://code.visualstudio.com/assets/docs/getstarted/tips-and-tricks/KeyboardReferenceSheet.png
+  $ # Command Palette (`Ctrl+Shift+P`) or on GUI click top "Open Quick Access" and type `> interpreter`
+  $ # if display "micromamba" Env choose it, If not exist choose "Enter interpreter path..." then enter "/root/micromamba/envs/py311/bin/python"
+
 ✅  Check Installation:
   $ python -c "import scikitplot; scikitplot.show_config()"
   $ scikitplot -V

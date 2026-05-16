@@ -1,14 +1,21 @@
 # sphinx conf
 # scikit-plots documentation build configuration file, created by
 # sphinx-quickstart on August 16th, 2024 20:37.
-
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
-
+#
 # pylint: disable=C0413
 # pylint: disable=import-error
 # pylint: disable=wrong-import-order
 # pylint: disable=line-too-long
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
+# https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+#
+# https://gdevops.frama.io/documentation/formats/input/rest_sphinx/confpy/confpy.html#
+# https://tree.nathanfriend.com/
+# https://github.com/apache/arrow/blob/main/docs/source/conf.py
 
 """
 scikit-plots documentation build config file, created by sphinx-quickstart.
@@ -27,11 +34,6 @@ serve to show the default.
 See: https://www.sphinx-doc.org/en/master/usage/configuration.html
 for more details on configuring the documentation build.
 """
-# https://gdevops.frama.io/documentation/formats/input/rest_sphinx/confpy/confpy.html#
-# https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-
-# https://tree.nathanfriend.com/
-# https://github.com/apache/arrow/blob/main/docs/source/conf.py
 
 # %%
 #
@@ -299,6 +301,13 @@ extensions = [
     # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    # "sphinxcontrib.youtube",
+    "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",
+    # https://isolveit.github.io/sphinx-pdf-generate
+    # "sphinx_pdf_generate",
+    # custom extensions
+    # "_extension.gallery_directive",
+    # "_extension.component_directive",
 ]
 
 # %%
@@ -821,15 +830,16 @@ master_doc = "index"
 # source_encoding = 'utf-8-sig'  # paste Unicode (⚠️, ✅, 🐢, ⚡️ etc.) directly in the .rst file.
 # ✅ ✅ ❌ ⚠️ 🐢 ⚡ 🐍 🪶 🧪 🚀 ⏱️ 💡 ⚖️ 🧪 🧠 🚫
 
-# The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-source_suffix
+# If the value is a string or sequence of strings, Sphinx will consider that they are all 'restructuredtext' files.
 # source_suffix = '.rst'
 # source_suffix = ['.rst', '.md']
-# source_suffix = {
-#     '.rst': 'restructuredtext',
-#     '.md': 'markdown',
-#     '.txt': 'markdown',
-# }
+source_suffix = {
+    '.rst': 'restructuredtext',
+    # '.txt': 'restructuredtext',
+    '.md': 'markdown',
+    '.txt': 'markdown',
+}
 
 ##########################################################################
 ## Options for templating
@@ -860,6 +870,7 @@ templates_path = [
 # https://sphinx-themes.org/sample-sites/pydata-sphinx-theme/
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/examples/gallery.html
 
+# https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
 # https://pydata-sphinx-theme.readthedocs.io/en/stable/examples/gallery.html#other-projects-using-this-theme
 # html_theme = "furo"
 html_theme = "pydata_sphinx_theme"  # scikit-learn like
@@ -877,6 +888,7 @@ html_theme_options = {
         "image_relative": "logos/scikit-plots-logo-small.png",
     },
     # -- Search and Edit ------------------------------------------------------
+    # "search_as_you_type": True,
     "search_bar_text": "Search the docs ...",
     "use_edit_page_button": True,
     # -- Appearance Settings --------------------------------------------------
@@ -906,8 +918,6 @@ html_theme_options = {
     "check_switcher": True,
     # -- External and Icon Links ----------------------------------------------
     "external_links": [],
-    "icon_links_label": "Icon Links",
-    # https://fontawesome.com/search?f=classic&s=solid&c=coding&ic=free-collection
     "icon_links": [
         # {
         #     "name": "LinkedIn",
@@ -967,11 +977,15 @@ html_theme_options = {
         #     # The default for `type` is `fontawesome`, so it is not required in the above examples
         # },
     ],
-    # alternative way to set twitter and github header icons
+    # https://fontawesome.com/search?f=classic&s=solid&c=coding&ic=free-collection
+    "icon_links_label": "Icon Links",
+    ## https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/source-buttons.html
+    ## https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/source-buttons.html#github
+    ## alternative way to set twitter and github header icons
     # "github_url": "https://github.com/scikit-plots/scikit-plots",
     # "repository_url": "https://github.com/jupyter/jupyter-sphinx",
-    # "use_repository_button": True,
     # "repository_branch": "main",
+    # "use_repository_button": True,
     # "use_issues_button": True,
     # "use_fullscreen_button": False,
     # -- Header and Footer Settings -------------------------------------------
@@ -1027,11 +1041,13 @@ html_theme_options = {
     # We override the announcement template from pydata-sphinx-theme, where
     # this special value indicates the use of the unreleased banner. If we need
     # an actual announcement, then just place the text here as usual.
+    # "announcement": "https://raw.githubusercontent.com/pydata/pydata-sphinx-theme/main/docs/_templates/custom-template.html",
     "announcement": None,  # "unreleased" if not is_release_build else None,
     # "analytics": {
     #     "plausible_analytics_domain": "scikit-plots.github.io",
     #     "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
     # },
+    # "path_to_docs": "docs",
 }
 _html_secondary_sidebars = {
     "introduction/index": [],
@@ -1073,6 +1089,7 @@ html_css_files = [
 
 # Additional JS files
 html_js_files = [
+    # ("custom-icons.js", {"defer": "defer"}),
     "scripts/dropdown.js",
     "scripts/version-switcher.js",
 ]
@@ -1108,6 +1125,18 @@ html_static_path = [
 # A better solution would be to follow the merge of:
 # https://github.com/pydata/pydata-sphinx-theme/pull/1682
 html_sidebars = {
+    "introduction/index": [
+        "search-field",
+        "sidebar-nav-bs",
+    ],
+    "project/index": [  # This ensures we test for custom sidebars
+        "sidebar-nav-bs",
+        "custom-template",
+    ],
+    "project/community": [  # This ensures we test for custom sidebars
+        "sidebar-nav-bs",
+        "custom-template",
+    ],
     # "governance": [],
     "project/glossary/index": [],
     "project/glossary/sklearn_glossary": [],
@@ -1135,7 +1164,7 @@ html_additional_pages = {"index": "index.html"}
 # html_split_index = False
 
 # If true, the reST sources are included in the HTML build as _sources/name.
-# html_copy_source = True
+html_copy_source = True
 
 # If true, links to the reST sources are added to the pages.
 # html_show_sourcelink = True
@@ -1437,6 +1466,7 @@ intersphinx_mapping = {
     "tox": ("https://tox.wiki/en/stable/", None),
     # Docs
     'sphinx': ("https://www.sphinx-doc.org/en/master/", None),
+    "pst": ("https://pydata-sphinx-theme.readthedocs.io/en/latest/", None),
     "numpydoc": ("https://numpydoc.readthedocs.io/en/latest/", None),
     # Data Manuplation
     "numpy": ("https://numpy.org/devdocs/", (None, "https://numpy.org/doc/stable/")),

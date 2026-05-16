@@ -1,0 +1,68 @@
+# Gallery of sites using this theme
+
+This is a gallery of documentation sites built with `pydata-sphinx-theme`. If you'd like
+to add your documentation to this list, add an entry (in alphabetical order) to the list
+at the end of [this page](https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/examples/gallery.md)
+and open a Pull Request to add it.
+
+## Featured projects
+
+These projects are our earliest adopters and/or present some interesting customization.
+Check their repositories for more information.
+
+```{gallery-grid} ../_static/gallery.yaml
+:grid-columns: "1 1 2 2"
+```
+
+## Other projects using this theme
+
+Here are some other projects using `pydata-sphinx-theme` for their documentation.
+Thanks for your support!
+
+```{gallery-grid}
+:grid-columns: "1 2 3 4"
+:class-card: "downstream-project-links"
+
+- title: Binder
+  link-alt: Binder docs
+  link: https://mybinder.readthedocs.io/en/latest/index.html
+- title: BrainGlobe
+  link-alt: BrainGlobe docs
+  link: https://brainglobe.info
+- title: cashocs
+  link-alt: cashocs docs
+  link: https://cashocs.readthedocs.io/en/stable/
+- title: CuPy
+  link-alt: CuPy docs
+  link: https://docs.cupy.dev/en/stable/index.html
+- title: DecentralChain
+  link-alt: DecentralChain docs
+  link: https://docs.decentralchain.io/en/master/
+- title: Fairlearn
+  link-alt: Fairlearn docs
+  link: https://fairlearn.org/main/about/
+- title: Falcon web framework
+  link-alt: The Falcon web framework
+  link: https://falcon.readthedocs.io/
+- title: Feature-engine
+  link-alt: Feature-engine docs
+  link: https://feature-engine.readthedocs.io/
+- title: idtracker&period;ai
+  link-alt: idtracker&period;ai docs
+  link: https://idtracker.ai/
+- title: itom measurement and simulation software
+  link-alt: itom documentation
+  link: https://itom-project.github.io/latest/docs/index.html
+- title: movement
+  link-alt: movement docs
+  link: https://movement.neuroinformatics.dev
+- title: Pastas
+  link-alt: Pastas docs
+  link: https://pastas.readthedocs.io/
+- title: PhaseFieldX
+  link-alt: PhaseFieldX docs
+  link: https://phasefieldx.readthedocs.io/en/latest/index.html
+- title: PyVista
+  link-alt: PyVista docs
+  link: https://docs.pyvista.org
+```

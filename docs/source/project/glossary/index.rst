@@ -40,4 +40,4 @@ scikit-plots Glossary
             :numbered:
             :caption: glossary
 
-            scikit-learn Glossary <_glossary_sklearn.rst>
+            https://scikit-learn.org/stable/glossary.html
