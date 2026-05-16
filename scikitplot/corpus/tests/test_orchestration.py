@@ -27,8 +27,10 @@ Run with:
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import pathlib
+import sys
 import tempfile
 from dataclasses import dataclass, field
 from typing import Any
@@ -989,26 +991,78 @@ class TestLLMTrainingExporter:
         return tok
 
     # ------------------------------------------------------------------
-    # HuggingFace training dataset tests — all use mocked tokenizer
+    # HuggingFace training dataset tests — all use sys.modules sentinel
     # ------------------------------------------------------------------
+    #
+    # WHY sys.modules sentinel and NOT importorskip / patch(string):
+    #
+    #   pytest.importorskip("transformers")
+    #       calls __import__("transformers") → loads Rust tokenizers C
+    #       extension at C-level → SIGSEGV under pytest --cov fork model.
+    #       Crash happens BEFORE patch() context starts. No guard helps.
+    #
+    #   patch("transformers.AutoTokenizer.from_pretrained", ...)
+    #       mock.patch resolves the dotted string by importing "transformers"
+    #       internally → same Rust load → same SIGSEGV.
+    #
+    #   sys.modules sentinel (this fix — same pattern as _video.py fix):
+    #       patch.dict(sys.modules, {"transformers": mock_module})
+    #       When production code executes `from transformers import AutoTokenizer`
+    #       Python finds the MagicMock in sys.modules and never touches the
+    #       Rust binary on disk. Fully deterministic, no C extension loaded.
+    #
+    #   importlib.util.find_spec("transformers")
+    #       Checks availability by inspecting the filesystem finder chain
+    #       WITHOUT importing — safe to use in skipif at collection time.
+
+    @staticmethod
+    def _make_mock_transformers() -> MagicMock:
+        """Return a sys.modules-level transformers mock.
+
+        Builds a MagicMock that satisfies ``from transformers import
+        AutoTokenizer`` in the production code without loading any Rust
+        binary or making any network call.
+
+        The mock ``AutoTokenizer.from_pretrained(name)`` returns a
+        tokenizer mock whose ``__call__`` and attribute contract matches
+        what ``to_huggingface_training_dataset`` reads.
+        """
+        ids = list(range(1, 6))   # [1, 2, 3, 4, 5]
+        mask = [1] * 5
+
+        tok = MagicMock()
+        tok.pad_token = None
+        tok.eos_token = "<|endoftext|>"
+        tok.eos_token_id = 50256
+        tok.pad_token_id = 50256
+        tok.model_max_length = 1024
+        tok.is_fast = True
+        tok.return_value = {"input_ids": ids, "attention_mask": mask}
+        tok.encode.return_value = ids
+        tok.decode.return_value = "hello world"
+        tok.batch_encode_plus.return_value = {
+            "input_ids": [ids],
+            "attention_mask": [mask],
+        }
+
+        mock_transformers = MagicMock()
+        mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
+        return mock_transformers
 
     def test_huggingface_clm_labels_equal_input_ids(self, sample_docs):
         """CLM task: labels must equal input_ids (teacher-forcing identity).
 
-        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring for
-        the full root-cause explanation of why the real tokenizer causes
-        SIGSEGV in CI.
+        Uses sys.modules sentinel — see class comment block above for the
+        full two-crash-point root-cause analysis.
         """
+        if importlib.util.find_spec("transformers") is None:
+            pytest.skip("transformers not installed")
+
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        pytest.importorskip("transformers", reason="transformers not available")
-
         exporter = LLMTrainingExporter(engine=None)
-        with patch(
-            "transformers.AutoTokenizer.from_pretrained",
-            return_value=self._make_mock_tokenizer(),
-        ):
+        with patch.dict(sys.modules, {"transformers": self._make_mock_transformers()}):
             ds_to_dict = exporter.to_huggingface_training_dataset(
                 sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="clm"
             ).to_dict()
@@ -1017,18 +1071,16 @@ class TestLLMTrainingExporter:
     def test_huggingface_mlm_labels_equal_input_ids(self, sample_docs):
         """MLM task: labels must equal input_ids before masking is applied.
 
-        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring.
+        Uses sys.modules sentinel — see class comment block above.
         """
+        if importlib.util.find_spec("transformers") is None:
+            pytest.skip("transformers not installed")
+
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        pytest.importorskip("transformers", reason="transformers not available")
-
         exporter = LLMTrainingExporter(engine=None)
-        with patch(
-            "transformers.AutoTokenizer.from_pretrained",
-            return_value=self._make_mock_tokenizer(),
-        ):
+        with patch.dict(sys.modules, {"transformers": self._make_mock_transformers()}):
             ds_to_dict = exporter.to_huggingface_training_dataset(
                 sample_docs[:2], tokenizer_name="gpt2", max_length=64, task="mlm"
             ).to_dict()
@@ -1037,18 +1089,16 @@ class TestLLMTrainingExporter:
     def test_huggingface_sft_fallback(self, sample_docs):
         """SFT task: dataset must contain input_ids and labels columns.
 
-        Uses a mocked tokenizer — see ``_make_mock_tokenizer`` docstring.
+        Uses sys.modules sentinel — see class comment block above.
         """
+        if importlib.util.find_spec("transformers") is None:
+            pytest.skip("transformers not installed")
+
         from scikitplot.corpus._embeddings._multimodal_embedding import (  # noqa: PLC0415
             LLMTrainingExporter,
         )
-        pytest.importorskip("transformers", reason="transformers not available")
-
         exporter = LLMTrainingExporter(engine=None)
-        with patch(
-            "transformers.AutoTokenizer.from_pretrained",
-            return_value=self._make_mock_tokenizer(),
-        ):
+        with patch.dict(sys.modules, {"transformers": self._make_mock_transformers()}):
             ds_to_dict = exporter.to_huggingface_training_dataset(
                 sample_docs, tokenizer_name="gpt2", max_length=64, task="sft"
             ).to_dict()
