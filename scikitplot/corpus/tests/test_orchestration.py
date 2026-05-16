@@ -1047,6 +1047,22 @@ class TestLLMTrainingExporter:
 
         mock_transformers = MagicMock()
         mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
+
+        # datasets/utils/_dill.py calls issubclass(obj_type, transformers.X)
+        # during Dataset fingerprinting (pickling).  issubclass() requires
+        # arg 2 to be a real class — MagicMock attributes are not classes,
+        # so we replace every attribute that datasets passes to issubclass()
+        # with a real (empty) class so the check returns False cleanly.
+        mock_transformers.PreTrainedTokenizerBase = type(
+            "PreTrainedTokenizerBase", (), {}
+        )
+        mock_transformers.PreTrainedModel = type("PreTrainedModel", (), {})
+        mock_transformers.PreTrainedTokenizer = type(
+            "PreTrainedTokenizer", (), {}
+        )
+        mock_transformers.PreTrainedTokenizerFast = type(
+            "PreTrainedTokenizerFast", (), {}
+        )
         return mock_transformers
 
     def test_huggingface_clm_labels_equal_input_ids(self, sample_docs):
