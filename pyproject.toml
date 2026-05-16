@@ -419,11 +419,13 @@ test_nogil = [
   "pytest-run-parallel",
   "pytest-timeout",
   "pytest-xdist",                           # Use Multiple CPUs to speed up
+  "pytest-regressions",
 
   "asv",                                    # Benchmarking
   "mpmath",                                 # Arbitrary precision math
   "tenacity",                               # general-purpose retrying library, written in Python
   "pyinstrument",                           # Performance profiler time helper
+  "beautifulsoup4",                         # sphinx
 
   # "gmpy2",
   # "pyamg",                                  # Algebraic multigrid solvers manual setup due to not support latest py314
@@ -456,7 +458,7 @@ doc = [
   "scikit-plots[core]",                     # Reference the 'core' group as a dependency
 
   ## sphinx
-  "sphinx>=5.0.0,<100.0.0",                 # Documentation generator
+  "sphinx[testing]>=5.0.0,<100.0.0",        # Documentation generator include legacy "pytest-sphinx"
   "sphinx-copybutton",                      # Copy button for code blocks
   "sphinx-design",                          # Modern design elements
   "sphinx-gallery",                         # Gallery examples

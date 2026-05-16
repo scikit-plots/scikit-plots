@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-pytest_plugins = "sphinx.testing.fixtures"
+# https://docs.pytest.org/en/stable/reference/reference.html#globalvar-pytest_plugins
+# pytest_plugins = "sphinx.testing.fixtures"
 
 
 @pytest.fixture(scope="session")
