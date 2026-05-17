@@ -3,11 +3,9 @@
 youtube
 =====================
 
-.. code-block:: rst
-
-    ..  youtube:: dQw4w9WgXcQ
-
-..  youtube:: P7SVi0YTIuE
+..
+    .. code-block:: rst
+        ..  youtube:: dQw4w9WgXcQ
 
 ..
     Documentation contents
@@ -27,3 +25,5 @@ youtube
             :link: contribute.html
 
             Help us improve the library.
+
+..  youtube:: P7SVi0YTIuE

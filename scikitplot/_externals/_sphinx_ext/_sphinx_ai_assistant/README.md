@@ -18,6 +18,25 @@ A Sphinx extension that adds AI-powered features to documentation pages, making 
 - **No Backend Required**: Pure static files, works on any hosting
 - **MCP (Model Context Protocol) integration**: Connect VS Code and Claude to your MCP
 
+### Export as PDF
+- **"Export as PDF" button** added to the bottom of the dropdown menu (after MCP tools)
+- Default behaviour: calls the browser's built-in `window.print()` → user saves as PDF
+- Optional: set `ai_assistant_pdf_export_url` to a server-side endpoint
+  (e.g. a WeasyPrint URL, GitBook-style `~gitbook/pdf?page=…`, or any static `.pdf` URL)
+  and the button will open that URL in a new tab instead
+- Icon mirrors the Font Awesome `file-pdf` style used by sphinx-book-theme and GitBook
+
+### AI Assistant Panel
+- **Floating chat panel** anchored to the bottom-right viewport corner
+- Opens via the last dropdown entry ("AI Assistant" or your custom label)
+- Slide-in / slide-out animation; fully keyboard-accessible (Enter submits, Escape closes)
+- **Stub mode** (default, `ai_assistant_panel_api_enabled = False`): renders the full UI
+  with a polite placeholder response — zero network calls, works on any static site
+- **API mode** (`ai_assistant_panel_api_enabled = True`): POSTs the user's question and
+  the page's Markdown to the Anthropic `/v1/messages` endpoint and streams a live answer
+- Compatible with PyData Sphinx Theme, Furo, sphinx-book-theme, and Read the Docs
+- Dark-mode aware via the same three-layer CSS variable chain as the rest of the widget
+
 ## Installation
 
 ### Using pip
@@ -88,7 +107,24 @@ ai_assistant_features = {
     'view_markdown': True,    # View as Markdown in new tab
     'ai_chat': True,          # AI chat links
     'mcp_integration': False, # Not yet implemented
+    'pdf_export': True,       # "Export as PDF" button (window.print or custom URL)
+    'ai_panel': True,         # Floating AI assistant chat panel
 }
+
+# PDF export button
+# ─ None / "" → browser print dialog (window.print)
+# ─ Non-empty string → opened in a new tab as the PDF download URL
+#   Examples:
+#     ai_assistant_pdf_export_url = "/_pdf/{pagename}.pdf"
+#     ai_assistant_pdf_export_url = "https://docs.example.com/~gitbook/pdf?page=…"
+ai_assistant_pdf_export_url = None  # default: browser print dialog
+
+# AI assistant panel (floating chat drawer)
+ai_assistant_panel_title = "AI Assistant"          # header label in the panel
+ai_assistant_panel_placeholder = "Ask a question about this page…"
+# False → stub mode (safe for any static build, no API calls)
+# True  → live mode (POSTs to Anthropic /v1/messages; requires API access)
+ai_assistant_panel_api_enabled = False
 
 # Build-time markdown generation from topics
 ai_assistant_generate_markdown = True

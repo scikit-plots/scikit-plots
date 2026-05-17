@@ -50,6 +50,9 @@ Examples
 
 from __future__ import annotations
 
+import base64
+import pathlib
+
 __all__ = [
     "_PROVIDER_META",
     "_SVG_CHATGPT",
@@ -59,7 +62,19 @@ __all__ = [
     "_SVG_GEMINI",
     "_SVG_MARKDOWN",
     "_SVG_OLLAMA",
+    "export_svg2base64",
 ]
+
+
+def export_svg2base64():
+    # Read all SVGs
+    svgs = {}
+    static = pathlib.Path().cwd()
+    for f in sorted(static.glob("*.svg")):
+        b64 = base64.b64encode(f.read_bytes()).decode()
+        svgs[f.name] = f"data:image/svg+xml;base64,{b64}"
+    return svgs
+
 
 # ---------------------------------------------------------------------------
 # Inline SVG icons — base64 data URIs
@@ -117,6 +132,14 @@ _SVG_OLLAMA: str = (
     "NCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9Im5vbmUiIHN0cm9r"
     "ZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0i"
     "NCIgZmlsbD0iIzMzMyIvPjwvc3ZnPg=="
+)
+
+_SVG_DEFAULT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAy"
+    "NCAyNCI+PHBhdGggZmlsbD0iIzg4OCIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDgg"
+    "MTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEgMTVoLTJ2LTZoMnY2em0w"
+    "LThoLTJWN2gydjJ6Ii8+PC9zdmc+"
 )
 
 _SVG_DEFAULT: str = (

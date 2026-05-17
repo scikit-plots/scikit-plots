@@ -2879,6 +2879,21 @@ def add_ai_assistant_context(
         "includeRawImage": _cfg_bool(
             app.config, "ai_assistant_include_raw_image", False
         ),
+        # ---- PDF export ---------------------------------------------------
+        # Empty string means "use window.print()"; a non-empty value is opened
+        # in a new tab as the PDF download URL.
+        "pdfExportUrl": _cfg_str(app.config, "ai_assistant_pdf_export_url") or "",
+        # ---- AI panel (floating chat stub) --------------------------------
+        "panelTitle": (
+            _cfg_str(app.config, "ai_assistant_panel_title") or "AI Assistant"
+        ),
+        "panelPlaceholder": (
+            _cfg_str(app.config, "ai_assistant_panel_placeholder")
+            or "Ask a question about this page\u2026"
+        ),
+        "panelApiEnabled": _cfg_bool(
+            app.config, "ai_assistant_panel_api_enabled", False
+        ),
     }
 
     context["ai_assistant_config"] = config
@@ -2979,6 +2994,22 @@ def setup(app: Sphinx) -> dict[str, Any]:
        * - ``ai_assistant_mcp_tools``
          - (see source)
          - MCP tool configuration dict.
+       * - ``ai_assistant_pdf_export_url``
+         - ``None``
+         - URL opened by "Export as PDF" button.  ``None`` / ``""`` → calls
+           ``window.print()``; any non-empty string → opens that URL in a
+           new tab (e.g. a server-side PDF endpoint or GitBook-style path).
+       * - ``ai_assistant_panel_title``
+         - ``"AI Assistant"``
+         - Header label shown in the floating AI chat panel.
+       * - ``ai_assistant_panel_placeholder``
+         - ``"Ask a question about this page…"``
+         - Placeholder text for the panel's input field.
+       * - ``ai_assistant_panel_api_enabled``
+         - ``False``
+         - When ``True`` the panel sends page context to the Anthropic API
+           and streams a real response.  When ``False`` it renders as a UI
+           stub with no network calls.
 
     Examples
     --------
@@ -3037,6 +3068,8 @@ def setup(app: Sphinx) -> dict[str, Any]:
             "ai_chat": True,
             "mcp_integration": True,
             "theme_toggle": True,  # dark / light / system color-scheme toggle
+            "pdf_export": True,  # Export as PDF button (window.print or custom URL)
+            "ai_panel": True,  # Floating AI assistant chat panel (stub / API)
         },
         "html",
     )
@@ -3074,6 +3107,27 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_custom_context", None, "html")
     app.add_config_value("ai_assistant_custom_prompt_prefix", None, "html")
     app.add_config_value("ai_assistant_include_raw_image", False, "html")
+
+    # ---- PDF export config -------------------------------------------------
+    # When set to a non-empty string the "Export as PDF" button opens that URL
+    # (e.g. ``"/_pdf/{pagename}.pdf"`` or a GitBook-style ``"~gitbook/pdf?"``
+    # endpoint) in a new tab instead of calling window.print().
+    # ``None`` / empty string → trigger browser print dialog (window.print()).
+    app.add_config_value("ai_assistant_pdf_export_url", None, "html")
+
+    # ---- AI panel (floating chat stub) config ------------------------------
+    # ``ai_assistant_panel_title``    : header text shown in the panel.
+    # ``ai_assistant_panel_placeholder`` : input placeholder text.
+    # ``ai_assistant_panel_api_enabled`` : when True the panel will POST to
+    #     the Anthropic /v1/messages endpoint via the built-in JS fetch logic;
+    #     when False the panel renders as a UI stub with no network calls.
+    app.add_config_value("ai_assistant_panel_title", "AI Assistant", "html")
+    app.add_config_value(
+        "ai_assistant_panel_placeholder",
+        "Ask a question about this page\u2026",
+        "html",
+    )
+    app.add_config_value("ai_assistant_panel_api_enabled", False, "html")
 
     # ---- Static files ------------------------------------------------------
     static_path = Path(__file__).parent / "_static"

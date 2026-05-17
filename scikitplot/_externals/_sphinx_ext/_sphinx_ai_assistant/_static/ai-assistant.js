@@ -187,6 +187,42 @@
             });
         }
 
+        // ---- PDF Export section -------------------------------------------
+        // Rendered last; always gets its own separator so it is visually
+        // distinct from the MCP tools section (or the AI chat section when MCP
+        // integration is disabled).
+        if (features.pdf_export) {
+            const pdfSep = document.createElement('div');
+            pdfSep.className = 'ai-assistant-menu-separator';
+            dropdown.appendChild(pdfSep);
+
+            const pdfItem = createMenuItem(
+                'pdf-export',
+                'Export as PDF',
+                'Save this page as a PDF file.',
+                `${staticPath}/file-pdf.svg`
+            );
+            dropdown.appendChild(pdfItem);
+        }
+
+        // ---- AI Panel section (floating chat stub / API) ------------------
+        // Appears as the very last dropdown entry so it is never confused with
+        // the provider-level "Ask Claude / Ask ChatGPT" links above.
+        if (features.ai_panel) {
+            const panelSep = document.createElement('div');
+            panelSep.className = 'ai-assistant-menu-separator';
+            dropdown.appendChild(panelSep);
+
+            const panelTitle = window.AI_ASSISTANT_CONFIG?.panelTitle || 'AI Assistant';
+            const panelItem = createMenuItem(
+                'ai-panel-open',
+                panelTitle,
+                `Ask ${panelTitle} about this page`,
+                `${staticPath}/ai-panel.svg`
+            );
+            dropdown.appendChild(panelItem);
+        }
+
         return dropdown;
     }
 
@@ -341,6 +377,23 @@
                 handleMCPInstall(toolKey);
             });
         });
+
+        // Handle PDF export button
+        const pdfExportBtn = document.getElementById('ai-assistant-pdf-export');
+        if (pdfExportBtn) {
+            pdfExportBtn.addEventListener('click', function() {
+                handlePdfExport();
+            });
+        }
+
+        // Handle AI panel open button
+        const aiPanelOpenBtn = document.getElementById('ai-assistant-ai-panel-open');
+        if (aiPanelOpenBtn) {
+            aiPanelOpenBtn.addEventListener('click', function() {
+                closeDropdown();
+                toggleAIPanel();
+            });
+        }
     }
 
     // Convert HTML to Markdown
@@ -660,6 +713,370 @@
             notification.classList.remove('show');
             setTimeout(() => notification.remove(), 300);
         }, 3000);
+    }
+
+    // ---------------------------------------------------------------------------
+    // PDF export
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Handle "Export as PDF" button click.
+     *
+     * Behaviour (in priority order):
+     *   1. If ``AI_ASSISTANT_CONFIG.pdfExportUrl`` is a non-empty string, open
+     *      it in a new browser tab.  This supports server-side PDF endpoints
+     *      (e.g. WeasyPrint, GitBook-style ``~gitbook/pdf?page=…``).
+     *   2. Otherwise call ``window.print()`` so the browser renders the page
+     *      as a print document — the user can then save it as PDF via the
+     *      browser's built-in print-to-PDF driver.
+     *
+     * Edge cases:
+     *   - ``pdfExportUrl`` is ``null``, ``undefined``, or ``""`` → print dialog.
+     *   - URL is provided but ``window.open`` is blocked by a popup blocker
+     *     → silent (no notification spam; the blocker itself informs the user).
+     */
+    function handlePdfExport() {
+        const pdfUrl = window.AI_ASSISTANT_CONFIG?.pdfExportUrl;
+        closeDropdown();
+        if (pdfUrl && typeof pdfUrl === 'string' && pdfUrl.trim() !== '') {
+            console.log('AI Assistant: Opening PDF export URL:', pdfUrl);
+            window.open(pdfUrl.trim(), '_blank', 'noopener,noreferrer');
+        } else {
+            console.log('AI Assistant: Triggering browser print dialog (PDF export)');
+            window.print();
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // AI Panel — floating chat stub / API-backed panel
+    // ---------------------------------------------------------------------------
+
+    /** Singleton panel element; created once, toggled on/off thereafter. */
+    let _aiPanelEl = null;
+
+    /**
+     * Create the floating AI assistant panel DOM element.
+     *
+     * The panel is a slide-in drawer anchored to the bottom-right viewport
+     * edge.  It is intentionally theme-agnostic: all colours are resolved
+     * through the same three-layer CSS variable chain used by the rest of the
+     * widget (PST → Furo → hardcoded fallback).
+     *
+     * When ``AI_ASSISTANT_CONFIG.panelApiEnabled`` is ``false`` the send
+     * button shows a stub response, making the panel safe to ship with any
+     * Sphinx build that does not have API credentials configured.
+     *
+     * Accessibility:
+     *   - Panel has ``role="dialog"`` and ``aria-modal="true"``.
+     *   - Close button is keyboard-focusable with a visible focus ring.
+     *   - Input and send button are both keyboard-accessible.
+     *
+     * @returns {HTMLElement} The fully constructed (but not yet inserted) panel.
+     */
+    function createAIPanel() {
+        const cfg = window.AI_ASSISTANT_CONFIG || {};
+        const title = cfg.panelTitle || 'AI Assistant';
+        const placeholder = cfg.panelPlaceholder || 'Ask a question about this page\u2026';
+        const staticPath = getStaticPath();
+
+        const panel = document.createElement('div');
+        panel.id = 'ai-assistant-panel';
+        panel.className = 'ai-assistant-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.setAttribute('aria-label', title);
+        panel.style.display = 'none';
+
+        panel.innerHTML = `
+            <div class="ai-assistant-panel-header">
+                <div class="ai-assistant-panel-header-title">
+                    <img src="${staticPath}/ai-panel.svg"
+                         class="ai-assistant-panel-logo"
+                         aria-hidden="true" alt="">
+                    <span>${_escapeHtml(title)}</span>
+                </div>
+                <button class="ai-assistant-panel-close"
+                        id="ai-assistant-panel-close"
+                        type="button"
+                        aria-label="Close ${_escapeHtml(title)}">
+                    &#x2715;
+                </button>
+            </div>
+            <div class="ai-assistant-panel-body" id="ai-assistant-panel-body">
+                <div class="ai-assistant-panel-welcome">
+                    <p>Hi! I\u2019m <strong>${_escapeHtml(title)}</strong>.</p>
+                    <p>Ask me anything about this documentation page.</p>
+                </div>
+            </div>
+            <div class="ai-assistant-panel-footer">
+                <textarea
+                    id="ai-assistant-panel-input"
+                    class="ai-assistant-panel-input"
+                    rows="2"
+                    placeholder="${_escapeHtml(placeholder)}"
+                    aria-label="Your question"
+                ></textarea>
+                <button class="ai-assistant-panel-send"
+                        id="ai-assistant-panel-send"
+                        type="button"
+                        aria-label="Send question">
+                    Send
+                </button>
+            </div>
+        `;
+
+        // Close button
+        panel.querySelector('#ai-assistant-panel-close').addEventListener('click', function() {
+            closeAIPanel();
+        });
+
+        // Send button
+        panel.querySelector('#ai-assistant-panel-send').addEventListener('click', function() {
+            handleAIPanelSubmit();
+        });
+
+        // Keyboard: Enter (without Shift) submits; Shift+Enter inserts newline.
+        panel.querySelector('#ai-assistant-panel-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAIPanelSubmit();
+            }
+        });
+
+        // Escape key closes the panel.
+        panel.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAIPanel();
+            }
+        });
+
+        document.body.appendChild(panel);
+        return panel;
+    }
+
+    /**
+     * Escape HTML special characters for safe innerHTML interpolation.
+     *
+     * Used exclusively for user-supplied config strings (``panelTitle``,
+     * ``panelPlaceholder``) that are embedded in panel markup.  Prevents
+     * XSS if a conf.py author inadvertently includes ``<`` or ``>``
+     * characters in the title string.
+     *
+     * @param {string} str - Raw string to escape.
+     * @returns {string} HTML-safe string.
+     */
+    function _escapeHtml(str) {
+        if (typeof str !== 'string') return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Toggle the AI panel open/closed.
+     *
+     * Creates the panel DOM on first call (lazy singleton).  Subsequent calls
+     * simply flip ``display`` between ``'flex'`` and ``'none'``.  On open,
+     * focus is moved to the text input for immediate keyboard interaction.
+     */
+    function toggleAIPanel() {
+        if (!_aiPanelEl) {
+            _aiPanelEl = createAIPanel();
+        }
+        const isVisible = _aiPanelEl.style.display !== 'none';
+        if (isVisible) {
+            closeAIPanel();
+        } else {
+            _aiPanelEl.style.display = 'flex';
+            // Slide-in animation driven by CSS transition on opacity/transform.
+            requestAnimationFrame(function() {
+                _aiPanelEl.classList.add('ai-assistant-panel--open');
+            });
+            const input = document.getElementById('ai-assistant-panel-input');
+            if (input) {
+                setTimeout(function() { input.focus(); }, 100);
+            }
+        }
+    }
+
+    /**
+     * Close the AI panel with a slide-out animation.
+     *
+     * Removes the ``--open`` modifier class (triggering the CSS transition)
+     * then hides the element once the transition ends.  Focus is returned to
+     * the dropdown trigger button so keyboard users are not stranded.
+     */
+    function closeAIPanel() {
+        if (!_aiPanelEl) return;
+        _aiPanelEl.classList.remove('ai-assistant-panel--open');
+        // Wait for CSS transition (300 ms) before hiding so the slide-out
+        // animation is fully visible.
+        setTimeout(function() {
+            if (_aiPanelEl) {
+                _aiPanelEl.style.display = 'none';
+            }
+        }, 300);
+        // Return focus to the dropdown toggle.
+        const dropBtn = document.getElementById('ai-assistant-button-dropdown');
+        if (dropBtn) dropBtn.focus();
+    }
+
+    /**
+     * Append a message bubble to the panel body.
+     *
+     * @param {string} text    - Message content (plain text; HTML-escaped).
+     * @param {'user'|'assistant'|'error'} role - Determines CSS class and alignment.
+     */
+    function _appendPanelMessage(text, role) {
+        const body = document.getElementById('ai-assistant-panel-body');
+        if (!body) return;
+
+        // Remove the welcome banner on first real message exchange.
+        const welcome = body.querySelector('.ai-assistant-panel-welcome');
+        if (welcome) welcome.remove();
+
+        const bubble = document.createElement('div');
+        bubble.className = `ai-assistant-panel-bubble ai-assistant-panel-bubble--${role}`;
+        bubble.textContent = text;
+        body.appendChild(bubble);
+        // Auto-scroll to newest message.
+        body.scrollTop = body.scrollHeight;
+    }
+
+    /**
+     * Read the panel input, display the user message, then either call the
+     * Anthropic API (when ``panelApiEnabled`` is ``true``) or show a polite
+     * stub response.
+     *
+     * **API mode** (``panelApiEnabled: true``):
+     *   POSTs ``{model, max_tokens, messages}`` to the Anthropic
+     *   ``/v1/messages`` endpoint using the same pattern documented in the
+     *   Anthropic API-in-Artifacts spec.  Page Markdown is prepended to the
+     *   conversation as a system message so the model has full page context.
+     *
+     * **Stub mode** (``panelApiEnabled: false``, default):
+     *   Returns a static placeholder reply so the panel UI is fully usable
+     *   and testable without any API credentials or network calls.
+     *
+     * Edge cases:
+     *   - Empty input → silently returns; no message appended.
+     *   - Input longer than 4000 characters → truncated with a warning note.
+     *   - Network failure → shows an error bubble with the reason.
+     *
+     * @returns {Promise<void>}
+     */
+    async function handleAIPanelSubmit() {
+        const input = document.getElementById('ai-assistant-panel-input');
+        if (!input) return;
+
+        const rawText = input.value.trim();
+        if (!rawText) return;
+
+        // Enforce a reasonable per-message length guard.
+        const MAX_INPUT_CHARS = 4000;
+        const questionText = rawText.length > MAX_INPUT_CHARS
+            ? rawText.slice(0, MAX_INPUT_CHARS) + '\u2026 [truncated]'
+            : rawText;
+
+        _appendPanelMessage(questionText, 'user');
+        input.value = '';
+        input.disabled = true;
+
+        const sendBtn = document.getElementById('ai-assistant-panel-send');
+        if (sendBtn) sendBtn.disabled = true;
+
+        const cfg = window.AI_ASSISTANT_CONFIG || {};
+
+        try {
+            if (cfg.panelApiEnabled) {
+                await _panelApiCall(questionText, cfg);
+            } else {
+                await _panelStubReply(questionText);
+            }
+        } catch (err) {
+            console.error('AI Assistant panel error:', err);
+            _appendPanelMessage(
+                `Sorry, something went wrong: ${err.message}`,
+                'error'
+            );
+        } finally {
+            input.disabled = false;
+            if (sendBtn) sendBtn.disabled = false;
+            input.focus();
+        }
+    }
+
+    /**
+     * Live Anthropic API call for the AI panel.
+     *
+     * Collects the current page Markdown (via ``convertToMarkdown``), builds
+     * a system prompt that grounds the model in the page content, then posts
+     * to ``/v1/messages``.  The API key is intentionally NOT embedded here;
+     * this function assumes the deployment environment has configured the
+     * Anthropic reverse-proxy or CORS settings so the browser fetch succeeds.
+     *
+     * @param {string} question - User's trimmed question text.
+     * @param {Object} cfg      - ``window.AI_ASSISTANT_CONFIG``.
+     * @returns {Promise<void>}
+     */
+    async function _panelApiCall(question, cfg) {
+        let pageMarkdown = '';
+        try {
+            pageMarkdown = await convertToMarkdown();
+        } catch (_) {
+            // Non-fatal: continue without page context if conversion fails.
+        }
+
+        const systemPrompt = pageMarkdown
+            ? `You are a helpful documentation assistant. Answer questions about the following documentation page.\n\n---\n${pageMarkdown.slice(0, 8000)}\n---`
+            : 'You are a helpful documentation assistant.';
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: question }],
+            }),
+        });
+
+        if (!response.ok) {
+            const errBody = await response.text().catch(() => '');
+            throw new Error(`API ${response.status}: ${errBody.slice(0, 120)}`);
+        }
+
+        const data = await response.json();
+        const reply = (data.content || [])
+            .filter(b => b.type === 'text')
+            .map(b => b.text)
+            .join('\n')
+            .trim();
+
+        _appendPanelMessage(reply || '(no response)', 'assistant');
+    }
+
+    /**
+     * Stub reply for when ``panelApiEnabled`` is ``false``.
+     *
+     * Simulates a realistic async delay (400 ms) so the loading state is
+     * visible during development / demo and the UX is not jarring.
+     *
+     * @param {string} _question - User question (unused in stub mode).
+     * @returns {Promise<void>}
+     */
+    async function _panelStubReply(_question) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+        _appendPanelMessage(
+            'This AI assistant panel is running in stub mode. '
+            + 'Set ai_assistant_panel_api_enabled = True in conf.py '
+            + 'to enable live responses.',
+            'assistant'
+        );
     }
 
     // Initialize when DOM is ready

@@ -435,11 +435,12 @@ try_examples_global_warning_text = (
     "- With high load times especially on low-resource platforms, and the version of "
     "scikit-plots might not be in sync with the one you are browsing the documentation for.\n"
     "- If you encounter any issues, please report them on the "
-    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose)."
-    "\n\n"
+    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose).\n"
+    "- `micropip/piplite/pip` use `%pip` in JupyterLite instead of `pip` or `!pip`\n"
+    "\n"
     "```python\n"
-    "# Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
-    "import piplite; await piplite.install(  # import micropip\n"
+    "## Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
+    "import piplite; await piplite.install(  # or micropip\n"
     f"   '{f'''scikit-plots=={release}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
     "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
     "); import sklearn; import scikitplot as sp; sp.show_versions();\n "
@@ -1027,17 +1028,48 @@ html_theme_options = {
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
     # In particular, "**" specifies the default for all pages
     # Use :html_theme.sidebar_secondary.remove: for file-wide removal
+    # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/layout.html#secondary-sidebar-right
+    # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_sidebars
     "secondary_sidebar_items": {
-        "**": [
-            # "edit-this-page",
+        # Generated docs > On this page > Show Source
+        "_tags/**": ["page-toc","sourcelink"],
+        "apis/**": ["page-toc","sourcelink"],
+        # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
+        "auto_examples/**": [
+            *(["edit-this-page"] if "dev" in release else []),
             "page-toc",
-            "sourcelink",
-            # Sphinx-Gallery-specific sidebar components
+            # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
+            # (recommended) Canonical Sphinx-Gallery components sidebar manually add
             # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            # sg_download_links: Displays the download links of source code, Jupyter notebook, and the zip of them for an example.
+            # sg_launcher_links: Displays the launcher links for JupyterLite and Binder for an example.
+            #
+            # sg_download_links:
+            #   - Download source code (.py)
+            #   - Download notebook (.ipynb)
+            #   - Download zip (.zip)
+            #
+            # sg_launcher_links:
+            #   - JupyterLite
+            #   - Binder
+            "sg_download_links",  # Sphinx-Gallery links to:
+            "sg_launcher_links",
+            # "funding_links",
+        ],
+        # Regular docs > On this page > Show Source
+        "**": [
+            *(["edit-this-page"] if "dev" in release else []),
+            "page-toc",
+            "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
+            # (recommended) Canonical Sphinx-Gallery components sidebar manually add
+            # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            # sg_download_links: Displays the download links of source code, Jupyter notebook, and the zip of them for an example.
+            # sg_launcher_links: Displays the launcher links for JupyterLite and Binder for an example.
+            # "sg_download_links",  # Sphinx-Gallery links to:
             # "sg_launcher_links",
-            "sg_download_links",
         ],
     },
+    # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_show_sourcelink
     # -- Announcement ---------------------------------------------------------
     # We override the announcement template from pydata-sphinx-theme, where
     # this special value indicates the use of the unreleased banner. If we need
@@ -1167,7 +1199,7 @@ html_additional_pages = {"index": "index.html"}
 # If true, the reST sources are included in the HTML build as _sources/name.
 html_copy_source = True
 
-# If true, links to the reST sources are added to the pages.
+# If true, links to the reST sources are added to the pages. Default: True
 # html_show_sourcelink = True
 
 # If true, an OpenSearch description file will be output, and all pages will

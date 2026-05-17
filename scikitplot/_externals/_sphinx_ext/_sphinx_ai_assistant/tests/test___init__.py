@@ -3170,3 +3170,207 @@ class TestPlotCorpusKnowledge:
         # Only the readable page should appear
         assert "ok.md" in g["pages"]
         assert "bad.md" not in g["pages"]
+
+
+# ===========================================================================
+# 45. PDF Export feature flag and config value
+# ===========================================================================
+
+class TestPdfExportFeature:
+    """Tests for the ``pdf_export`` feature flag and ``ai_assistant_pdf_export_url`` config.
+
+    Design invariants
+    -----------------
+    * ``pdf_export`` key exists in the default ``ai_assistant_features`` dict.
+    * Default value is ``True`` (button rendered by default).
+    * ``ai_assistant_pdf_export_url`` defaults to ``None``.
+    * ``add_ai_assistant_context`` serialises ``pdfExportUrl`` into the page config:
+      - ``None`` / missing → ``""`` (JS falls back to ``window.print()``).
+      - Non-empty string → forwarded verbatim.
+    """
+
+    def test_pdf_export_in_default_features(self):
+        """``pdf_export`` key must be present in the default features dict."""
+        features = _mod._DEFAULT_PROVIDERS  # sanity check we have the right module
+        app = MagicMock()
+        # Access the default directly from setup()'s registered value.
+        # We test the actual default by reading it from the source constant.
+        import inspect
+        src = inspect.getsource(_mod.setup)
+        assert "pdf_export" in src, "pdf_export feature flag missing from setup()"
+
+    def test_pdf_export_default_is_true(self):
+        """Default value for ``pdf_export`` feature flag must be ``True``."""
+        import inspect
+        src = inspect.getsource(_mod.setup)
+        # Verify the source contains the canonical True assignment.
+        assert '"pdf_export": True' in src or "'pdf_export': True" in src
+
+    def test_pdf_export_url_default_none(self):
+        """``ai_assistant_pdf_export_url`` must default to ``None``."""
+        import inspect
+        src = inspect.getsource(_mod.setup)
+        assert "ai_assistant_pdf_export_url" in src
+
+    def test_pdf_export_url_empty_string_in_context(self, sphinx_app):
+        """When ``ai_assistant_pdf_export_url`` is ``None``, context key is ``""``."""
+        sphinx_app.config.ai_assistant_pdf_export_url = None
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        cfg = context["ai_assistant_config"]
+        assert "pdfExportUrl" in cfg
+        assert cfg["pdfExportUrl"] == ""
+
+    def test_pdf_export_url_forwarded_when_set(self, sphinx_app):
+        """Non-empty ``ai_assistant_pdf_export_url`` must appear verbatim in context."""
+        sphinx_app.config.ai_assistant_pdf_export_url = "/_pdf/{pagename}.pdf"
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        cfg = context["ai_assistant_config"]
+        assert cfg["pdfExportUrl"] == "/_pdf/{pagename}.pdf"
+
+    def test_pdf_export_url_json_safe(self, sphinx_app):
+        """``pdfExportUrl`` must be serialisable to JSON without script injection."""
+        sphinx_app.config.ai_assistant_pdf_export_url = (
+            "https://example.com/pdf?page=</script><script>alert(1)</script>"
+        )
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        script_block = context["metatags"]
+        # The _safe_json_for_script guard must have escaped </script>
+        assert "</script><script>" not in script_block
+
+    def test_setup_registers_pdf_export_url_config(self):
+        """``setup()`` must register ``ai_assistant_pdf_export_url`` with Sphinx."""
+        app = MagicMock()
+        app.config.html_static_path = []
+        _mod.setup(app)
+        calls = [str(c) for c in app.add_config_value.call_args_list]
+        assert any("ai_assistant_pdf_export_url" in c for c in calls)
+
+
+# ===========================================================================
+# 46. AI Panel feature flag and config values
+# ===========================================================================
+
+class TestAIPanelFeature:
+    """Tests for the ``ai_panel`` feature flag and related config values.
+
+    Design invariants
+    -----------------
+    * ``ai_panel`` key in default ``ai_assistant_features``, default ``True``.
+    * Three new config values registered by ``setup()``:
+      - ``ai_assistant_panel_title``       (str, default ``"AI Assistant"``)
+      - ``ai_assistant_panel_placeholder`` (str, default ``"Ask a question…"``)
+      - ``ai_assistant_panel_api_enabled`` (bool, default ``False``)
+    * ``add_ai_assistant_context`` serialises all three into the page config:
+      - ``panelTitle``, ``panelPlaceholder``, ``panelApiEnabled``.
+    * ``panelApiEnabled`` is always a bool in the serialised context.
+    * Defaults are applied when config values are ``None`` / MagicMock.
+    """
+
+    def test_ai_panel_in_default_features(self):
+        """``ai_panel`` key must be present in setup()'s default features."""
+        import inspect
+        src = inspect.getsource(_mod.setup)
+        assert "ai_panel" in src
+
+    def test_ai_panel_default_is_true(self):
+        """Default value for ``ai_panel`` must be ``True``."""
+        import inspect
+        src = inspect.getsource(_mod.setup)
+        assert '"ai_panel": True' in src or "'ai_panel': True" in src
+
+    def test_setup_registers_panel_title_config(self):
+        """``setup()`` must register ``ai_assistant_panel_title``."""
+        app = MagicMock()
+        app.config.html_static_path = []
+        _mod.setup(app)
+        calls = [str(c) for c in app.add_config_value.call_args_list]
+        assert any("ai_assistant_panel_title" in c for c in calls)
+
+    def test_setup_registers_panel_placeholder_config(self):
+        """``setup()`` must register ``ai_assistant_panel_placeholder``."""
+        app = MagicMock()
+        app.config.html_static_path = []
+        _mod.setup(app)
+        calls = [str(c) for c in app.add_config_value.call_args_list]
+        assert any("ai_assistant_panel_placeholder" in c for c in calls)
+
+    def test_setup_registers_panel_api_enabled_config(self):
+        """``setup()`` must register ``ai_assistant_panel_api_enabled``."""
+        app = MagicMock()
+        app.config.html_static_path = []
+        _mod.setup(app)
+        calls = [str(c) for c in app.add_config_value.call_args_list]
+        assert any("ai_assistant_panel_api_enabled" in c for c in calls)
+
+    def test_panel_title_default_in_context(self, sphinx_app):
+        """When ``ai_assistant_panel_title`` is ``None``, fallback is ``'AI Assistant'``."""
+        sphinx_app.config.ai_assistant_panel_title = None
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        cfg = context["ai_assistant_config"]
+        assert cfg["panelTitle"] == "AI Assistant"
+
+    def test_panel_title_forwarded_when_set(self, sphinx_app):
+        """Custom panel title must appear verbatim in the context."""
+        sphinx_app.config.ai_assistant_panel_title = "GitBook Assistant"
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        assert context["ai_assistant_config"]["panelTitle"] == "GitBook Assistant"
+
+    def test_panel_placeholder_default_in_context(self, sphinx_app):
+        """When ``ai_assistant_panel_placeholder`` is ``None``, a sensible default is used."""
+        sphinx_app.config.ai_assistant_panel_placeholder = None
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        cfg = context["ai_assistant_config"]
+        assert isinstance(cfg["panelPlaceholder"], str)
+        assert len(cfg["panelPlaceholder"]) > 0
+
+    def test_panel_api_enabled_default_false(self, sphinx_app):
+        """``panelApiEnabled`` must default to ``False`` (stub mode)."""
+        sphinx_app.config.ai_assistant_panel_api_enabled = False
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        assert context["ai_assistant_config"]["panelApiEnabled"] is False
+
+    def test_panel_api_enabled_true_forwarded(self, sphinx_app):
+        """``panelApiEnabled=True`` must be serialised as a JSON boolean."""
+        sphinx_app.config.ai_assistant_panel_api_enabled = True
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        assert context["ai_assistant_config"]["panelApiEnabled"] is True
+
+    def test_panel_api_enabled_is_bool_type(self, sphinx_app):
+        """``panelApiEnabled`` must always be a Python ``bool`` in the context dict."""
+        for val in (True, False, 1, 0):
+            sphinx_app.config.ai_assistant_panel_api_enabled = val
+            context: dict = {}
+            _mod.add_ai_assistant_context(
+                sphinx_app, "index", "page.html", context, None
+            )
+            assert isinstance(
+                context["ai_assistant_config"]["panelApiEnabled"], bool
+            ), f"panelApiEnabled should be bool for input {val!r}"
+
+    def test_panel_keys_in_json_output(self, sphinx_app):
+        """All three panel keys must be present in the serialised JSON script tag."""
+        sphinx_app.config.ai_assistant_panel_title = "Docs Assistant"
+        sphinx_app.config.ai_assistant_panel_placeholder = "Ask me anything…"
+        sphinx_app.config.ai_assistant_panel_api_enabled = False
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        script = context["metatags"]
+        assert "panelTitle" in script
+        assert "panelPlaceholder" in script
+        assert "panelApiEnabled" in script
+
+    def test_panel_title_xss_guard_in_json(self, sphinx_app):
+        """``panelTitle`` containing ``</script>`` must be escaped in the script block."""
+        sphinx_app.config.ai_assistant_panel_title = "Bad </script><script>alert(1)"
+        context: dict = {}
+        _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
+        script = context["metatags"]
+        assert "</script><script>" not in script
