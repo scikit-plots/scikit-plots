@@ -71,3 +71,13 @@ Resources
             :maxdepth: 3
 
             External Resources <./external_resources.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **youtu.be**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Youtube <./youtube.rst>

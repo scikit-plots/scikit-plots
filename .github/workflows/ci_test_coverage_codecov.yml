@@ -113,15 +113,16 @@ jobs:
         run: echo "COVERAGE_START=$(date -u +%s)" >> "$GITHUB_ENV"
 
       - name: "☂️ Run tests with coverage"
+        env:
+          SETUPTOOLS_USE_DISTUTILS: local
+          # Optional: some Cython builders also benefit from this:
+          # PYTHONPATH: .
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}  # stored in repo Secrets
         run: |
           pytest \
             --cov \
             --cov-branch \
             --cov-report=xml:coverage.xml
-        env:
-          SETUPTOOLS_USE_DISTUTILS: local
-          # Optional: some Cython builders also benefit from this:
-          # PYTHONPATH: .
 
       # Verify the coverage file was freshly generated in this run.
       # Prints the file mtime so it is visible in CI logs for debugging.

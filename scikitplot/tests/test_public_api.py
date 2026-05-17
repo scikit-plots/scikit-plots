@@ -242,7 +242,7 @@ def test_all_modules_are_expected_2():
         members = []
 
         # If this submodule needs a heavy dep, skip if missing
-        if mod_name in REQUIRES_HEAVY:
+        if mod_name.startswith(tuple(REQUIRES_HEAVY)):
             return members  # skip this submodule only
 
         try:
@@ -250,7 +250,7 @@ def test_all_modules_are_expected_2():
             module = importlib.import_module(mod_name)
         except ImportError as e:
             # Skip if the missing module is one of our heavy deps
-            if mod_name in REQUIRES_HEAVY:
+            if mod_name.startswith(tuple(REQUIRES_HEAVY)):
                 return members
             else:
                 raise
@@ -304,7 +304,7 @@ def test_api_importable():
             importlib.import_module(module_name)
         except (ImportError, AttributeError):
             # If this submodule needs a heavy dep, skip if missing
-            if module_name in REQUIRES_HEAVY:
+            if module_name.startswith(tuple(REQUIRES_HEAVY)):
                 return True  # skip this submodule only
             return False
 

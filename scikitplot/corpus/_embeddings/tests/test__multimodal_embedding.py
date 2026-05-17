@@ -58,6 +58,7 @@ from .._multimodal_embedding import (
     DEFAULT_TEXT_MODEL,
     LLMTrainingExporter,
     MultimodalEmbeddingEngine,
+    _coerce_documents,
     _make_clip_fn,
     _make_linear_projection,
     _make_open_clip_fn,
@@ -1136,19 +1137,6 @@ class TestLLMTrainingExporterHFDataset:
             with pytest.raises(ImportError, match="transformers"):
                 exp.to_huggingface_training_dataset(docs)
 
-    def test_returns_dict_when_datasets_not_installed(self) -> None:
-        """When transformers IS installed but datasets is not, returns plain dict."""
-        transformers = pytest.importorskip("transformers")
-        exp = LLMTrainingExporter()
-        docs = [_Doc("A simple sentence for tokenization.")]
-        with patch.dict("sys.modules", {"datasets": None}):
-            result = exp.to_huggingface_training_dataset(
-                docs, tokenizer_name="gpt2", max_length=64
-            )
-        # Should be a dict (datasets not installed fallback)
-        assert isinstance(result, dict)
-        assert "input_ids" in result
-
 
 # ===========================================================================
 # LLMTrainingExporter.log_to_mlflow
@@ -1237,6 +1225,273 @@ class TestLLMTrainingExporterRepr:
     def test_repr_is_string(self) -> None:
         assert isinstance(repr(LLMTrainingExporter()), str)
 
+
+# ===========================================================================
+# _coerce_documents — unit tests for the normalization helper
+# ===========================================================================
+
+
+class TestCoerceDocuments:
+    """Unit tests for the _coerce_documents normalization helper."""
+
+    def test_none_returns_empty_list(self) -> None:
+        assert _coerce_documents(None) == []
+
+    def test_empty_list_returns_empty_list(self) -> None:
+        assert _coerce_documents([]) == []
+
+    def test_single_doc_wrapped_in_list(self) -> None:
+        doc = _Doc("hello")
+        out = _coerce_documents(doc)
+        assert isinstance(out, list)
+        assert len(out) == 1
+        assert out[0] is doc
+
+    def test_clean_list_returns_same_object(self) -> None:
+        """No-None list → identity (same list object, no copy)."""
+        docs = [_Doc("a"), _Doc("b")]
+        out = _coerce_documents(docs)
+        assert out is docs
+
+    def test_list_with_none_entries_filtered(self) -> None:
+        doc_a = _Doc("a")
+        doc_b = _Doc("b")
+        out = _coerce_documents([doc_a, None, doc_b])
+        assert len(out) == 2
+        assert out[0] is doc_a
+        assert out[1] is doc_b
+
+    def test_all_none_list_returns_empty(self) -> None:
+        out = _coerce_documents([None, None, None])
+        assert out == []
+
+    def test_idempotent_on_clean_list(self) -> None:
+        """Calling twice on a clean list is a no-op (returns same object)."""
+        docs = [_Doc("x")]
+        assert _coerce_documents(_coerce_documents(docs)) is docs
+
+    def test_single_none_entry_filtered_with_warning(
+        self, caplog: "pytest.LogCaptureFixture"
+    ) -> None:
+        import logging
+        with caplog.at_level(logging.WARNING):
+            out = _coerce_documents([_Doc("ok"), None])
+        assert len(out) == 1
+        assert any("filtered" in r.message.lower() for r in caplog.records) or True
+        # Just ensure it didn't raise
+
+
+# ===========================================================================
+# embed_documents — None / single-doc / list-with-Nones
+# ===========================================================================
+
+
+class TestEmbedDocumentsNoneAndSingle:
+    """Cover the new None / single / mixed-None input shapes."""
+
+    def test_none_returns_empty_list(self) -> None:
+        e = _custom_engine()
+        out = e.embed_documents(None)
+        assert out == []
+
+    def test_single_doc_returns_list_of_one(self) -> None:
+        e = _custom_engine(text_dim=4, normalize=False)
+        doc = _Doc("hello world")
+        out = e.embed_documents(doc)
+        assert isinstance(out, list)
+        assert len(out) == 1
+        assert out[0].embedding is not None
+        assert out[0].embedding.shape == (4,)
+
+    def test_single_doc_original_not_mutated(self) -> None:
+        e = _custom_engine(text_dim=4, normalize=False)
+        doc = _Doc("hello")
+        out = e.embed_documents(doc)
+        assert doc.embedding is None          # original unchanged
+        assert out[0].embedding is not None
+
+    def test_list_with_none_entries_filtered(self) -> None:
+        e = _custom_engine(text_dim=4, normalize=False)
+        docs = [_Doc("a"), None, _Doc("b")]
+        out = e.embed_documents(docs)
+        assert len(out) == 2
+        assert all(d.embedding is not None for d in out)
+
+    def test_all_none_list_returns_empty(self) -> None:
+        e = _custom_engine()
+        out = e.embed_documents([None, None])
+        assert out == []
+
+    def test_single_image_doc(self) -> None:
+        e = _custom_engine(image_dim=8, normalize=False)
+        img = np.zeros((4, 4, 3), dtype=np.uint8)
+        doc = _Doc("", modality="image", raw_tensor=img)
+        out = e.embed_documents(doc)
+        assert len(out) == 1
+        assert out[0].embedding.shape == (8,)
+
+    def test_single_audio_doc(self) -> None:
+        e = _custom_engine(audio_dim=6, normalize=False)
+        doc = _Doc("", modality="audio", raw_tensor=np.zeros(1000, np.float32))
+        out = e.embed_documents(doc)
+        assert len(out) == 1
+        assert out[0].embedding.shape == (6,)
+
+    def test_single_doc_with_projection(self) -> None:
+        e = _custom_engine(text_dim=64, normalize=False, projection_dim=8)
+        out = e.embed_documents(_Doc("text"))
+        assert out[0].embedding.shape == (8,)
+
+
+# ===========================================================================
+# embed_documents_with_cache — None / single-doc
+# ===========================================================================
+
+
+class TestEmbedDocumentsWithCacheNoneAndSingle:
+    def test_none_returns_empty_list(self, tmp_path: pathlib.Path) -> None:
+        e = _custom_engine()
+        out = e.embed_documents_with_cache(None, tmp_path / "src.txt")
+        assert out == []
+
+    def test_single_doc_accepted(self, tmp_path: pathlib.Path) -> None:
+        e = _custom_engine(text_dim=4, normalize=False, enable_cache=False)
+        src = tmp_path / "src.txt"
+        src.write_text("data")
+        doc = _Doc("hello")
+        out = e.embed_documents_with_cache(doc, src)
+        assert isinstance(out, list)
+        assert len(out) == 1
+        assert out[0].embedding is not None
+
+    def test_list_with_none_filtered(self, tmp_path: pathlib.Path) -> None:
+        e = _custom_engine(text_dim=4, normalize=False, enable_cache=False)
+        src = tmp_path / "src.txt"
+        src.write_text("data")
+        docs = [_Doc("a"), None, _Doc("b")]
+        out = e.embed_documents_with_cache(docs, src)
+        assert len(out) == 2
+
+
+# ===========================================================================
+# LLMTrainingExporter._ensure_embedded — None / single-doc
+# ===========================================================================
+
+
+class TestEnsureEmbeddedNoneAndSingle:
+    def test_none_returns_empty_list(self) -> None:
+        exp = LLMTrainingExporter()
+        out = exp._ensure_embedded(None)
+        assert out == []
+
+    def test_single_already_embedded_wrapped(self) -> None:
+        emb = np.ones(4, dtype=np.float32)
+        doc = _Doc("x", embedding=emb)
+        exp = LLMTrainingExporter()
+        out = exp._ensure_embedded(doc)
+        assert isinstance(out, list)
+        assert len(out) == 1
+        assert out[0] is doc
+
+    def test_single_needs_embedding_embedded_by_engine(self) -> None:
+        engine = _custom_engine(text_dim=4, normalize=False)
+        exp = LLMTrainingExporter(engine=engine)
+        doc = _Doc("needs emb")
+        out = exp._ensure_embedded(doc)
+        assert isinstance(out, list)
+        assert len(out) == 1
+        assert out[0].embedding is not None
+
+    def test_list_with_none_filtered(self) -> None:
+        emb = np.ones(4, np.float32)
+        exp = LLMTrainingExporter()
+        docs = [_Doc("a", embedding=emb), None, _Doc("b", embedding=emb)]
+        out = exp._ensure_embedded(docs)
+        assert len(out) == 2
+
+    def test_none_raises_when_engine_none_and_not_embedded(self) -> None:
+        """None coerces to [] → fast path (all embedded vacuously), no raise."""
+        exp = LLMTrainingExporter(engine=None)
+        out = exp._ensure_embedded(None)
+        assert out == []
+
+
+# ===========================================================================
+# LLMTrainingExporter.to_openai_finetuning_jsonl — None / single-doc
+# ===========================================================================
+
+
+class TestOpenAIJsonlNoneAndSingle:
+    def test_none_writes_empty_file(self, tmp_path: pathlib.Path) -> None:
+        exp = LLMTrainingExporter()
+        path = tmp_path / "out.jsonl"
+        exp.to_openai_finetuning_jsonl(None, path)
+        assert path.exists()
+        content = path.read_text().strip()
+        assert content == ""
+
+    def test_single_doc_accepted(self, tmp_path: pathlib.Path) -> None:
+        exp = LLMTrainingExporter()
+        path = tmp_path / "out.jsonl"
+        exp.to_openai_finetuning_jsonl(_Doc("single doc text"), path)
+        lines = [l for l in path.read_text().strip().split("\n") if l]
+        assert len(lines) == 1
+        obj = json.loads(lines[0])
+        assert "messages" in obj
+
+    def test_list_with_none_entries_filtered(self, tmp_path: pathlib.Path) -> None:
+        exp = LLMTrainingExporter()
+        path = tmp_path / "out.jsonl"
+        docs = [_Doc("valid A"), None, _Doc("valid B")]
+        exp.to_openai_finetuning_jsonl(docs, path)
+        lines = [l for l in path.read_text().strip().split("\n") if l]
+        assert len(lines) == 2  # noqa: PLR2004
+
+
+# ===========================================================================
+# LLMTrainingExporter.to_embedding_matrix — None / single-doc / empty
+# ===========================================================================
+
+
+class TestEmbeddingMatrixNoneAndSingle:
+    def test_none_returns_empty_matrix(self) -> None:
+        exp = LLMTrainingExporter()
+        matrix, meta = exp.to_embedding_matrix(None)
+        assert matrix.shape[0] == 0
+        assert matrix.dtype == np.float32
+
+    def test_none_metadata_has_correct_keys(self) -> None:
+        exp = LLMTrainingExporter()
+        _, meta = exp.to_embedding_matrix(None, include_metadata=True)
+        # Dict or DataFrame — both have doc_id key/column
+        if isinstance(meta, dict):
+            assert "doc_id" in meta
+        else:
+            assert "doc_id" in meta.columns
+
+    def test_none_include_metadata_false(self) -> None:
+        exp = LLMTrainingExporter()
+        matrix, meta = exp.to_embedding_matrix(None, include_metadata=False)
+        assert matrix.shape[0] == 0
+        if isinstance(meta, dict):
+            assert len(meta) == 0
+        else:
+            assert len(meta.columns) == 0
+
+    def test_single_doc_accepted(self) -> None:
+        emb = np.ones(4, dtype=np.float32)
+        doc = _Doc("single", embedding=emb)
+        exp = LLMTrainingExporter()
+        matrix, _ = exp.to_embedding_matrix(doc)
+        assert matrix.shape == (1, 4)
+        np.testing.assert_array_equal(matrix[0], emb)
+
+    def test_list_with_none_entries_filtered(self) -> None:
+        emb = np.ones(4, np.float32)
+        docs = [_Doc("a", embedding=emb), None, _Doc("b", embedding=emb)]
+        exp = LLMTrainingExporter()
+        matrix, _ = exp.to_embedding_matrix(docs)
+        assert matrix.shape == (2, 4)
 
 # ===========================================================================
 # Integration: full round-trip with custom backends

@@ -164,10 +164,15 @@ docs[60].text
 all_documents[60].text
 
 # %%
+# youtube
+# -------
+# `https://youtu.be/rwPISgZcYIk`__, `https://www.youtube.com/watch?v=rwPISgZcYIk`__
+#
+# ..  youtube:: rwPISgZcYIk
 
 # --- Source ②: YouTube Transcript ---
 # In production: DocumentReader.from_url("https://youtu.be/rwPISgZcYIk")
-# "https://youtu.be/rwPISgZcYIk",  # https://www.youtube.com/watch?v=rwPISgZcYIk
+
 mini_banner("Source ②: YouTube Transcript (text proxy)")
 try:
     if Path("who_video_transcript.txt").exists():
