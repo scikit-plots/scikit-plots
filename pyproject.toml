@@ -482,7 +482,7 @@ doc = [
   "intersphinx_registry",                   # Intersphinx management
   "numpydoc",                               # Numpy-style docstrings
   "myst-nb",                                # Jupyter Notebook integration
-  "myst-parser",                            # Markdown support
+  "myst-parser",                            # Markdown support (.md files) recommended modern Markdown ecosystem for Sphinx.
   "packaging",                              # Package utilities
   "pooch",                                  # Data by downloading files from a server
   "towncrier",

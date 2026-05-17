@@ -270,8 +270,8 @@ extensions = [
     'scikitplot.externals._sphinxext.sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
     #
-    # 'nbsphinx',                     # to publish Jupyter notebooks as documentation pages.
-    # 'myst_parser',                  # Markdown parser (.md files) with Sphinx
+    'myst_parser',  # Markdown parser (.md files) with Sphinx
+    # 'nbsphinx',  # to publish Jupyter notebooks as documentation pages.
     # gallery extensions (these affect layout and content presentation)
     "sphinx_gallery.gen_gallery",  # Generate galleries of example scripts and figures.
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
@@ -832,13 +832,14 @@ master_doc = "index"
 
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-source_suffix
 # If the value is a string or sequence of strings, Sphinx will consider that they are all 'restructuredtext' files.
+# Modern Sphinx usually auto-detects once MyST loaded, but explicit is cleaner:
 # source_suffix = '.rst'
 # source_suffix = ['.rst', '.md']
 source_suffix = {
     '.rst': 'restructuredtext',
+    # '.md': 'markdown',  # Need pip "myst-parser"
     # '.txt': 'restructuredtext',
-    '.md': 'markdown',
-    '.txt': 'markdown',
+    # '.txt': 'markdown',
 }
 
 ##########################################################################
