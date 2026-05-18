@@ -541,10 +541,6 @@ APIS_REFERENCE: dict[str, dict[str, any]] = {
                     "FilterBase",
                     # Pipeline resilience
                     "PipelineGuard",
-                    # Multi-source adapter (context manager)
-                    "_MultiSourceReader",
-                    # URL detection helper
-                    "_is_url",
                 ],
             },
             {

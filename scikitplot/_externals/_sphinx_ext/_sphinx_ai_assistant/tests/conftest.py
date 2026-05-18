@@ -172,6 +172,8 @@ def _make_config(**overrides: Any) -> MagicMock:
         "view_markdown": True,
         "ai_chat": True,
         "mcp_integration": False,
+        "pdf_export": True,
+        "ai_panel": True,
     }
     cfg.ai_assistant_providers = {}
     cfg.ai_assistant_ollama_model = "llama3.2:latest"
@@ -181,6 +183,12 @@ def _make_config(**overrides: Any) -> MagicMock:
     cfg.ai_assistant_custom_context = None
     cfg.ai_assistant_custom_prompt_prefix = None
     cfg.ai_assistant_include_raw_image = False
+    # PDF export
+    cfg.ai_assistant_pdf_export_url = None
+    # AI panel
+    cfg.ai_assistant_panel_title = "AI Assistant"
+    cfg.ai_assistant_panel_placeholder = "Ask a question about this page\u2026"
+    cfg.ai_assistant_panel_api_enabled = False
     # Standard Sphinx values
     cfg.html_baseurl = ""
     cfg.html_static_path = []

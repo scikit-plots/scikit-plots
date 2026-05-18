@@ -243,9 +243,9 @@ Cross-platform model:
 +---------+--------------------------+
 | OS      | Storage model            |
 +=========+==========================+
-| Windows | WSL2 + VHDX             |
+| Windows | WSL2 + VHDX              |
 | Linux   | Native filesystem        |
-| macOS   | VM disk image           |
+| macOS   | VM disk image            |
 +---------+--------------------------+
 
 

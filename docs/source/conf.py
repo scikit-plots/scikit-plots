@@ -41,6 +41,9 @@ for more details on configuring the documentation build.
 ## Imports
 ##########################################################################
 # Python's standard library
+
+from __future__ import annotations
+
 import os
 import sys
 
@@ -72,6 +75,8 @@ except ImportError:
     pass
 
 import jinja2
+from sphinx.application import Sphinx
+# from sphinx.locale import _
 
 # Set up sphinx
 # import logging
@@ -435,11 +440,12 @@ try_examples_global_warning_text = (
     "- With high load times especially on low-resource platforms, and the version of "
     "scikit-plots might not be in sync with the one you are browsing the documentation for.\n"
     "- If you encounter any issues, please report them on the "
-    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose)."
-    "\n\n"
+    "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose).\n"
+    "- `micropip/piplite/pip` use `%pip` in JupyterLite instead of `pip` or `!pip`\n"
+    "\n"
     "```python\n"
-    "# Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
-    "import piplite; await piplite.install(  # import micropip\n"
+    "## Installing the dependencies first, and then scikit-plots from Anaconda.org.\n"
+    "import piplite; await piplite.install(  # or micropip\n"
     f"   '{f'''scikit-plots=={release}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
     "   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
     "); import sklearn; import scikitplot as sp; sp.show_versions();\n "
@@ -891,7 +897,10 @@ html_theme_options = {
     # -- Search and Edit ------------------------------------------------------
     # "search_as_you_type": True,
     "search_bar_text": "Search the docs ...",
-    "use_edit_page_button": True,
+    # Missing required value for `use_edit_page_button`.
+    # Ensure one set of the following in your `html_context` configuration:
+    # [('bitbucket_user', 'bitbucket_repo', 'bitbucket_version'), ('github_user', 'github_repo', 'github_version'), ('gitlab_user', 'gitlab_repo', 'gitlab_version')]
+    "use_edit_page_button": True,  # False
     # -- Appearance Settings --------------------------------------------------
     "pygments_light_style": "tango",  # "github-light",
     "pygments_dark_style": "monokai",  # "github-dark",
@@ -1027,17 +1036,35 @@ html_theme_options = {
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
     # In particular, "**" specifies the default for all pages
     # Use :html_theme.sidebar_secondary.remove: for file-wide removal
+    # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/layout.html#secondary-sidebar-right
+    # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_sidebars
     "secondary_sidebar_items": {
+        # Generated docs > On this page > Show Source
+        # Regular docs > On this page > Show Source
+        # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
         "**": [
-            # "edit-this-page",
+            *(["edit-this-page"] if "dev" in release else []),
             "page-toc",
-            "sourcelink",
-            # Sphinx-Gallery-specific sidebar components
+            # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
+            # (recommended) Canonical Sphinx-Gallery components sidebar manually add
             # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
-            # "sg_launcher_links",
-            "sg_download_links",
+            # sg_download_links: Displays the download links of source code, Jupyter notebook, and the zip of them for an example.
+            # sg_launcher_links: Displays the launcher links for JupyterLite and Binder for an example.
+            #
+            # sg_download_links:
+            #   - Download source code (.py)
+            #   - Download notebook (.ipynb)
+            #   - Download zip (.zip)
+            #
+            # sg_launcher_links:
+            #   - JupyterLite
+            #   - Binder
+            "sg_download_links",  # Sphinx-Gallery links to:
+            "sg_launcher_links",
+            # "funding_links",
         ],
     },
+    # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_show_sourcelink
     # -- Announcement ---------------------------------------------------------
     # We override the announcement template from pydata-sphinx-theme, where
     # this special value indicates the use of the unreleased banner. If we need
@@ -1167,7 +1194,7 @@ html_additional_pages = {"index": "index.html"}
 # If true, the reST sources are included in the HTML build as _sources/name.
 html_copy_source = True
 
-# If true, links to the reST sources are added to the pages.
+# If true, links to the reST sources are added to the pages. Default: True
 # html_show_sourcelink = True
 
 # If true, an OpenSearch description file will be output, and all pages will
@@ -1845,10 +1872,10 @@ sass_targets = {
 # ---------------------------------------------------------------------------
 # Merge into existing html_context if you already have one
 html_context = {
-    # "github_user": "scikit-plots",
-    # "github_repo": "scikit-plots",
-    # "github_version": "main",   # branch the docs are built from
-    # "doc_path": "docs",         # path to the docs directory inside the repo
+    "github_user": "scikit-plots",
+    "github_repo": "scikit-plots",
+    "github_version": gh_branch,  # branch the docs are built from
+    # "doc_path": "docs",  # path to the docs directory inside the repo
 
     # 'repl_url': repl_url,  # populated by the extension
     # "shell": {
@@ -1970,15 +1997,42 @@ ai_assistant_generate_llms_txt = True
 ai_assistant_base_url = ""  # use html_baseurl above
 
 ai_assistant_features = {
-    # Copy page content as Markdown to clipboard
+    # ── Core export features ──────────────────────────────────────────────
+    # Copy the current page as Markdown (main button + dropdown item).
     "markdown_export": True,
-    # Open raw Markdown of the current page in a new browser tab
+    # Open the companion .md file in a new tab.
     "view_markdown": True,
-    # Render deep-links to Claude / ChatGPT with page context
+
+    # ── AI chat deep-links ────────────────────────────────────────────────
+    # Show enabled AI provider buttons (Claude, ChatGPT, Gemini, …).
     "ai_chat": True,
-    # Show MCP server installation buttons
-    "mcp_integration": False,
+
+    # ── MCP integration ───────────────────────────────────────────────────
+    # Show MCP "Connect" buttons for VS Code, Claude Desktop, etc.
+    # Requires at least one enabled entry in ``ai_assistant_mcp_tools``.
+    "mcp_integration": True,   # False ← disable MCP section on this site
+
+    # ── Theme toggle ──────────────────────────────────────────────────────
+    # Dark / light / system color-scheme toggle button.
+    "theme_toggle": True,   # False ← hide if the theme handles it already
+
+    # ── PDF export ────────────────────────────────────────────────────────
+    # "Export as PDF" centered button + URL/Print mode toggle.
+    # IMPORTANT: must be set explicitly — the JS default is True, but relying
+    # on JS defaults means conf.py cannot disable it cleanly.
+    "pdf_export": True,
+
+    # ── AI panel ─────────────────────────────────────────────────────────
+    # Floating in-page AI assistant chat panel (slide-in drawer).
+    # IMPORTANT: this key MUST be present and True for the panel button to
+    # appear in the dropdown.  The JS safe default is False (opt-in) — if
+    # this key is absent from conf.py the panel is invisible.
+    # Root cause of BUG-1: partial ai_assistant_features dict that omits
+    # this key → JS defaults ai_panel = False → button never created.
+    "ai_panel": True,
 }
+
+ai_assistant_panel_api_enabled = False
 
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
@@ -2434,3 +2488,43 @@ for rst_template_name, rst_target_name, kwargs in rst_templates:
 #         filename=None,
 #         body="window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({hashBasedRouting:true})",
 #     )
+
+# -- application setup -------------------------------------------------------
+# def setup_to_main(
+#     app: Sphinx, pagename: str, templatename: str, context, doctree
+# ) -> None:
+#     """
+#     Add a function that jinja can access for returning an "edit this page" link
+#     pointing to `main`.
+#     """
+
+#     def to_main(link: str) -> str:
+#         """
+#         Transform "edit on github" links and make sure they always point to the
+#         main branch.
+
+#         Args:
+#             link: the link to the github edit interface
+
+#         Returns:
+#             the link to the tip of the main branch for the same file
+#         """
+#         links = link.split("/")
+#         idx = links.index("edit")
+#         return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
+
+#     context["to_main"] = to_main
+# def setup(app: Sphinx) -> dict[str, any]:
+#     """Add custom configuration to sphinx app.
+
+#     Args:
+#         app: the Sphinx application
+#     Returns:
+#         the 2 parallel parameters set to ``True``.
+#     """
+#     app.connect("html-page-context", setup_to_main)
+
+#     return {
+#         "parallel_read_safe": True,
+#         "parallel_write_safe": True,
+#     }

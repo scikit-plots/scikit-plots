@@ -115,6 +115,11 @@ def show_doc(doc: CorpusDocument, index: int = 0) -> None:
 
 # %%
 
+## (Optionally) Use `%pip` inside Wasm Pyodide instead of `!pip`
+# !pip install requests beautifulsoup4
+
+# %%
+
 # ===========================================================================
 # PHASE 1: INGEST — Process all 5 source types via DocumentReader
 # ===========================================================================
@@ -144,6 +149,7 @@ try:
         # from url raw html page DocumentReader.from_url for raw html
         reader = DocumentReader.from_url(
             "https://www.who.int/europe/news/item/12-12-2023-out-of-pocket-payments-for-primary-health-care-unaffordable-for-millions-in-europe-new-who-report-shows",
+            allow_private_networks=True,
         )
     docs = list(reader.get_documents())
     all_documents.extend(docs)
@@ -223,6 +229,7 @@ try:
         # TODO: Not implemented pdf from DocumentReader.from_url pdf url link
         reader = DocumentReader.from_url(
             "https://iris.who.int/server/api/core/bitstreams/7ad66865-7f23-4485-8cf5-7b3d78bdf4f9/content",
+            allow_private_networks=True,
         )
         pass
     docs = list(reader.get_documents())
@@ -257,6 +264,7 @@ try:
         # TODO: Not implemented for image DocumentReader.from_url image url link
         reader = DocumentReader.from_url(
             "https://iris.who.int/server/api/core/bitstreams/d57241c0-512d-4cfc-9ead-91a83eea83f0/content",
+            allow_private_networks=True,
             source_type=SourceType.IMAGE,
         )
         pass

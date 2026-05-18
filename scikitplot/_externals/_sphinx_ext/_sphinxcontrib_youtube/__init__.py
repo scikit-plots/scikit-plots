@@ -11,7 +11,12 @@
 # Authors: Dr David Ham, Chris Pickel and others
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""Sphinx "youtube" extension."""
+"""
+Sphinx "youtube" extension.
+
+..seealso::
+  * https://github.com/sphinx-contrib/youtube/commit/5238c057730f953ed7c38316aad692a5231294f1
+"""
 
 from . import peertube, utils, vimeo, youtube
 

@@ -20,6 +20,7 @@ import platform
 import sys
 import os
 import shutil
+import sysconfig
 import warnings  # noqa: F401
 from functools import lru_cache
 from importlib.metadata import version, PackageNotFoundError
@@ -30,7 +31,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Heavy import, only for type checking
     # Only imports when type checking, not at runtime
-    from typing import Dict, List, Optional, Any  # noqa: F401
+    from typing import Dict, List, Optional, Any, Final  # noqa: F401
 
 from threadpoolctl import threadpool_info
 
@@ -47,19 +48,64 @@ __all__ = [
 ]
 
 
-@lru_cache()
-def _is_docker() -> bool:
-    """Check if running inside a Docker container."""
-    if os.path.exists("/proc/self/cgroup"):
-        with open("/proc/self/cgroup", "r", encoding="utf-8") as f:
-            return any("docker" in line for line in f)
-    return os.path.exists("/.dockerenv")
+_CONTAINER_MARKERS: Final[tuple[str, ...]] = (
+    "docker",
+    "containerd",
+    "kubepods",
+    "podman",
+)
 
 
-@lru_cache()
-def _is_wsl() -> bool:
-    """Check if running under Windows Subsystem for Linux (WSL)."""
-    return "microsoft" in platform.release().lower()
+def _detect_runtime_envs() -> list[str]:
+    """
+    Detect runtime environment markers.
+
+    Returns
+    -------
+    list[str]
+        Ordered unique environment identifiers.
+
+        Possible values include:
+        - docker
+        - podman
+        - kubernetes
+        - wsl
+    """
+    envs: list[str] = []
+    # ---- WSL ----
+    try:
+        release = platform.release().lower()
+        version = platform.version().lower()
+        if (
+            "microsoft" in release
+            or "microsoft" in version
+            or "wsl" in release
+            or "wsl" in version
+        ):
+            envs.append("wsl")
+    except OSError:
+        pass
+    # ---- Container ----
+    if os.path.exists("/.dockerenv"):
+        envs.append("docker")
+    cgroup_paths = (
+        "/proc/self/cgroup",
+        "/proc/1/cgroup",
+    )
+    for path in cgroup_paths:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read().lower()
+            if "kubepods" in content:
+                envs.append("kubernetes")
+            if "podman" in content:
+                envs.append("podman")
+            if any(marker in content for marker in ("docker", "containerd")):
+                envs.append("docker")
+        except OSError:
+            continue
+    # Stable dedup preserving order
+    return list(dict.fromkeys(envs))
 
 
 def _get_env_info() -> dict[str, Optional[str]]:
@@ -71,8 +117,13 @@ def _get_env_info() -> dict[str, Optional[str]]:
     env_info : dict
         A dictionary containing thread-related environment settings, if set.
     """
-    env_vars = sorted(["OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"])
-    return {var: os.getenv(var, None) for var in env_vars}
+    # Environmental markers
+    env_vars = sorted(
+        ["CI", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"]
+    )
+    runtime_envs = {"runtime_envs": _detect_runtime_envs()}
+    runtime_envs.update({var: os.getenv(var, None) for var in env_vars})
+    return runtime_envs
 
 
 def _get_cuda_info() -> Optional[dict[str, str]]:
@@ -134,6 +185,14 @@ def _get_system_info() -> dict[str, str]:
     """
     Gather detailed system and Python interpreter information.
 
+    | Python                 | `is_free_threaded_build` | `is_gil_enabled` | `is_running_no_gil` |
+    | ---------------------- | -----------------------: | ---------------: | ------------------: |
+    | 3.8-3.12               |                    False |             True |               False |
+    | 3.13-3.14 regular      |                    False |             True |               False |
+    | 3.13-3.14 FT + GIL ON  |                     True |             True |               False |
+    | 3.13-3.14 FT + GIL OFF |                     True |            False |                True |
+    | 3.15+ FT + GIL OFF     |                     True |            False |                True |
+
     Returns
     -------
     sys_info : dict
@@ -142,24 +201,49 @@ def _get_system_info() -> dict[str, str]:
     sys_info = {
         "python": sys.version.split("\n")[0],
         "executable": sys.executable,
-        "is_free_threaded": (
-            getattr(sys, "is_free_threaded", False)
-            or getattr(sys, "_is_gil_enabled", False)
-        ),
         "python_implementation": platform.python_implementation(),
+        "libc_ver": platform.libc_ver(),
+        "OS": platform.platform(),
+        "architecture": platform.machine(),  # platform.architecture()
         "CPU": platform.processor() or "Unknown",
         "cores": os.cpu_count(),
-        "architecture": platform.machine(),
-        "OS": platform.platform(),
-        # "libc_ver": platform.libc_ver(),
     }
-    # Environmental markers
-    if _is_docker():
-        sys_info["container"] = "docker"
-    if _is_wsl():
-        sys_info["container"] = "wsl"
-    if os.environ.get("CI"):
-        sys_info["ci"] = os.environ.get("CI")
+    # is_free_threaded_build -> capability / ABI
+    # is_gil_enabled         -> runtime state
+    # is_running_no_gil      -> effective execution mode
+    # Python 3.13+: runtime GIL state checker
+    _is_gil_enabled = getattr(sys, "_is_gil_enabled", None)
+    RUNTIME_INFO = {
+        # Interpreter capability / ABI:
+        # Was Python built with free-threading (no-GIL) support?
+        "is_free_threaded_build": (
+            # Python 3.15+
+            getattr(sys, "is_free_threaded", lambda: False)()
+            # Python 3.15+ ABI metadata
+            or bool(
+                getattr(
+                    getattr(sys, "abi_info", None),
+                    "free_threaded",
+                    False,
+                )
+            )
+            # Python 3.13–3.14 build flag
+            or bool(
+                getattr(
+                    sysconfig,
+                    "get_config_var",
+                    lambda _name: None,
+                )("Py_GIL_DISABLED")
+            )
+        ),
+        # Runtime execution state:
+        # Is the GIL enabled right now?
+        "is_gil_enabled": _is_gil_enabled() if _is_gil_enabled else True,
+        # Effective execution mode:
+        # Is Python currently running without the GIL?
+        "is_running_no_gil": (not _is_gil_enabled()) if _is_gil_enabled else False,
+    }
+    sys_info.update(RUNTIME_INFO)
     return sys_info
 
 
@@ -181,25 +265,25 @@ def _get_dep_info():
 
     core_deps = [
         "pip",
-        "meson-python",
         "setuptools",
         "cython",
         "numpy",
         "scipy",
+        "aggdraw",
         "pandas",
         "matplotlib",
-        "scikit-learn",
         "joblib",
         "threadpoolctl",
+        "scikit-learn",
+        "seaborn",
     ]
     optional_deps = [
-        "aggdraw",
-        "seaborn",
-        "bokeh",
-        "plotly",
-        "streamlit",
-        "gradio",
-        "pyyaml",
+        # "bokeh",
+        # "plotly",
+        # "streamlit",
+        # "gradio",
+        # "pyyaml",
+        # "meson-python",
     ]
     dep_info = {}
     dep_info["scikitplot"] = __version__
@@ -233,6 +317,18 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
     Notes
     -----
     Useful for debugging and issue reporting.
+
+    - is_free_threaded_build -> capability / ABI
+    - is_gil_enabled         -> runtime state
+    - is_running_no_gil      -> effective execution mode
+
+    | Python                 | `is_free_threaded_build` | `is_gil_enabled` | `is_running_no_gil` |
+    | ---------------------- | -----------------------: | ---------------: | ------------------: |
+    | 3.8-3.12               |                    False |             True |               False |
+    | 3.13-3.14 regular      |                    False |             True |               False |
+    | 3.13-3.14 FT + GIL ON  |                     True |             True |               False |
+    | 3.13-3.14 FT + GIL OFF |                     True |            False |                True |
+    | 3.15+ FT + GIL OFF     |                     True |            False |                True |
 
     Examples
     --------
@@ -328,26 +424,26 @@ def show_versions(mode: str = "stdout") -> Optional[dict[str, any]]:
     # Fallback to plain Print formatted output
     print("\nSystem Information:")
     for k, v in sys_info.items():
-        print(f"{k:>21}: {v}")
+        print(f"{k:>25}: {v}")
 
     print("\nPython Dependencies:")
     for k, v in dep_info.items():
-        print(f"{k:>21}: {v}")
+        print(f"{k:>25}: {v}")
 
     # if any(env_info.values()):
     print("\nEnvironment Variables:")
     for k, val in env_info.items():
         # if val is not None:
-        print(f"{k:>21}: {val}")
+        print(f"{k:>25}: {val}")
 
     # if gpu_info:
     print("\nGPU Information:")
     for k, v in gpu_info.items():
-        print(f"{k:>21}: {v}")
+        print(f"{k:>25}: {v}")
 
     if threadpool_info_:
         print("\nThreadpoolctl Information:")
         for i, info_dict in enumerate(threadpool_info_):
             for k, v in info_dict.items():
-                print(f"{k:>21}: {v}")
+                print(f"{k:>25}: {v}")
             print()

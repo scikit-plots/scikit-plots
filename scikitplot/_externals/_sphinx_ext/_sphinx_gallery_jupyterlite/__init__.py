@@ -255,7 +255,8 @@ _JUPYTERLITE_WARNING_MESSAGE: str = (
     "For example, the first `import scikitplot` can take roughly 10-20 s.\n"
     "- If you notice problems, feel free to open an "
     "[scikit-plots issue tracker](https://github.com/scikit-plots/scikit-plots/issues/new/choose) "
-    "about it."
+    "about it.\n"
+    "- `micropip/piplite/pip` use `%pip` in JupyterLite instead of `pip` or `!pip`"
 )
 
 
@@ -530,7 +531,7 @@ def notebook_modification_function(
         code_lines.extend(
             [
                 "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
-                "import piplite; await piplite.install(  # import micropip\n"
+                "import piplite; await piplite.install(  # or micropip\n"
                 f"   '{f'''scikit-plots=={_RELEASE_VERSION}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
                 "   index_urls=['https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple'],\n"
                 "); import sklearn; import scikitplot as sp; sp.show_versions();",
@@ -540,9 +541,9 @@ def notebook_modification_function(
         code_lines.extend(
             [
                 "# https://pyodide.org/en/stable/usage/downloading-and-deploying.html#cdn",
-                "# PEP 503 'simple' Python package index for `pip/micropip/piplite`",
+                "# PEP 503 'simple' Python package index for `micropip/piplite/pip`",
                 "# Installing the dependencies first, and then scikit-plots from Anaconda.org.",
-                "import piplite; await piplite.install(  # import micropip\n"
+                "import piplite; await piplite.install(  # or micropip\n"
                 f"   '{f'''scikit-plots=={_RELEASE_VERSION}',''':<36}# Download scikit-plots *pyodide_20XX_0_wasm32.whl\n"
                 "   index_urls=[\n"
                 "      'https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',\n"
