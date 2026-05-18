@@ -2033,6 +2033,11 @@ ai_assistant_features = {
 }
 
 ai_assistant_panel_api_enabled = False
+ai_assistant_panel_quick_questions = [
+    "What does this page cover?",
+    "Show me a quick usage example.",
+    "What are the key parameters?",
+]
 
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
