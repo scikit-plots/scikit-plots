@@ -2,7 +2,7 @@
   {% set src = sourcename.split('.') %}
   <div class="tocsection editthispage">
     {#- <a href="{ to_main(get_edit_provider_and_url()[1]) }"> #}
-    <a href="{{ get_edit_provider_and_url()[1] }}"></a>
+    <a href="{{ get_edit_provider_and_url()[1] }}">
       <i class="fa-solid fa-pencil"></i>
       {% set provider = get_edit_provider_and_url()[0] %}
       {% block edit_this_page_text %}
