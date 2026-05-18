@@ -41,6 +41,9 @@ for more details on configuring the documentation build.
 ## Imports
 ##########################################################################
 # Python's standard library
+
+from __future__ import annotations
+
 import os
 import sys
 
@@ -72,6 +75,8 @@ except ImportError:
     pass
 
 import jinja2
+from sphinx.application import Sphinx
+# from sphinx.locale import _
 
 # Set up sphinx
 # import logging
@@ -2483,3 +2488,43 @@ for rst_template_name, rst_target_name, kwargs in rst_templates:
 #         filename=None,
 #         body="window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({hashBasedRouting:true})",
 #     )
+
+# -- application setup -------------------------------------------------------
+# def setup_to_main(
+#     app: Sphinx, pagename: str, templatename: str, context, doctree
+# ) -> None:
+#     """
+#     Add a function that jinja can access for returning an "edit this page" link
+#     pointing to `main`.
+#     """
+
+#     def to_main(link: str) -> str:
+#         """
+#         Transform "edit on github" links and make sure they always point to the
+#         main branch.
+
+#         Args:
+#             link: the link to the github edit interface
+
+#         Returns:
+#             the link to the tip of the main branch for the same file
+#         """
+#         links = link.split("/")
+#         idx = links.index("edit")
+#         return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
+
+#     context["to_main"] = to_main
+# def setup(app: Sphinx) -> dict[str, any]:
+#     """Add custom configuration to sphinx app.
+
+#     Args:
+#         app: the Sphinx application
+#     Returns:
+#         the 2 parallel parameters set to ``True``.
+#     """
+#     app.connect("html-page-context", setup_to_main)
+
+#     return {
+#         "parallel_read_safe": True,
+#         "parallel_write_safe": True,
+#     }
