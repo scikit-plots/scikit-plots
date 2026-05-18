@@ -576,11 +576,39 @@ ai_assistant_llms_txt_full_content = True
 # No server round-trip is needed — the widget reads the flags from the
 # inline script block injected by ``add_ai_assistant_context``.
 ai_assistant_features = {
+    # ── Core export features ──────────────────────────────────────────────
+    # Copy the current page as Markdown (main button + dropdown item).
     "markdown_export": True,
+    # Open the companion .md file in a new tab.
     "view_markdown": True,
+
+    # ── AI chat deep-links ────────────────────────────────────────────────
+    # Show enabled AI provider buttons (Claude, ChatGPT, Gemini, …).
     "ai_chat": True,
-    "mcp_integration": True,
-    "theme_toggle": True,   # False ← disable toggle on this site
+
+    # ── MCP integration ───────────────────────────────────────────────────
+    # Show MCP "Connect" buttons for VS Code, Claude Desktop, etc.
+    # Requires at least one enabled entry in ``ai_assistant_mcp_tools``.
+    "mcp_integration": True,   # False ← disable MCP section on this site
+
+    # ── Theme toggle ──────────────────────────────────────────────────────
+    # Dark / light / system color-scheme toggle button.
+    "theme_toggle": True,   # False ← hide if the theme handles it already
+
+    # ── PDF export ────────────────────────────────────────────────────────
+    # "Export as PDF" centered button + URL/Print mode toggle.
+    # IMPORTANT: must be set explicitly — the JS default is True, but relying
+    # on JS defaults means conf.py cannot disable it cleanly.
+    "pdf_export": True,
+
+    # ── AI panel ─────────────────────────────────────────────────────────
+    # Floating in-page AI assistant chat panel (slide-in drawer).
+    # IMPORTANT: this key MUST be present and True for the panel button to
+    # appear in the dropdown.  The JS safe default is False (opt-in) — if
+    # this key is absent from conf.py the panel is invisible.
+    # Root cause of BUG-1: partial ai_assistant_features dict that omits
+    # this key → JS defaults ai_panel = False → button never created.
+    "ai_panel": True,
 }
 
 # ---------------------------------------------------------------------------
@@ -667,8 +695,99 @@ ai_assistant_custom_prompt_prefix = None
 ai_assistant_include_raw_image = False
 
 # ---------------------------------------------------------------------------
-# AI Assistant — AI provider configuration
+# AI Assistant — PDF export
 # ---------------------------------------------------------------------------
+
+# Type:    str or None
+# Default: None  (→ window.print() / browser Save as PDF)
+#
+# URL opened when the user clicks "Export as PDF" in URL mode.
+#
+# User note:
+#   Empty string / None → the button triggers ``window.print()`` and the user
+#   can choose "Save as PDF" in the browser print dialog.  This works on every
+#   Sphinx deployment with zero configuration.
+#
+#   Non-empty string → the button opens that URL in a new tab.  Use this when
+#   your deployment generates server-side PDFs (e.g. a CI artifact, a
+#   GitBook-style endpoint, or a custom PDF route):
+#
+#     ai_assistant_pdf_export_url = "https://docs.example.com/pdf/{pagename}.pdf"
+#     ai_assistant_pdf_export_url = "~gitbook/pdf?version=stable"
+#
+# Developer note: serialised into ``window.AI_ASSISTANT_CONFIG.pdfExportUrl``
+# by ``_cfg_str``.  The JS ``handlePdfExport`` reads the mode from
+# ``sessionStorage`` (persisted by the toggle) and either opens this URL or
+# calls ``window.print()``.
+ai_assistant_pdf_export_url = None  # None / "" → window.print()
+
+# Type:    bool
+# Default: True
+#
+# Show the URL / Print mode toggle row below the "Export as PDF" button.
+#
+# User note:
+#   True  (default) — the toggle is visible; the user can switch between
+#                     URL mode (opens pdfExportUrl) and Print mode
+#                     (window.print()) interactively.  Their choice is
+#                     persisted in sessionStorage for the session.
+#   False           — the toggle is hidden; the button always uses the mode
+#                     inferred from ``ai_assistant_pdf_export_url``
+#                     (URL mode when non-empty, Print mode otherwise).
+#
+# Developer note: serialised into ``window.AI_ASSISTANT_CONFIG.pdfUrlModeToggle``.
+# The JS ``createPdfSection`` reads this to decide whether to render the
+# toggle row.  The JS default is ``cfg.pdfUrlModeToggle !== false`` → always
+# true when the key is absent.  Registering it here makes conf.py control
+# explicit and avoids the implicit JS default.
+ai_assistant_pdf_url_mode_toggle = True
+
+# ---------------------------------------------------------------------------
+# AI Assistant — AI panel (floating chat drawer)
+# ---------------------------------------------------------------------------
+
+# Type:    str
+# Default: "AI Assistant"
+#
+# Title text displayed in the floating AI panel's header bar.
+#
+# User note: Keep short — typically your project name + "Assistant", e.g.
+# "scikit-plots AI Assistant" or just "AI Assistant".
+ai_assistant_panel_title = "AI Assistant"
+
+# Type:    str
+# Default: "Ask a question about this page…"
+#
+# Placeholder text shown inside the panel's textarea input field.
+ai_assistant_panel_placeholder = "Ask a question about this page\u2026"
+
+# Type:    bool
+# Default: False
+#
+# When True, the AI panel posts the user's question together with the current
+# page's Markdown content to the Anthropic /v1/messages API and streams the
+# response into the chat window.
+#
+# When False (default), the panel renders as a UI stub: the send button
+# appears functional, a simulated 400 ms "thinking" delay occurs, and then
+# a stub message is shown explaining that API mode is disabled.  This is
+# useful for demonstrating the UI without incurring API costs.
+#
+# IMPORTANT — production deployment:
+#   The browser-side fetch goes directly to ``https://api.anthropic.com/v1/messages``.
+#   The Anthropic API requires an API key via the ``x-api-key`` header.
+#   To avoid exposing your API key in the browser bundle, route requests
+#   through a reverse proxy that injects the header server-side, e.g.:
+#
+#     Nginx:
+#       location /api/anthropic/ {
+#           proxy_pass https://api.anthropic.com/;
+#           proxy_set_header x-api-key "$ANTHROPIC_API_KEY";
+#       }
+#
+#   Then point the JS fetch URL at your proxy endpoint.  The simplest safe
+#   deployment is ``False`` (stub mode) for public docs.
+ai_assistant_panel_api_enabled = False
 
 # Type:    dict[str, dict]
 # Default: _DEFAULT_PROVIDERS  (12 providers; 3 enabled by default —

@@ -102,11 +102,15 @@ ai_assistant_position = 'sidebar'
 ai_assistant_content_selector = 'article'
 
 # Enable/disable specific features (default: as shown)
+# CRITICAL: Always supply ALL keys explicitly.  If any key is absent the JS
+# widget falls back to its FEATURE_DEFAULTS where ai_panel = false — this
+# silently hides the AI-panel button even if you expect it to appear.
 ai_assistant_features = {
     'markdown_export': True,  # Copy to clipboard
     'view_markdown': True,    # View as Markdown in new tab
     'ai_chat': True,          # AI chat links
-    'mcp_integration': False, # Not yet implemented
+    'mcp_integration': False, # MCP tool connect buttons (opt-in)
+    'theme_toggle': True,     # Dark/light/system color-scheme toggle
     'pdf_export': True,       # "Export as PDF" button (window.print or custom URL)
     'ai_panel': True,         # Floating AI assistant chat panel
 }
@@ -118,6 +122,10 @@ ai_assistant_features = {
 #     ai_assistant_pdf_export_url = "/_pdf/{pagename}.pdf"
 #     ai_assistant_pdf_export_url = "https://docs.example.com/~gitbook/pdf?page=…"
 ai_assistant_pdf_export_url = None  # default: browser print dialog
+
+# Show the URL/Print mode toggle below the PDF button (default True).
+# Set False to hide the toggle and lock to the mode implied by pdf_export_url.
+ai_assistant_pdf_url_mode_toggle = True
 
 # AI assistant panel (floating chat drawer)
 ai_assistant_panel_title = "AI Assistant"          # header label in the panel

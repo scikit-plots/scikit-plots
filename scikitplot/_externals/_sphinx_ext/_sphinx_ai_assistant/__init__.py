@@ -968,6 +968,40 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, Any]] = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Default feature-flag registry
+# ---------------------------------------------------------------------------
+
+#: Full default feature-flag dict.
+#:
+#: **Why this exists as a module-level constant:**
+#:
+#: ``add_ai_assistant_context`` serialises
+#: ``window.AI_ASSISTANT_CONFIG.features`` from
+#: ``app.config.ai_assistant_features``.  When a project's ``conf.py``
+#: sets only a *partial* dict (e.g. ``{"markdown_export": True, "ai_chat": True}``),
+#: the missing keys are absent from the injected JSON.  The JS widget then
+#: falls back to ``FEATURE_DEFAULTS``, where ``ai_panel = false``.  That
+#: silently hides the AI-panel button even though the Python default for
+#: ``ai_assistant_features`` includes ``"ai_panel": True``.
+#:
+#: The fix is to merge the user's partial dict *over* this constant in
+#: ``add_ai_assistant_context`` so every key is always present in the
+#: serialised output.  User values override defaults; defaults fill gaps.
+#:
+#: **Security / forward-compat note:** new feature flags must be added here
+#: with a safe default (typically ``True`` for UI features that are on by
+#: default, ``False`` for opt-in features like ``mcp_integration``).
+_DEFAULT_FEATURES: dict[str, bool] = {
+    "markdown_export": True,
+    "view_markdown": True,
+    "ai_chat": True,
+    "mcp_integration": True,  # set False if no MCP tools are configured
+    "theme_toggle": True,  # dark / light / system color-scheme toggle
+    "pdf_export": True,  # Export as PDF button
+    "ai_panel": True,  # Floating AI assistant chat panel
+}
+
 #: Required top-level keys for every provider dict.
 _PROVIDER_REQUIRED_KEYS: tuple[str, ...] = (
     "enabled",
@@ -2860,10 +2894,29 @@ def add_ai_assistant_context(
         for name, tool in dict(app.config.ai_assistant_mcp_tools).items()
     }
 
+    # ---- Feature-flag merge ------------------------------------------------
+    # Merge the user's partial ``ai_assistant_features`` dict OVER the full
+    # ``_DEFAULT_FEATURES`` baseline so every key is always present in the
+    # serialised JSON.
+    #
+    # Root cause of BUG-1 (AI panel button invisible):
+    #   ``dict(app.config.ai_assistant_features)`` emits only the keys the
+    #   user wrote in conf.py.  When ``ai_panel`` is absent the widget JS
+    #   falls back to ``FEATURE_DEFAULTS.ai_panel = false``, which means the
+    #   AI-panel button is never created, so clicking it is impossible.
+    #
+    # Fix: start from ``_DEFAULT_FEATURES`` (all keys, correct defaults) and
+    # update with user values so user overrides win and gaps are filled.
+    features_merged: dict[str, bool] = dict(_DEFAULT_FEATURES)
+    features_merged.update(
+        {k: bool(v) for k, v in dict(app.config.ai_assistant_features).items()}
+    )
+
     config: dict[str, Any] = {
         "position": position_val,
         "content_selector": app.config.ai_assistant_content_selector,
-        "features": dict(app.config.ai_assistant_features),
+        # Always include every feature flag — partial conf.py dicts are safe.
+        "features": features_merged,
         "providers": providers_resolved,
         "mcp_tools": mcp_tools_resolved,
         "baseUrl": (
@@ -2883,6 +2936,12 @@ def add_ai_assistant_context(
         # Empty string means "use window.print()"; a non-empty value is opened
         # in a new tab as the PDF download URL.
         "pdfExportUrl": _cfg_str(app.config, "ai_assistant_pdf_export_url") or "",
+        # Controls whether the URL/Print toggle row is shown below the button.
+        # True  → show toggle (default); user can switch between URL and Print.
+        # False → hide toggle; button always uses the mode inferred from pdfExportUrl.
+        "pdfUrlModeToggle": _cfg_bool(
+            app.config, "ai_assistant_pdf_url_mode_toggle", True
+        ),
         # ---- AI panel (floating chat stub) --------------------------------
         "panelTitle": (
             _cfg_str(app.config, "ai_assistant_panel_title") or "AI Assistant"
@@ -2999,6 +3058,12 @@ def setup(app: Sphinx) -> dict[str, Any]:
          - URL opened by "Export as PDF" button.  ``None`` / ``""`` → calls
            ``window.print()``; any non-empty string → opens that URL in a
            new tab (e.g. a server-side PDF endpoint or GitBook-style path).
+       * - ``ai_assistant_pdf_url_mode_toggle``
+         - ``True``
+         - Show the URL / Print toggle row below the PDF button.  ``True``
+           (default) lets users switch mode interactively; ``False`` hides
+           the toggle and locks behaviour to the value implied by
+           ``ai_assistant_pdf_export_url``.
        * - ``ai_assistant_panel_title``
          - ``"AI Assistant"``
          - Header label shown in the floating AI chat panel.
@@ -3114,6 +3179,12 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # endpoint) in a new tab instead of calling window.print().
     # ``None`` / empty string → trigger browser print dialog (window.print()).
     app.add_config_value("ai_assistant_pdf_export_url", None, "html")
+
+    # When True (default) the URL/Print toggle row is rendered below the
+    # "Export as PDF" button so users can switch modes interactively.
+    # Set False to hide the toggle and lock to the mode implied by
+    # ``ai_assistant_pdf_export_url`` (URL mode when non-empty, Print otherwise).
+    app.add_config_value("ai_assistant_pdf_url_mode_toggle", True, "html")
 
     # ---- AI panel (floating chat stub) config ------------------------------
     # ``ai_assistant_panel_title``    : header text shown in the panel.

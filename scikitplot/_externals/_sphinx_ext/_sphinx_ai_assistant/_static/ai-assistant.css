@@ -1,36 +1,20 @@
 /**
- * Sphinx AI Assistant Styles — ai-assistant.css
+ * Sphinx AI Assistant Styles
  *
- * Styles for the AI assistant split-button, dropdown menu, PDF export
- * section, toast notification, and floating AI panel.
+ * Styles for the AI assistant dropdown and UI elements.
  *
  * Theme variable resolution order (three-layer fallback):
  *   1. PyData Sphinx Theme  --pst-color-*   (auto-updates on light/dark switch)
  *   2. Furo theme           --color-*       (for Furo compatibility)
  *   3. Hardcoded safe value                 (last-resort baseline)
  *
- * Dark-mode strategy:
- *   Two dark-mode attributes are targeted via compound selectors:
- *     [data-bs-theme="dark"]  — Bootstrap 5 / PyData Sphinx Theme convention
- *     [data-theme="dark"]     — Furo theme convention
+ * Dark-mode overrides use [data-bs-theme="dark"] (PyData / Bootstrap 5 convention).
+ * Do NOT use prefers-color-scheme here — the page theme is user-controlled via the
+ * PyData theme-switcher button, not the OS preference.
  *
- *   CRITICAL: Using only one of these silently breaks dark mode on the other
- *   theme family. Both MUST be present as a comma-separated compound selector
- *   on every dark-mode override rule.
- *
- *   Do NOT use `prefers-color-scheme` — page theme is user-controlled via
- *   the theme-switcher button, not the OS preference.
- *
- * Namespace:
- *   Only `.ai-assistant-*` selectors are defined here.
- *   No global overrides; no interference with the host Sphinx theme.
+ * Only .ai-assistant-* selectors are defined here.
+ * No global overrides; no interference with the host Sphinx theme.
  */
-
-/* ── Shared dark-mode selector shorthand (reference only) ───────────────── *
- * Every rule below that needs a dark override uses this compound pattern:   *
- *   [data-bs-theme="dark"] .ai-assistant-X,                                *
- *   [data-theme="dark"]    .ai-assistant-X { … }                           *
- * ── ───────────────────────────────────────────────────────────────────── */
 
 /* ── Container ──────────────────────────────────────────────────────────── */
 
@@ -43,16 +27,6 @@
 .ai-assistant-container img {
     margin-top: 5px;
     margin-bottom: 5px;
-}
-
-/* ── Title-position wrapper (flex row: heading + button) ─────────────────── */
-
-.ai-assistant-title-wrapper {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
 }
 
 /* ── Trigger button (split-button wrapper) ──────────────────────────────── */
@@ -79,6 +53,11 @@
     align-items: center;
     background: transparent;
     border: none;
+    /*
+     * --pst-color-text-base:       PyData body text colour (light: dark, dark: light)
+     * --color-foreground-primary:  Furo equivalent
+     * #1a1a1a:                     last-resort dark fallback
+     */
     color: var(
         --pst-color-text-base,
         var(--color-foreground-primary, #1a1a1a)
@@ -129,36 +108,38 @@
 
 /*
  * Utility icons (arrow-down, copy-to-clipboard, markdown, checked,
- * comment-discussion, file-pdf) use hardcoded #878787 strokes.
- * In dark mode the background darkens while the icon stays grey → lower
- * contrast.  brightness(1.6) lifts the grey to ~#d8d8d8.
+ * comment-discussion) use hardcoded #878787 strokes.  In dark mode the
+ * surrounding background darkens while the icon stays grey → lower contrast.
+ * brightness(1.6) lifts the grey to ~#d8d8d8 which reads clearly on dark
+ * surfaces without altering brand icon colours.
  *
  * Brand icons (claude.svg, chatgpt.svg, ai-tools.svg) must keep their brand
- * colours — mark them with class="ai-brand-icon" to exclude them.
- *
- * FIX: Added [data-theme="dark"] for Furo compatibility alongside
- *      [data-bs-theme="dark"] (PyData / Bootstrap 5).
+ * colours — mark them with class="ai-brand-icon" in the HTML to exclude them.
  */
 [data-bs-theme="dark"] .ai-assistant-icon:not(.ai-brand-icon),
-[data-theme="dark"]    .ai-assistant-icon:not(.ai-brand-icon),
 [data-bs-theme="dark"] .ai-assistant-dropdown-icon,
-[data-theme="dark"]    .ai-assistant-dropdown-icon,
-[data-bs-theme="dark"] .ai-assistant-menu-icon:not(.ai-brand-icon),
-[data-theme="dark"]    .ai-assistant-menu-icon:not(.ai-brand-icon) {
+[data-bs-theme="dark"] .ai-assistant-menu-icon:not(.ai-brand-icon) {
     filter: brightness(1.6);
 }
 
 /* ── Hover / active states ──────────────────────────────────────────────── */
 
+/*
+ * Hover tints must invert between light and dark mode:
+ *   light mode → slight dark tint   rgba(0,0,0,   0.06)
+ *   dark  mode → slight light tint  rgba(255,255,255, 0.08)
+ *
+ * There is no single PST or Bootstrap 5 variable that encodes this
+ * directionality, so we use explicit [data-bs-theme] overrides — the same
+ * mechanism PyData itself uses internally.
+ */
 .ai-assistant-button-main:hover,
 .ai-assistant-button-dropdown:hover {
     background-color: rgba(0, 0, 0, 0.06);
 }
 
 [data-bs-theme="dark"] .ai-assistant-button-main:hover,
-[data-theme="dark"]    .ai-assistant-button-main:hover,
-[data-bs-theme="dark"] .ai-assistant-button-dropdown:hover,
-[data-theme="dark"]    .ai-assistant-button-dropdown:hover {
+[data-bs-theme="dark"] .ai-assistant-button-dropdown:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -168,9 +149,7 @@
 }
 
 [data-bs-theme="dark"] .ai-assistant-button-main:active,
-[data-theme="dark"]    .ai-assistant-button-main:active,
-[data-bs-theme="dark"] .ai-assistant-button-dropdown:active,
-[data-theme="dark"]    .ai-assistant-button-dropdown:active {
+[data-bs-theme="dark"] .ai-assistant-button-dropdown:active {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -180,8 +159,7 @@
     background-color: rgba(76, 175, 80, 0.15);
 }
 
-[data-bs-theme="dark"] .ai-assistant-button-main.ai-assistant-button-success,
-[data-theme="dark"]    .ai-assistant-button-main.ai-assistant-button-success {
+[data-bs-theme="dark"] .ai-assistant-button-main.ai-assistant-button-success {
     background-color: rgba(76, 175, 80, 0.25);
 }
 
@@ -214,7 +192,15 @@
     top: calc(100% + 0.2rem);
     left: auto;
     right: auto;
-    width: 230px;
+    width: 215px;
+    /*
+     * --pst-color-surface:         PyData elevated-surface colour.
+     *   light mode → white / near-white
+     *   dark  mode → dark panel colour (e.g. #1f232a in PST defaults)
+     * --color-background-primary:  Furo equivalent.
+     * #fff:                        absolute last resort — only fires when
+     *                              neither PST nor Furo CSS vars exist.
+     */
     background-color: var(
         --pst-color-surface,
         var(--color-background-primary, #fff)
@@ -224,6 +210,10 @@
         var(--color-foreground-border, #e1e4e5)
     );
     border-radius: 4px;
+    /*
+     * Shadow is asymmetric between modes: dark surfaces need a heavier shadow
+     * to convey the same perceived elevation against a dark background.
+     */
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.12),
                 0 4px 6px  -2px rgba(0, 0, 0, 0.07);
     padding: 0.25rem;
@@ -231,8 +221,7 @@
     pointer-events: auto;
 }
 
-[data-bs-theme="dark"] .ai-assistant-dropdown,
-[data-theme="dark"]    .ai-assistant-dropdown {
+[data-bs-theme="dark"] .ai-assistant-dropdown {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.45),
                 0 4px 6px  -2px rgba(0, 0, 0, 0.30);
 }
@@ -258,7 +247,6 @@
     font-size: 0.875rem;
     cursor: pointer;
     transition: background-color 0.15s ease;
-    padding: 0.375rem 0.5rem;
 }
 
 .ai-assistant-menu-item-content {
@@ -296,8 +284,7 @@
     background-color: rgba(0, 0, 0, 0.06);
 }
 
-[data-bs-theme="dark"] .ai-assistant-menu-item:hover,
-[data-theme="dark"]    .ai-assistant-menu-item:hover {
+[data-bs-theme="dark"] .ai-assistant-menu-item:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -317,8 +304,7 @@
     background-color: rgba(0, 0, 0, 0.12);
 }
 
-[data-bs-theme="dark"] .ai-assistant-menu-item:active,
-[data-theme="dark"]    .ai-assistant-menu-item:active {
+[data-bs-theme="dark"] .ai-assistant-menu-item:active {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -331,121 +317,6 @@
         --pst-color-border,
         var(--color-foreground-border, #e1e4e5)
     );
-}
-
-/* ── PDF Export section ─────────────────────────────────────────────────── */
-/*                                                                           */
-/* The PDF section is visually distinct from other menu items:               */
-/*   1. The "Export as PDF" button is centered (not left-aligned).           */
-/*   2. A two-button URL/Print mode toggle sits below the main button.       */
-/*                                                                           */
-/* Layout diagram:                                                           */
-/*   ┌──────────────────────────────────────────┐                           */
-/*   │        [ 📄  Export as PDF ]             │  ← centered btn           */
-/*   │  Mode:  [ URL ]   [ Print ]              │  ← toggle (optional)      */
-/*   └──────────────────────────────────────────┘                           */
-
-.ai-assistant-pdf-section {
-    padding: 0.1rem 0;
-}
-
-/* Centred export button — overrides the default left-align of .ai-assistant-menu-item */
-.ai-assistant-pdf-btn {
-    justify-content: center;
-    text-align: center;
-    font-weight: 600;
-    min-height: 48px;
-}
-
-/* Centre the icon+text row inside the centred button */
-.ai-assistant-pdf-content {
-    align-items: center;
-}
-
-.ai-assistant-pdf-content .ai-assistant-menu-item-title {
-    justify-content: center;
-}
-
-/* Description text below the button title (reflects current mode) */
-.ai-assistant-pdf-desc {
-    text-align: center;
-    margin-top: -2px;
-}
-
-/* ── URL / Print mode toggle row ────────────────────────────────────────── */
-
-.ai-assistant-pdf-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.5rem 0.45rem;
-}
-
-.ai-assistant-pdf-toggle-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(
-        --pst-color-text-muted,
-        var(--color-foreground-secondary, #666)
-    );
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.ai-assistant-pdf-mode-btn {
-    flex: 1;
-    padding: 0.2rem 0.4rem;
-    font-size: 11px;
-    font-weight: 500;
-    font-family: inherit;
-    border-radius: 3px;
-    border: 1px solid var(
-        --pst-color-border,
-        var(--color-foreground-border, #ccc)
-    );
-    background: transparent;
-    color: var(
-        --pst-color-text-base,
-        var(--color-foreground-primary, #1a1a1a)
-    );
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease,
-                border-color 0.15s ease;
-    text-align: center;
-    white-space: nowrap;
-}
-
-/* Active mode button — filled with primary colour */
-.ai-assistant-pdf-mode-btn.active {
-    background-color: var(
-        --pst-color-primary,
-        var(--color-brand-primary, #2980b9)
-    );
-    color: #fff;
-    border-color: transparent;
-}
-
-/* Disabled (URL button when no URL configured) */
-.ai-assistant-pdf-mode-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-}
-
-.ai-assistant-pdf-mode-btn:not(:disabled):not(.active):hover {
-    background-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-bs-theme="dark"] .ai-assistant-pdf-mode-btn:not(:disabled):not(.active):hover,
-[data-theme="dark"]    .ai-assistant-pdf-mode-btn:not(:disabled):not(.active):hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.ai-assistant-pdf-mode-btn:focus-visible {
-    outline: 2px solid var(
-        --pst-color-primary,
-        var(--color-brand-primary, #2980b9)
-    );
-    outline-offset: 1px;
 }
 
 /* ── Toast notification ─────────────────────────────────────────────────── */
@@ -461,7 +332,7 @@
     );
     /*
      * Notification text is always white: it sits on a coloured brand surface,
-     * not on the theme background.
+     * not on the theme background.  Must NOT inherit --pst-color-text-base.
      */
     color: #fff;
     border-radius: 4px;
@@ -484,13 +355,19 @@
     background-color: #e74c3c;
 }
 
-/* ── Inline SVG icon stroke colour ─────────────────────────────────────── */
+/* ── Inline SVG icon stroke colour (when SVG is embedded, not <img>) ────── */
 
 .svg-icon path {
     stroke: var(
         --pst-color-border,
         var(--color-foreground-border, rgba(0, 0, 0, 0.2))
     );
+}
+
+.svg-icon.filter-icon {
+    position: absolute;
+    left: 10px;
+    z-index: 1;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
@@ -511,7 +388,7 @@
     .ai-assistant-dropdown {
         right: 0;
         left: auto;
-        min-width: 230px;
+        min-width: 215px;
     }
 
     .ai-assistant-notification {
@@ -528,74 +405,55 @@
     padding: 0 1rem 1rem;
 }
 
-/* ── PyData Sphinx Theme ≥ 0.13: right sidebar ───────────────────────────
- * FIX: `.bd-sidebar-secondary` was missing — widget silently fell back to
- * title position on PyData builds with position: 'sidebar'.
- */
-.bd-sidebar-secondary .ai-assistant-container,
-.bd-toc              .ai-assistant-container {
+/* ── PyData / generic: sidebar placement ────────────────────────────────── */
+
+.toc-drawer .ai-assistant-container,
+.toc-sidebar .ai-assistant-container,
+.sidebar-secondary .ai-assistant-container {
     display: block;
     position: relative;
     z-index: 100;
     padding-top: 1rem;
 }
 
-.bd-sidebar-secondary .ai-assistant-button,
-.bd-toc              .ai-assistant-button {
+.toc-drawer .ai-assistant-button,
+.toc-sidebar .ai-assistant-button,
+.sidebar-secondary .ai-assistant-button {
     width: fit-content;
     margin: 0;
 }
 
-.bd-sidebar-secondary .ai-assistant-button-dropdown,
-.bd-toc              .ai-assistant-button-dropdown {
+.toc-drawer .ai-assistant-button-dropdown,
+.toc-sidebar .ai-assistant-button-dropdown,
+.sidebar-secondary .ai-assistant-button-dropdown {
     padding: 0 0.75rem;
 }
 
-.bd-sidebar-secondary .ai-assistant-dropdown,
-.bd-toc              .ai-assistant-dropdown {
+.toc-drawer .ai-assistant-dropdown,
+.toc-sidebar .ai-assistant-dropdown,
+.sidebar-secondary .ai-assistant-dropdown {
     left: 0;
     right: auto;
-    min-width: 230px;
+    min-width: 215px;
 }
 
-/* ── Furo / PST shared: sidebar placement ────────────────────────────────── */
-
-.toc-drawer          .ai-assistant-container,
-.toc-sidebar         .ai-assistant-container,
-.sidebar-secondary   .ai-assistant-container {
-    display: block;
-    position: relative;
-    z-index: 100;
-    padding-top: 1rem;
-}
-
-.toc-drawer          .ai-assistant-button,
-.toc-sidebar         .ai-assistant-button,
-.sidebar-secondary   .ai-assistant-button {
-    width: fit-content;
-    margin: 0;
-}
-
-.toc-drawer          .ai-assistant-button-dropdown,
-.toc-sidebar         .ai-assistant-button-dropdown,
-.sidebar-secondary   .ai-assistant-button-dropdown {
-    padding: 0 0.75rem;
-}
-
-.toc-drawer          .ai-assistant-dropdown,
-.toc-sidebar         .ai-assistant-dropdown,
-.sidebar-secondary   .ai-assistant-dropdown {
-    left: 0;
-    right: auto;
-    min-width: 230px;
-}
+/* ── PDF Export menu item: file-pdf icon inherits the same brightness      */
+/* filter as other utility icons — no additional rule needed.               */
 
 /* ── AI Panel — floating chat drawer ───────────────────────────────────── */
 /*                                                                          */
-/* Fixed-position flex column anchored to the bottom-right viewport corner. */
-/* Slides in using GPU-composited transform + opacity transition.           */
+/* Architecture: the panel is a fixed-position flex column anchored to the  */
+/* bottom-right viewport corner.  It slides in from the right using a CSS   */
+/* transform transition so the entrance animation is GPU-composited.        */
+/*                                                                          */
+/* Theme variable resolution (same three-layer chain as the rest of the     */
+/* widget):                                                                 */
+/*   1. PyData Sphinx Theme  --pst-color-*                                  */
+/*   2. Furo theme           --color-*                                      */
+/*   3. Hardcoded safe fallback                                              */
 
 .ai-assistant-panel {
+    /* Layout */
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
@@ -603,9 +461,10 @@
     width: 360px;
     max-width: calc(100vw - 2rem);
     max-height: min(520px, calc(100vh - 3rem));
-    display: none;          /* JS sets display:flex on open */
+    display: none;          /* JS sets display:flex when open */
     flex-direction: column;
 
+    /* Surface */
     background-color: var(
         --pst-color-surface,
         var(--color-background-primary, #fff)
@@ -618,11 +477,11 @@
     box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18),
                 0  8px 16px -4px rgba(0, 0, 0, 0.10);
 
-    /* Slide-in animation */
+    /* Slide-in animation (transform + opacity) */
     opacity: 0;
     transform: translateY(12px) scale(0.98);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    pointer-events: none;
+    pointer-events: none;   /* disabled until fully open */
 }
 
 .ai-assistant-panel.ai-assistant-panel--open {
@@ -631,8 +490,7 @@
     pointer-events: auto;
 }
 
-[data-bs-theme="dark"] .ai-assistant-panel,
-[data-theme="dark"]    .ai-assistant-panel {
+[data-bs-theme="dark"] .ai-assistant-panel {
     box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.55),
                 0  8px 16px -4px rgba(0, 0, 0, 0.35);
 }
@@ -669,8 +527,7 @@
     flex-shrink: 0;
 }
 
-[data-bs-theme="dark"] .ai-assistant-panel-logo:not(.ai-brand-icon),
-[data-theme="dark"]    .ai-assistant-panel-logo:not(.ai-brand-icon) {
+[data-bs-theme="dark"] .ai-assistant-panel-logo:not(.ai-brand-icon) {
     filter: brightness(1.6);
 }
 
@@ -697,8 +554,7 @@
     );
 }
 
-[data-bs-theme="dark"] .ai-assistant-panel-close:hover,
-[data-theme="dark"]    .ai-assistant-panel-close:hover {
+[data-bs-theme="dark"] .ai-assistant-panel-close:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -719,9 +575,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
+    /* Smooth scroll to new messages */
     scroll-behavior: smooth;
 }
 
+/* Welcome placeholder shown before any messages */
 .ai-assistant-panel-welcome {
     color: var(
         --pst-color-text-muted,
@@ -760,7 +618,7 @@
     border-bottom-right-radius: 4px;
 }
 
-/* Assistant messages — left-aligned, neutral surface */
+/* Assistant messages — left-aligned, neutral surface colour */
 .ai-assistant-panel-bubble--assistant {
     align-self: flex-start;
     background-color: var(
@@ -774,8 +632,7 @@
     border-bottom-left-radius: 4px;
 }
 
-[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant,
-[data-theme="dark"]    .ai-assistant-panel-bubble--assistant {
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant {
     background-color: rgba(255, 255, 255, 0.08);
     color: var(
         --pst-color-text-base,
@@ -791,13 +648,12 @@
     border-bottom-left-radius: 4px;
 }
 
-[data-bs-theme="dark"] .ai-assistant-panel-bubble--error,
-[data-theme="dark"]    .ai-assistant-panel-bubble--error {
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--error {
     background-color: rgba(231, 76, 60, 0.25);
     color: #e74c3c;
 }
 
-/* ── Panel footer (textarea + send button) ────────────────────────────── */
+/* ── Panel footer (input + send) ──────────────────────────────────────── */
 
 .ai-assistant-panel-footer {
     display: flex;

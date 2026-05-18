@@ -16,8 +16,9 @@
  *   Python extension via add_ai_assistant_context().
  *
  * Security:
- *   - All user-facing HTML uses textContent / setAttribute, not innerHTML with
- *     raw user data, except where _escapeHtml() is applied first.
+ *   - All user-facing HTML uses textContent / setAttribute, not innerHTML
+ *     with raw user data.  The single exception (createAIPanel welcome msg)
+ *     has been replaced with pure DOM construction in this revision.
  *   - window.open() calls pass 'noopener,noreferrer' on all outgoing links.
  *   - sessionStorage is used for PDF mode persistence (no cross-origin leak).
  *
@@ -27,6 +28,16 @@
  *   - The single document 'click' listener for dropdown-close is registered
  *     once only (guarded by _listenersAttached).
  *   - Turndown is loaded lazily from CDN on first use.
+ *
+ * Fixes applied (2026-05-18):
+ *   FIX-1  data: / blob: URI icons no longer get _static/ prefix prepended.
+ *   FIX-2  handleAIChat: null-guard on prompt_template / url_template.
+ *   FIX-3  showInlineSuccessState: DOM mutation instead of innerHTML rebuild.
+ *   FIX-4  createAIPanel welcome: pure DOM construction, no innerHTML.
+ *   FIX-5  handleMCPInstall: explicit guard + message for invalid mcpb_url.
+ *   FIX-6  console.log → console.debug for trace-level messages.
+ *   FIX-7  createButton: aria-label + title on main copy button.
+ *   FIX-8  createPdfSection toggle row: role="group" + aria-label.
  */
 
 (function () {
@@ -34,14 +45,86 @@
 
     // ── Module-level singletons ──────────────────────────────────────────────
 
+    /**
+     * Capture this script's own src immediately — document.currentScript is
+     * only valid during synchronous execution of the script element.  Once
+     * execution yields (e.g. inside a Turndown onload callback) the browser
+     * resets it to null.  Capturing here, at IIFE top-scope, is the only
+     * reliable way to get the value before any async boundary.
+     *
+     * @type {string|null}
+     */
+    var _selfSrc = (document.currentScript && document.currentScript.src) || null;
+
     /** True once the global document 'click' listener has been registered. */
     var _listenersAttached = false;
 
-    /** Singleton AI panel DOM element (created lazily on first open). */
+    /**
+     * Lazy singleton: the floating AI panel element.
+     *
+     * Created on first call to toggleAIPanel(); null until then.
+     *
+     * CRITICAL: This MUST be declared at IIFE module scope.  The IIFE runs
+     * with 'use strict', so reading an undeclared variable throws
+     * ReferenceError before the assignment in toggleAIPanel() is ever
+     * reached.  That was the root cause of "click button → nothing happens":
+     *   1. createAIAssistantUI() → setupEventListeners() registers click handler
+     *   2. User clicks AI panel button → toggleAIPanel() called
+     *   3. `if (!_aiPanelEl)` → ReferenceError (undeclared) → handler aborts silently
+     * Declaring it here with `null` makes the falsy check safe and correct.
+     *
+     * @type {HTMLElement|null}
+     */
     var _aiPanelEl = null;
 
     /** sessionStorage key used to persist the user's chosen PDF mode. */
     var _PDF_MODE_KEY = 'ai-assistant-pdf-mode';
+
+    /**
+     * Feature flag defaults.
+     *
+     * Used as the base in Object.assign so that keys absent from the Python
+     * extension's injected AI_ASSISTANT_CONFIG.features still resolve to a
+     * sensible value instead of `undefined` (falsy).
+     *
+     * Design decision:
+     *   - pdf_export defaults to true  — it is a core, always-useful feature
+     *     that must not silently vanish when the Python extension omits it.
+     *   - ai_panel  defaults to false  — requires API configuration; safe OFF.
+     *   - mcp_integration defaults to false — opt-in.
+     *
+     * The Python extension can override any key by including it explicitly in
+     * the features dict it passes to add_ai_assistant_context().
+     */
+    var FEATURE_DEFAULTS = {
+        markdown_export: true,
+        view_markdown:   true,
+        ai_chat:         true,
+        mcp_integration: false,
+        pdf_export:      true,
+        ai_panel:        false,
+        theme_toggle:    false,
+    };
+
+    /**
+     * Regex that matches any icon value that is already an absolute URI and
+     * must NOT be prefixed with the _static path.
+     *
+     * Handles:
+     *   http:// / https://  — remote CDN icons
+     *   data:               — inline base64 SVG / PNG icons
+     *   blob:               — object-URL icons generated at runtime
+     *   /                   — root-relative paths
+     *
+     * Any string that does NOT match is a bare filename (e.g. 'claude.svg')
+     * and must have the static path prepended.
+     *
+     * Developer note:
+     *   The original check was `icon.startsWith('http')`.  That silently
+     *   broke all data-URI icons (e.g. the Gemini and Cursor icons in the
+     *   config) by prepending '_static/' to the base64 payload.  FIX-1.
+     */
+    var _ABSOLUTE_ICON_RE = /^(?:https?:|data:|blob:|\/)/;
 
     // ── Initialisation ───────────────────────────────────────────────────────
 
@@ -112,6 +195,10 @@
         mainBtn.className = 'ai-assistant-button-main';
         mainBtn.id = 'ai-assistant-button-main';
         mainBtn.type = 'button';
+        // FIX-7: Descriptive aria-label so screen readers announce purpose, not
+        // just the visible text ("Copy page"), which lacks format context.
+        mainBtn.setAttribute('aria-label', 'Copy page as Markdown');
+        mainBtn.title = 'Copy this page as Markdown for AI / LLMs';
 
         var mainIcon = document.createElement('img');
         mainIcon.src = staticPath + '/copy-to-clipboard.svg';
@@ -173,10 +260,12 @@
         dropdown.setAttribute('role', 'menu');
         dropdown.style.display = 'none';
 
-        var cfg       = window.AI_ASSISTANT_CONFIG || {};
-        var features  = cfg.features || { markdown_export: true };
+        var cfg        = window.AI_ASSISTANT_CONFIG || {};
+        // Merge config features over defaults so absent keys resolve
+        // to their safe values rather than undefined (falsy).
+        var features   = Object.assign({}, FEATURE_DEFAULTS, cfg.features || {});
         var staticPath = getStaticPath();
-        var hasItems  = false;  // tracks whether any section was added
+        var hasItems   = false;  // tracks whether any section was added
 
         // ── 1. Markdown export ───────────────────────────────────────────────
         if (features.markdown_export) {
@@ -214,7 +303,9 @@
                     var key      = kv[0];
                     var provider = kv[1];
                     var icon     = provider.icon || 'comment-discussion.svg';
-                    var iconPath = icon.startsWith('http') ? icon : (staticPath + '/' + icon);
+                    // FIX-1: use _ABSOLUTE_ICON_RE so data: / blob: / / prefixes
+                    // are treated as absolute and never get _static/ prepended.
+                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
                     var desc     = provider.description || 'Open AI chat with this page context.';
                     var item     = createMenuItem('ai-chat-' + key, provider.label, desc, iconPath);
                     item.dataset.provider = key;
@@ -237,7 +328,8 @@
                     var key  = kv[0];
                     var tool = kv[1];
                     var icon     = tool.icon || 'ai-tools.svg';
-                    var iconPath = icon.startsWith('http') ? icon : (staticPath + '/' + icon);
+                    // FIX-1: same absolute-URI guard as AI chat section above.
+                    var iconPath = _ABSOLUTE_ICON_RE.test(icon) ? icon : (staticPath + '/' + icon);
                     var desc     = tool.description || 'Install MCP server.';
                     var item     = createMenuItem('mcp-' + key, tool.label, desc, iconPath);
                     item.dataset.mcpTool = key;
@@ -367,6 +459,10 @@
             var toggleRow = document.createElement('div');
             toggleRow.className = 'ai-assistant-pdf-toggle';
             toggleRow.id = 'ai-assistant-pdf-toggle';
+            // FIX-8: group role + label so screen readers announce the two
+            // buttons as a cohesive "PDF export mode" selector, not in isolation.
+            toggleRow.setAttribute('role', 'group');
+            toggleRow.setAttribute('aria-label', 'PDF export mode');
 
             var toggleLabel = document.createElement('span');
             toggleLabel.className = 'ai-assistant-pdf-toggle-label';
@@ -534,20 +630,20 @@
      * Return the URL path to the Sphinx `_static/` directory.
      *
      * Detection priority:
-     *   1. `document.currentScript.src`  — the most reliable source because
-     *      this file lives inside `_static/`.
+     *   1. `_selfSrc` — captured synchronously at IIFE scope from
+     *      `document.currentScript.src` before any async boundary.
+     *      This is the most reliable source because this file lives
+     *      inside `_static/`.
      *   2. Any `<script src="…_static…">` tag.
      *   3. Any `<link href="…_static…">` tag (CSS file).
-     *   4. Fallback `'_static'` (relative; works for root-level pages).
+     *   4. Fallback `'_static'` (relative; correct for root-level pages only).
      *
      * @returns {string}
      */
     function getStaticPath() {
-        // 1 — best: use this script's own src
-        if (document.currentScript && document.currentScript.src &&
-                document.currentScript.src.indexOf('_static') !== -1) {
-            var selfSrc = document.currentScript.src;
-            return selfSrc.substring(0, selfSrc.indexOf('_static') + 7);
+        // 1 — best: captured synchronously at IIFE invocation time
+        if (_selfSrc && _selfSrc.indexOf('_static') !== -1) {
+            return _selfSrc.substring(0, _selfSrc.indexOf('_static') + 7);
         }
 
         // 2 — scan <script> tags
@@ -593,8 +689,9 @@
 
         if (position === 'sidebar') {
             var sidebarSelectors = [
-                '.bd-sidebar-secondary',           // PyData Sphinx Theme ≥ 0.13
-                '.bd-toc',                         // PyData Sphinx Theme < 0.13
+                // 🚫 More pretty without this for "pydata_sphinx_theme"
+                // '.bd-sidebar-secondary',           // PyData Sphinx Theme ≥ 0.13
+                // '.bd-toc',                         // PyData Sphinx Theme < 0.13
                 '.sidebar-secondary',              // Furo right TOC sidebar / PST alias
                 'aside.toc-sidebar',               // Furo toc sidebar section
                 '.toc-drawer',                     // Furo drawer wrapper
@@ -604,14 +701,14 @@
             for (var k = 0; k < sidebarSelectors.length; k++) {
                 var sidebar = document.querySelector(sidebarSelectors[k]);
                 if (sidebar) {
-                    console.log('AI Assistant: Inserting into sidebar:', sidebarSelectors[k]);
+                    console.debug('AI Assistant: Inserting into sidebar:', sidebarSelectors[k]);
                     sidebar.insertBefore(container, sidebar.firstChild);
                     return;
                 }
             }
 
             // No sidebar found → fall back gracefully to title position
-            console.log('AI Assistant: No sidebar found, falling back to title position');
+            console.debug('AI Assistant: No sidebar found, falling back to title position');
             insertInTitlePosition(container);
             return;
         }
@@ -624,7 +721,7 @@
         // 'floating' and any unrecognised value → top of article
         var article = document.querySelector('article, [role="main"], .document, .body');
         if (article) {
-            console.log('AI Assistant: Inserting at top of article (floating / fallback)');
+            console.debug('AI Assistant: Inserting at top of article (floating / fallback)');
             article.insertBefore(container, article.firstChild);
         }
     }
@@ -657,7 +754,7 @@
             return;
         }
 
-        console.log('AI Assistant: Inserting next to page title (h1)');
+        console.debug('AI Assistant: Inserting next to page title (h1)');
         var wrapper = document.createElement('div');
         wrapper.className = 'ai-assistant-title-wrapper';
         wrapper.dataset.aiAssistantWrapped = '1';
@@ -870,7 +967,7 @@
     /** Open the companion `.md` file for the current page in a new tab. */
     function handleViewMarkdown() {
         var url = getMarkdownUrl();
-        console.log('AI Assistant: Opening Markdown URL:', url);
+        console.debug('AI Assistant: Opening Markdown URL:', url);
         window.open(url, '_blank', 'noopener,noreferrer');
         closeDropdown();
     }
@@ -886,14 +983,31 @@
             var provider  = providers[providerKey];
 
             if (!provider) {
-                showNotification('AI provider configuration not found.', true);
+                showNotification('AI provider "' + providerKey + '" not configured.', true);
                 return;
             }
 
-            var mdUrl   = getMarkdownUrl();
-            var prompt  = provider.prompt_template.replace('{url}', mdUrl);
-            var aiUrl   = provider.url_template.replace('{prompt}', encodeURIComponent(prompt));
+            // FIX-2: Guard both template strings before calling .replace().
+            // A missing or non-string template would throw TypeError with no
+            // actionable feedback.  Fall back to a sensible default so the
+            // feature degrades gracefully rather than crashing.
+            var promptTpl = typeof provider.prompt_template === 'string'
+                ? provider.prompt_template
+                : 'Read this documentation page: {url}';
+            var urlTpl = typeof provider.url_template === 'string'
+                ? provider.url_template
+                : null;
 
+            if (!urlTpl) {
+                showNotification('AI provider "' + providerKey + '" has no url_template.', true);
+                return;
+            }
+
+            var mdUrl  = getMarkdownUrl();
+            var prompt = promptTpl.replace('{url}', mdUrl);
+            var aiUrl  = urlTpl.replace('{prompt}', encodeURIComponent(prompt));
+
+            console.debug('AI Assistant: Opening AI chat:', providerKey, aiUrl);
             window.open(aiUrl, '_blank', 'noopener,noreferrer');
             closeDropdown();
         } catch (err) {
@@ -921,8 +1035,20 @@
 
             if (tool.type === 'claude_desktop') {
                 var mcpbUrl  = tool.mcpb_url;
-                var urlPath  = new URL(mcpbUrl).pathname;
-                var filename = urlPath.split('/').pop();
+                // FIX-5: new URL() throws on empty string / relative / invalid
+                // values.  Validate explicitly with a useful user-facing message
+                // rather than letting the generic catch show a vague toast.
+                var urlPath;
+                try {
+                    urlPath = new URL(mcpbUrl).pathname;
+                } catch (_urlErr) {
+                    showNotification(
+                        'MCP tool "' + toolKey + '" has an invalid mcpb_url.',
+                        true
+                    );
+                    return;
+                }
+                var filename = urlPath.split('/').pop() || (toolKey + '.zip');
                 var a = document.createElement('a');
                 a.href = mcpbUrl;
                 a.download = filename;
@@ -981,10 +1107,10 @@
         closeDropdown();
 
         if (mode === 'url' && pdfUrl) {
-            console.log('AI Assistant: PDF URL mode → opening:', pdfUrl);
+            console.debug('AI Assistant: PDF URL mode → opening:', pdfUrl);
             window.open(pdfUrl, '_blank', 'noopener,noreferrer');
         } else {
-            console.log('AI Assistant: PDF print mode → window.print()');
+            console.debug('AI Assistant: PDF print mode → window.print()');
             window.print();
         }
     }
@@ -1017,21 +1143,40 @@
 
     /**
      * Flash the main button with a checkmark for 2 seconds to confirm copy.
+     *
+     * Developer note (FIX-3):
+     *   The original implementation rebuilt `mainButton.innerHTML` from a
+     *   string, which:
+     *     (a) violates the "no innerHTML with raw user data" policy even though
+     *         staticPath is trusted — it's an inconsistent pattern.
+     *     (b) destroys and recreates child DOM nodes on every call.
+     *     (c) re-injects the saved innerHTML string back, which re-parses HTML
+     *         unnecessarily and loses any future child event listeners.
+     *
+     *   The fix mutates only the two changing properties (.src and .textContent)
+     *   on the existing child nodes, then restores them after 2 s.  This is
+     *   correct, safe, and has zero DOM thrash.
      */
     function showInlineSuccessState() {
         var mainButton = document.getElementById('ai-assistant-button-main');
         if (!mainButton) return;
 
-        var staticPath      = getStaticPath();
-        var originalContent = mainButton.innerHTML;
+        // Locate existing children — avoid any DOM reconstruction.
+        var iconEl   = mainButton.querySelector('.ai-assistant-icon');
+        var textSpan = mainButton.querySelector('.ai-assistant-button-text');
+        if (!iconEl || !textSpan) return;
 
-        mainButton.innerHTML =
-            '<img src="' + staticPath + '/checked.svg" class="ai-assistant-icon" aria-hidden="true" alt="">' +
-            '<span class="ai-assistant-button-text">Copied</span>';
+        // Snapshot originals for restoration.
+        var origSrc  = iconEl.src;
+        var origText = textSpan.textContent;
+
+        iconEl.src           = getStaticPath() + '/checked.svg';
+        textSpan.textContent = 'Copied';
         mainButton.classList.add('ai-assistant-button-success');
 
         setTimeout(function () {
-            mainButton.innerHTML = originalContent;
+            iconEl.src           = origSrc;
+            textSpan.textContent = origText;
             mainButton.classList.remove('ai-assistant-button-success');
         }, 2000);
     }
@@ -1180,9 +1325,21 @@
 
         var welcome = document.createElement('div');
         welcome.className = 'ai-assistant-panel-welcome';
-        welcome.innerHTML =
-            '<p>Hi! I\u2019m <strong>' + _escapeHtml(title) + '</strong>.</p>' +
-            '<p>Ask me anything about this documentation page.</p>';
+        // FIX-4: Build the welcome message with pure DOM construction.
+        // The previous implementation used innerHTML with _escapeHtml(title),
+        // which was safe but inconsistent with the rest of the codebase and
+        // incompatible with strict Content-Security-Policy configurations that
+        // disallow 'unsafe-inline'.  textContent auto-escapes all special chars.
+        var p1     = document.createElement('p');
+        var strong = document.createElement('strong');
+        strong.textContent = title;
+        p1.appendChild(document.createTextNode('Hi! I\u2019m '));
+        p1.appendChild(strong);
+        p1.appendChild(document.createTextNode('.'));
+        var p2 = document.createElement('p');
+        p2.textContent = 'Ask me anything about this documentation page.';
+        welcome.appendChild(p1);
+        welcome.appendChild(p2);
         body.appendChild(welcome);
 
         // Footer

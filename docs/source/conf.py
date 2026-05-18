@@ -892,7 +892,10 @@ html_theme_options = {
     # -- Search and Edit ------------------------------------------------------
     # "search_as_you_type": True,
     "search_bar_text": "Search the docs ...",
-    "use_edit_page_button": True,
+    # Missing required value for `use_edit_page_button`.
+    # Ensure one set of the following in your `html_context` configuration:
+    # [('bitbucket_user', 'bitbucket_repo', 'bitbucket_version'), ('github_user', 'github_repo', 'github_version'), ('gitlab_user', 'gitlab_repo', 'gitlab_version')]
+    "use_edit_page_button": True,  # False
     # -- Appearance Settings --------------------------------------------------
     "pygments_light_style": "tango",  # "github-light",
     "pygments_dark_style": "monokai",  # "github-dark",
@@ -1032,10 +1035,9 @@ html_theme_options = {
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_sidebars
     "secondary_sidebar_items": {
         # Generated docs > On this page > Show Source
-        "_tags/**": ["page-toc","sourcelink"],
-        "apis/**": ["page-toc","sourcelink"],
+        # Regular docs > On this page > Show Source
         # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
-        "auto_examples/**": [
+        "**": [
             *(["edit-this-page"] if "dev" in release else []),
             "page-toc",
             # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
@@ -1055,18 +1057,6 @@ html_theme_options = {
             "sg_download_links",  # Sphinx-Gallery links to:
             "sg_launcher_links",
             # "funding_links",
-        ],
-        # Regular docs > On this page > Show Source
-        "**": [
-            *(["edit-this-page"] if "dev" in release else []),
-            "page-toc",
-            "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
-            # (recommended) Canonical Sphinx-Gallery components sidebar manually add
-            # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
-            # sg_download_links: Displays the download links of source code, Jupyter notebook, and the zip of them for an example.
-            # sg_launcher_links: Displays the launcher links for JupyterLite and Binder for an example.
-            # "sg_download_links",  # Sphinx-Gallery links to:
-            # "sg_launcher_links",
         ],
     },
     # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_show_sourcelink
@@ -1877,10 +1867,10 @@ sass_targets = {
 # ---------------------------------------------------------------------------
 # Merge into existing html_context if you already have one
 html_context = {
-    # "github_user": "scikit-plots",
-    # "github_repo": "scikit-plots",
-    # "github_version": "main",   # branch the docs are built from
-    # "doc_path": "docs",         # path to the docs directory inside the repo
+    "github_user": "scikit-plots",
+    "github_repo": "scikit-plots",
+    "github_version": gh_branch,  # branch the docs are built from
+    # "doc_path": "docs",  # path to the docs directory inside the repo
 
     # 'repl_url': repl_url,  # populated by the extension
     # "shell": {
@@ -2002,15 +1992,42 @@ ai_assistant_generate_llms_txt = True
 ai_assistant_base_url = ""  # use html_baseurl above
 
 ai_assistant_features = {
-    # Copy page content as Markdown to clipboard
+    # ── Core export features ──────────────────────────────────────────────
+    # Copy the current page as Markdown (main button + dropdown item).
     "markdown_export": True,
-    # Open raw Markdown of the current page in a new browser tab
+    # Open the companion .md file in a new tab.
     "view_markdown": True,
-    # Render deep-links to Claude / ChatGPT with page context
+
+    # ── AI chat deep-links ────────────────────────────────────────────────
+    # Show enabled AI provider buttons (Claude, ChatGPT, Gemini, …).
     "ai_chat": True,
-    # Show MCP server installation buttons
-    "mcp_integration": False,
+
+    # ── MCP integration ───────────────────────────────────────────────────
+    # Show MCP "Connect" buttons for VS Code, Claude Desktop, etc.
+    # Requires at least one enabled entry in ``ai_assistant_mcp_tools``.
+    "mcp_integration": True,   # False ← disable MCP section on this site
+
+    # ── Theme toggle ──────────────────────────────────────────────────────
+    # Dark / light / system color-scheme toggle button.
+    "theme_toggle": True,   # False ← hide if the theme handles it already
+
+    # ── PDF export ────────────────────────────────────────────────────────
+    # "Export as PDF" centered button + URL/Print mode toggle.
+    # IMPORTANT: must be set explicitly — the JS default is True, but relying
+    # on JS defaults means conf.py cannot disable it cleanly.
+    "pdf_export": True,
+
+    # ── AI panel ─────────────────────────────────────────────────────────
+    # Floating in-page AI assistant chat panel (slide-in drawer).
+    # IMPORTANT: this key MUST be present and True for the panel button to
+    # appear in the dropdown.  The JS safe default is False (opt-in) — if
+    # this key is absent from conf.py the panel is invisible.
+    # Root cause of BUG-1: partial ai_assistant_features dict that omits
+    # this key → JS defaults ai_panel = False → button never created.
+    "ai_panel": True,
 }
+
+ai_assistant_panel_api_enabled = False
 
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
