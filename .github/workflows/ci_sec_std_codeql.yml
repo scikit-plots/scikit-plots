@@ -120,7 +120,7 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: CodeQL Initialize
-        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
         # continue-on-error: true
         with:
           languages: ${{ matrix.language }}
@@ -141,7 +141,7 @@ jobs:
       # If this step fails, then you should remove it and run the build manually (see below)
       - name: CodeQL Autobuild
         if: matrix.language != 'c-cpp'
-        uses: github/codeql-action/autobuild@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        uses: github/codeql-action/autobuild@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
         # continue-on-error: true
 
       # ******** NOTE ********
@@ -178,7 +178,7 @@ jobs:
           pip install --no-build-isolation --no-cache-dir -e .[dev,build,test,docs] -v
 
       - name: "🧠 CodeQL Perform Analysis"
-        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
         # continue-on-error: true
         with:
           category: "/language:${{matrix.language}}"
