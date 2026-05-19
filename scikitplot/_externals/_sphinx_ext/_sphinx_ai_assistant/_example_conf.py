@@ -789,6 +789,65 @@ ai_assistant_panel_placeholder = "Ask a question about this page\u2026"
 #   deployment is ``False`` (stub mode) for public docs.
 ai_assistant_panel_api_enabled = False
 
+# Type:    list[str]
+# Default: []   (no chips shown)
+#
+# Quick-suggestion chips displayed in the panel welcome screen.
+# When the user clicks a chip its text is pre-filled into the input textarea.
+# Provide 0–5 short, actionable questions relevant to your documentation.
+#
+# Example::
+#
+#     ai_assistant_panel_quick_questions = [
+#         "What does this module do?",
+#         "Show me a usage example.",
+#         "What are the main parameters?",
+#     ]
+#
+# User note:
+#   • Keep each string short (< 60 chars) so it fits on one chip line.
+#   • More than 5 items are silently truncated to 5.
+#   • Set to [] (empty list) to hide the chips entirely.
+#
+# Developer note:
+#   The list is forwarded verbatim as ``panelQuickQuestions`` in the JS
+#   config object.  The JS reads it with Array.isArray guard and slices
+#   to a maximum of 5 items before rendering chip buttons.
+ai_assistant_panel_quick_questions = [
+    "What does this page cover?",
+    "Show me a quick usage example.",
+    "What are the key parameters?",
+]
+
+# Type:    bool
+# Default: True
+#
+# When True (default), the panel shows a "Speak with your assistant" pill
+# banner above the input area (only in browsers that support Web Speech API).
+# Clicking the banner or the microphone icon inside the input starts voice
+# recognition; the transcribed text is inserted into the input field.
+#
+# When False, all speech-related UI is hidden regardless of browser support.
+#
+# Browser support: Chrome, Edge, Safari (desktop + iOS). Firefox does NOT
+# support the Web Speech API and will never show the banner even when True.
+#
+# User note:
+#   No audio is sent to any server — speech recognition runs entirely in
+#   the browser via the platform's built-in speech engine.
+#   The mic button inside the input group is also hidden when False.
+ai_assistant_panel_speak_banner = True
+
+# Type:    str
+# Default: "Ask Us"
+#
+# Label displayed on the floating trigger pill that appears at the bottom-right
+# corner of the viewport when the user minimizes the panel (rather than closing
+# it).  Clicking the pill restores the panel with the conversation intact.
+#
+# User note: Keep very short (1–3 words).  Combined with a chat icon SVG.
+ai_assistant_panel_trigger_label = "Ask Us"
+
 # Type:    dict[str, dict]
 # Default: _DEFAULT_PROVIDERS  (12 providers; 3 enabled by default —
 #          chatgpt, claude, gemini — 9 disabled)

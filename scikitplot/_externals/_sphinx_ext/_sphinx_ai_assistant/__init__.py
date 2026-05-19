@@ -2825,6 +2825,37 @@ def _cfg_bool(config: Any, key: str, default: bool = False) -> bool:
     return bool(val) if isinstance(val, (bool, int)) else default
 
 
+def _cfg_str_list(config: Any, key: str) -> list[str]:
+    """Safely read a list-of-strings config value.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+    key : str
+        Configuration key to read.
+
+    Returns
+    -------
+    list[str]
+        Always a plain list of str, never ``None``.  Non-string items in the
+        source list are silently dropped.  If the value is a bare string it is
+        wrapped in a single-element list.  Any other type returns ``[]``.
+
+    Notes
+    -----
+    This guard is required because Sphinx config objects may return
+    MagicMock instances during test execution, and user conf.py files can
+    assign non-list types by mistake.
+    """
+    val = getattr(config, key, [])
+    if isinstance(val, str):
+        return [val] if val.strip() else []
+    if isinstance(val, (list, tuple)):
+        return [str(item) for item in val if isinstance(item, str)]
+    return []
+
+
 def add_ai_assistant_context(
     app: Sphinx,
     pagename: str,
@@ -2942,7 +2973,8 @@ def add_ai_assistant_context(
         "pdfUrlModeToggle": _cfg_bool(
             app.config, "ai_assistant_pdf_url_mode_toggle", True
         ),
-        # ---- AI panel (floating chat stub) --------------------------------
+        # ---- AI panel (floating chat drawer) --------------------------------
+        # Basic identity
         "panelTitle": (
             _cfg_str(app.config, "ai_assistant_panel_title") or "AI Assistant"
         ),
@@ -2952,6 +2984,24 @@ def add_ai_assistant_context(
         ),
         "panelApiEnabled": _cfg_bool(
             app.config, "ai_assistant_panel_api_enabled", False
+        ),
+        # Quick-suggestion chips (list[str], 0-5 items shown).
+        # Serialise via _cfg_str_list so the value is always a JSON array
+        # in the injected config even when conf.py omits the key.
+        "panelQuickQuestions": _cfg_str_list(
+            app.config, "ai_assistant_panel_quick_questions"
+        ),
+        # "Speak with your assistant" microphone banner / button.
+        # When True (default) and the browser supports Web Speech API the
+        # panel shows a dismissable "Speak with your assistant" pill above
+        # the input area, plus a mic icon inside the input group.
+        # Set to False to hide all speech UI regardless of browser support.
+        "panelSpeakBanner": _cfg_bool(
+            app.config, "ai_assistant_panel_speak_banner", True
+        ),
+        # Trigger pill label (the floating "Ask Us" button shown when minimized).
+        "panelTriggerLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask Us"
         ),
     }
 
@@ -3186,12 +3236,36 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # ``ai_assistant_pdf_export_url`` (URL mode when non-empty, Print otherwise).
     app.add_config_value("ai_assistant_pdf_url_mode_toggle", True, "html")
 
-    # ---- AI panel (floating chat stub) config ------------------------------
-    # ``ai_assistant_panel_title``    : header text shown in the panel.
-    # ``ai_assistant_panel_placeholder`` : input placeholder text.
-    # ``ai_assistant_panel_api_enabled`` : when True the panel will POST to
-    #     the Anthropic /v1/messages endpoint via the built-in JS fetch logic;
+    # ---- AI panel (floating chat drawer) config ----------------------------
+    #
+    # ``ai_assistant_panel_title``
+    #     Header label shown in the floating AI panel.  Default: 'AI Assistant'.
+    #
+    # ``ai_assistant_panel_placeholder``
+    #     Placeholder text for the panel's textarea input field.
+    #
+    # ``ai_assistant_panel_api_enabled``
+    #     When True the panel POSTs to the Anthropic /v1/messages endpoint;
     #     when False the panel renders as a UI stub with no network calls.
+    #
+    # ``ai_assistant_panel_quick_questions``
+    #     List of 0-5 short question strings shown as clickable chip buttons
+    #     in the panel welcome screen.  Clicking a chip pre-fills the input.
+    #     Example::
+    #         ai_assistant_panel_quick_questions = [
+    #             "What does this module do?",
+    #             "Show me a usage example.",
+    #             "What are the main parameters?",
+    #         ]
+    #
+    # ``ai_assistant_panel_speak_banner``
+    #     When True (default) and the browser supports Web Speech API, show
+    #     a "Speak with your assistant" pill above the input plus a mic icon
+    #     inside the input group.  Set False to hide all speech UI.
+    #
+    # ``ai_assistant_panel_trigger_label``
+    #     Label on the floating trigger pill shown when the panel is minimized.
+    #     Default: 'Ask Us'.
     app.add_config_value("ai_assistant_panel_title", "AI Assistant", "html")
     app.add_config_value(
         "ai_assistant_panel_placeholder",
@@ -3199,6 +3273,9 @@ def setup(app: Sphinx) -> dict[str, Any]:
         "html",
     )
     app.add_config_value("ai_assistant_panel_api_enabled", False, "html")
+    app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
+    app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
+    app.add_config_value("ai_assistant_panel_trigger_label", "Ask Us", "html")
 
     # ---- Static files ------------------------------------------------------
     static_path = Path(__file__).parent / "_static"
