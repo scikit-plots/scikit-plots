@@ -457,9 +457,16 @@
 
         if (position === 'sidebar') {
             var sidebarSelectors = [
-                '.bd-sidebar-secondary', '.bd-toc',
-                'aside.toc-sidebar', '.sidebar-secondary',
-                '.toc-drawer', 'aside[role="complementary"]',
+                // PyData Sphinx Theme (canonical)
+                '.bd-sidebar-secondary',       // PST >= 0.13 right sidebar
+                '.bd-toc',                     // PST < 0.13 TOC
+                // Furo (actual TOC sidebar elements)
+                'aside.toc-sidebar',           // Furo canonical TOC sidebar
+                '.sidebar-secondary',          // Furo/PST compatibility alias
+                // Furo wrappers / drawers
+                '.toc-drawer',                 // Furo drawer container
+                // Generic fallback (always last)
+                'aside[role="complementary"]', // ARIA complementary landmark
             ];
             for (var k = 0; k < sidebarSelectors.length; k++) {
                 var sidebar = document.querySelector(sidebarSelectors[k]);

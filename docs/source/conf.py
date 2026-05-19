@@ -1962,13 +1962,19 @@ ai_assistant_content_selector = "article.bd-article"
 # to locate the main content element in each HTML file.  The first selector
 # that matches is used.
 ai_assistant_content_selectors = [
-    "article.bd-article",      # pydata-sphinx-theme ≥ 0.13
-    'div[role="main"]',        # pydata-sphinx-theme (older), RTD
-    'article[role="main"]',    # Furo
+    # PyData Sphinx Theme (canonical)
+    "article.bd-article",      # PST >= 0.13
+    # Furo / semantic main article
+    'article[role="main"]',    # Furo canonical
+    # RTD / older themes
+    'div[role="main"]',        # RTD / older PST
+    # Classic Sphinx themes
     "div.document",            # Classic / Alabaster
-    "main",                    # Generic HTML5
-    "div.body",                # Very old themes
-    "article",                 # Last-resort fallback
+    "div.body",                # Older Sphinx themes
+    # Generic semantic fallbacks
+    "main",                    # HTML5 main landmark
+    # Absolute last resort
+    "article",                 # Broad fallback
 ]
 
 # Generate a ``.md`` companion for every ``.html`` file after the build.
@@ -1986,6 +1992,7 @@ ai_assistant_markdown_exclude_patterns = [
 
 # Maximum number of parallel worker processes for Markdown generation.
 # None → os.cpu_count() or 1.
+# Keep as 1 too mant files cause memory error
 ai_assistant_max_workers = 1  # None / "auto" or a positive integer
 
 # Write an llms.txt index file listing all generated .md page URLs.
