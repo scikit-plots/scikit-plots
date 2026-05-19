@@ -1,10 +1,9 @@
 # scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_static/__init__.py
 #
-# This module was copied and adapted from the sphinx-ai-assistant project.
-# https://github.com/mlazag/sphinx-ai-assistant
+# flake8: noqa: D213
 #
 # Authors: Mladen Zagorac, The scikit-plots developers
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: MIT / BSD-3-Clause
 
 """
 Static-asset subpackage for the Sphinx AI Assistant extension.
@@ -23,20 +22,23 @@ _SVG_COPY, _SVG_MARKDOWN, _SVG_CLAUDE, … : str
 
 Notes
 -----
-**Developer note** — Adding a new provider icon:
+**Developer note** — Adding a new icon:
 
-1. Create a minimal monochrome SVG (16x16 or 24x24 px).
+1. Create a minimal monochrome SVG (24x24 px recommended, ``currentColor``
+   stroke so dark-mode filter works automatically).
 2. Base64-encode it::
 
        python -c "import base64; print(base64.b64encode(open('icon.svg','rb').read()).decode())"
 
 3. Assign the result to a new ``_SVG_<NAME>`` constant below.
-4. Add an entry to ``_PROVIDER_META``.
+4. Add an entry to ``_PROVIDER_META`` (for providers) or ``_ICON_META``
+   (for panel action icons).
 5. Add a corresponding test in ``tests/test___init__.py``.
 
-**Security note** — Icons are injected only as CSS ``background-image``
-values in the browser; they are never written to the filesystem by Python
-code and contain no executable content.
+**Security note** — Icons are injected only as ``src`` attributes on
+``<img>`` elements (via the Python extension) or as ``data:`` URIs
+returned by ``_resolve_icon()``.  They are never written to the
+filesystem and contain no executable content.
 
 Examples
 --------
@@ -54,34 +56,52 @@ import base64
 import pathlib
 
 __all__ = [
+    "_ICON_META",
     "_PROVIDER_META",
     "_SVG_CHATGPT",
     "_SVG_CLAUDE",
     "_SVG_COPY",
+    "_SVG_COPY_ANSWER",
     "_SVG_DEFAULT",
+    "_SVG_EXPORT_TXT",
     "_SVG_GEMINI",
+    "_SVG_KEYBOARD",
     "_SVG_MARKDOWN",
+    "_SVG_NEW_CHAT",
     "_SVG_OLLAMA",
+    "_SVG_PRIVACY",
+    "_SVG_SEARCH_AI",
     "export_svg2base64",
 ]
 
 
-def export_svg2base64():
-    # Read all SVGs
-    svgs = {}
-    static = pathlib.Path().cwd()
-    for f in sorted(static.glob("*.svg")):
-        b64 = base64.b64encode(f.read_bytes()).decode()
-        svgs[f.name] = f"data:image/svg+xml;base64,{b64}"
-    return svgs
+def export_svg2base64(directory: str | None = None) -> dict[str, str]:
+    """Encode every ``*.svg`` file in *directory* as a base64 data URI.
+
+    Parameters
+    ----------
+    directory : str or None, optional
+        Directory to scan.  Defaults to the current working directory.
+
+    Returns
+    -------
+    dict of str → str
+        Mapping of ``filename.svg`` → ``data:image/svg+xml;base64,...``.
+    """
+    root = pathlib.Path(directory) if directory else pathlib.Path.cwd()
+    return {
+        f.name: f"data:image/svg+xml;base64,{base64.b64encode(f.read_bytes()).decode()}"
+        for f in sorted(root.glob("*.svg"))
+    }
 
 
 # ---------------------------------------------------------------------------
 # Inline SVG icons — base64 data URIs
 # ---------------------------------------------------------------------------
-# Each constant holds a minimal monochrome SVG encoded as a base64 data URI
-# for use as a CSS ``background-image`` value.  Keeping them inline means
-# the widget is fully self-contained with zero network requests.
+# Convention: stroke="currentColor" so the dark-mode CSS filter
+# (brightness(1.6)) works without duplicating icon variants.
+
+# ── Existing icons ──────────────────────────────────────────────────────────
 
 _SVG_COPY: str = (
     "data:image/svg+xml;base64,"
@@ -134,6 +154,9 @@ _SVG_OLLAMA: str = (
     "NCIgZmlsbD0iIzMzMyIvPjwvc3ZnPg=="
 )
 
+# ── Fallback for unknown providers/tools ────────────────────────────────────
+# NOTE: Only one _SVG_DEFAULT constant. Previous version had a duplicate
+# assignment — removed in this revision (BUG-1 fix).
 _SVG_DEFAULT: str = (
     "data:image/svg+xml;base64,"
     "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAy"
@@ -142,13 +165,72 @@ _SVG_DEFAULT: str = (
     "LThoLTJWN2gydjJ6Ii8+PC9zdmc+"
 )
 
-_SVG_DEFAULT: str = (
+# ── New panel-action icons (added) ───────────────────────────────────────────
+
+# Refresh / rotate-ccw: "Start a new chat"
+_SVG_NEW_CHAT: str = (
     "data:image/svg+xml;base64,"
-    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAy"
-    "NCAyNCI+PHBhdGggZmlsbD0iIzg4OCIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDgg"
-    "MTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEgMTVoLTJ2LTZoMnY2em0w"
-    "LThoLTJWN2gydjJ6Ii8+PC9zdmc+"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHBvbHlsaW5lIHBvaW50cz0iMSA0IDEgMTAgNyAxMCIvPjxwYXRo"
+    "IGQ9Ik0zLjUxIDE1YTkgOSAwIDEgMCAuNDktNC41Ii8+PC9zdmc+"
 )
+
+# Download arrow: "Export AI conversation as txt"
+_SVG_EXPORT_TXT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHBhdGggZD0iTTIxIDE1djRhMiAyIDAgMCAxLTIgMkg1YTIgMiAw"
+    "IDAgMS0yLTJ2LTQiLz48cG9seWxpbmUgcG9pbnRzPSI3IDEwIDEyIDE1IDE3IDEw"
+    "Ii8+PGxpbmUgeDE9IjEyIiB5MT0iMTUiIHgyPSIxMiIgeTI9IjMiLz48L3N2Zz4="
+)
+
+# Two overlapping rectangles: "Copy this answer"
+_SVG_COPY_ANSWER: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHJlY3QgeD0iOSIgeT0iOSIgd2lkdGg9IjEzIiBoZWlnaHQ9IjEz"
+    "IiByeD0iMiIgcnk9IjIiLz48cGF0aCBkPSJNNSAxNUg0YTIgMiAwIDAgMS0yLTJW"
+    "NGEyIDIgMCAwIDEgMi0yaDlhMiAyIDAgMCAxIDIgMnYxIi8+PC9zdmc+"
+)
+
+# Shield: Privacy Policy
+_SVG_PRIVACY: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHBhdGggZD0iTTEyIDIyczgtNCA4LTEwVjVsLTgtMy04IDN2N2Mw"
+    "IDYgOCAxMCA4IDEweiIvPjwvc3ZnPg=="
+)
+
+# Magnifier with plus: AI Search
+_SVG_SEARCH_AI: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PGNpcmNsZSBjeD0iMTEiIGN5PSIxMSIgcj0iOCIvPjxsaW5lIHgx"
+    "PSIyMSIgeTE9IjIxIiB4Mj0iMTYuNjUiIHkyPSIxNi42NSIvPjxwYXRoIGQ9Ik04"
+    "IDExaDZNMTEgOHY2IiBzdHJva2Utd2lkdGg9IjEuNSIvPjwvc3ZnPg=="
+)
+
+# Keyboard: shortcut hint
+_SVG_KEYBOARD: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHJlY3QgeD0iMiIgeT0iNiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjEy"
+    "IiByeD0iMiIvPjxwYXRoIGQ9Ik02IDEwaC4wMU0xMCAxMGguMDFNMTQgMTBoLjAx"
+    "TTE4IDEwaC4wMU04IDE0aDgiLz48L3N2Zz4="
+)
+
 
 # ---------------------------------------------------------------------------
 # Provider icon + description registry
@@ -162,8 +244,8 @@ _SVG_DEFAULT: str = (
 #: ``_DEFAULT_PROVIDERS`` and ``_DEFAULT_MCP_TOOLS`` in the parent module.
 _PROVIDER_META: dict[str, dict[str, str]] = {
     # AI providers
-    "claude": {"icon": _SVG_CLAUDE, "desc": "Anthropic's Claude AI"},
-    "chatgpt": {"icon": _SVG_CHATGPT, "desc": "OpenAI's ChatGPT"},
+    "claude": {"icon": _SVG_CLAUDE, "desc": "Anthropic Claude AI"},
+    "chatgpt": {"icon": _SVG_CHATGPT, "desc": "OpenAI ChatGPT"},
     "gemini": {"icon": _SVG_GEMINI, "desc": "Google Gemini AI"},
     "ollama": {"icon": _SVG_OLLAMA, "desc": "Local Ollama model"},
     "mistral": {"icon": _SVG_DEFAULT, "desc": "Mistral AI"},
@@ -180,4 +262,18 @@ _PROVIDER_META: dict[str, dict[str, str]] = {
     "cursor": {"icon": _SVG_DEFAULT, "desc": "Cursor IDE MCP"},
     "windsurf": {"icon": _SVG_DEFAULT, "desc": "Windsurf IDE MCP"},
     "generic": {"icon": _SVG_DEFAULT, "desc": "Generic MCP server"},
+}
+
+#: Map action key → ``{"icon": <data-URI>, "desc": <str>}``
+#: for panel header and footer action buttons.
+#: Used as fallbacks when the SVG file is missing from ``_static/``.
+_ICON_META: dict[str, dict[str, str]] = {
+    "copy": {"icon": _SVG_COPY, "desc": "Copy page as Markdown"},
+    "markdown": {"icon": _SVG_MARKDOWN, "desc": "View as Markdown"},
+    "new-chat": {"icon": _SVG_NEW_CHAT, "desc": "Start a new chat"},
+    "export-txt": {"icon": _SVG_EXPORT_TXT, "desc": "Export conversation as txt"},
+    "copy-answer": {"icon": _SVG_COPY_ANSWER, "desc": "Copy this answer"},
+    "privacy": {"icon": _SVG_PRIVACY, "desc": "Privacy Policy"},
+    "search-ai": {"icon": _SVG_SEARCH_AI, "desc": "AI search"},
+    "keyboard": {"icon": _SVG_KEYBOARD, "desc": "Keyboard shortcuts"},
 }
