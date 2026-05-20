@@ -1949,6 +1949,8 @@ ai_assistant_enabled = True
 # "title"    → next to the page heading
 ai_assistant_position = "sidebar"
 ai_assistant_search_bar = True
+ai_assistant_search_bar_mini = True
+ai_assistant_search_bar_selector = ".bd-sidebar-primary"
 
 # CSS selector used by the JavaScript widget to extract page content for
 # copy-as-Markdown and AI-chat features.
