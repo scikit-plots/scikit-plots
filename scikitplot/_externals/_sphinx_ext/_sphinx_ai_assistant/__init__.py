@@ -3099,6 +3099,13 @@ def add_ai_assistant_context(
             _cfg_str(app.config, "ai_assistant_search_bar_selector") or ""
         ),
         "searchBarMini": _cfg_bool(app.config, "ai_assistant_search_bar_mini", False),
+        # Insertion point inside the host element: "top" → prepend (sidebar
+        # top, above navigation links), "bottom" → append (default, current
+        # behaviour).  Any value other than "top" is treated as "bottom" so
+        # the safe fallback is always the pre-existing behaviour.
+        "searchBarPosition": (
+            _cfg_str(app.config, "ai_assistant_search_bar_position") or "bottom"
+        ),
         "panelSearchPlaceholder": (
             _cfg_str(app.config, "ai_assistant_panel_search_placeholder")
             or "Ask AI about these docs\u2026"
@@ -3485,6 +3492,15 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     CSS selector of the host element to append the search-bar into.
     #     If empty or not found nothing happens (safe no-op).
     app.add_config_value("ai_assistant_search_bar_selector", "", "html")
+
+    # ``ai_assistant_search_bar_position`` (str, default "bottom")
+    #     Where inside the host element the search-bar is inserted.
+    #     "top"    → prepend before the first child — appears at the very top
+    #                of the sidebar, giving users immediate 1-click AI access
+    #                without scrolling past navigation links.
+    #     "bottom" → append after the last child (default; pre-existing
+    #                behaviour; safe fallback for any unrecognised value).
+    app.add_config_value("ai_assistant_search_bar_position", "top", "html")
 
     # ``ai_assistant_search_bar_mini`` (bool, default False)
     #     Compact inline variant when True; full-width block when False.

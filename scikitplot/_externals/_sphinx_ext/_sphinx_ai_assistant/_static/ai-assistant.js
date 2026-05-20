@@ -1493,6 +1493,11 @@
      * Mount the standalone search-bar into a host selector (config-driven).
      * Default OFF.  If the configured selector is not found nothing happens
      * (safe no-op) so a missing element can never break the page.
+     *
+     * Position is controlled by cfg.searchBarPosition:
+     *   "top"    → insertBefore(bar, host.firstChild)  — prepend at sidebar top.
+     *   "bottom" → appendChild(bar)                    — append (default).
+     * Any value other than "top" falls back to "bottom" (pre-existing behaviour).
      */
     function _mountSearchBar() {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
@@ -1503,7 +1508,15 @@
         var host = document.querySelector(sel);
         if (!host) return;
         if (host.querySelector('.ai-assistant-searchbar')) return;  // idempotent
-        host.appendChild(_buildSearchBar(cfg.searchBarMini === true));
+        var bar = _buildSearchBar(cfg.searchBarMini === true);
+        if (cfg.searchBarPosition === 'top') {
+            // Prepend: place before the first existing child so the search bar
+            // appears at the very top of the sidebar — above navigation links.
+            host.insertBefore(bar, host.firstChild);
+        } else {
+            // Default "bottom": append after all existing children.
+            host.appendChild(bar);
+        }
     }
 
     // ── AI Panel ──────────────────────────────────────────────────────────────

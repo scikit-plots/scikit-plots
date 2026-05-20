@@ -3442,6 +3442,8 @@ class TestV03ConfigPlumbing:
         # trigger pill UX keys (v0.2/v0.3 boundary)
         "panelTriggerLabel",
         "panelStartMinimized",
+        # search-bar position
+        "searchBarPosition",
     ]
 
     def test_all_v03_keys_serialised(self, sphinx_app):

@@ -1000,6 +1000,27 @@ ai_assistant_search_bar = False
 #   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
 ai_assistant_search_bar_selector = ""
 
+# Type:    str  ("top" | "bottom")
+# Default: "bottom"
+#
+# Where inside the host element the search-bar is inserted.
+#
+#   "top"    → Prepended before the first child so the bar appears at the
+#              very top of the sidebar — immediately visible without scrolling
+#              past navigation links.  Recommended for sidebar placement.
+#   "bottom" → Appended after the last child (default; pre-existing
+#              behaviour).  Use when appending to a non-sidebar host element
+#              where top position would displace existing first-child content.
+#
+# User note: "top" gives users the best discoverability — the AI search input
+# is the first thing they see when they glance at the sidebar.
+# Any value other than "top" is treated as "bottom" (safe fallback).
+#
+# Example (pydata theme, sidebar top):
+#   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+#   ai_assistant_search_bar_position = "top"
+ai_assistant_search_bar_position = "top"
+
 # Type:    bool
 # Default: False
 # Compact inline variant when True; full-width block when False.
