@@ -172,23 +172,6 @@
         if (features.ai_panel) {
             _bindShortcut();    // R7 — no-op if disabled/invalid in config
             _mountSearchBar();  // R8 — no-op unless explicitly enabled
-
-            // panelStartMinimized (default true): eagerly create the floating
-            // trigger pill so users get 1-click access to the panel on every
-            // page load — without needing to open the panel first.
-            // When false, the pill is created lazily inside createAIPanel()
-            // and only becomes visible after the user minimizes the panel.
-            if (cfg.panelStartMinimized !== false) {
-                if (!_aiTriggerEl) {
-                    var title = cfg.panelTitle || 'AI Assistant';
-                    _aiTriggerEl = _createTriggerPill(title);
-                    // Mirror what minimizeAIPanel() does: mark as minimized
-                    // and make it visible so CSS rules apply correctly.
-                    _aiTriggerEl.setAttribute('data-minimized', 'true');
-                    _aiTriggerEl.style.display = 'flex';
-                    document.body.appendChild(_aiTriggerEl);
-                }
-            }
         }
     }
 
@@ -1493,11 +1476,6 @@
      * Mount the standalone search-bar into a host selector (config-driven).
      * Default OFF.  If the configured selector is not found nothing happens
      * (safe no-op) so a missing element can never break the page.
-     *
-     * Position is controlled by cfg.searchBarPosition:
-     *   "top"    → insertBefore(bar, host.firstChild)  — prepend at sidebar top.
-     *   "bottom" → appendChild(bar)                    — append (default).
-     * Any value other than "top" falls back to "bottom" (pre-existing behaviour).
      */
     function _mountSearchBar() {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
@@ -1508,15 +1486,7 @@
         var host = document.querySelector(sel);
         if (!host) return;
         if (host.querySelector('.ai-assistant-searchbar')) return;  // idempotent
-        var bar = _buildSearchBar(cfg.searchBarMini === true);
-        if (cfg.searchBarPosition === 'top') {
-            // Prepend: place before the first existing child so the search bar
-            // appears at the very top of the sidebar — above navigation links.
-            host.insertBefore(bar, host.firstChild);
-        } else {
-            // Default "bottom": append after all existing children.
-            host.appendChild(bar);
-        }
+        host.appendChild(_buildSearchBar(cfg.searchBarMini === true));
     }
 
     // ── AI Panel ──────────────────────────────────────────────────────────────
@@ -1832,10 +1802,7 @@
         iconWrap.innerHTML = ICONS.chat;   // ICONS constant — safe.
 
         var label = document.createElement('span');
-        // BUG-FIX: was hardcoded 'Ask Us' — now reads cfg.panelTriggerLabel
-        // so ai_assistant_panel_trigger_label in conf.py is actually applied.
-        var cfg = window.AI_ASSISTANT_CONFIG || {};
-        label.textContent = cfg.panelTriggerLabel || 'Ask Us';
+        label.textContent = 'Ask Us';
 
         trigger.appendChild(iconWrap);
         trigger.appendChild(label);

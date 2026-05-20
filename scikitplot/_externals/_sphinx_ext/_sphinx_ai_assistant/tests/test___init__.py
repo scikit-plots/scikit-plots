@@ -3374,3 +3374,120 @@ class TestAIPanelFeature:
         _mod.add_ai_assistant_context(sphinx_app, "index", "page.html", context, None)
         script = context["metatags"]
         assert "</script><script>" not in script
+
+
+# ---------------------------------------------------------------------------
+# v0.3 — feature-default parity + new config-key plumbing
+# ---------------------------------------------------------------------------
+
+
+class TestFeatureDefaultsParity:
+    """Guards the C-1 invariant: the JS ``FEATURE_DEFAULTS`` table MUST be
+    byte-equivalent to the Python ``_DEFAULT_FEATURES`` table.
+
+    Root cause of the original BUG-1/C-1: the two tables were hand-maintained
+    separately and drifted (JS said ``ai_panel:false`` while Python said
+    ``ai_panel:true``), silently hiding the panel when the injected config
+    script was stripped or reordered.  This test makes drift impossible to
+    merge unnoticed.
+    """
+
+    def _read_js_defaults(self) -> dict:
+        import pathlib
+        import re
+
+        js_path = (
+            pathlib.Path(_mod.__file__).parent / "_static" / "ai-assistant.js"
+        )
+        js = js_path.read_text(encoding="utf-8")
+        m = re.search(r"var FEATURE_DEFAULTS = \{(.*?)\};", js, re.S)
+        assert m, "FEATURE_DEFAULTS block not found in ai-assistant.js"
+        pairs = re.findall(r"(\w+)\s*:\s*(true|false)", m.group(1))
+        return {k: (v == "true") for k, v in pairs}
+
+    def test_js_matches_python_exactly(self):
+        assert self._read_js_defaults() == _mod._DEFAULT_FEATURES
+
+    def test_ai_panel_default_true_both_sides(self):
+        # The specific key whose drift caused the original defect.
+        assert _mod._DEFAULT_FEATURES["ai_panel"] is True
+        assert self._read_js_defaults()["ai_panel"] is True
+
+
+class TestV03ConfigPlumbing:
+    """Every v0.3 config key must be (a) registered in setup() and
+    (b) serialised into window.AI_ASSISTANT_CONFIG — the three-layer
+    "config flows one way" invariant.
+    """
+
+    _V03_KEYS = [
+        "panelPersist",
+        "panelShortcut",
+        "panelApiUrl",
+        "panelApiModel",
+        "panelFeedback",
+        "panelFeedbackQuestion",
+        "panelFeedbackOptions",
+        "panelFeedbackPlaceholder",
+        "panelFeedbackSubmit",
+        "panelFeedbackThanks",
+        "panelFeedbackLog",
+        "panelPrivacyTitle",
+        "panelPrivacyLinkText",
+        "panelPrivacyHtml",
+        "searchBar",
+        "searchBarSelector",
+        "searchBarMini",
+        "panelSearchPlaceholder",
+        # trigger pill UX keys (v0.2/v0.3 boundary)
+        "panelTriggerLabel",
+        "panelStartMinimized",
+        # search-bar position
+        "searchBarPosition",
+    ]
+
+    def test_all_v03_keys_serialised(self, sphinx_app):
+        context: dict = {}
+        _mod.add_ai_assistant_context(
+            sphinx_app, "index", "page.html", context, None
+        )
+        cfg = context["ai_assistant_config"]
+        missing = [k for k in self._V03_KEYS if k not in cfg]
+        assert not missing, f"v0.3 keys absent from injected config: {missing}"
+
+    def test_v03_defaults_preserve_prior_behaviour(self, sphinx_app):
+        context: dict = {}
+        _mod.add_ai_assistant_context(
+            sphinx_app, "index", "page.html", context, None
+        )
+        cfg = context["ai_assistant_config"]
+        # Safe defaults: persistence on, shortcut safe chord, search-bar OFF,
+        # feedback on, no proxy configured.
+        assert cfg["panelPersist"] is True
+        assert cfg["panelShortcut"] == "Alt+Shift+A"
+        assert cfg["searchBar"] is False
+        assert cfg["panelApiUrl"] == ""
+
+    def test_v03_config_json_serialisable(self, sphinx_app):
+        import json
+
+        context: dict = {}
+        _mod.add_ai_assistant_context(
+            sphinx_app, "index", "page.html", context, None
+        )
+        json.dumps(context["ai_assistant_config"])  # must not raise
+
+
+class TestCfgListHelper:
+    """`_cfg_list` preserves dict items (unlike `_cfg_str_list`)."""
+
+    def test_preserves_dicts(self):
+        cfg = type("C", (), {"k": [{"emoji": "x"}, {"emoji": "y"}]})()
+        assert _mod._cfg_list(cfg, "k") == [{"emoji": "x"}, {"emoji": "y"}]
+
+    def test_non_list_returns_empty(self):
+        cfg = type("C", (), {"k": "not-a-list"})()
+        assert _mod._cfg_list(cfg, "k") == []
+
+    def test_missing_key_returns_empty(self):
+        assert _mod._cfg_list(type("C", (), {})(), "absent") == []

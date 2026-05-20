@@ -848,6 +848,187 @@ ai_assistant_panel_speak_banner = True
 # User note: Keep very short (1–3 words).  Combined with a chat icon SVG.
 ai_assistant_panel_trigger_label = "Ask Us"
 
+# Type:    bool
+# Default: True
+#
+# Controls whether the floating trigger pill is created eagerly on every page
+# load (True, default) or only after the user has opened then minimized the
+# panel (False).
+#
+# User note: When True the "Ask Us" pill is immediately visible at the
+# bottom-right of every page so readers can open the AI assistant with a
+# single click.  When False users must first click the toolbar expand button
+# then "AI Assistant" before the pill appears — two extra clicks.
+#
+# Developer note: The eager path runs inside createAIAssistantUI() at init
+# time and is gated by ``features.ai_panel`` so the pill is never rendered
+# on builds where the panel feature is disabled.  The idempotency guard in
+# createAIPanel() (C-4) ensures a second pill is never created.
+ai_assistant_panel_start_minimized = True
+
+# ===========================================================================
+# v0.3 — resize, persistence, shortcut, proxy, feedback, privacy, search-bar
+# ===========================================================================
+#
+# Developer note: every key in this section is read by ai-assistant.js via
+# ``window.AI_ASSISTANT_CONFIG``.  setup() registers it, add_ai_assistant_
+# context() serialises it, the JS consumes it.  All three layers must agree
+# (the "config flows one way" invariant); a parity test enforces it.
+#
+# Every default below reproduces the pre-v0.3 behaviour, so simply upgrading
+# changes nothing until you opt in.
+
+# ── R1: panel resize ──────────────────────────────────────────────────────
+# The panel gains a drag grip in its TOP-LEFT corner (it is anchored bottom-
+# right, so it grows up/left).  Size is clamped to the viewport and persisted
+# in sessionStorage.  No config needed — it is always available except when
+# the panel is maximized or on very small screens.
+
+# ── Conversation persistence ──────────────────────────────────────────────
+# Type:    bool
+# Default: True
+# True  → the conversation is stored in sessionStorage so it survives
+#         navigation between pages of the same docs site, and is cleared on
+#         tab close or when the user presses "Start a new chat".
+# False → in-memory only (any navigation loses the conversation).
+# User note: sessionStorage is per-tab and never leaves the browser.
+ai_assistant_panel_persist = True
+
+# ── R7: keyboard shortcut ─────────────────────────────────────────────────
+# Type:    str
+# Default: "Alt+Shift+A"
+# Chord that toggles the panel open/closed.  MUST include at least one
+# modifier (Ctrl / Alt / Cmd|Meta); a bare key is rejected so site-wide
+# typing is never hijacked.  Set to "" to disable the global listener.
+# Examples: "Ctrl+Shift+Space", "Cmd+J", "Alt+K".
+# Developer note: parsed by _parseShortcut() in ai-assistant.js; an invalid
+# or modifier-less value is treated exactly like "" (feature off, no error).
+ai_assistant_panel_shortcut = "Alt+Shift+A"
+
+# ── API mode proxy (C-2) ──────────────────────────────────────────────────
+# Type:    str
+# Default: "" (empty)
+# A browser CANNOT call https://api.anthropic.com directly: the endpoint
+# sends no CORS headers for web origins and requires an API key that would
+# leak if embedded in static JS.  So API mode MUST point at YOUR OWN proxy
+# (a serverless function / gateway) that injects the key server-side and
+# forwards the Anthropic /v1/messages-shaped body.  While empty, enabling
+# ai_assistant_panel_api_enabled raises a clear, actionable error in the
+# panel instead of silently failing.
+#   Example: ai_assistant_panel_api_url = "https://api.example.com/ai-proxy"
+ai_assistant_panel_api_url = ""
+
+# Type:    str
+# Default: "" → JS default model ("claude-sonnet-4-20250514")
+# Optional model name forwarded in the proxy request body.
+ai_assistant_panel_api_model = ""
+
+# ── R5: feedback block ("Was this helpful?") ──────────────────────────────
+# Type:    bool
+# Default: True
+# Show a feedback prompt after each assistant reply.
+ai_assistant_panel_feedback = True
+
+# Type:    str  — the question text.
+ai_assistant_panel_feedback_question = "Was this helpful?"
+
+# Type:    list[dict]
+# Default: [] → built-in 3-emoji set
+#          (😀 "Yes, it was!" / 😐 "Not sure" / 🙁 "No")
+# Provide 2–5 options.  Each dict:
+#   {"emoji": "<char>", "title": "<hover/aria text>", "value": "<sent value>"}
+# The chosen value + free text are dispatched as a DOM CustomEvent
+# 'ai-assistant-feedback' (detail = {rating, message, page, ts}) so doc
+# authors can wire their own analytics.  The extension stores/sends nothing.
+ai_assistant_panel_feedback_options = [
+    # {"emoji": "\U0001F600", "title": "Yes, it was!", "value": "positive"},
+    # {"emoji": "\U0001F642", "title": "Mostly",       "value": "mostly"},
+    # {"emoji": "\U0001F610", "title": "Not sure",     "value": "neutral"},
+    # {"emoji": "\U0001F641", "title": "No",           "value": "negative"},
+]
+
+# Type:    str — placeholder for the optional free-text box.
+ai_assistant_panel_feedback_placeholder = ""
+
+# Type:    str — submit-button label.
+ai_assistant_panel_feedback_submit = "Send feedback"
+
+# Type:    str — message shown after submission.
+ai_assistant_panel_feedback_thanks = "Thanks for your feedback!"
+
+# Type:    bool
+# Default: False
+# When True the JS also console.log()s each feedback submission (dev aid).
+ai_assistant_panel_feedback_log = False
+
+# ── R2: privacy / responsibility sheet ────────────────────────────────────
+# A slide-over inside the panel, opened from a small header link.  The
+# built-in default copy is structured for a beginner→expert reader and
+# explicitly separates THIS extension's responsibility (formats the page,
+# stores nothing server-side, zero network calls in stub mode) from the
+# integrated MODEL's responsibility (in API mode the answer, retention and
+# logging belong to that provider; we cannot see or control their logs).
+#
+# Type:    str — heading + the small header link label.
+ai_assistant_panel_privacy_title = "Privacy & Responsibility"
+ai_assistant_panel_privacy_link_text = "Privacy & Responsibility"
+
+# Type:    str
+# Default: "" → built-in structured default
+# Full custom body HTML for the sheet.  TRUSTED author content (it comes
+# from this conf.py, never from end-user input) and is injected verbatim.
+# Provide your own organisation's policy here when needed, e.g.:
+#   ai_assistant_panel_privacy_html = """
+#       <h4>Our policy</h4><p>…</p>
+#       <h4>Model provider</h4><p>…</p>
+#   """
+ai_assistant_panel_privacy_html = ""
+
+# ── R8: standalone AI search-bar (OPT-IN) ─────────────────────────────────
+# Type:    bool
+# Default: False
+# Mounts an extra search input that forwards its text into the AI panel as
+# the first question.  It renders the extension's OWN element and never
+# touches the theme's search DOM, so PyData / Furo / RTD search keep working
+# untouched.  Off by default — zero risk to existing search.
+ai_assistant_search_bar = False
+
+# Type:    str
+# Default: "" (no-op)
+# CSS selector of the host element to append the search-bar into.  If empty
+# or not found, nothing happens (safe no-op).  Example for pydata theme:
+#   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+ai_assistant_search_bar_selector = ""
+
+# Type:    str  ("top" | "bottom")
+# Default: "bottom"
+#
+# Where inside the host element the search-bar is inserted.
+#
+#   "top"    → Prepended before the first child so the bar appears at the
+#              very top of the sidebar — immediately visible without scrolling
+#              past navigation links.  Recommended for sidebar placement.
+#   "bottom" → Appended after the last child (default; pre-existing
+#              behaviour).  Use when appending to a non-sidebar host element
+#              where top position would displace existing first-child content.
+#
+# User note: "top" gives users the best discoverability — the AI search input
+# is the first thing they see when they glance at the sidebar.
+# Any value other than "top" is treated as "bottom" (safe fallback).
+#
+# Example (pydata theme, sidebar top):
+#   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+#   ai_assistant_search_bar_position = "top"
+ai_assistant_search_bar_position = "top"
+
+# Type:    bool
+# Default: False
+# Compact inline variant when True; full-width block when False.
+ai_assistant_search_bar_mini = False
+
+# Type:    str — placeholder for the standalone search-bar input.
+ai_assistant_panel_search_placeholder = "Ask AI about these docs\u2026"
+
 # Type:    dict[str, dict]
 # Default: _DEFAULT_PROVIDERS  (12 providers; 3 enabled by default —
 #          chatgpt, claude, gemini — 9 disabled)
