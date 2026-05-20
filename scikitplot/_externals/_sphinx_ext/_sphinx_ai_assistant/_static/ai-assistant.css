@@ -898,3 +898,365 @@
         right: 1rem;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AI ASSISTANT — v0.3 ADDITIONS (resize, privacy, feedback, clear/export/copy,
+   shortcut hint, AI search-bar)
+   ───────────────────────────────────────────────────────────────────────────
+   IMPORTANT: This block is PURELY ADDITIVE. No selector above this banner is
+   modified. All colours go through the same three-layer fallback chain:
+     --pst-color-*  →  --color-*  →  hard-coded safe value
+   Dark mode via [data-bs-theme="dark"] (PyData/Bootstrap 5 convention), kept
+   consistent with the rest of the file.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── R1: manual resize grip (top-left corner) ──────────────────────────────
+   Native `resize:both` cannot be used: the panel is position:fixed anchored
+   bottom-right, so resizing would grow off-screen. Instead a custom grip at
+   the TOP-LEFT corner drives width/height via JS (clamped + persisted).
+   When the panel is maximized or on small screens the grip is hidden. */
+
+.ai-assistant-panel-resizer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    cursor: nwse-resize;
+    z-index: 5;
+    /* Visual affordance: two short diagonal ticks, theme-aware. */
+    background:
+        linear-gradient(135deg,
+            transparent 0 6px,
+            var(--pst-color-border, var(--color-foreground-border, #c3c8cd)) 6px 7px,
+            transparent 7px 10px,
+            var(--pst-color-border, var(--color-foreground-border, #c3c8cd)) 10px 11px,
+            transparent 11px);
+    border-top-left-radius: 12px;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+    touch-action: none;            /* allow pointer-drag on touch devices    */
+}
+.ai-assistant-panel-resizer:hover { opacity: 1; }
+
+/* While a resize drag is in progress JS adds this class to <body> so the
+   transition does not fight the live drag and text selection is suppressed. */
+body.ai-assistant-resizing,
+body.ai-assistant-resizing * {
+    user-select: none !important;
+    cursor: nwse-resize !important;
+}
+body.ai-assistant-resizing .ai-assistant-panel {
+    transition: none !important;   /* live drag must be 1:1, not animated     */
+}
+
+/* When maximized the manual grip is meaningless → hide it. */
+.ai-assistant-panel[data-maximized="true"] .ai-assistant-panel-resizer {
+    display: none;
+}
+
+/* ─── R3/R4: extra header action buttons (new-chat, export) ─────────────────
+   They reuse the existing .ai-assistant-panel-icon-btn styling so they are
+   visually identical to minimize/maximize/close — no new visual language. */
+
+/* (No new rules needed: new-chat & export buttons use the existing
+   .ai-assistant-panel-icon-btn class. This comment documents that decision
+   so a future maintainer does not "helpfully" add duplicate styles.) */
+
+/* ─── R6: per-answer action row (copy this answer) ──────────────────────────
+   A small, low-emphasis row attached under each assistant/error bubble. */
+
+.ai-assistant-panel-bubble-actions {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0.15rem 0 0.5rem 0;
+    padding-left: 0.1rem;
+}
+
+.ai-assistant-panel-bubble-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    border: 1px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ai-assistant-panel-bubble-action:hover {
+    background: var(--pst-color-surface, var(--color-background-secondary, #f0f1f3));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+.ai-assistant-panel-bubble-action svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+}
+.ai-assistant-panel-bubble-action:focus         { outline: none; }
+.ai-assistant-panel-bubble-action:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-action:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── R5: feedback block ("Was this helpful?") ──────────────────────────────
+   Rendered once, after the conversation, when enabled. 3–5 emoji buttons +
+   an optional free-text box + submit. All copy/labels are config-driven. */
+
+.ai-assistant-panel-feedback {
+    margin: 0.75rem 0 0.25rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 8px;
+    background: var(--pst-color-surface, var(--color-background-secondary, #fafbfc));
+}
+[data-bs-theme="dark"] .ai-assistant-panel-feedback {
+    background: rgba(255, 255, 255, 0.03);
+}
+.ai-assistant-panel-feedback-q {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+.ai-assistant-panel-feedback-options {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.ai-assistant-panel-feedback-btn {
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 0.3rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d6d9dc));
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.15s ease,
+                background-color 0.15s ease;
+}
+.ai-assistant-panel-feedback-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+.ai-assistant-panel-feedback-btn[aria-pressed="true"] {
+    background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+.ai-assistant-panel-feedback-btn:focus         { outline: none; }
+.ai-assistant-panel-feedback-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+.ai-assistant-panel-feedback-text {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    resize: vertical;
+    min-height: 2.2rem;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d6d9dc));
+    border-radius: 6px;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-feedback-text {
+    background: rgba(255, 255, 255, 0.04);
+}
+.ai-assistant-panel-feedback-submit {
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+.ai-assistant-panel-feedback-submit:hover    { opacity: 0.9; }
+.ai-assistant-panel-feedback-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.ai-assistant-panel-feedback-thanks {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    color: var(--pst-color-success, #2e7d32);
+}
+
+/* ─── R7: keyboard-shortcut hint chip ───────────────────────────────────────
+   A subtle "kbd" pill shown in the header area; content is config-driven. */
+
+.ai-assistant-panel-kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+.ai-assistant-panel-kbd-hint kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.66rem;
+    padding: 0.05rem 0.3rem;
+    background: var(--pst-color-surface, var(--color-background-secondary, #eef0f2));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    color: inherit;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-kbd-hint kbd {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* ─── R2: privacy / responsibility sheet ────────────────────────────────────
+   A slide-over inside the panel (not a separate dialog) so it inherits the
+   panel's theming and stacking context. Toggled by a footer/header link. */
+
+.ai-assistant-panel-privacy {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    border-radius: 12px;
+}
+.ai-assistant-panel-privacy[data-open="true"] {
+    display: flex;
+}
+.ai-assistant-panel-privacy-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid
+        var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    flex-shrink: 0;
+}
+.ai-assistant-panel-privacy-head strong {
+    font-size: 0.95rem;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+.ai-assistant-panel-privacy-body {
+    overflow-y: auto;
+    padding: 0.9rem 1rem 1.2rem;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #2a2a2a));
+}
+.ai-assistant-panel-privacy-body h4 {
+    margin: 1rem 0 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+.ai-assistant-panel-privacy-body h4:first-child { margin-top: 0; }
+.ai-assistant-panel-privacy-body p  { margin: 0 0 0.6rem; }
+.ai-assistant-panel-privacy-body ul { margin: 0 0 0.6rem 1.1rem; padding: 0; }
+.ai-assistant-panel-privacy-body li { margin: 0.15rem 0; }
+[data-bs-theme="dark"] .ai-assistant-panel-privacy {
+    background: var(--pst-color-surface, var(--color-background-primary, #1b1e21));
+}
+
+/* The small text link that opens the privacy sheet (header, low emphasis). */
+.ai-assistant-panel-privacy-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    font-size: 0.68rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    text-decoration: underline;
+    cursor: pointer;
+}
+.ai-assistant-panel-privacy-link:hover {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+/* The header sub-row that holds the kbd hint + privacy link. */
+.ai-assistant-panel-subbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.25rem 1rem 0;
+}
+
+/* ─── R8: standalone AI search-bar (opt-in, additive) ───────────────────────
+   The extension renders its OWN element — it never hijacks the theme search
+   input. Two size variants: --mini (inline) and default (block). */
+
+.ai-assistant-searchbar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem;
+    margin: 0.5rem 0;
+    background: var(--pst-color-surface, var(--color-background-secondary, #f6f7f8));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d6d9dc));
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-assistant-searchbar:focus-within {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb,
+            var(--pst-color-primary, var(--color-brand-primary, #2980b9)) 25%,
+            transparent);
+}
+.ai-assistant-searchbar svg {
+    width: 15px;
+    height: 15px;
+    stroke: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    fill: none;
+    flex-shrink: 0;
+}
+.ai-assistant-searchbar input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.83rem;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+.ai-assistant-searchbar input:focus { outline: none; }
+.ai-assistant-searchbar input::placeholder {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
+}
+.ai-assistant-searchbar--mini {
+    display: inline-flex;
+    width: auto;
+    max-width: 220px;
+    margin: 0;
+    padding: 0.2rem 0.45rem;
+}
+.ai-assistant-searchbar--mini input { font-size: 0.78rem; }
+[data-bs-theme="dark"] .ai-assistant-searchbar {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Respect reduced-motion users for every new animated affordance. */
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-resizer,
+    .ai-assistant-panel-feedback-btn,
+    .ai-assistant-panel-bubble-action,
+    .ai-assistant-searchbar { transition: none; }
+    .ai-assistant-panel-feedback-btn:hover { transform: none; }
+}

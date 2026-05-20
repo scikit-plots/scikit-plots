@@ -13,8 +13,8 @@ extension widget remains fully self-contained with zero network requests.
 Icons are used as fallbacks when the corresponding ``.svg`` file is absent
 from the ``_static/`` directory on disk.
 
-Public API
-----------
+Public API:
+
 _PROVIDER_META : dict
     Maps lower-cased provider name → ``{"icon": <data-uri>, "desc": str}``.
 _SVG_COPY, _SVG_MARKDOWN, _SVG_CLAUDE, … : str

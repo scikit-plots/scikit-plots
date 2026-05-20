@@ -2856,6 +2856,36 @@ def _cfg_str_list(config: Any, key: str) -> list[str]:
     return []
 
 
+def _cfg_list(config: Any, key: str) -> list:
+    """Safely read a list config value (e.g. list of option dicts).
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+    key : str
+        Configuration key to read.
+
+    Returns
+    -------
+    list
+        The value when it is a genuine ``list`` or ``tuple`` (converted to
+        ``list``); otherwise an empty list.  Never raises and never returns
+        ``None`` so the result is always JSON-serialisable.
+
+    Notes
+    -----
+    Required because Sphinx config objects return :class:`MagicMock` during
+    test execution, which is neither a list nor JSON-serialisable.  Unlike
+    :func:`_cfg_str_list` this preserves non-string items (e.g. dicts used
+    for feedback options) instead of dropping them.
+    """
+    val = getattr(config, key, [])
+    if isinstance(val, (list, tuple)):
+        return list(val)
+    return []
+
+
 def add_ai_assistant_context(
     app: Sphinx,
     pagename: str,
@@ -3002,6 +3032,68 @@ def add_ai_assistant_context(
         # Trigger pill label (the floating "Ask Us" button shown when minimized).
         "panelTriggerLabel": (
             _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask Us"
+        ),
+        # ---- v0.3 keys ------------------------------------------------------
+        # Each maps 1:1 to a window.AI_ASSISTANT_CONFIG.* read in
+        # ai-assistant.js.  Keys use the JS camelCase the reader expects.
+        #
+        # R-persist: sessionStorage transcript (default True).
+        "panelPersist": _cfg_bool(app.config, "ai_assistant_panel_persist", True),
+        # R7: keyboard shortcut chord (str; "" disables).
+        "panelShortcut": (
+            _cfg_str(app.config, "ai_assistant_panel_shortcut")
+            if _cfg_str(app.config, "ai_assistant_panel_shortcut") is not None
+            else "Alt+Shift+A"
+        ),
+        # C-2: proxy endpoint for API mode (empty → actionable JS error).
+        "panelApiUrl": _cfg_str(app.config, "ai_assistant_panel_api_url") or "",
+        "panelApiModel": _cfg_str(app.config, "ai_assistant_panel_api_model") or "",
+        # R5: feedback block.
+        "panelFeedback": _cfg_bool(app.config, "ai_assistant_panel_feedback", True),
+        "panelFeedbackQuestion": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_question")
+            or "Was this helpful?"
+        ),
+        # list[dict] preserved via _cfg_list (NOT _cfg_str_list).
+        "panelFeedbackOptions": _cfg_list(
+            app.config, "ai_assistant_panel_feedback_options"
+        ),
+        "panelFeedbackPlaceholder": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_placeholder") or ""
+        ),
+        "panelFeedbackSubmit": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_submit")
+            or "Send feedback"
+        ),
+        "panelFeedbackThanks": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_thanks")
+            or "Thanks for your feedback!"
+        ),
+        "panelFeedbackLog": _cfg_bool(
+            app.config, "ai_assistant_panel_feedback_log", False
+        ),
+        # R2: privacy / responsibility sheet.
+        "panelPrivacyTitle": (
+            _cfg_str(app.config, "ai_assistant_panel_privacy_title")
+            or "Privacy & Responsibility"
+        ),
+        "panelPrivacyLinkText": (
+            _cfg_str(app.config, "ai_assistant_panel_privacy_link_text")
+            or "Privacy & Responsibility"
+        ),
+        # Trusted author HTML (from conf.py, not end-user input).
+        "panelPrivacyHtml": (
+            _cfg_str(app.config, "ai_assistant_panel_privacy_html") or ""
+        ),
+        # R8: standalone AI search-bar (opt-in; default off).
+        "searchBar": _cfg_bool(app.config, "ai_assistant_search_bar", False),
+        "searchBarSelector": (
+            _cfg_str(app.config, "ai_assistant_search_bar_selector") or ""
+        ),
+        "searchBarMini": _cfg_bool(app.config, "ai_assistant_search_bar_mini", False),
+        "panelSearchPlaceholder": (
+            _cfg_str(app.config, "ai_assistant_panel_search_placeholder")
+            or "Ask AI about these docs\u2026"
         ),
     }
 
@@ -3276,6 +3368,118 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_label", "Ask Us", "html")
+
+    # -----------------------------------------------------------------------
+    # v0.3 config values — resize, persistence, shortcut, proxy, feedback,
+    # privacy sheet, AI search-bar.
+    #
+    # CRITICAL — every key below is read by ai-assistant.js.  This block, the
+    # serialisation in ``add_ai_assistant_context`` and the JS reader form
+    # the three-layer "config flows one way" invariant.  Changing one layer
+    # without the other two silently disables the feature (this is the exact
+    # class of defect documented as BUG-1 / C-1).
+    # -----------------------------------------------------------------------
+
+    # ``ai_assistant_panel_persist`` (bool, default True)
+    #     True  → conversation is stored in sessionStorage so it survives
+    #             intra-site navigation; cleared on tab close or "new chat".
+    #     False → in-memory only (lost on any navigation).
+    app.add_config_value("ai_assistant_panel_persist", True, "html")
+
+    # ``ai_assistant_panel_shortcut`` (str, default "Alt+Shift+A")
+    #     Keyboard chord that toggles the panel.  MUST contain at least one
+    #     modifier (Ctrl/Alt/Cmd) — a bare key is rejected by the JS parser
+    #     so site-wide typing is never hijacked.  Empty string disables the
+    #     global listener entirely.  Examples: "Ctrl+Shift+Space", "Cmd+J".
+    app.add_config_value("ai_assistant_panel_shortcut", "Alt+Shift+A", "html")
+
+    # ``ai_assistant_panel_api_url`` (str, default "")
+    #     Endpoint used in API mode.  A browser CANNOT call Anthropic
+    #     directly (no CORS, key would leak), so this MUST point at the doc
+    #     owner's own proxy that injects the API key server-side and forwards
+    #     the Anthropic /v1/messages-shaped body.  Empty → API mode raises an
+    #     actionable error instead of a silent blocked request.
+    app.add_config_value("ai_assistant_panel_api_url", "", "html")
+
+    # ``ai_assistant_panel_api_model`` (str, default "")
+    #     Optional model name forwarded in the proxy request body.  Empty →
+    #     JS default ("claude-sonnet-4-20250514").
+    app.add_config_value("ai_assistant_panel_api_model", "", "html")
+
+    # ``ai_assistant_panel_feedback`` (bool, default True)
+    #     Show the "Was this helpful?" block after assistant replies.
+    app.add_config_value("ai_assistant_panel_feedback", True, "html")
+
+    # ``ai_assistant_panel_feedback_question`` (str)
+    #     The prompt text.  Default: "Was this helpful?".
+    app.add_config_value(
+        "ai_assistant_panel_feedback_question", "Was this helpful?", "html"
+    )
+
+    # ``ai_assistant_panel_feedback_options`` (list[dict], default [])
+    #     2-5 options.  Each: {"emoji": str, "title": str (hover/aria),
+    #     "value": str (sent in the feedback event)}.  Empty list → built-in
+    #     3-emoji default (😀 "Yes, it was!" / 😐 "Not sure" / 🙁 "No").
+    app.add_config_value("ai_assistant_panel_feedback_options", [], "html")
+
+    # ``ai_assistant_panel_feedback_placeholder`` / ``_submit`` / ``_thanks``
+    #     Free-text box placeholder, submit-button label, post-submit message.
+    app.add_config_value("ai_assistant_panel_feedback_placeholder", "", "html")
+    app.add_config_value("ai_assistant_panel_feedback_submit", "Send feedback", "html")
+    app.add_config_value(
+        "ai_assistant_panel_feedback_thanks",
+        "Thanks for your feedback!",
+        "html",
+    )
+
+    # ``ai_assistant_panel_feedback_log`` (bool, default False)
+    #     When True the JS also console.log()s each submission (dev aid).
+    #     The submission is ALWAYS dispatched as a DOM CustomEvent
+    #     ('ai-assistant-feedback') for doc-author analytics hooks; the
+    #     extension itself never stores or transmits it.
+    app.add_config_value("ai_assistant_panel_feedback_log", False, "html")
+
+    # ``ai_assistant_panel_privacy_title`` / ``_link_text`` (str)
+    #     Heading shown in the slide-over and the small header link label.
+    app.add_config_value(
+        "ai_assistant_panel_privacy_title",
+        "Privacy & Responsibility",
+        "html",
+    )
+    app.add_config_value(
+        "ai_assistant_panel_privacy_link_text",
+        "Privacy & Responsibility",
+        "html",
+    )
+
+    # ``ai_assistant_panel_privacy_html`` (str, default "")
+    #     Full custom body for the privacy sheet.  TRUSTED author content
+    #     (from conf.py, not end-user input) — injected verbatim.  Empty →
+    #     the built-in structured default that explicitly separates the
+    #     extension's responsibility from the integrated model's.
+    app.add_config_value("ai_assistant_panel_privacy_html", "", "html")
+
+    # ``ai_assistant_search_bar`` (bool, default False) — OPT-IN.
+    #     Mounts a standalone AI search input that forwards its text into the
+    #     panel.  Default OFF so the theme's own search is never affected.
+    app.add_config_value("ai_assistant_search_bar", False, "html")
+
+    # ``ai_assistant_search_bar_selector`` (str, default "")
+    #     CSS selector of the host element to append the search-bar into.
+    #     If empty or not found nothing happens (safe no-op).
+    app.add_config_value("ai_assistant_search_bar_selector", "", "html")
+
+    # ``ai_assistant_search_bar_mini`` (bool, default False)
+    #     Compact inline variant when True; full-width block when False.
+    app.add_config_value("ai_assistant_search_bar_mini", False, "html")
+
+    # ``ai_assistant_panel_search_placeholder`` (str)
+    #     Placeholder for the standalone search-bar input.
+    app.add_config_value(
+        "ai_assistant_panel_search_placeholder",
+        "Ask AI about these docs\u2026",
+        "html",
+    )
 
     # ---- Static files ------------------------------------------------------
     static_path = Path(__file__).parent / "_static"

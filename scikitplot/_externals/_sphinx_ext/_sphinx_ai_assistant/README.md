@@ -37,6 +37,38 @@ A Sphinx extension that adds AI-powered features to documentation pages, making 
 - Compatible with PyData Sphinx Theme, Furo, sphinx-book-theme, and Read the Docs
 - Dark-mode aware via the same three-layer CSS variable chain as the rest of the widget
 
+### AI Assistant Panel — v0.3 additions
+
+- **Mouse-resizable**: drag the top-left grip to resize (clamped to the
+  viewport, size persisted per tab)
+- **Conversation persistence**: chat survives navigation within the tab via
+  `sessionStorage` (`ai_assistant_panel_persist`, default on); cleared on tab
+  close or "Start a new chat"
+- **Start a new chat**: refresh-icon button clears the conversation without a
+  page reload
+- **Export as txt**: download the whole conversation as a plain-text file
+- **Copy this answer**: per-answer copy button under each assistant reply
+- **Feedback**: configurable "Was this helpful?" block — 3–5 emoji options
+  (default 😀/😐/🙁) plus an optional free-text box and submit; submissions are
+  dispatched as an `ai-assistant-feedback` DOM `CustomEvent` for your own
+  analytics (the extension stores and sends nothing itself)
+- **Keyboard shortcut**: toggle the panel with a configurable chord
+  (`ai_assistant_panel_shortcut`, default `Alt+Shift+A`; a modifier is
+  required, a bare key is rejected)
+- **Privacy & Responsibility sheet**: a built-in, fully customizable in-panel
+  explainer that clearly separates the extension's responsibilities from the
+  integrated model's
+- **Standalone AI search-bar** (opt-in, default off): an additive search input
+  that forwards text into the panel; never touches the theme's own search
+- **API mode now uses a configurable proxy** (`ai_assistant_panel_api_url`).
+  A browser cannot call Anthropic directly (no CORS, key would leak), so API
+  mode must point at your own proxy that injects the key server-side. With no
+  proxy set, API mode shows a clear, actionable message instead of failing
+  silently.
+
+See [`_example_conf.py`](_example_conf.py) for every new option, its type,
+default, and rationale.
+
 ## Installation
 
 ### Using pip

@@ -1948,6 +1948,7 @@ ai_assistant_enabled = True
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
 # "title"    → next to the page heading
 ai_assistant_position = "sidebar"
+ai_assistant_search_bar = True
 
 # CSS selector used by the JavaScript widget to extract page content for
 # copy-as-Markdown and AI-chat features.

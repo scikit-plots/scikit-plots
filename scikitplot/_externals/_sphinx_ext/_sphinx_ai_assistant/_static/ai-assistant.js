@@ -71,17 +71,30 @@
     var _isListening = false;
 
     /**
-     * Feature flag defaults — used as base in Object.assign so absent keys
-     * from config resolve to sensible values rather than undefined.
+     * Feature-flag defaults — last line of defence when the injected
+     * window.AI_ASSISTANT_CONFIG.features dict is missing/partial.
+     *
+     * CRITICAL — SINGLE SOURCE OF TRUTH CONTRACT
+     * ──────────────────────────────────────────
+     * This object MUST stay byte-for-byte equivalent to
+     * ``_DEFAULT_FEATURES`` in __init__.py.  They were previously out of
+     * sync (JS said ai_panel:false while Python said ai_panel:true), which
+     * silently hid the AI panel whenever the inline config script was
+     * stripped/reordered by a CDN, CSP, or downstream theme.  That is the
+     * exact "BUG-1" the Python merge claims to fix — the merge is necessary
+     * but NOT sufficient; the two default tables must also agree.
+     *
+     * If you change a default here, change __init__.py:_DEFAULT_FEATURES in
+     * the same commit, and update the parity test.
      */
     var FEATURE_DEFAULTS = {
         markdown_export: true,
         view_markdown:   true,
         ai_chat:         true,
-        mcp_integration: false,
+        mcp_integration: true,   // mirrors Python; set False if no MCP tools
+        theme_toggle:    true,
         pdf_export:      true,
-        ai_panel:        false,
-        theme_toggle:    false,
+        ai_panel:        true,
     };
 
     /**
@@ -105,6 +118,13 @@
         mic:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>',
         send:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
+        // ── v0.3 additions — mirror _ICON_META in _static/__init__.py ──────────
+        newChat:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
+        exportTxt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        copyAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        privacy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        searchAI: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6M11 8v6" stroke-width="1.5"/></svg>',
+        keyboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>',
     };
 
     // ── Initialisation ────────────────────────────────────────────────────────
@@ -135,6 +155,15 @@
         var position = (window.AI_ASSISTANT_CONFIG && window.AI_ASSISTANT_CONFIG.position) || 'sidebar';
         insertContainer(container, position);
         setupEventListeners(button, dropdown);
+
+        // v0.3: only wire panel-dependent extras when the AI panel feature
+        // is actually enabled (respects the FEATURE_DEFAULTS contract).
+        var cfg      = window.AI_ASSISTANT_CONFIG || {};
+        var features = Object.assign({}, FEATURE_DEFAULTS, cfg.features || {});
+        if (features.ai_panel) {
+            _bindShortcut();    // R7 — no-op if disabled/invalid in config
+            _mountSearchBar();  // R8 — no-op unless explicitly enabled
+        }
     }
 
     function createContainer() {
@@ -457,16 +486,9 @@
 
         if (position === 'sidebar') {
             var sidebarSelectors = [
-                // PyData Sphinx Theme (canonical)
-                '.bd-sidebar-secondary',       // PST >= 0.13 right sidebar
-                '.bd-toc',                     // PST < 0.13 TOC
-                // Furo (actual TOC sidebar elements)
-                'aside.toc-sidebar',           // Furo canonical TOC sidebar
-                '.sidebar-secondary',          // Furo/PST compatibility alias
-                // Furo wrappers / drawers
-                '.toc-drawer',                 // Furo drawer container
-                // Generic fallback (always last)
-                'aside[role="complementary"]', // ARIA complementary landmark
+                '.bd-sidebar-secondary', '.bd-toc',
+                'aside.toc-sidebar', '.sidebar-secondary',
+                '.toc-drawer', 'aside[role="complementary"]',
             ];
             for (var k = 0; k < sidebarSelectors.length; k++) {
                 var sidebar = document.querySelector(sidebarSelectors[k]);
@@ -782,6 +804,609 @@
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // v0.3 MODULE — conversation model, persistence, resize, shortcuts,
+    //               feedback, privacy sheet, AI search-bar.
+    //
+    // Design: ONE source of truth (`_transcript`).  Clear / export / copy /
+    // restore are all pure views over it — no duplicated state.  Every
+    // feature is gated by a config flag and every default reproduces the
+    // pre-v0.3 behaviour exactly (no surprise for existing users).
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Single source of truth for the conversation.
+     * Each entry: { role: 'user'|'assistant'|'error', text: string, ts: number }
+     * @type {Array<{role:string,text:string,ts:number}>}
+     */
+    var _transcript = [];
+
+    /** sessionStorage key for the persisted transcript. */
+    var _TRANSCRIPT_KEY = 'ai-assistant-transcript';
+
+    /** True when feedback has been submitted this session (avoid nag). */
+    var _feedbackGiven = false;
+
+    /**
+     * Whether transcript persistence is enabled (config-driven, default on).
+     * @returns {boolean}
+     */
+    function _persistEnabled() {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        return cfg.panelPersist !== false;   // default true
+    }
+
+    /** Safely read sessionStorage (private-mode / disabled storage safe). */
+    function _ssGet(key) {
+        try { return window.sessionStorage.getItem(key); } catch (_) { return null; }
+    }
+    function _ssSet(key, val) {
+        try { window.sessionStorage.setItem(key, val); } catch (_) { /* ignore */ }
+    }
+    function _ssDel(key) {
+        try { window.sessionStorage.removeItem(key); } catch (_) { /* ignore */ }
+    }
+
+    /** Persist `_transcript` if persistence is enabled. */
+    function _saveTranscript() {
+        if (!_persistEnabled()) return;
+        try { _ssSet(_TRANSCRIPT_KEY, JSON.stringify(_transcript)); } catch (_) {}
+    }
+
+    /**
+     * Load any persisted transcript into `_transcript`.
+     * Defensive: any malformed entry is dropped, never thrown.
+     */
+    function _loadTranscript() {
+        if (!_persistEnabled()) return;
+        var raw = _ssGet(_TRANSCRIPT_KEY);
+        if (!raw) return;
+        try {
+            var arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+                _transcript = arr.filter(function (e) {
+                    return e && typeof e.text === 'string' &&
+                        (e.role === 'user' || e.role === 'assistant' || e.role === 'error');
+                });
+            }
+        } catch (_) { _transcript = []; }
+    }
+
+    /**
+     * Record a message in the single source of truth and persist.
+     * @param {string} role  'user' | 'assistant' | 'error'
+     * @param {string} text
+     */
+    function _recordMessage(role, text) {
+        _transcript.push({ role: role, text: text, ts: Date.now() });
+        _saveTranscript();
+    }
+
+    /**
+     * R3 — Clear the conversation WITHOUT a page refresh.
+     * Resets the single source of truth and rebuilds the body to its
+     * initial welcome/suggestions state.
+     */
+    function clearConversation() {
+        _transcript = [];
+        _feedbackGiven = false;
+        _ssDel(_TRANSCRIPT_KEY);
+        var body = document.getElementById('ai-assistant-panel-body');
+        if (!body) return;
+        body.innerHTML = '';
+        _renderWelcome(body);
+        var input = document.getElementById('ai-assistant-panel-input');
+        if (input) { input.value = ''; _updateSendBtnState(); input.focus(); }
+        showNotification('Conversation cleared', false);
+    }
+
+    /**
+     * R4 — Export the conversation as a plain-text download.
+     * Reads ONLY `_transcript` (the single source of truth).
+     */
+    function exportConversation() {
+        if (_transcript.length === 0) {
+            showNotification('Nothing to export yet', true);
+            return;
+        }
+        var cfg   = window.AI_ASSISTANT_CONFIG || {};
+        var title = cfg.panelTitle || 'AI Assistant';
+        var lines = [
+            title + ' — conversation export',
+            'Page: ' + (location ? location.href : ''),
+            'Exported: ' + new Date().toISOString(),
+            '',
+            '----------------------------------------',
+            '',
+        ];
+        _transcript.forEach(function (m) {
+            var who = m.role === 'user' ? 'You'
+                : m.role === 'assistant' ? title
+                : 'Error';
+            lines.push('[' + who + ']');
+            lines.push(m.text);
+            lines.push('');
+        });
+        var blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-conversation-' +
+            new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    /**
+     * R6 — Copy a single answer's text to the clipboard.
+     * @param {string} text  The exact bubble text (from `_transcript`).
+     */
+    function copyAnswer(text) {
+        copyToClipboard(text, false);
+    }
+
+    /**
+     * Render the initial welcome + quick-suggestion chips into the body.
+     * Extracted so clearConversation() can rebuild without duplicating logic.
+     * @param {HTMLElement} body
+     */
+    function _renderWelcome(body) {
+        var cfg     = window.AI_ASSISTANT_CONFIG || {};
+        var title   = cfg.panelTitle || 'AI Assistant';
+        var quickQs = Array.isArray(cfg.panelQuickQuestions)
+            ? cfg.panelQuickQuestions.slice(0, 5) : [];
+
+        var welcome = document.createElement('div');
+        welcome.className = 'ai-assistant-panel-welcome';
+        var p1 = document.createElement('p');
+        var strong = document.createElement('strong');
+        strong.textContent = title;
+        p1.appendChild(document.createTextNode('Hi! I\u2019m '));
+        p1.appendChild(strong);
+        p1.appendChild(document.createTextNode('.'));
+        var p2 = document.createElement('p');
+        p2.textContent = 'Ask me anything about this documentation page.';
+        welcome.appendChild(p1);
+        welcome.appendChild(p2);
+        body.appendChild(welcome);
+
+        if (quickQs.length > 0) {
+            var suggestionsEl = document.createElement('div');
+            suggestionsEl.className = 'ai-assistant-panel-suggestions';
+            suggestionsEl.id = 'ai-assistant-panel-suggestions';
+            quickQs.forEach(function (q) {
+                var chip = document.createElement('button');
+                chip.className = 'ai-assistant-panel-chip';
+                chip.type = 'button';
+                chip.textContent = q;
+                chip.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (input) { input.value = q; _updateSendBtnState(); input.focus(); }
+                });
+                suggestionsEl.appendChild(chip);
+            });
+            body.appendChild(suggestionsEl);
+        }
+    }
+
+    /**
+     * Replay a persisted transcript into the panel body (no welcome).
+     * @param {HTMLElement} body
+     */
+    function _replayTranscript(body) {
+        _transcript.forEach(function (m) {
+            _renderBubble(body, m.text, m.role);
+        });
+        body.scrollTop = body.scrollHeight;
+    }
+
+    // ── R7: keyboard shortcut parsing ─────────────────────────────────────────
+
+    /**
+     * Parse a human shortcut string ("Alt+Shift+A", "Ctrl+/") into a
+     * predicate over a KeyboardEvent.  Defensive: returns null for empty or
+     * unparsable input so the caller can simply skip binding.
+     *
+     * Rationale: a single un-modified key must NEVER be bound — it would
+     * hijack typing site-wide.  At least one modifier is required.
+     *
+     * @param {string} spec
+     * @returns {(e:KeyboardEvent)=>boolean|null}
+     */
+    function _parseShortcut(spec) {
+        if (typeof spec !== 'string' || !spec.trim()) return null;
+        var parts = spec.toLowerCase().split('+').map(function (s) { return s.trim(); });
+        var want  = { ctrl: false, alt: false, shift: false, meta: false, key: null };
+        parts.forEach(function (p) {
+            if (p === 'ctrl' || p === 'control') want.ctrl = true;
+            else if (p === 'alt' || p === 'option') want.alt = true;
+            else if (p === 'shift') want.shift = true;
+            else if (p === 'meta' || p === 'cmd' || p === 'command' || p === 'win') want.meta = true;
+            else if (p) want.key = p;
+        });
+        if (!want.key) return null;
+        // Require at least one modifier — never bind a bare key.
+        if (!(want.ctrl || want.alt || want.meta)) return null;
+        return function (e) {
+            var k = (e.key || '').toLowerCase();
+            return e.ctrlKey === want.ctrl &&
+                   e.altKey === want.alt &&
+                   e.shiftKey === want.shift &&
+                   e.metaKey === want.meta &&
+                   k === want.key;
+        };
+    }
+
+    /** True once the global shortcut handler is installed (idempotency). */
+    var _shortcutBound = false;
+
+    /**
+     * Install the configurable open/toggle shortcut. Default "Alt+Shift+A".
+     * Empty string in config → feature disabled (no global listener at all).
+     */
+    function _bindShortcut() {
+        if (_shortcutBound) return;
+        var cfg  = window.AI_ASSISTANT_CONFIG || {};
+        var spec = typeof cfg.panelShortcut === 'string'
+            ? cfg.panelShortcut : 'Alt+Shift+A';
+        var pred = _parseShortcut(spec);
+        if (!pred) return;             // disabled or invalid → safe no-op
+        _shortcutBound = true;
+        document.addEventListener('keydown', function (e) {
+            if (pred(e)) { e.preventDefault(); toggleAIPanel(); }
+        });
+    }
+
+    /** Human-readable shortcut label for the hint chip (or '' if disabled). */
+    function _shortcutLabel() {
+        var cfg  = window.AI_ASSISTANT_CONFIG || {};
+        var spec = typeof cfg.panelShortcut === 'string'
+            ? cfg.panelShortcut : 'Alt+Shift+A';
+        return _parseShortcut(spec) ? spec : '';
+    }
+
+    // ── R1: mouse resize (top-left grip) ──────────────────────────────────────
+
+    /** sessionStorage key for the persisted manual panel size. */
+    var _PANEL_SIZE_KEY = 'ai-assistant-panel-size';
+
+    /**
+     * Attach a top-left resize grip to the panel.  Width grows leftwards and
+     * height upwards (because the panel is anchored bottom-right), clamped to
+     * the viewport, and persisted.  Pointer events so mouse + touch + pen all
+     * work with one code path.
+     *
+     * @param {HTMLElement} panel
+     */
+    function _attachResizer(panel) {
+        var grip = document.createElement('div');
+        grip.className = 'ai-assistant-panel-resizer';
+        grip.setAttribute('aria-hidden', 'true');
+        grip.title = 'Drag to resize';
+        panel.appendChild(grip);
+
+        // Restore persisted size (only in default, non-maximized state).
+        var saved = _ssGet(_PANEL_SIZE_KEY);
+        if (saved) {
+            try {
+                var s = JSON.parse(saved);
+                if (s && s.w && s.h) {
+                    panel.style.width    = s.w + 'px';
+                    panel.style.maxHeight = s.h + 'px';
+                }
+            } catch (_) {}
+        }
+
+        var dragging = false, startX = 0, startY = 0, startW = 0, startH = 0;
+        var MIN_W = 300, MIN_H = 320;
+
+        grip.addEventListener('pointerdown', function (e) {
+            if (panel.getAttribute('data-maximized') === 'true') return;
+            dragging = true;
+            startX = e.clientX; startY = e.clientY;
+            var rect = panel.getBoundingClientRect();
+            startW = rect.width; startH = rect.height;
+            document.body.classList.add('ai-assistant-resizing');
+            grip.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+
+        grip.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            // Drag left/up → larger. Clamp to viewport with a small margin.
+            var dw = startX - e.clientX;
+            var dh = startY - e.clientY;
+            var maxW = window.innerWidth  - 32;
+            var maxH = window.innerHeight - 32;
+            var newW = Math.max(MIN_W, Math.min(maxW, startW + dw));
+            var newH = Math.max(MIN_H, Math.min(maxH, startH + dh));
+            panel.style.width     = newW + 'px';
+            panel.style.maxHeight = newH + 'px';
+        });
+
+        function _endDrag(e) {
+            if (!dragging) return;
+            dragging = false;
+            document.body.classList.remove('ai-assistant-resizing');
+            try { grip.releasePointerCapture(e.pointerId); } catch (_) {}
+            var rect = panel.getBoundingClientRect();
+            _ssSet(_PANEL_SIZE_KEY, JSON.stringify({
+                w: Math.round(rect.width), h: Math.round(rect.height),
+            }));
+        }
+        grip.addEventListener('pointerup', _endDrag);
+        grip.addEventListener('pointercancel', _endDrag);
+    }
+
+    // ── R5: feedback block ────────────────────────────────────────────────────
+
+    /** Default emoji option set (3). Config may supply 3–5 custom options. */
+    var _FEEDBACK_DEFAULTS = [
+        { emoji: '\uD83D\uDE00', title: 'Yes, it was!', value: 'positive' },
+        { emoji: '\uD83D\uDE10', title: 'Not sure',     value: 'neutral'  },
+        { emoji: '\uD83D\uDE41', title: 'No',            value: 'negative' },
+    ];
+
+    /**
+     * Build the feedback block. Options + question + thanks copy are all
+     * config-driven (ai_assistant_panel_feedback_*).  3 options by default,
+     * up to 5 supported.
+     *
+     * Developer note: the chosen rating + free text are dispatched as a
+     * `ai-assistant-feedback` CustomEvent on `document` AND, if configured,
+     * console-logged.  Doc authors hook the event for their own analytics —
+     * the extension itself stores nothing and sends nothing.
+     *
+     * @returns {HTMLElement|null}
+     */
+    function _buildFeedbackBlock() {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        if (cfg.panelFeedback === false) return null;     // opt-out
+        if (_feedbackGiven) return null;
+
+        var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
+            cfg.panelFeedbackQuestion) || 'Was this helpful?';
+        var thanks = (typeof cfg.panelFeedbackThanks === 'string' &&
+            cfg.panelFeedbackThanks) || 'Thanks for your feedback!';
+
+        var opts = Array.isArray(cfg.panelFeedbackOptions) &&
+            cfg.panelFeedbackOptions.length >= 2
+            ? cfg.panelFeedbackOptions.slice(0, 5)
+            : _FEEDBACK_DEFAULTS;
+
+        var wrap = document.createElement('div');
+        wrap.className = 'ai-assistant-panel-feedback';
+
+        var q = document.createElement('p');
+        q.className = 'ai-assistant-panel-feedback-q';
+        q.textContent = question;
+        wrap.appendChild(q);
+
+        var optRow = document.createElement('div');
+        optRow.className = 'ai-assistant-panel-feedback-options';
+
+        var chosen = { value: null };
+        opts.forEach(function (o) {
+            var b = document.createElement('button');
+            b.className = 'ai-assistant-panel-feedback-btn';
+            b.type = 'button';
+            b.textContent = o.emoji || '\u2753';
+            b.title = o.title || '';
+            b.setAttribute('aria-label', o.title || o.value || 'feedback');
+            b.setAttribute('aria-pressed', 'false');
+            b.addEventListener('click', function () {
+                chosen.value = o.value || o.title || o.emoji;
+                optRow.querySelectorAll('button').forEach(function (x) {
+                    x.setAttribute('aria-pressed', 'false');
+                });
+                b.setAttribute('aria-pressed', 'true');
+            });
+            optRow.appendChild(b);
+        });
+        wrap.appendChild(optRow);
+
+        var ta = document.createElement('textarea');
+        ta.className = 'ai-assistant-panel-feedback-text';
+        ta.placeholder = (typeof cfg.panelFeedbackPlaceholder === 'string' &&
+            cfg.panelFeedbackPlaceholder) ||
+            'Optional: tell us more (what worked, what didn\u2019t)\u2026';
+        ta.setAttribute('aria-label', 'Feedback details');
+        wrap.appendChild(ta);
+
+        var submit = document.createElement('button');
+        submit.className = 'ai-assistant-panel-feedback-submit';
+        submit.type = 'button';
+        submit.textContent = (typeof cfg.panelFeedbackSubmit === 'string' &&
+            cfg.panelFeedbackSubmit) || 'Send feedback';
+        submit.addEventListener('click', function () {
+            var detail = {
+                rating: chosen.value,
+                message: ta.value.trim(),
+                page: location ? location.href : '',
+                ts: Date.now(),
+            };
+            // Dev-friendly hook — doc authors attach their own analytics.
+            try {
+                document.dispatchEvent(new CustomEvent(
+                    'ai-assistant-feedback', { detail: detail }));
+            } catch (_) {}
+            if (cfg.panelFeedbackLog) {
+                // eslint-disable-next-line no-console
+                console.log('[ai-assistant] feedback', detail);
+            }
+            _feedbackGiven = true;
+            wrap.innerHTML = '';
+            var done = document.createElement('p');
+            done.className = 'ai-assistant-panel-feedback-thanks';
+            done.textContent = thanks;
+            wrap.appendChild(done);
+        });
+        wrap.appendChild(submit);
+
+        return wrap;
+    }
+
+    // ── R2: privacy / responsibility sheet ────────────────────────────────────
+
+    /**
+     * Build the default privacy/responsibility copy.  Every section can be
+     * overridden whole via ai_assistant_panel_privacy_html (raw, trusted —
+     * authored by the doc owner, NOT user input), or the title via
+     * ai_assistant_panel_privacy_title.  The default text is deliberately
+     * structured for a beginner→expert reader and explicitly separates the
+     * extension's responsibility from the integrated model's.
+     *
+     * @returns {HTMLElement}
+     */
+    function _buildPrivacySheet() {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var title = (typeof cfg.panelPrivacyTitle === 'string' &&
+            cfg.panelPrivacyTitle) || 'Privacy & Responsibility';
+
+        var sheet = document.createElement('div');
+        sheet.className = 'ai-assistant-panel-privacy';
+        sheet.id = 'ai-assistant-panel-privacy';
+        sheet.setAttribute('data-open', 'false');
+
+        var head = document.createElement('div');
+        head.className = 'ai-assistant-panel-privacy-head';
+        var hStrong = document.createElement('strong');
+        hStrong.textContent = title;
+        var hClose = _createIconBtn('privacy-close', 'Close ' + title, ICONS.close);
+        hClose.addEventListener('click', function () {
+            sheet.setAttribute('data-open', 'false');
+        });
+        head.appendChild(hStrong);
+        head.appendChild(hClose);
+        sheet.appendChild(head);
+
+        var bodyEl = document.createElement('div');
+        bodyEl.className = 'ai-assistant-panel-privacy-body';
+
+        if (typeof cfg.panelPrivacyHtml === 'string' && cfg.panelPrivacyHtml) {
+            // Trusted, author-supplied (from conf.py, not end-user input).
+            bodyEl.innerHTML = cfg.panelPrivacyHtml;
+        } else {
+            var apiOn = !!cfg.panelApiEnabled;
+            bodyEl.innerHTML =
+                '<h4>What this assistant is</h4>' +
+                '<p>This is a documentation helper added by a Sphinx ' +
+                'extension. Its purpose is to make this page easier to use ' +
+                'with AI tools \u2014 nothing more.</p>' +
+
+                '<h4>What the extension does</h4>' +
+                '<ul>' +
+                '<li>Formats the current page as Markdown in your browser.</li>' +
+                '<li>Shows this chat panel and its controls.</li>' +
+                '<li>Stores your conversation only in this browser tab ' +
+                '(sessionStorage) so it survives navigation; it is cleared ' +
+                'when you press \u201cStart a new chat\u201d or close the tab.</li>' +
+                '</ul>' +
+
+                '<h4>What the extension does NOT do</h4>' +
+                '<ul>' +
+                '<li>It runs no server and keeps no database.</li>' +
+                '<li>In stub mode it makes <strong>zero network calls</strong>.</li>' +
+                '<li>It cannot see, store, or control any AI provider\u2019s ' +
+                'internal logs.</li>' +
+                '</ul>' +
+
+                '<h4>Where the boundary is</h4>' +
+                (apiOn
+                    ? ('<p><strong>API mode is enabled.</strong> When you ' +
+                       'send a question, your text and an extract of this ' +
+                       'page are sent to the configured AI endpoint. From ' +
+                       'that point the answer, any data retention, and all ' +
+                       'logging are the responsibility of <em>that ' +
+                       'provider</em>, governed by <em>their</em> privacy ' +
+                       'policy \u2014 not this extension. We cannot inspect ' +
+                       'or delete their logs.</p>')
+                    : ('<p><strong>Stub mode (default).</strong> No question ' +
+                       'leaves your browser. Enabling API mode would send ' +
+                       'your text to a third-party model whose logging and ' +
+                       'retention are governed by that provider, not by this ' +
+                       'extension.</p>')) +
+
+                '<h4>Your control</h4>' +
+                '<ul>' +
+                '<li>\u201cStart a new chat\u201d erases the stored conversation.</li>' +
+                '<li>\u201cExport as txt\u201d gives you a full local copy.</li>' +
+                '<li>Closing the tab clears in-browser history.</li>' +
+                '</ul>';
+        }
+        sheet.appendChild(bodyEl);
+        return sheet;
+    }
+
+    // ── R8: standalone AI search-bar (opt-in, additive) ───────────────────────
+
+    /**
+     * Build a self-contained mini search input that forwards its text into
+     * the AI panel as the first question.  The extension renders its OWN
+     * element and never touches the theme\u2019s search DOM, so PyData / Furo /
+     * RTD search keep working untouched.  Off by default.
+     *
+     * @param {boolean} mini  Compact inline variant when true.
+     * @returns {HTMLElement}
+     */
+    function _buildSearchBar(mini) {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var ph  = (typeof cfg.panelSearchPlaceholder === 'string' &&
+            cfg.panelSearchPlaceholder) || 'Ask AI about these docs\u2026';
+
+        var bar = document.createElement('div');
+        bar.className = 'ai-assistant-searchbar' +
+            (mini ? ' ai-assistant-searchbar--mini' : '');
+
+        var icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.innerHTML = ICONS.searchAI;     // ICONS constant — safe.
+        bar.appendChild(icon);
+
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.setAttribute('aria-label', ph);
+        inp.placeholder = ph;
+        bar.appendChild(inp);
+
+        function _go() {
+            var q = inp.value.trim();
+            if (!q) return;
+            if (!_aiPanelEl) _aiPanelEl = createAIPanel();
+            _openAIPanel();
+            var panelInput = document.getElementById('ai-assistant-panel-input');
+            if (panelInput) {
+                panelInput.value = q;
+                _updateSendBtnState();
+                handleAIPanelSubmit();
+            }
+            inp.value = '';
+        }
+        inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); _go(); }
+        });
+        return bar;
+    }
+
+    /**
+     * Mount the standalone search-bar into a host selector (config-driven).
+     * Default OFF.  If the configured selector is not found nothing happens
+     * (safe no-op) so a missing element can never break the page.
+     */
+    function _mountSearchBar() {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        if (!cfg.searchBar) return;                       // default off
+        var sel = (typeof cfg.searchBarSelector === 'string' &&
+            cfg.searchBarSelector) || '';
+        if (!sel) return;
+        var host = document.querySelector(sel);
+        if (!host) return;
+        if (host.querySelector('.ai-assistant-searchbar')) return;  // idempotent
+        host.appendChild(_buildSearchBar(cfg.searchBarMini === true));
+    }
+
     // ── AI Panel ──────────────────────────────────────────────────────────────
 
     /**
@@ -820,7 +1445,8 @@
         var cfg         = window.AI_ASSISTANT_CONFIG || {};
         var title       = cfg.panelTitle       || 'AI Assistant';
         var placeholder = cfg.panelPlaceholder || 'Ask a question about this page\u2026';
-        var quickQs     = Array.isArray(cfg.panelQuickQuestions) ? cfg.panelQuickQuestions.slice(0, 5) : [];
+        // Quick-suggestion chips are now built by _renderWelcome (shared with
+        // clearConversation) so they are no longer constructed here.
         var speakBanner = cfg.panelSpeakBanner !== false;   // default true
         var hasSpeech   = _speechSupported();
 
@@ -861,6 +1487,19 @@
         var maximizeBtn = _createIconBtn('maximize', 'Maximize panel', ICONS.maximize);
         var closeBtn    = _createIconBtn('close',    'Close ' + _escapeHtml(title), ICONS.close);
 
+        // R3: clear conversation without page refresh ("Start a new chat").
+        var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChat);
+        newChatBtn.title = 'Start a new chat';
+        newChatBtn.addEventListener('click', clearConversation);
+
+        // R4: export the conversation as a plain-text download.
+        var exportBtn = _createIconBtn(
+            'export', 'Export AI conversation as txt', ICONS.exportTxt);
+        exportBtn.title = 'Export AI conversation as txt';
+        exportBtn.addEventListener('click', exportConversation);
+
+        headerActions.appendChild(newChatBtn);
+        headerActions.appendChild(exportBtn);
         headerActions.appendChild(minimizeBtn);
         headerActions.appendChild(maximizeBtn);
         headerActions.appendChild(closeBtn);
@@ -868,52 +1507,55 @@
         header.appendChild(headerTitle);
         header.appendChild(headerActions);
 
+        // ── Sub-bar: keyboard-shortcut hint (R7) + privacy link (R2) ──────────
+        var subbar = document.createElement('div');
+        subbar.className = 'ai-assistant-panel-subbar';
+
+        var kbdLabel = _shortcutLabel();
+        if (kbdLabel) {
+            var hint = document.createElement('span');
+            hint.className = 'ai-assistant-panel-kbd-hint';
+            var hIcon = document.createElement('span');
+            hIcon.setAttribute('aria-hidden', 'true');
+            hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
+            hint.appendChild(hIcon);
+            // Render each chord token as its own <kbd>.
+            kbdLabel.split('+').forEach(function (tok, i, arr) {
+                var k = document.createElement('kbd');
+                k.textContent = tok.trim();
+                hint.appendChild(k);
+                if (i < arr.length - 1) {
+                    hint.appendChild(document.createTextNode('+'));
+                }
+            });
+            subbar.appendChild(hint);
+        } else {
+            subbar.appendChild(document.createElement('span')); // spacer
+        }
+
+        var privacyLink = document.createElement('button');
+        privacyLink.className = 'ai-assistant-panel-privacy-link';
+        privacyLink.type = 'button';
+        privacyLink.textContent =
+            (window.AI_ASSISTANT_CONFIG &&
+             window.AI_ASSISTANT_CONFIG.panelPrivacyLinkText) ||
+            'Privacy & Responsibility';
+        subbar.appendChild(privacyLink);
+
         // ── Body ─────────────────────────────────────────────────────────────
         var body = document.createElement('div');
         body.className = 'ai-assistant-panel-body';
         body.id = 'ai-assistant-panel-body';
 
-        // Welcome message
-        var welcome = document.createElement('div');
-        welcome.className = 'ai-assistant-panel-welcome';
-
-        var p1     = document.createElement('p');
-        var strong = document.createElement('strong');
-        strong.textContent = title;
-        p1.appendChild(document.createTextNode('Hi! I\u2019m '));
-        p1.appendChild(strong);
-        p1.appendChild(document.createTextNode('.'));
-
-        var p2 = document.createElement('p');
-        p2.textContent = 'Ask me anything about this documentation page.';
-
-        welcome.appendChild(p1);
-        welcome.appendChild(p2);
-        body.appendChild(welcome);
-
-        // Quick suggestion chips
-        if (quickQs.length > 0) {
-            var suggestionsEl = document.createElement('div');
-            suggestionsEl.className = 'ai-assistant-panel-suggestions';
-            suggestionsEl.id = 'ai-assistant-panel-suggestions';
-
-            quickQs.forEach(function (q) {
-                var chip = document.createElement('button');
-                chip.className = 'ai-assistant-panel-chip';
-                chip.type = 'button';
-                chip.textContent = q;
-                chip.addEventListener('click', function () {
-                    var input = document.getElementById('ai-assistant-panel-input');
-                    if (input) {
-                        input.value = q;
-                        _updateSendBtnState();
-                        input.focus();
-                    }
-                });
-                suggestionsEl.appendChild(chip);
-            });
-
-            body.appendChild(suggestionsEl);
+        // Load any persisted conversation (single source of truth).  If it
+        // is non-empty, replay it; otherwise show the welcome + suggestions.
+        // _renderWelcome is the SAME path used by clearConversation() so the
+        // welcome markup is defined exactly once (no duplication).
+        _loadTranscript();
+        if (_transcript.length > 0) {
+            _replayTranscript(body);
+        } else {
+            _renderWelcome(body);
         }
 
         // ── Speak banner (optional) ───────────────────────────────────────────
@@ -988,6 +1630,7 @@
 
         // ── Assemble panel ────────────────────────────────────────────────────
         panel.appendChild(header);
+        panel.appendChild(subbar);            // R7 kbd hint + R2 privacy link
         panel.appendChild(body);
 
         // Speak banner goes between body and footer, attached to the panel
@@ -995,6 +1638,16 @@
         if (speakBannerEl) panel.appendChild(speakBannerEl);
 
         panel.appendChild(footer);
+
+        // R2: privacy/responsibility slide-over (absolute, covers panel).
+        var privacySheet = _buildPrivacySheet();
+        panel.appendChild(privacySheet);
+        privacyLink.addEventListener('click', function () {
+            privacySheet.setAttribute('data-open', 'true');
+        });
+
+        // R1: top-left resize grip (also restores any persisted size).
+        _attachResizer(panel);
 
         // ── Events ────────────────────────────────────────────────────────────
 
@@ -1024,14 +1677,25 @@
         input.addEventListener('input', _updateSendBtnState);
 
         panel.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeAIPanel();
+            // Escape closes the privacy sheet first if it is open, else panel.
+            if (e.key === 'Escape') {
+                if (privacySheet.getAttribute('data-open') === 'true') {
+                    privacySheet.setAttribute('data-open', 'false');
+                } else {
+                    closeAIPanel();
+                }
+            }
         });
 
         document.body.appendChild(panel);
 
         // ── Floating trigger pill (shown when minimized) ──────────────────────
-        _aiTriggerEl = _createTriggerPill(title);
-        document.body.appendChild(_aiTriggerEl);
+        // Idempotency guard (C-4): never create a second trigger if one
+        // already exists from a prior createAIPanel() call.
+        if (!_aiTriggerEl) {
+            _aiTriggerEl = _createTriggerPill(title);
+            document.body.appendChild(_aiTriggerEl);
+        }
 
         return panel;
     }
@@ -1255,6 +1919,50 @@
 
     // ── Message bubbles ───────────────────────────────────────────────────────
 
+    /**
+     * Render one bubble into `body`.  Pure view helper — does NOT touch the
+     * `_transcript` source of truth (callers do).  Reused by live messages
+     * and by transcript replay so there is exactly one bubble-building path.
+     *
+     * Adds an R6 "Copy this answer" action under assistant/error bubbles.
+     *
+     * @param {HTMLElement} body
+     * @param {string} text
+     * @param {string} role  'user' | 'assistant' | 'error'
+     */
+    function _renderBubble(body, text, role) {
+        var bubble = document.createElement('div');
+        bubble.className = 'ai-assistant-panel-bubble ai-assistant-panel-bubble--' + role;
+        bubble.textContent = text;            // textContent → XSS-safe by design
+        body.appendChild(bubble);
+
+        if (role === 'assistant' || role === 'error') {
+            var actions = document.createElement('div');
+            actions.className = 'ai-assistant-panel-bubble-actions';
+
+            var copyBtn = document.createElement('button');
+            copyBtn.className = 'ai-assistant-panel-bubble-action';
+            copyBtn.type = 'button';
+            copyBtn.setAttribute('aria-label', 'Copy this answer');
+            copyBtn.title = 'Copy this answer';
+            copyBtn.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
+            var lbl = document.createElement('span');
+            lbl.textContent = 'Copy';
+            copyBtn.appendChild(lbl);
+            copyBtn.addEventListener('click', function () { copyAnswer(text); });
+
+            actions.appendChild(copyBtn);
+            body.appendChild(actions);
+        }
+    }
+
+    /**
+     * Append a message: records it in the single source of truth, renders
+     * it, and (after an assistant reply) offers the feedback block.
+     *
+     * @param {string} text
+     * @param {string} role  'user' | 'assistant' | 'error'
+     */
     function _appendPanelMessage(text, role) {
         var body = document.getElementById('ai-assistant-panel-body');
         if (!body) return;
@@ -1265,10 +1973,17 @@
         var suggestions = body.querySelector('.ai-assistant-panel-suggestions');
         if (suggestions) suggestions.remove();
 
-        var bubble = document.createElement('div');
-        bubble.className = 'ai-assistant-panel-bubble ai-assistant-panel-bubble--' + role;
-        bubble.textContent = text;
-        body.appendChild(bubble);
+        _recordMessage(role, text);          // single source of truth
+        _renderBubble(body, text, role);
+
+        // R5: after an assistant reply, surface the feedback block once.
+        if (role === 'assistant') {
+            var existing = body.querySelector('.ai-assistant-panel-feedback');
+            if (existing) existing.remove();
+            var fb = _buildFeedbackBlock();
+            if (fb) body.appendChild(fb);
+        }
+
         body.scrollTop = body.scrollHeight;
     }
 
@@ -1317,7 +2032,42 @@
 
     // ── API + stub ────────────────────────────────────────────────────────────
 
+    /**
+     * Live API call — routed through a USER-SUPPLIED PROXY endpoint.
+     *
+     * Why a proxy is mandatory (C-2)
+     * ──────────────────────────────
+     * A browser cannot call https://api.anthropic.com/v1/messages directly:
+     *   • the endpoint sends no CORS headers for web origins, so the request
+     *     is blocked before it leaves the browser;
+     *   • it requires an `x-api-key`, and embedding a real key in static JS
+     *     would leak it to every reader.
+     * Therefore "API mode" MUST point at the doc owner's own endpoint
+     * (a serverless function / gateway) that injects the key server-side.
+     * That endpoint is configured via `ai_assistant_panel_api_url`.
+     *
+     * The request body keeps the Anthropic `/v1/messages` shape so a thin
+     * pass-through proxy needs no transformation; the response is parsed for
+     * the same `content[].text` shape, with a generic `{reply|answer|text}`
+     * fallback so simpler proxies also work.
+     *
+     * @param {string} question
+     * @param {object} cfg  window.AI_ASSISTANT_CONFIG
+     */
     async function _panelApiCall(question, cfg) {
+        var apiUrl = (typeof cfg.panelApiUrl === 'string' && cfg.panelApiUrl.trim())
+            ? cfg.panelApiUrl.trim()
+            : '';
+
+        // Fail fast with an actionable message — never a silent/blocked call.
+        if (!apiUrl) {
+            throw new Error(
+                'API mode is enabled but ai_assistant_panel_api_url is not ' +
+                'set. The browser cannot call Anthropic directly; configure ' +
+                'a proxy endpoint (see the Privacy & Responsibility section).'
+            );
+        }
+
         var pageMarkdown = '';
         try { pageMarkdown = await convertToMarkdown(); } catch (_) {}
 
@@ -1325,11 +2075,11 @@
             ? 'You are a helpful documentation assistant. Answer questions about the following documentation page.\n\n---\n' + pageMarkdown.slice(0, 8000) + '\n---'
             : 'You are a helpful documentation assistant.';
 
-        var response = await fetch('https://api.anthropic.com/v1/messages', {
+        var response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model:      'claude-sonnet-4-20250514',
+                model:      cfg.panelApiModel || 'claude-sonnet-4-20250514',
                 max_tokens: 1000,
                 system:     systemPrompt,
                 messages:   [{ role: 'user', content: question }],
@@ -1341,12 +2091,21 @@
             throw new Error('API ' + response.status + ': ' + errBody.slice(0, 120));
         }
 
-        var data  = await response.json();
-        var reply = (data.content || [])
-            .filter(function (b) { return b.type === 'text'; })
-            .map(function (b) { return b.text; })
-            .join('\n')
-            .trim();
+        var data = await response.json();
+        // Primary: Anthropic content[].text shape.
+        var reply = Array.isArray(data.content)
+            ? data.content
+                .filter(function (b) { return b && b.type === 'text'; })
+                .map(function (b) { return b.text; })
+                .join('\n')
+                .trim()
+            : '';
+        // Fallback: simple proxies that return a plain field.
+        if (!reply) {
+            reply = (typeof data.reply === 'string' && data.reply) ||
+                    (typeof data.answer === 'string' && data.answer) ||
+                    (typeof data.text === 'string' && data.text) || '';
+        }
 
         _appendPanelMessage(reply || '(no response)', 'assistant');
     }
