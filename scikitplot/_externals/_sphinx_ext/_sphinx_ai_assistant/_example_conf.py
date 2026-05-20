@@ -848,6 +848,24 @@ ai_assistant_panel_speak_banner = True
 # User note: Keep very short (1–3 words).  Combined with a chat icon SVG.
 ai_assistant_panel_trigger_label = "Ask Us"
 
+# Type:    bool
+# Default: True
+#
+# Controls whether the floating trigger pill is created eagerly on every page
+# load (True, default) or only after the user has opened then minimized the
+# panel (False).
+#
+# User note: When True the "Ask Us" pill is immediately visible at the
+# bottom-right of every page so readers can open the AI assistant with a
+# single click.  When False users must first click the toolbar expand button
+# then "AI Assistant" before the pill appears — two extra clicks.
+#
+# Developer note: The eager path runs inside createAIAssistantUI() at init
+# time and is gated by ``features.ai_panel`` so the pill is never rendered
+# on builds where the panel feature is disabled.  The idempotency guard in
+# createAIPanel() (C-4) ensures a second pill is never created.
+ai_assistant_panel_start_minimized = True
+
 # ===========================================================================
 # v0.3 — resize, persistence, shortcut, proxy, feedback, privacy, search-bar
 # ===========================================================================

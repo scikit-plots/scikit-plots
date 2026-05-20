@@ -3033,6 +3033,14 @@ def add_ai_assistant_context(
         "panelTriggerLabel": (
             _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask Us"
         ),
+        # Initial panel state: True (default) → show trigger pill on page load
+        # (panel starts minimized, pill visible — 1-click access).
+        # False → pill hidden; panel opens only via the dropdown button.
+        # Controls whether createAIAssistantUI() eagerly creates the trigger
+        # pill before the user has ever opened the panel.
+        "panelStartMinimized": _cfg_bool(
+            app.config, "ai_assistant_panel_start_minimized", True
+        ),
         # ---- v0.3 keys ------------------------------------------------------
         # Each maps 1:1 to a window.AI_ASSISTANT_CONFIG.* read in
         # ai-assistant.js.  Keys use the JS camelCase the reader expects.
@@ -3358,6 +3366,14 @@ def setup(app: Sphinx) -> dict[str, Any]:
     # ``ai_assistant_panel_trigger_label``
     #     Label on the floating trigger pill shown when the panel is minimized.
     #     Default: 'Ask Us'.
+    #
+    # ``ai_assistant_panel_start_minimized``
+    #     When True (default) the floating trigger pill is rendered eagerly on
+    #     every page load so users can open the panel with a single click.
+    #     When False the pill only appears after the user has opened then
+    #     minimized the panel, requiring them to first click the expand button
+    #     then "AI Assistant".  Set to False only when you prefer the lighter
+    #     initial paint at the cost of discoverability.
     app.add_config_value("ai_assistant_panel_title", "AI Assistant", "html")
     app.add_config_value(
         "ai_assistant_panel_placeholder",
@@ -3368,6 +3384,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
     app.add_config_value("ai_assistant_panel_trigger_label", "Ask Us", "html")
+    app.add_config_value("ai_assistant_panel_start_minimized", True, "html")
 
     # -----------------------------------------------------------------------
     # v0.3 config values — resize, persistence, shortcut, proxy, feedback,

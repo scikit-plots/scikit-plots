@@ -1960,6 +1960,12 @@ ai_assistant_search_bar_selector = ".bd-sidebar-primary"
 # Alabaster / Classic:  "div.document"
 # Read the Docs theme:  'div[role="main"]'
 ai_assistant_content_selector = "article.bd-article"
+ai_assistant_panel_api_enabled = False
+ai_assistant_panel_quick_questions = [
+    "What does this page cover?",
+    "Show me a quick usage example.",
+    "What are the key parameters?",
+]
 
 # Ordered list of CSS selectors the *build-time* Markdown generator probes
 # to locate the main content element in each HTML file.  The first selector
@@ -2041,13 +2047,6 @@ ai_assistant_features = {
     # this key → JS defaults ai_panel = False → button never created.
     "ai_panel": True,
 }
-
-ai_assistant_panel_api_enabled = False
-ai_assistant_panel_quick_questions = [
-    "What does this page cover?",
-    "Show me a quick usage example.",
-    "What are the key parameters?",
-]
 
 ai_assistant_providers = {
     # --- Tier 1: enabled by default ----------------------------------------
