@@ -998,7 +998,7 @@ ai_assistant_search_bar = False
 # CSS selector of the host element to append the search-bar into.  If empty
 # or not found, nothing happens (safe no-op).  Example for pydata theme:
 #   ai_assistant_search_bar_selector = ".bd-sidebar-primary"
-ai_assistant_search_bar_selector = ""
+ai_assistant_search_bar_selector = ".bd-sidebar-primary"  # or ""
 
 # Type:    str  ("top" | "bottom")
 # Default: "bottom"
@@ -1024,7 +1024,7 @@ ai_assistant_search_bar_position = "top"
 # Type:    bool
 # Default: False
 # Compact inline variant when True; full-width block when False.
-ai_assistant_search_bar_mini = False
+ai_assistant_search_bar_mini = False  # accept full width
 
 # Type:    str — placeholder for the standalone search-bar input.
 ai_assistant_panel_search_placeholder = "Ask AI about these docs\u2026"

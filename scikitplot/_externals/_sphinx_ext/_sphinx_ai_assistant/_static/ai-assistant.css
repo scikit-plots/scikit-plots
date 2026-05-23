@@ -1110,15 +1110,41 @@ body.ai-assistant-resizing .ai-assistant-panel {
 }
 
 /* ─── R7: keyboard-shortcut hint chip ───────────────────────────────────────
-   A subtle "kbd" pill shown in the header area; content is config-driven. */
+   A subtle "kbd" pill shown in the panel header sub-bar; config-driven.
+   The keyboard SVG (ICONS.keyboard) carries no width/height attrs — only a
+   viewBox — so without an explicit CSS size it defaults to 300×150px and
+   becomes invisible inside the flex row.  The rules below fix that and ensure
+   the icon colour adapts correctly to both light and dark themes. */
 
 .ai-assistant-panel-kbd-hint {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     font-size: 0.68rem;
+    /* Light-mode muted tone — readable on the white/light panel surface. */
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
 }
+
+/* Wrapper span that holds the SVG icon (aria-hidden="true").
+   line-height:0 eliminates the extra inline-block descent gap. */
+.ai-assistant-panel-kbd-hint > span[aria-hidden] {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+}
+
+/* Constrain the SVG to a legible 12 × 12 px icon.
+   stroke:currentColor is already on the element attribute but restating it
+   in CSS prevents any theme stylesheet from accidentally overriding it.
+   flex-shrink:0 stops the icon from collapsing in narrow containers. */
+.ai-assistant-panel-kbd-hint > span[aria-hidden] svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+}
+
 .ai-assistant-panel-kbd-hint kbd {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.66rem;
@@ -1128,6 +1154,13 @@ body.ai-assistant-resizing .ai-assistant-panel {
     border-bottom-width: 2px;
     border-radius: 4px;
     color: inherit;
+}
+
+/* Dark-mode: lighten the muted tone so the icon and kbd labels stay clearly
+   legible against the dark panel surface.  The kbd chip gets a translucent
+   white background (unchanged from before). */
+[data-bs-theme="dark"] .ai-assistant-panel-kbd-hint {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
 }
 [data-bs-theme="dark"] .ai-assistant-panel-kbd-hint kbd {
     background: rgba(255, 255, 255, 0.07);
@@ -1261,6 +1294,42 @@ body.ai-assistant-resizing .ai-assistant-panel {
 .ai-assistant-searchbar--mini input { font-size: 0.78rem; }
 [data-bs-theme="dark"] .ai-assistant-searchbar {
     background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── R8: searchbar kbd-hint (compact variant) ───────────────────────────────
+   Dedicated class for the kbd-hint rendered INSIDE the search bar only.
+   Kept intentionally smaller and tighter than the panel's .ai-assistant-panel-
+   kbd-hint so the bar stays slim.  The keyboard icon is hidden here because
+   horizontal space is at a premium inside an inline input widget.
+   Panel subbar continues to use .ai-assistant-panel-kbd-hint untouched. */
+
+.ai-assistant-searchbar-kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.60rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    flex-shrink: 0;
+    opacity: 0.80;
+    white-space: nowrap;
+}
+/* Hide the keyboard SVG icon — too large relative to the compact bar height. */
+.ai-assistant-searchbar-kbd-hint > span[aria-hidden] {
+    display: none;
+}
+.ai-assistant-searchbar-kbd-hint kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.58rem;
+    line-height: 1.3;
+    padding: 0.02rem 0.18rem;
+    background: var(--pst-color-surface, var(--color-background-secondary, #eef0f2));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    color: inherit;
+}
+[data-bs-theme="dark"] .ai-assistant-searchbar-kbd-hint kbd {
+    background: rgba(255, 255, 255, 0.07);
 }
 
 /* Respect reduced-motion users for every new animated affordance. */

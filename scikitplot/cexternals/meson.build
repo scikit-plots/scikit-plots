@@ -7,3 +7,4 @@
 # subdir('_numcpp')
 subdir('_annoy')
 subdir('_astropy')
+subdir('_editdistance')

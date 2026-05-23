@@ -125,6 +125,7 @@
         privacy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         searchAI: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M8 11h6M11 8v6" stroke-width="1.5"/></svg>',
         keyboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>',
+        retry:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
     };
 
     // ── Initialisation ────────────────────────────────────────────────────────
@@ -923,8 +924,15 @@
     /** sessionStorage key for the persisted transcript. */
     var _TRANSCRIPT_KEY = 'ai-assistant-transcript';
 
-    /** True when feedback has been submitted this session (avoid nag). */
-    var _feedbackGiven = false;
+    /**
+     * Set of answer indices (0-based) for which feedback has been submitted
+     * this session.  Replaces the old single boolean so each answer's
+     * feedback block is tracked independently — enabling granular per-answer
+     * model-training data collection.
+     *
+     * @type {Set<number>}
+     */
+    var _feedbackGivenSet = new Set();
 
     /**
      * Whether transcript persistence is enabled (config-driven, default on).
@@ -988,7 +996,7 @@
      */
     function clearConversation() {
         _transcript = [];
-        _feedbackGiven = false;
+        _feedbackGivenSet = new Set();
         _ssDel(_TRANSCRIPT_KEY);
         var body = document.getElementById('ai-assistant-panel-body');
         if (!body) return;
@@ -1249,21 +1257,27 @@
     ];
 
     /**
-     * Build the feedback block. Options + question + thanks copy are all
-     * config-driven (ai_assistant_panel_feedback_*).  3 options by default,
-     * up to 5 supported.
+     * Build a per-answer feedback block.  Options, question, and thanks copy
+     * are all config-driven (ai_assistant_panel_feedback_*).  3 emoji options
+     * by default, up to 5 supported.  Rendered inline under each assistant
+     * bubble for granular per-answer model-training data collection.
      *
      * Developer note: the chosen rating + free text are dispatched as a
      * `ai-assistant-feedback` CustomEvent on `document` AND, if configured,
      * console-logged.  Doc authors hook the event for their own analytics —
      * the extension itself stores nothing and sends nothing.
      *
+     * User note: each answer carries its own independent feedback block so
+     * every exchange can be rated separately.
+     *
+     * @param {number} answerIndex  Zero-based index of this assistant answer
+     *                              (tracks which answers have been rated).
      * @returns {HTMLElement|null}
      */
-    function _buildFeedbackBlock() {
+    function _buildFeedbackBlock(answerIndex) {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
         if (cfg.panelFeedback === false) return null;     // opt-out
-        if (_feedbackGiven) return null;
+        if (_feedbackGivenSet.has(answerIndex)) return null;
 
         var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
             cfg.panelFeedbackQuestion) || 'Was this helpful?';
@@ -1276,7 +1290,7 @@
             : _FEEDBACK_DEFAULTS;
 
         var wrap = document.createElement('div');
-        wrap.className = 'ai-assistant-panel-feedback';
+        wrap.className = 'ai-assistant-panel-feedback ai-assistant-panel-feedback--inline';
 
         var q = document.createElement('p');
         q.className = 'ai-assistant-panel-feedback-q';
@@ -1323,6 +1337,7 @@
             var detail = {
                 rating: chosen.value,
                 message: ta.value.trim(),
+                answerIndex: answerIndex,
                 page: location ? location.href : '',
                 ts: Date.now(),
             };
@@ -1335,7 +1350,7 @@
                 // eslint-disable-next-line no-console
                 console.log('[ai-assistant] feedback', detail);
             }
-            _feedbackGiven = true;
+            _feedbackGivenSet.add(answerIndex);
             wrap.innerHTML = '';
             var done = document.createElement('p');
             done.className = 'ai-assistant-panel-feedback-thanks';
@@ -1470,6 +1485,28 @@
         inp.placeholder = ph;
         bar.appendChild(inp);
 
+        var kbdLabel = _shortcutLabel();
+        if (kbdLabel) {
+            var hint = document.createElement('span');
+            hint.className = 'ai-assistant-searchbar-kbd-hint';
+            var hIcon = document.createElement('span');
+            hIcon.setAttribute('aria-hidden', 'true');
+            hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
+            hint.appendChild(hIcon);
+            // Render each chord token as its own <kbd>.
+            kbdLabel.split('+').forEach(function (tok, i, arr) {
+                var k = document.createElement('kbd');
+                k.textContent = tok.trim();
+                hint.appendChild(k);
+                if (i < arr.length - 1) {
+                    hint.appendChild(document.createTextNode('+'));
+                }
+            });
+            bar.appendChild(hint);
+        } else {
+            bar.appendChild(document.createElement('span')); // spacer
+        }
+
         function _go() {
             var q = inp.value.trim();
             if (!q) return;
@@ -1512,9 +1549,10 @@
         if (cfg.searchBarPosition === 'top') {
             // Prepend: place before the first existing child so the search bar
             // appears at the very top of the sidebar — above navigation links.
+            // Default "top"
             host.insertBefore(bar, host.firstChild);
         } else {
-            // Default "bottom": append after all existing children.
+            // "bottom": append after all existing children.
             host.appendChild(bar);
         }
     }
@@ -2039,41 +2077,108 @@
      * `_transcript` source of truth (callers do).  Reused by live messages
      * and by transcript replay so there is exactly one bubble-building path.
      *
-     * Adds an R6 "Copy this answer" action under assistant/error bubbles.
+     * For assistant/error bubbles adds:
+     *   • R6  action row: [Copy] [Retry] buttons
+     *   • R5  per-answer inline feedback block (emoji + optional message)
      *
      * @param {HTMLElement} body
-     * @param {string} text
-     * @param {string} role  'user' | 'assistant' | 'error'
+     * @param {string}      text
+     * @param {string}      role        'user' | 'assistant' | 'error'
+     * @param {string}      [question]  Paired user question for Retry.
+     *                                  If omitted, Retry walks _transcript
+     *                                  to find the preceding user turn.
      */
-    function _renderBubble(body, text, role) {
+    function _renderBubble(body, text, role, question) {
         var bubble = document.createElement('div');
         bubble.className = 'ai-assistant-panel-bubble ai-assistant-panel-bubble--' + role;
         bubble.textContent = text;            // textContent → XSS-safe by design
         body.appendChild(bubble);
 
         if (role === 'assistant' || role === 'error') {
+            // ── R6: action row — Copy + Retry ─────────────────────────────────
             var actions = document.createElement('div');
             actions.className = 'ai-assistant-panel-bubble-actions';
 
+            // Copy button
             var copyBtn = document.createElement('button');
             copyBtn.className = 'ai-assistant-panel-bubble-action';
             copyBtn.type = 'button';
             copyBtn.setAttribute('aria-label', 'Copy this answer');
             copyBtn.title = 'Copy this answer';
             copyBtn.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
-            var lbl = document.createElement('span');
-            lbl.textContent = 'Copy';
-            copyBtn.appendChild(lbl);
+            var copyLbl = document.createElement('span');
+            copyLbl.textContent = 'Copy';
+            copyBtn.appendChild(copyLbl);
             copyBtn.addEventListener('click', function () { copyAnswer(text); });
-
             actions.appendChild(copyBtn);
+
+            // Retry button — re-submits the paired user question.
+            // Resolve the question to repeat: prefer the explicit param, then
+            // walk _transcript backwards to find the last user turn.
+            var retryQ = question || (function () {
+                for (var i = _transcript.length - 1; i >= 0; i--) {
+                    if (_transcript[i].role === 'user') return _transcript[i].text;
+                }
+                return null;
+            }());
+            if (retryQ) {
+                var retryBtn = document.createElement('button');
+                retryBtn.className = 'ai-assistant-panel-bubble-action';
+                retryBtn.type = 'button';
+                retryBtn.setAttribute('aria-label', 'Retry this answer');
+                retryBtn.title = 'Retry — re-send the same question';
+                retryBtn.innerHTML = ICONS.retry;  // ICONS constant — safe.
+                var retryLbl = document.createElement('span');
+                retryLbl.textContent = 'Retry';
+                retryBtn.appendChild(retryLbl);
+                retryBtn.addEventListener('click', function () {
+                    var panelInput = document.getElementById('ai-assistant-panel-input');
+                    if (!panelInput) return;
+                    panelInput.value = retryQ;
+                    _updateSendBtnState();
+                    handleAIPanelSubmit();
+                });
+                actions.appendChild(retryBtn);
+            }
+
             body.appendChild(actions);
+
+            // ── R5: per-answer inline feedback block ──────────────────────────
+            // Count how many assistant answers precede this one so each gets a
+            // unique stable index for independent feedback tracking.
+            var answerIndex = body.querySelectorAll(
+                '.ai-assistant-panel-feedback').length;
+            var fb = _buildFeedbackBlock(answerIndex);
+            if (fb) body.appendChild(fb);
         }
     }
 
     /**
-     * Append a message: records it in the single source of truth, renders
-     * it, and (after an assistant reply) offers the feedback block.
+     * Append a message: records it in the single source of truth and renders
+     * it via `_renderBubble`.
+     *
+     * Ordering guarantee (per turn):
+     *   user bubble  →  [assistant bubble → action row (Copy, Retry) → feedback block]
+     *
+     * The action row and per-answer feedback block are built and inserted
+     * inside `_renderBubble` itself — directly after the assistant bubble —
+     * so they are always in DOM order with that bubble regardless of how many
+     * turns precede or follow.  There is NO second feedback pass here.
+     *
+     * Why no second pass:
+     *   A prior version appended a feedback block again in this function after
+     *   calling `_renderBubble`.  That caused three distinct bugs:
+     *     (1) ORDER — on Retry the second pass ran after the next user bubble
+     *         was already in the DOM, so feedback floated below the new query.
+     *     (2) WRONG TARGET — `body.querySelector('.ai-assistant-panel-feedback')`
+     *         selects the FIRST feedback in the body (previous answer's block),
+     *         not the one just rendered, silently deleting an earlier answer's
+     *         feedback widget.
+     *     (3) INDEX CORRUPTION — `_buildFeedbackBlock()` was called without an
+     *         `answerIndex` argument (→ `undefined`), causing all answers to
+     *         share the same key in `_feedbackGivenSet` and preventing any
+     *         subsequent answer from showing its feedback block once one was
+     *         submitted.
      *
      * @param {string} text
      * @param {string} role  'user' | 'assistant' | 'error'
@@ -2082,22 +2187,16 @@
         var body = document.getElementById('ai-assistant-panel-body');
         if (!body) return;
 
-        // Remove welcome + suggestions on first real message
+        // Remove welcome + suggestions on first real message.
         var welcome = body.querySelector('.ai-assistant-panel-welcome');
         if (welcome) welcome.remove();
         var suggestions = body.querySelector('.ai-assistant-panel-suggestions');
         if (suggestions) suggestions.remove();
 
-        _recordMessage(role, text);          // single source of truth
+        _recordMessage(role, text);   // single source of truth
         _renderBubble(body, text, role);
-
-        // R5: after an assistant reply, surface the feedback block once.
-        if (role === 'assistant') {
-            var existing = body.querySelector('.ai-assistant-panel-feedback');
-            if (existing) existing.remove();
-            var fb = _buildFeedbackBlock();
-            if (fb) body.appendChild(fb);
-        }
+        // _renderBubble already appended: bubble → action row → feedback block.
+        // No further DOM manipulation needed here.
 
         body.scrollTop = body.scrollHeight;
     }

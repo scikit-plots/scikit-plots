@@ -1948,9 +1948,12 @@ ai_assistant_enabled = True
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
 # "title"    → next to the page heading
 ai_assistant_position = "sidebar"
+
 ai_assistant_search_bar = True
-ai_assistant_search_bar_mini = True
-ai_assistant_search_bar_selector = ".bd-sidebar-primary"
+ai_assistant_search_bar_mini = False  # accept full width
+ai_assistant_search_bar_selector = ".bd-sidebar-primary"  # pydata theme
+ai_assistant_search_bar_position = "top"
+ai_assistant_panel_search_placeholder = "Ask AI about docs\u2026"
 
 # CSS selector used by the JavaScript widget to extract page content for
 # copy-as-Markdown and AI-chat features.
