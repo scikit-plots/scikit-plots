@@ -1,9 +1,15 @@
-# distutils: language = c++
-# distutils: sources = src/editdistance/_editdistance.cpp
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+# cython: embedsignature=True
+# distutils: language=c++
+#
+# scikitplot/cexternals/_editdistance/bycython.pyx
 
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
-# from libc.stdint cimport int64_t
+from libc.stdint cimport int64_t
 
 cdef extern from "./_editdistance.h":
     ctypedef int int64_t

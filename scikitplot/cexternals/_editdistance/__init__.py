@@ -1,4 +1,4 @@
-# scikitplot/misc/__init__.py
+# scikitplot/cexternals/_editdistance/__init__.py
 #
 # flake8: noqa: D213
 #

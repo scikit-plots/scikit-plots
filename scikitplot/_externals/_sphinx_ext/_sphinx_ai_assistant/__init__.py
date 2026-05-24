@@ -1037,6 +1037,169 @@ _PROVIDER_TYPES: frozenset = frozenset({"web", "local", "api", "custom"})
 #: inject ``{content}`` (Markdown) or ``{url}`` into the prompt template.
 _PROVIDER_FETCH_MODES: frozenset = frozenset({"url", "content", "both", "paste"})
 
+# ---------------------------------------------------------------------------
+# Feedback rating scales — signed integers centred on zero
+# ---------------------------------------------------------------------------
+
+#: Built-in signed-integer scales for ``ai_assistant_panel_feedback_scale``.
+#:
+#: Why signed integers and not strings:
+#:
+#: The previous feedback contract emitted ``"positive" / "neutral" / "negative"``.
+#: That is fine for a human dashboard but unusable as a training signal —
+#: you cannot average strings, you cannot threshold strings, you cannot
+#: subtract one rating from another to compute a delta.  Signed integers
+#: centred on zero are the canonical Likert-style encoding:
+#:
+#: * Odd-length scales include the neutral midpoint at ``0``.
+#: * Even-length scales drop the midpoint to force a polarised choice.
+#: * The sequence is strictly monotonic (i < j ⇒ scale[i] < scale[j]).
+#: * For every odd-length scale, ``sum(scale) == 0`` — this invariant is
+#:   asserted in :func:`_resolve_feedback_scale`.
+#:
+#: The values are serialised to the browser as a parallel list aligned with
+#: ``ai_assistant_panel_feedback_options``.  The JS widget renders the
+#: numeric value as a hover tooltip + ``data-value`` attribute so the final
+#: user is always shown what they are submitting.
+#:
+#: Examples
+#: --------
+#: >>> _FEEDBACK_SCALES["odd-3"]
+#: (-1, 0, 1)
+#: >>> _FEEDBACK_SCALES["even-2"]
+#: (-1, 1)
+#: >>> sum(_FEEDBACK_SCALES["odd-5"])
+#: 0
+_FEEDBACK_SCALES: dict[str, tuple[int, ...]] = {
+    "even-2": (-1, 1),
+    "odd-3": (-1, 0, 1),
+    "even-4": (-2, -1, 1, 2),
+    "odd-5": (-2, -1, 0, 1, 2),
+    "even-6": (-3, -2, -1, 1, 2, 3),
+    "odd-7": (-3, -2, -1, 0, 1, 2, 3),
+    "even-8": (-4, -3, -2, -1, 1, 2, 3, 4),
+    "odd-9": (-4, -3, -2, -1, 0, 1, 2, 3, 4),
+    "even-10": (-5, -4, -3, -2, -1, 1, 2, 3, 4, 5),
+    "odd-11": (-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5),
+}
+
+#: Accepted values for ``ai_assistant_panel_feedback_scale`` (case-insensitive).
+_FEEDBACK_SCALE_NAMES: frozenset = frozenset({"auto", *_FEEDBACK_SCALES.keys()})
+
+
+def _resolve_feedback_scale(
+    scale_name: str,
+    num_options: int,
+) -> tuple[int, ...]:
+    """Resolve the configured scale name to a tuple of signed integers.
+
+    Parameters
+    ----------
+    scale_name : str
+        One of :data:`_FEEDBACK_SCALE_NAMES`.  ``"auto"`` selects by
+        *num_options*; anything else picks the matching entry of
+        :data:`_FEEDBACK_SCALES` and re-shapes it to *num_options* if needed.
+    num_options : int
+        Number of emoji options actually configured in
+        ``ai_assistant_panel_feedback_options``.  Must be ``>= 2``; the
+        built-in named scales cover 2-10.  Values above 10 are accepted and
+        produce a generated symmetric scale automatically.
+
+    Returns
+    -------
+    tuple of int
+        A tuple of length *num_options* of signed integers centred on zero.
+        For odd *num_options* the midpoint is ``0`` and ``sum == 0``.
+        For even *num_options* there is no midpoint.
+
+    Raises
+    ------
+    ValueError
+        If *scale_name* is not in :data:`_FEEDBACK_SCALE_NAMES` or if
+        *num_options* is ``< 2``.
+
+    Notes
+    -----
+    Deductive, deterministic — same input always produces the same output.
+    No heuristics, no rounding, no implicit fallback.  For *num_options*
+    outside the built-in registry (e.g. 11+) a symmetric range is generated:
+    odd N -> ``(-k, ..., -1, 0, 1, ..., k)``;
+    even N -> ``(-k, ..., -1, 1, ..., k)``  (no zero).
+
+    Examples
+    --------
+    >>> _resolve_feedback_scale("odd-3", 3)
+    (-1, 0, 1)
+    >>> _resolve_feedback_scale("auto", 5)
+    (-2, -1, 0, 1, 2)
+    >>> _resolve_feedback_scale("auto", 2)
+    (-1, 1)
+    >>> _resolve_feedback_scale("auto", 10)
+    (-5, -4, -3, -2, -1, 1, 2, 3, 4, 5)
+    >>> _resolve_feedback_scale("auto", 7)  # generated symmetric range
+    (-3, -2, -1, 0, 1, 2, 3)
+    """
+    if not isinstance(num_options, int) or num_options < 2:  # noqa: PLR2004
+        raise ValueError(
+            f"feedback scale requires num_options >= 2; got {num_options!r}"
+        )
+    name = str(scale_name or "auto").lower()
+    if name not in _FEEDBACK_SCALE_NAMES:
+        raise ValueError(
+            f"unknown feedback scale {scale_name!r}; "
+            f"expected one of {sorted(_FEEDBACK_SCALE_NAMES)}"
+        )
+
+    if name == "auto":
+        # Prefer the named registry entry when available so the JS widget
+        # gets the canonical shape; otherwise generate a symmetric range.
+        key = ("odd" if num_options % 2 else "even") + f"-{num_options}"
+        if key in _FEEDBACK_SCALES:
+            scale = _FEEDBACK_SCALES[key]
+        else:
+            scale = _generate_symmetric_scale(num_options)
+    else:
+        scale = _FEEDBACK_SCALES[name]
+
+    # Reshape if the user picked a named scale whose length disagrees with
+    # the number of options — generate a symmetric range matching *num_options*
+    # rather than silently truncating or padding.  This makes mismatches
+    # explicit and idempotent.
+    if len(scale) != num_options:
+        scale = _generate_symmetric_scale(num_options)
+
+    # Invariant: odd-length scales sum to 0 (verified, deductive).
+    if num_options % 2 == 1 and sum(scale) != 0:
+        raise ValueError(f"internal: odd-length scale must sum to 0; got {scale!r}")
+    return scale
+
+
+def _generate_symmetric_scale(num_options: int) -> tuple[int, ...]:
+    """Generate a symmetric signed-integer scale of length *num_options*.
+
+    Parameters
+    ----------
+    num_options : int
+        Must be ``>= 2``.
+
+    Returns
+    -------
+    tuple of int
+        Odd  N -> ``(-k, ..., -1, 0, 1, ..., k)`` where ``k = N // 2``
+                  (length N, midpoint 0, sum 0).
+        Even N -> ``(-k, ..., -1, 1, ..., k)`` where ``k = N // 2``
+                  (length N, no midpoint, sum 0).
+    """
+    if num_options < 2:  # noqa: PLR2004
+        raise ValueError(f"num_options must be >= 2; got {num_options!r}")
+    half = num_options // 2
+    if num_options % 2 == 1:
+        # Odd: include 0.  e.g. N=3 -> (-1, 0, 1).
+        return tuple(range(-half, half + 1))
+    # Even: skip 0.  e.g. N=4 -> (-2, -1, 1, 2).
+    return tuple(list(range(-half, 0)) + list(range(1, half + 1)))
+
+
 #: Regex matching localhost or loopback origins; used to validate Ollama URLs.
 _LOCALHOST_RE = re.compile(
     r"^https?://(localhost|127\.0\.0\.1)(:\d+)?(/|$)",
@@ -2886,6 +3049,62 @@ def _cfg_list(config: Any, key: str) -> list:
     return []
 
 
+def _resolve_feedback_scale_safe(
+    scale_name: str,
+    options: list,
+) -> tuple[int, ...]:
+    """Resolve the feedback scale without raising — never breaks a Sphinx build.
+
+    Parameters
+    ----------
+    scale_name : str
+        Value of ``ai_assistant_panel_feedback_scale``.  ``"auto"`` selects by
+        the number of options actually configured.
+    options : list
+        Value of ``ai_assistant_panel_feedback_options`` (raw, may be empty).
+        Empty / shorter-than-2 triggers the documented JS-side 10-emoji
+        default, so we resolve the scale against ``num=10`` in that case to
+        keep the parallel-list invariant
+        (``len(panelFeedbackScale) == len(panelFeedbackOptions)``) holding
+        from the widget's point of view.
+
+    Returns
+    -------
+    tuple of int
+        Always returns a usable scale; on any ValueError from the strict
+        resolver it logs a warning and falls back to a generated symmetric
+        scale of length *n* (so the parallel-list invariant is always
+        maintained regardless of the error source).
+
+    Notes
+    -----
+    The strict resolver :func:`_resolve_feedback_scale` is correct and
+    raises on bad input.  Sphinx config validation, however, should fail
+    closed for the user-facing widget but never abort the documentation
+    build.  This wrapper provides that boundary.
+    """
+    # Compute n outside the try block so the except clause can use it to
+    # generate a correctly-sized fallback scale, maintaining the invariant
+    # len(panelFeedbackScale) == len(panelFeedbackOptions) even on error.
+    n = (
+        len(options)
+        if isinstance(options, (list, tuple)) and len(options) >= 2  # noqa: PLR2004
+        else 10  # JS default count (changed from 3 → 10)
+    )
+    try:
+        # Mirror the JS-side default: ``< 2`` options ⇒ 10-emoji default,
+        # so we must size the scale against 10, not against ``len(options)``.
+        return _resolve_feedback_scale(scale_name, n)
+    except ValueError as exc:
+        _get_logger().warning(
+            f"AI Assistant: invalid feedback scale {scale_name!r} "
+            f"with {len(options) if hasattr(options, '__len__') else '?'} "
+            f"options ({exc}); falling back to generated symmetric scale "
+            f"of length {n}."
+        )
+        return _generate_symmetric_scale(n)
+
+
 def add_ai_assistant_context(
     app: Sphinx,
     pagename: str,
@@ -3065,6 +3284,21 @@ def add_ai_assistant_context(
         # list[dict] preserved via _cfg_list (NOT _cfg_str_list).
         "panelFeedbackOptions": _cfg_list(
             app.config, "ai_assistant_panel_feedback_options"
+        ),
+        # Signed-integer scale paralleling panelFeedbackOptions.
+        # Resolved server-side so the JS widget receives a ready-to-use list
+        # of ints (no client-side branching, no risk of mis-derivation).
+        # The number of emoji options is computed AFTER applying the JS-side
+        # default-of-10 fallback (empty conf list ⇒ 10-emoji default), so the
+        # serialised scale length always matches what the user sees.
+        "panelFeedbackScale": list(
+            _resolve_feedback_scale_safe(
+                _cfg_str(app.config, "ai_assistant_panel_feedback_scale") or "auto",
+                _cfg_list(app.config, "ai_assistant_panel_feedback_options"),
+            )
+        ),
+        "panelFeedbackScaleName": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_scale") or "auto"
         ),
         "panelFeedbackPlaceholder": (
             _cfg_str(app.config, "ai_assistant_panel_feedback_placeholder") or ""
@@ -3441,9 +3675,12 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
 
     # ``ai_assistant_panel_feedback_options`` (list[dict], default [])
-    #     2-5 options.  Each: {"emoji": str, "title": str (hover/aria),
+    #     2+ options (any count ≥ 2).  Each: {"emoji": str, "title": str (hover/aria),
     #     "value": str (sent in the feedback event)}.  Empty list → built-in
-    #     3-emoji default (😀 "Yes, it was!" / 😐 "Not sure" / 🙁 "No").
+    #     11-emoji default (gradient from 😡 "Terrible" to 🤩 "Excellent!",
+    #     with 😐 "Neutral" at the midpoint value 0).
+    #     The JS widget auto-scales emoji size (tiers 1-8) so all buttons fit,
+    #     wrapping to multiple rows for counts above 10.
     app.add_config_value("ai_assistant_panel_feedback_options", [], "html")
 
     # ``ai_assistant_panel_feedback_placeholder`` / ``_submit`` / ``_thanks``
@@ -3462,6 +3699,38 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     ('ai-assistant-feedback') for doc-author analytics hooks; the
     #     extension itself never stores or transmits it.
     app.add_config_value("ai_assistant_panel_feedback_log", False, "html")
+
+    # ``ai_assistant_panel_feedback_scale`` (str, default "auto")
+    #     Controls the numeric values assigned to each emoji in the per-answer
+    #     feedback row.  Why numeric and signed: the previous string values
+    #     ("positive" / "neutral" / "negative") cannot be averaged or fed
+    #     directly to a model-training pipeline.  Signed integers centred on
+    #     zero are the canonical form for a Likert-style rating.
+    #
+    #     Accepted values (see :data:`_FEEDBACK_SCALES`):
+    #
+    #     * ``"auto"``   — pick from the length of
+    #                      ``ai_assistant_panel_feedback_options``:
+    #                      2→even-2, 3→odd-3, 4→even-4, 5→odd-5,
+    #                      6→even-6, 7→odd-7, 8→even-8, 9→odd-9,
+    #                      10→even-10, 11→odd-11.  Any other length falls back
+    #                      to a generated symmetric range (2+ supported).
+    #     * ``"even-2"`` — [-1, +1]                      (no neutral)
+    #     * ``"odd-3"``  — [-1, 0, +1]
+    #     * ``"even-4"`` — [-2, -1, +1, +2]              (no neutral)
+    #     * ``"odd-5"``  — [-2, -1, 0, +1, +2]
+    #     * ``"even-6"`` — [-3, -2, -1, +1, +2, +3]      (no neutral)
+    #     * ``"odd-7"``  — [-3, -2, -1, 0, +1, +2, +3]
+    #     * ``"even-8"`` — [-4..-1, +1..+4]              (no neutral)
+    #     * ``"odd-9"``  — [-4..-1, 0, +1..+4]
+    #     * ``"even-10"``— [-5..-1, +1..+5]              (no neutral)
+    #     * ``"odd-11"`` — [-5..-1, 0, +1..+5]           (neutral at 0)
+    #
+    #     The values are computed server-side, serialised into
+    #     ``window.AI_ASSISTANT_CONFIG.panelFeedbackScale`` as a list of ints,
+    #     and rendered by the JS widget as a ``title``/``data-value`` tooltip
+    #     so the final user can see the numeric weight on hover.
+    app.add_config_value("ai_assistant_panel_feedback_scale", "auto", "html")
 
     # ``ai_assistant_panel_privacy_title`` / ``_link_text`` (str)
     #     Heading shown in the slide-over and the small header link label.

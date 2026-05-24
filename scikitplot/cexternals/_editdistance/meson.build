@@ -56,6 +56,7 @@ editdistance_extension_metadata = {
     # Ceyton bindings source .pyx extension with C/C++ support
     'sources': [
       'bycython.pyx',  # (Cython binding)
+      '_editdistance.cpp',
     ],
     'include_directories': [                      # Include dirs for compilation
       inc_dir_editdistance,

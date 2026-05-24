@@ -1,4 +1,10 @@
-# cython: wraparound=False, nonecheck=False, boundscheck=False, cdivision=True, language_level=3, binding=True, embedsignature=True
+# cython: language_level=3
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+# cython: embedsignature=True
+# cython: nonecheck=False
+# cython: binding=True
 # cython: warn.unused=False
 # distutils: language = c++
 # distutils: extra_compile_args = -std=c++14 -O3 -DNDEBUG -pthread -DANNOYLIB_MULTITHREADED_BUILD

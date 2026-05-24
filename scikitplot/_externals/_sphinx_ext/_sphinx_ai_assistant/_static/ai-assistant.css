@@ -1020,8 +1020,28 @@ body.ai-assistant-resizing .ai-assistant-panel {
 }
 
 /* ─── R5: feedback block ("Was this helpful?") ──────────────────────────────
-   Rendered once, after the conversation, when enabled. 3–5 emoji buttons +
-   an optional free-text box + submit. All copy/labels are config-driven. */
+   Rendered once, after the conversation, when enabled. 2+ emoji buttons +
+   an optional free-text box + submit. All copy/labels are config-driven.
+
+   Layout strategy (data-tier set by JS on the options row):
+     Tier 1 (2–3)   : single row, largest buttons
+     Tier 2 (4–5)   : single row
+     Tier 3 (6–7)   : single row
+     Tier 4 (8–9)   : single row
+     Tier 5 (10)    : single row, smallest single-row size
+     Tier 6 (11–15) : multi-row wrap — DEFAULT for built-in 11-emoji set
+     Tier 7 (16–20) : multi-row wrap, compact
+     Tier 8 (21+)   : multi-row wrap, minimal
+
+   data-count is also set on the row for backward compatibility with any
+   external CSS that already targets it; the built-in rules use data-tier.
+
+   Graduated colour scheme (selected state, by data-value):
+     Negative (-5 … -1) : dark red → light red   (higher |value| = deeper red)
+     Neutral  (0)        : warm slate grey
+     Positive (+1 … +5)  : light green → dark green (higher value = richer green)
+
+   Hover tints preview each value's colour before the button is pressed.     */
 
 .ai-assistant-panel-feedback {
     margin: 0.75rem 0 0.25rem;
@@ -1039,30 +1059,279 @@ body.ai-assistant-resizing .ai-assistant-panel {
     font-weight: 600;
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
 }
+
+/* ── Base options row ────────────────────────────────────────────────────── */
 .ai-assistant-panel-feedback-options {
     display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-wrap: wrap;   /* safe fallback; tiers 1–5 override to nowrap */
 }
+
+/* ── Tier 1 — 2 or 3 emojis (single row, largest) ───────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="1"] {
+    gap: 0.50rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="1"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.35rem;
+    padding: 0.38rem 0.68rem;
+}
+
+/* ── Tier 2 — 4 or 5 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="2"] {
+    gap: 0.40rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="2"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.18rem;
+    padding: 0.30rem 0.55rem;
+}
+
+/* ── Tier 3 — 6 or 7 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="3"] {
+    gap: 0.32rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="3"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.03rem;
+    padding: 0.26rem 0.44rem;
+}
+
+/* ── Tier 4 — 8 or 9 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="4"] {
+    gap: 0.24rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="4"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.88rem;
+    padding: 0.22rem 0.35rem;
+}
+
+/* ── Tier 5 — exactly 10 emojis (single-row compact) ────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="5"] {
+    gap: 0.18rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="5"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.78rem;
+    padding: 0.18rem 0.28rem;
+    border-radius: 16px;
+}
+
+/* ── Tier 6 — 11–15 emojis (multi-row wrap — DEFAULT for 11-emoji set) ───── */
+/* Multi-row layout gives each button a comfortable, readable size.           */
+.ai-assistant-panel-feedback-options[data-tier="6"] {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="6"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.05rem;
+    padding: 0.30rem 0.55rem;
+}
+
+/* ── Tier 7 — 16–20 emojis (multi-row wrap, medium-compact) ─────────────── */
+.ai-assistant-panel-feedback-options[data-tier="7"] {
+    gap: 0.28rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="7"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.92rem;
+    padding: 0.25rem 0.45rem;
+}
+
+/* ── Tier 8 — 21+ emojis (multi-row wrap, minimal) ──────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="8"] {
+    gap: 0.22rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="8"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.80rem;
+    padding: 0.20rem 0.35rem;
+    border-radius: 14px;
+}
+
+/* ── Legacy data-count aliases (backward compat for external CSS) ─────────── */
+/* Old builds without data-tier still get correct sizing via data-count.       */
+.ai-assistant-panel-feedback-options[data-count="4"],
+.ai-assistant-panel-feedback-options[data-count="5"] {
+    gap: 0.40rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="4"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="5"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.18rem; padding: 0.30rem 0.55rem;
+}
+.ai-assistant-panel-feedback-options[data-count="6"],
+.ai-assistant-panel-feedback-options[data-count="7"] {
+    gap: 0.32rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="6"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="7"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.03rem; padding: 0.26rem 0.44rem;
+}
+.ai-assistant-panel-feedback-options[data-count="8"],
+.ai-assistant-panel-feedback-options[data-count="9"] {
+    gap: 0.24rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="8"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="9"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.88rem; padding: 0.22rem 0.35rem;
+}
+.ai-assistant-panel-feedback-options[data-count="10"] {
+    gap: 0.18rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="10"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.78rem; padding: 0.18rem 0.28rem; border-radius: 16px;
+}
+
+/* ── Base button (tier-1 / base values; tier rules override above) ────────── */
 .ai-assistant-panel-feedback-btn {
-    font-size: 1.15rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 1.35rem;
     line-height: 1;
-    padding: 0.3rem 0.5rem;
+    padding: 0.38rem 0.68rem;
     background: transparent;
     border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d6d9dc));
-    border-radius: 8px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: transform 0.12s ease, border-color 0.15s ease,
-                background-color 0.15s ease;
+    transition: transform 0.12s ease, border-color 0.18s ease,
+                background-color 0.18s ease, box-shadow 0.18s ease;
+    white-space: nowrap;
 }
+
+/* ── General hover (lift + shadow; colour overridden per data-value below) ── */
 .ai-assistant-panel-feedback-btn:hover {
-    transform: translateY(-2px) scale(1.05);
+    transform: translateY(-2px) scale(1.07);
     border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
+
+/* ── Per-value hover tints — preview colour before selection ─────────────── */
+/* Specificity: class + attribute + pseudo = (0,3,0) > general hover (0,2,0) */
+/* Only background and border-color are overridden; transform/shadow inherit. */
+.ai-assistant-panel-feedback-btn[data-value="-5"]:hover { background: rgba(127,  29,  29, 0.12); border-color: #7f1d1d; }
+.ai-assistant-panel-feedback-btn[data-value="-4"]:hover { background: rgba(153,  27,  27, 0.10); border-color: #991b1b; }
+.ai-assistant-panel-feedback-btn[data-value="-3"]:hover { background: rgba(185,  28,  28, 0.09); border-color: #b91c1c; }
+.ai-assistant-panel-feedback-btn[data-value="-2"]:hover { background: rgba(220,  38,  38, 0.08); border-color: #dc2626; }
+.ai-assistant-panel-feedback-btn[data-value="-1"]:hover { background: rgba(239,  68,  68, 0.08); border-color: #ef4444; }
+.ai-assistant-panel-feedback-btn[data-value="0"]:hover  { background: rgba(107, 114, 128, 0.09); border-color: #6b7280; }
+.ai-assistant-panel-feedback-btn[data-value="1"]:hover  { background: rgba(187, 247, 208, 0.20); border-color: #86efac; }
+.ai-assistant-panel-feedback-btn[data-value="2"]:hover  { background: rgba(134, 239, 172, 0.15); border-color: #4ade80; }
+.ai-assistant-panel-feedback-btn[data-value="3"]:hover  { background: rgba( 34, 197,  94, 0.12); border-color: #22c55e; }
+.ai-assistant-panel-feedback-btn[data-value="4"]:hover  { background: rgba( 22, 163,  74, 0.11); border-color: #16a34a; }
+.ai-assistant-panel-feedback-btn[data-value="5"]:hover  { background: rgba( 21, 128,  61, 0.11); border-color: #15803d; }
+
+/* ── Score chip (\"+1\" / \"0\" / \"-1\" text, revealed on selection) ─────────── */
+.ai-fbk-score {
+    display: none;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    vertical-align: middle;
+}
+.ai-assistant-panel-feedback-btn[aria-pressed="true"] .ai-fbk-score {
+    display: inline;
+}
+
+/* ── Generic selected fallback (any value without a specific rule below) ──── */
 .ai-assistant-panel-feedback-btn[aria-pressed="true"] {
     background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
     border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: #fff;
 }
+
+/* ── Selected states — RED spectrum (negative values) ────────────────────── */
+/* Darkest red for strongest negative; lightens toward -1.                    */
+
+.ai-assistant-panel-feedback-btn[data-value="-5"][aria-pressed="true"] {
+    background: #7f1d1d; border-color: #991b1b; color: #fff;
+    box-shadow: 0 2px 8px rgba(127, 29, 29, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="-5"][aria-pressed="true"]:hover {
+    background: #6b1717; border-color: #7f1d1d;
+}
+.ai-assistant-panel-feedback-btn[data-value="-4"][aria-pressed="true"] {
+    background: #991b1b; border-color: #b91c1c; color: #fff;
+    box-shadow: 0 2px 8px rgba(153, 27, 27, 0.44);
+}
+.ai-assistant-panel-feedback-btn[data-value="-4"][aria-pressed="true"]:hover {
+    background: #7f1d1d; border-color: #991b1b;
+}
+.ai-assistant-panel-feedback-btn[data-value="-3"][aria-pressed="true"] {
+    background: #b91c1c; border-color: #dc2626; color: #fff;
+    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="-3"][aria-pressed="true"]:hover {
+    background: #991b1b; border-color: #b91c1c;
+}
+.ai-assistant-panel-feedback-btn[data-value="-2"][aria-pressed="true"] {
+    background: #dc2626; border-color: #ef4444; color: #fff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.40);
+}
+.ai-assistant-panel-feedback-btn[data-value="-2"][aria-pressed="true"]:hover {
+    background: #b91c1c; border-color: #dc2626;
+}
+.ai-assistant-panel-feedback-btn[data-value="-1"][aria-pressed="true"] {
+    background: #ef4444; border-color: #f87171; color: #fff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.38);
+}
+.ai-assistant-panel-feedback-btn[data-value="-1"][aria-pressed="true"]:hover {
+    background: #dc2626; border-color: #ef4444;
+}
+
+/* ── Selected state — NEUTRAL (0) ────────────────────────────────────────── */
+.ai-assistant-panel-feedback-btn[data-value="0"][aria-pressed="true"] {
+    background: #6b7280; border-color: #4b5563; color: #fff;
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.35);
+}
+.ai-assistant-panel-feedback-btn[data-value="0"][aria-pressed="true"]:hover {
+    background: #4b5563; border-color: #374151;
+}
+
+/* ── Selected states — GREEN spectrum (positive values) ──────────────────── */
+/* Lightest green for +1; deepens toward darkest green at +5.                 */
+
+.ai-assistant-panel-feedback-btn[data-value="1"][aria-pressed="true"] {
+    background: #bbf7d0; border-color: #86efac; color: #14532d;
+    box-shadow: 0 2px 8px rgba(187, 247, 208, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="1"][aria-pressed="true"]:hover {
+    background: #86efac; border-color: #4ade80;
+}
+.ai-assistant-panel-feedback-btn[data-value="2"][aria-pressed="true"] {
+    background: #86efac; border-color: #4ade80; color: #14532d;
+    box-shadow: 0 2px 8px rgba(134, 239, 172, 0.44);
+}
+.ai-assistant-panel-feedback-btn[data-value="2"][aria-pressed="true"]:hover {
+    background: #4ade80; border-color: #22c55e;
+}
+.ai-assistant-panel-feedback-btn[data-value="3"][aria-pressed="true"] {
+    background: #22c55e; border-color: #16a34a; color: #fff;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="3"][aria-pressed="true"]:hover {
+    background: #16a34a; border-color: #15803d;
+}
+.ai-assistant-panel-feedback-btn[data-value="4"][aria-pressed="true"] {
+    background: #16a34a; border-color: #15803d; color: #fff;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="4"][aria-pressed="true"]:hover {
+    background: #15803d; border-color: #166534;
+}
+.ai-assistant-panel-feedback-btn[data-value="5"][aria-pressed="true"] {
+    background: #15803d; border-color: #166534; color: #fff;
+    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="5"][aria-pressed="true"]:hover {
+    background: #166534; border-color: #14532d;
+}
+
 .ai-assistant-panel-feedback-btn:focus         { outline: none; }
 .ai-assistant-panel-feedback-btn:focus-visible {
     outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));

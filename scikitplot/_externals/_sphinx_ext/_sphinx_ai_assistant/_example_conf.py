@@ -933,19 +933,49 @@ ai_assistant_panel_feedback = True
 ai_assistant_panel_feedback_question = "Was this helpful?"
 
 # Type:    list[dict]
-# Default: [] → built-in 3-emoji set
-#          (😀 "Yes, it was!" / 😐 "Not sure" / 🙁 "No")
-# Provide 2–5 options.  Each dict:
+# Default: [] → built-in 10-emoji gradient
+#          (😡 Terrible → 😞 Poor → 😟 Unsatisfied → 🙁 No → 😑 Not really
+#           → 🙂 Somewhat → 😊 Mostly yes → 😄 Good → 😁 Very good → 🤩 Excellent!)
+# Range:   2–10 options.  Each dict:
 #   {"emoji": "<char>", "title": "<hover/aria text>", "value": "<sent value>"}
+# The JS widget auto-scales emoji size (via CSS data-count) so all buttons
+# always stay on one line regardless of count.
 # The chosen value + free text are dispatched as a DOM CustomEvent
 # 'ai-assistant-feedback' (detail = {rating, message, page, ts}) so doc
 # authors can wire their own analytics.  The extension stores/sends nothing.
-ai_assistant_panel_feedback_options = [
-    # {"emoji": "\U0001F600", "title": "Yes, it was!", "value": "positive"},
-    # {"emoji": "\U0001F642", "title": "Mostly",       "value": "mostly"},
-    # {"emoji": "\U0001F610", "title": "Not sure",     "value": "neutral"},
-    # {"emoji": "\U0001F641", "title": "No",           "value": "negative"},
-]
+#
+# ── Example A: minimal 3-emoji (classic thumbs) ───────────────────────────
+# ai_assistant_panel_feedback_options = [
+#     {"emoji": "\U0001F641", "title": "No",           "value": "negative"},  # 🙁
+#     {"emoji": "\U0001F610", "title": "Not sure",     "value": "neutral" },  # 😐
+#     {"emoji": "\U0001F600", "title": "Yes, it was!", "value": "positive"},  # 😀
+# ]
+#
+# ── Example B: 5-emoji (5-point Likert) ────────────────────────────────────
+# ai_assistant_panel_feedback_options = [
+#     {"emoji": "\U0001F621", "title": "Terrible",      "value": "terrible" },  # 😡
+#     {"emoji": "\U0001F641", "title": "No",            "value": "negative" },  # 🙁
+#     {"emoji": "\U0001F610", "title": "Not sure",      "value": "neutral"  },  # 😐
+#     {"emoji": "\U0001F642", "title": "Mostly yes",    "value": "positive" },  # 🙂
+#     {"emoji": "\U0001F600", "title": "Excellent!",    "value": "excellent"},  # 😀
+# ]
+#
+# ── Example C: 10-emoji full gradient (DEFAULT — leave list empty) ─────────
+# ai_assistant_panel_feedback_options = [
+#     {"emoji": "\U0001F621", "title": "Terrible",      "value": "terrible"         },  # 😡 -5
+#     {"emoji": "\U0001F61E", "title": "Poor",          "value": "poor"             },  # 😞 -4
+#     {"emoji": "\U0001F61F", "title": "Unsatisfied",   "value": "unsatisfied"      },  # 😟 -3
+#     {"emoji": "\U0001F641", "title": "No",            "value": "negative"         },  # 🙁 -2
+#     {"emoji": "\U0001F611", "title": "Not really",    "value": "slightly_negative"},  # 😑 -1
+#     {"emoji": "\U0001F642", "title": "Somewhat",      "value": "slightly_positive"},  # 🙂 +1
+#     {"emoji": "\U0001F60A", "title": "Mostly yes",    "value": "mostly_positive"  },  # 😊 +2
+#     {"emoji": "\U0001F604", "title": "Good",          "value": "good"             },  # 😄 +3
+#     {"emoji": "\U0001F601", "title": "Very good",     "value": "very_good"        },  # 😁 +4
+#     {"emoji": "\U0001F929", "title": "Excellent!",    "value": "excellent"        },  # 🤩 +5
+# ]
+#
+# Leave empty to use the 10-emoji default shown in Example C:
+ai_assistant_panel_feedback_options = []
 
 # Type:    str — placeholder for the optional free-text box.
 ai_assistant_panel_feedback_placeholder = ""
