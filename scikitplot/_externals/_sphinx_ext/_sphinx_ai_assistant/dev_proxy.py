@@ -33,8 +33,8 @@
 # ────────────
 # stdlib only + httpx (pip install httpx).  No FastAPI, no asyncio.
 #
-# SPDX-License-Identifier: BSD-3-Clause
 # Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """
 Minimal blocking HTTP proxy for local sphinx-ai-assistant development.
