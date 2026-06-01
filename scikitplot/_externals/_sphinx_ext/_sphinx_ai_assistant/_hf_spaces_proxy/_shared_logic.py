@@ -482,9 +482,9 @@ def _resolve_upstream_url(
     hf_base: str = DEFAULT_HF_BASE,
     default_model: str = DEFAULT_MODEL,
     hf_spaces_model_url: str = DEFAULT_HF_SPACES_MODEL_URL,
-    hf_spaces_model_namespaces: tuple[str, ...] | list[str] = (
-        DEFAULT_HF_SPACES_MODEL_NAMESPACES
-    ),
+    hf_spaces_model_namespaces: (
+        tuple[str, ...] | list[str]
+    ) = DEFAULT_HF_SPACES_MODEL_NAMESPACES,
     proxy_timeout: float = float(DEFAULT_PROXY_TIMEOUT),
     path2_read_timeout: float = DEFAULT_PATH2_READ_TIMEOUT,
     path3_read_timeout: float = DEFAULT_PATH3_READ_TIMEOUT,
@@ -619,7 +619,16 @@ def _resolve_upstream_url(
         return hf_spaces_model_url, headers, path2_read_timeout
 
     # ── Path 3: HF Serverless Inference API (provider models) ─────────────────
-    url = f"{hf_base.rstrip('/')}/{model}/v1/chat/completions"
+    # router.huggingface.co is a flat OpenAI-compatible endpoint.
+    # The model is supplied in the request body (already present in `body`),
+    # NOT embedded in the URL path.  The old api-inference.huggingface.co/models
+    # API DID embed the model in the path as /{model}/v1/chat/completions, but
+    # router.huggingface.co uses a single endpoint for all models:
+    #   POST https://router.huggingface.co/v1/chat/completions
+    #   body: {"model": "Qwen/Qwen2.5-Coder-7B-Instruct:nscale", ...}
+    # Embedding the model ID in the path produces a 404/422 with no log entry
+    # because _forward passes non-2xx upstream responses through transparently.
+    url = f"{hf_base.rstrip('/')}/v1/chat/completions"
     headers["Authorization"] = f"Bearer {hf_token}"
     return url, headers, path3_read_timeout
 
