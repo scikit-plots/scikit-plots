@@ -60,6 +60,9 @@ try/except where appropriate.  Nothing is imported at module scope except
 the standard library.  This keeps ``import time`` cost near zero and
 avoids ``ImportError`` at load time when optional packages are absent.
 
+.. seealso:
+  * https://huggingface.co/spaces/scikit-plots/ai/tree/main
+
 **Security notes**:
 
 * :func:`_safe_json_for_script` escapes ``</script>`` sequences to prevent
@@ -323,14 +326,14 @@ def _write_progress_bar(
 
     Notes
     -----
-    Uses a carriage-return ``\\r`` so successive calls overwrite the same
+    Uses a carriage-return ``\r`` so successive calls overwrite the same
     terminal line.  A newline is written when *current* >= *total* so the
     finalised bar is left visible in the scroll buffer.
 
     This function follows the ``sys.stdout.write`` / ``sys.stdout.flush``
     pattern — the same approach used by reporthook-style progress tracking
     (see :func:`urllib.request.urlretrieve`).  It is safe in non-TTY
-    environments (CI, pipes) — the output simply contains ``\\r`` characters.
+    environments (CI, pipes) — the output simply contains ``\r`` characters.
 
     Examples
     --------
@@ -1037,6 +1040,606 @@ _PROVIDER_TYPES: frozenset = frozenset({"web", "local", "api", "custom"})
 #: inject ``{content}`` (Markdown) or ``{url}`` into the prompt template.
 _PROVIDER_FETCH_MODES: frozenset = frozenset({"url", "content", "both", "paste"})
 
+# ---------------------------------------------------------------------------
+# Feedback rating scales — signed integers centred on zero
+# ---------------------------------------------------------------------------
+
+#: Built-in signed-integer scales for ``ai_assistant_panel_feedback_scale``.
+#:
+#: Why signed integers and not strings:
+#:
+#: The previous feedback contract emitted ``"positive" / "neutral" / "negative"``.
+#: That is fine for a human dashboard but unusable as a training signal —
+#: you cannot average strings, you cannot threshold strings, you cannot
+#: subtract one rating from another to compute a delta.  Signed integers
+#: centred on zero are the canonical Likert-style encoding:
+#:
+#: * Odd-length scales include the neutral midpoint at ``0``.
+#: * Even-length scales drop the midpoint to force a polarised choice.
+#: * The sequence is strictly monotonic (i < j ⇒ scale[i] < scale[j]).
+#: * For every odd-length scale, ``sum(scale) == 0`` — this invariant is
+#:   asserted in :func:`_resolve_feedback_scale`.
+#:
+#: The values are serialised to the browser as a parallel list aligned with
+#: ``ai_assistant_panel_feedback_options``.  The JS widget renders the
+#: numeric value as a hover tooltip + ``data-value`` attribute so the final
+#: user is always shown what they are submitting.
+#:
+#: Examples
+#: --------
+#: >>> _FEEDBACK_SCALES["odd-3"]
+#: (-1, 0, 1)
+#: >>> _FEEDBACK_SCALES["even-2"]
+#: (-1, 1)
+#: >>> sum(_FEEDBACK_SCALES["odd-5"])
+#: 0
+_FEEDBACK_SCALES: dict[str, tuple[int, ...]] = {
+    "even-2": (-1, 1),
+    "odd-3": (-1, 0, 1),
+    "even-4": (-2, -1, 1, 2),
+    "odd-5": (-2, -1, 0, 1, 2),
+    "even-6": (-3, -2, -1, 1, 2, 3),
+    "odd-7": (-3, -2, -1, 0, 1, 2, 3),
+    "even-8": (-4, -3, -2, -1, 1, 2, 3, 4),
+    "odd-9": (-4, -3, -2, -1, 0, 1, 2, 3, 4),
+    "even-10": (-5, -4, -3, -2, -1, 1, 2, 3, 4, 5),
+    "odd-11": (-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5),
+}
+
+#: Accepted values for ``ai_assistant_panel_feedback_scale`` (case-insensitive).
+_FEEDBACK_SCALE_NAMES: frozenset = frozenset({"auto", *_FEEDBACK_SCALES.keys()})
+
+
+def _resolve_feedback_scale(
+    scale_name: str,
+    num_options: int,
+) -> tuple[int, ...]:
+    """Resolve the configured scale name to a tuple of signed integers.
+
+    Parameters
+    ----------
+    scale_name : str
+        One of :data:`_FEEDBACK_SCALE_NAMES`.  ``"auto"`` selects by
+        *num_options*; anything else picks the matching entry of
+        :data:`_FEEDBACK_SCALES` and re-shapes it to *num_options* if needed.
+    num_options : int
+        Number of emoji options actually configured in
+        ``ai_assistant_panel_feedback_options``.  Must be ``>= 2``; the
+        built-in named scales cover 2-10.  Values above 10 are accepted and
+        produce a generated symmetric scale automatically.
+
+    Returns
+    -------
+    tuple of int
+        A tuple of length *num_options* of signed integers centred on zero.
+        For odd *num_options* the midpoint is ``0`` and ``sum == 0``.
+        For even *num_options* there is no midpoint.
+
+    Raises
+    ------
+    ValueError
+        If *scale_name* is not in :data:`_FEEDBACK_SCALE_NAMES` or if
+        *num_options* is ``< 2``.
+
+    Notes
+    -----
+    Deductive, deterministic — same input always produces the same output.
+    No heuristics, no rounding, no implicit fallback.  For *num_options*
+    outside the built-in registry (e.g. 11+) a symmetric range is generated:
+    odd N -> ``(-k, ..., -1, 0, 1, ..., k)``;
+    even N -> ``(-k, ..., -1, 1, ..., k)``  (no zero).
+
+    Examples
+    --------
+    >>> _resolve_feedback_scale("odd-3", 3)
+    (-1, 0, 1)
+    >>> _resolve_feedback_scale("auto", 5)
+    (-2, -1, 0, 1, 2)
+    >>> _resolve_feedback_scale("auto", 2)
+    (-1, 1)
+    >>> _resolve_feedback_scale("auto", 10)
+    (-5, -4, -3, -2, -1, 1, 2, 3, 4, 5)
+    >>> _resolve_feedback_scale("auto", 7)  # generated symmetric range
+    (-3, -2, -1, 0, 1, 2, 3)
+    """
+    if not isinstance(num_options, int) or num_options < 2:  # noqa: PLR2004
+        raise ValueError(
+            f"feedback scale requires num_options >= 2; got {num_options!r}"
+        )
+    name = str(scale_name or "auto").lower()
+    if name not in _FEEDBACK_SCALE_NAMES:
+        raise ValueError(
+            f"unknown feedback scale {scale_name!r}; "
+            f"expected one of {sorted(_FEEDBACK_SCALE_NAMES)}"
+        )
+
+    if name == "auto":
+        # Prefer the named registry entry when available so the JS widget
+        # gets the canonical shape; otherwise generate a symmetric range.
+        key = ("odd" if num_options % 2 else "even") + f"-{num_options}"
+        if key in _FEEDBACK_SCALES:
+            scale = _FEEDBACK_SCALES[key]
+        else:
+            scale = _generate_symmetric_scale(num_options)
+    else:
+        scale = _FEEDBACK_SCALES[name]
+
+    # Reshape if the user picked a named scale whose length disagrees with
+    # the number of options — generate a symmetric range matching *num_options*
+    # rather than silently truncating or padding.  This makes mismatches
+    # explicit and idempotent.
+    if len(scale) != num_options:
+        scale = _generate_symmetric_scale(num_options)
+
+    # Invariant: odd-length scales sum to 0 (verified, deductive).
+    if num_options % 2 == 1 and sum(scale) != 0:
+        raise ValueError(f"internal: odd-length scale must sum to 0; got {scale!r}")
+    return scale
+
+
+def _generate_symmetric_scale(num_options: int) -> tuple[int, ...]:
+    """Generate a symmetric signed-integer scale of length *num_options*.
+
+    Parameters
+    ----------
+    num_options : int
+        Must be ``>= 2``.
+
+    Returns
+    -------
+    tuple of int
+        Odd  N -> ``(-k, ..., -1, 0, 1, ..., k)`` where ``k = N // 2``
+                  (length N, midpoint 0, sum 0).
+        Even N -> ``(-k, ..., -1, 1, ..., k)`` where ``k = N // 2``
+                  (length N, no midpoint, sum 0).
+    """
+    if num_options < 2:  # noqa: PLR2004
+        raise ValueError(f"num_options must be >= 2; got {num_options!r}")
+    half = num_options // 2
+    if num_options % 2 == 1:
+        # Odd: include 0.  e.g. N=3 -> (-1, 0, 1).
+        return tuple(range(-half, half + 1))
+    # Even: skip 0.  e.g. N=4 -> (-2, -1, 1, 2).
+    return tuple(list(range(-half, 0)) + list(range(1, half + 1)))
+
+
+# ---------------------------------------------------------------------------
+# Phase B — Panel multi-model registry, Terms of Service, Share, Hamburger
+# ---------------------------------------------------------------------------
+
+#: Whitelist of accepted ``provider`` values in a panel-model entry.
+#:
+#: This is the **public-facing** provider name used for UI labelling and for
+#: routing the feedback payload's ``model.provider`` field.  It is intentionally
+#: a closed set — a typo at config time is an error, not a silent fallback.
+#: Adding a new provider here is the only place that needs to change.
+#:
+#: Notes
+#: -----
+#: ``"stub"`` is intentionally included so dev-side panels with no proxy can
+#: still expose a model picker and emit feedback with a clear "this was a stub
+#: answer" attribution.  Production proxies should never advertise the stub
+#: provider — its presence in a feedback payload is a strong signal to the
+#: training pipeline that the row must be discarded.
+_PANEL_MODEL_PROVIDERS: frozenset = frozenset(
+    {
+        "anthropic",
+        "openai",
+        "google",
+        "mistral",
+        "deepseek",
+        "huggingface",  # HuggingFace Inference API (OpenAI-compat /v1/chat/completions)
+        "ollama",
+        "groq",
+        "cerebras",  # Cerebras Inference (free tier available)
+        "together",  # Together AI (free tier available)
+        "fireworks",  # Fireworks AI (free tier available)
+        "sambanova",  # SambaNova Cloud (free tier available)
+        "cloudflare",  # Cloudflare Workers AI (free 10k tokens/day)
+        "perplexity",
+        "azure_openai",
+        "custom",
+        "stub",
+    }
+)
+
+#: Provider → UI accent colour (hex, used by the JS badge renderer).
+#: Kept in Python so the colour map is in one place; serialised into the
+#: page config and consumed by ai-assistant.js ``_PROVIDER_COLORS``.
+#: ``"custom"`` and ``"stub"`` intentionally have no entry — they render
+#: with the neutral grey default.
+_PROVIDER_COLORS: dict[str, str] = {
+    "anthropic": "#c96442",  # Anthropic brand copper-orange
+    "openai": "#74aa9c",  # OpenAI brand teal
+    "google": "#4285f4",  # Google blue
+    "mistral": "#ff7000",  # Mistral orange
+    "deepseek": "#4d6bfe",  # DeepSeek indigo
+    "huggingface": "#ff9d00",  # HuggingFace yellow-orange
+    "ollama": "#222222",  # Ollama dark
+    "groq": "#f55036",  # Groq red
+    "cerebras": "#8c52ff",  # Cerebras purple  — mirrors JS _PROVIDER_COLORS_JS
+    "together": "#4b5563",  # Together AI grey  — mirrors JS _PROVIDER_COLORS_JS
+    "fireworks": "#ef4444",  # Fireworks red     — mirrors JS _PROVIDER_COLORS_JS
+    "sambanova": "#e95b2e",  # SambaNova orange  — mirrors JS _PROVIDER_COLORS_JS
+    "cloudflare": "#f38020",  # Cloudflare orange — mirrors JS _PROVIDER_COLORS_JS
+    "perplexity": "#20b2aa",  # Perplexity teal
+    "azure_openai": "#0078d4",  # Azure blue
+}
+
+#: Required top-level keys for every entry of ``ai_assistant_panel_api_models``.
+#:
+#: Why each is required (deductive justification):
+#:
+#: * ``id`` — stable, unique key persisted in ``sessionStorage`` so the user's
+#:   choice survives navigation; also referenced in the feedback payload.
+#: * ``provider`` — closed-set whitelist controls UI labelling and ensures the
+#:   feedback ``model.provider`` is meaningful for downstream grouping.
+#: * ``model`` — the wire model name the proxy must forward to the upstream API.
+#: * ``endpoint`` — the proxy URL (http/https or site-relative); the JS hits
+#:   this directly, never the upstream provider.
+_PANEL_MODEL_REQUIRED_KEYS: tuple[str, ...] = (
+    "id",
+    "provider",
+    "model",
+    "endpoint",
+)
+
+#: Optional keys recognised on a panel-model entry (passed through verbatim
+#: to the browser when present, ignored when absent).  Listed here so a
+#: future maintainer has one source of truth.
+_PANEL_MODEL_OPTIONAL_KEYS: tuple[str, ...] = (
+    "label",  # picker UI text; defaults to id
+    "description",  # one-line caption in the sheet
+    "info_url",  # public model homepage (e.g. anthropic.com/claude)
+    "default",  # bool; at most one entry may set True
+    "icon",  # SVG filename in _static/ or absolute URI
+)
+
+
+#: Default share-target registry.  Each entry mirrors the provider schema
+#: (``label`` / ``url_template`` / ``icon``) so the existing
+#: :func:`_validate_provider_url_template` guard applies unchanged.
+#:
+#: The placeholder ``{url}`` is the *current* page URL (URL-encoded), and
+#: ``{title}`` is ``document.title`` (URL-encoded) — both injected client-side.
+#: ``"copy_link"`` is special: an empty ``url_template`` is treated by the JS
+#: as "copy the page URL to the clipboard" rather than as an invalid entry.
+_DEFAULT_SHARE_TARGETS: dict[str, dict[str, str]] = {
+    "copy_link": {
+        "label": "Copy link",
+        "url_template": "",  # special — handled client-side
+        "icon": "copy-to-clipboard.svg",
+    },
+    "email": {
+        "label": "Email",
+        "url_template": "mailto:?subject={title}&body={url}",
+        "icon": "share.svg",
+    },
+    "x": {
+        "label": "X (Twitter)",
+        "url_template": "https://twitter.com/intent/tweet?text={title}&url={url}",
+        "icon": "share.svg",
+    },
+    "linkedin": {
+        "label": "LinkedIn",
+        "url_template": "https://www.linkedin.com/sharing/share-offsite/?url={url}",
+        "icon": "share.svg",
+    },
+    "reddit": {
+        "label": "Reddit",
+        "url_template": "https://www.reddit.com/submit?url={url}&title={title}",
+        "icon": "share.svg",
+    },
+    "hacker_news": {
+        "label": "Hacker News",
+        "url_template": "https://news.ycombinator.com/submitlink?u={url}&t={title}",
+        "icon": "share.svg",
+    },
+}
+
+
+def _normalize_panel_models(raw: Any) -> list[dict[str, Any]]:
+    """Coerce the user-supplied ``ai_assistant_panel_api_models`` value to a list.
+
+    Parameters
+    ----------
+    raw : Any
+        Accepted shapes (forward-compatible):
+
+        * ``None`` or ``""`` or ``[]`` — return ``[]``.  The widget then falls
+          back to the legacy single-string ``ai_assistant_panel_api_model``.
+        * ``str`` — treated as a single-id list, e.g. ``"gpt-4o"`` →
+          ``[{"id": "gpt-4o", "model": "gpt-4o", "provider": "custom",
+          "endpoint": ""}]``.  ``endpoint`` empty triggers the same actionable
+          error in the JS that the single-model path raises today.
+        * ``list[str]`` — each string is normalised to the dict shape above.
+        * ``list[dict]`` — passed through (the validator runs next).
+
+    Returns
+    -------
+    list of dict
+        Normalised list (never ``None``).  Entries may still fail
+        :func:`_validate_panel_model`; this function only handles *shape*,
+        not *correctness*.
+
+    Notes
+    -----
+    Deductive, deterministic.  Bare strings get ``provider="custom"`` so the
+    closed-set whitelist is never silently widened.  The doc-side example in
+    ``_example_conf.py`` shows the full-dict form which is what production
+    sites should use.
+
+    Examples
+    --------
+    >>> _normalize_panel_models(None)
+    []
+    >>> _normalize_panel_models("gpt-4o")  # doctest: +ELLIPSIS
+    [{'id': 'gpt-4o', ...}]
+    >>> _normalize_panel_models(["a", "b"])  # doctest: +ELLIPSIS
+    [{'id': 'a', ...}, {'id': 'b', ...}]
+    """
+    if raw is None or raw in ("", []):
+        return []
+    if isinstance(raw, str):
+        return [
+            {
+                "id": raw,
+                "model": raw,
+                "provider": "custom",
+                "endpoint": "",
+                "label": raw,
+            }
+        ]
+    if not isinstance(raw, (list, tuple)):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, str):
+            out.append(
+                {
+                    "id": item,
+                    "model": item,
+                    "provider": "custom",
+                    "endpoint": "",
+                    "label": item,
+                }
+            )
+        elif isinstance(item, dict):
+            out.append(dict(item))  # shallow copy — never mutate user data
+        # else: silently skip non-str / non-dict (validator would reject anyway)
+    return out
+
+
+def _validate_panel_model(
+    model: dict[str, Any],
+    name: str = "",
+) -> list[str]:
+    r"""Validate a single panel-model entry.
+
+    Parameters
+    ----------
+    model : dict
+        Already-normalised entry (see :func:`_normalize_panel_models`).
+    name : str, optional
+        Entry id / index used in error messages.
+
+    Returns
+    -------
+    list of str
+        Empty list means the entry is valid.  Otherwise a list of
+        human-readable error strings.  Mirrors :func:`_validate_provider`
+        so the existing error-handling shape is reused.
+
+    Notes
+    -----
+    Checks performed (all deductive, no heuristics):
+
+    * Every :data:`_PANEL_MODEL_REQUIRED_KEYS` is present and non-empty
+      (with one explicit exception: ``endpoint`` may be empty when
+      ``provider == "stub"`` — the stub provider intentionally has no URL).
+    * ``provider`` is in :data:`_PANEL_MODEL_PROVIDERS`.
+    * ``endpoint`` is either empty (stub) or passes
+      :func:`_validate_provider_url_template` (which rejects ``javascript:``,
+      ``data:``, ``ftp:``, etc.).  Site-relative paths (``"/api/proxy"``)
+      are allowed because the underlying check already accepts them via
+      the leading-slash branch.
+    * ``id`` matches a conservative ``[A-Za-z0-9_.:\-]+`` pattern — it is
+      used as a ``sessionStorage`` key and a JSON field, so we forbid
+      whitespace and HTML-injection characters at config time.
+    """
+    errors: list[str] = []
+    prefix = f"Panel model {name!r}: " if name else "Panel model: "
+
+    for key in _PANEL_MODEL_REQUIRED_KEYS:
+        if key not in model:
+            errors.append(f"{prefix}missing required key {key!r}")
+
+    provider = str(model.get("provider", ""))
+    if provider and provider not in _PANEL_MODEL_PROVIDERS:
+        errors.append(
+            f"{prefix}provider {provider!r} must be one of "
+            f"{sorted(_PANEL_MODEL_PROVIDERS)}"
+        )
+
+    endpoint = str(model.get("endpoint", ""))
+    if endpoint:
+        # Accept:
+        #   * http://… and https://… (validated via the cross-module helper)
+        #   * site-relative paths beginning with a single "/"
+        #     (e.g. "/_proxy/anthropic" — common Vercel / Netlify pattern)
+        # Reject everything else (javascript:, data:, ftp:, …) — these are
+        # the exact schemes the existing provider-url guard already blocks.
+        is_site_relative = (
+            endpoint.startswith("/")
+            # protocol-relative -> reject
+            and not endpoint.startswith("//")
+        )
+        if not (is_site_relative or _validate_provider_url_template(endpoint)):
+            errors.append(
+                f"{prefix}endpoint {endpoint!r} must be http://, https://, "
+                f"or site-relative (start with a single '/')"
+            )
+    # NOTE: empty endpoint is INTENTIONALLY accepted for every provider.
+    # The JS routing layer falls back to ``cfg.panelApiUrl`` when an entry
+    # has no per-model endpoint, which lets the convenient ``list[str]``
+    # config shape work against a shared proxy.  See the docstring of
+    # ``_normalize_panel_models`` and ``_panelApiCall`` in ai-assistant.js.
+
+    mid = str(model.get("id", ""))
+    if mid and not re.match(r"^[A-Za-z0-9_.:\-]+$", mid):
+        errors.append(f"{prefix}id {mid!r} must contain only [A-Za-z0-9_.:-]")
+
+    return errors
+
+
+def _filter_panel_models(
+    raw: Any,
+) -> list[dict[str, Any]]:
+    """Return a copy of *raw* normalised, validated, and de-duplicated.
+
+    Parameters
+    ----------
+    raw : Any
+        Whatever the user wrote in ``ai_assistant_panel_api_models``.
+
+    Returns
+    -------
+    list of dict
+        Each entry is normalised (via :func:`_normalize_panel_models`),
+        guaranteed to pass :func:`_validate_panel_model`, and has a unique
+        ``id``.  Invalid entries are *dropped* (logged via the Sphinx
+        warning channel) rather than aborting the build — config errors
+        should never break documentation publishing.
+
+    Notes
+    -----
+    Default-flag handling: at most one entry may carry ``"default": True``.
+    If multiple do, the first wins and the rest are silently demoted (logged
+    warning).  If none do, no entry is marked default; the JS treats the
+    first valid entry as the active model in that case.
+    """
+    items = _normalize_panel_models(raw)
+    seen_ids: set[str] = set()
+    out: list[dict[str, Any]] = []
+    seen_default = False
+    for idx, entry in enumerate(items):
+        errs = _validate_panel_model(entry, name=entry.get("id") or str(idx))
+        if errs:
+            try:
+                for e in errs:
+                    _get_logger().warning(f"AI Assistant: {e}")
+            except Exception:  # noqa: BLE001 — log path itself never breaks build
+                pass
+            continue
+        mid = str(entry["id"])
+        if mid in seen_ids:
+            try:  # noqa: SIM105
+                _get_logger().warning(
+                    f"AI Assistant: duplicate panel-model id {mid!r}; "
+                    f"keeping the first occurrence."
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            continue
+        seen_ids.add(mid)
+
+        # Default-flag arbitration: first True wins; demote later ones.
+        if entry.get("default") is True:
+            if seen_default:
+                entry = {**entry, "default": False}  # noqa: PLW2901
+                try:  # noqa: SIM105
+                    _get_logger().warning(
+                        f"AI Assistant: multiple panel-models marked default; "
+                        f"demoting {mid!r}."
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            else:
+                seen_default = True
+        out.append(entry)
+    return out
+
+
+def _filter_share_targets(
+    raw: Any,
+) -> list[dict[str, Any]]:
+    """Normalise + URL-validate share-sheet targets.
+
+    Parameters
+    ----------
+    raw : Any
+        Accepted shapes:
+
+        * ``list[tuple[str, dict]]`` — what ``_DEFAULT_SHARE_TARGETS.items()``
+          yields when used as the default.
+        * ``list[dict]`` — the user-facing config shape.  Each dict must
+          contain at minimum ``label`` and ``url_template`` (key ``id`` is
+          optional; the dict's own key in the original mapping becomes the
+          ``id`` automatically when entering via ``items()``).
+        * Anything else → ``[]``.
+
+    Returns
+    -------
+    list of dict
+        Each entry guaranteed to have ``id``, ``label``, ``url_template``
+        (validated via :func:`_validate_provider_url_template`), and
+        ``icon`` (with sensible default).  Entries whose URL fails the
+        scheme allow-list are dropped (logged warning).
+
+    Notes
+    -----
+    The empty ``url_template`` is intentionally allowed for the
+    ``copy_link`` target: the JS handles it by writing the page URL to the
+    clipboard instead of opening an intent URL.  Every other empty template
+    is treated as a config error and the entry is dropped.
+    """
+    out: list[dict[str, Any]] = []
+    if not isinstance(raw, (list, tuple)):
+        return out
+    seen_ids: set[str] = set()
+    for item in raw:
+        if (
+            isinstance(item, tuple)
+            and len(item) == 2  # noqa: PLR2004
+            and isinstance(item[1], dict)
+        ):
+            tid, tval = item
+            entry = {"id": str(tid), **tval}
+        elif isinstance(item, dict):
+            entry = dict(item)
+            if "id" not in entry:
+                # Derive a deterministic id from the label as fallback.
+                lbl = str(entry.get("label", "")).strip().lower()
+                entry["id"] = re.sub(r"[^a-z0-9_-]+", "_", lbl) or "share"
+        else:
+            continue
+
+        tid = str(entry["id"])
+        if tid in seen_ids:
+            continue
+        url_tpl = str(entry.get("url_template", ""))
+        # url_template may be empty ONLY for copy_link; otherwise must pass scheme check.
+        if tid != "copy_link":  # noqa: SIM102
+            if not url_tpl or not _validate_provider_url_template(  # noqa: SIM102
+                url_tpl
+            ):
+                # mailto: is also a legitimate share scheme — accept it explicitly.
+                if not url_tpl.lower().startswith("mailto:"):
+                    try:  # noqa: SIM105
+                        _get_logger().warning(
+                            f"AI Assistant: share target {tid!r} has invalid "
+                            f"url_template {url_tpl!r}; dropping."
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+                    continue
+        entry.setdefault("label", tid.replace("_", " ").title())
+        entry.setdefault("icon", "share.svg")
+        seen_ids.add(tid)
+        out.append(entry)
+    return out
+
+
 #: Regex matching localhost or loopback origins; used to validate Ollama URLs.
 _LOCALHOST_RE = re.compile(
     r"^https?://(localhost|127\.0\.0\.1)(:\d+)?(/|$)",
@@ -1140,7 +1743,7 @@ def _safe_json_for_script(obj: Any) -> str:
     Returns
     -------
     str
-        JSON string with ``</`` replaced by ``<\\/`` to prevent the browser
+        JSON string with ``</`` replaced by ``<\/`` to prevent the browser
         from interpreting the literal ``</script>`` tag inside the payload.
 
     Notes
@@ -1148,7 +1751,7 @@ def _safe_json_for_script(obj: Any) -> str:
     Python's :func:`json.dumps` does **not** escape ``<``, ``>``, or ``&``
     by default.  The ``</script>`` sequence inside a ``<script>`` block
     causes the browser's HTML parser to close the script prematurely, which
-    is a common XSS vector.  Replacing every ``</`` with ``<\\/`` is the
+    is a common XSS vector.  Replacing every ``</`` with ``<\/`` is the
     canonical defence — the JSON remains semantically identical but the
     HTML parser sees no closing tag.
 
@@ -1159,10 +1762,16 @@ def _safe_json_for_script(obj: Any) -> str:
     Examples
     --------
     >>> _safe_json_for_script({"url": "https://example.com/</script>"})
-    '{"url": "https://example.com/<\\/script>"}'
+    '{"url": "https://example.com/<\/script>"}'
     """
-    raw = json.dumps(obj, ensure_ascii=True, separators=(", ", ": "))
+    # Compact separators: no spaces after ',' or ':'.
+    # Rationale: this JSON is embedded in an inline <script> tag served with
+    # every page; whitespace has no semantic value there and just adds bytes.
+    # Python default separators are (', ', ': ') which adds ~15-30% overhead
+    # on large configs.  (',', ':') is the standard compact form.
+    raw = json.dumps(obj, ensure_ascii=True, separators=(",", ":"))
     # Replace every '</' to prevent script-injection regardless of tag name
+    # re.sub reduces to one literal backslash.
     return _SCRIPT_CLOSE_RE.sub(r"<\\/", raw)
 
 
@@ -1198,6 +1807,12 @@ def _is_path_within(path: Path, parent: Path) -> bool:
 
 
 _URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+#: Regex for the ``mcpb_url`` field in ``claude_desktop`` MCP tools.
+#: Only ``mcpb://`` (Claude Desktop deep-link) and ``https://`` (direct
+#: download) are safe; ``javascript:``, ``data:``, ``blob:``, ``ftp:``,
+#: and all other schemes are rejected to prevent malicious package substitution.
+_MCPB_URL_RE = re.compile(r"^(?:mcpb|https)://", re.IGNORECASE)
 
 #: Characters that have no valid place in a CSS selector and signal an
 #: HTML-injection attempt.  Note: brackets ``[]`` and quotes ``"'`` are
@@ -1401,6 +2016,13 @@ def _validate_mcp_tool(tool: dict[str, Any], name: str = "") -> list[str]:
     server_url = str(tool.get("server_url", "")).strip()
     if server_url and not _URL_SCHEME_RE.match(server_url):
         errors.append(f"{prefix}server_url {server_url!r} must use http:// or https://")
+    # Validate mcpb_url when present — only mcpb:// or https:// are safe.
+    # A javascript: or data: scheme here would reach handleMCPInstall() and
+    # trigger a malicious file download.  The JS side also validates, but
+    # defence-in-depth at build time is cheaper than a runtime surprise.
+    mcpb_url = str(tool.get("mcpb_url", "")).strip()
+    if mcpb_url and not _MCPB_URL_RE.match(mcpb_url):
+        errors.append(f"{prefix}mcpb_url {mcpb_url!r} must use mcpb:// or https://")
     return errors
 
 
@@ -1590,22 +2212,17 @@ def _resolve_icon(
 
     # File absent — look up base64 fallback from _static subpackage.
     try:
-        # Try canonical absolute name first (installed package), then
-        # relative to handle bootstrap / isolated test environments.
-        try:
-            from ._static import (  # noqa: PLC0415
-                _PROVIDER_META as _pm,  # noqa: N811
-            )
-            from ._static import (  # noqa: PLC0415
-                _SVG_DEFAULT as _sd,  # noqa: N811
-            )
-        except ImportError:
-            from ._static import (  # type: ignore[no-redef]  # noqa: PLC0415
-                _PROVIDER_META as _pm,  # noqa: N811
-            )
-            from ._static import (  # noqa: PLC0415
-                _SVG_DEFAULT as _sd,  # noqa: N811
-            )
+        # Single import attempt covers both installed-package and isolated-test
+        # environments.  There is no need for a try/except pair with identical
+        # import statements — if the first import fails, the identical second one
+        # would also fail, making the except branch dead code.
+        from ._static import (  # noqa: PLC0415
+            _PROVIDER_META as _pm,  # noqa: N811
+        )
+        from ._static import (  # noqa: PLC0415
+            _SVG_DEFAULT as _sd,  # noqa: N811
+        )
+
         key = str(entry_name).lower()
         return _pm.get(key, {}).get("icon", _sd)
     except ImportError:
@@ -2220,7 +2837,11 @@ def process_html_directory(
         futures = {executor.submit(_process_html_file_worker, a): a for a in args_list}
         for future in as_completed(futures):
             try:
-                status, _rel, _msg = future.result()
+                # timeout=120: guards against worker stalls on network-mount
+                # filesystems (NFS, SMB) where a file read can block
+                # indefinitely.  120 s is generous for any single HTML page.
+                # TimeoutError is caught by the broad Exception handler below.
+                status, _rel, _msg = future.result(timeout=120)
             except Exception:  # noqa: BLE001
                 errors += 1
             else:
@@ -2666,7 +3287,11 @@ def generate_markdown_files(app: Sphinx, exception: Exception | None) -> None:
         futures = {executor.submit(_process_single_html_file, a): a for a in args_list}
         for future in as_completed(futures):
             try:
-                status, rel_path, message = future.result()
+                # timeout=120: prevents the build from hanging indefinitely
+                # when a worker stalls (e.g. NFS stale file handle, OOM kill).
+                # concurrent.futures.TimeoutError is caught as a generic
+                # Exception below and logged as a worker error.
+                status, rel_path, message = future.result(timeout=120)
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 log.warning(f"AI Assistant: Worker error: {exc}")
@@ -2751,7 +3376,15 @@ def generate_llms_txt(  # noqa: PLR0911
         cap = max(0, int(max_entries))
         md_files = md_files[:cap]
         if not md_files:
-            log.debug("AI Assistant: llms.txt max_entries=0; no entries to write")
+            # warn (not debug): cap=0 means llms.txt will be empty.
+            # This is almost always a conf.py mistake (e.g. a stale 0 left
+            # after testing).  A warning surfaces it without breaking the build.
+            log.warning(
+                "AI Assistant: llms.txt max_entries=%d → no entries written. "
+                "Set ai_assistant_llms_txt_max_entries to None or a positive "
+                "integer to include entries.",
+                cap,
+            )
             return
 
     full_content: bool = bool(
@@ -2884,6 +3517,62 @@ def _cfg_list(config: Any, key: str) -> list:
     if isinstance(val, (list, tuple)):
         return list(val)
     return []
+
+
+def _resolve_feedback_scale_safe(
+    scale_name: str,
+    options: list,
+) -> tuple[int, ...]:
+    """Resolve the feedback scale without raising — never breaks a Sphinx build.
+
+    Parameters
+    ----------
+    scale_name : str
+        Value of ``ai_assistant_panel_feedback_scale``.  ``"auto"`` selects by
+        the number of options actually configured.
+    options : list
+        Value of ``ai_assistant_panel_feedback_options`` (raw, may be empty).
+        Empty / shorter-than-2 triggers the documented JS-side 10-emoji
+        default, so we resolve the scale against ``num=10`` in that case to
+        keep the parallel-list invariant
+        (``len(panelFeedbackScale) == len(panelFeedbackOptions)``) holding
+        from the widget's point of view.
+
+    Returns
+    -------
+    tuple of int
+        Always returns a usable scale; on any ValueError from the strict
+        resolver it logs a warning and falls back to a generated symmetric
+        scale of length *n* (so the parallel-list invariant is always
+        maintained regardless of the error source).
+
+    Notes
+    -----
+    The strict resolver :func:`_resolve_feedback_scale` is correct and
+    raises on bad input.  Sphinx config validation, however, should fail
+    closed for the user-facing widget but never abort the documentation
+    build.  This wrapper provides that boundary.
+    """
+    # Compute n outside the try block so the except clause can use it to
+    # generate a correctly-sized fallback scale, maintaining the invariant
+    # len(panelFeedbackScale) == len(panelFeedbackOptions) even on error.
+    n = (
+        len(options)
+        if isinstance(options, (list, tuple)) and len(options) >= 2  # noqa: PLR2004
+        else 10  # JS default count (changed from 3 → 10)
+    )
+    try:
+        # Mirror the JS-side default: ``< 2`` options ⇒ 10-emoji default,
+        # so we must size the scale against 10, not against ``len(options)``.
+        return _resolve_feedback_scale(scale_name, n)
+    except ValueError as exc:
+        _get_logger().warning(
+            f"AI Assistant: invalid feedback scale {scale_name!r} "
+            f"with {len(options) if hasattr(options, '__len__') else '?'} "
+            f"options ({exc}); falling back to generated symmetric scale "
+            f"of length {n}."
+        )
+        return _generate_symmetric_scale(n)
 
 
 def add_ai_assistant_context(
@@ -3056,6 +3745,58 @@ def add_ai_assistant_context(
         # C-2: proxy endpoint for API mode (empty → actionable JS error).
         "panelApiUrl": _cfg_str(app.config, "ai_assistant_panel_api_url") or "",
         "panelApiModel": _cfg_str(app.config, "ai_assistant_panel_api_model") or "",
+        # ── Phase B: multi-model panel ────────────────────────────────────
+        # Always emit a list (possibly empty).  When empty the widget falls
+        # back to the legacy single-string panelApiModel above.  Each entry is
+        # already shape-normalised, security-validated, and de-duplicated by
+        # ``_filter_panel_models`` — the JS does NOT re-validate.
+        "panelApiModels": _filter_panel_models(
+            _cfg_list(app.config, "ai_assistant_panel_api_models")
+            or _cfg_str(app.config, "ai_assistant_panel_api_models")
+        ),
+        # Provider → accent-colour map forwarded to JS for badge rendering.
+        # Merged with JS-side defaults so either side can extend without
+        # the other breaking.
+        "providerColors": dict(_PROVIDER_COLORS),
+        # SSE streaming master switch (bool, default True).
+        # When True, the JS enables SSE streaming for every provider in
+        # _STREAMING_PROVIDERS.  Set False on PaaS hosts that buffer SSE
+        # frames (some coalesce the entire stream into one response, which
+        # breaks the incremental render loop).
+        # JS read: var streamingEnabled = (cfg.panelApiStreaming !== false)
+        "panelApiStreaming": _cfg_bool(
+            app.config, "ai_assistant_panel_api_streaming", True
+        ),
+        # Inline picker beside mic + send (Claude-style bar).
+        "panelInlineModelPicker": _cfg_bool(
+            app.config, "ai_assistant_panel_inline_model_picker", True
+        ),
+        # ── Phase B: Terms of Service sheet ────────────────────────────────
+        "panelTerms": _cfg_bool(app.config, "ai_assistant_panel_terms", True),
+        "panelTermsTitle": (
+            _cfg_str(app.config, "ai_assistant_panel_terms_title") or "Terms of Service"
+        ),
+        "panelTermsLinkText": (
+            _cfg_str(app.config, "ai_assistant_panel_terms_link_text")
+            or "Terms of Service"
+        ),
+        # Trusted author HTML (from conf.py, not end-user input).
+        "panelTermsHtml": _cfg_str(app.config, "ai_assistant_panel_terms_html") or "",
+        # ── Phase B: Share sheet ───────────────────────────────────────────
+        "panelShare": _cfg_bool(app.config, "ai_assistant_panel_share", True),
+        "panelShareLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_share_label") or "Share"
+        ),
+        # Filter share targets through the same URL allow-list used for
+        # AI providers — javascript:/data:/ftp: schemes are rejected.
+        # Empty user list ⇒ default registry; we never ship JS without
+        # targets so the share button is always functional when enabled.
+        "panelShareTargets": _filter_share_targets(
+            _cfg_list(app.config, "ai_assistant_panel_share_targets")
+            or list(_DEFAULT_SHARE_TARGETS.items())
+        ),
+        # ── Phase B: Hamburger overflow menu ──────────────────────────────
+        "panelHamburger": _cfg_bool(app.config, "ai_assistant_panel_hamburger", True),
         # R5: feedback block.
         "panelFeedback": _cfg_bool(app.config, "ai_assistant_panel_feedback", True),
         "panelFeedbackQuestion": (
@@ -3065,6 +3806,21 @@ def add_ai_assistant_context(
         # list[dict] preserved via _cfg_list (NOT _cfg_str_list).
         "panelFeedbackOptions": _cfg_list(
             app.config, "ai_assistant_panel_feedback_options"
+        ),
+        # Signed-integer scale paralleling panelFeedbackOptions.
+        # Resolved server-side so the JS widget receives a ready-to-use list
+        # of ints (no client-side branching, no risk of mis-derivation).
+        # The number of emoji options is computed AFTER applying the JS-side
+        # default-of-10 fallback (empty conf list ⇒ 10-emoji default), so the
+        # serialised scale length always matches what the user sees.
+        "panelFeedbackScale": list(
+            _resolve_feedback_scale_safe(
+                _cfg_str(app.config, "ai_assistant_panel_feedback_scale") or "auto",
+                _cfg_list(app.config, "ai_assistant_panel_feedback_options"),
+            )
+        ),
+        "panelFeedbackScaleName": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_scale") or "auto"
         ),
         "panelFeedbackPlaceholder": (
             _cfg_str(app.config, "ai_assistant_panel_feedback_placeholder") or ""
@@ -3104,7 +3860,7 @@ def add_ai_assistant_context(
         # behaviour).  Any value other than "top" is treated as "bottom" so
         # the safe fallback is always the pre-existing behaviour.
         "searchBarPosition": (
-            _cfg_str(app.config, "ai_assistant_search_bar_position") or "bottom"
+            _cfg_str(app.config, "ai_assistant_search_bar_position") or "top"
         ),
         "panelSearchPlaceholder": (
             _cfg_str(app.config, "ai_assistant_panel_search_placeholder")
@@ -3277,7 +4033,9 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
     app.add_config_value("ai_assistant_generate_llms_txt", True, "html")
     app.add_config_value("ai_assistant_base_url", "", "html")
-    app.add_config_value("ai_assistant_max_workers", 1, "html")  # None or >=1
+    app.add_config_value(
+        "ai_assistant_max_workers", None, "html"
+    )  # None = CPU auto-detect
     app.add_config_value("ai_assistant_llms_txt_max_entries", None, "html")
     app.add_config_value("ai_assistant_llms_txt_full_content", False, "html")
 
@@ -3430,6 +4188,77 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     JS default ("claude-sonnet-4-20250514").
     app.add_config_value("ai_assistant_panel_api_model", "", "html")
 
+    # ── Phase B: multi-model panel ────────────────────────────────────────
+    # ``ai_assistant_panel_api_models`` (str | list[str] | list[dict],
+    # default [])
+    #     Optional multi-model registry.  When non-empty the panel shows a
+    #     model picker (dedicated sheet + optional inline picker beside the
+    #     send button).  Each dict entry MUST have:
+    #         id          unique stable key (also persisted in sessionStorage)
+    #         provider    one of _PANEL_MODEL_PROVIDERS
+    #         model       wire model name forwarded to the proxy
+    #         endpoint    proxy URL (http/https or site-relative)
+    #     Optional fields: label, description, info_url, default, icon.
+    #
+    #     SECURITY: API keys MUST NEVER appear here — only proxy endpoint
+    #     URLs.  The browser never sees a key.  See _example_conf.py for the
+    #     ``os.environ`` + GitHub-Actions-secrets pattern that keeps keys
+    #     on the proxy side only.
+    app.add_config_value("ai_assistant_panel_api_models", [], "html")
+
+    # ``ai_assistant_panel_api_streaming`` (bool, default True)
+    #     Master switch for server-sent event (SSE) streaming in the panel.
+    #     When True (default), the JS sends ``stream: true`` to every provider
+    #     listed in the JS ``_STREAMING_PROVIDERS`` array and renders tokens
+    #     incrementally as they arrive.
+    #     Set ``False`` on hosting platforms that buffer SSE frames before
+    #     forwarding them to the browser (some PaaS reverse proxies coalesce
+    #     the entire stream into a single HTTP response, which causes the UI to
+    #     hang until the model finishes generating).
+    #     Note: Anthropic-provider models always use the non-streaming path
+    #     regardless of this flag because their SSE format differs from the
+    #     OpenAI-compat spec that the streaming loop expects.
+    app.add_config_value("ai_assistant_panel_api_streaming", True, "html")
+
+    # ``ai_assistant_panel_inline_model_picker`` (bool, default True)
+    #     When True and panelApiModels is non-empty the panel footer renders
+    #     an inline model picker beside the mic and send buttons (Claude-bar
+    #     style).  Set False to keep the picker accessible only through the
+    #     dedicated sheet button in the sub-bar.
+    app.add_config_value("ai_assistant_panel_inline_model_picker", True, "html")
+
+    # ── Phase B: Terms of Service sheet ───────────────────────────────────
+    # ``ai_assistant_panel_terms`` (bool, default True)
+    #     Show a "Terms of Service" link in the sub-bar that opens the Terms-of-Service
+    #     slide-over sheet (sibling of Privacy & Responsibility).
+    app.add_config_value("ai_assistant_panel_terms", True, "html")
+    app.add_config_value("ai_assistant_panel_terms_title", "Terms of Service", "html")
+    app.add_config_value(
+        "ai_assistant_panel_terms_link_text", "Terms of Service", "html"
+    )
+    # Trusted author HTML (from conf.py, NOT end-user input) — injected
+    # verbatim into the sheet body.  Empty → built-in default copy.
+    app.add_config_value("ai_assistant_panel_terms_html", "", "html")
+
+    # ── Phase B: Share sheet ───────────────────────────────────────────────
+    # ``ai_assistant_panel_share`` (bool, default True)
+    #     Show a "Share" button in the sub-bar that opens a small modal
+    #     with copy-link and intent-share targets (email, X, LinkedIn,
+    #     Reddit, Hacker News by default).  Customisable via
+    #     ``ai_assistant_panel_share_targets`` (list[dict]).
+    app.add_config_value("ai_assistant_panel_share", True, "html")
+    app.add_config_value("ai_assistant_panel_share_label", "Share", "html")
+    # User list overrides defaults entirely; empty list ⇒ defaults.
+    app.add_config_value("ai_assistant_panel_share_targets", [], "html")
+
+    # ── Phase B: Hamburger overflow menu ──────────────────────────────────
+    # ``ai_assistant_panel_hamburger`` (bool, default True)
+    #     Show a hamburger / overflow button in the sub-bar that duplicates
+    #     the most-used controls (Privacy, Terms, Share, Keyboard help,
+    #     New chat, Export) in a single popover.  Mobile-friendly; on small
+    #     screens the individual icons collapse into this menu.
+    app.add_config_value("ai_assistant_panel_hamburger", True, "html")
+
     # ``ai_assistant_panel_feedback`` (bool, default True)
     #     Show the "Was this helpful?" block after assistant replies.
     app.add_config_value("ai_assistant_panel_feedback", True, "html")
@@ -3441,9 +4270,12 @@ def setup(app: Sphinx) -> dict[str, Any]:
     )
 
     # ``ai_assistant_panel_feedback_options`` (list[dict], default [])
-    #     2-5 options.  Each: {"emoji": str, "title": str (hover/aria),
+    #     2+ options (any count ≥ 2).  Each: {"emoji": str, "title": str (hover/aria),
     #     "value": str (sent in the feedback event)}.  Empty list → built-in
-    #     3-emoji default (😀 "Yes, it was!" / 😐 "Not sure" / 🙁 "No").
+    #     11-emoji default (gradient from 😡 "Terrible" to 🤩 "Excellent!",
+    #     with 😐 "Neutral" at the midpoint value 0).
+    #     The JS widget auto-scales emoji size (tiers 1-8) so all buttons fit,
+    #     wrapping to multiple rows for counts above 10.
     app.add_config_value("ai_assistant_panel_feedback_options", [], "html")
 
     # ``ai_assistant_panel_feedback_placeholder`` / ``_submit`` / ``_thanks``
@@ -3462,6 +4294,38 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     ('ai-assistant-feedback') for doc-author analytics hooks; the
     #     extension itself never stores or transmits it.
     app.add_config_value("ai_assistant_panel_feedback_log", False, "html")
+
+    # ``ai_assistant_panel_feedback_scale`` (str, default "auto")
+    #     Controls the numeric values assigned to each emoji in the per-answer
+    #     feedback row.  Why numeric and signed: the previous string values
+    #     ("positive" / "neutral" / "negative") cannot be averaged or fed
+    #     directly to a model-training pipeline.  Signed integers centred on
+    #     zero are the canonical form for a Likert-style rating.
+    #
+    #     Accepted values (see :data:`_FEEDBACK_SCALES`):
+    #
+    #     * ``"auto"``   — pick from the length of
+    #                      ``ai_assistant_panel_feedback_options``:
+    #                      2→even-2, 3→odd-3, 4→even-4, 5→odd-5,
+    #                      6→even-6, 7→odd-7, 8→even-8, 9→odd-9,
+    #                      10→even-10, 11→odd-11.  Any other length falls back
+    #                      to a generated symmetric range (2+ supported).
+    #     * ``"even-2"`` — [-1, +1]                      (no neutral)
+    #     * ``"odd-3"``  — [-1, 0, +1]
+    #     * ``"even-4"`` — [-2, -1, +1, +2]              (no neutral)
+    #     * ``"odd-5"``  — [-2, -1, 0, +1, +2]
+    #     * ``"even-6"`` — [-3, -2, -1, +1, +2, +3]      (no neutral)
+    #     * ``"odd-7"``  — [-3, -2, -1, 0, +1, +2, +3]
+    #     * ``"even-8"`` — [-4..-1, +1..+4]              (no neutral)
+    #     * ``"odd-9"``  — [-4..-1, 0, +1..+4]
+    #     * ``"even-10"``— [-5..-1, +1..+5]              (no neutral)
+    #     * ``"odd-11"`` — [-5..-1, 0, +1..+5]           (neutral at 0)
+    #
+    #     The values are computed server-side, serialised into
+    #     ``window.AI_ASSISTANT_CONFIG.panelFeedbackScale`` as a list of ints,
+    #     and rendered by the JS widget as a ``title``/``data-value`` tooltip
+    #     so the final user can see the numeric weight on hover.
+    app.add_config_value("ai_assistant_panel_feedback_scale", "auto", "html")
 
     # ``ai_assistant_panel_privacy_title`` / ``_link_text`` (str)
     #     Heading shown in the slide-over and the small header link label.

@@ -1,0 +1,42 @@
+# hf-proxy  ·  wrangler.toml
+#
+# Cloudflare Worker configuration for the HuggingFace Inference API proxy.
+#
+# Setup
+# ─────
+# 1. Run: npm create cloudflare@latest -- hf-proxy
+#    (NOT `wrangler init` — that command was removed in Wrangler v3)
+# 2. Replace the generated src/index.js with the one in this directory.
+# 3. Add your token (stored encrypted — never in this file):
+#      wrangler secret put HF_TOKEN
+# 4. Deploy:
+#      wrangler deploy
+#
+# Free tier limits
+# ────────────────
+# - 100,000 requests/day
+# - 10 ms CPU time per request (network I/O wait NOT counted toward CPU)
+# - 30-second wall-clock limit per request
+#
+# See: https://developers.cloudflare.com/workers/platform/limits/
+
+name            = "hf-proxy"
+main            = "src/index.js"
+
+# compatibility_date must be within the last year for Workers runtime features.
+# Update to a recent date (YYYY-MM-DD) if needed.
+# See: https://developers.cloudflare.com/workers/configuration/compatibility-dates/
+compatibility_date = "2024-09-23"
+
+# Optional: route requests through a custom domain.
+# Uncomment and fill in your domain after adding it to Cloudflare:
+# routes = [
+#   { pattern = "ai-proxy.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# Secrets (set via `wrangler secret put`, NEVER hardcode here):
+#   HF_TOKEN — HuggingFace API token with "Inference" read permission.
+#
+# Environment variables (non-secret; set in [vars] if needed):
+# [vars]
+# DEFAULT_MODEL = "openai/gpt-oss-20b"

@@ -390,8 +390,14 @@
  */
 
 .ai-assistant-panel[data-maximized="true"] {
-    max-height: calc(100vh - 3rem);
-    width: min(520px, calc(100vw - 2rem));
+    /* Actual height (not just max-height) so the panel fills the viewport
+       vertically regardless of message count — the body flex-child absorbs
+       the remaining space. */
+    height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);   /* keep as guard for safe measure */
+    /* Expand width significantly on maximize — was 520px, now uses most of
+       the viewport so both X and Y grow on maximize. */
+    width: min(960px, calc(100vw - 3rem));
     bottom: 1.5rem;
     right: 1.5rem;
     border-radius: 12px;
@@ -562,7 +568,9 @@
     padding: 0.3rem 0.75rem;
     cursor: pointer;
     text-align: center;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    /* transition is defined once at the bottom patch section (merged with
+       transform+box-shadow). See the "Chip hover: subtle lift" comment block.
+       Do NOT add transition here — CSS last-wins would partially override it. */
     white-space: normal;
     word-break: break-word;
 }
@@ -670,13 +678,14 @@
 /* Unified input-group wrapper — border goes here, not on individual elements */
 .ai-assistant-panel-input-group {
     display: flex;
-    align-items: flex-end;
+    flex-direction: column;    /* Claude-style: textarea on top, action bar below */
+    align-items: stretch;
     flex: 1 1 auto;
     border: 1px solid var(
         --pst-color-border,
         var(--color-foreground-border, #c8c8c8)
     );
-    border-radius: 8px;
+    border-radius: 12px;       /* slightly more rounded — matches Claude */
     background-color: var(
         --pst-color-background,
         var(--color-background-primary, #fff)
@@ -695,13 +704,16 @@
     resize: none;
     font-size: 0.875rem;
     line-height: 1.4;
-    padding: 0.5rem 0.5rem 0.5rem 0.65rem;
+    padding: 0.6rem 0.65rem 0.35rem 0.65rem;  /* tighter bottom — action bar follows */
     border: none;
     background: transparent;
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
     font-family: inherit;
-    max-height: 120px;
-    overflow-y: auto;
+    min-height: 2.4rem;    /* ~2 rows at 0.875rem/1.4 line-height — matches rows="2" */
+    max-height: 200px;     /* JS grows textarea to scrollHeight; CSS caps the visual box */
+    overflow-y: auto;      /* scrollbar appears only when content exceeds the 200px cap */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ai-assistant-panel-input:focus  { outline: none; }
@@ -715,13 +727,12 @@
     color: var(--pst-color-text-muted, var(--color-foreground-secondary, #aaa));
 }
 
-/* Icon buttons inside the input group (mic + send) */
+/* Icon buttons inside the input group action bar (attach, model, mic, send) */
 .ai-assistant-panel-footer-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 0.4rem 0.45rem;
-    margin-bottom: 0.25rem;   /* align with bottom of textarea baseline */
+    padding: 0.35rem 0.4rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -757,7 +768,12 @@
     pointer-events: none;
 }
 
-/* Send button gets brand accent when active (has text to send) */
+/* Send button: pre-filled icon tint (transparent background state).
+ * NOTE: This rule ONLY applies before the filled-background rule below
+ * (line ~2126) takes over.  It is the colour seen in the single frame
+ * between the class being added and the background paint completing.
+ * Do NOT move this below the filled rule — the cascade would break it.
+ * The filled rule sets color:#fff; the bottom patch must NOT override it. */
 .ai-assistant-panel-footer-btn--send.has-text {
     color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
 }
@@ -851,6 +867,9 @@
     font-family: inherit;
     transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     white-space: nowrap;
+    /* Prevent the 300ms tap delay on touch devices (iOS Safari, Android Chrome)
+       without disabling pinch-zoom — exactly what manipulation provides.      */
+    touch-action: manipulation;
 }
 
 .ai-assistant-panel-trigger:hover {
@@ -955,15 +974,91 @@
 body.ai-assistant-resizing,
 body.ai-assistant-resizing * {
     user-select: none !important;
-    cursor: nwse-resize !important;
 }
+/* Per-axis cursor — applied alongside .ai-assistant-resizing */
+body.ai-assistant-resizing-xy,
+body.ai-assistant-resizing-xy * { cursor: nwse-resize !important; }
+body.ai-assistant-resizing-x,
+body.ai-assistant-resizing-x  * { cursor: ew-resize  !important; }
+body.ai-assistant-resizing-y,
+body.ai-assistant-resizing-y  * { cursor: ns-resize  !important; }
+
 body.ai-assistant-resizing .ai-assistant-panel {
     transition: none !important;   /* live drag must be 1:1, not animated     */
 }
 
-/* When maximized the manual grip is meaningless → hide it. */
-.ai-assistant-panel[data-maximized="true"] .ai-assistant-panel-resizer {
+/* When maximized the manual grips are meaningless → hide all three. */
+.ai-assistant-panel[data-maximized="true"] .ai-assistant-panel-resizer,
+.ai-assistant-panel[data-maximized="true"] .ai-assistant-panel-resizer-left,
+.ai-assistant-panel[data-maximized="true"] .ai-assistant-panel-resizer-top {
     display: none;
+}
+
+/* ─── Left-edge grip (X / width only) ───────────────────────────────────────
+   A thin invisible strip along the left border.  Avoids the top 18px corner
+   to prevent overlap with the top-left diagonal grip. */
+
+.ai-assistant-panel-resizer-left {
+    position: absolute;
+    left: 0;
+    top: 18px;          /* clear the corner grip */
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    z-index: 99999;
+    touch-action: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    /* Blue highlight strip on the left edge, shown on hover / drag */
+    background: linear-gradient(
+        to right,
+        var(--pst-color-primary, var(--color-brand-primary, #2980b9)) 0px 2px,
+        transparent 2px
+    );
+    border-bottom-left-radius: 12px;
+}
+
+.ai-assistant-panel-resizer-left:hover { opacity: 0.55; }
+
+/* ─── Top-edge grip (Y / height only) ───────────────────────────────────────
+   A thin invisible strip along the top border.  Avoids the left 18px corner
+   to prevent overlap with the top-left diagonal grip. */
+
+.ai-assistant-panel-resizer-top {
+    position: absolute;
+    top: 0;
+    left: 18px;         /* clear the corner grip */
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    z-index: 99999;
+    touch-action: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    /* Blue highlight strip on the top edge, shown on hover / drag */
+    background: linear-gradient(
+        to bottom,
+        var(--pst-color-primary, var(--color-brand-primary, #2980b9)) 0px 2px,
+        transparent 2px
+    );
+    border-top-right-radius: 12px;
+}
+
+.ai-assistant-panel-resizer-top:hover { opacity: 0.55; }
+
+/* During an active drag, keep the dragged grip fully visible */
+body.ai-assistant-resizing-x .ai-assistant-panel-resizer-left,
+body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
+
+/* Dark-mode: the blue strip already uses the primary colour variable, which
+   auto-updates. No separate dark rule needed — the opacity-based approach
+   keeps the affordance subtle enough in both themes. */
+
+@media (max-width: 480px) {
+    /* On small screens the side/top grips are too thin to hit reliably —
+       hide them and let the corner grip (or native touch) handle everything. */
+    .ai-assistant-panel-resizer-left,
+    .ai-assistant-panel-resizer-top { display: none; }
 }
 
 /* ─── R3/R4: extra header action buttons (new-chat, export) ─────────────────
@@ -1019,9 +1114,137 @@ body.ai-assistant-resizing .ai-assistant-panel {
     background: rgba(255, 255, 255, 0.06);
 }
 
+/* ─── Action-row expandable "… More" menu ─────────────────────────────────────
+ *
+ * Architecture (data-first, JS-minimal):
+ *   • .ai-assistant-panel-bubble-action-more  — wrapper, relative position anchor
+ *   • .ai-assistant-panel-bubble-action--more-toggle — the "⋯ More" button
+ *   • .ai-assistant-panel-bubble-action-more-menu — hidden submenu
+ *
+ * Visibility contract:
+ *   [data-open="false"] (default) → menu hidden
+ *   [data-open="true"]            → menu visible (JS sets attribute)
+ *
+ * The menu floats above the action row (bottom: 100%) so it never overlaps
+ * the bubble text.  z-index matches the panel's own z-index to stay on top.
+ *
+ * Extension contract: future actions (Translate, TTS language picker, …)
+ * are added as new buttons inside .ai-assistant-panel-bubble-action-more-menu
+ * without any CSS changes — the layout is flex-column and grows automatically.
+ */
+
+.ai-assistant-panel-bubble-action-more {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* "⋯ More" toggle inherits all .ai-assistant-panel-bubble-action styles.
+   The chevron text is rotated when the menu is open.                        */
+.ai-assistant-panel-bubble-action--more-toggle[aria-expanded="true"] {
+    background: var(--pst-color-surface, var(--color-background-secondary, #f0f1f3));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-action--more-toggle[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+/* Submenu: floats above the button row, left-aligned with the toggle.       */
+.ai-assistant-panel-bubble-action-more-menu {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 0.3rem);
+    left: 0;
+    z-index: 99999;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.3rem;
+    min-width: 9rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14),
+                0 2px  6px rgba(0, 0, 0, 0.08);
+}
+
+.ai-assistant-panel-bubble-action-more-menu[data-open="true"] {
+    display: flex;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-action-more-menu {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45),
+                0 2px  6px rgba(0, 0, 0, 0.28);
+    background: var(--pst-color-surface, var(--color-background-primary, #1b1e21));
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Items inside the submenu are full-width.                                   */
+.ai-assistant-panel-bubble-action-more-menu
+    .ai-assistant-panel-bubble-action {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+}
+
+/* ─── Listen (TTS) button state ──────────────────────────────────────────────
+ *
+ * Three states:
+ *   idle     — default; neutral muted colour
+ *   playing  — brand-primary accent + pulse animation (aria-pressed="true")
+ *   paused   — yellow accent (aria-pressed="mixed" when paused mid-playback)
+ *
+ * aria-pressed is the correct semantics for a toggle action button that does
+ * not own a separate "pressed" element.  "true" = currently speaking.
+ */
+
+.ai-assistant-panel-bubble-action--listen[aria-pressed="true"] {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.10);
+    animation: ai-listen-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-listen-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+}
+
+.ai-assistant-panel-bubble-action--listen[aria-pressed="paused"] {
+    color: #c49a00;
+    background: rgba(196, 154, 0, 0.10);
+}
+
+/* prefers-reduced-motion: stop the listen pulse animation                    */
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-bubble-action--listen[aria-pressed="true"] {
+        animation: none;
+    }
+}
+
 /* ─── R5: feedback block ("Was this helpful?") ──────────────────────────────
-   Rendered once, after the conversation, when enabled. 3–5 emoji buttons +
-   an optional free-text box + submit. All copy/labels are config-driven. */
+   Rendered once, after the conversation, when enabled. 2+ emoji buttons +
+   an optional free-text box + submit. All copy/labels are config-driven.
+
+   Layout strategy (data-tier set by JS on the options row):
+     Tier 1 (2–3)   : single row, largest buttons
+     Tier 2 (4–5)   : single row
+     Tier 3 (6–7)   : single row
+     Tier 4 (8–9)   : single row
+     Tier 5 (10)    : single row, smallest single-row size
+     Tier 6 (11–15) : multi-row wrap — DEFAULT for built-in 11-emoji set
+     Tier 7 (16–20) : multi-row wrap, compact
+     Tier 8 (21+)   : multi-row wrap, minimal
+
+   data-count is also set on the row for backward compatibility with any
+   external CSS that already targets it; the built-in rules use data-tier.
+
+   Graduated colour scheme (selected state, by data-value):
+     Negative (-5 … -1) : dark red → light red   (higher |value| = deeper red)
+     Neutral  (0)        : warm slate grey
+     Positive (+1 … +5)  : light green → dark green (higher value = richer green)
+
+   Hover tints preview each value's colour before the button is pressed.     */
 
 .ai-assistant-panel-feedback {
     margin: 0.75rem 0 0.25rem;
@@ -1039,30 +1262,279 @@ body.ai-assistant-resizing .ai-assistant-panel {
     font-weight: 600;
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
 }
+
+/* ── Base options row ────────────────────────────────────────────────────── */
 .ai-assistant-panel-feedback-options {
     display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-wrap: wrap;   /* safe fallback; tiers 1–5 override to nowrap */
 }
+
+/* ── Tier 1 — 2 or 3 emojis (single row, largest) ───────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="1"] {
+    gap: 0.50rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="1"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.35rem;
+    padding: 0.38rem 0.68rem;
+}
+
+/* ── Tier 2 — 4 or 5 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="2"] {
+    gap: 0.40rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="2"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.18rem;
+    padding: 0.30rem 0.55rem;
+}
+
+/* ── Tier 3 — 6 or 7 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="3"] {
+    gap: 0.32rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="3"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.03rem;
+    padding: 0.26rem 0.44rem;
+}
+
+/* ── Tier 4 — 8 or 9 emojis ─────────────────────────────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="4"] {
+    gap: 0.24rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="4"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.88rem;
+    padding: 0.22rem 0.35rem;
+}
+
+/* ── Tier 5 — exactly 10 emojis (single-row compact) ────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="5"] {
+    gap: 0.18rem;
+    flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-tier="5"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.78rem;
+    padding: 0.18rem 0.28rem;
+    border-radius: 16px;
+}
+
+/* ── Tier 6 — 11–15 emojis (multi-row wrap — DEFAULT for 11-emoji set) ───── */
+/* Multi-row layout gives each button a comfortable, readable size.           */
+.ai-assistant-panel-feedback-options[data-tier="6"] {
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="6"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.05rem;
+    padding: 0.30rem 0.55rem;
+}
+
+/* ── Tier 7 — 16–20 emojis (multi-row wrap, medium-compact) ─────────────── */
+.ai-assistant-panel-feedback-options[data-tier="7"] {
+    gap: 0.28rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="7"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.92rem;
+    padding: 0.25rem 0.45rem;
+}
+
+/* ── Tier 8 — 21+ emojis (multi-row wrap, minimal) ──────────────────────── */
+.ai-assistant-panel-feedback-options[data-tier="8"] {
+    gap: 0.22rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.ai-assistant-panel-feedback-options[data-tier="8"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.80rem;
+    padding: 0.20rem 0.35rem;
+    border-radius: 14px;
+}
+
+/* ── Legacy data-count aliases (backward compat for external CSS) ─────────── */
+/* Old builds without data-tier still get correct sizing via data-count.       */
+.ai-assistant-panel-feedback-options[data-count="4"],
+.ai-assistant-panel-feedback-options[data-count="5"] {
+    gap: 0.40rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="4"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="5"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.18rem; padding: 0.30rem 0.55rem;
+}
+.ai-assistant-panel-feedback-options[data-count="6"],
+.ai-assistant-panel-feedback-options[data-count="7"] {
+    gap: 0.32rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="6"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="7"] .ai-assistant-panel-feedback-btn {
+    font-size: 1.03rem; padding: 0.26rem 0.44rem;
+}
+.ai-assistant-panel-feedback-options[data-count="8"],
+.ai-assistant-panel-feedback-options[data-count="9"] {
+    gap: 0.24rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="8"] .ai-assistant-panel-feedback-btn,
+.ai-assistant-panel-feedback-options[data-count="9"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.88rem; padding: 0.22rem 0.35rem;
+}
+.ai-assistant-panel-feedback-options[data-count="10"] {
+    gap: 0.18rem; flex-wrap: nowrap;
+}
+.ai-assistant-panel-feedback-options[data-count="10"] .ai-assistant-panel-feedback-btn {
+    font-size: 0.78rem; padding: 0.18rem 0.28rem; border-radius: 16px;
+}
+
+/* ── Base button (tier-1 / base values; tier rules override above) ────────── */
 .ai-assistant-panel-feedback-btn {
-    font-size: 1.15rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 1.35rem;
     line-height: 1;
-    padding: 0.3rem 0.5rem;
+    padding: 0.38rem 0.68rem;
     background: transparent;
     border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d6d9dc));
-    border-radius: 8px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: transform 0.12s ease, border-color 0.15s ease,
-                background-color 0.15s ease;
+    transition: transform 0.12s ease, border-color 0.18s ease,
+                background-color 0.18s ease, box-shadow 0.18s ease;
+    white-space: nowrap;
 }
+
+/* ── General hover (lift + shadow; colour overridden per data-value below) ── */
 .ai-assistant-panel-feedback-btn:hover {
-    transform: translateY(-2px) scale(1.05);
+    transform: translateY(-2px) scale(1.07);
     border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
 }
+
+/* ── Per-value hover tints — preview colour before selection ─────────────── */
+/* Specificity: class + attribute + pseudo = (0,3,0) > general hover (0,2,0) */
+/* Only background and border-color are overridden; transform/shadow inherit. */
+.ai-assistant-panel-feedback-btn[data-value="-5"]:hover { background: rgba(127,  29,  29, 0.12); border-color: #7f1d1d; }
+.ai-assistant-panel-feedback-btn[data-value="-4"]:hover { background: rgba(153,  27,  27, 0.10); border-color: #991b1b; }
+.ai-assistant-panel-feedback-btn[data-value="-3"]:hover { background: rgba(185,  28,  28, 0.09); border-color: #b91c1c; }
+.ai-assistant-panel-feedback-btn[data-value="-2"]:hover { background: rgba(220,  38,  38, 0.08); border-color: #dc2626; }
+.ai-assistant-panel-feedback-btn[data-value="-1"]:hover { background: rgba(239,  68,  68, 0.08); border-color: #ef4444; }
+.ai-assistant-panel-feedback-btn[data-value="0"]:hover  { background: rgba(107, 114, 128, 0.09); border-color: #6b7280; }
+.ai-assistant-panel-feedback-btn[data-value="1"]:hover  { background: rgba(187, 247, 208, 0.20); border-color: #86efac; }
+.ai-assistant-panel-feedback-btn[data-value="2"]:hover  { background: rgba(134, 239, 172, 0.15); border-color: #4ade80; }
+.ai-assistant-panel-feedback-btn[data-value="3"]:hover  { background: rgba( 34, 197,  94, 0.12); border-color: #22c55e; }
+.ai-assistant-panel-feedback-btn[data-value="4"]:hover  { background: rgba( 22, 163,  74, 0.11); border-color: #16a34a; }
+.ai-assistant-panel-feedback-btn[data-value="5"]:hover  { background: rgba( 21, 128,  61, 0.11); border-color: #15803d; }
+
+/* ── Score chip (\"+1\" / \"0\" / \"-1\" text, revealed on selection) ─────────── */
+.ai-fbk-score {
+    display: none;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    vertical-align: middle;
+}
+.ai-assistant-panel-feedback-btn[aria-pressed="true"] .ai-fbk-score {
+    display: inline;
+}
+
+/* ── Generic selected fallback (any value without a specific rule below) ──── */
 .ai-assistant-panel-feedback-btn[aria-pressed="true"] {
     background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
     border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: #fff;
 }
+
+/* ── Selected states — RED spectrum (negative values) ────────────────────── */
+/* Darkest red for strongest negative; lightens toward -1.                    */
+
+.ai-assistant-panel-feedback-btn[data-value="-5"][aria-pressed="true"] {
+    background: #7f1d1d; border-color: #991b1b; color: #fff;
+    box-shadow: 0 2px 8px rgba(127, 29, 29, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="-5"][aria-pressed="true"]:hover {
+    background: #6b1717; border-color: #7f1d1d;
+}
+.ai-assistant-panel-feedback-btn[data-value="-4"][aria-pressed="true"] {
+    background: #991b1b; border-color: #b91c1c; color: #fff;
+    box-shadow: 0 2px 8px rgba(153, 27, 27, 0.44);
+}
+.ai-assistant-panel-feedback-btn[data-value="-4"][aria-pressed="true"]:hover {
+    background: #7f1d1d; border-color: #991b1b;
+}
+.ai-assistant-panel-feedback-btn[data-value="-3"][aria-pressed="true"] {
+    background: #b91c1c; border-color: #dc2626; color: #fff;
+    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="-3"][aria-pressed="true"]:hover {
+    background: #991b1b; border-color: #b91c1c;
+}
+.ai-assistant-panel-feedback-btn[data-value="-2"][aria-pressed="true"] {
+    background: #dc2626; border-color: #ef4444; color: #fff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.40);
+}
+.ai-assistant-panel-feedback-btn[data-value="-2"][aria-pressed="true"]:hover {
+    background: #b91c1c; border-color: #dc2626;
+}
+.ai-assistant-panel-feedback-btn[data-value="-1"][aria-pressed="true"] {
+    background: #ef4444; border-color: #f87171; color: #fff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.38);
+}
+.ai-assistant-panel-feedback-btn[data-value="-1"][aria-pressed="true"]:hover {
+    background: #dc2626; border-color: #ef4444;
+}
+
+/* ── Selected state — NEUTRAL (0) ────────────────────────────────────────── */
+.ai-assistant-panel-feedback-btn[data-value="0"][aria-pressed="true"] {
+    background: #6b7280; border-color: #4b5563; color: #fff;
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.35);
+}
+.ai-assistant-panel-feedback-btn[data-value="0"][aria-pressed="true"]:hover {
+    background: #4b5563; border-color: #374151;
+}
+
+/* ── Selected states — GREEN spectrum (positive values) ──────────────────── */
+/* Lightest green for +1; deepens toward darkest green at +5.                 */
+
+.ai-assistant-panel-feedback-btn[data-value="1"][aria-pressed="true"] {
+    background: #bbf7d0; border-color: #86efac; color: #14532d;
+    box-shadow: 0 2px 8px rgba(187, 247, 208, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="1"][aria-pressed="true"]:hover {
+    background: #86efac; border-color: #4ade80;
+}
+.ai-assistant-panel-feedback-btn[data-value="2"][aria-pressed="true"] {
+    background: #86efac; border-color: #4ade80; color: #14532d;
+    box-shadow: 0 2px 8px rgba(134, 239, 172, 0.44);
+}
+.ai-assistant-panel-feedback-btn[data-value="2"][aria-pressed="true"]:hover {
+    background: #4ade80; border-color: #22c55e;
+}
+.ai-assistant-panel-feedback-btn[data-value="3"][aria-pressed="true"] {
+    background: #22c55e; border-color: #16a34a; color: #fff;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="3"][aria-pressed="true"]:hover {
+    background: #16a34a; border-color: #15803d;
+}
+.ai-assistant-panel-feedback-btn[data-value="4"][aria-pressed="true"] {
+    background: #16a34a; border-color: #15803d; color: #fff;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.42);
+}
+.ai-assistant-panel-feedback-btn[data-value="4"][aria-pressed="true"]:hover {
+    background: #15803d; border-color: #166534;
+}
+.ai-assistant-panel-feedback-btn[data-value="5"][aria-pressed="true"] {
+    background: #15803d; border-color: #166534; color: #fff;
+    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.48);
+}
+.ai-assistant-panel-feedback-btn[data-value="5"][aria-pressed="true"]:hover {
+    background: #166534; border-color: #14532d;
+}
+
 .ai-assistant-panel-feedback-btn:focus         { outline: none; }
 .ai-assistant-panel-feedback-btn:focus-visible {
     outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
@@ -1110,15 +1582,41 @@ body.ai-assistant-resizing .ai-assistant-panel {
 }
 
 /* ─── R7: keyboard-shortcut hint chip ───────────────────────────────────────
-   A subtle "kbd" pill shown in the header area; content is config-driven. */
+   A subtle "kbd" pill shown in the panel header sub-bar; config-driven.
+   The keyboard SVG (ICONS.keyboard) carries no width/height attrs — only a
+   viewBox — so without an explicit CSS size it defaults to 300×150px and
+   becomes invisible inside the flex row.  The rules below fix that and ensure
+   the icon colour adapts correctly to both light and dark themes. */
 
 .ai-assistant-panel-kbd-hint {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
     font-size: 0.68rem;
+    /* Light-mode muted tone — readable on the white/light panel surface. */
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
 }
+
+/* Wrapper span that holds the SVG icon (aria-hidden="true").
+   line-height:0 eliminates the extra inline-block descent gap. */
+.ai-assistant-panel-kbd-hint > span[aria-hidden] {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+}
+
+/* Constrain the SVG to a legible 12 × 12 px icon.
+   stroke:currentColor is already on the element attribute but restating it
+   in CSS prevents any theme stylesheet from accidentally overriding it.
+   flex-shrink:0 stops the icon from collapsing in narrow containers. */
+.ai-assistant-panel-kbd-hint > span[aria-hidden] svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+}
+
 .ai-assistant-panel-kbd-hint kbd {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.66rem;
@@ -1128,6 +1626,13 @@ body.ai-assistant-resizing .ai-assistant-panel {
     border-bottom-width: 2px;
     border-radius: 4px;
     color: inherit;
+}
+
+/* Dark-mode: lighten the muted tone so the icon and kbd labels stay clearly
+   legible against the dark panel surface.  The kbd chip gets a translucent
+   white background (unchanged from before). */
+[data-bs-theme="dark"] .ai-assistant-panel-kbd-hint {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
 }
 [data-bs-theme="dark"] .ai-assistant-panel-kbd-hint kbd {
     background: rgba(255, 255, 255, 0.07);
@@ -1263,11 +1768,989 @@ body.ai-assistant-resizing .ai-assistant-panel {
     background: rgba(255, 255, 255, 0.04);
 }
 
-/* Respect reduced-motion users for every new animated affordance. */
+/* ─── R8: searchbar kbd-hint (compact variant) ───────────────────────────────
+   Dedicated class for the kbd-hint rendered INSIDE the search bar only.
+   Kept intentionally smaller and tighter than the panel's .ai-assistant-panel-
+   kbd-hint so the bar stays slim.  The keyboard icon is hidden here because
+   horizontal space is at a premium inside an inline input widget.
+   Panel subbar continues to use .ai-assistant-panel-kbd-hint untouched. */
+
+.ai-assistant-searchbar-kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: 0.60rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    flex-shrink: 0;
+    opacity: 0.80;
+    white-space: nowrap;
+}
+/* Hide the keyboard SVG icon — too large relative to the compact bar height. */
+.ai-assistant-searchbar-kbd-hint > span[aria-hidden] {
+    display: none;
+}
+.ai-assistant-searchbar-kbd-hint kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.58rem;
+    line-height: 1.3;
+    padding: 0.02rem 0.18rem;
+    background: var(--pst-color-surface, var(--color-background-secondary, #eef0f2));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    color: inherit;
+}
+[data-bs-theme="dark"] .ai-assistant-searchbar-kbd-hint kbd {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* Respect reduced-motion users for every animated affordance.
+ *
+ * FIX: The original block only covered 4 selectors.  Missing:
+ *   - .ai-assistant-panel (slide-in opacity+transform animation)
+ *   - .ai-assistant-typing-dot (bounce animation)
+ *   - .ai-assistant-panel-bubble--streaming (pulse animation)
+ *   - .ai-assistant-dropdown-icon (rotate transition)
+ *   - .ai-assistant-panel-chip (lift transform on hover)
+ *   - .ai-assistant-panel-footer-btn--send.has-text (scale transform)
+ */
 @media (prefers-reduced-motion: reduce) {
+    /* Existing selections */
     .ai-assistant-panel-resizer,
     .ai-assistant-panel-feedback-btn,
     .ai-assistant-panel-bubble-action,
     .ai-assistant-searchbar { transition: none; }
     .ai-assistant-panel-feedback-btn:hover { transform: none; }
+
+    /* Panel slide-in: skip opacity/transform animation; just show the panel */
+    .ai-assistant-panel {
+        transition: none;
+        opacity: 1;
+        transform: none;
+    }
+    .ai-assistant-panel.ai-assistant-panel--open {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* Typing indicator: stop bounce */
+    .ai-assistant-typing-dot {
+        animation: none;
+        opacity: 0.6;
+    }
+
+    /* Streaming bubble: stop pulse */
+    .ai-assistant-panel-bubble--streaming {
+        animation: none;
+        border-left: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    }
+
+    /* Dropdown icon: no rotation transition */
+    .ai-assistant-dropdown-icon {
+        transition: none;
+    }
+
+    /* Chip: no lift transform */
+    .ai-assistant-panel-chip {
+        transition: none;
+    }
+    .ai-assistant-panel-chip:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Send button: no scale */
+    .ai-assistant-panel-footer-btn--send.has-text {
+        transform: none;
+        transition: none;
+    }
+
+    /* Mic pulse: stop recording animation */
+    .ai-assistant-panel-footer-btn--mic.recording {
+        animation: none;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Phase B — Multi-model panel, Terms sheet, Share sheet, Hamburger menu
+ *
+ * Reuses existing .ai-assistant-panel-privacy classes for the three new
+ * slide-over sheets so the open/close animation, dark-mode chain, and
+ * a11y semantics already shipped for Privacy automatically cover them.
+ * Only the genuinely new visual elements (sub-bar clusters, model rows,
+ * inline picker, hamburger popover, share rows) get their own rules.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Sub-bar clusters: left = hamburger + kbd-hint; right = model · privacy · terms · share. */
+.ai-assistant-panel-subbar-left,
+.ai-assistant-panel-subbar-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.ai-assistant-panel-subbar-right {
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Model picker button in the sub-bar: pill with icon + label + chevron. */
+.ai-assistant-panel-model-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.ai-assistant-panel-model-link svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+.ai-assistant-panel-model-link-label {
+    max-width: 12ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Share / Terms buttons inherit .ai-assistant-panel-privacy-link spacing. */
+.ai-assistant-panel-share-link,
+.ai-assistant-panel-terms-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.ai-assistant-panel-share-link svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+/* Model-selection sheet — list of radio rows. */
+.ai-assistant-panel-model-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.ai-assistant-panel-model-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid currentColor;
+    border-color: rgba(127, 127, 127, 0.25);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.ai-assistant-panel-model-row:hover {
+    border-color: rgba(127, 127, 127, 0.55);
+}
+.ai-assistant-panel-model-radio {
+    margin-top: 0.2rem;
+    flex: 0 0 auto;
+}
+.ai-assistant-panel-model-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.ai-assistant-panel-model-title {
+    font-weight: 600;
+    line-height: 1.2;
+}
+.ai-assistant-panel-model-sub {
+    font-size: 0.85em;
+    opacity: 0.7;
+    line-height: 1.2;
+    margin-top: 0.15rem;
+}
+.ai-assistant-panel-model-desc {
+    font-size: 0.85em;
+    opacity: 0.85;
+    margin-top: 0.25rem;
+}
+.ai-assistant-panel-model-info {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    color: inherit;
+    text-decoration: none;
+}
+.ai-assistant-panel-model-info:hover {
+    background: rgba(127, 127, 127, 0.15);
+}
+.ai-assistant-panel-model-info svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+/* Inline footer model picker — sized to match other footer buttons. */
+.ai-assistant-panel-inline-model-picker {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid rgba(127, 127, 127, 0.3);
+    border-radius: 6px;
+    padding: 0 0.4rem;
+    max-width: 10rem;
+    height: 2rem;
+    cursor: pointer;
+}
+.ai-assistant-panel-inline-model-picker:hover {
+    border-color: rgba(127, 127, 127, 0.6);
+}
+
+/* Hamburger overflow popover — positioned absolute relative to panel. */
+.ai-assistant-panel-hamburger {
+    position: absolute;
+    top: 3.2rem;            /* below the sub-bar */
+    left: 0.5rem;
+    z-index: 5;
+    display: none;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.35rem;
+    min-width: 11rem;
+    background: var(--pst-color-surface, #fff);
+    color: var(--pst-color-text-base, inherit);
+    border: 1px solid rgba(127, 127, 127, 0.25);
+    border-radius: 8px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+}
+.ai-assistant-panel-hamburger[data-open="true"] {
+    display: flex;
+}
+.ai-assistant-panel-hamburger-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.55rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+}
+.ai-assistant-panel-hamburger-item:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+.ai-assistant-panel-hamburger-item svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex: 0 0 auto;
+}
+
+/* Share sheet rows. */
+.ai-assistant-panel-share-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.ai-assistant-panel-share-url {
+    margin-bottom: 0.6rem;
+}
+.ai-assistant-panel-share-url input {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 1px solid rgba(127, 127, 127, 0.3);
+    border-radius: 6px;
+}
+.ai-assistant-panel-share-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid rgba(127, 127, 127, 0.2);
+    background: transparent;
+    color: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+}
+.ai-assistant-panel-share-target:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+.ai-assistant-panel-share-target-icon svg {
+    width: 0.95rem;
+    height: 0.95rem;
+}
+
+/* On narrow viewports collapse the right-cluster labels — keep icons only.
+ * Hamburger preserves access to every entry-point. */
+@media (max-width: 460px) {
+    .ai-assistant-panel-share-link span:not([aria-hidden]),
+    .ai-assistant-panel-terms-link,
+    .ai-assistant-panel-model-link-label {
+        display: none;
+    }
+}
+
+/* ─── Right overflow toggle button ──────────────────────────────────────────
+   Collapsed representation of the entire right cluster on narrow panels.
+   Visibility is data-driven (data-narrow="true" on panel root) so the
+   breakpoint reacts to actual panel width, not viewport width. */
+
+.ai-assistant-panel-subbar-overflow-btn {
+    display: none;                 /* hidden by default — wide panels show full cluster */
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    cursor: pointer;
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+.ai-assistant-panel-subbar-overflow-btn svg {
+    width: 1rem;
+    height: 1rem;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+.ai-assistant-panel-subbar-overflow-btn:hover {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background-color: rgba(41, 128, 185, 0.08);
+}
+.ai-assistant-panel-subbar-overflow-btn:focus        { outline: none; }
+.ai-assistant-panel-subbar-overflow-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
+/* ─── Keyboard shortcut hint row at the bottom of the hamburger menu ────────
+   Non-interactive footer inside the popover. Separator + keyboard icon +
+   <kbd> tokens. Hidden via data-narrow rules on narrow panels (the external
+   .kbd-hint is already hidden there, so the menu hint becomes the only hint). */
+
+.ai-assistant-panel-hamburger-sep {
+    margin: 0.25rem 0.35rem;
+    border: none;
+    border-top: 1px solid rgba(127, 127, 127, 0.18);
+}
+.ai-assistant-panel-hamburger-kbd-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.25rem 0.55rem 0.3rem;
+    font-size: 0.68rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0.8;
+}
+.ai-assistant-panel-hamburger-kbd-row > span[aria-hidden] svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    vertical-align: middle;
+    margin-right: 0.15rem;
+    stroke: currentColor;
+    fill: none;
+}
+.ai-assistant-panel-hamburger-kbd-row kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.62rem;
+    line-height: 1.3;
+    padding: 0.05rem 0.22rem;
+    background: var(--pst-color-surface, var(--color-background-secondary, #eef0f2));
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    color: inherit;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-hamburger-kbd-row kbd {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Narrow panel (< 360px): collapse right cluster, show overflow button; collapse external kbd-hint. */
+[data-narrow="true"] .ai-assistant-panel-subbar-right > :not(.ai-assistant-panel-subbar-overflow-btn) {
+    display: none !important;
+}
+[data-narrow="true"] .ai-assistant-panel-subbar-overflow-btn {
+    display: inline-flex;
+}
+[data-narrow="true"] .ai-assistant-panel-kbd-hint {
+    display: none;
+}
+
+/* Hamburger popover positioning: left-anchor (default) vs right-anchor.
+   data-anchor="right" is set by the overflow button before opening. */
+.ai-assistant-panel-hamburger[data-anchor="right"] {
+    left: auto;
+    right: 0.5rem;
+}
+
+/* ─── Footer action bar (Claude-style two-row input layout) ─────────────────
+   Row 1: textarea (full width, grows)
+   Row 2: [+ attach] ·· spacer ·· [model ▾?] [🎤 mic?] [➤ send]          */
+
+.ai-assistant-panel-footer-actions {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem 0.35rem 0.3rem 0.3rem;
+    gap: 0.25rem;
+    border-top: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e8e8e8)
+    );
+}
+
+/* Right-side cluster inside the action bar (model + mic + send). */
+.ai-assistant-panel-footer-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    margin-left: auto;
+}
+
+/* Attach (+) button: square, matches other footer buttons. */
+.ai-assistant-panel-footer-btn--attach {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    border-radius: 6px;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+}
+.ai-assistant-panel-footer-btn--attach:hover {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background-color: rgba(41, 128, 185, 0.08);
+}
+.ai-assistant-panel-footer-btn--attach svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+    fill: none;
+}
+
+/* Send button: slightly more prominent (brand accent when has text). */
+.ai-assistant-panel-footer-btn--send {
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border-radius: 8px;
+}
+.ai-assistant-panel-footer-btn--send.has-text {
+    background-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: #fff;
+}
+.ai-assistant-panel-footer-btn--send.has-text:hover {
+    /* Fallback for browsers without color-mix() (Safari < 16.2, Chromium < 111):
+       a plain rgba darkens the brand colour enough to communicate hover state.
+       color-mix() version is added after so it wins when supported.          */
+    background-color: rgba(33, 103, 149, 0.95);
+    background-color: color-mix(
+        in srgb,
+        var(--pst-color-primary, #2980b9) 88%,
+        #000
+    );
+    color: #fff;
+}
+
+/* NOTE: .ai-assistant-panel-inline-model-picker compact overrides are already
+   applied above in the Phase B footer-actions section. The duplicate definition
+   that was here (height: 1.75rem, max-width: 8rem, font-size: 0.75rem) was
+   removed because CSS cascades last-wins — the duplicate silently overrode the
+   earlier rule's height: 2rem, producing an inconsistent picker size. */
+
+[data-bs-theme="dark"] .ai-assistant-panel-footer-actions {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI/UX IMPROVEMENT PATCH — Input group & Model button theming
+   ───────────────────────────────────────────────────────────────────────────
+   PURELY ADDITIVE. No existing selector is modified.
+   All colour decisions use the same three-layer fallback chain:
+     --pst-color-*  →  --color-*  →  hard-coded safe value
+   Dark-mode via [data-bs-theme="dark"] (PyData/Bootstrap 5 convention).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Input group: dark-mode background, border, text, placeholder ──────────
+   The light-mode base on .ai-assistant-panel-input-group correctly resolves
+   to the panel's surface colour via CSS variables, but no dark-mode rule was
+   ever written for it — leaving the textarea readable against an unthemed
+   (possibly transparent or mismatched) background.
+   Fix: provide explicit dark-mode colours for the wrapper, the textarea itself,
+   the placeholder, and the focus ring that are legible on the dark panel surface. */
+
+[data-bs-theme="dark"] .ai-assistant-panel-input-group {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-input-group:focus-within {
+    border-color: var(
+        --pst-color-primary,
+        var(--color-brand-primary, #5ba3d0)
+    );
+    box-shadow: 0 0 0 2px rgba(91, 163, 208, 0.18);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-input {
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #e4e6ea));
+    caret-color: var(--pst-color-primary, var(--color-brand-primary, #5ba3d0));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-input::placeholder {
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-muted, rgba(200, 205, 215, 0.45))
+    );
+}
+
+/* ─── Input group: footer-actions inner separator ───────────────────────────
+   The border-top between textarea and action bar row uses a light-mode
+   colour in the base rule; the existing dark override already handles this
+   (added in the Phase B block), so no duplicate rule is needed.            */
+
+/* ─── Send button: dark-mode `has-text` hover ───────────────────────────────
+   color-mix() is unsupported in Safari < 16.2 and some Chromium builds.
+   Provide a plain rgba fallback that darkens the brand colour enough to
+   communicate the hover state without relying on color-mix support. */
+
+[data-bs-theme="dark"] .ai-assistant-panel-footer-btn--send.has-text {
+    /* Slightly brighter brand tint in dark surfaces so the icon stays visible */
+    background-color: var(
+        --pst-color-primary,
+        var(--color-brand-primary, #3a94c8)
+    );
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-footer-btn--send.has-text:hover {
+    background-color: rgba(41, 128, 185, 0.82);   /* brand at 82% opacity — safe fallback */
+}
+
+/* ─── Inline model picker (<select>): dark-mode colours ─────────────────────
+   The picker uses `background: transparent` and `color: inherit` which works
+   in most browsers, but Chromium on dark-mode pages can render the native
+   dropdown list with white text on a white background unless the element
+   itself declares a surface colour.  The rule below pins the colours
+   explicitly so the picker is always legible in dark mode.                 */
+
+[data-bs-theme="dark"] .ai-assistant-panel-inline-model-picker {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #e4e6ea));
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-inline-model-picker:hover {
+    border-color: rgba(255, 255, 255, 0.38);
+}
+
+/* ─── Model picker button: pill-style reset ─────────────────────────────────
+   The button is created with class `ai-assistant-panel-privacy-link
+   ai-assistant-panel-model-link`.  The privacy-link base forces
+   `text-decoration: underline; padding: 0; border: none; background: none;`
+   which makes it look like a plain text link — wrong for a model-selector
+   control that should appear as a compact pill (matching the claude.ai input
+   bar aesthetic).  These rules override only the properties that conflict and
+   add the pill affordances; nothing else in privacy-link is touched. */
+
+.ai-assistant-panel-model-link {
+    /* Strip the link-style underline — this is an interactive button, not a link. */
+    text-decoration: none !important;
+
+    /* Pill geometry */
+    padding: 0.15rem 0.4rem 0.15rem 0.3rem;
+    border-radius: 999px;
+
+    /* Subtle border — visible enough to read as a control, not loud. */
+    border: 1px solid rgba(127, 127, 127, 0.22) !important;
+
+    /* Smooth transitions on hover/active */
+    transition: background-color 0.15s ease,
+                border-color 0.15s ease,
+                color 0.15s ease;
+
+    /* Slightly smaller than the surrounding text so it reads as a label,
+       not a heading.  12ch label cap from the base rule is preserved. */
+    font-size: 0.69rem;
+    line-height: 1.35;
+}
+
+/* Light-mode hover: neutral grey tint (matches other sub-bar buttons) */
+.ai-assistant-panel-model-link:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+    border-color: rgba(127, 127, 127, 0.42) !important;
+    /* Preserve readable text — do NOT inherit the brand-blue privacy-link hover. */
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #1a1a1a)
+    ) !important;
+}
+
+/* Light-mode active (pressed) */
+.ai-assistant-panel-model-link:active {
+    background-color: rgba(0, 0, 0, 0.11);
+    border-color: rgba(127, 127, 127, 0.58) !important;
+}
+
+/* Dark-mode base: translucent surface + lighter border */
+[data-bs-theme="dark"] .ai-assistant-panel-model-link {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, rgba(200, 205, 215, 0.78))
+    );
+}
+
+/* Dark-mode hover: slightly brighter surface + more visible border */
+[data-bs-theme="dark"] .ai-assistant-panel-model-link:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.36) !important;
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #e4e6ea)
+    ) !important;
+}
+
+/* Dark-mode active */
+[data-bs-theme="dark"] .ai-assistant-panel-model-link:active {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.50) !important;
+}
+
+/* Chevron icon inside model button: slightly dimmed and animated on hover */
+.ai-assistant-panel-model-link svg:last-of-type {
+    opacity: 0.55;
+    transition: transform 0.18s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.ai-assistant-panel-model-link:hover svg:last-of-type {
+    opacity: 0.85;
+    transform: translateY(1px);  /* subtle hint that it opens a panel */
+}
+
+/* Model icon (first SVG): keep it aligned, no separate opacity */
+.ai-assistant-panel-model-link svg:first-of-type {
+    opacity: 0.70;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-link svg {
+    opacity: 0.80;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-link:hover svg {
+    opacity: 1;
+}
+
+/* Focus-visible: match the panel's standard brand-outline focus ring */
+.ai-assistant-panel-model-link:focus         { outline: none; }
+.ai-assistant-panel-model-link:focus-visible {
+    outline: 2px solid var(
+        --pst-color-primary,
+        var(--color-brand-primary, #2980b9)
+    );
+    outline-offset: 1px;
+}
+
+/* ─── Share / Terms buttons: align with model button (no underline) ──────────
+   For visual consistency the share and terms sub-bar buttons also remove the
+   privacy-link underline — they sit next to the model pill and should all
+   read as the same control family. */
+
+.ai-assistant-panel-share-link,
+.ai-assistant-panel-terms-link {
+    text-decoration: none !important;
+    transition: color 0.15s ease;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI/UX ENHANCEMENTS — Claude.ai inspired polish
+   ─────────────────────────────────────────────────────────────────────────
+   • Typing indicator (pulsing dots)
+   • Provider badge (coloured circle in model picker)
+   • Markdown rendering helpers (code blocks, headings, lists)
+   • Streaming bubble animation
+   • Refined bubble design (softer, better contrast)
+   • HuggingFace provider accent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Typing indicator ────────────────────────────────────────────────────── */
+
+.ai-assistant-typing {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.55rem 0.85rem;
+    background: var(--pst-color-surface, var(--color-background-secondary, #f0f0f0));
+    border-radius: 1.2rem 1.2rem 1.2rem 0.25rem;
+    width: fit-content;
+    max-width: 5rem;
+    margin: 0.25rem 0 0.5rem 0;
+}
+
+[data-bs-theme="dark"] .ai-assistant-typing {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ai-assistant-typing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pst-color-text-muted, rgba(0,0,0,0.4));
+    animation: ai-typing-bounce 1.2s infinite ease-in-out;
+    flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] .ai-assistant-typing-dot {
+    background: rgba(255,255,255,0.45);
+}
+
+.ai-assistant-typing-dot:nth-child(1) { animation-delay: 0s; }
+.ai-assistant-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.ai-assistant-typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes ai-typing-bounce {
+    0%, 60%, 100% { transform: translateY(0);    opacity: 0.45; }
+    30%            { transform: translateY(-5px); opacity: 1;    }
+}
+
+/* ─── Streaming bubble animation ──────────────────────────────────────────── */
+
+.ai-assistant-panel-bubble--streaming {
+    border-left: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    animation: ai-stream-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes ai-stream-pulse {
+    0%, 100% { border-left-color: var(--pst-color-primary, #2980b9); }
+    50%       { border-left-color: transparent; }
+}
+
+/* ─── Provider badge (in model picker rows) ───────────────────────────────── */
+
+.ai-assistant-panel-model-badge {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 2px;
+    background: var(--ai-badge-default, #aaa);
+    box-shadow: 0 0 0 1.5px rgba(255,255,255,0.5);
+    align-self: center;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-badge {
+    box-shadow: 0 0 0 1.5px rgba(0,0,0,0.5);
+}
+
+/* ─── Bubble refinements ──────────────────────────────────────────────────── */
+
+/* Slightly larger gap between turns */
+.ai-assistant-panel-bubble + .ai-assistant-panel-bubble {
+    margin-top: 0.65rem;
+}
+
+/* User bubble: warm right-anchored pill */
+.ai-assistant-panel-bubble--user {
+    border-radius: 1.1rem 1.1rem 0.2rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Assistant bubble: left-anchored, subtle border */
+.ai-assistant-panel-bubble--assistant {
+    border-radius: 0.2rem 1.1rem 1.1rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Error bubble */
+.ai-assistant-panel-bubble--error {
+    border-radius: 0.6rem;
+}
+
+/* ─── Markdown content inside assistant bubbles ───────────────────────────── */
+
+/* Paragraphs inside markdown bubbles */
+.ai-assistant-panel-bubble--assistant .ai-md-p {
+    margin: 0 0 0.55em 0;
+    line-height: 1.55;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-p:last-child {
+    margin-bottom: 0;
+}
+
+/* Code blocks */
+.ai-assistant-panel-bubble--assistant .ai-md-pre {
+    position: relative;
+    background: rgba(0,0,0,0.045);
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.85rem 0.65rem;
+    margin: 0.55rem 0;
+    overflow-x: auto;
+    font-size: 0.82em;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-pre {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+}
+
+.ai-assistant-panel-bubble--assistant .ai-md-pre code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 1em;
+}
+
+/* Language badge on code block */
+.ai-assistant-panel-bubble--assistant .ai-md-code-lang {
+    display: block;
+    font-size: 0.72em;
+    font-family: inherit;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pst-color-text-muted, rgba(0,0,0,0.4));
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-code-lang {
+    color: rgba(255,255,255,0.35);
+}
+
+/* Inline code */
+.ai-assistant-panel-bubble--assistant .ai-md-inline-code {
+    background: rgba(0,0,0,0.07);
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 0.3em;
+    padding: 0.1em 0.35em;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 0.87em;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-inline-code {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.14);
+}
+
+/* Headers inside assistant bubbles */
+.ai-assistant-panel-bubble--assistant .ai-md-h {
+    font-weight: 700;
+    margin: 0.6em 0 0.25em;
+    line-height: 1.3;
+}
+.ai-assistant-panel-bubble--assistant h1.ai-md-h { font-size: 1.05em; }
+.ai-assistant-panel-bubble--assistant h2.ai-md-h { font-size: 0.97em; }
+.ai-assistant-panel-bubble--assistant h3.ai-md-h { font-size: 0.92em; }
+
+/* Lists */
+.ai-assistant-panel-bubble--assistant .ai-md-ul,
+.ai-assistant-panel-bubble--assistant .ai-md-ol {
+    margin: 0.35em 0 0.55em 1.2em;
+    padding: 0;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-ul li,
+.ai-assistant-panel-bubble--assistant .ai-md-ol li {
+    margin-bottom: 0.2em;
+    line-height: 1.5;
+}
+
+/* Links inside assistant bubbles */
+.ai-assistant-panel-bubble--assistant a {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Horizontal rule */
+.ai-assistant-panel-bubble--assistant .ai-md-hr {
+    border: none;
+    border-top: 1px solid rgba(0,0,0,0.12);
+    margin: 0.65rem 0;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-hr {
+    border-color: rgba(255,255,255,0.12);
+}
+
+/* ─── HuggingFace accent (for future per-provider theming) ────────────────── */
+
+[data-provider="huggingface"] .ai-assistant-panel-model-badge {
+    background: #ff9d00 !important;
+}
+
+[data-provider="anthropic"] .ai-assistant-panel-model-badge {
+    background: #c96442 !important;
+}
+
+[data-provider="openai"] .ai-assistant-panel-model-badge {
+    background: #74aa9c !important;
+}
+
+/* NOTE: .ai-assistant-panel-model-row is defined once above (lines ~1756).
+   align-items: center is set there. Do NOT add a second definition here —
+   it was removed because the duplicate override silently killed flex-start
+   alignment on the radio+badge layout, causing badge misalignment. */
+
+/* ─── Improved send button accent ─────────────────────────────────────────── */
+/*
+ * BUG-FIX (SVG visibility): This rule MUST NOT set `color`.
+ *
+ * Cascade order for .ai-assistant-panel-footer-btn--send.has-text:
+ *   Rule A (line ~772)  : color = brand-primary   (transparent-bg state)
+ *   Rule B (line ~2126) : background = brand-primary; color = #fff  ← fills button
+ *   Rule C (this rule)  : must NOT redeclare color
+ *
+ * If this rule declares `color: var(--pst-color-primary)` it overrides Rule B's
+ * `color: #fff`, making the SVG stroke (currentColor) match the brand-coloured
+ * background — completely invisible. This was the reported "turquoise on turquoise"
+ * SVG bug. The fix is to omit `color` here entirely: Rule B's #fff stays as the
+ * winning declared value for all three rules at this selector.
+ *
+ * opacity: 1 is belt-and-suspenders (the disabled state sets 0.35; active send
+ * must always be fully opaque). transform provides the subtle scale affordance.
+ */
+
+.ai-assistant-panel-footer-btn--send.has-text {
+    /* color: intentionally omitted — Rule B above supplies color:#fff which      */
+    /* ensures the send-arrow SVG (stroke:currentColor) is white against the      */
+    /* brand-coloured background.  Never add color here.                          */
+    opacity: 1;
+    transform: scale(1.08);
+    transition: transform 0.12s ease, background-color 0.15s ease;
+}
+
+/* ─── Welcome screen polish ───────────────────────────────────────────────── */
+
+.ai-assistant-panel-welcome strong {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+/* ─── Chip hover: subtle lift ─────────────────────────────────────────────── */
+/*
+ * FIX: The original bottom patch added `transition: transform, box-shadow`
+ * here, which silently REPLACED the `transition: background-color, border-color`
+ * set on .ai-assistant-panel-chip above. CSS last-wins means color transitions
+ * were lost. The correct fix is one unified transition covering all four props.
+ * This rule REPLACES the chip transition declaration above (which has been
+ * removed from its original location and merged here).
+ */
+
+.ai-assistant-panel-chip {
+    transition: background-color 0.15s ease,
+                border-color    0.15s ease,
+                transform       0.12s ease,
+                box-shadow      0.12s ease;
+}
+
+.ai-assistant-panel-chip:hover {
+    transform:  translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }

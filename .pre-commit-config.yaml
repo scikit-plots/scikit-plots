@@ -71,6 +71,7 @@ repos:
         args: ["--enforce-all", "--maxkb=333"]  # 333 KB is the default size limit.
         exclude: "^(\
             benchmarks/.*|\
+            docker/.*|\
             docs/source/logos/.*|\
             docs/source/_static/gallery/.*|\
             docs/source/_static/logos/.*|\
