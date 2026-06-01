@@ -232,6 +232,71 @@ _SVG_KEYBOARD: str = (
 )
 
 
+# Choose a model
+_SVG_MODEL: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2"
+    "IiByeD0iMiIvPjxyZWN0IHg9IjkiIHk9IjkiIHdpZHRoPSI2IiBoZWlnaHQ9IjYi"
+    "Lz48bGluZSB4MT0iOSIgeTE9IjIiIHgyPSI5IiB5Mj0iNCIvPjxsaW5lIHgxPSIx"
+    "NSIgeTE9IjIiIHgyPSIxNSIgeTI9IjQiLz48bGluZSB4MT0iOSIgeTE9IjIwIiB4"
+    "Mj0iOSIgeTI9IjIyIi8+PGxpbmUgeDE9IjE1IiB5MT0iMjAiIHgyPSIxNSIgeTI9"
+    "IjIyIi8+PGxpbmUgeDE9IjIiIHkxPSI5IiB4Mj0iNCIgeTI9IjkiLz48bGluZSB4"
+    "MT0iMiIgeTE9IjE1IiB4Mj0iNCIgeTI9IjE1Ii8+PGxpbmUgeDE9IjIwIiB5MT0i"
+    "OSIgeDI9IjIyIiB5Mj0iOSIvPjxsaW5lIHgxPSIyMCIgeTE9IjE1IiB4Mj0iMjIi"
+    "IHkyPSIxNSIvPjwvc3ZnPg=="
+)
+
+# Terms of Service
+_SVG_TERMS: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PHBhdGggZD0iTTE0IDJINmEyIDIgMCAwIDAtMiAydjE2YTIgMiAw"
+    "IDAgMCAyIDJoMTJhMiAyIDAgMCAwIDItMlY4eiIvPjxwb2x5bGluZSBwb2ludHM9"
+    "IjE0IDIgMTQgOCAyMCA4Ii8+PGxpbmUgeDE9IjkiIHkxPSIxMyIgeDI9IjE1IiB5"
+    "Mj0iMTMiLz48bGluZSB4MT0iOSIgeTE9IjE3IiB4Mj0iMTUiIHkyPSIxNyIvPjwv"
+    "c3ZnPg=="
+)
+
+# Share this page
+_SVG_SHARE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PGNpcmNsZSBjeD0iMTgiIGN5PSI1IiByPSIzIi8+PGNpcmNsZSBj"
+    "eD0iNiIgY3k9IjEyIiByPSIzIi8+PGNpcmNsZSBjeD0iMTgiIGN5PSIxOSIgcj0i"
+    "MyIvPjxsaW5lIHgxPSI4LjU5IiB5MT0iMTMuNTEiIHgyPSIxNS40MiIgeTI9IjE3"
+    "LjQ5Ii8+PGxpbmUgeDE9IjE1LjQxIiB5MT0iNi41MSIgeDI9IjguNTkiIHkyPSIx"
+    "MC40OSIvPjwvc3ZnPg=="
+)
+
+# Open menu
+_SVG_MENU: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PGxpbmUgeDE9IjMiIHkxPSI2IiB4Mj0iMjEiIHkyPSI2Ii8+PGxp"
+    "bmUgeDE9IjMiIHkxPSIxMiIgeDI9IjIxIiB5Mj0iMTIiLz48bGluZSB4MT0iMyIg"
+    "eTE9IjE4IiB4Mj0iMjEiIHkyPSIxOCIvPjwvc3ZnPg=="
+)
+
+# Model information
+_SVG_INFO: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9"
+    "IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Ut"
+    "d2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2lu"
+    "PSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48bGluZSB4"
+    "MT0iMTIiIHkxPSIxNiIgeDI9IjEyIiB5Mj0iMTIiLz48bGluZSB4MT0iMTIiIHkx"
+    "PSI4IiB4Mj0iMTIuMDEiIHkyPSI4Ii8+PC9zdmc+"
+)
+
 # ---------------------------------------------------------------------------
 # Provider icon + description registry
 # ---------------------------------------------------------------------------
@@ -276,4 +341,10 @@ _ICON_META: dict[str, dict[str, str]] = {
     "privacy": {"icon": _SVG_PRIVACY, "desc": "Privacy Policy"},
     "search-ai": {"icon": _SVG_SEARCH_AI, "desc": "AI search"},
     "keyboard": {"icon": _SVG_KEYBOARD, "desc": "Keyboard shortcuts"},
+    # ── Phase B additions ─────────────────────────────────────────────
+    "model": {"icon": _SVG_MODEL, "desc": "Choose a model"},
+    "terms": {"icon": _SVG_TERMS, "desc": "Terms of Service"},
+    "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
+    "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
+    "info": {"icon": _SVG_INFO, "desc": "Model information"},
 }

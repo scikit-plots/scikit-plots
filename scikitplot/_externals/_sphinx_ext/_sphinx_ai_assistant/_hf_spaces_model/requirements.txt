@@ -1,0 +1,18 @@
+# scikit-plots/ai-model  ·  requirements.txt
+#
+# PRE-INSTALLED on ZeroGPU Spaces — DO NOT list here (causes version conflicts
+# with the CUDA-enabled pre-installed builds):
+#   gradio    — Gradio SDK (pre-installed)
+#   spaces    — @spaces.GPU decorator library (pre-installed)
+#   torch     — PyTorch with CUDA support (pre-installed)
+#
+# Only list packages NOT pre-installed.
+# Use ~= (compatible release) to allow patch upgrades while preventing
+# breaking minor/major version changes across Space restarts.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+transformers>=4.46.0,~=4.46.0
+accelerate>=0.33.0,~=0.33.0
+uvicorn>=0.30.0,~=0.34.0
+audioop-lts>=0.2.1,~=0.2.1

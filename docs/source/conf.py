@@ -1953,7 +1953,6 @@ ai_assistant_search_bar = True
 ai_assistant_search_bar_mini = False  # accept full width
 ai_assistant_search_bar_selector = ".bd-sidebar-primary"  # pydata theme
 ai_assistant_search_bar_position = "top"
-ai_assistant_panel_search_placeholder = "Ask AI about docs\u2026"
 
 # CSS selector used by the JavaScript widget to extract page content for
 # copy-as-Markdown and AI-chat features.
@@ -1963,12 +1962,6 @@ ai_assistant_panel_search_placeholder = "Ask AI about docs\u2026"
 # Alabaster / Classic:  "div.document"
 # Read the Docs theme:  'div[role="main"]'
 ai_assistant_content_selector = "article.bd-article"
-ai_assistant_panel_api_enabled = False
-ai_assistant_panel_quick_questions = [
-    "What does this page cover?",
-    "Show me a quick usage example.",
-    "What are the key parameters?",
-]
 
 # Ordered list of CSS selectors the *build-time* Markdown generator probes
 # to locate the main content element in each HTML file.  The first selector
@@ -2105,6 +2098,186 @@ ai_assistant_providers = {
         "type": "web",
     },
 }
+
+# When False (default), the panel renders as a UI stub: the send button
+# appears functional, a simulated 400 ms "thinking" delay occurs, and then
+# a stub message is shown explaining that API mode is disabled.  This is
+# useful for demonstrating the UI without incurring API costs.
+ai_assistant_panel_api_enabled = True  # False
+
+ai_assistant_panel_quick_questions = [
+    "What does this page cover?",
+    "Show me a quick usage example.",
+    "What are the key parameters?",
+]
+
+# ai_assistant_panel_api_url = "https://scikit-plots-ai.hf.space"  # "/_proxy/hf"  # "/_proxy/anthropic"
+# ai_assistant_panel_api_model = "scikit-plots/Qwen2.5-Coder-7B-Instruct"  # "scikit-plots/gpt-oss-20b"  # "claude-sonnet-4-20250514"
+
+import os  # noqa: E402 — conf.py files commonly place imports after preamble
+
+# Single proxy base URL resolved once at build time from the environment.
+# ⚠️  PRODUCTION WARNING
+# ─────────────────────────────────────────────────────────────────────────────
+# The default fallback "http://localhost:8787" is for LOCAL DEVELOPMENT ONLY.
+# If AI_PROXY_BASE is not set in your CI/CD environment, every model endpoint
+# will silently point at localhost and all panel API calls will fail for
+# readers of your published documentation.
+#
+# Set the environment variable (or CI/CD secret) to your deployed proxy:
+#   Local dev  : export AI_PROXY_BASE=http://localhost:8787
+#   Staging/CI : export AI_PROXY_BASE=https://<org>-ai-proxy.hf.space
+#   Production : export AI_PROXY_BASE=https://hf-proxy.<subdomain>.workers.dev
+#
+# SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
+# here. They live only in the proxy's server-side environment / secret store.
+# ─────────────────────────────────────────────────────────────────────────────
+_AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "https://scikit-plots-ai.hf.space")
+# _AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "http://localhost:8787")
+
+ai_assistant_panel_api_models = [
+    # ── Paid-tier entries (commented out — require deployed proxies) ──────
+    # Uncomment once you have a running proxy with the relevant API key.
+    # {
+    #     "id":          "claude-sonnet-4-6",
+    #     "label":       "Claude Sonnet 4.6",
+    #     "provider":    "anthropic",
+    #     "model":       "claude-sonnet-4-20250514",
+    #     "endpoint":    "/_proxy/anthropic",   # proxy injects ANTHROPIC_API_KEY
+    #     "info_url":    "https://www.anthropic.com/claude",
+    #     "description": "Anthropic sonnet flagship — strong reasoning, long context.",
+    # },
+    # {
+    #     "id":          "gpt-4o",
+    #     "label":       "GPT-4o",
+    #     "provider":    "openai",
+    #     "model":       "gpt-4o",
+    #     "endpoint":    "/_proxy/openai",      # proxy injects OPENAI_API_KEY
+    #     "info_url":    "https://openai.com/index/hello-gpt-4o/",
+    #     "description": "Openai chatgpt.",
+    # },
+    # {
+    #     "id":          "gemini-2.5-flash",
+    #     "label":       "Gemini 2.5 Flash",
+    #     "provider":    "google",
+    #     "model":       "gemini-2.5-flash",
+    #     "endpoint":    "/_proxy/gemini",      # proxy injects GEMINI_API_KEY
+    #     "info_url":    "https://ai.google.dev/gemini-api/docs/models",
+    #     "description": "Google gemini.",
+    # },
+    #
+    # ── HuggingFace GPT-OSS-20B (upstream OpenAI release) ────────────────
+    # Same proxy, model field selects the upstream checkpoint.
+    # Proxy MUST inject a valid HuggingFace API token server-side:
+    #     Authorization: Bearer ${HF_TOKEN}
+    # NEVER embed the token in this conf.py file.
+    # Model card: https://huggingface.co/openai/gpt-oss-20b
+    {
+        "id":          "gpt-oss-20b-hf",
+        "label":       "GPT-OSS 20B (OpenAI/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "openai/gpt-oss-20b",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/openai/gpt-oss-20b",
+        "description": (
+            "OpenAI open-source 20B via HuggingFace Inference API — "
+            "OpenAI-compat /v1/chat/completions, SSE streaming enabled."
+        ),
+    },
+    {
+        "default":     True,
+        "id":          "Qwen2.5-Coder-7B-Instruct-hf",
+        "label":       "Qwen2.5-Coder-7B-Instruct (Qwen/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct",
+        "description": (
+            "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
+            "For more:https://github.com/QwenLM"
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-32B-Instruct-hf",
+        "label":       "Qwen2.5-Coder-32B-Instruct (Qwen/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct",
+        "description": (
+            "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
+            "For more:https://github.com/QwenLM"
+        ),
+    },
+    # ── scikit-plots fine-tuned GPT-OSS-20B ──────────────────────────────
+    # Fine-tuned for scikit-plots documentation Q&A.
+    # Model card: https://huggingface.co/scikit-plots/gpt-oss-20b
+    #
+    # IMPORTANT — endpoint resolution (environment-aware):
+    #   AI_PROXY_BASE is the single knob that selects which free proxy to use.
+    #   Set it as an environment variable or CI/CD secret:
+    #
+    #   Local development (dev_proxy.py on port 8787):
+    #       export AI_PROXY_BASE=http://localhost:8787
+    #
+    #   Staging / CI (HuggingFace Space — Option A, always free):
+    #       export AI_PROXY_BASE=https://scikit-plots-ai.hf.space
+    #
+    #   Production (Cloudflare Worker — Option B, 100 000 req/day free):
+    #       export AI_PROXY_BASE=https://hf-proxy.<your-subdomain>.workers.dev
+    #
+    # The _PROXY_BASE import at the top of this block reads the env var with
+    # a sensible fallback so local builds work without any shell setup, and
+    # CI/CD secrets transparently select the production proxy.
+    #
+    # SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
+    # here.  They live only in the proxy's environment secret store.
+    {
+        "id":          "gpt-oss-20b-skplt",
+        "label":       "GPT-OSS 20B (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/gpt-oss-20b",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/gpt-oss-20b",
+        "description": (
+            "(future) scikit-plots fine-tune of GPT-OSS-20B — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-7B-Instruct-skplt",
+        "label":       "Qwen2.5-Coder-7B-Instruct (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/Qwen2.5-Coder-7B-Instruct",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/Qwen2.5-Coder-7B-Instruct",
+        "description": (
+            "(future) scikit-plots fine-tune of Qwen2.5-Coder-7B-Instruct — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-32B-Instruct-skplt",
+        "label":       "Qwen2.5-Coder-32B-Instruct (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/Qwen2.5-Coder-32B-Instruct",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/Qwen2.5-Coder-32B-Instruct",
+        "description": (
+            "(future) scikit-plots fine-tune of Qwen2.5-Coder-32B-Instruct — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+]
 
 ai_assistant_mcp_tools = {
     "vscode": {

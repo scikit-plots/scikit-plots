@@ -22,12 +22,12 @@ default, and purpose.  It is tuned for the **pydata-sphinx-theme**
 (scikit-learn / NumPy style) but all settings are theme-agnostic unless
 noted otherwise.
 
-Usage
------
+Usage:
+
 Copy the relevant sections into your project's ``conf.py`` and adjust.
 
-Theme note
-----------
+Theme note:
+
 pydata-sphinx-theme renders the main article content inside::
 
     <article class="bd-article" role="main">
@@ -35,8 +35,8 @@ pydata-sphinx-theme renders the main article content inside::
 so the CSS selectors are configured accordingly.  For other themes see the
 comments next to each selector value.
 
-Quick-start minimal config
---------------------------
+Quick-start minimal config:
+
 The absolute minimum to enable the extension in ``conf.py``::
 
     extensions = ["scikitplot._externals._sphinx_ext._sphinx_ai_assistant"]
@@ -45,6 +45,9 @@ The absolute minimum to enable the extension in ``conf.py``::
 
 All other values shown below are optional — the extension ships with sensible
 defaults for every setting.
+
+.. seealso:
+  * https://huggingface.co/spaces/scikit-plots/ai/tree/main
 """
 
 # ---------------------------------------------------------------------------
@@ -915,13 +918,721 @@ ai_assistant_panel_shortcut = "Alt+Shift+A"
 # forwards the Anthropic /v1/messages-shaped body.  While empty, enabling
 # ai_assistant_panel_api_enabled raises a clear, actionable error in the
 # panel instead of silently failing.
-#   Example: ai_assistant_panel_api_url = "https://api.example.com/ai-proxy"
-ai_assistant_panel_api_url = ""
+#   Example endpoint: ai_assistant_panel_api_url = "https://api.example.com/ai"
+ai_assistant_panel_api_url = "https://scikit-plots-ai.hf.space"  # "/_proxy/hf"  # "/_proxy/anthropic"
 
 # Type:    str
 # Default: "" → JS default model ("claude-sonnet-4-20250514")
 # Optional model name forwarded in the proxy request body.
-ai_assistant_panel_api_model = ""
+ai_assistant_panel_api_model = "scikit-plots/Qwen2.5-Coder-7B-Instruct"  # "scikit-plots/gpt-oss-20b"  # "claude-sonnet-4-20250514"
+
+# ---------------------------------------------------------------------------
+# Runtime environment helpers
+# ---------------------------------------------------------------------------
+# import os MUST appear at module scope — never use __import__("os") inline.
+# __import__() is opaque to linters, bypasses static analysis, and is
+# slightly slower (re-imports the module object on every evaluation rather
+# than hitting sys.modules from a module-level binding).
+import os  # noqa: E402 — conf.py files commonly place imports after preamble
+
+# Single proxy base URL resolved once at build time from the environment.
+# ⚠️  PRODUCTION WARNING
+# ─────────────────────────────────────────────────────────────────────────────
+# The default fallback "http://localhost:8787" is for LOCAL DEVELOPMENT ONLY.
+# If AI_PROXY_BASE is not set in your CI/CD environment, every model endpoint
+# will silently point at localhost and all panel API calls will fail for
+# readers of your published documentation.
+#
+# Set the environment variable (or CI/CD secret) to your deployed proxy:
+#   Local dev  : export AI_PROXY_BASE=http://localhost:8787
+#   Staging/CI : export AI_PROXY_BASE=https://<org>-ai-proxy.hf.space  # https://scikit-plots-ai.hf.space
+#   Production : export AI_PROXY_BASE=https://hf-proxy.<subdomain>.workers.dev
+#
+# SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
+# here. They live only in the proxy's server-side environment / secret store.
+# ─────────────────────────────────────────────────────────────────────────────
+# _AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "https://scikit-plots-ai.hf.space")
+_AI_PROXY_BASE: str = os.environ.get("AI_PROXY_BASE", "http://localhost:8787")
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Phase B — Multi-model panel, Terms of Service, Share sheet, Hamburger menu
+# ════════════════════════════════════════════════════════════════════════════
+#
+# ── ai_assistant_panel_api_models  (multi-model registry) ────────────────────
+#
+# Type:    str | list[str] | list[dict]
+# Default: []  (empty → legacy single-model path via panel_api_url / _model)
+#
+# When non-empty the floating panel renders:
+#   1. A dedicated "Choose a model" sheet — same slide-over UX as Privacy.
+#      Opened by the [⚙ model ▾] button in the sub-bar, BEFORE Privacy.
+#   2. An inline picker beside the mic + send buttons (Claude-bar style),
+#      controllable via ``ai_assistant_panel_inline_model_picker``.
+#   3. A model attribution field in every feedback event payload
+#      (``detail.model = {id, provider, model}``).
+#
+# Accepted shapes (normalised server-side by ``_normalize_panel_models``):
+#
+#   A. ``"gpt-4o"``                       — single string; uses panel_api_url
+#                                            as the shared proxy endpoint.
+#
+#   B. ``["gpt-4o", "claude-sonnet-4-6"]``— list of strings; same shared-proxy
+#                                            shorthand for several models.
+#
+#   C. list[dict]                         — full per-entry configuration; the
+#                                            production form.  Each dict MUST
+#                                            contain:
+#                                              id       (unique, sessionStorage
+#                                                        key)
+#                                              provider (closed-set whitelist;
+#                                                        see ``_PANEL_MODEL_PROVIDERS``)
+#                                              model    (wire model name the
+#                                                        proxy will forward)
+#                                              endpoint (the proxy URL; http/
+#                                                        https or site-relative)
+#                                            Optional: label, description,
+#                                              info_url, default, icon.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │ SECURITY — API KEYS NEVER APPEAR IN conf.py                             │
+# │                                                                         │
+# │ The browser never sees an API key.  Keys live ONLY on the proxy         │
+# │ server-side.  ``endpoint`` here is a URL pointing at YOUR proxy; the    │
+# │ proxy reads the upstream key from an environment variable (which on     │
+# │ GitHub Actions / Vercel / Netlify comes from a secret store) and        │
+# │ injects it into the upstream request.                                   │
+# │                                                                         │
+# │ Example GitHub Actions snippet for a Vercel serverless proxy:           │
+# │                                                                         │
+# │   # .github/workflows/deploy.yml                                        │
+# │   - name: Deploy proxy                                                  │
+# │     env:                                                                │
+# │       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}               │
+# │       OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}                  │
+# │       GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}                  │
+# │       MISTRAL_API_KEY:   ${{ secrets.MISTRAL_API_KEY }}                 │
+# │       HF_TOKEN:          ${{ secrets.HF_TOKEN }}                        │
+# │     run: vercel deploy --prod                                           │
+# │                                                                         │
+# │ HuggingFace Inference API proxy (FastAPI/Vercel example):               │
+# │                                                                         │
+# │   # api/hf.py  (deployed at /_proxy/hf)                                 │
+# │   import os, httpx                                                      │
+# │   HF_TOKEN = os.environ["HF_TOKEN"]   # from secrets, never conf.py     │
+# │   HF_BASE  = "https://api-inference.huggingface.co/models"              │
+# │                                                                         │
+# │   def handler(req, model):                                              │
+# │       url = f"{HF_BASE}/{model}/v1/chat/completions"                    │
+# │       r = httpx.post(url, timeout=120,                                  │
+# │           headers={"Authorization": f"Bearer {HF_TOKEN}",               │
+# │                    "Content-Type": "application/json"},                 │
+# │           content=req.body)                                             │
+# │       # Forward SSE for streaming (content-type: text/event-stream)     │
+# │       return (r.status_code, r.content,                                 │
+# │               {"content-type": r.headers.get("content-type",            │
+# │                                              "application/json")})      │
+# │                                                                         │
+# │ In your proxy code (e.g. api/anthropic.py on Vercel):                   │
+# │                                                                         │
+# │   import os, httpx                                                      │
+# │   def handler(req):                                                     │
+# │       key = os.environ["ANTHROPIC_API_KEY"]   # never logged            │
+# │       r = httpx.post(                                                   │
+# │           "https://api.anthropic.com/v1/messages",                      │
+# │           headers={"x-api-key": key,                                    │
+# │                    "anthropic-version": "2023-06-01",                   │
+# │                    "content-type": "application/json"},                 │
+# │           content=req.body, timeout=60,                                 │
+# │       )                                                                 │
+# │       return (r.status_code, r.content,                                 │
+# │               {"content-type": "application/json"})                     │
+# │                                                                         │
+# │ NEVER write a key in conf.py.  NEVER expose a key in any value that     │
+# │ reaches the browser (this extension validates ``endpoint`` against an   │
+# │ http/https/site-relative allow-list; the JS only POSTs to ``endpoint``).│
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Full production example (uncomment + adapt):
+#
+# ai_assistant_panel_api_models = [
+#     # ── HuggingFace GPT-OSS-20B  ─────────────────────────────────────────
+#     # The HuggingFace Inference API uses the OpenAI-compat
+#     # /v1/chat/completions format.  The JS auto-enables SSE streaming for
+#     # the huggingface provider.
+#     #
+#     # Proxy example (Python / FastAPI):
+#     #
+#     #   import os, httpx
+#     #   HF_TOKEN = os.environ["HF_TOKEN"]   # from secrets store
+#     #   INFERENCE_BASE = "https://api-inference.huggingface.co/models"
+#     #
+#     #   async def hf_proxy(model: str, body: bytes):
+#     #       url = f"{INFERENCE_BASE}/{model}/v1/chat/completions"
+#     #       r = await httpx.AsyncClient().post(
+#     #           url,
+#     #           headers={"Authorization": f"Bearer {HF_TOKEN}",
+#     #                    "Content-Type": "application/json"},
+#     #           content=body, timeout=120,
+#     #       )
+#     #       return Response(r.content, media_type=r.headers["content-type"])
+#     #
+#     {
+#         "id":          "gpt-oss-20b-skplt",
+#         "label":       "GPT-OSS 20B (scikit-plots)",
+#         "provider":    "huggingface",
+#         "model":       "scikit-plots/gpt-oss-20b",
+#         "endpoint":    "/_proxy/hf",        # same proxy, model field selects checkpoint
+#         "info_url":    "https://huggingface.co/scikit-plots/gpt-oss-20b",
+#         "description": (
+#             "scikit-plots fine-tune of GPT-OSS-20B — trained on the full "
+#             "scikit-plots documentation corpus for higher answer accuracy."
+#         ),
+#     },
+#     {
+#         "id":          "hf-gpt-oss-20b",
+#         "label":       "GPT-OSS 20B (HuggingFace)",
+#         "provider":    "huggingface",
+#         "model":       "openai/gpt-oss-20b",
+#         "endpoint":    "/_proxy/hf",        # YOUR HuggingFace proxy
+#         "info_url":    "https://huggingface.co/openai/gpt-oss-20b",
+#         "description": (
+#             "OpenAI open-source 20B model via HuggingFace Inference API "
+#             "(OpenAI-compat, SSE streaming enabled)."
+#         ),
+#     },
+#     {
+#         "id":          "claude-sonnet-4-6",
+#         "label":       "Claude Sonnet 4.6",
+#         "provider":    "anthropic",
+#         "model":       "claude-sonnet-4-20250514",
+#         "endpoint":    "/_proxy/anthropic",       # YOUR proxy
+#         "default":     True,
+#         "info_url":    "https://www.anthropic.com/claude",
+#         "description": "Anthropic flagship — strong reasoning, long context.",
+#     },
+#     {
+#         "id":          "gpt-4o",
+#         "label":       "GPT-4o",
+#         "provider":    "openai",
+#         "model":       "gpt-4o",
+#         "endpoint":    "/_proxy/openai",
+#         "info_url":    "https://openai.com/index/hello-gpt-4o/",
+#     },
+#     {
+#         "id":          "gemini-2.5-flash",
+#         "label":       "Gemini 2.5 Flash",
+#         "provider":    "google",
+#         "model":       "gemini-2.5-flash",
+#         "endpoint":    "/_proxy/gemini",
+#         "info_url":    "https://ai.google.dev/gemini-api/docs/models",
+#     },
+#     {
+#         "id":          "mistral-large",
+#         "label":       "Mistral Large",
+#         "provider":    "mistral",
+#         "model":       "mistral-large-latest",
+#         "endpoint":    "/_proxy/mistral",
+#         "info_url":    "https://mistral.ai/news/mistral-large/",
+#     },
+#     {
+#         "id":          "deepseek-reasoner",
+#         "label":       "DeepSeek R1",
+#         "provider":    "deepseek",
+#         "model":       "deepseek-reasoner",
+#         "endpoint":    "/_proxy/deepseek",
+#         "info_url":    "https://api-docs.deepseek.com/",
+#     },
+#     {
+#         "id":          "llama3.2-local",
+#         "label":       "Llama 3.2 (local Ollama)",
+#         "provider":    "ollama",
+#         "model":       "llama3.2:latest",
+#         "endpoint":    "http://localhost:11434/v1/chat/completions",
+#         "info_url":    "https://ollama.com/library/llama3.2",
+#         "description": "Fully offline, runs against your local Ollama server.",
+#     },
+# ]
+ai_assistant_panel_api_models = [
+    # ── Paid-tier entries (commented out — require deployed proxies) ──────
+    # Uncomment once you have a running proxy with the relevant API key.
+    # {
+    #     "id":          "claude-sonnet-4-6",
+    #     "label":       "Claude Sonnet 4.6",
+    #     "provider":    "anthropic",
+    #     "model":       "claude-sonnet-4-20250514",
+    #     "endpoint":    "/_proxy/anthropic",   # proxy injects ANTHROPIC_API_KEY
+    #     "info_url":    "https://www.anthropic.com/claude",
+    #     "description": "Anthropic sonnet flagship — strong reasoning, long context.",
+    # },
+    # {
+    #     "id":          "gpt-4o",
+    #     "label":       "GPT-4o",
+    #     "provider":    "openai",
+    #     "model":       "gpt-4o",
+    #     "endpoint":    "/_proxy/openai",      # proxy injects OPENAI_API_KEY
+    #     "info_url":    "https://openai.com/index/hello-gpt-4o/",
+    #     "description": "Openai chatgpt.",
+    # },
+    # {
+    #     "id":          "gemini-2.5-flash",
+    #     "label":       "Gemini 2.5 Flash",
+    #     "provider":    "google",
+    #     "model":       "gemini-2.5-flash",
+    #     "endpoint":    "/_proxy/gemini",      # proxy injects GEMINI_API_KEY
+    #     "info_url":    "https://ai.google.dev/gemini-api/docs/models",
+    #     "description": "Google gemini.",
+    # },
+    #
+    # ── HuggingFace GPT-OSS-20B (upstream OpenAI release) ────────────────
+    # Same proxy, model field selects the upstream checkpoint.
+    # Proxy MUST inject a valid HuggingFace API token server-side:
+    #     Authorization: Bearer ${HF_TOKEN}
+    # NEVER embed the token in this conf.py file.
+    # Model card: https://huggingface.co/openai/gpt-oss-20b
+    # https://router.huggingface.co/v1/chat/completions
+    {
+        "id":          "gpt-oss-20b-hf",
+        "label":       "GPT-OSS 20B (OpenAI/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "openai/gpt-oss-20b",
+        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "info_url":    "https://huggingface.co/openai/gpt-oss-20b",
+        "description": (
+            "OpenAI open-source 20B via HuggingFace Inference API — "
+            "OpenAI-compat /v1/chat/completions, SSE streaming enabled."
+        ),
+    },
+    {
+        "default":     True,
+        "id":          "Qwen2.5-Coder-7B-Instruct-hf",
+        "label":       "Qwen2.5-Coder-7B-Instruct (Qwen/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct",
+        "description": (
+            "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
+            "For more:https://github.com/QwenLM"
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-32B-Instruct-hf",
+        "label":       "Qwen2.5-Coder-32B-Instruct (Qwen/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "endpoint":    "https://router.huggingface.co/v1/chat/completions",
+        "info_url":    "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct",
+        "description": (
+            "Qwen2.5-Coder is the latest series of Code-Specific Qwen large language models (formerly known as CodeQwen). "
+            "For more:https://github.com/QwenLM"
+        ),
+    },
+    # ── scikit-plots fine-tuned GPT-OSS-20B ──────────────────────────────
+    # Fine-tuned for scikit-plots documentation Q&A.
+    # Model card: https://huggingface.co/scikit-plots/gpt-oss-20b
+    #
+    # IMPORTANT — endpoint resolution (environment-aware):
+    #   AI_PROXY_BASE is the single knob that selects which free proxy to use.
+    #   Set it as an environment variable or CI/CD secret:
+    #
+    #   Local development (dev_proxy.py on port 8787):
+    #       export AI_PROXY_BASE=http://localhost:8787
+    #
+    #   Staging / CI (HuggingFace Space — Option A, always free):
+    #       export AI_PROXY_BASE=https://scikit-plots-ai.hf.space
+    #
+    #   Production (Cloudflare Worker — Option B, 100 000 req/day free):
+    #       export AI_PROXY_BASE=https://hf-proxy.<your-subdomain>.workers.dev
+    #
+    # The _PROXY_BASE import at the top of this block reads the env var with
+    # a sensible fallback so local builds work without any shell setup, and
+    # CI/CD secrets transparently select the production proxy.
+    #
+    # SECURITY: API tokens (HF_TOKEN, ANTHROPIC_API_KEY, …) MUST NEVER appear
+    # here.  They live only in the proxy's environment secret store.
+    {
+        "id":          "gpt-oss-20b-skplt",
+        "label":       "GPT-OSS 20B (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/gpt-oss-20b",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/gpt-oss-20b",
+        "description": (
+            "(future) scikit-plots fine-tune of GPT-OSS-20B — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-7B-Instruct-skplt",
+        "label":       "Qwen2.5-Coder-7B-Instruct (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/Qwen2.5-Coder-7B-Instruct",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/Qwen2.5-Coder-7B-Instruct",
+        "description": (
+            "(future) scikit-plots fine-tune of Qwen2.5-Coder-7B-Instruct — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+    {
+        "id":          "Qwen2.5-Coder-32B-Instruct-skplt",
+        "label":       "Qwen2.5-Coder-32B-Instruct (scikit-plots/HuggingFace)",
+        "provider":    "huggingface",
+        "model":       "scikit-plots/Qwen2.5-Coder-32B-Instruct",
+        # Resolved at build time from AI_PROXY_BASE; see comment above.
+        # Replace with a literal URL once your proxy is deployed, e.g.:
+        #   "endpoint": "https://scikit-plots-ai.hf.space/v1/chat/completions",
+        "endpoint":    _AI_PROXY_BASE + "/v1/chat/completions",
+        "info_url":    "https://huggingface.co/scikit-plots/Qwen2.5-Coder-32B-Instruct",
+        "description": (
+            "(future) scikit-plots fine-tune of Qwen2.5-Coder-32B-Instruct — trained on the full "
+            "scikit-plots documentation corpus for higher answer accuracy."
+        ),
+    },
+]
+
+
+# ── ai_assistant_panel_inline_model_picker ───────────────────────────────────
+# Type:    bool
+# Default: True
+# Render the inline model <select> beside mic + send (Claude-bar layout).
+# The dedicated sheet button in the sub-bar remains available regardless.
+ai_assistant_panel_inline_model_picker = True
+
+# ── ai_assistant_panel_api_streaming ─────────────────────────────────────────
+# Type:    bool
+# Default: True
+#
+# Master switch for SSE (Server-Sent Events) streaming in API mode.
+#
+#   True  (default)
+#       The JS requests ``stream: true`` for every OpenAI-compat provider
+#       (HuggingFace, Groq, Cloudflare, Cerebras, Together, Fireworks,
+#       SambaNova, Ollama, OpenAI, Mistral, DeepSeek, …) and renders tokens
+#       as they arrive, producing a live typewriter effect.
+#
+#       Your proxy MUST forward the ``content-type: text/event-stream``
+#       header and the raw SSE frames without buffering.  All four free
+#       proxy options below are written to do this correctly.
+#
+#   False
+#       The JS always requests ``stream: false`` and waits for the complete
+#       JSON response.  Use False when your hosting platform buffers SSE
+#       frames before delivering the response (some PaaS providers, certain
+#       reverse-proxy configurations).  The extension detects this
+#       automatically at runtime too: if ``stream: true`` is requested but
+#       the response arrives as ``application/json`` rather than
+#       ``text/event-stream``, the non-streaming parser handles it silently.
+#
+# Developer note: This flag is serialised into
+# ``window.AI_ASSISTANT_CONFIG.panelApiStreaming`` by
+# ``add_ai_assistant_context`` and read by ``_panelApiCall`` in
+# ``ai-assistant.js``.  Setting it False overrides the per-provider default
+# without removing the provider from ``_STREAMING_PROVIDERS``; it is a
+# deployment-time tuning knob, not a provider capability flag.
+ai_assistant_panel_api_streaming = True
+
+
+# ===========================================================================
+# FREE PROXY DEPLOYMENT — FOUR ZERO-COST OPTIONS
+# ===========================================================================
+#
+# The browser cannot call any AI provider API (HuggingFace, Anthropic, …)
+# directly: providers send no CORS headers for arbitrary web origins, and
+# every provider requires a secret API token that must never appear in
+# static JS served to readers.
+#
+# A thin server-side proxy is therefore REQUIRED.  It injects the token
+# (from an environment secret, never from this file) and forwards the
+# request.
+#
+# All four options below are truly free — no credit card, no paid tier.
+#
+# ── Option A: HuggingFace Space (CPU tier, always on) ────────────────────────
+#
+# Deploy a ~60-line FastAPI app as a Docker Space under your HF org.
+# CPU Spaces are completely free and always reachable.  Your HF_TOKEN
+# lives in the Space's secret store — never in conf.py or in the browser.
+#
+# Files needed in your Space repo:
+#
+#   app.py  ────────────────────────────────────────────────────────────────
+#   import os, httpx
+#   from fastapi import FastAPI, Request, Response
+#   from fastapi.middleware.cors import CORSMiddleware
+#
+#   app = FastAPI()
+#   app.add_middleware(CORSMiddleware, allow_origins=["*"],
+#                      allow_methods=["POST","OPTIONS"],
+#                      allow_headers=["Content-Type"])
+#   HF_TOKEN   = os.environ["HF_TOKEN"]   # Space secret — never hardcode
+#   HF_BASE    = "https://api-inference.huggingface.co/models"
+#
+#   @app.post("/v1/chat/completions")
+#   async def proxy(req: Request) -> Response:
+#       body = await req.body()
+#       import json
+#       model = json.loads(body).get("model", "openai/gpt-oss-20b")
+#       r = await httpx.AsyncClient(timeout=120).post(
+#           f"{HF_BASE}/{model}/v1/chat/completions",
+#           content=body,
+#           headers={"Authorization": f"Bearer {HF_TOKEN}",
+#                    "Content-Type": "application/json"})
+#       return Response(r.content, status_code=r.status_code,
+#                       media_type=r.headers.get("content-type","application/json"))
+#
+#   @app.get("/health")
+#   def health(): return {"status": "ok"}
+#   ────────────────────────────────────────────────────────────────────────
+#
+#   Dockerfile  ────────────────────────────────────────────────────────────
+#   FROM python:3.11-slim
+#   WORKDIR /app
+#   RUN pip install fastapi uvicorn httpx
+#   COPY app.py .
+#   EXPOSE 7860
+#   CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+#   ────────────────────────────────────────────────────────────────────────
+#
+# Secrets: Space → Settings → Repository secrets → HF_TOKEN = hf_xxxx...
+#
+# Once live at https://scikit-plots-ai.hf.space, set:
+#
+# ai_assistant_panel_api_models = [
+#     {
+#         "default":     True,
+#         "id":          "gpt-oss-20b-skplt",
+#         "label":       "GPT-OSS 20B (scikit-plots)",
+#         "provider":    "huggingface",
+#         "model":       "scikit-plots/gpt-oss-20b",
+#         "endpoint":    "https://scikit-plots-ai.hf.space/v1/chat/completions",
+#         "info_url":    "https://huggingface.co/scikit-plots/gpt-oss-20b",
+#         "description": "scikit-plots fine-tune — trained on full docs corpus.",
+#     },
+#     {
+#         "id":          "hf-gpt-oss-20b",
+#         "label":       "GPT-OSS 20B (OpenAI)",
+#         "provider":    "huggingface",
+#         "model":       "openai/gpt-oss-20b",
+#         "endpoint":    "https://scikit-plots-ai.hf.space/v1/chat/completions",
+#         "info_url":    "https://huggingface.co/openai/gpt-oss-20b",
+#         "description": "OpenAI open-source 20B via HuggingFace Inference API.",
+#     },
+# ]
+#
+#
+# ── Option B: Cloudflare Worker (100 000 req/day free, zero server) ──────────
+#
+# worker.js  (deploy with: wrangler deploy)  ─────────────────────────────
+# export default {
+#   async fetch(request, env) {
+#     if (request.method === "OPTIONS")
+#       return new Response(null, { headers: cors() });
+#     if (request.method !== "POST")
+#       return new Response("Method Not Allowed", { status: 405 });
+#     const body = await request.text();
+#     let model = "openai/gpt-oss-20b";
+#     try { const p = JSON.parse(body); if (p.model) model = p.model; } catch(_){}
+#     const url =
+#       `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`;
+#     const r = await fetch(url, {
+#       method: "POST",
+#       headers: { "Authorization": `Bearer ${env.HF_TOKEN}`,
+#                  "Content-Type": "application/json" },
+#       body });
+#     return new Response(r.body, { status: r.status,
+#       headers: { "Content-Type": r.headers.get("content-type") ||
+#                  "application/json", ...cors() }});
+#   }
+# };
+# function cors() {
+#   return { "Access-Control-Allow-Origin": "*",
+#            "Access-Control-Allow-Methods": "POST, OPTIONS",
+#            "Access-Control-Allow-Headers": "Content-Type" }; }
+# ────────────────────────────────────────────────────────────────────────
+#
+# Deploy:
+#   npm install -g wrangler
+#   wrangler login
+#   wrangler init hf-proxy        # copy worker.js above
+#   wrangler secret put HF_TOKEN  # paste hf_xxxx...
+#   wrangler deploy
+#   # → https://hf-proxy.<your-subdomain>.workers.dev
+#
+# ai_assistant_panel_api_models = [
+#     {
+#         "default":  True,
+#         "id":       "hf-gpt-oss-20b",
+#         "label":    "GPT-OSS 20B (HuggingFace)",
+#         "provider": "huggingface",
+#         "model":    "openai/gpt-oss-20b",
+#         "endpoint": "https://hf-proxy.<your-subdomain>.workers.dev",
+#     },
+# ]
+#
+#
+# ── Option C: Local dev_proxy.py (development only — never deploy) ────────────
+#
+# Run alongside your local http.server / Live Server during development.
+#
+#   dev_proxy.py  ──────────────────────────────────────────────────────────
+#   import os, json, httpx
+#   from http.server import BaseHTTPRequestHandler, HTTPServer
+#   HF_TOKEN = os.environ["HF_TOKEN"]    # export HF_TOKEN=hf_xxxx in shell
+#   HF_BASE  = "https://api-inference.huggingface.co/models"
+#   class H(BaseHTTPRequestHandler):
+#     def do_OPTIONS(self): self._cors()
+#     def do_POST(self):
+#       b = self.rfile.read(int(self.headers.get("Content-Length",0)))
+#       model = json.loads(b).get("model","openai/gpt-oss-20b")
+#       r = httpx.post(f"{HF_BASE}/{model}/v1/chat/completions", content=b,
+#             headers={"Authorization":f"Bearer {HF_TOKEN}",
+#                      "Content-Type":"application/json"}, timeout=120)
+#       self.send_response(r.status_code)
+#       self.send_header("Content-Type",
+#                        r.headers.get("content-type","application/json"))
+#       self._cors_headers(); self.end_headers(); self.wfile.write(r.content)
+#     def _cors(self): self.send_response(204); self._cors_headers(); self.end_headers()
+#     def _cors_headers(self):
+#       self.send_header("Access-Control-Allow-Origin","*")
+#       self.send_header("Access-Control-Allow-Methods","POST, OPTIONS")
+#       self.send_header("Access-Control-Allow-Headers","Content-Type")
+#   HTTPServer(("",8787), H).serve_forever()
+#   ────────────────────────────────────────────────────────────────────────
+#
+# Usage:
+#   export HF_TOKEN=hf_xxxx...
+#   python dev_proxy.py &
+#
+# Then for local builds only:
+#   ai_assistant_panel_api_models = [
+#       { "id": "hf-local", "provider": "huggingface",
+#         "model": "openai/gpt-oss-20b",
+#         "endpoint": "http://localhost:8787/v1/chat/completions" },
+#   ]
+#
+# Use an environment variable to switch endpoints per environment:
+#
+# import os
+# _PROXY = os.environ.get("AI_PROXY_BASE",
+#                         "https://scikit-plots-ai.hf.space")
+# ai_assistant_panel_api_models = [
+#     { "id": "hf-gpt-oss-20b", "provider": "huggingface",
+#       "model": "openai/gpt-oss-20b",
+#       "endpoint": f"{_PROXY}/v1/chat/completions", "default": True },
+# ]
+# Set AI_PROXY_BASE as a GitHub Actions / CI repo secret pointing at
+# the deployed HF Space or Cloudflare Worker URL for production builds.
+#
+#
+# ── Option D: HuggingFace ZeroGPU Space (free shared GPU, self-host model) ────
+#
+# Host the model itself — zero inference cost forever.
+# ZeroGPU gives free shared-GPU time to public Spaces.
+#
+# Minimal Gradio Space exposing an OpenAI-compat REST endpoint:
+#
+#   app.py  ────────────────────────────────────────────────────────────────
+#   import gradio as gr, spaces
+#   from transformers import pipeline
+#   MODEL_ID = "scikit-plots/gpt-oss-20b"    # or "openai/gpt-oss-20b"
+#   pipe = pipeline("text-generation", model=MODEL_ID, device_map="auto")
+#
+#   @spaces.GPU
+#   def respond(message, system=""):
+#       msgs = ([{"role":"system","content":system}] if system else []) + \
+#              [{"role":"user","content":message}]
+#       return pipe(msgs, max_new_tokens=512)[0]["generated_text"][-1]["content"]
+#
+#   gr.Interface(fn=respond, inputs=["text","text"], outputs="text").launch()
+#   ────────────────────────────────────────────────────────────────────────
+#
+# Point the extension at the Gradio Space URL and use provider="huggingface".
+# The @spaces.GPU decorator gates GPU allocation per-request at zero cost.
+
+# ── Terms of Service sheet (sibling of Privacy & Responsibility) ─────────────
+# Type:    bool / str / str (HTML, trusted author input)
+ai_assistant_panel_terms             = True
+ai_assistant_panel_terms_title       = "Terms of Service"
+ai_assistant_panel_terms_link_text   = "Terms of Service"
+# Empty string → built-in default copy that covers documentation context,
+# acceptable use, model-provider responsibility, and the feedback collection
+# notice (kept in sync with how the feedback event payload is built).
+# Author override is INJECTED VERBATIM — keep this trusted (from conf.py only,
+# never user input).
+ai_assistant_panel_terms_html        = ""
+
+# ── Share sheet (copy-link + intent shares) ──────────────────────────────────
+ai_assistant_panel_share         = True
+ai_assistant_panel_share_label   = "Share"
+# Empty list → built-in defaults: copy_link, email, x, linkedin, reddit,
+# hacker_news.  Each entry is filtered through the same URL allow-list as
+# AI providers (only http/https/mailto: schemes survive).  Each url_template
+# supports {url} and {title} placeholders (URL-encoded client-side).
+# Custom example:
+#   ai_assistant_panel_share_targets = [
+#       {"id": "internal_slack",
+#        "label": "Slack #docs",
+#        "url_template": "https://example.slack.com/share?u={url}"},
+#   ]
+ai_assistant_panel_share_targets = []
+
+# ── Hamburger overflow menu ──────────────────────────────────────────────────
+# Type:    bool
+# Default: True
+# When True a ☰ menu button appears at the LEFT of the sub-bar and duplicates
+# every sheet entry-point (model, privacy, terms, share) in a single popover.
+# Designed for narrow viewports: the right-cluster labels collapse via CSS at
+# ≤ 460 px, and the hamburger is the canonical entry-point.
+ai_assistant_panel_hamburger = True
+
+# ── How to access feedback for model training ───────────────────────────────
+#
+# The extension itself NEVER stores or transmits a feedback submission.
+# Instead, every submit dispatches an ``ai-assistant-feedback`` CustomEvent
+# on ``document`` with the shape (schemaVersion: 1):
+#
+#   {
+#     schemaVersion: 1,
+#     ratingValue:   -1 | 0 | +1 | ...,   // SIGNED INT (training signal)
+#     ratingLabel:   "negative" | ...,    // string
+#     rating:        "negative" | ...,    // legacy alias of ratingLabel
+#     message:       "free-text…",
+#     query:         "the user's question",
+#     answer:        "the model's full reply",
+#     model:         {id, provider, model} | null,
+#     answerIndex:   <int>,
+#     page:          "https://docs.example.com/x.html",
+#     ts:            <ms epoch>,
+#     sessionId:     "<uuid>"             // idempotency key
+#   }
+#
+# Doc authors attach their own listener (e.g. in a custom JS file added via
+# html_js_files) and forward to the storage of their choice:
+#
+#   document.addEventListener("ai-assistant-feedback", function (ev) {
+#       fetch("/_collect/feedback", {
+#           method:  "POST",
+#           headers: {"content-type": "application/json"},
+#           body:    JSON.stringify(ev.detail),
+#           keepalive: true,    // survives page-unload races
+#       });
+#   });
+#
+# The "/_collect/feedback" endpoint should:
+#   • require an origin / referer check;
+#   • dedup on (sessionId, answerIndex);
+#   • write to your store of choice (S3 JSONL, BigQuery, Postgres, …);
+#   • NEVER echo back submissions to the browser.
+#
+# When ai_assistant_panel_feedback_log = True the JS also console.log()s
+# each submission — useful while developing the listener.
 
 # ── R5: feedback block ("Was this helpful?") ──────────────────────────────
 # Type:    bool
@@ -974,7 +1685,7 @@ ai_assistant_panel_feedback_question = "Was this helpful?"
 #     {"emoji": "\U0001F929", "title": "Excellent!",    "value": "excellent"        },  # 🤩 +5
 # ]
 #
-# Leave empty to use the 10-emoji default shown in Example C:
+# Leave empty to use the 11-emoji default shown in Example C with 0 option:
 ai_assistant_panel_feedback_options = []
 
 # Type:    str — placeholder for the optional free-text box.

@@ -56,7 +56,7 @@ print(f"Python {sys.version}")
 print(f"Index class: {Index}")
 
 # %%
-## 1. Load & Parse Hamlet
+# 1. Load & Parse Hamlet
 #
 # We use the full text of *Hamlet* (public domain, ~1600) and segment it into
 # **speech blocks** — each block is one character's consecutive lines within a scene.
