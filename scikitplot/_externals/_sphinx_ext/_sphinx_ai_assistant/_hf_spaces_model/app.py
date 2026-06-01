@@ -391,6 +391,7 @@ import logging
 import os
 import threading
 import time
+import traceback
 import uuid
 from typing import Any, Final
 
@@ -1520,6 +1521,25 @@ def _error_response(
     .. [1] OpenAI API reference: Error codes
            https://platform.openai.com/docs/guides/error-codes
     """
+    # Log traceback internally for server-side errors only.
+    if error_type == "server_error":
+        logger.error(
+            "Server error response | code=%s | traceback=\n%s",
+            code,
+            traceback.format_exc(),
+        )
+
+        safe_server_messages: dict[str, str] = {
+            "model_load_error": "Model loading failed. Please retry in a few minutes.",
+            "inference_error": "Inference failed. Please retry.",
+            "internal_error": "An unexpected server error occurred.",
+        }
+
+        message = safe_server_messages.get(
+            code,
+            "An unexpected server error occurred.",
+        )
+
     return JSONResponse(
         content={
             "error": {
