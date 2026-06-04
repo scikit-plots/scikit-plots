@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: EXE001
 # dev_proxy.py  —  Path E: Local Python Development Proxy
 #
 # PURPOSE

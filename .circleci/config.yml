@@ -68,10 +68,12 @@ _defaults: &defaults
   ## https://circleci.com/docs/install-machine-runner-3-on-linux/
   # machine: true
   ## https://circleci.com/docs/container-runner-installation/
+  ## https://circleci.com/docs/guides/execution-managed/using-docker
   docker:
     # CircleCI maintains a library of pre-built images
     # - image: cimg/base:current-22.04
     # documented at https://circleci.com/developer/images/image/cimg/python
+    ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
     - image: cimg/python:3.11
   # environment:
   #   - MKL_NUM_THREADS: 2
@@ -83,7 +85,11 @@ _defaults: &defaults
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
   working_directory: ~/repo
   ## https://circleci.com/docs/configuration-reference/#resourceclass
-  # resource_class: scikit-plots/documentation  # large
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#arm
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#x86
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#gen1
+  ## https://circleci.com/docs/guides/execution-managed/using-docker/#using-docker-gen2
+  # resource_class: xlarge  # xlarge.gen2
 
 # https://github.com/codecov/example-javascript/blob/main/.circleci/config.yml
 # orbs:

@@ -1968,6 +1968,8 @@ ai_assistant_content_selector = "article.bd-article"
 # that matches is used.
 ai_assistant_content_selectors = [
     # PyData Sphinx Theme (canonical)
+    # https://github.com/pydata/pydata-sphinx-theme/tree/main/src/pydata_sphinx_theme/assets/styles
+    # https://raw.githubusercontent.com/pydata/pydata-sphinx-theme/refs/heads/main/src/pydata_sphinx_theme/assets/styles/pydata-sphinx-theme.scss
     "article.bd-article",      # PST >= 0.13
     # Furo / semantic main article
     'article[role="main"]',    # Furo canonical

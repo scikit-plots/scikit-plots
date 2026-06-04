@@ -1,0 +1,199 @@
+
+<style>
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.sp{height:.5px;background:var(--color-border-tertiary);flex-shrink:0}
+.sh{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sh::before{content:attr(data-lbl);font-size:11px;font-weight:500;letter-spacing:.05em;color:var(--color-text-secondary);white-space:nowrap}
+.sh::after{content:'';flex:1;height:.5px;background:var(--color-border-tertiary)}
+.mr{display:flex;align-items:center;gap:8px;padding:7px 9px;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;user-select:none}
+.mr:hover{border-color:var(--color-border-secondary);background:var(--color-background-secondary)}
+.mr.sel{border:.5px solid var(--color-border-info);background:var(--color-background-info)}
+.mr .chk{font-size:13px;color:var(--color-text-info);opacity:0;margin-left:auto;flex-shrink:0}
+.mr.sel .chk{opacity:1}
+.eb{border:.5px solid transparent;border-radius:6px;padding:6px 2px;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%}
+.eb:hover{background:var(--color-background-primary)}
+.eb.sel{background:var(--color-background-primary);border-color:var(--color-border-tertiary)}
+.fr{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--border-radius-md);background:var(--color-background-secondary)}
+.tgl{position:relative;width:32px;height:18px;border-radius:9px;border:.5px solid var(--color-border-secondary);background:var(--color-background-secondary);cursor:pointer;padding:0;flex-shrink:0}
+.tgl[aria-pressed="true"]{background:var(--color-background-info);border-color:var(--color-border-info)}
+.tgl-t{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--color-text-secondary);transition:left .15s ease,background .15s ease}
+.tgl[aria-pressed="true"] .tgl-t{left:16px;background:var(--color-text-info)}
+.sbg{font-size:10px;font-weight:500;padding:2px 6px;border-radius:4px;background:var(--color-border-tertiary);color:var(--color-text-secondary);flex-shrink:0;letter-spacing:.03em}
+</style>
+
+<h2 class="sr-only">Model and settings panel — interactive prototype for Sphinx AI assistant. Select a model, choose effort level, toggle extended reasoning.</h2>
+
+<div style="display:flex;justify-content:center;padding:2rem 1rem 2.5rem">
+  <div style="width:280px;background:var(--color-background-primary);border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:.5px solid var(--color-border-tertiary)">
+      <span style="font-size:14px;font-weight:500;color:var(--color-text-primary)">Choose a model</span>
+      <button style="padding:3px 4px;border-radius:var(--border-radius-md);color:var(--color-text-secondary);line-height:1" aria-label="Close panel">
+        <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:12px;display:flex;flex-direction:column;gap:12px">
+
+      <!-- §1  ai-assistant-panel-privacy-body  ai-assistant-panel-model-list -->
+      <section class="ai-assistant-panel-privacy-body ai-assistant-panel-model-list" aria-label="Model selection">
+        <div class="sh" data-lbl="Model"></div>
+        <div id="model-list" role="radiogroup" aria-label="Choose a model" style="display:flex;flex-direction:column;gap:4px"></div>
+      </section>
+
+      <div class="sp" role="separator"></div>
+
+      <!-- §2  Effort -->
+      <section aria-label="Effort level">
+        <div class="sh" data-lbl="Effort"></div>
+        <div id="eff-seg" style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;padding:3px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)" role="radiogroup" aria-label="Effort level"></div>
+        <p id="eff-desc" style="margin:7px 0 0;padding:0 2px;font-size:12px;color:var(--color-text-secondary);line-height:1.5"></p>
+      </section>
+
+      <div class="sp" role="separator"></div>
+
+      <!-- §3  Thinking -->
+      <section aria-label="Extended reasoning">
+        <div class="sh" data-lbl="Thinking"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0">
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Extended reasoning</div>
+            <div id="tk-hint" style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Faster, more concise responses</div>
+          </div>
+          <button id="tk-btn" class="tgl" aria-pressed="false" aria-label="Enable extended reasoning">
+            <span class="tgl-t" aria-hidden="true"></span>
+          </button>
+        </div>
+        <div id="bgt-area" style="display:none;margin-top:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:12px;color:var(--color-text-secondary)">Token budget</span>
+            <span id="bgt-v" style="font-size:12px;font-weight:500;color:var(--color-text-info)">5 000</span>
+          </div>
+          <input type="range" id="bgt-r" min="500" max="16000" step="500" value="5000" style="width:100%" aria-label="Token budget">
+          <div style="display:flex;justify-content:space-between;margin-top:3px">
+            <span style="font-size:11px;color:var(--color-text-secondary)">500</span>
+            <span style="font-size:11px;color:var(--color-text-secondary)">16 000</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="sp" role="separator"></div>
+
+      <!-- §4  Coming soon -->
+      <section style="opacity:.5" aria-label="Coming soon features">
+        <div class="sh" data-lbl="Coming soon"></div>
+        <div id="fut-list" style="display:flex;flex-direction:column;gap:3px"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+var MODELS=[
+  {id:'claude-sonnet-4-6',lbl:'Claude Sonnet 4.6',sub:'anthropic \xB7 claude-sonnet-4-6',dot:'#D85A30',sel:true},
+  {id:'claude-opus-4-6',lbl:'Claude Opus 4.6',sub:'anthropic \xB7 claude-opus-4-6',dot:'#D85A30'},
+  {id:'gpt-4o',lbl:'GPT-4o',sub:'openai \xB7 gpt-4o',dot:'#1D9E75'},
+  {id:'mistral-large-2',lbl:'Mistral Large 2',sub:'mistral \xB7 mistral-large-2407',dot:'#EF9F27'},
+];
+var EFFORTS=[
+  {id:'low',lbl:'Low',hint:'Quick',desc:'Fast, concise answers. Best for simple lookups and short questions.'},
+  {id:'medium',lbl:'Medium',hint:'Balanced',desc:'Balanced quality and speed — the sweet spot for most tasks.',sel:true},
+  {id:'high',lbl:'High',hint:'Deep',desc:'Thorough analysis. Best for research, writing, and code review.'},
+  {id:'max',lbl:'Max',hint:'Best',desc:'Maximum reasoning quality. Slowest, but most complete and accurate.'},
+];
+var FUTURE=[
+  {icon:'ti-settings',lbl:'Temperature',hint:'Creativity vs. precision dial'},
+  {icon:'ti-maximize',lbl:'Context window',hint:'Set max tokens for context'},
+  {icon:'ti-menu-2',lbl:'Tool routing',hint:'Enable or disable individual tools'},
+  {icon:'ti-edit',lbl:'System prompt',hint:'Per-session custom instructions'},
+];
+
+var activeModel='claude-sonnet-4-6';
+var activeEffort='medium';
+var thinkingOn=false;
+
+var mList=document.getElementById('model-list');
+MODELS.forEach(function(m){
+  var row=document.createElement('div');
+  row.className='mr'+(m.sel?' sel':'');
+  row.dataset.id=m.id;
+  row.setAttribute('role','radio');
+  row.setAttribute('aria-checked',m.sel?'true':'false');
+  row.setAttribute('tabindex',m.sel?'0':'-1');
+  row.innerHTML=
+    '<span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:'+m.dot+'"></span>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.25">'+m.lbl+'</div>'
+    +'<div style="font-size:11px;color:var(--color-text-secondary);margin-top:1px;line-height:1.3">'+m.sub+'</div>'
+    +'</div>'
+    +'<i class="ti ti-check chk" aria-hidden="true"></i>';
+  row.addEventListener('click',function(){
+    activeModel=m.id;
+    document.querySelectorAll('.mr').forEach(function(r){
+      var on=r.dataset.id===activeModel;
+      r.classList.toggle('sel',on);
+      r.setAttribute('aria-checked',on?'true':'false');
+      r.setAttribute('tabindex',on?'0':'-1');
+    });
+  });
+  mList.appendChild(row);
+});
+
+var eSeg=document.getElementById('eff-seg');
+var eDesc=document.getElementById('eff-desc');
+function setEffDesc(id){var ef=EFFORTS.find(function(e){return e.id===id;});if(ef)eDesc.textContent=ef.desc;}
+EFFORTS.forEach(function(ef){
+  var btn=document.createElement('button');
+  btn.className='eb'+(ef.sel?' sel':'');
+  btn.dataset.id=ef.id;
+  btn.setAttribute('role','radio');
+  btn.setAttribute('aria-checked',ef.sel?'true':'false');
+  btn.innerHTML=
+    '<span style="font-size:12px;font-weight:500;color:var(--color-text-primary)">'+ef.lbl+'</span>'
+    +'<span style="font-size:10px;color:var(--color-text-secondary)">'+ef.hint+'</span>';
+  btn.addEventListener('click',function(){
+    activeEffort=ef.id;
+    document.querySelectorAll('.eb').forEach(function(b){
+      var on=b.dataset.id===activeEffort;
+      b.classList.toggle('sel',on);
+      b.setAttribute('aria-checked',on?'true':'false');
+    });
+    setEffDesc(activeEffort);
+  });
+  eSeg.appendChild(btn);
+});
+setEffDesc(activeEffort);
+
+var tkBtn=document.getElementById('tk-btn');
+var tkHint=document.getElementById('tk-hint');
+var bgtArea=document.getElementById('bgt-area');
+var bgtV=document.getElementById('bgt-v');
+var bgtR=document.getElementById('bgt-r');
+tkBtn.addEventListener('click',function(){
+  thinkingOn=!thinkingOn;
+  tkBtn.setAttribute('aria-pressed',thinkingOn?'true':'false');
+  tkHint.textContent=thinkingOn?'Deeper analysis, slightly slower responses':'Faster, more concise responses';
+  bgtArea.style.display=thinkingOn?'block':'none';
+});
+bgtR.addEventListener('input',function(){
+  bgtV.textContent=Math.round(parseInt(bgtR.value)).toLocaleString();
+});
+
+var fList=document.getElementById('fut-list');
+FUTURE.forEach(function(f){
+  var row=document.createElement('div');
+  row.className='fr';
+  row.setAttribute('aria-disabled','true');
+  row.innerHTML=
+    '<i class="ti '+f.icon+'" style="font-size:15px;color:var(--color-text-secondary);width:20px;text-align:center;flex-shrink:0" aria-hidden="true"></i>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.25">'+f.lbl+'</div>'
+    +'<div style="font-size:11px;color:var(--color-text-secondary);margin-top:1px;line-height:1.3">'+f.hint+'</div>'
+    +'</div>'
+    +'<span class="sbg">Soon</span>';
+  fList.appendChild(row);
+});
+</script>
