@@ -236,12 +236,12 @@ def _get_system_info() -> dict[str, str]:
                 )("Py_GIL_DISABLED")
             )
         ),
-        # Runtime execution state:
-        # Is the GIL enabled right now?
-        "is_gil_enabled": _is_gil_enabled() if _is_gil_enabled else True,
         # Effective execution mode:
         # Is Python currently running without the GIL?
         "is_running_no_gil": (not _is_gil_enabled()) if _is_gil_enabled else False,
+        # Runtime execution state:
+        # Is the GIL enabled right now?
+        "is_gil_enabled": _is_gil_enabled() if _is_gil_enabled else True,
     }
     sys_info.update(RUNTIME_INFO)
     return sys_info

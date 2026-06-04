@@ -85,6 +85,8 @@ repos:
             .*searchindex.dat|\
             .*CDNOW_master.txt|\
             .*example_transactions.csv|\
+            .*ai-assistant.js|\
+            .*ai-assistant.css|\
             scikitplot/cexternals/annoy/ann.png|\
             scikitplot/cexternals/_annoy/src/annoymodule.cc|\
           )$"
