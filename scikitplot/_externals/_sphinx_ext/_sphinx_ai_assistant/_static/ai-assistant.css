@@ -863,6 +863,57 @@
     border-color: rgba(255,255,255,0.12);
 }
 
+/* Banner button active (recording) state — mirrors footer mic .recording style */
+.ai-assistant-panel-speak-banner.recording {
+    color: #e74c3c;
+    border-color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.08);
+    animation: ai-mic-pulse 1.2s ease-in-out infinite;
+}
+
+.ai-assistant-panel-speak-banner.recording svg {
+    color: #e74c3c;
+    stroke: #e74c3c;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-speak-banner.recording {
+    background-color: rgba(231, 76, 60, 0.18);
+    border-color: rgba(231, 76, 60, 0.70);
+}
+
+/* Banner mini soundbar — rendered inline inside the banner button while recording.
+ * 5 bars driven by JS RMS amplitude; shown only when Web Audio graph is live.
+ * Uses currentColor so bars inherit the recording red (#e74c3c) automatically. */
+.ai-assistant-banner-soundbar {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-left: 2px;
+    overflow: hidden;
+}
+
+.ai-assistant-banner-soundbar-bar {
+    display: block;
+    width: 2px;
+    height: 2px;
+    min-height: 2px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    background: currentColor;      /* inherits #e74c3c from .recording rule */
+    opacity: 0.80;
+    transition: height 0.07s ease-out;
+    will-change: height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-banner-soundbar-bar {
+        transition: none;
+        height: 4px;               /* static mid-height — visible but not distracting */
+    }
+}
+
 /* ─── Floating "Ask Us" trigger icon ─────────────────────────────────────── */
 /*
  * When the panel is minimized (or not yet opened), a compact pill-shaped
@@ -1107,6 +1158,72 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     gap: 0.35rem;
     margin: 0.15rem 0 0.5rem 0;
     padding-left: 0.1rem;
+}
+
+/* User-bubble action row: timestamp only, anchored to the trailing (right)
+ * edge so it sits under the user bubble exactly as the send-time does in
+ * iMessage / WhatsApp / Telegram.
+ *
+ * align-self: flex-end  — mirrors .ai-assistant-panel-bubble--user; makes the
+ *   row shrink-wrap its content (the single <time> element) and pin to the
+ *   right within the flex-column panel body.
+ * padding-left: 0       — no left indent needed when trailing-aligned.
+ * padding-right: 0.35rem — matches the <time> internal padding so the digit
+ *   sits flush with the right edge of the user bubble above it.
+ * margin-bottom: 0      — user bubbles don't need the extra spacing that
+ *   assistant action rows carry (they have no buttons below them).
+ */
+.ai-assistant-panel-bubble-actions--user {
+    align-self: flex-end;
+    padding-left: 0;
+    padding-right: 0.35rem;
+    margin-bottom: 0;
+}
+
+/* ─── Bubble timestamp (HH:mm display) ───────────────────────────────────────
+ *
+ * Semantic <time> element prepended to every assistant / error action row.
+ * The display shows HH:mm (24-hour, leading zeros); the datetime attribute
+ * carries the full ISO 8601 string for assistive technology, parsers, and
+ * conversation-export consumers.
+ *
+ * Layout strategy
+ * ---------------
+ * ``margin-right: auto`` pushes Copy / Retry / More to the trailing (right)
+ * edge — the same convention used by messaging apps (iMessage, WhatsApp,
+ * Telegram) where timestamps anchor left and action affordances anchor right.
+ * This works at zero cost inside the existing flex container.
+ *
+ * Empty-spacer contract
+ * ----------------------
+ * When ``ts`` is absent (old persisted entries without a timestamp field) the
+ * element has no text content and is ``aria-hidden``.  It is still rendered so
+ * the layout remains constant — buttons do not jump to the left edge.
+ *
+ * tabular-nums
+ * ------------
+ * ``font-variant-numeric: tabular-nums`` fixes the digit width so the HH:mm
+ * label never causes a layout shift when the transcript is replayed quickly
+ * (hour or minute digit changes between sequential entries).
+ */
+.ai-assistant-panel-bubble-time {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.72rem;                 /* matches .ai-assistant-panel-bubble-action */
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums; /* fixed-width digits — no layout jitter */
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    opacity: 0.70;
+    user-select: none;
+    cursor: default;
+    flex-shrink: 0;
+    /* push Copy / Retry / More to trailing edge */
+    /* margin-right: auto; */
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-time {
+    opacity: 0.55;
 }
 
 .ai-assistant-panel-bubble-action {

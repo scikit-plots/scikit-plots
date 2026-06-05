@@ -863,6 +863,57 @@
     border-color: rgba(255,255,255,0.12);
 }
 
+/* Banner button active (recording) state — mirrors footer mic .recording style */
+.ai-assistant-panel-speak-banner.recording {
+    color: #e74c3c;
+    border-color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.08);
+    animation: ai-mic-pulse 1.2s ease-in-out infinite;
+}
+
+.ai-assistant-panel-speak-banner.recording svg {
+    color: #e74c3c;
+    stroke: #e74c3c;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-speak-banner.recording {
+    background-color: rgba(231, 76, 60, 0.18);
+    border-color: rgba(231, 76, 60, 0.70);
+}
+
+/* Banner mini soundbar — rendered inline inside the banner button while recording.
+ * 5 bars driven by JS RMS amplitude; shown only when Web Audio graph is live.
+ * Uses currentColor so bars inherit the recording red (#e74c3c) automatically. */
+.ai-assistant-banner-soundbar {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-left: 2px;
+    overflow: hidden;
+}
+
+.ai-assistant-banner-soundbar-bar {
+    display: block;
+    width: 2px;
+    height: 2px;
+    min-height: 2px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    background: currentColor;      /* inherits #e74c3c from .recording rule */
+    opacity: 0.80;
+    transition: height 0.07s ease-out;
+    will-change: height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-banner-soundbar-bar {
+        transition: none;
+        height: 4px;               /* static mid-height — visible but not distracting */
+    }
+}
+
 /* ─── Floating "Ask Us" trigger icon ─────────────────────────────────────── */
 /*
  * When the panel is minimized (or not yet opened), a compact pill-shaped
@@ -1107,6 +1158,72 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     gap: 0.35rem;
     margin: 0.15rem 0 0.5rem 0;
     padding-left: 0.1rem;
+}
+
+/* User-bubble action row: timestamp only, anchored to the trailing (right)
+ * edge so it sits under the user bubble exactly as the send-time does in
+ * iMessage / WhatsApp / Telegram.
+ *
+ * align-self: flex-end  — mirrors .ai-assistant-panel-bubble--user; makes the
+ *   row shrink-wrap its content (the single <time> element) and pin to the
+ *   right within the flex-column panel body.
+ * padding-left: 0       — no left indent needed when trailing-aligned.
+ * padding-right: 0.35rem — matches the <time> internal padding so the digit
+ *   sits flush with the right edge of the user bubble above it.
+ * margin-bottom: 0      — user bubbles don't need the extra spacing that
+ *   assistant action rows carry (they have no buttons below them).
+ */
+.ai-assistant-panel-bubble-actions--user {
+    align-self: flex-end;
+    padding-left: 0;
+    padding-right: 0.35rem;
+    margin-bottom: 0;
+}
+
+/* ─── Bubble timestamp (HH:mm display) ───────────────────────────────────────
+ *
+ * Semantic <time> element prepended to every assistant / error action row.
+ * The display shows HH:mm (24-hour, leading zeros); the datetime attribute
+ * carries the full ISO 8601 string for assistive technology, parsers, and
+ * conversation-export consumers.
+ *
+ * Layout strategy
+ * ---------------
+ * ``margin-right: auto`` pushes Copy / Retry / More to the trailing (right)
+ * edge — the same convention used by messaging apps (iMessage, WhatsApp,
+ * Telegram) where timestamps anchor left and action affordances anchor right.
+ * This works at zero cost inside the existing flex container.
+ *
+ * Empty-spacer contract
+ * ----------------------
+ * When ``ts`` is absent (old persisted entries without a timestamp field) the
+ * element has no text content and is ``aria-hidden``.  It is still rendered so
+ * the layout remains constant — buttons do not jump to the left edge.
+ *
+ * tabular-nums
+ * ------------
+ * ``font-variant-numeric: tabular-nums`` fixes the digit width so the HH:mm
+ * label never causes a layout shift when the transcript is replayed quickly
+ * (hour or minute digit changes between sequential entries).
+ */
+.ai-assistant-panel-bubble-time {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.72rem;                 /* matches .ai-assistant-panel-bubble-action */
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums; /* fixed-width digits — no layout jitter */
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    opacity: 0.70;
+    user-select: none;
+    cursor: default;
+    flex-shrink: 0;
+    /* push Copy / Retry / More to trailing edge */
+    /* margin-right: auto; */
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-time {
+    opacity: 0.55;
 }
 
 .ai-assistant-panel-bubble-action {
@@ -5883,5 +6000,263 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     .ai-assistant-panel-filter-chip {
         font-size: 0.68rem;
         padding: 0.13rem 0.45rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROJECT LINKS — subbar buttons & Links slide-over sheet
+   ═══════════════════════════════════════════════════════════════════════════
+   Added by the panelLinks / panelSource / panelSite feature.
+
+   Architecture:
+     • Two compact icon-label buttons live in the subbar:
+         sourceBtn  — left cluster, after the hamburger hint (GitHub icon)
+         siteBtn    — right cluster, after the Share button (Globe icon)
+       Both share `.ai-assistant-panel-subbar-link-btn` as a base class and
+       carry an additional specific class for per-role overrides.
+     • The Links slide-over sheet contains rich card elements
+       (`.ai-assistant-panel-link-card`) for each configured link.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ── Subbar link buttons (shared base) ──────────────────────────────────── */
+.ai-assistant-panel-subbar-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    background: none;
+    border: none;
+    padding: 0.18rem 0.4rem;
+    margin: 0;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    cursor: pointer;
+    border-radius: 5px;
+    touch-action: manipulation;
+    transition: color 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+}
+.ai-assistant-panel-subbar-link-btn svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    fill: currentColor;
+    stroke: none;
+}
+
+/* ── GitHub source button — left cluster ────────────────────────────────── */
+.ai-assistant-panel-source-btn:hover {
+    color: #24292f;
+    background: rgba(36, 41, 47, 0.08);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-source-btn:hover,
+.dark .ai-assistant-panel-source-btn:hover {
+    color: #e6edf3;
+    background: rgba(230, 237, 243, 0.1);
+}
+
+/* ── Globe / website button — right cluster ─────────────────────────────── */
+/* Globe uses stroke paths, not fill paths */
+.ai-assistant-panel-site-btn svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+.ai-assistant-panel-site-btn:hover {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    background: color-mix(
+        in srgb,
+        var(--pst-color-primary, var(--color-brand-primary, #2563eb)) 10%,
+        transparent
+    );
+}
+
+/* ── Narrow-panel: hide button labels, show icon only ────────────────────── */
+[data-narrow] .ai-assistant-panel-subbar-link-btn span:last-child {
+    display: none;
+}
+
+/* ── Links sheet body ────────────────────────────────────────────────────── */
+.ai-assistant-panel-links-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+}
+
+/* ── Individual link card ────────────────────────────────────────────────── */
+/*
+ * Each card is an <a> element that spans the full sheet width.
+ * The left accent stripe colour is injected inline by JS via
+ *   --ai-link-card-accent  (e.g. #24292f for GitHub, #2563eb for the site).
+ * Hover lifts the card slightly for a modern tactile feel.
+ */
+.ai-assistant-panel-link-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--pst-color-border,
+                         var(--color-foreground-border, #d6d9dc));
+    border-left: 3.5px solid
+        var(--ai-link-card-accent,
+            var(--pst-color-primary, #2563eb));
+    background: var(--pst-color-surface,
+                    var(--color-background-secondary, #f6f7f8));
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: transform 0.13s ease,
+                box-shadow 0.13s ease,
+                border-color 0.13s ease;
+    position: relative;
+}
+.ai-assistant-panel-link-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+    border-color: var(--ai-link-card-accent,
+                      var(--pst-color-primary, #2563eb));
+}
+.ai-assistant-panel-link-card:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* ── Card icon column ────────────────────────────────────────────────────── */
+.ai-assistant-panel-link-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: color-mix(
+        in srgb,
+        var(--ai-link-card-accent,
+            var(--pst-color-primary, #2563eb)) 12%,
+        transparent
+    );
+    flex-shrink: 0;
+    color: var(--ai-link-card-accent,
+               var(--pst-color-primary, #2563eb));
+}
+.ai-assistant-panel-link-card-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    stroke: none;
+}
+/* Globe icon uses stroke paths */
+.ai-assistant-panel-site-card .ai-assistant-panel-link-card-icon svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+/* ── Card text column ────────────────────────────────────────────────────── */
+.ai-assistant-panel-link-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    flex: 1;
+    min-width: 0;
+}
+.ai-assistant-panel-link-card-text strong {
+    font-size: 0.83rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ai-assistant-panel-link-card-desc {
+    font-size: 0.72rem;
+    color: var(--pst-color-text-muted,
+               var(--color-foreground-muted, #6a737d));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ai-assistant-panel-link-card-url {
+    font-size: 0.66rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    /* TODO: Not work all url span class, can be need dark mode? */
+    /* color: var(--ai-link-card-accent,
+               var(--pst-color-primary, #2563eb)); */
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── External-link arrow ─────────────────────────────────────────────────── */
+.ai-assistant-panel-link-card-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--pst-color-text-muted,
+               var(--color-foreground-muted, #6a737d));
+    opacity: 0.55;
+    flex-shrink: 0;
+    transition: opacity 0.13s ease, transform 0.13s ease;
+}
+.ai-assistant-panel-link-card:hover .ai-assistant-panel-link-card-arrow {
+    opacity: 1;
+    transform: translate(2px, -2px);
+}
+.ai-assistant-panel-link-card-arrow svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+/* ── Empty-state fallback ────────────────────────────────────────────────── */
+.ai-assistant-panel-links-empty {
+    font-size: 0.78rem;
+    color: var(--pst-color-text-muted,
+               var(--color-foreground-muted, #6a737d));
+    padding: 1rem 0;
+    text-align: center;
+}
+
+/* ── Dark-mode overrides ─────────────────────────────────────────────────── */
+[data-bs-theme="dark"] .ai-assistant-panel-link-card,
+.dark .ai-assistant-panel-link-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-link-card:hover,
+.dark .ai-assistant-panel-link-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-link-card-text strong,
+.dark .ai-assistant-panel-link-card-text strong {
+    color: #e2e8f0;
+}
+
+/* ── GitHub accent colour override for dark mode ────────────────────────── */
+/* In dark mode GitHub black (#24292f) is illegible — lighten to the GitHub
+   dark-mode foreground (#e6edf3) so card icon & border remain readable.    */
+[data-bs-theme="dark"] .ai-assistant-panel-source-card,
+.dark .ai-assistant-panel-source-card {
+    --ai-link-card-accent: #8b949e; /* GitHub muted-grey — legible on dark bg */
+}
+
+/* ── Mobile / narrow viewport adjustments ───────────────────────────────── */
+@media (max-width: 480px) {
+    .ai-assistant-panel-link-card {
+        gap: 0.65rem;
+        padding: 0.7rem 0.8rem;
+    }
+    .ai-assistant-panel-link-card-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+    }
+    .ai-assistant-panel-link-card-icon svg {
+        width: 15px;
+        height: 15px;
     }
 }

@@ -67,9 +67,9 @@
 {%- endblock docs_navbar %}
 
 
-
 {%- block docs_main %}
 {#- Main content goes here #}
+<article class="bd-article">
 <div class="container sk-landing-container pt-3 sk-landing-body" role="main">
   <div class="row no-gutters">
     <!-- Dimensionality reduction -->
@@ -226,12 +226,12 @@
 <div class="additional-content">
     {%- include "shell.html" %}
 </div>
-
+</article>
 {%- endblock docs_main %}
 
 
-
 {%- block footer %}
+<article class="bd-article">
 <div class="container-fluid sk-landing-more-info py-3">
   <div class="container sk-landing-container bd-page-width">
     <div class="row">
@@ -341,9 +341,8 @@
     </a>
   </div>
 </div>
-
+</article>
 {%- endblock footer %}
-
 
 
 {%- block scripts_end %}
