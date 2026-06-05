@@ -1583,13 +1583,136 @@ ai_assistant_panel_share_label   = "Share"
 #   ]
 ai_assistant_panel_share_targets = []
 
+# ── Project Links sheet (GitHub source + documentation site) ─────────────────
+#
+# The Links sheet is a slide-over panel, identical in UX to the Share / Model /
+# Privacy sheets, that presents clickable cards for the project's source
+# repository and its documentation website.
+#
+# Two sub-bar buttons are also added:
+#   • GitHub icon  (left cluster, after the hamburger hint)  → opens the sheet
+#   • Globe  icon  (right cluster, after the Share button)   → opens the sheet
+#
+# Both buttons and the sheet can be suppressed independently via the boolean
+# flags below.  When the sheet itself is disabled (``panelLinks = False``) the
+# buttons instead navigate directly to the configured URL (or are hidden when
+# no URL is configured).
+#
+# Quick-start (scikit-plots) ── add these four lines to conf.py:
+#
+#   ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
+#   ai_assistant_panel_site_url   = "https://scikit-plots.github.io/"
+#   ai_assistant_panel_source_label = "GitHub Source"
+#   ai_assistant_panel_site_label   = "Documentation"
+#
+
+# ─ master sheet switch ───────────────────────────────────────────────────────
+# Type:    bool
+# Default: True
+# Disabling hides the sheet entirely and also removes the Source / Site sub-bar
+# buttons.  The per-button flags (panel_source / panel_site) are subordinate to
+# this: they only take effect when this master switch is True.
+ai_assistant_panel_links = True
+
+# ─ sheet header ──────────────────────────────────────────────────────────────
+# Type:    str
+# Default: "Project Links"
+# Title shown at the top of the Links slide-over panel.
+ai_assistant_panel_links_title = "Project Links"
+
+# ─ custom HTML footer ────────────────────────────────────────────────────────
+# Type:    str  (raw HTML — trusted author input from conf.py only)
+# Default: ""  (nothing injected)
+# Optional block appended below the card list inside the Links sheet.
+# Useful for a paragraph of extra context, a changelog link, a citation …
+# Author override is INJECTED VERBATIM — keep this trusted (conf.py only,
+# never user input).
+#
+# Example:
+#   ai_assistant_panel_links_html = """
+#     <p style="font-size:0.75rem;color:var(--pst-color-text-muted)">
+#       scikit-plots is maintained by volunteers. Star us on GitHub! ⭐
+#     </p>
+#   """
+ai_assistant_panel_links_html = ""
+
+# ─ source (GitHub) card & subbar button ──────────────────────────────────────
+# Type:    bool
+# Default: True
+# Master switch for the "Source" entry.  When False the card inside the sheet
+# AND the GitHub icon button in the left sub-bar cluster are both hidden.
+ai_assistant_panel_source = True
+
+# Type:    str  (URL — http / https only; other schemes are rejected client-side)
+# Default: ""  (card/button hidden when empty)
+# URL of the project's source repository.  Typically a GitHub / GitLab URL.
+#
+# scikit-plots default:
+ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
+
+# Type:    str
+# Default: "Source"  (shown as the card title and the sub-bar button label)
+# Human-readable label for the source card and the sub-bar icon button.
+#
+# scikit-plots default:
+ai_assistant_panel_source_label = "GitHub Source"
+
+# Type:    str
+# Default: ""  (no description line rendered when empty)
+# One-line description shown beneath the card title in the sheet.
+# Keep it brief — it is truncated with ellipsis at narrow widths.
+#
+# scikit-plots default:
+ai_assistant_panel_source_desc = "Browse and contribute to the scikit-plots codebase"
+
+# Type:    str
+# Default: "Source"
+# Label used for the subbar button next to the GitHub icon.
+# Use a very short word (≤ 8 chars) — labels are hidden automatically at
+# narrow panel widths via the [data-narrow] CSS rule.
+ai_assistant_panel_source_btn_label = "Source"
+
+# ─ site (documentation website) card & subbar button ─────────────────────────
+# Type:    bool
+# Default: True
+# Master switch for the "Site" entry.  When False the card inside the sheet
+# AND the Globe icon button in the right sub-bar cluster are both hidden.
+ai_assistant_panel_site = True
+
+# Type:    str  (URL — http / https only)
+# Default: ""  (card/button hidden when empty)
+# URL of the project's documentation website or home page.
+#
+# scikit-plots default:
+ai_assistant_panel_site_url = "https://scikit-plots.github.io/"
+
+# Type:    str
+# Default: "Website"  (shown as the card title and the sub-bar button label)
+# Human-readable label for the site card and the Globe sub-bar button.
+#
+# scikit-plots default:
+ai_assistant_panel_site_label = "Documentation Site"
+
+# Type:    str
+# Default: ""  (no description line rendered when empty)
+# One-line description shown beneath the card title in the sheet.
+#
+# scikit-plots default:
+ai_assistant_panel_site_desc = "Explore the full API reference and user guide"
+
+# Type:    str
+# Default: "Website"
+# Label used for the subbar button next to the Globe icon.
+# Recommend ≤ 8 chars (longer labels are hidden at narrow widths).
+ai_assistant_panel_site_btn_label = "Website"
+
 # ── Hamburger overflow menu ──────────────────────────────────────────────────
 # Type:    bool
 # Default: True
 # When True a ☰ menu button appears at the LEFT of the sub-bar and duplicates
-# every sheet entry-point (model, privacy, terms, share) in a single popover.
-# Designed for narrow viewports: the right-cluster labels collapse via CSS at
-# ≤ 460 px, and the hamburger is the canonical entry-point.
+# every sheet entry-point (model, privacy, terms, share, links) in a single
+# popover.  Designed for narrow viewports: the right-cluster labels collapse
+# via CSS at ≤ 460 px, and the hamburger is the canonical entry-point.
 ai_assistant_panel_hamburger = True
 
 # ── How to access feedback for model training ───────────────────────────────

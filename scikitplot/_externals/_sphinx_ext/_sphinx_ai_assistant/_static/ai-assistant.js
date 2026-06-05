@@ -405,6 +405,13 @@
         // ── UI-improvement additions ──────────────────────────────────────────
         plus:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
         overflowH:   '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>',
+        // ── Project links additions ───────────────────────────────────────────
+        // GitHub mark (official path — monochromatic, works on any background).
+        github:      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>',
+        // Globe / world icon — website / documentation home.
+        globe:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+        // External-link arrow — shown inside link cards as a launch indicator.
+        externalLink:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
     };
 
     // ── Provider accent colours (mirrors _PROVIDER_COLORS in __init__.py) ──────
@@ -506,6 +513,297 @@
         var n = parseInt(val, 10);
         if (!isFinite(n) || n < min || n > max) return fallback;
         return n;
+    }
+
+    // ── Touch utilities ───────────────────────────────────────────────────────
+    //
+    // Three pure helpers that power the haptic feedback system:
+    //
+    //   _isTouchDevice()               — detects touch-primary input.
+    //   _hapticFeedback(pattern)       — fires the Web Vibration API safely.
+    //   _attachLongPress(el, …)        — distinguishes short-tap from long-press
+    //                                    using Pointer Events, with ghost-click
+    //                                    prevention and per-gesture haptics.
+    //
+    // Integration points (where _hapticFeedback / _attachLongPress are wired):
+    //   • All header icon buttons  (close / minimize / maximize / new-chat / export)
+    //   • Keyboard-shortcut hint   (subbar left cluster)
+    //   • Hamburger kbdRow         (hamburger menu minimize row)
+    //   • Hamburger button + right-overflow button
+    //   • Speak-with-assistant banner
+    //   • Attach button
+    //   • Mic button               (pointerdown in hold mode; click in toggle mode)
+    //   • Send button
+    //   • Floating trigger pill    (tap = restore; long-press = close fully)
+
+    /**
+     * Detect whether the primary input device is a touchscreen.
+     *
+     * Two independent checks are combined:
+     *
+     *   1. ``navigator.maxTouchPoints > 0`` — hardware capability register
+     *      (Chrome, Firefox, Edge, Safari 13+; reliable on physical devices).
+     *   2. ``matchMedia('(pointer: coarse)')`` — CSS Level 4 interaction media
+     *      feature; true when the primary pointer is imprecise (finger/stylus).
+     *
+     * Combining both guards against:
+     *   • Windows machines with a touch digitizer but mouse attached
+     *     (maxTouchPoints > 0, pointer: fine → returns false correctly).
+     *   • Browsers that implement one API but not the other.
+     *
+     * Returns
+     * -------
+     * boolean
+     *     ``true`` when a touch-primary device is detected.
+     *
+     * Notes
+     * -----
+     * Developer: Result is evaluated fresh on every call (not cached) to
+     *   stay accurate across tests and unusual hybrid-input environments.
+     *   Cache the result at the call site when calling in a hot path.
+     * User: Detection is best-effort; pointer emulators and hybrid
+     *   touch/mouse devices may occasionally return false positives.
+     */
+    function _isTouchDevice() {
+        return (
+            navigator.maxTouchPoints > 0 ||
+            (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+        );
+    }
+
+    /**
+     * Fire a haptic vibration pattern via the Web Vibration API.
+     *
+     * Silently no-ops when any of the following conditions are true:
+     *   – ``navigator.vibrate`` is absent (iOS Safari, all desktop browsers).
+     *   – ``prefers-reduced-motion: reduce`` is set — mirrors the CSS contract
+     *     used to suppress animations throughout this file.
+     *   – The API throws for any reason (iframe sandboxing, document hidden,
+     *     OS vibration override, quota, unknown browser quirk).
+     *
+     * Parameters
+     * ----------
+     * pattern : number | number[]
+     *     Vibration duration in milliseconds, or an alternating
+     *     ``[vibrate, pause, vibrate, …]`` array passed directly to
+     *     ``navigator.vibrate()``.  Longer values produce stronger haptic
+     *     feedback on most hardware.  Recommended constants:
+     *
+     *         ``[8]``           — light confirmatory tap (button press).
+     *         ``[12]``          — medium tap (start / stop recording).
+     *         ``[12, 40, 12]``  — double-tap pulse (long-press confirm).
+     *
+     * Returns
+     * -------
+     * void
+     *
+     * Notes
+     * -----
+     * Developer: The Vibration API requires an active user-gesture in the
+     *   call stack.  Always invoke from a synchronous ``click`` or
+     *   ``pointerdown`` handler — never from a ``setTimeout``, ``Promise``
+     *   resolution, or async callback.
+     * User: Vibration respects the OS "do not disturb" / vibration switch;
+     *   the browser cannot override a hardware-level silence setting.
+     *
+     * References
+     * ----------
+     * https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate
+     */
+    function _hapticFeedback(pattern) {
+        if (!navigator.vibrate) return;
+        try {
+            if (window.matchMedia &&
+                    window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return;
+            }
+            navigator.vibrate(pattern);
+        } catch (_) {}
+    }
+
+    /**
+     * Attach long-press and short-tap pointer handlers to an element.
+     *
+     * Uses the W3C Pointer Events API (not Touch Events) so the same code
+     * path handles mouse, stylus, and touch without user-agent sniffing.
+     *
+     * Interaction model
+     * -----------------
+     * ``pointerdown`` → start hold timer (``opts.threshold`` ms)
+     *
+     *   ├─ ``pointerup`` before timer fires
+     *   │     → short tap: ``hapticTap`` + ``onShortTap(e)``
+     *   │
+     *   ├─ ``pointermove`` > ``opts.maxMovePx`` CSS px
+     *   │     → cancel timer (scroll-intent detected); no action fires
+     *   │
+     *   ├─ ``pointercancel``
+     *   │     → cancel timer; no action
+     *   │
+     *   └─ timer fires (hold complete)
+     *         → long press: ``hapticLongPress`` + ``onLongPress(e)``
+     *         → on touch devices: ghost-click absorber set for 400 ms
+     *
+     * Ghost-click prevention
+     * ----------------------
+     * On touch devices the browser synthesises a ``click`` event ≈300 ms
+     * after ``pointerup`` even when ``touch-action: manipulation`` is set
+     * (manipulation only removes the double-tap-zoom delay, not the
+     * synthetic click).  After a long-press fires, a one-shot capture-phase
+     * ``click`` listener on ``document`` absorbs that synthetic click so
+     * existing ``click`` handlers (e.g. the trigger-pill restore listener)
+     * cannot accidentally re-trigger after the long-press action completes.
+     *
+     * Parameters
+     * ----------
+     * element : HTMLElement
+     *     Target element.
+     * onShortTap : function | null
+     *     Called on short tap after haptic fires.  Pass ``null`` when an
+     *     existing ``click`` listener already handles the primary action so
+     *     the two do not double-invoke the same logic.
+     * onLongPress : function | null
+     *     Called after the hold threshold.  Pass ``null`` when only haptic
+     *     feedback is needed for the long-press gesture.
+     * opts : object, optional
+     *     threshold       : number          — hold duration in ms (default 500).
+     *     hapticTap       : number|number[]|null
+     *                         — vibration for short tap (default ``[8]``).
+     *                           Pass ``null`` to suppress (use when a
+     *                           ``pointerdown`` listener already fires haptic).
+     *     hapticLongPress : number|number[] — vibration for long press
+     *                                          (default ``[12, 40, 12]``).
+     *     maxMovePx       : number          — drift-cancel threshold in CSS px
+     *                                          (default 8).
+     *
+     * Returns
+     * -------
+     * function
+     *     Cleanup function.  Removes all attached listeners and clears any
+     *     pending timer.  Call when the element leaves the DOM to prevent
+     *     ghost listeners accumulating across panel rebuilds.
+     *
+     * Notes
+     * -----
+     * Developer: Do NOT attach to the mic button — it owns its own dedicated
+     *   ``pointerdown``/``pointerup`` contract for hold-to-record.  Add haptic
+     *   calls inline inside those handlers instead (see mic section below).
+     * Developer: The cleanup return value mirrors the pattern used by
+     *   ``_attachResizer`` so teardown is consistent across utilities.
+     * User: Moving the pointer/finger more than ``opts.maxMovePx`` CSS px
+     *   during the hold cancels the long-press timer (scroll-intent detection)
+     *   without suppressing the normal short-tap action from any click handler.
+     *
+     * Examples
+     * --------
+     * >>> // Trigger pill: tap = restore panel (existing click handler),
+     * >>> //               long-press = close panel fully.
+     * >>> _attachLongPress(triggerEl, null, function () { closeAIPanel(); }, {
+     * ...     hapticTap:       null,          // pointerdown listener handles it
+     * ...     hapticLongPress: [12, 40, 12],
+     * ... });
+     */
+    function _attachLongPress(element, onShortTap, onLongPress, opts) {
+        var threshold = (opts && opts.threshold       != null) ? opts.threshold       : 500;
+        var hapticTap = (opts && opts.hapticTap       !== undefined)
+                            ? opts.hapticTap : [8];
+        var hapticLP  = (opts && opts.hapticLongPress != null) ? opts.hapticLongPress : [12, 40, 12];
+        var maxMovePx = (opts && opts.maxMovePx       != null) ? opts.maxMovePx       : 8;
+
+        var _timer         = null;
+        var _startX        = 0;
+        var _startY        = 0;
+        var _longFired     = false;
+        var _active        = false;
+        var _captureHandle = null;
+
+        function _cancelTimer() {
+            if (_timer) { clearTimeout(_timer); _timer = null; }
+            _longFired = false;
+            _active    = false;
+        }
+
+        function _onPointerDown(e) {
+            // Left-button / touch only — ignore secondary buttons (right-click).
+            if (e.button != null && e.button !== 0) return;
+            _active    = true;
+            _longFired = false;
+            _startX    = e.clientX;
+            _startY    = e.clientY;
+            // Capture the pointer stream so pointermove / pointerup always reach
+            // this element even if the finger drifts off it.
+            try { element.setPointerCapture(e.pointerId); } catch (_) {}
+
+            _timer = setTimeout(function () {
+                if (!_active) return;
+                _longFired = true;
+                _active    = false;
+                _hapticFeedback(hapticLP);
+                if (typeof onLongPress === 'function') onLongPress(e);
+
+                // Absorb the synthetic click that fires ≈300 ms after pointerup
+                // on touch devices so no existing click handler re-triggers.
+                if (_isTouchDevice()) {
+                    _captureHandle = function (ev) {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                    };
+                    document.addEventListener('click', _captureHandle, true);
+                    setTimeout(function () {
+                        if (_captureHandle) {
+                            document.removeEventListener('click', _captureHandle, true);
+                            _captureHandle = null;
+                        }
+                    }, 400);
+                }
+            }, threshold);
+        }
+
+        function _onPointerMove(e) {
+            if (!_active) return;
+            var dx = e.clientX - _startX;
+            var dy = e.clientY - _startY;
+            // Cancel the long-press if the pointer drifts (scroll intent).
+            if (Math.sqrt(dx * dx + dy * dy) > maxMovePx) {
+                _cancelTimer();
+            }
+        }
+
+        function _onPointerUp() {
+            // If the timer already fired (long press) or was cancelled (move),
+            // both _active and !_longFired would be false — nothing to do.
+            if (!_active && !_longFired) return;
+            var wasActive = _active;
+            _cancelTimer();   // clears timer; resets _longFired, _active
+            if (wasActive) {
+                // Short tap: long-press timer never fired.
+                if (hapticTap != null) _hapticFeedback(hapticTap);
+                if (typeof onShortTap === 'function') onShortTap();
+            }
+        }
+
+        function _onPointerCancel() {
+            _cancelTimer();
+        }
+
+        element.addEventListener('pointerdown',   _onPointerDown);
+        element.addEventListener('pointermove',   _onPointerMove);
+        element.addEventListener('pointerup',     _onPointerUp);
+        element.addEventListener('pointercancel', _onPointerCancel);
+
+        // Return a cleanup handle so the caller can remove listeners if the
+        // element is ever detached (prevents ghost-listener accumulation).
+        return function cleanup() {
+            _cancelTimer();
+            if (_captureHandle) {
+                document.removeEventListener('click', _captureHandle, true);
+                _captureHandle = null;
+            }
+            element.removeEventListener('pointerdown',   _onPointerDown);
+            element.removeEventListener('pointermove',   _onPointerMove);
+            element.removeEventListener('pointerup',     _onPointerUp);
+            element.removeEventListener('pointercancel', _onPointerCancel);
+        };
     }
 
     // ── Lightweight Markdown → safe HTML renderer ─────────────────────────────
@@ -3287,9 +3585,708 @@
         var scrollEl = document.createElement('div');
         scrollEl.className = 'ai-assistant-panel-sheet-scroll';
         scrollEl.appendChild(bodyEl);
+        _attachModelFilter(scrollEl, bodyEl, models);
         sheet.appendChild(scrollEl);
         _appendModelSheetSections(scrollEl);
         return sheet;
+    }
+
+    /**
+     * Attach a filter bar and pagination controls to the model-sheet scroll wrapper.
+     *
+     * Injected DOM structure inside scrollEl after this call:
+     *
+     *   scrollEl
+     *     filterBar   ← inserted BEFORE bodyEl (search + scope chips + meta row)
+     *     bodyEl      ← model-row labels (never removed; only display toggled)
+     *     _pagBar     ← inserted AFTER bodyEl (page buttons; hidden when not needed)
+     *     … effort / thinking / future sections (added later)
+     *
+     * Invariants
+     * ----------
+     * • The currently-checked radio row is NEVER hidden — it stays visible with a
+     *   "selected" badge when it falls outside the current filter result set.
+     * • ARIA radiogroup semantics are preserved: rows remain in the DOM; only
+     *   their CSS display property is toggled (display:flex / display:none).
+     * • Filter state (query, scope, sort, page) persists while the sheet is open.
+     * • Calling this function more than once on the same scrollEl is a safe no-op
+     *   (guarded by dataset.filterAttached).
+     *
+     * Parameters
+     * ----------
+     * scrollEl : HTMLElement
+     *     The .ai-assistant-panel-sheet-scroll wrapper element.
+     * bodyEl : HTMLElement
+     *     The .ai-assistant-panel-model-list radiogroup container.
+     * models : Array
+     *     The panelApiModels config array passed to _buildModelSheet.
+     *
+     * Notes
+     * -----
+     * Developer: Filter state resets only via explicit user action (clear button,
+     *   Escape key).  It intentionally persists across sheet open/close cycles so
+     *   the user returns to their last search context.
+     * Developer: _safeInt() is used (already defined in IIFE scope) to bound the
+     *   configurable page size.
+     */
+    function _attachModelFilter(scrollEl, bodyEl, models) {
+
+        // ── Guard: idempotent — safe to call more than once ───────────────────
+        if (scrollEl.dataset.filterAttached === 'true') return;
+
+        // ── Threshold: only attach when there are enough models to warrant it ─
+        // Configurable: set panelFilterThreshold in conf.py (default 2).
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        var THRESHOLD = _safeInt(cfg.panelFilterThreshold, 1, 9999, 2);
+        if (!models || models.length < THRESHOLD) return;
+
+        scrollEl.dataset.filterAttached = 'true';
+
+        // Page size: configurable via conf.py panelFilterPageSize; bounded 1–200.
+        // Developer note: values > 200 are clamped to 200 to prevent unresponsive
+        // rendering on very large model lists.
+        var PAGE_SIZE = _safeInt(cfg.panelFilterPageSize, 1, 200, 10);
+
+        // ── Filter state ──────────────────────────────────────────────────────
+        var _query = '';        // lowercase trimmed search string; '' = no filter
+        var _scope = 'all';     // which field to search: 'all'|'title'|'provider'|'desc'|'id'
+        var _sort  = 'default'; // sort order: 'default'|'az'|'za'|'provider'
+        var _page  = 0;         // 0-indexed current page
+
+        // ── Snapshot rows from DOM once at init ───────────────────────────────
+        // Rows are never added/removed by this module; only display is toggled.
+        var _rows = Array.prototype.slice.call(
+            bodyEl.querySelectorAll('.ai-assistant-panel-model-row')
+        );
+        if (_rows.length === 0) return;
+
+        // Pre-extract lowercase text per row (O(n) once; avoids repeated DOM reads).
+        var _rowData = _rows.map(function (row, i) {
+            var titleEl = row.querySelector('.ai-assistant-panel-model-title');
+            var subEl   = row.querySelector('.ai-assistant-panel-model-sub');
+            var descEl  = row.querySelector('.ai-assistant-panel-model-desc');
+            var id      = (row.getAttribute('data-id') || '').toLowerCase();
+            var title   = titleEl ? titleEl.textContent.toLowerCase() : '';
+            var sub     = subEl   ? subEl.textContent.toLowerCase()   : '';
+            var desc    = descEl  ? descEl.textContent.toLowerCase()  : '';
+            return {
+                row:     row,
+                id:      id,
+                title:   title,
+                sub:     sub,
+                desc:    desc,
+                all:     title + ' ' + sub + ' ' + desc + ' ' + id,
+                origIdx: i   // stable original order for 'Default' sort
+            };
+        });
+
+        // ── SVG constants (inline; no external file dependency; not user input) ─
+        var _SVG_SEARCH =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true"><circle cx="11" cy="11" r="8"/>' +
+            '<line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+
+        var _SVG_CLOSE =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+            '<line x1="18" y1="6" x2="6" y2="18"/>' +
+            '<line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+        var _SVG_PREV =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+
+        var _SVG_NEXT =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+
+        // ── Empty state element (appended to bodyEl; shown when 0 results) ────
+        // All user-visible text is set via textContent — never innerHTML.
+        var _emptyEl = document.createElement('div');
+        _emptyEl.className = 'ai-assistant-panel-filter-empty';
+        _emptyEl.style.display = 'none';
+
+        var _emptyIcon = document.createElement('span');
+        _emptyIcon.className = 'ai-assistant-panel-filter-empty-icon';
+        _emptyIcon.setAttribute('aria-hidden', 'true');
+        _emptyIcon.innerHTML = _SVG_SEARCH;   // safe: static SVG constant
+
+        var _emptyMsg = document.createElement('p');
+
+        var _emptyClearBtn = document.createElement('button');
+        _emptyClearBtn.type = 'button';
+        _emptyClearBtn.className = 'ai-assistant-panel-filter-clear-all';
+        _emptyClearBtn.textContent = 'Clear filter';
+        _emptyClearBtn.addEventListener('click', function () { _clearFilter(); });
+
+        _emptyEl.appendChild(_emptyIcon);
+        _emptyEl.appendChild(_emptyMsg);
+        _emptyEl.appendChild(_emptyClearBtn);
+        bodyEl.appendChild(_emptyEl);
+
+        // ── Outside-filter badge: added to the checked row when it is filtered out ─
+        function _ensureOutsideBadge(row) {
+            if (row.querySelector('.ai-assistant-panel-filter-outside-badge')) return;
+            var badge = document.createElement('span');
+            badge.className = 'ai-assistant-panel-filter-outside-badge';
+            badge.textContent = 'selected';
+            badge.setAttribute('aria-label', 'currently selected — not in current filter');
+            row.appendChild(badge);
+        }
+        function _removeOutsideBadge(row) {
+            var b = row.querySelector('.ai-assistant-panel-filter-outside-badge');
+            if (b) b.parentNode.removeChild(b);
+        }
+
+        // ── Filter helpers ────────────────────────────────────────────────────
+        function _getSearchField(d) {
+            switch (_scope) {
+                case 'title':    return d.title;
+                case 'provider': return d.sub;
+                case 'desc':     return d.desc;
+                case 'id':       return d.id;
+                default:         return d.all;
+            }
+        }
+
+        function _matchesQuery(d) {
+            if (!_query) return true;
+            return _getSearchField(d).indexOf(_query) !== -1;
+        }
+
+        function _applySort(items) {
+            var copy = items.slice();
+            if (_sort === 'az') {
+                copy.sort(function (a, b) {
+                    return a.title.localeCompare(b.title);
+                });
+            } else if (_sort === 'za') {
+                copy.sort(function (a, b) {
+                    return b.title.localeCompare(a.title);
+                });
+            } else if (_sort === 'provider') {
+                copy.sort(function (a, b) {
+                    return a.sub.localeCompare(b.sub);
+                });
+            } else {
+                // Default: restore original config order.
+                copy.sort(function (a, b) {
+                    return a.origIdx - b.origIdx;
+                });
+            }
+            return copy;
+        }
+
+        // ── Smart page-range builder ──────────────────────────────────────────
+        //
+        // Produces a mixed array of page indices (numbers) and '...' sentinels
+        // for display in the pagination row.  Always shows: first page, last page,
+        // current page, and one page either side of current.  No Set/Array.from
+        // dependency — compatible with the ES5-syntax style of this IIFE.
+        //
+        // Examples (0-indexed internally, 1-indexed in UI):
+        //   _buildPageRange(0, 3)  → [0, 1, 2]
+        //   _buildPageRange(5, 10) → [0, '...', 4, 5, 6, '...', 9]
+        //   _buildPageRange(1, 10) → [0, 1, 2, '...', 9]
+        function _buildPageRange(current, total) {
+            if (total <= 7) {
+                var all = [];
+                for (var i = 0; i < total; i++) all.push(i);
+                return all;
+            }
+            // Collect unique "always-show" page indices into a plain object.
+            var shown = {};
+            shown[0] = true;
+            shown[total - 1] = true;
+            shown[current] = true;
+            if (current - 1 >= 0)    shown[current - 1] = true;
+            if (current + 1 < total) shown[current + 1] = true;
+
+            var keys = [];
+            var k;
+            for (k in shown) {
+                if (Object.prototype.hasOwnProperty.call(shown, k)) {
+                    keys.push(parseInt(k, 10));
+                }
+            }
+            keys.sort(function (a, b) { return a - b; });
+
+            var result = [];
+            for (var j = 0; j < keys.length; j++) {
+                if (j > 0 && keys[j] - keys[j - 1] > 1) result.push('...');
+                result.push(keys[j]);
+            }
+            return result;
+        }
+
+        // ── Debounce utility ──────────────────────────────────────────────────
+        function _debounce(fn, ms) {
+            var timer = null;
+            return function () {
+                var ctx = this, args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(function () { fn.apply(ctx, args); }, ms);
+            };
+        }
+
+        // ── Clear all filter state ────────────────────────────────────────────
+        function _clearFilter() {
+            _query = '';
+            _scope = 'all';
+            _sort  = 'default';
+            _page  = 0;
+            _input.value = '';
+            _updateChips();
+            _updateSortLabel();
+            _render();
+            _input.focus();
+        }
+
+        // ── Sync chip active states to _scope ─────────────────────────────────
+        function _updateChips() {
+            _chips.forEach(function (chip) {
+                var active = chip.getAttribute('data-scope') === _scope;
+                chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+                chip.classList.toggle('ai-assistant-panel-filter-chip--active', active);
+            });
+        }
+
+        // ── Sync sort button label to _sort ───────────────────────────────────
+        var _SORT_LABELS = {
+            'default':  'Sort',
+            'az':       'A \u2192 Z',
+            'za':       'Z \u2192 A',
+            'provider': 'Provider'
+        };
+
+        function _updateSortLabel() {
+            _sortLabelSpan.textContent = _SORT_LABELS[_sort] || 'Sort';
+            _sortBtn.classList.toggle(
+                'ai-assistant-panel-filter-sort--active',
+                _sort !== 'default'
+            );
+        }
+
+        // ── Main render ───────────────────────────────────────────────────────
+        //
+        // Pure display pass: derives visibility from state, never mutates state.
+        // Called after every state change (query, scope, sort, page).
+        function _render() {
+            // 1. Find currently checked row — must always remain visible.
+            var checkedRow = null;
+            var ci;
+            for (ci = 0; ci < _rows.length; ci++) {
+                var radio = _rows[ci].querySelector('input[type="radio"]');
+                if (radio && radio.checked) { checkedRow = _rows[ci]; break; }
+            }
+
+            // 2. Filter: apply query against selected scope field.
+            var filtered = _rowData.filter(_matchesQuery);
+
+            // 3. Sort filtered results.
+            var sorted = _applySort(filtered);
+
+            // 4. Clamp page index within valid range (handles filter narrowing pages).
+            var totalPages = sorted.length > 0
+                ? Math.ceil(sorted.length / PAGE_SIZE)
+                : 1;
+            if (_page >= totalPages) _page = totalPages - 1;
+            if (_page < 0) _page = 0;
+
+            // 5. Compute current page slice.
+            var start = _page * PAGE_SIZE;
+            var pageSlice = sorted.slice(start, start + PAGE_SIZE);
+
+            // Build O(1) page-membership lookup keyed on origIdx.
+            var inSlice = {};
+            pageSlice.forEach(function (d) { inSlice[d.origIdx] = true; });
+
+            // 6. Apply visibility to every row.
+            _rowData.forEach(function (d) {
+                var onPage    = !!inSlice[d.origIdx];
+                var isChecked = (d.row === checkedRow);
+                var show      = onPage || isChecked;
+
+                d.row.style.display = show ? 'flex' : 'none';
+
+                if (isChecked && !onPage) {
+                    _ensureOutsideBadge(d.row);
+                } else {
+                    _removeOutsideBadge(d.row);
+                }
+            });
+
+            // 6b. Reorder visible rows in the DOM to match the sorted page
+            // order.  When all rows fit on a single page every row is visible
+            // regardless of sort, so only toggling display has no effect —
+            // the browser keeps the original insertion order.
+            // bodyEl.appendChild on an already-attached node MOVES it (no
+            // clone, no removal event), making this O(n) and allocation-free.
+            // Hidden rows are left in place; their position is irrelevant.
+            pageSlice.forEach(function (d) {
+                bodyEl.appendChild(d.row);
+            });
+            // If the checked row is outside the current page slice it was
+            // rendered at the top of the loop above — keep it visually
+            // anchored before the page slice by prepending it now.
+            if (checkedRow && !inSlice[_rowData.filter(function (d) {
+                return d.row === checkedRow;
+            })[0].origIdx]) {
+                bodyEl.insertBefore(checkedRow, bodyEl.querySelector(
+                    '.ai-assistant-panel-model-row[style*="flex"]'
+                ) || _emptyEl);
+            }
+
+            // 7. Empty state — shown when the query matches 0 rows.
+            if (sorted.length === 0) {
+                _emptyEl.style.display = 'flex';
+                // textContent is safe for user-supplied _query.
+                _emptyMsg.textContent = _query
+                    ? 'No models match \u201C' + _query + '\u201D'
+                    : 'No models in this view';
+            } else {
+                _emptyEl.style.display = 'none';
+            }
+
+            // 8. Update ARIA-live meta line (announced by screen readers).
+            _updateMeta(sorted.length, totalPages);
+
+            // 9. Update pagination bar.
+            _renderPagination(totalPages, sorted.length);
+
+            // 10. Toggle clear (×) button — only visible when there is a query.
+            _clearBtn.style.display = _query ? 'flex' : 'none';
+        }
+
+        function _updateMeta(totalFiltered, totalPages) {
+            var allCount = _rowData.length;
+            var text;
+            if (_query || _sort !== 'default') {
+                text = totalFiltered + ' of ' + allCount +
+                    ' model' + (allCount !== 1 ? 's' : '');
+            } else {
+                text = allCount + ' model' + (allCount !== 1 ? 's' : '');
+            }
+            _countEl.textContent = text;
+
+            if (totalFiltered > PAGE_SIZE && totalPages > 1) {
+                _pageInfoEl.textContent =
+                    '\u00B7 Page ' + (_page + 1) + ' of ' + totalPages;
+                _pageInfoEl.style.display = '';
+            } else {
+                _pageInfoEl.style.display = 'none';
+            }
+        }
+
+        function _renderPagination(totalPages, totalFiltered) {
+            // innerHTML cleared — rebuilt from static constants only (no user data).
+            _pagBar.innerHTML = '';
+            if (totalPages <= 1 || totalFiltered <= PAGE_SIZE) {
+                _pagBar.style.display = 'none';
+                return;
+            }
+            _pagBar.style.display = 'flex';
+
+            // Previous button
+            var prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.className = 'ai-assistant-panel-filter-pg-btn';
+            prevBtn.setAttribute('aria-label', 'Previous page');
+            prevBtn.disabled = (_page === 0);
+            prevBtn.innerHTML = _SVG_PREV;   // safe: static constant
+            prevBtn.addEventListener('click', function () {
+                if (_page > 0) { _page--; _render(); }
+            });
+            _pagBar.appendChild(prevBtn);
+
+            // Page number buttons with smart ellipsis
+            var numsWrap = document.createElement('div');
+            numsWrap.className = 'ai-assistant-panel-filter-pg-numbers';
+
+            var pageRange = _buildPageRange(_page, totalPages);
+            pageRange.forEach(function (p) {
+                if (p === '...') {
+                    var ellipsis = document.createElement('span');
+                    ellipsis.className = 'ai-assistant-panel-filter-pg-ellipsis';
+                    ellipsis.textContent = '\u2026';
+                    ellipsis.setAttribute('aria-hidden', 'true');
+                    numsWrap.appendChild(ellipsis);
+                } else {
+                    var pgBtn = document.createElement('button');
+                    pgBtn.type = 'button';
+                    var isActive = (p === _page);
+                    pgBtn.className = 'ai-assistant-panel-filter-pg-num' +
+                        (isActive ? ' ai-assistant-panel-filter-pg-num--active' : '');
+                    // textContent: p is a number from _buildPageRange (not user input).
+                    pgBtn.textContent = String(p + 1);  // 1-indexed for display
+                    pgBtn.setAttribute('aria-label', 'Page ' + (p + 1));
+                    pgBtn.setAttribute('aria-current', isActive ? 'page' : 'false');
+                    (function (pageIdx) {
+                        pgBtn.addEventListener('click', function () {
+                            if (_page !== pageIdx) { _page = pageIdx; _render(); }
+                        });
+                    }(p));
+                    numsWrap.appendChild(pgBtn);
+                }
+            });
+            _pagBar.appendChild(numsWrap);
+
+            // Next button
+            var nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.className = 'ai-assistant-panel-filter-pg-btn';
+            nextBtn.setAttribute('aria-label', 'Next page');
+            nextBtn.disabled = (_page === totalPages - 1);
+            nextBtn.innerHTML = _SVG_NEXT;   // safe: static constant
+            nextBtn.addEventListener('click', function () {
+                if (_page < totalPages - 1) { _page++; _render(); }
+            });
+            _pagBar.appendChild(nextBtn);
+        }
+
+        // ── Build the filter bar DOM ──────────────────────────────────────────
+
+        var filterBar = document.createElement('div');
+        filterBar.className = 'ai-assistant-panel-filter-bar';
+        filterBar.setAttribute('role', 'search');
+        filterBar.setAttribute('aria-label', 'Filter models');
+
+        // Row 1 ── search input + sort button ─────────────────────────────────
+        var row1 = document.createElement('div');
+        row1.className = 'ai-assistant-panel-filter-row';
+
+        // Search wrap: icon + input + clear button
+        var searchWrap = document.createElement('div');
+        searchWrap.className = 'ai-assistant-panel-filter-search-wrap';
+
+        var searchIconEl = document.createElement('span');
+        searchIconEl.className = 'ai-assistant-panel-filter-search-icon';
+        searchIconEl.setAttribute('aria-hidden', 'true');
+        searchIconEl.innerHTML = _SVG_SEARCH;   // safe: static constant
+
+        var _input = document.createElement('input');
+        _input.type = 'search';
+        _input.className = 'ai-assistant-panel-filter-input';
+        _input.placeholder = 'Search models\u2026';
+        _input.setAttribute('aria-label', 'Search models');
+        _input.setAttribute('autocomplete', 'off');
+        _input.setAttribute('spellcheck', 'false');
+
+        var _clearBtn = document.createElement('button');
+        _clearBtn.type = 'button';
+        _clearBtn.className = 'ai-assistant-panel-filter-clear';
+        _clearBtn.setAttribute('aria-label', 'Clear search');
+        _clearBtn.title = 'Clear search';
+        _clearBtn.style.display = 'none';
+        _clearBtn.innerHTML = _SVG_CLOSE;   // safe: static constant
+        _clearBtn.addEventListener('click', function () { _clearFilter(); });
+
+        searchWrap.appendChild(searchIconEl);
+        searchWrap.appendChild(_input);
+        searchWrap.appendChild(_clearBtn);
+
+        // Sort wrap: button + dropdown menu
+        var sortWrap = document.createElement('div');
+        sortWrap.className = 'ai-assistant-panel-filter-sort-wrap';
+
+        var _sortBtn = document.createElement('button');
+        _sortBtn.type = 'button';
+        _sortBtn.className = 'ai-assistant-panel-filter-sort';
+        _sortBtn.setAttribute('aria-label', 'Sort models');
+        _sortBtn.setAttribute('aria-expanded', 'false');
+        _sortBtn.setAttribute('aria-haspopup', 'listbox');
+
+        var _sortLabelSpan = document.createElement('span');
+        _sortLabelSpan.textContent = 'Sort';
+
+        var sortChevron = document.createElement('span');
+        sortChevron.className = 'ai-assistant-panel-filter-sort-chevron';
+        sortChevron.setAttribute('aria-hidden', 'true');
+        sortChevron.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="6 9 12 15 18 9"/></svg>';
+
+        _sortBtn.appendChild(_sortLabelSpan);
+        _sortBtn.appendChild(sortChevron);
+
+        var _sortMenu = document.createElement('div');
+        _sortMenu.className = 'ai-assistant-panel-filter-sort-menu';
+        _sortMenu.setAttribute('role', 'listbox');
+        _sortMenu.setAttribute('aria-label', 'Sort order');
+        _sortMenu.style.display = 'none';
+
+        var _SORT_OPTIONS = [
+            { id: 'default',  label: 'Default order'  },
+            { id: 'az',       label: 'Name A \u2192 Z' },
+            { id: 'za',       label: 'Name Z \u2192 A' },
+            { id: 'provider', label: 'By provider'     }
+        ];
+
+        _SORT_OPTIONS.forEach(function (opt) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'ai-assistant-panel-filter-sort-item';
+            item.setAttribute('role', 'option');
+            item.setAttribute('data-sort-id', opt.id);
+            item.textContent = opt.label;   // safe: static constant
+            (function (sortId) {
+                item.addEventListener('click', function () {
+                    _sort = sortId;
+                    _page = 0;
+                    _updateSortLabel();
+                    _closeSortMenu();
+                    _render();
+                });
+            }(opt.id));
+            _sortMenu.appendChild(item);
+        });
+
+        // Sort menu open / close helpers
+        var _sortMenuOpen = false;
+
+        function _openSortMenu() {
+            _sortMenuOpen = true;
+            _sortMenu.style.display = 'block';
+            _sortBtn.setAttribute('aria-expanded', 'true');
+        }
+        function _closeSortMenu() {
+            _sortMenuOpen = false;
+            _sortMenu.style.display = 'none';
+            _sortBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        _sortBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            _sortMenuOpen ? _closeSortMenu() : _openSortMenu();
+        });
+        _sortBtn.addEventListener('keydown', function (e) {
+            if ((e.key === 'Escape' || e.keyCode === 27) && _sortMenuOpen) {
+                e.stopPropagation();
+                _closeSortMenu();
+            }
+        });
+        // Prevent menu-item clicks from bubbling to document (which closes the menu).
+        _sortMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+        sortWrap.appendChild(_sortBtn);
+        sortWrap.appendChild(_sortMenu);
+
+        row1.appendChild(searchWrap);
+        row1.appendChild(sortWrap);
+
+        // Row 2 ── scope chips ─────────────────────────────────────────────────
+        var row2 = document.createElement('div');
+        row2.className = 'ai-assistant-panel-filter-chips-row';
+        row2.setAttribute('role', 'group');
+        row2.setAttribute('aria-label', 'Search scope');
+
+        var _CHIP_DEFS = [
+            { scope: 'all',      label: 'All'         },
+            { scope: 'title',    label: 'Name'        },
+            { scope: 'provider', label: 'Provider'    },
+            { scope: 'desc',     label: 'Description' },
+            { scope: 'id',       label: 'ID'          }
+        ];
+
+        var _chips = [];
+        _CHIP_DEFS.forEach(function (def) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'ai-assistant-panel-filter-chip';
+            chip.setAttribute('data-scope', def.scope);
+            chip.setAttribute('aria-pressed', def.scope === 'all' ? 'true' : 'false');
+            if (def.scope === 'all') {
+                chip.classList.add('ai-assistant-panel-filter-chip--active');
+            }
+            chip.textContent = def.label;   // safe: static constant
+            (function (scopeId) {
+                chip.addEventListener('click', function () {
+                    _scope = scopeId;
+                    _page  = 0;
+                    _updateChips();
+                    _render();
+                });
+            }(def.scope));
+            row2.appendChild(chip);
+            _chips.push(chip);
+        });
+
+        // Row 3 ── meta: count + page info (ARIA live region) ─────────────────
+        var row3 = document.createElement('div');
+        row3.className = 'ai-assistant-panel-filter-meta';
+        row3.setAttribute('aria-live', 'polite');
+        row3.setAttribute('aria-atomic', 'true');
+
+        var _countEl    = document.createElement('span');
+        _countEl.className = 'ai-assistant-panel-filter-count';
+
+        var _pageInfoEl = document.createElement('span');
+        _pageInfoEl.className = 'ai-assistant-panel-filter-page-info';
+        _pageInfoEl.style.display = 'none';
+
+        row3.appendChild(_countEl);
+        row3.appendChild(_pageInfoEl);
+
+        filterBar.appendChild(row1);
+        filterBar.appendChild(row2);
+        filterBar.appendChild(row3);
+
+        // ── Pagination bar (inserted after bodyEl, before effort sections) ─────
+        var _pagBar = document.createElement('div');
+        _pagBar.className = 'ai-assistant-panel-filter-pagination';
+        _pagBar.style.display = 'none';
+
+        // ── Wire input events ─────────────────────────────────────────────────
+        var _debouncedRender = _debounce(function () {
+            _page = 0;
+            _render();
+        }, 300);
+
+        _input.addEventListener('input', function () {
+            _query = _input.value.trim().toLowerCase();
+            _debouncedRender();
+        });
+
+        // Escape key: clear search when a query is active.
+        _input.addEventListener('keydown', function (e) {
+            if ((e.key === 'Escape' || e.keyCode === 27) && _query) {
+                e.stopPropagation();
+                _clearFilter();
+            }
+        });
+
+        // Close sort menu on any outside click (global listener).
+        document.addEventListener('click', function () { _closeSortMenu(); });
+
+        // ── Badge refresh on model selection ─────────────────────────────────
+        // The row `change` listener in _buildModelSheet cannot reach _render()
+        // (different closure scope).  A delegated listener on bodyEl handles
+        // every radio `change` that bubbles up and re-renders the badge state
+        // so the outside-badge moves to (or off) the newly selected row
+        // immediately — without waiting for the next filter / sort / page event.
+        bodyEl.addEventListener('change', function (e) {
+            if (e.target && e.target.type === 'radio') {
+                _render();
+            }
+        });
+
+        // ── Inject into DOM ───────────────────────────────────────────────────
+        // filterBar goes BEFORE bodyEl inside scrollEl.
+        scrollEl.insertBefore(filterBar, bodyEl);
+        // _pagBar goes AFTER bodyEl (bodyEl.nextSibling is null at this call site
+        // because _appendModelSheetSections has not run yet).
+        if (bodyEl.nextSibling) {
+            scrollEl.insertBefore(_pagBar, bodyEl.nextSibling);
+        } else {
+            scrollEl.appendChild(_pagBar);
+        }
+
+        // ── Initial render ────────────────────────────────────────────────────
+        _render();
     }
 
     /**
@@ -3518,6 +4515,152 @@
         return sheet;
     }
 
+
+    // ── Project Links sheet ───────────────────────────────────────────────────
+
+    /**
+     * Build the "Project Links" slide-over sheet.
+     *
+     * Shows two hero cards — Source Repository (GitHub) and Project Website —
+     * each rendered as a tappable card that opens the configured URL in a new
+     * tab.  Both cards and the sheet itself are fully customisable via
+     * ``window.AI_ASSISTANT_CONFIG``.
+     *
+     * Configuration keys read from cfg
+     * ---------------------------------
+     * panelLinks          bool    Master switch. false → sheet not built.
+     * panelLinksTitle     string  Sheet header text.  Default: "Project Links".
+     * panelLinksHtml      string  When non-empty, replaces the built-in cards
+     *                             with trusted author HTML (same pattern as
+     *                             panelPrivacyHtml / panelTermsHtml).
+     * panelSourceUrl      string  GitHub / source repository URL.
+     * panelSourceLabel    string  Card heading.  Default: "Source Repository".
+     * panelSourceDesc     string  Card sub-text shown beneath the heading.
+     * panelSiteUrl        string  Project website URL.
+     * panelSiteLabel      string  Card heading.  Default: "Project Website".
+     * panelSiteDesc       string  Card sub-text shown beneath the heading.
+     *
+     * Returns
+     * -------
+     * HTMLElement
+     *     The assembled sheet element (data-open="false" initially).
+     */
+    function _buildLinksSheet() {
+        var cfg    = window.AI_ASSISTANT_CONFIG || {};
+        var title  = (typeof cfg.panelLinksTitle === 'string' && cfg.panelLinksTitle)
+                     || 'Project Links';
+
+        var sheet = document.createElement('div');
+        sheet.className = 'ai-assistant-panel-privacy ai-assistant-panel-links-sheet';
+        sheet.id        = 'ai-assistant-panel-links-sheet';
+        sheet.setAttribute('data-open', 'false');
+
+        var head   = document.createElement('div');
+        head.className = 'ai-assistant-panel-privacy-head';
+        var hStrong = document.createElement('strong');
+        hStrong.textContent = title;
+        var hClose  = _createIconBtn('links-close', 'Close ' + title, ICONS.close);
+        hClose.addEventListener('click', function () {
+            sheet.setAttribute('data-open', 'false');
+        });
+        head.appendChild(hStrong);
+        head.appendChild(hClose);
+        sheet.appendChild(head);
+
+        var bodyEl = document.createElement('div');
+        bodyEl.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-links-body';
+
+        if (typeof cfg.panelLinksHtml === 'string' && cfg.panelLinksHtml) {
+            bodyEl.innerHTML = cfg.panelLinksHtml;
+        } else {
+            function _buildLinkCard(iconHtml, heading, desc, url, accent) {
+                if (!url || !_isSafeHref(url)) return null;
+                var card = document.createElement('a');
+                card.className  = 'ai-assistant-panel-link-card';
+                card.href       = url;
+                card.target     = '_blank';
+                card.rel        = 'noopener noreferrer';
+                card.setAttribute('aria-label', heading + ' \u2014 opens in a new tab');
+                if (accent) card.style.setProperty('--ai-link-card-accent', accent);
+
+                var ic = document.createElement('span');
+                ic.className = 'ai-assistant-panel-link-card-icon';
+                ic.setAttribute('aria-hidden', 'true');
+                ic.innerHTML = iconHtml;
+                card.appendChild(ic);
+
+                var txt = document.createElement('span');
+                txt.className = 'ai-assistant-panel-link-card-text';
+
+                var h = document.createElement('strong');
+                h.textContent = heading;
+                txt.appendChild(h);
+
+                if (desc) {
+                    var d = document.createElement('span');
+                    d.className = 'ai-assistant-panel-link-card-desc';
+                    d.textContent = desc;
+                    txt.appendChild(d);
+                }
+
+                var urlBadge = document.createElement('span');
+                urlBadge.className = 'ai-assistant-panel-link-card-url';
+                try {
+                    var parsed = new URL(url);
+                    urlBadge.textContent = parsed.hostname + parsed.pathname.replace(/\/$/, '');
+                } catch (_) { urlBadge.textContent = url; }
+                txt.appendChild(urlBadge);
+                card.appendChild(txt);
+
+                var arrow = document.createElement('span');
+                arrow.className = 'ai-assistant-panel-link-card-arrow';
+                arrow.setAttribute('aria-hidden', 'true');
+                arrow.innerHTML = ICONS.externalLink;
+                card.appendChild(arrow);
+
+                return card;
+            }
+
+            var sourceUrl   = (typeof cfg.panelSourceUrl   === 'string') ? cfg.panelSourceUrl   : '';
+            var sourceLabel = (typeof cfg.panelSourceLabel  === 'string' && cfg.panelSourceLabel)
+                              ? cfg.panelSourceLabel : 'Source Repository';
+            var sourceDesc  = (typeof cfg.panelSourceDesc  === 'string') ? cfg.panelSourceDesc  : '';
+            var siteUrl     = (typeof cfg.panelSiteUrl     === 'string') ? cfg.panelSiteUrl     : '';
+            var siteLabel   = (typeof cfg.panelSiteLabel   === 'string' && cfg.panelSiteLabel)
+                              ? cfg.panelSiteLabel   : 'Project Website';
+            var siteDesc    = (typeof cfg.panelSiteDesc    === 'string') ? cfg.panelSiteDesc    : '';
+
+            var sourceCard = _buildLinkCard(
+                ICONS.github, sourceLabel, sourceDesc, sourceUrl,
+                'var(--ai-github-accent, #24292f)'
+            );
+            // Extra class lets CSS dark-mode override target this card only.
+            if (sourceCard) sourceCard.classList.add('ai-assistant-panel-source-card');
+
+            var siteCard   = _buildLinkCard(
+                ICONS.globe,  siteLabel,   siteDesc,   siteUrl,
+                'var(--ai-site-accent, var(--ai-accent, #2563eb))'
+            );
+            if (siteCard) siteCard.classList.add('ai-assistant-panel-site-card');
+
+            if (sourceCard) bodyEl.appendChild(sourceCard);
+            if (siteCard)   bodyEl.appendChild(siteCard);
+
+            if (!sourceCard && !siteCard) {
+                var empty = document.createElement('p');
+                empty.className = 'ai-assistant-panel-links-empty';
+                empty.textContent =
+                    'No project links configured. Set ai_assistant_panel_source_url ' +
+                    'and ai_assistant_panel_site_url in conf.py.';
+                bodyEl.appendChild(empty);
+            }
+        }
+
+        sheet.appendChild(bodyEl);
+        return sheet;
+    }
+
+
     /**
      * Copy the current page URL to the clipboard with a small toast.
      * Best-effort; silently no-ops if the browser blocks clipboard access.
@@ -3574,10 +4717,11 @@
             pop.appendChild(item);
         }
 
+        addItem(ICONS.model,    'Choose a model',            hooks && hooks.onModel);
         addItem(ICONS.privacy,  'Privacy & Responsibility',  hooks && hooks.onPrivacy);
         addItem(ICONS.terms,    'Terms of Service',          hooks && hooks.onTerms);
-        addItem(ICONS.model,    'Choose a model',            hooks && hooks.onModel);
         addItem(ICONS.share,    'Share',                     hooks && hooks.onShare);
+        addItem(ICONS.github,   'Project Links',             hooks && hooks.onLinks);
 
         // Keyboard shortcut hint row — shown at the bottom of the menu when a
         // shortcut is configured.  Now interactive: left-click = minimize,
@@ -3612,6 +4756,7 @@
 
             // Left-click: close hamburger menu then minimize panel.
             kbdRow.addEventListener('click', function () {
+                _hapticFeedback([8]);
                 pop.setAttribute('data-open', 'false');
                 minimizeAIPanel();
             });
@@ -3703,11 +4848,11 @@
         btn.title = initLabel;
 
         // ── Small-screen icon-only fallback ────────────────────────────────
-        // On narrow viewports (≤ 460 px) the pill collapses to this single
+        // On narrow viewports (≤ 575 px) the pill collapses to this single
         // model icon, hiding the dot, label, and chevron.  Mirrors the exact
         // same logic used by .ai-assistant-panel-model-link in the sub-bar:
         // the icon is always in the DOM; CSS controls visibility at the
-        // breakpoint defined in the @media (max-width: 460px) block.
+        // breakpoint defined in the @media (max-width: 575px) block.
         var iconOnly = document.createElement('span');
         iconOnly.className = 'ai-assistant-panel-inline-picker-icon';
         iconOnly.setAttribute('aria-hidden', 'true');
@@ -3957,12 +5102,14 @@
         // R3: clear conversation without page refresh ("Start a new chat").
         var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChat);
         newChatBtn.title = 'Start a new chat';
+        newChatBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         newChatBtn.addEventListener('click', clearConversation);
 
         // R4: export the conversation as a plain-text download.
         var exportBtn = _createIconBtn(
             'export', 'Export AI conversation as txt', ICONS.exportTxt);
         exportBtn.title = 'Export AI conversation as txt';
+        exportBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         exportBtn.addEventListener('click', exportConversation);
 
         headerActions.appendChild(newChatBtn);
@@ -4024,7 +5171,7 @@
                 }
             });
             // Left-click: minimize panel.
-            hint.addEventListener('click', function () { minimizeAIPanel(); });
+            hint.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
             // Right-click: fully close panel.
             hint.addEventListener('contextmenu', function (e) {
                 e.preventDefault();
@@ -4039,6 +5186,33 @@
             });
             leftCluster.appendChild(hint);
         }
+
+        // ── Left cluster: Source (GitHub) button ──────────────────────────────
+        // Shown when panelSource !== false AND panelSourceUrl is a valid URL.
+        // Clicking opens the Links sheet (same _openSheet contract as all other
+        // sheets).  Built here so the element is available to wire() below.
+        var sourceBtn = null;
+        if (cfgRef.panelSource !== false) {
+            sourceBtn = document.createElement('button');
+            sourceBtn.type = 'button';
+            sourceBtn.className =
+                'ai-assistant-panel-subbar-link-btn ai-assistant-panel-source-btn';
+            var sourceIc = document.createElement('span');
+            sourceIc.setAttribute('aria-hidden', 'true');
+            sourceIc.innerHTML = ICONS.github;   // ICONS constant — safe.
+            sourceBtn.appendChild(sourceIc);
+            var sourceLbl = document.createElement('span');
+            sourceLbl.textContent =
+                (cfgRef.panelSourceBtnLabel) || 'Source';
+            sourceBtn.appendChild(sourceLbl);
+            sourceBtn.setAttribute(
+                'aria-label',
+                (cfgRef.panelSourceBtnLabel || 'Source') + ' \u2014 open project links'
+            );
+            sourceBtn.title = 'View project source & links';
+            leftCluster.appendChild(sourceBtn);
+        }
+
         subbar.appendChild(leftCluster);
 
         // ── Right cluster: model · privacy · terms · share ──
@@ -4055,7 +5229,6 @@
             (window.AI_ASSISTANT_CONFIG &&
              window.AI_ASSISTANT_CONFIG.panelPrivacyLinkText) ||
             'Privacy & Responsibility';
-        rightCluster.appendChild(privacyLink);
 
         // Terms-of-Service link — sibling of Privacy, same CSS class so the
         // theme styling cascades automatically.
@@ -4067,7 +5240,6 @@
             termsLink.textContent =
                 (cfgRef.panelTermsLinkText) || 'Terms of Service';
             termsLink.setAttribute('aria-label', 'Open Terms of Service');
-            rightCluster.appendChild(termsLink);
         }
 
         // Model picker button (sheet entry-point).  Shown when any panel
@@ -4099,7 +5271,6 @@
 
             modelLink.setAttribute('aria-label', 'Choose a model');
             modelLink.title = 'Choose a model';
-            rightCluster.appendChild(modelLink);
         }
 
         // Share button — opens the Share sheet.
@@ -4117,7 +5288,38 @@
             shareLink.appendChild(shareLbl);
             shareLink.setAttribute('aria-label', 'Share this page');
             shareLink.title = 'Share this page';
-            rightCluster.appendChild(shareLink);
+        }
+
+        // Append right-cluster items in visual left→right order:
+        //   Model | Privacy | Terms | Share | Site | ⋯
+        // Items that are null (feature-flagged off) are silently skipped.
+        if (modelLink)  rightCluster.appendChild(modelLink);
+        rightCluster.appendChild(privacyLink);
+        if (termsLink)  rightCluster.appendChild(termsLink);
+        if (shareLink)  rightCluster.appendChild(shareLink);
+
+        // ── Right cluster: Site (website) button — after Share ────────────────
+        // Counterpart to sourceBtn.  Opens the same Links sheet from the right
+        // side so the user can reach project links from either subbar edge.
+        var siteBtn = null;
+        if (cfgRef.panelSite !== false) {
+            siteBtn = document.createElement('button');
+            siteBtn.type = 'button';
+            siteBtn.className =
+                'ai-assistant-panel-subbar-link-btn ai-assistant-panel-site-btn';
+            var siteIc = document.createElement('span');
+            siteIc.setAttribute('aria-hidden', 'true');
+            siteIc.innerHTML = ICONS.globe;   // ICONS constant — safe.
+            siteBtn.appendChild(siteIc);
+            var siteLbl = document.createElement('span');
+            siteLbl.textContent = (cfgRef.panelSiteBtnLabel) || 'Website';
+            siteBtn.appendChild(siteLbl);
+            siteBtn.setAttribute(
+                'aria-label',
+                (cfgRef.panelSiteBtnLabel || 'Website') + ' \u2014 open project links'
+            );
+            siteBtn.title = 'Visit project website & links';
+            rightCluster.appendChild(siteBtn);
         }
 
         // Right overflow toggle button — collapsed representation of the
@@ -4175,6 +5377,7 @@
             speakBannerEl.appendChild(speakText);
 
             speakBannerEl.addEventListener('click', function () {
+                _hapticFeedback([8]);
                 _toggleSpeechRecognition();
             });
         }
@@ -4218,6 +5421,7 @@
         attachBtn.setAttribute('title', 'Add attachment or context');
         attachBtn.innerHTML = ICONS.plus;   // ICONS constant — safe.
         attachBtn.addEventListener('click', function () {
+            _hapticFeedback([8]);
             panel.dispatchEvent(new CustomEvent('ai-assistant-attach', {
                 bubbles: true, cancelable: true,
             }));
@@ -4287,6 +5491,7 @@
             // Hold-to-record: pointerdown → start, pointerup/pointerleave → stop
             micBtnEl.addEventListener('pointerdown', function (e) {
                 if (!_micHoldMode) return;
+                _hapticFeedback([12]);   // medium pulse — confirms recording has started
                 e.preventDefault();
                 _micPointerHeld = true;
                 try {
@@ -4324,6 +5529,7 @@
             // (.ai-assistant-mic-expand-btn) so the two concerns are fully decoupled.
             micBtnEl.addEventListener('click', function () {
                 if (!_micHoldMode) {
+                    _hapticFeedback([8]);
                     _toggleSpeechRecognition();
                     _dismissSpeakBanner();
                 }
@@ -4483,31 +5689,35 @@
         if (speakBannerEl) panel.appendChild(speakBannerEl);
 
         panel.appendChild(footer);
-
-        // R2: privacy/responsibility slide-over (absolute, covers panel).
-        var privacySheet = _buildPrivacySheet();
-        panel.appendChild(privacySheet);
         // NOTE: The routed listener below (via _openSheet) is the single
         // authoritative opener.  A direct listener here was removed — it
         // fired before _openSheet closed any already-open sheet, creating a
         // one-microtask window where two sheets shared data-open="true", and
         // it would bypass the aria-expanded + focus management wired into
         // _openSheet by Phase 2 fixes.
-
-        // ── Phase B: additional slide-over sheets + hamburger popover ──────
         //
+        // ── Phase B: additional slide-over sheets + hamburger popover ──────
         // Each sheet uses the exact same data-open contract as the privacy
         // sheet so the existing CSS animation and a11y semantics cover them
         // for free.  Only one sheet may be open at a time — opening one
         // closes the others, which keeps the panel readable on small screens.
         var modelSheet = _buildModelSheet();
         panel.appendChild(modelSheet);
+        // R2: privacy/responsibility slide-over (absolute, covers panel).
+        var privacySheet = _buildPrivacySheet();
+        panel.appendChild(privacySheet);
 
         var termsSheet = (cfgRef.panelTerms !== false) ? _buildTermsSheet() : null;
         if (termsSheet) panel.appendChild(termsSheet);
 
         var shareSheet = (cfgRef.panelShare !== false) ? _buildShareSheet() : null;
         if (shareSheet) panel.appendChild(shareSheet);
+
+        // Links sheet — source repository + project website cards.
+        // Built when panelLinks !== false (default true).  Both sourceBtn and
+        // siteBtn in the sub-bar open this same sheet via _openSheet.
+        var linksSheet = (cfgRef.panelLinks !== false) ? _buildLinksSheet() : null;
+        if (linksSheet) panel.appendChild(linksSheet);
 
         /**
          * Open exactly one sheet at a time.  Pass null to close all.
@@ -4542,7 +5752,7 @@
          *   _closeSheet which restores focus to the originating button.
          */
         function _openSheet(target) {
-            [privacySheet, modelSheet, termsSheet, shareSheet].forEach(function (s) {
+            [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet].forEach(function (s) {
                 if (!s) return;
                 s.setAttribute('data-open', (s === target) ? 'true' : 'false');
             });
@@ -4629,6 +5839,31 @@
             shareLink.addEventListener('click', function () { _openSheet(shareSheet); });
         }
 
+        // Wire Source and Site buttons → linksSheet (or direct URL fallback).
+        // When the links sheet is disabled (panelLinks: false), each button
+        // falls back to opening its configured URL directly in a new tab so the
+        // user is never stranded with a non-functional button.
+        function _openLinksOrUrl(url) {
+            if (linksSheet) {
+                _openSheet(linksSheet);
+            } else if (url && _isSafeHref(url)) {
+                try {
+                    var w = window.open(url, '_blank', 'noopener,noreferrer');
+                    if (w) { try { w.opener = null; } catch (_) {} }
+                } catch (_) {}
+            }
+        }
+        if (sourceBtn) {
+            sourceBtn.addEventListener('click', function () {
+                _openLinksOrUrl(cfgRef.panelSourceUrl || '');
+            });
+        }
+        if (siteBtn) {
+            siteBtn.addEventListener('click', function () {
+                _openLinksOrUrl(cfgRef.panelSiteUrl || '');
+            });
+        }
+
         // Sync the sub-bar model-link label with the active model whenever
         // the user changes it (via sheet or inline picker).  Reusing the
         // same DOM event the helpers already dispatch means there is exactly
@@ -4652,15 +5887,17 @@
         var hamburgerMenuEl = null;
         if (hamburgerBtn) {
             hamburgerMenuEl = _buildHamburgerMenu({
+                onModel:   modelLink   ? function () { _openSheet(modelSheet); }   : null,
                 onPrivacy: function () { _openSheet(privacySheet); },
                 onTerms:   termsSheet  ? function () { _openSheet(termsSheet); }   : null,
                 onShare:   shareSheet  ? function () { _openSheet(shareSheet); }   : null,
-                onModel:   modelLink   ? function () { _openSheet(modelSheet); }   : null,
+                onLinks:   linksSheet  ? function () { _openSheet(linksSheet); }   : null,
             });
             panel.appendChild(hamburgerMenuEl);
 
             // Left hamburger: anchor popover to the left edge.
             hamburgerBtn.addEventListener('click', function (e) {
+                _hapticFeedback([8]);
                 e.stopPropagation();
                 hamburgerMenuEl.setAttribute('data-anchor', 'left');
                 var open = hamburgerMenuEl.getAttribute('data-open') === 'true';
@@ -4683,6 +5920,7 @@
         // Right overflow button: anchor the shared hamburger popover to the
         // right edge of the subbar — visible on narrow panels only (CSS).
         rightOverflowBtn.addEventListener('click', function (e) {
+            _hapticFeedback([8]);
             e.stopPropagation();
             if (!hamburgerMenuEl) return;
             hamburgerMenuEl.setAttribute('data-anchor', 'right');
@@ -4698,19 +5936,70 @@
         // gracefully.  Falls back to the existing viewport-based @media rule on
         // browsers that don't support ResizeObserver (IE11, very old Safari).
         if (typeof ResizeObserver !== 'undefined') {
+            /**
+             * Progressive right-cluster overflow.
+             *
+             * Hides subbar-right items one-by-one as the panel narrows instead
+             * of collapsing the entire cluster at once.  Priority order (first
+             * to last to hide):
+             *
+             *   modelLink    575 px
+             *   privacyLink  475 px
+             *   termsLink    350 px
+             *   shareLink    300 px
+             *
+             * Sets [data-overflow-hidden] on each item so CSS max-width + opacity
+             * transitions can animate the collapse.  Sets [data-overflow-visible]
+             * on the overflow button once any item is hidden so it fades in with a
+             * 60 ms delay (items start squeezing before the ⋯ button appears).
+             *
+             * Items configured as null (feature-flagged off) are silently skipped.
+             *
+             * @param {number} w - Panel content rect width in pixels.
+             */
+            function _updateSubbarOverflow(w) {
+                var slots = [
+                    // Hide order: rightmost carriage departs first.
+                    // Visual order left→right: Model | Privacy | Terms | Share
+                    { el: modelLink,   px: 575 },   /* leftmost  — exits last   */
+                    { el: privacyLink, px: 475 },
+                    { el: termsLink,   px: 350 },
+                    { el: shareLink,   px: 300 },   /* rightmost — exits first  */
+                ];
+                var anyHidden = false;
+                for (var si = 0; si < slots.length; si++) {
+                    var slot = slots[si];
+                    if (!slot.el) continue;
+                    if (w < slot.px) {
+                        slot.el.setAttribute('data-overflow-hidden', '');
+                        anyHidden = true;
+                    } else {
+                        slot.el.removeAttribute('data-overflow-hidden');
+                    }
+                }
+                // Overflow button: fade in as soon as any item is hidden.
+                if (anyHidden) {
+                    rightOverflowBtn.setAttribute('data-overflow-visible', '');
+                } else {
+                    rightOverflowBtn.removeAttribute('data-overflow-visible');
+                }
+                // Left cluster: kbd-hint collapses only at very narrow widths.
+                panel.setAttribute('data-narrow', w < 300 ? 'true' : 'false');
+            }
             var _subbarRO = new ResizeObserver(function (entries) {
                 var w = entries[0] && entries[0].contentRect && entries[0].contentRect.width;
                 if (typeof w !== 'number') return;
-                panel.setAttribute('data-narrow', w < 360 ? 'true' : 'false');
+                _updateSubbarOverflow(w);
             });
             _subbarRO.observe(panel);
         }
 
         // ── Events ────────────────────────────────────────────────────────────
 
+        closeBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         closeBtn.addEventListener('click', closeAIPanel);
 
-        minimizeBtn.addEventListener('click', function () { minimizeAIPanel(); });
+        minimizeBtn.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
         // Right-click on the minimize button: fully close (mirrors kbd-hint / kbd-row contract).
         minimizeBtn.addEventListener('contextmenu', function (e) {
             e.preventDefault();
@@ -4718,6 +6007,7 @@
         });
 
         maximizeBtn.addEventListener('click', function () {
+            _hapticFeedback([8]);
             var isMax = panel.getAttribute('data-maximized') === 'true';
             if (isMax) {
                 // ── Restore ────────────────────────────────────────────────────
@@ -4758,7 +6048,7 @@
         // registered inside each sheet builder call sheet.setAttribute directly
         // (they run before _closeSheet exists); we add a second listener here
         // which performs the focus restoration after the flag is already 'false'.
-        [privacySheet, modelSheet, termsSheet, shareSheet].forEach(function (s) {
+        [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet].forEach(function (s) {
             if (!s) return;
             var closeBtn = s.querySelector('button[id$="-close"]');
             if (!closeBtn) return;
@@ -4798,6 +6088,7 @@
                 });
         }
 
+        sendBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         sendBtn.addEventListener('click', handleAIPanelSubmit);
 
         input.addEventListener('keydown', function (e) {
@@ -4873,7 +6164,19 @@
         trigger.appendChild(iconWrap);
         trigger.appendChild(label);
 
+        // Tap haptic fires on physical press (pointerdown) for immediate feedback.
+        trigger.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         trigger.addEventListener('click', function () { restoreAIPanel(); });
+
+        // Long-press (500 ms hold): close the panel completely rather than restore.
+        // onShortTap is null — the click handler above manages the normal tap action.
+        // hapticTap is null  — the pointerdown listener above already fired on press.
+        // Ghost-click absorber inside _attachLongPress prevents the subsequent
+        // synthetic click from re-triggering restoreAIPanel() after closeAIPanel().
+        _attachLongPress(trigger, null, function () { closeAIPanel(); }, {
+            hapticTap:       null,
+            hapticLongPress: [12, 40, 12],
+        });
 
         return trigger;
     }

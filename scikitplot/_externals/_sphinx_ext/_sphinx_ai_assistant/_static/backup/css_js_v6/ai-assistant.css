@@ -471,6 +471,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
     color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
     line-height: 1;
     padding: 0.25rem;
@@ -755,6 +756,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
     padding: 0.35rem 0.4rem;
     display: flex;
     align-items: center;
@@ -832,6 +834,7 @@
     font-size: 0.8rem;
     color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
     border: 1px solid var(
         --pst-color-border,
         var(--color-foreground-border, #ddd)
@@ -1118,6 +1121,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     border: 1px solid transparent;
     border-radius: 5px;
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
     font-family: inherit;
     transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -1618,15 +1622,16 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 .ai-assistant-panel-kbd-hint {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.68rem;
+    font-size: 0.5rem;
     /* Light-mode muted tone — readable on the white/light panel surface. */
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
     /* Interactive: left-click = minimize, right-click = close. */
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
     user-select: none;
     border-radius: 4px;
-    padding: 0.15rem 0.25rem;
+    gap: 0.03rem;
+    padding: 0;
     transition: opacity 0.15s ease, background 0.12s ease;
 }
 
@@ -1643,17 +1648,18 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
    in CSS prevents any theme stylesheet from accidentally overriding it.
    flex-shrink:0 stops the icon from collapsing in narrow containers. */
 .ai-assistant-panel-kbd-hint > span[aria-hidden] svg {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
     stroke: currentColor;
     fill: none;
     flex-shrink: 0;
+    margin: 0 0.25rem;
 }
 
 .ai-assistant-panel-kbd-hint kbd {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 0.66rem;
-    padding: 0.05rem 0.3rem;
+    font-size: 0.5rem;
+    padding: 0.1rem 0.1rem;
     background: var(--pst-color-surface, var(--color-background-secondary, #eef0f2));
     border: 1px solid var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
     border-bottom-width: 2px;
@@ -1756,6 +1762,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
     text-decoration: underline;
     cursor: pointer;
+    touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
 }
 .ai-assistant-panel-privacy-link:hover {
     color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
@@ -1948,8 +1955,9 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 }
 .ai-assistant-panel-subbar-right {
     margin-left: auto;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;          /* carriages never wrap to a new line */
     justify-content: flex-end;
+    overflow: hidden;           /* clip carriages as they exit to the right */
 }
 
 /* Model picker button in the sub-bar: pill with icon + label + chevron. */
@@ -1963,7 +1971,8 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     height: 0.9rem;
 }
 .ai-assistant-panel-model-link-label {
-    max-width: 12ch;
+    max-width: 7.5rem;  /* by model name 12ch */
+    min-width: 7rem;  /* by model name */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1980,6 +1989,67 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     width: 0.9rem;
     height: 0.9rem;
 }
+
+/* ─── Progressive right-cluster overflow — per-item smooth collapse ──────────
+   JS assigns [data-overflow-hidden] to each button individually, keyed to
+   panel-width thresholds (Model 575 → Privacy 475 → Terms 350 → Share 300 px).
+   max-width transitions from its natural content width down to 0 so the item
+   squeezes closed in place.  opacity fades in parallel so the text/icon fades
+   as the element collapses — no sudden pop-in or pop-out.
+   The parent flex gap is preserved; the 0.28 s squeeze is short enough that
+   the transient gap gap (≤ 0.5 rem, ≤ 0.28 s) is imperceptible in practice. */
+
+/* ─── Train-carriage collapse: each button is one carriage ──────────────────
+   transform-origin: right center  →  the RIGHT edge is the tunnel entrance.
+   The carriage collapses from its left side toward the right (tunnel mouth),
+   while also drifting rightward — exactly like a train car receding into a
+   tunnel: it moves right AND gets narrower until it vanishes.
+
+   Two asymmetric transitions are declared:
+     • This (base) rule's transition fires on ARRIVAL  (attribute removed) → ease-out
+     • The [data-overflow-hidden] rule's transition fires on DEPARTURE      → ease-in
+   CSS always uses the DESTINATION state's transition, so the two rules give
+   physically correct decelerate-in / accelerate-out behaviour. */
+.ai-assistant-panel-subbar-right > button:not(.ai-assistant-panel-subbar-overflow-btn) {
+    max-width: 11rem;       /* generous cap — actual rendered width is auto/content */
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transform-origin: right center;              /* tunnel mouth is on the right       */
+    transform: translateX(0) scaleX(1);          /* carriage at platform, full width   */
+    /* Arrival easing: ease-out — carriage decelerates as it pulls into the station */
+    transition:
+        max-width  0.28s cubic-bezier(0, 0.55, 0.45, 1),
+        opacity    0.22s cubic-bezier(0, 0.55, 0.45, 1),
+        transform  0.28s cubic-bezier(0, 0.55, 0.45, 1);
+}
+
+/* Departure state: carriage moves right AND narrows to zero — train entering a tunnel.
+   transform-origin: right center (inherited from base) keeps the right edge pinned
+   so the carriage squishes from its LEFT side toward the tunnel mouth on the right.
+   translateX drifts the whole carriage (including the pinned right edge) into the
+   ⋯ button's territory so it visually disappears behind it.
+   Departure easing: ease-in — carriage starts slow then accelerates into the tunnel. */
+.ai-assistant-panel-subbar-right > button[data-overflow-hidden] {
+    max-width:     0 !important;
+    opacity:       0 !important;
+    transform:     translateX(1.2rem) scaleX(0) !important;   /* slides right + crushes to zero */
+    pointer-events: none;
+    transition:
+        max-width  0.30s cubic-bezier(0.4, 0, 1, 0.45),
+        opacity    0.22s cubic-bezier(0.4, 0, 1, 0.45),
+        transform  0.30s cubic-bezier(0.4, 0, 1, 0.45);
+}
+
+/* Stagger: in the fast-resize fallback (all hidden simultaneously), carriages depart
+   one at a time right → left, 70 ms apart, so each departure is individually visible.
+   In normal use JS crosses one threshold at a time, so only one carriage animates
+   per resize step — the stagger acts as a graceful safety net here.
+   DOM positions: 1=Model  2=Privacy  3=Terms  4=Share  5=⋯btn */
+.ai-assistant-panel-subbar-right > button:nth-child(1)[data-overflow-hidden] { transition-delay: 210ms; } /* Model — exits last    */
+.ai-assistant-panel-subbar-right > button:nth-child(2)[data-overflow-hidden] { transition-delay: 140ms;}  /* Privacy               */
+.ai-assistant-panel-subbar-right > button:nth-child(3)[data-overflow-hidden] { transition-delay: 70ms;}   /* Terms                 */
+.ai-assistant-panel-subbar-right > button:nth-child(4)[data-overflow-hidden] { transition-delay: 0ms;  }  /* Share — exits first   */
 
 /* Model-selection sheet — list of radio rows. */
 .ai-assistant-panel-model-list {
@@ -2199,7 +2269,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 
 /* ── Small-screen icon-only fallback ──────────────────────────────────────
  * Mirrors the model-link sub-bar pattern: always in the DOM, visibility
- * toggled by CSS at ≤ 460 px (same breakpoint as .ai-assistant-panel-
+ * toggled by CSS at ≤ 575 px (same breakpoint as .ai-assistant-panel-
  * model-link-label collapse).  The icon is 15 × 15 px to match the other
  * .ai-assistant-panel-footer-btn SVG icons in the same action bar. */
 .ai-assistant-panel-inline-picker-icon {
@@ -2219,8 +2289,8 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 /* Hamburger overflow popover — positioned absolute relative to panel. */
 .ai-assistant-panel-hamburger {
     position: absolute;
-    top: 3.2rem;            /* below the sub-bar */
-    left: 0.5rem;
+    top: 4.5rem;            /* below the sub-bar */
+    left: 2rem;
     z-index: 5;
     display: none;
     flex-direction: column;
@@ -2301,7 +2371,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
  * Also collapses the footer inline model picker from its full pill form
  * (dot + label + chevron) to a single model icon — same breakpoint, same
  * logic as .ai-assistant-panel-model-link-label above. */
-@media (max-width: 460px) {
+@media (max-width: 575px) {
     /* Sub-bar right-cluster: hide text labels, keep icons */
     .ai-assistant-panel-share-link span:not([aria-hidden]),
     .ai-assistant-panel-terms-link,
@@ -2333,12 +2403,16 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 }
 
 /* ─── Right overflow toggle button ──────────────────────────────────────────
-   Collapsed representation of the entire right cluster on narrow panels.
-   Visibility is data-driven (data-narrow="true" on panel root) so the
-   breakpoint reacts to actual panel width, not viewport width. */
+   Fades in progressively as items collapse; JS sets [data-overflow-visible]
+   once any right-cluster item is hidden.  opacity + max-width participates in
+   the same transition system as the cluster buttons above, with a 60 ms delay
+   so items begin squeezing before the ⋯ button appears — creating a natural
+   "one thing hides, then the menu appears" sequence rather than a simultaneous
+   swap.  margin-left: -0.5rem when hidden cancels the parent flex gap so the
+   button takes zero effective space in the layout while collapsed.           */
 
 .ai-assistant-panel-subbar-overflow-btn {
-    display: none;                 /* hidden by default — wide panels show full cluster */
+    display: inline-flex;          /* always in flex flow; max-width/opacity hides it */
     align-items: center;
     justify-content: center;
     width: 1.75rem;
@@ -2350,7 +2424,31 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     cursor: pointer;
     border-radius: 6px;
     flex-shrink: 0;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    /* Collapsed by default; JS sets [data-overflow-visible] to reveal */
+    max-width: 0;
+    margin-left: -0.5rem;          /* cancel parent gap while hidden            */
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    /* transform-origin: left center — button expands from its LEFT edge,
+       the side facing the arriving carriages, like a tunnel mouth opening. */
+    transform-origin: left center;
+    transform: translateX(0.8rem) scaleX(0.15);   /* compressed, waiting behind tunnel mouth */
+    transition:
+        max-width        0.26s cubic-bezier(0, 0.55, 0.45, 1) 0.10s,  /* ease-out, slight delay */
+        opacity          0.22s ease                            0.14s,  /* fades in after max-width opens */
+        transform        0.26s cubic-bezier(0, 0.55, 0.45, 1) 0.10s,  /* expands + slides into position */
+        margin-left      0.26s ease                            0.10s,
+        color            0.15s ease,
+        background-color 0.15s ease;
+}
+/* Visible state: at least one cluster item is hidden */
+.ai-assistant-panel-subbar-overflow-btn[data-overflow-visible] {
+    max-width: 2rem;               /* wider than 1.75rem icon — allows smooth grow */
+    opacity: 1;
+    margin-left: 0;                /* natural flex gap handles spacing            */
+    transform: translateX(0) scaleX(1);   /* fully open at the platform           */
+    pointer-events: auto;
 }
 .ai-assistant-panel-subbar-overflow-btn svg {
     width: 1rem;
@@ -2421,22 +2519,26 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     border-color: rgba(255, 255, 255, 0.18);
 }
 
-/* Narrow panel (< 360px): collapse right cluster, show overflow button; collapse external kbd-hint. */
-[data-narrow="true"] .ai-assistant-panel-subbar-right > :not(.ai-assistant-panel-subbar-overflow-btn) {
-    display: none !important;
-}
-[data-narrow="true"] .ai-assistant-panel-subbar-overflow-btn {
-    display: inline-flex;
-}
+/* Very narrow panel (< 300px): collapse left-cluster kbd-hint only.
+   Right-cluster items collapse individually via [data-overflow-hidden] above;
+   no blanket right-cluster hide is needed here. */
 [data-narrow="true"] .ai-assistant-panel-kbd-hint {
     display: none;
+}
+
+/* Honour prefers-reduced-motion for the new progressive-overflow transitions */
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-subbar-right > button:not(.ai-assistant-panel-subbar-overflow-btn),
+    .ai-assistant-panel-subbar-overflow-btn {
+        transition: opacity 0.01s;   /* instant toggle — no motion, still state-correct */
+    }
 }
 
 /* Hamburger popover positioning: left-anchor (default) vs right-anchor.
    data-anchor="right" is set by the overflow button before opening. */
 .ai-assistant-panel-hamburger[data-anchor="right"] {
     left: auto;
-    right: 0.5rem;
+    right: 1.8rem;
 }
 
 /* ─── Footer action bar (Claude-style two-row input layout) ─────────────────
@@ -5018,5 +5120,768 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     }
     .ai-assistant-footer-soundbar {
         transition: none;
+    }
+}
+
+/* ─── Model-picker filter bar ────────────────────────────────────────────────
+ *
+ * Injected by _attachModelFilter() inside .ai-assistant-panel-sheet-scroll,
+ * BEFORE the .ai-assistant-panel-model-list radiogroup body.
+ *
+ * DOM order inside scrollEl:
+ *   .ai-assistant-panel-filter-bar         ← filter toolbar (this section)
+ *   .ai-assistant-panel-model-list         ← existing model rows
+ *   .ai-assistant-panel-filter-pagination  ← page controls (this section)
+ *   … effort / thinking / future sections
+ *
+ * Design decisions
+ * ────────────────
+ * • Horizontal padding (1rem) matches .ai-assistant-panel-privacy-body so
+ *   the filter toolbar aligns flush with model rows below it.
+ * • A bottom border separates the toolbar zone from the model list without
+ *   adding margin that would shift the list.
+ * • All interactive elements inherit the three-layer CSS-variable chain used
+ *   throughout this file: --pst-color-* → --color-* → hardcoded fallback.
+ * • Focus-visible uses 2px primary-colour outline (matches effort buttons).
+ * • Every button has font: inherit so OS/browser font-size changes propagate.
+ * • Reduced-motion: transitions shortened / disabled via @media block below.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── Toolbar container ────────────────────────────────────────────────────── */
+
+.ai-assistant-panel-filter-bar {
+    position: relative;           /* sort-menu absolute anchor */
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.65rem 1rem 0.55rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid
+        var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-bar {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Row 1: search input + sort button ────────────────────────────────────── */
+
+.ai-assistant-panel-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+/* Search input pill: icon  input  ×-button */
+.ai-assistant-panel-filter-search-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0 0.3rem 0 0.5rem;
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, #f5f6f7)
+    );
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.18))
+    );
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-assistant-panel-filter-search-wrap:focus-within {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb,
+            var(--pst-color-primary, #2980b9) 15%,
+            transparent
+        );
+    /* Fallback for browsers that don't support color-mix */
+    box-shadow: 0 0 0 2px rgba(41, 128, 185, 0.18);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-search-wrap {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-search-wrap:focus-within {
+    border-color: rgba(91, 163, 208, 0.7);
+    box-shadow: 0 0 0 2px rgba(91, 163, 208, 0.18);
+}
+
+/* Magnifier icon — decorative; always muted */
+.ai-assistant-panel-filter-search-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.72rem;
+    height: 0.72rem;
+    max-width: 0.72rem;      /* hard cap: prevents inline-flex span from
+                                expanding to fit an oversized SVG child      */
+    max-height: 0.72rem;     /* hard cap */
+    flex-shrink: 0;
+    overflow: hidden;        /* clip any SVG stroke that escapes the box     */
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+/* Use !important to win the CSS cascade regardless of which stylesheet loads
+   last.  The SVG element carries no width/height HTML attributes, so without
+   this rule the browser falls back to its UA default (~24 px from viewBox) or
+   a theme rule like  .container svg { width: auto }  (same specificity 0,1,1)
+   that happens to appear after us in the cascade will silently override the
+   icon size back to the intrinsic value.
+   max-width / max-height provide a secondary hard cap for the  width: auto
+   fallback path — `auto` resolves to the intrinsic size, but max-* still clips
+   it even when width itself has been reset by a third-party rule. */
+.ai-assistant-panel-filter-search-icon > svg {
+    width:      0.72rem !important;
+    height:     0.72rem !important;
+    max-width:  0.72rem !important;
+    max-height: 0.72rem !important;
+    min-width:  0       !important;
+    min-height: 0       !important;
+    display:    block   !important;   /* no baseline gap from inline layout     */
+    flex-shrink: 0;
+}
+
+/* Actual text input — transparent so parent supplies the background */
+.ai-assistant-panel-filter-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.45rem 0.15rem;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+    /* Remove browser-native search clear affordance — we supply our own */
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.ai-assistant-panel-filter-input::placeholder {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #9aa0a6));
+    opacity: 1;   /* Firefox applies 0.54 opacity by default */
+}
+
+/* Suppress browser-native "×" on search inputs (Chrome / Safari) */
+.ai-assistant-panel-filter-input::-webkit-search-cancel-button,
+.ai-assistant-panel-filter-input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    display: none;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-input {
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #e0e0e0));
+}
+
+/* × clear button — shown only when a query exists (JS toggles display) */
+.ai-assistant-panel-filter-clear {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-flex;   /* JS overrides to 'flex' when visible */
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background: rgba(127, 127, 127, 0.18);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #666));
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-filter-clear:hover {
+    background: rgba(127, 127, 127, 0.35);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-clear:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #e0e0e0));
+}
+
+.ai-assistant-panel-filter-clear svg {
+    width: 0.6rem;
+    height: 0.6rem;
+    display: block;
+}
+
+.ai-assistant-panel-filter-clear:focus                { outline: none; }
+.ai-assistant-panel-filter-clear:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* ── Sort dropdown ────────────────────────────────────────────────────────── */
+
+.ai-assistant-panel-filter-sort-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Trigger button */
+.ai-assistant-panel-filter-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.18))
+    );
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-filter-sort:hover {
+    border-color: rgba(127, 127, 127, 0.5);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+
+/* Active state — sort is non-default */
+.ai-assistant-panel-filter-sort--active {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.06);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort--active {
+    border-color: rgba(91, 163, 208, 0.7);
+    color: rgb(91, 163, 208);
+    background: rgba(91, 163, 208, 0.1);
+}
+
+.ai-assistant-panel-filter-sort:focus                { outline: none; }
+.ai-assistant-panel-filter-sort:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* Chevron: rotates 180° when menu is open (JS sets aria-expanded="true") */
+.ai-assistant-panel-filter-sort-chevron {
+    display: inline-flex;
+    align-items: center;
+    width: 0.7rem;
+    height: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+.ai-assistant-panel-filter-sort-chevron svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.ai-assistant-panel-filter-sort[aria-expanded="true"]
+    .ai-assistant-panel-filter-sort-chevron {
+    transform: rotate(180deg);
+}
+
+/* Drop-down listbox (shown/hidden by JS) */
+.ai-assistant-panel-filter-sort-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    z-index: 1001;    /* above all other panel content */
+    min-width: 148px;
+    padding: 0.25rem 0;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.14))
+    );
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.07);
+    overflow: hidden;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort-menu {
+    background: var(--pst-color-surface, var(--color-background-primary, #252930));
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Individual sort options */
+.ai-assistant-panel-filter-sort-item {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 0.8rem;
+    text-align: left;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+    transition: background 0.1s ease;
+}
+
+.ai-assistant-panel-filter-sort-item:hover {
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, #f0f1f2)
+    );
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort-item {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-sort-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.ai-assistant-panel-filter-sort-item:focus                { outline: none; }
+.ai-assistant-panel-filter-sort-item:focus-visible {
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, #f0f1f2)
+    );
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: -2px;
+}
+
+/* ── Row 2: scope chips ────────────────────────────────────────────────────── */
+
+.ai-assistant-panel-filter-chips-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+/* Pill chip — toggleable search-scope filter */
+.ai-assistant-panel-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.17rem 0.55rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-filter-chip:hover {
+    border-color: rgba(127, 127, 127, 0.45);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+
+/* Active (pressed) chip — highlighted with brand colour */
+.ai-assistant-panel-filter-chip--active {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.09);
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+.ai-assistant-panel-filter-chip--active:hover {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.15);
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-chip {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-chip:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-chip--active {
+    border-color: rgba(91, 163, 208, 0.7);
+    background: rgba(91, 163, 208, 0.12);
+    color: rgb(91, 163, 208);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-chip--active:hover {
+    background: rgba(91, 163, 208, 0.2);
+}
+
+.ai-assistant-panel-filter-chip:focus                { outline: none; }
+.ai-assistant-panel-filter-chip:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* ── Row 3: result-count meta line (ARIA live region) ─────────────────────── */
+
+.ai-assistant-panel-filter-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1rem;     /* prevents layout shift when text appears / disappears */
+}
+
+.ai-assistant-panel-filter-count {
+    font-size: 0.72rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    line-height: 1;
+}
+
+.ai-assistant-panel-filter-page-info {
+    font-size: 0.72rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    opacity: 0.75;
+    line-height: 1;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.ai-assistant-panel-filter-empty {
+    /* display:none / display:flex toggled by JS */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.ai-assistant-panel-filter-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    opacity: 0.35;
+    flex-shrink: 0;
+}
+
+.ai-assistant-panel-filter-empty-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* "Clear filter" button inside empty state */
+.ai-assistant-panel-filter-clear-all {
+    margin-top: 0.2rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-filter-clear-all:hover {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.06);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-clear-all {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-clear-all:hover {
+    border-color: rgba(91, 163, 208, 0.7);
+    color: rgb(91, 163, 208);
+    background: rgba(91, 163, 208, 0.1);
+}
+
+.ai-assistant-panel-filter-clear-all:focus                { outline: none; }
+.ai-assistant-panel-filter-clear-all:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* ── "Selected — outside current filter" badge ────────────────────────────── *
+ * Appended as last flex child of a .ai-assistant-panel-model-row when that   *
+ * row's radio is checked but the row falls outside the current filter result. *
+ * Invariant: the row is always shown (display:flex) in this state.           */
+
+.ai-assistant-panel-filter-outside-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    align-self: center;
+    padding: 0.1rem 0.4rem;
+    margin-left: 0.3rem;
+    border: 1px solid
+        var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border-radius: 999px;
+    font-size: 0.63rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: rgba(41, 128, 185, 0.08);
+    white-space: nowrap;
+    /* Subtle pulse so the user notices their selection isn't in view */
+    animation: ai-filter-badge-in 0.25s ease forwards;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-outside-badge {
+    border-color: rgba(91, 163, 208, 0.6);
+    color: rgb(91, 163, 208);
+    background: rgba(91, 163, 208, 0.12);
+}
+
+@keyframes ai-filter-badge-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Pagination bar ────────────────────────────────────────────────────────── *
+ * display:none / display:flex toggled by JS.                                  *
+ * Only rendered when filtered-result count > PAGE_SIZE.                       */
+
+.ai-assistant-panel-filter-pagination {
+    /* display toggled by JS */
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.55rem 1rem;
+    flex-shrink: 0;
+    border-top: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pagination {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Previous / Next arrow buttons */
+.ai-assistant-panel-filter-pg-btn {
+    width: 1.85rem;
+    height: 1.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.18))
+    );
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
+    transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.ai-assistant-panel-filter-pg-btn:not(:disabled):hover {
+    border-color: rgba(127, 127, 127, 0.5);
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, #f0f1f2)
+    );
+}
+
+.ai-assistant-panel-filter-pg-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pg-btn {
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pg-btn:not(:disabled):hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ai-assistant-panel-filter-pg-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    display: block;
+}
+
+.ai-assistant-panel-filter-pg-btn:focus                { outline: none; }
+.ai-assistant-panel-filter-pg-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* Page-number button container */
+.ai-assistant-panel-filter-pg-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+/* Individual page number buttons */
+.ai-assistant-panel-filter-pg-num {
+    min-width: 1.85rem;
+    height: 1.85rem;
+    padding: 0 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #555));
+    font-size: 0.78rem;
+    font-family: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.ai-assistant-panel-filter-pg-num:hover {
+    border-color: var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(0, 0, 0, 0.2))
+    );
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, #f0f1f2)
+    );
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+
+/* Current page — filled with brand colour */
+.ai-assistant-panel-filter-pg-num--active {
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    background: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    color: #fff;
+    font-weight: 600;
+    cursor: default;
+    pointer-events: none;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pg-num {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pg-num:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-pg-num--active {
+    background: rgba(91, 163, 208, 0.85);
+    border-color: transparent;
+    color: #fff;
+}
+
+.ai-assistant-panel-filter-pg-num:not(.ai-assistant-panel-filter-pg-num--active):focus {
+    outline: none;
+}
+.ai-assistant-panel-filter-pg-num:not(.ai-assistant-panel-filter-pg-num--active):focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+
+/* Ellipsis (…) spacer between non-contiguous page groups */
+.ai-assistant-panel-filter-pg-ellipsis {
+    min-width: 1.85rem;
+    height: 1.85rem;
+    padding: 0 0.1rem;
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 0.3rem;
+    font-size: 0.875rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ── Reduced-motion: disable all filter animations and transitions ─────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-filter-search-wrap,
+    .ai-assistant-panel-filter-clear,
+    .ai-assistant-panel-filter-sort,
+    .ai-assistant-panel-filter-sort-chevron,
+    .ai-assistant-panel-filter-sort-item,
+    .ai-assistant-panel-filter-chip,
+    .ai-assistant-panel-filter-clear-all,
+    .ai-assistant-panel-filter-pg-btn,
+    .ai-assistant-panel-filter-pg-num {
+        transition: none;
+    }
+
+    .ai-assistant-panel-filter-outside-badge {
+        animation: none;
+    }
+}
+
+/* ── Narrow panel / mobile adjustments (≤ 480 px) ────────────────────────── */
+
+@media (max-width: 480px) {
+    /* Stack sort button below search bar for very narrow panels */
+    .ai-assistant-panel-filter-row {
+        flex-wrap: wrap;
+    }
+
+    /* Sort takes full width when wrapped */
+    .ai-assistant-panel-filter-sort-wrap {
+        width: 100%;
+    }
+
+    .ai-assistant-panel-filter-sort {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Sort menu expands full-width on mobile */
+    .ai-assistant-panel-filter-sort-menu {
+        left: 0;
+        right: 0;
+        min-width: unset;
+    }
+
+    /* Smaller chips on mobile */
+    .ai-assistant-panel-filter-chip {
+        font-size: 0.68rem;
+        padding: 0.13rem 0.45rem;
     }
 }
