@@ -28,8 +28,60 @@ from sklearn.base import BaseEstimator, TransformerMixin, _fit_context
 from sklearn.utils._mask import _get_mask
 from sklearn.utils._missing import is_pandas_na, is_scalar_nan
 from sklearn.utils._param_validation import MissingValues, StrOptions
-from sklearn.utils._sparse import _align_api_if_sparse
-from sklearn.utils.fixes import SCIPY_VERSION_BELOW_1_12, _mode
+# sklearn.utils._sparse was introduced in sklearn dev (post-1.8); define a
+# self-contained shim so this module works with any released sklearn >= 1.0.
+# The shim honours the ``sparse_interface`` config key when present (sklearn
+# dev) and falls back to an identity pass-through on older releases where
+# that key is absent from :func:`sklearn.get_config`.
+try:
+    from sklearn.utils._sparse import _align_api_if_sparse  # sklearn dev
+except ImportError:
+    from sklearn import get_config as _sklearn_get_config
+
+    def _align_api_if_sparse(X):
+        """Return X, converting sparse representation per sklearn config.
+
+        Converts between ``spmatrix`` and ``sparray`` according to the
+        ``sparse_interface`` key in :func:`sklearn.get_config`.  When that
+        key is absent (sklearn < dev), the input is returned unchanged.
+        """
+        if not sp.issparse(X):
+            return X
+        config_sparse_interface = _sklearn_get_config().get(
+            "sparse_interface", None
+        )
+        if config_sparse_interface is None:
+            # sklearn < dev: no sparse_interface config — return X as-is.
+            return X
+        if config_sparse_interface == "sparray":
+            if sp.isspmatrix(X):
+                return getattr(sp, X.format + "_array")(X)
+            return X
+        if config_sparse_interface == "spmatrix":
+            if sp.isspmatrix(X):
+                return X
+            return getattr(sp, X.format + "_matrix")(X)
+        raise ValueError(
+            f"Config 'sparse_interface' is {config_sparse_interface!r}. "
+            "Expected 'sparray' or 'spmatrix'."
+        )
+
+
+# ``SCIPY_VERSION_BELOW_1_12`` was added to ``sklearn.utils.fixes`` in
+# sklearn dev (post-1.8).  Compute it locally for compatibility with any
+# released sklearn, mirroring the upstream definition exactly.
+from sklearn.utils.fixes import _mode  # noqa: E402
+try:
+    from sklearn.utils.fixes import SCIPY_VERSION_BELOW_1_12  # sklearn dev
+except ImportError:
+    from sklearn.externals._packaging.version import parse as _parse_version
+    import scipy as _scipy_mod
+
+    _sp_base = _parse_version(
+        _parse_version(_scipy_mod.__version__).base_version
+    )
+    SCIPY_VERSION_BELOW_1_12 = _sp_base < _parse_version("1.12.0")
+    del _sp_base, _scipy_mod, _parse_version
 from sklearn.utils.sparsefuncs import _get_median
 from sklearn.utils.validation import (
     FLOAT_DTYPES,

@@ -6049,8 +6049,6 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 .ai-assistant-panel-link-card-text strong {
     font-size: 0.83rem;
     font-weight: 600;
-    color: var(--pst-color-on-background,
-               var(--color-foreground-primary, #1a1a2e));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -6066,8 +6064,9 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 .ai-assistant-panel-link-card-url {
     font-size: 0.66rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-    color: var(--ai-link-card-accent,
-               var(--pst-color-primary, #2563eb));
+    /* TODO: Not work all url span class, can be need dark mode? */
+    /* color: var(--ai-link-card-accent,
+               var(--pst-color-primary, #2563eb)); */
     opacity: 0.85;
     white-space: nowrap;
     overflow: hidden;
