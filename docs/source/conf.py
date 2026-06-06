@@ -1944,6 +1944,10 @@ for old_link in old_links_dict:
 html_baseurl = "https://scikit-plots.github.io"
 ai_assistant_enabled = True
 
+# scikit-plots default:
+ai_assistant_panel_source_url = "https://github.com/scikit-plots/scikit-plots"
+ai_assistant_panel_site_url = "https://scikit-plots.github.io/"
+
 # Where to render the AI-assistant button.
 # "sidebar"  → right sidebar, above the page TOC (works well with pydata)
 # "title"    → next to the page heading

@@ -20,7 +20,7 @@ import pytest
 from sklearn.impute._base import _BaseImputer
 from sklearn.impute._iterative import _assign_where
 from sklearn.utils._mask import _get_mask
-from sklearn.utils._testing import _convert_container, assert_allclose
+from sklearn.utils._testing import assert_allclose
 
 
 @pytest.fixture
@@ -108,11 +108,30 @@ def test_base_no_precomputed_mask_transform(data):
 
 @pytest.mark.parametrize("X1_type", ["array", "dataframe"])
 def test_assign_where(X1_type):
-    """Check the behaviour of the private helpers `_assign_where`."""
+    """Check the behaviour of the private helpers `_assign_where`.
+
+    Notes
+    -----
+    Deliberately avoids ``sklearn.utils._testing._convert_container``:
+    that private utility renamed the ``'dataframe'`` constructor key to
+    ``'pandas'`` in sklearn 1.9.0 (and simultaneously renamed the kwarg
+    ``columns_name`` → ``column_names``), so any call using
+    ``constructor_name='dataframe'`` silently returns ``None`` on
+    sklearn >= 1.9.0, causing the downstream ``_assign_where`` call to
+    raise ``TypeError: 'NoneType' object does not support item
+    assignment``.  Using standard library / pandas directly keeps this
+    test version-independent.
+    """
     rng = np.random.RandomState(0)
 
     n_samples, n_features = 10, 5
-    X1 = _convert_container(rng.randn(n_samples, n_features), constructor_name=X1_type)
+    X_raw = rng.randn(n_samples, n_features)
+    if X1_type == "array":
+        X1 = np.asarray(X_raw)
+    else:  # "dataframe"
+        pd = pytest.importorskip("pandas")
+        X1 = pd.DataFrame(X_raw)
+
     X2 = rng.randn(n_samples, n_features)
     mask = rng.randint(0, 2, size=(n_samples, n_features)).astype(bool)
 
