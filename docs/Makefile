@@ -224,3 +224,6 @@ dist: html ziphtml
 # 	@#rm -rf .devcontainer/script
 # 	@ln -rsf docs/source/whats_new/upcoming_changes upcoming_changes
 # 	@echo "Created symbolic links..."
+
+serve:
+	cd ./build/html/stable && python -m http.server 8000

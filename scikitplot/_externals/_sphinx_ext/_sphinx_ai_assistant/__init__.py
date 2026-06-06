@@ -3795,6 +3795,38 @@ def add_ai_assistant_context(
             _cfg_list(app.config, "ai_assistant_panel_share_targets")
             or list(_DEFAULT_SHARE_TARGETS.items())
         ),
+        # ── Project Links sheet (source repo + project website) ────────────
+        # panelLinks — master switch for the Links slide-over sheet.
+        # When False the sheet is not built; sourceBtn/siteBtn fall back to
+        # opening their URL directly in a new tab.
+        "panelLinks": _cfg_bool(app.config, "ai_assistant_panel_links", True),
+        "panelLinksTitle": (
+            _cfg_str(app.config, "ai_assistant_panel_links_title") or "Project Links"
+        ),
+        # Trusted author HTML (from conf.py, not end-user input).  Empty →
+        # the built-in two-card layout is rendered.
+        "panelLinksHtml": _cfg_str(app.config, "ai_assistant_panel_links_html") or "",
+        # Source (GitHub) button — left subbar cluster.
+        "panelSource": _cfg_bool(app.config, "ai_assistant_panel_source", True),
+        "panelSourceUrl": _cfg_str(app.config, "ai_assistant_panel_source_url") or "",
+        "panelSourceLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_source_label")
+            or "Source Repository"
+        ),
+        "panelSourceDesc": _cfg_str(app.config, "ai_assistant_panel_source_desc") or "",
+        "panelSourceBtnLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_source_btn_label") or "Source"
+        ),
+        # Site (website) button — right subbar cluster, after Share.
+        "panelSite": _cfg_bool(app.config, "ai_assistant_panel_site", True),
+        "panelSiteUrl": _cfg_str(app.config, "ai_assistant_panel_site_url") or "",
+        "panelSiteLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_site_label") or "Project Website"
+        ),
+        "panelSiteDesc": _cfg_str(app.config, "ai_assistant_panel_site_desc") or "",
+        "panelSiteBtnLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_site_btn_label") or "Website"
+        ),
         # ── Phase B: Hamburger overflow menu ──────────────────────────────
         "panelHamburger": _cfg_bool(app.config, "ai_assistant_panel_hamburger", True),
         # R5: feedback block.
@@ -4250,6 +4282,84 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_share_label", "Share", "html")
     # User list overrides defaults entirely; empty list ⇒ defaults.
     app.add_config_value("ai_assistant_panel_share_targets", [], "html")
+
+    # ── Project Links sheet ────────────────────────────────────────────────
+    # ``ai_assistant_panel_links`` (bool, default True)
+    #     Master switch for the "Project Links" slide-over sheet.  When True
+    #     (default), clicking either the Source button (left subbar) or the
+    #     Site button (right subbar) opens this sheet showing rich cards for
+    #     the GitHub repository and the project website.
+    #     Set False to bypass the sheet; each button then opens its URL
+    #     directly in a new tab instead (graceful fallback).
+    app.add_config_value("ai_assistant_panel_links", True, "html")
+
+    # ``ai_assistant_panel_links_title`` (str, default "Project Links")
+    #     Heading displayed in the slide-over sheet header.
+    app.add_config_value("ai_assistant_panel_links_title", "Project Links", "html")
+
+    # ``ai_assistant_panel_links_html`` (str, default "")
+    #     Trusted author HTML injected verbatim into the Links sheet body.
+    #     When non-empty this completely replaces the built-in two-card
+    #     layout (source + site cards).  Same security model as
+    #     ``ai_assistant_panel_privacy_html`` — MUST come from conf.py,
+    #     never from end-user input.  Empty → built-in cards.
+    app.add_config_value("ai_assistant_panel_links_html", "", "html")
+
+    # ── Source Repository button (left subbar cluster) ─────────────────────
+    # ``ai_assistant_panel_source`` (bool, default True)
+    #     Show a GitHub icon + "Source" label button in the LEFT sub-bar
+    #     cluster.  Clicking opens the Links sheet (or the source URL
+    #     directly when panelLinks is False).
+    app.add_config_value("ai_assistant_panel_source", True, "html")
+
+    # ``ai_assistant_panel_source_url`` (str, default "")
+    #     URL of the source repository (e.g.
+    #     "https://github.com/scikit-plots/scikit-plots").
+    #     Validated client-side by _isSafeHref; unsafe URLs are ignored.
+    app.add_config_value("ai_assistant_panel_source_url", "", "html")
+
+    # ``ai_assistant_panel_source_label`` (str)
+    #     Heading text inside the Links sheet source card.
+    #     Default: "Source Repository".
+    app.add_config_value("ai_assistant_panel_source_label", "Source Repository", "html")
+
+    # ``ai_assistant_panel_source_desc`` (str, default "")
+    #     Optional one-line description shown below the heading in the
+    #     source card (e.g. "Contribute, report issues, and browse the code").
+    app.add_config_value("ai_assistant_panel_source_desc", "", "html")
+
+    # ``ai_assistant_panel_source_btn_label`` (str, default "Source")
+    #     Text label on the subbar button itself (collapsed to icon-only
+    #     on narrow panels via CSS).
+    app.add_config_value("ai_assistant_panel_source_btn_label", "Source", "html")
+
+    # ── Site (website) button (right subbar cluster, after Share) ──────────
+    # ``ai_assistant_panel_site`` (bool, default True)
+    #     Show a globe icon + "Website" label button in the RIGHT sub-bar
+    #     cluster, positioned after the Share button.  Clicking opens the
+    #     Links sheet (or the site URL directly when panelLinks is False).
+    app.add_config_value("ai_assistant_panel_site", True, "html")
+
+    # ``ai_assistant_panel_site_url`` (str, default "")
+    #     URL of the project website (e.g.
+    #     "https://scikit-plots.github.io/").
+    #     Validated client-side by _isSafeHref; unsafe URLs are ignored.
+    app.add_config_value("ai_assistant_panel_site_url", "", "html")
+
+    # ``ai_assistant_panel_site_label`` (str)
+    #     Heading text inside the Links sheet site card.
+    #     Default: "Project Website".
+    app.add_config_value("ai_assistant_panel_site_label", "Project Website", "html")
+
+    # ``ai_assistant_panel_site_desc`` (str, default "")
+    #     Optional one-line description shown below the heading in the
+    #     website card (e.g. "Full documentation, tutorials, and examples").
+    app.add_config_value("ai_assistant_panel_site_desc", "", "html")
+
+    # ``ai_assistant_panel_site_btn_label`` (str, default "Website")
+    #     Text label on the subbar button itself (collapsed to icon-only
+    #     on narrow panels via CSS).
+    app.add_config_value("ai_assistant_panel_site_btn_label", "Website", "html")
 
     # ── Phase B: Hamburger overflow menu ──────────────────────────────────
     # ``ai_assistant_panel_hamburger`` (bool, default True)
