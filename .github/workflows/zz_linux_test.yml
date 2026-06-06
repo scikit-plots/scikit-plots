@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -65,7 +65,7 @@ jobs:
       MESON_ARGS: "-Dallow-noblas=true -Dcpu-baseline=none -Dcpu-dispatch=none"
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -86,7 +86,7 @@ jobs:
       EXPECT_CPU_FEATURES: "SSE SSE2 SSE3 SSSE3 SSE41 POPCNT SSE42 AVX F16C FMA3 AVX2 AVX512F AVX512CD AVX512_KNL AVX512_KNM AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL"
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -104,7 +104,7 @@ jobs:
       USE_DEBUG: 1
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -163,7 +163,7 @@ jobs:
       USE_ASV: 1
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -183,7 +183,7 @@ jobs:
       NPY_RELAXED_STRIDES_DEBUG: 1
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -199,7 +199,7 @@ jobs:
     if: github.event_name != 'push'
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
@@ -234,7 +234,7 @@ jobs:
     if: github.event_name != 'push'
     steps:
       - name: Checkout (cloned) repository with full history
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false  # Prevents accidental credential exposure
           submodules: recursive  # Fetch Hugo themes (true OR recursive)
