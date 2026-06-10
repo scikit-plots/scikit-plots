@@ -2325,3 +2325,427 @@ ai_assistant_mcp_tools = {
         "transport": "sse",
     },
 }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Phase X — Endpoint Profile Registry (runtime-switchable proxy backends)
+# ════════════════════════════════════════════════════════════════════════════
+#
+# ── ai_assistant_endpoint_profiles  (dict[str, dict]) ───────────────────────
+#
+# Type:    dict[str, dict]   (profile-key → profile-config-dict)
+# Default: {}                (no profiles → legacy flat-key fallback)
+#
+# PURPOSE
+# -------
+# Defines one or more named proxy backends that users and developers can
+# switch between at runtime from the Endpoint Configuration sheet —
+# WITHOUT rebuilding the documentation.
+#
+# Each profile is a dict describing which proxy URLs are available for
+# each AI feature:
+#
+#   chat       → the BASE URL; JS appends '/v1/chat/completions'
+#   share      → the BASE URL; JS appends '/v1/share'
+#   feedback   → the BASE URL; JS appends '/v1/feedback'
+#   training   → the BASE URL; JS appends '/v1/contribute'
+#
+# All four are optional; an empty string disables that feature for the
+# profile.  Profiles are baked into every rendered HTML page at Sphinx
+# build time.  No rebuild is needed to switch between them at runtime.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │ SECURITY — WHAT GETS BAKED INTO THE HTML                                │
+# │                                                                         │
+# │ Every profile dict (including auth tokens) is serialised into a         │
+# │ <script> block on every HTML page:                                       │
+# │                                                                         │
+# │   window.AI_ASSISTANT_ENDPOINTS = { ...all profiles... };               │
+# │                                                                         │
+# │ Consequences:                                                            │
+# │                                                                         │
+# │ 1. NEVER put secret API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) │
+# │    in any profile field.  The proxy server holds those; conf.py only    │
+# │    holds the URL of YOUR proxy.                                          │
+# │                                                                         │
+# │ 2. ``shareToken`` and ``feedbackToken`` may hold write-only             │
+# │    authorization tokens (e.g. a Cloudflare Worker token that grants     │
+# │    POST access to a single route).  These tokens ARE visible to anyone  │
+# │    who views the page source.  Choose tokens that are:                  │
+# │      a) write-only (cannot be used to read data),                       │
+# │      b) rate-limited on the proxy side,                                 │
+# │      c) scoped to a single operation (share or feedback, not both).     │
+# │                                                                         │
+# │ 3. Do NOT embed tokens that can be used for chat — an attacker with the │
+# │    source of your page would then have a free AI chat endpoint.         │
+# │                                                                         │
+# │ 4. The extension validates all URLs against an http/https allow-list    │
+# │    and strips any field containing HTML-injection characters from token  │
+# │    values.  Values that point to private IPs (127.x, 10.x, 192.168.x,  │
+# │    etc.) trigger a Sphinx WARNING so operators notice SSRF-risky        │
+# │    configs in their CI output.                                           │
+# │                                                                         │
+# │ 5. Profile keys must not be JavaScript prototype property names          │
+# │    (__proto__, constructor, toString …) — the extension rejects these   │
+# │    keys with a Sphinx WARNING.  Use plain alphanumeric keys.            │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# ── PROFILE DICT SCHEMA ──────────────────────────────────────────────────
+#
+# Required per profile:
+#   label         (str)   — Display name shown in the profile-switcher UI.
+#                           Max 80 characters.
+#
+# Optional URL fields (all default to ""):
+#   chat          (str)   — BASE URL for AI chat completions.
+#                           JS appends '/v1/chat/completions'.
+#   share         (str)   — BASE URL for global share (P1).
+#                           JS appends '/v1/share'.
+#   feedback      (str)   — BASE URL for panel feedback (P3).
+#                           JS appends '/v1/feedback'.
+#   training      (str)   — BASE URL for training data contribution (P2).
+#                           JS appends '/v1/contribute'.
+#
+# Optional token fields:
+#   shareToken    (str)   — Bearer token for share write operations.
+#                           Visible in page source; use write-only tokens.
+#   feedbackToken (str)   — Bearer token for feedback write operations.
+#
+# Optional integer fields:
+#   ttlDays       (int)   — Share link TTL override in days.
+#                           0 = use the global ai_assistant_global_share_ttl_days.
+#
+# ── HOW THE JS WIDGET RESOLVES URLS ──────────────────────────────────────
+#
+# The _EP registry (window-scope singleton) exposes:
+#
+#   _EP.resolve('chat')           → active profile's chat base URL
+#   _EP.resolve('share')          → active profile's share base URL
+#   _EP.resolve('feedback')       → active profile's feedback base URL
+#   _EP.resolve('training')       → active profile's training base URL
+#   _EP.resolveToken('shareToken')    → token for share writes
+#   _EP.resolveToken('feedbackToken') → token for feedback writes
+#   _EP.getActive()               → active profile key (string)
+#   _EP.setActive('cf')           → switch to the 'cf' profile
+#   _EP.list()                    → [{key, label}, ...] all profiles
+#   _EP.hasProfiles()             → true when any profile is registered
+#   _EP.addCustomProfile(prof)    → add a runtime-only profile (not persisted
+#                                   across rebuilds; stored in localStorage)
+#   _EP.deleteCustomProfile(key)  → remove a custom profile
+#   _EP.clearCustom()             → remove ALL custom profiles
+#   _EP.exportCustom()            → JSON string of all custom profiles
+#   _EP.importProfile(obj)        → import a single profile object
+#   _EP.getProfile(key)           → frozen safe copy of a profile dict
+#   _EP.onProfileChange(fn)       → register a callback; fn(newKey, oldKey)
+#
+# Active profile persists in localStorage (key: 'ai-assistant-ep').
+# Switching profiles is instant — no page reload required.
+# The next call to any resolve() uses the newly-active profile.
+#
+# ── MULTI-PROFILE SETUP (how to know which is selected) ──────────────────
+#
+# The Endpoint Configuration sheet (opened via the ⚡ subbar button) shows:
+#
+#   §1 Profile selector  — radio cards with "Active" badge on the current
+#                          profile; capability pills (Chat / Share / Feedback
+#                          / Training) show which features each profile covers.
+#
+#   §2 Active Endpoints  — Simple mode: one representative base URL (chat).
+#                          Advanced mode: all four feature URLs + resolved full
+#                          URLs with copy-to-clipboard buttons.
+#                          Health-check button pings each endpoint and shows
+#                          latency / status inline.
+#
+#   §3 Compare           — Feature × Profile grid showing at a glance which
+#                          profile covers which capabilities.  The active
+#                          profile column is highlighted.
+#
+#   §4 Add Profile       — Form to add a runtime-only custom profile.
+#                          Simple mode: one base URL for all features.
+#                          Advanced mode: per-feature URLs + tokens.
+#                          Live URL validation with SSRF warnings.
+#
+#   §5 Import / Export   — Export all custom profiles as JSON for sharing.
+#                          Import JSON to load a profile shared by a colleague.
+#                          Clear all to reset to build-time profiles only.
+#                          Audit log shows recent switch/add/delete/health events.
+#
+# Reading the active profile from JavaScript (advanced integrations):
+#
+#   // Which profile is active right now?
+#   var activeKey   = _EP.getActive();           // e.g. "cf"
+#   var activeLabel = _EP.getProfile(activeKey).label;  // "Cloudflare Worker"
+#
+#   // Listen for profile changes (e.g. update a debug indicator):
+#   _EP.onProfileChange(function (newKey, oldKey) {
+#       console.log("Switched from", oldKey, "to", newKey);
+#   });
+#
+# ── Option 1 — Single Cloudflare Worker ────────────────────────────────────
+
+import os
+
+_CF_WORKER_URL = os.environ.get("CF_WORKER_URL", "")
+
+# ai_assistant_endpoint_profiles = {
+#     "cf": {
+#         # ── What the user sees in the profile-switcher UI ──────────────
+#         "label": "Cloudflare Worker",
+#
+#         # ── Chat completions ───────────────────────────────────────────
+#         # Base URL only — JS adds '/v1/chat/completions' automatically.
+#         # Your Cloudflare Worker must handle POST to this path and
+#         # forward the request to the upstream LLM API.
+#         "chat": _CF_WORKER_URL,
+#
+#         # ── Global share (P1) ──────────────────────────────────────────
+#         # Same Worker handles /v1/share; uses the same base URL.
+#         "share": _CF_WORKER_URL,
+#
+#         # ── Panel feedback (P3) ────────────────────────────────────────
+#         "feedback": _CF_WORKER_URL,
+#
+#         # ── Training data contribution (P2) ───────────────────────────
+#         # Leave empty ("") to disable this feature for this profile.
+#         "training": "",
+#
+#         # ── Write-only tokens ──────────────────────────────────────────
+#         # These tokens ARE visible in page source — use write-only,
+#         # rate-limited, scoped tokens ONLY.  Never embed a master API key.
+#         "shareToken":    os.environ.get("SHARE_WRITE_TOKEN", ""),
+#         "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+#
+#         # ── Share TTL ─────────────────────────────────────────────────
+#         # 0 = use global ai_assistant_global_share_ttl_days (default 30).
+#         "ttlDays": 0,
+#     },
+# }
+#
+# ai_assistant_endpoint_default_profile = "cf"
+
+# ── Option 2 — Two Profiles (CF + HuggingFace) ─────────────────────────────
+
+_HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
+
+# ai_assistant_endpoint_profiles = {
+#     # ── Profile 1: Cloudflare Worker ─────────────────────────────────
+#     # Pros: zero cold-start, 100 000 req/day on the free plan.
+#     # Cons: 10 ms CPU time limit per request (fine for proxy passthrough).
+#     "cf": {
+#         "label":        "Cloudflare Worker",
+#         "chat":         _CF_WORKER_URL,
+#         "share":        _CF_WORKER_URL,
+#         "feedback":     _CF_WORKER_URL,
+#         "training":     "",
+#         "shareToken":   os.environ.get("CF_SHARE_TOKEN", ""),
+#         "feedbackToken": os.environ.get("CF_FEEDBACK_TOKEN", ""),
+#         "ttlDays":      30,
+#     },
+#
+#     # ── Profile 2: HuggingFace Spaces ────────────────────────────────
+#     # Pros: can run larger model inference directly (ZeroGPU tier).
+#     # Cons: 30–60 s cold-start after inactivity on the free tier.
+#     "hf": {
+#         "label":        "HuggingFace Space",
+#         "chat":         _HF_SPACE_URL,
+#         "share":        _CF_WORKER_URL,     # reuse CF for reliable share
+#         "feedback":     _HF_SPACE_URL,
+#         "training":     _HF_SPACE_URL,
+#         "shareToken":   os.environ.get("CF_SHARE_TOKEN", ""),
+#         "feedbackToken": "",
+#         "ttlDays":      7,
+#     },
+# }
+#
+# # Activate "cf" on first page load (before any user interaction).
+# # The user can freely switch to "hf" in the UI; the choice persists.
+# ai_assistant_endpoint_default_profile = "cf"
+
+# ── Option 3 — Environment-aware CI/CD Default ──────────────────────────────
+#
+# Use an environment variable set by your CI/CD pipeline to choose which
+# profile should be the default at build time.
+#
+# GitHub Actions example:
+#   env:
+#     DEFAULT_ENDPOINT_PROFILE: "cf"   # or "hf", "dev", etc.
+#
+# conf.py:
+#
+# ai_assistant_endpoint_default_profile = os.environ.get(
+#     "DEFAULT_ENDPOINT_PROFILE", "cf"   # falls back to "cf"
+# )
+
+# ── Option 4 — Three-environment (dev / staging / prod) ─────────────────────
+#
+# Goal: one conf.py supports local development, staging review, and the
+# live documentation site.  Each environment CI job sets a different
+# DEFAULT_ENDPOINT_PROFILE value.
+#
+# _ENV_TAG = os.environ.get("DOCS_ENV", "prod")  # "dev" | "staging" | "prod"
+#
+# ai_assistant_endpoint_profiles = {
+#
+#     # Local development proxy (runs on the developer's machine).
+#     # SSRF WARNING is expected and harmless here — localhost is intentional.
+#     "dev": {
+#         "label":        "Local Dev Proxy",
+#         "chat":         "http://localhost:8787",   # Cloudflare wrangler dev
+#         "share":        "",
+#         "feedback":     "http://localhost:8787",
+#         "training":     "",
+#         "shareToken":   "",
+#         "feedbackToken": "",
+#         "ttlDays":      0,
+#     },
+#
+#     # Staging environment — dedicated proxy with isolated data.
+#     "staging": {
+#         "label":        "Staging Proxy",
+#         "chat":         os.environ.get("STAGING_PROXY_URL", ""),
+#         "share":        os.environ.get("STAGING_PROXY_URL", ""),
+#         "feedback":     os.environ.get("STAGING_PROXY_URL", ""),
+#         "training":     "",
+#         "shareToken":   os.environ.get("STAGING_SHARE_TOKEN", ""),
+#         "feedbackToken": os.environ.get("STAGING_FEEDBACK_TOKEN", ""),
+#         "ttlDays":      1,
+#     },
+#
+#     # Production environment.
+#     "prod": {
+#         "label":        "Production",
+#         "chat":         os.environ.get("PROD_PROXY_URL", ""),
+#         "share":        os.environ.get("PROD_PROXY_URL", ""),
+#         "feedback":     os.environ.get("PROD_PROXY_URL", ""),
+#         "training":     os.environ.get("PROD_PROXY_URL", ""),
+#         "shareToken":   os.environ.get("PROD_SHARE_TOKEN", ""),
+#         "feedbackToken": os.environ.get("PROD_FEEDBACK_TOKEN", ""),
+#         "ttlDays":      30,
+#     },
+# }
+#
+# ai_assistant_endpoint_default_profile = _ENV_TAG  # "dev" / "staging" / "prod"
+
+# ── Option 5 — Migration from Legacy Flat Keys ──────────────────────────────
+#
+# BEFORE (legacy — still fully supported, auto-synthesises a "default" profile):
+#
+#   ai_assistant_panel_feedback_endpoint = os.environ.get("FEEDBACK_ENDPOINT", "")
+#   ai_assistant_global_share_endpoint   = os.environ.get("SHARE_ENDPOINT", "")
+#   ai_assistant_training_endpoint       = os.environ.get("TRAINING_ENDPOINT", "")
+#
+# AFTER (explicit profiles — enables the profile-switcher UI):
+#
+# _PROXY_BASE = os.environ.get("PROXY_BASE_URL", "")
+#
+# ai_assistant_endpoint_profiles = {
+#     "default": {
+#         "label":        "Default Proxy",
+#         "chat":         _PROXY_BASE,
+#         "share":        _PROXY_BASE,
+#         "feedback":     _PROXY_BASE,
+#         "training":     _PROXY_BASE,
+#         "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
+#         "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+#         "ttlDays":      30,
+#     },
+# }
+# ai_assistant_endpoint_default_profile = "default"
+#
+# Migration notes:
+#   1. The legacy keys (ai_assistant_panel_feedback_endpoint etc.) continue
+#      to work unchanged.  The extension auto-synthesises a "default" profile
+#      from them when ai_assistant_endpoint_profiles is not set.
+#
+#   2. Switching to explicit profiles enables the profile-switcher UI.
+#      Users can switch between profiles without a page reload.
+#
+#   3. After migration, you may remove the old flat keys entirely — the
+#      extension does NOT read both simultaneously.  Explicit profiles take
+#      precedence when ai_assistant_endpoint_profiles is set and non-empty.
+#
+#   4. The legacy ai_assistant_panel_feedback_token /
+#      ai_assistant_global_share_token / ai_assistant_global_share_ttl_days
+#      continue to be used for the auto-synthesised "default" profile.
+#      In explicit profiles you embed tokens in the profile dict instead.
+
+# ── Option 6 — Runtime Import / Export Workflow ─────────────────────────────
+#
+# The Endpoint Configuration sheet's "Import / Export" section lets
+# developers and power-users share custom profiles without rebuilding:
+#
+# EXPORT:
+#   1. Open the Endpoint Configuration sheet (⚡ button in the subbar).
+#   2. Scroll to "Import / Export".
+#   3. Click "Export Custom" — downloads ``ep-custom-profiles.json``.
+#   4. Share the JSON with a colleague.
+#
+# IMPORT:
+#   1. Open the Endpoint Configuration sheet.
+#   2. Scroll to "Import / Export".
+#   3. Paste the JSON into the textarea.
+#   4. Click "Import" — profiles are added to the local registry
+#      (stored in localStorage; NOT baked into HTML).
+#
+# EXPORT FORMAT:
+#   {
+#     "version": 2,
+#     "exported": "2025-08-15T10:30:00Z",
+#     "profiles": {
+#       "custom_my_cf_1234567890123": {
+#         "label": "My CF Worker",
+#         "chat": "https://my-worker.example.workers.dev",
+#         ...
+#       }
+#     }
+#   }
+#
+# SECURITY NOTES FOR IMPORTED PROFILES:
+#   * The JS importer runs the same URL validation as the "Add Profile"
+#     form (https?:// scheme, SSRF private-IP warning).
+#   * Tokens in imported profiles are subject to the same XSS scrubbing
+#     (<, >, script, javascript: are rejected).
+#   * Custom profiles (including imported ones) are stored only in
+#     localStorage — they are NOT sent to any server.
+#   * Custom profiles are CLEARED when the user clicks "Clear All" or
+#     manually clears localStorage in the browser's DevTools.
+#   * Custom profiles do NOT survive a hard browser cache clear
+#     (shift-reload) if localStorage is also cleared.
+#
+# ── ai_assistant_endpoint_default_profile  (str, default "") ─────────────
+#
+# Type:    str
+# Default: ""  (empty → first profile in ai_assistant_endpoint_profiles)
+#
+# The profile key to activate on first page load, BEFORE any localStorage
+# override has been written by the user.
+#
+# Priority order for the active profile (highest wins):
+#   1. User-switched profile stored in localStorage.
+#   2. Value of ai_assistant_endpoint_default_profile (build-time).
+#   3. First key in ai_assistant_endpoint_profiles (insertion order).
+#   4. "" (no profiles defined — widget falls back to legacy flat keys).
+#
+# ai_assistant_endpoint_default_profile = "cf"
+
+# ── LEGACY FLAT KEYS (still supported; auto-synthesise a "default" profile) ──
+#
+# The following three keys are the pre-profile-registry approach.
+# They continue to work unchanged when ai_assistant_endpoint_profiles is
+# NOT set (or is an empty dict).
+#
+# When at least one of these is non-empty, the extension automatically
+# synthesises a single "default" profile from them, so the JS _EP
+# registry always has a profile to read from even for legacy deployments.
+#
+# ai_assistant_panel_feedback_endpoint = os.environ.get(
+#     "FEEDBACK_ENDPOINT", ""
+# )
+#
+# ai_assistant_global_share_endpoint = os.environ.get(
+#     "SHARE_ENDPOINT", ""
+# )
+#
+# ai_assistant_training_endpoint = os.environ.get(
+#     "TRAINING_ENDPOINT", ""
+# )

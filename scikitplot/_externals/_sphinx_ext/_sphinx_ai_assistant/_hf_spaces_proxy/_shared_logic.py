@@ -1,4 +1,4 @@
-# _shared_logic.py  v6.0.0
+# _shared_logic.py  v6.1.0
 #
 # Single source of truth for shared constants, pure helper functions, and
 # type aliases used by the deployed proxy (_hf_spaces_proxy/app.py) and the
@@ -55,6 +55,26 @@
 #   resolves correctly in all deployment environments.
 #   Callers who hard-code ``HF_BASE`` to the old hostname must migrate to
 #   the new router URL.
+#
+# New in v6.1.0 — Three-type HF token system
+# -------------------------------------------
+# + ``HFTokenType`` literal type alias added: ``"fine-grained" | "read" |
+#   ``"write" | "unknown"``.  Maps directly to the three token types exposed
+#   in HF Settings → Tokens.
+# + ``HF_TOKEN_TYPE_*`` string constants and ``HF_INFERENCE_TOKEN_TYPES`` /
+#   ``HF_WRITE_TOKEN_TYPES`` frozensets added for type-safe comparisons.
+# + ``_classify_token_type()`` — classify a token by explicit env-var
+#   declaration (``HF_TOKEN_TYPE``, ``HF_WRITE_TOKEN_TYPE``) with a length-
+#   based heuristic fallback.
+# + ``_token_suitable_for_inference()`` / ``_token_suitable_for_writes()``
+#   predicates for principle-of-least-privilege validation.
+# + ``_validate_token_config()`` — returns actionable WARNING / ERROR strings
+#   for token-type mismatches detected at startup.
+# + ``_token_log_fragment()`` gains an optional ``token_type`` parameter so
+#   log lines include the token type (e.g. ``hf_abcde...1234 (read)``).
+# + ``load_proxy_env()`` extended with ``hf_token_type`` and
+#   ``hf_write_token_type`` keys read from the matching env vars.
+# + ``_safe_float`` added to ``__all__`` (was importable but unadvertised).
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # Authors: The scikit-plots developers
@@ -134,10 +154,12 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+from typing import Any, Literal
 
-__all__ = [
-    # Constants
+__all__ = [  # noqa: RUF022
+    # Version
+    "PROXY_VERSION",
+    # Constants — routing / timeout
     "DEFAULT_HF_BASE",
     "DEFAULT_HF_SPACES_MODEL_NAMESPACES",
     "DEFAULT_HF_SPACES_MODEL_URL",
@@ -146,14 +168,28 @@ __all__ = [
     "DEFAULT_PATH2_READ_TIMEOUT",
     "DEFAULT_PATH3_READ_TIMEOUT",
     "DEFAULT_PROXY_TIMEOUT",
-    "PROXY_VERSION",
-    # Helpers
+    # Constants — token type system (v6.1.0)
+    "HFTokenType",
+    "HF_TOKEN_TYPE_FINE_GRAINED",
+    "HF_TOKEN_TYPE_READ",
+    "HF_TOKEN_TYPE_WRITE",
+    "HF_TOKEN_TYPE_UNKNOWN",
+    "HF_INFERENCE_TOKEN_TYPES",
+    "HF_WRITE_TOKEN_TYPES",
+    # Helpers — general
     "_build_cors_headers",
     "_is_custom_model_namespace",
     "_parse_model",
-    "_resolve_upstream_url",
+    "_safe_float",
     "_safe_int",
     "_token_log_fragment",
+    # Helpers — token type system (v6.1.0)
+    "_classify_token_type",
+    "_token_suitable_for_inference",
+    "_token_suitable_for_writes",
+    "_validate_token_config",
+    # Helpers — routing / env
+    "_resolve_upstream_url",
     "_validate_env",
     "load_proxy_env",
 ]
@@ -164,7 +200,7 @@ __all__ = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Proxy release version — bump on every breaking change.
-PROXY_VERSION: str = "6.0.0"
+PROXY_VERSION: str = "6.1.0"
 
 #: HuggingFace Inference Providers router base URL (no trailing slash).
 #: Only used for Path 3 (standard provider models) when ``BACKEND_URL`` is
@@ -179,7 +215,7 @@ DEFAULT_HF_BASE: str = "https://router.huggingface.co"
 
 #: Fallback model ID when the request body omits the ``model`` field.
 #: Must have a registered HF Inference Provider for Path 3.
-DEFAULT_MODEL: str = "scikit-plots/Qwen2.5-Coder-32B-Instruct"
+DEFAULT_MODEL: str = "scikit-plots/Qwen2.5-Coder-7B-Instruct"
 
 #: Global upstream read timeout in seconds (used for Path 1 / backward compat).
 #:
@@ -222,6 +258,94 @@ DEFAULT_HF_SPACES_MODEL_URL: str = (
 #: are routed to the ai-model Space (Path 2) rather than the HF API (Path 3).
 #: Overridable via the ``HF_SPACES_MODEL_NAMESPACES`` environment variable.
 DEFAULT_HF_SPACES_MODEL_NAMESPACES: tuple[str, ...] = ("scikit-plots",)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HuggingFace token type system  (v6.1.0)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# HuggingFace exposes exactly three token types in
+# https://huggingface.co/settings/tokens:
+#
+#   ① Fine-grained   — New-style token.  Permissions set at creation time:
+#                      choose any combination of per-repo access levels and
+#                      API capabilities.  Recommended for production because
+#                      each token carries only the minimum required scope.
+#
+#   ② Read (classic) — Legacy read-only token.  Grants read access to all
+#                      public repos and any private repos you can access.
+#                      Always includes the Serverless Inference API capability.
+#                      Cannot push commits or create repos.
+#
+#   ③ Write (classic)— Legacy read+write token.  All read permissions plus
+#                      the ability to push commits, create repos, manage
+#                      members, etc.  Over-privileged for inference-only use.
+#
+# Mapping to proxy env vars
+# ─────────────────────────
+#   HF_TOKEN       — inference token (Path 2 private Space + Path 3 HF API).
+#                    Best practice: fine-grained with inference-api scope only,
+#                    OR classic read.  Never use a write token here.
+#
+#   HF_WRITE_TOKEN — dataset write token (/v1/contribute → HfApi.create_commit).
+#                    Best practice: fine-grained scoped to ONE dataset repo,
+#                    OR classic write.  Never use a read token here.
+#
+# Optional type-declaration env vars (Space → Settings → Repository secrets):
+#   HF_TOKEN_TYPE       = fine-grained | read | write   (default: auto-detect)
+#   HF_WRITE_TOKEN_TYPE = fine-grained | write          (default: auto-detect)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+#: Literal type for HuggingFace token type labels.
+#: Use as type annotation and for exhaustive ``isinstance``-free comparisons.
+HFTokenType = Literal["fine-grained", "read", "write", "unknown"]
+
+#: New-style fine-grained HF token.  Permissions defined at creation time.
+#: Declare via env var: ``HF_TOKEN_TYPE=fine-grained``.
+HF_TOKEN_TYPE_FINE_GRAINED: str = "fine-grained"  # noqa: S105
+
+#: Classic HF read token.  Read + Inference API; no write capability.
+#: Declare via env var: ``HF_TOKEN_TYPE=read``.
+HF_TOKEN_TYPE_READ: str = "read"  # noqa: S105
+
+#: Classic HF write token.  All read permissions + repo push capability.
+#: Declare via env var: ``HF_TOKEN_TYPE=write`` or ``HF_WRITE_TOKEN_TYPE=write``.
+HF_TOKEN_TYPE_WRITE: str = "write"  # noqa: S105
+
+#: Sentinel: token type not declared and could not be inferred.
+#: Runtime operations are not blocked, but :func:`_validate_token_config` omits
+#: least-privilege warnings because the type is unknown.
+HF_TOKEN_TYPE_UNKNOWN: str = "unknown"  # noqa: S105
+
+#: Token types that are appropriate for HF Serverless Inference API calls
+#: (Path 3) and private HF Space access (Path 2).
+#:
+#: Classic write tokens ARE technically capable of inference (write ⊇ read),
+#: but are excluded from this set so :func:`_validate_token_config` can emit
+#: a startup warning when a write token is used where a read / fine-grained
+#: token is the correct choice.  The ``"unknown"`` sentinel is included so
+#: that un-declared tokens do not trigger false-positive warnings.
+HF_INFERENCE_TOKEN_TYPES: frozenset[str] = frozenset(
+    {
+        HF_TOKEN_TYPE_FINE_GRAINED,
+        HF_TOKEN_TYPE_READ,
+        HF_TOKEN_TYPE_UNKNOWN,
+    }
+)
+
+#: Token types that can push commits to HuggingFace repos and datasets.
+#:
+#: Classic read tokens **cannot** write — any ``HfApi.create_commit`` call
+#: returns HTTP 403 / 401.  ``"unknown"`` is excluded so that
+#: :func:`_validate_token_config` can flag a read token configured as the write
+#: token as a hard error rather than silently failing at request time.
+HF_WRITE_TOKEN_TYPES: frozenset[str] = frozenset(
+    {
+        HF_TOKEN_TYPE_FINE_GRAINED,
+        HF_TOKEN_TYPE_WRITE,
+    }
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -340,11 +464,11 @@ def _parse_model(body: bytes, default: str = DEFAULT_MODEL) -> str:
     >>> _parse_model(b'{"model": "Qwen/Qwen2.5-Coder-7B-Instruct"}')
     'Qwen/Qwen2.5-Coder-7B-Instruct'
     >>> _parse_model(b"{}")
-    'scikit-plots/Qwen2.5-Coder-32B-Instruct'
+    'scikit-plots/Qwen2.5-Coder-7B-Instruct'
     >>> _parse_model(b"not-json")
-    'scikit-plots/Qwen2.5-Coder-32B-Instruct'
+    'scikit-plots/Qwen2.5-Coder-7B-Instruct'
     >>> _parse_model(b'{"model": "  "}')
-    'scikit-plots/Qwen2.5-Coder-32B-Instruct'
+    'scikit-plots/Qwen2.5-Coder-7B-Instruct'
     """
     try:
         data: Any = json.loads(body)
@@ -441,7 +565,7 @@ def _build_cors_headers(allowed_origin: str = "*") -> dict[str, str]:
     }
 
 
-def _token_log_fragment(token: str) -> str:
+def _token_log_fragment(token: str, token_type: str = "") -> str:
     """
     Produce a safely-truncated token string for log output.
 
@@ -449,6 +573,11 @@ def _token_log_fragment(token: str) -> str:
     ----------
     token : str
         A HuggingFace API token (typically ``hf_xxx...``).
+    token_type : str, optional
+        Token type string (one of the ``HF_TOKEN_TYPE_*`` constants).
+        When non-empty and not ``"unknown"``, appended as a parenthetical
+        suffix so log lines identify the token class without exposing the
+        value.  Example: ``hf_abcde...1234 (read)``.
 
     Returns
     -------
@@ -466,12 +595,323 @@ def _token_log_fragment(token: str) -> str:
     --------
     >>> _token_log_fragment("hf_abcdefghij1234")
     'hf_abcde...1234'
+    >>> _token_log_fragment("hf_abcdefghij1234", token_type="read")
+    'hf_abcde...1234 (read)'
     >>> _token_log_fragment("")
     '<not-set>'
     """
     if not token or len(token) < 12:  # noqa: PLR2004
         return "<not-set>"
-    return f"{token[:8]}...{token[-4:]}"
+    fragment = f"{token[:8]}...{token[-4:]}"
+    if token_type and token_type != HF_TOKEN_TYPE_UNKNOWN:
+        return f"{fragment} ({token_type})"
+    return fragment
+
+
+def _classify_token_type(
+    token: str,
+    declared_type: str | None = None,
+) -> HFTokenType:
+    """
+    Classify a HuggingFace token by its declared type or format heuristics.
+
+    Token type classification is used at startup by :func:`_validate_token_config`
+    to enforce the principle of least privilege before any requests arrive.
+
+    Parameters
+    ----------
+    token : str
+        The HuggingFace API token string.
+    declared_type : str or None, optional
+        Explicitly declared type from an environment variable
+        (``HF_TOKEN_TYPE`` or ``HF_WRITE_TOKEN_TYPE``).
+        Accepted values: ``"fine-grained"``, ``"read"``, ``"write"``
+        (and minor formatting variants: ``"finegrained"``,
+        ``"fine_grained"``).  When provided and recognized, it takes
+        precedence over all heuristics.
+
+    Returns
+    -------
+    HFTokenType
+        One of ``"fine-grained"``, ``"read"``, ``"write"``, or ``"unknown"``.
+
+    Notes
+    -----
+    **Security note** — Token type cannot be verified without an authenticated
+    call to the HF API (``GET https://huggingface.co/api/whoami-v2``).  This
+    function applies lightweight format heuristics only.  For production
+    deployments, always declare the type explicitly via ``HF_TOKEN_TYPE`` /
+    ``HF_WRITE_TOKEN_TYPE`` so :func:`_validate_token_config` can enforce
+    least-privilege at startup without any network calls.
+
+    **Developer note** — As of 2025, classic HF tokens are approximately 34
+    characters total (``hf_`` prefix + 30 alphanumeric chars).  Fine-grained
+    tokens are substantially longer (≥ 52 characters total as of the HF 2025
+    token format).  This length heuristic is imprecise and subject to silent
+    change by HF; explicit declaration via env vars is always preferred.
+
+    Examples
+    --------
+    Explicit declaration takes precedence over heuristics:
+
+    >>> _classify_token_type("hf_" + "a" * 30, declared_type="read")
+    'read'
+    >>> _classify_token_type("hf_" + "a" * 30, declared_type="write")
+    'write'
+
+    Heuristic: token ≥ 52 chars → fine-grained:
+
+    >>> _classify_token_type("hf_" + "a" * 50)
+    'fine-grained'
+
+    Short classic token without declaration → unknown:
+
+    >>> _classify_token_type("hf_" + "a" * 28)
+    'unknown'
+
+    Empty or malformed token → unknown:
+
+    >>> _classify_token_type("")
+    'unknown'
+    """
+    # Normalise accepted declared-type values (tolerate minor formatting variants).
+    _declared_map: dict[str, HFTokenType] = {
+        "fine-grained": "fine-grained",
+        "finegrained": "fine-grained",
+        "fine_grained": "fine-grained",
+        "read": "read",
+        "write": "write",
+    }
+    if declared_type:
+        normalised = _declared_map.get(declared_type.lower().strip())
+        if normalised is not None:
+            return normalised
+
+    # Validate basic token format — all HF tokens start with "hf_".
+    if not token or not token.startswith("hf_") or len(token) < 10:  # noqa: PLR2004
+        return "unknown"
+
+    # Heuristic: fine-grained tokens are substantially longer than classic tokens.
+    # Classic tokens: ~34 chars total.  Fine-grained tokens: ≥ 52 chars (HF 2025).
+    # Best-effort only; explicit declaration via env vars is always preferred.
+    if len(token) >= 52:  # noqa: PLR2004
+        return "fine-grained"
+
+    # Cannot distinguish classic read vs write by token string alone.
+    return "unknown"
+
+
+def _token_suitable_for_inference(token_type: str) -> bool:
+    """
+    Return ``True`` when *token_type* is appropriate for HF Inference API calls.
+
+    This predicate guards inference paths (Path 2 private Space access and
+    Path 3 HF Serverless API).  Returning ``False`` for a classic write token
+    does not block the token at runtime — it causes :func:`_validate_token_config`
+    to emit a startup ``WARNING`` so the operator knows they are running with
+    more permission than necessary.
+
+    Parameters
+    ----------
+    token_type : str
+        One of the ``HF_TOKEN_TYPE_*`` constants or a free-form string parsed
+        from an environment variable.
+
+    Returns
+    -------
+    bool
+        ``True`` for ``"fine-grained"``, ``"read"``, and ``"unknown"``.
+        ``False`` for ``"write"`` (classic write token — over-privileged).
+
+    Notes
+    -----
+    The recommended configuration is a fine-grained token scoped exclusively
+    to ``Make calls to the serverless Inference API``, or a classic read
+    token.  Classic write tokens carry unnecessary repo-write permission
+    and violate the principle of least privilege.
+
+    Examples
+    --------
+    >>> _token_suitable_for_inference("read")
+    True
+    >>> _token_suitable_for_inference("fine-grained")
+    True
+    >>> _token_suitable_for_inference("write")
+    False
+    >>> _token_suitable_for_inference("unknown")
+    True
+    """
+    return token_type in HF_INFERENCE_TOKEN_TYPES
+
+
+def _token_suitable_for_writes(token_type: str) -> bool:
+    """
+    Return ``True`` when *token_type* can authorize HuggingFace write operations.
+
+    This predicate guards the ``/v1/contribute`` endpoint.  Returning ``False``
+    for a classic read or unknown token causes :func:`_validate_token_config`
+    to emit a startup ``ERROR`` string because the token WILL fail at
+    ``HfApi.create_commit`` time (HTTP 403 / 401 from HF).
+
+    Parameters
+    ----------
+    token_type : str
+        One of the ``HF_TOKEN_TYPE_*`` constants or a free-form string parsed
+        from an environment variable.
+
+    Returns
+    -------
+    bool
+        ``True`` for ``"fine-grained"`` and ``"write"``.
+        ``False`` for ``"read"`` and ``"unknown"``.
+
+    Notes
+    -----
+    Fine-grained tokens can write **only if** write permission was granted to
+    the target repo at token-creation time.  A fine-grained token created
+    with only inference-API scope will also fail on write operations, but the
+    proxy cannot verify fine-grained permissions without an authenticated API
+    call.  Fine-grained tokens are therefore accepted here and any permission
+    failures surface at operation time with a clear HTTP 503 error.
+
+    Examples
+    --------
+    >>> _token_suitable_for_writes("write")
+    True
+    >>> _token_suitable_for_writes("fine-grained")
+    True
+    >>> _token_suitable_for_writes("read")
+    False
+    >>> _token_suitable_for_writes("unknown")
+    False
+    """
+    return token_type in HF_WRITE_TOKEN_TYPES
+
+
+def _validate_token_config(
+    hf_token: str,
+    hf_write_token: str,
+    training_dataset_repo: str = "",
+    *,
+    hf_token_type: str = HF_TOKEN_TYPE_UNKNOWN,
+    hf_write_token_type: str = HF_TOKEN_TYPE_UNKNOWN,
+) -> list[str]:
+    """
+    Validate token types and return actionable warning / error strings.
+
+    Enforces the principle of least privilege and detects token-type
+    misconfigurations that would cause silent failures at request time.
+    Returns a list of strings rather than raising exceptions so the proxy
+    can start in degraded mode and surface issues through structured logs.
+
+    Call this at startup **after** :func:`_validate_env` so routing is
+    confirmed viable before type checks are run.
+
+    Parameters
+    ----------
+    hf_token : str
+        HuggingFace token used for inference (``HF_TOKEN`` env var).
+    hf_write_token : str
+        HuggingFace token used for dataset writes (``HF_WRITE_TOKEN`` env
+        var).  Pass empty string when not configured.
+    training_dataset_repo : str, optional
+        HuggingFace Dataset repo ID (``TRAINING_DATASET_REPO`` env var).
+        Pass empty string when ``/v1/contribute`` is not enabled.
+    hf_token_type : str, optional
+        Classified type for *hf_token* (from :func:`_classify_token_type`).
+        Defaults to ``"unknown"``.
+    hf_write_token_type : str, optional
+        Classified type for *hf_write_token*.  Defaults to ``"unknown"``.
+
+    Returns
+    -------
+    list[str]
+        Zero or more diagnostic strings.  Each message is prefixed with
+        ``"WARNING:"`` or ``"ERROR:"`` so callers can log at the correct
+        level.  An empty list means the configuration passes all checks.
+
+    Notes
+    -----
+    **Security note** — ``"write"`` token used for inference is a WARNING
+    (not an error) because it functions correctly at runtime.  The warning
+    exists to prompt the operator to apply least-privilege.
+
+    **Security note** — ``"read"`` token used for writes is a hard ERROR:
+    the token WILL fail on every ``HfApi.create_commit`` call.  The proxy
+    can still start (useful for operators who only need inference), but
+    ``/v1/contribute`` will be permanently non-functional until the token is
+    replaced.
+
+    Examples
+    --------
+    Clean configuration — no messages:
+
+    >>> _validate_token_config("hf_readtok", "", hf_token_type="read")
+    []
+
+    Write token for inference (overprivileged) → WARNING:
+
+    >>> msgs = _validate_token_config("hf_writetok", "", hf_token_type="write")
+    >>> any("WARNING" in m for m in msgs)
+    True
+
+    Read token for writes → ERROR:
+
+    >>> msgs = _validate_token_config(
+    ...     "hf_tok",
+    ...     "hf_readtok",
+    ...     training_dataset_repo="org/dataset",
+    ...     hf_write_token_type="read",
+    ... )
+    >>> any("ERROR" in m for m in msgs)
+    True
+    """
+    messages: list[str] = []
+
+    # ── Inference token (HF_TOKEN) type check ────────────────────────────────
+    if hf_token and not _token_suitable_for_inference(hf_token_type):
+        messages.append(
+            f"WARNING: HF_TOKEN type is {hf_token_type!r} (classic write token). "
+            "Write tokens carry unnecessary repo-push permission and violate the "
+            "principle of least privilege for inference. "
+            "Replace HF_TOKEN with: (a) a fine-grained token scoped to "
+            "'Make calls to the serverless Inference API' only, or "
+            "(b) a classic read token. "
+            "See HF Settings → Tokens → New token → Fine-grained. "
+            "Set HF_TOKEN_TYPE=read or HF_TOKEN_TYPE=fine-grained after replacing."
+        )
+
+    # ── Write token (HF_WRITE_TOKEN) type check ──────────────────────────────
+    if hf_write_token and not _token_suitable_for_writes(hf_write_token_type):
+        messages.append(
+            f"ERROR: HF_WRITE_TOKEN type is {hf_write_token_type!r}. "
+            "Classic read tokens cannot push commits to HuggingFace repositories "
+            "(HF API returns HTTP 403 / 401). "
+            "Every POST /v1/contribute will fail with HTTP 503. "
+            "Replace HF_WRITE_TOKEN with: (a) a fine-grained token with write "
+            "access scoped to the training dataset repo, or (b) a classic write "
+            "token. "
+            "See HF Settings → Tokens → New token → Fine-grained → Write access."
+        )
+
+    # ── Training repo + effective write token consistency ────────────────────
+    if training_dataset_repo:
+        # Effective write token is HF_WRITE_TOKEN when set; else falls back to
+        # HF_TOKEN.  Check that the effective token type can authorize writes.
+        effective_token = hf_write_token or hf_token
+        effective_type = hf_write_token_type if hf_write_token else hf_token_type
+        if effective_token and not _token_suitable_for_writes(effective_type):
+            messages.append(
+                f"ERROR: TRAINING_DATASET_REPO={training_dataset_repo!r} is "
+                "configured but the effective write token type "
+                f"({effective_type!r}) cannot push to HuggingFace repositories. "
+                "POST /v1/contribute will always fail with HTTP 503. "
+                "Set HF_WRITE_TOKEN to a write-capable token (fine-grained with "
+                "write access to the dataset repo, or a classic write token). "
+                f"Set HF_WRITE_TOKEN_TYPE accordingly."
+            )
+
+    return messages
 
 
 def _resolve_upstream_url(
@@ -582,7 +1022,7 @@ def _resolve_upstream_url(
     ...     backend_url="",
     ...     hf_token="hf_test_token_abc123",
     ... )
-    >>> "api-inference.huggingface.co" in url
+    >>> "router.huggingface.co" in url
     True
     >>> t
     120.0
@@ -711,6 +1151,12 @@ def load_proxy_env() -> dict[str, Any]:
             Path 3 read timeout (env ``PATH3_TIMEOUT``).
         ``max_body_bytes`` : int
         ``allowed_origins`` : str
+        ``hf_token_type`` : str
+            Classified token type for *hf_token* (env ``HF_TOKEN_TYPE``).
+            One of ``"fine-grained"``, ``"read"``, ``"write"``, ``"unknown"``.
+        ``hf_write_token_type`` : str
+            Classified token type for *hf_write_token* (env ``HF_WRITE_TOKEN_TYPE``).
+            One of ``"fine-grained"``, ``"write"``, ``"unknown"``.
 
     Examples
     --------
@@ -733,9 +1179,35 @@ def load_proxy_env() -> dict[str, Any]:
         or DEFAULT_HF_SPACES_MODEL_NAMESPACES
     )
 
+    _hf_token: str = os.environ.get("HF_TOKEN", "").strip()
+    _hf_write_token: str = os.environ.get("HF_WRITE_TOKEN", "").strip()
+
+    # Classify token types from explicit declarations (preferred) or heuristics.
+    # Explicit: set HF_TOKEN_TYPE=read|write|fine-grained in Space secrets.
+    # Heuristic: length-based guess (fine-grained tokens are ≥ 52 chars).
+    _hf_token_type: str = _classify_token_type(
+        _hf_token,
+        declared_type=os.environ.get("HF_TOKEN_TYPE"),
+    )
+    _hf_write_token_type: str = _classify_token_type(
+        _hf_write_token,
+        declared_type=os.environ.get("HF_WRITE_TOKEN_TYPE"),
+    )
+
     return {
         "backend_url": os.environ.get("BACKEND_URL", "").strip(),
-        "hf_token": os.environ.get("HF_TOKEN", "").strip(),
+        "hf_token": _hf_token,
+        # Dedicated write token for dataset push operations.
+        # Principle of least privilege: set HF_WRITE_TOKEN to a write-scoped
+        # fine-grained token so HF_TOKEN can remain read-only / inference-only.
+        # Falls back to hf_token when absent for backward compatibility.
+        "hf_write_token": _hf_write_token,
+        "hf_dataset_token": _hf_write_token or _hf_token,
+        # Token type metadata — used by _validate_token_config at startup.
+        # Operators can override auto-detection by setting HF_TOKEN_TYPE /
+        # HF_WRITE_TOKEN_TYPE to "fine-grained", "read", or "write".
+        "hf_token_type": _hf_token_type,
+        "hf_write_token_type": _hf_write_token_type,
         "hf_base": os.environ.get("HF_BASE", DEFAULT_HF_BASE).rstrip("/"),
         "default_model": (
             os.environ.get("DEFAULT_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL

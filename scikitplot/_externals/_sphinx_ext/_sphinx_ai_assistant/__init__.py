@@ -122,6 +122,8 @@ Standalone (non-Sphinx):
 
 from __future__ import annotations
 
+import datetime
+
 # import multiprocessing
 import importlib.util
 import json
@@ -1807,6 +1809,153 @@ def _is_path_within(path: Path, parent: Path) -> bool:
 
 
 _URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+import ipaddress  # stdlib — safe to add to existing imports block
+
+#: Schema version emitted as ``_schemaV`` in every validated profile dict.
+#: Increment when the profile dict shape changes incompatibly so the JS
+#: registry can detect and discard stale localStorage caches.
+_PROFILE_SCHEMA_VERSION: int = 2
+
+#: Maximum number of profiles before a Sphinx WARNING is emitted.
+#: More than this is unusual and may indicate a conf.py loop/bug.
+_MAX_PROFILE_COUNT: int = 20
+
+#: Maximum character length for a profile ``label`` field.
+#: Enforced during validation; truncated labels get a WARNING.
+_MAX_PROFILE_LABEL_LEN: int = 80
+
+#: JS prototype-pollution sentinel keys.  These must *never* appear as
+#: top-level keys in ``window.AI_ASSISTANT_ENDPOINTS`` or in a profile dict
+#: because they would overwrite Object.prototype / Function properties.
+#: See: https://cheatsheetseries.owasp.org/cheatsheets/Prototype_Pollution_Prevention_Cheat_Sheet.html
+_DANGEROUS_PROFILE_KEYS: frozenset[str] = frozenset(
+    {
+        "__proto__",
+        "constructor",
+        "prototype",
+        "toString",
+        "valueOf",
+        "hasOwnProperty",
+        "isPrototypeOf",
+        "propertyIsEnumerable",
+        "toLocaleString",
+        "toJSON",
+    }
+)
+
+#: Private IPv4 network blocks (RFC 1918, loopback, link-local, CGNAT).
+#: URLs that resolve to these hosts are SSRF candidates in production.
+#: Note: ``http://localhost`` is intentionally permitted (and warned) so
+#: that local-development Ollama / dev-proxy workflows are not broken.
+_PRIVATE_NETWORKS: tuple[ipaddress.IPv4Network, ...] = (
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),  # loopback
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local / APIPA
+    ipaddress.ip_network("100.64.0.0/10"),  # CGNAT (RFC 6598)
+    ipaddress.ip_network("192.0.2.0/24"),  # TEST-NET-1 (RFC 5737)
+    ipaddress.ip_network("198.51.100.0/24"),  # TEST-NET-2
+    ipaddress.ip_network("203.0.113.0/24"),  # TEST-NET-3
+    ipaddress.ip_network("0.0.0.0/8"),  # "this" network
+    ipaddress.ip_network("240.0.0.0/4"),  # reserved
+)
+
+#: Token field characters that indicate XSS / injection attempts.
+#: These are rejected regardless of other validation.
+_TOKEN_INJECT_RE = re.compile(
+    r"(<\s*script|javascript:|data:\s*text/html|</|>)",
+    re.IGNORECASE,
+)
+
+
+# ── BLOCK A helper function ──────────────────────────────────────────────────
+
+
+def _check_private_ip_url(url: str) -> bool:
+    """Return True when *url*'s host resolves to a known private IP range.
+
+    Parameters
+    ----------
+    url : str
+        A URL string already confirmed to begin with ``https://`` or
+        ``http://`` (i.e. ``_URL_SCHEME_RE`` has already matched).
+
+    Returns
+    -------
+    bool
+        ``True`` when the host literal is a private IPv4 address, a
+        loopback address (``127.*`` / ``::1``), or a well-known private
+        hostname (``localhost``, ``*.local``).  ``False`` for all public
+        addresses and for any hostname that cannot be parsed as an IP.
+
+    Notes
+    -----
+    Developer: This function performs *only* lexical / literal analysis.
+    It does NOT perform DNS resolution — that would be a network side
+    effect inside a Sphinx build, which is unacceptable.  A hostname
+    like ``my-internal-proxy.corp.example.com`` is NOT flagged; only
+    literal private IPs and the reserved hostnames listed below are.
+
+    Developer: Returns ``False`` (not an error) for unrecognised hosts so
+    that the strict caller (``_validate_profile``) only warns on
+    well-known problematic values.  Operators using split-DNS or internal
+    proxies should expect the WARNING and can suppress it by setting a
+    ``_allow_private`` flag on the profile dict (future extension).
+
+    Developer: IPv6 loopback ``::1`` is detected.  Full IPv6 private
+    range analysis (``fc00::/7``) is omitted — the ULA range is not
+    widely used for proxy deployments and false-positives would confuse
+    Ollama / WSL2 users.
+
+    Examples
+    --------
+    >>> _check_private_ip_url("http://127.0.0.1:8080/v1")
+    True
+    >>> _check_private_ip_url("http://localhost/v1")
+    True
+    >>> _check_private_ip_url("https://proxy.example.com/v1")
+    False
+    >>> _check_private_ip_url("http://192.168.1.42/v1")
+    True
+    >>> _check_private_ip_url("http://10.0.0.1/api")
+    True
+    >>> _check_private_ip_url("https://1.1.1.1/v1")
+    False
+    """
+    try:
+        # Cheap host extraction: strip scheme, split on first "/".
+        without_scheme = re.sub(r"^https?://", "", url, flags=re.IGNORECASE)
+        host_port = without_scheme.split("/")[0]
+        # Remove port if present (handle IPv6 brackets).
+        if host_port.startswith("["):
+            # IPv6 literal: [::1]:8080 → strip brackets.
+            host = host_port.split("]")[0].lstrip("[")
+        else:
+            host = host_port.split(":")[0]
+
+        host_lower = host.lower().strip()
+
+        # ── Reserved hostnames (lexical check — no DNS) ───────────────
+        if host_lower in ("localhost", "localhost.localdomain", "ip6-localhost"):
+            return True
+        if host_lower.endswith((".local", ".internal")):
+            return True
+        if host_lower == "::1":
+            return True
+
+        # ── Literal IPv4 / IPv6 address check ─────────────────────────
+        addr = ipaddress.ip_address(host)
+        if addr.version == 6:  # noqa: PLR2004
+            return addr.is_loopback or addr.is_private or addr.is_link_local
+        # IPv4: check against all private networks.
+        return any(addr in network for network in _PRIVATE_NETWORKS)
+
+    except (ValueError, AttributeError, IndexError):
+        # host is a hostname or malformed — cannot determine; not flagged.
+        return False
+
 
 #: Regex for the ``mcpb_url`` field in ``claude_desktop`` MCP tools.
 #: Only ``mcpb://`` (Claude Desktop deep-link) and ``https://`` (direct
@@ -3519,6 +3668,598 @@ def _cfg_list(config: Any, key: str) -> list:
     return []
 
 
+def _cfg_int(config: Any, key: str, default: int = 0) -> int:
+    """Safely read an integer config value; returns *default* for non-int values.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+    key : str
+        Configuration key to read.
+    default : int, optional
+        Fallback when the value is absent, non-integer, or a
+        :class:`unittest.mock.MagicMock`.  Defaults to ``0``.
+
+    Returns
+    -------
+    int
+        The integer value when present and valid; *default* otherwise.
+
+    Notes
+    -----
+    Developer: Python ``bool`` is a subclass of ``int``.  A conf.py author
+    who accidentally writes ``ai_assistant_global_share_ttl_days = True``
+    gets ``1`` (TTL = 1 day) rather than the default of ``0`` (no expiry),
+    which is a safer failure mode than silently ignoring the mistake.
+
+    In test environments where ``config`` is a
+    :class:`unittest.mock.MagicMock`, attribute access returns a new
+    ``MagicMock`` which is not an ``int`` — this helper returns ``default``
+    in that case to prevent JSON serialisation errors.
+
+    Examples
+    --------
+    >>> class _Cfg:
+    ...     ai_assistant_global_share_ttl_days = 30
+    >>> _cfg_int(_Cfg(), "ai_assistant_global_share_ttl_days", 0)
+    30
+    >>> _cfg_int(_Cfg(), "missing_key", 7)
+    7
+    """
+    val = getattr(config, key, default)
+    if isinstance(val, bool):
+        return int(val)
+    if isinstance(val, (int, float)):
+        return int(val)
+    return default
+
+
+def _cfg_endpoint_url(config: Any, key: str) -> str:
+    """Read and validate a remote endpoint URL config value.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object or mock.
+    key : str
+        Configuration key to read (must be an ``https://`` or local
+        ``http://`` URL when set).
+
+    Returns
+    -------
+    str
+        The raw URL string when present and valid.  Empty string ``""``
+        when the key is absent, empty, or fails URL validation.
+
+    Notes
+    -----
+    Developer: Returns ``""`` (not ``None``) so callers can use ``or ""``
+    without an additional ``None`` guard.  The JS widget treats ``""`` as
+    "feature disabled" consistently.
+
+    Developer: Emits a Sphinx WARNING (not an error) when the value is
+    set but invalid — the build still completes so operators are not
+    blocked, but the diagnostic is visible in the console and CI logs.
+
+    **SSRF warning**: When the URL targets a private IP range or a
+    reserved hostname (``localhost``, ``*.local``, ``127.*``,
+    ``10.*``, etc.), an additional WARNING is emitted to alert operators
+    that the endpoint is only reachable from the documentation server
+    itself, not from end-user browsers.  The URL is still returned so
+    that local-development Ollama / dev-proxy setups are not broken.
+
+    Accepted schemes: ``https://`` and ``http://`` (localhost is valid for
+    local development).  Rejected: ``javascript:``, ``data:``, ``ftp:``,
+    relative paths, and any other non-HTTP scheme.
+
+    Examples
+    --------
+    >>> class _Cfg:
+    ...     ai_assistant_panel_feedback_endpoint = (
+    ...         "https://proxy.example.com/v1/feedback"
+    ...     )
+    >>> _cfg_endpoint_url(_Cfg(), "ai_assistant_panel_feedback_endpoint")
+    'https://proxy.example.com/v1/feedback'
+    >>> class _Bad:
+    ...     ai_assistant_panel_feedback_endpoint = "javascript:alert(1)"
+    >>> _cfg_endpoint_url(_Bad(), "ai_assistant_panel_feedback_endpoint")
+    ''
+    """
+    raw = _cfg_str(config, key) or ""
+    if not raw:
+        return ""
+    stripped = raw.strip()
+    if not stripped:
+        return ""
+    if not _URL_SCHEME_RE.match(stripped):
+        _get_logger().warning(
+            "AI Assistant: %r = %r is not a valid https:// or "
+            "http:// URL and will be ignored.  Accepted schemes: https, http.",
+            key,
+            stripped,
+        )
+        return ""
+    # SSRF / private-IP advisory warning (does NOT reject the URL).
+    if _check_private_ip_url(stripped):
+        _get_logger().warning(
+            "AI Assistant: %r = %r targets a private IP or reserved hostname.  "
+            "End-user browsers cannot reach this address.  "
+            "This is expected for local-development proxies; set a public URL "
+            "for production deployments.",
+            key,
+            stripped,
+        )
+    return stripped
+
+
+def _validate_profile(raw: Any, key: str) -> dict:  # noqa: PLR0912
+    r"""Validate and normalise a single endpoint profile dict.
+
+    Parameters
+    ----------
+    raw : Any
+        The raw profile value from ``conf.py``.  Must be a ``dict``; all
+        URL fields are validated with the same logic as
+        :func:`_cfg_endpoint_url`; token and integer fields are sanitised.
+    key : str
+        Profile key (e.g. ``"cf"``); used only in warning messages.
+
+    Returns
+    -------
+    dict
+        Normalised profile with every expected key present.  Invalid URL
+        fields are replaced with ``""`` and a Sphinx WARNING is emitted so
+        the build still completes but the operator sees actionable output.
+        Returns an empty ``{}`` when ``raw`` is not a ``dict`` or when the
+        profile key itself is a prototype-pollution sentinel.
+
+    Notes
+    -----
+    Developer: Intentionally lenient — an invalid URL in one field does
+    not discard the whole profile.  This allows a profile like::
+
+        "dev": {"chat": "https://ok.example.com", "share": "javascript:bad"}
+
+    to be used with a working ``chat`` endpoint while emitting a warning
+    for the invalid ``share`` URL.
+
+    Developer: URL validation reuses the existing ``_URL_SCHEME_RE``
+    pattern that is already used by ``_filter_share_targets`` and
+    ``_cfg_endpoint_url``.  No new regex is introduced for URL matching.
+
+    **Security hardening (v2)**:
+
+    * ``_DANGEROUS_PROFILE_KEYS`` check prevents a malicious or
+      misconfigured ``conf.py`` from injecting ``__proto__`` into the
+      ``window.AI_ASSISTANT_ENDPOINTS`` object, which would pollute
+      ``Object.prototype`` in every browser tab.
+
+    * Token fields containing ``<``, ``>``, ``script``, or
+      ``javascript:`` are rejected (XSS guard) because tokens flow
+      into ``Authorization: Bearer`` headers constructed by JS string
+      concatenation — an injected ``\n`` or tag could break the header
+      or, in some poorly-written proxy code, inject a new HTTP header.
+
+    * Label fields are length-capped at ``_MAX_PROFILE_LABEL_LEN``
+      characters to prevent layout overflow attacks in the profile-
+      switcher UI.
+
+    * The returned dict includes ``_schemaV`` (integer) so the JS
+      registry can detect and discard stale localStorage caches after
+      a schema bump.
+
+    * The returned dict includes ``_warn`` (list[str]) when any URL
+      field triggered a private-IP SSRF warning.  The JS UI renders a
+      ⚠ badge on profiles with a non-empty ``_warn`` list.
+
+    Developer: URL validation reuses the existing ``_URL_SCHEME_RE``
+    pattern that is already used by ``_filter_share_targets`` and
+    ``_cfg_endpoint_url``.  No new regex is introduced.
+
+    Examples
+    --------
+    >>> _validate_profile({"chat": "https://proxy.hf.space", "label": "HF"}, "hf")
+    {'label': 'HF', 'chat': 'https://proxy.hf.space', 'share': '', ...}
+    >>> _validate_profile("not-a-dict", "bad")
+    {}
+    >>> _validate_profile({"chat": "https://ok.example.com"}, "__proto__")
+    {}
+    """
+    _URL_KEYS = ("chat", "share", "feedback", "training")  # noqa: N806
+    _TOKEN_KEYS = ("shareToken", "feedbackToken")  # noqa: N806
+    _INT_KEYS = ("ttlDays",)  # noqa: N806
+
+    # ── Prototype-pollution guard ─────────────────────────────────────────
+    # A ``conf.py`` author who wrote ``ai_assistant_endpoint_profiles =
+    # {"__proto__": {...}}`` would inject a dangerous property into
+    # ``window.AI_ASSISTANT_ENDPOINTS``.  Silently reject these keys.
+    if key in _DANGEROUS_PROFILE_KEYS:
+        _get_logger().warning(
+            "AI Assistant: endpoint profile key %r is a reserved JavaScript "
+            "prototype property and cannot be used as a profile name — ignored.  "
+            "Choose a plain alphanumeric key such as 'cf', 'hf', or 'dev'.",
+            key,
+        )
+        return {}
+
+    if not isinstance(raw, dict):
+        _get_logger().warning(
+            "AI Assistant: endpoint profile %r must be a dict, got %s — ignored.",
+            key,
+            type(raw).__name__,
+        )
+        return {}
+
+    # ── Label sanitisation ────────────────────────────────────────────────
+    raw_label = str(raw.get("label", key))
+    if len(raw_label) > _MAX_PROFILE_LABEL_LEN:
+        _get_logger().warning(
+            "AI Assistant: endpoint profile %r label is %d characters; "
+            "truncating to %d.  Shorten the label in conf.py.",
+            key,
+            len(raw_label),
+            _MAX_PROFILE_LABEL_LEN,
+        )
+        raw_label = raw_label[:_MAX_PROFILE_LABEL_LEN]
+
+    result: dict = {
+        "label": raw_label,
+        "_schemaV": _PROFILE_SCHEMA_VERSION,
+    }
+    _warnings: list[str] = []
+
+    # ── URL field validation ──────────────────────────────────────────────
+    for url_key in _URL_KEYS:
+        raw_url = raw.get(url_key, "")
+        if not raw_url:
+            result[url_key] = ""
+            continue
+        stripped = str(raw_url).strip().rstrip("/")
+        if not stripped:
+            result[url_key] = ""
+            continue
+        if not _URL_SCHEME_RE.match(stripped):
+            _get_logger().warning(
+                "AI Assistant: endpoint profile %r field %r = %r is not a "
+                "valid https:// or http:// URL and will be ignored.  "
+                "Accepted schemes: https, http.",
+                key,
+                url_key,
+                stripped,
+            )
+            result[url_key] = ""
+            continue
+        # SSRF / private-IP advisory.
+        if _check_private_ip_url(stripped):
+            _get_logger().warning(
+                "AI Assistant: endpoint profile %r field %r = %r targets a "
+                "private IP or reserved hostname.  End-user browsers cannot "
+                "reach this address outside the documentation server's network.  "
+                "This is expected for local development; use a public URL for "
+                "production.",
+                key,
+                url_key,
+                stripped,
+            )
+            _warnings.append(url_key)
+        result[url_key] = stripped
+
+    # ── Token field validation ────────────────────────────────────────────
+    for tok_key in _TOKEN_KEYS:
+        val = raw.get(tok_key, "")
+        if val:
+            tok_str = str(val)
+            # Reject tokens containing HTML/script injection attempts.
+            if _TOKEN_INJECT_RE.search(tok_str):
+                _get_logger().warning(
+                    "AI Assistant: endpoint profile %r token field %r contains "
+                    "characters that could enable XSS injection ('<', '>', "
+                    "'script', 'javascript:') — field cleared.  "
+                    "Tokens must be plain Bearer credential strings.",
+                    key,
+                    tok_key,
+                )
+                result[tok_key] = ""
+            else:
+                result[tok_key] = tok_str
+        else:
+            result[tok_key] = ""
+
+    # ── Integer field validation ──────────────────────────────────────────
+    for int_key in _INT_KEYS:
+        raw_int = raw.get(int_key, 0)
+        try:
+            result[int_key] = max(0, int(float(raw_int)))
+        except (TypeError, ValueError):
+            result[int_key] = 0
+
+    # ── Inject SSRF warning list (consumed by JS UI) ──────────────────────
+    # An empty list serialises as [] and the JS skips badge rendering.
+    result["_warn"] = _warnings
+
+    return result
+
+
+def _serialize_endpoint_profiles(config: Any) -> tuple:
+    """Read, validate, and serialise the endpoint profile registry.
+
+    Parameters
+    ----------
+    config : Any
+        Sphinx config object (or mock in tests).
+
+    Returns
+    -------
+    profiles : dict
+        Validated profile registry keyed by profile name, ready for JSON
+        serialisation into ``window.AI_ASSISTANT_ENDPOINTS``.  Includes a
+        top-level ``_meta`` sub-dict with ``schemaVersion`` and
+        ``buildId`` fields for cache-busting.
+    default_key : str
+        The profile key to activate on first page load.  Empty string
+        when no profiles are defined.
+
+    Notes
+    -----
+    Developer: This function has three code paths:
+
+    **Path 1 — Explicit profiles** (``ai_assistant_endpoint_profiles`` set):
+    Profiles are validated via :func:`_validate_profile` and the default
+    key is verified.  A mismatch warning is emitted when the configured
+    default does not match any key; the first profile is used instead.
+
+    **Path 2 — Auto-profile from legacy flat keys**:
+    When ``ai_assistant_endpoint_profiles`` is an empty dict or absent
+    *and* at least one legacy flat key is non-empty
+    (``ai_assistant_panel_feedback_endpoint`` /
+    ``ai_assistant_global_share_endpoint`` /
+    ``ai_assistant_training_endpoint``), this function synthesises a
+    ``"default"`` profile from those keys.
+
+    This ensures ``_EP.resolve(feature)`` always works in JavaScript
+    regardless of whether the operator has migrated to profiles.  The JS
+    widget never reads ``cfg.panelFeedbackEndpoint`` directly for
+    the live path — it always calls ``_EP.resolve('feedback')``.
+
+    **Path 3 — No configuration**: Returns ``({}, "")``.  The script
+    block is NOT injected into the page and the JS widget falls back to
+    ``cfg.panel*Endpoint`` reads (full backward compatibility with
+    deployments that will never use profiles).
+
+    **Security hardening (v2)**:
+
+    * Dangerous profile keys (``__proto__``, ``constructor``, etc.) are
+      filtered out at the registry level even if :func:`_validate_profile`
+      somehow returned a result (defence in depth).
+    * A WARNING is emitted when the number of profiles exceeds
+      ``_MAX_PROFILE_COUNT``, which typically signals a conf.py bug
+      (accidental dict comprehension building hundreds of profiles).
+    * A ``_meta`` top-level key is injected into the returned dict.
+      The JS registry uses ``_meta.schemaVersion`` to detect stale
+      ``localStorage`` caches after a schema upgrade.  ``_meta.buildId``
+      is the ISO-8601 UTC date of the Sphinx build (seconds precision)
+      and acts as a cache-bust signal for rolling deployments.
+    * ``_meta`` is serialised as a plain nested dict; it does NOT
+      conflict with profile keys because profile names may not begin
+      with ``_`` (the validation step rejects leading-underscore keys
+      to prevent collisions with internal metadata).
+
+    Examples
+    --------
+    >>> class _Cfg:
+    ...     ai_assistant_endpoint_profiles = {"cf": {"chat": "https://cf.example.com"}}
+    ...     ai_assistant_endpoint_default_profile = "cf"
+    >>> profiles, default = _serialize_endpoint_profiles(_Cfg())
+    >>> default
+    'cf'
+    >>> profiles["_meta"]["schemaVersion"]
+    2
+    """
+    raw_dict = getattr(config, "ai_assistant_endpoint_profiles", None)
+    default_key = _cfg_str(config, "ai_assistant_endpoint_default_profile") or ""
+
+    # ── Build-time metadata injected into the window object ───────────────
+    _meta: dict = {
+        "schemaVersion": _PROFILE_SCHEMA_VERSION,
+        "buildId": (
+            datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ),
+    }
+
+    # ── Path 1: explicit profiles ─────────────────────────────────────────
+    if isinstance(raw_dict, dict) and raw_dict:
+        profiles: dict = {}
+
+        # Warn if an unusually large number of profiles are defined.
+        if len(raw_dict) > _MAX_PROFILE_COUNT:
+            _get_logger().warning(
+                "AI Assistant: ai_assistant_endpoint_profiles defines %d "
+                "profiles (limit is %d before this warning).  This is "
+                "unusual — verify that conf.py is not constructing profiles "
+                "in a loop.  All profiles are baked into every HTML page.",
+                len(raw_dict),
+                _MAX_PROFILE_COUNT,
+            )
+
+        for prof_key, prof_val in raw_dict.items():
+            str_key = str(prof_key)
+
+            # Defence-in-depth: strip dangerous keys even if _validate_profile
+            # returned a non-empty dict (should not happen, but be safe).
+            if str_key in _DANGEROUS_PROFILE_KEYS:
+                _get_logger().warning(
+                    "AI Assistant: endpoint profile key %r is a reserved "
+                    "JavaScript property name and has been removed from the "
+                    "registry to prevent prototype-pollution attacks.",
+                    str_key,
+                )
+                continue
+
+            # Reject leading-underscore keys to protect the _meta namespace.
+            if str_key.startswith("_"):
+                _get_logger().warning(
+                    "AI Assistant: endpoint profile key %r begins with '_', "
+                    "which is reserved for internal metadata.  Rename the "
+                    "profile key to avoid conflicts with _meta and _schemaV.",
+                    str_key,
+                )
+                continue
+
+            validated = _validate_profile(prof_val, str_key)
+            if validated:
+                profiles[str_key] = validated
+
+        if not profiles:
+            return {}, ""
+
+        if default_key and default_key not in profiles:
+            _get_logger().warning(
+                "AI Assistant: ai_assistant_endpoint_default_profile = %r "
+                "does not match any key in ai_assistant_endpoint_profiles "
+                "(%s).  Falling back to the first defined profile.",
+                default_key,
+                ", ".join(repr(k) for k in profiles),
+            )
+            default_key = next(iter(profiles))
+        elif not default_key:
+            default_key = next(iter(profiles))
+
+        profiles["_meta"] = _meta
+        return profiles, default_key
+
+    # ── Path 2: auto-profile from legacy flat keys ────────────────────────
+    fb_url = _cfg_endpoint_url(config, "ai_assistant_panel_feedback_endpoint") or ""
+    sh_url = _cfg_endpoint_url(config, "ai_assistant_global_share_endpoint") or ""
+    tr_url = _cfg_endpoint_url(config, "ai_assistant_training_endpoint") or ""
+    fb_tok = _cfg_str(config, "ai_assistant_panel_feedback_token") or ""
+    sh_tok = _cfg_str(config, "ai_assistant_global_share_token") or ""
+    ttl = _cfg_int(config, "ai_assistant_global_share_ttl_days", 30)
+
+    if not (fb_url or sh_url or tr_url):
+        return {}, ""
+
+    # Derive a chat base from the first non-empty URL (strip known route suffix).
+    chat_base = sh_url or fb_url or tr_url
+    for suffix in ("/v1/share", "/v1/feedback", "/v1/contribute"):
+        if chat_base.endswith(suffix):
+            chat_base = chat_base[: -len(suffix)]
+            break
+
+    # Validate tokens from legacy flat keys.
+    def _scrub_token(tok: str) -> str:
+        if _TOKEN_INJECT_RE.search(tok):
+            _get_logger().warning(
+                "AI Assistant: a legacy token value contains injection "
+                "characters and has been cleared."
+            )
+            return ""
+        return tok
+
+    auto_profile: dict = {
+        "label": "Default",
+        "chat": chat_base,
+        "share": sh_url,
+        "feedback": fb_url,
+        "training": tr_url,
+        "shareToken": _scrub_token(sh_tok),
+        "feedbackToken": _scrub_token(fb_tok),
+        "ttlDays": ttl,
+        "_schemaV": _PROFILE_SCHEMA_VERSION,
+        "_warn": [],
+    }
+    result = {"default": auto_profile, "_meta": _meta}
+    return result, "default"
+
+
+def _inspect_profiles(profiles: dict) -> dict:
+    """Return a machine-readable capability and risk summary for all profiles.
+
+    Parameters
+    ----------
+    profiles : dict
+        A validated profile registry as returned by
+        :func:`_serialize_endpoint_profiles` (the ``profiles`` element of
+        the returned tuple, which may include a ``_meta`` key).
+
+    Returns
+    -------
+    dict
+        A ``{profile_key: summary}`` mapping where each summary has the
+        shape::
+
+            {
+                "label": str,
+                "caps": {
+                    "chat": bool,
+                    "share": bool,
+                    "feedback": bool,
+                    "training": bool,
+                },
+                "hasToken": {"share": bool, "feedback": bool},
+                "warns": list[str],  # URL fields with SSRF warnings
+                "schemaV": int,
+            }
+
+        The ``_meta`` key is excluded from the output.
+
+    Notes
+    -----
+    Developer: This helper is used by the compare-grid in
+    ``_buildEndpointConfigSheet`` (via JSON injection) and by the test
+    suite to assert capability coverage without parsing the full profile
+    dict.
+
+    Developer: ``caps`` values are ``True`` when the URL field is a non-
+    empty string after validation.  A ``True`` value does NOT guarantee
+    reachability — use the health-check feature in the UI for that.
+
+    Examples
+    --------
+    >>> profiles = {
+    ...     "cf": {
+    ...         "label": "CF",
+    ...         "chat": "https://cf.example.com",
+    ...         "share": "",
+    ...         "feedback": "",
+    ...         "training": "",
+    ...         "shareToken": "",
+    ...         "feedbackToken": "",
+    ...         "_schemaV": 2,
+    ...         "_warn": [],
+    ...     },
+    ...     "_meta": {"schemaVersion": 2, "buildId": "2025-01-01T00:00:00Z"},
+    ... }
+    >>> summary = _inspect_profiles(profiles)
+    >>> summary["cf"]["caps"]["chat"]
+    True
+    >>> summary["cf"]["caps"]["share"]
+    False
+    """
+    result: dict = {}
+    for key, profile in profiles.items():
+        if key == "_meta":
+            continue  # skip internal metadata
+        if not isinstance(profile, dict):
+            continue
+        result[key] = {
+            "label": str(profile.get("label", key)),
+            "caps": {
+                "chat": bool(profile.get("chat", "")),
+                "share": bool(profile.get("share", "")),
+                "feedback": bool(profile.get("feedback", "")),
+                "training": bool(profile.get("training", "")),
+            },
+            "hasToken": {
+                "share": bool(profile.get("shareToken", "")),
+                "feedback": bool(profile.get("feedbackToken", "")),
+            },
+            "warns": list(profile.get("_warn", [])),
+            "schemaV": int(profile.get("_schemaV", 0)),
+        }
+    return result
+
+
 def _resolve_feedback_scale_safe(
     scale_name: str,
     options: list,
@@ -3898,6 +4639,31 @@ def add_ai_assistant_context(
             _cfg_str(app.config, "ai_assistant_panel_search_placeholder")
             or "Ask AI about these docs\u2026"
         ),
+        # ── Feedback POST endpoint (P1) ────────────────────────────────────
+        # Empty string "" disables the feature — zero behavior change for
+        # operators who have not configured an endpoint.
+        "panelFeedbackEndpoint": _cfg_endpoint_url(
+            app.config, "ai_assistant_panel_feedback_endpoint"
+        ),
+        # Token sent as Authorization: Bearer <token>.  Empty string = no header.
+        # Operators must read this from os.environ — never hardcode in conf.py.
+        "panelFeedbackToken": (
+            _cfg_str(app.config, "ai_assistant_panel_feedback_token") or ""
+        ),
+        # ── Global share (P2) ─────────────────────────────────────────────
+        "panelGlobalShareEndpoint": _cfg_endpoint_url(
+            app.config, "ai_assistant_global_share_endpoint"
+        ),
+        "panelGlobalShareToken": (
+            _cfg_str(app.config, "ai_assistant_global_share_token") or ""
+        ),
+        "panelGlobalShareTtlDays": _cfg_int(
+            app.config, "ai_assistant_global_share_ttl_days", 30
+        ),
+        # ── Training contribution (P3) ─────────────────────────────────────
+        "panelTrainingEndpoint": _cfg_endpoint_url(
+            app.config, "ai_assistant_training_endpoint"
+        ),
     }
 
     context["ai_assistant_config"] = config
@@ -3908,6 +4674,21 @@ def add_ai_assistant_context(
     safe_json = _safe_json_for_script(config)
     _script = f"\n<script>\nwindow.AI_ASSISTANT_CONFIG = {safe_json};\n</script>\n"
     context["metatags"] += f"{_script}"
+
+    # ── Endpoint Profile Registry (runtime-switchable proxy backends) ────
+    # Serialised separately so the profile store can grow without bloating
+    # AI_ASSISTANT_CONFIG.  Injected only when profiles are defined.
+    _ep_profiles, _ep_default = _serialize_endpoint_profiles(app.config)
+    if _ep_profiles:
+        _ep_json = _safe_json_for_script(_ep_profiles)
+        _ep_default_json = _safe_json_for_script(_ep_default)
+        _ep_script = (
+            "\n<script>\n"
+            f"window.AI_ASSISTANT_ENDPOINTS = {_ep_json};\n"
+            f"window.AI_ASSISTANT_ENDPOINT_DEFAULT = {_ep_default_json};\n"
+            "</script>\n"
+        )
+        context["metatags"] += _ep_script
 
 
 # ---------------------------------------------------------------------------
@@ -4436,6 +5217,95 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     and rendered by the JS widget as a ``title``/``data-value`` tooltip
     #     so the final user can see the numeric weight on hover.
     app.add_config_value("ai_assistant_panel_feedback_scale", "auto", "html")
+
+    # ── Feedback POST endpoint ───────────────────────────────────────────────
+    # ``ai_assistant_panel_feedback_endpoint`` (str, default "")
+    #     URL of the remote endpoint that receives POST /v1/feedback requests.
+    #     When empty (default), feedback is dispatched as a CustomEvent only.
+    #     Read from os.environ — NEVER hardcode a URL in conf.py.
+    #     Example: os.environ.get("FEEDBACK_ENDPOINT", "")
+    app.add_config_value("ai_assistant_panel_feedback_endpoint", "", "html")
+
+    # ``ai_assistant_panel_feedback_token`` (str, default "")
+    #     Bearer token for write-authenticated feedback endpoints.
+    #     Sent as Authorization: Bearer <token> when non-empty.
+    #     Read from os.environ — NEVER hardcode a token in conf.py.
+    #     Example: os.environ.get("FEEDBACK_WRITE_TOKEN", "")
+    app.add_config_value("ai_assistant_panel_feedback_token", "", "html")
+
+    # ── Global share endpoint ────────────────────────────────────────────────
+    # ``ai_assistant_global_share_endpoint`` (str, default "")
+    #     URL of the CF Worker endpoint for global share storage.
+    #     When empty (default), the global share tier is not rendered.
+    #     Example: os.environ.get("SHARE_ENDPOINT", "")
+    app.add_config_value("ai_assistant_global_share_endpoint", "", "html")
+
+    # ``ai_assistant_global_share_token`` (str, default "")
+    #     Bearer token for POST /v1/share.
+    #     Example: os.environ.get("SHARE_WRITE_TOKEN", "")
+    app.add_config_value("ai_assistant_global_share_token", "", "html")
+
+    # ``ai_assistant_global_share_ttl_days`` (int, default 30)
+    #     Number of days before a global share link expires (KV entry TTL).
+    #     Minimum: 1.  Maximum: 365.  Enforced server-side.
+    app.add_config_value("ai_assistant_global_share_ttl_days", 30, "html")
+
+    # ── Training contribution endpoint ───────────────────────────────────────
+    # ``ai_assistant_training_endpoint`` (str, default "")
+    #     URL of the HF Spaces proxy endpoint for training contributions.
+    #     When empty (default), the contribution UI is not rendered.
+    #     No write token — the proxy validates using its own HF_TOKEN.
+    #     Example: os.environ.get("TRAINING_ENDPOINT", "")
+    app.add_config_value("ai_assistant_training_endpoint", "", "html")
+
+    # ── Endpoint Profile Registry ────────────────────────────────────────────
+    # ``ai_assistant_endpoint_profiles`` (dict[str, dict], default {})
+    #     Named endpoint profiles enabling runtime-switchable proxy backends.
+    #     Each key is a profile identifier; each value is a dict with fields:
+    #       label         (str)  — Human-readable name for the profile switcher UI.
+    #       chat          (str)  — BASE URL; /v1/chat/completions appended by JS.
+    #       share         (str)  — BASE URL; /v1/share appended by JS (P1 global share).
+    #       feedback      (str)  — BASE URL; /v1/feedback appended by JS (P3 feedback).
+    #       training      (str)  — BASE URL; /v1/contribute appended by JS (P2 training).
+    #       shareToken    (str)  — Authorization: Bearer token for share writes.
+    #       feedbackToken (str)  — Authorization: Bearer token for feedback writes.
+    #       ttlDays       (int)  — Share TTL override (0 = use global setting).
+    #     All fields are optional; empty string disables the feature.
+    #
+    #     ALL profiles are baked into the rendered HTML at build time.
+    #     The browser _EP registry reads them and the user/developer can switch
+    #     profiles at runtime via localStorage — NO rebuild needed.
+    #
+    #     Example (conf.py):
+    #       import os
+    #       ai_assistant_endpoint_profiles = {
+    #           "cf": {
+    #               "label": "Cloudflare Worker",
+    #               "chat":         os.environ.get("CF_WORKER_URL", ""),
+    #               "share":        os.environ.get("CF_WORKER_URL", ""),
+    #               "feedback":     os.environ.get("CF_WORKER_URL", ""),
+    #               "training":     "",
+    #               "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
+    #               "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+    #           },
+    #           "hf": {
+    #               "label": "HF Spaces",
+    #               "chat":         os.environ.get("HF_SPACE_URL", ""),
+    #               "share":        os.environ.get("CF_WORKER_URL", ""),
+    #               "feedback":     os.environ.get("HF_SPACE_URL", ""),
+    #               "training":     os.environ.get("HF_SPACE_URL", ""),
+    #               "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
+    #               "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+    #           },
+    #       }
+    app.add_config_value("ai_assistant_endpoint_profiles", {}, "html")
+
+    # ``ai_assistant_endpoint_default_profile`` (str, default "")
+    #     Profile key to activate on first page load (before any localStorage
+    #     override).  Must match a key in ``ai_assistant_endpoint_profiles``.
+    #     When empty, the first defined profile is used automatically.
+    #     Example: ai_assistant_endpoint_default_profile = "cf"
+    app.add_config_value("ai_assistant_endpoint_default_profile", "", "html")
 
     # ``ai_assistant_panel_privacy_title`` / ``_link_text`` (str)
     #     Heading shown in the slide-over and the small header link label.

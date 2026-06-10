@@ -97,6 +97,80 @@
     }());
 
     /**
+     * sessionStorage key for export share-link mode persistence.
+     *
+     * When ``true``, the export dropdown opens a "Share conversation" sheet
+     * (blob URL opened in new tab) instead of triggering a file download.
+     * Persisted in localStorage so the preference survives page reloads.
+     * Falls back gracefully when storage is unavailable.
+     *
+     * @type {string}
+     */
+    var _EXPORT_LINK_MODE_KEY = 'ai-assistant-export-link-mode';
+
+    /**
+     * Whether export share-link mode is active.
+     *
+     * ``false`` (default) → clicking an export format downloads the file.
+     * ``true``            → clicking opens the "Share conversation" sheet,
+     *                       which generates a blob URL the user can copy/open.
+     *
+     * Persisted in localStorage so the preference survives page reloads.
+     * Falls back gracefully when storage is unavailable (private mode,
+     * storage quota exceeded, cross-origin iframe, etc.).
+     *
+     * @type {boolean}
+     */
+    var _exportLinkMode = (function () {
+        try {
+            return localStorage.getItem(_EXPORT_LINK_MODE_KEY) === 'true';
+        } catch (_) {
+            return false;
+        }
+    }());
+
+    /**
+     * Registry of callbacks notified on every export-state change.
+     *
+     * Each subscriber is a ``function (state)`` where:
+     *   ``state.linkMode`` {boolean} — current value of ``_exportLinkMode``.
+     *
+     * Design: a plain array (not an EventEmitter) to avoid adding a framework
+     * dependency.  Register via ``_exportStateListeners.push(fn)``.
+     * Deregistration is not needed for panel-lifetime surfaces — all registered
+     * callbacks live exactly as long as the panel that owns them.
+     *
+     * Errors thrown by individual subscribers are swallowed inside
+     * ``_notifyExportState`` so one broken surface cannot block others.
+     *
+     * @type {Array<function>}
+     */
+    var _exportStateListeners = [];
+
+    /**
+     * Whether thumbs-up / thumbs-down ratings are persisted to the
+     * HuggingFace training dataset (durable, survives server restarts) or
+     * kept in-memory only (lost on Space restart).
+     *
+     * Mirrors the server-side ``FEEDBACK_PERSIST_ENABLED`` flag.  The client
+     * toggle lets the end-user override the server default for their session.
+     *
+     * Storage: localStorage key ``'ai-assistant-feedback-persist'``.
+     * Absence of the key → default ``true`` (persist ON).
+     * The string ``'false'`` (written by ``_setFeedbackPersistMode``) → OFF.
+     * Any other stored value → treat as ON (fail-safe to durable).
+     *
+     * @type {boolean}
+     */
+    var _feedbackPersistEnabled = (function () {
+        try {
+            return localStorage.getItem('ai-assistant-feedback-persist') !== 'false';
+        } catch (_) {
+            return true;
+        }
+    }());
+
+    /**
      * Selected microphone device ID.
      *
      * The Web Speech API exposes no direct device-selection parameter.
@@ -380,7 +454,7 @@
         chat:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="9" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="0.8" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>',
         // ── v0.3 additions — mirror _ICON_META in _static/__init__.py ──────────
         newChat:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>',
-        exportTxt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        exportTxt:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
         copyAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
         privacy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         // ── Listen / Text-to-Speech ───────────────────────────────────────────
@@ -404,10 +478,15 @@
         share:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
         menu:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
         info:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
-        chevronDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+        chevronDown: '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
         // ── UI-improvement additions ──────────────────────────────────────────
         plus:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
         overflowH:   '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>',
+        // ── Export format icons (v2 multi-format export) ──────────────────────
+        // JSON file icon: document with code-like decoration (file + data nodes).
+        exportJson:  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13a2 2 0 0 1 0 4"/><path d="M14 13c1.1 0 2 .9 2 2s-.9 2-2 2"/></svg>',
+        // HTML icon: angled brackets — the universal HTML/code symbol.
+        exportHtml:  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
         // ── Project links additions ───────────────────────────────────────────
         // GitHub mark (official path — monochromatic, works on any background).
         github:      '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>',
@@ -415,6 +494,18 @@
         globe:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
         // External-link arrow — shown inside link cards as a launch indicator.
         externalLink:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+        // ── Share conversation sheet icons ────────────────────────────────────
+        // Lock icon: used for "Keep private" option (Claude-inspired share modal).
+        convLock:    '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a4 4 0 0 1 4 4v2h1.5A1.5 1.5 0 0 1 17 9.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16.5v-7A1.5 1.5 0 0 1 4.5 8H6V6a4 4 0 0 1 4-4zm0 9.25a1.25 1.25 0 0 0-.589 2.352L9 15h2l-.41-1.648A1.25 1.25 0 0 0 10 11.25zM10 3.5A2.5 2.5 0 0 0 7.5 6v2h5V6A2.5 2.5 0 0 0 10 3.5z"/></svg>',
+        // Globe icon: used for "Create public link" option.
+        convGlobe:   '<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 1 0 16A8 8 0 0 1 10 2zm0 1.5c-.52 0-1.2.48-1.78 1.55-.36.67-.65 1.52-.82 2.45h5.2c-.17-.93-.46-1.78-.82-2.45C11.2 3.98 10.52 3.5 10 3.5zm2.78 1.17A6.52 6.52 0 0 1 15.9 7h-2a9.6 9.6 0 0 0-.82-1.7 6.8 6.8 0 0 0-.3-.63zm-5.56 0c-.1.2-.2.41-.3.63A9.6 9.6 0 0 0 6.1 7h-2a6.52 6.52 0 0 1 3.12-2.33zM3 8.5h2.6C5.53 9 5.5 9.5 5.5 10s.03 1 .1 1.5H3a6.5 6.5 0 0 1 0-3zm3.1 0h7.8c.07.48.1.98.1 1.5s-.03 1.02-.1 1.5H6.1C6.03 11.02 6 10.52 6 10s.03-1.02.1-1.5zm8.3 0H17a6.5 6.5 0 0 1 0 3h-2.6c.07-.48.1-.98.1-1.5s-.03-1.02-.1-1.5zm-9.5 3h2c.17.93.46 1.78.82 2.45C8.8 16.02 9.48 16.5 10 16.5s1.2-.48 1.78-1.55c.36-.67.65-1.52.82-2.45h2A6.52 6.52 0 0 1 12.78 16l-.3.63A9.6 9.6 0 0 0 13.9 15H4.1a9.6 9.6 0 0 0 .82 1.63c-.1-.2-.2-.41-.3-.63A6.52 6.52 0 0 1 4.1 14.5H4a6.52 6.52 0 0 1-1.1-1h3.1z"/></svg>',
+        // Checkmark icon: appears on the currently selected share-visibility option.
+        convCheck:   '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.188 5.11a.5.5 0 0 1 .752.626l-.056.084-7.5 9a.5.5 0 0 1-.738.033l-3.5-3.5-.064-.078a.501.501 0 0 1 .693-.693l.078.064 3.113 3.113 7.15-8.58.07-.057z" clip-rule="evenodd"/></svg>',
+        // Link-chain icon: shown on the export mode toggle row (share-link mode).
+        linkChain:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+        // ── Endpoint registry icon — server/network node ─────────────────────
+        // Three-tier stack: represents layered proxy backends (DMR / CF / HF).
+        endpoint:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
     };
 
     // ── Provider accent colours (mirrors _PROVIDER_COLORS in __init__.py) ──────
@@ -1739,6 +1830,1482 @@
         }, 3000);
     }
 
+    /**
+     * Fire-and-forget authenticated JSON POST.
+     *
+     * @param {string}   url             Remote endpoint URL.  No-op when empty.
+     * @param {string}   token           Bearer token, or '' for no auth header.
+     * @param {Object}   body            JSON-serialisable payload.
+     * @param {Object}   [opts]          Options.
+     * @param {boolean}  [opts.keepalive=true]  Survive page-unload races.
+     * @param {Function} [opts.onSuccess]       Called with parsed JSON on 2xx.
+     * @param {Function} [opts.onError]         Called with {status, message} on failure.
+     * @returns {void}  Never throws.
+     *
+     * @remarks
+     * Developer: keepalive:true is the only mechanism that survives page-unload
+     * for fire-and-forget POSTs (feedback).  It has a ~64 KB body limit in some
+     * browsers — callers must ensure payloads stay within this bound.  A typical
+     * feedback detail object is ~2 KB; this is never a concern in practice.
+     *
+     * Developer: keepalive:false is correct for interactive calls (global share,
+     * training contribution) where the UI shows a spinner awaiting the response.
+     * Using keepalive:true for those would mask connection errors.
+     *
+     * Developer: This function is intentionally silent on failure — it emits a
+     * console.warn only.  It must never disrupt the user's UI flow on error.
+     */
+
+    // ── Endpoint Profile Registry ────────────────────────────────────────────
+    /**
+     * Runtime-switchable proxy endpoint registry — Security-hardened v2.
+     *
+     * SECURITY CHANGES FROM v1
+     * ========================
+     * V-01 Null-prototype registry eliminates prototype-pollution via crafted keys.
+     * V-02 All profile keys are validated against _SAFE_KEY_RE before any write.
+     * V-03 localStorage reads go through a schema-versioned validator.
+     * V-04 Runtime-added URLs are checked against _isBlockedHost (SSRF guard).
+     * V-05 Custom profile count is capped at _MAX_CUSTOM_PROFILES (20).
+     * V-07 ai-assistant:profile-changed CustomEvent dispatched on every setActive.
+     * V-09 _appendProfileCard now reads _EP.getProfile() instead of raw global.
+     *
+     * PUBLIC API (backward-compatible; new additions marked +)
+     * ========================================================
+     * getActive()                     → string   (active profile key)
+     * resolve(feature)                → string   (BASE URL, trailing / stripped)
+     * resolveToken(tokenKey)          → string
+     * resolveTtlDays(cfg)             → number
+     * setActive(profileKey)           → boolean
+     * list()                          → [{key, label, isBuiltin}]
+     * listBuiltin()               [+] → [{key, label}]
+     * listCustom()                [+] → [{key, label, createdAt}]
+     * hasProfiles()                   → boolean
+     * getProfile(key)             [+] → frozen copy of profile or null
+     * getMetadata(key)            [+] → {isBuiltin, createdAt, lastActivated} | null
+     * addProfile(key, profile)    [+] → {ok: boolean, error?: string}
+     * removeProfile(key)          [+] → {ok: boolean, error?: string}
+     * exportCustom()              [+] → JSON string (tokens OMITTED)
+     * countCustom()               [+] → number
+     * validateUrl(raw)            [+] → {ok, url, error?}
+     * MAX_CUSTOM_PROFILES         [+] constant
+     *
+     * EVENTS
+     * ======
+     * document fires 'ai-assistant:profile-changed' after every setActive().
+     * detail: { activeKey, activeLabel, isBuiltin }
+     *
+     * @namespace _EP
+     */
+    var _EP = (function () {
+        'use strict';
+
+        // ── Storage keys ─────────────────────────────────────────────────────
+        var _STORAGE_KEY        = 'ai-assistant-ep';
+        var _STORAGE_CUSTOM_KEY = 'ai-assistant-ep-custom';
+
+        // ── Limits ───────────────────────────────────────────────────────────
+        var _SCHEMA_VER          = 1;    // localStorage schema version
+        var _MAX_CUSTOM_PROFILES = 20;   // hard cap on runtime-added profiles
+        var _MAX_LABEL_LEN       = 80;   // max profile label length (display)
+        var _MAX_URL_LEN         = 2048; // max URL length per field
+
+        // ── Profile key allowlist ─────────────────────────────────────────────
+        // Must start with a letter; only [a-z0-9_-].  This blocks __proto__,
+        // constructor, toString, and any other prototype-chain attack string.
+        var _SAFE_KEY_RE = /^[a-z][a-z0-9_-]{0,63}$/;
+
+        // ── Null-prototype registries (V-01) ──────────────────────────────────
+        // Using Object.create(null) ensures no inherited prototype keys exist,
+        // so 'toString' in _profiles is always false, eliminating pollution.
+        var _profiles = Object.create(null); // key → validated profile object
+        var _builtin  = Object.create(null); // key → true for build-time profiles
+        var _metadata = Object.create(null); // key → {isBuiltin, createdAt, lastActivated}
+
+        // In-memory cache avoids repeated localStorage reads on hot paths.
+        var _activeCache = null;
+
+        // Build-time default key (injected by Python at page render time).
+        var _defaultKey = (typeof window.AI_ASSISTANT_ENDPOINT_DEFAULT === 'string')
+            ? window.AI_ASSISTANT_ENDPOINT_DEFAULT : '';
+
+        // ── SSRF host blocklist (V-04) ────────────────────────────────────────
+        /**
+         * Return true when the hostname must not be accepted as a proxy target.
+         *
+         * Covers: loopback, wildcard, cloud metadata services, RFC-1918 private
+         * ranges (A/B/C), link-local, CGNAT (RFC-6598), IPv6 ULA (fc00::/7),
+         * and bare hostnames (no dot = internal DNS / Docker service names).
+         *
+         * Applied only to runtime-added profiles.  Build-time profiles are
+         * already validated by _validate_profile() in __init__.py.
+         *
+         * @param {string} hostname   Lower-cased, brackets stripped for IPv6.
+         * @returns {boolean}
+         */
+        function _isBlockedHost(hostname) {
+            var h = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+            // Loopback
+            if (h === 'localhost') return true;
+            if (/^127\./.test(h)) return true;
+            if (h === '::1') return true;
+            // Wildcard / unspecified bind addresses
+            if (h === '0.0.0.0' || h === '::') return true;
+            // Cloud metadata services (AWS, GCP, Azure IMDS)
+            if (h === '169.254.169.254') return true;
+            if (h === 'metadata.google.internal') return true;
+            if (h === 'metadata.internal') return true;
+            // RFC-1918 private ranges
+            if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+            if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+            if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+            // Link-local (169.254.0.0/16)
+            if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+            // CGNAT (100.64.0.0/10)
+            if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+            // IPv6 ULA (fc00::/7 → fc/fd prefix)
+            if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true;
+            // Bare hostname (no dot) = internal DNS / Docker / k8s service name.
+            // Exception: already handled localhost above.
+            if (h.indexOf('.') === -1) return true;
+            return false;
+        }
+
+        // ── Runtime URL sanitiser (V-04, public via validateUrl) ─────────────
+        /**
+         * Validate and normalise a URL for a runtime-added profile field.
+         *
+         * @param {string} raw   Raw user input.
+         * @returns {{ok: boolean, url: string, error?: string}}
+         *   ok=true, url=normalised string (may be '')
+         *   ok=false, error=user-facing message, url=''
+         */
+        function _sanitizeRuntimeUrl(raw) {
+            if (!raw || typeof raw !== 'string') return { ok: true, url: '' };
+            var url = raw.trim().replace(/\/$/, '');
+            if (!url) return { ok: true, url: '' };
+            if (url.length > _MAX_URL_LEN) {
+                return { ok: false, url: '',
+                    error: 'URL exceeds ' + _MAX_URL_LEN + ' characters.' };
+            }
+            // Scheme check.
+            if (!/^https:\/\//i.test(url)) {
+                // Allow http:// but warn.
+                if (!/^http:\/\//i.test(url)) {
+                    return { ok: false, url: '',
+                        error: 'URL must start with https:// (or http:// for non-production). Got: ' +
+                               url.slice(0, 40) };
+                }
+            }
+            // Extract and validate hostname via URL constructor.
+            var hostname = '';
+            try {
+                hostname = new URL(url).hostname;
+            } catch (_) {
+                return { ok: false, url: '', error: 'Malformed URL: ' + url.slice(0, 40) };
+            }
+            if (!hostname) {
+                return { ok: false, url: '', error: 'URL has no hostname: ' + url.slice(0, 40) };
+            }
+            if (_isBlockedHost(hostname)) {
+                return {
+                    ok: false, url: '',
+                    error: 'Rejected: "' + hostname + '" is a private/reserved host. ' +
+                           'Only public endpoints are accepted. See SSRF protection docs.'
+                };
+            }
+            return { ok: true, url: url };
+        }
+
+        // ── Profile shape validator for localStorage reads (V-03) ─────────────
+        function _isValidProfileShape(obj) {
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+            var url_keys = ['chat', 'share', 'feedback', 'training'];
+            for (var i = 0; i < url_keys.length; i++) {
+                var v = obj[url_keys[i]];
+                if (typeof v === 'string' && v) return true;
+            }
+            return typeof obj.label === 'string' && !!obj.label;
+        }
+
+        // ── Bootstrap: load build-time profiles (V-01, V-02) ─────────────────
+        (function _loadBuiltin() {
+            var raw = window.AI_ASSISTANT_ENDPOINTS;
+            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+            var keys = Object.keys(raw);
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (!Object.prototype.hasOwnProperty.call(raw, k)) continue;
+                if (typeof k !== 'string' || !k) continue;
+                // Build-time keys are already validated by Python; copy as-is.
+                _profiles[k] = raw[k];
+                _builtin[k]  = true;
+                _metadata[k] = { isBuiltin: true, createdAt: null, lastActivated: null };
+            }
+        }());
+// =============================================================================
+// ██████╗  █████╗ ██████╗ ████████╗ ██████╗
+// ██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝ ██╔══██╗
+// ██████╔╝███████║██████╔╝   ██║    ██████╔╝
+// ██╔═══╝ ██╔══██║██╔══██╗   ██║    ██╔══██╗
+// ██║     ██║  ██║██║  ██║   ██║    ██████╔╝
+// ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝
+//
+
+        // ── Bootstrap: restore custom profiles from localStorage (V-03) ───────
+        (function _loadCustom() {
+            var raw = null;
+            try { raw = localStorage.getItem(_STORAGE_CUSTOM_KEY); } catch (_) { return; }
+            if (!raw) return;
+
+            var parsed;
+            try { parsed = JSON.parse(raw); } catch (_) { return; }
+
+            // V-03: must be a plain non-array object.
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return;
+
+            // Schema version gate.
+            var schemaVer = parsed._v;
+            var profilesObj, metaObj;
+
+            if (typeof schemaVer === 'number' && schemaVer === _SCHEMA_VER) {
+                // New versioned format: { _v: 1, profiles: {…}, meta: {…} }
+                profilesObj = parsed.profiles;
+                metaObj     = parsed.meta;
+            } else if (typeof schemaVer === 'undefined') {
+                // Backward-compat: old format was a flat { key: profile } object.
+                profilesObj = parsed;
+                metaObj     = {};
+            } else {
+                // Future schema version — do not attempt to read.
+                return;
+            }
+
+            if (!profilesObj || typeof profilesObj !== 'object' || Array.isArray(profilesObj)) return;
+
+            var keys = Object.keys(profilesObj);
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (!Object.prototype.hasOwnProperty.call(profilesObj, k)) continue;
+
+                // V-02: key safety.
+                if (!_SAFE_KEY_RE.test(k)) continue;
+
+                // Never overwrite build-time profiles with custom ones.
+                if (_builtin[k]) continue;
+
+                var p = profilesObj[k];
+                if (!_isValidProfileShape(p)) continue;
+
+                // V-05: cap custom profile count.
+                var customCount = _countCustomOwn();
+                if (customCount >= _MAX_CUSTOM_PROFILES) break;
+
+                _profiles[k] = p;
+                var metaEntry = (metaObj && metaObj[k]) || {};
+                _metadata[k] = {
+                    isBuiltin:     false,
+                    createdAt:     typeof metaEntry.createdAt === 'number' ? metaEntry.createdAt : null,
+                    lastActivated: typeof metaEntry.lastActivated === 'number' ? metaEntry.lastActivated : null,
+                };
+            }
+        }());
+
+        // ── Internal helpers ──────────────────────────────────────────────────
+
+        function _countCustomOwn() {
+            var count = 0;
+            var keys = Object.keys(_profiles);
+            for (var i = 0; i < keys.length; i++) {
+                if (!_builtin[keys[i]]) count++;
+            }
+            return count;
+        }
+
+        function _getStoredKey() {
+            var stored = null;
+            try { stored = localStorage.getItem(_STORAGE_KEY); } catch (_) {}
+            return (typeof stored === 'string') ? stored : null;
+        }
+
+        /** Persist custom profiles + metadata to localStorage. */
+        function _persistCustom() {
+            try {
+                var profiles = {};
+                var meta     = {};
+                var keys     = Object.keys(_profiles);
+                for (var i = 0; i < keys.length; i++) {
+                    var k = keys[i];
+                    if (_builtin[k]) continue;
+                    // Omit token values from persisted profiles (V-06 mitigation).
+                    // Tokens survive only for the current page session; users are
+                    // warned in the UI.  The conf.py snippet also excludes tokens.
+                    var p = _profiles[k];
+                    profiles[k] = {
+                        label:         p.label         || '',
+                        chat:          p.chat          || '',
+                        share:         p.share         || '',
+                        feedback:      p.feedback      || '',
+                        training:      p.training      || '',
+                        shareToken:    p.shareToken    || '',
+                        feedbackToken: p.feedbackToken || '',
+                        ttlDays:       p.ttlDays       || 30,
+                    };
+                    if (_metadata[k]) {
+                        meta[k] = {
+                            createdAt:     _metadata[k].createdAt,
+                            lastActivated: _metadata[k].lastActivated,
+                        };
+                    }
+                }
+                var payload = { _v: _SCHEMA_VER, profiles: profiles, meta: meta };
+                localStorage.setItem(_STORAGE_CUSTOM_KEY, JSON.stringify(payload));
+            } catch (_) {}
+        }
+
+        /** Dispatch ai-assistant:profile-changed on document (V-07). */
+        function _dispatchProfileChange(key) {
+            try {
+                var label = (_profiles[key] && _profiles[key].label) || key;
+                var ev = new CustomEvent('ai-assistant:profile-changed', {
+                    bubbles: true, cancelable: false,
+                    detail: { activeKey: key, activeLabel: label, isBuiltin: !!_builtin[key] }
+                });
+                document.dispatchEvent(ev);
+            } catch (_) {}
+        }
+
+        // ── Public: getActive ─────────────────────────────────────────────────
+        /**
+         * Return the currently-active profile key.
+         *
+         * Priority: in-memory cache → localStorage → build-time default → first key.
+         *
+         * @returns {string}  Profile key, or '' when no profiles are defined.
+         */
+        function getActive() {
+            if (_activeCache && _profiles[_activeCache]) return _activeCache;
+            var stored = _getStoredKey();
+            if (stored && _profiles[stored]) { _activeCache = stored; return stored; }
+            if (_defaultKey && _profiles[_defaultKey]) { _activeCache = _defaultKey; return _defaultKey; }
+            var keys = Object.keys(_profiles);
+            var first = keys.length ? keys[0] : '';
+            _activeCache = first;
+            return first;
+        }
+
+        // ── Public: resolve ───────────────────────────────────────────────────
+        /**
+         * Resolve the BASE URL for a feature from the active profile.
+         *
+         * @param {('chat'|'share'|'feedback'|'training')} feature
+         * @returns {string}  Base URL (trailing slash stripped), or ''.
+         */
+        function resolve(feature) {
+            var key = getActive();
+            if (!key) return '';
+            var profile = _profiles[key];
+            if (!profile) return '';
+            return (profile[feature] || '').replace(/\/$/, '');
+        }
+
+        // ── Public: resolveToken ──────────────────────────────────────────────
+        function resolveToken(tokenKey) {
+            var key = getActive();
+            if (!key) return '';
+            var profile = _profiles[key];
+            return (profile && profile[tokenKey]) || '';
+        }
+
+        // ── Public: resolveTtlDays ────────────────────────────────────────────
+        function resolveTtlDays(cfg) {
+            var key = getActive();
+            if (key) {
+                var profile = _profiles[key];
+                if (profile && profile.ttlDays && profile.ttlDays > 0) return profile.ttlDays;
+            }
+            var globalTtl = cfg && cfg.panelGlobalShareTtlDays;
+            return (globalTtl && globalTtl > 0) ? globalTtl : 30;
+        }
+
+        // ── Public: setActive ─────────────────────────────────────────────────
+        /**
+         * Persist a profile key and update the in-memory cache.
+         *
+         * Dispatches 'ai-assistant:profile-changed' on success.
+         *
+         * @param {string} profileKey
+         * @returns {boolean}  true when the key exists in the registry.
+         */
+        function setActive(profileKey) {
+            if (!_profiles[profileKey]) return false;
+            _activeCache = profileKey;
+            try { localStorage.setItem(_STORAGE_KEY, profileKey); } catch (_) {}
+            if (_metadata[profileKey]) {
+                _metadata[profileKey].lastActivated = Date.now();
+                if (!_builtin[profileKey]) _persistCustom();
+            }
+            _dispatchProfileChange(profileKey);
+            return true;
+        }
+
+        // ── Public: list / listBuiltin / listCustom ───────────────────────────
+        function list() {
+            return Object.keys(_profiles).map(function (k) {
+                var isB = !!_builtin[k];
+                return {
+                    key:      k,
+                    label:    (_profiles[k] && _profiles[k].label) || k,
+                    isBuiltin: isB,
+                    source:   isB ? 'build' : 'custom',
+                };
+            });
+        }
+
+        function listBuiltin() {
+            return Object.keys(_profiles)
+                .filter(function (k) { return !!_builtin[k]; })
+                .map(function (k) { return { key: k, label: (_profiles[k] && _profiles[k].label) || k }; });
+        }
+
+        function listCustom() {
+            return Object.keys(_profiles)
+                .filter(function (k) { return !_builtin[k]; })
+                .map(function (k) {
+                    var m = _metadata[k] || {};
+                    return { key: k, label: (_profiles[k] && _profiles[k].label) || k, createdAt: m.createdAt || null };
+                });
+        }
+
+        // ── Public: hasProfiles ───────────────────────────────────────────────
+        function hasProfiles() {
+            return Object.keys(_profiles).length > 0;
+        }
+
+        // ── Public: getProfile (V-09) ─────────────────────────────────────────
+        /**
+         * Return a safe, frozen shallow copy of the profile.
+         *
+         * Always returns from the internal validated registry, never from the
+         * raw window.AI_ASSISTANT_ENDPOINTS global (V-09 fix).
+         *
+         * @param {string} key
+         * @returns {Object|null}  Frozen profile copy, or null if not found.
+         */
+        function getProfile(key) {
+            var p = _profiles[key];
+            if (!p) return null;
+            var copy = {
+                label:         p.label         !== undefined ? String(p.label)         : '',
+                chat:          p.chat          !== undefined ? String(p.chat)          : '',
+                share:         p.share         !== undefined ? String(p.share)         : '',
+                feedback:      p.feedback      !== undefined ? String(p.feedback)      : '',
+                training:      p.training      !== undefined ? String(p.training)      : '',
+                shareToken:    p.shareToken    !== undefined ? String(p.shareToken)    : '',
+                feedbackToken: p.feedbackToken !== undefined ? String(p.feedbackToken) : '',
+                ttlDays:       typeof p.ttlDays === 'number' ? p.ttlDays : 30,
+                // _warn: build-time SSRF advisory list (array of field names).
+                // Copied defensively so the caller cannot mutate the registry's list.
+                _warn:         Array.isArray(p._warn) ? p._warn.slice() : [],
+            };
+            try { Object.freeze(copy); } catch (_) {}
+            return copy;
+        }
+
+        // ── Public: getMetadata ───────────────────────────────────────────────
+        function getMetadata(key) {
+            var m = _metadata[key];
+            if (!m) return null;
+            return { isBuiltin: !!m.isBuiltin, createdAt: m.createdAt, lastActivated: m.lastActivated };
+        }
+
+        // ── Public: addProfile (V-02, V-04, V-05) ────────────────────────────
+        /**
+         * Validate and add a custom profile to the registry.
+         *
+         * All URL fields go through the SSRF guard (_sanitizeRuntimeUrl).
+         * The profile key must pass _SAFE_KEY_RE.
+         *
+         * @param {string} key     Profile identifier.
+         * @param {Object} profile Raw profile object from the user.
+         * @returns {{ok: boolean, error?: string}}
+         */
+        function addProfile(key, profile) {
+            if (typeof key !== 'string' || !_SAFE_KEY_RE.test(key)) {
+                return { ok: false,
+                    error: 'Profile key must match [a-z][a-z0-9_-]{0,63}. Got: ' + String(key).slice(0, 30) };
+            }
+            if (_builtin[key]) {
+                return { ok: false, error: 'Cannot overwrite a built-in profile: ' + key };
+            }
+            var isUpdate = !!_profiles[key];
+            if (!isUpdate && _countCustomOwn() >= _MAX_CUSTOM_PROFILES) {
+                return { ok: false, error: 'Maximum custom profiles (' + _MAX_CUSTOM_PROFILES + ') reached.' };
+            }
+            if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+                return { ok: false, error: 'Profile must be a plain object.' };
+            }
+            var url_keys = ['chat', 'share', 'feedback', 'training'];
+            var sanitized = {
+                label:    profile.label ? String(profile.label).slice(0, _MAX_LABEL_LEN) : key,
+                ttlDays:  (typeof profile.ttlDays === 'number' && profile.ttlDays > 0)
+                              ? Math.floor(profile.ttlDays) : 30,
+            };
+            for (var i = 0; i < url_keys.length; i++) {
+                var field  = url_keys[i];
+                var result = _sanitizeRuntimeUrl(profile[field]);
+                if (!result.ok) return { ok: false, error: field + ': ' + result.error };
+                sanitized[field] = result.url;
+            }
+            // Token fields: strip control characters only; never validate URL.
+            var tok_keys = ['shareToken', 'feedbackToken'];
+            for (var j = 0; j < tok_keys.length; j++) {
+                var tok = profile[tok_keys[j]];
+                sanitized[tok_keys[j]] = (typeof tok === 'string')
+                    ? tok.trim().replace(/[\x00-\x1f\x7f]/g, '') : '';
+            }
+            _profiles[key] = sanitized;
+            _builtin[key]  = false;
+            if (!isUpdate) {
+                _metadata[key] = { isBuiltin: false, createdAt: Date.now(), lastActivated: null };
+            }
+            _persistCustom();
+            return { ok: true };
+        }
+
+        // ── Public: removeProfile ─────────────────────────────────────────────
+        /**
+         * Remove a custom profile from the registry.
+         *
+         * Built-in profiles cannot be removed at runtime.
+         *
+         * @param {string} key
+         * @returns {{ok: boolean, error?: string}}
+         */
+        function removeProfile(key) {
+            if (!_profiles[key]) return { ok: false, error: 'Profile not found: ' + key };
+            if (_builtin[key]) return { ok: false, error: 'Built-in profiles cannot be removed at runtime.' };
+            delete _profiles[key];
+            delete _metadata[key];
+            if (_activeCache === key) {
+                _activeCache = null;
+                try { localStorage.removeItem(_STORAGE_KEY); } catch (_) {}
+            }
+            _persistCustom();
+            // Broadcast the post-deletion active profile so every listener stays
+            // in sync.  When the removed profile was active, getActive() resolves
+            // the fallback successor; otherwise the current active is re-broadcast.
+            // dispatchEvent is synchronous so all listeners run before we return.
+            _dispatchProfileChange(getActive());
+            return { ok: true };
+        }
+
+        // ── Public: exportCustom ──────────────────────────────────────────────
+        /**
+         * Serialise all custom profiles to a JSON string for user download.
+         *
+         * Token values are OMITTED from the export (V-06 mitigation).
+         * The exported object is suitable for pasting into conf.py after
+         * removing the token placeholder fields.
+         *
+         * @returns {string}  Pretty-printed JSON.
+         */
+        function exportCustom() {
+            var out = {};
+            var keys = Object.keys(_profiles);
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (_builtin[k]) continue;
+                var p = _profiles[k];
+                out[k] = {
+                    label:    p.label    || k,
+                    chat:     p.chat     || '',
+                    share:    p.share    || '',
+                    feedback: p.feedback || '',
+                    training: p.training || '',
+                    // Tokens intentionally excluded.
+                    ttlDays:  p.ttlDays  || 30,
+                };
+            }
+            try { return JSON.stringify(out, null, 2); } catch (_) { return '{}'; }
+        }
+
+        // ── Public: countCustom ───────────────────────────────────────────────
+        function countCustom() { return _countCustomOwn(); }
+
+        // ── Public: validateUrl (exposed for the config sheet) ────────────────
+        function validateUrl(raw) { return _sanitizeRuntimeUrl(raw); }
+
+        // ── Public API ────────────────────────────────────────────────────────
+        return {
+            getActive:           getActive,
+            resolve:             resolve,
+            resolveToken:        resolveToken,
+            resolveTtlDays:      resolveTtlDays,
+            setActive:           setActive,
+            list:                list,
+            listBuiltin:         listBuiltin,
+            listCustom:          listCustom,
+            hasProfiles:         hasProfiles,
+            getProfile:          getProfile,
+            getMetadata:         getMetadata,
+            addProfile:          addProfile,
+            removeProfile:       removeProfile,
+            exportCustom:        exportCustom,
+            countCustom:         countCustom,
+            validateUrl:         validateUrl,
+            MAX_CUSTOM_PROFILES: _MAX_CUSTOM_PROFILES,
+        };
+    }());
+
+// PART A — _EP Compatibility Shim
+// INSERT after the closing }()); of the _EP IIFE
+// =============================================================================
+
+// =============================================================================
+// _EP Compatibility Shim  (bridges existing IIFE → patch_ep_v2_1 API surface)
+// =============================================================================
+//
+// HOW TO APPLY
+// ------------
+// File: _static/ai-assistant.js
+//
+// Find the closing line of the _EP IIFE — it looks like:
+//     }());
+// immediately followed by a blank line and then:
+//     // ── Subbar helpers  (or similar section comment)
+//
+// Insert this entire block AFTER that }()); line.
+//
+// WHY THIS IS NEEDED
+// ------------------
+// patch_ep_v2_2_build_sheet_combined.js calls 15+ methods that were added in
+// patch_ep_v2_1_ep_iife_combined.js.  If you have an earlier _EP IIFE variant
+// that lacks those methods, this shim provides them by delegating to the
+// methods that ARE present (addProfile, removeProfile, countCustom, etc.).
+//
+// The shim is fully idempotent: it checks for each method before adding it,
+// so it is safe to apply even when patch_ep_v2_1 is later applied on top.
+//
+// PUBLIC API ADDED
+// ----------------
+//   _EP.addCustomProfile(data)           → {ok, key} | {ok:false, error}
+//   _EP.deleteCustomProfile(key)         → boolean
+//   _EP.customCount()                    → number
+//   _EP.clearCustom()                    → number  (removed count)
+//   _EP.importProfile(key, data)         → {ok, key} | {ok:false, error}
+//   _EP.register(key, data, active)      → string | null
+//   _EP.exportCustom()          OVERRIDE → Object  (was string in older IIFEs)
+//   _EP.exportCustomJson()               → string  (preserves old behaviour)
+//   _EP.onChange(cb)                     → unsubscribe function
+//   _EP.auditLog()                       → Array  (stub; returns [])
+//   _EP.resolveFor(feature, profileKey)  → string
+//   _EP.isPrivateUrl(url)                → boolean
+//   _EP.isHttpUrl(url)                   → boolean
+//   _EP.isKeyAvailable(key)              → boolean
+//   _EP.VERSION                          → '2.0-compat'
+//   _EP.MAX_CUSTOM                       → 20 (or MAX_CUSTOM_PROFILES)
+// =============================================================================
+
+    /* jshint esversion:5 */
+    if (typeof _EP !== 'undefined' && _EP &&
+            typeof _EP.resolve === 'function' &&
+            typeof _EP.addCustomProfile !== 'function') {
+
+        (function (_ep) {
+            'use strict';
+
+            // ── internal helpers ───────────────────────────────────────────
+
+            /** Convert a human label into a safe profile key string. */
+            function _keyFromLabel(label) {
+                var base = 'custom_' + String(label || 'profile')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                    .slice(0, 50);
+                return (/^[a-z]/.test(base)) ? base
+                     : 'custom_' + base.replace(/^[^a-z]+/, '');
+            }
+
+            /**
+             * Snapshot of the last active key — used to synthesise the
+             * {from, to} payload that onChange callbacks expect.
+             */
+            var _prevKey = (typeof _ep.getActive === 'function')
+                ? (_ep.getActive() || '') : '';
+
+            // ── exportCustom / exportCustomJson ────────────────────────────
+
+            /**
+             * Preserve the original serialiser under a new name before
+             * overriding exportCustom to return an Object (v2.1 contract).
+             * The build sheet uses:
+             *   Object.keys(_ep.exportCustom()).length === 0   ← needs Object
+             *   JSON.stringify(_ep.exportCustomJson())         ← needs string
+             */
+            _ep.exportCustomJson = (typeof _ep.exportCustom === 'function')
+                ? _ep.exportCustom.bind(_ep)
+                : function () { return '{}'; };
+
+            _ep.exportCustom = function () {
+                var json = _ep.exportCustomJson();
+                try { return JSON.parse(json) || {}; } catch (_) { return {}; }
+            };
+
+            // ── addCustomProfile ───────────────────────────────────────────
+
+            /**
+             * Add a new custom profile, auto-deriving a unique key from the
+             * profile's label field.
+             *
+             * Parameters
+             * ----------
+             * data : Object
+             *     Profile descriptor {label, chat, share, feedback, …}.
+             *
+             * Returns
+             * -------
+             * {ok: true, key: string} | {ok: false, error: string}
+             */
+            _ep.addCustomProfile = function (data) {
+                if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                    return { ok: false, error: 'Profile data must be a plain object.' };
+                }
+                var key = _keyFromLabel(data.label || '');
+                var r = _ep.addProfile(key, data);
+                return (r && r.ok) ? { ok: true, key: key }
+                                   : (r || { ok: false, error: 'addProfile returned falsy.' });
+            };
+
+            // ── deleteCustomProfile ────────────────────────────────────────
+
+            /**
+             * Remove a custom profile by key.
+             *
+             * Parameters
+             * ----------
+             * key : string
+             *
+             * Returns
+             * -------
+             * boolean   true if removed, false if not found or built-in.
+             */
+            _ep.deleteCustomProfile = function (key) {
+                var r = _ep.removeProfile(key);
+                return !!(r && r.ok);
+            };
+
+            // ── customCount ────────────────────────────────────────────────
+
+            /**
+             * Return the count of currently registered custom profiles.
+             *
+             * Returns
+             * -------
+             * number
+             */
+            _ep.customCount = function () {
+                return (typeof _ep.countCustom === 'function') ? _ep.countCustom() : 0;
+            };
+
+            // ── clearCustom ────────────────────────────────────────────────
+
+            /**
+             * Remove all custom profiles from the registry and localStorage.
+             *
+             * Returns
+             * -------
+             * number   Count of profiles that were removed.
+             */
+            _ep.clearCustom = function () {
+                var list = (typeof _ep.listCustom === 'function') ? _ep.listCustom() : [];
+                var removed = 0;
+                for (var i = 0; i < list.length; i++) {
+                    var r = _ep.removeProfile(list[i].key);
+                    if (r && r.ok) { removed++; }
+                }
+                return removed;
+            };
+
+            // ── importProfile ──────────────────────────────────────────────
+
+            /**
+             * Import a profile under an explicit key (e.g. restored from JSON).
+             *
+             * Parameters
+             * ----------
+             * key  : string
+             * data : Object
+             *
+             * Returns
+             * -------
+             * {ok: true, key: string} | {ok: false, error: string}
+             */
+            _ep.importProfile = function (key, data) {
+                var r = _ep.addProfile(key, data);
+                return (r && r.ok) ? { ok: true, key: key }
+                                   : (r || { ok: false, error: 'addProfile returned falsy.' });
+            };
+
+            // ── register ──────────────────────────────────────────────────
+
+            /**
+             * Register a profile and optionally activate it immediately.
+             *
+             * Parameters
+             * ----------
+             * key    : string
+             * data   : Object
+             * active : boolean   If true, call setActive(key) on success.
+             *
+             * Returns
+             * -------
+             * string | null   The registered key on success; null on failure.
+             */
+            _ep.register = function (key, data, active) {
+                var r = _ep.addProfile(key, data);
+                if (!r || !r.ok) { return null; }
+                if (active) { _ep.setActive(key); }
+                return key;
+            };
+
+            // ── onChange ───────────────────────────────────────────────────
+
+            /**
+             * Subscribe to profile-switch events.
+             *
+             * The callback receives a payload:
+             *   { from: string, to: string, profile: Object|null }
+             *
+             * This matches the v2.1 IIFE _notify() contract.
+             *
+             * Parameters
+             * ----------
+             * cb : Function   Receives the payload object on each switch.
+             *
+             * Returns
+             * -------
+             * Function   Unsubscribe function — call it to detach the listener.
+             */
+            _ep.onChange = function (cb) {
+                if (typeof cb !== 'function') { return function () {}; }
+
+                var handler = function (evt) {
+                    var d      = (evt && evt.detail) || {};
+                    var newKey = d.activeKey ||
+                        (typeof _ep.getActive === 'function' ? _ep.getActive() : '');
+                    var payload = {
+                        from:    _prevKey,
+                        to:      newKey,
+                        profile: (typeof _ep.getProfile === 'function')
+                                 ? _ep.getProfile(newKey) : null,
+                    };
+                    _prevKey = newKey;
+                    try { cb(payload); } catch (_err) { /* isolate subscriber errors */ }
+                };
+
+                document.addEventListener('ai-assistant:profile-changed', handler);
+                return function unsubscribe() {
+                    document.removeEventListener('ai-assistant:profile-changed', handler);
+                };
+            };
+
+            // ── auditLog ───────────────────────────────────────────────────
+
+            /**
+             * Return the profile-switch audit log.
+             *
+             * This IIFE variant does not maintain a persistent audit log.
+             * Returns an empty array for forward compatibility with callers
+             * that render the log in the UI (§3 info card "Last switched").
+             *
+             * Returns
+             * -------
+             * Array<{ts: number, from: string, to: string, label: string}>
+             */
+            _ep.auditLog = function () { return []; };
+
+            // ── resolveFor ─────────────────────────────────────────────────
+
+            /**
+             * Resolve a feature URL for an arbitrary profile key without
+             * changing the currently active profile.
+             *
+             * Parameters
+             * ----------
+             * feature    : string   Feature key ('chat', 'share', 'feedback').
+             * profileKey : string   Target profile key.
+             *
+             * Returns
+             * -------
+             * string   URL with trailing slash removed, or '' if not found.
+             */
+            _ep.resolveFor = function (feature, profileKey) {
+                if (typeof _ep.getProfile !== 'function') { return ''; }
+                var profile = _ep.getProfile(profileKey);
+                if (!profile) { return ''; }
+                return String(profile[feature] || '').replace(/\/$/, '');
+            };
+
+            // ── isPrivateUrl ───────────────────────────────────────────────
+
+            /**
+             * Returns true if the URL would be blocked by the SSRF guard
+             * (loopback, RFC-1918, link-local, metadata endpoints, etc.).
+             *
+             * Parameters
+             * ----------
+             * url : string
+             *
+             * Returns
+             * -------
+             * boolean
+             */
+            _ep.isPrivateUrl = function (url) {
+                if (typeof _ep.validateUrl !== 'function') { return false; }
+                var r = _ep.validateUrl(url);
+                return !!(r && !r.ok && r.error &&
+                    /private|reserved|blocked|loopback|local|metadata|internal/i
+                        .test(r.error));
+            };
+
+            // ── isHttpUrl ──────────────────────────────────────────────────
+
+            /**
+             * Returns true if the URL uses the plain http: scheme.
+             * Used to render the SSRF-downgrade badge in the UI.
+             *
+             * Parameters
+             * ----------
+             * url : string
+             *
+             * Returns
+             * -------
+             * boolean
+             */
+            _ep.isHttpUrl = function (url) {
+                return typeof url === 'string' &&
+                       /^http:\/\//i.test(url.trim());
+            };
+
+            // ── isKeyAvailable ─────────────────────────────────────────────
+
+            /**
+             * Returns true if the given key is not yet registered in the
+             * profile registry (safe to use for a new addProfile call).
+             *
+             * Parameters
+             * ----------
+             * key : string
+             *
+             * Returns
+             * -------
+             * boolean
+             */
+            _ep.isKeyAvailable = function (key) {
+                if (typeof _ep.getProfile !== 'function') { return true; }
+                return _ep.getProfile(key) === null;
+            };
+
+            // ── VERSION / MAX_CUSTOM ───────────────────────────────────────
+
+            if (!_ep.VERSION) {
+                _ep.VERSION = '2.0-compat';
+            }
+            if (!_ep.MAX_CUSTOM) {
+                _ep.MAX_CUSTOM = _ep.MAX_CUSTOM_PROFILES || 20;
+            }
+
+        }(_EP));
+    }
+    // ── end _EP Compatibility Shim ─────────────────────────────────────────
+
+
+
+
+    function _remotePost(url, token, body, opts) {
+        if (!url) { return; }
+        opts = opts || {};
+        var keepalive = opts.keepalive !== false;
+        var headers = { 'Content-Type': 'application/json' };
+        if (token) { headers['Authorization'] = 'Bearer ' + token; }
+        var payload;
+        try {
+            payload = JSON.stringify(body);
+        } catch (e) {
+            console.warn('[ai-assistant] _remotePost: serialisation failed', e);
+            return;
+        }
+        try {
+            fetch(url, {
+                method:    'POST',
+                headers:   headers,
+                body:      payload,
+                keepalive: keepalive,
+            }).then(function (r) {
+                if (r.ok && typeof opts.onSuccess === 'function') {
+                    r.json().then(opts.onSuccess).catch(function () {});
+                } else if (!r.ok) {
+                    console.warn('[ai-assistant] _remotePost HTTP', r.status, url);
+                    if (typeof opts.onError === 'function') {
+                        opts.onError({ status: r.status, message: r.statusText });
+                    }
+                }
+            }).catch(function (e) {
+                console.warn('[ai-assistant] _remotePost fetch error', url, e);
+                if (typeof opts.onError === 'function') {
+                    opts.onError({ status: 0, message: String(e) });
+                }
+            });
+        } catch (e) {
+            console.warn('[ai-assistant] _remotePost sync error', e);
+        }
+    }
+
+    /**
+     * POST a single feedback record to the configured feedback endpoint.
+     *
+     * @param {string} url    Endpoint URL from cfg.panelFeedbackEndpoint.
+     * @param {string} token  Bearer token from cfg.panelFeedbackToken ('' for none).
+     * @param {Object} detail Complete feedback detail object (schemaVersion 1).
+     * @returns {void}
+     *
+     * @remarks
+     * Developer: keepalive:true is intentional.  A user who rates the last
+     * answer then navigates away triggers page unload.  Without keepalive the
+     * fetch is cancelled and the rating is lost.  The detail payload is ~2 KB —
+     * well within the browser's keepalive body size limit (~64 KB).
+     */
+    function _postFeedback(url, token, detail) {
+        _remotePost(url, token, detail, { keepalive: true });
+    }
+
+    /**
+     * POST a retraction tombstone for a previously submitted feedback record.
+     *
+     * When a user edits their feedback the original record must be invalidated
+     * before the replacement is written so the training pipeline never sees two
+     * live, contradictory ratings for the same ``(conversationId, answerIndex)``
+     * pair.
+     *
+     * Parameters
+     * ----------
+     * url : string
+     *     Endpoint URL — the same ``/v1/feedback`` path used by
+     *     ``_postFeedback``.
+     * token : string
+     *     Bearer token (empty string for none).
+     * prevSessionId : string
+     *     The ``sessionId`` of the original record to retract.  The server
+     *     MUST mark any record whose ``sessionId`` matches a retraction's
+     *     ``prevSessionId`` as ``status: 'retracted'`` and exclude it from
+     *     every downstream training-dataset build.
+     * answerIndex : number
+     *     Zero-based answer position — lets the server narrow its lookup
+     *     without a full-table scan.
+     * conversationId : string
+     *     Stable per-page-load UUID for cross-record correlation.
+     *
+     * Returns
+     * -------
+     * void
+     *
+     * Notes
+     * -----
+     * Developer: The retraction is fire-and-forget (``keepalive: true``).
+     * Both the retraction and the new record are POSTed in sequence; a
+     * short server-side race is acceptable because the two records carry
+     * distinct ``sessionId`` values and the server deduplicates on
+     * ``conversationId:answerIndex``.  Do NOT add a delay between the two
+     * POSTs — the keepalive budget is shared and a forced pause would block
+     * the new record on slow connections.
+     *
+     * Server contract (``action: 'retract'`` record schema):
+     *   {
+     *     action:         'retract',      // discriminator
+     *     schemaVersion:  1,
+     *     prevSessionId:  '<uuid>',       // the record to invalidate
+     *     answerIndex:    <number>,
+     *     conversationId: '<uuid>',
+     *     ts:             <ms-epoch>,
+     *   }
+     */
+    function _postFeedbackRetract(url, token, prevSessionId, answerIndex, conversationId) {
+        if (!url || !prevSessionId) { return; }
+        _remotePost(url, token, {
+            action:         'retract',
+            schemaVersion:  1,
+            prevSessionId:  prevSessionId,
+            answerIndex:    answerIndex,
+            conversationId: conversationId,
+            ts:             Date.now(),
+        }, { keepalive: true });
+    }
+
+    /**
+     * Render the post-submission thank-you state into ``container``.
+     *
+     * Appends a thank-you paragraph and an "Edit feedback" button to
+     * ``container`` (whose ``innerHTML`` must be cleared by the caller first).
+     * The Edit button:
+     *   1. Marks ``_feedbackStore[answerIndex]._pendingRetract = true`` so the
+     *      next submit handler knows to retract the current record before
+     *      persisting the replacement.
+     *   2. Removes ``answerIndex`` from ``_feedbackGivenSet`` so the detailed
+     *      form's submit handler can run again.
+     *   3. Clears ``container.innerHTML`` and calls ``_rebuildFeedbackFormIn``
+     *      to re-render the form pre-filled with the previously submitted values.
+     *
+     * Parameters
+     * ----------
+     * container : HTMLElement
+     *     DOM element to populate.  Caller MUST clear ``innerHTML`` first.
+     * answerIndex : number
+     *     Zero-based answer position.
+     * answerText : string
+     *     Full text of the assistant answer — forwarded to the re-render.
+     * questionText : string
+     *     The paired user query — forwarded to the re-render.
+     * cfg : Object
+     *     ``window.AI_ASSISTANT_CONFIG`` snapshot from the caller's scope.
+     *
+     * Returns
+     * -------
+     * void
+     *
+     * Notes
+     * -----
+     * User: The "Edit feedback" button appears after every submission (quick
+     *   or detailed) so mistakes can always be corrected.  The form is
+     *   pre-filled with the previous emoji selection and message text.
+     * Developer: This function intentionally does NOT clear ``container``
+     *   before appending so callers control the rendering moment.  Always
+     *   call ``container.innerHTML = ''`` immediately before this call.
+     */
+    function _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg) {
+        cfg = cfg || (window.AI_ASSISTANT_CONFIG || {});
+        var thanks = (typeof cfg.panelFeedbackThanks === 'string' &&
+            cfg.panelFeedbackThanks) || 'Thanks for your feedback!';
+
+        var done = document.createElement('p');
+        done.className = 'ai-assistant-panel-feedback-thanks';
+        done.textContent = thanks;
+        container.appendChild(done);
+
+        // "Edit feedback" — retracts the previous record and reopens the form.
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ai-assistant-panel-feedback-edit-btn';
+        editBtn.textContent = 'Edit feedback';
+        editBtn.setAttribute('aria-label', 'Edit your feedback submission');
+        editBtn.addEventListener('click', function () {
+            // Flag the stored entry for retraction on next submit.
+            // Must happen BEFORE _feedbackGivenSet.delete so the submit handler
+            // can read the existing sessionId for the retraction payload.
+            if (_feedbackStore[answerIndex]) {
+                _feedbackStore[answerIndex]._pendingRetract = true;
+            }
+            // Re-open the form.  Remove the guard so the submit handler runs.
+            _feedbackGivenSet.delete(answerIndex);
+            container.innerHTML = '';
+            _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText);
+        });
+        container.appendChild(editBtn);
+    }
+
+    /**
+     * Build and inject the detailed feedback form into ``container``.
+     *
+     * Used both for the initial build (via ``_buildFeedbackBlock``) and when
+     * the user edits a previously submitted rating via the "Edit feedback"
+     * button rendered by ``_showFeedbackThanks``.  When editing, the form
+     * is pre-filled from ``_feedbackStore[answerIndex]`` so the user can
+     * correct their previous selection without starting over.
+     *
+     * Parameters
+     * ----------
+     * container : HTMLElement
+     *     DOM element to populate.  Caller is responsible for clearing
+     *     ``innerHTML`` before calling when re-rendering on edit.
+     * answerIndex : number
+     *     Zero-based answer position; key into ``_feedbackStore``.
+     * answerText : string
+     *     Full text of the assistant answer.
+     * questionText : string
+     *     The paired user query.
+     *
+     * Returns
+     * -------
+     * void
+     *
+     * Notes
+     * -----
+     * Developer: ``_feedbackStore[answerIndex]._pendingRetract`` is the
+     *   signal that this is an edit pass.  The submit handler reads the
+     *   stored ``sessionId``, fires ``_postFeedbackRetract``, clears the
+     *   flag, then fires ``_postFeedback`` with the new record.  The flag
+     *   is cleared immediately before both POSTs to prevent double-retraction
+     *   on rapid re-submit.
+     * Developer: The ``chosen`` closure tracks the currently selected option
+     *   across button clicks; it is pre-seeded when editing so the user can
+     *   submit immediately without re-selecting if only the message changed.
+     * User: When editing, the previously chosen emoji is pre-selected and
+     *   the previous message text is pre-filled in the textarea.
+     */
+    function _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText) {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+
+        var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
+            cfg.panelFeedbackQuestion) || 'Was this helpful?';
+
+        var opts = Array.isArray(cfg.panelFeedbackOptions) &&
+            cfg.panelFeedbackOptions.length >= 2
+            ? cfg.panelFeedbackOptions.slice()
+            : _FEEDBACK_DEFAULTS;
+
+        var scale;
+        if (Array.isArray(cfg.panelFeedbackScale) &&
+            cfg.panelFeedbackScale.length === opts.length &&
+            cfg.panelFeedbackScale.every(function (v) { return typeof v === 'number'; })) {
+            scale = cfg.panelFeedbackScale.slice();
+        } else {
+            scale = _deriveDefaultScale(opts.length);
+        }
+
+        // Pre-fill state when editing a previously submitted rating.
+        var prevEntry = (_feedbackStore[answerIndex] && _feedbackStore[answerIndex]._pendingRetract)
+            ? _feedbackStore[answerIndex]
+            : null;
+        var prevValue   = prevEntry ? prevEntry.ratingValue : null;
+        var prevMessage = prevEntry ? (prevEntry.message || '') : '';
+
+        // chosen tracks the currently selected option across button clicks.
+        // Pre-seed from prevEntry so the user can submit immediately if only
+        // changing the message text without re-selecting an emoji.
+        var chosen = { label: null, value: null };
+        if (prevEntry && prevValue !== null) {
+            // Reverse-lookup the label for the previously submitted value.
+            opts.forEach(function (o, idx) {
+                if (scale[idx] === prevValue) {
+                    chosen.label = o.value || o.title || o.emoji;
+                    chosen.value = prevValue;
+                }
+            });
+        }
+
+        var q = document.createElement('p');
+        q.className = 'ai-assistant-panel-feedback-q';
+        q.textContent = question;
+        container.appendChild(q);
+
+        var optRow = document.createElement('div');
+        optRow.className = 'ai-assistant-panel-feedback-options';
+        optRow.setAttribute('data-count', String(opts.length));
+        optRow.setAttribute('data-tier',  String(_getFeedbackTier(opts.length)));
+
+        opts.forEach(function (o, idx) {
+            var b = document.createElement('button');
+            b.className = 'ai-assistant-panel-feedback-btn';
+            b.type = 'button';
+
+            var num = scale[idx];
+            var sentiment = num > 0 ? 'positive' : (num < 0 ? 'negative' : 'neutral');
+            b.setAttribute('data-sentiment', sentiment);
+
+            var emojiSpan = document.createElement('span');
+            emojiSpan.setAttribute('aria-hidden', 'true');
+            emojiSpan.textContent = o.emoji || '\u2753';
+
+            var scoreSpan = document.createElement('span');
+            scoreSpan.className = 'ai-fbk-score';
+            scoreSpan.textContent = num > 0 ? ('+' + num) : String(num);
+            scoreSpan.setAttribute('aria-hidden', 'true');
+
+            b.appendChild(emojiSpan);
+            b.appendChild(scoreSpan);
+
+            var sign = num > 0 ? '+' + num : (num === 0 ? ' 0' : String(num));
+            var tip = o.title ? (o.title + ' (' + sign + ')') : ('(' + sign + ')');
+            b.title = tip;
+            b.setAttribute('aria-label', tip);
+            b.setAttribute('data-value', String(num));
+
+            // Pre-select the previously submitted option when editing.
+            b.setAttribute('aria-pressed',
+                (prevValue !== null && num === prevValue) ? 'true' : 'false');
+
+            b.addEventListener('click', function () {
+                chosen.label = o.value || o.title || o.emoji;
+                chosen.value = num;
+                optRow.querySelectorAll('button').forEach(function (x) {
+                    x.setAttribute('aria-pressed', 'false');
+                });
+                b.setAttribute('aria-pressed', 'true');
+            });
+            optRow.appendChild(b);
+        });
+        container.appendChild(optRow);
+
+        var ta = document.createElement('textarea');
+        ta.className = 'ai-assistant-panel-feedback-text';
+        ta.placeholder = (typeof cfg.panelFeedbackPlaceholder === 'string' &&
+            cfg.panelFeedbackPlaceholder) ||
+            'Optional: tell us more (what worked, what didn\u2019t)\u2026';
+        ta.setAttribute('aria-label', 'Feedback details');
+        ta.value = prevMessage;  // Pre-fill message when editing.
+        container.appendChild(ta);
+
+        var submit = document.createElement('button');
+        submit.className = 'ai-assistant-panel-feedback-submit';
+        submit.type = 'button';
+        submit.textContent = (typeof cfg.panelFeedbackSubmit === 'string' &&
+            cfg.panelFeedbackSubmit) || 'Send feedback';
+
+        submit.addEventListener('click', function () {
+            var sid;
+            try {
+                if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                    sid = window.crypto.randomUUID();
+                }
+            } catch (_) {}
+            if (!sid) {
+                sid = 'fb-' + (location ? location.pathname : 'p') +
+                      '-' + answerIndex + '-' + Date.now();
+            }
+
+            var modelInfo = null;
+            var activeModel = _getActiveModel(cfg);
+            if (activeModel) {
+                modelInfo = {
+                    id:       activeModel.id,
+                    provider: activeModel.provider || 'custom',
+                    model:    activeModel.model || activeModel.id,
+                };
+            } else if (typeof cfg.panelApiModel === 'string' && cfg.panelApiModel) {
+                modelInfo = {
+                    id:       cfg.panelApiModel,
+                    provider: 'anthropic',
+                    model:    cfg.panelApiModel,
+                };
+            }
+
+            var detail = {
+                schemaVersion:  1,
+                ratingValue:    chosen.value,
+                ratingLabel:    chosen.label,
+                rating:         chosen.label,
+                message:        ta.value.trim(),
+                query:          (typeof questionText === 'string') ? questionText : '',
+                answer:         (typeof answerText === 'string') ? answerText : '',
+                model:          modelInfo,
+                answerIndex:    answerIndex,
+                page:           location ? location.href : '',
+                ts:             Date.now(),
+                sessionId:      sid,
+                conversationId: _sessionId,
+            };
+
+            // CustomEvent fires unconditionally (doc-author listeners must not be
+            // skipped regardless of persist mode).
+            try {
+                document.dispatchEvent(new CustomEvent(
+                    'ai-assistant-feedback', { detail: detail }));
+            } catch (_) {}
+
+            var _fbBase  = _EP.hasProfiles()
+                ? _EP.resolve('feedback')
+                : (cfg.panelFeedbackEndpoint || '');
+            var _fbToken = _EP.hasProfiles()
+                ? _EP.resolveToken('feedbackToken')
+                : (cfg.panelFeedbackToken || '');
+
+            if (_fbBase && _feedbackPersistEnabled) {
+                // Retract the previous entry before posting the new one so the
+                // training pipeline never sees two live records for the same
+                // (conversationId, answerIndex) pair.  The _pendingRetract flag
+                // is set by _showFeedbackThanks's Edit button handler.
+                var _curEntry = _feedbackStore[answerIndex];
+                if (_curEntry && _curEntry._pendingRetract && _curEntry.sessionId) {
+                    _postFeedbackRetract(
+                        _fbBase + '/v1/feedback', _fbToken,
+                        _curEntry.sessionId, answerIndex, _curEntry.conversationId
+                    );
+                    // Clear immediately — defensive against rapid double-submit.
+                    _curEntry._pendingRetract = false;
+                }
+                _postFeedback(_fbBase + '/v1/feedback', _fbToken, detail);
+            }
+
+            if (cfg.panelFeedbackLog) {
+                // eslint-disable-next-line no-console
+                console.log('[ai-assistant] feedback (via _rebuildFeedbackFormIn)', detail);
+            }
+
+            _feedbackGivenSet.add(answerIndex);
+            _feedbackStore[answerIndex] = {
+                ratingValue:    chosen.value,
+                ratingLabel:    chosen.label,
+                message:        ta.value.trim(),
+                ts:             Date.now(),
+                query:          detail.query,
+                answer:         detail.answer,
+                model:          detail.model,
+                sessionId:      detail.sessionId,
+                conversationId: detail.conversationId,
+                page:           detail.page,
+            };
+
+            container.innerHTML = '';
+            _showFeedbackThanks(container, answerIndex, answerText, questionText, cfg);
+        });
+        container.appendChild(submit);
+    }
+
+    /**
+     * POST a share payload to the global share endpoint and await the UUID response.
+     *
+     * @param {string}   url       cfg.panelGlobalShareEndpoint.
+     * @param {string}   token     cfg.panelGlobalShareToken ('' for none).
+     * @param {Object}   entry     {content, mimeType, ext, title, ttlDays}.
+     * @param {Function} onSuccess Called with {uuid, url, expiresAt} on success.
+     * @param {Function} onError   Called with {status, message} on failure.
+     * @returns {void}
+     *
+     * @remarks
+     * Developer: keepalive:false is intentional.  The caller shows a spinner
+     * and must receive the UUID to display the resulting link.  keepalive:true
+     * would suppress connection errors and leave the UI spinning forever.
+     */
+    function _postGlobalShare(url, token, entry, onSuccess, onError) {
+        _remotePost(url, token, entry, {
+            keepalive: false,
+            onSuccess: onSuccess,
+            onError:   onError,
+        });
+    }
+
+    /**
+     * POST a training contribution payload to the configured training endpoint.
+     *
+     * @param {string}   url       cfg.panelTrainingEndpoint.
+     * @param {Object}   payload   Contribution payload (schemaVersion 1, consentFlag: true).
+     * @param {Function} onSuccess Called with {contributed, rows} on success.
+     * @param {Function} onError   Called with {status, message} on failure.
+     * @returns {void}
+     *
+     * @remarks
+     * Developer: No auth token — the HF proxy uses its own HF_TOKEN server-side.
+     * keepalive:false because the UI shows a spinner and must receive the response.
+     */
+    function _postTrainingContribution(url, payload, onSuccess, onError) {
+        _remotePost(url, '', payload, {
+            keepalive: false,
+            onSuccess: onSuccess,
+            onError:   onError,
+        });
+    }
+
     function _escapeHtml(str) {
         if (typeof str !== 'string') return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -1773,6 +3340,38 @@
      * @type {Set<number>}
      */
     var _feedbackGivenSet = new Set();
+
+    /**
+     * Feedback submitted this session, keyed by answer index (0-based).
+     *
+     * Written by _buildFeedbackBlock submit handler when the user rates an answer.
+     * Read by export functions (JSON/HTML) and by _shareAnswer to enrich payloads.
+     *
+     * Cleared by clearConversation() alongside _feedbackGivenSet.
+     *
+     * Schema per entry:
+     *   { ratingValue: number, ratingLabel: string, message: string, ts: number }
+     *
+     * @type {Object<number, {ratingValue:number, ratingLabel:string, message:string, ts:number}>}
+     */
+    var _feedbackStore = {};
+
+    /**
+     * Unique session id — stable across this page visit, new on reload.
+     * Falls back to a timestamp+random id when crypto.randomUUID is unavailable
+     * (HTTP origins, old browsers, restricted iframes).
+     *
+     * @type {string}
+     */
+    var _sessionId = (function () {
+        try {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+        } catch (_) {}
+        return 'sess-' + Date.now().toString(36) + '-' +
+               Math.random().toString(36).slice(2, 9);
+    }());
 
     /**
      * Whether transcript persistence is enabled (config-driven, default on).
@@ -1820,25 +3419,49 @@
     }
 
     /**
-     * Record a message in the single source of truth and persist.
+     * Record a message in the single source of truth (_transcript) and persist.
      *
-     * Enforces a configurable maximum turn count to prevent unbounded
-     * sessionStorage growth and JSON serialisation slowdown.  Oldest turns
-     * are evicted from the head when the cap is exceeded.
+     * Transcript entry schema v2:
+     *   { role: string, text: string, ts: number, model: Object|null }
      *
-     * @param {string} role  'user' | 'assistant' | 'error'
-     * @param {string} text
+     * The ``model`` field is non-null only for ``'assistant'`` entries and carries:
+     *   { id: string, provider: string, model: string }
+     *
+     * Old entries loaded from sessionStorage may lack ``model`` — export treats
+     * null/undefined as the unknown-model case without throwing.
+     *
+     * Parameters
+     * ----------
+     * role : string
+     *     ``'user'`` | ``'assistant'`` | ``'error'``
+     * text : string
+     *     Message body (plain markdown for assistant, plain text for user/error).
+     * modelInfo : Object|null, optional
+     *     Active model descriptor from _getActiveModel().  Only meaningful for
+     *     assistant messages; ignored for user/error.
+     *
+     * Notes
+     * -----
+     * Developer: Pass modelInfo from _appendPanelMessage (non-streaming path) or
+     *   from _panelApiCallStreaming (streaming path) so every transcript entry
+     *   carries the model that generated it.  Callers that cannot resolve the model
+     *   (stub mode, error path) pass null or omit the argument.
      */
-    function _recordMessage(role, text) {
+    function _recordMessage(role, text, modelInfo) {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
         var maxTurns = (typeof cfg.panelMaxTranscriptTurns === 'number' &&
                         cfg.panelMaxTranscriptTurns > 0)
             ? Math.floor(cfg.panelMaxTranscriptTurns)
             : _TRANSCRIPT_MAX_TURNS_DEFAULT;
 
-        _transcript.push({ role: role, text: text, ts: Date.now() });
+        _transcript.push({
+            role:  role,
+            text:  text,
+            ts:    Date.now(),
+            model: (role === 'assistant' && modelInfo) ? modelInfo : null
+        });
 
-        // Trim head (oldest entries) when cap is exceeded.
+        // Trim head (oldest entries) when the cap is exceeded.
         // Removing pairs (user + assistant) keeps conversations coherent, but
         // a simple slice from the left is safe — the welcome screen is not in
         // the transcript array, only actual message turns.
@@ -1864,8 +3487,9 @@
      *   reappears every time the user starts a new chat session.
      */
     function clearConversation() {
-        _transcript = [];
+        _transcript       = [];
         _feedbackGivenSet = new Set();
+        _feedbackStore    = {};                  // v2 — clears all submitted ratings
         _ssDel(_TRANSCRIPT_KEY);
         var body = document.getElementById('ai-assistant-panel-body');
         if (!body) return;
@@ -1882,10 +3506,30 @@
     }
 
     /**
-     * R4 — Export the conversation as a plain-text download.
-     * Reads ONLY `_transcript` (the single source of truth).
+     * R4 — Dispatch to the requested export format.
+     *
+     * Parameters
+     * ----------
+     * format : string, optional
+     *     ``'json'`` | ``'html'`` | ``'txt'`` (default ``'txt'`` for back-compat).
      */
-    function exportConversation() {
+    function exportConversation(format) {
+        var fmt = (typeof format === 'string') ? format : 'txt';
+        if (fmt === 'json') { exportConversationJSON(); }
+        else if (fmt === 'html') { exportConversationHTML(); }
+        else { exportConversationTxt(); }
+    }
+
+    /**
+     * Export the conversation as plain-text (.txt download).  Equivalent to the
+     * v1 exportConversation() — preserved for back-compat and user familiarity.
+     *
+     * Notes
+     * -----
+     * User: Output is human-readable but not machine-parseable.  Use JSON export
+     *   for analytics / ML pipelines.
+     */
+    function exportConversationTxt() {
         if (_transcript.length === 0) {
             showNotification('Nothing to export yet', true);
             return;
@@ -1894,7 +3538,360 @@
         var title = cfg.panelTitle || 'AI Assistant';
         var lines = [
             title + ' — conversation export',
-            'Page: ' + (location ? location.href : ''),
+            'Page: ' + ((typeof location !== 'undefined') ? location.href : ''),
+            'Exported: ' + new Date().toISOString(),
+            '',
+            '----------------------------------------',
+            '',
+        ];
+        _transcript.forEach(function (m) {
+            var who  = m.role === 'user' ? 'You' : m.role === 'assistant' ? title : 'Error';
+            var ts   = m.ts ? '  [' + new Date(m.ts).toISOString() + ']' : '';
+            var mdl  = (m.role === 'assistant' && m.model)
+                ? '  [' + (m.model.model || m.model.id) + ' \u00b7 ' + m.model.provider + ']'
+                : '';
+            lines.push('[' + who + ']' + ts + mdl);
+            lines.push(m.text);
+            lines.push('');
+        });
+        _downloadBlob(
+            lines.join('\n'),
+            'text/plain;charset=utf-8',
+            'ai-conversation-' + _isoFileStamp() + '.txt'
+        );
+    }
+
+    /**
+     * Build the flat ``records`` array — one row per message, all columns present.
+     *
+     * Direct pandas load (zero preprocessing):
+     *
+     * .. code-block:: python
+     *
+     *     import json, pandas as pd
+     *     with open('ai-conversation.json') as f:
+     *         data = json.load(f)
+     *     df = pd.DataFrame(data['records'])
+     *
+     * @returns {Array<Object>}  Flat row objects, one per message.
+     */
+    function _buildExportRecords() {
+        var cfg     = window.AI_ASSISTANT_CONFIG || {};
+        var pageUrl = (typeof location !== 'undefined') ? location.href : '';
+        var sid     = _sessionId;
+
+        var records      = [];
+        var turnIndex    = -1;
+        var answerIndex  = 0;   // increments on each assistant|error entry
+        var messageIndex = 0;
+
+        _transcript.forEach(function (m) {
+            if (m.role === 'user') { turnIndex++; }
+
+            var model = m.model || null;
+            var fb    = (m.role === 'assistant' || m.role === 'error')
+                ? (_feedbackStore[answerIndex] || null)
+                : null;
+
+            records.push({
+                // ── position ─────────────────────────────────────────────────
+                turn_index:            turnIndex,
+                message_index:         messageIndex,
+                role:                  m.role,
+                // ── content ──────────────────────────────────────────────────
+                text:                  m.text,
+                ts:                    m.ts   || null,
+                ts_iso:                m.ts   ? new Date(m.ts).toISOString() : null,
+                // ── model attribution (assistant only; null for user/error) ──
+                model_id:              model  ? model.id       : null,
+                model_provider:        model  ? model.provider : null,
+                model_name:            model  ? model.model    : null,
+                // ── feedback (assistant/error only; null if not submitted) ────
+                feedback_rating_value: fb     ? fb.ratingValue : null,
+                feedback_rating_label: fb     ? fb.ratingLabel : null,
+                feedback_message:      fb     ? (fb.message || null) : null,
+                // ── session context ───────────────────────────────────────────
+                session_id:            sid,
+                page_url:              pageUrl,
+            });
+
+            if (m.role === 'assistant' || m.role === 'error') { answerIndex++; }
+            messageIndex++;
+        });
+
+        return records;
+    }
+
+    /**
+     * Export the conversation as a pandas-ready JSON file.
+     *
+     * Output schema (``schema_version: "2.0"``):
+     *
+     * .. code-block:: text
+     *
+     *     {
+     *       "schema_version": "2.0",
+     *       "session":  { id, page_url, page_title, assistant_name,
+     *                     exported_at, exported_at_iso },
+     *       "turns":    [{ turn_index, user: {...}, assistant: {...} }],
+     *       "records":  [flat rows — direct pd.DataFrame() input]
+     *     }
+     *
+     * Notes
+     * -----
+     * User: Open the downloaded .json, then in Python:
+     *   ``df = pd.DataFrame(json.load(open(f))['records'])`` — zero preprocessing.
+     *
+     * Developer: ``records`` is the canonical flat format.  ``turns`` is a human-
+     *   friendly nested view of the same data for manual inspection.
+     */
+    function exportConversationJSON() {
+        if (_transcript.length === 0) {
+            showNotification('Nothing to export yet', true);
+            return;
+        }
+        var cfg       = window.AI_ASSISTANT_CONFIG || {};
+        var aiName    = cfg.panelTitle || 'AI Assistant';
+        var pageUrl   = (typeof location !== 'undefined') ? location.href : '';
+        var pageTitle = (typeof document !== 'undefined') ? document.title : '';
+        var now       = Date.now();
+
+        // ── Build nested turns (human-readable companion to flat records) ─────
+        var turns   = [];
+        var turnIdx = -1;
+        var aIdx    = 0;
+        var i       = 0;
+
+        while (i < _transcript.length) {
+            var m = _transcript[i];
+            if (m.role === 'user') {
+                turnIdx++;
+                var turn = {
+                    turn_index: turnIdx,
+                    user: {
+                        text:   m.text,
+                        ts:     m.ts || null,
+                        ts_iso: m.ts ? new Date(m.ts).toISOString() : null,
+                    },
+                    assistant: null,
+                };
+
+                // Pair with following assistant message, if present
+                if (i + 1 < _transcript.length &&
+                        _transcript[i + 1].role === 'assistant') {
+                    var a  = _transcript[i + 1];
+                    var fb = _feedbackStore[aIdx] || null;
+                    var am = a.model || null;
+                    turn.assistant = {
+                        text:                  a.text,
+                        ts:                    a.ts   || null,
+                        ts_iso:                a.ts   ? new Date(a.ts).toISOString() : null,
+                        model_id:              am     ? am.id       : null,
+                        model_provider:        am     ? am.provider : null,
+                        model_name:            am     ? am.model    : null,
+                        feedback_rating_value: fb     ? fb.ratingValue : null,
+                        feedback_rating_label: fb     ? fb.ratingLabel : null,
+                        feedback_message:      fb     ? (fb.message || null) : null,
+                    };
+                    aIdx++;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+                turns.push(turn);
+            } else {
+                // Orphan assistant or error message (no preceding user message)
+                if (m.role === 'assistant' || m.role === 'error') { aIdx++; }
+                i++;
+            }
+        }
+
+        var payload = {
+            schema_version:  '2.0',
+            session: {
+                id:              _sessionId,
+                page_url:        pageUrl,
+                page_title:      pageTitle,
+                assistant_name:  aiName,
+                exported_at:     now,
+                exported_at_iso: new Date(now).toISOString(),
+            },
+            turns:   turns,
+            records: _buildExportRecords(),
+        };
+
+        _downloadBlob(
+            JSON.stringify(payload, null, 2),
+            'application/json;charset=utf-8',
+            'ai-conversation-' + _isoFileStamp() + '.json'
+        );
+        showNotification(
+            'JSON exported \u2014 load with pd.DataFrame(data[\u201crecords\u201d])',
+            false
+        );
+    }
+
+    /**
+     * Build the complete self-contained HTML export string from the current
+     * ``_transcript``.
+     *
+     * Extracted from ``exportConversationHTML`` so ``exportConversationHTML``
+     * (file download) and ``_buildConvShareSheet`` (blob-URL share link) both
+     * operate on exactly the same rendered output — no duplication, single
+     * source of truth.
+     *
+     * Returns
+     * -------
+     * string
+     *     Complete UTF-8 HTML document ready for Blob creation or download.
+     *     Returns ``''`` when the transcript is empty.
+     *
+     * Notes
+     * -----
+     * Developer: Call ``_transcript.length === 0`` check in callers before
+     *   invoking this function; the empty-string return is a safety net, not
+     *   the primary guard.
+     */
+    function _buildConvHtmlString() {
+        if (_transcript.length === 0) return '';
+
+        var cfg         = window.AI_ASSISTANT_CONFIG || {};
+        var aiName      = cfg.panelTitle || 'AI Assistant';
+        var pageUrl     = (typeof location !== 'undefined') ? location.href : '';
+        var pageTitle   = (typeof document !== 'undefined') ? document.title : '';
+        var now         = new Date();
+        var exportedIso = now.toISOString();
+        var exportedFmt = now.toLocaleString(
+            (typeof navigator !== 'undefined' && navigator.language) || 'en',
+            { dateStyle: 'long', timeStyle: 'short' }
+        );
+
+        // ── Build per-turn HTML ────────────────────────────────────────────────
+        var turnsHtml   = '';
+        var answerIndex = 0;
+        var i           = 0;
+
+        while (i < _transcript.length) {
+            var m = _transcript[i];
+
+            if (m.role === 'user') {
+                var tsUser = m.ts ? _htmlTimeFmt(m.ts) : '';
+                turnsHtml +=
+                    '<article class="msg msg--user">' +
+                        '<div class="msg__bubble">' + _escapeHtml(m.text) + '</div>' +
+                        (tsUser ? '<footer class="msg__meta"><time>' + tsUser + '</time></footer>' : '') +
+                    '</article>';
+                i++;
+            } else if (m.role === 'assistant' || m.role === 'error') {
+                var tsAI     = m.ts ? _htmlTimeFmt(m.ts) : '';
+                var am       = m.model || null;
+                var fb       = _feedbackStore[answerIndex] || null;
+                var rendered = (m.role === 'assistant')
+                    ? _mdToHtml(m.text)
+                    : _escapeHtml(m.text);
+
+                // Model badge
+                var modelBadge = '';
+                if (am) {
+                    var provColor = _providerColor(am.provider) || '#888';
+                    modelBadge =
+                        '<span class="badge badge--model">' +
+                            '<span class="badge__dot" style="background:' + _escapeHtml(provColor) + '"></span>' +
+                            _escapeHtml(am.model || am.id) +
+                            ' <span class="badge__provider">\u00b7 ' + _escapeHtml(am.provider) + '</span>' +
+                        '</span>';
+                }
+
+                // Rating chip
+                var ratingChip = '';
+                if (fb) {
+                    var ratingInfo = _ratingDisplay(fb.ratingLabel, fb.ratingValue);
+                    ratingChip =
+                        '<span class="badge badge--rating badge--' + _escapeHtml(fb.ratingLabel) + '">' +
+                            ratingInfo.emoji + ' ' + _escapeHtml(fb.ratingLabel) +
+                            (fb.message
+                                ? ' \u2014 \u201c' + _escapeHtml(fb.message.slice(0, 120)) + '\u201d'
+                                : '') +
+                        '</span>';
+                }
+
+                var aiClass = m.role === 'error' ? 'msg msg--ai msg--error' : 'msg msg--ai';
+                turnsHtml +=
+                    '<article class="' + aiClass + '">' +
+                        '<div class="msg__avatar" aria-hidden="true">AI</div>' +
+                        '<div class="msg__body">' +
+                            '<div class="msg__bubble">' + rendered + '</div>' +
+                            '<footer class="msg__meta">' +
+                                (tsAI ? '<time>' + tsAI + '</time>' : '') +
+                                modelBadge +
+                                ratingChip +
+                            '</footer>' +
+                        '</div>' +
+                    '</article>';
+
+                answerIndex++;
+                i++;
+            } else {
+                i++;
+            }
+        }
+
+        // ── Build embedded JSON payload ────────────────────────────────────────
+        var jsonPayload = JSON.stringify({
+            schema_version:  '2.0',
+            session: {
+                id:              _sessionId,
+                page_url:        pageUrl,
+                page_title:      pageTitle,
+                assistant_name:  aiName,
+                exported_at:     now.getTime(),
+                exported_at_iso: exportedIso,
+            },
+            records: _buildExportRecords(),
+        }, null, 2);
+
+        var msgCount = _transcript.filter(function (m) {
+            return m.role === 'user';
+        }).length;
+
+        return _buildExportHtmlDoc({
+            aiName:      aiName,
+            pageUrl:     pageUrl,
+            pageTitle:   pageTitle,
+            exportedFmt: exportedFmt,
+            exportedIso: exportedIso,
+            turnsHtml:   turnsHtml,
+            msgCount:    msgCount,
+            jsonPayload: jsonPayload,
+        });
+    }
+
+    /**
+     * Build the conversation as a plain-text string.
+     *
+     * Extracted parallel to ``_buildConvHtmlString`` so both the download path
+     * (``exportConversationTxt``) and the per-format share sheet
+     * (``_buildFmtShareSheet('txt')``) operate on exactly the same rendered
+     * output — single source of truth, no duplication.
+     *
+     * Returns
+     * -------
+     * string
+     *     Complete UTF-8 plain-text document.  Returns ``''`` when the
+     *     transcript is empty.
+     *
+     * Notes
+     * -----
+     * Developer: Call the ``_transcript.length === 0`` guard in callers; the
+     *   empty-string return is a safety net, not the primary check.
+     */
+    function _buildConvTxtString() {
+        if (_transcript.length === 0) return '';
+        var cfg   = window.AI_ASSISTANT_CONFIG || {};
+        var title = cfg.panelTitle || 'AI Assistant';
+        var lines = [
+            title + ' \u2014 conversation export',
+            'Page: ' + ((typeof location !== 'undefined') ? location.href : ''),
             'Exported: ' + new Date().toISOString(),
             '',
             '----------------------------------------',
@@ -1902,25 +3899,627 @@
         ];
         _transcript.forEach(function (m) {
             var who = m.role === 'user' ? 'You'
-                : m.role === 'assistant' ? title
-                : 'Error';
-            // ISO 8601 tag appended when available — enables unambiguous
-            // chronological attribution in feedback reports, diffs, and imports.
-            var tsTag = m.ts ? '  [' + new Date(m.ts).toISOString() + ']' : '';
-            lines.push('[' + who + ']' + tsTag);
+                    : m.role === 'assistant' ? title
+                    : 'Error';
+            var ts  = m.ts ? '  [' + new Date(m.ts).toISOString() + ']' : '';
+            var mdl = (m.role === 'assistant' && m.model)
+                ? '  [' + (m.model.model || m.model.id) +
+                  ' \u00b7 ' + m.model.provider + ']'
+                : '';
+            lines.push('[' + who + ']' + ts + mdl);
             lines.push(m.text);
             lines.push('');
         });
-        var blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+        return lines.join('\n');
+    }
+
+    /**
+     * Build the conversation as a pandas-ready JSON string.
+     *
+     * Extracted parallel to ``_buildConvHtmlString`` so both the download path
+     * (``exportConversationJSON``) and the per-format share sheet
+     * (``_buildFmtShareSheet('json')``) use exactly the same payload.
+     *
+     * Returns
+     * -------
+     * string
+     *     Complete UTF-8 JSON document (schema_version 2.0).
+     *     Returns ``''`` when the transcript is empty.
+     *
+     * Notes
+     * -----
+     * Developer: Direct pandas load:
+     *   ``df = pd.DataFrame(json.loads(s)['records'])`` — zero preprocessing.
+     */
+    function _buildConvJsonString() {
+        if (_transcript.length === 0) return '';
+        var cfg       = window.AI_ASSISTANT_CONFIG || {};
+        var aiName    = cfg.panelTitle || 'AI Assistant';
+        var pageUrl   = (typeof location !== 'undefined') ? location.href : '';
+        var pageTitle = (typeof document !== 'undefined') ? document.title : '';
+        var now       = Date.now();
+
+        var turns   = [];
+        var turnIdx = -1;
+        var aIdx    = 0;
+        var i       = 0;
+
+        while (i < _transcript.length) {
+            var m = _transcript[i];
+            if (m.role === 'user') {
+                turnIdx++;
+                var turn = {
+                    turn_index: turnIdx,
+                    user: {
+                        text:   m.text,
+                        ts:     m.ts || null,
+                        ts_iso: m.ts ? new Date(m.ts).toISOString() : null,
+                    },
+                    assistant: null,
+                };
+                if (i + 1 < _transcript.length &&
+                        _transcript[i + 1].role === 'assistant') {
+                    var a  = _transcript[i + 1];
+                    var fb = _feedbackStore[aIdx] || null;
+                    var am = a.model || null;
+                    turn.assistant = {
+                        text:                  a.text,
+                        ts:                    a.ts || null,
+                        ts_iso:                a.ts ? new Date(a.ts).toISOString() : null,
+                        model_id:              am ? am.id       : null,
+                        model_provider:        am ? am.provider : null,
+                        model_name:            am ? am.model    : null,
+                        feedback_rating_value: fb ? fb.ratingValue : null,
+                        feedback_rating_label: fb ? fb.ratingLabel : null,
+                        feedback_message:      fb ? (fb.message || null) : null,
+                    };
+                    aIdx++;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+                turns.push(turn);
+            } else {
+                if (m.role === 'assistant' || m.role === 'error') { aIdx++; }
+                i++;
+            }
+        }
+
+        return JSON.stringify({
+            schema_version: '2.0',
+            session: {
+                id:              _sessionId,
+                page_url:        pageUrl,
+                page_title:      pageTitle,
+                assistant_name:  aiName,
+                exported_at:     now,
+                exported_at_iso: new Date(now).toISOString(),
+            },
+            turns:   turns,
+            records: _buildExportRecords(),
+        }, null, 2);
+    }
+
+    /**
+     * Export the conversation as a self-contained HTML file.
+     *
+     * The generated file:
+     *   - Zero external dependencies — CSS is inlined.
+     *   - Supports light and dark mode via prefers-color-scheme.
+     *   - Renders user bubbles right, assistant bubbles left.
+     *   - Shows model badge + rating chip below each assistant message.
+     *   - Embeds the full JSON payload in a
+     *     ``<script type="application/json" id="export-data">`` block.
+     *
+     * Notes
+     * -----
+     * User: Download the file and open it in any browser — works fully offline.
+     *   To extract data: ``JSON.parse(document.getElementById('export-data').textContent)``
+     *
+     * Developer: HTML content is built by ``_buildConvHtmlString()`` (shared
+     *   with the share-link sheet) — edit that function to change export output.
+     */
+    function exportConversationHTML() {
+        if (_transcript.length === 0) {
+            showNotification('Nothing to export yet', true);
+            return;
+        }
+        var html = _buildConvHtmlString();
+        _downloadBlob(
+            html,
+            'text/html;charset=utf-8',
+            'ai-conversation-' + _isoFileStamp() + '.html'
+        );
+        showNotification(
+            'HTML exported \u2014 open in any browser to share the conversation',
+            false
+        );
+    }
+
+    /**
+     * Assemble the complete self-contained HTML document string.
+     *
+     * Parameters
+     * ----------
+     * opts : Object
+     *     All named substitution values for the template.
+     *
+     * Returns
+     * -------
+     * string  Complete HTML document as a UTF-8 string.
+     *
+     * Notes
+     * -----
+     * Developer: All user-controlled text (aiName, turnsHtml content) is passed
+     *   through _escapeHtml before being embedded.  turnsHtml is built by callers
+     *   that escape each message independently — it is trusted HTML at this point.
+     */
+    function _buildExportHtmlDoc(opts) {
+        return (
+'<!DOCTYPE html>\n' +
+'<html lang="en">\n' +
+'<head>\n' +
+'<meta charset="utf-8">\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+'<meta name="generator" content="ai-assistant-export/2.0">\n' +
+'<meta name="exported-at" content="' + opts.exportedIso + '">\n' +
+'<title>' + _escapeHtml(opts.aiName) + ' \u2014 Conversation</title>\n' +
+'<style>\n' +
+_exportCss() +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div class="wrap">\n' +
+
+'<header class="chat-header">\n' +
+    '<div class="chat-meta">\n' +
+        '<div class="chat-meta-row">\n' +
+            '<span class="chat-meta-label">' + _escapeHtml(opts.aiName) + '</span>\n' +
+            '<span class="chat-meta-sep">\u00b7</span>\n' +
+            '<span class="chat-meta-turns">' + opts.msgCount +
+                ' turn' + (opts.msgCount !== 1 ? 's' : '') + '</span>\n' +
+            '<span class="chat-meta-sep">\u00b7</span>\n' +
+            '<time class="chat-meta-date">' + _escapeHtml(opts.exportedFmt) + '</time>\n' +
+        '</div>\n' +
+        (opts.pageUrl
+            ? '<a class="chat-meta-url" href="' + _escapeHtml(opts.pageUrl) +
+              '" rel="noopener noreferrer">' +
+              _escapeHtml(opts.pageTitle || opts.pageUrl) + '</a>\n'
+            : '') +
+    '</div>\n' +
+'</header>\n' +
+
+'<main class="messages" role="log" aria-label="Conversation">\n' +
+opts.turnsHtml +
+'</main>\n' +
+
+'<footer class="chat-footer">\n' +
+    '<p>Generated by <strong>' + _escapeHtml(opts.aiName) + '</strong> \u00b7 ' +
+    '<a href="' + _escapeHtml(opts.pageUrl) + '" rel="noopener noreferrer">' +
+    _escapeHtml(opts.pageUrl) + '</a></p>\n' +
+    '<p class="chat-footer-hint">Extract data: ' +
+        '<code>JSON.parse(document.getElementById(&quot;export-data&quot;).textContent)</code></p>\n' +
+'</footer>\n' +
+
+'</div>\n' +
+
+'<script type="application/json" id="export-data">\n' +
+opts.jsonPayload + '\n' +
+'</script>\n' +
+'</body>\n' +
+'</html>'
+        );
+    }
+
+    /**
+     * Return the CSS string embedded in the HTML export.
+     * Self-contained, zero external deps, dark-mode aware via prefers-color-scheme.
+     *
+     * @returns {string}
+     */
+    function _exportCss() {
+        return (
+'*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n' +
+':root{\n' +
+'  --bg:#f9fafb;--surface:#fff;--border:#e5e7eb;\n' +
+'  --tx:#111827;--tx2:#6b7280;--tx3:#9ca3af;\n' +
+'  --user-bg:#2563eb;--user-tx:#fff;\n' +
+'  --ai-bg:#fff;--ai-border:#e5e7eb;\n' +
+'  --code-bg:#f3f4f6;--code-tx:#1f2937;\n' +
+'  --model-bg:#eff6ff;--model-tx:#1d4ed8;--model-dot:#2563eb;\n' +
+'  --rate-pos-bg:#f0fdf4;--rate-pos-tx:#166534;\n' +
+'  --rate-neg-bg:#fef2f2;--rate-neg-tx:#991b1b;\n' +
+'  --rate-neu-bg:#f9fafb;--rate-neu-tx:#374151;\n' +
+'  --r:1rem;--rs:.5rem;\n' +
+'  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,ui-sans-serif,sans-serif;\n' +
+'  font-size:16px;line-height:1.6;color:var(--tx);background:var(--bg);\n' +
+'}\n' +
+'@media(prefers-color-scheme:dark){\n' +
+'  :root{\n' +
+'    --bg:#09090b;--surface:#18181b;--border:#27272a;\n' +
+'    --tx:#f4f4f5;--tx2:#a1a1aa;--tx3:#71717a;\n' +
+'    --user-bg:#1d4ed8;\n' +
+'    --ai-bg:#18181b;--ai-border:#27272a;\n' +
+'    --code-bg:#0f0f11;--code-tx:#e4e4e7;\n' +
+'    --model-bg:#1e3a5f;--model-tx:#93c5fd;\n' +
+'    --rate-pos-bg:#052e16;--rate-pos-tx:#86efac;\n' +
+'    --rate-neg-bg:#450a0a;--rate-neg-tx:#fca5a5;\n' +
+'    --rate-neu-bg:#18181b;--rate-neu-tx:#a1a1aa;\n' +
+'  }\n' +
+'}\n' +
+'.wrap{max-width:780px;margin:0 auto;padding:1.5rem 1rem 3rem}\n' +
+'.chat-header{padding:1.25rem 0 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1.5rem}\n' +
+'.chat-meta-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.8rem;color:var(--tx2);margin-bottom:.35rem}\n' +
+'.chat-meta-label{font-weight:600;color:var(--tx)}\n' +
+'.chat-meta-sep{opacity:.4}\n' +
+'.chat-meta-url{font-size:.8rem;color:var(--tx2);text-decoration:none;word-break:break-all}\n' +
+'.chat-meta-url:hover{text-decoration:underline}\n' +
+'.messages{display:flex;flex-direction:column;gap:1.25rem}\n' +
+'.msg--user{align-self:flex-end;max-width:82%;display:flex;flex-direction:column;align-items:flex-end}\n' +
+'.msg--user .msg__bubble{background:var(--user-bg);color:var(--user-tx);border-radius:var(--r) var(--r) .25rem var(--r);padding:.75rem 1rem;white-space:pre-wrap;word-break:break-word;font-size:.9375rem}\n' +
+'.msg--user .msg__meta{margin-top:.25rem;font-size:.75rem;color:var(--tx3)}\n' +
+'.msg--ai{display:flex;gap:.75rem;align-self:flex-start;max-width:90%;width:100%}\n' +
+'.msg__avatar{flex-shrink:0;width:1.75rem;height:1.75rem;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--tx2);margin-top:.15rem;letter-spacing:.03em}\n' +
+'.msg__body{flex:1;min-width:0}\n' +
+'.msg--ai .msg__bubble{background:var(--ai-bg);border:1px solid var(--ai-border);border-radius:.25rem var(--r) var(--r) var(--r);padding:.875rem 1rem;font-size:.9375rem;word-break:break-word}\n' +
+'.msg--error .msg__bubble{border-color:#ef4444;background:#fef2f2;color:#991b1b}\n' +
+'.msg__meta{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;font-size:.75rem;color:var(--tx3)}\n' +
+'.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.15rem .55rem;border-radius:99px;font-size:.7rem;font-weight:500;white-space:nowrap}\n' +
+'.badge--model{background:var(--model-bg);color:var(--model-tx)}\n' +
+'.badge__dot{width:.45rem;height:.45rem;border-radius:50%;flex-shrink:0}\n' +
+'.badge__provider{opacity:.65;font-weight:400}\n' +
+'.badge--positive{background:var(--rate-pos-bg);color:var(--rate-pos-tx)}\n' +
+'.badge--negative{background:var(--rate-neg-bg);color:var(--rate-neg-tx)}\n' +
+'.badge--rating{background:var(--rate-neu-bg);color:var(--rate-neu-tx)}\n' +
+'h1,h2,h3,h4{margin:.85rem 0 .4rem;font-weight:600;line-height:1.3}\n' +
+'h1{font-size:1.25rem}h2{font-size:1.1rem}h3{font-size:1rem}\n' +
+'p{margin:.4rem 0}\n' +
+'ul,ol{margin:.4rem 0 .4rem 1.4rem;padding:0}\n' +
+'li{margin:.15rem 0}\n' +
+'pre.ai-md-codeblock{background:var(--code-bg);color:var(--code-tx);border-radius:var(--rs);padding:.75rem 1rem;overflow-x:auto;margin:.6rem 0;font-size:.8125rem;font-family:ui-monospace,"SF Mono","Fira Code","Cascadia Code",Consolas,monospace;border:1px solid var(--border)}\n' +
+'code{font-family:ui-monospace,"SF Mono","Fira Code",Consolas,monospace;font-size:.875em;background:var(--code-bg);padding:.1em .35em;border-radius:.25rem}\n' +
+'pre code{background:none;padding:0;font-size:inherit}\n' +
+'table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.875rem}\n' +
+'th{background:var(--code-bg);font-weight:600;text-align:left;padding:.5rem .75rem;border:1px solid var(--border)}\n' +
+'td{padding:.4rem .75rem;border:1px solid var(--border)}\n' +
+'tr:nth-child(even) td{background:var(--code-bg)}\n' +
+'strong{font-weight:600}\n' +
+'em{font-style:italic}\n' +
+'blockquote{border-left:3px solid var(--border);margin:.6rem 0;padding:.3rem .75rem;color:var(--tx2)}\n' +
+'a{color:var(--model-tx);text-decoration:none}a:hover{text-decoration:underline}\n' +
+'.chat-footer{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--border);font-size:.8rem;color:var(--tx3);display:flex;flex-direction:column;gap:.4rem}\n' +
+'.chat-footer a{color:var(--tx3)}\n' +
+'.chat-footer code{font-size:.7rem}\n' +
+'.chat-footer-hint{opacity:.6}\n'
+        );
+    }
+
+    /**
+     * Rating label → display emoji.
+     *
+     * Parameters
+     * ----------
+     * label : string
+     * value : number  Signed integer rating value.
+     *
+     * Returns
+     * -------
+     * Object  ``{ emoji: string }``
+     */
+    function _ratingDisplay(label, value) {
+        var map = {
+            positive:  { emoji: '\ud83d\udc4d' },
+            negative:  { emoji: '\ud83d\udc4e' },
+            neutral:   { emoji: '\ud83d\ude10' },
+            helpful:   { emoji: '\u2705' },
+            unhelpful: { emoji: '\u274c' },
+            great:     { emoji: '\ud83c\udf1f' },
+            wrong:     { emoji: '\u26a0\ufe0f' },
+        };
+        if (map[label]) return map[label];
+        // Fallback: sign-based
+        if (typeof value === 'number') {
+            if (value > 0) return { emoji: '\u2b50' };
+            if (value < 0) return { emoji: '\ud83d\udc4e' };
+        }
+        return { emoji: '\ud83d\udfe1' };
+    }
+
+    /**
+     * Format a Unix timestamp as HH:mm for the HTML export.
+     *
+     * Parameters
+     * ----------
+     * ts : number  Milliseconds since epoch.
+     *
+     * Returns
+     * -------
+     * string  ``"HH:mm"`` or ``''`` for missing/non-finite input.
+     */
+    function _htmlTimeFmt(ts) {
+        if (!ts || !isFinite(ts)) return '';
+        var d  = new Date(ts);
+        var hh = ('0' + d.getHours()).slice(-2);
+        var mm = ('0' + d.getMinutes()).slice(-2);
+        return hh + ':' + mm;
+    }
+
+    /**
+     * Create a Blob, trigger a browser download, revoke the object URL.
+     *
+     * Parameters
+     * ----------
+     * content : string   UTF-8 text content.
+     * mimeType : string  e.g. ``'application/json;charset=utf-8'``
+     * filename : string  Suggested download filename.
+     */
+    function _downloadBlob(content, mimeType, filename) {
+        var blob = new Blob([content], { type: mimeType });
         var url  = URL.createObjectURL(blob);
         var a    = document.createElement('a');
-        a.href = url;
-        a.download = 'ai-conversation-' +
-            new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.txt';
+        a.href     = url;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    /**
+     * ISO 8601 timestamp string safe for use in filenames.
+     *
+     * Returns
+     * -------
+     * string  e.g. ``"2026-06-06T06-17-48"``
+     */
+    function _isoFileStamp() {
+        return new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    }
+
+    /**
+     * Build the "Export ▾" header button with a 3-option dropdown.
+     *
+     * Format options (in display order):
+     *   1. JSON — pandas-ready (primary, most useful)
+     *   2. HTML — shareable page
+     *   3. TXT  — plain text (back-compat)
+     *
+     * Behaviour mirrors _buildBubbleMore: the dropdown opens on click of the main
+     * button, closes on outside click, and is keyboard-accessible via tabindex.
+     *
+     * Returns
+     * -------
+     * HTMLElement  A wrapper div containing trigger button + dropdown menu.
+     */
+    function _buildExportDropdownBtn(opts) {
+        var options    = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var onLinkMode = typeof options.onLinkMode === 'function' ? options.onLinkMode : null;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'ai-assistant-export-dropdown';
+
+        // ── Trigger button ────────────────────────────────────────────────────
+        var trigger = document.createElement('button');
+        trigger.className = 'ai-assistant-panel-icon-btn ai-assistant-export-trigger';
+        trigger.type = 'button';
+        trigger.setAttribute('aria-label', 'Export conversation');
+        trigger.setAttribute('aria-haspopup', 'true');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.title = 'Export conversation';
+        // Wrap the main icon SVG in a span[aria-hidden] so the CSS three-layer
+        // size-defence rule  `.ai-assistant-export-trigger > span:first-child svg`
+        // (specificity 0,2,2) can apply and the 16px overflow:hidden container
+        // hard-clips any SVG that escapes the min/max clamp.  Without this span,
+        // the SVG is a bare flex-child of the button and an ID-anchored cloud-theme
+        // rule like  `#main-content svg { max-width:100% !important }`  (specificity
+        // 1,0,1) beats our class-chain rule (0,1,1) in the !important cascade tier,
+        // making the icon render at full viewBox size when hosted.
+        var iconSpan = document.createElement('span');
+        iconSpan.setAttribute('aria-hidden', 'true');
+        iconSpan.innerHTML = ICONS.exportTxt;
+        trigger.appendChild(iconSpan);
+        var triggerLbl = document.createElement('span');
+        triggerLbl.className = 'ai-assistant-export-trigger-chevron';
+        triggerLbl.innerHTML = ICONS.chevronDown;
+        triggerLbl.setAttribute('aria-hidden', 'true');
+        trigger.appendChild(triggerLbl);
+
+        // ── Dropdown menu ─────────────────────────────────────────────────────
+        var menu = document.createElement('div');
+        menu.className = 'ai-assistant-export-menu';
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('data-open', 'false');
+
+        var formats = [
+            {
+                fmt:   'json',
+                label: 'JSON',
+                hint:  'Pandas-ready \u00b7 model + ratings',
+                icon:  ICONS.exportJson,
+            },
+            {
+                fmt:   'html',
+                label: 'HTML',
+                hint:  'Shareable page \u00b7 open in browser',
+                icon:  ICONS.exportHtml,
+            },
+            {
+                fmt:   'txt',
+                label: 'Plain text',
+                hint:  'Simple \u00b7 human-readable',
+                icon:  ICONS.exportTxt,
+            },
+        ];
+
+        formats.forEach(function (opt) {
+            var item = document.createElement('button');
+            item.className = 'ai-assistant-export-menu-item';
+            item.type = 'button';
+            item.setAttribute('role', 'menuitem');
+            item.setAttribute('tabindex', '-1');
+
+            var icon = document.createElement('span');
+            icon.setAttribute('aria-hidden', 'true');
+            icon.innerHTML = opt.icon;
+            item.appendChild(icon);
+
+            var textBlock = document.createElement('span');
+            textBlock.className = 'ai-assistant-export-menu-text';
+
+            var labelEl = document.createElement('span');
+            labelEl.className = 'ai-assistant-export-menu-label';
+            labelEl.textContent = opt.label;
+
+            var hintEl = document.createElement('span');
+            hintEl.className = 'ai-assistant-export-menu-hint';
+            hintEl.textContent = opt.hint;
+
+            textBlock.appendChild(labelEl);
+            textBlock.appendChild(hintEl);
+            item.appendChild(textBlock);
+
+            // Prevent mousedown from moving keyboard focus away from the trigger.
+            // Without this, Safari and Firefox fire focusout on the trigger before
+            // the click event reaches the item (because tabindex="-1" items do not
+            // receive focus on mouse-click in those browsers).  The focusout handler
+            // then calls _closeExportMenu → display:none → browser cancels the click
+            // (element hidden between mousedown and mouseup).  preventDefault keeps
+            // focus on the trigger, no focusout fires, and the click lands correctly.
+            item.addEventListener('mousedown', function (e) { e.preventDefault(); });
+
+            (function (fmt) {
+                item.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    _closeExportMenu(menu, trigger);
+                    if (_exportLinkMode && onLinkMode) {
+                        onLinkMode(fmt);
+                    } else {
+                        exportConversation(fmt);
+                    }
+                });
+            }(opt.fmt));
+
+            menu.appendChild(item);
+        });
+
+        // ── Mode-toggle row (download ↔ share-link) ───────────────────────────
+        // Mirrors the mic hold-toggle pattern: a row with icon + label +
+        // pill toggle.  Clicking the row or just the toggle both call
+        // _setExportLinkMode so the mode state, localStorage, and the
+        // aria-pressed attribute are always in sync.
+        var modeSep = document.createElement('div');
+        modeSep.className = 'ai-assistant-export-menu-sep';
+        menu.appendChild(modeSep);
+
+        var modeRow = document.createElement('div');
+        modeRow.className = 'ai-assistant-export-menu-mode-row';
+        modeRow.setAttribute('role', 'button');
+        modeRow.setAttribute('tabindex', '-1');
+        modeRow.setAttribute('aria-label', 'Toggle share-link mode');
+
+        var modeIcon = document.createElement('span');
+        modeIcon.className = 'ai-assistant-export-menu-mode-icon';
+        modeIcon.setAttribute('aria-hidden', 'true');
+        modeIcon.innerHTML = ICONS.linkChain;
+
+        var modeLbl = document.createElement('span');
+        modeLbl.className = 'ai-assistant-export-menu-mode-label';
+        // Reflects the current mode on initial render; updated reactively in
+        // _setExportLinkMode via querySelector on this class name (singleton).
+        modeLbl.textContent = _exportLinkMode ? 'Share link' : 'Download';
+
+        // Reuse the mic toggle pill CSS classes so the visual is consistent.
+        var modeToggle = document.createElement('button');
+        modeToggle.className = 'ai-assistant-mic-popup-toggle';
+        modeToggle.id = 'ai-assistant-export-link-toggle';
+        modeToggle.type = 'button';
+        modeToggle.setAttribute('aria-pressed', _exportLinkMode ? 'true' : 'false');
+        modeToggle.setAttribute('aria-label', 'Share-link mode');
+        modeToggle.setAttribute('title',
+            _exportLinkMode ? 'Share-link mode: ON' : 'Share-link mode: OFF');
+
+        var modeTrack = document.createElement('span');
+        modeTrack.className = 'ai-assistant-mic-toggle-track';
+        var modeThumb = document.createElement('span');
+        modeThumb.className = 'ai-assistant-mic-toggle-thumb';
+        modeTrack.appendChild(modeThumb);
+        modeToggle.appendChild(modeTrack);
+
+        // Prevent mousedown from blurring the trigger (matches format items).
+        modeToggle.addEventListener('mousedown', function (e) { e.preventDefault(); });
+
+        modeToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            _setExportLinkMode(!_exportLinkMode);
+        });
+
+        // Clicking the row label/icon (but NOT the toggle pill) also toggles.
+        // stopPropagation on the toggle click normally prevents double-fire, but
+        // the guard here makes the behaviour deterministic even if that ever
+        // changes (e.g. AT synthetic click, keyboard dispatch on role="button").
+        modeRow.addEventListener('click', function (e) {
+            if (modeToggle.contains(e.target)) { return; }
+            _setExportLinkMode(!_exportLinkMode);
+        });
+
+        modeRow.appendChild(modeIcon);
+        modeRow.appendChild(modeLbl);
+        modeRow.appendChild(modeToggle);
+        menu.appendChild(modeRow);
+
+        // ── Toggle open/close ─────────────────────────────────────────────────
+        trigger.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isOpen = menu.getAttribute('data-open') === 'true';
+            _closeExportMenu(menu, trigger);
+            if (!isOpen) {
+                menu.setAttribute('data-open', 'true');
+                trigger.setAttribute('aria-expanded', 'true');
+                // Focus first menu item for keyboard navigation.
+                var firstItem = menu.querySelector('.ai-assistant-export-menu-item');
+                if (firstItem) { firstItem.setAttribute('tabindex', '0'); firstItem.focus(); }
+            }
+        });
+
+        // ── Close on focus-out ────────────────────────────────────────────────
+        wrapper.addEventListener('focusout', function (e) {
+            if (!wrapper.contains(e.relatedTarget)) {
+                _closeExportMenu(menu, trigger);
+            }
+        });
+
+        // ── Close on outside mousedown (non-focusable-element guard) ─────────
+        // focusout only fires when focus moves, which does NOT happen when the
+        // user clicks on a non-interactive element (e.g. panel body text, a
+        // message bubble, a scroll area).  This capture-phase handler closes the
+        // menu in those cases.  Capture fires before any bubble-phase
+        // stopPropagation so the guard is reliable across the whole document.
+        document.addEventListener('mousedown', function (e) {
+            if (menu.getAttribute('data-open') !== 'true') return;
+            if (wrapper.contains(e.target)) return;
+            _closeExportMenu(menu, trigger);
+        }, true /* capture */);
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(menu);
+        return wrapper;
+    }
+
+    /**
+     * Close the export dropdown menu and restore trigger state.
+     *
+     * Parameters
+     * ----------
+     * menu : HTMLElement
+     * trigger : HTMLElement
+     */
+    function _closeExportMenu(menu, trigger) {
+        menu.setAttribute('data-open', 'false');
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.querySelectorAll('.ai-assistant-export-menu-item').forEach(function (it) {
+            it.setAttribute('tabindex', '-1');
+        });
     }
 
     /**
@@ -1936,65 +4535,93 @@
     }
 
     /**
-     * Share a single answer — with its paired question for recipient context.
+     * Share a single Q&A pair with model and rating context.
      *
-     * Delivery tiers (tried in order, first available wins):
+     * Share payload (text format):
      *
-     * 1. Web Share API — native share sheet on Android, iOS, and Chromium
-     *    desktop (Windows / macOS).  Lets the user pick their own target
-     *    (messaging app, email, notes, …).
-     * 2. Async Clipboard API — modern browsers, same-origin HTTPS or localhost.
-     * 3. ``execCommand('copy')`` — legacy fallback (older browsers, HTTP).
-     *
-     * Payload format
-     * --------------
-     * ::
+     * .. code-block:: text
      *
      *     Q: <question>
+     *     Model: <model-name> · <provider>
      *
-     *     A: <answer (plain markdown)>
+     *     A: <answer>
+     *
+     *     Rating: <emoji> <label> — "<message>"   (if submitted)
      *
      *     — AI Assistant · https://docs.example.com/page
      *
-     * The question prefix and attribution footer are omitted when unavailable.
-     * Using raw markdown (``data-raw``) keeps the payload clean and reusable
-     * outside the panel — no HTML entities or render artefacts.
+     * Delivery tiers (first available wins):
+     *   1. Web Share API  — native share sheet (Android, iOS, Chromium desktop)
+     *   2. Clipboard API  — modern browsers on HTTPS/localhost
+     *   3. execCommand    — legacy fallback
      *
      * Parameters
      * ----------
      * answerText : string
-     *     The exact bubble text from ``_transcript``.
+     *     Exact bubble text from _transcript.
      * questionText : string | null
-     *     The paired user question, or ``null`` when unavailable.
+     *     Paired user question, or null.
      * bubbleEl : HTMLElement | null
-     *     The assistant bubble element; used to read ``data-raw``.
+     *     Assistant bubble element; used to read data-raw markdown.
      * btn : HTMLElement | null
-     *     The Share button; its label is flashed ("Shared!" / "Copied!") for
-     *     1.6 s as a visual confirmation then restored.
+     *     Share button element; label is briefly changed for visual confirmation.
+     * answerIndex : number, optional
+     *     0-based index of this answer in _feedbackStore.  Passed from callers
+     *     that have already computed it (see _renderBubble and streaming path).
      *
      * Notes
      * -----
-     * User: On mobile the native share sheet appears immediately.  On desktop
-     *   without Web Share API the Q+A block is placed on the clipboard and a
-     *   brief toast confirms it.  Paste anywhere to share.
+     * User: On mobile the native share sheet appears.  On desktop without Web
+     *   Share API the payload is placed on the clipboard — paste to share.
      *
-     * Developer: ``writeClipboard`` and ``execCmdCopy`` are nested closures —
-     *   they capture ``payload``, ``flash``, and ``showNotification`` from the
-     *   enclosing scope.  No module-level state is written.  ``AbortError`` /
-     *   ``NotAllowedError`` from ``navigator.share`` are intentionally silent
-     *   (user cancelled — no error toast needed).
+     * Developer: AbortError / NotAllowedError from navigator.share are silently
+     *   swallowed (user cancelled share sheet — no error toast needed).
      */
-    function _shareAnswer(answerText, questionText, bubbleEl, btn) {
-        var raw     = (bubbleEl && bubbleEl.getAttribute('data-raw')) || answerText;
-        var cfg     = window.AI_ASSISTANT_CONFIG || {};
-        var aiName  = cfg.panelTitle || 'AI Assistant';
+    function _shareAnswer(answerText, questionText, bubbleEl, btn, answerIndex) {
+        var raw    = (bubbleEl && bubbleEl.getAttribute('data-raw')) || answerText;
+        var cfg    = window.AI_ASSISTANT_CONFIG || {};
+        var aiName = cfg.panelTitle || 'AI Assistant';
         var pageUrl = (typeof location !== 'undefined') ? location.href : '';
 
-        // Self-contained Q+A payload — recipient reads it without the source page.
-        var payload = (questionText ? 'Q: ' + questionText + '\n\nA: ' : '') + raw;
-        if (pageUrl) payload += '\n\n\u2014 ' + aiName + ' \u00b7 ' + pageUrl;
+        // ── Resolve model attribution from transcript ─────────────────────────
+        var modelLine = '';
+        if (typeof answerIndex === 'number' && answerIndex >= 0) {
+            // Walk transcript to find the nth assistant entry
+            var ai = 0;
+            for (var t = 0; t < _transcript.length; t++) {
+                if (_transcript[t].role === 'assistant' || _transcript[t].role === 'error') {
+                    if (ai === answerIndex) {
+                        var mdl = _transcript[t].model;
+                        if (mdl) {
+                            modelLine = '\nModel: ' +
+                                (mdl.model || mdl.id) + ' \u00b7 ' + mdl.provider;
+                        }
+                        break;
+                    }
+                    ai++;
+                }
+            }
+        }
 
-        // Flash button label for 1.6 s then restore — primary visual confirmation.
+        // ── Resolve rating from feedback store ────────────────────────────────
+        var ratingLine = '';
+        if (typeof answerIndex === 'number') {
+            var fb = _feedbackStore[answerIndex];
+            if (fb) {
+                var rdisp = _ratingDisplay(fb.ratingLabel, fb.ratingValue);
+                ratingLine = '\n\nRating: ' + rdisp.emoji + ' ' + fb.ratingLabel;
+                if (fb.message) { ratingLine += ' \u2014 \u201c' + fb.message + '\u201d'; }
+            }
+        }
+
+        // ── Compose payload ───────────────────────────────────────────────────
+        var questionPart = questionText
+            ? 'Q: ' + questionText + modelLine + '\n\nA: '
+            : '';
+        var payload = questionPart + raw + ratingLine;
+        if (pageUrl) { payload += '\n\n\u2014 ' + aiName + ' \u00b7 ' + pageUrl; }
+
+        // ── Flash button label (visual confirmation) ──────────────────────────
         function flash(label) {
             if (!btn) return;
             var lbl = btn.querySelector('span');
@@ -2014,7 +4641,7 @@
             ta.select();
             try {
                 document.execCommand('copy');
-                showNotification('Q & A copied \u2014 ready to share.');
+                showNotification('Q \u0026 A copied \u2014 ready to share.');
                 flash('Copied!');
             } catch (_) {
                 showNotification('Could not copy \u2014 please try again.', true);
@@ -2028,7 +4655,7 @@
                     navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(payload)
                     .then(function () {
-                        showNotification('Q & A copied \u2014 ready to share.');
+                        showNotification('Q \u0026 A copied \u2014 ready to share.');
                         flash('Copied!');
                     })
                     .catch(function () { execCmdCopy(); });
@@ -2306,7 +4933,26 @@
         return el;
     }
 
-    function _buildBubbleMore(answerText) {
+    /**
+     * Build the expandable "⋯ More ▾" action-row menu button and its submenu.
+     *
+     * Parameters
+     * ----------
+     * answerText : string
+     *     Plain-text answer for TTS playback (Listen button).
+     * shareOpts : object | null
+     *     Optional. When provided, a Share menu item is rendered inside the
+     *     dropdown (below Listen). Shape:
+     *       { text: string, question: string|null, bubble: HTMLElement, answerIndex: number }
+     *     Moved here from the flat action row so the visible row stays compact:
+     *     time | copy | 👍👎 | retry | more.
+     *
+     * Returns
+     * -------
+     * HTMLElement
+     *     The wrapper element (relative-positioned anchor).
+     */
+    function _buildBubbleMore(answerText, shareOpts, retryOpts) {
         var wrapper = document.createElement('div');
         wrapper.className = 'ai-assistant-panel-bubble-action-more';
 
@@ -2329,6 +4975,33 @@
         menu.className = 'ai-assistant-panel-bubble-action-more-menu';
         menu.setAttribute('role', 'menu');
         menu.setAttribute('data-open', 'false');
+
+        // ── Retry — FIRST item in the menu (re-submits the paired question) ─────
+        if (retryOpts && retryOpts.question) {
+            (function (q) {
+                var retryMenuBtn = document.createElement('button');
+                retryMenuBtn.className =
+                    'ai-assistant-panel-bubble-action ' +
+                    'ai-assistant-panel-bubble-action--retry';
+                retryMenuBtn.type = 'button';
+                retryMenuBtn.setAttribute('role', 'menuitem');
+                retryMenuBtn.setAttribute('aria-label', 'Retry this answer');
+                retryMenuBtn.title = 'Retry — re-send the same question';
+                retryMenuBtn.innerHTML = ICONS.retry;
+                var retryMenuLbl = document.createElement('span');
+                retryMenuLbl.textContent = 'Retry';
+                retryMenuBtn.appendChild(retryMenuLbl);
+                retryMenuBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var panelInput = document.getElementById('ai-assistant-panel-input');
+                    if (!panelInput) return;
+                    panelInput.value = q;
+                    _updateSendBtnState();
+                    handleAIPanelSubmit();
+                });
+                menu.appendChild(retryMenuBtn);
+            }(retryOpts.question));
+        }
 
         // ── Listen (TTS) button inside the menu ───────────────────────────
         // Only rendered when the Web Speech Synthesis API is available.
@@ -2353,6 +5026,30 @@
                 });
             }(listenBtn, answerText));
             menu.appendChild(listenBtn);
+        }
+
+        // ── Share button (moved from flat action row into menu) ───────────
+        // Menu order: retry (first) | listen | share
+        // Row order:  time | copy | 👍👎⌃ | more
+        // shareOpts is null for legacy/streaming paths that don't pass it.
+        if (shareOpts && shareOpts.text !== undefined) {
+            (function (opts) {
+                var shareMenuBtn = document.createElement('button');
+                shareMenuBtn.className = 'ai-assistant-panel-bubble-action';
+                shareMenuBtn.type = 'button';
+                shareMenuBtn.setAttribute('role', 'menuitem');
+                shareMenuBtn.setAttribute('aria-label', 'Share this answer');
+                shareMenuBtn.title = 'Share Q \u0026 A \u2014 send question + answer to another app or clipboard';
+                shareMenuBtn.innerHTML = ICONS.shareAns;
+                var shareMenuLbl = document.createElement('span');
+                shareMenuLbl.textContent = 'Share';
+                shareMenuBtn.appendChild(shareMenuLbl);
+                shareMenuBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    _shareAnswer(opts.text, opts.question, opts.bubble, shareMenuBtn, opts.answerIndex);
+                });
+                menu.appendChild(shareMenuBtn);
+            }(shareOpts));
         }
 
         // ── Toggle click handler ──────────────────────────────────────────
@@ -2814,6 +5511,354 @@
      *                                 answerIndex) keeps working unchanged.
      * @returns {HTMLElement|null}
      */
+    // ══════════════════════════════════════════════════════════════════════════
+    // FLOATING QUICK-RATE BUTTON — per-answer action row
+    // Renders as: [👍] [👎] | [⌃ expand] — slides in on action-row hover.
+    // Pattern mirrors .ai-assistant-mic-expand-btn (see CSS D4-b/c/d).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Build the floating quick-rate expander for a single answer bubble.
+     *
+     * Renders as a right-anchored slide-in control on the action row:
+     *   [👍]  [👎]  |  [⌃ expand popup]
+     *
+     * Clicking 👍 or 👎 fires an immediate quick-rate without requiring the
+     * full feedback form.  Clicking ⌃ reveals a compact popup with a persist
+     * mini-toggle and a link to open the full inline feedback block.
+     *
+     * Parameters
+     * ----------
+     * answerIndex : number
+     *     Zero-based stable index of the answer bubble.
+     * answerText : string
+     *     Full answer text carried in the feedback payload.
+     * questionText : string | null
+     *     The paired user question; may be null for the first turn.
+     *
+     * Returns
+     * -------
+     * HTMLElement | null
+     *     ``.ai-assistant-fbk-float-wrapper`` ready to append to the action
+     *     row.  Returns null when ``cfg.panelFeedback === false`` or when
+     *     quick-rate has already been given for this answer index.
+     *
+     * Notes
+     * -----
+     * Developer: The popup is appended to the float-wrapper (position:relative
+     *   ancestor) so it floats above the action row without displacing layout.
+     * Developer: Mini persist toggle inside the popup mirrors the §6 main
+     *   toggle.  Both call ``_setFeedbackPersistMode()`` to stay in sync.
+     * Developer: The full feedback form (``_buildFeedbackBlock``) is not
+     *   duplicated — the expand button toggles
+     *   ``.ai-assistant-panel-feedback--revealed`` on the existing block.
+     */
+    function _buildFbkFloat(answerIndex, answerText, questionText) {
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        if (cfg.panelFeedback === false) return null;
+        if (_feedbackGivenSet.has(answerIndex)) return null;
+
+        var popupId = 'ai-assistant-fbk-popup-' + answerIndex;
+
+        // ── Outer wrapper (position:relative anchor for popup) ────────────
+        var wrapper = document.createElement('div');
+        wrapper.className = 'ai-assistant-fbk-float-wrapper';
+
+        // ── Quick-rate pill: 👍 | 👎 | sep | expand chevron ──────────────
+        var quick = document.createElement('div');
+        quick.className = 'ai-assistant-fbk-quick';
+
+        var _quickOpts = [
+            { emoji: '\uD83D\uDC4E', sentiment: 'negative', value: -1, title: 'Not helpful' },
+            { emoji: '\uD83D\uDC4D', sentiment: 'positive', value: 1,  title: 'Helpful' },
+        ];
+
+        _quickOpts.forEach(function (opt) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ai-assistant-fbk-quick-btn';
+            btn.setAttribute('data-sentiment', opt.sentiment);
+            btn.setAttribute('data-value', String(opt.value));
+            btn.setAttribute('aria-pressed', 'false');
+            var _btnLabel = opt.title + ' (' + (opt.value > 0 ? '+' : '') + String(opt.value) + ')';
+            btn.setAttribute('aria-label', _btnLabel);
+            btn.title = _btnLabel;
+
+            // Emoji + score chip — same structure as .ai-assistant-panel-feedback-btn
+            // so .ai-fbk-score CSS rules apply without duplication.
+            var emojiSpan = document.createElement('span');
+            emojiSpan.setAttribute('aria-hidden', 'true');
+            emojiSpan.textContent = opt.emoji;
+            btn.appendChild(emojiSpan);
+
+            // Score label hidden until aria-pressed="true" (revealed via CSS).
+            var scoreSpan = document.createElement('span');
+            scoreSpan.className = 'ai-fbk-score';
+            scoreSpan.setAttribute('aria-hidden', 'true');
+            scoreSpan.textContent = (opt.value > 0 ? '+' : '') + String(opt.value);
+            btn.appendChild(scoreSpan);
+
+            btn.addEventListener('click', function () {
+                // ── Edit path ────────────────────────────────────────────────
+                // If feedback was already given for this answer:
+                //   • Same button (aria-pressed="true") → no-op (nothing changed).
+                //   • Different button → the user is correcting their rating;
+                //     retract the previous submission so it is excluded from
+                //     training data, then proceed with the new selection.
+                if (_feedbackGivenSet.has(answerIndex)) {
+                    if (btn.getAttribute('aria-pressed') === 'true') { return; }
+
+                    var _prevQEntry = _feedbackStore[answerIndex];
+                    var _fbBaseQ  = _EP.hasProfiles()
+                        ? _EP.resolve('feedback')
+                        : (cfg.panelFeedbackEndpoint || '');
+                    var _fbTokenQ = _EP.hasProfiles()
+                        ? _EP.resolveToken('feedbackToken')
+                        : (cfg.panelFeedbackToken || '');
+                    if (_fbBaseQ && _feedbackPersistEnabled &&
+                            _prevQEntry && _prevQEntry.sessionId) {
+                        _postFeedbackRetract(
+                            _fbBaseQ + '/v1/feedback', _fbTokenQ,
+                            _prevQEntry.sessionId, answerIndex,
+                            _prevQEntry.conversationId
+                        );
+                    }
+                    // Remove the guard so the normal submit block runs below.
+                    _feedbackGivenSet.delete(answerIndex);
+                }
+
+                // Visual: toggle pressed state on quick buttons.
+                quick.querySelectorAll('.ai-assistant-fbk-quick-btn').forEach(function (x) {
+                    x.setAttribute('aria-pressed', 'false');
+                });
+                btn.setAttribute('aria-pressed', 'true');
+
+                var detail = {
+                    schemaVersion:  1,
+                    ratingValue:    opt.value,
+                    ratingLabel:    opt.title,
+                    rating:         opt.title,
+                    message:        '',
+                    query:          (typeof questionText === 'string') ? questionText : '',
+                    answer:         (typeof answerText === 'string')   ? answerText   : '',
+                    model:          null,
+                    answerIndex:    answerIndex,
+                    page:           (typeof location !== 'undefined') ? location.href : '',
+                    ts:             Date.now(),
+                    // Append Date.now() so the sessionId is unique on every click
+                    // (including edits) — the server can deduplicate on
+                    // conversationId:answerIndex, so the uniqueness here is only
+                    // needed for the retraction prevSessionId lookup.
+                    sessionId:      _sessionId + '-quick-' + answerIndex + '-' + Date.now(),
+                    conversationId: _sessionId,
+                };
+
+                // CustomEvent fires unconditionally for doc-author listeners.
+                try {
+                    document.dispatchEvent(new CustomEvent(
+                        'ai-assistant-feedback', { detail: detail }));
+                } catch (_) {}
+
+                var _fbBase = _EP.hasProfiles()
+                    ? _EP.resolve('feedback')
+                    : (cfg.panelFeedbackEndpoint || '');
+                var _fbToken = _EP.hasProfiles()
+                    ? _EP.resolveToken('feedbackToken')
+                    : (cfg.panelFeedbackToken || '');
+
+                if (_fbBase && _feedbackPersistEnabled) {
+                    // Also retract any pending entry set by the detailed-block's
+                    // Edit button (covers: quick → fbBlock Edit → click quick).
+                    var _pendQEntry = _feedbackStore[answerIndex];
+                    if (_pendQEntry && _pendQEntry._pendingRetract && _pendQEntry.sessionId) {
+                        _postFeedbackRetract(
+                            _fbBase + '/v1/feedback', _fbToken,
+                            _pendQEntry.sessionId, answerIndex,
+                            _pendQEntry.conversationId
+                        );
+                        _pendQEntry._pendingRetract = false;
+                    }
+                    _postFeedback(_fbBase + '/v1/feedback', _fbToken, detail);
+                }
+
+                _feedbackGivenSet.add(answerIndex);
+                _feedbackStore[answerIndex] = {
+                    ratingValue:    opt.value,
+                    ratingLabel:    opt.title,
+                    message:        '',
+                    ts:             Date.now(),
+                    query:          detail.query,
+                    answer:         detail.answer,
+                    model:          null,
+                    sessionId:      detail.sessionId,
+                    conversationId: detail.conversationId,
+                    page:           detail.page,
+                };
+
+                // Update the detailed feedback block: show thank-you + Edit button
+                // so the user can correct this submission at any time.
+                var fbBlock = document.querySelector(
+                    '.ai-assistant-panel-feedback[data-answer-index="' + answerIndex + '"]'
+                );
+                if (fbBlock) {
+                    fbBlock.innerHTML = '';
+                    _showFeedbackThanks(fbBlock, answerIndex, answerText, questionText, cfg);
+                    fbBlock.classList.add('ai-assistant-panel-feedback--revealed');
+                }
+            });
+
+            quick.appendChild(btn);
+        });
+
+        // Separator between 👎 and expand chevron
+        var sep = document.createElement('span');
+        sep.className = 'ai-assistant-fbk-sep';
+        sep.setAttribute('aria-hidden', 'true');
+        quick.appendChild(sep);
+
+        // Expand chevron wrapper + button
+        var expWrap = document.createElement('div');
+        expWrap.className = 'ai-assistant-fbk-expand-wrapper';
+
+        var expBtn = document.createElement('button');
+        expBtn.type = 'button';
+        expBtn.className = 'ai-assistant-fbk-expand-btn';
+        expBtn.setAttribute('aria-expanded', 'false');
+        expBtn.setAttribute('aria-controls', popupId);
+        expBtn.setAttribute('aria-label', 'Feedback options');
+        expBtn.title = 'Feedback options';
+        expBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+            '<polyline points="18 15 12 9 6 15"/></svg>';
+
+        expWrap.appendChild(expBtn);
+        quick.appendChild(expWrap);
+        wrapper.appendChild(quick);
+
+        // ── Popup ─────────────────────────────────────────────────────────
+        var popup = document.createElement('div');
+        popup.className = 'ai-assistant-fbk-popup';
+        popup.id = popupId;
+        popup.setAttribute('data-pinned', 'false');
+        popup.setAttribute('role', 'dialog');
+        popup.setAttribute('aria-label', 'Feedback options');
+
+        // Row 1: Persist toggle
+        var persistRow = document.createElement('div');
+        persistRow.className = 'ai-assistant-fbk-popup-row';
+
+        var persistIcon = document.createElement('span');
+        persistIcon.className = 'ai-assistant-fbk-popup-icon';
+        persistIcon.textContent = '\uD83D\uDCBE';
+        persistIcon.setAttribute('aria-hidden', 'true');
+
+        var persistLabel = document.createElement('span');
+        persistLabel.className = 'ai-assistant-fbk-popup-label';
+        persistLabel.textContent = 'Save to dataset';
+
+        var miniPill = document.createElement('button');
+        miniPill.type = 'button';
+        miniPill.className = 'ai-assistant-fbk-popup-mini-pill';
+        miniPill.setAttribute('role', 'switch');
+        miniPill.setAttribute('aria-checked', _feedbackPersistEnabled ? 'true' : 'false');
+        miniPill.setAttribute('aria-label', 'Save ratings to HuggingFace dataset');
+        var miniThumb = document.createElement('span');
+        miniThumb.className = 'ai-assistant-fbk-popup-mini-pill-thumb';
+        miniPill.appendChild(miniThumb);
+        miniPill.addEventListener('click', function () {
+            _setFeedbackPersistMode(!_feedbackPersistEnabled);
+        });
+
+        persistRow.appendChild(persistIcon);
+        persistRow.appendChild(persistLabel);
+        persistRow.appendChild(miniPill);
+        popup.appendChild(persistRow);
+
+        var popSep1 = document.createElement('div');
+        popSep1.className = 'ai-assistant-fbk-popup-sep';
+        popSep1.setAttribute('aria-hidden', 'true');
+        popup.appendChild(popSep1);
+
+        // Row 2: Toggle full feedback form
+        var formRow = document.createElement('div');
+        formRow.className = 'ai-assistant-fbk-popup-row';
+        formRow.style.cursor = 'pointer';
+        formRow.setAttribute('role', 'button');
+        formRow.setAttribute('tabindex', '0');
+        formRow.setAttribute('aria-label', 'Open detailed feedback form');
+
+        var formIcon = document.createElement('span');
+        formIcon.className = 'ai-assistant-fbk-popup-icon';
+        formIcon.textContent = '\uD83D\uDCAC';
+        formIcon.setAttribute('aria-hidden', 'true');
+
+        var formLabel = document.createElement('span');
+        formLabel.className = 'ai-assistant-fbk-popup-label';
+        formLabel.textContent = 'Detailed feedback \u2193';
+
+        formRow.appendChild(formIcon);
+        formRow.appendChild(formLabel);
+
+        function _toggleFullForm() {
+            var fbBlock = document.querySelector(
+                '.ai-assistant-panel-feedback[data-answer-index="' + answerIndex + '"]'
+            );
+            if (!fbBlock) return;
+            fbBlock.classList.toggle('ai-assistant-panel-feedback--revealed');
+            formLabel.textContent = fbBlock.classList.contains(
+                'ai-assistant-panel-feedback--revealed'
+            ) ? 'Detailed feedback \u2191' : 'Detailed feedback \u2193';
+        }
+        formRow.addEventListener('click', _toggleFullForm);
+        formRow.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _toggleFullForm(); }
+        });
+        popup.appendChild(formRow);
+
+        var popSep2 = document.createElement('div');
+        popSep2.className = 'ai-assistant-fbk-popup-sep';
+        popSep2.setAttribute('aria-hidden', 'true');
+        popup.appendChild(popSep2);
+
+        // Row 3: Future features placeholder
+        var futureRow = document.createElement('div');
+        futureRow.className = 'ai-assistant-fbk-popup-future';
+        futureRow.setAttribute('aria-hidden', 'true');
+        futureRow.textContent = '\uD83D\uDD2E Coming soon: Flag \u00B7 Correct \u00B7 Bookmark';
+        popup.appendChild(futureRow);
+
+        wrapper.appendChild(popup);
+
+        // ── Expand button wiring ──────────────────────────────────────────
+        expBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isPinned = popup.getAttribute('data-pinned') === 'true';
+            popup.setAttribute('data-pinned', isPinned ? 'false' : 'true');
+            expBtn.setAttribute('aria-expanded', isPinned ? 'false' : 'true');
+            wrapper.setAttribute('data-active', isPinned ? 'false' : 'true');
+        });
+
+        // Close popup on outside click
+        document.addEventListener('click', function _fbkOutsideClick(e) {
+            if (!wrapper.contains(e.target)) {
+                popup.setAttribute('data-pinned', 'false');
+                expBtn.setAttribute('aria-expanded', 'false');
+                wrapper.removeAttribute('data-active');
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function _fbkEsc(e) {
+            if (e.key === 'Escape' && popup.getAttribute('data-pinned') === 'true') {
+                popup.setAttribute('data-pinned', 'false');
+                expBtn.setAttribute('aria-expanded', 'false');
+                expBtn.focus();
+            }
+        });
+
+        return wrapper;
+    }
+
     function _buildFeedbackBlock(answerIndex, answerText, questionText) {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
         if (cfg.panelFeedback === false) return null;     // opt-out
@@ -2821,8 +5866,7 @@
 
         var question = (typeof cfg.panelFeedbackQuestion === 'string' &&
             cfg.panelFeedbackQuestion) || 'Was this helpful?';
-        var thanks = (typeof cfg.panelFeedbackThanks === 'string' &&
-            cfg.panelFeedbackThanks) || 'Thanks for your feedback!';
+        // Note: `thanks` text is rendered by _showFeedbackThanks — not inlined here.
 
         var opts = Array.isArray(cfg.panelFeedbackOptions) &&
             cfg.panelFeedbackOptions.length >= 2
@@ -2981,18 +6025,31 @@
             }
 
             var detail = {
-                schemaVersion: 1,
-                ratingValue:   chosen.value,        // SIGNED INT
-                ratingLabel:   chosen.label,        // string
-                rating:        chosen.label,        // legacy alias (back-compat)
-                message:       ta.value.trim(),
-                query:         (typeof questionText === 'string') ? questionText : '',
-                answer:        (typeof answerText === 'string') ? answerText : '',
-                model:         modelInfo,
-                answerIndex:   answerIndex,
-                page:          location ? location.href : '',
-                ts:            Date.now(),
-                sessionId:     sid,
+                schemaVersion:  1,
+                ratingValue:    chosen.value,        // SIGNED INT
+                ratingLabel:    chosen.label,        // string
+                rating:         chosen.label,        // legacy alias (back-compat)
+                message:        ta.value.trim(),
+                query:          (typeof questionText === 'string') ? questionText : '',
+                answer:         (typeof answerText === 'string') ? answerText : '',
+                model:          modelInfo,
+                answerIndex:    answerIndex,
+                page:           location ? location.href : '',
+                ts:             Date.now(),
+                // ``sessionId`` is a per-click idempotency UUID (regenerated on
+                // every submit click to guard against double-sends).  Back-compat
+                // field; new consumers should prefer ``conversationId``.
+                sessionId:      sid,
+                // ``conversationId`` is the stable per-page-load session UUID
+                // (``_sessionId``, set once at module load, never re-generated).
+                // The server (POST /v1/feedback) uses this as the first component
+                // of ``_dedup_key = "{conversationId}:{answerIndex}"`` so that
+                // feedback records can be matched against contribution records
+                // (which use the same key format via ``payload.sessionId``).
+                // Without this field the server falls back to ``""`` and all
+                // feedback dedup keys collapse to ``":{answerIndex}"`` — making
+                // cross-conversation deduplication impossible.
+                conversationId: _sessionId,
             };
 
             // Dev-friendly hook — doc authors attach their own analytics.
@@ -3000,20 +6057,172 @@
                 document.dispatchEvent(new CustomEvent(
                     'ai-assistant-feedback', { detail: detail }));
             } catch (_) {}
+            // HTTP persistence — fires only when endpoint is configured.
+            // CustomEvent always dispatches first to preserve backward
+            // compatibility for doc authors' custom listeners.
+            // ── HTTP feedback persistence ─────────────────────────────────
+            // Profile-aware: _EP.resolve('feedback') wins when profiles are
+            // defined.  Falls back to legacy cfg.panelFeedbackEndpoint so
+            // deployments that have not migrated to profiles work unchanged.
+            var _fbBase  = _EP.hasProfiles()
+                ? _EP.resolve('feedback')
+                : (cfg.panelFeedbackEndpoint || '');
+            var _fbToken = _EP.hasProfiles()
+                ? _EP.resolveToken('feedbackToken')
+                : (cfg.panelFeedbackToken || '');
+            if (_fbBase) {
+                // Gate: only POST to the server when persist is enabled.
+                // The CustomEvent above has already fired unconditionally so
+                // doc-author listeners and the _feedbackStore update (below)
+                // are never skipped — only the durable HF write is suppressed.
+                if (_feedbackPersistEnabled) {
+                    // Retract any earlier submission flagged by the Edit button
+                    // before writing the new record.  This path is reached when
+                    // a quick-rate click shows _showFeedbackThanks on this block,
+                    // the user clicks "Edit feedback", and then re-submits via
+                    // the form that _showFeedbackThanks re-renders with
+                    // _rebuildFeedbackFormIn — BUT in theory _buildFeedbackBlock
+                    // itself can also be re-entered if _feedbackGivenSet was
+                    // cleared and the original wrap element is still live.
+                    // Guard defensively so neither path double-posts.
+                    var _bfbEntry = _feedbackStore[answerIndex];
+                    if (_bfbEntry && _bfbEntry._pendingRetract && _bfbEntry.sessionId) {
+                        _postFeedbackRetract(
+                            _fbBase + '/v1/feedback', _fbToken,
+                            _bfbEntry.sessionId, answerIndex,
+                            _bfbEntry.conversationId
+                        );
+                        // Clear immediately — defensive against rapid double-submit.
+                        _bfbEntry._pendingRetract = false;
+                    }
+                    _postFeedback(
+                        _fbBase + '/v1/feedback',
+                        _fbToken,
+                        detail
+                    );
+                }
+            }
             if (cfg.panelFeedbackLog) {
                 // eslint-disable-next-line no-console
                 console.log('[ai-assistant] feedback', detail);
             }
             _feedbackGivenSet.add(answerIndex);
+            // v3: persist the full detail schema so share export enrichment,
+            // feedback POST, and training contribution all read a complete tuple.
+            // query/answer/model/sessionId/page were previously dropped here.
+            _feedbackStore[answerIndex] = {
+                ratingValue:    chosen.value,
+                ratingLabel:    chosen.label,
+                message:        ta.value.trim(),
+                ts:             Date.now(),
+                // Added — required for POST /v1/feedback and training contribution:
+                query:          detail.query,
+                answer:         detail.answer,
+                model:          detail.model,
+                sessionId:      detail.sessionId,
+                // Added — stable per-page-load conversation UUID; needed so that
+                // training contribution records are self-describing and consistent
+                // with the dedup key written by POST /v1/feedback.
+                conversationId: detail.conversationId,
+                page:           detail.page,
+            };
+            // Delegate thank-you rendering to _showFeedbackThanks so the
+            // "Edit feedback" button is appended automatically.  This replaces
+            // the old bare paragraph that had no way to re-open the form.
             wrap.innerHTML = '';
-            var done = document.createElement('p');
-            done.className = 'ai-assistant-panel-feedback-thanks';
-            done.textContent = thanks;
-            wrap.appendChild(done);
+            _showFeedbackThanks(wrap, answerIndex, answerText, questionText, cfg);
         });
         wrap.appendChild(submit);
 
         return wrap;
+    }
+
+    // ── Sheet hamburger helper ────────────────────────────────────────────────
+    /**
+     * Build a hamburger icon button for a slide-over sheet header.
+     *
+     * Clicking the button opens the shared main-panel hamburger popover
+     * **without closing the current sheet**.  The popover renders on top of
+     * the sheet because its CSS ``z-index`` (100001) exceeds every sheet's
+     * ``z-index`` (99999) within the same panel stacking context.
+     *
+     * The button is omitted when ``cfg.panelHamburger`` is ``false``,
+     * mirroring the same opt-out flag used in the main panel header.
+     *
+     * Parameters
+     * ----------
+     * sheet : HTMLElement
+     *     The slide-over sheet root element.  The sheet is **not** closed
+     *     by this button — it remains visible behind the popover overlay.
+     * idSuffix : string
+     *     Unique suffix appended to ``'sheet-ham-'`` to form the button id.
+     * closeExtra : function | null, optional
+     *     **Deprecated / ignored.**  Previously called before the sheet was
+     *     hidden; kept in the signature so existing call-sites (e.g. the EP
+     *     sheet's ``_unsubscribe`` guard) compile without change.  Because
+     *     the sheet no longer closes on hamburger click, no pre-close teardown
+     *     is required.  The EP sheet's DOM-removal ``MutationObserver`` and
+     *     its explicit ``hClose`` handler are the correct teardown paths.
+     *
+     * Returns
+     * -------
+     * HTMLElement | null
+     *     The configured icon button, or ``null`` when hamburger is disabled.
+     *
+     * Notes
+     * -----
+     * Developer — selector rationale:
+     *   ``_createIconBtn('hamburger', ...)`` gives the header button
+     *   ``id="ai-assistant-panel-hamburger"`` — identical to the popover div id
+     *   set by ``_buildHamburgerMenu``.  ``getElementById`` returns the button
+     *   (first match in DOM order), not the popover.  We therefore use the
+     *   class+role selector ``'.ai-assistant-panel-hamburger[role="menu"]'``
+     *   which uniquely identifies the popover div and never matches the button
+     *   (class ``ai-assistant-panel-icon-btn``).
+     *
+     * Developer — z-index rationale:
+     *   Sheets: ``z-index: 99999``.  Hamburger popover: ``z-index: 100001``
+     *   (raised from the legacy value of 5 — see CSS).  Both are
+     *   ``position: absolute`` children of the same panel stacking context, so
+     *   100001 > 99999 guarantees the popover is always painted above an open
+     *   sheet without any DOM re-ordering or sheet dismissal.
+     *
+     * User — expected interaction:
+     *   1. Click ☰ in any sheet header → hamburger menu appears on top of the
+     *      sheet; the sheet content remains visible behind it.
+     *   2. Click a menu item (e.g. "Privacy") → ``_openSheet`` closes this
+     *      sheet and opens the target sheet.
+     *   3. Click outside the menu / press Escape → menu closes; the sheet that
+     *      was already open is still the active view (no navigation side-effect).
+     */
+    function _buildSheetHamburgerBtn(sheet, idSuffix, closeExtra) {  // closeExtra retained for call-site compat; not invoked
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+        if (cfg.panelHamburger === false) return null;
+        var btn = _createIconBtn('sheet-ham-' + idSuffix, 'Open menu', ICONS.menu);
+        btn.title = 'Open menu';
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            // ── Do NOT close the sheet. ───────────────────────────────────────
+            // Previous code called closeExtra() then sheet.setAttribute('data-open',
+            // 'false') here, which dismissed the sheet before showing the popover.
+            // That caused the "navigate to main page" side-effect the user reported.
+            // The fix: keep the sheet open; the hamburger popover's elevated
+            // z-index (100001 > sheets' 99999) makes it paint on top naturally.
+            //
+            // ── Locate the popover by class+role, NOT getElementById. ─────────
+            // _createIconBtn('hamburger') gives the header button the same id
+            // as the popover div ('ai-assistant-panel-hamburger').  getElementById
+            // returns the button (first in DOM order) which has no data-open and
+            // shows nothing.  The class+role selector is unambiguous: the popover
+            // div carries class 'ai-assistant-panel-hamburger' and role 'menu';
+            // the button carries class 'ai-assistant-panel-icon-btn'.
+            var pop = document.querySelector(
+                '.ai-assistant-panel-hamburger[role="menu"]');
+            if (!pop) return;
+            pop.setAttribute('data-anchor', 'left');
+            pop.setAttribute('data-open', 'true');
+        });
+        return btn;
     }
 
     // ── R2: privacy / responsibility sheet ────────────────────────────────────
@@ -3028,7 +6237,2243 @@
      *
      * @returns {HTMLElement}
      */
-    function _buildPrivacySheet() {
+
+    // ── Endpoint Configuration Sheet ─────────────────────────────────────────
+    /**
+     * Build the endpoint-configuration slide-in sheet.
+     *
+     * ARCHITECTURE
+     * ════════════
+     * §0  Overview bar      — registry summary (built-in N, custom N/20, active label)
+     * §1  Profile selector  — radio cards grouped: Built-in / Custom
+     *                         each card shows capability pills + metadata
+     *                         custom cards have a Delete button
+     * §2  Active inspector  — Simple/Advanced mode toggle; per-feature URLs with
+     *                         copy-to-clipboard; protocol badge; optional health check
+     * §3  Add profile form  — security notice; Simple/Advanced mode; per-field
+     *                         blur validation via _EP.validateUrl; submit rate-limit
+     * §4  Manage            — export JSON (tokens omitted); import from JSON paste;
+     *                         clear-all-custom button
+     * §5  conf.py snippet   — dynamically generated Python dict for the active
+     *                         profile; copy button; tokens excluded
+     *
+     * SECURITY
+     * ════════
+     * • All user-supplied strings written via textContent, never innerHTML (XSS).
+     * • Profile addition goes through _EP.addProfile() which runs _sanitizeRuntimeUrl
+     *   (SSRF) + _SAFE_KEY_RE (prototype-pollution) + count-limit.
+     * • Profile deletion goes through _EP.removeProfile() (built-ins protected).
+     * • Import validates each entry through _EP.addProfile() individually.
+     * • conf.py snippet omits token values (V-06 mitigation).
+     *
+     * @returns {HTMLElement}  The sheet root element.
+     */
+    function _buildEndpointConfigSheet() {
+        'use strict';
+
+        // ── Safety guard ──────────────────────────────────────────────────────
+        var _epSafe = (typeof _EP !== 'undefined' && _EP &&
+                       typeof _EP.resolve === 'function') ? _EP : null;
+
+        // ── Shared constants ──────────────────────────────────────────────────
+        var _FEATURE_DEFS = [
+            { key: 'chat',     label: 'Chat',     suffix: '/v1/chat/completions', priority: 'P0' },
+            { key: 'share',    label: 'Share',    suffix: '/v1/share',            priority: 'P1' },
+            { key: 'feedback', label: 'Feedback', suffix: '/v1/feedback',         priority: 'P3' },
+            { key: 'training', label: 'Training', suffix: '/v1/contribute',       priority: 'P2' },
+        ];
+        var _MAX_LABEL   = 100;
+        var _MAX_CUSTOM  = (_epSafe && _epSafe.MAX_CUSTOM_PROFILES) ? _epSafe.MAX_CUSTOM_PROFILES : 20;
+
+        // ── Root sheet ────────────────────────────────────────────────────────
+        var sheet = document.createElement('div');
+        sheet.className = 'ai-assistant-panel-privacy ai-assistant-panel-ep-sheet';
+        sheet.id        = 'ai-assistant-panel-ep-sheet';
+        sheet.setAttribute('data-open',  'false');
+        sheet.setAttribute('role',       'dialog');
+        sheet.setAttribute('aria-modal', 'true');
+        sheet.setAttribute('aria-label', 'Endpoint Configuration');
+
+        // ARIA live region — screen readers announce profile switches
+        var _liveRegion = document.createElement('div');
+        _liveRegion.setAttribute('aria-live',   'polite');
+        _liveRegion.setAttribute('aria-atomic', 'true');
+        _liveRegion.className = 'ai-assistant-visually-hidden';
+        sheet.appendChild(_liveRegion);
+
+        // ── Header ────────────────────────────────────────────────────────────
+        var head   = document.createElement('div');
+        head.className = 'ai-assistant-panel-privacy-head';
+        var hTitle = document.createElement('strong');
+        hTitle.textContent = 'Endpoint Configuration';
+        var hClose = _createIconBtn('ep-sheet-close', 'Close Endpoint Configuration', ICONS.close);
+        hClose.addEventListener('click', function () {
+            // Detach observer before closing so no callbacks fire on dead DOM
+            if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+            if (typeof _closeSheet === 'function') { _closeSheet(sheet); }
+            else { sheet.setAttribute('data-open', 'false'); }
+        });
+        // Hamburger — left of title, mirrors main panel header placement.
+        // closeExtra forwards the _unsubscribe teardown so the observer is
+        // detached before the sheet hides (same contract as hClose above).
+        var _epSheetHamBtn = _buildSheetHamburgerBtn(sheet, 'ep', function () {
+            if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+        });
+        if (_epSheetHamBtn) { head.appendChild(_epSheetHamBtn); }
+        head.appendChild(hTitle);
+        head.appendChild(hClose);
+        sheet.appendChild(head);
+
+        // ── Status bar ────────────────────────────────────────────────────────
+        var _statusBar  = document.createElement('div');
+        _statusBar.className = 'ai-assistant-panel-ep-status-bar';
+        var _statusLbl  = document.createElement('span');
+        _statusLbl.className  = 'ai-assistant-panel-ep-status-bar-label';
+        _statusLbl.textContent = 'Active:';
+        var _statusName = document.createElement('span');
+        _statusName.className = 'ai-assistant-panel-ep-status-bar-name';
+        var _statusTime = document.createElement('span');
+        _statusTime.className = 'ai-assistant-panel-ep-status-bar-time';
+        _statusBar.appendChild(_statusLbl);
+        _statusBar.appendChild(_statusName);
+        _statusBar.appendChild(_statusTime);
+        sheet.appendChild(_statusBar);
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        var bodyEl = document.createElement('div');
+        bodyEl.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-ep-body';
+
+        // ── Shared closure state ──────────────────────────────────────────────
+        var _cardsWrap   = null;
+        var _profileHint = null;
+        var _unsubscribe = null;
+        var _lastSwitchTs = 0;
+
+        // §2 DOM refs populated during construction, read by _refreshUrls
+        var _simpleInp  = null;
+        var _advInputs  = {};  // key → HTMLInputElement (read-only, advanced mode)
+        var _urlDisplay = null;
+        var _infoCard   = null;
+        var _compareWrap = null;
+        var _countBadge = null;
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §1  PROFILE SELECTOR
+        // ══════════════════════════════════════════════════════════════════════
+        var profileSection = _buildSheetSection('Profiles');
+        bodyEl.appendChild(profileSection);
+
+        // Count badge injected next to section heading
+        _countBadge = document.createElement('span');
+        _countBadge.className = 'ai-assistant-panel-ep-profile-count';
+        var _countHeadEl = profileSection.querySelector(
+            '.ai-assistant-panel-sheet-section-label'
+        );
+        if (_countHeadEl) { _countHeadEl.appendChild(_countBadge); }
+
+        if (!_epSafe || !_epSafe.hasProfiles()) {
+            _profileHint = document.createElement('p');
+            _profileHint.className  = 'ai-assistant-panel-ep-hint';
+            _profileHint.textContent =
+                'No profiles configured. Add one below, or set ' +
+                'ai_assistant_endpoint_profiles in conf.py for persistent profiles.';
+            profileSection.appendChild(_profileHint);
+        } else {
+            _profileHint = document.createElement('p');
+            _profileHint.className  = 'ai-assistant-panel-ep-hint';
+            _profileHint.textContent =
+                'Select a proxy backend. Switching is instant — no page reload needed.';
+            profileSection.appendChild(_profileHint);
+
+            _cardsWrap = document.createElement('div');
+            _cardsWrap.className = 'ai-assistant-panel-ep-cards';
+
+            var _initList   = _epSafe.list();
+            var _initActive = _epSafe.getActive();
+
+            // Partition into built-in (shipped in conf.py) and custom/imported.
+            var _builtinProfiles = _initList.filter(function (p) { return  p.isBuiltin; });
+            var _customProfiles  = _initList.filter(function (p) { return !p.isBuiltin; });
+
+            // Helper: render a labelled group of profile cards under a header.
+            // Groups with zero profiles emit nothing (no orphan header).
+            function _renderGroup(groupLabel, groupProfiles) {
+                if (!groupProfiles.length) { return; }
+                var hdr = document.createElement('h4');
+                hdr.className   = 'ai-assistant-panel-ep-prof-group-header';
+                hdr.textContent = groupLabel;
+                _cardsWrap.appendChild(hdr);
+                for (var _gi = 0; _gi < groupProfiles.length; _gi++) {
+                    var _gp = groupProfiles[_gi];
+                    _appendProfileCard(_cardsWrap, _gp.key, _gp.label,
+                                       _gp.source, _initActive);
+                }
+            }
+
+            _renderGroup('Built-in', _builtinProfiles);
+            _renderGroup('Custom',   _customProfiles);
+            profileSection.appendChild(_cardsWrap);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §2  ACTIVE PROFILE DETAILS
+        // ══════════════════════════════════════════════════════════════════════
+        var detailSection = _buildSheetSection('Active Profile');
+        bodyEl.appendChild(detailSection);
+
+        // Info card: name / key / source / last switched
+        _infoCard = document.createElement('div');
+        _infoCard.className = 'ai-assistant-panel-ep-info-card';
+        detailSection.appendChild(_infoCard);
+
+        // Mode toggle row (Simple / Advanced)
+        var modeRow = document.createElement('div');
+        modeRow.className = 'ai-assistant-panel-ep-mode-row';
+        var modeLbl = document.createElement('span');
+        modeLbl.className   = 'ai-assistant-panel-ep-mode-label';
+        modeLbl.textContent = 'Display:';
+        var _simpleModeBtn  = document.createElement('button');
+        _simpleModeBtn.type      = 'button';
+        _simpleModeBtn.className = 'ai-assistant-panel-ep-mode-btn ai-assistant-panel-ep-mode-btn--active';
+        _simpleModeBtn.textContent = 'Simple';
+        _simpleModeBtn.setAttribute('aria-pressed', 'true');
+        var _advModeBtn = document.createElement('button');
+        _advModeBtn.type      = 'button';
+        _advModeBtn.className = 'ai-assistant-panel-ep-mode-btn';
+        _advModeBtn.textContent = 'Advanced';
+        _advModeBtn.setAttribute('aria-pressed', 'false');
+        modeRow.appendChild(modeLbl);
+        modeRow.appendChild(_simpleModeBtn);
+        modeRow.appendChild(_advModeBtn);
+        detailSection.appendChild(modeRow);
+
+        // Simple mode: base URL + copy btn
+        var _simpleWrap = document.createElement('div');
+        _simpleWrap.className = 'ai-assistant-panel-ep-simple-wrap';
+        var _simpleHint = document.createElement('p');
+        _simpleHint.className   = 'ai-assistant-panel-ep-hint';
+        _simpleHint.textContent = 'Chat base URL (route suffixes appended automatically).';
+        _simpleWrap.appendChild(_simpleHint);
+        var _simpleRow  = document.createElement('div');
+        _simpleRow.className = 'ai-assistant-panel-ep-url-copy-row';
+        _simpleInp = document.createElement('input');
+        _simpleInp.type      = 'url';
+        _simpleInp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy';
+        _simpleInp.readOnly  = true;
+        _simpleInp.setAttribute('aria-label', 'Chat base URL — read-only');
+        _simpleInp.setAttribute('aria-readonly', 'true');
+        _simpleRow.appendChild(_simpleInp);
+        _simpleRow.appendChild(_makeCopyBtn(_simpleInp));
+        _simpleWrap.appendChild(_simpleRow);
+        detailSection.appendChild(_simpleWrap);
+
+        // Advanced mode: per-feature URL rows + copy btn + inline health btn
+        var _advWrap = document.createElement('div');
+        _advWrap.className    = 'ai-assistant-panel-ep-adv-wrap';
+        _advWrap.style.display = 'none';
+
+        for (var _fi = 0; _fi < _FEATURE_DEFS.length; _fi++) {
+            (function (fd) {
+                var row = document.createElement('div');
+                row.className = 'ai-assistant-panel-ep-url-row';
+
+                var rowLbl = document.createElement('span');
+                rowLbl.className   = 'ai-assistant-panel-ep-url-label';
+                rowLbl.textContent = fd.label;
+
+                var suffixSpan = document.createElement('span');
+                suffixSpan.className   = 'ai-assistant-panel-ep-url-suffix';
+                suffixSpan.textContent = fd.suffix;
+                suffixSpan.setAttribute('aria-hidden', 'true');
+
+                var inp = document.createElement('input');
+                inp.type      = 'url';
+                inp.className = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--copy';
+                inp.readOnly  = true;
+                inp.setAttribute('aria-label', fd.label + ' base URL — read-only');
+                inp.setAttribute('aria-readonly', 'true');
+                _advInputs[fd.key] = inp;
+
+                var actions = document.createElement('div');
+                actions.className = 'ai-assistant-panel-ep-url-actions';
+                actions.appendChild(_makeCopyBtn(inp));
+                actions.appendChild(_makeHealthBtn(inp, fd.label));
+
+                row.appendChild(rowLbl);
+                row.appendChild(suffixSpan);
+                row.appendChild(inp);
+                row.appendChild(actions);
+                _advWrap.appendChild(row);
+            }(_FEATURE_DEFS[_fi]));
+        }
+        detailSection.appendChild(_advWrap);
+
+        // Resolved URL display — colour-coded capability indicators
+        _urlDisplay = document.createElement('div');
+        _urlDisplay.className = 'ai-assistant-panel-ep-url-display';
+        detailSection.appendChild(_urlDisplay);
+
+        // "Test All Connectivity" button (pings every configured URL at once)
+        var testRow = document.createElement('div');
+        testRow.className = 'ai-assistant-panel-ep-health-row';
+        var testBtn = document.createElement('button');
+        testBtn.type      = 'button';
+        testBtn.className = 'ai-assistant-panel-ep-test-btn';
+        testBtn.textContent = 'Test All Connectivity';
+        var testResultsEl = document.createElement('div');
+        testResultsEl.className    = 'ai-assistant-panel-ep-test-results';
+        testResultsEl.style.display = 'none';
+        testRow.appendChild(testBtn);
+        testRow.appendChild(testResultsEl);
+        detailSection.appendChild(testRow);
+
+        testBtn.addEventListener('click', function () {
+            testResultsEl.style.display = '';
+            while (testResultsEl.firstChild) {
+                testResultsEl.removeChild(testResultsEl.firstChild);
+            }
+            var tested = 0;
+            for (var _ti = 0; _ti < _FEATURE_DEFS.length; _ti++) {
+                var _tfd = _FEATURE_DEFS[_ti];
+                var _turl = _epSafe ? _epSafe.resolve(_tfd.key) : '';
+                if (!_turl) { continue; }
+                tested++;
+                (function (label, url) {
+                    var rRow = document.createElement('div');
+                    rRow.className = 'ai-assistant-panel-ep-health-result';
+                    var rDot = document.createElement('span');
+                    rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--pending ai-assistant-panel-ep-profile-health-badge';
+                    rDot.setAttribute('aria-hidden', 'true');
+                    var rLbl = document.createElement('span');
+                    rLbl.className   = 'ai-assistant-panel-ep-resolved-label';
+                    rLbl.textContent = label;
+                    var rSt = document.createElement('span');
+                    rSt.className   = 'ai-assistant-panel-ep-health-status';
+                    rSt.textContent = 'Pinging…';
+                    rRow.appendChild(rDot);
+                    rRow.appendChild(rLbl);
+                    rRow.appendChild(rSt);
+                    testResultsEl.appendChild(rRow);
+                    _pingUrl(url, function (result) {
+                        if (result.ok) {
+                            rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--ok ai-assistant-panel-ep-profile-health-badge';
+                            rSt.textContent = 'Reachable';
+                        } else {
+                            rDot.className = 'ai-assistant-panel-ep-health-dot ai-assistant-panel-ep-health-dot--err ai-assistant-panel-ep-profile-health-badge';
+                            rSt.textContent = result.status === 'timeout' ? 'Timeout (5 s)' : 'Unreachable';
+                        }
+                    });
+                }(_tfd.label, _turl));
+            }
+            if (!tested) {
+                var noUrl = document.createElement('p');
+                noUrl.className   = 'ai-assistant-panel-ep-hint';
+                noUrl.textContent = 'No endpoints configured for the active profile.';
+                testResultsEl.appendChild(noUrl);
+            }
+        });
+
+        // Mode toggle handlers
+        _simpleModeBtn.addEventListener('click', function () {
+            _simpleModeBtn.classList.add('ai-assistant-panel-ep-mode-btn--active');
+            _advModeBtn.classList.remove('ai-assistant-panel-ep-mode-btn--active');
+            _simpleModeBtn.setAttribute('aria-pressed', 'true');
+            _advModeBtn.setAttribute('aria-pressed', 'false');
+            _simpleWrap.style.display = '';
+            _advWrap.style.display    = 'none';
+        });
+        _advModeBtn.addEventListener('click', function () {
+            _advModeBtn.classList.add('ai-assistant-panel-ep-mode-btn--active');
+            _simpleModeBtn.classList.remove('ai-assistant-panel-ep-mode-btn--active');
+            _advModeBtn.setAttribute('aria-pressed', 'true');
+            _simpleModeBtn.setAttribute('aria-pressed', 'false');
+            _advWrap.style.display    = '';
+            _simpleWrap.style.display = 'none';
+        });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §3  ADD CUSTOM PROFILE
+        // ══════════════════════════════════════════════════════════════════════
+        var addSection = _buildSheetSection('Add Custom Profile');
+        bodyEl.appendChild(addSection);
+
+        // Cap warning banner (shown at the limit)
+        var _addCapWarn = document.createElement('p');
+        _addCapWarn.className    = 'ai-assistant-panel-ep-hint ai-assistant-panel-ep-hint--warn';
+        _addCapWarn.style.display = 'none';
+        addSection.appendChild(_addCapWarn);
+
+        // Collapsible toggle
+        var addToggleBtn = document.createElement('button');
+        addToggleBtn.type      = 'button';
+        addToggleBtn.className = 'ai-assistant-panel-ep-add-toggle';
+        addToggleBtn.setAttribute('aria-expanded', 'false');
+        addToggleBtn.textContent = '+ Add custom profile';
+        addSection.appendChild(addToggleBtn);
+
+        // Collapsible form container
+        var addForm = document.createElement('div');
+        addForm.className    = 'ai-assistant-panel-ep-add-form';
+        addForm.style.display = 'none';
+
+        // Form mode row (Simple / Advanced)
+        var fModeRow   = document.createElement('div');
+        fModeRow.className = 'ai-assistant-panel-ep-mode-row';
+        var fModeLbl   = document.createElement('span');
+        fModeLbl.className   = 'ai-assistant-panel-ep-mode-label';
+        fModeLbl.textContent = 'Input mode:';
+        var fSimpleBtn = document.createElement('button');
+        fSimpleBtn.type      = 'button';
+        fSimpleBtn.className = 'ai-assistant-panel-ep-mode-btn ai-assistant-panel-ep-mode-btn--active';
+        fSimpleBtn.textContent = 'Simple';
+        fSimpleBtn.setAttribute('aria-pressed', 'true');
+        var fAdvBtn = document.createElement('button');
+        fAdvBtn.type      = 'button';
+        fAdvBtn.className = 'ai-assistant-panel-ep-mode-btn';
+        fAdvBtn.textContent = 'Advanced';
+        fAdvBtn.setAttribute('aria-pressed', 'false');
+        fModeRow.appendChild(fModeLbl);
+        fModeRow.appendChild(fSimpleBtn);
+        fModeRow.appendChild(fAdvBtn);
+        addForm.appendChild(fModeRow);
+
+        // Profile name + char counter + auto-generated key preview
+        var fNameRow = document.createElement('div');
+        fNameRow.className = 'ai-assistant-panel-ep-form-row';
+        var fNameLbl = document.createElement('label');
+        fNameLbl.className   = 'ai-assistant-panel-ep-url-label';
+        fNameLbl.textContent = 'Profile name *';
+        fNameLbl.setAttribute('for', 'ep-add-name');
+        var fNameInp = document.createElement('input');
+        fNameInp.type        = 'text';
+        fNameInp.id          = 'ep-add-name';
+        fNameInp.className   = 'ai-assistant-panel-ep-input';
+        fNameInp.placeholder = 'e.g. CF Worker (Production)';
+        fNameInp.maxLength   = _MAX_LABEL;
+        fNameInp.required    = true;
+        fNameInp.setAttribute('aria-label', 'Profile display name (required)');
+        fNameInp.setAttribute('autocomplete', 'off');
+        var fNameCounter = document.createElement('span');
+        fNameCounter.className   = 'ai-assistant-panel-ep-char-counter';
+        fNameCounter.textContent = '0 / ' + _MAX_LABEL;
+        // Key preview
+        var fKeyPreview = document.createElement('div');
+        fKeyPreview.className = 'ai-assistant-panel-ep-key-preview';
+        var fKeyPreviewLbl = document.createElement('span');
+        fKeyPreviewLbl.className   = 'ai-assistant-panel-ep-key-preview-label';
+        fKeyPreviewLbl.textContent = 'Auto-key: ';
+        var fKeyPreviewVal = document.createElement('code');
+        fKeyPreviewVal.className   = 'ai-assistant-panel-ep-key-preview-value';
+        fKeyPreviewVal.textContent = '(enter a name)';
+        fKeyPreview.appendChild(fKeyPreviewLbl);
+        fKeyPreview.appendChild(fKeyPreviewVal);
+        fNameRow.appendChild(fNameLbl);
+        fNameRow.appendChild(fNameInp);
+        fNameRow.appendChild(fNameCounter);
+        fNameRow.appendChild(fKeyPreview);
+        addForm.appendChild(fNameRow);
+
+        // Manual key override (advanced mode only)
+        var fKeyRow = document.createElement('div');
+        fKeyRow.className    = 'ai-assistant-panel-ep-form-row';
+        fKeyRow.style.display = 'none';  // hidden in simple mode
+        var fKeyLbl = document.createElement('label');
+        fKeyLbl.className   = 'ai-assistant-panel-ep-url-label';
+        fKeyLbl.textContent = 'Key override (optional)';
+        fKeyLbl.setAttribute('for', 'ep-add-key');
+        var fKeyInp = document.createElement('input');
+        fKeyInp.type        = 'text';
+        fKeyInp.id          = 'ep-add-key';
+        fKeyInp.className   = 'ai-assistant-panel-ep-input ai-assistant-panel-ep-input--key';
+        fKeyInp.placeholder = 'auto-generated from name';
+        fKeyInp.setAttribute('aria-label', 'Profile key override (optional)');
+        fKeyInp.setAttribute('maxlength', '64');
+        fKeyInp.setAttribute('pattern', '[a-zA-Z0-9][a-zA-Z0-9_-]*');
+        fKeyInp.setAttribute('autocomplete', 'off');
+        var fKeyStatus = document.createElement('span');
+        fKeyStatus.className = 'ai-assistant-panel-ep-key-status';
+        fKeyRow.appendChild(fKeyLbl);
+        fKeyRow.appendChild(fKeyInp);
+        fKeyRow.appendChild(fKeyStatus);
+        addForm.appendChild(fKeyRow);
+
+        // Live name → key-preview + counter update (debounced)
+        var _nameDebounce = null;
+        fNameInp.addEventListener('input', function () {
+            fNameCounter.textContent = fNameInp.value.length + ' / ' + _MAX_LABEL;
+            clearTimeout(_nameDebounce);
+            _nameDebounce = setTimeout(function () {
+                var slug = fNameInp.value.trim()
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                    .slice(0, 40);
+                fKeyPreviewVal.textContent = slug ? 'custom_' + slug : '(enter a name)';
+            }, 200);
+        });
+
+        // Key override live validation
+        fKeyInp.addEventListener('input', function () {
+            var k = fKeyInp.value.trim();
+            if (!k) { fKeyStatus.textContent = ''; return; }
+            var avail = _epSafe ? _epSafe.isKeyAvailable(k) : true;
+            fKeyStatus.className = 'ai-assistant-panel-ep-key-status ' +
+                (avail ? 'ai-assistant-panel-ep-key-status--ok'
+                        : 'ai-assistant-panel-ep-key-status--err');
+            fKeyStatus.textContent = avail ? '✓ available' : '✗ taken or invalid';
+        });
+
+        // Simple mode: single base URL
+        var fSimpleWrap = document.createElement('div');
+        var fSimpleHint = document.createElement('p');
+        fSimpleHint.className   = 'ai-assistant-panel-ep-hint';
+        fSimpleHint.textContent = 'One base URL applied to all features.';
+        fSimpleWrap.appendChild(fSimpleHint);
+        var fBaseRow = document.createElement('div');
+        fBaseRow.className = 'ai-assistant-panel-ep-form-row';
+        var fBaseLbl = document.createElement('label');
+        fBaseLbl.className   = 'ai-assistant-panel-ep-url-label';
+        fBaseLbl.textContent = 'Base URL *';
+        fBaseLbl.setAttribute('for', 'ep-add-base');
+        var fBaseInp = document.createElement('input');
+        fBaseInp.type        = 'url';
+        fBaseInp.id          = 'ep-add-base';
+        fBaseInp.className   = 'ai-assistant-panel-ep-input';
+        fBaseInp.placeholder = 'https://your-proxy.example.com';
+        fBaseInp.required    = true;
+        fBaseInp.setAttribute('aria-label', 'Base URL for all features (required)');
+        fBaseInp.setAttribute('autocomplete', 'off');
+        var fBaseRisk = _makeRiskBadgeEl();
+        var fBaseErr  = document.createElement('span');
+        fBaseErr.className    = 'ai-assistant-panel-ep-url-err';
+        fBaseErr.style.display = 'none';
+        fBaseRow.appendChild(fBaseLbl);
+        fBaseRow.appendChild(fBaseInp);
+        fBaseRow.appendChild(fBaseRisk);
+        fBaseRow.appendChild(fBaseErr);
+        fSimpleWrap.appendChild(fBaseRow);
+        addForm.appendChild(fSimpleWrap);
+        _wireUrlRisk(fBaseInp, fBaseRisk);
+        _wireUrlValidation(fBaseInp, fBaseErr);
+
+        // Advanced mode: per-feature URLs + tokens
+        var fAdvWrap = document.createElement('div');
+        fAdvWrap.style.display = 'none';
+
+        // Token security warning (advanced only)
+        var fTokenNote = document.createElement('p');
+        fTokenNote.className   = 'ai-assistant-panel-ep-hint ai-assistant-panel-ep-hint--warn';
+        fTokenNote.textContent =
+            '⚠ Token values entered here are stored in localStorage. ' +
+            'For production deployments, prefer server-side token injection ' +
+            'via conf.py (see §5 snippet generator) — tokens never leave the ' +
+            'server side that way.';
+        fAdvWrap.appendChild(fTokenNote);
+
+        var _ADV_FIELDS = [
+            { key: 'chat',          label: 'Chat URL',       type: 'url',      ph: 'https://proxy.example.com' },
+            { key: 'share',         label: 'Share URL',      type: 'url',      ph: 'https://cf.workers.dev'    },
+            { key: 'feedback',      label: 'Feedback URL',   type: 'url',      ph: 'https://proxy.example.com' },
+            { key: 'training',      label: 'Training URL',   type: 'url',      ph: 'https://hf.space'          },
+            { key: 'shareToken',    label: 'Share token',    type: 'password', ph: '(optional Bearer token)'   },
+            { key: 'feedbackToken', label: 'Feedback token', type: 'password', ph: '(optional Bearer token)'   },
+        ];
+        var fAdvInputs = {};
+
+        for (var _ai = 0; _ai < _ADV_FIELDS.length; _ai++) {
+            (function (afd) {
+                var arow = document.createElement('div');
+                arow.className = 'ai-assistant-panel-ep-form-row';
+                var albl = document.createElement('label');
+                albl.className   = 'ai-assistant-panel-ep-url-label';
+                albl.textContent = afd.label;
+                var inputId = 'ep-add-adv-' + afd.key;
+                albl.setAttribute('for', inputId);
+                var ainp = document.createElement('input');
+                ainp.type        = afd.type;
+                ainp.id          = inputId;
+                ainp.className   = 'ai-assistant-panel-ep-input';
+                ainp.placeholder = afd.ph;
+                ainp.setAttribute('aria-label', afd.label);
+                ainp.setAttribute('autocomplete', 'off');
+                fAdvInputs[afd.key] = ainp;
+                arow.appendChild(albl);
+                arow.appendChild(ainp);
+                if (afd.type === 'url') {
+                    var arisk = _makeRiskBadgeEl();
+                    var aerr  = document.createElement('span');
+                    aerr.className    = 'ai-assistant-panel-ep-url-err';
+                    aerr.style.display = 'none';
+                    arow.appendChild(arisk);
+                    arow.appendChild(aerr);
+                    _wireUrlRisk(ainp, arisk);
+                    _wireUrlValidation(ainp, aerr);
+                } else {
+                    // Password field: show/hide toggle
+                    arow.appendChild(_makeShowHideBtn(ainp));
+                }
+                fAdvWrap.appendChild(arow);
+            }(_ADV_FIELDS[_ai]));
+        }
+        addForm.appendChild(fAdvWrap);
+
+        // Form error message
+        var fError = document.createElement('p');
+        fError.className    = 'ai-assistant-panel-ep-status ai-assistant-panel-ep-status--error';
+        fError.style.display = 'none';
+        addForm.appendChild(fError);
+
+        // Submit button
+        var fSubmitBtn = document.createElement('button');
+        fSubmitBtn.type      = 'button';
+        fSubmitBtn.className = 'ai-assistant-panel-ep-add-btn';
+        fSubmitBtn.textContent = 'Add Profile';
+        addForm.appendChild(fSubmitBtn);
+        addSection.appendChild(addForm);
+
+        // ── Add form event wiring ─────────────────────────────────────────────
+
+        addToggleBtn.addEventListener('click', function () {
+            var isOpen = addForm.style.display !== 'none';
+            addForm.style.display = isOpen ? 'none' : '';
+            addToggleBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            addToggleBtn.textContent = isOpen ? '+ Add custom profile' : '− Cancel';
+        });
+
+        fSimpleBtn.addEventListener('click', function () {
+            fSimpleBtn.classList.add('ai-assistant-panel-ep-mode-btn--active');
+            fAdvBtn.classList.remove('ai-assistant-panel-ep-mode-btn--active');
+            fSimpleBtn.setAttribute('aria-pressed', 'true');
+            fAdvBtn.setAttribute('aria-pressed', 'false');
+            fSimpleWrap.style.display = '';
+            fAdvWrap.style.display    = 'none';
+            fKeyRow.style.display     = 'none';
+        });
+        fAdvBtn.addEventListener('click', function () {
+            fAdvBtn.classList.add('ai-assistant-panel-ep-mode-btn--active');
+            fSimpleBtn.classList.remove('ai-assistant-panel-ep-mode-btn--active');
+            fAdvBtn.setAttribute('aria-pressed', 'true');
+            fSimpleBtn.setAttribute('aria-pressed', 'false');
+            fAdvWrap.style.display    = '';
+            fSimpleWrap.style.display = 'none';
+            fKeyRow.style.display     = '';  // show key override in advanced mode
+        });
+
+        fSubmitBtn.addEventListener('click', function () {
+            fError.style.display = 'none';
+
+            var label = fNameInp.value.trim().slice(0, _MAX_LABEL);
+            if (!label) {
+                fError.textContent = 'Profile name is required.';
+                fError.style.display = '';
+                fNameInp.focus();
+                return;
+            }
+
+            var isSimpleMode  = (fSimpleWrap.style.display !== 'none');
+            var profileData;
+
+            if (isSimpleMode) {
+                var base = fBaseInp.value.trim().replace(/\/+$/, '');
+                if (!base) {
+                    fError.textContent = 'Base URL is required.';
+                    fError.style.display = '';
+                    fBaseInp.focus();
+                    return;
+                }
+                var bv = _epSafe
+                    ? _epSafe.validateUrl(base)
+                    : { ok: /^https?:\/\//i.test(base), reason: 'Must start with https://' };
+                if (!bv.ok) {
+                    fError.textContent = bv.reason;
+                    fError.style.display = '';
+                    fBaseInp.focus();
+                    return;
+                }
+                profileData = {
+                    label: label, chat: base, share: base,
+                    feedback: base, training: base,
+                    shareToken: '', feedbackToken: '', ttlDays: 30,
+                };
+            } else {
+                var aC  = fAdvInputs.chat     ? fAdvInputs.chat.value.trim().replace(/\/+$/, '')     : '';
+                var aSh = fAdvInputs.share    ? fAdvInputs.share.value.trim().replace(/\/+$/, '')    : '';
+                var aFb = fAdvInputs.feedback ? fAdvInputs.feedback.value.trim().replace(/\/+$/, '') : '';
+                var aTr = fAdvInputs.training ? fAdvInputs.training.value.trim().replace(/\/+$/, '') : '';
+                if (!aC && !aSh && !aFb && !aTr) {
+                    fError.textContent = 'At least one URL field is required.';
+                    fError.style.display = '';
+                    return;
+                }
+                var urlPairs = [
+                    ['chat', aC], ['share', aSh], ['feedback', aFb], ['training', aTr]
+                ];
+                var urlErr = '';
+                for (var _vi = 0; _vi < urlPairs.length && !urlErr; _vi++) {
+                    var _pair = urlPairs[_vi];
+                    if (_pair[1]) {
+                        var _vr = _epSafe
+                            ? _epSafe.validateUrl(_pair[1])
+                            : { ok: /^https?:\/\//i.test(_pair[1]), reason: 'Invalid URL' };
+                        if (!_vr.ok) { urlErr = _pair[0] + ': ' + _vr.reason; }
+                    }
+                }
+                if (urlErr) {
+                    fError.textContent = urlErr;
+                    fError.style.display = '';
+                    return;
+                }
+                profileData = {
+                    label: label, chat: aC, share: aSh, feedback: aFb, training: aTr,
+                    shareToken:    fAdvInputs.shareToken    ? fAdvInputs.shareToken.value.trim()    : '',
+                    feedbackToken: fAdvInputs.feedbackToken ? fAdvInputs.feedbackToken.value.trim() : '',
+                    ttlDays: 30,
+                };
+            }
+
+            if (!_epSafe) {
+                fError.textContent = 'Endpoint registry not initialised.';
+                fError.style.display = '';
+                return;
+            }
+
+            // Use manual key override when provided; auto-generate otherwise
+            var manualKey  = fKeyInp.value.trim();
+            var addResult;
+            if (manualKey) {
+                // register() = importProfile() + optional setActive()
+                var regKey = _epSafe.register(manualKey, profileData, true);
+                addResult  = regKey
+                    ? { ok: true, key: regKey }
+                    : { ok: false, error: 'Key "' + manualKey + '" is invalid, already taken, or limit reached.' };
+            } else {
+                addResult = _epSafe.addCustomProfile(profileData);
+                if (addResult.ok) { _epSafe.setActive(addResult.key); }
+            }
+
+            if (!addResult.ok) {
+                fError.textContent = addResult.error;
+                fError.style.display = '';
+                return;
+            }
+
+            var newKey = addResult.key;
+
+            // Ensure the cards wrapper exists
+            if (!_cardsWrap) {
+                var _oldHint = profileSection.querySelector('.ai-assistant-panel-ep-hint');
+                if (_oldHint) { profileSection.removeChild(_oldHint); }
+                _cardsWrap = document.createElement('div');
+                _cardsWrap.className = 'ai-assistant-panel-ep-cards';
+                profileSection.appendChild(_cardsWrap);
+            }
+
+            _deactivateAllCards(_cardsWrap);
+            _appendProfileCard(_cardsWrap, newKey, label, 'custom', newKey);
+            _refreshAll();
+            _updateAddCapWarning();
+
+            // Update sub-bar pill label
+            var _epLbl = document.querySelector('.ai-assistant-panel-ep-btn-label');
+            if (_epLbl) { _epLbl.textContent = label; }
+
+            // Brief success state, then reset
+            fSubmitBtn.textContent = '✓ Profile added';
+            setTimeout(function () {
+                fSubmitBtn.textContent = 'Add Profile';
+                addForm.style.display = 'none';
+                addToggleBtn.setAttribute('aria-expanded', 'false');
+                addToggleBtn.textContent = '+ Add custom profile';
+                // Reset form fields
+                fNameInp.value = '';
+                fNameCounter.textContent = '0 / ' + _MAX_LABEL;
+                fKeyPreviewVal.textContent = '(enter a name)';
+                fKeyInp.value = '';
+                fKeyStatus.textContent = '';
+                fBaseInp.value = '';
+                var _afKeys = Object.keys(fAdvInputs);
+                for (var _rk = 0; _rk < _afKeys.length; _rk++) {
+                    if (fAdvInputs[_afKeys[_rk]]) { fAdvInputs[_afKeys[_rk]].value = ''; }
+                }
+                fError.style.display = 'none';
+            }, 1800);
+        });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §4  COMPARE PROFILES (always visible, scroll-wrapped)
+        // ══════════════════════════════════════════════════════════════════════
+        var compareSection = _buildSheetSection('Compare Profiles');
+        bodyEl.appendChild(compareSection);
+
+        _compareWrap = document.createElement('div');
+        _compareWrap.className = 'ai-assistant-panel-ep-compare-wrap';
+        compareSection.appendChild(_compareWrap);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §5  IMPORT / EXPORT / CONF.PY SNIPPET
+        // ══════════════════════════════════════════════════════════════════════
+        var ioSection = _buildSheetSection('Import / Export');
+        bodyEl.appendChild(ioSection);
+
+        // ── Export ────────────────────────────────────────────────────────────
+        var exportHint = document.createElement('p');
+        exportHint.className   = 'ai-assistant-panel-ep-hint';
+        exportHint.textContent = 'Export custom profiles as JSON (tokens are excluded for security).';
+        ioSection.appendChild(exportHint);
+
+        var exportBtnsRow = document.createElement('div');
+        exportBtnsRow.className = 'ai-assistant-panel-ep-io-row';
+
+        var exportClipBtn = document.createElement('button');
+        exportClipBtn.type      = 'button';
+        exportClipBtn.className = 'ai-assistant-panel-ep-io-btn';
+        exportClipBtn.textContent = '⎘ Copy JSON to clipboard';
+
+        var exportFileBtn = document.createElement('button');
+        exportFileBtn.type      = 'button';
+        exportFileBtn.className = 'ai-assistant-panel-ep-io-btn';
+        exportFileBtn.textContent = '↓ Download JSON file';
+
+        var exportStatus = document.createElement('p');
+        exportStatus.className    = 'ai-assistant-panel-ep-hint';
+        exportStatus.style.display = 'none';
+
+        exportBtnsRow.appendChild(exportClipBtn);
+        exportBtnsRow.appendChild(exportFileBtn);
+        ioSection.appendChild(exportBtnsRow);
+        ioSection.appendChild(exportStatus);
+
+        function _getExportJson() {
+            if (!_epSafe) { return null; }
+            var data = _epSafe.exportCustom();  // returns Object (no tokens)
+            if (Object.keys(data).length === 0) { return null; }
+            return _epSafe.exportCustomJson();  // returns indented JSON string
+        }
+
+        exportClipBtn.addEventListener('click', function () {
+            var json = _getExportJson();
+            if (!json) {
+                exportStatus.textContent   = 'No custom profiles to export.';
+                exportStatus.style.display = '';
+                setTimeout(function () { exportStatus.style.display = 'none'; }, 3000);
+                return;
+            }
+            _fallbackCopy(json,
+                function () {
+                    exportStatus.textContent   = '✓ Copied to clipboard.';
+                    exportStatus.style.display = '';
+                    setTimeout(function () { exportStatus.style.display = 'none'; }, 2500);
+                },
+                function () {
+                    exportStatus.textContent   = '✗ Copy failed — see browser permissions.';
+                    exportStatus.style.display = '';
+                }
+            );
+        });
+
+        exportFileBtn.addEventListener('click', function () {
+            var json = _getExportJson();
+            if (!json) {
+                exportStatus.textContent   = 'No custom profiles to export.';
+                exportStatus.style.display = '';
+                setTimeout(function () { exportStatus.style.display = 'none'; }, 3000);
+                return;
+            }
+            try {
+                var blob = new Blob([json], { type: 'application/json' });
+                var url  = URL.createObjectURL(blob);
+                var a    = document.createElement('a');
+                var date = new Date().toISOString().slice(0, 10);
+                a.href     = url;
+                a.download = 'ep-profiles-' + date + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+                exportStatus.textContent   = '✓ Download started.';
+                exportStatus.style.display = '';
+                setTimeout(function () { exportStatus.style.display = 'none'; }, 2500);
+            } catch (_e) {
+                exportStatus.textContent   = '✗ Download failed.';
+                exportStatus.style.display = '';
+            }
+        });
+
+        // ── Import ────────────────────────────────────────────────────────────
+        var ioSep1 = document.createElement('hr');
+        ioSep1.className = 'ai-assistant-panel-ep-io-sep';
+        ioSection.appendChild(ioSep1);
+
+        var importToggle = document.createElement('button');
+        importToggle.type      = 'button';
+        importToggle.className = 'ai-assistant-panel-ep-add-toggle';
+        importToggle.setAttribute('aria-expanded', 'false');
+        importToggle.textContent = '↑ Import profiles from JSON';
+        ioSection.appendChild(importToggle);
+
+        var importFormWrap = document.createElement('div');
+        importFormWrap.style.display = 'none';
+
+        var importHint = document.createElement('p');
+        importHint.className   = 'ai-assistant-panel-ep-hint';
+        importHint.textContent =
+            'Paste JSON exported from this tool. Build-time profiles cannot be ' +
+            'overwritten. Tokens are excluded from exports and must be re-entered. ' +
+            'Each entry is individually validated — invalid entries are skipped and reported.';
+        importFormWrap.appendChild(importHint);
+
+        var importTA = document.createElement('textarea');
+        importTA.className   = 'ai-assistant-panel-ep-import-ta';
+        importTA.rows        = 5;
+        importTA.placeholder = '{ "my_profile": { "label": "My Proxy", "chat": "https://..." } }';
+        importTA.setAttribute('aria-label', 'JSON for endpoint profile import');
+        importTA.setAttribute('spellcheck', 'false');
+        importFormWrap.appendChild(importTA);
+
+        var importStatus = document.createElement('p');
+        importStatus.className    = 'ai-assistant-panel-ep-hint';
+        importStatus.style.display = 'none';
+        importFormWrap.appendChild(importStatus);
+
+        var importBtn = document.createElement('button');
+        importBtn.type      = 'button';
+        importBtn.className = 'ai-assistant-panel-ep-add-btn';
+        importBtn.textContent = '↑ Import';
+        importFormWrap.appendChild(importBtn);
+        ioSection.appendChild(importFormWrap);
+
+        importToggle.addEventListener('click', function () {
+            var isOpen = importFormWrap.style.display !== 'none';
+            importFormWrap.style.display = isOpen ? 'none' : '';
+            importToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        });
+
+        importBtn.addEventListener('click', function () {
+            importStatus.style.display = 'none';
+            var raw = importTA.value.trim();
+            if (!raw) {
+                importStatus.textContent   = 'Paste JSON first.';
+                importStatus.style.display = '';
+                return;
+            }
+            var parsed = null;
+            try { parsed = JSON.parse(raw); } catch (_e) {
+                importStatus.textContent   = 'Invalid JSON: ' + _e.message;
+                importStatus.style.display = '';
+                return;
+            }
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                importStatus.textContent   = 'JSON must be an object { key: profile, … }';
+                importStatus.style.display = '';
+                return;
+            }
+            if (!_epSafe) {
+                importStatus.textContent   = 'Endpoint registry not initialised.';
+                importStatus.style.display = '';
+                return;
+            }
+            var iKeys    = Object.keys(parsed);
+            var imported = 0;
+            var errors   = [];
+            for (var _ik = 0; _ik < iKeys.length; _ik++) {
+                var _ky  = iKeys[_ik];
+                var _res = _epSafe.importProfile(_ky, parsed[_ky]);
+                if (_res.ok) {
+                    imported++;
+                    // Add card if not already present
+                    var _iProf = _epSafe.getProfile(_ky);
+                    if (_iProf && _cardsWrap) {
+                        var _existCard = _cardsWrap.querySelector(
+                            '[data-ep-key="' + _ky + '"]'
+                        );
+                        if (!_existCard) {
+                            if (!_cardsWrap.parentNode) {
+                                profileSection.appendChild(_cardsWrap);
+                            }
+                            _appendProfileCard(_cardsWrap, _ky, _iProf.label,
+                                               _iProf.source, _epSafe.getActive());
+                        }
+                    }
+                } else {
+                    errors.push(_ky + ': ' + _res.error);
+                }
+            }
+            _refreshAll();
+            _updateAddCapWarning();
+
+            var msg = '✓ Imported ' + imported + ' profile' + (imported === 1 ? '' : 's') + '.';
+            if (errors.length > 0) {
+                msg += ' Skipped:\n' + errors.join('\n');
+            }
+            importStatus.textContent   = msg;
+            importStatus.style.display = '';
+        });
+
+        // ── Clear all custom ──────────────────────────────────────────────────
+        var ioSep2 = document.createElement('hr');
+        ioSep2.className = 'ai-assistant-panel-ep-io-sep';
+        ioSection.appendChild(ioSep2);
+
+        var clearHintP = document.createElement('p');
+        clearHintP.className   = 'ai-assistant-panel-ep-hint';
+        clearHintP.textContent = 'Remove all custom profiles (built-in conf.py profiles are kept).';
+        ioSection.appendChild(clearHintP);
+
+        var _clearConfirm = false;
+        var clearBtn = document.createElement('button');
+        clearBtn.type      = 'button';
+        clearBtn.className = 'ai-assistant-panel-ep-io-btn ai-assistant-panel-ep-io-btn--danger';
+        clearBtn.textContent = '✕ Clear all custom profiles';
+        var clearResult = document.createElement('p');
+        clearResult.className    = 'ai-assistant-panel-ep-hint';
+        clearResult.style.display = 'none';
+        ioSection.appendChild(clearBtn);
+        ioSection.appendChild(clearResult);
+
+        clearBtn.addEventListener('click', function () {
+            if (!_clearConfirm) {
+                _clearConfirm = true;
+                clearBtn.textContent = '⚠ Click again to confirm deletion';
+                clearBtn.classList.add('ai-assistant-panel-ep-io-btn--confirm');
+                setTimeout(function () {
+                    _clearConfirm = false;
+                    clearBtn.textContent = '✕ Clear all custom profiles';
+                    clearBtn.classList.remove('ai-assistant-panel-ep-io-btn--confirm');
+                }, 4000);
+                return;
+            }
+            _clearConfirm = false;
+            clearBtn.classList.remove('ai-assistant-panel-ep-io-btn--confirm');
+            if (!_epSafe) { return; }
+            var n = _epSafe.clearCustom();
+            // Remove custom/imported cards from DOM
+            if (_cardsWrap) {
+                var custCards = _cardsWrap.querySelectorAll(
+                    '[data-profile-source="custom"],[data-profile-source="imported"]'
+                );
+                for (var _cc = 0; _cc < custCards.length; _cc++) {
+                    _cardsWrap.removeChild(custCards[_cc]);
+                }
+            }
+            _refreshAll();
+            _updateAddCapWarning();
+            clearBtn.textContent      = '✕ Clear all custom profiles';
+            clearResult.textContent   = '✓ Removed ' + n + ' custom profile' + (n === 1 ? '' : 's') + '.';
+            clearResult.style.display = '';
+            setTimeout(function () { clearResult.style.display = 'none'; }, 3000);
+        });
+
+        // ── conf.py snippet generator ─────────────────────────────────────────
+        // Promotes the active custom profile to a build-time profile by generating
+        // the conf.py block the user can copy into their Sphinx configuration.
+        var ioSep3 = document.createElement('hr');
+        ioSep3.className = 'ai-assistant-panel-ep-io-sep';
+        ioSection.appendChild(ioSep3);
+
+        var snippetToggle = document.createElement('button');
+        snippetToggle.type      = 'button';
+        snippetToggle.className = 'ai-assistant-panel-ep-add-toggle';
+        snippetToggle.setAttribute('aria-expanded', 'false');
+        snippetToggle.textContent = '{ } Generate conf.py snippet';
+        ioSection.appendChild(snippetToggle);
+
+        var snippetWrap = document.createElement('div');
+        snippetWrap.style.display = 'none';
+        ioSection.appendChild(snippetWrap);
+
+        var snippetHint = document.createElement('p');
+        snippetHint.className   = 'ai-assistant-panel-ep-hint';
+        snippetHint.textContent =
+            'Copy this block into your conf.py to make the active profile ' +
+            'persistent across Sphinx builds. Tokens are intentionally excluded — ' +
+            'set them server-side or via environment variables in conf.py.';
+        snippetWrap.appendChild(snippetHint);
+
+        var snippetPre = document.createElement('pre');
+        snippetPre.className = 'ai-assistant-panel-ep-snippet-pre';
+        var snippetCode = document.createElement('code');
+        snippetCode.className = 'ai-assistant-panel-ep-snippet-code';
+        snippetPre.appendChild(snippetCode);
+        snippetWrap.appendChild(snippetPre);
+
+        var snippetCopyRow = document.createElement('div');
+        snippetCopyRow.className = 'ai-assistant-panel-ep-io-row';
+        var snippetCopyBtn = document.createElement('button');
+        snippetCopyBtn.type      = 'button';
+        snippetCopyBtn.className = 'ai-assistant-panel-ep-io-btn';
+        snippetCopyBtn.textContent = '⎘ Copy snippet';
+        var snippetCopyStatus = document.createElement('span');
+        snippetCopyStatus.className = 'ai-assistant-panel-ep-hint';
+        snippetCopyRow.appendChild(snippetCopyBtn);
+        snippetCopyRow.appendChild(snippetCopyStatus);
+        snippetWrap.appendChild(snippetCopyRow);
+
+        function _buildSnippet() {
+            if (!_epSafe) { return '# _EP not available'; }
+            var key  = _epSafe.getActive();
+            var prof = key ? _epSafe.getProfile(key) : null;
+            if (!prof) { return '# No active profile'; }
+            var lines = [
+                '# conf.py — add or merge this block',
+                'ai_assistant_endpoint_profiles = {',
+                '    "' + key + '": {',
+                '        "label":    "' + prof.label.replace(/"/g, '\\"') + '",',
+            ];
+            var urlFields = ['chat', 'share', 'feedback', 'training'];
+            for (var _si = 0; _si < urlFields.length; _si++) {
+                var _sf = urlFields[_si];
+                if (prof[_sf]) {
+                    lines.push('        "' + _sf + '": "' + prof[_sf].replace(/"/g, '\\"') + '",');
+                }
+            }
+            if (prof.ttlDays > 0) {
+                lines.push('        "ttlDays": ' + prof.ttlDays + ',');
+            }
+            lines.push(
+                '        # shareToken:    os.environ.get("SHARE_TOKEN", ""),',
+                '        # feedbackToken: os.environ.get("FEEDBACK_TOKEN", ""),',
+                '    },',
+                '}'
+            );
+            return lines.join('\n');
+        }
+
+        snippetToggle.addEventListener('click', function () {
+            var isOpen = snippetWrap.style.display !== 'none';
+            snippetWrap.style.display = isOpen ? 'none' : '';
+            snippetToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            if (!isOpen) { snippetCode.textContent = _buildSnippet(); }
+        });
+
+        snippetCopyBtn.addEventListener('click', function () {
+            _fallbackCopy(
+                snippetCode.textContent,
+                function () {
+                    snippetCopyStatus.textContent = '✓ Copied';
+                    setTimeout(function () { snippetCopyStatus.textContent = ''; }, 2000);
+                },
+                function () { snippetCopyStatus.textContent = '✗ Copy failed'; }
+            );
+        });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // §6  EXTENDED SETTINGS
+        // Four sub-sections: Chat · Share · Feedback · Training
+        // CSS: .ai-assistant-panel-ep-ext-* (see ai-assistant.css D4-a block).
+        // All toggles are localStorage-backed or read-only server-state mirrors.
+        // ══════════════════════════════════════════════════════════════════════
+        var extSection = _buildSheetSection('Extended Settings');
+        bodyEl.appendChild(extSection);
+
+        var extBody = document.createElement('div');
+        extBody.className = 'ai-assistant-panel-ep-ext-section';
+
+        // ── Inner helpers (closure-scoped — only used in this block) ──────
+        function _buildExtSub(title) {
+            var sub = document.createElement('div');
+            sub.className = 'ai-assistant-panel-ep-ext-sub';
+            var head = document.createElement('p');
+            head.className = 'ai-assistant-panel-ep-ext-sub-head';
+            head.textContent = title;
+            sub.appendChild(head);
+            return sub;
+        }
+
+        function _buildExtToggleRow(title, desc, isOn, pillId) {
+            var row = document.createElement('div');
+            row.className = 'ai-assistant-panel-ep-ext-toggle-row';
+            var labelWrap = document.createElement('div');
+            labelWrap.className = 'ai-assistant-panel-ep-ext-toggle-label';
+            var titleEl = document.createElement('span');
+            titleEl.className = 'ai-assistant-panel-ep-ext-toggle-title';
+            titleEl.textContent = title;
+            var descEl = document.createElement('span');
+            descEl.className = 'ai-assistant-panel-ep-ext-toggle-desc';
+            descEl.textContent = desc;
+            labelWrap.appendChild(titleEl);
+            labelWrap.appendChild(descEl);
+            var pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = 'ai-assistant-panel-ep-ext-pill';
+            pill.setAttribute('role', 'switch');
+            pill.setAttribute('aria-checked', isOn ? 'true' : 'false');
+            if (pillId) pill.id = pillId;
+            var thumb = document.createElement('span');
+            thumb.className = 'ai-assistant-panel-ep-ext-pill-thumb';
+            pill.appendChild(thumb);
+            row.appendChild(labelWrap);
+            row.appendChild(pill);
+            return { row: row, pill: pill };
+        }
+
+        function _buildExtInfoRow(label, valueText, badgeText, badgeOk) {
+            var row = document.createElement('div');
+            row.className = 'ai-assistant-panel-ep-ext-info-row';
+            var lbl = document.createElement('span');
+            lbl.className = 'ai-assistant-panel-ep-ext-info-label';
+            lbl.textContent = label;
+            var val = document.createElement('span');
+            val.className = 'ai-assistant-panel-ep-ext-info-value';
+            val.textContent = valueText || '\u2014';
+            row.appendChild(lbl);
+            row.appendChild(val);
+            if (badgeText) {
+                var badge = document.createElement('span');
+                badge.className = 'ai-assistant-panel-ep-ext-info-badge ' +
+                    (badgeOk
+                        ? 'ai-assistant-panel-ep-ext-info-badge--ok'
+                        : 'ai-assistant-panel-ep-ext-info-badge--off');
+                badge.textContent = badgeText;
+                row.appendChild(badge);
+            }
+            return row;
+        }
+
+        function _buildExtFutureRow(icon, text) {
+            var row = document.createElement('div');
+            row.className = 'ai-assistant-panel-ep-ext-future-row';
+            row.setAttribute('aria-hidden', 'true');
+            row.innerHTML =
+                '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"' +
+                ' stroke-linejoin="round" aria-hidden="true">' +
+                '<circle cx="12" cy="12" r="10"/>' +
+                '<line x1="12" y1="8" x2="12" y2="12"/>' +
+                '<line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                icon + '\u2009' + text + ' \u2014 coming soon';
+            return row;
+        }
+
+        // ── A: Chat Configuration ─────────────────────────────────────────
+        var chatSub = _buildExtSub('Chat Configuration');
+
+        var _STREAMING_KEY = 'ai-assistant-streaming-on';
+        var _streamingOn = (function () {
+            try { return localStorage.getItem(_STREAMING_KEY) !== 'false'; } catch (_) { return true; }
+        }());
+
+        var streamToggle = _buildExtToggleRow(
+            'Streaming responses',
+            'Responses appear word-by-word as the model generates them. ' +
+            'Disable to wait for the complete answer \u2014 useful on slow ' +
+            'connections where partial text can be confusing.',
+            _streamingOn,
+            null
+        );
+        streamToggle.pill.setAttribute('aria-label', 'Streaming responses');
+        streamToggle.pill.addEventListener('click', function () {
+            _streamingOn = !_streamingOn;
+            streamToggle.pill.setAttribute('aria-checked', _streamingOn ? 'true' : 'false');
+            try { localStorage.setItem(_STREAMING_KEY, _streamingOn ? 'true' : 'false'); } catch (_) {}
+        });
+        chatSub.appendChild(streamToggle.row);
+        chatSub.appendChild(_buildExtFutureRow('\uD83C\uDF21\uFE0F', 'Temperature'));
+        chatSub.appendChild(_buildExtFutureRow('\uD83D\uDCDD', 'System prompt'));
+        extBody.appendChild(chatSub);
+
+        // ── B: Share Configuration ────────────────────────────────────────
+        var shareSub = _buildExtSub('Share Configuration');
+
+        var shareLinkToggle = _buildExtToggleRow(
+            'Share-link mode',
+            'When ON, the export button creates a shareable blob URL (or ' +
+            'server-side share link when a Share endpoint is configured) ' +
+            'instead of downloading a file.',
+            _exportLinkMode,
+            null
+        );
+        shareLinkToggle.pill.setAttribute('aria-label', 'Share-link mode');
+        shareLinkToggle.pill.addEventListener('click', function () {
+            _setExportLinkMode(!_exportLinkMode);
+            shareLinkToggle.pill.setAttribute(
+                'aria-checked', _exportLinkMode ? 'true' : 'false');
+        });
+        shareSub.appendChild(shareLinkToggle.row);
+        shareSub.appendChild(_buildExtFutureRow('\u23F1\uFE0F', 'Share TTL (days)'));
+        shareSub.appendChild(_buildExtFutureRow('\uD83D\uDCC4', 'Default export format'));
+        extBody.appendChild(shareSub);
+
+        // ── C: Feedback Configuration ─────────────────────────────────────
+        var fbkSub = _buildExtSub('Feedback Configuration');
+
+        var fbkIntro = document.createElement('p');
+        fbkIntro.className = 'ai-assistant-panel-ep-hint';
+        fbkIntro.textContent =
+            'The \uD83D\uDC4D / \uD83D\uDC4E buttons on each answer collect your rating. ' +
+            'When \u201CStore ratings permanently\u201D is ON and the server is ' +
+            'configured, each rating writes a JSON record to the HuggingFace ' +
+            'training dataset. When OFF, ratings stay in-memory only ' +
+            'and are lost on page refresh.';
+        fbkSub.appendChild(fbkIntro);
+
+        // THE missing DOM element — _setFeedbackPersistMode() targets this id.
+        var persistToggle = _buildExtToggleRow(
+            'Store ratings permanently',
+            'Writes \uD83D\uDC4D / \uD83D\uDC4E ratings to the HuggingFace dataset ' +
+            '(durable, survives server restarts). ' +
+            'Requires TRAINING_DATASET_REPO and HF_DATASET_TOKEN on the server. ' +
+            'The server\u2019s FEEDBACK_PERSIST_ENABLED flag is the authoritative ' +
+            'default; this toggle lets you override it for your browser session.',
+            _feedbackPersistEnabled,
+            'ai-assistant-feedback-persist-toggle'
+        );
+        persistToggle.pill.setAttribute('aria-label', 'Store ratings permanently');
+        persistToggle.pill.addEventListener('click', function () {
+            _setFeedbackPersistMode(!_feedbackPersistEnabled);
+            // aria-checked is synced inside _setFeedbackPersistMode
+        });
+        fbkSub.appendChild(persistToggle.row);
+
+        var _fbkServerRow = document.createElement('div');
+        _fbkServerRow.id = 'ai-assistant-ep-ext-fbk-server-info';
+        fbkSub.appendChild(_fbkServerRow);
+
+        fbkSub.appendChild(_buildExtFutureRow('\uD83D\uDCCA', 'Rating scale selector'));
+        fbkSub.appendChild(_buildExtFutureRow('\u2753', 'Feedback question text'));
+        extBody.appendChild(fbkSub);
+
+        // ── D: Training Configuration ─────────────────────────────────────
+        var trainSub = _buildExtSub('Training Configuration');
+
+        var trainIntro = document.createElement('p');
+        trainIntro.className = 'ai-assistant-panel-ep-hint';
+        trainIntro.textContent =
+            'Training data is collected via POST /v1/contribute when you export ' +
+            'a conversation. Each record carries (question, answer, rating) tuples ' +
+            'from your session\u2019s feedback. The server deduplicates on ' +
+            'conversationId so exporting twice is safe.';
+        trainSub.appendChild(trainIntro);
+
+        var contributeUrl = (_epSafe && typeof _epSafe.resolve === 'function')
+            ? (_epSafe.resolve('training') || '') : '';
+        trainSub.appendChild(_buildExtInfoRow(
+            'Contribute URL',
+            contributeUrl || '(not configured)',
+            contributeUrl ? 'Configured' : 'Not set',
+            !!contributeUrl
+        ));
+
+        var _trainServerRow = document.createElement('div');
+        _trainServerRow.id = 'ai-assistant-ep-ext-train-server-info';
+        trainSub.appendChild(_trainServerRow);
+
+        trainSub.appendChild(_buildExtFutureRow('\uD83E\uDD16', 'Auto-contribute on close'));
+        trainSub.appendChild(_buildExtFutureRow('\uD83D\uDD12', 'GDPR consent gate'));
+        extBody.appendChild(trainSub);
+
+        extSection.appendChild(extBody);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // MOUNT + SUBSCRIBE
+        // ══════════════════════════════════════════════════════════════════════
+        sheet.appendChild(bodyEl);
+
+        // Initial render of all dynamic sections
+        _updateAddCapWarning();
+        _refreshAll();
+
+        // Subscribe to _EP.onChange so the sheet self-updates whenever any
+        // other code calls _EP.setActive() (keyboard shortcuts, other widgets, etc.)
+        if (_epSafe && typeof _epSafe.onChange === 'function') {
+            _unsubscribe = _epSafe.onChange(function (payload) {
+                _lastSwitchTs = Date.now();
+                _refreshAll();
+                // Sync card highlight states
+                if (_cardsWrap) {
+                    _deactivateAllCards(_cardsWrap);
+                    var _nc = _cardsWrap.querySelector(
+                        '[data-ep-key="' + payload.to + '"]'
+                    );
+                    if (_nc) {
+                        _nc.classList.add('ai-assistant-panel-ep-card--active');
+                        var _nr = _nc.querySelector('input[type="radio"]');
+                        if (_nr) { _nr.checked = true; }
+                        var _nb = _nc.querySelector('.ai-assistant-panel-ep-badge--active');
+                        if (_nb) { _nb.style.display = ''; }
+                    }
+                }
+                // Update ARIA live region
+                if (_liveRegion) {
+                    var _ap = payload.profile;
+                    _liveRegion.textContent = 'Profile switched to ' +
+                        (_ap ? _ap.label : payload.to);
+                    setTimeout(function () { _liveRegion.textContent = ''; }, 3000);
+                }
+                // Update conf.py snippet if it's open
+                if (snippetWrap.style.display !== 'none') {
+                    snippetCode.textContent = _buildSnippet();
+                }
+            });
+        }
+
+        // Automatic cleanup when the sheet is removed from the DOM — prevents
+        // memory leaks when the sheet element is replaced by a new build
+        var _domObserver = (typeof MutationObserver !== 'undefined')
+            ? new MutationObserver(function (muts) {
+                for (var _mi = 0; _mi < muts.length; _mi++) {
+                    var _rn = muts[_mi].removedNodes;
+                    for (var _ri = 0; _ri < _rn.length; _ri++) {
+                        if (_rn[_ri] === sheet) {
+                            if (_unsubscribe) { _unsubscribe(); _unsubscribe = null; }
+                            _domObserver.disconnect();
+                        }
+                    }
+                }
+            }) : null;
+        if (_domObserver && sheet.parentNode) {
+            _domObserver.observe(sheet.parentNode, { childList: true });
+        }
+
+        return sheet;
+
+        // ══════════════════════════════════════════════════════════════════════
+        // RENDER FUNCTIONS
+        // JS function declarations are hoisted — these are visible above despite
+        // being placed after the return for readability.
+        // ══════════════════════════════════════════════════════════════════════
+
+        /**
+         * Full re-render of info card, URL display, compare grid, and status bar.
+         * Call this after any profile switch or registry mutation.
+         */
+        function _refreshAll() {
+            _refreshInfoCard();
+            _refreshUrls();
+            _rebuildCompareGrid();
+            _refreshStatus();
+            _updateProfileCount();
+        }
+
+        /**
+         * Rebuild the §2 info card showing metadata for the active profile.
+         */
+        function _refreshInfoCard() {
+            while (_infoCard.firstChild) { _infoCard.removeChild(_infoCard.firstChild); }
+            if (!_epSafe || !_epSafe.hasProfiles()) {
+                var emptyP = document.createElement('p');
+                emptyP.className   = 'ai-assistant-panel-ep-hint';
+                emptyP.textContent = 'No active profile.';
+                _infoCard.appendChild(emptyP);
+                return;
+            }
+            var activeKey = _epSafe.getActive();
+            var prof      = activeKey ? _epSafe.getProfile(activeKey) : null;
+            if (!prof) { return; }
+
+            var makeInfoRow = function (lText, vText) {
+                var r = document.createElement('div');
+                r.className = 'ai-assistant-panel-ep-info-row';
+                var l = document.createElement('span');
+                l.className   = 'ai-assistant-panel-ep-info-label';
+                l.textContent = lText;
+                var v = document.createElement('span');
+                v.className   = 'ai-assistant-panel-ep-info-value';
+                v.textContent = vText;
+                r.appendChild(l);
+                r.appendChild(v);
+                return r;
+            };
+
+            _infoCard.appendChild(makeInfoRow('Name',   prof.label));
+            _infoCard.appendChild(makeInfoRow('Key',    activeKey));
+            _infoCard.appendChild(makeInfoRow('Source',
+                prof.source === 'custom'   ? 'Runtime (custom, localStorage)' :
+                prof.source === 'imported' ? 'Runtime (imported, localStorage)' :
+                                             'Build-time (conf.py)'
+            ));
+            if (prof.ttlDays > 0) {
+                _infoCard.appendChild(makeInfoRow('Share TTL', prof.ttlDays + ' days'));
+            }
+            // Last-switched from auditLog
+            var log = _epSafe.auditLog();
+            if (log.length > 0 && log[0].to === activeKey) {
+                var ts  = new Date(log[0].ts);
+                var rel = _relativeTime(log[0].ts);
+                _infoCard.appendChild(makeInfoRow(
+                    'Last switched',
+                    rel + ' (' + ts.toLocaleTimeString() + ')'
+                ));
+            }
+        }
+
+        /**
+         * Rebuild all URL display rows and read-only inputs from the active profile.
+         */
+        function _refreshUrls() {
+            while (_urlDisplay.firstChild) { _urlDisplay.removeChild(_urlDisplay.firstChild); }
+            var chatBase = '';
+            for (var _ri = 0; _ri < _FEATURE_DEFS.length; _ri++) {
+                var _rfd     = _FEATURE_DEFS[_ri];
+                var resolved = (_epSafe ? _epSafe.resolve(_rfd.key) : '') || '';
+                var fullUrl  = resolved ? (resolved + _rfd.suffix) : '';
+                if (_rfd.key === 'chat') { chatBase = resolved; }
+
+                if (_advInputs[_rfd.key]) { _advInputs[_rfd.key].value = resolved; }
+
+                var row = document.createElement('div');
+                row.className = 'ai-assistant-panel-ep-resolved-row ' +
+                    (resolved ? 'ai-assistant-panel-ep-resolved-row--on'
+                              : 'ai-assistant-panel-ep-resolved-row--off');
+
+                var dot = document.createElement('span');
+                dot.className = 'ai-assistant-panel-ep-indicator ' +
+                    (resolved ? 'ai-assistant-panel-ep-indicator--on'
+                              : 'ai-assistant-panel-ep-indicator--off');
+                dot.setAttribute('aria-hidden', 'true');
+
+                var lbl = document.createElement('span');
+                lbl.className   = 'ai-assistant-panel-ep-resolved-label';
+                lbl.textContent = _rfd.label;
+
+                var urlTxt = document.createElement('span');
+                urlTxt.className   = 'ai-assistant-panel-ep-resolved-url';
+                urlTxt.textContent = fullUrl || 'Not configured';
+                if (fullUrl) {
+                    urlTxt.setAttribute('title', fullUrl);
+                    urlTxt.appendChild(_makeCopyBtn(function (u) {
+                        return function () { return u; };
+                    }(fullUrl)));
+                }
+
+                row.appendChild(dot);
+                row.appendChild(lbl);
+                row.appendChild(urlTxt);
+                _urlDisplay.appendChild(row);
+            }
+            _simpleInp.value       = chatBase;
+            _simpleInp.placeholder = chatBase ? '' : 'No endpoint configured';
+        }
+
+        /**
+         * Rebuild the §4 compare grid (always visible, horizontally scrollable).
+         * Feature rows × profile columns; active column and custom badges highlighted.
+         */
+        function _rebuildCompareGrid() {
+            while (_compareWrap.firstChild) { _compareWrap.removeChild(_compareWrap.firstChild); }
+
+            if (!_epSafe || !_epSafe.hasProfiles()) {
+                var noP = document.createElement('p');
+                noP.className   = 'ai-assistant-panel-ep-hint';
+                noP.textContent = 'No profiles to compare.';
+                _compareWrap.appendChild(noP);
+                return;
+            }
+
+            var allProfiles = _epSafe.list();
+            var activeKey   = _epSafe.getActive();
+
+            var scrollBox = document.createElement('div');
+            scrollBox.className = 'ai-assistant-panel-ep-compare-scroll';
+
+            var table = document.createElement('table');
+            table.className = 'ai-assistant-panel-ep-compare-grid';
+            table.setAttribute('role', 'grid');
+            table.setAttribute('aria-label', 'Profile capability comparison');
+
+            // Header row
+            var thead = document.createElement('thead');
+            var hrow  = document.createElement('tr');
+            var thFeat = document.createElement('th');
+            thFeat.className   = 'ai-assistant-panel-ep-grid-th ai-assistant-panel-ep-grid-th--feature';
+            thFeat.textContent = 'Feature';
+            thFeat.setAttribute('scope', 'col');
+            hrow.appendChild(thFeat);
+
+            for (var _hi = 0; _hi < allProfiles.length; _hi++) {
+                var _hp = allProfiles[_hi];
+                var th  = document.createElement('th');
+                th.className = 'ai-assistant-panel-ep-grid-th' +
+                    (_hp.key === activeKey ? ' ai-assistant-panel-ep-grid-th--active' : '');
+                th.setAttribute('scope', 'col');
+
+                /* Inner wrapper enables flex-column badge stacking without
+                   evicting the <th> from the table formatting context.
+                   Applying display:flex directly to a <th> removes it from
+                   the table layout in all current engines; a child <div>
+                   avoids that entirely while still giving flex behaviour
+                   to the label + badge children.                            */
+                var thWrap = document.createElement('div');
+                thWrap.className = 'ai-assistant-panel-ep-grid-th-inner';
+
+                var thLbl = document.createElement('span');
+                thLbl.className   = 'ai-assistant-panel-ep-grid-th-name';
+                thLbl.textContent = _hp.label;
+                thWrap.appendChild(thLbl);
+
+                if (_hp.key === activeKey) {
+                    var thAct = document.createElement('span');
+                    thAct.className   = 'ai-assistant-panel-ep-badge ai-assistant-panel-ep-badge--active';
+                    thAct.textContent = 'Active';
+                    thWrap.appendChild(thAct);
+                }
+                if (_hp.source === 'custom' || _hp.source === 'imported') {
+                    var thSrc = document.createElement('span');
+                    thSrc.className   = 'ai-assistant-panel-ep-badge ai-assistant-panel-ep-badge--runtime';
+                    thSrc.textContent = _hp.source === 'imported' ? 'Imported' : 'Custom';
+                    thWrap.appendChild(thSrc);
+                }
+                th.appendChild(thWrap);
+                hrow.appendChild(th);
+            }
+            thead.appendChild(hrow);
+            table.appendChild(thead);
+
+            // Body — one row per feature
+            var tbody = document.createElement('tbody');
+            for (var _gi = 0; _gi < _FEATURE_DEFS.length; _gi++) {
+                var _gfd  = _FEATURE_DEFS[_gi];
+                var grow  = document.createElement('tr');
+
+                var ftd = document.createElement('td');
+                ftd.className = 'ai-assistant-panel-ep-grid-td ai-assistant-panel-ep-grid-feature';
+                ftd.setAttribute('scope', 'row');
+                var ftdLbl = document.createElement('span');
+                ftdLbl.textContent = _gfd.label;
+                var ftdPri = document.createElement('span');
+                ftdPri.className   = 'ai-assistant-panel-ep-grid-priority';
+                ftdPri.textContent = _gfd.priority;
+                ftd.appendChild(ftdLbl);
+                ftd.appendChild(ftdPri);
+                grow.appendChild(ftd);
+
+                for (var _gp = 0; _gp < allProfiles.length; _gp++) {
+                    var _gpk = allProfiles[_gp];
+                    var url  = _epSafe.resolveFor(_gfd.key, _gpk.key);
+                    var td   = document.createElement('td');
+                    td.className = 'ai-assistant-panel-ep-grid-td ai-assistant-panel-ep-grid-cell' +
+                        (_gpk.key === activeKey ? ' ai-assistant-panel-ep-grid-td--active' : '');
+                    if (url) { td.setAttribute('title', url + _gfd.suffix); }
+
+                    var icon = document.createElement('span');
+                    icon.className = url
+                        ? 'ai-assistant-panel-ep-grid-check ai-assistant-panel-ep-grid-check--on'
+                        : 'ai-assistant-panel-ep-grid-check ai-assistant-panel-ep-grid-check--off';
+                    icon.textContent = url ? '✓' : '✗';
+                    icon.setAttribute('aria-label',
+                        _gfd.label + ' for ' + _gpk.label + ': ' +
+                        (url ? 'configured' : 'not configured'));
+                    td.appendChild(icon);
+                    grow.appendChild(td);
+                }
+                tbody.appendChild(grow);
+            }
+            table.appendChild(tbody);
+            scrollBox.appendChild(table);
+            _compareWrap.appendChild(scrollBox);
+        }
+
+        /** Update the status bar (active label + relative switch time). */
+        function _refreshStatus() {
+            if (!_epSafe) { _statusName.textContent = 'None'; _statusTime.textContent = ''; return; }
+            var _ak  = _epSafe.getActive();
+            var _ap  = _ak ? _epSafe.getProfile(_ak) : null;
+            _statusName.textContent = _ap ? _ap.label : (_ak || 'None');
+            _statusTime.textContent = _lastSwitchTs ? _relativeTime(_lastSwitchTs) : '';
+        }
+
+        /** Update the profile count badge in the §1 heading. */
+        function _updateProfileCount() {
+            if (!_countBadge) { return; }
+            var n = _epSafe ? _epSafe.list().length : 0;
+            _countBadge.textContent = n ? ' (' + n + ')' : '';
+        }
+
+        /** Show or hide the cap warning and disable Add toggle when at limit. */
+        function _updateAddCapWarning() {
+            if (!_epSafe) { return; }
+            var n = _epSafe.countCustom();
+            if (n >= _MAX_CUSTOM) {
+                _addCapWarn.textContent   =
+                    'Maximum ' + _MAX_CUSTOM + ' custom profiles reached. ' +
+                    'Delete one to add another.';
+                _addCapWarn.style.display = '';
+                addToggleBtn.disabled     = true;
+            } else {
+                _addCapWarn.style.display = 'none';
+                addToggleBtn.disabled     = false;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PRIVATE HELPERS
+        // ══════════════════════════════════════════════════════════════════════
+
+        /**
+         * Append a radio-card for a single profile to *container*.
+         *
+         * Parameters
+         * ----------
+         * container     : HTMLElement
+         * key           : string   Profile key in the _EP registry.
+         * label         : string   Human-readable display name.
+         * source        : string   'build' | 'custom' | 'imported'
+         * currentActive : string   Key of the currently-active profile (for initial state).
+         */
+        function _appendProfileCard(container, key, label, source, currentActive) {
+            var isActive  = (key === currentActive);
+            var isRuntime = (source === 'custom' || source === 'imported');
+
+            var card = document.createElement('label');
+            card.className = 'ai-assistant-panel-ep-card' +
+                (isActive ? ' ai-assistant-panel-ep-card--active' : '');
+            card.setAttribute('data-ep-key',        key);
+            card.setAttribute('data-profile-source', source || 'build');
+
+            var radio = document.createElement('input');
+            radio.type      = 'radio';
+            radio.name      = 'ai-assistant-ep-profile';
+            radio.value     = key;
+            radio.checked   = isActive;
+            radio.className = 'ai-assistant-panel-ep-radio';
+            radio.setAttribute('aria-label', 'Select profile: ' + label);
+
+            var content = document.createElement('div');
+            content.className = 'ai-assistant-panel-ep-card-content';
+
+            // Label row: name + key code + badges
+            var labelRow = document.createElement('div');
+            labelRow.className = 'ai-assistant-panel-ep-card-label-row';
+
+            var labelSpan = document.createElement('span');
+            labelSpan.className   = 'ai-assistant-panel-ep-card-label';
+            labelSpan.textContent = label;
+
+            var keySpan = document.createElement('code');
+            keySpan.className   = 'ai-assistant-panel-ep-card-key';
+            keySpan.textContent = key;
+
+            var activeBadge = document.createElement('span');
+            activeBadge.className   = 'ai-assistant-panel-ep-badge ai-assistant-panel-ep-badge--active';
+            activeBadge.textContent = 'Active';
+            activeBadge.style.display = isActive ? '' : 'none';
+
+            labelRow.appendChild(labelSpan);
+            labelRow.appendChild(keySpan);
+            labelRow.appendChild(activeBadge);
+
+            if (!isRuntime) {
+                var builtinBadge = document.createElement('span');
+                builtinBadge.className   = 'ai-assistant-panel-ep-badge ai-assistant-panel-ep-badge--builtin';
+                builtinBadge.textContent = 'Built-in';
+                labelRow.appendChild(builtinBadge);
+            } else {
+                var runtimeBadge = document.createElement('span');
+                runtimeBadge.className   = 'ai-assistant-panel-ep-badge ai-assistant-panel-ep-badge--runtime';
+                runtimeBadge.textContent = source === 'imported' ? 'Imported' : 'Custom';
+                labelRow.appendChild(runtimeBadge);
+
+                // Delete button with two-step confirm
+                var delBtn = document.createElement('button');
+                delBtn.type      = 'button';
+                delBtn.className = 'ai-assistant-panel-ep-delete-btn';
+                delBtn.setAttribute('aria-label', 'Delete profile: ' + label);
+                delBtn.title       = 'Delete this profile';
+                delBtn.textContent = '×';
+
+                var _delConfirm = false;
+                delBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!_delConfirm) {
+                        _delConfirm = true;
+                        delBtn.textContent = '⚠ Sure?';
+                        delBtn.classList.add('ai-assistant-panel-ep-delete-btn--confirm');
+                        setTimeout(function () {
+                            _delConfirm = false;
+                            delBtn.textContent = '×';
+                            delBtn.classList.remove('ai-assistant-panel-ep-delete-btn--confirm');
+                        }, 3000);
+                        return;
+                    }
+                    if (!_epSafe) { return; }
+                    var deleted = _epSafe.deleteCustomProfile(key);
+                    if (deleted && container.contains(card)) {
+                        container.removeChild(card);
+                        _refreshAll();
+                        _updateAddCapWarning();
+                        // Update sub-bar pill
+                        var _nowActive = _epSafe.getActive();
+                        var _epLbl4 = document.querySelector('.ai-assistant-panel-ep-btn-label');
+                        if (_epLbl4) {
+                            var _nowProf = _nowActive ? _epSafe.getProfile(_nowActive) : null;
+                            _epLbl4.textContent = _nowProf ? _nowProf.label : 'Endpoint Configuration';
+                        }
+                    }
+                });
+                labelRow.appendChild(delBtn);
+            }
+            content.appendChild(labelRow);
+
+            // Capability badges row — reads from validated registry only (B-03 fix)
+            var capRow = document.createElement('div');
+            capRow.className = 'ai-assistant-panel-ep-caps';
+            var capData = (_epSafe ? _epSafe.getProfile(key) : null) || {};
+            var _capDefs = [
+                { key: 'chat',     label: 'Chat'     },
+                { key: 'share',    label: 'Share'    },
+                { key: 'feedback', label: 'Feedback' },
+                { key: 'training', label: 'Training' },
+            ];
+            for (var _ci = 0; _ci < _capDefs.length; _ci++) {
+                var _cd  = _capDefs[_ci];
+                var _has = !!(capData[_cd.key]);
+                var cap  = document.createElement('span');
+                cap.className   = 'ai-assistant-panel-ep-cap ' +
+                    (_has ? 'ai-assistant-panel-ep-cap--on' : 'ai-assistant-panel-ep-cap--off');
+                cap.textContent = _cd.label;
+                cap.setAttribute('title', _cd.label + ': ' + (_has ? 'configured' : 'not configured'));
+                capRow.appendChild(cap);
+            }
+            content.appendChild(capRow);
+
+            // SSRF advisory badge — rendered only when the Python build flagged
+            // one or more URL fields as targeting a private/reserved host.
+            // _warn is a string array of field names, e.g. ["chat", "share"].
+            // Reads exclusively via getProfile() (V-09 safe path, never raw global).
+            var _warnList = Array.isArray(capData._warn) ? capData._warn : [];
+            if (_warnList.length > 0) {
+                var ssrfBadge = document.createElement('span');
+                ssrfBadge.className   = 'ai-assistant-panel-ep-ssrf-warn';
+                ssrfBadge.textContent = '\u26a0 SSRF advisory';
+                ssrfBadge.setAttribute(
+                    'title',
+                    'Private/reserved host detected in: ' + _warnList.join(', ') +
+                    '. Local-dev only \u2014 do not use in production.'
+                );
+                ssrfBadge.setAttribute(
+                    'aria-label',
+                    'SSRF advisory: private host in fields ' + _warnList.join(', ')
+                );
+                content.appendChild(ssrfBadge);
+            }
+
+            // Expandable per-card URL detail rows (lazy-built on first open)
+            var detailToggle = document.createElement('button');
+            detailToggle.type      = 'button';
+            detailToggle.className = 'ai-assistant-panel-ep-card-detail-toggle';
+            detailToggle.textContent = 'Show URLs';
+            detailToggle.setAttribute('aria-expanded', 'false');
+
+            var detailWrap = document.createElement('div');
+            detailWrap.className    = 'ai-assistant-panel-ep-card-detail';
+            detailWrap.style.display = 'none';
+
+            detailToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var _isOpen = detailWrap.style.display !== 'none';
+                detailWrap.style.display = _isOpen ? 'none' : '';
+                detailToggle.textContent = _isOpen ? 'Show URLs' : 'Hide URLs';
+                detailToggle.setAttribute('aria-expanded', _isOpen ? 'false' : 'true');
+                if (!_isOpen && !detailWrap.firstChild) {
+                    // Lazy-build detail rows on first expand
+                    for (var _dfi = 0; _dfi < _FEATURE_DEFS.length; _dfi++) {
+                        var _dfd = _FEATURE_DEFS[_dfi];
+                        var resolved = _epSafe ? _epSafe.resolveFor(_dfd.key, key) : '';
+                        var fullUrl  = resolved ? (resolved + _dfd.suffix) : '';
+
+                        var dRow = document.createElement('div');
+                        dRow.className = 'ai-assistant-panel-ep-card-detail-row';
+
+                        var dLbl = document.createElement('span');
+                        dLbl.className   = 'ai-assistant-panel-ep-card-detail-label';
+                        dLbl.textContent = _dfd.label + ':';
+
+                        var dUrl = document.createElement('span');
+                        dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
+                        dUrl.textContent = fullUrl || 'Not configured';
+                        if (fullUrl) { dUrl.setAttribute('title', fullUrl); }
+
+                        dRow.appendChild(dLbl);
+                        dRow.appendChild(dUrl);
+                        if (fullUrl) {
+                            dRow.appendChild(_makeCopyBtn(function (u) {
+                                return function () { return u; };
+                            }(fullUrl)));
+                        }
+                        detailWrap.appendChild(dRow);
+                    }
+                }
+            });
+            content.appendChild(detailToggle);
+            content.appendChild(detailWrap);
+
+            card.appendChild(radio);
+            card.appendChild(content);
+            container.appendChild(card);
+
+            // Profile switch handler
+            radio.addEventListener('change', function () {
+                if (!radio.checked || !_epSafe) { return; }
+                var switched = _epSafe.setActive(key);
+                if (!switched) { return; }
+                _deactivateAllCards(container);
+                card.classList.add('ai-assistant-panel-ep-card--active');
+                activeBadge.style.display = '';
+                radio.checked = true;
+
+                var _epLbl5 = document.querySelector('.ai-assistant-panel-ep-btn-label');
+                if (_epLbl5) { _epLbl5.textContent = label; }
+
+                if (_profileHint) {
+                    _profileHint.textContent = '✓ Switched to: ' + label;
+                    setTimeout(function () {
+                        if (_profileHint) {
+                            _profileHint.textContent =
+                                'Select a proxy backend. Switching is instant — no page reload needed.';
+                        }
+                    }, 2500);
+                }
+                // _refreshAll() is also called via the onChange observer, but
+                // calling it here gives zero-latency feedback if the observer
+                // is not yet registered.
+                _lastSwitchTs = Date.now();
+                _refreshAll();
+            });
+        }
+
+        /**
+         * Clear active-state CSS and aria from all cards in *container*.
+         *
+         * Parameters
+         * ----------
+         * container : HTMLElement
+         */
+        function _deactivateAllCards(container) {
+            if (!container) { return; }
+            var cards = container.querySelectorAll('.ai-assistant-panel-ep-card');
+            for (var _di = 0; _di < cards.length; _di++) {
+                cards[_di].classList.remove('ai-assistant-panel-ep-card--active');
+                var _r = cards[_di].querySelector('input[type="radio"]');
+                if (_r) { _r.checked = false; }
+                var _b = cards[_di].querySelector('.ai-assistant-panel-ep-badge--active');
+                if (_b) { _b.style.display = 'none'; }
+            }
+        }
+
+        /**
+         * Create a copy-to-clipboard button.
+         *
+         * Parameters
+         * ----------
+         * source : Function | HTMLInputElement
+         *     If a Function, called on each click to get the string to copy.
+         *     If an HTMLInputElement, reads .value on each click.
+         *     This unified signature combines Source A's function-getter and
+         *     Source B's input-element patterns.
+         *
+         * Returns
+         * -------
+         * HTMLButtonElement
+         */
+        function _makeCopyBtn(source) {
+            var btn = document.createElement('button');
+            btn.type      = 'button';
+            btn.className = 'ai-assistant-panel-ep-copy-btn';
+            btn.setAttribute('aria-label', 'Copy to clipboard');
+            btn.setAttribute('title', 'Copy');
+            btn.textContent = '⎘';
+            var _cTimer = null;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var val = (typeof source === 'function')
+                    ? source()
+                    : (source && typeof source.value === 'string' ? source.value : '');
+                if (!val) { return; }
+                _fallbackCopy(
+                    val,
+                    function () {
+                        btn.textContent = '✓';
+                        clearTimeout(_cTimer);
+                        _cTimer = setTimeout(function () { btn.textContent = '⎘'; }, 1500);
+                    },
+                    function () {
+                        btn.textContent = '✗';
+                        clearTimeout(_cTimer);
+                        _cTimer = setTimeout(function () { btn.textContent = '⎘'; }, 1500);
+                    }
+                );
+            });
+            return btn;
+        }
+
+        /**
+         * Create an inline health-check button (⬤) for a URL input row.
+         * Pings the URL with fetch HEAD / no-cors; 5-second AbortController timeout.
+         * Shows result for 8 seconds then resets to neutral.
+         *
+         * Parameters
+         * ----------
+         * inp      : HTMLInputElement   Read-only URL input to read from.
+         * fdLabel  : string             Feature label for aria text.
+         *
+         * Returns
+         * -------
+         * HTMLButtonElement
+         */
+        function _makeHealthBtn(inp, fdLabel) {
+            var btn = document.createElement('button');
+            btn.type      = 'button';
+            btn.className = 'ai-assistant-panel-ep-health-btn';
+            btn.setAttribute('aria-label', 'Check ' + fdLabel + ' endpoint health');
+            btn.textContent = '⬤';
+            btn.title       = 'Ping endpoint';
+            var _busy = false;
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (_busy) { return; }
+                var url = inp.value || '';
+                if (!url) {
+                    btn.className = 'ai-assistant-panel-ep-health-btn ai-assistant-panel-ep-health-btn--off';
+                    btn.title     = 'No URL configured';
+                    return;
+                }
+                _busy = true;
+                btn.className = 'ai-assistant-panel-ep-health-btn ai-assistant-panel-ep-health-btn--checking';
+                btn.title     = 'Checking…';
+
+                _pingUrl(url, function (result) {
+                    var ts = new Date().toLocaleTimeString();
+                    btn.className = 'ai-assistant-panel-ep-health-btn ' +
+                        (result.ok
+                            ? 'ai-assistant-panel-ep-health-btn--ok'
+                            : 'ai-assistant-panel-ep-health-btn--err');
+                    btn.title = result.ok
+                        ? 'Reachable (' + ts + ')'
+                        : (result.status === 'timeout' ? 'Timeout (5 s)' : 'Unreachable');
+                    _busy = false;
+                    setTimeout(function () {
+                        btn.className = 'ai-assistant-panel-ep-health-btn';
+                        btn.title     = 'Ping endpoint';
+                    }, 8000);
+                });
+            });
+            return btn;
+        }
+
+        /**
+         * Create a hidden risk-badge element (shown by _wireUrlRisk on blur).
+         *
+         * Returns
+         * -------
+         * HTMLElement
+         */
+        function _makeRiskBadgeEl() {
+            var el = document.createElement('span');
+            el.className    = 'ai-assistant-panel-ep-risk-badge';
+            el.style.display = 'none';
+            return el;
+        }
+
+        /**
+         * Wire a URL input to its risk badge element.
+         * On blur: shows SSRF-block badge (error) or HTTP-only badge (warning).
+         * On focus: hides badge and clears risk CSS classes.
+         *
+         * Parameters
+         * ----------
+         * inp   : HTMLInputElement
+         * badge : HTMLElement   Created by _makeRiskBadgeEl().
+         */
+        function _wireUrlRisk(inp, badge) {
+            inp.addEventListener('blur', function () {
+                var val = inp.value.trim();
+                if (!val) { badge.style.display = 'none'; return; }
+                if (_epSafe && _epSafe.isPrivateUrl(val)) {
+                    badge.textContent = '🚫 Private / loopback address blocked (SSRF guard)';
+                    badge.className   = 'ai-assistant-panel-ep-risk-badge ai-assistant-panel-ep-risk-badge--error';
+                    badge.style.display = '';
+                    inp.classList.add('ai-assistant-panel-ep-input--risk-error');
+                    inp.classList.remove('ai-assistant-panel-ep-input--risk-warn');
+                } else if (_epSafe && _epSafe.isHttpUrl(val)) {
+                    badge.textContent = '⚠ HTTP (not HTTPS) — traffic is unencrypted';
+                    badge.className   = 'ai-assistant-panel-ep-risk-badge ai-assistant-panel-ep-risk-badge--warn';
+                    badge.style.display = '';
+                    inp.classList.add('ai-assistant-panel-ep-input--risk-warn');
+                    inp.classList.remove('ai-assistant-panel-ep-input--risk-error');
+                } else {
+                    badge.style.display = 'none';
+                    inp.classList.remove('ai-assistant-panel-ep-input--risk-error',
+                                        'ai-assistant-panel-ep-input--risk-warn');
+                }
+            });
+            inp.addEventListener('focus', function () {
+                badge.style.display = 'none';
+                inp.classList.remove('ai-assistant-panel-ep-input--risk-error',
+                                     'ai-assistant-panel-ep-input--risk-warn');
+            });
+        }
+
+        /**
+         * Wire a URL input to a validation-error span.
+         * Error shown on blur (not on every keystroke to avoid noise).
+         * Clears on focus (fresh start while typing).
+         *
+         * Parameters
+         * ----------
+         * inp   : HTMLInputElement
+         * errEl : HTMLElement   Element that shows the error string.
+         */
+        function _wireUrlValidation(inp, errEl) {
+            inp.addEventListener('blur', function () {
+                var val = inp.value.trim();
+                if (!val) {
+                    errEl.style.display = 'none';
+                    inp.classList.remove('ai-assistant-panel-ep-input--err');
+                    return;
+                }
+                var vr = _epSafe
+                    ? _epSafe.validateUrl(val)
+                    : { ok: /^https?:\/\//i.test(val), reason: 'Must start with https://' };
+                if (!vr.ok) {
+                    errEl.textContent  = vr.reason;
+                    errEl.style.display = '';
+                    inp.classList.add('ai-assistant-panel-ep-input--err');
+                } else {
+                    errEl.style.display = 'none';
+                    inp.classList.remove('ai-assistant-panel-ep-input--err');
+                }
+            });
+            inp.addEventListener('focus', function () {
+                errEl.style.display = 'none';
+                inp.classList.remove('ai-assistant-panel-ep-input--err');
+            });
+        }
+
+        /**
+         * Create a show/hide toggle button for a password input.
+         *
+         * Parameters
+         * ----------
+         * inp : HTMLInputElement   type="password" input to toggle.
+         *
+         * Returns
+         * -------
+         * HTMLButtonElement
+         */
+        function _makeShowHideBtn(inp) {
+            var btn = document.createElement('button');
+            btn.type      = 'button';
+            btn.className = 'ai-assistant-panel-ep-showhide-btn';
+            btn.textContent = 'Show';
+            btn.setAttribute('aria-label', 'Show token');
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var isHidden = inp.type === 'password';
+                inp.type = isHidden ? 'text' : 'password';
+                btn.textContent = isHidden ? 'Hide' : 'Show';
+                btn.setAttribute('aria-label', isHidden ? 'Hide token' : 'Show token');
+            });
+            return btn;
+        }
+
+        /**
+         * Ping a URL with a 5-second timeout.
+         * Uses mode:'no-cors' so fetch resolves on any HTTP response (opaque);
+         * rejects only on genuine network failure (DNS, TCP, abort).
+         *
+         * Parameters
+         * ----------
+         * url : string
+         * cb  : (result: {ok: boolean, status: string}) => void
+         */
+        function _pingUrl(url, cb) {
+            var done = false;
+            var tid  = null;
+            function _finish(result) {
+                if (done) { return; }
+                done = true;
+                clearTimeout(tid);
+                cb(result);
+            }
+            try {
+                var ac = (typeof AbortController !== 'undefined')
+                    ? new AbortController() : null;
+                tid = setTimeout(function () {
+                    if (ac) { try { ac.abort(); } catch (_) {} }
+                    _finish({ ok: false, status: 'timeout' });
+                }, 5000);
+                fetch(url, {
+                    method: 'HEAD',
+                    mode:   'no-cors',
+                    cache:  'no-store',
+                    signal: ac ? ac.signal : undefined,
+                }).then(
+                    function () { _finish({ ok: true, status: 'ok' }); },
+                    function (e) {
+                        var isAbort = e && e.name === 'AbortError';
+                        _finish({ ok: false, status: isAbort ? 'timeout' : 'error' });
+                    }
+                );
+            } catch (e) {
+                _finish({ ok: false, status: 'error' });
+            }
+        }
+
+        /**
+         * Copy *text* to the clipboard; calls onSuccess or onFail.
+         * Tries navigator.clipboard.writeText first, falls back to
+         * document.execCommand('copy') via a temporary off-screen textarea.
+         *
+         * Parameters
+         * ----------
+         * text      : string
+         * onSuccess : Function
+         * onFail    : Function
+         */
+        function _fallbackCopy(text, onSuccess, onFail) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(onSuccess, function () {
+                        _execCopy(text, onSuccess, onFail);
+                    });
+                    return;
+                }
+            } catch (_) {}
+            _execCopy(text, onSuccess, onFail);
+        }
+
+        function _execCopy(text, onSuccess, onFail) {
+            try {
+                var ta = document.createElement('textarea');
+                ta.value    = text;
+                ta.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                var ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (ok) { onSuccess(); } else { onFail(); }
+            } catch (_) { onFail(); }
+        }
+
+        /**
+         * Return a human-readable relative time string for a timestamp.
+         *
+         * Parameters
+         * ----------
+         * ts : number   Milliseconds since epoch.
+         *
+         * Returns
+         * -------
+         * string   e.g. 'just now', '43 seconds ago', '2 minutes ago'
+         */
+        function _relativeTime(ts) {
+            var diff = Math.floor((Date.now() - ts) / 1000);
+            if (diff < 5)    { return 'just now'; }
+            if (diff < 60)   { return diff + ' seconds ago'; }
+            if (diff < 3600) {
+                var m = Math.floor(diff / 60);
+                return m + ' minute' + (m === 1 ? '' : 's') + ' ago';
+            }
+            var h = Math.floor(diff / 3600);
+            return h + ' hour' + (h === 1 ? '' : 's') + ' ago';
+        }
+    }
+
+        function _buildPrivacySheet() {
         var cfg = window.AI_ASSISTANT_CONFIG || {};
         var title = (typeof cfg.panelPrivacyTitle === 'string' &&
             cfg.panelPrivacyTitle) || 'Privacy & Responsibility';
@@ -3046,6 +8491,8 @@
         hClose.addEventListener('click', function () {
             sheet.setAttribute('data-open', 'false');
         });
+        var _privHamBtn = _buildSheetHamburgerBtn(sheet, 'privacy');
+        if (_privHamBtn) { head.appendChild(_privHamBtn); }
         head.appendChild(hStrong);
         head.appendChild(hClose);
         sheet.appendChild(head);
@@ -3677,11 +9124,13 @@
         var hStrong = document.createElement('strong');
         // FIX Issue 5: stable id so aria-labelledby resolves correctly.
         hStrong.id = _SHEET_TITLE_ID;
-        hStrong.textContent = 'Choose a model';
+        hStrong.textContent = 'Model Configuration';
         var hClose = _createIconBtn('model-close', 'Close model picker', ICONS.close);
         hClose.addEventListener('click', function () {
             sheet.setAttribute('data-open', 'false');
         });
+        var _modelHamBtn = _buildSheetHamburgerBtn(sheet, 'model');
+        if (_modelHamBtn) { head.appendChild(_modelHamBtn); }
         head.appendChild(hStrong);
         head.appendChild(hClose);
         sheet.appendChild(head);
@@ -3690,7 +9139,7 @@
         bodyEl.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-model-list';
         // FIX Issue 5: radiogroup role so AT announces single-select semantics.
         bodyEl.setAttribute('role', 'radiogroup');
-        bodyEl.setAttribute('aria-label', 'Choose a model');
+        bodyEl.setAttribute('aria-label', 'Model Configuration');
 
         var models = Array.isArray(cfg.panelApiModels) ? cfg.panelApiModels : [];
         if (models.length === 0) {
@@ -4627,6 +10076,8 @@
         hClose.addEventListener('click', function () {
             sheet.setAttribute('data-open', 'false');
         });
+        var _termsHamBtn = _buildSheetHamburgerBtn(sheet, 'terms');
+        if (_termsHamBtn) { head.appendChild(_termsHamBtn); }
         head.appendChild(hStrong);
         head.appendChild(hClose);
         sheet.appendChild(head);
@@ -4684,7 +10135,333 @@
      *
      * @returns {HTMLElement}
      */
-    function _buildShareSheet() {
+    /**
+     * Build the inline export accordion section for the share sheet.
+     *
+     * Produces a self-contained DOM subtree that sits above the share
+     * targets list in the share sheet.  The section is structurally an
+     * accordion: a trigger row that collapses/expands a body containing
+     * format cards and a share-link mode toggle.
+     *
+     * This is the richer, extended counterpart of the toolbar export
+     * dropdown.  Both surfaces share state via ``_exportStateListeners``
+     * (registered here) and ``_setExportLinkMode`` (the single source of
+     * truth for ``_exportLinkMode``).
+     *
+     * Parameters
+     * ----------
+     * opts : object
+     *     ``onLinkMode {function(fmt)}`` — called with the format key
+     *     (``'json'`` | ``'html'`` | ``'txt'``) when the user clicks a
+     *     format card while share-link mode is ON.  Typically opens the
+     *     corresponding format-specific share sheet via ``_openSheet``.
+     *
+     * Returns
+     * -------
+     * HTMLElement
+     *     Assembled ``.ai-assistant-share-export-section`` element.
+     *
+     * Notes
+     * -----
+     * User: Click "Export" to expand format options.  Toggle "Share link"
+     *   to switch between downloading the file and creating a shareable URL.
+     *   The toggle is synced with the Export button in the toolbar — both
+     *   always show the same mode.
+     *
+     * Developer: ``onLinkMode`` closures are safe to reference
+     *   ``convShareSheetJson/Html/Txt`` that are var-hoisted in
+     *   ``createAIPanel`` and assigned after ``_buildShareSheet()`` returns —
+     *   the exact same pattern as the toolbar export dropdown.  No user
+     *   interaction can fire before assignments are reached.
+     *
+     * Developer: The mode-toggle ``id`` used here
+     *   (``ai-assistant-share-export-link-toggle``) is intentionally
+     *   distinct from the dropdown toggle id
+     *   (``ai-assistant-export-link-toggle``) so ``_setExportLinkMode``'s
+     *   ``getElementById`` sync covers the dropdown and the observer
+     *   callback covers this one — no ID collision.
+     *
+     * Developer: A listener is pushed onto ``_exportStateListeners`` during
+     *   construction.  It lives as long as the panel (panel-lifetime surface)
+     *   so no deregistration is needed — see the registry docblock.
+     */
+    function _buildShareExportSection(opts) {
+        var options    = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var onLinkMode = typeof options.onLinkMode === 'function' ? options.onLinkMode : null;
+
+        // ── Format registry ───────────────────────────────────────────────────
+        // Mirrors the dropdown's local `formats` array but adds:
+        //   `desc`  — longer body text for the richer card UI.
+        //   `stub`  — boolean; marks future-feature placeholder cards.
+        //             Stub cards are disabled, non-interactive, and show a
+        //             "soon" badge.  Removing the flag activates the card
+        //             with no other changes needed.
+        //
+        // Layout order: [TOML-stub] [JSON] [HTML] [TXT] [TOML-stub]
+        // Symmetric bookends let future formats replace stubs naturally —
+        // push inward from either end to grow the active set.
+        var _TOML_ICON = '<svg viewBox="0 0 24 24" width="14" height="14"' +
+            ' fill="none" stroke="currentColor" stroke-width="2"' +
+            ' stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+            '<polyline points="14 2 14 8 20 8"/>' +
+            '<line x1="8" y1="13" x2="16" y2="13"/>' +
+            '<line x1="8" y1="17" x2="16" y2="17"/>' +
+            '<line x1="9" y1="9" x2="11" y2="9"/>' +
+            '</svg>';
+        var formats = [
+            {
+                fmt:   'toml',
+                label: 'TOML',
+                hint:  'Config \u00b7 coming soon',
+                desc:  'TOML key-value format \u2014 config files and tool integrations.',
+                icon:  _TOML_ICON,
+                stub:  true,
+            },
+            {
+                fmt:   'json',
+                label: 'JSON',
+                hint:  'Pandas-ready \u00b7 model + ratings',
+                desc:  'Structured data \u2014 import into pandas, re-load ratings, or feed another model.',
+                icon:  ICONS.exportJson,
+            },
+            {
+                fmt:   'html',
+                label: 'HTML',
+                hint:  'Shareable page \u00b7 open in browser',
+                desc:  'Self-contained page \u2014 open in any browser or email as an attachment.',
+                icon:  ICONS.exportHtml,
+            },
+            {
+                fmt:   'txt',
+                label: 'Plain text',
+                hint:  'Simple \u00b7 human-readable',
+                desc:  'Plain prose \u2014 paste into any editor, doc, or note-taking app.',
+                icon:  ICONS.exportTxt,
+            },
+            {
+                fmt:   'toml',
+                label: 'TOML',
+                hint:  'Config \u00b7 coming soon',
+                desc:  'TOML key-value format \u2014 config files and tool integrations.',
+                icon:  _TOML_ICON,
+                stub:  true,
+            },
+        ];
+
+        // ── Section wrapper ───────────────────────────────────────────────────
+        var section = document.createElement('div');
+        section.className = 'ai-assistant-share-export-section';
+
+        // ── Trigger row ───────────────────────────────────────────────────────
+        var triggerBtn = document.createElement('button');
+        triggerBtn.type = 'button';
+        triggerBtn.className = 'ai-assistant-share-export-trigger';
+        triggerBtn.setAttribute('aria-expanded', 'false');
+        triggerBtn.setAttribute('aria-label', 'Export conversation — expand options');
+
+        var triggerLhs = document.createElement('span');
+        triggerLhs.className = 'ai-assistant-share-export-trigger-lhs';
+
+        var triggerIcon = document.createElement('span');
+        triggerIcon.setAttribute('aria-hidden', 'true');
+        triggerIcon.className = 'ai-assistant-share-export-trigger-icon';
+        triggerIcon.innerHTML = ICONS.exportTxt;
+
+        var triggerLabel = document.createElement('span');
+        triggerLabel.textContent = 'Export';
+
+        triggerLhs.appendChild(triggerIcon);
+        triggerLhs.appendChild(triggerLabel);
+
+        var triggerRhs = document.createElement('span');
+        triggerRhs.className = 'ai-assistant-share-export-trigger-rhs';
+
+        var modeBadge = document.createElement('span');
+        modeBadge.className = 'ai-assistant-share-export-mode-badge';
+        modeBadge.textContent = _exportLinkMode ? 'Link' : 'Download';
+
+        var chevron = document.createElement('span');
+        chevron.className = 'ai-assistant-share-export-chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.innerHTML = ICONS.chevronDown;
+
+        triggerRhs.appendChild(modeBadge);
+        triggerRhs.appendChild(chevron);
+
+        triggerBtn.appendChild(triggerLhs);
+        triggerBtn.appendChild(triggerRhs);
+
+        // ── Collapsible body ──────────────────────────────────────────────────
+        var body = document.createElement('div');
+        body.className = 'ai-assistant-share-export-body';
+        body.setAttribute('data-open', 'false');
+
+        // ── Format cards ──────────────────────────────────────────────────────
+        var cardsGrid = document.createElement('div');
+        cardsGrid.className = 'ai-assistant-share-export-cards';
+
+        formats.forEach(function (opt) {
+            var card = document.createElement('button');
+            card.type = 'button';
+            // data-fmt enables CSS container-query rules to target cards by
+            // format type — used to hide the duplicate TOML stub in wide mode
+            // without nth-child fragility.
+            card.setAttribute('data-fmt', opt.fmt);
+            card.className = 'ai-assistant-share-export-card' +
+                (opt.stub ? ' ai-assistant-share-export-card--stub' : '');
+            card.setAttribute('aria-label',
+                opt.stub
+                    ? opt.label + ' \u2014 coming soon'
+                    : opt.label + ' \u2014 ' + opt.hint);
+
+            // Stub cards: fully disabled and non-interactive.
+            // The `--stub` CSS class handles opacity + dashed border + cursor.
+            // Both `disabled` (HTML contract) and `aria-disabled` (AT contract)
+            // are set so the card is skipped by keyboard navigation AND by screen
+            // readers — neither should present a control that does nothing.
+            if (opt.stub) {
+                card.disabled = true;
+                card.setAttribute('aria-disabled', 'true');
+                card.setAttribute('tabindex', '-1');
+                card.setAttribute('title', 'Coming soon');
+            }
+
+            var cardIcon = document.createElement('span');
+            cardIcon.className = 'ai-assistant-share-export-card-icon';
+            cardIcon.setAttribute('aria-hidden', 'true');
+            cardIcon.innerHTML = opt.icon;
+
+            var cardLabel = document.createElement('span');
+            cardLabel.className = 'ai-assistant-share-export-card-label';
+            cardLabel.textContent = opt.label;
+
+            var cardHint = document.createElement('span');
+            cardHint.className = 'ai-assistant-share-export-card-hint';
+            cardHint.textContent = opt.desc;
+
+            card.appendChild(cardIcon);
+            card.appendChild(cardLabel);
+            card.appendChild(cardHint);
+
+            if (opt.stub) {
+                // "soon" badge — positional overlay at top-right of card.
+                // aria-hidden: the label already conveys "coming soon".
+                var soonBadge = document.createElement('span');
+                soonBadge.className = 'ai-assistant-share-export-card-soon';
+                soonBadge.setAttribute('aria-hidden', 'true');
+                soonBadge.textContent = 'soon';
+                card.appendChild(soonBadge);
+            } else {
+                // Active cards: wire click to export or share-link dispatch.
+                (function (fmt) {
+                    card.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (_exportLinkMode && onLinkMode) {
+                            onLinkMode(fmt);
+                        } else {
+                            exportConversation(fmt);
+                        }
+                    });
+                }(opt.fmt));
+            }
+
+            cardsGrid.appendChild(card);
+        });
+
+        body.appendChild(cardsGrid);
+
+        // ── Mode-toggle row ───────────────────────────────────────────────────
+        // Shares logic with the dropdown's mode row; reuses the same pill CSS
+        // classes (.ai-assistant-mic-popup-toggle / -toggle-track / -thumb).
+        // Uses a different ID to avoid colliding with the dropdown's toggle.
+        var modeSep = document.createElement('div');
+        modeSep.className = 'ai-assistant-share-export-sep';
+        body.appendChild(modeSep);
+
+        var modeRow = document.createElement('div');
+        modeRow.className = 'ai-assistant-share-export-mode-row';
+        modeRow.setAttribute('role', 'button');
+        modeRow.setAttribute('tabindex', '0');
+        modeRow.setAttribute('aria-label', 'Toggle share-link mode');
+
+        var modeIcon = document.createElement('span');
+        modeIcon.className = 'ai-assistant-share-export-mode-icon';
+        modeIcon.setAttribute('aria-hidden', 'true');
+        modeIcon.innerHTML = ICONS.linkChain;
+
+        var modeLbl = document.createElement('span');
+        modeLbl.className = 'ai-assistant-share-export-mode-label';
+        // Reflects the current mode on initial render; updated reactively in
+        // the _exportStateListeners callback registered below.
+        modeLbl.textContent = _exportLinkMode ? 'Share link' : 'Download';
+
+        var modeToggle = document.createElement('button');
+        modeToggle.type = 'button';
+        modeToggle.className = 'ai-assistant-mic-popup-toggle';
+        modeToggle.id = 'ai-assistant-share-export-link-toggle';
+        modeToggle.setAttribute('aria-pressed', _exportLinkMode ? 'true' : 'false');
+        modeToggle.setAttribute('aria-label', 'Share-link mode');
+        modeToggle.setAttribute('title',
+            _exportLinkMode ? 'Share-link mode: ON' : 'Share-link mode: OFF');
+
+        var modeTrack = document.createElement('span');
+        modeTrack.className = 'ai-assistant-mic-toggle-track';
+        var modeThumb = document.createElement('span');
+        modeThumb.className = 'ai-assistant-mic-toggle-thumb';
+        modeTrack.appendChild(modeThumb);
+        modeToggle.appendChild(modeTrack);
+
+        modeToggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            _setExportLinkMode(!_exportLinkMode);
+        });
+
+        modeRow.addEventListener('click', function (e) {
+            if (modeToggle.contains(e.target)) { return; }
+            _setExportLinkMode(!_exportLinkMode);
+        });
+        modeRow.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                _setExportLinkMode(!_exportLinkMode);
+            }
+        });
+
+        modeRow.appendChild(modeIcon);
+        modeRow.appendChild(modeLbl);
+        modeRow.appendChild(modeToggle);
+        body.appendChild(modeRow);
+
+        // ── State observer — stay in sync with toolbar dropdown ───────────────
+        // Registered on _exportStateListeners so any call to _setExportLinkMode
+        // (from either this row or the dropdown) updates both surfaces.
+        _exportStateListeners.push(function (state) {
+            modeBadge.textContent  = state.linkMode ? 'Link' : 'Download';
+            // Label mirrors the current mode: "Download" or "Share link".
+            modeLbl.textContent    = state.linkMode ? 'Share link' : 'Download';
+            modeToggle.setAttribute('aria-pressed', state.linkMode ? 'true' : 'false');
+            modeToggle.setAttribute('title',
+                state.linkMode ? 'Share-link mode: ON' : 'Share-link mode: OFF');
+        });
+
+        // ── Accordion toggle ──────────────────────────────────────────────────
+        triggerBtn.addEventListener('click', function () {
+            var isOpen = body.getAttribute('data-open') === 'true';
+            body.setAttribute('data-open', isOpen ? 'false' : 'true');
+            triggerBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        });
+
+        // ── Assemble ──────────────────────────────────────────────────────────
+        section.appendChild(triggerBtn);
+        section.appendChild(body);
+        return section;
+    }
+
+    function _buildShareSheet(opts) {
+        var sheetOpts  = (typeof opts === 'object' && opts !== null) ? opts : {};
+        var onLinkMode = typeof sheetOpts.onLinkMode === 'function'
+            ? sheetOpts.onLinkMode : null;
         var cfg = window.AI_ASSISTANT_CONFIG || {};
         var label = (typeof cfg.panelShareLabel === 'string' &&
             cfg.panelShareLabel) || 'Share';
@@ -4702,9 +10479,22 @@
         hClose.addEventListener('click', function () {
             sheet.setAttribute('data-open', 'false');
         });
+        var _shareHamBtn = _buildSheetHamburgerBtn(sheet, 'share');
+        if (_shareHamBtn) { head.appendChild(_shareHamBtn); }
         head.appendChild(hStrong);
         head.appendChild(hClose);
         sheet.appendChild(head);
+
+        // ── Inline export accordion (before share targets) ────────────────────
+        // Only added when an onLinkMode dispatch callback is available (i.e.
+        // when the convShareSheet* refs have been wired by createAIPanel).
+        var exportSection = _buildShareExportSection({ onLinkMode: onLinkMode });
+        sheet.appendChild(exportSection);
+
+        // Hairline divider between export section and share targets.
+        var exportDivider = document.createElement('div');
+        exportDivider.className = 'ai-assistant-share-export-divider';
+        sheet.appendChild(exportDivider);
 
         var bodyEl = document.createElement('div');
         bodyEl.className = 'ai-assistant-panel-privacy-body ai-assistant-panel-share-list';
@@ -4767,7 +10557,889 @@
     }
 
 
-    // ── Project Links sheet ───────────────────────────────────────────────────
+    // ── Conversation share sheets (format-specific) ───────────────────────────
+    // Three sheets produced by _buildFmtShareSheet below — one per export format.
+    // Replaces the former single _buildConvShareSheet (HTML-only, session-only).
+
+    /**
+     * Build a format-specific "Share conversation" slide-over sheet.
+     *
+     * Factory function that produces one sheet per export format (JSON, HTML,
+     * TXT).  Each sheet carries format-specific metadata, description, and
+     * content-building logic so the user always sees exactly what they are
+     * sharing and can use the right tool for the job.
+     *
+     * Design
+     * ──────
+     * The sheet follows the exact ``ai-assistant-panel-privacy`` structure
+     * (``data-open`` contract, header + body layout, close-button id pattern)
+     * so it integrates transparently with the existing sheet management system
+     * in ``createAIPanel``:
+     *
+     *   • ``_openSheet`` — mutual-exclusion open/close sweep
+     *   • Close-button re-wire loop — focus restoration on ×
+     *   • Escape-key handler — keyboard close
+     *
+     * Two sharing modes are provided per sheet:
+     *
+     * 1. **Session link** (``Create share link`` button)
+     *    Builds the content string, creates a ``blob:`` URL, and shows it in a
+     *    readonly input.  The link is valid only while the browser tab is open.
+     *    Revoked on mode change or re-generation to prevent memory leaks.
+     *
+     * 2. **Permanent link** (``Save permanently`` button)
+     *    Stores the content in IndexedDB under a UUID key.  Generates a hash
+     *    URL (``#ai-share-{uuid}-{fmt}``) that calls ``_checkShareHash()`` on
+     *    subsequent page loads, reads from IDB, and opens the content as a
+     *    fresh blob URL.  The entry can be deleted at any time from the sheet.
+     *
+     * Parameters
+     * ----------
+     * fmt : string
+     *     Format key: ``'json'`` | ``'html'`` | ``'txt'``.
+     *
+     * Returns
+     * -------
+     * HTMLElement
+     *     Assembled sheet element (``data-open="false"`` initially).
+     *
+     * Notes
+     * -----
+     * User: Session links close when you close the tab.  Use "Save permanently"
+     *   for links that work across restarts.  Permanent links are stored in
+     *   this browser only — they will not work on other devices.
+     *
+     * Developer: The three sheet instances produced for 'json', 'html', and
+     *   'txt' must ALL be registered in the panel management arrays inside
+     *   ``createAIPanel``:
+     *
+     *     _openSheet([..., convShareSheetJson, convShareSheetHtml, convShareSheetTxt])
+     *     Close-button re-wire loop: same list
+     *     Escape handler openSheets list: same list
+     *
+     *   The ``_buildExportDropdownBtn`` ``onLinkMode`` callback dispatches to
+     *   the correct sheet by ``fmt`` so the dropdown and the sheets are
+     *   decoupled — neither knows the other's DOM reference directly.
+     */
+
+    // ── Data-URI builder ─────────────────────────────────────────────────────
+    /**
+     * Convert a UTF-8 string to a base64 data URI.
+     *
+     * The resulting URL is fully self-contained: it embeds the entire content
+     * inside the URL string itself, requiring no server, no browser storage,
+     * and no open tab.  It can be copied, bookmarked, or sent to any browser
+     * and will always open the same content.
+     *
+     * Encoding chain: JS UTF-16 string
+     *   → encodeURIComponent  (percent-encode every non-ASCII byte)
+     *   → unescape            (collapse %XX sequences back to Latin-1 bytes)
+     *   → btoa                (base64-encode the now-Latin-1 byte string)
+     *
+     * This is the well-known "UTF-8 safe btoa" pattern.  The unescape step is
+     * intentionally used instead of decodeURIComponent so the output is always
+     * a plain Latin-1 byte string that btoa can accept without a DOMException.
+     *
+     * Parameters
+     * ----------
+     * content : string
+     *     Arbitrary UTF-8 string (conversation JSON, HTML, plain text, etc.).
+     * mime : string
+     *     MIME type for the data URI (e.g. ``'text/html;charset=utf-8'``).
+     *
+     * Returns
+     * -------
+     * string
+     *     A ``data:{mime};base64,{b64}`` URI or a percent-encoded fallback.
+     *
+     * Notes
+     * -----
+     * User: Paste the returned URL into any browser's address bar to view the
+     *   content.  For HTML format, Chrome blocks ``window.open()`` with a data
+     *   URI (security policy); always use paste-in-address-bar for HTML.
+     *
+     * Developer: ``URL.revokeObjectURL(dataUri)`` is a no-op and safe to call
+     *   even though the URL is not a blob: URI.  The callers in this file share
+     *   the ``_activeBlobUrl`` variable for both blob: and data: URLs; the
+     *   revoke call at mode-switch time is intentionally harmless on data URIs.
+     */
+    function _buildDataUri(content, mime) {
+        try {
+            return 'data:' + mime + ';base64,' + btoa(unescape(encodeURIComponent(content)));
+        } catch (_e) {
+            // btoa fallback: percent-encode the content (no base64, larger URL
+            // but UTF-8 safe and supported by all modern browsers).
+            return 'data:' + mime + ',' + encodeURIComponent(content);
+        }
+    }
+
+    function _buildFmtShareSheet(fmt) {
+        // Read config once at build-time (window.AI_ASSISTANT_CONFIG is set by
+        // the Python-injected inline script before this file runs and does not
+        // change at runtime). Hoisted here so every code path — including the
+        // conditional global-share and training tiers below — can access it
+        // without a ReferenceError (BUG-FIX: cfg was only declared inside the
+        // permSaveBtn click closure, making it invisible at function-body scope).
+        var cfg = window.AI_ASSISTANT_CONFIG || {};
+
+        // ── Per-format metadata ────────────────────────────────────────────────
+        var _fmtMeta = {
+            json: {
+                label:    'JSON',
+                mime:     'application/json;charset=utf-8',
+                ext:      '.json',
+                desc:     'Share this conversation as a structured JSON file ' +
+                          '(schema v2.0 \u00b7 pandas-ready). ' +
+                          'Load with: pd.DataFrame(data[\u201crecords\u201d]).',
+                buildStr: function () { return _buildConvJsonString(); },
+            },
+            html: {
+                label:    'HTML',
+                mime:     'text/html;charset=utf-8',
+                ext:      '.html',
+                desc:     'Share as a self-contained web page with inline CSS. ' +
+                          'Works fully offline \u2014 open in any browser, ' +
+                          'no server required.',
+                buildStr: function () { return _buildConvHtmlString(); },
+            },
+            txt: {
+                label:    'Text',
+                mime:     'text/plain;charset=utf-8',
+                ext:      '.txt',
+                desc:     'Share as plain human-readable text. ' +
+                          'Opens in any text editor or email client ' +
+                          'without additional software.',
+                buildStr: function () { return _buildConvTxtString(); },
+            },
+        };
+        var meta = _fmtMeta[fmt] || _fmtMeta.html;
+
+        // ── Sheet-level state ─────────────────────────────────────────────────
+        var _shareMode    = 'private';   // 'private' | 'public'
+        var _activeBlobUrl = null;       // current session blob URL (revoke on reset)
+        var _permUuid     = null;        // UUID of current permanent save (if any)
+
+        // ── Sheet container ───────────────────────────────────────────────────
+        var sheet = document.createElement('div');
+        sheet.className = 'ai-assistant-panel-privacy ai-assistant-panel-conv-share';
+        sheet.id        = 'ai-assistant-panel-conv-share-sheet-' + fmt;
+        sheet.setAttribute('data-open', 'false');
+        sheet.setAttribute('data-fmt',  fmt);
+
+        // ── Header ────────────────────────────────────────────────────────────
+        var head = document.createElement('div');
+        head.className = 'ai-assistant-panel-privacy-head';
+
+        var headLeft = document.createElement('div');
+        headLeft.className = 'ai-assistant-conv-share-head-left';
+
+        var hStrong = document.createElement('strong');
+        hStrong.textContent = 'Share conversation';
+
+        var fmtBadge = document.createElement('span');
+        fmtBadge.className =
+            'ai-assistant-conv-share-fmt-badge ' +
+            'ai-assistant-conv-share-fmt-' + fmt;
+        fmtBadge.setAttribute('aria-label', meta.label + ' format');
+        fmtBadge.textContent = meta.label;
+
+        headLeft.appendChild(hStrong);
+        headLeft.appendChild(fmtBadge);
+
+        // Close button — id follows the `*-close` convention so the
+        // createAIPanel close-button re-wire loop picks it up automatically.
+        var hClose = _createIconBtn(
+            'conv-share-' + fmt + '-close', 'Close', ICONS.close);
+        hClose.addEventListener('click', function () {
+            sheet.setAttribute('data-open', 'false');
+        });
+
+        var _fmtHamBtn = _buildSheetHamburgerBtn(sheet, 'conv-share-' + fmt);
+        if (_fmtHamBtn) { head.appendChild(_fmtHamBtn); }
+        head.appendChild(headLeft);
+        head.appendChild(hClose);
+        sheet.appendChild(head);
+
+        // ── Body ──────────────────────────────────────────────────────────────
+        var body = document.createElement('div');
+        body.className =
+            'ai-assistant-panel-privacy-body ai-assistant-conv-share-body';
+
+        // Format description
+        var descEl = document.createElement('p');
+        descEl.className  = 'ai-assistant-conv-share-subnote';
+        descEl.textContent = meta.desc;
+        body.appendChild(descEl);
+
+        // ── Visibility option buttons ─────────────────────────────────────────
+        // Claude-inspired: icon block → text block → checkmark.
+        // aria-pressed drives checkmark opacity via CSS — no JS needed per
+        // selection; only the mode variable and aria-pressed are managed.
+        var optWrap = document.createElement('div');
+        optWrap.className = 'ai-assistant-conv-share-opts';
+
+        function _mkOpt(key, svgIcon, label, desc) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'ai-assistant-conv-share-opt';
+            b.setAttribute('data-key', key);
+            b.setAttribute('aria-pressed', key === _shareMode ? 'true' : 'false');
+
+            var iconW = document.createElement('span');
+            iconW.className = 'ai-assistant-conv-share-opt-icon';
+            iconW.setAttribute('aria-hidden', 'true');
+            iconW.innerHTML = svgIcon;
+            b.appendChild(iconW);
+
+            var textW = document.createElement('span');
+            textW.className = 'ai-assistant-conv-share-opt-text';
+            var lbl = document.createElement('span');
+            lbl.className = 'ai-assistant-conv-share-opt-lbl';
+            lbl.textContent = label;
+            var dsc = document.createElement('span');
+            dsc.className = 'ai-assistant-conv-share-opt-dsc';
+            dsc.textContent = desc;
+            textW.appendChild(lbl);
+            textW.appendChild(dsc);
+            b.appendChild(textW);
+
+            var chkW = document.createElement('span');
+            chkW.className = 'ai-assistant-conv-share-opt-chk';
+            chkW.setAttribute('aria-hidden', 'true');
+            chkW.innerHTML = ICONS.convCheck;
+            b.appendChild(chkW);
+            return b;
+        }
+
+        var privOpt = _mkOpt(
+            'private', ICONS.convLock,
+            'Keep private', 'Only you have access'
+        );
+        var pubOpt = _mkOpt(
+            'public', ICONS.convGlobe,
+            'Create public link', 'Anyone with the link can view'
+        );
+        optWrap.appendChild(privOpt);
+        optWrap.appendChild(pubOpt);
+        body.appendChild(optWrap);
+
+        // ── Session link row (blob URL — tab lifetime) ────────────────────────
+        var linkRow = document.createElement('div');
+        linkRow.className = 'ai-assistant-conv-share-link-row';
+        linkRow.setAttribute('aria-live', 'polite');
+        linkRow.style.display = 'none';
+
+        var linkInput = document.createElement('input');
+        linkInput.type = 'text';
+        linkInput.readOnly = true;
+        linkInput.className = 'ai-assistant-conv-share-link-input';
+        linkInput.setAttribute('aria-label', 'Session share link');
+        linkInput.addEventListener('focus', function () { linkInput.select(); });
+
+        var copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ai-assistant-conv-share-action-btn';
+        copyBtn.setAttribute('aria-label', 'Copy share link');
+        copyBtn.textContent = 'Copy';
+        copyBtn.addEventListener('click', function () {
+            if (linkInput.value) { copyToClipboard(linkInput.value, false); }
+        });
+
+        var openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'ai-assistant-conv-share-action-btn';
+        openBtn.setAttribute('aria-label', 'Open in new tab');
+        openBtn.textContent = 'Open';
+        openBtn.addEventListener('click', function () {
+            if (!linkInput.value) return;
+            var urlToOpen = linkInput.value;
+
+            // Chrome, Firefox, and Safari block navigation to data: URIs via
+            // window.open() (data-URI navigation security policy, enforced since
+            // ~2019). In public mode _activeBlobUrl is a data: URI — calling
+            // window.open() on it opens an empty tab.
+            //
+            // Fix: when the active URL is a data: URI, rebuild the conversation
+            // content as a fresh Blob URL solely for this open action.  The Blob
+            // URL is never stored in _activeBlobUrl so the data: URI in the input
+            // field is preserved for copy / share / bookmarking purposes.
+            // The Blob URL is revoked after 30 s — enough for any browser to
+            // start loading the content; it does NOT close the tab.
+            if (urlToOpen.startsWith('data:')) {
+                try {
+                    var content = meta.buildStr();
+                    if (!content) {
+                        showNotification('Nothing to open yet', true);
+                        return;
+                    }
+                    var openBlob   = new Blob([content], { type: meta.mime });
+                    var openBlobUrl = URL.createObjectURL(openBlob);
+                    var w = window.open(openBlobUrl, '_blank', 'noopener,noreferrer');
+                    if (w) { try { w.opener = null; } catch (_oe) {} }
+                    // Schedule revocation — a no-op if the browser already
+                    // navigated; safe to call on any Blob URL after use.
+                    setTimeout(function () {
+                        try { URL.revokeObjectURL(openBlobUrl); } catch (_re) {}
+                    }, 30000);
+                } catch (_e) {}
+                return;
+            }
+
+            // Private mode: linkInput holds a blob: URL — window.open works.
+            try {
+                var w = window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+                if (w) { try { w.opener = null; } catch (_e) {} }
+            } catch (_e) {}
+        });
+
+        linkRow.appendChild(linkInput);
+        linkRow.appendChild(copyBtn);
+        linkRow.appendChild(openBtn);
+        body.appendChild(linkRow);
+
+        // Session-only explanatory note (always visible once link row appears)
+        var sessionNote = document.createElement('p');
+        sessionNote.className = 'ai-assistant-conv-share-session-note';
+        sessionNote.textContent =
+            '\u26A0\uFE0F Session link \u2014 valid only while this browser tab is open. ' +
+            'Close this tab and the link stops working. ' +
+            'Use \u201cSave permanently\u201d or \u201cSave globally\u201d below for a lasting link.';
+        // Hidden until the session link row is shown — displaying the warning
+        // before any link exists confuses users who have not yet clicked
+        // "Create share link".  Revealed alongside linkRow in generateBtn's
+        // click handler below.
+        sessionNote.style.display = 'none';
+        body.appendChild(sessionNote);
+
+        // ── Permanent storage section (IndexedDB) ─────────────────────────────
+        //
+        // Saves the conversation content to IndexedDB under a UUID.
+        // Generates a hash URL (#ai-share-{uuid}-{fmt}) that the page script
+        // detects on load and re-opens from storage — permanent within this
+        // browser until the user deletes it or clears browser data.
+        var permSection = document.createElement('div');
+        permSection.className = 'ai-assistant-conv-share-perm';
+
+        var permHead = document.createElement('div');
+        permHead.className = 'ai-assistant-conv-share-perm-head';
+
+        var permLbl = document.createElement('span');
+        permLbl.className   = 'ai-assistant-conv-share-perm-lbl';
+        permLbl.textContent = '\uD83D\uDCBE Permanent link';
+
+        var permHint = document.createElement('span');
+        permHint.className   = 'ai-assistant-conv-share-perm-hint';
+        permHint.textContent = 'This device only \u00B7 works offline until deleted';
+
+        permHead.appendChild(permLbl);
+        permHead.appendChild(permHint);
+        permSection.appendChild(permHead);
+
+        // Permanent link input + Copy + Delete — hidden until first save
+        var permLinkRow = document.createElement('div');
+        permLinkRow.className   = 'ai-assistant-conv-share-perm-link-row';
+        permLinkRow.style.display = 'none';
+
+        var permInput = document.createElement('input');
+        permInput.type     = 'text';
+        permInput.readOnly = true;
+        permInput.className =
+            'ai-assistant-conv-share-link-input ai-assistant-conv-share-perm-input';
+        permInput.setAttribute('aria-label', 'Permanent share link');
+        permInput.addEventListener('focus', function () { permInput.select(); });
+
+        var permCopyBtn = document.createElement('button');
+        permCopyBtn.type = 'button';
+        permCopyBtn.className = 'ai-assistant-conv-share-action-btn';
+        permCopyBtn.setAttribute('aria-label', 'Copy permanent link');
+        permCopyBtn.textContent = 'Copy';
+        permCopyBtn.addEventListener('click', function () {
+            if (permInput.value) { copyToClipboard(permInput.value, false); }
+        });
+
+        var permDeleteBtn = document.createElement('button');
+        permDeleteBtn.type = 'button';
+        permDeleteBtn.className =
+            'ai-assistant-conv-share-action-btn ai-assistant-conv-share-perm-delete';
+        permDeleteBtn.setAttribute('aria-label', 'Delete permanent link');
+        permDeleteBtn.textContent = 'Delete';
+        permDeleteBtn.addEventListener('click', function () {
+            if (!_permUuid) return;
+            var uuidToDelete = _permUuid;
+            _idbDeleteShare(uuidToDelete, function (ok, _err) {
+                if (ok) {
+                    _permUuid           = null;
+                    permLinkRow.style.display = 'none';
+                    permInput.value     = '';
+                    permSaveBtn.style.display = '';
+                    showNotification('Permanent link deleted', false);
+                } else {
+                    showNotification('Delete failed \u2014 check console', true);
+                }
+            });
+        });
+
+        permLinkRow.appendChild(permInput);
+        permLinkRow.appendChild(permCopyBtn);
+        permLinkRow.appendChild(permDeleteBtn);
+        permSection.appendChild(permLinkRow);
+
+        // Permanent note — scope and limitation explanation
+        var permNote = document.createElement('p');
+        permNote.className =
+            'ai-assistant-conv-share-session-note ai-assistant-conv-share-perm-note';
+        permNote.textContent =
+            'Self-contained link \u2014 full conversation embedded in the URL. ' +
+            'Works in any browser on any device without a server. ' +
+            'Bookmark it for quick access; same-browser visits also reopen via local storage.';
+        permSection.appendChild(permNote);
+
+        // "Save permanently" action button
+        var permSaveBtn = document.createElement('button');
+        permSaveBtn.type = 'button';
+        permSaveBtn.className = 'ai-assistant-conv-share-perm-save-btn';
+        permSaveBtn.textContent = 'Save permanently';
+
+        permSaveBtn.addEventListener('click', function () {
+            if (_transcript.length === 0) {
+                showNotification('Nothing to save yet', true);
+                return;
+            }
+            var content = meta.buildStr();
+            if (!content) { showNotification('Nothing to save yet', true); return; }
+
+            // cfg is read from function-body scope (hoisted above _fmtMeta).
+            var uuid = _idbGenUuid();
+            var entry = {
+                uuid:     uuid,
+                fmt:      fmt,
+                content:  content,
+                mimeType: meta.mime,
+                ext:      meta.ext,
+                title:    (cfg.panelTitle || 'AI Assistant') + ' \u2014 ' +
+                          new Date().toLocaleDateString(),
+                pageUrl:  (typeof location !== 'undefined')
+                          ? location.href.split('#')[0] : '',
+                ts:       Date.now(),
+            };
+
+            permSaveBtn.disabled  = true;
+            permSaveBtn.textContent = 'Saving\u2026';
+
+            _idbSaveShare(entry, function (savedUuid, err) {
+                permSaveBtn.disabled    = false;
+                permSaveBtn.textContent = 'Save permanently';
+                if (err || !savedUuid) {
+                    showNotification(
+                        'Storage failed \u2014 ' + (err ? err.message : 'unknown'),
+                        true
+                    );
+                    return;
+                }
+                _permUuid = savedUuid;
+
+                // Build a data URI — embeds the full conversation content directly
+                // in the URL so it works in any browser on any device without
+                // needing this browser's local IndexedDB.
+                // The IDB entry is kept alongside for same-browser convenience:
+                // _checkShareHash() detects the hash fragment on revisit and
+                // reopens the content without requiring the user to navigate the
+                // long data URI again.
+                var dataUrl = _buildDataUri(content, meta.mime);
+                permInput.value         = dataUrl;
+                permLinkRow.style.display = '';
+                permSaveBtn.style.display = 'none';
+
+                if (_shareMode === 'public') {
+                    copyToClipboard(dataUrl, false);
+                    showNotification(
+                        'Link saved \u2014 copied to clipboard. Works in any browser.', false);
+                } else {
+                    showNotification('Link saved \u2014 works in any browser', false);
+                }
+            });
+        });
+
+        permSection.appendChild(permSaveBtn);
+        body.appendChild(permSection);
+
+        // ── Global share tier (Option B: third card, conditional) ─────────────
+        // Rendered only when a share endpoint is reachable from the active
+        // configuration — via a profile or the legacy flat key.
+        //
+        // ── Global share endpoint — profile-aware with legacy fallback ──
+        //
+        // Resolution priority (first non-empty wins):
+        //   1. Active profile's `share` URL  (_EP.resolve('share'))
+        //   2. cfg.panelGlobalShareEndpoint  (legacy flat key)
+        //
+        // When a profile exists but its `share` field is '' (e.g. an
+        // Advanced-mode custom profile where "Share URL" was left blank,
+        // or a conf.py profile with "share": ""), the active profile's URL
+        // is empty and we fall through to the legacy key — the "Save
+        // globally" button still appears without a rebuild or profile re-add.
+        var _profileShareUrl = _EP.hasProfiles() ? _EP.resolve('share') : '';
+        var _shBase  = _profileShareUrl || (cfg.panelGlobalShareEndpoint || '');
+        var _shToken = _profileShareUrl
+            ? _EP.resolveToken('shareToken')
+            : (cfg.panelGlobalShareToken || '');
+        var _shTtl   = _EP.resolveTtlDays(cfg);
+
+        if (_shBase) {
+            var globalSep = document.createElement('hr');
+            globalSep.className = 'ai-assistant-conv-share-sep';
+            body.appendChild(globalSep);
+
+            var globalWrap = document.createElement('div');
+            globalWrap.className = 'ai-assistant-conv-share-global';
+
+            var globalHead = document.createElement('div');
+            globalHead.className = 'ai-assistant-conv-share-perm-head';
+
+            var globalLbl = document.createElement('span');
+            globalLbl.className   = 'ai-assistant-conv-share-perm-lbl';
+            globalLbl.textContent = '\uD83C\uDF10 Global link';
+
+            var gTtlDays = _shTtl;  // resolved above (profile-aware)
+            var globalHint = document.createElement('span');
+            globalHint.className   = 'ai-assistant-conv-share-perm-hint';
+            globalHint.textContent = 'Any device · expires in ' + gTtlDays + ' day' + (gTtlDays === 1 ? '' : 's');
+
+            globalHead.appendChild(globalLbl);
+            globalHead.appendChild(globalHint);
+
+            var globalLinkRow = document.createElement('div');
+            globalLinkRow.className    = 'ai-assistant-conv-share-perm-link';
+            globalLinkRow.style.display = 'none';
+            var globalInput = document.createElement('input');
+            globalInput.type      = 'text';
+            globalInput.readOnly  = true;
+            globalInput.className = 'ai-assistant-conv-share-perm-input';
+            globalInput.setAttribute('aria-label', 'Global share link');
+            globalInput.addEventListener('focus', function () { globalInput.select(); });
+            var globalCopyBtn = document.createElement('button');
+            globalCopyBtn.type      = 'button';
+            globalCopyBtn.className = 'ai-assistant-conv-share-perm-copy-btn';
+            globalCopyBtn.textContent = 'Copy';
+            globalCopyBtn.addEventListener('click', function () {
+                if (!globalInput.value) { return; }
+                // Use the module-level copyToClipboard helper for consistent
+                // clipboard behaviour, fallback handling, and notification
+                // integration — matches permCopyBtn, copyBtn, and every other
+                // copy action in this file.  The raw navigator.clipboard path
+                // was incorrect here: it set textContent = 'Copied!' synchronously
+                // before the async write resolved, so the label appeared even
+                // when the clipboard write failed silently.
+                copyToClipboard(globalInput.value, false);
+                globalCopyBtn.textContent = 'Copied!';
+                setTimeout(function () { globalCopyBtn.textContent = 'Copy'; }, 2000);
+            });
+            globalLinkRow.appendChild(globalInput);
+            globalLinkRow.appendChild(globalCopyBtn);
+
+            var globalExpiry = document.createElement('p');
+            globalExpiry.className    = 'ai-assistant-conv-share-perm-note';
+            globalExpiry.style.display = 'none';
+
+            var globalSaveBtn = document.createElement('button');
+            globalSaveBtn.type      = 'button';
+            globalSaveBtn.className = 'ai-assistant-conv-share-perm-save-btn';
+            globalSaveBtn.textContent = 'Save globally';
+
+            var globalStatus = document.createElement('p');
+            globalStatus.className    = 'ai-assistant-conv-share-perm-note';
+            globalStatus.style.display = 'none';
+
+            globalSaveBtn.addEventListener('click', function () {
+                var gContent = meta.buildStr ? meta.buildStr() : '';
+                if (!gContent) {
+                    globalStatus.textContent = 'Nothing to save yet.';
+                    globalStatus.style.display = '';
+                    return;
+                }
+                globalSaveBtn.disabled    = true;
+                globalSaveBtn.textContent = 'Saving…';
+                globalStatus.style.display = 'none';
+                _postGlobalShare(
+                    _shBase.replace(/\/$/, '') + '/v1/share',
+                    _shToken,
+                    {
+                        content:  gContent,
+                        mimeType: meta.mime || 'text/html;charset=utf-8',
+                        ext:      meta.ext  || '.html',
+                        title:    (cfg.panelTitle || 'AI Assistant') + ' — ' +
+                                  new Date().toLocaleDateString(),
+                        ttlDays:  gTtlDays,
+                    },
+                    function onGlobalShareSuccess(result) {
+                        globalSaveBtn.disabled    = false;
+                        globalSaveBtn.textContent = 'Save globally';
+                        globalInput.value         = result.url || '';
+                        globalLinkRow.style.display = '';
+                        globalSaveBtn.style.display  = 'none';
+                        globalExpiry.textContent = 'Expires ' + (result.expiresAt
+                            ? new Date(result.expiresAt).toLocaleDateString() : 'in ' + gTtlDays + ' days');
+                        globalExpiry.style.display = '';
+                    },
+                    function onGlobalShareError(err) {
+                        globalSaveBtn.disabled    = false;
+                        globalSaveBtn.textContent = 'Save globally';
+                        var gMsg = err.status === 429
+                            ? 'Rate limit reached — try again in an hour.'
+                            : err.status === 401
+                            ? 'Not authorized. Check endpoint configuration.'
+                            : 'Global save failed — try again or save locally.';
+                        globalStatus.textContent   = gMsg;
+                        globalStatus.style.display = '';
+                    }
+                );
+            });
+
+            globalWrap.appendChild(globalHead);
+            globalWrap.appendChild(globalSaveBtn);
+            globalWrap.appendChild(globalLinkRow);
+            globalWrap.appendChild(globalExpiry);
+            globalWrap.appendChild(globalStatus);
+            body.appendChild(globalWrap);
+        }
+
+        // ── Training contribution tier (P3, conditional) ──────────────────────
+        //
+        // Resolution priority (first non-empty wins):
+        //   1. Active profile's `training` URL  (_EP.resolve('training'))
+        //   2. cfg.panelTrainingEndpoint         (legacy flat key)
+        //
+        // Same graceful fallback as _shBase: an Advanced-mode profile with
+        // training: '' falls through to the legacy key so the training section
+        // renders without requiring the user to delete and re-add the profile.
+        var _profileTrainingUrl = _EP.hasProfiles() ? _EP.resolve('training') : '';
+        var _trBase = _profileTrainingUrl || (cfg.panelTrainingEndpoint || '');
+
+        if (_trBase) {
+            var CONSENT_VERSION = 'v1.0';
+
+            var trainSep = document.createElement('hr');
+            trainSep.className = 'ai-assistant-conv-share-sep';
+            body.appendChild(trainSep);
+
+            var trainWrap = document.createElement('div');
+            trainWrap.className = 'ai-assistant-conv-share-training';
+
+            var trainHead = document.createElement('div');
+            trainHead.className = 'ai-assistant-conv-share-perm-head';
+            var trainLbl = document.createElement('span');
+            trainLbl.className   = 'ai-assistant-conv-share-perm-lbl';
+            trainLbl.textContent = '\uD83C\uDF93 Contribute to training';
+            var trainHint = document.createElement('span');
+            trainHint.className   = 'ai-assistant-conv-share-perm-hint';
+            trainHint.textContent = 'Only rated answers (\uD83D\uDC4D/\uD83D\uDC4E) are included';
+            trainHead.appendChild(trainLbl);
+            trainHead.appendChild(trainHint);
+
+            var consentRow = document.createElement('label');
+            consentRow.className = 'ai-assistant-conv-share-consent';
+            var consentChk = document.createElement('input');
+            consentChk.type = 'checkbox';
+            var consentTxt = document.createElement('span');
+            consentTxt.textContent = 'I consent to this conversation being used to train the AI';
+            consentRow.appendChild(consentChk);
+            consentRow.appendChild(consentTxt);
+
+            var trainBtn = document.createElement('button');
+            trainBtn.type      = 'button';
+            trainBtn.className = 'ai-assistant-conv-share-perm-save-btn';
+            trainBtn.textContent = 'Contribute';
+            trainBtn.disabled    = true;   // gated on consent checkbox
+
+            consentChk.addEventListener('change', function () {
+                trainBtn.disabled = !consentChk.checked;
+            });
+
+            var trainStatus = document.createElement('p');
+            trainStatus.className    = 'ai-assistant-conv-share-perm-note';
+            trainStatus.style.display = 'none';
+
+            trainBtn.addEventListener('click', function () {
+                if (!consentChk.checked) { return; }
+                var tRecords = [];
+                // BUG-02 FIX: _answerCount was never declared anywhere in this file,
+                // causing a ReferenceError on every Contribute button click.
+                //
+                // Root cause: the loop was intended to enumerate rated answers by
+                // their 0-based answerIndex, but the upper-bound variable was never
+                // introduced alongside _feedbackStore (declared at module level as {}).
+                //
+                // Correct fix: iterate Object.keys(_feedbackStore) directly.
+                // _feedbackStore is keyed by answerIndex (integer-valued), so its
+                // keys are exactly the set of answers the user has rated — no need
+                // for a separate counter.  Sort numerically so records are emitted
+                // in ascending transcript order, matching the server's expected schema.
+                var tFbKeys = Object.keys(_feedbackStore).sort(function (a, b) { return a - b; });
+                for (var ti = 0; ti < tFbKeys.length; ti++) {
+                    var tidx = parseInt(tFbKeys[ti], 10);
+                    var tfb  = _feedbackStore[tidx] || {};
+                    if (!tfb.query && !tfb.answer) { continue; }
+                    tRecords.push({
+                        answerIndex: tidx,
+                        query:       tfb.query       || '',
+                        answer:      tfb.answer      || '',
+                        ratingValue: tfb.ratingValue != null ? tfb.ratingValue : null,
+                        ratingLabel: tfb.ratingLabel || '',
+                        message:     tfb.message     || '',
+                        ts:          tfb.ts          || Date.now(),
+                        // Self-describing provenance tag.  The server overwrites
+                        // this with the same value (``_source: "contribution"``)
+                        // when writing the JSONL record, so the payload and the
+                        // stored record are always consistent.  Training pipelines
+                        // must prefer "contribution" over "feedback" when both
+                        // sources carry the same _dedup_key.  See
+                        // DATASET_COLLECTION_GUIDANCE.md for the canonical rule.
+                        _source:     'contribution',
+                    });
+                }
+                if (!tRecords.length) {
+                    trainStatus.textContent   = 'No rated answers to contribute yet.';
+                    trainStatus.style.display = '';
+                    return;
+                }
+                trainBtn.disabled    = true;
+                trainBtn.textContent = 'Contributing…';
+                trainStatus.style.display = 'none';
+                _postTrainingContribution(
+                    _trBase.replace(/\/$/, '') + '/v1/contribute',
+                    {
+                        schemaVersion:  1,
+                        consentFlag:    true,
+                        consentVersion: CONSENT_VERSION,
+                        sessionId:      _sessionId,
+                        page:           location ? location.href : '',
+                        model:          _getActiveModel ? _getActiveModel(cfg) : null,
+                        records:        tRecords,
+                    },
+                    function onContributeSuccess(result) {
+                        trainBtn.disabled    = false;
+                        trainBtn.textContent = 'Contribute';
+                        consentChk.checked   = false;
+                        trainBtn.disabled    = true;
+                        trainStatus.textContent   = 'Thank you! ' + (result.rows || 0) + ' record(s) contributed.';
+                        trainStatus.style.display = '';
+                    },
+                    function onContributeError(err) {
+                        trainBtn.disabled    = false;
+                        trainBtn.textContent = 'Contribute';
+                        var tMsg = err.status === 429
+                            ? 'Rate limit reached — try again in an hour.'
+                            : err.status === 422
+                            ? 'Contribution rejected: check consent version.'
+                            : 'Contribution failed. Please try again.';
+                        trainStatus.textContent   = tMsg;
+                        trainStatus.style.display = '';
+                    }
+                );
+            });
+
+            trainWrap.appendChild(trainHead);
+            trainWrap.appendChild(consentRow);
+            trainWrap.appendChild(trainBtn);
+            trainWrap.appendChild(trainStatus);
+            body.appendChild(trainWrap);
+        }
+
+        // ── Action row — Create share link (session blob) ─────────────────────
+        var actionRow = document.createElement('div');
+        actionRow.className = 'ai-assistant-conv-share-actions';
+
+        var generateBtn = document.createElement('button');
+        generateBtn.type = 'button';
+        generateBtn.className = 'ai-assistant-conv-share-generate-btn';
+        generateBtn.textContent = 'Create share link';
+
+        generateBtn.addEventListener('click', function () {
+            if (_transcript.length === 0) {
+                showNotification('Nothing to share yet', true);
+                return;
+            }
+            // Revoke previous blob URL only (data: URIs are not registered with
+            // the Blob URL store; revokeObjectURL on them is a no-op but guard
+            // explicitly so browser devtools show clean resource lifetimes).
+            if (_activeBlobUrl && _activeBlobUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(_activeBlobUrl); } catch (_e) {}
+            }
+            _activeBlobUrl = null;
+            var content = meta.buildStr();
+            if (!content) { showNotification('Nothing to share yet', true); return; }
+
+            if (_shareMode === 'public') {
+                // ── Public mode: data URI ──────────────────────────────────────
+                // Embed the full conversation content in the URL itself so the
+                // link works in any browser on any device without a server or
+                // local browser storage (no Blob URL, no IndexedDB required).
+                _activeBlobUrl = _buildDataUri(content, meta.mime);
+                linkInput.value       = _activeBlobUrl;
+                linkRow.style.display = '';
+                sessionNote.textContent =
+                    '\u2139\uFE0F Public link \u2014 conversation content embedded in the URL. ' +
+                    'Copy and paste into any browser\u2019s address bar, or use the Open button. ' +
+                    'No server required.';
+                sessionNote.style.display = '';
+                copyToClipboard(_activeBlobUrl, false);
+                // Do NOT call window.open here — generating and displaying the
+                // link is the sole job of this button.  Opening is handled by
+                // the dedicated "Open" button in the link row, which also shows
+                // a format-aware message when the browser restricts navigation.
+                showNotification(
+                    'Public link created \u2014 copied to clipboard. Works in any browser.', false);
+            } else {
+                // ── Private mode: blob URL ─────────────────────────────────────
+                // Blob URL is session-scoped: valid only while this browser tab
+                // is open.  Memory is released when the tab is closed or the
+                // mode is changed.  Use "Save permanently" for a lasting link.
+                var blob = new Blob([content], { type: meta.mime });
+                _activeBlobUrl = URL.createObjectURL(blob);
+                linkInput.value       = _activeBlobUrl;
+                linkRow.style.display = '';
+                sessionNote.textContent =
+                    '\u26A0\uFE0F Session link \u2014 valid only while this browser tab is open. ' +
+                    'Close this tab and the link stops working. ' +
+                    'Use \u201cSave permanently\u201d or \u201cSave globally\u201d below for a lasting link.';
+                sessionNote.style.display = '';
+                showNotification('Share link created \u2014 valid while this tab is open', false);
+            }
+        });
+
+        actionRow.appendChild(generateBtn);
+        // Primary action at the top of the save-tier list — insert before the
+        // session link row (which is hidden until the button is clicked) so the
+        // user sees the button first rather than scrolling past all three save
+        // tiers to find it at the bottom.
+        body.insertBefore(actionRow, linkRow);
+        sheet.appendChild(body);
+
+        // ── Option selection ──────────────────────────────────────────────────
+        // Selecting a new visibility mode resets any existing session link so
+        // the user always generates a fresh link for the chosen visibility.
+        function _selectMode(key) {
+            _shareMode = key;
+            privOpt.setAttribute('aria-pressed', key === 'private' ? 'true' : 'false');
+            pubOpt.setAttribute('aria-pressed',  key === 'public'  ? 'true' : 'false');
+            // Reset session link row, note, and any active URL.
+            linkRow.style.display         = 'none';
+            sessionNote.style.display     = 'none';
+            linkInput.value               = '';
+            // Revoke blob URLs only (data: URIs are not registered with the
+            // Blob URL store — revokeObjectURL is a safe no-op on them, but
+            // explicitly guard to avoid confusion in profilers/devtools).
+            if (_activeBlobUrl && _activeBlobUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(_activeBlobUrl); } catch (_e) {}
+            }
+            _activeBlobUrl = null;
+        }
+
+        privOpt.addEventListener('click', function () { _selectMode('private'); });
+        pubOpt.addEventListener('click',  function () { _selectMode('public');  });
+
+        return sheet;
+    }
 
     /**
      * Build the "Project Links" slide-over sheet.
@@ -4814,6 +11486,8 @@
         hClose.addEventListener('click', function () {
             sheet.setAttribute('data-open', 'false');
         });
+        var _linksHamBtn = _buildSheetHamburgerBtn(sheet, 'links');
+        if (_linksHamBtn) { head.appendChild(_linksHamBtn); }
         head.appendChild(hStrong);
         head.appendChild(hClose);
         sheet.appendChild(head);
@@ -4937,7 +11611,7 @@
      * item is a real button — clicking it triggers the same handler as the
      * underlying control.  Closing happens on outside-click or Escape.
      *
-     * @param {object} hooks  { onPrivacy, onTerms, onShare, onModel }
+     * @param {object} hooks  { onPrivacy, onTerms, onShare, onModel, onEndpoints }
      *                        Click handlers, each optional.
      * @returns {HTMLElement}
      */
@@ -4968,7 +11642,8 @@
             pop.appendChild(item);
         }
 
-        addItem(ICONS.model,    'Choose a model',            hooks && hooks.onModel);
+        addItem(ICONS.model,    'Model Configuration',       hooks && hooks.onModel);
+        addItem(ICONS.endpoint, 'Endpoint Configuration',    hooks && hooks.onEndpoints);
         addItem(ICONS.privacy,  'Privacy & Responsibility',  hooks && hooks.onPrivacy);
         addItem(ICONS.terms,    'Terms of Service',          hooks && hooks.onTerms);
         addItem(ICONS.share,    'Share',                     hooks && hooks.onShare);
@@ -4976,7 +11651,8 @@
 
         // Keyboard shortcut hint row — shown at the bottom of the menu when a
         // shortcut is configured.  Now interactive: left-click = minimize,
-        // right-click = close (same contract as the header minimize icon-btn).
+        // right-click = close · Shift+right-click = browser native menu
+        // (same contract as the subbar kbd-hint and header minimize button).
         var kbdHintLabel = _shortcutLabel();
         if (kbdHintLabel) {
             var sep = document.createElement('hr');
@@ -4988,8 +11664,8 @@
             kbdRow.className = 'ai-assistant-panel-hamburger-kbd-row';
             kbdRow.setAttribute('role', 'menuitem');
             kbdRow.setAttribute('tabindex', '0');
-            kbdRow.setAttribute('aria-label', 'Minimize panel (right-click to close)');
-            kbdRow.title = 'Left-click: minimize  \u00b7  Right-click: close';
+            kbdRow.setAttribute('aria-label', 'Minimize panel \u00b7 Right-click: close \u00b7 Shift+Right-click: browser menu');
+            kbdRow.title = 'Left-click: minimize  \u00b7  Right-click: close  \u00b7  Shift+Right-click: browser menu';
 
             var kbdIcon = document.createElement('span');
             kbdIcon.setAttribute('aria-hidden', 'true');
@@ -5012,7 +11688,10 @@
                 minimizeAIPanel();
             });
             // Right-click: close hamburger menu then fully close panel.
+            // Shift+Right-click: pass through to the browser's native context menu
+            // (unlocks browser/OS quick actions without triggering a panel close).
             kbdRow.addEventListener('contextmenu', function (e) {
+                if (e.shiftKey) { return; }   // Shift held — let browser menu appear.
                 e.preventDefault();
                 pop.setAttribute('data-open', 'false');
                 closeAIPanel();
@@ -5095,7 +11774,7 @@
         btn.setAttribute('aria-expanded', 'false');
         btn.setAttribute('aria-controls', 'ai-assistant-panel-model-sheet');
         var initLabel = active ? (active.label || active.id) : 'Model';
-        btn.setAttribute('aria-label', 'Choose a model \u2014 current: ' + initLabel);
+        btn.setAttribute('aria-label', 'Model Configuration \u2014 current: ' + initLabel);
         btn.title = initLabel;
 
         // ── Small-screen icon-only fallback ────────────────────────────────
@@ -5150,7 +11829,7 @@
             var text = m ? (m.label || m.id) : id;
             lbl.textContent = text;
             btn.title = text;
-            btn.setAttribute('aria-label', 'Choose a model \u2014 current: ' + text);
+            btn.setAttribute('aria-label', 'Model Configuration \u2014 current: ' + text);
             var c = _providerColor((m && m.provider) || '');
             if (c) {
                 dot.style.background = c;
@@ -5339,6 +12018,17 @@
         var titleSpan = document.createElement('span');
         titleSpan.textContent = title;
 
+        // ── Hamburger button — lives in the header-title, before the logo ──────
+        // Declared here (not in the subbar section) so all downstream wiring
+        // (click handler, outside-click closer, Escape handler) can reference
+        // the same variable without any hoisting gap.
+        var hamburgerBtn = null;
+        if (cfg.panelHamburger !== false) {
+            hamburgerBtn = _createIconBtn('hamburger', 'Open menu', ICONS.menu);
+            hamburgerBtn.title = 'Open menu';
+            headerTitle.appendChild(hamburgerBtn);
+        }
+
         headerTitle.appendChild(logo);
         headerTitle.appendChild(titleSpan);
 
@@ -5356,15 +12046,24 @@
         newChatBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         newChatBtn.addEventListener('click', clearConversation);
 
-        // R4: export the conversation as a plain-text download.
-        var exportBtn = _createIconBtn(
-            'export', 'Export AI conversation as txt', ICONS.exportTxt);
-        exportBtn.title = 'Export AI conversation as txt';
-        exportBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
-        exportBtn.addEventListener('click', exportConversation);
+        // R4 v3: multi-format export dropdown (JSON · HTML · TXT).
+        // In share-link mode (toggle ON) each format item opens its OWN
+        // format-specific share sheet so the user always shares the exact format
+        // they selected — JSON as JSON blob, HTML as HTML page, TXT as text file.
+        // The onLinkMode callback dispatches by fmt to the correct sheet.
+        // convShareSheetJson / Html / Txt are var-hoisted in createAIPanel and
+        // assigned below — the closures are safe because no user interaction
+        // can fire before the assignments are reached.
+        var exportDropdown = _buildExportDropdownBtn({
+            onLinkMode: function (fmt) {
+                if (fmt === 'json')       { _openSheet(convShareSheetJson); }
+                else if (fmt === 'html')  { _openSheet(convShareSheetHtml); }
+                else                      { _openSheet(convShareSheetTxt);  }
+            },
+        });
 
         headerActions.appendChild(newChatBtn);
-        headerActions.appendChild(exportBtn);
+        headerActions.appendChild(exportDropdown);
         headerActions.appendChild(minimizeBtn);
         headerActions.appendChild(maximizeBtn);
         headerActions.appendChild(closeBtn);
@@ -5372,76 +12071,31 @@
         header.appendChild(headerTitle);
         header.appendChild(headerActions);
 
-        // ── Sub-bar: hamburger (Phase B) + keyboard hint (R7) + privacy link (R2) ──
+        // ── Sub-bar: keyboard hint (R7) + privacy link (R2) ──────────────────
         //
         // Layout (left → right):
         //
-        //    [☰ hamburger]  [⌨ kbd-hint]   . . .   [Privacy] [Terms] [model ▾] [↗ Share]
+        //    [☰ hamburger ← now in header-title]
+        //    [Source ▸] [⌨ kbd-hint]  . . .  [Model ▾] [Endpoints ▾] [Privacy] [Terms] [↗ Share]
         //
-        // The hamburger button is ADDITIVE: it duplicates each sheet entry-
-        // point in a single popover so narrow viewports can collapse the
-        // right-hand cluster gracefully via CSS without losing access to
-        // any control.  The pre-existing sub-bar layout is preserved
-        // exactly when ``cfg.panelHamburger === false``.
+        // The hamburger popover is still opened by the header button and wired
+        // below.  The right overflow button (⋯) shares the same popover for
+        // narrow viewports.
         var cfgRef = window.AI_ASSISTANT_CONFIG || {};
         var subbar = document.createElement('div');
         subbar.className = 'ai-assistant-panel-subbar';
 
-        // ── Left cluster: hamburger (optional) + keyboard hint ──
+        // ── Left cluster ──────────────────────────────────────────────────────
+        // Note: hamburger button is in div.ai-assistant-panel-header-title now.
+        // The subbar left cluster holds only the Source button and the kbd hint.
         var leftCluster = document.createElement('div');
         leftCluster.className = 'ai-assistant-panel-subbar-left';
-
-        var hamburgerBtn = null;
-        var hamburgerMenu = null;
-        if (cfgRef.panelHamburger !== false) {
-            hamburgerBtn = _createIconBtn(
-                'hamburger', 'Open menu', ICONS.menu);
-            hamburgerBtn.title = 'Open menu';
-            leftCluster.appendChild(hamburgerBtn);
-        }
-
-        var kbdLabel = _shortcutLabel();
-        if (kbdLabel) {
-            var hint = document.createElement('span');
-            hint.className = 'ai-assistant-panel-kbd-hint';
-            hint.setAttribute('role', 'button');
-            hint.setAttribute('tabindex', '0');
-            hint.setAttribute('aria-label', 'Minimize panel (right-click to close)');
-            hint.title = 'Left-click: minimize  \u00b7  Right-click: close';
-            var hIcon = document.createElement('span');
-            hIcon.setAttribute('aria-hidden', 'true');
-            hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
-            hint.appendChild(hIcon);
-            // Render each chord token as its own <kbd>.
-            kbdLabel.split('+').forEach(function (tok, i, arr) {
-                var k = document.createElement('kbd');
-                k.textContent = tok.trim();
-                hint.appendChild(k);
-                if (i < arr.length - 1) {
-                    hint.appendChild(document.createTextNode('+'));
-                }
-            });
-            // Left-click: minimize panel.
-            hint.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
-            // Right-click: fully close panel.
-            hint.addEventListener('contextmenu', function (e) {
-                e.preventDefault();
-                closeAIPanel();
-            });
-            // Keyboard: Enter / Space mirrors the left-click action.
-            hint.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    minimizeAIPanel();
-                }
-            });
-            leftCluster.appendChild(hint);
-        }
 
         // ── Left cluster: Source (GitHub) button ──────────────────────────────
         // Shown when panelSource !== false AND panelSourceUrl is a valid URL.
         // Clicking opens the Links sheet (same _openSheet contract as all other
         // sheets).  Built here so the element is available to wire() below.
+        // Order: [☰ hamburger] [Source] [kbd-hint]
         var sourceBtn = null;
         if (cfgRef.panelSource !== false) {
             sourceBtn = document.createElement('button');
@@ -5463,6 +12117,50 @@
             sourceBtn.title = 'View project source & links';
             leftCluster.appendChild(sourceBtn);
         }
+
+        var kbdLabel = _shortcutLabel();
+        if (kbdLabel) {
+            var hint = document.createElement('span');
+            hint.className = 'ai-assistant-panel-kbd-hint';
+            hint.setAttribute('role', 'button');
+            hint.setAttribute('tabindex', '0');
+            hint.setAttribute('aria-label', 'Minimize panel \u00b7 Right-click: close \u00b7 Shift+Right-click: browser menu');
+            hint.title = 'Left-click: minimize  \u00b7  Right-click: close  \u00b7  Shift+Right-click: browser menu';
+            var hIcon = document.createElement('span');
+            hIcon.setAttribute('aria-hidden', 'true');
+            hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
+            hint.appendChild(hIcon);
+            // Render each chord token as its own <kbd>.
+            kbdLabel.split('+').forEach(function (tok, i, arr) {
+                var k = document.createElement('kbd');
+                k.textContent = tok.trim();
+                hint.appendChild(k);
+                if (i < arr.length - 1) {
+                    hint.appendChild(document.createTextNode('+'));
+                }
+            });
+            // Left-click: minimize panel.
+            hint.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
+            // Right-click: fully close panel.
+            // Shift+Right-click: pass through to the browser's native context menu
+            // (unlocks browser/OS quick actions without triggering a panel close).
+            hint.addEventListener('contextmenu', function (e) {
+                if (e.shiftKey) { return; }   // Shift held — let browser menu appear.
+                e.preventDefault();
+                closeAIPanel();
+            });
+            // Keyboard: Enter / Space mirrors the left-click action.
+            hint.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    minimizeAIPanel();
+                }
+            });
+            leftCluster.appendChild(hint);
+        }
+
+
+        // Endpoint config button moved to hamburger menu (onEndpoints hook).
 
         subbar.appendChild(leftCluster);
 
@@ -5521,10 +12219,10 @@
             modelLink.appendChild(modelChev);
 
             // Dynamic aria-label and title: mirrors the inline-picker format
-            // "Choose a model — current: <label>" so screen readers and the
+            // "Model Configuration — current: <label>" so screen readers and the
             // browser tooltip both surface the currently-selected model name.
             var _initModelText = activeNow ? (activeNow.label || activeNow.id) : 'Model';
-            modelLink.setAttribute('aria-label', 'Choose a model \u2014 current: ' + _initModelText);
+            modelLink.setAttribute('aria-label', 'Model Configuration \u2014 current: ' + _initModelText);
             modelLink.title = _initModelText;
         }
 
@@ -5546,9 +12244,60 @@
         }
 
         // Append right-cluster items in visual left→right order:
-        //   Model | Privacy | Terms | Share | Site | ⋯
+        //   Model | Endpoints | Privacy | Terms | Share | Site | ⋯
         // Items that are null (feature-flagged off) are silently skipped.
+
+        // ── Right-cluster: Endpoint config pill button ────────────────────────
+        // Pill-style button (matching modelLink pattern).  Shows the active
+        // profile label so the user always knows which proxy backend is live.
+        // Placed AFTER modelLink so model selection comes first, then config.
+        var epRightBtn = document.createElement('button');
+        epRightBtn.type      = 'button';
+        epRightBtn.className =
+            'ai-assistant-panel-privacy-link ai-assistant-panel-model-link ai-assistant-panel-ep-right-btn';
+        epRightBtn.setAttribute('aria-label', 'Open Endpoint Configuration');
+        epRightBtn.setAttribute('aria-haspopup', 'dialog');
+        epRightBtn.setAttribute('aria-expanded', 'false');
+        epRightBtn.setAttribute('aria-controls', 'ai-assistant-panel-ep-sheet');
+
+        var epRightIc = document.createElement('span');
+        epRightIc.setAttribute('aria-hidden', 'true');
+        epRightIc.innerHTML = ICONS.endpoint;  // ICONS constant — safe.
+        epRightBtn.appendChild(epRightIc);
+
+        var epRightLbl = document.createElement('span');
+        epRightLbl.className  = 'ai-assistant-panel-model-link-label ai-assistant-panel-ep-btn-label';
+        // Resolve the active profile label for the initial button text.
+        (function () {
+            var _epBtnLabel = 'Endpoint Configuration';
+            if (typeof _EP !== 'undefined' && _EP && _EP.hasProfiles && _EP.hasProfiles()) {
+                var _activeProfiles = _EP.list();
+                var _activeKey      = _EP.getActive();
+                for (var _pi = 0; _pi < _activeProfiles.length; _pi++) {
+                    if (_activeProfiles[_pi].key === _activeKey) {
+                        _epBtnLabel = _activeProfiles[_pi].label;
+                        break;
+                    }
+                }
+            }
+            epRightLbl.textContent = _epBtnLabel;
+        }());
+        epRightBtn.appendChild(epRightLbl);
+
+        var epRightChev = document.createElement('span');
+        epRightChev.setAttribute('aria-hidden', 'true');
+        epRightChev.innerHTML = ICONS.chevronDown;  // ICONS constant — safe.
+        epRightBtn.appendChild(epRightChev);
+
+        // Overwrite the placeholder aria-label set above with the resolved
+        // active profile name now that epRightLbl.textContent is available.
+        // Mirrors the modelLink pattern ('Model Configuration — current: X').
+        epRightBtn.setAttribute('aria-label',
+            'Endpoint Configuration \u2014 active: ' + epRightLbl.textContent);
+        epRightBtn.title = epRightLbl.textContent;
+
         if (modelLink)  rightCluster.appendChild(modelLink);
+        rightCluster.appendChild(epRightBtn);
         rightCluster.appendChild(privacyLink);
         if (termsLink)  rightCluster.appendChild(termsLink);
         if (shareLink)  rightCluster.appendChild(shareLink);
@@ -5973,7 +12722,16 @@
         var termsSheet = (cfgRef.panelTerms !== false) ? _buildTermsSheet() : null;
         if (termsSheet) panel.appendChild(termsSheet);
 
-        var shareSheet = (cfgRef.panelShare !== false) ? _buildShareSheet() : null;
+        var shareSheet = (cfgRef.panelShare !== false) ? _buildShareSheet({
+            // convShareSheetJson / Html / Txt are var-hoisted in createAIPanel
+            // and assigned below — closures are safe (same pattern as the
+            // toolbar exportDropdown wiring a few lines above).
+            onLinkMode: function (fmt) {
+                if (fmt === 'json')       { _openSheet(convShareSheetJson); }
+                else if (fmt === 'html')  { _openSheet(convShareSheetHtml); }
+                else                      { _openSheet(convShareSheetTxt);  }
+            },
+        }) : null;
         if (shareSheet) panel.appendChild(shareSheet);
 
         // Links sheet — source repository + project website cards.
@@ -5981,6 +12739,23 @@
         // siteBtn in the sub-bar open this same sheet via _openSheet.
         var linksSheet = (cfgRef.panelLinks !== false) ? _buildLinksSheet() : null;
         if (linksSheet) panel.appendChild(linksSheet);
+
+        // "Share conversation" sheets — one per export format (JSON, HTML, TXT).
+        // Opened by the export dropdown's onLinkMode dispatch when share-link mode
+        // is active.  All three are always built so _openSheet() can include them
+        // in its close-all sweep even when the toggle has never been used.
+        var convShareSheetJson = _buildFmtShareSheet('json');
+        var convShareSheetHtml = _buildFmtShareSheet('html');
+        var convShareSheetTxt  = _buildFmtShareSheet('txt');
+        panel.appendChild(convShareSheetJson);
+        panel.appendChild(convShareSheetHtml);
+        panel.appendChild(convShareSheetTxt);
+
+        // ── Endpoint Configuration Sheet ──────────────────────────────────────
+        // Always built and appended so _openSheet() can include it in its
+        // close-all sweep.  Content adapts gracefully to zero/one/many profiles.
+        var epSheet = _buildEndpointConfigSheet();
+        panel.appendChild(epSheet);
 
         /**
          * Open exactly one sheet at a time.  Pass null to close all.
@@ -6015,7 +12790,8 @@
          *   _closeSheet which restores focus to the originating button.
          */
         function _openSheet(target) {
-            [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet].forEach(function (s) {
+            [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet,
+             convShareSheetJson, convShareSheetHtml, convShareSheetTxt, epSheet].forEach(function (s) {
                 if (!s) return;
                 s.setAttribute('data-open', (s === target) ? 'true' : 'false');
             });
@@ -6094,6 +12870,33 @@
                 _openSheet(modelSheet);
             });
         }
+
+        // ── Endpoint sheet click handlers ─────────────────────────────────────
+        // The left-cluster entry-point is the hamburger menu (onEndpoints hook).
+        // The right-cluster pill button also opens the same sheet.
+        // aria-expanded mirrors the open state so screen readers announce it.
+        if (epRightBtn && epSheet) {
+            epRightBtn.setAttribute('aria-expanded', 'false');
+            epRightBtn.addEventListener('click', function () {
+                _openSheet(epSheet);
+            });
+        }
+        // Keep aria-expanded on epRightBtn in sync with the sheet's open state.
+        // Observing data-open via MutationObserver is cleaner than hooking every
+        // _openSheet / _closeSheet call site.
+        (function () {
+            if (!epRightBtn || !epSheet) return;
+            var _epObs = new MutationObserver(function (mutations) {
+                mutations.forEach(function (m) {
+                    if (m.attributeName === 'data-open') {
+                        var isOpen = epSheet.getAttribute('data-open') === 'true';
+                        epRightBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                    }
+                });
+            });
+            _epObs.observe(epSheet, { attributes: true, attributeFilter: ['data-open'] });
+        }());
+
         privacyLink.addEventListener('click', function () { _openSheet(privacySheet); });
         if (termsLink && termsSheet) {
             termsLink.addEventListener('click', function () { _openSheet(termsSheet); });
@@ -6142,8 +12945,25 @@
                 if (lbl) lbl.textContent = text;
                 // Keep aria-label and title in sync with the selected model —
                 // same format used by the inline-picker btn._syncState().
-                modelLink.setAttribute('aria-label', 'Choose a model \u2014 current: ' + text);
+                modelLink.setAttribute('aria-label', 'Model Configuration \u2014 current: ' + text);
                 modelLink.title = text;
+            });
+        }
+
+        // Sync the sub-bar endpoint-pill label, aria-label, and title with the
+        // active profile whenever any code path changes it.  setActive(),
+        // removeProfile() (and its wrappers deleteCustomProfile / clearCustom),
+        // and register() all dispatch 'ai-assistant:profile-changed', so this
+        // single listener is the authoritative update point — no querySelector
+        // lookups in individual call sites are needed.
+        if (epRightBtn) {
+            document.addEventListener('ai-assistant:profile-changed', function (ev) {
+                var d = ev && ev.detail;
+                if (!d || typeof d.activeLabel !== 'string') return;
+                epRightLbl.textContent = d.activeLabel;
+                epRightBtn.setAttribute('aria-label',
+                    'Endpoint Configuration \u2014 active: ' + d.activeLabel);
+                epRightBtn.title = d.activeLabel;
             });
         }
 
@@ -6155,11 +12975,12 @@
         var hamburgerMenuEl = null;
         if (hamburgerBtn) {
             hamburgerMenuEl = _buildHamburgerMenu({
-                onModel:   modelLink   ? function () { _openSheet(modelSheet); }   : null,
-                onPrivacy: function () { _openSheet(privacySheet); },
-                onTerms:   termsSheet  ? function () { _openSheet(termsSheet); }   : null,
-                onShare:   shareSheet  ? function () { _openSheet(shareSheet); }   : null,
-                onLinks:   linksSheet  ? function () { _openSheet(linksSheet); }   : null,
+                onModel:     modelLink   ? function () { _openSheet(modelSheet); }   : null,
+                onEndpoints: epSheet     ? function () { _openSheet(epSheet); }      : null,
+                onPrivacy:   function () { _openSheet(privacySheet); },
+                onTerms:     termsSheet  ? function () { _openSheet(termsSheet); }   : null,
+                onShare:     shareSheet  ? function () { _openSheet(shareSheet); }   : null,
+                onLinks:     linksSheet  ? function () { _openSheet(linksSheet); }   : null,
             });
             panel.appendChild(hamburgerMenuEl);
 
@@ -6211,10 +13032,11 @@
              * of collapsing the entire cluster at once.  Priority order (first
              * to last to hide):
              *
-             *   modelLink    575 px
-             *   privacyLink  475 px
-             *   termsLink    350 px
-             *   shareLink    300 px
+             *   modelLink        575 px
+             *   epRightBtn       525 px
+             *   privacyLink      475 px
+             *   termsLink        350 px
+             *   shareLink        300 px
              *
              * Sets [data-overflow-hidden] on each item so CSS max-width + opacity
              * transitions can animate the collapse.  Sets [data-overflow-visible]
@@ -6228,8 +13050,9 @@
             function _updateSubbarOverflow(w) {
                 var slots = [
                     // Hide order: rightmost carriage departs first.
-                    // Visual order left→right: Model | Privacy | Terms | Share
+                    // Visual order left→right: Model | Endpoints | Privacy | Terms | Share
                     { el: modelLink,   px: 575 },   /* leftmost  — exits last   */
+                    { el: epRightBtn,  px: 525 },
                     { el: privacyLink, px: 475 },
                     { el: termsLink,   px: 350 },
                     { el: shareLink,   px: 300 },   /* rightmost — exits first  */
@@ -6268,8 +13091,13 @@
         closeBtn.addEventListener('click', closeAIPanel);
 
         minimizeBtn.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
-        // Right-click on the minimize button: fully close (mirrors kbd-hint / kbd-row contract).
+        // Right-click: fully close panel (mirrors kbd-hint / kbd-row contract).
+        // Shift+Right-click: pass through to the browser's native context menu
+        // (unlocks browser/OS quick actions without triggering a panel close).
+        minimizeBtn.setAttribute('aria-label', 'Minimize panel \u00b7 Right-click: close \u00b7 Shift+Right-click: browser menu');
+        minimizeBtn.title = 'Left-click: minimize  \u00b7  Right-click: close  \u00b7  Shift+Right-click: browser menu';
         minimizeBtn.addEventListener('contextmenu', function (e) {
+            if (e.shiftKey) { return; }   // Shift held — let browser menu appear.
             e.preventDefault();
             closeAIPanel();
         });
@@ -6316,7 +13144,10 @@
         // registered inside each sheet builder call sheet.setAttribute directly
         // (they run before _closeSheet exists); we add a second listener here
         // which performs the focus restoration after the flag is already 'false'.
-        [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet].forEach(function (s) {
+        // convShareSheet replaced by three format-specific sheets; all three
+        // must appear here so _closeSheet restores focus for every variant.
+        [modelSheet, privacySheet, termsSheet, shareSheet, linksSheet,
+         convShareSheetJson, convShareSheetHtml, convShareSheetTxt].forEach(function (s) {
             if (!s) return;
             var closeBtn = s.querySelector('button[id$="-close"]');
             if (!closeBtn) return;
@@ -6368,18 +13199,31 @@
         panel.addEventListener('keydown', function (e) {
             // Phase B: Escape closes the topmost overlay first, then the panel.
             // Priority (highest first):
-            //   1. Hamburger popover (lightest overlay)
+            //   0. Export dropdown  (lightest floating overlay — no focus trap)
+            //   1. Hamburger popover
             //   2. Any open sheet (privacy / model / terms / share)
             //   3. The panel itself
             // The "any sheet" branch checks each in turn; only one is open
             // at a time per the _openSheet invariant, so the check is O(4).
             if (e.key !== 'Escape') return;
+            // 0. Export dropdown: query from the known exportDropdown wrapper so
+            //    we do not need a module-level variable.
+            var exportMenuEl = exportDropdown &&
+                               exportDropdown.querySelector('.ai-assistant-export-menu');
+            if (exportMenuEl && exportMenuEl.getAttribute('data-open') === 'true') {
+                var exportTriggerEl = exportDropdown.querySelector('.ai-assistant-export-trigger');
+                _closeExportMenu(exportMenuEl, exportTriggerEl);
+                if (exportTriggerEl) exportTriggerEl.focus();
+                return;
+            }
             if (hamburgerMenuEl &&
                 hamburgerMenuEl.getAttribute('data-open') === 'true') {
                 hamburgerMenuEl.setAttribute('data-open', 'false');
                 return;
             }
-            var openSheets = [privacySheet, modelSheet, termsSheet, shareSheet]
+            // convShareSheet replaced by three format-specific sheets.
+            var openSheets = [privacySheet, modelSheet, termsSheet, shareSheet, linksSheet,
+                              convShareSheetJson, convShareSheetHtml, convShareSheetTxt]
                 .filter(function (s) {
                     return s && s.getAttribute('data-open') === 'true';
                 });
@@ -6897,6 +13741,430 @@
     }
 
     // ── Mic device management ─────────────────────────────────────────────────
+
+    /**
+     * Notify every registered export-state subscriber.
+     *
+     * Iterates ``_exportStateListeners`` and calls each callback with a
+     * frozen state snapshot ``{ linkMode: boolean }``.  Errors thrown by
+     * individual subscribers are caught and silenced so one broken surface
+     * cannot block the others — the pattern matches the resilience contract
+     * documented on ``_exportStateListeners``.
+     *
+     * Notes
+     * -----
+     * Developer: Always call after mutating ``_exportLinkMode`` (i.e. at the
+     *   end of ``_setExportLinkMode``).  Never call it directly from outside
+     *   the setter — the setter is the single source of truth.
+     *
+     * Developer: The snapshot is constructed inline (not cached) so late-
+     *   registered subscribers always see the current value, even if the
+     *   array is modified during a previous notification round.
+     */
+    function _notifyExportState() {
+        var state = Object.freeze({ linkMode: _exportLinkMode });
+        for (var _nei = 0; _nei < _exportStateListeners.length; _nei++) {
+            try { _exportStateListeners[_nei](state); } catch (_e) {}
+        }
+    }
+
+    /**
+     * Set export share-link mode on or off.
+     *
+     * When enabled (``aria-pressed="true"``), clicking any format item in the
+     * export dropdown opens the "Share conversation" sheet instead of
+     * triggering a file download.  The preference is persisted to
+     * ``localStorage`` so it survives page reloads.
+     *
+     * Parameters
+     * ----------
+     * enabled : boolean
+     *     ``true`` → share-link mode ON; ``false`` → download mode (default).
+     *
+     * Notes
+     * -----
+     * Developer: This function is the single source of truth for
+     *   ``_exportLinkMode``.  Always call it instead of mutating the variable
+     *   directly so localStorage, the toggle's ``aria-pressed``, the title
+     *   tooltip, and all ``_exportStateListeners`` subscribers stay in sync.
+     *
+     * Developer: Subscribers registered in ``_exportStateListeners`` (e.g.
+     *   the share-sheet inline export section) are notified via
+     *   ``_notifyExportState()`` at the end of every call so both surfaces
+     *   always reflect the same mode without polling or manual wiring.
+     */
+    function _setExportLinkMode(enabled) {
+        _exportLinkMode = !!enabled;
+
+        // Persist preference.
+        try {
+            localStorage.setItem(
+                _EXPORT_LINK_MODE_KEY, _exportLinkMode ? 'true' : 'false');
+        } catch (_e) {}
+
+        // Sync toggle pill in the export dropdown menu.
+        var toggle = document.getElementById('ai-assistant-export-link-toggle');
+        if (toggle) {
+            toggle.setAttribute('aria-pressed', _exportLinkMode ? 'true' : 'false');
+            toggle.setAttribute('title',
+                _exportLinkMode ? 'Share-link mode: ON' : 'Share-link mode: OFF');
+        }
+
+        // Sync mode label in the export dropdown menu.
+        // The share-sheet label is handled via _exportStateListeners below.
+        // querySelector is safe here: .ai-assistant-export-menu-mode-label is a
+        // singleton — only one dropdown exists at a time in the toolbar.
+        var menuModeLbl = document.querySelector('.ai-assistant-export-menu-mode-label');
+        if (menuModeLbl) {
+            menuModeLbl.textContent = _exportLinkMode ? 'Share link' : 'Download';
+        }
+
+        // Notify all registered surfaces (e.g. share-sheet export section).
+        _notifyExportState();
+    }
+
+    /**
+     * Enable or disable persistent feedback storage and keep all dependents in sync.
+     *
+     * This is the single source of truth for ``_feedbackPersistEnabled``.
+     * Always call this function instead of mutating the variable directly so
+     * that localStorage, the privacy-sheet toggle's ``aria-pressed``, and the
+     * hint text all stay consistent.
+     *
+     * Parameters
+     * ----------
+     * enabled : boolean
+     *     ``true``  → ratings POSTed to the HF dataset (durable).
+     *     ``false`` → ratings discarded after the CustomEvent dispatch (in-memory only).
+     *
+     * Notes
+     * -----
+     * Developer: Does NOT contact the server.  The server-side flag
+     *   (``FEEDBACK_PERSIST_ENABLED``) is authoritative at startup; this client
+     *   flag governs subsequent in-session behaviour and survives page reloads
+     *   via localStorage.
+     *
+     * Developer: localStorage access is always wrapped in try/catch because it
+     *   may throw in Safari private mode, cross-origin iframes, and when storage
+     *   quota is exceeded.
+     */
+    function _setFeedbackPersistMode(enabled) {
+        _feedbackPersistEnabled = !!enabled;
+
+        // Persist preference across page reloads.
+        try {
+            localStorage.setItem(
+                'ai-assistant-feedback-persist',
+                _feedbackPersistEnabled ? 'true' : 'false'
+            );
+        } catch (_e) {}
+
+        // Sync the main persist pill in §6 Extended Settings (role="switch"
+        // uses aria-checked, not aria-pressed — ARIA 1.2 §5.3.22).
+        var toggle = document.getElementById('ai-assistant-feedback-persist-toggle');
+        if (toggle) {
+            toggle.setAttribute('aria-checked', _feedbackPersistEnabled ? 'true' : 'false');
+        }
+
+        // Sync all mini persist pills inside quick-rate popups.
+        var miniPills = document.querySelectorAll('.ai-assistant-fbk-popup-mini-pill');
+        for (var _mp = 0; _mp < miniPills.length; _mp++) {
+            miniPills[_mp].setAttribute(
+                'aria-checked',
+                _feedbackPersistEnabled ? 'true' : 'false'
+            );
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PERMANENT SHARE STORAGE — IndexedDB module
+    //
+    // Purpose
+    // ───────
+    // Blob URLs created by URL.createObjectURL() are ephemeral: they are tied
+    // to the browser tab session and evicted when the tab closes.  The IndexedDB
+    // module provides truly persistent storage so share links survive page
+    // reloads indefinitely (until the user explicitly deletes them or clears
+    // browser data).
+    //
+    // Storage scheme
+    // ──────────────
+    //   Database : 'ai-assistant-shares'   (version 1)
+    //   Store    : 'conversations'          (keyPath: uuid)
+    //   Indices  : ts (timestamp), fmt (format string)
+    //
+    //   Entry schema
+    //   ────────────
+    //   {
+    //     uuid:     string   — crypto UUID (keyPath)
+    //     fmt:      string   — 'json' | 'html' | 'txt'
+    //     content:  string   — serialised conversation payload
+    //     mimeType: string   — MIME type for Blob creation
+    //     ext:      string   — file extension (e.g. '.html')
+    //     title:    string   — human-readable label for the share
+    //     pageUrl:  string   — origin page URL (without hash)
+    //     ts:       number   — Unix timestamp (ms) of creation
+    //   }
+    //
+    // URL scheme
+    // ──────────
+    //   page.html#ai-share-{uuid}-{fmt}
+    //
+    //   On page load the _checkShareHash() function detects this pattern,
+    //   reads the entry from IndexedDB, creates a fresh Blob URL, and opens
+    //   the content in a new tab.  The hash is the "address"; IndexedDB is
+    //   the content store.  Content is never embedded in the URL itself —
+    //   the URL stays short and shareable.
+    //
+    // Cross-device limitation
+    // ───────────────────────
+    //   IndexedDB is browser-local.  A link generated on device A is only
+    //   functional on that same browser on device A.  For cross-device or
+    //   cross-user sharing, the user should use the download option (which
+    //   produces a self-contained file) or the session blob URL (valid only
+    //   while the tab is open).  Both the permanent-link note and the session-
+    //   note in the share sheet make this distinction explicit.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** IndexedDB database name for all share entries. @type {string} */
+    var _IDB_SHARE_NAME    = 'ai-assistant-shares';
+
+    /** Object store name within _IDB_SHARE_NAME. @type {string} */
+    var _IDB_SHARE_STORE   = 'conversations';
+
+    /** Schema version — bump when adding new indices. @type {number} */
+    var _IDB_SHARE_VERSION = 1;
+
+    /**
+     * Open (and if necessary create) the share IndexedDB database.
+     *
+     * The store schema is created in ``onupgradeneeded`` when the database
+     * does not yet exist or when the version number is bumped.
+     *
+     * Parameters
+     * ----------
+     * callback : function(IDBDatabase|null, Error|null)
+     *     Called with the open database or an error.  ``db`` is null on error.
+     *
+     * Notes
+     * -----
+     * Developer: Always check the ``err`` argument before using ``db``.
+     *   IndexedDB is unavailable in some private-browsing modes, sandboxed
+     *   iframes, and when the user has blocked storage entirely.
+     */
+    function _idbOpen(callback) {
+        try {
+            if (!window.indexedDB) {
+                callback(null, new Error('IndexedDB unavailable'));
+                return;
+            }
+            var req = window.indexedDB.open(_IDB_SHARE_NAME, _IDB_SHARE_VERSION);
+            req.onupgradeneeded = function (e) {
+                var db = e.target.result;
+                if (!db.objectStoreNames.contains(_IDB_SHARE_STORE)) {
+                    var store = db.createObjectStore(
+                        _IDB_SHARE_STORE, { keyPath: 'uuid' });
+                    store.createIndex('ts',  'ts',  { unique: false });
+                    store.createIndex('fmt', 'fmt', { unique: false });
+                }
+            };
+            req.onsuccess = function (e) { callback(e.target.result, null); };
+            req.onerror   = function (e) { callback(null, e.target.error);  };
+        } catch (err) { callback(null, err); }
+    }
+
+    /**
+     * Save a conversation entry to the share store.
+     *
+     * Uses ``IDBObjectStore.put()`` (upsert) so calling with the same UUID
+     * replaces an existing entry — idempotent and safe to retry.
+     *
+     * Parameters
+     * ----------
+     * data : Object
+     *     Entry matching the store schema (must include ``uuid``).
+     * callback : function(string|null, Error|null)
+     *     Called with the saved UUID on success, or null + error on failure.
+     *
+     * Notes
+     * -----
+     * Developer: Generate the UUID before calling this function using
+     *   ``_idbGenUuid()`` so the caller has it available immediately without
+     *   waiting for the async callback.
+     */
+    function _idbSaveShare(data, callback) {
+        _idbOpen(function (db, err) {
+            if (err || !db) {
+                if (callback) callback(null, err || new Error('IDB open failed'));
+                return;
+            }
+            try {
+                var tx    = db.transaction(_IDB_SHARE_STORE, 'readwrite');
+                var store = tx.objectStore(_IDB_SHARE_STORE);
+                var req   = store.put(data);
+                req.onsuccess = function () {
+                    if (callback) callback(data.uuid, null);
+                };
+                req.onerror = function (e) {
+                    if (callback) callback(null, e.target.error);
+                };
+            } catch (e2) { if (callback) callback(null, e2); }
+        });
+    }
+
+    /**
+     * Load a single share entry from IndexedDB by its UUID.
+     *
+     * Parameters
+     * ----------
+     * uuid : string
+     *     Key of the entry to retrieve.
+     * callback : function(Object|null, Error|null)
+     *     Called with the entry object or ``null`` when not found, plus any error.
+     *
+     * Notes
+     * -----
+     * Developer: A missing key returns ``null`` entry with no error.  Treat
+     *   ``entry === null`` as "not found" and ``err !== null`` as a storage fault.
+     */
+    function _idbLoadShare(uuid, callback) {
+        _idbOpen(function (db, err) {
+            if (err || !db) { callback(null, err || new Error('IDB open failed')); return; }
+            try {
+                var tx    = db.transaction(_IDB_SHARE_STORE, 'readonly');
+                var store = tx.objectStore(_IDB_SHARE_STORE);
+                var req   = store.get(uuid);
+                req.onsuccess = function (e) { callback(e.target.result || null, null); };
+                req.onerror   = function (e) { callback(null, e.target.error); };
+            } catch (e2) { callback(null, e2); }
+        });
+    }
+
+    /**
+     * Delete a single share entry from IndexedDB by its UUID.
+     *
+     * Idempotent — deleting a non-existent key succeeds silently.
+     *
+     * Parameters
+     * ----------
+     * uuid : string
+     *     Key of the entry to delete.
+     * callback : function(boolean, Error|null)
+     *     Called with ``true`` on success, ``false`` + error on failure.
+     */
+    function _idbDeleteShare(uuid, callback) {
+        _idbOpen(function (db, err) {
+            if (err || !db) {
+                if (callback) callback(false, err || new Error('IDB open failed'));
+                return;
+            }
+            try {
+                var tx    = db.transaction(_IDB_SHARE_STORE, 'readwrite');
+                var store = tx.objectStore(_IDB_SHARE_STORE);
+                var req   = store.delete(uuid);
+                req.onsuccess = function () { if (callback) callback(true,  null); };
+                req.onerror   = function (e) { if (callback) callback(false, e.target.error); };
+            } catch (e2) { if (callback) callback(false, e2); }
+        });
+    }
+
+    /**
+     * Build the permanent share URL for a given UUID + format pair.
+     *
+     * Scheme: ``{pageOrigin+path}#ai-share-{uuid}-{fmt}``
+     *
+     * The URL is deterministic given the same inputs, so it can be
+     * recomputed without touching IndexedDB (e.g. for display after save).
+     *
+     * Parameters
+     * ----------
+     * uuid : string
+     *     UUID of the stored share entry.
+     * fmt : string
+     *     Format string ('json' | 'html' | 'txt').
+     *
+     * Returns
+     * -------
+     * string
+     *     Absolute URL including hash fragment.
+     */
+    function _idbShareUrl(uuid, fmt) {
+        var base = (typeof location !== 'undefined')
+            ? location.href.split('#')[0]
+            : '';
+        return base + '#ai-share-' + uuid + '-' + fmt;
+    }
+
+    /**
+     * Generate a cryptographically random UUID for a new share entry.
+     *
+     * Prefers ``crypto.randomUUID()`` (Web Crypto API — Chromium 92+,
+     * Firefox 95+, Safari 15.4+) and falls back to a timestamp+random string
+     * that is collision-resistant for the expected usage volume (<<10^6 entries).
+     *
+     * Returns
+     * -------
+     * string
+     *     Unique identifier string safe for use as an IndexedDB key and
+     *     URL hash fragment component.
+     */
+    function _idbGenUuid() {
+        try {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return window.crypto.randomUUID();
+            }
+        } catch (_e) {}
+        return 'shr-' + Date.now().toString(36) +
+               '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    /**
+     * Detect a permanent share URL hash and open the stored content.
+     *
+     * Hash pattern: ``#ai-share-{uuid}-{fmt}``
+     *
+     * When detected, loads the entry from IndexedDB, creates a Blob URL,
+     * and opens it in a new tab.  Silently does nothing when the hash is
+     * absent or the entry has been deleted.
+     *
+     * Called once on script load (deferred 200 ms) and wired to ``hashchange``
+     * so in-page navigation triggers it automatically.
+     *
+     * Notes
+     * -----
+     * Developer: The hash is NOT cleared after detection because the user
+     *   may want to bookmark or share the URL.  Clearing it would make the
+     *   URL stop working on subsequent visits.
+     */
+    function _checkShareHash() {
+        var hash = (typeof location !== 'undefined') ? location.hash : '';
+        var m    = hash.match(/^#ai-share-([A-Za-z0-9_-]+)-(json|html|txt)$/i);
+        if (!m) return;
+        var uuid = m[1];
+        var fmt  = m[2].toLowerCase();
+        _idbLoadShare(uuid, function (entry, err) {
+            if (err || !entry) return;   // deleted or IDB unavailable — silent
+            var mime = entry.mimeType || (
+                fmt === 'json' ? 'application/json;charset=utf-8' :
+                fmt === 'txt'  ? 'text/plain;charset=utf-8'       :
+                'text/html;charset=utf-8'
+            );
+            try {
+                var blob = new Blob([entry.content], { type: mime });
+                var url  = URL.createObjectURL(blob);
+                var w    = window.open(url, '_blank', 'noopener,noreferrer');
+                if (w) { try { w.opener = null; } catch (_e) {} }
+            } catch (_e) {}
+        });
+    }
+
+    // Wire hash routing: fires on direct navigation and in-page hash changes.
+    if (typeof window !== 'undefined') {
+        window.addEventListener('hashchange', _checkShareHash);
+        if (typeof setTimeout !== 'undefined') {
+            setTimeout(_checkShareHash, 200);
+        }
+    }
 
     /**
      * Stop and release the device-pin MediaStreamTrack.
@@ -9890,46 +17158,27 @@
             copyBtn.addEventListener('click', function () { copyAnswer(text, bubble); });
             actions.appendChild(copyBtn);
 
-            // Share button — between Copy and Retry (OpenAI-inspired).
-            // Payload = "Q: <question>\n\nA: <answer>\n\n— AI · <url>"
-            // so the recipient receives full context without visiting the source.
-            // retryQ already resolved above; direct closure is safe (no loop).
-            var shareBtn = document.createElement('button');
-            shareBtn.className = 'ai-assistant-panel-bubble-action';
-            shareBtn.type = 'button';
-            shareBtn.setAttribute('aria-label', 'Share this answer');
-            shareBtn.title = 'Share Q \u0026 A \u2014 send question + answer to another app or clipboard';
-            shareBtn.innerHTML = ICONS.shareAns;   // ICONS constant — safe.
-            var shareLbl = document.createElement('span');
-            shareLbl.textContent = 'Share';
-            shareBtn.appendChild(shareLbl);
-            shareBtn.addEventListener('click', function () { _shareAnswer(text, retryQ, bubble, shareBtn); });
-            actions.appendChild(shareBtn);
+            // Hoist answerIndex before the quick-rate block so its closure captures
+            // the correct value — _shareAnswer (in the More menu) and _buildFbkFloat
+            // both look up _feedbackStore[answerIndex] and _transcript model info.
+            var answerIndex = body.querySelectorAll(
+                '.ai-assistant-panel-feedback').length;
 
-            // Retry button — re-submits the paired user question.
-            // retryQ resolved above (hoisted so Share can use it too).
-            if (retryQ) {
-                var retryBtn = document.createElement('button');
-                retryBtn.className = 'ai-assistant-panel-bubble-action';
-                retryBtn.type = 'button';
-                retryBtn.setAttribute('aria-label', 'Retry this answer');
-                retryBtn.title = 'Retry — re-send the same question';
-                retryBtn.innerHTML = ICONS.retry;  // ICONS constant — safe.
-                var retryLbl = document.createElement('span');
-                retryLbl.textContent = 'Retry';
-                retryBtn.appendChild(retryLbl);
-                retryBtn.addEventListener('click', function () {
-                    var panelInput = document.getElementById('ai-assistant-panel-input');
-                    if (!panelInput) return;
-                    panelInput.value = retryQ;
-                    _updateSendBtnState();
-                    handleAIPanelSubmit();
-                });
-                actions.appendChild(retryBtn);
-            }
+            // ── Quick-rate 👍 👎 (always visible — mobile-first, see CSS D4-c) ──
+            // Row order: time | copy | 👍👎⌃ | more(retry | listen | share)
+            var fbkFloat = _buildFbkFloat(answerIndex, text, retryQ);
+            if (fbkFloat) actions.appendChild(fbkFloat);
 
-            // ── "⋯ More ▾" expandable submenu (contains Listen and future actions)
-            var moreWrapper = _buildBubbleMore(text);
+            // ── "⋯ More ▾" expandable submenu (Retry + Listen + Share)
+            // Retry is the first menu item — flat row stays compact on all devices.
+            var moreWrapper = _buildBubbleMore(text, {
+                text:        text,
+                question:    retryQ,
+                bubble:      bubble,
+                answerIndex: answerIndex,
+            }, {
+                question: retryQ,
+            });
             actions.appendChild(moreWrapper);
 
             body.appendChild(actions);
@@ -9941,10 +17190,14 @@
             // Pass the answer text (this bubble) and the paired user question
             // (retryQ, resolved a few lines above) so the dispatched event
             // payload is a complete (q, a, rating, message) training tuple.
-            var answerIndex = body.querySelectorAll(
-                '.ai-assistant-panel-feedback').length;
+            //
+            // Note: answerIndex is hoisted above the share button so the share
+            // closure captures the same stable value — no recount needed here.
             var fb = _buildFeedbackBlock(answerIndex, text, retryQ);
-            if (fb) body.appendChild(fb);
+            if (fb) {
+                fb.setAttribute('data-answer-index', String(answerIndex));
+                body.appendChild(fb);
+            }
         }
     }
 
@@ -10011,7 +17264,14 @@
         var suggestions = body.querySelector('.ai-assistant-panel-suggestions');
         if (suggestions) suggestions.remove();
 
-        _recordMessage(role, text);   // single source of truth
+        // Capture active model for assistant messages.
+        // Each transcript entry carries the model that generated it — enables
+        // per-model analytics in JSON exports and DataFrame groupby operations.
+        var modelInfo = (role === 'assistant')
+            ? _getActiveModel(window.AI_ASSISTANT_CONFIG || {})
+            : null;
+
+        _recordMessage(role, text, modelInfo);   // v2: includes modelInfo
         // Read the timestamp just stored — _recordMessage always pushes before
         // returning and JS is single-threaded, so the last entry is ours.
         _renderBubble(body, text, role, undefined, _transcript[_transcript.length - 1].ts);
@@ -10154,9 +17414,14 @@
         if (activeModel) {
             // Per-model endpoint wins; falls back to shared panelApiUrl so
             // the convenient list[str] config shape still works.
-            endpoint  = (activeModel.endpoint || '').trim() ||
-                        (typeof cfg.panelApiUrl === 'string'
-                            ? cfg.panelApiUrl.trim() : '');
+            // Endpoint resolution priority:
+            // 1. Per-model endpoint field in panelApiModels (most specific)
+            // 2. Active _EP profile chat base (profile-level override)
+            // 3. Legacy shared panelApiUrl (backward compat)
+            var _epChatBase = _EP.hasProfiles() ? _EP.resolve('chat') : '';
+            endpoint = (activeModel.endpoint || '').trim()
+                || (_epChatBase ? _epChatBase + '/v1/chat/completions' : '')
+                || (typeof cfg.panelApiUrl === 'string' ? cfg.panelApiUrl.trim() : '');
             modelName = activeModel.model || activeModel.id;
             provider  = (activeModel.provider || 'custom').toLowerCase();
         } else {
@@ -10468,7 +17733,10 @@
         }
 
         streamBubble.classList.remove('ai-assistant-panel-bubble--streaming');
-        _recordMessage('assistant', accumulated || '(no response)');
+        // v2: capture model info before _recordMessage so it is stored in
+        // the transcript entry for export and share-payload attribution.
+        var _streamModelInfo = _getActiveModel(window.AI_ASSISTANT_CONFIG || {});
+        _recordMessage('assistant', accumulated || '(no response)', _streamModelInfo);
         // Read the timestamp just stored — same single-threaded guarantee as
         // _appendPanelMessage: the last _transcript entry is this streamed reply.
         var streamTs = _transcript[_transcript.length - 1].ts;
@@ -10488,6 +17756,11 @@
             var _lastUser = _transcript.findLast(function (m) { return m.role === 'user'; });
             var retryQ2 = _lastUser ? _lastUser.text : null;
 
+            // Hoist fbIdx2 before share button so its IIFE closure captures
+            // the value and _shareAnswer can look up _feedbackStore[fbIdx2]
+            // and model attribution in _transcript.
+            var fbIdx2 = panelBody.querySelectorAll('.ai-assistant-panel-feedback').length;
+
             // Copy button
             var cb2 = document.createElement('button');
             cb2.className = 'ai-assistant-panel-bubble-action';
@@ -10502,53 +17775,33 @@
             }(accumulated, streamBubble));
             acts.appendChild(cb2);
 
-            // Share button — between Copy and Retry (OpenAI-inspired).
-            // Payload = "Q: <question>\n\nA: <answer>\n\n— AI · <url>"
-            // so the recipient receives full context without visiting the source.
-            (function (and, q, bbl) {
-                var sb2 = document.createElement('button');
-                sb2.className = 'ai-assistant-panel-bubble-action';
-                sb2.type = 'button';
-                sb2.setAttribute('aria-label', 'Share this answer');
-                sb2.title = 'Share Q \u0026 A \u2014 send question + answer to another app or clipboard';
-                sb2.innerHTML = ICONS.shareAns;
-                var sl2 = document.createElement('span'); sl2.textContent = 'Share';
-                sb2.appendChild(sl2);
-                sb2.addEventListener('click', function () { _shareAnswer(and, q, bbl, sb2); });
-                acts.appendChild(sb2);
-            }(accumulated, retryQ2, streamBubble));
+            // ── Quick-rate 👍 👎 (always visible — mobile-first, see CSS D4-c) ──
+            // Row order: time | copy | 👍👎⌃ | more(retry | listen | share)
+            (function (idx, txt, q) {
+                var fbkF2 = _buildFbkFloat(idx, txt, q);
+                if (fbkF2) acts.appendChild(fbkF2);
+            }(fbIdx2, accumulated, retryQ2));
 
-            // Retry button — retryQ2 hoisted above so Share can use it too.
-            if (retryQ2) {
-                var rb2 = document.createElement('button');
-                rb2.className = 'ai-assistant-panel-bubble-action';
-                rb2.type = 'button';
-                rb2.setAttribute('aria-label', 'Retry this answer');
-                rb2.title = 'Retry \u2014 re-send the same question';
-                rb2.innerHTML = ICONS.retry;
-                var rl2 = document.createElement('span'); rl2.textContent = 'Retry';
-                rb2.appendChild(rl2);
-                (function (q) {
-                    rb2.addEventListener('click', function () {
-                        var pi = document.getElementById('ai-assistant-panel-input');
-                        if (!pi) return;
-                        pi.value = q;
-                        _updateSendBtnState();
-                        handleAIPanelSubmit();
-                    });
-                }(retryQ2));
-                acts.appendChild(rb2);
-            }
-
-            // "⋯ More ▾" — extensible submenu (contains Listen + future actions)
-            var moreW2 = _buildBubbleMore(accumulated);
+            // "⋯ More ▾" — extensible submenu (Retry + Listen + Share)
+            // Retry is the first menu item — flat row stays compact on all devices.
+            var moreW2 = _buildBubbleMore(accumulated, {
+                text:        accumulated,
+                question:    retryQ2,
+                bubble:      streamBubble,
+                answerIndex: fbIdx2,
+            }, {
+                question: retryQ2,
+            });
             acts.appendChild(moreW2);
 
             panelBody.appendChild(acts);
 
-            var fbIdx2 = panelBody.querySelectorAll('.ai-assistant-panel-feedback').length;
+            // fbIdx2 is hoisted before the share button above — reuse here.
             var fb2 = _buildFeedbackBlock(fbIdx2, accumulated, retryQ2);
-            if (fb2) panelBody.appendChild(fb2);
+            if (fb2) {
+                fb2.setAttribute('data-answer-index', String(fbIdx2));
+                panelBody.appendChild(fb2);
+            }
         }
         if (panelBody) panelBody.scrollTop = panelBody.scrollHeight;
     }
