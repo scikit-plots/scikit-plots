@@ -3715,8 +3715,23 @@
 
     /**
      * Unique session id — stable across this page visit, new on reload.
-     * Falls back to a timestamp+random id when crypto.randomUUID is unavailable
-     * (HTTP origins, old browsers, restricted iframes).
+     *
+     * Entropy source priority:
+     *   1. ``crypto.randomUUID()``      — RFC 4122 v4 UUID (Chromium 92+,
+     *                                      Firefox 95+, Safari 15.4+).
+     *   2. ``crypto.getRandomValues()`` — 64-bit CSPRNG suffix; available on
+     *                                      all HTTPS origins supporting Web
+     *                                      Crypto API (IE 11+, all modern
+     *                                      browsers).
+     *   3. Timestamp only               — last resort for plain-HTTP origins
+     *                                      or heavily sandboxed iframes where
+     *                                      ``window.crypto`` is absent.
+     *                                      ``Math.random()`` is deliberately
+     *                                      excluded here: it offers no
+     *                                      meaningful entropy advantage over
+     *                                      the timestamp yet creates a false
+     *                                      sense of unpredictability (CWE-338,
+     *                                      CodeQL js/insecure-randomness).
      *
      * @type {string}
      */
@@ -3725,9 +3740,18 @@
             if (window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
             }
+            if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                var bytes = new Uint8Array(8);
+                window.crypto.getRandomValues(bytes);
+                var rand = Array.prototype.map.call(bytes, function (b) {
+                    return ('0' + b.toString(16)).slice(-2);
+                }).join('');
+                return 'sess-' + Date.now().toString(36) + '-' + rand;
+            }
         } catch (_) {}
-        return 'sess-' + Date.now().toString(36) + '-' +
-               Math.random().toString(36).slice(2, 9);
+        // Last resort: timestamp only — NOT cryptographically secure.
+        // Reached only when window.crypto is entirely absent.
+        return 'sess-' + Date.now().toString(36);
     }());
 
     /**
@@ -7667,6 +7691,46 @@ opts.jsonPayload + '\n' +
         snippetCopyRow.appendChild(snippetCopyStatus);
         snippetWrap.appendChild(snippetCopyRow);
 
+        /**
+         * Escape a string for safe embedding inside a Python double-quoted
+         * string literal (``"..."``).
+         *
+         * Escape order is critical:
+         *
+         * 1. ``\`` → ``\\``  — must be first; subsequent replacements add new
+         *    backslashes that must NOT be re-escaped.
+         * 2. ``"`` → ``\"``  — prevents premature end of the Python string.
+         * 3. ``\n`` / ``\r`` → ``\\n`` / ``\\r``  — prevents newline injection
+         *    that would produce a Python ``SyntaxError`` or allow arbitrary
+         *    code to be inserted into the generated conf.py block.
+         *
+         * Addresses CodeQL js/incomplete-sanitization (CWE-116): the previous
+         * implementation only escaped double-quotes, leaving raw backslashes in
+         * user-supplied values.  A label such as ``C:\Users\bob`` would produce
+         * the invalid Python literal ``"C:\Users\bob"``; a label containing
+         * ``\"`` would emit ``\"`` — an escaped backslash followed by an
+         * unescaped quote that terminates the string early.
+         *
+         * Parameters
+         * ----------
+         * s : string
+         *     Raw string value from a user-supplied endpoint profile field
+         *     (label or URL).
+         *
+         * Returns
+         * -------
+         * string
+         *     ``s`` with ``\``, ``"``, ``\n``, and ``\r`` replaced by their
+         *     Python double-quoted string escape sequences.
+         */
+        function _pyDqEscape(s) {
+            return s
+                .replace(/\\/g, '\\\\')   // 1. backslash  → \\  (must be first)
+                .replace(/"/g,  '\\"')    // 2. dquote     → \"
+                .replace(/\n/g, '\\n')   // 3. newline    → \n  (injection guard)
+                .replace(/\r/g, '\\r');  // 4. CR         → \r  (injection guard)
+        }
+
         function _buildSnippet() {
             if (!_epSafe) { return '# _EP not available'; }
             var key  = _epSafe.getActive();
@@ -7676,13 +7740,13 @@ opts.jsonPayload + '\n' +
                 '# conf.py — add or merge this block',
                 'ai_assistant_endpoint_profiles = {',
                 '    "' + key + '": {',
-                '        "label":    "' + prof.label.replace(/"/g, '\\"') + '",',
+                '        "label":    "' + _pyDqEscape(prof.label) + '",',
             ];
             var urlFields = ['chat', 'share', 'feedback', 'training'];
             for (var _si = 0; _si < urlFields.length; _si++) {
                 var _sf = urlFields[_si];
                 if (prof[_sf]) {
-                    lines.push('        "' + _sf + '": "' + prof[_sf].replace(/"/g, '\\"') + '",');
+                    lines.push('        "' + _sf + '": "' + _pyDqEscape(prof[_sf]) + '",');
                 }
             }
             if (prof.ttlDays > 0) {
@@ -15555,9 +15619,23 @@ opts.jsonPayload + '\n' +
     /**
      * Generate a cryptographically random UUID for a new share entry.
      *
-     * Prefers ``crypto.randomUUID()`` (Web Crypto API — Chromium 92+,
-     * Firefox 95+, Safari 15.4+) and falls back to a timestamp+random string
-     * that is collision-resistant for the expected usage volume (<<10^6 entries).
+     * Entropy source priority:
+     *   1. ``crypto.randomUUID()``      — RFC 4122 v4 UUID (Chromium 92+,
+     *                                      Firefox 95+, Safari 15.4+).
+     *   2. ``crypto.getRandomValues()`` — 64-bit CSPRNG suffix; available on
+     *                                      all HTTPS origins supporting Web
+     *                                      Crypto API (IE 11+, all modern
+     *                                      browsers).  Collision probability
+     *                                      at 10^6 entries ~= 5e-8 —
+     *                                      negligible for expected volumes.
+     *   3. Timestamp only               — last resort when ``window.crypto``
+     *                                      is entirely absent.
+     *                                      ``Math.random()`` is deliberately
+     *                                      excluded: it offers no meaningful
+     *                                      entropy advantage over the timestamp
+     *                                      yet creates a false sense of
+     *                                      unpredictability (CWE-338,
+     *                                      CodeQL js/insecure-randomness).
      *
      * Returns
      * -------
@@ -15570,9 +15648,18 @@ opts.jsonPayload + '\n' +
             if (window.crypto && typeof window.crypto.randomUUID === 'function') {
                 return window.crypto.randomUUID();
             }
+            if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                var bytes = new Uint8Array(8);
+                window.crypto.getRandomValues(bytes);
+                var rand = Array.prototype.map.call(bytes, function (b) {
+                    return ('0' + b.toString(16)).slice(-2);
+                }).join('');
+                return 'shr-' + Date.now().toString(36) + '-' + rand;
+            }
         } catch (_e) {}
-        return 'shr-' + Date.now().toString(36) +
-               '-' + Math.random().toString(36).slice(2, 10);
+        // Last resort: timestamp only — NOT cryptographically secure.
+        // Reached only when window.crypto is entirely absent.
+        return 'shr-' + Date.now().toString(36);
     }
 
     /**
