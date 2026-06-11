@@ -3,7 +3,7 @@
 <!--
 DOCUMENT METADATA
 ─────────────────
-Version  : 3.0.0
+Version  : 6.0.0
 Status   : Authoritative — all bugs from v2.0.0 corrected (see CHANGELOG at bottom)
 Audience : Newbies reading for the first time AND experienced developers debugging
 Sources  : Verified against official documentation at time of writing:
@@ -151,7 +151,8 @@ FIX
 SYMPTOM
 ───────
   The proxy starts. Requests reach HuggingFace. But the response is 404 or 503:
-    POST https://api-inference.huggingface.co/models/scikit-plots/gpt-oss-20b/v1/chat/completions
+    POST https://router.huggingface.co/v1/chat/completions
+      body: {"model": "scikit-plots/gpt-oss-20b", ...}
     → 404  or  {"error": "Model scikit-plots/gpt-oss-20b is currently loading"}
     → ... forever, never resolves
 
@@ -290,8 +291,8 @@ Subsequent requests in the same active session are much faster (seconds).
 │   ZeroGPU Space  │  │    scikit-plots/Qwen2.5-Coder-*    ✗        │
 │   (free shared   │  │                                              │
 │    GPU)          │  │  URL pattern:                                │
-└──────────────────┘  │  api-inference.huggingface.co/models/        │
-                      │    <model-id>/v1/chat/completions             │
+└──────────────────┘  │  router.huggingface.co/v1/chat/completions   │
+                      │    (model selected via request body)          │
                       └─────────────────────────────────────────────┘
 ```
 
@@ -301,7 +302,7 @@ Subsequent requests in the same active session are much faster (seconds).
 BROWSER SECURITY RULE — CORS (Cross-Origin Resource Sharing)
 ─────────────────────────────────────────────────────────────
 A page at https://scikit-plots.github.io (origin A) cannot directly POST to
-https://api-inference.huggingface.co (origin B), because HuggingFace does NOT
+https://router.huggingface.co (origin B), because HuggingFace does NOT
 return "Access-Control-Allow-Origin: *" for its inference API endpoints.
 The browser enforces this and blocks the request before it is sent.
 
@@ -351,7 +352,7 @@ What are you trying to do?
 ├─ My deployed HF Space is returning 404 / 503. Quickest fix?
 │   └─ PATH B (change one environment variable)
 │       • No code changes. No redeployment. Takes 2 minutes.
-│       • Switch DEFAULT_MODEL to "openai/gpt-oss-20b" (has Inference Provider).
+│       • Switch DEFAULT_MODEL to "Qwen/Qwen2.5-Coder-32B-Instruct" (has Inference Provider).
 │       • Requires a valid HF_TOKEN already set in the Space.
 │
 ├─ I want to serve scikit-plots/* model weights specifically, free, in the cloud.
@@ -577,11 +578,12 @@ python -m http.server 8080 --directory _build/html
 
 **Why this works:** The current proxy builds its upstream URL as:
 ```
-https://api-inference.huggingface.co/models/{model}/v1/chat/completions
+https://router.huggingface.co/v1/chat/completions
 ```
-When `model = "scikit-plots/gpt-oss-20b"`, this URL fails because that mirror repo has
-no Inference Provider. When you change `DEFAULT_MODEL` to `"openai/gpt-oss-20b"`, the URL
-resolves to the original repo which DOES have a registered provider.
+with the model selected via the `"model"` field in the request body.
+When `model = "scikit-plots/gpt-oss-20b"`, HuggingFace returns 404/503 because that mirror repo has
+no Inference Provider. When you change `DEFAULT_MODEL` to `"Qwen/Qwen2.5-Coder-32B-Instruct"`, the
+request resolves to the original repo which DOES have a registered provider.
 
 ### Step 1 — Go to the Space Settings
 
@@ -597,7 +599,7 @@ https://huggingface.co/spaces/scikit-plots/ai
 ```
 Secret 1:
   Name:  DEFAULT_MODEL
-  Value: openai/gpt-oss-20b
+  Value: Qwen/Qwen2.5-Coder-32B-Instruct
 
 Secret 2 (if not already set):
   Name:  HF_TOKEN
@@ -612,8 +614,8 @@ Click "Save" after each secret. The Space restarts automatically (~30 seconds).
 
 | Use this model ID | Instead of |
 |---|---|
-| `openai/gpt-oss-20b` | `scikit-plots/gpt-oss-20b` |
 | `Qwen/Qwen2.5-Coder-32B-Instruct` | `scikit-plots/Qwen2.5-Coder-32B-Instruct` |
+| `Qwen/Qwen2.5-72B-Instruct` | `scikit-plots/gpt-oss-20b` |
 
 ### Step 3 — Verify the Fix
 
@@ -625,7 +627,7 @@ curl https://scikit-plots-ai.hf.space/health
 # Test a real completion (use the original model ID).
 curl https://scikit-plots-ai.hf.space/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model": "openai/gpt-oss-20b", "messages": [{"role": "user", "content": "hi"}]}'
+  -d '{"model": "Qwen/Qwen2.5-Coder-32B-Instruct", "messages": [{"role": "user", "content": "hi"}]}'
 ```
 
 ---
@@ -1143,7 +1145,7 @@ Reference: https://developers.cloudflare.com/workers/platform/limits/
 ✓ Cloudflare account (free):  https://dash.cloudflare.com/sign-up
 ✓ Node.js ≥ 18:               https://nodejs.org/
 ✓ HF_TOKEN with "Inference" read permission
-✓ A model with an Inference Provider (openai/gpt-oss-20b, not scikit-plots/...)
+✓ A model with an Inference Provider (Qwen/Qwen2.5-Coder-32B-Instruct, not scikit-plots/...)
 ```
 
 ### Step 1 — Install Wrangler CLI
@@ -1225,7 +1227,7 @@ If `wrangler.toml` is missing or empty, `wrangler deploy` will fail.
  *   • 10ms CPU time per request (network I/O wait does NOT count toward CPU time)
  *   • 30-second wall-clock limit per request (adequate for most completions)
  * Only works with models that have a registered Inference Provider.
- * Use openai/gpt-oss-20b, NOT scikit-plots/gpt-oss-20b.
+ * Use Qwen/Qwen2.5-Coder-32B-Instruct, NOT scikit-plots/Qwen2.5-Coder-32B-Instruct.
  *
  * SETUP
  * ─────
@@ -1282,8 +1284,8 @@ export default {
 
     // Extract the model ID from the request body.
     // Fall back to a model that has a confirmed Inference Provider.
-    // IMPORTANT: use original repo IDs (openai/..., Qwen/...), NOT mirrors (scikit-plots/...).
-    let model = "openai/gpt-oss-20b";
+    // IMPORTANT: use original repo IDs (Qwen/...), NOT mirrors (scikit-plots/...).
+    let model = "Qwen/Qwen2.5-Coder-32B-Instruct";
     try {
       const parsed = JSON.parse(body);
       if (parsed.model && typeof parsed.model === "string" && parsed.model.trim()) {
@@ -1294,10 +1296,8 @@ export default {
     }
 
     // ── Build Upstream URL ────────────────────────────────────────────────────
-    // HuggingFace Serverless Inference API endpoint pattern.
-    // Only resolves for models WITH a registered Inference Provider.
-    const hfUrl =
-      `https://api-inference.huggingface.co/models/${model}/v1/chat/completions`;
+    // router.huggingface.co uses a flat endpoint; model is selected via request body.
+    const hfUrl = "https://router.huggingface.co/v1/chat/completions";
 
     // ── Forward to HuggingFace ────────────────────────────────────────────────
     // env.HF_TOKEN is a Worker secret — encrypted, never visible in browser or source.
@@ -1375,7 +1375,7 @@ Note the deployed URL — you need it for `conf.py`.
 
 **When to use:** You want to develop locally without Docker Desktop.
 Runs alongside `python -m http.server`. Requires `HF_TOKEN` and a model
-with an Inference Provider (use `openai/gpt-oss-20b`, not `scikit-plots/...`).
+with an Inference Provider (use `Qwen/Qwen2.5-Coder-32B-Instruct`, not `scikit-plots/...`).
 
 **Limitation:** This proxy is single-threaded. One slow HF response (30–90 seconds
 for a large model) blocks all concurrent requests. Do not open multiple browser
@@ -1424,7 +1424,7 @@ pip install httpx
 #
 # IMPORTANT CONSTRAINTS
 # ─────────────────────
-# • Use model IDs with Inference Providers: openai/gpt-oss-20b (not scikit-plots/...)
+# • Use model IDs with Inference Providers: Qwen/Qwen2.5-Coder-32B-Instruct (not scikit-plots/...)
 # • Single-threaded: one slow request (30–90 sec) blocks all other requests.
 # • Never run on a public network: no rate limiting, no authentication.
 # • HTTPS is not supported: HTTP only. For TLS, use the FastAPI proxy (app.py).
@@ -1445,14 +1445,14 @@ import httpx
 HF_TOKEN: str = os.environ.get("HF_TOKEN", "").strip()
 HF_BASE: str = os.environ.get(
     "HF_BASE",
-    "https://api-inference.huggingface.co/models",
+    "https://router.huggingface.co",
 ).rstrip("/")
 DEFAULT_MODEL: str = os.environ.get(
     "DEFAULT_MODEL",
-    "openai/gpt-oss-20b",   # original repo — has a confirmed Inference Provider
+    "Qwen/Qwen2.5-Coder-32B-Instruct",   # original repo — has a confirmed Inference Provider
 )
 PORT: int = int(os.environ.get("DEV_PROXY_PORT", "8787"))
-TIMEOUT: int = int(os.environ.get("PROXY_TIMEOUT", "120"))
+TIMEOUT: int = int(os.environ.get("PROXY_TIMEOUT", "600"))
 
 # Fail fast at startup — better to crash with a clear message than to fail silently
 # on the first request.
@@ -1512,7 +1512,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         except (json.JSONDecodeError, ValueError, AttributeError):
             pass  # malformed body — use default model
 
-        url: str = f"{HF_BASE}/{model}/v1/chat/completions"
+        # router.huggingface.co uses a flat endpoint; the model is selected via the
+        # request body (the "model" field), not the URL path.
+        url: str = f"{HF_BASE}/v1/chat/completions"
 
         print(f"[dev_proxy] → POST {url}", flush=True)
 
@@ -1592,10 +1594,10 @@ python dev_proxy.py
 Expected output:
 ```
 [dev_proxy] Listening on http://localhost:8787
-[dev_proxy] Forwarding to: https://api-inference.huggingface.co/models/<model>/v1/chat/completions
-[dev_proxy] Default model: openai/gpt-oss-20b
+[dev_proxy] Forwarding to: https://router.huggingface.co/v1/chat/completions  (model via request body)
+[dev_proxy] Default model: scikit-plots/Qwen2.5-Coder-32B-Instruct
 [dev_proxy] HF_TOKEN:      hf_xxxxxx...xxxx  (truncated for safety)
-[dev_proxy] Timeout:       120s
+[dev_proxy] Timeout:       600s
 [dev_proxy] Press Ctrl+C to stop.
 ```
 
@@ -1733,7 +1735,7 @@ httpx~=0.27.0
 #                    Path A (local DMR): http://localhost:12434/engines/llama.cpp/v1/chat/completions
 #                    Path C (ZeroGPU):   https://scikit-plots-ai-model.hf.space/v1/chat/completions
 #
-#   HF_BASE        Optional. Default: https://api-inference.huggingface.co/models
+#   HF_BASE        Optional. Default: https://api-inference.huggingface.co/models  # legacy v3.0.0 — v6+ uses router.huggingface.co
 #                  Only used when BACKEND_URL is empty.
 #
 #   DEFAULT_MODEL  Optional. Default: openai/gpt-oss-20b
@@ -1824,6 +1826,11 @@ BACKEND_URL: str = os.environ.get("BACKEND_URL", "").strip()
 #: Optional when BACKEND_URL is set (DMR and public ZeroGPU Spaces do not need it).
 HF_TOKEN: str = os.environ.get("HF_TOKEN", "").strip()
 
+#: Proxy version string — single source of truth for /health and root() responses.
+#: Update this constant on every deployment; never scatter version literals.
+#: v6+: import from _shared_logic.PROXY_VERSION when migrating to the split layout.
+PROXY_VERSION: str = "6.0.0"
+
 # Startup validation — fail fast with a clear error message.
 # A misconfigured Space logs this error immediately on start, not silently on first request.
 if not BACKEND_URL and not HF_TOKEN:
@@ -1842,7 +1849,7 @@ if not BACKEND_URL and not HF_TOKEN:
 #: Only used when BACKEND_URL is empty (Path B).
 HF_BASE: str = os.environ.get(
     "HF_BASE",
-    "https://api-inference.huggingface.co/models",
+    "https://api-inference.huggingface.co/models",  # legacy v3.0.0 — v6+ uses router.huggingface.co
 ).rstrip("/")
 
 #: Fallback model ID when the request body omits the ``model`` field.
@@ -2095,7 +2102,7 @@ async def health() -> JSONResponse:
         It does NOT mean the upstream model backend is reachable or responsive.
         To verify the upstream, test POST /v1/chat/completions with a real request.
     """
-    return JSONResponse({"status": "ok", "version": "3.0.0"})
+    return JSONResponse({"status": "ok", "version": PROXY_VERSION})
 
 
 @app.post("/v1/chat/completions")
@@ -2294,7 +2301,7 @@ Set them in **Space → Settings → Repository secrets**.
 | `HF_TOKEN` | Yes (unless `BACKEND_URL` set) | — | HuggingFace API token. Get from https://huggingface.co/settings/tokens — requires "Make calls to the Inference API" permission. |
 | `BACKEND_URL` | No | `""` (empty) | Full URL of a custom model backend. Bypasses HF Serverless API entirely. Use for DMR (Path A) or ZeroGPU Space (Path C). |
 | `DEFAULT_MODEL` | No | `openai/gpt-oss-20b` | Fallback model ID when request body omits `model`. Must have Inference Provider if `BACKEND_URL` is not set. |
-| `HF_BASE` | No | `https://api-inference.huggingface.co/models` | HF API base URL. Only used when `BACKEND_URL` is empty. |
+| `HF_BASE` | No | `https://router.huggingface.co` | HF API base URL (v6.0.0+: flat router endpoint). Only used when `BACKEND_URL` is empty. |
 | `PROXY_TIMEOUT` | No | `120` | Upstream **read** timeout in seconds. Set to `600` for ZeroGPU Path C (cold start takes 2–10 min). |
 | `ALLOWED_ORIGINS` | No | `*` | Comma-separated CORS origins. For production, set to your docs domain: `https://scikit-plots.github.io` |
 | `MAX_BODY_BYTES` | No | `10485760` (10 MB) | Maximum accepted request body size. Prevents memory exhaustion. |

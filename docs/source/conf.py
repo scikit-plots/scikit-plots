@@ -2285,6 +2285,23 @@ ai_assistant_panel_api_models = [
     },
 ]
 
+_PROXY_BASE: str = os.environ.get("PROXY_BASE_URL", "https://scikit-plots-ai.hf.space")
+
+ai_assistant_endpoint_profiles = {
+    "default": {
+        "label":        "Default Proxy",
+        "chat":         _PROXY_BASE,
+        "share":        _PROXY_BASE,
+        "feedback":     _PROXY_BASE,
+        "training":     _PROXY_BASE,
+        "shareToken":   os.environ.get("SHARE_WRITE_TOKEN", ""),
+        "feedbackToken": os.environ.get("FEEDBACK_WRITE_TOKEN", ""),
+        "ttlDays":      30,
+    },
+}
+# ai_assistant_endpoint_default_profile = "default"
+
+
 ai_assistant_mcp_tools = {
     "vscode": {
         # Enable once your MCP server is deployed at a stable HTTPS URL.

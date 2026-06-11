@@ -1,0 +1,193 @@
+<style>
+.demo-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 0 1rem;min-height:580px}
+.demo-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);display:flex;flex-direction:column;overflow:visible}
+.panel-head{padding:9px 13px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:7px;border-radius:var(--border-radius-lg) var(--border-radius-lg) 0 0;background:var(--color-background-secondary)}
+.panel-hint{font-size:10px;color:var(--color-text-secondary);padding:5px 12px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:5px}
+.nbadge{font-size:9px;font-weight:500;background:rgba(22,163,74,.12);color:#15803d;padding:1px 5px;border-radius:4px;vertical-align:middle;margin-left:4px}
+.chat-body{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1;border-radius:0 0 var(--border-radius-lg) var(--border-radius-lg);background:var(--color-background-primary)}
+.bubble{max-width:88%;padding:9px 11px;font-size:12px;line-height:1.5}
+.bubble-u{background:var(--color-background-secondary);color:var(--color-text-primary);align-self:flex-end;border-radius:10px 10px 3px 10px}
+.bubble-a{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);align-self:flex-start;border-radius:3px 10px 10px 10px}
+.acts{display:flex;align-items:center;gap:2px;padding:2px 0 3px;max-width:88%;position:relative}
+.act{display:flex;align-items:center;gap:3px;padding:3px 6px;border-radius:5px;border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--color-text-secondary);transition:background .12s}
+.act:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.act i{font-size:12px}
+.tlbl{font-size:10px;color:var(--color-text-secondary);margin-right:auto;padding:3px 2px}
+.ffwrap{position:relative;display:flex;align-items:center}
+.fq{display:flex;align-items:center;gap:2px;overflow:hidden;max-width:0;opacity:0;transition:max-width .18s ease-out,opacity .14s ease-out}
+.acts:hover .fq,.ffwrap.active .fq{max-width:110px;opacity:1}
+.fqb{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:5px;cursor:pointer;font-size:13px;transition:background .12s,transform .1s}
+.fqb:hover{background:var(--color-background-secondary);transform:scale(1.15)}
+.fqb.pos{background:rgba(22,163,74,.12)}
+.fqb.neg{background:rgba(220,38,38,.1)}
+.fsep{width:1px;height:13px;background:var(--color-border-tertiary);margin:0 2px}
+.fexpwrap{overflow:hidden;width:0;display:flex;align-items:center;transition:width .15s ease-out}
+.acts:hover .fexpwrap,.ffwrap.active .fexpwrap{width:24px}
+.fexpbtn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:5px;cursor:pointer;color:var(--color-text-secondary);opacity:0;transition:opacity .15s,background .12s}
+.acts:hover .fexpbtn,.ffwrap.active .fexpbtn{opacity:1}
+.fexpbtn:hover{background:var(--color-background-secondary)}
+.fexpbtn i{font-size:11px;transition:transform .15s}
+.fexpbtn.open i{transform:rotate(180deg)}
+.fpop{position:absolute;top:calc(100% + 5px);right:0;z-index:200;min-width:218px;padding:3px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:9px;box-shadow:0 4px 16px rgba(0,0,0,.11),0 1px 4px rgba(0,0,0,.06);opacity:0;pointer-events:none;transform:translateX(4px) translateY(-3px);transition:opacity .14s,transform .14s}
+.fpop.pinned{opacity:1;pointer-events:auto;transform:translateX(0) translateY(0)}
+.fpr{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;font-size:11px;color:var(--color-text-primary);cursor:pointer}
+.fpr:hover{background:var(--color-background-secondary)}
+.fpi{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.fpl{flex:1;font-size:11px}
+.fpsp{height:0.5px;background:var(--color-border-tertiary);margin:2px 0}
+.fpfut{padding:4px 7px;font-size:10px;color:var(--color-text-secondary);opacity:.6}
+.mpill{position:relative;width:26px;height:14px;border-radius:7px;border:none;cursor:pointer;background:var(--color-border-secondary);transition:background .18s;padding:0;flex-shrink:0}
+.mpill.on{background:#2980b9}
+.mpthumb{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s;pointer-events:none}
+.mpill.on .mpthumb{transform:translateX(12px)}
+.fbblk{max-width:88%;margin-top:2px;padding:8px 11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:7px;font-size:11px;display:none}
+.fbblk.shown{display:block}
+.fbq{font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px}
+.fbopts{display:flex;gap:5px;margin-bottom:6px}
+.fbob{padding:3px 9px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:transparent;font-size:12px;cursor:pointer;transition:background .1s}
+.fbob:hover{background:var(--color-background-primary)}
+.fbta{width:100%;height:40px;padding:5px 7px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:var(--color-background-primary);font-size:10px;resize:none;color:var(--color-text-primary);box-sizing:border-box}
+.fbsub{margin-top:5px;padding:3px 10px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:transparent;font-size:10px;cursor:pointer;color:var(--color-text-primary)}
+.exts{padding:0 13px 13px;overflow-y:auto;max-height:520px;flex:1}
+.esub{margin-bottom:18px}
+.eshead{font-size:9.5px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--color-text-secondary);margin:12px 0 7px;padding-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.etrow{display:flex;align-items:flex-start;gap:9px;padding:5px 0}
+.etlbl{flex:1}
+.ettitle{display:block;font-size:11.5px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.etdesc{display:block;font-size:10px;line-height:1.4;color:var(--color-text-secondary)}
+.epill{position:relative;width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;background:var(--color-border-secondary);transition:background .18s;padding:0;flex-shrink:0;margin-top:2px}
+.epill.on{background:#2980b9}
+.epthumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .18s;pointer-events:none}
+.epill.on .epthumb{transform:translateX(16px)}
+.eirow{display:flex;align-items:baseline;gap:6px;padding:3px 0;font-size:10.5px}
+.eilbl{min-width:82px;flex-shrink:0;font-size:10px;color:var(--color-text-secondary)}
+.eival{flex:1;font-family:monospace;font-size:9.5px;word-break:break-all;color:var(--color-text-primary)}
+.eibadge{font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;white-space:nowrap}
+.ok{background:rgba(22,163,74,.1);color:#15803d}
+.off{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.efrow{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:10px;color:var(--color-text-secondary);opacity:.6}
+.efrow i{font-size:11px}
+.eintro{font-size:10px;line-height:1.45;color:var(--color-text-secondary);margin-bottom:7px;padding:5px 8px;background:var(--color-background-secondary);border-radius:5px;border-left:2px solid var(--color-border-secondary)}
+</style>
+<h2 class="sr-only">Demo: floating quick-rate button and §6 extended settings panel</h2>
+<div class="demo-wrap">
+<div class="demo-panel">
+<div class="panel-head"><i class="ti ti-message-circle" aria-hidden="true" style="font-size:13px"></i>Chat panel<span class="nbadge">hover answers</span></div>
+<div class="panel-hint"><i class="ti ti-hand-finger" aria-hidden="true"></i>Hover an answer → 👍 👎 and ⌃ appear on the right</div>
+<div class="chat-body">
+<div class="bubble bubble-u">What is a transformer model?</div>
+<div style="display:flex;flex-direction:column;gap:0">
+<div class="bubble bubble-a">A transformer is a neural network that uses self-attention to process sequences in parallel — rather than step-by-step. It powers GPT, Claude, Gemini, and most modern LLMs.</div>
+<div class="acts" id="a0">
+<span class="tlbl">2:14 PM</span>
+<button class="act"><i class="ti ti-copy" aria-hidden="true"></i>Copy</button>
+<button class="act"><i class="ti ti-share" aria-hidden="true"></i>Share</button>
+<button class="act"><i class="ti ti-refresh" aria-hidden="true"></i>Retry</button>
+<div class="ffwrap" id="fw0">
+<div class="fq">
+<button class="fqb" id="up0" title="Helpful" onclick="qr(0,'up')">👍</button>
+<button class="fqb" id="dn0" title="Not helpful" onclick="qr(0,'dn')">👎</button>
+<span class="fsep"></span>
+<div class="fexpwrap"><button class="fexpbtn" id="eb0" title="Feedback options" onclick="tpop(0)"><i class="ti ti-chevron-up" aria-hidden="true"></i></button></div>
+</div>
+<div class="fpop" id="pp0">
+<div class="fpr" onclick="tper(0)"><span class="fpi">💾</span><span class="fpl">Save to dataset</span><button class="mpill on" id="mp0" onclick="event.stopPropagation();tper(0)"><span class="mpthumb"></span></button></div>
+<div class="fpsp"></div>
+<div class="fpr" onclick="tfb(0)"><span class="fpi">💬</span><span class="fpl" id="fl0">Detailed feedback ↓</span></div>
+<div class="fpsp"></div>
+<div class="fpfut"><i class="ti ti-sparkles" aria-hidden="true"></i> Flag · Correct · Bookmark — coming soon</div>
+</div></div></div>
+<div class="fbblk" id="fb0"><p class="fbq">Was this helpful?</p><div class="fbopts"><button class="fbob">😃</button><button class="fbob">😐</button><button class="fbob">😞</button></div><textarea class="fbta" placeholder="Tell us more (optional)…"></textarea><button class="fbsub">Send feedback</button></div>
+</div>
+<div class="bubble bubble-u">How does self-attention work?</div>
+<div style="display:flex;flex-direction:column;gap:0">
+<div class="bubble bubble-a">Each token computes query, key, and value vectors. Attention scores are dot-products of queries vs all keys, softmaxed to weights, then summed over values — letting every position attend to every other simultaneously.</div>
+<div class="acts" id="a1">
+<span class="tlbl">2:15 PM</span>
+<button class="act"><i class="ti ti-copy" aria-hidden="true"></i>Copy</button>
+<button class="act"><i class="ti ti-share" aria-hidden="true"></i>Share</button>
+<button class="act"><i class="ti ti-refresh" aria-hidden="true"></i>Retry</button>
+<div class="ffwrap" id="fw1">
+<div class="fq">
+<button class="fqb" id="up1" title="Helpful" onclick="qr(1,'up')">👍</button>
+<button class="fqb" id="dn1" title="Not helpful" onclick="qr(1,'dn')">👎</button>
+<span class="fsep"></span>
+<div class="fexpwrap"><button class="fexpbtn" id="eb1" title="Feedback options" onclick="tpop(1)"><i class="ti ti-chevron-up" aria-hidden="true"></i></button></div>
+</div>
+<div class="fpop" id="pp1">
+<div class="fpr" onclick="tper(1)"><span class="fpi">💾</span><span class="fpl">Save to dataset</span><button class="mpill on" id="mp1" onclick="event.stopPropagation();tper(1)"><span class="mpthumb"></span></button></div>
+<div class="fpsp"></div>
+<div class="fpr" onclick="tfb(1)"><span class="fpi">💬</span><span class="fpl" id="fl1">Detailed feedback ↓</span></div>
+<div class="fpsp"></div>
+<div class="fpfut"><i class="ti ti-sparkles" aria-hidden="true"></i> Flag · Correct · Bookmark — coming soon</div>
+</div></div></div>
+<div class="fbblk" id="fb1"><p class="fbq">Was this helpful?</p><div class="fbopts"><button class="fbob">😃</button><button class="fbob">😐</button><button class="fbob">😞</button></div><textarea class="fbta" placeholder="Tell us more (optional)…"></textarea><button class="fbsub">Send feedback</button></div>
+</div>
+</div>
+</div>
+<div class="demo-panel">
+<div class="panel-head"><i class="ti ti-settings-2" aria-hidden="true" style="font-size:13px"></i>Endpoint config — §6 extended settings<span class="nbadge">new</span></div>
+<div class="panel-hint"><i class="ti ti-info-circle" aria-hidden="true"></i>Appended after §5 Import/Export inside the existing sheet</div>
+<div class="exts">
+<div class="esub">
+<p class="eshead">Chat configuration</p>
+<div class="etrow">
+<div class="etlbl"><span class="ettitle">Streaming responses</span><span class="etdesc">Responses appear word-by-word as the model generates. Disable to wait for the full answer before displaying.</span></div>
+<button class="epill on" id="sp" onclick="tp('sp')"><span class="epthumb"></span></button>
+</div>
+<div class="efrow"><i class="ti ti-thermometer" aria-hidden="true"></i>Temperature — coming soon</div>
+<div class="efrow"><i class="ti ti-file-text" aria-hidden="true"></i>System prompt — coming soon</div>
+</div>
+<div class="esub">
+<p class="eshead">Share configuration</p>
+<div class="etrow">
+<div class="etlbl"><span class="ettitle">Share-link mode</span><span class="etdesc">When ON, export creates a shareable blob URL instead of downloading. Syncs with the export dropdown toggle.</span></div>
+<button class="epill" id="slp" onclick="tp('slp')"><span class="epthumb"></span></button>
+</div>
+<div class="efrow"><i class="ti ti-clock" aria-hidden="true"></i>Share TTL (days) — coming soon</div>
+<div class="efrow"><i class="ti ti-file-export" aria-hidden="true"></i>Default export format — coming soon</div>
+</div>
+<div class="esub">
+<p class="eshead">Feedback configuration</p>
+<p class="eintro">The 👍 / 👎 buttons on each answer collect ratings. When "Store ratings permanently" is ON and the server is configured, each rating writes a JSON record to the HuggingFace training dataset. When OFF, ratings stay in-memory only.</p>
+<div class="etrow">
+<div class="etlbl">
+<span class="ettitle">Store ratings permanently<span class="nbadge">builds the missing DOM element</span></span>
+<span class="etdesc">Writes 👍 / 👎 to HuggingFace dataset (durable, survives restarts). Requires TRAINING_DATASET_REPO + HF_DATASET_TOKEN. Server's FEEDBACK_PERSIST_ENABLED is the authoritative default; this lets you override per session.</span>
+</div>
+<button class="epill on" id="pp" role="switch" aria-checked="true" aria-label="Store ratings permanently" onclick="tper(-1)"><span class="epthumb"></span></button>
+</div>
+<div class="eirow"><span class="eilbl">HF dataset</span><span class="eival">scikit-plots/ai-feedback</span><span class="eibadge ok">Ready</span></div>
+<div class="eirow"><span class="eilbl">Server flag</span><span class="eival">FEEDBACK_PERSIST_ENABLED=true</span><span class="eibadge ok">On</span></div>
+<div class="efrow"><i class="ti ti-chart-bar" aria-hidden="true"></i>Rating scale selector — coming soon</div>
+<div class="efrow"><i class="ti ti-help-circle" aria-hidden="true"></i>Feedback question text — coming soon</div>
+</div>
+<div class="esub">
+<p class="eshead">Training configuration</p>
+<p class="eintro">Training data collected via POST /v1/contribute on export. Each record carries (question, answer, rating) tuples. The server deduplicates on conversationId so exporting twice is safe.</p>
+<div class="eirow"><span class="eilbl">Contribute URL</span><span class="eival">https://proxy.example.com</span><span class="eibadge ok">Configured</span></div>
+<div class="eirow"><span class="eilbl">Dataset repo</span><span class="eival">scikit-plots/ai-feedback</span><span class="eibadge ok">Ready</span></div>
+<div class="eirow"><span class="eilbl">Contribute ready</span><span class="eival">true</span><span class="eibadge ok">Yes</span></div>
+<div class="efrow"><i class="ti ti-robot" aria-hidden="true"></i>Auto-contribute on close — coming soon</div>
+<div class="efrow"><i class="ti ti-lock" aria-hidden="true"></i>GDPR consent gate — coming soon</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+var pon=true;
+function tp(id){var b=document.getElementById(id);b.classList.toggle('on')}
+function tpop(i){var p=document.getElementById('pp'+i),b=document.getElementById('eb'+i),w=document.getElementById('fw'+i);var o=p.classList.contains('pinned');ca();if(!o){p.classList.add('pinned');b.classList.add('open');w.classList.add('active')}}
+function ca(){for(var i=0;i<2;i++){var p=document.getElementById('pp'+i),b=document.getElementById('eb'+i),w=document.getElementById('fw'+i);if(p)p.classList.remove('pinned');if(b)b.classList.remove('open');if(w)w.classList.remove('active')}}
+function qr(i,d){var u=document.getElementById('up'+i),dn=document.getElementById('dn'+i);u.classList.remove('pos');dn.classList.remove('neg');if(d==='up')u.classList.add('pos');else dn.classList.add('neg');ca()}
+function tfb(i){var f=document.getElementById('fb'+i),l=document.getElementById('fl'+i);var v=f.classList.toggle('shown');l.textContent=v?'Detailed feedback ↑':'Detailed feedback ↓'}
+function tper(src){
+  pon=!pon;
+  var pp=document.getElementById('pp');
+  if(pp){pp.classList.toggle('on',pon);pp.setAttribute('aria-checked',pon?'true':'false')}
+  for(var i=0;i<2;i++){var m=document.getElementById('mp'+i);if(m)m.classList.toggle('on',pon)}
+}
+document.addEventListener('click',function(e){
+  for(var i=0;i<2;i++){var w=document.getElementById('fw'+i);if(w&&!w.contains(e.target)){var p=document.getElementById('pp'+i),b=document.getElementById('eb'+i);if(p)p.classList.remove('pinned');if(b)b.classList.remove('open');if(w)w.classList.remove('active')}}
+});
+</script>

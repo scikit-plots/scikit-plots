@@ -1,0 +1,170 @@
+
+<h2 class="sr-only">Model list redesign concept — search filter, two provider groups, size chips, parameter bars, interactive selection</h2>
+<style>
+.ml{padding:.75rem 0;max-width:680px}
+.ml-bar{display:flex;align-items:center;gap:8px;padding:7px 11px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);background:var(--color-background-secondary);margin-bottom:16px}
+.ml-bar input{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--color-text-primary);font-family:var(--font-sans)}
+.ml-bar input::placeholder{color:var(--color-text-tertiary)}
+.ml-sec{margin-bottom:1.1rem}
+.ml-shd{display:flex;align-items:center;gap:6px;padding-bottom:5px;margin-bottom:7px;border-bottom:.5px solid var(--color-border-tertiary)}
+.ml-sl{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.04em}
+.ml-sc{font-size:11px;padding:1px 7px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.ml-ss{font-size:11px;padding:1px 8px;border-radius:20px;background:var(--color-background-warning);color:var(--color-text-warning);display:flex;align-items:center;gap:3px}
+.mc{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);cursor:pointer;margin-bottom:5px;transition:border-color .12s}
+.mc:not(.mc-f):hover{border-color:var(--color-border-secondary)}
+.mc.mc-s{border:2px solid var(--color-border-info);background:var(--color-background-info)}
+.mc.mc-f{opacity:.55;cursor:not-allowed}
+.mc input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.hf{font-size:11px;font-weight:500;padding:2px 5px;border-radius:5px;background:var(--color-background-warning);color:var(--color-text-warning);flex-shrink:0;margin-top:1px;line-height:1.4}
+.mb{flex:1;min-width:0}
+.mr1{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px}
+.mn{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.sz{font-size:11px;font-weight:500;padding:1px 7px;border-radius:20px;line-height:1.5}
+.sz-s{background:var(--color-background-success);color:var(--color-text-success)}
+.sz-m{background:var(--color-background-warning);color:var(--color-text-warning)}
+.sz-l{background:var(--color-background-info);color:var(--color-text-info)}
+.cp{font-size:11px;padding:1px 6px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);line-height:1.5}
+.msb{font-size:11px;color:var(--color-text-secondary);font-family:var(--font-mono);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:6px}
+.pb{height:3px;border-radius:2px;background:var(--color-border-tertiary);overflow:hidden}
+.pf{height:100%;border-radius:2px;transition:width .4s ease}
+.pf-s{background:var(--color-text-success)}
+.pf-m{background:var(--color-text-warning)}
+.pf-l{background:var(--color-text-info)}
+.il{flex-shrink:0;color:var(--color-text-secondary);opacity:.35;border-radius:var(--border-radius-md);padding:2px;transition:opacity .15s;display:flex;align-items:center}
+.il:hover{opacity:1;color:var(--color-text-info)}
+.mc-f .il{pointer-events:all}
+.sn{font-size:11px;padding:1px 6px;border-radius:20px;background:var(--color-background-warning);color:var(--color-text-warning);line-height:1.5}
+.ml-emp{display:none;text-align:center;padding:1.5rem 0;font-size:13px;color:var(--color-text-tertiary)}
+</style>
+
+<div class="ml">
+
+<div class="ml-bar">
+  <i class="ti ti-search" style="font-size:14px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+  <input type="text" id="mlq" placeholder="Filter models…" aria-label="Filter models">
+</div>
+
+<div class="ml-sec" id="ms1">
+  <div class="ml-shd">
+    <span class="ml-sl">Official models</span>
+    <span class="ml-sc" id="mc1">3</span>
+  </div>
+
+  <label class="mc" data-s="gpt oss 20b openai streaming">
+    <input type="radio" name="mdl" value="gpt-oss-20b-hf">
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">GPT-OSS</span><span class="sz sz-m">20B</span><span class="cp">OSS</span></div>
+      <div class="msb">openai/gpt-oss-20b</div>
+      <div class="md">OpenAI open-source 20B via HuggingFace Inference API — OpenAI-compat /v1/chat/completions, SSE streaming enabled.</div>
+      <div class="pb"><div class="pf pf-m" style="width:63%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/openai/gpt-oss-20b" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+
+  <label class="mc mc-s" data-s="qwen2.5 coder 7b code instruct qwen">
+    <input type="radio" name="mdl" value="Qwen2.5-Coder-7B-Instruct-hf" checked>
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">Qwen2.5-Coder</span><span class="sz sz-s">7B</span><span class="cp">code</span></div>
+      <div class="msb">Qwen/Qwen2.5-Coder-7B-Instruct</div>
+      <div class="md">Latest code-specific Qwen LLM (formerly CodeQwen) — fast and efficient for code generation tasks.</div>
+      <div class="pb"><div class="pf pf-s" style="width:30%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+
+  <label class="mc" data-s="qwen2.5 coder 32b code instruct qwen">
+    <input type="radio" name="mdl" value="Qwen2.5-Coder-32B-Instruct-hf">
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">Qwen2.5-Coder</span><span class="sz sz-l">32B</span><span class="cp">code</span></div>
+      <div class="msb">Qwen/Qwen2.5-Coder-32B-Instruct</div>
+      <div class="md">Latest code-specific Qwen LLM (formerly CodeQwen) — highest parameter count for maximum accuracy.</div>
+      <div class="pb"><div class="pf pf-l" style="width:100%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+</div>
+
+<div class="ml-sec" id="ms2">
+  <div class="ml-shd">
+    <span class="ml-sl">scikit-plots fine-tunes</span>
+    <span class="ml-sc" id="mc2">3</span>
+    <span class="ml-ss"><i class="ti ti-clock" style="font-size:11px" aria-hidden="true"></i> coming soon</span>
+  </div>
+
+  <label class="mc mc-f" data-s="gpt oss 20b scikit-plots fine-tune">
+    <input type="radio" name="mdl" value="gpt-oss-20b-skplt" disabled>
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">GPT-OSS</span><span class="sz sz-m">20B</span><span class="cp">OSS</span><span class="cp">fine-tune</span><span class="sn">coming soon</span></div>
+      <div class="msb">scikit-plots/gpt-oss-20b</div>
+      <div class="md">Fine-tuned on the full scikit-plots documentation corpus for higher answer accuracy and domain specialisation.</div>
+      <div class="pb"><div class="pf pf-m" style="width:63%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/scikit-plots/gpt-oss-20b" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+
+  <label class="mc mc-f" data-s="qwen2.5 coder 7b scikit-plots fine-tune code">
+    <input type="radio" name="mdl" value="Qwen2.5-Coder-7B-Instruct-skplt" disabled>
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">Qwen2.5-Coder</span><span class="sz sz-s">7B</span><span class="cp">code</span><span class="cp">fine-tune</span><span class="sn">coming soon</span></div>
+      <div class="msb">scikit-plots/Qwen2.5-Coder-7B-Instruct</div>
+      <div class="md">Fine-tuned on the full scikit-plots documentation corpus for higher answer accuracy and domain specialisation.</div>
+      <div class="pb"><div class="pf pf-s" style="width:30%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/scikit-plots/Qwen2.5-Coder-7B-Instruct" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+
+  <label class="mc mc-f" data-s="qwen2.5 coder 32b scikit-plots fine-tune code">
+    <input type="radio" name="mdl" value="Qwen2.5-Coder-32B-Instruct-skplt" disabled>
+    <span class="hf">HF</span>
+    <div class="mb">
+      <div class="mr1"><span class="mn">Qwen2.5-Coder</span><span class="sz sz-l">32B</span><span class="cp">code</span><span class="cp">fine-tune</span><span class="sn">coming soon</span></div>
+      <div class="msb">scikit-plots/Qwen2.5-Coder-32B-Instruct</div>
+      <div class="md">Fine-tuned on the full scikit-plots documentation corpus for higher answer accuracy and domain specialisation.</div>
+      <div class="pb"><div class="pf pf-l" style="width:100%"></div></div>
+    </div>
+    <a class="il" href="https://huggingface.co/scikit-plots/Qwen2.5-Coder-32B-Instruct" target="_blank" rel="noopener noreferrer" aria-label="Open model page"><i class="ti ti-external-link" style="font-size:15px" aria-hidden="true"></i></a>
+  </label>
+</div>
+
+<p class="ml-emp" id="mlemp">No models match — <button type="button" onclick="var i=document.getElementById('mlq');i.value='';i.dispatchEvent(new Event('input'))">clear filter</button></p>
+
+</div>
+<script>
+(function(){
+  document.querySelectorAll('.il').forEach(function(a){
+    a.addEventListener('click',function(e){e.stopPropagation();});
+  });
+  document.querySelectorAll('.mc:not(.mc-f)').forEach(function(c){
+    c.addEventListener('click',function(){
+      document.querySelectorAll('.mc').forEach(function(x){x.classList.remove('mc-s');});
+      c.classList.add('mc-s');
+      var r=c.querySelector('input');
+      if(r)r.checked=true;
+    });
+  });
+  var qi=document.getElementById('mlq');
+  var s1=document.getElementById('ms1'),s2=document.getElementById('ms2');
+  var c1=document.getElementById('mc1'),c2=document.getElementById('mc2');
+  var emp=document.getElementById('mlemp');
+  qi.addEventListener('input',function(){
+    var q=this.value.toLowerCase();
+    var n1=0,n2=0;
+    document.querySelectorAll('.mc').forEach(function(c){
+      var t=(c.getAttribute('data-s')||'')+' '+c.textContent;
+      var v=!q||t.toLowerCase().includes(q);
+      c.style.display=v?'flex':'none';
+      if(v){if(s1.contains(c))n1++;if(s2.contains(c))n2++;}
+    });
+    s1.style.display=n1?'':'none';
+    s2.style.display=n2?'':'none';
+    c1.textContent=n1;c2.textContent=n2;
+    emp.style.display=(n1+n2===0)?'block':'none';
+  });
+}());
+</script>

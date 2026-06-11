@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo — Button Order v2: time | copy | 👍👎⌃ | retry | more</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<style>
+/* ── System tokens (light) ─────────────────────────────── */
+:root{
+  --color-background-primary:#fff;
+  --color-background-secondary:#f5f6f7;
+  --color-text-primary:#1a1a1a;
+  --color-text-secondary:#6a737d;
+  --color-border-primary:#e1e4e5;
+  --color-border-secondary:#d0d5dd;
+  --color-border-tertiary:#eaecef;
+  --color-brand:#2980b9;
+  --color-green:#16a34a;
+  --color-red:#dc2626;
+  --border-radius-lg:10px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 14px rgba(0,0,0,.11),0 2px 5px rgba(0,0,0,.07);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --color-background-primary:#1b1e21;
+    --color-background-secondary:#252931;
+    --color-text-primary:#e4e6ea;
+    --color-text-secondary:#9ca3af;
+    --color-border-primary:#374151;
+    --color-border-secondary:#4b5563;
+    --color-border-tertiary:#2d3748;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--color-background-secondary);color:var(--color-text-primary);padding:20px;min-height:100vh}
+
+/* ── Layout ────────────────────────────────────────────── */
+.page-title{font-size:13px;font-weight:600;color:var(--color-text-secondary);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.page-title .tag{font-size:10px;font-weight:500;background:rgba(41,128,185,.12);color:#2980b9;padding:2px 7px;border-radius:5px;letter-spacing:.02em;text-transform:none}
+.order-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-secondary);background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:7px;padding:7px 12px;margin-bottom:16px;flex-wrap:wrap}
+.order-bar .seg{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;border:0.5px solid var(--color-border-secondary);font-size:11px;color:var(--color-text-primary);background:var(--color-background-secondary)}
+.order-bar .seg.moved{background:rgba(41,128,185,.08);border-color:rgba(41,128,185,.3);color:#2980b9}
+.order-bar .sep{color:var(--color-border-secondary);font-size:14px}
+.order-bar .note{margin-left:6px;font-size:10px;color:var(--color-text-secondary);font-style:italic}
+
+.demo-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:560px}
+@media(max-width:640px){.demo-wrap{grid-template-columns:1fr}}
+.demo-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);display:flex;flex-direction:column;overflow:visible;box-shadow:var(--shadow-sm)}
+.panel-head{padding:9px 13px;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:7px;border-radius:var(--border-radius-lg) var(--border-radius-lg) 0 0;background:var(--color-background-secondary)}
+.panel-hint{font-size:10px;color:var(--color-text-secondary);padding:5px 12px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:5px}
+.nbadge{font-size:9px;font-weight:500;background:rgba(22,163,74,.12);color:#15803d;padding:1px 5px;border-radius:4px;vertical-align:middle;margin-left:4px}
+.bbadge{font-size:9px;font-weight:500;background:rgba(41,128,185,.12);color:#2980b9;padding:1px 5px;border-radius:4px;vertical-align:middle;margin-left:4px}
+
+/* ── Chat panel ─────────────────────────────────────────── */
+.chat-body{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1;border-radius:0 0 var(--border-radius-lg) var(--border-radius-lg)}
+.bubble{max-width:88%;padding:9px 11px;font-size:12px;line-height:1.55;border-radius:10px}
+.bubble-u{background:var(--color-background-secondary);color:var(--color-text-primary);align-self:flex-end;border-radius:10px 10px 3px 10px}
+.bubble-a{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);align-self:flex-start;border-radius:3px 10px 10px 10px}
+
+/* ── Action row — NEW ORDER ─────────────────────────────── */
+/* time | copy | [👍👎⌃ slide-in] | retry | more */
+.acts{display:flex;align-items:center;gap:3px;padding:2px 0 3px;max-width:88%;position:relative}
+.act{display:inline-flex;align-items:center;gap:3px;padding:3px 6px;border-radius:5px;border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--color-text-secondary);font-family:inherit;transition:background .12s,color .12s}
+.act:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.act i{font-size:12px}
+.tlbl{font-size:10px;color:var(--color-text-secondary);margin-right:auto;padding:3px 2px;user-select:none}
+
+/* Float wrapper */
+.ffwrap{position:relative;display:flex;align-items:center}
+
+/* Quick-rate pill — slides in on row hover */
+.fq{display:flex;align-items:center;gap:2px;overflow:hidden;max-width:0;opacity:0;transition:max-width .18s ease-out,opacity .14s ease-out}
+.acts:hover .fq,.ffwrap.active .fq{max-width:120px;opacity:1}
+
+/* 👍 / 👎 buttons */
+.fqb{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:5px;cursor:pointer;font-size:14px;transition:background .12s,transform .1s;flex-shrink:0;padding:0}
+.fqb:hover{background:var(--color-background-secondary);transform:scale(1.14)}
+.fqb.pos{background:rgba(22,163,74,.12);color:var(--color-green)}
+.fqb.neg{background:rgba(220,38,38,.10);color:var(--color-red)}
+
+/* Vertical separator */
+.fsep{width:1px;height:13px;background:var(--color-border-primary);margin:0 2px;flex-shrink:0}
+
+/* Expand chevron wrapper */
+.fexpwrap{overflow:hidden;width:0;display:flex;align-items:center;transition:width .15s ease-out;flex-shrink:0}
+.acts:hover .fexpwrap,.ffwrap.active .fexpwrap{width:26px}
+
+/* Expand chevron button */
+.fexpbtn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-radius:5px;cursor:pointer;color:var(--color-text-secondary);opacity:0;transition:opacity .15s,background .12s;padding:0;font-family:inherit}
+.acts:hover .fexpbtn,.ffwrap.active .fexpbtn{opacity:1}
+.fexpbtn:hover{background:var(--color-background-secondary)}
+.fexpbtn i{font-size:11px;transition:transform .15s;display:block}
+.fexpbtn.open i{transform:rotate(180deg)}
+
+/* ── Feedback popup ─────────────────────────────────────── */
+/* Floats BELOW (top: 100%+gap) so it doesn't clip above the panel edge in demo */
+.fpop{position:absolute;top:calc(100% + 5px);right:0;z-index:200;min-width:220px;padding:3px;
+  background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);
+  border-radius:9px;box-shadow:var(--shadow-md);
+  opacity:0;pointer-events:none;transform:translateX(4px) translateY(-3px);transition:opacity .14s,transform .14s}
+.fpop.pinned{opacity:1;pointer-events:auto;transform:translateX(0) translateY(0)}
+.fpr{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;font-size:11px;color:var(--color-text-primary);cursor:pointer;user-select:none}
+.fpr:hover{background:var(--color-background-secondary)}
+.fpi{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.fpl{flex:1;font-size:11px;color:var(--color-text-primary)}
+.fpsp{height:0.5px;background:var(--color-border-tertiary);margin:2px 0}
+.fpfut{padding:4px 7px;font-size:10px;color:var(--color-text-secondary);opacity:.55;display:flex;align-items:center;gap:5px}
+
+/* Mini persist pill inside popup */
+.mpill{position:relative;width:26px;height:14px;border-radius:7px;border:none;cursor:pointer;background:var(--color-border-secondary);transition:background .18s;padding:0;flex-shrink:0}
+.mpill.on{background:var(--color-brand)}
+.mpthumb{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s;pointer-events:none}
+.mpill.on .mpthumb{transform:translateX(12px)}
+
+/* ── More ▾ menu (Share moved here) ─────────────────────── */
+.more-wrap{position:relative;display:inline-flex;align-items:center}
+.more-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:199;
+  flex-direction:column;gap:2px;padding:3px;min-width:130px;
+  background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);
+  border-radius:8px;box-shadow:var(--shadow-md)}
+.more-menu.open{display:flex}
+.more-item{display:flex;align-items:center;gap:5px;width:100%;padding:4px 8px;border-radius:5px;
+  border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--color-text-secondary);
+  font-family:inherit;text-align:left;transition:background .12s,color .12s}
+.more-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.more-item i{font-size:12px}
+
+/* ── Inline feedback block ──────────────────────────────── */
+.fbblk{max-width:88%;margin-top:2px;padding:8px 11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:7px;font-size:11px;display:none}
+.fbblk.shown{display:block}
+.fbq{font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px}
+.fbopts{display:flex;gap:5px;margin-bottom:6px}
+.fbob{padding:3px 9px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:transparent;font-size:12px;cursor:pointer}
+.fbob:hover{background:var(--color-background-primary)}
+.fbta{width:100%;height:38px;padding:5px 7px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:var(--color-background-primary);font-size:10px;resize:none;color:var(--color-text-primary)}
+.fbsub{margin-top:5px;padding:3px 10px;border:0.5px solid var(--color-border-secondary);border-radius:5px;background:transparent;font-size:10px;cursor:pointer;color:var(--color-text-primary);font-family:inherit}
+
+/* ── §6 Extended Settings panel ─────────────────────────── */
+.exts{padding:0 13px 13px;overflow-y:auto;max-height:520px;flex:1}
+.esub{margin-bottom:18px}
+.eshead{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--color-text-secondary);margin:12px 0 7px;padding-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.etrow{display:flex;align-items:flex-start;gap:9px;padding:5px 0}
+.etlbl{flex:1}
+.ettitle{display:block;font-size:11.5px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px}
+.etdesc{display:block;font-size:10px;line-height:1.4;color:var(--color-text-secondary)}
+/* Pill */
+.epill{position:relative;width:34px;height:18px;border-radius:9px;border:none;cursor:pointer;background:var(--color-border-secondary);transition:background .18s;padding:0;flex-shrink:0;margin-top:2px}
+.epill.on{background:var(--color-brand)}
+.epthumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .18s;pointer-events:none}
+.epill.on .epthumb{transform:translateX(16px)}
+/* Info rows */
+.eirow{display:flex;align-items:baseline;gap:6px;padding:3px 0;font-size:10.5px}
+.eilbl{min-width:82px;flex-shrink:0;font-size:10px;color:var(--color-text-secondary)}
+.eival{flex:1;font-family:monospace;font-size:9.5px;word-break:break-all;color:var(--color-text-primary)}
+.eibadge{font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;white-space:nowrap}
+.ok{background:rgba(22,163,74,.1);color:#15803d}
+.off{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+/* Future rows */
+.efrow{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:10px;color:var(--color-text-secondary);opacity:.6}
+.efrow i{font-size:11px}
+/* Newbie intro */
+.eintro{font-size:10px;line-height:1.45;color:var(--color-text-secondary);margin-bottom:7px;padding:5px 8px;background:var(--color-background-secondary);border-radius:5px;border-left:2px solid var(--color-border-secondary)}
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <i class="ti ti-layout-list"></i>
+  Button order — v2
+  <span class="tag">ai-assistant.js + ai-assistant.css</span>
+</div>
+
+<!-- New order diagram -->
+<div class="order-bar">
+  <span class="seg"><i class="ti ti-clock" style="font-size:11px"></i> time</span>
+  <span class="sep">|</span>
+  <span class="seg"><i class="ti ti-copy" style="font-size:11px"></i> copy</span>
+  <span class="sep">|</span>
+  <span class="seg moved">👍 👎 ⌃ &nbsp;<small>hideable quick-rate</small></span>
+  <span class="sep">|</span>
+  <span class="seg"><i class="ti ti-refresh" style="font-size:11px"></i> retry</span>
+  <span class="sep">|</span>
+  <span class="seg moved"><i class="ti ti-dots" style="font-size:11px"></i> more &nbsp;<small>listen + <strong>share ←moved</strong></small></span>
+  <span class="note">Share transported from flat row → More submenu</span>
+</div>
+
+<div class="demo-wrap">
+
+<!-- ── LEFT: Chat panel ───────────────────────────────────────── -->
+<div class="demo-panel">
+  <div class="panel-head">
+    <i class="ti ti-message-circle" style="font-size:13px" aria-hidden="true"></i>
+    Chat panel
+    <span class="nbadge">hover an answer row</span>
+  </div>
+  <div class="panel-hint">
+    <i class="ti ti-hand-finger" aria-hidden="true"></i>
+    Hover → 👍 👎 ⌃ slide in between Copy and Retry. Share is inside More ▾.
+  </div>
+  <div class="chat-body">
+
+    <!-- Answer 0 -->
+    <div class="bubble bubble-u">What is a transformer model?</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div class="bubble bubble-a">
+        A transformer is a neural network that uses self-attention to process
+        sequences in parallel — rather than step-by-step. It powers GPT, Claude,
+        Gemini, and most modern LLMs.
+      </div>
+      <!-- Action row: time | copy | [👍👎⌃] | retry | more -->
+      <div class="acts" id="a0">
+        <span class="tlbl">14:14</span>
+        <button class="act" title="Copy this answer" onclick="copyAns(0)">
+          <i class="ti ti-copy" aria-hidden="true"></i>Copy
+        </button>
+        <!-- Quick-rate (between copy and retry) -->
+        <div class="ffwrap" id="fw0">
+          <div class="fq">
+            <button class="fqb" id="up0" title="Helpful" onclick="qr(0,'up')">👍</button>
+            <button class="fqb" id="dn0" title="Not helpful" onclick="qr(0,'dn')">👎</button>
+            <span class="fsep" aria-hidden="true"></span>
+            <div class="fexpwrap">
+              <button class="fexpbtn" id="eb0" title="Feedback options" onclick="tpop(0)">
+                <i class="ti ti-chevron-up" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <!-- Popup -->
+          <div class="fpop" id="pp0" role="dialog" aria-label="Feedback options">
+            <div class="fpr" onclick="tper()">
+              <span class="fpi">💾</span>
+              <span class="fpl">Save to dataset</span>
+              <button class="mpill on" id="mp0" onclick="event.stopPropagation();tper()">
+                <span class="mpthumb"></span>
+              </button>
+            </div>
+            <div class="fpsp"></div>
+            <div class="fpr" onclick="tfb(0)">
+              <span class="fpi">💬</span>
+              <span class="fpl" id="fl0">Detailed feedback ↓</span>
+            </div>
+            <div class="fpsp"></div>
+            <div class="fpfut"><i class="ti ti-sparkles" aria-hidden="true"></i>Flag · Correct · Bookmark — coming soon</div>
+          </div>
+        </div>
+        <!-- Retry -->
+        <button class="act" title="Retry">
+          <i class="ti ti-refresh" aria-hidden="true"></i>Retry
+        </button>
+        <!-- More ▾ (contains Listen + Share) -->
+        <div class="more-wrap" id="mw0">
+          <button class="act" id="mb0" title="More actions" onclick="tmenu(0)" aria-expanded="false">
+            <i class="ti ti-dots" aria-hidden="true"></i>More
+          </button>
+          <div class="more-menu" id="mm0" role="menu">
+            <button class="more-item" role="menuitem">
+              <i class="ti ti-headphones" aria-hidden="true"></i>Listen
+            </button>
+            <button class="more-item" role="menuitem" onclick="shareAns(0)">
+              <i class="ti ti-share" aria-hidden="true"></i>Share
+              <span class="bbadge" style="margin-left:auto">moved</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Inline feedback block (hidden until expand btn clicked) -->
+      <div class="fbblk" id="fb0">
+        <p class="fbq">Was this helpful?</p>
+        <div class="fbopts">
+          <button class="fbob">😃</button>
+          <button class="fbob">😐</button>
+          <button class="fbob">😞</button>
+        </div>
+        <textarea class="fbta" placeholder="Tell us more (optional)…"></textarea>
+        <button class="fbsub">Send feedback</button>
+      </div>
+    </div>
+
+    <!-- Answer 1 -->
+    <div class="bubble bubble-u">How does self-attention work?</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div class="bubble bubble-a">
+        Each token computes query, key, and value vectors. Attention scores are
+        dot-products of queries vs all keys, softmaxed to weights, then summed
+        over values — letting every position attend to every other simultaneously.
+      </div>
+      <div class="acts" id="a1">
+        <span class="tlbl">14:15</span>
+        <button class="act" title="Copy this answer" onclick="copyAns(1)">
+          <i class="ti ti-copy" aria-hidden="true"></i>Copy
+        </button>
+        <div class="ffwrap" id="fw1">
+          <div class="fq">
+            <button class="fqb" id="up1" title="Helpful" onclick="qr(1,'up')">👍</button>
+            <button class="fqb" id="dn1" title="Not helpful" onclick="qr(1,'dn')">👎</button>
+            <span class="fsep" aria-hidden="true"></span>
+            <div class="fexpwrap">
+              <button class="fexpbtn" id="eb1" title="Feedback options" onclick="tpop(1)">
+                <i class="ti ti-chevron-up" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="fpop" id="pp1" role="dialog" aria-label="Feedback options">
+            <div class="fpr" onclick="tper()">
+              <span class="fpi">💾</span>
+              <span class="fpl">Save to dataset</span>
+              <button class="mpill on" id="mp1" onclick="event.stopPropagation();tper()">
+                <span class="mpthumb"></span>
+              </button>
+            </div>
+            <div class="fpsp"></div>
+            <div class="fpr" onclick="tfb(1)">
+              <span class="fpi">💬</span>
+              <span class="fpl" id="fl1">Detailed feedback ↓</span>
+            </div>
+            <div class="fpsp"></div>
+            <div class="fpfut"><i class="ti ti-sparkles" aria-hidden="true"></i>Flag · Correct · Bookmark — coming soon</div>
+          </div>
+        </div>
+        <button class="act" title="Retry">
+          <i class="ti ti-refresh" aria-hidden="true"></i>Retry
+        </button>
+        <div class="more-wrap" id="mw1">
+          <button class="act" id="mb1" title="More actions" onclick="tmenu(1)" aria-expanded="false">
+            <i class="ti ti-dots" aria-hidden="true"></i>More
+          </button>
+          <div class="more-menu" id="mm1" role="menu">
+            <button class="more-item" role="menuitem">
+              <i class="ti ti-headphones" aria-hidden="true"></i>Listen
+            </button>
+            <button class="more-item" role="menuitem" onclick="shareAns(1)">
+              <i class="ti ti-share" aria-hidden="true"></i>Share
+              <span class="bbadge" style="margin-left:auto">moved</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="fbblk" id="fb1">
+        <p class="fbq">Was this helpful?</p>
+        <div class="fbopts">
+          <button class="fbob">😃</button>
+          <button class="fbob">😐</button>
+          <button class="fbob">😞</button>
+        </div>
+        <textarea class="fbta" placeholder="Tell us more (optional)…"></textarea>
+        <button class="fbsub">Send feedback</button>
+      </div>
+    </div>
+
+  </div><!-- /chat-body -->
+</div><!-- /demo-panel left -->
+
+<!-- ── RIGHT: §6 Extended Settings ──────────────────────────── -->
+<div class="demo-panel">
+  <div class="panel-head">
+    <i class="ti ti-settings-2" style="font-size:13px" aria-hidden="true"></i>
+    Endpoint config — §6 Extended Settings
+    <span class="nbadge">new</span>
+  </div>
+  <div class="panel-hint">
+    <i class="ti ti-info-circle" aria-hidden="true"></i>
+    Appended after §5 Import/Export inside the existing endpoint sheet
+  </div>
+  <div class="exts">
+
+    <!-- Chat -->
+    <div class="esub">
+      <p class="eshead">Chat Configuration</p>
+      <div class="etrow">
+        <div class="etlbl">
+          <span class="ettitle">Streaming responses</span>
+          <span class="etdesc">Responses appear word-by-word as the model generates. Disable to wait for the full answer before displaying.</span>
+        </div>
+        <button class="epill on" id="sp" onclick="tp('sp')" role="switch" aria-checked="true" aria-label="Streaming responses">
+          <span class="epthumb"></span>
+        </button>
+      </div>
+      <div class="efrow"><i class="ti ti-thermometer" aria-hidden="true"></i>Temperature — coming soon</div>
+      <div class="efrow"><i class="ti ti-file-text" aria-hidden="true"></i>System prompt — coming soon</div>
+    </div>
+
+    <!-- Share -->
+    <div class="esub">
+      <p class="eshead">Share Configuration</p>
+      <div class="etrow">
+        <div class="etlbl">
+          <span class="ettitle">Share-link mode</span>
+          <span class="etdesc">When ON, export creates a shareable blob URL instead of downloading. Syncs with the export dropdown toggle.</span>
+        </div>
+        <button class="epill" id="slp" onclick="tp('slp')" role="switch" aria-checked="false" aria-label="Share-link mode">
+          <span class="epthumb"></span>
+        </button>
+      </div>
+      <div class="efrow"><i class="ti ti-clock" aria-hidden="true"></i>Share TTL (days) — coming soon</div>
+      <div class="efrow"><i class="ti ti-file-export" aria-hidden="true"></i>Default export format — coming soon</div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="esub">
+      <p class="eshead">Feedback Configuration</p>
+      <p class="eintro">
+        The 👍 / 👎 buttons on each answer collect ratings. When "Store ratings
+        permanently" is ON and the server is configured, each rating writes a JSON
+        record to the HuggingFace training dataset. When OFF, ratings stay
+        in-memory only.
+      </p>
+      <div class="etrow">
+        <div class="etlbl">
+          <span class="ettitle">
+            Store ratings permanently
+            <span class="nbadge">builds the missing DOM element</span>
+          </span>
+          <span class="etdesc">
+            Writes 👍 / 👎 to HuggingFace dataset (durable, survives restarts).
+            Requires TRAINING_DATASET_REPO + HF_DATASET_TOKEN. Server's
+            FEEDBACK_PERSIST_ENABLED is the authoritative default; this lets you
+            override per session.
+          </span>
+        </div>
+        <button class="epill on" id="pp" role="switch" aria-checked="true"
+          aria-label="Store ratings permanently" onclick="tper()">
+          <span class="epthumb"></span>
+        </button>
+      </div>
+      <div class="eirow"><span class="eilbl">HF dataset</span><span class="eival">scikit-plots/ai-feedback</span><span class="eibadge ok">Ready</span></div>
+      <div class="eirow"><span class="eilbl">Server flag</span><span class="eival">FEEDBACK_PERSIST_ENABLED=true</span><span class="eibadge ok">On</span></div>
+      <div class="efrow"><i class="ti ti-chart-bar" aria-hidden="true"></i>Rating scale selector — coming soon</div>
+      <div class="efrow"><i class="ti ti-help-circle" aria-hidden="true"></i>Feedback question text — coming soon</div>
+    </div>
+
+    <!-- Training -->
+    <div class="esub">
+      <p class="eshead">Training Configuration</p>
+      <p class="eintro">
+        Training data collected via POST /v1/contribute on export. Each record
+        carries (question, answer, rating) tuples. The server deduplicates on
+        conversationId so exporting twice is safe.
+      </p>
+      <div class="eirow"><span class="eilbl">Contribute URL</span><span class="eival">https://proxy.example.com</span><span class="eibadge ok">Configured</span></div>
+      <div class="eirow"><span class="eilbl">Dataset repo</span><span class="eival">scikit-plots/ai-feedback</span><span class="eibadge ok">Ready</span></div>
+      <div class="eirow"><span class="eilbl">Contribute ready</span><span class="eival">true</span><span class="eibadge ok">Yes</span></div>
+      <div class="efrow"><i class="ti ti-robot" aria-hidden="true"></i>Auto-contribute on close — coming soon</div>
+      <div class="efrow"><i class="ti ti-lock" aria-hidden="true"></i>GDPR consent gate — coming soon</div>
+    </div>
+
+  </div>
+</div><!-- /demo-panel right -->
+
+</div><!-- /demo-wrap -->
+
+<script>
+var pon = true;   // persist toggle state
+
+/* ── Pill toggle ─────────────────────────────────────────── */
+function tp(id) {
+  var b = document.getElementById(id);
+  var on = b.classList.toggle('on');
+  b.setAttribute('aria-checked', on ? 'true' : 'false');
+}
+
+/* ── Feedback popup ──────────────────────────────────────── */
+function tpop(i) {
+  var p = document.getElementById('pp'+i),
+      b = document.getElementById('eb'+i),
+      w = document.getElementById('fw'+i);
+  var o = p.classList.contains('pinned');
+  ca();
+  if (!o) {
+    p.classList.add('pinned');
+    b.classList.add('open');
+    w.classList.add('active');
+  }
+}
+
+function ca() {
+  for (var i = 0; i < 2; i++) {
+    var p = document.getElementById('pp'+i),
+        b = document.getElementById('eb'+i),
+        w = document.getElementById('fw'+i);
+    if (p) p.classList.remove('pinned');
+    if (b) b.classList.remove('open');
+    if (w) w.classList.remove('active');
+  }
+}
+
+/* ── Quick-rate ──────────────────────────────────────────── */
+function qr(i, d) {
+  var u  = document.getElementById('up'+i),
+      dn = document.getElementById('dn'+i);
+  u.classList.remove('pos'); dn.classList.remove('neg');
+  if (d === 'up') u.classList.add('pos');
+  else dn.classList.add('neg');
+  ca();
+}
+
+/* ── Toggle inline feedback form ────────────────────────── */
+function tfb(i) {
+  var f = document.getElementById('fb'+i),
+      l = document.getElementById('fl'+i);
+  var v = f.classList.toggle('shown');
+  l.textContent = v ? 'Detailed feedback ↑' : 'Detailed feedback ↓';
+}
+
+/* ── Persist toggle (syncs §6 pill + all mini pills) ────── */
+function tper() {
+  pon = !pon;
+  var pp = document.getElementById('pp');
+  if (pp) {
+    pp.classList.toggle('on', pon);
+    pp.setAttribute('aria-checked', pon ? 'true' : 'false');
+  }
+  for (var i = 0; i < 2; i++) {
+    var m = document.getElementById('mp'+i);
+    if (m) m.classList.toggle('on', pon);
+  }
+}
+
+/* ── More ▾ menu ─────────────────────────────────────────── */
+function tmenu(i) {
+  var mm = document.getElementById('mm'+i),
+      mb = document.getElementById('mb'+i);
+  // Close any other open menus
+  for (var j = 0; j < 2; j++) {
+    if (j !== i) {
+      var o = document.getElementById('mm'+j);
+      if (o) o.classList.remove('open');
+      var ob = document.getElementById('mb'+j);
+      if (ob) ob.setAttribute('aria-expanded','false');
+    }
+  }
+  var open = mm.classList.toggle('open');
+  mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function shareAns(i) {
+  // Demo: just shows an alert
+  alert('Share answer ' + i + '\n(would call _shareAnswer in production)');
+}
+
+function copyAns(i) {
+  // Demo: no-op in this preview
+}
+
+/* ── Outside click closes popups + menus ─────────────────── */
+document.addEventListener('click', function (e) {
+  // Close feedback popups
+  for (var i = 0; i < 2; i++) {
+    var w = document.getElementById('fw'+i);
+    if (w && !w.contains(e.target)) {
+      var p = document.getElementById('pp'+i),
+          b = document.getElementById('eb'+i);
+      if (p) p.classList.remove('pinned');
+      if (b) b.classList.remove('open');
+      w.classList.remove('active');
+    }
+  }
+  // Close More menus
+  for (var j = 0; j < 2; j++) {
+    var mw = document.getElementById('mw'+j);
+    if (mw && !mw.contains(e.target)) {
+      var mm = document.getElementById('mm'+j),
+          mb = document.getElementById('mb'+j);
+      if (mm) mm.classList.remove('open');
+      if (mb) mb.setAttribute('aria-expanded','false');
+    }
+  }
+});
+</script>
+</body>
+</html>
