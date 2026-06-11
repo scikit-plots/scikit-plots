@@ -1519,7 +1519,6 @@ ai_assistant_panel_api_streaming = True
 #
 # Use an environment variable to switch endpoints per environment:
 #
-# import os
 # _PROXY = os.environ.get("AI_PROXY_BASE",
 #                         "https://scikit-plots-ai.hf.space")
 # ai_assistant_panel_api_models = [
@@ -2358,15 +2357,15 @@ ai_assistant_mcp_tools = {
 # │ SECURITY — WHAT GETS BAKED INTO THE HTML                                │
 # │                                                                         │
 # │ Every profile dict (including auth tokens) is serialised into a         │
-# │ <script> block on every HTML page:                                       │
+# │ <script> block on every HTML page:                                      │
 # │                                                                         │
 # │   window.AI_ASSISTANT_ENDPOINTS = { ...all profiles... };               │
 # │                                                                         │
-# │ Consequences:                                                            │
+# │ Consequences:                                                           │
 # │                                                                         │
-# │ 1. NEVER put secret API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) │
+# │ 1. NEVER put secret API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)  │
 # │    in any profile field.  The proxy server holds those; conf.py only    │
-# │    holds the URL of YOUR proxy.                                          │
+# │    holds the URL of YOUR proxy.                                         │
 # │                                                                         │
 # │ 2. ``shareToken`` and ``feedbackToken`` may hold write-only             │
 # │    authorization tokens (e.g. a Cloudflare Worker token that grants     │
@@ -2380,12 +2379,12 @@ ai_assistant_mcp_tools = {
 # │    source of your page would then have a free AI chat endpoint.         │
 # │                                                                         │
 # │ 4. The extension validates all URLs against an http/https allow-list    │
-# │    and strips any field containing HTML-injection characters from token  │
-# │    values.  Values that point to private IPs (127.x, 10.x, 192.168.x,  │
+# │    and strips any field containing HTML-injection characters from token │
+# │    values.  Values that point to private IPs (127.x, 10.x, 192.168.x,   │
 # │    etc.) trigger a Sphinx WARNING so operators notice SSRF-risky        │
-# │    configs in their CI output.                                           │
+# │    configs in their CI output.                                          │
 # │                                                                         │
-# │ 5. Profile keys must not be JavaScript prototype property names          │
+# │ 5. Profile keys must not be JavaScript prototype property names         │
 # │    (__proto__, constructor, toString …) — the extension rejects these   │
 # │    keys with a Sphinx WARNING.  Use plain alphanumeric keys.            │
 # └─────────────────────────────────────────────────────────────────────────┘
@@ -2482,8 +2481,6 @@ ai_assistant_mcp_tools = {
 #   });
 #
 # ── Option 1 — Single Cloudflare Worker ────────────────────────────────────
-
-import os
 
 _CF_WORKER_URL = os.environ.get("CF_WORKER_URL", "")
 
@@ -2636,6 +2633,7 @@ _HF_SPACE_URL = os.environ.get("HF_SPACE_URL", "")
 #
 # AFTER (explicit profiles — enables the profile-switcher UI):
 #
+# _PROXY_BASE: str = os.environ.get("PROXY_BASE_URL", "https://scikit-plots-ai.hf.space")
 # _PROXY_BASE = os.environ.get("PROXY_BASE_URL", "")
 #
 # ai_assistant_endpoint_profiles = {

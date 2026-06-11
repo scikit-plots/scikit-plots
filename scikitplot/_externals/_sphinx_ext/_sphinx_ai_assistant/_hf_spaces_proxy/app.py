@@ -136,24 +136,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 # _shared_logic.py must live alongside this file.
-from ._shared_logic import (  # type: ignore[import]
-    DEFAULT_HF_BASE,
-    DEFAULT_HF_SPACES_MODEL_NAMESPACES,
-    DEFAULT_HF_SPACES_MODEL_URL,
-    DEFAULT_MAX_BODY_BYTES,
-    DEFAULT_MODEL,
-    DEFAULT_PATH2_READ_TIMEOUT,
-    DEFAULT_PATH3_READ_TIMEOUT,
-    DEFAULT_PROXY_TIMEOUT,
-    PROXY_VERSION,
-    _classify_token_type,
-    _resolve_upstream_url,
-    _safe_float,
-    _safe_int,
-    _token_log_fragment,
-    _validate_env,
-    _validate_token_config,
-)
+try:
+    from ._shared_logic import (  # type: ignore[import]
+        DEFAULT_HF_BASE,
+        DEFAULT_HF_SPACES_MODEL_NAMESPACES,
+        DEFAULT_HF_SPACES_MODEL_URL,
+        DEFAULT_MAX_BODY_BYTES,
+        DEFAULT_MODEL,
+        DEFAULT_PATH2_READ_TIMEOUT,
+        DEFAULT_PATH3_READ_TIMEOUT,
+        DEFAULT_PROXY_TIMEOUT,
+        PROXY_VERSION,
+        _classify_token_type,
+        _resolve_upstream_url,
+        _safe_float,
+        _safe_int,
+        _token_log_fragment,
+        _validate_env,
+        _validate_token_config,
+    )
+except Exception as e:
+    from _shared_logic import (  # type: ignore[import]
+        DEFAULT_HF_BASE,
+        DEFAULT_HF_SPACES_MODEL_NAMESPACES,
+        DEFAULT_HF_SPACES_MODEL_URL,
+        DEFAULT_MAX_BODY_BYTES,
+        DEFAULT_MODEL,
+        DEFAULT_PATH2_READ_TIMEOUT,
+        DEFAULT_PATH3_READ_TIMEOUT,
+        DEFAULT_PROXY_TIMEOUT,
+        PROXY_VERSION,
+        _classify_token_type,
+        _resolve_upstream_url,
+        _safe_float,
+        _safe_int,
+        _token_log_fragment,
+        _validate_env,
+        _validate_token_config,
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers — placed before configuration so they are available at module scope
@@ -590,12 +610,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_methods=["GET", "HEAD", "POST", "OPTIONS"],
+    allow_methods=["GET", "HEAD", "POST", "PATCH", "OPTIONS"],
     # Authorization added for write endpoints (POST /v1/feedback, POST /v1/contribute)
     # that validate a Bearer token.  Without this the browser preflight rejects
     # requests containing Authorization headers before the handler runs.
     # HEAD added so the JS _pingUrl health-check and the HF Space internal health
     # monitor can send cross-origin HEAD / and HEAD /health without a CORS error.
+    # PATCH added for PATCH /v1/share/{uuid} (content update, URL preserved).
     allow_headers=["Content-Type", "Authorization"],
     allow_credentials=False,
 )
@@ -994,15 +1015,18 @@ async def root() -> JSONResponse:
             },
             "cors_origins": _allowed_origins,
             "endpoints": {
-                "chat": "POST /v1/chat/completions  (primary)",
-                "share": "POST /v1/share             (conversation share)",
-                "share_get": "GET  /v1/share/{uuid}      (retrieve shared snapshot)",
-                "feedback": "POST /v1/feedback          (rating persistence)",
-                "training": "POST /v1/contribute        (GDPR-gated training data)",
-                "alias": "POST /                     (path-agnostic alias)",
-                "health": "GET  /health               (liveness probe)",
-                "head_root": "HEAD /                     (health-monitor probe)",
-                "head_health": "HEAD /health             (health-monitor probe)",
+                "chat": "POST /v1/chat/completions (primary)",
+                "share": "POST /v1/share            (conversation share)",
+                "share_get": "GET  /v1/share/{uuid}     (retrieve shared snapshot)",
+                "share_patch": (
+                    "PATCH /v1/share/{uuid}    (update snapshot, URL preserved)"
+                ),
+                "feedback": "POST /v1/feedback         (rating persistence)",
+                "training": "POST /v1/contribute       (GDPR-gated training data)",
+                "alias": "POST /                    (path-agnostic alias)",
+                "health": "GET  /health              (liveness probe)",
+                "head_root": "HEAD /                    (health-monitor probe)",
+                "head_health": "HEAD /health              (health-monitor probe)",
             },
         }
     )
@@ -1461,6 +1485,148 @@ async def share_get(share_id: str) -> Response:
             ),
         },
     )
+
+
+@app.patch("/v1/share/{share_id}")
+async def share_patch(share_id: str, request: Request) -> JSONResponse:
+    """Update an existing shared conversation snapshot in-place.
+
+    PATCH replaces the stored content while preserving the UUID and therefore
+    the public URL.  Callers — typically the browser JS after the user edits
+    a conversation — can refresh a previously shared link without distributing
+    a new URL.
+
+    Parameters
+    ----------
+    share_id : str
+        UUID hex string returned by the original ``POST /v1/share``.
+    request : fastapi.Request
+        HTTP request.  Body must be JSON with at minimum a ``content`` field.
+        Optional fields ``mimeType``, ``ext``, ``title``, and ``ttlDays``
+        override the stored values; omitted fields retain their stored value.
+
+    Returns
+    -------
+    fastapi.responses.JSONResponse
+        ``{"uuid": "<hex>", "url": "<share_url>", "expiresAt": "<ISO-8601>"}``
+        on success — identical shape to ``POST /v1/share``.
+
+    Raises
+    ------
+    fastapi.HTTPException
+        400 when the body is not valid JSON.
+        404 when the UUID is not found (never existed or evicted on a prior
+            lazy sweep).
+        410 when the entry exists but has already expired.
+        413 when the body exceeds :data:`~_shared_logic.DEFAULT_MAX_BODY_BYTES`.
+        422 when ``content`` is missing or empty.
+        429 when the IP rate limit (shared with POST, 10/hour) is exceeded.
+
+    Notes
+    -----
+    **User note** — TTL is reset from the time of the PATCH.  Patching a
+    link that would have expired tomorrow extends it by the full ``ttlDays``
+    value (default 30 days from now).
+
+    **Developer note** — Rate-limited via the same ``_share_rl`` store as
+    ``POST /v1/share``.  CREATE and UPDATE together count toward the
+    10 requests/hour ceiling, preventing PATCH from being used as a bypass.
+
+    **Developer note** — No ownership token is required; any caller who
+    knows the UUID may PATCH it.  This is intentional: the feature targets
+    closed documentation environments (internal Sphinx docs) where possession
+    of the UUID already implies authorisation.
+
+    **Developer note** — The lazy-eviction sweep that runs on ``POST /v1/share``
+    does NOT run here to avoid the overhead of a full store scan on every
+    update.  Expired entries are discovered on the existence check
+    (``expiresAt_ts < now``) and returned as 410, which the JS client treats
+    as a signal to fall back to a fresh POST.
+    """
+    # Body size guard
+    raw = await request.body()
+    if len(raw) > DEFAULT_MAX_BODY_BYTES:
+        raise HTTPException(status_code=413, detail="Payload too large.")
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {exc}") from exc
+
+    content = payload.get("content", "")
+    if not content or not isinstance(content, str):
+        raise HTTPException(
+            status_code=422,
+            detail="content is required and must be a non-empty string.",
+        )
+
+    # Per-IP rate limit — shared with POST so CREATE+UPDATE count together.
+    client_ip = _client_ip(request)
+    async with _share_rl_lock:
+        now = _time.time()
+        count, window_start = _share_rl.get(client_ip, (0, now))
+        if now - window_start > 3600:  # noqa: PLR2004
+            count, window_start = 0, now
+        count += 1
+        _share_rl[client_ip] = (count, window_start)
+        if count > 10:  # noqa: PLR2004
+            logger.warning(json.dumps({"event": "share.ratelimit", "ip": client_ip}))
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Maximum 10 shares per hour.",
+                headers={"Retry-After": "3600"},
+            )
+
+    # Existence and expiry check (read lock only — no sweep needed here).
+    async with _share_store_lock:
+        entry = _share_store.get(share_id)
+
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Share not found or expired.")
+
+    if entry["expiresAt_ts"] < _time.time():
+        async with _share_store_lock:
+            _share_store.pop(share_id, None)
+        raise HTTPException(status_code=410, detail="Share has expired.")
+
+    # Merge: caller-supplied fields override stored values; omitted fields
+    # keep their existing values so a minimal {"content": "..."} body works.
+    mime_type: str = payload.get("mimeType") or entry.get(
+        "mimeType", "text/html;charset=utf-8"
+    )
+    ext: str = payload.get("ext") or entry.get("ext", ".html")
+    title: str = payload.get("title") or entry.get("title", "Shared conversation")
+    ttl_days: int = max(1, min(_safe_int(payload.get("ttlDays"), 30), 365))
+
+    now_ts = _time.time()
+    expires_ts = now_ts + ttl_days * 86400
+    expires_iso = _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime(expires_ts))
+
+    async with _share_store_lock:
+        _share_store[share_id] = {
+            "content": content,
+            "mimeType": mime_type,
+            "ext": ext,
+            "title": title,
+            "expiresAt_ts": expires_ts,
+            "expiresAt": expires_iso,
+        }
+
+    logger.info(
+        json.dumps(
+            {
+                "event": "share.update",
+                "id": share_id,
+                "ip": client_ip,
+                "ttl_days": ttl_days,
+            }
+        )
+    )
+
+    base_url = str(request.base_url).rstrip("/")
+    share_url = f"{base_url}/v1/share/{share_id}"
+
+    return JSONResponse({"uuid": share_id, "url": share_url, "expiresAt": expires_iso})
 
 
 @app.post("/v1/feedback")

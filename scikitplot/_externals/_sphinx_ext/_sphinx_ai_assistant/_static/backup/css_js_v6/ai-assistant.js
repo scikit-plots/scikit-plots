@@ -967,6 +967,24 @@
                 lbl + '</a>';
         });
 
+        // ── 7.5. Auto-link bare http/https URLs ───────────────────────────
+        // Runs after explicit markdown links (step 7) are already wrapped in
+        // <a href="…">…</a>.  The negative lookbehind (?<!href=") ensures
+        // this pass never re-wraps the href attribute value those anchors
+        // already hold.  _escapeHtml (step 2) encoded & → &amp;, so
+        // query-param separators in plain URLs appear as &amp; in the working
+        // string and are safely matched by [^\s<>"].  Trailing prose
+        // punctuation (., ) ] ; ! ?) is stripped before the anchor is built
+        // so "Visit https://example.com." renders the period outside the link.
+        result = result.replace(/(?<!href=")https?:\/\/[^\s<>"]+/g, function (match) {
+            var trailingM = match.match(/[.,)\];!?]+$/);
+            var trailing  = trailingM ? trailingM[0] : '';
+            if (trailing) { match = match.slice(0, -trailing.length); }
+            if (!match) { return trailing; }
+            return '<a href="' + match + '" target="_blank" rel="noopener noreferrer">' +
+                match + '</a>' + trailing;
+        });
+
         // ── 8. Lists ──────────────────────────────────────────────────────
         // Process contiguous bullet-list blocks as a unit so a single <ul>
         // wraps all items.  Same for ordered lists.
@@ -2822,6 +2840,305 @@
     // ── end _EP Compatibility Shim ─────────────────────────────────────────
 
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // _MODEL_STORE — Runtime custom model registry
+    //
+    // Parallel to _EP, this IIFE manages user-defined model configurations
+    // added at runtime (without a Sphinx rebuild).  Models are persisted to
+    // localStorage under key 'ai-assistant-custom-models' and merged into the
+    // full model list each time _buildModelSheet() renders the picker.
+    //
+    // Public API surface:
+    //   registerBuiltin(models)          Register builtin ids as protected.
+    //   addModel(id, data)  → {ok,id}    Validate and persist a custom model.
+    //   removeModel(id)     → {ok}       Remove a custom model (builtins protected).
+    //   listCustom()        → [{…}]      Array of all non-builtin model objects.
+    //   countCustom()       → number     Count of current custom models.
+    //   isIdAvailable(id)   → boolean    True when id is valid and unoccupied.
+    //   exportCustom()      → string     JSON envelope for all custom models.
+    //   importModel(id, data) → {ok,id}  Alias for addModel (supports update).
+    //   clearCustom()       → number     Remove all custom models; return count.
+    //   MAX_CUSTOM          constant     Hard cap on custom model count (20).
+    //   SCHEMA_VER          constant     Storage schema version (1).
+    //
+    // Security invariants:
+    //   • All user-supplied strings are sanitised and length-clamped before storage.
+    //   • IDs must match /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/ — no path separators,
+    //     no prototype-pollution keys, no empty strings.
+    //   • info_url and endpoint are validated as http(s) URIs before storage.
+    //   • Null-prototype objects prevent prototype pollution in the store map.
+    //   • localStorage read/write is always wrapped in try/catch.
+    //
+    // Notes (developer):
+    //   _models stores ONLY custom (non-builtin) models.  Builtins are tracked
+    //   separately in _builtin so they cannot be overwritten or deleted.
+    //   registerBuiltin() must be called before listCustom() for correct conflict
+    //   resolution; _buildModelSheet() calls it every time it builds the sheet.
+    // ═══════════════════════════════════════════════════════════════════════
+    var _MODEL_STORE = (function () {
+        'use strict';
+
+        var _STORAGE_KEY  = 'ai-assistant-custom-models';
+        var _SCHEMA_VER   = 1;
+        var _MAX_CUSTOM   = 20;
+        var _MAX_LABEL    = 100;
+        var _MAX_DESC     = 500;
+        var _MAX_SIZE     = 20;
+        var _MAX_URL      = 2048;
+        var _SAFE_ID_RE   = /^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/;
+
+        var _ALLOWED_PROVIDERS = [
+            'openai', 'anthropic', 'huggingface', 'mistral', 'groq',
+            'cerebras', 'togetherai', 'deepseek', 'custom'
+        ];
+
+        // Null-prototype maps prevent prototype pollution.
+        var _models  = Object.create(null); // id → sanitized model object (custom only)
+        var _builtin = Object.create(null); // id → true  (protected from removal)
+
+        // ── String helpers ────────────────────────────────────────────────────
+        function _isStr(v)   { return typeof v === 'string'; }
+        function _trim(v)    { return _isStr(v) ? v.trim() : ''; }
+        function _safeId(id) { return _SAFE_ID_RE.test(_trim(id)); }
+
+        function _sanitizeModel(id, m) {
+            var safe      = Object.create(null);
+            safe.id       = String(id).slice(0, 64);
+            safe.label    = _trim(m.label).slice(0, _MAX_LABEL) || safe.id;
+            safe.provider = (_ALLOWED_PROVIDERS.indexOf(_trim(m.provider)) !== -1)
+                ? _trim(m.provider) : 'custom';
+            safe.model       = _trim(m.model).slice(0, 256);
+            safe.description = _trim(m.description).slice(0, _MAX_DESC);
+            safe.size        = _trim(m.size).slice(0, _MAX_SIZE);
+            // Tags: array of safe strings; max 10 items, each max 32 chars.
+            var rawTags = Array.isArray(m.tags) ? m.tags : [];
+            safe.tags = rawTags.slice(0, 10).map(function (t) {
+                return String(t).trim().slice(0, 32);
+            }).filter(function (t) { return t.length > 0; });
+            // info_url: only accepted as a validated http(s) URI.
+            var rawUrl = _trim(m.info_url).slice(0, _MAX_URL);
+            safe.info_url = (rawUrl && /^https?:\/\//i.test(rawUrl)) ? rawUrl : '';
+            // endpoint: same http(s) constraint.
+            var rawEp = _trim(m.endpoint).slice(0, 512);
+            safe.endpoint = (rawEp && /^https?:\/\//i.test(rawEp)) ? rawEp : '';
+            safe.group    = _trim(m.group).slice(0, 64) || 'custom';
+            // Sentinel: model rows injected by _appendModelCustomSection check this
+            // to set data-is-custom="true" and the clear-all op uses it to find rows.
+            safe._isCustom = true;
+            return safe;
+        }
+
+        // ── Persistence ───────────────────────────────────────────────────────
+        function _loadCustom() {
+            try {
+                var raw = localStorage.getItem(_STORAGE_KEY);
+                if (!raw) return;
+                var data = JSON.parse(raw);
+                if (!data || data._v !== _SCHEMA_VER || !data.models) return;
+                var entries = data.models;
+                for (var id in entries) {
+                    if (!Object.prototype.hasOwnProperty.call(entries, id)) continue;
+                    if (!_SAFE_ID_RE.test(id)) continue;
+                    // Conflict with builtins is resolved later in registerBuiltin.
+                    var m = entries[id];
+                    if (!m || typeof m !== 'object') continue;
+                    _models[id] = _sanitizeModel(id, m);
+                }
+            } catch (_) {}
+        }
+
+        function _persistCustom() {
+            try {
+                var out  = Object.create(null);
+                var keys = Object.keys(_models);
+                for (var i = 0; i < keys.length; i++) {
+                    var k = keys[i];
+                    if (_builtin[k]) continue; // never persist builtin models
+                    out[k] = _models[k];
+                }
+                localStorage.setItem(_STORAGE_KEY, JSON.stringify({
+                    _v: _SCHEMA_VER, models: out
+                }));
+            } catch (_) {}
+        }
+
+        // ── Count helper ──────────────────────────────────────────────────────
+        function _countCustom() {
+            var n = 0;
+            var keys = Object.keys(_models);
+            for (var i = 0; i < keys.length; i++) {
+                if (!_builtin[keys[i]]) { n++; }
+            }
+            return n;
+        }
+
+        // ── Public API ────────────────────────────────────────────────────────
+        /**
+         * Register builtin model IDs as protected.
+         *
+         * Called once per _buildModelSheet invocation so that any custom model
+         * whose ID collides with a builtin is removed before listCustom() runs.
+         * Idempotent: calling multiple times with the same array is safe.
+         *
+         * @param {Array<object>} modelsArr  cfg.panelApiModels (already validated).
+         */
+        function registerBuiltin(modelsArr) {
+            if (!Array.isArray(modelsArr)) return;
+            var dirty = false;
+            for (var i = 0; i < modelsArr.length; i++) {
+                var m = modelsArr[i];
+                if (!m || !m.id || !_isStr(m.id)) continue;
+                var id = m.id;
+                // Remove any conflicting custom model loaded from storage.
+                if (!_builtin[id] && _models[id]) {
+                    delete _models[id];
+                    dirty = true;
+                }
+                _builtin[id] = true;
+            }
+            if (dirty) { _persistCustom(); }
+        }
+
+        /**
+         * Validate and persist a new custom model (or update existing custom).
+         *
+         * @param {string} id         Unique model identifier (validated).
+         * @param {object} modelData  Raw model fields (sanitised on write).
+         * @returns {{ok:boolean, id:string, error?:string}}
+         */
+        function addModel(id, modelData) {
+            id = _trim(id);
+            if (!_safeId(id)) {
+                return { ok: false, error: 'ID must start with a letter and contain ' +
+                    'only letters, digits, hyphens, or underscores (max 64 chars).' };
+            }
+            if (_builtin[id]) {
+                return { ok: false, error: 'ID "' + id + '" is reserved by a built-in model.' };
+            }
+            if (!_models[id]) { // new entry: enforce hard cap
+                if (_countCustom() >= _MAX_CUSTOM) {
+                    return { ok: false, error: 'Maximum ' + _MAX_CUSTOM +
+                        ' custom models reached. Delete one to add another.' };
+                }
+            }
+            if (!modelData || typeof modelData !== 'object') {
+                return { ok: false, error: 'Model data must be a plain object.' };
+            }
+            if (!_trim(modelData.label)) {
+                return { ok: false, error: 'Label is required.' };
+            }
+            _models[id] = _sanitizeModel(id, modelData);
+            _persistCustom();
+            return { ok: true, id: id };
+        }
+
+        /**
+         * Remove a custom model by ID.  Builtin models are protected.
+         *
+         * @param {string} id
+         * @returns {{ok:boolean, error?:string}}
+         */
+        function removeModel(id) {
+            id = _trim(id);
+            if (_builtin[id]) {
+                return { ok: false, error: 'Built-in models cannot be removed.' };
+            }
+            if (!_models[id]) {
+                return { ok: false, error: 'Model "' + id + '" not found.' };
+            }
+            delete _models[id];
+            _persistCustom();
+            return { ok: true };
+        }
+
+        /**
+         * Return a shallow copy of all runtime-added (non-builtin) model objects.
+         *
+         * @returns {Array<object>}
+         */
+        function listCustom() {
+            var out  = [];
+            var keys = Object.keys(_models);
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (!_builtin[k] && _models[k]) { out.push(_models[k]); }
+            }
+            return out;
+        }
+
+        /**
+         * Count of current custom (non-builtin) models.
+         * @returns {number}
+         */
+        function countCustom() { return _countCustom(); }
+
+        /**
+         * True when *id* passes format validation and is not already in use.
+         * @param {string} id
+         * @returns {boolean}
+         */
+        function isIdAvailable(id) {
+            id = _trim(id);
+            if (!_safeId(id))  return false;
+            if (_builtin[id])  return false;
+            if (_models[id])   return false;
+            return true;
+        }
+
+        /**
+         * Serialise all custom models as a JSON export envelope.
+         * The envelope format is {_v, models:[...]} — identical to what importModel
+         * accepts so round-trips are lossless.
+         *
+         * @returns {string}  Pretty-printed JSON.
+         */
+        function exportCustom() {
+            return JSON.stringify({ _v: _SCHEMA_VER, models: listCustom() }, null, 2);
+        }
+
+        /**
+         * Alias for addModel.  Supports both add and update of custom models.
+         * Named importModel to mirror _EP.importProfile semantics.
+         *
+         * @param {string} id
+         * @param {object} data
+         * @returns {{ok:boolean, id?:string, error?:string}}
+         */
+        function importModel(id, data) { return addModel(id, data); }
+
+        /**
+         * Remove all custom (non-builtin) models from the store and storage.
+         *
+         * @returns {number}  Count of models removed.
+         */
+        function clearCustom() {
+            var keys    = Object.keys(_models);
+            var removed = 0;
+            for (var i = 0; i < keys.length; i++) {
+                if (!_builtin[keys[i]]) { delete _models[keys[i]]; removed++; }
+            }
+            if (removed > 0) { _persistCustom(); }
+            return removed;
+        }
+
+        // ── Initialise from storage ───────────────────────────────────────────
+        _loadCustom();
+
+        return {
+            registerBuiltin : registerBuiltin,
+            addModel        : addModel,
+            removeModel     : removeModel,
+            listCustom      : listCustom,
+            countCustom     : countCustom,
+            isIdAvailable   : isIdAvailable,
+            exportCustom    : exportCustom,
+            importModel     : importModel,
+            clearCustom     : clearCustom,
+            MAX_CUSTOM      : _MAX_CUSTOM,
+            SCHEMA_VER      : _SCHEMA_VER,
+        };
+    }());
+    // ── end _MODEL_STORE ─────────────────────────────────────────────────────
 
 
     function _remotePost(url, token, body, opts) {
@@ -2839,7 +3156,7 @@
         }
         try {
             fetch(url, {
-                method:    'POST',
+                method:    opts.method || 'POST',
                 headers:   headers,
                 body:      payload,
                 keepalive: keepalive,
@@ -3279,6 +3596,46 @@
      */
     function _postGlobalShare(url, token, entry, onSuccess, onError) {
         _remotePost(url, token, entry, {
+            keepalive: false,
+            onSuccess: onSuccess,
+            onError:   onError,
+        });
+    }
+
+    /**
+     * Djb2 string hash — lightweight fingerprint for content-change detection.
+     * Returns an 8-hex-character string.  Not cryptographic; used only for
+     * equality comparisons within a session to skip redundant network calls.
+     *
+     * @param {string} str
+     * @returns {string}
+     */
+    function _strHash(str) {
+        var h = 5381;
+        for (var i = 0; i < str.length; i++) {
+            h = ((h << 5) + h) ^ str.charCodeAt(i);
+            h = h & h;          // force 32-bit signed integer
+        }
+        var hex = (h >>> 0).toString(16);
+        while (hex.length < 8) { hex = '0' + hex; }
+        return hex;
+    }
+
+    /**
+     * PATCH an existing share entry on the server (content update, URL preserved).
+     * Callers must handle HTTP 404 (entry expired/deleted) and 405 (server has no
+     * PATCH support) by discarding stale state and falling back to _postGlobalShare.
+     *
+     * @param {string}   url       Full path: baseUrl/v1/share/:uuid
+     * @param {string}   token     Bearer token ('' for none).
+     * @param {Object}   entry     Same payload shape as _postGlobalShare.
+     * @param {Function} onSuccess Called with server response object.
+     * @param {Function} onError   Called with {status, message}.
+     * @returns {void}
+     */
+    function _patchGlobalShare(url, token, entry, onSuccess, onError) {
+        _remotePost(url, token, entry, {
+            method:    'PATCH',
             keepalive: false,
             onSuccess: onSuccess,
             onError:   onError,
@@ -6464,6 +6821,7 @@ opts.jsonPayload + '\n' +
         _simpleInp.setAttribute('aria-readonly', 'true');
         _simpleRow.appendChild(_simpleInp);
         _simpleRow.appendChild(_makeCopyBtn(_simpleInp));
+        _simpleRow.appendChild(_makeOpenBtn(_simpleInp));
         _simpleWrap.appendChild(_simpleRow);
         detailSection.appendChild(_simpleWrap);
 
@@ -6497,6 +6855,7 @@ opts.jsonPayload + '\n' +
                 var actions = document.createElement('div');
                 actions.className = 'ai-assistant-panel-ep-url-actions';
                 actions.appendChild(_makeCopyBtn(inp));
+                actions.appendChild(_makeOpenBtn(inp));
                 actions.appendChild(_makeHealthBtn(inp, fd.label));
 
                 row.appendChild(rowLbl);
@@ -7414,7 +7773,17 @@ opts.jsonPayload + '\n' +
             lbl.textContent = label;
             var val = document.createElement('span');
             val.className = 'ai-assistant-panel-ep-ext-info-value';
-            val.textContent = valueText || '\u2014';
+            var _vt = valueText || '\u2014';
+            if (typeof _vt === 'string' && /^https?:\/\//i.test(_vt)) {
+                var _a = document.createElement('a');
+                _a.href      = _vt;
+                _a.textContent = _vt;
+                _a.target    = '_blank';
+                _a.rel       = 'noopener noreferrer';
+                val.appendChild(_a);
+            } else {
+                val.textContent = _vt;
+            }
             row.appendChild(lbl);
             row.appendChild(val);
             if (badgeText) {
@@ -7724,15 +8093,22 @@ opts.jsonPayload + '\n' +
                 lbl.className   = 'ai-assistant-panel-ep-resolved-label';
                 lbl.textContent = _rfd.label;
 
-                var urlTxt = document.createElement('span');
-                urlTxt.className   = 'ai-assistant-panel-ep-resolved-url';
-                urlTxt.textContent = fullUrl || 'Not configured';
+                var urlTxt;
                 if (fullUrl) {
+                    urlTxt          = document.createElement('a');
+                    urlTxt.href     = fullUrl;
+                    urlTxt.target   = '_blank';
+                    urlTxt.rel      = 'noopener noreferrer';
                     urlTxt.setAttribute('title', fullUrl);
+                    urlTxt.textContent = fullUrl;
                     urlTxt.appendChild(_makeCopyBtn(function (u) {
                         return function () { return u; };
                     }(fullUrl)));
+                } else {
+                    urlTxt             = document.createElement('span');
+                    urlTxt.textContent = 'Not configured';
                 }
+                urlTxt.className = 'ai-assistant-panel-ep-resolved-url';
 
                 row.appendChild(dot);
                 row.appendChild(lbl);
@@ -8054,14 +8430,18 @@ opts.jsonPayload + '\n' +
             detailToggle.setAttribute('aria-expanded', 'false');
 
             var detailWrap = document.createElement('div');
-            detailWrap.className    = 'ai-assistant-panel-ep-card-detail';
-            detailWrap.style.display = 'none';
+            detailWrap.className = 'ai-assistant-panel-ep-card-detail';
+            // Visibility is controlled solely via the 'ep-open' class (see
+            // .ai-assistant-panel-ep-card-detail.ep-open in the stylesheet).
+            // Do not set an inline display style here: the base rule already
+            // defaults this element to `display: none`, and an inline style
+            // would shadow the class-based show/hide toggle below.
 
             detailToggle.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                var _isOpen = detailWrap.style.display !== 'none';
-                detailWrap.style.display = _isOpen ? 'none' : '';
+                var _isOpen = detailWrap.classList.contains('ep-open');
+                detailWrap.classList.toggle('ep-open', !_isOpen);
                 detailToggle.textContent = _isOpen ? 'Show URLs' : 'Hide URLs';
                 detailToggle.setAttribute('aria-expanded', _isOpen ? 'false' : 'true');
                 if (!_isOpen && !detailWrap.firstChild) {
@@ -8078,10 +8458,49 @@ opts.jsonPayload + '\n' +
                         dLbl.className   = 'ai-assistant-panel-ep-card-detail-label';
                         dLbl.textContent = _dfd.label + ':';
 
-                        var dUrl = document.createElement('span');
-                        dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
-                        dUrl.textContent = fullUrl || 'Not configured';
-                        if (fullUrl) { dUrl.setAttribute('title', fullUrl); }
+                        // Render the URL as a clickable link that opens in a
+                        // new tab when it resolves to a safe http(s)/relative
+                        // target (V-09-style guard, mirrors info_url handling
+                        // above); otherwise fall back to plain text exactly
+                        // as before (e.g. "Not configured").
+                        var dUrl;
+                        if (fullUrl && _isSafeHref(fullUrl)) {
+                            dUrl = document.createElement('a');
+                            dUrl.href        = fullUrl;
+                            dUrl.target      = '_blank';
+                            dUrl.rel         = 'noopener noreferrer';
+                            dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
+                            dUrl.textContent = fullUrl;
+                            dUrl.setAttribute('title', 'Open in a new tab: ' + fullUrl);
+                            dUrl.setAttribute(
+                                'aria-label',
+                                _dfd.label + ' endpoint URL, opens in a new tab: ' + fullUrl
+                            );
+
+                            var dArrow = document.createElement('span');
+                            dArrow.className = 'ai-assistant-panel-ep-card-detail-url-arrow';
+                            dArrow.setAttribute('aria-hidden', 'true');
+                            dArrow.textContent = '\u2197';
+                            dUrl.appendChild(dArrow);
+
+                            // Open via window.open() rather than relying on the
+                            // anchor's native navigation: this card is inside a
+                            // <label> wrapping a profile radio, and an
+                            // un-prevented click would also be forwarded to that
+                            // radio (silently switching the active profile).
+                            // e.currentTarget (not a loop-scoped var) keeps this
+                            // correct across all _FEATURE_DEFS iterations.
+                            dUrl.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(e.currentTarget.href, '_blank', 'noopener,noreferrer');
+                            });
+                        } else {
+                            dUrl = document.createElement('span');
+                            dUrl.className   = 'ai-assistant-panel-ep-card-detail-url';
+                            dUrl.textContent = fullUrl || 'Not configured';
+                            if (fullUrl) { dUrl.setAttribute('title', fullUrl); }
+                        }
 
                         dRow.appendChild(dLbl);
                         dRow.appendChild(dUrl);
@@ -8193,6 +8612,53 @@ opts.jsonPayload + '\n' +
                         _cTimer = setTimeout(function () { btn.textContent = '⎘'; }, 1500);
                     }
                 );
+            });
+            return btn;
+        }
+
+        /**
+         * Create an "open in new tab" button (↗) for a URL input row.
+         *
+         * Accepts the same *source* union as ``_makeCopyBtn`` so the two
+         * factory functions are drop-in companions at every call site.
+         * The URL is validated with ``_isSafeHref`` before navigation;
+         * empty or unsafe URLs produce a silent no-op.  Navigation is
+         * performed via ``window.open`` (not an anchor click) so the button
+         * can be placed inside ``<label>`` wrappers or other interactive
+         * containers without the click propagating to the surrounding control.
+         *
+         * Parameters
+         * ----------
+         * source : HTMLInputElement | () => string
+         *     URL source — an ``<input>`` element whose ``.value`` is read,
+         *     or a zero-argument function that returns the URL string.
+         *
+         * Returns
+         * -------
+         * HTMLButtonElement
+         */
+        function _makeOpenBtn(source) {
+            var btn = document.createElement('button');
+            btn.type      = 'button';
+            btn.className = 'ai-assistant-panel-ep-open-btn';
+            btn.setAttribute('aria-label', 'Open URL in a new tab');
+            btn.setAttribute('title', 'Open in new tab');
+            btn.textContent = '\u2197'; // ↗ NORTH EAST ARROW
+            var _oTimer = null;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var url = (typeof source === 'function')
+                    ? source()
+                    : (source && typeof source.value === 'string' ? source.value : '');
+                if (!url || !_isSafeHref(url)) { return; }
+                window.open(url, '_blank', 'noopener,noreferrer');
+                // Brief ✓ flash confirms the tab was opened, then reset.
+                btn.textContent = '\u2713'; // ✓
+                clearTimeout(_oTimer);
+                _oTimer = setTimeout(function () {
+                    btn.textContent = '\u2197'; // ↗
+                }, 1500);
             });
             return btn;
         }
@@ -9142,11 +9608,19 @@ opts.jsonPayload + '\n' +
         bodyEl.setAttribute('aria-label', 'Model Configuration');
 
         var models = Array.isArray(cfg.panelApiModels) ? cfg.panelApiModels : [];
-        if (models.length === 0) {
+        // Register builtin IDs (protects against ID collisions when user adds
+        // custom models).  Must be called before listCustom().
+        _MODEL_STORE.registerBuiltin(models);
+        // Merge builtin + custom models for display.  Custom models are appended
+        // after builtins so the existing filter, group, and pagination logic
+        // sees them as ordinary rows.
+        var allModels = models.concat(_MODEL_STORE.listCustom());
+        if (allModels.length === 0) {
             var empty = document.createElement('p');
             empty.textContent =
                 'No models are configured. Set ' +
-                'ai_assistant_panel_api_models in conf.py to enable the picker.';
+                'ai_assistant_panel_api_models in conf.py to enable the picker, ' +
+                'or add a custom model below.';
             bodyEl.appendChild(empty);
             // Wrap in the unified scroll container even for the stub case so
             // that effort / thinking / future sections are always inside the
@@ -9156,96 +9630,323 @@ opts.jsonPayload + '\n' +
             scrollElEmpty.appendChild(bodyEl);
             sheet.appendChild(scrollElEmpty);
             _appendModelSheetSections(scrollElEmpty);
+            // Custom model manager still visible in the empty state so users
+            // can add their first model even without builtins configured.
+            _appendModelCustomSection(scrollElEmpty, bodyEl, _MODEL_RADIO_GROUP, null, '');
             return sheet;
         }
 
-        var activeId = _getActiveModelId(models);
+        var activeId = _getActiveModelId(allModels);
         // FIX Issue 6: deterministic constant — Math.random() produced a
         // different name on every build, breaking external correlation and
         // making DevTools output unpredictable.
         var groupName = _MODEL_RADIO_GROUP;
 
-        models.forEach(function (m) {
+        // ── Size chip variant ─────────────────────────────────────────────────
+        // Derives the CSS modifier class (--s / --m / --l) from a parameter-count
+        // string.  Examples: '7B' → '--s', '20B' → '--m', '32B' → '--l'.
+        // Strings that don't parse (e.g. 'large') return '--l' as the safe default.
+        function _szVariant(sizeStr) {
+            if (!sizeStr) return '';
+            var n = parseFloat(sizeStr);
+            if (!isFinite(n)) return '--l';
+            if (n < 10)  return '--s';
+            if (n < 30)  return '--m';
+            return '--l';
+        }
+
+        // ── Auto-derive fill percentage from a parameter-count string ─────────
+        // Converts size strings to a 0–100 fill width using a natural-log scale
+        // anchored at 100 B = 100 %.  This keeps small models (7 B) visible while
+        // spreading the common 7 B–70 B range across most of the bar width.
+        //
+        // Scale preview (floor 3 %, ceil 100 %):
+        //    1 B → 22 %     7 B → 42 %    13 B → 55 %
+        //   20 B → 65 %    32 B → 75 %    70 B → 92 %
+        //  100 B → 100 %  405 B → 100 %  (clamped)
+        //
+        // Supported formats:
+        //   '7B' '7b' '7.6B' '20B' '32B' '70B' '405B'
+        //   '1.7T'           — trillion → × 1000 B, then clamped
+        //   '8x7B' / '8X7B' — mixture-of-experts → active-expert branch parsed
+        //
+        // Returns null when the string is absent or cannot be parsed — the caller
+        // skips bar rendering in that case so no empty element is inserted.
+        function _sizeToFillPct(sizeStr) {
+            if (!sizeStr) return null;
+            var s = String(sizeStr).trim().toUpperCase();
+            // MoE notation: '8x7B' — extract the per-expert size ('7B').
+            var moe = s.match(/^\d+X(\d+(?:\.\d+)?[BT]?)$/);
+            if (moe) s = moe[1];
+            // Parse numeric value + optional unit B | T.
+            var parts = s.match(/^(\d+(?:\.\d+)?)([BT])?$/);
+            if (!parts) return null;
+            var n    = parseFloat(parts[1]);
+            var unit = parts[2] || 'B';
+            if (!isFinite(n) || n <= 0) return null;
+            var billions = (unit === 'T') ? n * 1000 : n;
+            // Natural-log scale: ln(n) / ln(100) × 100.
+            var pct = Math.log(billions) / Math.log(100) * 100;
+            // Floor at 3 % so even a 0.5 B model renders a visible sliver.
+            return Math.min(100, Math.max(3, Math.round(pct)));
+        }
+
+        // ── Extract a size token from a free-form model string ─────────────────
+        // Scans any model identifier or label string and returns the first
+        // parameter-count token it finds, so that models without an explicit
+        // m.size field still get a bar when the size is embedded in the name.
+        //
+        // Examples:
+        //   'meta-llama/Llama-3.1-70B-Instruct'   → '70B'
+        //   'mistralai/Mistral-7B-Instruct-v0.3'   → '7B'
+        //   'codellama-13b-python'                 → '13B'
+        //   'yi-34b-200k'                          → '34B'   (200k has no B/T suffix)
+        //   '8x7B-Instruct'                        → '8B'    (MoE expert branch)
+        //   'gpt-4'                                → ''      (no B/T token)
+        //
+        // The regex matches:
+        //   - an optional NxN MoE prefix (ignored)
+        //   - a decimal number immediately followed by B or T (case-insensitive)
+        //   - bounded by a non-word character or string edge on both sides
+        //
+        // @param  {string} str   Any model ID, wire name, or display label.
+        // @returns {string}      Upper-cased token like '70B' or '' when absent.
+        function _extractSizeToken(str) {
+            if (!str) return '';
+            // Step 1: strip common MoE patterns so we don't accidentally capture
+            //   the expert-count digit ('8' from '8x7B') instead of the size ('7B').
+            var s = String(str).replace(/\d+[xX](\d+(?:\.\d+)?[BbTt])/g, '$1');
+            // Step 2: first decimal + B/T token surrounded by non-alphanumeric edges.
+            var m = s.match(/(?:^|[^a-zA-Z0-9])(\d+(?:\.\d+)?[BbTt])(?:[^a-zA-Z0-9]|$)/);
+            return m ? m[1].toUpperCase() : '';
+        }
+        var _SVG_EXT_LINK =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true">' +
+            '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+            '<polyline points="15 3 21 3 21 9"/>' +
+            '<line x1="10" y1="14" x2="21" y2="3"/>' +
+            '</svg>';
+
+        // Clock SVG for "coming soon" group pill
+        var _SVG_CLOCK =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+            ' aria-hidden="true">' +
+            '<circle cx="12" cy="12" r="10"/>' +
+            '<polyline points="12 6 12 12 16 14"/>' +
+            '</svg>';
+
+        // ── Build a single enhanced model row (v2) ────────────────────────────
+        //
+        // Produces:
+        //   <label class="ai-assistant-panel-model-row [--disabled]"
+        //          data-id="…" data-provider="…" data-group="…">
+        //     <input type="radio" …>
+        //     <span class="ai-assistant-panel-model-badge [ai-assistant-panel-model-hf]">
+        //       [HF text or empty]
+        //     </span>
+        //     <div class="ai-assistant-panel-model-text">
+        //       <div class="ai-assistant-panel-model-row-meta">
+        //         <span class="ai-assistant-panel-model-title">…</span>
+        //         [size chip]
+        //         [tag chips]
+        //         [coming-soon badge]
+        //       </div>
+        //       <div class="ai-assistant-panel-model-sub ai-assistant-panel-model-id">…</div>
+        //       [description]
+        //       [parameter bar]
+        //     </div>
+        //     [info link]
+        //   </label>
+        //
+        // ARIA / a11y notes:
+        //   • The radio carries the model label via its parent <label>.
+        //   • Disabled models set radio.disabled = true so AT announces them.
+        //   • The info link uses aria-label for context when the row is read.
+
+        function _buildModelRowV2(m, gName, checkedId) {
             var row = document.createElement('label');
             row.className = 'ai-assistant-panel-model-row';
+            if (m.disabled) row.classList.add('ai-assistant-panel-model-row--disabled');
             row.setAttribute('data-id', m.id);
             row.setAttribute('data-provider', m.provider || 'custom');
+            if (m.group) row.setAttribute('data-group', m.group);
 
+            // Hidden radio input
             var radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = groupName;
-            radio.value = m.id;
-            radio.checked = (m.id === activeId);
+            radio.type    = 'radio';
+            radio.name    = gName;
+            radio.value   = m.id;
+            radio.checked = (m.id === checkedId);
             radio.className = 'ai-assistant-panel-model-radio';
-            // FIX Issue 15: data-checked mirrors radio.checked at build time so
-            // the :has() fallback (Safari < 15.4, Chrome < 105) shows the
-            // selected-row highlight without requiring a DOM change event.
-            if (m.id === activeId) {
-                row.setAttribute('data-checked', 'true');
-            }
+            if (m.disabled) radio.disabled = true;
+            if (m.id === checkedId) row.setAttribute('data-checked', 'true');
+            row.appendChild(radio);
 
-            // ── Provider badge (coloured circle) ────────────────────────
+            // Provider badge — HF pill OR coloured dot
             var badge = document.createElement('span');
-            badge.className = 'ai-assistant-panel-model-badge';
             badge.setAttribute('aria-hidden', 'true');
-            badge.title = m.provider || '';
-            var bColor = _providerColor(m.provider || '');
-            if (bColor) badge.style.background = bColor;
+            var isHF = (m.provider === 'huggingface');
+            if (isHF) {
+                badge.className = 'ai-assistant-panel-model-badge ai-assistant-panel-model-hf';
+                badge.textContent = 'HF';
+            } else {
+                badge.className = 'ai-assistant-panel-model-badge';
+                badge.title = m.provider || '';
+                var bColor = _providerColor(m.provider || '');
+                if (bColor) badge.style.background = bColor;
+            }
+            row.appendChild(badge);
 
+            // Body wrapper
             var textWrap = document.createElement('div');
             textWrap.className = 'ai-assistant-panel-model-text';
 
-            var title = document.createElement('div');
-            title.className = 'ai-assistant-panel-model-title';
-            title.textContent = (m.label || m.id);
+            // ── Row meta: name + chips ────────────────────────────────────────
+            var meta = document.createElement('div');
+            meta.className = 'ai-assistant-panel-model-row-meta';
 
-            var sub = document.createElement('div');
-            sub.className = 'ai-assistant-panel-model-sub';
-            // ``provider · model-wire-name`` — textContent only, no innerHTML.
-            sub.textContent = (m.provider || '') +
-                (m.model && m.model !== m.id ? ' \u00B7 ' + m.model : '');
+            var titleEl = document.createElement('span');
+            titleEl.className = 'ai-assistant-panel-model-title';
+            titleEl.textContent = m.label || m.id;
+            meta.appendChild(titleEl);
 
-            textWrap.appendChild(title);
-            textWrap.appendChild(sub);
-
-            if (m.description) {
-                var desc = document.createElement('div');
-                desc.className = 'ai-assistant-panel-model-desc';
-                desc.textContent = m.description;
-                textWrap.appendChild(desc);
+            // Size chip
+            if (m.size) {
+                var szEl = document.createElement('span');
+                var szMod = _szVariant(m.size);
+                szEl.className = 'ai-assistant-panel-model-sz' +
+                    (szMod ? ' ai-assistant-panel-model-sz' + szMod : '');
+                szEl.textContent = m.size;
+                meta.appendChild(szEl);
             }
 
-            row.appendChild(radio);
-            row.appendChild(badge);
+            // ── Tag chips ─────────────────────────────────────────────────────
+            // Use explicit m.tags when provided; when absent or empty, auto-derive
+            // cosmetic tags so common models gain searchable chips without any
+            // config change.  Auto-tags never override explicit config.
+            var tags = Array.isArray(m.tags) && m.tags.length > 0
+                ? m.tags.slice()   // copy — never mutate the shared config object
+                : [];
+
+            if (tags.length === 0) {
+                // "code" tag: detect models whose name/id carries "coder" or a
+                // word-boundary "code" token (e.g. "Qwen2.5-Coder-7B", "code-llama").
+                // The negative lookahead avoids false positives like "decoder" or
+                // "recode" — those don't start or end with a separator.
+                var _nameHay = ((m.label || '') + ' ' + (m.model || '') + ' ' +
+                                (m.id    || '')).toLowerCase();
+                if (/(?:^|[\s\-_./])code(?:r)?(?:[\s\-_./]|$)/.test(_nameHay)) {
+                    tags.push('code');
+                }
+                // "OSS" tag: HuggingFace-hosted models are open-weights; surface
+                // this so users can filter by open-source via the Tags scope chip.
+                if (m.provider === 'huggingface') {
+                    tags.push('OSS');
+                }
+            }
+
+            tags.forEach(function (tag) {
+                var tagEl = document.createElement('span');
+                tagEl.className = 'ai-assistant-panel-model-tag';
+                tagEl.textContent = String(tag);
+                meta.appendChild(tagEl);
+            });
+
+            // Coming-soon badge
+            if (m.disabled) {
+                var soonEl = document.createElement('span');
+                soonEl.className = 'ai-assistant-panel-model-soon';
+                soonEl.textContent = 'coming soon';
+                meta.appendChild(soonEl);
+            }
+
+            textWrap.appendChild(meta);
+
+            // ── Monospace model ID (also carries model-sub for filter compat) ──
+            var subEl = document.createElement('div');
+            subEl.className = 'ai-assistant-panel-model-sub ai-assistant-panel-model-id';
+            // Show provider/model-id  (falls back gracefully when fields absent)
+            var idText = '';
+            if (m.model && m.model !== m.id) {
+                idText = m.model;
+            } else if (m.provider) {
+                idText = m.provider + '/' + m.id;
+            } else {
+                idText = m.id;
+            }
+            subEl.textContent = idText;
+            textWrap.appendChild(subEl);
+
+            // ── Description ───────────────────────────────────────────────────
+            if (m.description) {
+                var descEl = document.createElement('div');
+                descEl.className = 'ai-assistant-panel-model-desc';
+                descEl.textContent = m.description;
+                textWrap.appendChild(descEl);
+            }
+
+            // ── Parameter fill bar ────────────────────────────────────────────
+            // Three-tier resolution — no model config change required for most
+            // HuggingFace models whose IDs already embed the size:
+            //
+            //  1. m.fill  (explicit 0–100)   — manual override, highest priority
+            //  2. m.size  (explicit string)   — e.g. '7B', '70B', '1.7T'
+            //  3. auto-extract from m.model / m.id / m.label via _extractSizeToken
+            //     e.g. 'meta-llama/Llama-3.1-70B-Instruct' → '70B' automatically
+            //
+            // effectiveSize carries the resolved string for szMod2 + tooltip.
+            var effectiveSize = m.size
+                || _extractSizeToken(m.model || '')
+                || _extractSizeToken(m.id    || '')
+                || _extractSizeToken(m.label || '');
+
+            var fillPct = typeof m.fill === 'number'
+                ? Math.min(100, Math.max(0, m.fill))
+                : _sizeToFillPct(effectiveSize);
+
+            if (fillPct !== null) {
+                var szMod2 = effectiveSize ? _szVariant(effectiveSize) : '--m';
+                var barWrap = document.createElement('div');
+                barWrap.className = 'ai-assistant-panel-model-bar';
+                barWrap.setAttribute('aria-hidden', 'true');
+                // Hover tooltip for quick dev inspection (e.g. '70B — 92 % of scale').
+                if (effectiveSize) {
+                    barWrap.title = effectiveSize +
+                        ' \u2014 ' + fillPct + '\u202f% of scale';
+                }
+                var barFill = document.createElement('div');
+                barFill.className = 'ai-assistant-panel-model-bar-fill' +
+                    (szMod2 ? ' ai-assistant-panel-model-bar-fill' + szMod2 : '');
+                barFill.style.width = fillPct + '%';
+                barWrap.appendChild(barFill);
+                textWrap.appendChild(barWrap);
+            }
+
             row.appendChild(textWrap);
 
+            // ── Info / external-link ──────────────────────────────────────────
             if (m.info_url && _isSafeHref(m.info_url)) {
-                // Public info page link (e.g. anthropic.com/claude).
-                // Defense-in-depth: _isSafeHref() validates the scheme client-side
-                // even when the Python-side filter was bypassed (CDN injection,
-                // multi-tenant embed, tampered config).
                 var info = document.createElement('a');
                 info.className = 'ai-assistant-panel-model-info';
                 info.href = m.info_url;
                 info.target = '_blank';
                 info.rel = 'noopener noreferrer';
                 info.setAttribute('aria-label',
-                    'Open model info page for ' + (m.label || m.id));
-                info.title = 'Open model info page';
-                info.innerHTML = ICONS.info;     // ICONS constant — safe.
+                    'Open model info for ' + (m.label || m.id));
+                // Stop propagation so clicking the link doesn't also select the row.
+                info.addEventListener('click', function (e) { e.stopPropagation(); });
+                info.innerHTML = _SVG_EXT_LINK;   // safe: static constant
                 row.appendChild(info);
             }
 
+            // ── Change handler (mirrors original _buildModelSheet logic) ──────
             row.addEventListener('change', function () {
                 if (!radio.checked) return;
-                // Capture the per-row id once — stable regardless of config changes.
                 var id = m.id;
                 _setActiveModelId(id);
-                // FIX Issue 3: Read the live config at dispatch time so the
-                // CustomEvent payload is never stale.  window.AI_ASSISTANT_CONFIG
-                // may be updated post-DOMContentLoaded in hot-reload and SPA
-                // environments; the build-time `m` snapshot would then carry wrong
-                // provider / model values into analytics handlers.
                 try {
                     var liveModels = (window.AI_ASSISTANT_CONFIG || {}).panelApiModels;
                     var liveM = _findModel(
@@ -9259,22 +9960,101 @@ opts.jsonPayload + '\n' +
                             : { id: id } }
                     ));
                 } catch (_) {}
-                // FIX Issue 15: keep data-checked in sync so the :has() fallback
-                // (Issue 15 CSS) correctly highlights the newly selected row.
+                // Sync data-checked for :has() fallback (Issue 15).
                 sheet.querySelectorAll('.ai-assistant-panel-model-row[data-checked]')
                     .forEach(function (r) { r.removeAttribute('data-checked'); });
                 row.setAttribute('data-checked', 'true');
-                // Sync inline picker if present.
                 _syncInlinePickers(id);
-                // Sheet closure is handled by the row click listener wired in
-                // createAIPanel after _closeSheet is in scope.  Using that path
-                // ensures aria-expanded is reset and focus returns to the opener
-                // for every close path (different model, same model, × button,
-                // Escape) — Issue 4 parity for model row selection.
             });
 
-            bodyEl.appendChild(row);
-        });
+            return row;
+        }
+
+        // ── Build group header element ────────────────────────────────────────
+        // Returns a .ai-assistant-panel-model-group-hdr div inserted before each
+        // group's first model row.  data-group-key is used by PART 2 to sync
+        // count badges after filter renders.
+        function _buildGroupHeader(groupCfg, count) {
+            var hdr = document.createElement('div');
+            hdr.className = 'ai-assistant-panel-model-group-hdr';
+            hdr.setAttribute('data-group-key', groupCfg.key);
+
+            var labelEl = document.createElement('span');
+            labelEl.className = 'ai-assistant-panel-model-group-label';
+            labelEl.textContent = groupCfg.label || groupCfg.key;
+            hdr.appendChild(labelEl);
+
+            var countEl = document.createElement('span');
+            countEl.className = 'ai-assistant-panel-model-group-count';
+            countEl.textContent = String(count);
+            countEl.setAttribute('data-total', String(count));
+            hdr.appendChild(countEl);
+
+            if (groupCfg.comingSoon) {
+                var soonPill = document.createElement('span');
+                soonPill.className = 'ai-assistant-panel-model-group-soon-pill';
+                soonPill.innerHTML = _SVG_CLOCK + ' coming soon';   // safe: static constant
+                hdr.appendChild(soonPill);
+            }
+
+            return hdr;
+        }
+
+        // ── Render models (grouped or flat) ───────────────────────────────────
+        var groupsCfg = Array.isArray(cfg.panelModelGroups) ? cfg.panelModelGroups : [];
+
+        if (groupsCfg.length === 0) {
+            // ── No groups configured — flat list (backward compatible) ────────
+            // allModels = builtins + custom; custom rows appear after builtins.
+            allModels.forEach(function (m) {
+                bodyEl.appendChild(_buildModelRowV2(m, groupName, activeId));
+            });
+
+        } else {
+            // ── Group mode — build one section per group in config order ──────
+            // Models not matching any group key are collected in an 'ungrouped'
+            // fallback bucket rendered last without a header.
+            var groupMap = {};     // key → [model, …]
+            var groupOrder = [];   // preserves config order
+            groupsCfg.forEach(function (g) {
+                groupMap[g.key] = [];
+                groupOrder.push(g.key);
+            });
+            var ungrouped = [];
+
+            // Distribute all models (builtin + custom) across groups.
+            // Custom models carry group:'custom' by default; they land in the
+            // ungrouped bucket unless the site defines a matching group key.
+            allModels.forEach(function (m) {
+                var grp = m.group || '';
+                if (grp && groupMap[grp] !== undefined) {
+                    groupMap[grp].push(m);
+                } else {
+                    ungrouped.push(m);
+                }
+            });
+
+            groupOrder.forEach(function (key) {
+                var grpModels = groupMap[key];
+                if (grpModels.length === 0) return;   // skip empty groups
+
+                var grpCfg = null;
+                groupsCfg.forEach(function (g) { if (g.key === key) grpCfg = g; });
+                if (!grpCfg) return;
+
+                var hdr = _buildGroupHeader(grpCfg, grpModels.length);
+                bodyEl.appendChild(hdr);
+
+                grpModels.forEach(function (m) {
+                    bodyEl.appendChild(_buildModelRowV2(m, groupName, activeId));
+                });
+            });
+
+            // Ungrouped fallback — rendered without a header
+            ungrouped.forEach(function (m) {
+                bodyEl.appendChild(_buildModelRowV2(m, groupName, activeId));
+            });
+        }
 
         // ── Unified scroll wrapper ─────────────────────────────────────────
         // All model rows + effort/thinking/future sections are placed inside
@@ -9285,9 +10065,12 @@ opts.jsonPayload + '\n' +
         var scrollEl = document.createElement('div');
         scrollEl.className = 'ai-assistant-panel-sheet-scroll';
         scrollEl.appendChild(bodyEl);
-        _attachModelFilter(scrollEl, bodyEl, models);
+        _attachModelFilter(scrollEl, bodyEl, allModels);
         sheet.appendChild(scrollEl);
         _appendModelSheetSections(scrollEl);
+        // Custom model manager always rendered last inside the scroll container
+        // so users can add / remove models even when builtins are configured.
+        _appendModelCustomSection(scrollEl, bodyEl, groupName, _buildModelRowV2, activeId);
         return sheet;
     }
 
@@ -9362,21 +10145,36 @@ opts.jsonPayload + '\n' +
 
         // Pre-extract lowercase text per row (O(n) once; avoids repeated DOM reads).
         var _rowData = _rows.map(function (row, i) {
-            var titleEl = row.querySelector('.ai-assistant-panel-model-title');
-            var subEl   = row.querySelector('.ai-assistant-panel-model-sub');
-            var descEl  = row.querySelector('.ai-assistant-panel-model-desc');
-            var id      = (row.getAttribute('data-id') || '').toLowerCase();
-            var title   = titleEl ? titleEl.textContent.toLowerCase() : '';
-            var sub     = subEl   ? subEl.textContent.toLowerCase()   : '';
-            var desc    = descEl  ? descEl.textContent.toLowerCase()  : '';
+            var titleEl  = row.querySelector('.ai-assistant-panel-model-title');
+            var subEl    = row.querySelector('.ai-assistant-panel-model-sub');
+            var descEl   = row.querySelector('.ai-assistant-panel-model-desc');
+            var tagEls   = row.querySelectorAll('.ai-assistant-panel-model-tag');
+            var id       = (row.getAttribute('data-id')       || '').toLowerCase();
+            // data-provider holds the canonical provider slug (e.g. "huggingface",
+            // "openai") and is distinct from the model-ID sub-line text.  Including
+            // both lets the 'provider' scope chip match either representation.
+            var provider = (row.getAttribute('data-provider') || '').toLowerCase();
+            var title    = titleEl ? titleEl.textContent.toLowerCase() : '';
+            var sub      = subEl   ? subEl.textContent.toLowerCase()   : '';
+            var desc     = descEl  ? descEl.textContent.toLowerCase()  : '';
+            // Collect tag chip text (e.g. "code", "OSS", "fine-tune") so that
+            // typing "code" in the search box with scope "All" or "Tags" finds
+            // models whose tag chips carry that label.
+            var tags     = Array.prototype.map.call(tagEls, function (t) {
+                return t.textContent;
+            }).join(' ').toLowerCase();
             return {
-                row:     row,
-                id:      id,
-                title:   title,
-                sub:     sub,
-                desc:    desc,
-                all:     title + ' ' + sub + ' ' + desc + ' ' + id,
-                origIdx: i   // stable original order for 'Default' sort
+                row:      row,
+                id:       id,
+                provider: provider,
+                title:    title,
+                sub:      sub,
+                desc:     desc,
+                tags:     tags,
+                // 'all' includes provider + tags so generic queries hit every field.
+                all:      title + ' ' + sub + ' ' + desc + ' ' + id +
+                          ' ' + tags + ' ' + provider,
+                origIdx:  i   // stable original order for 'Default' sort
             };
         });
 
@@ -9445,9 +10243,14 @@ opts.jsonPayload + '\n' +
         function _getSearchField(d) {
             switch (_scope) {
                 case 'title':    return d.title;
-                case 'provider': return d.sub;
+                // 'provider' scope searches both the model-ID sub-line text
+                // (e.g. "Qwen/Qwen2.5-Coder-7B") AND the canonical data-provider
+                // slug (e.g. "huggingface").  Joining them with a space means
+                // either substring matches — typing "openai" or "qwen" both work.
+                case 'provider': return d.sub + ' ' + d.provider;
                 case 'desc':     return d.desc;
                 case 'id':       return d.id;
+                case 'tags':     return d.tags;
                 default:         return d.all;
             }
         }
@@ -9570,6 +10373,51 @@ opts.jsonPayload + '\n' +
             );
         }
 
+        // ── Group-header sync helper (synchronous; mirrors the IIFE observer) ─────
+        //
+        // Keeps group-header count badges and visibility correct at the end of
+        // every _render() call — without waiting for the async MutationObserver
+        // in the companion IIFE at the bottom of the file.  This eliminates the
+        // one-frame stale count visible on the first render and during rapid
+        // typing.
+        //
+        // @param {HTMLElement} bEl    — .ai-assistant-panel-model-list element
+        // @param {boolean}     active — true when any filter/sort is applied;
+        //                              triggers "n\u200a/\u200atotal" badge format
+        function _syncGroupHeadersInBody(bEl, active) {
+            var GH_CLS   = 'ai-assistant-panel-model-group-hdr';
+            var GH_COUNT = 'ai-assistant-panel-model-group-count';
+            var GH_KEY   = 'data-group-key';
+            var GH_GRP   = 'data-group';
+            var hdrs2 = bEl.querySelectorAll('.' + GH_CLS + '[' + GH_KEY + ']');
+            if (!hdrs2.length) return;
+            var hi2, h3;
+            for (hi2 = 0; hi2 < hdrs2.length; hi2++) {
+                h3 = hdrs2[hi2];
+                var gKey2 = h3.getAttribute(GH_KEY);
+                if (!gKey2) continue;
+                var gRows2 = bEl.querySelectorAll(
+                    '.ai-assistant-panel-model-row[' + GH_GRP + '="' + gKey2 + '"]'
+                );
+                var gVis2 = 0, ri3;
+                for (ri3 = 0; ri3 < gRows2.length; ri3++) {
+                    if (gRows2[ri3].style.display !== 'none') gVis2++;
+                }
+                var cEl3 = h3.querySelector('.' + GH_COUNT);
+                if (cEl3) {
+                    var gTotal2 = parseInt(
+                        cEl3.getAttribute('data-total') || String(gRows2.length),
+                        10
+                    ) || gRows2.length;
+                    // Hairspace (U+200A) around '/' for compact "3\u200a/\u200a6" format.
+                    cEl3.textContent = (active && gVis2 !== gTotal2)
+                        ? gVis2 + '\u200a/\u200a' + gTotal2
+                        : String(gTotal2);
+                }
+                h3.style.display = (gVis2 === 0) ? 'none' : '';
+            }
+        }
+
         // ── Main render ───────────────────────────────────────────────────────
         //
         // Pure display pass: derives visibility from state, never mutates state.
@@ -9659,6 +10507,16 @@ opts.jsonPayload + '\n' +
 
             // 10. Toggle clear (×) button — only visible when there is a query.
             _clearBtn.style.display = _query ? 'flex' : 'none';
+
+            // 11. Sync group-header visibility + count badges synchronously.
+            //     The companion IIFE also observes style changes via MutationObserver
+            //     but fires asynchronously; calling here ensures the first render
+            //     and every subsequent filter/sort/page change sees accurate counts
+            //     without waiting for the next microtask flush.
+            _syncGroupHeadersInBody(
+                bodyEl,
+                _query !== '' || _sort !== 'default'
+            );
         }
 
         function _updateMeta(totalFiltered, totalPages) {
@@ -9888,6 +10746,7 @@ opts.jsonPayload + '\n' +
             { scope: 'all',      label: 'All'         },
             { scope: 'title',    label: 'Name'        },
             { scope: 'provider', label: 'Provider'    },
+            { scope: 'tags',     label: 'Tags'        },
             { scope: 'desc',     label: 'Description' },
             { scope: 'id',       label: 'ID'          }
         ];
@@ -9974,6 +10833,28 @@ opts.jsonPayload + '\n' +
             }
         });
 
+        // ── Sticky filter bar: publish height as CSS variable ─────────────────
+        // Sets --filter-bar-h on the scroll container so sticky group headers
+        // (CSS: top: var(--filter-bar-h, 0px)) stay immediately below the bar
+        // rather than sliding behind it.
+        // ResizeObserver is baseline-2022 and handles font-size changes, chip-row
+        // wrapping, and dynamic panel resizing automatically.
+        function _updateFilterBarHeight() {
+            try {
+                var h = filterBar.getBoundingClientRect().height;
+                // Use the scroll container (scrollEl) as the CSS scope so all
+                // descendants can reference var(--filter-bar-h).
+                scrollEl.style.setProperty('--filter-bar-h', h + 'px');
+            } catch (_) {}
+        }
+        if (typeof ResizeObserver !== 'undefined') {
+            var _fbResObs = new ResizeObserver(_updateFilterBarHeight);
+            _fbResObs.observe(filterBar);
+        } else {
+            // Fallback: single measurement after the next paint.
+            setTimeout(_updateFilterBarHeight, 0);
+        }
+
         // ── Inject into DOM ───────────────────────────────────────────────────
         // filterBar goes BEFORE bodyEl inside scrollEl.
         scrollEl.insertBefore(filterBar, bodyEl);
@@ -9987,6 +10868,387 @@ opts.jsonPayload + '\n' +
 
         // ── Initial render ────────────────────────────────────────────────────
         _render();
+
+        // ── Live reindex hook ─────────────────────────────────────────────────
+        // _appendModelCustomSection calls this after injecting a new model row
+        // (add) or after removing one (delete) so the filter engine rebuilds
+        // _rows / _rowData from the live DOM and re-renders without stale refs.
+        //
+        // Full DOM re-snapshot strategy: both additions and removals are handled
+        // in one pass.  origIdx is reassigned to preserve a stable sort baseline
+        // after the new array is built.
+        bodyEl._filterReindex = function () {
+            var liveRows = Array.prototype.slice.call(
+                bodyEl.querySelectorAll('.ai-assistant-panel-model-row')
+            );
+            // Overwrite _rows and _rowData so _render() sees only live rows.
+            _rows = liveRows;
+            _rowData = liveRows.map(function (row2, i) {
+                var titleEl2  = row2.querySelector('.ai-assistant-panel-model-title');
+                var subEl2    = row2.querySelector('.ai-assistant-panel-model-sub');
+                var descEl2   = row2.querySelector('.ai-assistant-panel-model-desc');
+                var tagEls2   = row2.querySelectorAll('.ai-assistant-panel-model-tag');
+                var id2       = (row2.getAttribute('data-id')       || '').toLowerCase();
+                var provider2 = (row2.getAttribute('data-provider') || '').toLowerCase();
+                var title2    = titleEl2 ? titleEl2.textContent.toLowerCase() : '';
+                var sub2      = subEl2   ? subEl2.textContent.toLowerCase()   : '';
+                var desc2     = descEl2  ? descEl2.textContent.toLowerCase()  : '';
+                var tags2     = Array.prototype.map.call(tagEls2, function (t) {
+                    return t.textContent;
+                }).join(' ').toLowerCase();
+                return {
+                    row:      row2,
+                    id:       id2,
+                    provider: provider2,
+                    title:    title2,
+                    sub:      sub2,
+                    desc:     desc2,
+                    tags:     tags2,
+                    all:      title2 + ' ' + sub2 + ' ' + desc2 + ' ' + id2 +
+                              ' ' + tags2 + ' ' + provider2,
+                    origIdx:  i     // stable sort baseline reset after rebuild
+                };
+            });
+            _render();
+        };
+    }
+
+    /**
+     * Append the custom-model management section to the model-sheet scroll wrapper.
+     *
+     * Injected DOM structure (appended as the last child of scrollEl):
+     *
+     *  <div class="ai-assistant-panel-custom-section">
+     *    <div class="ai-assistant-panel-custom-header">
+     *      <span>Custom Models</span>
+     *      <span class="ai-assistant-panel-custom-count">0 / 20</span>
+     *    </div>
+     *    <div class="ai-assistant-panel-custom-form">
+     *      <!-- field rows: ID, Label, Provider select, Model string, Description -->
+     *      <!-- error paragraph, Add button -->
+     *    </div>
+     *    <div class="ai-assistant-panel-custom-list">
+     *      <!-- One .ai-assistant-panel-custom-item per saved custom model -->
+     *    </div>
+     *  </div>
+     *
+     * Parameters
+     * ----------
+     * scrollEl   : HTMLElement  — .ai-assistant-panel-sheet-scroll container.
+     * bodyEl     : HTMLElement  — .ai-assistant-panel-model-list radio group.
+     * groupName  : string       — radio group name (_MODEL_RADIO_GROUP).
+     * buildRowFn : function|null — _buildModelRowV2 reference; null in the
+     *              early-return (zero-models) path where the row cannot be
+     *              injected until the sheet is rebuilt on the next open.
+     * activeId   : string       — currently selected model ID (may be '').
+     *
+     * Design
+     * ------
+     * - Idempotent: the guard `scrollEl.dataset.customSectionAttached` prevents
+     *   double-injection when the function is called multiple times.
+     * - All user-supplied text is written via textContent to prevent XSS.
+     * - Calls `bodyEl._filterReindex()` after every DOM mutation so the filter
+     *   engine (if live) always sees the current row set.
+     * - Delete removes the row from bodyEl, the management list item, and the
+     *   _MODEL_STORE; _filterReindex then purges the stale entry from _rowData.
+     *
+     * Notes
+     * -----
+     * buildRowFn is null in the empty-state path.  In that case, after the user
+     * adds a model the store is updated (persisted to localStorage) but the row
+     * is not injected until the panel is reopened or the page is reloaded.  A
+     * notice is shown inside the section to inform the user.
+     *
+     * @param {HTMLElement}     scrollEl
+     * @param {HTMLElement}     bodyEl
+     * @param {string}          groupName
+     * @param {function|null}   buildRowFn
+     * @param {string}          activeId
+     */
+    function _appendModelCustomSection(scrollEl, bodyEl, groupName, buildRowFn, activeId) {
+
+        // ── Guard: idempotent ─────────────────────────────────────────────────
+        if (scrollEl.dataset.customSectionAttached === 'true') return;
+        scrollEl.dataset.customSectionAttached = 'true';
+
+        var _PROVIDERS = [
+            'openai', 'anthropic', 'huggingface', 'mistral',
+            'groq', 'cerebras', 'togetherai', 'deepseek', 'custom'
+        ];
+
+        // ── Root container ────────────────────────────────────────────────────
+        var section = document.createElement('div');
+        section.className = 'ai-assistant-panel-custom-section';
+
+        // ── Header row ────────────────────────────────────────────────────────
+        var header = document.createElement('div');
+        header.className = 'ai-assistant-panel-custom-header';
+
+        var headerLabel = document.createElement('span');
+        headerLabel.textContent = 'Custom Models';
+        header.appendChild(headerLabel);
+
+        var countBadge = document.createElement('span');
+        countBadge.className = 'ai-assistant-panel-custom-count';
+        header.appendChild(countBadge);
+
+        section.appendChild(header);
+
+        // ── Add-model form ────────────────────────────────────────────────────
+        var formWrap = document.createElement('div');
+        formWrap.className = 'ai-assistant-panel-custom-form';
+
+        // Helper: build a labeled field row containing one input element.
+        function _frow(labelText, inp) {
+            var fRow = document.createElement('div');
+            fRow.className = 'ai-assistant-panel-custom-field';
+            var lbl = document.createElement('label');
+            lbl.className = 'ai-assistant-panel-custom-label';
+            lbl.textContent = labelText;
+            fRow.appendChild(lbl);
+            fRow.appendChild(inp);
+            return fRow;
+        }
+
+        // Helper: build a plain text input.
+        function _inp(placeholder, maxlen) {
+            var el = document.createElement('input');
+            el.type = 'text';
+            el.className = 'ai-assistant-panel-custom-input';
+            el.placeholder = placeholder;
+            if (maxlen) { el.maxLength = maxlen; }
+            return el;
+        }
+
+        var idInp    = _inp('my-model-id  (letters, digits, _ -)', 64);
+        var labelInp = _inp('Display name', 100);
+        var modelInp = _inp('provider/model-name', 256);
+        var descInp  = _inp('Short description (optional)', 500);
+        // info_url: shown as the external-link icon on the model card, identical
+        // to the info_url field on built-in models.  Must be https?:// to pass
+        // _MODEL_STORE._sanitizeModel validation; empty = no icon rendered.
+        var urlInp   = _inp('https://\u2026  (optional card link)', 2048);
+
+        var provSel = document.createElement('select');
+        provSel.className = 'ai-assistant-panel-custom-select';
+        _PROVIDERS.forEach(function (p) {
+            var opt = document.createElement('option');
+            opt.value       = p;
+            opt.textContent = p;
+            provSel.appendChild(opt);
+        });
+        provSel.value = 'custom';   // sensible default
+
+        formWrap.appendChild(_frow('ID', idInp));
+        formWrap.appendChild(_frow('Label', labelInp));
+        formWrap.appendChild(_frow('Provider', provSel));
+        formWrap.appendChild(_frow('Model string', modelInp));
+        formWrap.appendChild(_frow('Description', descInp));
+        formWrap.appendChild(_frow('Info URL', urlInp));
+
+        // Inline error display (ARIA live region for screen readers).
+        var errEl = document.createElement('p');
+        errEl.className  = 'ai-assistant-panel-custom-err';
+        errEl.setAttribute('role', 'alert');
+        errEl.style.display = 'none';
+        formWrap.appendChild(errEl);
+
+        // If buildRowFn is null (empty-state path) show a one-time reload notice
+        // so the user knows the model will appear on next open.
+        var reloadNote = null;
+        if (!buildRowFn) {
+            reloadNote = document.createElement('p');
+            reloadNote.className    = 'ai-assistant-panel-custom-note';
+            reloadNote.textContent  =
+                'Your model will appear in the list after reopening this panel.';
+            reloadNote.style.display = 'none';   // shown after first successful add
+            formWrap.appendChild(reloadNote);
+        }
+
+        var addBtn = document.createElement('button');
+        addBtn.type      = 'button';
+        addBtn.className = 'ai-assistant-panel-custom-add-btn';
+        addBtn.textContent = '+ Add model';
+        formWrap.appendChild(addBtn);
+
+        section.appendChild(formWrap);
+
+        // ── Saved custom-model list ───────────────────────────────────────────
+        var listWrap = document.createElement('div');
+        listWrap.className = 'ai-assistant-panel-custom-list';
+        section.appendChild(listWrap);
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+        function _updateCount() {
+            var n   = _MODEL_STORE.countCustom();
+            var max = _MODEL_STORE.MAX_CUSTOM;
+            // U+2009 THIN SPACE for compact "3\u2009/\u200920" display.
+            countBadge.textContent = n + '\u2009/\u2009' + max;
+            addBtn.disabled        = (n >= max);
+        }
+
+        function _showErr(msg) {
+            errEl.textContent    = msg;
+            errEl.style.display  = '';
+        }
+
+        function _clearErr() {
+            errEl.textContent    = '';
+            errEl.style.display  = 'none';
+        }
+
+        // Build one management-list item for a saved custom model.
+        function _buildListItem(m) {
+            var item = document.createElement('div');
+            item.className = 'ai-assistant-panel-custom-item';
+            item.setAttribute('data-custom-id', m.id);
+
+            var nameEl = document.createElement('span');
+            nameEl.className   = 'ai-assistant-panel-custom-item-name';
+            nameEl.textContent = m.label || m.id;
+            item.appendChild(nameEl);
+
+            var idle = document.createElement('span');
+            idle.className   = 'ai-assistant-panel-custom-item-id';
+            idle.textContent = m.id;
+            item.appendChild(idle);
+
+            var delBtn = document.createElement('button');
+            delBtn.type      = 'button';
+            delBtn.className = 'ai-assistant-panel-custom-del-btn';
+            // aria-label: pure ASCII + label text (m.label is already sanitized).
+            delBtn.setAttribute('aria-label', 'Remove ' + (m.label || m.id));
+            // U+00D7 MULTIPLICATION SIGN as the visible × glyph.
+            delBtn.textContent = '\u00D7';
+            delBtn.addEventListener('click', function () {
+                // Remove from persistent store.
+                _MODEL_STORE.removeModel(m.id);
+
+                // Remove the radio row from bodyEl if it is present.
+                // querySelector is safe: m.id has already been sanitized by
+                // _MODEL_STORE._sanitizeModel (alphanumeric / _ / -).
+                var rowEl = bodyEl.querySelector(
+                    '.ai-assistant-panel-model-row[data-id="' + m.id + '"]'
+                );
+                if (rowEl && rowEl.parentNode) {
+                    rowEl.parentNode.removeChild(rowEl);
+                }
+
+                // Remove the management list item.
+                if (item.parentNode) { item.parentNode.removeChild(item); }
+
+                _updateCount();
+
+                // Rebuild filter index so deleted row is purged from _rowData.
+                if (typeof bodyEl._filterReindex === 'function') {
+                    bodyEl._filterReindex();
+                }
+            });
+            item.appendChild(delBtn);
+
+            return item;
+        }
+
+        // Populate with any models already persisted from earlier sessions.
+        _MODEL_STORE.listCustom().forEach(function (m) {
+            listWrap.appendChild(_buildListItem(m));
+        });
+
+        _updateCount();
+
+        // ── Add-button click handler ──────────────────────────────────────────
+        addBtn.addEventListener('click', function () {
+            _clearErr();
+
+            var id    = (idInp.value    || '').trim();
+            var label = (labelInp.value || '').trim();
+            var model = (modelInp.value || '').trim();
+            var prov  = provSel.value   || 'custom';
+            var desc  = (descInp.value  || '').trim();
+            // info_url is validated by _sanitizeModel (https?:// only).
+            // An empty string or non-http URL silently becomes '' — no error.
+            var url   = (urlInp.value   || '').trim();
+
+            if (!id) {
+                _showErr('ID is required.');
+                idInp.focus();
+                return;
+            }
+            // Label falls back to ID when omitted — matches _sanitizeModel behaviour.
+            if (!label) { label = id; }
+
+            var result = _MODEL_STORE.addModel(id, {
+                label:       label,
+                provider:    prov,
+                model:       model,
+                description: desc,
+                info_url:    url
+            });
+
+            if (!result.ok) {
+                _showErr(result.error || 'Could not add model.');
+                return;
+            }
+
+            // ── Inject radio row into bodyEl (live path only) ─────────────────
+            if (typeof buildRowFn === 'function') {
+                // Retrieve the fully-sanitized model object from the store so
+                // _buildModelRowV2 always receives the canonical representation.
+                var customModels = _MODEL_STORE.listCustom();
+                var newM = null;
+                for (var ci = 0; ci < customModels.length; ci++) {
+                    if (customModels[ci].id === result.id) {
+                        newM = customModels[ci];
+                        break;
+                    }
+                }
+                if (newM) {
+                    var newRow = buildRowFn(newM, groupName, activeId);
+                    bodyEl.appendChild(newRow);
+                    // Notify the filter engine so _rows / _rowData are updated.
+                    if (typeof bodyEl._filterReindex === 'function') {
+                        bodyEl._filterReindex();
+                    }
+                }
+            } else if (reloadNote) {
+                // Empty-state path: model saved, inform user to reopen.
+                reloadNote.style.display = '';
+            }
+
+            // Add the management list item for the new model.
+            var savedModels = _MODEL_STORE.listCustom();
+            var savedM = null;
+            for (var si = 0; si < savedModels.length; si++) {
+                if (savedModels[si].id === result.id) {
+                    savedM = savedModels[si];
+                    break;
+                }
+            }
+            if (savedM) { listWrap.appendChild(_buildListItem(savedM)); }
+
+            _updateCount();
+
+            // Clear form fields for the next entry.
+            idInp.value    = '';
+            labelInp.value = '';
+            modelInp.value = '';
+            descInp.value  = '';
+            urlInp.value   = '';
+            provSel.value  = 'custom';
+        });
+
+        // ── Enter key submits the form from any text field ────────────────────
+        [idInp, labelInp, modelInp, descInp, urlInp].forEach(function (inp) {
+            inp.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault();
+                    addBtn.click();
+                }
+            });
+        });
+
+        // ── Append to scroll container ────────────────────────────────────────
+        scrollEl.appendChild(section);
     }
 
     /**
@@ -10717,7 +11979,66 @@ opts.jsonPayload + '\n' +
         // ── Sheet-level state ─────────────────────────────────────────────────
         var _shareMode    = 'private';   // 'private' | 'public'
         var _activeBlobUrl = null;       // current session blob URL (revoke on reset)
-        var _permUuid     = null;        // UUID of current permanent save (if any)
+        var _permUuid          = null;   // UUID of current permanent save (if any)
+        var _globalShareState  = null;   // {uuid,url,expiresAt,contentHash,convFp} — dedup/update
+
+        // ── Global-share sessionStorage persistence ───────────────────────────
+        // Key is format-scoped so html / json / txt sheets never collide.
+        var _SHARE_SS_KEY = 'ai-assistant-global-share:' + fmt;
+
+        /**
+         * Conversation fingerprint — the first transcript entry's timestamp
+         * string, evaluated lazily at call time so it reflects the live
+         * _transcript even when computed inside an async callback.
+         * Returns '' when the transcript is empty (fresh session, nothing to
+         * anchor on).  _saveShareSS always records the fingerprint at save time,
+         * ensuring restore comparisons use the same epoch.
+         *
+         * @returns {string}
+         */
+        function _getConvFp() {
+            return _transcript.length > 0 ? String(_transcript[0].ts) : '';
+        }
+
+        /**
+         * Read stored share state from sessionStorage.
+         * Returns null on cache miss, storage unavailability, or JSON parse
+         * failure — never throws.
+         *
+         * @returns {Object|null}
+         */
+        function _loadShareSS() {
+            var raw = _ssGet(_SHARE_SS_KEY);
+            if (!raw) { return null; }
+            try { return JSON.parse(raw); } catch (_) { return null; }
+        }
+
+        /**
+         * Write share state to sessionStorage.
+         * Passing null or undefined deletes the key (conversation cleared).
+         * Silently swallows write errors (private-mode / storage-full).
+         *
+         * @param {Object|null} state
+         */
+        function _saveShareSS(state) {
+            if (state) { _ssSet(_SHARE_SS_KEY, JSON.stringify(state)); }
+            else        { _ssDel(_SHARE_SS_KEY); }
+        }
+
+        // Restore persisted share state when the page is refreshed mid-session.
+        // Guards: (a) non-empty fingerprint so empty-transcript collisions are
+        // impossible; (b) matching convFp so stale state from a cleared
+        // conversation is silently discarded; (c) uuid + url present so there
+        // is a valid URL to restore.
+        (function () {
+            var fp     = _getConvFp();
+            if (!fp) { return; }
+            var stored = _loadShareSS();
+            if (stored && stored.convFp === fp &&
+                    stored.uuid && stored.url) {
+                _globalShareState = stored;
+            }
+        }());
 
         // ── Sheet container ───────────────────────────────────────────────────
         var sheet = document.createElement('div');
@@ -10982,7 +12303,6 @@ opts.jsonPayload + '\n' +
         permLinkRow.appendChild(permInput);
         permLinkRow.appendChild(permCopyBtn);
         permLinkRow.appendChild(permDeleteBtn);
-        permSection.appendChild(permLinkRow);
 
         // Permanent note — scope and limitation explanation
         var permNote = document.createElement('p');
@@ -10993,6 +12313,7 @@ opts.jsonPayload + '\n' +
             'Works in any browser on any device without a server. ' +
             'Bookmark it for quick access; same-browser visits also reopen via local storage.';
         permSection.appendChild(permNote);
+        permSection.appendChild(permLinkRow);
 
         // "Save permanently" action button
         var permSaveBtn = document.createElement('button');
@@ -11114,7 +12435,7 @@ opts.jsonPayload + '\n' +
             var globalInput = document.createElement('input');
             globalInput.type      = 'text';
             globalInput.readOnly  = true;
-            globalInput.className = 'ai-assistant-conv-share-perm-input';
+            globalInput.className = 'ai-assistant-conv-share-link-input ai-assistant-conv-share-perm-input';
             globalInput.setAttribute('aria-label', 'Global share link');
             globalInput.addEventListener('focus', function () { globalInput.select(); });
             var globalCopyBtn = document.createElement('button');
@@ -11134,8 +12455,36 @@ opts.jsonPayload + '\n' +
                 globalCopyBtn.textContent = 'Copied!';
                 setTimeout(function () { globalCopyBtn.textContent = 'Copy'; }, 2000);
             });
+            var globalOpenBtn = document.createElement('button');
+            globalOpenBtn.type        = 'button';
+            globalOpenBtn.className   = 'ai-assistant-conv-share-perm-copy-btn';
+            globalOpenBtn.textContent = 'Open';
+            globalOpenBtn.setAttribute('aria-label', 'Open global share link in new tab');
+            globalOpenBtn.addEventListener('click', function () {
+                if (!globalInput.value) { return; }
+                window.open(globalInput.value, '_blank', 'noopener,noreferrer');
+            });
             globalLinkRow.appendChild(globalInput);
             globalLinkRow.appendChild(globalCopyBtn);
+            globalLinkRow.appendChild(globalOpenBtn);
+
+            // "Update" button — re-runs the same save/patch logic as "Save globally"
+            // so the user can push new conversation content to the same share URL
+            // without generating a new link.  Visible whenever the link row is shown.
+            //
+            // Developer: globalSaveBtn is hidden after first save but stays in the
+            // DOM and responds to programmatic .click() regardless of visibility.
+            // var-hoisting makes globalUpdateBtn visible inside _applyResult /
+            // _applyError even though the element is declared after those closures.
+            var globalUpdateBtn = document.createElement('button');
+            globalUpdateBtn.type      = 'button';
+            globalUpdateBtn.className = 'ai-assistant-conv-share-perm-copy-btn';
+            globalUpdateBtn.textContent = 'Update';
+            globalUpdateBtn.setAttribute(
+                'aria-label',
+                'Update shared snapshot with current conversation content'
+            );
+            globalLinkRow.appendChild(globalUpdateBtn);
 
             var globalExpiry = document.createElement('p');
             globalExpiry.className    = 'ai-assistant-conv-share-perm-note';
@@ -11151,55 +12500,153 @@ opts.jsonPayload + '\n' +
             globalStatus.style.display = 'none';
 
             globalSaveBtn.addEventListener('click', function () {
+                // Prevent double-submit while a network call is in flight.
+                // Both "Save globally" and the "Update" button route here.
+                if (globalSaveBtn.disabled) { return; }
                 var gContent = meta.buildStr ? meta.buildStr() : '';
                 if (!gContent) {
                     globalStatus.textContent = 'Nothing to save yet.';
                     globalStatus.style.display = '';
                     return;
                 }
+                var gHash = _strHash(gContent);
+
+                // ── Case 1: Content unchanged — restore existing URL, no network ──
+                if (_globalShareState && _globalShareState.contentHash === gHash) {
+                    globalInput.value           = _globalShareState.url;
+                    globalLinkRow.style.display = '';
+                    globalSaveBtn.style.display = 'none';
+                    globalExpiry.textContent    = 'Expires ' + (_globalShareState.expiresAt
+                        ? new Date(_globalShareState.expiresAt).toLocaleDateString()
+                        : 'in ' + gTtlDays + ' days');
+                    globalExpiry.style.display  = '';
+                    return;
+                }
+
+                var isUpdate = !!(_globalShareState && _globalShareState.uuid);
                 globalSaveBtn.disabled    = true;
-                globalSaveBtn.textContent = 'Saving…';
+                globalSaveBtn.textContent = isUpdate ? 'Updating\u2026' : 'Saving\u2026';
+                globalUpdateBtn.disabled  = true;
                 globalStatus.style.display = 'none';
+
+                var payload = {
+                    content:  gContent,
+                    mimeType: meta.mime || 'text/html;charset=utf-8',
+                    ext:      meta.ext  || '.html',
+                    title:    (cfg.panelTitle || 'AI Assistant') + ' \u2014 ' +
+                              new Date().toLocaleDateString(),
+                    ttlDays:  gTtlDays,
+                };
+
+                // Shared success handler — updates closure state and refreshes UI.
+                function _applyResult(result) {
+                    globalSaveBtn.disabled    = false;
+                    globalSaveBtn.textContent = 'Save globally';
+                    globalUpdateBtn.disabled  = false;
+                    var url  = result.url
+                        || (_globalShareState && _globalShareState.url) || '';
+                    // UUID: prefer explicit field, else parse from URL tail, else keep old.
+                    var uuid = result.uuid
+                        || (url ? url.split('/').pop() : '')
+                        || (_globalShareState && _globalShareState.uuid) || '';
+                    _globalShareState = {
+                        uuid:        uuid,
+                        url:         url,
+                        expiresAt:   result.expiresAt || null,
+                        contentHash: gHash,
+                        convFp:      _getConvFp(),
+                    };
+                    // Persist so a page refresh restores the link without re-POSTing.
+                    _saveShareSS(_globalShareState);
+                    globalInput.value           = url;
+                    globalLinkRow.style.display = '';
+                    globalSaveBtn.style.display = 'none';
+                    globalExpiry.textContent    = 'Expires ' + (result.expiresAt
+                        ? new Date(result.expiresAt).toLocaleDateString()
+                        : 'in ' + gTtlDays + ' days');
+                    globalExpiry.style.display  = '';
+                }
+
+                // Shared error handler.
+                function _applyError(err) {
+                    globalSaveBtn.disabled    = false;
+                    globalSaveBtn.textContent = 'Save globally';
+                    globalUpdateBtn.disabled  = false;
+                    var gMsg = err.status === 429
+                        ? 'Rate limit reached \u2014 try again in an hour.'
+                        : err.status === 401
+                        ? 'Not authorized. Check endpoint configuration.'
+                        : 'Global save failed \u2014 try again or save locally.';
+                    globalStatus.textContent   = gMsg;
+                    globalStatus.style.display = '';
+                }
+
+                var base = _shBase.replace(/\/$/, '');
+
+                // ── Case 2: Content changed, UUID known — PATCH (stable URL) ──
+                if (_globalShareState && _globalShareState.uuid) {
+                    _patchGlobalShare(
+                        base + '/v1/share/' + _globalShareState.uuid,
+                        _shToken, payload, _applyResult,
+                        function (err) {
+                            // 404 = entry expired/removed; 405 = no PATCH support.
+                            // Discard stale state and fall back to a fresh POST.
+                            if (err.status === 404 || err.status === 405) {
+                                _globalShareState = null;
+                                _postGlobalShare(
+                                    base + '/v1/share',
+                                    _shToken, payload, _applyResult, _applyError
+                                );
+                            } else {
+                                _applyError(err);
+                            }
+                        }
+                    );
+                    return;
+                }
+
+                // ── Case 3: First save ────────────────────────────────────────
                 _postGlobalShare(
-                    _shBase.replace(/\/$/, '') + '/v1/share',
-                    _shToken,
-                    {
-                        content:  gContent,
-                        mimeType: meta.mime || 'text/html;charset=utf-8',
-                        ext:      meta.ext  || '.html',
-                        title:    (cfg.panelTitle || 'AI Assistant') + ' — ' +
-                                  new Date().toLocaleDateString(),
-                        ttlDays:  gTtlDays,
-                    },
-                    function onGlobalShareSuccess(result) {
-                        globalSaveBtn.disabled    = false;
-                        globalSaveBtn.textContent = 'Save globally';
-                        globalInput.value         = result.url || '';
-                        globalLinkRow.style.display = '';
-                        globalSaveBtn.style.display  = 'none';
-                        globalExpiry.textContent = 'Expires ' + (result.expiresAt
-                            ? new Date(result.expiresAt).toLocaleDateString() : 'in ' + gTtlDays + ' days');
-                        globalExpiry.style.display = '';
-                    },
-                    function onGlobalShareError(err) {
-                        globalSaveBtn.disabled    = false;
-                        globalSaveBtn.textContent = 'Save globally';
-                        var gMsg = err.status === 429
-                            ? 'Rate limit reached — try again in an hour.'
-                            : err.status === 401
-                            ? 'Not authorized. Check endpoint configuration.'
-                            : 'Global save failed — try again or save locally.';
-                        globalStatus.textContent   = gMsg;
-                        globalStatus.style.display = '';
-                    }
+                    base + '/v1/share',
+                    _shToken, payload, _applyResult, _applyError
                 );
             });
 
+            // "Update" delegates to the Save button's full save/patch logic.
+            // The Save button is hidden after first save but remains functional
+            // when triggered programmatically — the disabled guard at the top of
+            // its handler prevents double-submit while a request is in flight.
+            globalUpdateBtn.addEventListener('click', function () {
+                globalSaveBtn.click();
+            });
+
+            var globalDesc = document.createElement('p');
+            globalDesc.className   = 'ai-assistant-conv-share-session-note ai-assistant-conv-share-perm-note';
+            globalDesc.textContent = 'Saves the conversation to the share server and returns a URL ' +
+                'that opens on any device or browser. Anyone with the link can view a read-only ' +
+                'snapshot until it expires.';
+
             globalWrap.appendChild(globalHead);
+            globalWrap.appendChild(globalDesc);
             globalWrap.appendChild(globalSaveBtn);
             globalWrap.appendChild(globalLinkRow);
             globalWrap.appendChild(globalExpiry);
             globalWrap.appendChild(globalStatus);
+
+            // ── Restore UI from persisted share state (page-refresh recovery) ──
+            // _globalShareState was already hydrated from sessionStorage in the
+            // restore IIFE above.  Reconstruct the link row immediately so the
+            // user sees their previously saved URL without clicking "Save" again.
+            if (_globalShareState) {
+                globalInput.value           = _globalShareState.url;
+                globalLinkRow.style.display = '';
+                globalSaveBtn.style.display = 'none';
+                globalExpiry.textContent    = 'Expires ' + (_globalShareState.expiresAt
+                    ? new Date(_globalShareState.expiresAt).toLocaleDateString()
+                    : 'in ' + gTtlDays + ' days');
+                globalExpiry.style.display  = '';
+            }
+
             body.appendChild(globalWrap);
         }
 
@@ -11235,6 +12682,17 @@ opts.jsonPayload + '\n' +
             trainHint.textContent = 'Only rated answers (\uD83D\uDC4D/\uD83D\uDC4E) are included';
             trainHead.appendChild(trainLbl);
             trainHead.appendChild(trainHint);
+
+            // Explanation note — shown between the heading and the consent checkbox
+            // so a first-time user understands what they are agreeing to before they
+            // are asked to consent.
+            var trainNote = document.createElement('p');
+            trainNote.className = 'ai-assistant-conv-share-session-note ai-assistant-conv-share-perm-note';
+            trainNote.textContent =
+                'Submits rated question-and-answer pairs \u2014 your message, the AI\u2019s reply, ' +
+                'and your \uD83D\uDC4D\uD83D\uDC4E rating \u2014 to the training server to help improve ' +
+                'the model. Only answers you have explicitly rated are included; unrated messages ' +
+                'are never sent. Consent is required each time and is not stored between sessions.';
 
             var consentRow = document.createElement('label');
             consentRow.className = 'ai-assistant-conv-share-consent';
@@ -11339,6 +12797,7 @@ opts.jsonPayload + '\n' +
             });
 
             trainWrap.appendChild(trainHead);
+            trainWrap.appendChild(trainNote);
             trainWrap.appendChild(consentRow);
             trainWrap.appendChild(trainBtn);
             trainWrap.appendChild(trainStatus);
@@ -13164,27 +14623,25 @@ opts.jsonPayload + '\n' +
         //
         // Why _closeSheet (not setAttribute):
         //   Routes through the same path as the × button and Escape key so
-        //   aria-expanded is reset and keyboard focus always returns to the
-        //   element that opened the sheet (Issue 4 parity for row selection).
+        // ── Close model sheet on row selection ────────────────────────────────
+        // Event delegation on modelSheet (rather than per-row listeners via
+        // querySelectorAll) so rows injected AFTER initial build — e.g. custom
+        // models added at runtime by _appendModelCustomSection — also close the
+        // sheet when selected without requiring additional wiring.
         //
-        // Info-link guard:
-        //   Clicking the external info <a> inside a row must NOT close the
-        //   sheet — the user is reading model information, not confirming a
-        //   selection.  e.target.closest() is supported by all browsers that
-        //   support the rest of this codebase; no polyfill required.
+        // Info-link guard: clicking the external info <a> inside a row must NOT
+        // close the sheet — the user is reading model information, not confirming
+        // a selection.  e.target.closest() is supported by all browsers that
+        // support the rest of this codebase; no polyfill required.
         if (modelSheet) {
-            modelSheet.querySelectorAll('.ai-assistant-panel-model-row')
-                .forEach(function (row) {
-                    row.addEventListener('click', function (e) {
-                        // Guard: ignore clicks that land on or inside the info link.
-                        if (e.target &&
-                            typeof e.target.closest === 'function' &&
-                            e.target.closest('.ai-assistant-panel-model-info')) {
-                            return;
-                        }
-                        _closeSheet(modelSheet);
-                    });
-                });
+            modelSheet.addEventListener('click', function (e) {
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                // Only react when the click originated inside a model row.
+                if (!e.target.closest('.ai-assistant-panel-model-row')) return;
+                // Ignore clicks on / inside the external info link.
+                if (e.target.closest('.ai-assistant-panel-model-info')) return;
+                _closeSheet(modelSheet);
+            });
         }
 
         sendBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
@@ -17833,3 +19290,138 @@ opts.jsonPayload + '\n' +
     }
 
 })();
+
+(function () {
+    'use strict';
+
+    // ── Symbols ────────────────────────────────────────────────────────────
+    var CLS_BODY  = 'ai-assistant-panel-model-list';
+    var CLS_ROW   = 'ai-assistant-panel-model-row';
+    var CLS_HDR   = 'ai-assistant-panel-model-group-hdr';
+    var CLS_COUNT = 'ai-assistant-panel-model-group-count';
+    var ATTR_KEY  = 'data-group-key';
+    var ATTR_GRP  = 'data-group';
+    var ATTR_INIT = 'data-ml2-init';
+
+    /**
+     * Sync group header visibility and count badges.
+     *
+     * For each group header in bodyEl:
+     *   - Count how many rows with matching data-group are currently visible
+     *     (style.display !== 'none').
+     *   - Update the count badge to reflect that number.
+     *   - Hide the header row when the visible count is 0.
+     *
+     * @param {HTMLElement} bodyEl  .ai-assistant-panel-model-list element.
+     */
+    function _syncGroupHeaders(bodyEl) {
+        var headers = bodyEl.querySelectorAll('.' + CLS_HDR + '[' + ATTR_KEY + ']');
+        if (!headers.length) return;
+
+        var i;
+        for (i = 0; i < headers.length; i++) {
+            var hdr  = headers[i];
+            var key  = hdr.getAttribute(ATTR_KEY);
+            if (!key) continue;
+
+            var rows = bodyEl.querySelectorAll(
+                '.' + CLS_ROW + '[' + ATTR_GRP + '="' + key + '"]'
+            );
+
+            var visible = 0;
+            var j;
+            for (j = 0; j < rows.length; j++) {
+                if (rows[j].style.display !== 'none') visible++;
+            }
+
+            // Update count badge — show "visible\u200a/\u200atotal" when a filter
+            // is active (visible !== total), plain total when everything is shown.
+            // Hairspace (U+200A) matches the format used by _syncGroupHeadersInBody
+            // in the filter module for visual consistency.
+            var countEl = hdr.querySelector('.' + CLS_COUNT);
+            if (countEl) {
+                var tot2 = parseInt(
+                    countEl.getAttribute('data-total') || String(rows.length),
+                    10
+                ) || rows.length;
+                countEl.textContent = (visible !== tot2)
+                    ? visible + '\u200a/\u200a' + tot2
+                    : String(tot2);
+            }
+
+            // Toggle header visibility
+            hdr.style.display = (visible === 0) ? 'none' : '';
+        }
+    }
+
+    /**
+     * Attach a MutationObserver to bodyEl that calls _syncGroupHeaders
+     * whenever any model row's inline style changes.
+     *
+     * Idempotent: subsequent calls on the same element are no-ops.
+     *
+     * @param {HTMLElement} bodyEl
+     */
+    function _attachGroupObserver(bodyEl) {
+        if (bodyEl.getAttribute(ATTR_INIT) === 'true') return;
+        bodyEl.setAttribute(ATTR_INIT, 'true');
+
+        // Initial sync in case filter already ran before observer attached.
+        _syncGroupHeaders(bodyEl);
+
+        var obs = new MutationObserver(function (mutations) {
+            // Only act on attribute mutations where the 'style' attribute changed.
+            var needsSync = false;
+            var k;
+            for (k = 0; k < mutations.length; k++) {
+                var m = mutations[k];
+                if (m.type === 'attributes' && m.attributeName === 'style') {
+                    // Only care about style changes on model rows.
+                    if (m.target.classList &&
+                            m.target.classList.contains(CLS_ROW)) {
+                        needsSync = true;
+                        break;
+                    }
+                }
+            }
+            if (needsSync) _syncGroupHeaders(bodyEl);
+        });
+
+        obs.observe(bodyEl, {
+            subtree:       true,
+            attributes:    true,
+            attributeFilter: ['style'],
+        });
+    }
+
+    /**
+     * Watch for the model-list body element to appear in the DOM and attach
+     * the group observer once it exists.  Uses a single MutationObserver on
+     * document.body so we don't need to know when createAIPanel runs.
+     */
+    function _watchForBody() {
+        // Try immediately first (panel may already be in the DOM).
+        var existing = document.querySelector('.' + CLS_BODY);
+        if (existing) {
+            _attachGroupObserver(existing);
+        }
+
+        // Also watch for future additions (panel lazy-created on first open).
+        var watcher = new MutationObserver(function () {
+            var body = document.querySelector('.' + CLS_BODY);
+            if (body && body.getAttribute(ATTR_INIT) !== 'true') {
+                _attachGroupObserver(body);
+            }
+        });
+
+        watcher.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // ── Entry ──────────────────────────────────────────────────────────────
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _watchForBody);
+    } else {
+        _watchForBody();
+    }
+
+}());

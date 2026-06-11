@@ -8207,6 +8207,19 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     min-width: 0;
 }
 
+/* When the URL is active it renders as <a> — reset browser link defaults     */
+/* while preserving the monospace/truncation appearance set above.            */
+a.ai-assistant-panel-ep-resolved-url {
+    text-decoration: none;
+    cursor: pointer;
+    color: inherit;                    /* Keep exact same color as <span> state  */
+}
+a.ai-assistant-panel-ep-resolved-url:hover,
+a.ai-assistant-panel-ep-resolved-url:focus-visible {
+    text-decoration: underline;        /* Affordance: signals link clickability  */
+    text-underline-offset: 0.15em;
+}
+
 /* Dim the URL in a disabled row. */
 .ai-assistant-panel-ep-resolved-row--off .ai-assistant-panel-ep-resolved-url {
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #8c9198));
@@ -9154,6 +9167,51 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     color: var(--pst-color-text-base, var(--color-foreground-primary, #e4e6ea));
 }
 
+/* Open-in-new-tab button — companion to the copy button.
+   Blue accent signals outward navigation; shares copy-btn geometry exactly. */
+.ai-assistant-panel-ep-open-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #d0d0d0)
+    );
+    border-radius: 4px;
+    background: transparent;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.ai-assistant-panel-ep-open-btn:hover {
+    /* Fallback for browsers without color-mix() (Safari < 16.2, Chromium < 111). */
+    background: rgba(37, 99, 235, 0.08);
+    background: color-mix(in srgb, var(--pst-color-primary, #2563eb) 8%, transparent);
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    color: var(--pst-color-primary, var(--color-brand-primary, #1d4ed8));
+}
+
+.ai-assistant-panel-ep-open-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    outline-offset: 1px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-open-btn {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #60a5fa;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-ep-open-btn:hover {
+    background: rgba(96, 165, 250, 0.10);
+    border-color: rgba(96, 165, 250, 0.35);
+    color: #93c5fd;
+}
+
 /* Delete profile button (red, inline on profile card). */
 .ai-assistant-panel-ep-delete-btn {
     display: inline-flex;
@@ -9563,6 +9621,33 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 
 [data-bs-theme="dark"] .ai-assistant-panel-ep-card-detail-url {
     color: var(--pst-color-text-base, var(--color-foreground-primary, #e4e6ea));
+}
+
+/* Clickable variant: resolved URLs render as <a> and open in a new tab via
+   window.open(). Reset the UA link decoration; keep the same text colour
+   (incl. the dark-theme override above) until hover/focus. */
+a.ai-assistant-panel-ep-card-detail-url {
+    text-decoration: none;
+    cursor: pointer;
+}
+
+a.ai-assistant-panel-ep-card-detail-url:hover,
+a.ai-assistant-panel-ep-card-detail-url:focus-visible {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    text-decoration: underline;
+}
+
+a.ai-assistant-panel-ep-card-detail-url:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2563eb));
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+
+/* "Opens in a new tab" affordance glyph appended to clickable URLs. */
+.ai-assistant-panel-ep-card-detail-url-arrow {
+    display: inline-block;
+    margin-left: 0.2rem;
+    opacity: 0.7;
 }
 
 /* Built-in profile badge (distinct from runtime / active). */
@@ -10600,6 +10685,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 @media (prefers-reduced-motion: reduce) {
     .ai-assistant-panel-ep-del-btn,
     .ai-assistant-panel-ep-copy-btn,
+    .ai-assistant-panel-ep-open-btn,
     .ai-assistant-panel-ep-copy-toast,
     .ai-assistant-panel-ep-ping-btn,
     .ai-assistant-panel-ep-ping-result,
@@ -10835,6 +10921,25 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     word-break: break-all;
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
 }
+.ai-assistant-panel-ep-ext-info-value a {
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 2px;
+    transition: text-decoration-color 0.15s ease;
+    word-break: break-all;
+}
+.ai-assistant-panel-ep-ext-info-value a:hover {
+    text-decoration-color: currentColor;
+}
+.ai-assistant-panel-ep-ext-info-value a:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+    border-radius: 2px;
+    text-decoration-color: currentColor;
+}
 .ai-assistant-panel-ep-ext-info-badge {
     display: inline-flex;
     align-items: center;
@@ -10882,6 +10987,9 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 }
 [data-bs-theme="dark"] .ai-assistant-panel-ep-ext-info-value {
     color: var(--pst-color-text-base, #e4e6ea);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-info-value a {
+    color: inherit;
 }
 [data-bs-theme="dark"] .ai-assistant-panel-ep-ext-pill {
     background: var(--pst-color-border, #4b5563);
@@ -11912,6 +12020,950 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
         transition: none;
     }
     .ai-assistant-share-export-card-icon {
+        transition: none;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * Model List — Redesign v2
+ *
+ * HOW TO APPLY
+ * ────────────
+ * Append this file to _static/ai-assistant.css:
+ *
+ *   cat patch_model_list_v2.css >> _static/ai-assistant.css
+ *
+ * WHAT THIS ADDS
+ * ──────────────
+ * §A  Group section wrapper + header row
+ *       .ai-assistant-panel-model-group
+ *       .ai-assistant-panel-model-group-hdr
+ *       .ai-assistant-panel-model-group-label
+ *       .ai-assistant-panel-model-group-count
+ *       .ai-assistant-panel-model-group-soon-pill
+ *
+ * §B  HF provider badge (replaces coloured-dot for HuggingFace models)
+ *       .ai-assistant-panel-model-badge.ai-assistant-panel-model-hf
+ *
+ * §C  Size chips — S / M / L (by parameter count)
+ *       .ai-assistant-panel-model-sz
+ *       .ai-assistant-panel-model-sz--s  (< 10 B  — green)
+ *       .ai-assistant-panel-model-sz--m  (10–29 B — amber)
+ *       .ai-assistant-panel-model-sz--l  (≥ 30 B  — blue)
+ *
+ * §D  Capability / provenance tag chips
+ *       .ai-assistant-panel-model-tag
+ *
+ * §E  Row-meta wrapper (name + chips on one line)
+ *       .ai-assistant-panel-model-row-meta
+ *
+ * §F  Monospace model-ID line
+ *       .ai-assistant-panel-model-id
+ *
+ * §G  Parameter fill bar
+ *       .ai-assistant-panel-model-bar
+ *       .ai-assistant-panel-model-bar-fill
+ *       .ai-assistant-panel-model-bar-fill--s / --m / --l
+ *
+ * §H  "Coming soon" inline badge
+ *       .ai-assistant-panel-model-soon
+ *
+ * §I  Disabled (not-yet-available) card state
+ *       .ai-assistant-panel-model-row--disabled
+ *
+ * §J  Reduced-motion guard
+ *
+ * CSS variable fallback chain (same convention as rest of the sheet):
+ *   1. --pst-color-*     PyData Sphinx Theme (auto dark-mode)
+ *   2. --color-*         Furo theme compatibility
+ *   3. Hardcoded value   CDN / standalone deployments
+ *
+ * Dark mode: [data-bs-theme="dark"]  (Bootstrap 5 / PyData convention)
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §A  Group section wrapper + header row
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Each model group occupies one .ai-assistant-panel-model-group block inside
+   the radiogroup bodyEl.  JS inserts a .ai-assistant-panel-model-group-hdr
+   immediately before the first row of each group.  The wrapper has no extra
+   background or border — it is a pure layout/labelling device.
+
+   The header contains three optional elements:
+     .ai-assistant-panel-model-group-label     — "Official models"
+     .ai-assistant-panel-model-group-count     — rounded pill showing n of m
+     .ai-assistant-panel-model-group-soon-pill — amber "coming soon" indicator
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Group wrapper — separates consecutive sections with a top margin. */
+.ai-assistant-panel-model-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+/* Spacing between groups: only when a group follows another group.
+   Using margin-top on the wrapper so the very first group has no extra gap. */
+.ai-assistant-panel-model-group + .ai-assistant-panel-model-group {
+    margin-top: 0.75rem;
+}
+
+/* Group header row: label + count + soon-pill on one flex line. */
+.ai-assistant-panel-model-group-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 5px;
+    border-bottom: 0.5px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, rgba(127, 127, 127, 0.25))
+    );
+    margin-bottom: 2px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-group-hdr {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Section label — small, upper-emphasis text. */
+.ai-assistant-panel-model-group-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #586069)
+    );
+    letter-spacing: 0.04em;
+}
+
+/* Count badge — neutral pill (n visible / n total). */
+.ai-assistant-panel-model-group-count {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, rgba(127, 127, 127, 0.1))
+    );
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #586069)
+    );
+    line-height: 1.5;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-group-count {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* "Coming soon" pill — amber tint with clock-like dot. */
+.ai-assistant-panel-model-group-soon-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 20px;
+    background: rgba(217, 119, 6, 0.12);
+    color: #92400e;
+    line-height: 1.5;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-group-soon-pill {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+/* Icon inside the soon pill (SVG injected by JS). */
+.ai-assistant-panel-model-group-soon-pill svg {
+    width: 11px;
+    height: 11px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §B  HF provider badge
+   ═══════════════════════════════════════════════════════════════════════════
+
+   When .ai-assistant-panel-model-hf is combined with the existing
+   .ai-assistant-panel-model-badge, the coloured circle is replaced with
+   an "HF" text pill in HuggingFace orange.
+
+   The existing badge CSS defines background: <colour> inline; the .hf
+   modifier resets that background and applies the HF palette instead.
+   The combination selector has higher specificity than the base class so
+   the inline style is overridden via !important on the background properties
+   that would otherwise conflict.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-badge.ai-assistant-panel-model-hf {
+    /* Override the coloured-circle shape. */
+    width: auto              !important;  /* was 10 px circle */
+    height: auto             !important;
+    border-radius: 5px       !important;
+    /* HuggingFace amber palette. */
+    background: rgba(255, 157, 0, 0.15) !important;
+    color: #c97a00;
+    /* Typography. */
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 2px 5px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    /* Show the text content. */
+    overflow: visible;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-badge.ai-assistant-panel-model-hf {
+    background: rgba(255, 157, 0, 0.18) !important;
+    color: #fbbf24;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §C  Size chips
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Three semantic variants map to standard colour semantics:
+     --s  (< 10 B parameters) → success green — fast, lightweight
+     --m  (10–29 B)           → caution amber — balanced
+     --l  (≥ 30 B)            → info blue    — powerful, slower
+
+   Chips are pill-shaped (border-radius: 20px) with a tinted background and
+   matching text colour.  They sit inline in .ai-assistant-panel-model-row-meta
+   alongside the model name and tag chips.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-sz {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 20px;
+    line-height: 1.5;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Small — green (< 10 B: fast, efficient) */
+.ai-assistant-panel-model-sz--s {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+}
+
+/* Medium — amber (10–29 B: balanced) */
+.ai-assistant-panel-model-sz--m {
+    background: rgba(217, 119, 6, 0.12);
+    color: #92400e;
+}
+
+/* Large — blue (≥ 30 B: powerful) */
+.ai-assistant-panel-model-sz--l {
+    background: rgba(9, 105, 218, 0.12);
+    color: #0858b7;
+}
+
+/* Dark mode */
+[data-bs-theme="dark"] .ai-assistant-panel-model-sz--s {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-sz--m {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-sz--l {
+    background: rgba(96, 165, 250, 0.12);
+    color: #60a5fa;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §D  Capability / provenance tag chips
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Neutral grey chips for capability labels like "code", "OSS", "fine-tune",
+   "chat", etc.  They use the same pill geometry as size chips but without a
+   semantic accent colour so they recede visually behind size chips.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-tag {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 20px;
+    background: var(
+        --pst-color-on-background,
+        var(--color-background-secondary, rgba(127, 127, 127, 0.1))
+    );
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #586069)
+    );
+    line-height: 1.5;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-tag {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.50);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §E  Row-meta wrapper
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Flex row that holds: model name + size chip + tag chips + soon badge.
+   Uses flex-wrap so chips wrap gracefully at very narrow widths.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §F  Monospace model-ID line
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Applied alongside the existing .ai-assistant-panel-model-sub class so that
+   the existing filter text-extraction (which reads .ai-assistant-panel-model-sub)
+   continues to work without modification.
+
+   The class override makes the sub line monospace and slightly smaller than
+   the default body font — mirrors the model-ID treatment in the concept.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-sub.ai-assistant-panel-model-id {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+                 'Liberation Mono', monospace;
+    font-size: 11px;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #586069)
+    );
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 1;   /* override the default 0.7 on .ai-assistant-panel-model-sub */
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-sub.ai-assistant-panel-model-id {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §G  Parameter fill bar
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A 3 px tall horizontal bar at the bottom of the card body.  The fill
+   element's inline width property (set to a percentage by JS) represents
+   the model's relative parameter count within the group.
+
+   Colour variants match the size chips for visual consistency:
+     --s  green   (same as sz--s)
+     --m  amber   (same as sz--m)
+     --l  blue    (same as sz--l)
+
+   The 0.4 s ease transition on width gives a satisfying animate-in when the
+   card first becomes visible (no JS required beyond setting the width).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-bar {
+    display: block;               /* never inherit a non-block display */
+    width: 100%;                  /* explicit — some flex contexts need this */
+    height: 5px;                  /* was 3 px — 3 px can sub-pixel disappear on HiDPI */
+    border-radius: 3px;
+    /* Explicit rgba — do NOT use --pst-color-on-background here.
+       In PyData Sphinx Theme light mode that variable resolves to #ffffff
+       (the card surface colour), making the track white-on-white → invisible.
+       rgba(0,0,0,0.08) is reliably visible on any white/light background. */
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-top: 5px;              /* was 2 px — more breathing room below description */
+    box-sizing: border-box;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-bar {
+    background: rgba(255, 255, 255, 0.13);
+}
+
+.ai-assistant-panel-model-bar-fill {
+    display: block;               /* explicit — never transparent through inheritance */
+    height: 100%;
+    /* No border-radius here — the parent overflow:hidden already clips the
+       corners cleanly; a radius on the fill creates an unwanted left-side gap. */
+    transition: width 0.4s ease;
+    /* Safety-net fallback: renders a visible mid-grey bar even when the
+       --s / --m / --l variant class is absent (e.g. size not yet mapped). */
+    background: rgba(100, 100, 100, 0.45);
+}
+
+/* Fill colours — match size chip palette */
+.ai-assistant-panel-model-bar-fill--s { background: #16a34a; }
+.ai-assistant-panel-model-bar-fill--m { background: #d97706; }
+.ai-assistant-panel-model-bar-fill--l { background: #2563eb; }
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--s { background: #4ade80; }
+[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--m { background: #fbbf24; }
+[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--l { background: #60a5fa; }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §H  "Coming soon" inline badge
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Inline amber pill rendered inside .ai-assistant-panel-model-row-meta
+   for models where m.disabled === true.  It sits after the tag chips.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-soon {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 20px;
+    background: rgba(217, 119, 6, 0.12);
+    color: #92400e;
+    line-height: 1.5;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-soon {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §I  Disabled card state
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Applied when m.disabled === true.  The card is visually muted and the
+   radio input is non-interactive so keyboard and pointer events can't select
+   a not-yet-available model.
+
+   The pointer on the disabled row uses `not-allowed` to signal to sighted
+   users that the card is inert.  The radio's `disabled` attribute handles
+   accessibility — AT announces it as unavailable.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ai-assistant-panel-model-row--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Prevent any hover visual feedback on a disabled row. */
+.ai-assistant-panel-model-row--disabled:hover {
+    border-color: rgba(127, 127, 127, 0.25) !important;
+    background-color: transparent !important;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-row--disabled:hover {
+    border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* The radio itself is already disabled; belt-and-suspenders pointer lock. */
+.ai-assistant-panel-model-row--disabled input[type="radio"] {
+    pointer-events: none;
+}
+
+/* Info link stays interactive inside a disabled row — user can still open
+   the model page to learn about an upcoming model. */
+.ai-assistant-panel-model-row--disabled .ai-assistant-panel-model-info {
+    pointer-events: all;
+    cursor: pointer;
+    opacity: 1;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §J  Reduced-motion guard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-model-bar-fill {
+        transition: none;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODEL LIST v2 IMPROVEMENTS
+   ─────────────────────────────────────────────────────────────────────────
+   §K  Focus ring + left-accent indicator + info-link fade-on-hover
+   §L  Sticky filter bar + sticky group headers (CSS-variable offset)
+   §M  Tag-chip font weight + model-list gap guard
+   §N  Narrow-panel chip responsive adjustments (≤ 340 px)
+   §O  Reduced-motion additions for §K transitions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §K  Focus ring + left-accent indicator + info-link fade
+   ═══════════════════════════════════════════════════════════════════════════
+
+   K.1 — Keyboard focus ring forwarded from the hidden radio input.
+         :has(input:focus-visible) is baseline-2023 (Chrome 105, Firefox 121,
+         Safari 15.4).  Older browsers skip this rule; the radio's UA ring is
+         already suppressed by .ai-assistant-panel-model-radio, so this rule
+         IS the accessible focus indicator.
+
+   K.2 — Inset left-accent bar on the selected row.
+         Box-shadow does not cause layout shift; it layers over the existing
+         border-color change already defined in the base stylesheet.
+
+   K.3 — Info / external-link icon: hidden by default, fades in on hover.
+         Always visible on touch, focused, or selected rows so the link is
+         never inaccessible through keyboard or assistive technology.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* §K.1 — keyboard focus ring */
+.ai-assistant-panel-model-row:has(input:focus-visible) {
+    outline: 2px solid var(
+        --pst-color-primary,
+        var(--color-brand-primary, #2980b9)
+    );
+    outline-offset: 1px;
+}
+
+/* §K.2 — left-accent inset shadow (stacks with the existing border-color change) */
+.ai-assistant-panel-model-row:has(input:checked),
+.ai-assistant-panel-model-row[data-checked="true"] {
+    box-shadow: inset 3px 0 0
+        var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-row:has(input:checked),
+[data-bs-theme="dark"] .ai-assistant-panel-model-row[data-checked="true"] {
+    box-shadow: inset 3px 0 0 rgba(91, 163, 208, 0.85);
+}
+
+/* §K.3 — info-link fade-in */
+.ai-assistant-panel-model-info {
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+/* Show on: row hover, row selected, row keyboard-focused. */
+.ai-assistant-panel-model-row:hover                         .ai-assistant-panel-model-info,
+.ai-assistant-panel-model-row[data-checked="true"]          .ai-assistant-panel-model-info,
+.ai-assistant-panel-model-row:has(input:checked)            .ai-assistant-panel-model-info,
+.ai-assistant-panel-model-row:has(input:focus-visible)      .ai-assistant-panel-model-info {
+    opacity: 1;
+}
+
+/* Disabled row: keep info link semi-visible (tapping it is the only way to
+   read about an upcoming model) — but don't fully show on hover since the
+   disabled state suppresses hover feedback. */
+.ai-assistant-panel-model-row--disabled .ai-assistant-panel-model-info {
+    opacity: 0.45;
+}
+.ai-assistant-panel-model-row--disabled:hover .ai-assistant-panel-model-info {
+    opacity: 0.9;
+}
+
+/* Touch devices: hover is unreliable — always show the link. */
+@media (hover: none) {
+    .ai-assistant-panel-model-info { opacity: 1; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §L  Sticky filter bar + sticky group headers
+   ═══════════════════════════════════════════════════════════════════════════
+
+   The filter bar sticks to the top of .ai-assistant-panel-sheet-scroll so
+   search controls remain visible while scrolling through a long model list.
+
+   Group headers use position:sticky with top offset equal to the filter
+   bar's current height.  JS (ResizeObserver in _attachModelFilter) sets
+   --filter-bar-h on .ai-assistant-panel-sheet-scroll at runtime and keeps
+   it current as the filter bar grows (e.g. chips wrapping on a narrow panel).
+
+   z-index layering:
+     filter bar   z-index: 2  (always on top of all scrolling content)
+     group header z-index: 1  (scrolls under the filter bar, over rows)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* §L.1 — Sticky filter bar */
+.ai-assistant-panel-filter-bar {
+    /* Override position:relative from the base rule. */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    /* Solid background so model rows don't bleed through while scrolling.
+       Uses the same fallback chain as .ai-assistant-panel-privacy above. */
+    background: var(
+        --pst-color-surface,
+        var(--color-background-primary, #fff)
+    );
+    /* Redeclare the bottom border to ensure it renders after the sticky
+       lift (avoids the rare sub-pixel gap some renderers introduce). */
+    border-bottom: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-filter-bar {
+    background: var(--pst-color-surface, #1b1e21);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* §L.2 — Sticky group headers below the filter bar.
+   --filter-bar-h is injected by the ResizeObserver in _attachModelFilter.
+   Fallback to 0px when the filter is absent or ResizeObserver unavailable. */
+.ai-assistant-panel-model-group-hdr {
+    position: sticky;
+    top: var(--filter-bar-h, 0px);
+    z-index: 1;
+    /* Bleed the background 2 px left + right to cover row edge sub-pixels. */
+    background: var(
+        --pst-color-surface,
+        var(--color-background-primary, #fff)
+    );
+    margin-left:  -2px;
+    padding-left:  2px;
+    margin-right: -2px;
+    padding-right: 2px;
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-model-group-hdr {
+    background: var(--pst-color-surface, #1b1e21);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §M  Tag-chip font weight + model-list gap guard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* §M.1 — Bump tag chip font weight from 400 → 500 for better legibility
+   at the 11 px rendering size, matching the size-chip weight. */
+.ai-assistant-panel-model-tag {
+    font-weight: 500;
+}
+
+/* §M.2 — Restate gap on the model-list flex container.
+   The base rule already declares gap:0.4rem; this restatement ensures the
+   value wins if any theme stylesheet overrides display or gap. */
+.ai-assistant-panel-model-list {
+    gap: 0.4rem;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §N  Narrow-panel chip responsive adjustments (≤ 340 px panel width)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 340px) {
+    /* Tighter chip row gap to prevent premature overflow on small screens. */
+    .ai-assistant-panel-model-row-meta {
+        gap: 3px;
+    }
+
+    /* Slightly smaller font-size + padding for all chip types. */
+    .ai-assistant-panel-model-sz,
+    .ai-assistant-panel-model-tag,
+    .ai-assistant-panel-model-soon {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+
+    /* HF pill uses the same reduced size as other chips. */
+    .ai-assistant-panel-model-badge.ai-assistant-panel-model-hf {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §O  Reduced-motion additions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable the info-link opacity transition added by §K.3. */
+    .ai-assistant-panel-model-info {
+        transition: none;
+    }
+
+    /* Note: .ai-assistant-panel-model-bar-fill transition is already disabled
+       by the §J rule above — no duplicate needed here. */
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §P  Custom-model manager section
+   ─────────────────────────────────────────────────────────────────────────
+   Appended to the model-sheet scroll container by _appendModelCustomSection.
+   All rules use the existing CSS variable fallback chain so the section
+   inherits light/dark/theme colours without extra JS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* §P.1 — Section container: top-border divider + consistent spacing */
+.ai-assistant-panel-custom-section {
+    margin: 0.75rem 0 0;
+    padding: 0.75rem 0.5rem 1rem;
+    border-top: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+}
+
+/* §P.2 — Header row: label + count badge side-by-side */
+.ai-assistant-panel-custom-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #212529)
+    );
+}
+
+/* §P.3 — Count badge pushed to the right */
+.ai-assistant-panel-custom-count {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #6c757d)
+    );
+}
+
+/* §P.4 — Form wrapper: stacked fields */
+.ai-assistant-panel-custom-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+/* §P.5 — Individual field row (label on top, input below) */
+.ai-assistant-panel-custom-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+/* §P.6 — Field label */
+.ai-assistant-panel-custom-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #6c757d)
+    );
+}
+
+/* §P.7 — Text inputs and provider select: uniform appearance */
+.ai-assistant-panel-custom-input,
+.ai-assistant-panel-custom-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.22rem 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #ced4da)
+    );
+    border-radius: 4px;
+    background: var(
+        --pst-color-background,
+        var(--color-background-primary, #fff)
+    );
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #212529)
+    );
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ai-assistant-panel-custom-input:focus,
+.ai-assistant-panel-custom-select:focus {
+    border-color: var(
+        --pst-color-primary,
+        var(--color-brand-primary, #0d6efd)
+    );
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+}
+
+/* §P.8 — Inline error message (ARIA live region) */
+.ai-assistant-panel-custom-err {
+    margin: 0.1rem 0 0;
+    font-size: 0.72rem;
+    color: #dc3545;
+    line-height: 1.3;
+}
+
+/* §P.9 — Reload note (empty-state path) */
+.ai-assistant-panel-custom-note {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #6c757d)
+    );
+}
+
+/* §P.10 — Add button */
+.ai-assistant-panel-custom-add-btn {
+    align-self: flex-start;
+    margin-top: 0.2rem;
+    padding: 0.22rem 0.7rem;
+    font-size: 0.76rem;
+    font-weight: 500;
+    line-height: 1.4;
+    border: none;
+    border-radius: 4px;
+    background: var(
+        --pst-color-primary,
+        var(--color-brand-primary, #0d6efd)
+    );
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.ai-assistant-panel-custom-add-btn:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.ai-assistant-panel-custom-add-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* §P.11 — Saved custom-model list */
+.ai-assistant-panel-custom-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+/* §P.12 — Individual management item row */
+.ai-assistant-panel-custom-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.4rem;
+    border: 1px solid var(
+        --pst-color-border,
+        var(--color-foreground-border, #e1e4e5)
+    );
+    border-radius: 4px;
+    background: var(
+        --pst-color-surface,
+        var(--color-background-secondary, #f8f9fa)
+    );
+}
+
+/* §P.13 — Model name (bold, ellipsis on overflow) */
+.ai-assistant-panel-custom-item-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(
+        --pst-color-text-base,
+        var(--color-foreground-primary, #212529)
+    );
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* §P.14 — Model ID (monospace, muted, capped width) */
+.ai-assistant-panel-custom-item-id {
+    flex-shrink: 0;
+    max-width: 8rem;
+    font-size: 0.68rem;
+    font-family: var(--font-stack-monospace, monospace);
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #6c757d)
+    );
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* §P.15 — Delete (×) button */
+.ai-assistant-panel-custom-del-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(
+        --pst-color-text-muted,
+        var(--color-foreground-secondary, #6c757d)
+    );
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.ai-assistant-panel-custom-del-btn:hover {
+    background: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+/* §P.16 — Dark-mode overrides */
+[data-bs-theme="dark"] .ai-assistant-panel-custom-section {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-custom-input,
+[data-bs-theme="dark"] .ai-assistant-panel-custom-select {
+    background: var(--pst-color-background, #1b1e21);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--pst-color-text-base, #e0e0e0);
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-custom-item {
+    background: var(--pst-color-surface, #252830);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* §P.17 — Reduced-motion: suppress transitions in the form controls */
+@media (prefers-reduced-motion: reduce) {
+    .ai-assistant-panel-custom-input,
+    .ai-assistant-panel-custom-select,
+    .ai-assistant-panel-custom-add-btn,
+    .ai-assistant-panel-custom-del-btn {
         transition: none;
     }
 }
