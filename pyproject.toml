@@ -520,6 +520,8 @@ corpus = [
   "faster-whisper",
   "openai-whisper",
   "youtube-transcript-api",
+  "pypdf",
+  "pdfminer.six",
 ]
 
 ## Specialized dependencies for specific hardware
