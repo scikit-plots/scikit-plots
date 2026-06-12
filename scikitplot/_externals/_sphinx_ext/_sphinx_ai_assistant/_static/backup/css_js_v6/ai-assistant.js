@@ -2055,6 +2055,12 @@
                 var k = keys[i];
                 if (!Object.prototype.hasOwnProperty.call(raw, k)) continue;
                 if (typeof k !== 'string' || !k) continue;
+                // Reserved namespace: '_meta' carries {schemaVersion, buildId}
+                // injected by _serialize_endpoint_profiles() (__init__.py) for
+                // cache-busting. It is build metadata, not a selectable
+                // endpoint profile — exclude it from the registry entirely so
+                // it never appears as a "Built-in" profile card.
+                if (k === '_meta') continue;
                 // Build-time keys are already validated by Python; copy as-is.
                 _profiles[k] = raw[k];
                 _builtin[k]  = true;
@@ -7993,6 +7999,307 @@ opts.jsonPayload + '\n' +
         trainSub.appendChild(_buildExtFutureRow('\uD83D\uDD12', 'GDPR consent gate'));
         extBody.appendChild(trainSub);
 
+        // ── E: Dataset Endpoint + Token status ────────────────────────────
+        // NEW (vNEXT). Discovers the HuggingFace dataset repo and the server's
+        // HF-token posture WITHOUT exposing any secret. Two-source priority:
+        //   P1  window.AI_ASSISTANT_CONFIG.panelDatasetRepo  (conf.py override)
+        //   P2  GET {proxyBase}/  → .training.dataset_repo    (auto-discovery)
+        // The same GET / response also carries tokens.{hf_token_type,
+        // hf_write_token_type,least_privilege_mode} — surfaced as a read-only
+        // security row so operators can verify least-privilege (read/write/
+        // fine-grained) from the panel. When neither source is reachable the
+        // section degrades to a "Not configured" hint and the operator simply
+        // continues using the Space repository secret (both paths supported).
+        //
+        // All selectors live under the existing .ai-assistant-panel-ep-ext-*
+        // namespace. No secret value is ever read or rendered — only booleans
+        // and the public repo id, exactly as the proxy already publishes them.
+
+        var _HF_DATASET_BASE = 'https://huggingface.co/datasets/';
+
+        /**
+         * Strip the /v1/contribute suffix from a training endpoint URL to get
+         * the proxy root.
+         *
+         * Parameters
+         * ----------
+         * url : string
+         *     Resolved training endpoint URL (from _epSafe.resolve('training')).
+         *
+         * Returns
+         * -------
+         * string
+         *     Proxy root URL with no trailing slash, or '' when url is empty or
+         *     not an http(s) URL.
+         */
+        function _proxyBaseFromTrainingUrl(url) {
+            if (!url || !/^https?:\/\//i.test(url)) { return ''; }
+            return url.replace(/\/v1\/contribute\/?$/i, '').replace(/\/+$/, '');
+        }
+
+        /** Build the three canonical HuggingFace dataset URLs from a repo id. */
+        function _buildHfDatasetUrls(repoId) {
+            var base = _HF_DATASET_BASE + repoId;
+            return {
+                base:          base,
+                feedback:      base + '/tree/main/feedback',
+                contributions: base + '/tree/main/contributions'
+            };
+        }
+
+        /**
+         * Fetch the proxy root endpoint and extract dataset + token metadata.
+         *
+         * Parameters
+         * ----------
+         * proxyBase : string
+         *     Proxy root URL (no trailing slash, no path suffix).
+         * cb : function(info)
+         *     Called exactly once. info = {repoId, contributeReady,
+         *     feedbackPersistEnabled, tokenType, writeTokenType,
+         *     leastPrivilege, error}. On failure repoId is null and error is a
+         *     string description.
+         *
+         * Notes
+         * -----
+         * Developer: mode 'cors' (not 'no-cors') so the JSON body is readable.
+         *   The proxy GET / handler returns permissive CORS headers. 5 s timeout
+         *   via AbortController; cb fires exactly once on every path (success,
+         *   HTTP error, network error, timeout). No secret is ever requested or
+         *   stored — only the public status fields the proxy already exposes.
+         */
+        function _fetchProxyDatasetInfo(proxyBase, cb) {
+            var done = false;
+            var ac = (typeof AbortController !== 'undefined')
+                ? new AbortController() : null;
+            function _fail(errStr) {
+                if (done) { return; }
+                done = true;
+                cb({ repoId: null, contributeReady: false,
+                     feedbackPersistEnabled: false, tokenType: null,
+                     writeTokenType: null, leastPrivilege: false, error: errStr });
+            }
+            var tid = setTimeout(function () {
+                if (ac) { try { ac.abort(); } catch (_) {} }
+                _fail('timeout');
+            }, 5000);
+            try {
+                fetch(proxyBase + '/', {
+                    method:  'GET',
+                    mode:    'cors',
+                    cache:   'no-store',
+                    headers: { 'Accept': 'application/json' },
+                    signal:  ac ? ac.signal : undefined
+                }).then(function (resp) {
+                    return resp.ok ? resp.json()
+                                   : Promise.reject('http-' + resp.status);
+                }).then(function (data) {
+                    if (done) { return; }
+                    done = true;
+                    clearTimeout(tid);
+                    var tr = (data && data.training) || {};
+                    var tk = (data && data.tokens) || {};
+                    cb({
+                        repoId:                 tr.dataset_repo || null,
+                        contributeReady:        !!tr.contribute_ready,
+                        feedbackPersistEnabled: !!tr.feedback_persist_enabled,
+                        tokenType:              tk.hf_token_type || null,
+                        writeTokenType:         tk.hf_write_token_type || null,
+                        leastPrivilege:         !!tk.least_privilege_mode,
+                        error: null
+                    });
+                }).catch(function (err) {
+                    clearTimeout(tid);
+                    _fail(String(err));
+                });
+            } catch (e) {
+                clearTimeout(tid);
+                _fail(String(e));
+            }
+        }
+
+        /** Render one dataset link card (anchor). Uses textContent only (XSS-safe). */
+        function _buildDatasetLinkCard(icon, label, url) {
+            var a = document.createElement('a');
+            a.className = 'ai-assistant-panel-ep-ext-dataset-card';
+            a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+            a.setAttribute('aria-label', label + ' \u2014 opens in a new tab');
+
+            var iconEl = document.createElement('span');
+            iconEl.className = 'ai-assistant-panel-ep-ext-dataset-card-icon';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.textContent = icon;
+
+            var textWrap = document.createElement('span');
+            textWrap.className = 'ai-assistant-panel-ep-ext-dataset-card-text';
+            var lbl = document.createElement('span');
+            lbl.className = 'ai-assistant-panel-ep-ext-dataset-card-label';
+            lbl.textContent = label;
+            var urlEl = document.createElement('span');
+            urlEl.className = 'ai-assistant-panel-ep-ext-dataset-card-url';
+            urlEl.textContent = url;
+            textWrap.appendChild(lbl); textWrap.appendChild(urlEl);
+
+            var extIcon = document.createElement('span');
+            extIcon.className = 'ai-assistant-panel-ep-ext-dataset-card-ext';
+            extIcon.setAttribute('aria-hidden', 'true');
+            extIcon.textContent = '\u2197';
+
+            a.appendChild(iconEl); a.appendChild(textWrap); a.appendChild(extIcon);
+            return a;
+        }
+
+        /** Render the resolved dataset state into statusRow + linksWrap. */
+        function _renderDatasetLinks(statusRow, linksWrap, repoId, state) {
+            statusRow.textContent = ''; linksWrap.textContent = '';
+            statusRow.className = 'ai-assistant-panel-ep-ext-dataset-status';
+
+            if (state === 'not-configured') {
+                statusRow.classList.add('ai-assistant-panel-ep-ext-dataset-status--off');
+                statusRow.textContent =
+                    'Not configured. Set a training URL or panelDatasetRepo in conf.py, '
+                    + 'or keep using the Space repository secret.';
+                return;
+            }
+            if (state === 'discovery-failed') {
+                statusRow.classList.add('ai-assistant-panel-ep-ext-dataset-status--warn');
+                statusRow.textContent =
+                    'Could not reach the proxy root (GET /) to discover the dataset repo. '
+                    + 'The Space secret still drives persistence server-side.';
+                return;
+            }
+
+            var badge = document.createElement('span');
+            badge.className = 'ai-assistant-panel-ep-ext-info-badge ' +
+                (state === 'configured'
+                    ? 'ai-assistant-panel-ep-ext-info-badge--ok'
+                    : 'ai-assistant-panel-ep-ext-dataset-badge--discovered');
+            badge.textContent = (state === 'configured')
+                ? 'Configured' : 'Auto-discovered';
+            statusRow.appendChild(badge);
+
+            var repoLabel = document.createElement('span');
+            repoLabel.className = 'ai-assistant-panel-ep-ext-dataset-status-repo';
+            repoLabel.textContent = repoId;
+            statusRow.appendChild(repoLabel);
+
+            var urls = _buildHfDatasetUrls(repoId);
+            linksWrap.appendChild(_buildDatasetLinkCard(
+                '\uD83D\uDDC3', 'Dataset root',     urls.base));
+            linksWrap.appendChild(_buildDatasetLinkCard(
+                '\uD83D\uDC4D', 'Feedback records', urls.feedback));
+            linksWrap.appendChild(_buildDatasetLinkCard(
+                '\uD83E\uDD1D', 'Contributions',    urls.contributions));
+        }
+
+        /** Render the read-only HF-token posture row (read/write/fine-grained). */
+        function _renderTokenRow(tokenRow, info) {
+            tokenRow.textContent = '';
+            if (!info) { return; }
+            function _norm(t) {
+                if (!t || t === 'unknown') { return 'unknown'; }
+                return String(t);
+            }
+            var readT  = _norm(info.tokenType);
+            var writes = info.writeTokenType ? _norm(info.writeTokenType) : null;
+            var lp     = !!info.leastPrivilege;
+
+            var summary = 'read: ' + readT
+                + (writes ? ' \u00b7 write: ' + writes : ' \u00b7 write: (falls back to read token)');
+            tokenRow.appendChild(_buildExtInfoRow(
+                'HF token posture',
+                summary,
+                lp ? 'Least-privilege' : 'Single-token',
+                lp
+            ));
+        }
+
+        /** Orchestrate discovery / config, then render links + token posture. */
+        function _buildDatasetSection(statusRow, linksWrap, tokenRow) {
+            var _cfg = window.AI_ASSISTANT_CONFIG || {};
+
+            // P1: explicit panel config wins — no network call.
+            var explicitRepo = (_cfg.panelDatasetRepo || '').trim();
+
+            var trainingUrl = (_epSafe && typeof _epSafe.resolve === 'function')
+                ? (_epSafe.resolve('training') || '') : '';
+            var proxyBase = _proxyBaseFromTrainingUrl(trainingUrl);
+
+            if (explicitRepo && !proxyBase) {
+                // Config only, nothing to discover.
+                _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
+                if (tokenRow) { tokenRow.textContent = ''; }
+                return;
+            }
+
+            if (!explicitRepo && !proxyBase) {
+                _renderDatasetLinks(statusRow, linksWrap, null, 'not-configured');
+                if (tokenRow) { tokenRow.textContent = ''; }
+                return;
+            }
+
+            // Loading state (rendered before the async fetch — no FOUC).
+            statusRow.className = 'ai-assistant-panel-ep-ext-dataset-status ' +
+                'ai-assistant-panel-ep-ext-dataset-status--loading';
+            var spinner = document.createElement('span');
+            spinner.className = 'ai-assistant-panel-ep-ext-dataset-spinner';
+            var loadTxt = document.createElement('span');
+            loadTxt.textContent = 'Querying proxy\u2026';
+            statusRow.appendChild(spinner); statusRow.appendChild(loadTxt);
+
+            _fetchProxyDatasetInfo(proxyBase, function (info) {
+                // P1 still wins for the link target; discovery adds token posture.
+                if (explicitRepo) {
+                    _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
+                } else if (!info.repoId) {
+                    _renderDatasetLinks(statusRow, linksWrap, null, 'discovery-failed');
+                } else {
+                    _renderDatasetLinks(statusRow, linksWrap, info.repoId, 'discovered');
+                }
+                if (tokenRow && !info.error) { _renderTokenRow(tokenRow, info); }
+            });
+        }
+
+        var datasetSub = _buildExtSub('Dataset Endpoint');
+
+        var datasetIntro = document.createElement('p');
+        datasetIntro.className = 'ai-assistant-panel-ep-hint';
+        datasetIntro.textContent =
+            'HuggingFace dataset where feedback and training contributions are ' +
+            'stored. Discovered automatically from the proxy when a training URL ' +
+            'is configured, or set explicitly via panelDatasetRepo in conf.py. ' +
+            'The HF token posture below is reported by the server (no secret is ' +
+            'ever exposed); when nothing is reachable, the Space repository ' +
+            'secret continues to drive persistence.';
+        datasetSub.appendChild(datasetIntro);
+
+        var datasetStatusRow = document.createElement('div');
+        datasetStatusRow.className = 'ai-assistant-panel-ep-ext-dataset-status';
+        datasetSub.appendChild(datasetStatusRow);
+
+        var datasetLinksWrap = document.createElement('div');
+        datasetLinksWrap.className = 'ai-assistant-panel-ep-ext-dataset-links-wrap';
+        datasetSub.appendChild(datasetLinksWrap);
+
+        var datasetTokenRow = document.createElement('div');
+        datasetTokenRow.className = 'ai-assistant-panel-ep-ext-dataset-token-row';
+        datasetSub.appendChild(datasetTokenRow);
+
+        var datasetRefreshBtn = document.createElement('button');
+        datasetRefreshBtn.type = 'button';
+        datasetRefreshBtn.className = 'ai-assistant-panel-ep-ext-dataset-refresh-btn';
+        datasetRefreshBtn.textContent = '\u21BB  Refresh';
+        datasetRefreshBtn.setAttribute('aria-label', 'Refresh dataset discovery');
+        datasetRefreshBtn.addEventListener('click', function () {
+            _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+        });
+        datasetSub.appendChild(datasetRefreshBtn);
+
+        _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+
+        extBody.appendChild(datasetSub);
+        // ── end E ─────────────────────────────────────────────────────────
+
         extSection.appendChild(extBody);
 
         // ══════════════════════════════════════════════════════════════════════
@@ -11914,10 +12221,15 @@ opts.jsonPayload + '\n' +
      *    Revoked on mode change or re-generation to prevent memory leaks.
      *
      * 2. **Permanent link** (``Save permanently`` button)
-     *    Stores the content in IndexedDB under a UUID key.  Generates a hash
-     *    URL (``#ai-share-{uuid}-{fmt}``) that calls ``_checkShareHash()`` on
-     *    subsequent page loads, reads from IDB, and opens the content as a
-     *    fresh blob URL.  The entry can be deleted at any time from the sheet.
+     *    Emits a same-origin self-contained hash URL
+     *    (``#ai-share-c1.{fmt}.{base64url}``) that embeds the full conversation
+     *    in the URL itself — a real navigable link that works in any browser on
+     *    any device with no server. ``_checkShareHash()`` decodes it on load and
+     *    opens the content. For same-browser convenience the content is ALSO
+     *    saved to IndexedDB under a UUID, so the same machine can reopen it
+     *    without re-navigating the long URL; that entry can be deleted at any
+     *    time from the sheet. (If hash encoding is unavailable, the button falls
+     *    back to a ``data:`` URI.)
      *
      * Parameters
      * ----------
@@ -11932,8 +12244,9 @@ opts.jsonPayload + '\n' +
      * Notes
      * -----
      * User: Session links close when you close the tab.  Use "Save permanently"
-     *   for links that work across restarts.  Permanent links are stored in
-     *   this browser only — they will not work on other devices.
+     *   for a lasting link — the conversation is embedded in the URL, so it
+     *   opens in any browser on any device. (Very long conversations make a long
+     *   URL; keep shared chats reasonably small.)
      *
      * Developer: The three sheet instances produced for 'json', 'html', and
      *   'txt' must ALL be registered in the panel management arrays inside
@@ -11997,6 +12310,73 @@ opts.jsonPayload + '\n' +
             // but UTF-8 safe and supported by all modern browsers).
             return 'data:' + mime + ',' + encodeURIComponent(content);
         }
+    }
+
+    // ── Self-contained URL-hash share (serverless, any device, any browser) ───
+    //
+    // A `data:` URI embeds the content but cannot be opened with window.open in
+    // some browsers (Chrome blocks data: navigations for HTML) and is awkward to
+    // bookmark. A same-origin hash link — `{page}#ai-share-c1.{fmt}.{payload}` —
+    // is a real navigable URL on the project's own origin: it works in any
+    // browser on any device with no server and no storage. The page detects the
+    // hash on load (_checkShareHash), decodes the payload, and renders it.
+    //
+    // Encoding chain (UTF-8-safe, dependency-free, symmetric):
+    //   content → encodeURIComponent → unescape → btoa → base64url
+    // base64url = base64 with +,/ replaced by -,_ and trailing '=' stripped, so
+    // the payload is URL-hash-safe and needs no extra percent-encoding.
+    //
+    // Size note: like the data: URI, the whole conversation lives in the URL.
+    // Browsers handle long hash fragments well, but keep shared conversations
+    // reasonably small. Compression (CompressionStream / gzip) is a natural
+    // future upgrade — the `c1` version tag leaves room for a `c2` gzip variant
+    // without breaking existing links.
+    var _SHARE_HASH_PREFIX = '#ai-share-c1.';
+
+    /** UTF-8 string → base64url payload. Returns '' on failure. */
+    function _encodeShareHashPayload(content) {
+        try {
+            var b64 = btoa(unescape(encodeURIComponent(content)));
+            return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (_e) {
+            return '';
+        }
+    }
+
+    /** base64url payload → UTF-8 string. Returns null on failure. */
+    function _decodeShareHashPayload(payload) {
+        try {
+            var b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4) { b64 += '='; }
+            return decodeURIComponent(escape(atob(b64)));
+        } catch (_e) {
+            return null;
+        }
+    }
+
+    /**
+     * Build a same-origin self-contained share URL for the given content.
+     *
+     * Parameters
+     * ----------
+     * content : string
+     *     Serialized conversation (JSON / HTML / plain text).
+     * fmt : string
+     *     'json' | 'html' | 'txt'.
+     *
+     * Returns
+     * -------
+     * string
+     *     `{pageOrigin+path}#ai-share-c1.{fmt}.{base64url}`, or '' when the
+     *     content cannot be encoded.
+     */
+    function _buildSelfContainedHashUrl(content, fmt) {
+        var payload = _encodeShareHashPayload(content);
+        if (!payload) { return ''; }
+        var base = (typeof location !== 'undefined')
+            ? location.href.split('#')[0] : '';
+        var safeFmt = /^(json|html|txt)$/i.test(fmt) ? fmt.toLowerCase() : 'txt';
+        return base + _SHARE_HASH_PREFIX + safeFmt + '.' + payload;
     }
 
     function _buildFmtShareSheet(fmt) {
@@ -12296,12 +12676,14 @@ opts.jsonPayload + '\n' +
         sessionNote.style.display = 'none';
         body.appendChild(sessionNote);
 
-        // ── Permanent storage section (IndexedDB) ─────────────────────────────
+        // ── Permanent storage section (self-contained URL + IndexedDB) ────────
         //
-        // Saves the conversation content to IndexedDB under a UUID.
-        // Generates a hash URL (#ai-share-{uuid}-{fmt}) that the page script
-        // detects on load and re-opens from storage — permanent within this
-        // browser until the user deletes it or clears browser data.
+        // The "Save permanently" button emits a same-origin self-contained hash
+        // URL (#ai-share-c1.{fmt}.{base64url}) that embeds the whole conversation
+        // — a real navigable link that works in any browser on any device with
+        // no server. The content is ALSO saved to IndexedDB under a UUID so the
+        // same browser can reopen it without re-navigating the long URL; the
+        // entry persists until the user deletes it or clears browser data.
         var permSection = document.createElement('div');
         permSection.className = 'ai-assistant-conv-share-perm';
 
@@ -12314,7 +12696,7 @@ opts.jsonPayload + '\n' +
 
         var permHint = document.createElement('span');
         permHint.className   = 'ai-assistant-conv-share-perm-hint';
-        permHint.textContent = 'This device only \u00B7 works offline until deleted';
+        permHint.textContent = 'Any device \u00B7 embedded in the URL \u00B7 no server';
 
         permHead.appendChild(permLbl);
         permHead.appendChild(permHint);
@@ -12430,13 +12812,20 @@ opts.jsonPayload + '\n' +
                 // _checkShareHash() detects the hash fragment on revisit and
                 // reopens the content without requiring the user to navigate the
                 // long data URI again.
-                var dataUrl = _buildDataUri(content, meta.mime);
-                permInput.value         = dataUrl;
+                // Build a same-origin self-contained hash URL — a real
+                // navigable link that embeds the full conversation and works in
+                // any browser on any device with no server. Falls back to a
+                // data: URI only if hash encoding is unavailable. The IDB entry
+                // is kept alongside for same-browser convenience (_checkShareHash
+                // reopens it without re-navigating the long URL).
+                var shareUrl = _buildSelfContainedHashUrl(content, fmt)
+                    || _buildDataUri(content, meta.mime);
+                permInput.value         = shareUrl;
                 permLinkRow.style.display = '';
                 permSaveBtn.style.display = 'none';
 
                 if (_shareMode === 'public') {
-                    copyToClipboard(dataUrl, false);
+                    copyToClipboard(shareUrl, false);
                     showNotification(
                         'Link saved \u2014 copied to clipboard. Works in any browser.', false);
                 } else {
@@ -13094,7 +13483,88 @@ opts.jsonPayload + '\n' +
             if (sourceCard) bodyEl.appendChild(sourceCard);
             if (siteCard)   bodyEl.appendChild(siteCard);
 
-            if (!sourceCard && !siteCard) {
+            // ── HuggingFace project links (Space / Dataset / Endpoint) ────────
+            // Each card is optional. URLs come from explicit conf.py keys first,
+            // then fall back to values derivable from existing config so a
+            // correctly-configured project surfaces them with no extra setup:
+            //   • Dataset  ← panelHfDatasetUrl  OR  datasets/{panelDatasetRepo}
+            //   • Endpoint ← panelHfEndpointUrl OR  proxy root of training URL
+            //   • Space    ← panelHfSpaceUrl    (no safe automatic derivation)
+            // _buildLinkCard already enforces _isSafeHref + noopener, so unsafe
+            // or empty URLs are dropped silently.
+            var _hfCardCount = 0;
+            (function _appendHfCards() {
+                var _hfDatasetUrl = (typeof cfg.panelHfDatasetUrl === 'string'
+                    && cfg.panelHfDatasetUrl) ? cfg.panelHfDatasetUrl : '';
+                if (!_hfDatasetUrl) {
+                    var _repo = (typeof cfg.panelDatasetRepo === 'string')
+                        ? cfg.panelDatasetRepo.trim() : '';
+                    if (_repo) {
+                        _hfDatasetUrl = 'https://huggingface.co/datasets/' + _repo;
+                    }
+                }
+
+                var _hfEndpointUrl = (typeof cfg.panelHfEndpointUrl === 'string'
+                    && cfg.panelHfEndpointUrl) ? cfg.panelHfEndpointUrl : '';
+                if (!_hfEndpointUrl) {
+                    var _trainUrl = '';
+                    try {
+                        if (typeof _EP !== 'undefined' && _EP
+                            && typeof _EP.resolve === 'function') {
+                            _trainUrl = _EP.resolve('training') || '';
+                        }
+                    } catch (_e) { _trainUrl = ''; }
+                    if (/^https?:\/\//i.test(_trainUrl)) {
+                        _hfEndpointUrl = _trainUrl
+                            .replace(/\/v1\/contribute\/?$/i, '')
+                            .replace(/\/+$/, '');
+                    }
+                }
+
+                var _hfSpaceUrl = (typeof cfg.panelHfSpaceUrl === 'string'
+                    && cfg.panelHfSpaceUrl) ? cfg.panelHfSpaceUrl : '';
+
+                var _spaceCard = _buildLinkCard(
+                    ICONS.globe,
+                    (typeof cfg.panelHfSpaceLabel === 'string' && cfg.panelHfSpaceLabel)
+                        ? cfg.panelHfSpaceLabel : 'HuggingFace Space',
+                    'Live demo / inference Space backing this assistant',
+                    _hfSpaceUrl,
+                    'var(--ai-hf-accent, #ff9d00)'
+                );
+                if (_spaceCard) {
+                    _spaceCard.classList.add('ai-assistant-panel-hf-card');
+                    bodyEl.appendChild(_spaceCard); _hfCardCount++;
+                }
+
+                var _datasetCard = _buildLinkCard(
+                    ICONS.globe,
+                    (typeof cfg.panelHfDatasetLabel === 'string' && cfg.panelHfDatasetLabel)
+                        ? cfg.panelHfDatasetLabel : 'HuggingFace Dataset',
+                    'Feedback & training contributions collected from this panel',
+                    _hfDatasetUrl,
+                    'var(--ai-hf-accent, #ff9d00)'
+                );
+                if (_datasetCard) {
+                    _datasetCard.classList.add('ai-assistant-panel-hf-card');
+                    bodyEl.appendChild(_datasetCard); _hfCardCount++;
+                }
+
+                var _endpointCard = _buildLinkCard(
+                    ICONS.externalLink,
+                    (typeof cfg.panelHfEndpointLabel === 'string' && cfg.panelHfEndpointLabel)
+                        ? cfg.panelHfEndpointLabel : 'Active Endpoint',
+                    'Proxy status page (GET /) for the configured deployment',
+                    _hfEndpointUrl,
+                    'var(--ai-endpoint-accent, #16a34a)'
+                );
+                if (_endpointCard) {
+                    _endpointCard.classList.add('ai-assistant-panel-hf-card');
+                    bodyEl.appendChild(_endpointCard); _hfCardCount++;
+                }
+            }());
+
+            if (!sourceCard && !siteCard && _hfCardCount === 0) {
                 var empty = document.createElement('p');
                 empty.className = 'ai-assistant-panel-links-empty';
                 empty.textContent =
@@ -15682,6 +16152,28 @@ opts.jsonPayload + '\n' +
      */
     function _checkShareHash() {
         var hash = (typeof location !== 'undefined') ? location.hash : '';
+
+        // Self-contained tier (any device / browser, no storage). Checked first
+        // because its payload contains dots and never matches the IndexedDB
+        // pattern below. Format: #ai-share-c1.{fmt}.{base64url}
+        var sc = hash.match(/^#ai-share-c1\.(json|html|txt)\.([A-Za-z0-9_-]+)$/i);
+        if (sc) {
+            var scFmt     = sc[1].toLowerCase();
+            var scContent = _decodeShareHashPayload(sc[2]);
+            if (scContent == null) { return; }
+            var scMime =
+                scFmt === 'json' ? 'application/json;charset=utf-8' :
+                scFmt === 'txt'  ? 'text/plain;charset=utf-8'       :
+                'text/html;charset=utf-8';
+            try {
+                var scBlob = new Blob([scContent], { type: scMime });
+                var scUrl  = URL.createObjectURL(scBlob);
+                var scWin  = window.open(scUrl, '_blank', 'noopener,noreferrer');
+                if (scWin) { try { scWin.opener = null; } catch (_e) {} }
+            } catch (_e) {}
+            return;
+        }
+
         var m    = hash.match(/^#ai-share-([A-Za-z0-9_-]+)-(json|html|txt)$/i);
         if (!m) return;
         var uuid = m[1];

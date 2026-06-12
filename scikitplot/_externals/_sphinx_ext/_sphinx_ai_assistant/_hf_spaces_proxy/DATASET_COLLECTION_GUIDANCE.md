@@ -465,3 +465,49 @@ dual-source collection:
 | `ai-assistant.js tRecords` | Added `_source: 'contribution'` to each record for self-describing POST payload |
 | `deduplicate_dataset.py` | Post-loop filter removes tombstone winners from clean output; `main()` reports tombstone count separately so duplicate counts are accurate |
 | `DATASET_COLLECTION_GUIDANCE.md` | This document; added §3 Retraction tombstones, §6 tombstone exclusion note, §8 this table |
+
+## 9. Viewing the dataset from the AI panel
+
+The Extended Settings sheet (Endpoint Configuration → **Dataset Endpoint**)
+surfaces the dataset directly in the browser, with no secret ever leaving the
+server.
+
+How the panel resolves the dataset repo (two sources, first match wins):
+
+1. **Explicit** — `ai_assistant_panel_dataset_repo = "org/repo"` in `conf.py`.
+   Highest trust; no network call. Use for offline docs or to pin a specific
+   repo.
+2. **Auto-discovery** — when a training URL is configured, the panel issues
+   `GET {proxyBase}/` and reads `training.dataset_repo` from the JSON. The
+   proxy already publishes this field, so no `conf.py` change is required for
+   standard deployments.
+
+From the repo id the panel builds three clickable links:
+
+| Card | URL |
+|------|-----|
+| Dataset root | `https://huggingface.co/datasets/<repo>` |
+| Feedback records | `https://huggingface.co/datasets/<repo>/tree/main/feedback` |
+| Contributions | `https://huggingface.co/datasets/<repo>/tree/main/contributions` |
+
+**Token posture (read-only).** The same `GET /` response also reports
+`tokens.hf_token_type`, `tokens.hf_write_token_type`, and
+`tokens.least_privilege_mode`. The panel shows these as a short
+read/write/fine-grained summary so operators can confirm least-privilege
+configuration **without** reading Space logs. Token *values* are never sent to
+the browser. When neither source is reachable, the section degrades to a
+"Not configured" hint and the Space repository secret
+(`TRAINING_DATASET_REPO`) continues to drive persistence server-side — both
+the panel and repo-secret approaches are fully supported.
+
+## 10. Summary of Changes (vNEXT)
+
+| Component | Change |
+|-----------|--------|
+| `_static/ai-assistant.js` | Added **Dataset Endpoint** subsection (E) to `_buildEndpointSheet`: proxy-discovery + explicit-config dataset links and read-only HF token-posture row |
+| `_static/ai-assistant.js` | Project Links sheet now renders HuggingFace **Space / Dataset / Active Endpoint** cards (config-driven or auto-derived) |
+| `_static/ai-assistant.js` | New **self-contained URL-hash share** tier (`#ai-share-c1.<fmt>.<base64url>`): a real navigable, server-free, any-device/any-browser permanent link; routed in `_checkShareHash` and used by the permanent-link button (data: URI kept as fallback) |
+| `_static/ai-assistant.css` | Added `.ai-assistant-panel-ep-ext-dataset-*` rules (light + dark) for the Dataset Endpoint section |
+| `__init__.py` | Injects `panelDatasetRepo` + `panelHf*` keys into `window.AI_ASSISTANT_CONFIG` and registers the matching `ai_assistant_panel_*` config values |
+| `_example_conf.py` | Documented examples for every new key |
+| `app.py` | **No change** — `GET /` already exposes `training.*` and `tokens.*` |
