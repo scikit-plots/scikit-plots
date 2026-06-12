@@ -46,14 +46,6 @@ name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push
 
 # Trigger the workflow on push to any branch or tag
 on:
-  # push:
-  #   branches:
-  #     - '**'    # Matches all branches, including main, dev, feature/*
-  #     - main
-  #     - maintenance/**
-  #   tags:
-  #     - '*'     # Matches all Git tags (e.g., v1.0.0)
-  #     - 'v*.*.*'
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
       free_disk_space:                                  # Specify true/false
@@ -64,6 +56,32 @@ on:
         options:
           - 'true'
           - 'false'                                     # Default
+  # push:
+  #   branches:
+  #     - '**'    # Matches all branches, including main, dev, feature/*
+  #     - main
+  #     - maintenance/**
+  #   tags:
+  #     - '*'     # Matches all Git tags (e.g., v1.0.0)
+  #     - 'v*.*.*'
+  schedule:
+    ## Automatically built and released every night (or at a regular interval, often nightly)
+    ## Cron schedule for automated runs
+    ## https://crontab.cronhub.io
+    ## https://freeformatter.com/cron-expression-generator-quartz.html#cronexpressionexamples
+    ## https://crontab.io/validator
+    ## https://cron-checker.com/
+    ## "* * * * * * *" 7 fields (Quartz with year)         <second> <minute> <hour> <day of month> <month> <day of week> <year>
+    ## "* * * * * *"   6 fields (Quartz / some schedulers) <second> <minute> <hour> <day of month> <month> <day of week>
+    ## "* * * * *"     5 fields (standard Unix cron)       <minute> <hour> <day of month> <month> <day of week>
+    ##        ┌─────────────────────── minute           (0 - 59)
+    ##        │  ┌──────────────────── hour             (0 - 23)
+    ##        │  │  ┌───────────────── day of the month (1 - 31)
+    ##        │  │  │ ┌─────────────── month            (1 - 12 or JAN-DEC)
+    ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
+    ##        │  │  │ │ │
+    ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
+    - cron: '11 11 * * 1'
 
 
 ## simultaneity
