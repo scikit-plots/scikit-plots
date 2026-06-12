@@ -1705,6 +1705,55 @@ ai_assistant_panel_site_desc = "Explore the full API reference and user guide"
 # Recommend ≤ 8 chars (longer labels are hidden at narrow widths).
 ai_assistant_panel_site_btn_label = "Website"
 
+# ── HuggingFace dataset / Space / endpoint links ─────────────────────────────
+# These drive (a) the Extended Settings → "Dataset Endpoint" section and
+# (b) extra cards in the Project Links sheet. Most projects only need
+# ``ai_assistant_panel_dataset_repo`` (or nothing at all, relying on
+# auto-discovery from the proxy). Every value below is PUBLIC — never put an
+# HF token here. Tokens live only in the Space/proxy repository secrets
+# (HF_TOKEN / HF_WRITE_TOKEN); the panel reports their *type* (read / write /
+# fine-grained) via the proxy's GET / status, but never their value.
+#
+# Type:    str  ("org/repo-name")
+# Default: ""   (empty → the panel auto-discovers the repo from GET /)
+# Explicit dataset repo id. Identical to the Space's TRAINING_DATASET_REPO
+# secret; set it only to skip network discovery (highest-trust / offline docs).
+#
+# scikit-plots default:
+ai_assistant_panel_dataset_repo = "scikit-plots/ai-assistant-contributions"
+
+# Type:    str  (URL — http / https only)
+# Default: ""   (card hidden when empty)
+# URL of the HuggingFace Space backing the assistant. No safe automatic
+# derivation exists, so set this explicitly to show the Space card.
+#
+# scikit-plots default:
+ai_assistant_panel_hf_space_url = "https://huggingface.co/spaces/scikit-plots/sphinx-ai-assistant-proxy"
+
+# Type:    str
+# Default: "HuggingFace Space"
+ai_assistant_panel_hf_space_label = "HuggingFace Space"
+
+# Type:    str  (URL — http / https only)
+# Default: ""   (derived from ai_assistant_panel_dataset_repo when empty)
+# Override the dataset card URL. Leave empty to use the derived
+# https://huggingface.co/datasets/<repo> link.
+ai_assistant_panel_hf_dataset_url = ""
+
+# Type:    str
+# Default: "HuggingFace Dataset"
+ai_assistant_panel_hf_dataset_label = "HuggingFace Dataset"
+
+# Type:    str  (URL — http / https only)
+# Default: ""   (derived from the training endpoint URL when empty)
+# Override the endpoint/status card URL. Leave empty to use the proxy root
+# derived from the active training URL (the /v1/contribute suffix stripped).
+ai_assistant_panel_hf_endpoint_url = ""
+
+# Type:    str
+# Default: "Active Endpoint"
+ai_assistant_panel_hf_endpoint_label = "Active Endpoint"
+
 # ── Hamburger overflow menu ──────────────────────────────────────────────────
 # Type:    bool
 # Default: True

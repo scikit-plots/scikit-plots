@@ -4568,6 +4568,40 @@ def add_ai_assistant_context(
         "panelSiteBtnLabel": (
             _cfg_str(app.config, "ai_assistant_panel_site_btn_label") or "Website"
         ),
+        # ── HuggingFace dataset / Space / endpoint discovery ──────────────
+        # panelDatasetRepo — explicit "org/repo" override for the Dataset
+        # Endpoint section in Extended Settings. Empty (default) → the panel
+        # auto-discovers the repo from the proxy's GET / response, so most
+        # deployments need not set this. Never a secret: it is the public
+        # dataset id, identical to TRAINING_DATASET_REPO on the Space.
+        "panelDatasetRepo": (
+            _cfg_str(app.config, "ai_assistant_panel_dataset_repo") or ""
+        ),
+        # Optional Project-Links cards. Each is independent and validated
+        # client-side by _isSafeHref; empty values are dropped. The dataset
+        # and endpoint cards are also auto-derived (from panelDatasetRepo and
+        # the training URL) when their explicit key is empty.
+        "panelHfSpaceUrl": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_space_url") or ""
+        ),
+        "panelHfSpaceLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_space_label")
+            or "HuggingFace Space"
+        ),
+        "panelHfDatasetUrl": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_dataset_url") or ""
+        ),
+        "panelHfDatasetLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_dataset_label")
+            or "HuggingFace Dataset"
+        ),
+        "panelHfEndpointUrl": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_endpoint_url") or ""
+        ),
+        "panelHfEndpointLabel": (
+            _cfg_str(app.config, "ai_assistant_panel_hf_endpoint_label")
+            or "Active Endpoint"
+        ),
         # ── Phase B: Hamburger overflow menu ──────────────────────────────
         "panelHamburger": _cfg_bool(app.config, "ai_assistant_panel_hamburger", True),
         # R5: feedback block.
@@ -5141,6 +5175,54 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #     Text label on the subbar button itself (collapsed to icon-only
     #     on narrow panels via CSS).
     app.add_config_value("ai_assistant_panel_site_btn_label", "Website", "html")
+
+    # ── HuggingFace dataset / Space / endpoint (Dataset Endpoint section +
+    #    Project Links cards) ───────────────────────────────────────────────
+    #
+    # ``ai_assistant_panel_dataset_repo`` (str, default "")
+    #     Explicit "org/repo-name" of the HuggingFace dataset that stores
+    #     feedback and training contributions (e.g.
+    #     "scikit-plots/ai-assistant-contributions"). When set, the Extended
+    #     Settings → Dataset Endpoint section shows its links directly (P1).
+    #     When empty, the panel auto-discovers it from the proxy's GET /
+    #     response (P2) — no value needed for standard proxy deployments.
+    #     This is NOT a secret: it is the same public id as the Space's
+    #     TRAINING_DATASET_REPO secret, surfaced only so the panel can build
+    #     the dataset URLs. The HF tokens themselves are never exposed.
+    app.add_config_value("ai_assistant_panel_dataset_repo", "", "html")
+
+    # ``ai_assistant_panel_hf_space_url`` (str, default "")
+    #     URL of the HuggingFace Space backing this assistant (e.g.
+    #     "https://huggingface.co/spaces/scikit-plots/ai-assistant"). Shown as
+    #     a card in the Project Links sheet. Validated by _isSafeHref.
+    app.add_config_value("ai_assistant_panel_hf_space_url", "", "html")
+
+    # ``ai_assistant_panel_hf_space_label`` (str, default "HuggingFace Space")
+    app.add_config_value(
+        "ai_assistant_panel_hf_space_label", "HuggingFace Space", "html"
+    )
+
+    # ``ai_assistant_panel_hf_dataset_url`` (str, default "")
+    #     Explicit HuggingFace dataset URL for the Project Links card. When
+    #     empty it is derived from ai_assistant_panel_dataset_repo. Set this
+    #     only to point the card at a different URL than the derived one.
+    app.add_config_value("ai_assistant_panel_hf_dataset_url", "", "html")
+
+    # ``ai_assistant_panel_hf_dataset_label`` (str, default "HuggingFace Dataset")
+    app.add_config_value(
+        "ai_assistant_panel_hf_dataset_label", "HuggingFace Dataset", "html"
+    )
+
+    # ``ai_assistant_panel_hf_endpoint_url`` (str, default "")
+    #     Explicit proxy/endpoint status URL for the Project Links card. When
+    #     empty it is derived from the active training endpoint URL (the proxy
+    #     root, i.e. the training URL with the /v1/contribute suffix stripped).
+    app.add_config_value("ai_assistant_panel_hf_endpoint_url", "", "html")
+
+    # ``ai_assistant_panel_hf_endpoint_label`` (str, default "Active Endpoint")
+    app.add_config_value(
+        "ai_assistant_panel_hf_endpoint_label", "Active Endpoint", "html"
+    )
 
     # ── Phase B: Hamburger overflow menu ──────────────────────────────────
     # ``ai_assistant_panel_hamburger`` (bool, default True)

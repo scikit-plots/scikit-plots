@@ -10994,6 +10994,174 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 [data-bs-theme="dark"] .ai-assistant-panel-ep-ext-pill {
     background: var(--pst-color-border, #4b5563);
 }
+
+/* ── D4-a-ext: Dataset Endpoint subsection ─────────────────────────────────
+   New in vNEXT — clickable HF dataset link cards + read-only token-posture row
+   in the Extended Settings panel. All selectors extend the existing
+   .ai-assistant-panel-ep-ext-* namespace so they compose with the toggle/info
+   styles above. No existing rule is modified.
+   ─────────────────────────────────────────────────────────────────────────── */
+.ai-assistant-panel-ep-ext-dataset-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    font-size: 0.75rem;
+    min-height: 1.6rem;
+    flex-wrap: wrap;
+}
+.ai-assistant-panel-ep-ext-dataset-status--loading {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+}
+.ai-assistant-panel-ep-ext-dataset-status--off {
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    font-style: italic;
+}
+.ai-assistant-panel-ep-ext-dataset-status--warn {
+    color: #d97706;
+    font-size: 0.73rem;
+}
+.ai-assistant-panel-ep-ext-dataset-status-repo {
+    font-family: var(--font-stack-monospace, monospace);
+    font-size: 0.71rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    word-break: break-all;
+}
+.ai-assistant-panel-ep-ext-dataset-badge--discovered {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.3rem;
+    white-space: nowrap;
+    background: rgba(37, 99, 235, 0.10);
+    color: #1d4ed8;
+}
+.ai-assistant-panel-ep-ext-dataset-spinner {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-top-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border-radius: 50%;
+    animation: _ai-ep-dataset-spin 0.8s linear infinite;
+}
+@keyframes _ai-ep-dataset-spin { to { transform: rotate(360deg); } }
+.ai-assistant-panel-ep-ext-dataset-links-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin: 0.4rem 0;
+}
+.ai-assistant-panel-ep-ext-dataset-card {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    background: var(--pst-color-surface, rgba(0, 0, 0, 0.02));
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+}
+.ai-assistant-panel-ep-ext-dataset-card:hover {
+    background: var(--pst-color-border, rgba(0, 0, 0, 0.04));
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    text-decoration: none;
+}
+.ai-assistant-panel-ep-ext-dataset-card:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+    border-radius: 0.4rem;
+}
+.ai-assistant-panel-ep-ext-dataset-card-icon {
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+    user-select: none;
+}
+.ai-assistant-panel-ep-ext-dataset-card-text {
+    flex: 1;
+    min-width: 0;
+}
+.ai-assistant-panel-ep-ext-dataset-card-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+    margin-bottom: 0.1rem;
+}
+.ai-assistant-panel-ep-ext-dataset-card-url {
+    display: block;
+    font-family: var(--font-stack-monospace, monospace);
+    font-size: 0.68rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ai-assistant-panel-ep-ext-dataset-card-ext {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #aaa));
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+.ai-assistant-panel-ep-ext-dataset-card:hover .ai-assistant-panel-ep-ext-dataset-card-ext {
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    transform: translate(1px, -1px);
+}
+.ai-assistant-panel-ep-ext-dataset-token-row {
+    margin: 0.2rem 0 0;
+}
+.ai-assistant-panel-ep-ext-dataset-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+    padding: 0.22rem 0.6rem;
+    font-size: 0.72rem;
+    font-family: inherit;
+    color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
+    background: transparent;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.3rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ai-assistant-panel-ep-ext-dataset-refresh-btn:hover {
+    background: var(--pst-color-border, rgba(0, 0, 0, 0.04));
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
+}
+.ai-assistant-panel-ep-ext-dataset-refresh-btn:focus        { outline: none; }
+.ai-assistant-panel-ep-ext-dataset-refresh-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 2px;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--pst-color-border, #374151);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-card-label {
+    color: var(--pst-color-text-base, #e4e6ea);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-card-url {
+    color: var(--pst-color-text-muted, #9ca3af);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-badge--discovered {
+    background: rgba(37, 99, 235, 0.18);
+    color: #93c5fd;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-ep-ext-dataset-refresh-btn {
+    border-color: var(--pst-color-border, #374151);
+    color: var(--pst-color-text-muted, #9ca3af);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    D4-b  —  FLOATING QUICK-RATE WRAPPER  (.ai-assistant-fbk-float-wrapper)
    Mirrors the .ai-assistant-mic-expand-wrapper / .ai-assistant-mic-expand-btn
