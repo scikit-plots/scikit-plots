@@ -2414,8 +2414,8 @@ gallery_dirs = ["auto_examples"]
 # Sphinx Gallery Configuration
 # https://github.com/sphinx-gallery/sphinx-gallery/blob/master/sphinx_gallery/gen_gallery.py#L81
 sphinx_gallery_conf = {
-    # Build examples in parallel
-    "parallel": 2,  # True
+    # Use Sphinx's parallel value (from -j flag);
+    "parallel": False,  # bool | int, default to False (no parallelization)
     # Directories for input example scripts and generated output galleries
     # Directory where your examples are stored
     "examples_dirs": examples_dirs,  # List of folders with example scripts
