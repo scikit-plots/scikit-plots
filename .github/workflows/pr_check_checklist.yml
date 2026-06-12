@@ -6,7 +6,7 @@
 name: "PRs 📝 Checklist"
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual triggering of the workflow
   ## Can write comments / labels on PR from fork?
   ## Use pull_request_target trigger if you're targeting a pull request from a fork:
   ## pull_request_target triggers run with the base repo code, and has write permissions.

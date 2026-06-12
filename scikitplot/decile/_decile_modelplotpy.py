@@ -2423,7 +2423,7 @@ def _plot_metric_with_reference(  # noqa: PLR0912
         line = ax.plot(
             gdf["ntile"], gdf[metric_col], label=line_label, **dict(plot_kws.line_kws)
         )
-        color = str(line[0].get_color())
+        color = line[0].get_color()
         label_to_color[str(lab)] = color
 
         # Reference curve.
@@ -3703,7 +3703,7 @@ def plot_costsrevs(  # noqa: D417, PLR0912
         rev_line = ax.plot(
             gdf["ntile"], gdf["revenues"], label=line_label, **dict(pk.line_kws)
         )
-        color = str(rev_line[0].get_color())
+        color = rev_line[0].get_color()
         label_to_color[str(lab)] = color
 
         if scope != "compare_models":
