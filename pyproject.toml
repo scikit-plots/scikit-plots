@@ -522,6 +522,7 @@ corpus = [
   "youtube-transcript-api",
   "pypdf",
   "pdfminer.six",
+  "sentence-transformers",
 ]
 
 ## Specialized dependencies for specific hardware
