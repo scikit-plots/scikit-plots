@@ -1,4 +1,4 @@
-# scikit-plots/ai  ·  requirements.txt  v3.1.0
+# scikit-plots/ai  ·  requirements.txt  v3.2.0
 #
 # Pin with ~= (compatible release) to allow patch upgrades while preventing
 # breaking minor/major version changes across HF Space restarts.
@@ -11,3 +11,7 @@
 fastapi~=0.111.0
 uvicorn[standard]~=0.29.0
 httpx~=0.27.0
+# Required for POST /v1/contribute: push Q&A training records to a HF Dataset.
+# HF_TOKEN (Space secret) is used server-side; no token exposed to the browser.
+# Upper bound omitted — huggingface_hub follows semver and is stable across minors.
+huggingface_hub~=0.23.0

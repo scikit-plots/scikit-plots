@@ -1,0 +1,184 @@
+<h2 class="sr-only">Interactive mockup: export card grid with TOML stubs at both ends, responsive width slider</h2>
+
+<style>
+.exp-card { display:flex; flex-direction:column; align-items:flex-start; gap:3px; padding:8px 8px 7px; background:transparent; border:0.5px solid var(--color-border-secondary); border-radius:7px; font:inherit; font-size:12px; text-align:left; cursor:pointer; color:var(--color-text-primary); position:relative; }
+.exp-card:hover { background:rgba(127,127,127,0.09); border-color:var(--color-border-primary); }
+.exp-card-stub { opacity:0.46; cursor:default; border-style:dashed; pointer-events:none; }
+.exp-card-label { font-size:12px; font-weight:500; color:var(--color-text-primary); white-space:nowrap; }
+.exp-card-hint { font-size:10.5px; color:var(--color-text-secondary); line-height:1.3; word-break:break-word; }
+.exp-card-soon { position:absolute; top:3px; right:3px; font-size:8.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:1px 4px; border-radius:999px; background:#2980b9; color:#fff; opacity:.82; pointer-events:none; line-height:1.5; }
+.shr-target { display:flex; align-items:center; gap:9px; padding:7px 10px; border:0.5px solid var(--color-border-tertiary); border-radius:6px; background:transparent; font:inherit; font-size:13px; cursor:pointer; color:var(--color-text-primary); text-align:left; width:100%; }
+.shr-target:hover { background:var(--color-background-secondary); }
+.trigger-row { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:0.5px solid var(--color-border-secondary); border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--color-text-primary); }
+.trigger-row:hover { background:var(--color-background-secondary); }
+</style>
+
+<div style="padding:.75rem 0 1rem">
+
+  <div style="display:flex; align-items:center; gap:20px; margin-bottom:1.25rem; flex-wrap:wrap; font-size:13px;">
+    <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:180px;">
+      <span style="color:var(--color-text-secondary); white-space:nowrap;">Panel width</span>
+      <input type="range" id="ws" min="255" max="380" value="360" step="1" style="flex:1">
+      <span style="font-weight:500; min-width:38px; color:var(--color-text-primary)" id="wl">360px</span>
+    </div>
+    <label style="display:flex; align-items:center; gap:7px; color:var(--color-text-secondary); cursor:pointer; user-select:none;">
+      <input type="checkbox" id="expCb" checked style="cursor:pointer"> Expanded
+    </label>
+    <label style="display:flex; align-items:center; gap:7px; color:var(--color-text-secondary); cursor:pointer; user-select:none;">
+      <input type="checkbox" id="lmCb" style="cursor:pointer"> Link mode
+    </label>
+  </div>
+
+  <div style="display:flex; justify-content:center;">
+    <div id="pm" style="width:360px; border:0.5px solid var(--color-border-secondary); border-radius:12px; overflow:hidden; background:var(--color-background-primary); transition:width .15s ease;">
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 14px; border-bottom:0.5px solid var(--color-border-tertiary); flex-shrink:0;">
+        <i class="ti ti-menu-2" style="font-size:15px; color:var(--color-text-secondary);" aria-hidden="true"></i>
+        <strong style="font-size:14px; font-weight:500; color:var(--color-text-primary);">Share</strong>
+        <i class="ti ti-x" style="font-size:15px; color:var(--color-text-secondary);" aria-hidden="true"></i>
+      </div>
+
+      <div style="margin:8px 12px 0;">
+
+        <div class="trigger-row" onclick="toggleAcc()">
+          <div style="display:flex; align-items:center; gap:7px;">
+            <i class="ti ti-download" style="font-size:15px; color:var(--color-text-secondary);" aria-hidden="true"></i>
+            <span>Export</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px;">
+            <span id="mb" style="font-size:11px; font-weight:500; padding:2px 7px; border-radius:999px; background:var(--color-background-secondary); color:var(--color-text-secondary); transition:all .18s ease;">Download</span>
+            <i id="chv" class="ti ti-chevron-down" style="font-size:12px; color:var(--color-text-secondary); transition:transform .18s ease;" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <div id="ab" style="overflow:hidden; transition:max-height .22s ease, opacity .18s ease; max-height:260px; opacity:1;">
+          <div id="cg" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(56px, 1fr)); gap:6px; padding:8px 0 4px;">
+
+            <button class="exp-card exp-card-stub" disabled aria-disabled="true" title="Coming soon">
+              <i class="ti ti-settings" style="font-size:14px; color:#2980b9;" aria-hidden="true"></i>
+              <span class="exp-card-label">TOML</span>
+              <span class="exp-card-hint">Key-value config format.</span>
+              <span class="exp-card-soon">soon</span>
+            </button>
+
+            <button class="exp-card">
+              <i class="ti ti-code" style="font-size:14px; color:#2980b9;" aria-hidden="true"></i>
+              <span class="exp-card-label">JSON</span>
+              <span class="exp-card-hint">Pandas-ready · model + ratings.</span>
+            </button>
+
+            <button class="exp-card">
+              <i class="ti ti-world" style="font-size:14px; color:#2980b9;" aria-hidden="true"></i>
+              <span class="exp-card-label">HTML</span>
+              <span class="exp-card-hint">Shareable page · browser.</span>
+            </button>
+
+            <button class="exp-card">
+              <i class="ti ti-file-text" style="font-size:14px; color:#2980b9;" aria-hidden="true"></i>
+              <span class="exp-card-label">Plain text</span>
+              <span class="exp-card-hint">Simple · human-readable.</span>
+            </button>
+
+            <button class="exp-card exp-card-stub" disabled aria-disabled="true" title="Coming soon">
+              <i class="ti ti-settings" style="font-size:14px; color:#2980b9;" aria-hidden="true"></i>
+              <span class="exp-card-label">TOML</span>
+              <span class="exp-card-hint">Key-value config format.</span>
+              <span class="exp-card-soon">soon</span>
+            </button>
+
+          </div>
+
+          <div style="height:0.5px; background:var(--color-border-tertiary); margin:3px 0 1px;"></div>
+
+          <div id="mr" onclick="toggleLink()" style="display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:5px; cursor:pointer; margin-bottom:4px;">
+            <i class="ti ti-link" id="mi" style="font-size:14px; color:var(--color-text-secondary); transition:color .18s;" aria-hidden="true"></i>
+            <span id="ml" style="flex:1; font-size:12px; font-weight:500; color:var(--color-text-secondary); transition:color .18s;">Share link</span>
+            <div id="pt" style="width:28px; height:15px; border-radius:999px; background:var(--color-border-secondary); position:relative; transition:background .18s ease; flex-shrink:0;">
+              <div id="ph" style="position:absolute; top:2px; left:2px; width:11px; height:11px; border-radius:50%; background:#fff; transition:transform .18s ease; pointer-events:none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:0.5px; background:var(--color-border-tertiary); margin:7px 12px 0;"></div>
+
+      <div style="padding:8px 14px 14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="margin-bottom:6px;">
+          <input type="text" value="https://docs.example.com/guide" readonly style="width:100%; padding:5px 8px; font-size:12px; border:0.5px solid var(--color-border-secondary); border-radius:6px; background:transparent; color:var(--color-text-secondary); box-sizing:border-box;">
+        </div>
+        <button class="shr-target"><i class="ti ti-copy" style="font-size:14px; color:var(--color-text-secondary);" aria-hidden="true"></i> Copy link</button>
+        <button class="shr-target"><i class="ti ti-mail" style="font-size:14px; color:var(--color-text-secondary);" aria-hidden="true"></i> Email</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:10px; font-size:12px; color:var(--color-text-secondary);" id="ci"></div>
+</div>
+
+<script>
+var isExp = true, isLM = false;
+
+function colsFor(w) {
+  var usable = w - 24;
+  return Math.max(1, Math.floor((usable + 6) / 62));
+}
+
+function updateColInfo(w) {
+  var c = colsFor(w);
+  var labels = {5:'5 columns — full panel (360px)',4:'4 columns — narrower (~295–360px)',3:'3 columns — narrow (≤ 294px)'};
+  document.getElementById('ci').textContent = labels[c] || c + ' columns';
+}
+
+function setLink(on) {
+  isLM = on;
+  var mb = document.getElementById('mb');
+  var pt = document.getElementById('pt');
+  var ph = document.getElementById('ph');
+  var mi = document.getElementById('mi');
+  var ml = document.getElementById('ml');
+  if (on) {
+    mb.textContent = 'Link';
+    mb.style.background = 'rgba(41,128,185,.13)';
+    mb.style.color = '#2980b9';
+    pt.style.background = '#2980b9';
+    ph.style.transform = 'translateX(13px)';
+    mi.style.color = '#2980b9';
+    ml.style.color = '#2980b9';
+  } else {
+    mb.textContent = 'Download';
+    mb.style.background = 'var(--color-background-secondary)';
+    mb.style.color = 'var(--color-text-secondary)';
+    pt.style.background = 'var(--color-border-secondary)';
+    ph.style.transform = 'none';
+    mi.style.color = 'var(--color-text-secondary)';
+    ml.style.color = 'var(--color-text-secondary)';
+  }
+  document.getElementById('lmCb').checked = on;
+}
+
+function toggleLink() { setLink(!isLM); }
+
+function setAcc(on) {
+  isExp = on;
+  var ab = document.getElementById('ab');
+  var chv = document.getElementById('chv');
+  ab.style.maxHeight = on ? '260px' : '0px';
+  ab.style.opacity = on ? '1' : '0';
+  chv.style.transform = on ? '' : 'rotate(-90deg)';
+  document.getElementById('expCb').checked = on;
+}
+
+function toggleAcc() { setAcc(!isExp); }
+
+document.getElementById('ws').addEventListener('input', function() {
+  var w = +this.value;
+  document.getElementById('pm').style.width = w + 'px';
+  document.getElementById('wl').textContent = w + 'px';
+  updateColInfo(w);
+});
+
+document.getElementById('expCb').addEventListener('change', function() { setAcc(this.checked); });
+document.getElementById('lmCb').addEventListener('change', function() { setLink(this.checked); });
+
+updateColInfo(360);
+</script>

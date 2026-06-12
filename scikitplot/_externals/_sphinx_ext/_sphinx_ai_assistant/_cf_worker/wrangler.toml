@@ -35,8 +35,23 @@ compatibility_date = "2024-09-23"
 # ]
 
 # Secrets (set via `wrangler secret put`, NEVER hardcode here):
-#   HF_TOKEN — HuggingFace API token with "Inference" read permission.
+#   HF_TOKEN            — HuggingFace API token with "Inference" read permission.
+#   SHARE_WRITE_TOKEN   — Bearer token for POST /v1/share (run: wrangler secret put SHARE_WRITE_TOKEN)
+#   FEEDBACK_WRITE_TOKEN— Bearer token for POST /v1/feedback (run: wrangler secret put FEEDBACK_WRITE_TOKEN)
+
+# ── KV Namespace ────────────────────────────────────────────────────────────
+# Shared namespace for share entries (sh:<uuid>), feedback entries (fb:<uuid>),
+# and rate-limit counters (rl:sh:<ip> / rl:fb:<ip>).
 #
-# Environment variables (non-secret; set in [vars] if needed):
-# [vars]
-# DEFAULT_MODEL = "openai/gpt-oss-20b"
+# Setup (one-time):
+#   wrangler kv namespace create "SHARE_KV"
+#   → Copy the printed `id` value into the field below.
+#
+# Naming convention for keys:
+#   sh:<uuid>        Share entry   (TTL: panelGlobalShareTtlDays days)
+#   fb:<uuid>        Feedback entry (TTL: 90 days)
+#   rl:sh:<ipHash>   Share rate-limit counter (TTL: 3600 s)
+#   rl:fb:<ipHash>   Feedback rate-limit counter (TTL: 3600 s)
+[[kv_namespaces]]
+binding = "SHARE_KV"
+id      = "PASTE_ID_FROM_WRANGLER_KV_NAMESPACE_CREATE_HERE"

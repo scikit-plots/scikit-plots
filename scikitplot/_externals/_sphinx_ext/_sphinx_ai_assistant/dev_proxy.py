@@ -25,8 +25,8 @@
 # ───────────
 # • Single-threaded: one slow request (30-90 s for large models) blocks all
 #   other requests.  Open only one browser tab while a request is in flight.
-# • Requires model IDs with Inference Providers: openai/gpt-oss-20b works;
-#   scikit-plots/gpt-oss-20b does NOT (mirror — no Inference Provider).
+# • Requires model IDs with Inference Providers: Qwen/Qwen2.5-Coder-32B-Instruct works;
+#   scikit-plots/Qwen2.5-Coder-32B-Instruct does NOT (mirror — no provider on router).
 # • HTTP only — no TLS.  For HTTPS, use path_b/app.py (FastAPI + uvicorn).
 # • Never expose on a public network: no rate limiting, no authentication.
 #
@@ -85,18 +85,23 @@ _LOG = logging.getLogger("dev_proxy")
 #: HuggingFace API token.  Required — proxy exits with clear message if absent.
 HF_TOKEN: str = os.environ.get("HF_TOKEN", "").strip()
 
-#: HuggingFace Serverless Inference API base URL (no trailing slash).
+#: HuggingFace Inference Providers base URL (no trailing slash).
+#: Migrated to router.huggingface.co (v6.0.0); the legacy
+#: api-inference.huggingface.co hostname is DNS-unresolvable.
 HF_BASE: str = os.environ.get(
     "HF_BASE",
-    "https://api-inference.huggingface.co/models",
+    "https://router.huggingface.co",
 ).rstrip("/")
 
 #: Fallback model ID when the request body omits the ``model`` field.
-#: Must have a registered HF Inference Provider.
-#:   ✓  openai/gpt-oss-20b          (original — has provider)
-#:   ✓  Qwen/Qwen2.5-Coder-32B-Instruct
-#:   ✗  scikit-plots/gpt-oss-20b   (mirror — no provider → 404/503)
-DEFAULT_MODEL: str = os.environ.get("DEFAULT_MODEL", "openai/gpt-oss-20b").strip()
+#: Must have a registered HF Inference Provider on router.huggingface.co.
+#:   ✓  Qwen/Qwen2.5-Coder-32B-Instruct   (original — has provider)
+#:   ✓  Qwen/Qwen2.5-72B-Instruct
+#:   ✗  scikit-plots/Qwen2.5-Coder-32B-Instruct  (mirror — no provider → 404/503)
+#:      To serve scikit-plots/* models use the full proxy with Path-2 routing.
+DEFAULT_MODEL: str = os.environ.get(
+    "DEFAULT_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct"
+).strip()
 
 #: Local port the proxy listens on.
 PORT: int = int(os.environ.get("DEV_PROXY_PORT", "8787"))
@@ -253,7 +258,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
         body: bytes = self.rfile.read(length)
 
         model: str = _parse_model(body)
-        url: str = f"{HF_BASE}/{model}/v1/chat/completions"
+        # router.huggingface.co uses a flat endpoint; the model is selected
+        # via the request body, not the URL path.
+        url: str = f"{HF_BASE}/v1/chat/completions"
 
         _LOG.info("→ POST %s", url)
 
@@ -334,7 +341,9 @@ def main() -> None:
     public internet).  Press ``Ctrl+C`` to stop.
     """
     _LOG.info("Listening on http://localhost:%d", PORT)
-    _LOG.info("Forwarding to: %s/<model>/v1/chat/completions", HF_BASE)
+    _LOG.info(
+        "Forwarding to: %s/v1/chat/completions  (model via request body)", HF_BASE
+    )
     _LOG.info("Default model: %s", DEFAULT_MODEL)
     _LOG.info("HF_TOKEN:      %s  (truncated for safety)", _token_fragment(HF_TOKEN))
     _LOG.info("Timeout:       %ds", TIMEOUT)
