@@ -2055,6 +2055,12 @@
                 var k = keys[i];
                 if (!Object.prototype.hasOwnProperty.call(raw, k)) continue;
                 if (typeof k !== 'string' || !k) continue;
+                // Reserved namespace: '_meta' carries {schemaVersion, buildId}
+                // injected by _serialize_endpoint_profiles() (__init__.py) for
+                // cache-busting. It is build metadata, not a selectable
+                // endpoint profile — exclude it from the registry entirely so
+                // it never appears as a "Built-in" profile card.
+                if (k === '_meta') continue;
                 // Build-time keys are already validated by Python; copy as-is.
                 _profiles[k] = raw[k];
                 _builtin[k]  = true;
