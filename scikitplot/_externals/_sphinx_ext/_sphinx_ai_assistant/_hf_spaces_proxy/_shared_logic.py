@@ -1,4 +1,11 @@
-# _shared_logic.py  v6.1.0
+# scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy/_shared_logic.py
+#
+# flake8: noqa: D213
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
+
+# _shared_logic.py  v6.2.0
 #
 # Single source of truth for shared constants, pure helper functions, and
 # type aliases used by the deployed proxy (_hf_spaces_proxy/app.py) and the
@@ -75,9 +82,6 @@
 # + ``load_proxy_env()`` extended with ``hf_token_type`` and
 #   ``hf_write_token_type`` keys read from the matching env vars.
 # + ``_safe_float`` added to ``__all__`` (was importable but unadvertised).
-#
-# SPDX-License-Identifier: BSD-3-Clause
-# Authors: The scikit-plots developers
 
 """
 Shared utilities for the sphinx-ai-assistant proxy solutions.
@@ -152,9 +156,11 @@ deployed Spaces and log aggregators can correlate errors to a specific release.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import os
+import re
 from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
@@ -186,6 +192,10 @@ __all__ = [  # noqa: RUF022
     "_safe_float",
     "_safe_int",
     "_token_log_fragment",
+    # Privacy / log-redaction (v6.2.0)
+    "_REDACT_PATTERNS",
+    "_RedactingFilter",
+    "_mask_ip",
     # Helpers — token type system (v6.1.0)
     "_classify_token_type",
     "_token_suitable_for_inference",
@@ -203,7 +213,7 @@ __all__ = [  # noqa: RUF022
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Proxy release version — bump on every breaking change.
-PROXY_VERSION: str = "6.1.0"
+PROXY_VERSION: str = "6.2.0"
 
 #: HuggingFace Inference Providers router base URL (no trailing slash).
 #: Only used for Path 3 (standard provider models) when ``BACKEND_URL`` is
@@ -609,6 +619,211 @@ def _token_log_fragment(token: str, token_type: str = "") -> str:
     if token_type and token_type != HF_TOKEN_TYPE_UNKNOWN:
         return f"{fragment} ({token_type})"
     return fragment
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Privacy / log-redaction helpers  (v6.2.0)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Design rationale
+# ----------------
+# Two complementary layers protect PII in log output:
+#
+#   Layer 1 — call-site masking via :func:`_mask_ip`
+#     Every ``json.dumps({..., "ip": ...})`` call in ``app.py`` passes
+#     ``client_ip`` through :func:`_mask_ip` before it is serialised.
+#     This is the PRIMARY control: the raw IP never enters the log string.
+#
+#   Layer 2 — defence-in-depth via :class:`_RedactingFilter`
+#     Attached to the root logging handler.  Applies :data:`_REDACT_PATTERNS`
+#     to the fully formatted message BEFORE it is emitted.  Catches:
+#       • HF token strings leaked via exception messages from
+#         ``huggingface_hub`` (e.g. ``snapshot_download`` auth failures).
+#       • IPv4 addresses emitted by third-party library loggers (httpx,
+#         uvicorn) that bypass the call-site masking.
+#       • Any future code that forgets to call :func:`_mask_ip` first.
+#
+# IPv6 is handled exclusively at Layer 1 (:func:`_mask_ip`).  A generic
+# IPv6 regex in Layer 2 has unacceptable false-positive rates (e.g. it
+# would match ``12:34:56:78`` in log timestamps or MAC addresses).
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _mask_ip(ip: str) -> str:
+    """Mask a client IP address for privacy-safe log output.
+
+    Preserves enough network context for rate-limit and abuse analysis while
+    zeroing the host portion that identifies the individual user.
+
+    * **IPv4** — zero the last octet, retaining the /24 subnet.
+      ``"192.168.1.100"`` → ``"192.168.1.0"``
+    * **IPv6** — zero the interface identifier (last 64 bits), retaining
+      the /64 prefix.  ``"2001:db8:85a3::8a2e:370:7334"`` → ``"2001:db8:85a3::"``
+    * **IPv6 scope suffix** (e.g. ``"fe80::1%eth0"``) — stripped before
+      parsing (Python's :mod:`ipaddress` does not accept scope identifiers).
+    * **Non-IP strings** — returned as ``"<ip-redacted>"``.
+    * **Sentinel** ``"unknown"`` — returned unchanged (already non-identifying).
+
+    Parameters
+    ----------
+    ip : str
+        Client IP string extracted from the HTTP request headers.
+        May be ``"unknown"`` when the proxy header is absent.
+
+    Returns
+    -------
+    str
+        Masked IP suitable for structured log output.  This function is
+        intentionally never-raise — any :exc:`ValueError` from
+        :mod:`ipaddress` is caught and replaced by the safe fallback.
+
+    Notes
+    -----
+    **Security note** — This is the canonical privacy gate for all IP values
+    written to log records in ``app.py``.  Every ``json.dumps({..., "ip": …})``
+    call must pass ``client_ip`` through :func:`_mask_ip` before serialising.
+    Callers must **not** write raw ``client_ip`` values to any log record.
+
+    **Developer note** — Uses :mod:`ipaddress` from the Python standard
+    library; no third-party dependencies are introduced.
+
+    Examples
+    --------
+    >>> _mask_ip("192.168.1.100")
+    '192.168.1.0'
+    >>> _mask_ip("10.0.0.255")
+    '10.0.0.0'
+    >>> _mask_ip("2001:db8:85a3::8a2e:370:7334")
+    '2001:db8:85a3::'
+    >>> _mask_ip("fe80::1%eth0")
+    'fe80::'
+    >>> _mask_ip("unknown")
+    'unknown'
+    >>> _mask_ip("not-an-ip")
+    '<ip-redacted>'
+    """
+    if ip in ("unknown", ""):
+        return ip
+    try:
+        # Strip IPv6 zone/scope identifier (e.g. "%eth0") — ipaddress rejects it.
+        clean: str = ip.split("%", 1)[0].strip()
+        addr = ipaddress.ip_address(clean)
+        if isinstance(addr, ipaddress.IPv4Address):
+            # Retain /24 (first three octets); zero the host octet.
+            return str(ipaddress.ip_network(f"{addr}/24", strict=False).network_address)
+        # IPv6: retain /64 prefix; zero the 64-bit interface identifier.
+        return str(ipaddress.ip_network(f"{addr}/64", strict=False).network_address)
+    except ValueError:
+        return "<ip-redacted>"
+
+
+#: Ordered list of ``(compiled_pattern, replacement)`` tuples applied by
+#: :class:`_RedactingFilter` to every log record before emission.
+#:
+#: **Pattern order matters** — patterns are applied left-to-right; more
+#: specific patterns must precede catch-all patterns.  There is no overlap
+#: between the current patterns, but this convention must be maintained when
+#: extending this list.
+#:
+#: IPv6 addresses are intentionally **absent** — they are handled at the
+#: call-site by :func:`_mask_ip` (Layer 1).  A generic IPv6 regex in a
+#: global filter produces too many false positives (hex timestamps, MAC
+#: addresses, Docker overlay IDs) to be safe in a production log stream.
+_REDACT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    # HuggingFace API tokens — ``hf_`` prefix followed by ≥ 4 alphanumeric
+    # characters.  Classic tokens are ~34 chars; fine-grained tokens are ≥ 52.
+    # The {4,} lower bound avoids matching ``hf_`` in legitimate identifiers
+    # (e.g. Python identifiers that start with ``hf_``) while still catching
+    # any partial token fragment that huggingface_hub may embed in an error
+    # message.
+    (re.compile(r"\bhf_[a-zA-Z0-9]{4,}\b"), "<token-redacted>"),
+    # IPv4 addresses — strict dotted-decimal notation with per-octet range
+    # validation (0-255).  Word boundaries prevent partial matches inside
+    # longer numeric strings.  This pattern catches IPv4 strings emitted by
+    # third-party loggers (httpx, uvicorn) that bypass :func:`_mask_ip`.
+    (
+        re.compile(
+            r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}"
+            r"(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b"
+        ),
+        "<ipv4-redacted>",
+    ),
+]
+
+
+class _RedactingFilter(logging.Filter):
+    """Scrub sensitive values from log records before emission.
+
+    Applies the regex patterns in :data:`_REDACT_PATTERNS` to the fully
+    formatted log message, replacing HuggingFace API tokens and raw IPv4
+    addresses with opaque placeholders.
+
+    This class is the **defence-in-depth layer** (Layer 2).  The primary
+    control is :func:`_mask_ip` at each call site (Layer 1).  The filter
+    catches values that slip through Layer 1 — most importantly, HF token
+    strings embedded in exception messages from ``huggingface_hub``.
+
+    Parameters
+    ----------
+    name : str, optional
+        Filter name forwarded to :class:`logging.Filter`.  Default ``""``.
+
+    Notes
+    -----
+    **Security note** — This filter materialises the fully formatted message
+    via :meth:`logging.LogRecord.getMessage`, applies every pattern in
+    :data:`_REDACT_PATTERNS`, then replaces :attr:`~logging.LogRecord.msg`
+    with the scrubbed result and clears :attr:`~logging.LogRecord.args`.
+    Clearing ``args`` prevents downstream handlers from re-applying ``%``
+    formatting to a string that no longer contains positional placeholders.
+
+    **Developer note** — Attach to the root handler immediately after
+    construction so **every** handler in the process benefits::
+
+        handler = logging.StreamHandler()
+        handler.addFilter(_RedactingFilter())
+        logging.root.handlers = [handler]
+
+    To extend the redaction vocabulary, append a ``(pattern, replacement)``
+    tuple to :data:`_REDACT_PATTERNS`.
+
+    Examples
+    --------
+    >>> import logging
+    >>> f = _RedactingFilter()
+    >>> rec = logging.makeLogRecord(
+    ...     {"msg": "token=hf_abc1234defg5678 ip=10.0.1.99", "args": ()}
+    ... )
+    >>> f.filter(rec)
+    True
+    >>> rec.msg
+    'token=<token-redacted> ip=<ipv4-redacted>'
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        """Redact sensitive patterns from *record*'s formatted message.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            Log record to inspect and mutate in-place.
+
+        Returns
+        -------
+        bool
+            Always ``True`` — this filter never suppresses records, only
+            scrubs their message content.
+        """
+        # Materialise the full %-formatted string first, then scrub it.
+        msg: str = record.getMessage()
+        for pattern, replacement in _REDACT_PATTERNS:
+            msg = pattern.sub(replacement, msg)
+        # Write the scrubbed text back and clear args so that any subsequent
+        # call to getMessage() returns the already-scrubbed string without
+        # attempting to re-apply % formatting.
+        record.msg = msg
+        record.args = ()
+        return True
 
 
 def _classify_token_type(

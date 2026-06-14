@@ -65,6 +65,15 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Optional: import _RedactingFilter from _shared_logic when available so that
+# HF token strings embedded in exception messages (e.g. snapshot_download auth
+# failures) are scrubbed from CLI log output.  Safe no-op fallback for
+# standalone usage where _shared_logic.py is absent.
+try:
+    from _shared_logic import _RedactingFilter as _REDACTING_FILTER_CLS
+except ImportError:
+    _REDACTING_FILTER_CLS = None  # type: ignore[assignment,misc]
+
 # Optional: normalize records from v1 to v2 schema when _dataset_schema is
 # available alongside this script (standard _hf_spaces_proxy/ deployment).
 # Falls back to identity function with a warning for standalone usage.
@@ -359,6 +368,14 @@ def _configure_logging() -> None:
     err_handler.setFormatter(level_fmt)
     err_handler.setLevel(logging.WARNING)
 
+    # Attach defence-in-depth redaction filter when _shared_logic is available.
+    # Scrubs HF token strings that huggingface_hub may embed in auth-error
+    # messages before they are emitted to stderr.  No-op when absent.
+    if _REDACTING_FILTER_CLS is not None:
+        _rf = _REDACTING_FILTER_CLS()
+        out_handler.addFilter(_rf)
+        err_handler.addFilter(_rf)
+
     root = logging.getLogger()
     root.handlers = [out_handler, err_handler]
     root.setLevel(logging.DEBUG)
@@ -416,13 +433,22 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         logger.info("Downloading %s ...", args.repo_id)
-        local_dir = Path(
-            snapshot_download(
-                repo_id=args.repo_id,
-                repo_type="dataset",
-                token=args.token,
+        try:
+            local_dir = Path(
+                snapshot_download(
+                    repo_id=args.repo_id,
+                    repo_type="dataset",
+                    token=args.token,
+                )
             )
-        )
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "Failed to download %s: %s\n"
+                "Hint: pass --token <HF_READ_TOKEN> or set HF_TOKEN in your environment.",
+                args.repo_id,
+                exc,
+            )
+            return 1
 
     logger.info("Reading records from %s ...", local_dir)
     all_records = load_all_records(local_dir)

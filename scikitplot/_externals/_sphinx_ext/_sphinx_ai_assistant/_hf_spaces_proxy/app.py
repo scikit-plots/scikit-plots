@@ -5,7 +5,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v6.1.0
+# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v6.2.0
 #
 # Thin OpenAI-compatible reverse proxy for sphinx-ai-assistant.
 #
@@ -140,7 +140,7 @@ try:
         normalize_contribution_record,
         normalize_feedback_record,
     )
-except Exception:
+except Exception:  # noqa: BLE001
     from _dataset_schema import (  # type: ignore[import]
         CONSENT_VERSION_ENABLED,
         RESERVED_CONSENT_VERSION,
@@ -160,6 +160,8 @@ try:
         DEFAULT_PROXY_TIMEOUT,
         PROXY_VERSION,
         _classify_token_type,
+        _mask_ip,
+        _RedactingFilter,
         _resolve_upstream_url,
         _safe_float,
         _safe_int,
@@ -167,7 +169,7 @@ try:
         _validate_env,
         _validate_token_config,
     )
-except Exception as e:
+except Exception:  # noqa: BLE001
     from _shared_logic import (  # type: ignore[import]
         DEFAULT_HF_BASE,
         DEFAULT_HF_SPACES_MODEL_NAMESPACES,
@@ -179,6 +181,8 @@ except Exception as e:
         DEFAULT_PROXY_TIMEOUT,
         PROXY_VERSION,
         _classify_token_type,
+        _mask_ip,
+        _RedactingFilter,
         _resolve_upstream_url,
         _safe_float,
         _safe_int,
@@ -257,6 +261,7 @@ class _StructuredFormatter(logging.Formatter):
 
 _handler = logging.StreamHandler()
 _handler.setFormatter(_StructuredFormatter())
+_handler.addFilter(_RedactingFilter())  # scrub tokens/IPs before emission
 logging.root.handlers = [_handler]
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1246,7 +1251,7 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
         _contrib_rl[client_ip] = (count, window_start)
         if count > 5:  # noqa: PLR2004
             logger.warning(
-                json.dumps({"event": "contribute.ratelimit", "ip": client_ip})
+                json.dumps({"event": "contribute.ratelimit", "ip": _mask_ip(client_ip)})
             )
             raise HTTPException(
                 status_code=429,
@@ -1355,7 +1360,13 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
         ) from exc
 
     logger.info(
-        json.dumps({"event": "contribute.write", "rows": len(records), "ip": client_ip})
+        json.dumps(
+            {
+                "event": "contribute.write",
+                "rows": len(records),
+                "ip": _mask_ip(client_ip),
+            }
+        )
     )
     return JSONResponse({"contributed": True, "rows": len(records)})
 
@@ -1436,7 +1447,9 @@ async def share(request: Request) -> JSONResponse:
         count += 1
         _share_rl[client_ip] = (count, window_start)
         if count > 10:  # noqa: PLR2004
-            logger.warning(json.dumps({"event": "share.ratelimit", "ip": client_ip}))
+            logger.warning(
+                json.dumps({"event": "share.ratelimit", "ip": _mask_ip(client_ip)})
+            )
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded. Maximum 10 shares per hour.",
@@ -1469,7 +1482,7 @@ async def share(request: Request) -> JSONResponse:
             {
                 "event": "share.create",
                 "id": share_id,
-                "ip": client_ip,
+                "ip": _mask_ip(client_ip),
                 "ttl_days": ttl_days,
             }
         )
@@ -1613,7 +1626,9 @@ async def share_patch(share_id: str, request: Request) -> JSONResponse:
         count += 1
         _share_rl[client_ip] = (count, window_start)
         if count > 10:  # noqa: PLR2004
-            logger.warning(json.dumps({"event": "share.ratelimit", "ip": client_ip}))
+            logger.warning(
+                json.dumps({"event": "share.ratelimit", "ip": _mask_ip(client_ip)})
+            )
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded. Maximum 10 shares per hour.",
@@ -1660,7 +1675,7 @@ async def share_patch(share_id: str, request: Request) -> JSONResponse:
             {
                 "event": "share.update",
                 "id": share_id,
-                "ip": client_ip,
+                "ip": _mask_ip(client_ip),
                 "ttl_days": ttl_days,
             }
         )
@@ -1778,7 +1793,7 @@ async def feedback(request: Request) -> JSONResponse:
             json.dumps(
                 {
                     "event": "feedback.retract",
-                    "ip": client_ip,
+                    "ip": _mask_ip(client_ip),
                     "prevSessionId": payload.get("prevSessionId"),
                     "conversationId": payload.get("conversationId"),
                     "answerIndex": payload.get("answerIndex"),
@@ -1807,7 +1822,9 @@ async def feedback(request: Request) -> JSONResponse:
             _feedback_rl[client_ip] = (count, window_start)
             if count > 30:  # noqa: PLR2004
                 logger.warning(
-                    json.dumps({"event": "feedback.ratelimit", "ip": client_ip})
+                    json.dumps(
+                        {"event": "feedback.ratelimit", "ip": _mask_ip(client_ip)}
+                    )
                 )
                 raise HTTPException(
                     status_code=429,
@@ -1819,7 +1836,7 @@ async def feedback(request: Request) -> JSONResponse:
             json.dumps(
                 {
                     "event": "feedback.receive",
-                    "ip": client_ip,
+                    "ip": _mask_ip(client_ip),
                     "ratingValue": payload.get("ratingValue"),
                     "model": payload.get("model"),
                     "conversationId": payload.get("conversationId"),
@@ -1898,7 +1915,7 @@ async def feedback(request: Request) -> JSONResponse:
                         "event": "feedback.persist_ok",
                         "retract": is_retract,
                         "dedup_key": f"{conversation_id}:{answer_index}",
-                        "ip": client_ip,
+                        "ip": _mask_ip(client_ip),
                     }
                 )
             )

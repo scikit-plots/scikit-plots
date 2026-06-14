@@ -128,6 +128,13 @@ Schema version history
     all v2-only fields default via ``setdefault`` (``feedbackId=None``,
     ``prevFeedbackId=None``, ``editCount=0``).
 
+Security note
+    Client IP addresses are **never stored** in dataset records.  The proxy
+    (``app.py``) passes every ``client_ip`` through ``_mask_ip()`` before any
+    log entry is written, and the normalisation functions in this module
+    receive only the sanitised JSON payload — the raw IP never enters any
+    field accepted or emitted by this module.
+
 References
 ----------
 See ``DATASET_COLLECTION_GUIDANCE.md`` for the deduplication contract, the
