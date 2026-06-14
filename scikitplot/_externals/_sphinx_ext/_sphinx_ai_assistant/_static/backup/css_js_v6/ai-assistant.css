@@ -13,10 +13,10 @@
 /* ─── Container ──────────────────────────────────────────────────────────── */
 
 .ai-assistant-container {
+    z-index: 1080;
     position: relative;
     overflow-x: visible !important;
     overflow: visible !important;
-    z-index: 99999;
     margin-top: 0.3rem;
 }
 
@@ -140,10 +140,10 @@
 /* ─── Dropdown panel ────────────────────────────────────────────────────── */
 
 .ai-assistant-dropdown {
+    z-index: 1080;
     /* JS: dropdown.style.display = 'none'; */
     display: none;
     position: absolute;
-    z-index: 99999;
     top: calc(100% + 0.2rem);
     /* align with button left edge side on title */
     /* left: 0; */
@@ -256,6 +256,7 @@
 /* ─── Toast notification ────────────────────────────────────────────────── */
 
 .ai-assistant-notification {
+    z-index: 1080;
     position: fixed;
     top: 1rem;
     right: 1rem;
@@ -266,7 +267,6 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.10);
     font-size: 0.875rem;
     font-weight: 500;
-    z-index: 99999;
     opacity: 0;
     transform: translateY(-1rem);
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -290,6 +290,16 @@
     /* Dropdown tuned right side on title */
     .ai-assistant-dropdown { left: auto; right: 0; min-width: 222px; /*transform: translate(0, 0);*/ }
     .ai-assistant-notification { left: 1rem; right: 1rem; text-align: center; }
+
+    /* BUG-5 fix: iOS Safari auto-zoom prevention.
+     * When any input/textarea has font-size < 16px (1rem), iOS Safari
+     * automatically zooms the viewport on focus — causing jarring layout shifts
+     * every time the user taps the chat input.
+     * Setting font-size to 1rem (16px) on mobile ONLY prevents the zoom while
+     * preserving the 0.875rem desktop size.                                     */
+    .ai-assistant-panel-input {
+        font-size: 1rem;
+    }
 }
 
 /* ─── Furo ──────────────────────────────────────────────────────────────── */
@@ -305,9 +315,9 @@
 .toc-sidebar .ai-assistant-container,
 .sidebar-secondary .ai-assistant-container,
 .bd-sidebar-secondary .ai-assistant-container {
+    z-index: 1080;
     display: block;
     position: relative;
-    z-index: 99999;
     padding-top: 1rem;
 }
 
@@ -345,6 +355,7 @@
 /* ─── Panel root ────────────────────────────────────────────────────────── */
 
 .ai-assistant-panel {
+    z-index: 1080;
     /* resize: both; overflow: auto; */
     /* overflow:visible is the CSS default but stated explicitly so a cloud
      * theme rule (e.g. .bd-main .ai-assistant-panel { overflow:hidden }) cannot
@@ -355,12 +366,17 @@
     position: fixed;
     bottom: 0.3rem;
     right: 0.3rem;
-    z-index: 99999;
     width: 360px;
     /* height: min(520px, calc(100vh - 1rem)); */
 
     /* Default (normal) state height */
+    /* BUG-3 fix: iOS Safari 100vh bug — Safari's 100vh includes space BEHIND
+     * the address bar and bottom navigation bar, so the panel footer (input)
+     * is hidden under the browser chrome on iOS.
+     * dvh (dynamic viewport height, iOS 15.4+) uses the ACTUAL visible area,
+     * excluding browser chrome.  100vh stays as the universal fallback.      */
     max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
     max-width: calc(100vw - 1rem);
 
     display: none;          /* JS sets display:flex when open */
@@ -412,8 +428,11 @@
     /* Actual height (not just max-height) so the panel fills the viewport
        vertically regardless of message count — the body flex-child absorbs
        the remaining space. */
+    /* iOS Safari dvh fix: same 100vh bug applies to explicit height. */
     height: calc(100vh - 1rem);
+    height: calc(100dvh - 1rem);
     max-height: calc(100vh - 1rem);   /* keep as guard for safe measure */
+    max-height: calc(100dvh - 1rem);  /* dvh wins on iOS 15.4+ */
     /* Expand width significantly on maximize — was 520px, now uses most of
        the viewport so both X and Y grow on maximize. */
     width: min(960px, calc(100vw - 1rem));
@@ -742,6 +761,11 @@
 .ai-assistant-panel-input {
     flex: 1 1 auto;
     resize: none;
+    /* BUG-4 fix: -webkit-appearance: none removes iOS Safari's default system
+     * styling (rounded corners, platform-native look) so the panel's own border
+     * and background take full effect.                                         */
+    -webkit-appearance: none;
+    appearance: none;
     font-size: 0.875rem;
     line-height: 1.4;
     padding: 0.6rem 0.65rem 0.35rem 0.65rem;  /* tighter bottom — action bar follows */
@@ -945,10 +969,10 @@
  */
 
 .ai-assistant-panel-trigger {
+    z-index: 1080;
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
-    z-index: 99999;
     display: none;          /* shown only when panel is minimized */
     align-items: center;
     gap: 0.5rem;
@@ -1017,11 +1041,16 @@
         width: 100%;
         max-width: 100%;
         border-radius: 12px 12px 0 0;
+        /* BUG-6 fix: same iOS Safari 100vh bug at mobile breakpoint.
+         * 75dvh uses the true visible viewport on iOS 15.4+.           */
         max-height: 75vh;
+        max-height: 75dvh;
     }
 
     .ai-assistant-panel[data-maximized="true"] {
+        /* BUG-6 fix continued: maximized mobile also needs dvh.        */
         max-height: 95vh;
+        max-height: 95dvh;
         border-radius: 12px 12px 0 0;
     }
 
@@ -1049,15 +1078,15 @@
    When the panel is maximized or on small screens the grip is hidden. */
 
 .ai-assistant-panel-resizer {
+    /* z-index one step above left/top grips so the corner wins at the
+       18×18 overlap now that both edge grips extend to top:0 / left:0. */
+    z-index: 1080;
     position: absolute;
     top: 0;
     left: 0;
     width: 18px;
     height: 18px;
     cursor: nwse-resize;
-    /* z-index one step above left/top grips so the corner wins at the
-       18×18 overlap now that both edge grips extend to top:0 / left:0. */
-    z-index: 100000;
     /* Visual affordance: two short diagonal ticks, theme-aware. */
     background:
         linear-gradient(135deg,
@@ -1077,6 +1106,7 @@
    transition does not fight the live drag and text selection is suppressed. */
 body.ai-assistant-resizing,
 body.ai-assistant-resizing * {
+    -webkit-user-select: none !important;
     user-select: none !important;
 }
 /* Per-axis cursor — applied alongside .ai-assistant-resizing */
@@ -1104,13 +1134,13 @@ body.ai-assistant-resizing .ai-assistant-panel {
    z-index:100000 takes priority at the shared 18×18 corner. */
 
 .ai-assistant-panel-resizer-left {
+    z-index: 1080;
     position: absolute;
     left: 0;
     top: 0;               /* full-height: was 18px; corner grip wins at top via z-index */
     bottom: 0;
     width: 6px;
     cursor: ew-resize;
-    z-index: 99999;
     touch-action: none;
     opacity: 0;
     transition: opacity 0.15s ease;
@@ -1131,13 +1161,13 @@ body.ai-assistant-resizing .ai-assistant-panel {
    z-index:100000 takes priority at the shared 18×18 corner. */
 
 .ai-assistant-panel-resizer-top {
+    z-index: 1080;
     position: absolute;
     top: 0;
     left: 0;              /* full-width: was 18px; corner grip wins at left via z-index */
     right: 0;
     height: 6px;
     cursor: ns-resize;
-    z-index: 99999;
     touch-action: none;
     opacity: 0;
     transition: opacity 0.15s ease;
@@ -1240,6 +1270,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     font-variant-numeric: tabular-nums; /* fixed-width digits — no layout jitter */
     color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
     opacity: 0.70;
+    -webkit-user-select: none;
     user-select: none;
     cursor: default;
     flex-shrink: 0;
@@ -1325,11 +1356,11 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 
 /* Submenu: floats above the button row, left-aligned with the toggle.       */
 .ai-assistant-panel-bubble-action-more-menu {
+    z-index: 1080;
     display: none;
     position: absolute;
     bottom: calc(100% + 0.3rem);
     left: 0;
-    z-index: 99999;
     flex-direction: column;
     gap: 0.15rem;
     padding: 0.3rem;
@@ -1811,6 +1842,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     /* Interactive: left-click = minimize, right-click = close. */
     cursor: pointer;
     touch-action: manipulation;  /* eliminate 300 ms tap delay on touch devices */
+    -webkit-user-select: none;
     user-select: none;
     border-radius: 4px;
     gap: 0.03rem;
@@ -1870,9 +1902,9 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
    panel's theming and stacking context. Toggled by a footer/header link. */
 
 .ai-assistant-panel-privacy {
+    z-index: 1080;
     position: absolute;
     inset: 0;
-    z-index: 99999;
     /* FIX Issue 10: keep display:flex always so the sheet can be transitioned.
        visibility+opacity give a smooth fade-in/out; pointer-events:none prevents
        interaction while hidden.  display:none → flex cannot be CSS-transitioned
@@ -2493,10 +2525,10 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
  *   the minimum value that preserves the same visual result after the
  *   "stay on current page" fix. */
 .ai-assistant-panel-hamburger {
+    z-index: 1080;        /* above sheets (99999); was 5 when sheet was pre-dismissed */
     position: absolute;
     top: 3.3rem;            /* below the header (0.75 + 1.75 content + 0.75 + 1px border) */
     left: 1rem;             /* aligns with header-title left edge (header padding-left) */
-    z-index: 100001;        /* above sheets (99999); was 5 when sheet was pre-dismissed */
     display: none;
     flex-direction: column;
     gap: 0.15rem;
@@ -2691,6 +2723,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
     /* Interactive: left-click = minimize, right-click = close. */
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     border-radius: 4px;
     white-space: nowrap;
@@ -3581,6 +3614,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     gap: 0.25rem;
     opacity: 0.5;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -3927,10 +3961,10 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
  */
 
 .ai-assistant-mic-popup {
+    z-index: 1080;
     position: absolute;
     bottom: calc(100% + 0.45rem);
     right: 0;
-    z-index: 99999;
 
     display: flex;
     flex-direction: column;
@@ -4061,6 +4095,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     gap: 0.2rem;
     padding: 0.35rem 0.55rem;
     cursor: grab;        /* drag-handle affordance for the movable popup    */
+    -webkit-user-select: none;
     user-select: none;   /* prevent text selection while dragging           */
 }
 
@@ -4153,6 +4188,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 
 .ai-assistant-mic-popup-row--hold {
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -4348,6 +4384,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     gap: 0.3rem;
     padding: 0.3rem 0.55rem 0.15rem;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -4426,6 +4463,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     padding: 0.28rem 0.55rem;
     border-radius: 6px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     outline: none;
     transition: background-color 0.1s ease;
@@ -4584,6 +4622,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     );
     white-space: nowrap;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -4965,6 +5004,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
         --pst-color-text-muted,
         var(--color-foreground-secondary, #888)
     );
+    -webkit-user-select: none;
     user-select: none;
     pointer-events: none;
 }
@@ -5614,10 +5654,10 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 
 /* Drop-down listbox (shown/hidden by JS) */
 .ai-assistant-panel-filter-sort-menu {
+    z-index: 1080;    /* above all other panel content */
     position: absolute;
     top: calc(100% + 5px);
     right: 0;
-    z-index: 1001;    /* above all other panel content */
     min-width: 148px;
     padding: 0.25rem 0;
     background: var(--pst-color-surface, var(--color-background-primary, #fff));
@@ -6038,8 +6078,8 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     font-size: 0.875rem;
     color: var(--pst-color-text-muted, var(--color-foreground-secondary, #888));
     cursor: default;
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 /* ── Reduced-motion: disable all filter animations and transitions ─────────── */
@@ -6455,9 +6495,9 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
  * other floating surfaces in this stylesheet.
  */
 .ai-assistant-export-menu {
+    z-index: 1080;
     display: none;
     position: absolute;
-    z-index: 99999;
     top: calc(100% + 0.3rem);
     right: 0;
     left: auto;
@@ -6782,6 +6822,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     padding: 6px 10px 6px 8px;
     cursor: pointer;
     border-radius: 4px;
+    -webkit-user-select: none;
     user-select: none;
     color: var(--color-foreground-secondary, #586069);
     transition: background 0.12s;
@@ -7651,6 +7692,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
     line-height: 1.45;
     color: var(--pst-color-text-base, var(--color-foreground-primary, #1a1a1a));
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -8617,6 +8659,7 @@ a.ai-assistant-panel-ep-resolved-url:focus-visible {
     letter-spacing: 0.01em;
     white-space: nowrap;
     line-height: 1.4;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -9886,6 +9929,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 
 /* Copy confirmation toast — absolute overlay, fades out automatically. */
 .ai-assistant-panel-ep-copy-toast {
+    z-index: 1080;
     position: absolute;
     right: 0;
     top: 50%;
@@ -9904,7 +9948,6 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     /* Animated with a JS-toggled class. */
     opacity: 0;
     transition: opacity 0.2s ease;
-    z-index: 10;
 }
 
 .ai-assistant-panel-ep-copy-toast--visible {
@@ -11081,6 +11124,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     flex-shrink: 0;
     font-size: 0.9rem;
     line-height: 1;
+    -webkit-user-select: none;
     user-select: none;
 }
 .ai-assistant-panel-ep-ext-dataset-card-text {
@@ -11304,10 +11348,10 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
    Pattern mirrors .ai-assistant-mic-popup.
    ═══════════════════════════════════════════════════════════════════════════ */
 .ai-assistant-fbk-popup {
+    z-index: 1080;   /*one below mic popup — no overlap */
     position: absolute;
     bottom: calc(100% + 0.45rem);
     right: 0;
-    z-index: 99998;   /* one below mic popup — no overlap */
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -11797,6 +11841,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     color: #fff;
     opacity: 0.82;
     pointer-events: none;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -11889,6 +11934,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     padding: 0.38rem 0.5rem 0.38rem 0.5rem;
     cursor: pointer;
     border-radius: 5px;
+    -webkit-user-select: none;
     user-select: none;
     color: var(--pst-color-text-muted,
                var(--color-foreground-secondary, #586069));
@@ -12036,6 +12082,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
         font-style: italic;
         letter-spacing: 0.01em;
         pointer-events: none;
+        -webkit-user-select: none;
         user-select: none;
     }
 
@@ -12770,10 +12817,10 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 
 /* §L.1 — Sticky filter bar */
 .ai-assistant-panel-filter-bar {
+    z-index: 2;
     /* Override position:relative from the base rule. */
     position: sticky;
     top: 0;
-    z-index: 2;
     /* Solid background so model rows don't bleed through while scrolling.
        Uses the same fallback chain as .ai-assistant-panel-privacy above. */
     background: var(
@@ -12797,9 +12844,9 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
    --filter-bar-h is injected by the ResizeObserver in _attachModelFilter.
    Fallback to 0px when the filter is absent or ResizeObserver unavailable. */
 .ai-assistant-panel-model-group-hdr {
+    z-index: 1;
     position: sticky;
     top: var(--filter-bar-h, 0px);
-    z-index: 1;
     /* Bleed the background 2 px left + right to cover row edge sub-pixels. */
     background: var(
         --pst-color-surface,

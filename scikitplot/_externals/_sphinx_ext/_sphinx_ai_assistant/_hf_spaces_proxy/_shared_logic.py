@@ -153,8 +153,11 @@ deployed Spaces and log aggregators can correlate errors to a specific release.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Any, Literal
+
+logger = logging.getLogger(__name__)
 
 __all__ = [  # noqa: RUF022
     # Version
