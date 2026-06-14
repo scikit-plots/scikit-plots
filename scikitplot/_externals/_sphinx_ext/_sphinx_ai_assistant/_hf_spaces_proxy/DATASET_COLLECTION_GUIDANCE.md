@@ -184,7 +184,7 @@ NDJSON file.  It reads all JSONL files from both folders, deduplicates by
 `_dedup_key` applying the priority rule, and writes one record per unique key.
 
 ```python
-"""
+r"""
 deduplicate_dataset.py
 ======================
 Canonical deduplication script for scikit-plots/ai-assistant-contributions.
@@ -195,14 +195,14 @@ deduplication so callers can always expect the full field set.
 
 Usage
 -----
-    python deduplicate_dataset.py \\
-        --repo-id scikit-plots/ai-assistant-contributions \\
+    python deduplicate_dataset.py \
+        --repo-id scikit-plots/ai-assistant-contributions \
         --output  clean_dataset.jsonl
 
     # Use a local pre-downloaded snapshot (faster on re-runs):
-    python deduplicate_dataset.py \\
-        --repo-id scikit-plots/ai-assistant-contributions \\
-        --local-dir /tmp/ai-contributions-snapshot \\
+    python deduplicate_dataset.py \
+        --repo-id scikit-plots/ai-assistant-contributions \
+        --local-dir /tmp/ai-contributions-snapshot \
         --output clean_dataset.jsonl
 
 Requirements
@@ -221,36 +221,48 @@ Notes
 * Output records are written with ``sort_keys=True``, so every record's
   keys (including nested objects) appear in a fixed alphabetical order in
   clean_dataset.jsonl.
+* Progress and statistics are emitted via the module ``logging`` logger.
+  INFO-level records route to stdout; WARNING and ERROR records route to
+  stderr — preserving the previous ``print`` /
+  ``print(..., file=sys.stderr)`` split so that callers capturing stdout
+  see only the NDJSON data.
 * When _dataset_schema is importable, records are normalised from v1 to v2
   schema automatically (legacy _sessionId/_page/_model fields mapped to
   conversationId/page/model; editCount/feedbackId/prevFeedbackId back-filled).
   When _dataset_schema is not importable (standalone usage), records are used
   as-is with a warning.
-"""
+"""  # noqa: D205, D400
+
 from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Optional: normalize records from v1 to v2 schema when _dataset_schema is
 # available alongside this script (standard _hf_spaces_proxy/ deployment).
 # Falls back to identity function with a warning for standalone usage.
 try:
     from _dataset_schema import normalize_record as _normalize_record
+
     _SCHEMA_AVAILABLE = True
 except ImportError:
+
     def _normalize_record(raw: dict) -> dict:
         return raw
+
     _SCHEMA_AVAILABLE = False
 
 
 # Priority order: lower index = higher priority.
 _SOURCE_PRIORITY: dict[str, int] = {
     "contribution": 0,
-    "feedback":     1,
+    "feedback": 1,
 }
 _DEFAULT_PRIORITY = 99
 
@@ -272,28 +284,31 @@ def load_all_records(local_dir: Path) -> list[dict]:
     list[dict]
         All JSON-decoded records, normalised to canonical v2 schema when
         ``_dataset_schema`` is importable.  Malformed lines are skipped with
-        a warning to stderr.
+        a WARNING-level log record.
     """
     records: list[dict] = []
     for jsonl_path in sorted(local_dir.rglob("*.jsonl")):
         with jsonl_path.open(encoding="utf-8") as fh:
             for lineno, line in enumerate(fh, 1):
-                line = line.strip()
+                line = line.strip()  # noqa: PLW2901
                 if not line:
                     continue
                 try:
                     raw = json.loads(line)
                 except json.JSONDecodeError as exc:
-                    print(
-                        f"[WARN] Skipping malformed JSON in {jsonl_path}:{lineno}: {exc}",
-                        file=sys.stderr,
+                    logger.warning(
+                        "Skipping malformed JSON in %s:%d: %s",
+                        jsonl_path,
+                        lineno,
+                        exc,
                     )
                     continue
                 if not isinstance(raw, dict):
-                    print(
-                        f"[WARN] {jsonl_path}:{lineno}: expected JSON object, "
-                        f"got {type(raw).__name__} -- skipped",
-                        file=sys.stderr,
+                    logger.warning(
+                        "%s:%d: expected JSON object, got %s -- skipped",
+                        jsonl_path,
+                        lineno,
+                        type(raw).__name__,
                     )
                     continue
                 records.append(_normalize_record(raw))
@@ -341,8 +356,8 @@ def deduplicate(records: list[dict]) -> list[dict]:
         FK).  The winning contribution record therefore carries the complete
         provenance chain without any additional join.
     """
-    keyed:   dict[str, dict] = {}   # _dedup_key -> winning record
-    no_key:  list[dict]      = []   # legacy records without _dedup_key
+    keyed: dict[str, dict] = {}  # _dedup_key -> winning record
+    no_key: list[dict] = []  # legacy records without _dedup_key
 
     for rec in records:
         dk = rec.get("_dedup_key")
@@ -360,7 +375,7 @@ def deduplicate(records: list[dict]) -> list[dict]:
         old_pri = _priority(existing)
         if new_pri < old_pri:
             keyed[dk] = rec
-        elif new_pri == old_pri:
+        elif new_pri == old_pri:  # noqa: SIM102
             # Same source: keep the most recently written record (_ts).
             if rec.get("_ts", 0) > existing.get("_ts", 0):
                 keyed[dk] = rec
@@ -417,9 +432,9 @@ def _report_stats(records: list[dict]) -> dict[str, Any]:
     by_source: dict[str, int] = {}
     by_action: dict[str, int] = {}
     by_schema: dict[Any, int] = {}
-    with_feedback_id   = 0
+    with_feedback_id = 0
     with_prev_feedback = 0
-    tombstones         = 0
+    tombstones = 0
 
     for r in records:
         src = r.get("_source", "unknown")
@@ -439,17 +454,97 @@ def _report_stats(records: list[dict]) -> dict[str, Any]:
             tombstones += 1
 
     return {
-        "total":                 len(records),
-        "by_source":             by_source,
-        "by_action":             by_action,
-        "by_schema":             by_schema,
-        "with_feedback_id":      with_feedback_id,
+        "total": len(records),
+        "by_source": by_source,
+        "by_action": by_action,
+        "by_schema": by_schema,
+        "with_feedback_id": with_feedback_id,
         "with_prev_feedback_id": with_prev_feedback,
-        "tombstones":            tombstones,
+        "tombstones": tombstones,
     }
 
 
+class _MaxLevelFilter(logging.Filter):
+    """Admit only log records whose level is at or below *max_level*.
+
+    Parameters
+    ----------
+    max_level : int
+        Maximum ``logging`` level number (inclusive) to pass through.
+        Records with a higher level number are suppressed.  Pass
+        ``logging.INFO`` to block WARNING and above.
+
+    Notes
+    -----
+    Attached to the stdout handler inside ``_configure_logging`` so that
+    WARNING / ERROR records are handled exclusively by the stderr handler
+    and are not duplicated on stdout.
+    """
+
+    def __init__(self, max_level: int) -> None:
+        super().__init__()
+        self.max_level = max_level
+
+    def filter(self, record: logging.LogRecord) -> bool:  # noqa: A003
+        """Return ``True`` if *record.levelno* is at or below *max_level*.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            Log record to evaluate.
+
+        Returns
+        -------
+        bool
+            ``True`` to emit the record; ``False`` to suppress it.
+        """
+        return record.levelno <= self.max_level
+
+
+def _configure_logging() -> None:
+    """Attach stdout and stderr handlers to the root logger for CLI use.
+
+    Routes INFO-level records to stdout with a plain ``%(message)s``
+    format, and WARNING / ERROR / CRITICAL records to stderr with a
+    ``[%(levelname)s] %(message)s`` format.
+
+    This preserves the stdout / stderr split that the original ``print``
+    / ``print(..., file=sys.stderr)`` calls provided:
+
+    * Callers that capture stdout (e.g. downstream JSONL pipelines) see
+      only the NDJSON data, never progress lines.
+    * Diagnostic warnings and errors still appear on stderr.
+
+    The function overwrites ``logging.root.handlers`` directly, so it is
+    idempotent: repeated calls replace handlers rather than stacking
+    duplicates.
+
+    Notes
+    -----
+    This is a CLI-only helper.  Library callers that import the domain
+    functions (``load_all_records``, ``deduplicate``, …) should configure
+    their own logging handlers; this function is only invoked from
+    ``main()``.
+    """
+    plain_fmt = logging.Formatter("%(message)s")
+    level_fmt = logging.Formatter("[%(levelname)s] %(message)s")
+
+    out_handler = logging.StreamHandler(sys.stdout)
+    out_handler.setFormatter(plain_fmt)
+    out_handler.setLevel(logging.DEBUG)
+    out_handler.addFilter(_MaxLevelFilter(logging.INFO))
+
+    err_handler = logging.StreamHandler(sys.stderr)
+    err_handler.setFormatter(level_fmt)
+    err_handler.setLevel(logging.WARNING)
+
+    root = logging.getLogger()
+    root.handlers = [out_handler, err_handler]
+    root.setLevel(logging.DEBUG)
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run Main."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--repo-id",
@@ -477,14 +572,14 @@ def main(argv: list[str] | None = None) -> int:
         help="Print dataset statistics without writing an output file.",
     )
     args = parser.parse_args(argv)
+    _configure_logging()
 
     if not _SCHEMA_AVAILABLE:
-        print(
-            "[WARN] _dataset_schema.py not found on sys.path.  Records will "
-            "not be normalised from v1 to v2 schema.  Copy _dataset_schema.py "
-            "from _hf_spaces_proxy/ to the same directory as this script for "
-            "full schema normalisation.",
-            file=sys.stderr,
+        logger.warning(
+            "_dataset_schema.py not found on sys.path.  Records will not be "
+            "normalised from v1 to v2 schema.  Copy _dataset_schema.py from "
+            "_hf_spaces_proxy/ to the same directory as this script for full "
+            "schema normalisation.",
         )
 
     local_dir: Path
@@ -492,15 +587,14 @@ def main(argv: list[str] | None = None) -> int:
         local_dir = Path(args.local_dir)
     else:
         try:
-            from huggingface_hub import snapshot_download
+            from huggingface_hub import snapshot_download  # noqa: PLC0415
         except ImportError:
-            print(
-                "ERROR: huggingface_hub is not installed.  "
+            logger.error(
+                "huggingface_hub is not installed.  "
                 "Run: pip install 'huggingface_hub>=0.23,<2'",
-                file=sys.stderr,
             )
             return 1
-        print(f"Downloading {args.repo_id} ...")
+        logger.info("Downloading %s ...", args.repo_id)
         local_dir = Path(
             snapshot_download(
                 repo_id=args.repo_id,
@@ -509,23 +603,24 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
-    print(f"Reading records from {local_dir} ...")
+    logger.info("Reading records from %s ...", local_dir)
     all_records = load_all_records(local_dir)
 
     raw_stats = _report_stats(all_records)
-    print(f"  {raw_stats['total']} total records read")
+    logger.info("  %d total records read", raw_stats["total"])
     for src, cnt in sorted(raw_stats["by_source"].items()):
-        print(f"    {src}: {cnt}")
+        logger.info("    %s: %d", src, cnt)
     for act, cnt in sorted(raw_stats["by_action"].items()):
-        print(f"    action={act!r}: {cnt}")
+        logger.info("    action=%r: %d", act, cnt)
     for sv, cnt in raw_stats["by_schema"].items():
-        print(f"    schemaVersion={sv}: {cnt}")
-    print(f"  feedbackId populated:      {raw_stats['with_feedback_id']}")
-    print(f"  prevFeedbackId populated:  {raw_stats['with_prev_feedback_id']}")
+        logger.info("    schemaVersion=%s: %d", sv, cnt)
+    logger.info("  feedbackId populated:      %d", raw_stats["with_feedback_id"])
+    logger.info("  prevFeedbackId populated:  %d", raw_stats["with_prev_feedback_id"])
     if raw_stats["tombstones"]:
-        print(
-            f"  {raw_stats['tombstones']} retraction tombstone(s) in raw data "
-            f"(always excluded from clean output)"
+        logger.info(
+            "  %d retraction tombstone(s) in raw data "
+            "(always excluded from clean output)",
+            raw_stats["tombstones"],
         )
 
     if args.stats_only:
@@ -533,12 +628,12 @@ def main(argv: list[str] | None = None) -> int:
 
     clean = deduplicate(all_records)
     duplicates_removed = raw_stats["total"] - raw_stats["tombstones"] - len(clean)
-    print(f"  {duplicates_removed} duplicate(s) removed (priority rule applied)")
-    print(f"  {len(clean)} unique records retained")
+    logger.info("  %d duplicate(s) removed (priority rule applied)", duplicates_removed)
+    logger.info("  %d unique records retained", len(clean))
 
     output_path = Path(args.output)
     write_output(clean, output_path)
-    print(f"Clean dataset written to {output_path}")
+    logger.info("Clean dataset written to %s", output_path)
     return 0
 
 
