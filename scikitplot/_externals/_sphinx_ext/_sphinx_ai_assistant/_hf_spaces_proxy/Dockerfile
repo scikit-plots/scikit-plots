@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy _shared_logic.py BEFORE app.py so Docker layer cache is invalidated
 # only when these files actually change (requirements.txt changes least often;
 # _shared_logic.py changes less often than app.py).
+COPY _dataset_schema.py .
 COPY _shared_logic.py .
 COPY app.py .
 

@@ -5,7 +5,7 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v6.1.0
+# scikit-plots/ai  ·  _hf_spaces_proxy/app.py  v6.2.0
 #
 # Thin OpenAI-compatible reverse proxy for sphinx-ai-assistant.
 #
@@ -77,9 +77,6 @@
 #                       Set to match the token created in HF Settings → Tokens.
 #   ALLOWED_ORIGINS     Comma-separated CORS origins.  Default: *.
 #   MAX_BODY_BYTES      Maximum accepted body size.  Default: 10485760.
-#
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
 
 """
 FastAPI reverse proxy for sphinx-ai-assistant (scikit-plots/ai HF Space).
@@ -135,7 +132,22 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-# _shared_logic.py must live alongside this file.
+# _shared_logic.py and _dataset_schema.py must live alongside this file.
+try:
+    from ._dataset_schema import (  # type: ignore[import]
+        CONSENT_VERSION_ENABLED,
+        RESERVED_CONSENT_VERSION,
+        normalize_contribution_record,
+        normalize_feedback_record,
+    )
+except Exception:  # noqa: BLE001
+    from _dataset_schema import (  # type: ignore[import]
+        CONSENT_VERSION_ENABLED,
+        RESERVED_CONSENT_VERSION,
+        normalize_contribution_record,
+        normalize_feedback_record,
+    )
+
 try:
     from ._shared_logic import (  # type: ignore[import]
         DEFAULT_HF_BASE,
@@ -148,6 +160,8 @@ try:
         DEFAULT_PROXY_TIMEOUT,
         PROXY_VERSION,
         _classify_token_type,
+        _mask_ip,
+        _RedactingFilter,
         _resolve_upstream_url,
         _safe_float,
         _safe_int,
@@ -155,7 +169,7 @@ try:
         _validate_env,
         _validate_token_config,
     )
-except Exception as e:
+except Exception:  # noqa: BLE001
     from _shared_logic import (  # type: ignore[import]
         DEFAULT_HF_BASE,
         DEFAULT_HF_SPACES_MODEL_NAMESPACES,
@@ -167,6 +181,8 @@ except Exception as e:
         DEFAULT_PROXY_TIMEOUT,
         PROXY_VERSION,
         _classify_token_type,
+        _mask_ip,
+        _RedactingFilter,
         _resolve_upstream_url,
         _safe_float,
         _safe_int,
@@ -245,6 +261,7 @@ class _StructuredFormatter(logging.Formatter):
 
 _handler = logging.StreamHandler()
 _handler.setFormatter(_StructuredFormatter())
+_handler.addFilter(_RedactingFilter())  # scrub tokens/IPs before emission
 logging.root.handlers = [_handler]
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -405,9 +422,27 @@ _allowed_origins: list[str] = (
 #: Must be set if POST /v1/contribute is expected to succeed.
 TRAINING_DATASET_REPO: str = os.environ.get("TRAINING_DATASET_REPO", "").strip()
 
-#: Current consent version string.  Must match the JS constant _TRAINING_CONSENT_VERSION.
-#: Increment when the consent UI text changes materially.
-TRAINING_CONSENT_VERSION: str = "v1.0"
+#: Consent-version enforcement is controlled by a SINGLE flag,
+#: :data:`_dataset_schema.CONSENT_VERSION_ENABLED`, imported above as
+#: ``CONSENT_VERSION_ENABLED``.  While ``False`` (current state), the
+#: ``consentVersion`` field in ``POST /v1/contribute`` is **not validated** —
+#: any value (including ``null``, sent by the current JS) is accepted, and
+#: every normalised record stores ``consentVersion: null`` regardless of what
+#: the client sent (see ``_dataset_schema._resolve_consent_version``).
+#:
+#: Previously this module had its OWN ``TRAINING_CONSENT_VERSION = "v1.0"``
+#: constant and a hard ``payload["consentVersion"] != "v1.0"`` check — when
+#: the JS was updated to send ``consentVersion: null`` (matching
+#: ``_dataset_schema``'s new convention), every ``/v1/contribute`` call
+#: started failing with 422 "consentVersion ... is not current", because the
+#: two modules' notions of "the current consent version" had silently
+#: diverged.  Importing the flag (and :data:`RESERVED_CONSENT_VERSION` below)
+#: directly from ``_dataset_schema`` makes that divergence structurally
+#: impossible: flipping ``CONSENT_VERSION_ENABLED`` to ``True`` in ONE place
+#: (``_dataset_schema.py``) simultaneously activates the 422 guard below AND
+#: the write-side normalisation — see ``_dataset_schema.py`` for the full
+#: activation checklist (also requires an ``ai-assistant.js`` update to send
+#: ``consentVersion: CONSENT_VERSION`` again instead of ``null``).
 
 #: When ``True``, ``POST /v1/feedback`` is persisted to ``TRAINING_DATASET_REPO``
 #: under the ``feedback/`` folder alongside ``contributions/``.
@@ -1159,17 +1194,34 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
             status_code=422,
             detail="consentFlag must be true.  Contribution requires explicit user consent.",
         )
-    if payload.get("consentVersion") != TRAINING_CONSENT_VERSION:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"consentVersion {payload.get('consentVersion')!r} is not current. "
-                f"Expected {TRAINING_CONSENT_VERSION!r}. Reload the page and try again."
-            ),
-        )
+    # Consent-version guard (reserved for future enforcement).
+    # CONSENT_VERSION_ENABLED (imported from _dataset_schema) is False in the
+    # current state, so any consentVersion value — including null, sent by
+    # the current JS — is accepted.  This is the single flag that previously
+    # diverged from this module's own (now-removed) TRAINING_CONSENT_VERSION
+    # check, causing the 422 "consentVersion not current" error.
+    # When enforcement is activated: flip CONSENT_VERSION_ENABLED to True in
+    # _dataset_schema.py, set RESERVED_CONSENT_VERSION there to the live
+    # consent-banner version, and update ai-assistant.js to send
+    # `consentVersion: CONSENT_VERSION` again instead of `null` — then this
+    # block rejects mismatched/missing versions.
+    if CONSENT_VERSION_ENABLED:  # noqa: SIM102
+        if payload.get("consentVersion") != RESERVED_CONSENT_VERSION:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"consentVersion {payload.get('consentVersion')!r} is not current. "
+                    f"Expected {RESERVED_CONSENT_VERSION!r}. Reload the page and try again."
+                ),
+            )
 
-    # Schema version guard
-    supported_versions: frozenset[int] = frozenset({1})
+    # Schema version guard.
+    # Accepts schemaVersion 1 (JS clients pre-v2 or not yet updated) and 2
+    # (JS clients sending the new canonical version).  The server always
+    # normalizes stored records to the current SCHEMA_VERSION (2) via
+    # normalize_contribution_record regardless of which version the client
+    # declares — so both values are safe to accept.
+    supported_versions: frozenset[int] = frozenset({1, 2})
     if payload.get("schemaVersion") not in supported_versions:
         raise HTTPException(
             status_code=422,
@@ -1199,7 +1251,7 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
         _contrib_rl[client_ip] = (count, window_start)
         if count > 5:  # noqa: PLR2004
             logger.warning(
-                json.dumps({"event": "contribute.ratelimit", "ip": client_ip})
+                json.dumps({"event": "contribute.ratelimit", "ip": _mask_ip(client_ip)})
             )
             raise HTTPException(
                 status_code=429,
@@ -1231,29 +1283,25 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
     from huggingface_hub import CommitOperationAdd, HfApi  # noqa: PLC0415
 
     api = HfApi(token=HF_DATASET_TOKEN)
-    session_id: str = payload.get("sessionId", "")
+
+    # Compute server receive timestamp once so all rows in the batch share the
+    # same ``_ts`` value.  The previous inline ``int(_time.time() * 1000)``
+    # inside the list comprehension produced slightly different values per row.
+    _server_ts_ms: int = int(_time.time() * 1000)
+
+    # normalize_contribution_record maps legacy underscore-prefixed field names
+    # (_sessionId → conversationId, _page → page, _model → model,
+    # _consentVersion → consentVersion) to the canonical schema shared with the
+    # feedback endpoint.  It also normalises ratingLabel (slug vs Title Case),
+    # expands the model object to the full 8-key shape, and enforces key order.
+    # See _dataset_schema.py for the full canonical column list.
     rows_jsonl = "\n".join(
         json.dumps(
-            {
-                **rec,
-                "_sessionId": session_id,
-                "_page": payload.get("page", ""),
-                "_model": payload.get("model"),
-                "_consentVersion": payload.get("consentVersion"),
-                "_ts": int(_time.time() * 1000),
-                # Provenance tag: distinguishes records that arrived via the
-                # explicit GDPR-gated "Contribute" button (end-of-session) from
-                # records that arrived via the immediate per-answer rating button
-                # (POST /v1/feedback).  Training pipelines MUST prefer
-                # "contribution" over "feedback" when both exist for the same
-                # dedup key.  See DATASET_COLLECTION_GUIDANCE.md.
-                "_source": "contribution",
-                # Stable dedup key: "{conversationSessionId}:{answerIndex}".
-                # Identical key format used by /v1/feedback (when
-                # FEEDBACK_PERSIST_ENABLED=true) so a simple equality check
-                # across folders is sufficient to detect cross-source duplicates.
-                "_dedup_key": f"{session_id}:{rec.get('answerIndex', '')}",
-            },
+            normalize_contribution_record(
+                rec,
+                envelope=payload,
+                server_ts_ms=_server_ts_ms,
+            ),
             ensure_ascii=False,
         )
         for rec in records
@@ -1302,7 +1350,7 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
                     path_or_fileobj=rows_jsonl.encode(),
                 )
             ],
-            commit_message=f"Add {len(records)} feedback record(s)",
+            commit_message=f"Add {len(records)} contribution record(s)",
         )
     except Exception as exc:
         logger.error(json.dumps({"event": "contribute.hf_fail", "error": str(exc)}))
@@ -1312,7 +1360,13 @@ async def contribute(request: Request) -> JSONResponse:  # noqa: PLR0912
         ) from exc
 
     logger.info(
-        json.dumps({"event": "contribute.write", "rows": len(records), "ip": client_ip})
+        json.dumps(
+            {
+                "event": "contribute.write",
+                "rows": len(records),
+                "ip": _mask_ip(client_ip),
+            }
+        )
     )
     return JSONResponse({"contributed": True, "rows": len(records)})
 
@@ -1393,7 +1447,9 @@ async def share(request: Request) -> JSONResponse:
         count += 1
         _share_rl[client_ip] = (count, window_start)
         if count > 10:  # noqa: PLR2004
-            logger.warning(json.dumps({"event": "share.ratelimit", "ip": client_ip}))
+            logger.warning(
+                json.dumps({"event": "share.ratelimit", "ip": _mask_ip(client_ip)})
+            )
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded. Maximum 10 shares per hour.",
@@ -1426,7 +1482,7 @@ async def share(request: Request) -> JSONResponse:
             {
                 "event": "share.create",
                 "id": share_id,
-                "ip": client_ip,
+                "ip": _mask_ip(client_ip),
                 "ttl_days": ttl_days,
             }
         )
@@ -1570,7 +1626,9 @@ async def share_patch(share_id: str, request: Request) -> JSONResponse:
         count += 1
         _share_rl[client_ip] = (count, window_start)
         if count > 10:  # noqa: PLR2004
-            logger.warning(json.dumps({"event": "share.ratelimit", "ip": client_ip}))
+            logger.warning(
+                json.dumps({"event": "share.ratelimit", "ip": _mask_ip(client_ip)})
+            )
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded. Maximum 10 shares per hour.",
@@ -1617,7 +1675,7 @@ async def share_patch(share_id: str, request: Request) -> JSONResponse:
             {
                 "event": "share.update",
                 "id": share_id,
-                "ip": client_ip,
+                "ip": _mask_ip(client_ip),
                 "ttl_days": ttl_days,
             }
         )
@@ -1735,7 +1793,7 @@ async def feedback(request: Request) -> JSONResponse:
             json.dumps(
                 {
                     "event": "feedback.retract",
-                    "ip": client_ip,
+                    "ip": _mask_ip(client_ip),
                     "prevSessionId": payload.get("prevSessionId"),
                     "conversationId": payload.get("conversationId"),
                     "answerIndex": payload.get("answerIndex"),
@@ -1764,7 +1822,9 @@ async def feedback(request: Request) -> JSONResponse:
             _feedback_rl[client_ip] = (count, window_start)
             if count > 30:  # noqa: PLR2004
                 logger.warning(
-                    json.dumps({"event": "feedback.ratelimit", "ip": client_ip})
+                    json.dumps(
+                        {"event": "feedback.ratelimit", "ip": _mask_ip(client_ip)}
+                    )
                 )
                 raise HTTPException(
                     status_code=429,
@@ -1776,7 +1836,7 @@ async def feedback(request: Request) -> JSONResponse:
             json.dumps(
                 {
                     "event": "feedback.receive",
-                    "ip": client_ip,
+                    "ip": _mask_ip(client_ip),
                     "ratingValue": payload.get("ratingValue"),
                     "model": payload.get("model"),
                     "conversationId": payload.get("conversationId"),
@@ -1809,29 +1869,26 @@ async def feedback(request: Request) -> JSONResponse:
             # idempotency key.  We need ``conversationId`` here because the
             # contribution endpoint uses ``payload.sessionId`` (= _sessionId)
             # as the first component of the dedup key.
-            conversation_id: str = payload.get("conversationId") or ""
-            answer_index = payload.get("answerIndex", "")
+            # normalize_feedback_record uses payload.get("conversationId") and
+            # payload.get("answerIndex") internally to build the canonical record.
+            # The variables below are derived from the serialised record so the
+            # log event and filename are always consistent with what is stored.
 
-            record = json.dumps(
-                {
-                    **payload,
-                    "_ts": int(_time.time() * 1000),
-                    # Provenance — training pipelines must discard "feedback"
-                    # records whenever a "contribution" record exists for the
-                    # same _dedup_key.  Retraction tombstones also use
-                    # _source="feedback" so the LWW dedup on _dedup_key works
-                    # correctly (retraction overrides original; new rating
-                    # overrides retraction).  deduplicate_dataset.py filters
-                    # action="retract" winners from the clean output.
-                    # See DATASET_COLLECTION_GUIDANCE.md §3 and §8.
-                    "_source": "feedback",
-                    # "{conversationId}:{answerIndex}" — identical key format
-                    # to contribution records; equality check is sufficient to
-                    # detect cross-source duplicates.
-                    "_dedup_key": f"{conversation_id}:{answer_index}",
-                },
-                ensure_ascii=False,
+            # normalize_feedback_record whitelists only known fields (discards
+            # arbitrary client-supplied extras and the legacy ``rating`` alias),
+            # normalises ratingLabel to a canonical slug, expands the model object
+            # to the full 8-key shape, renames sessionId → feedbackId and
+            # prevSessionId → prevFeedbackId, and enforces canonical key order.
+            # The resulting record is structurally identical to a contribution row
+            # so both sources concatenate directly into one pandas DataFrame.
+            # See _dataset_schema.py for the full canonical column list.
+            _rec_dict: dict = normalize_feedback_record(
+                payload,
+                server_ts_ms=int(_time.time() * 1000),
             )
+            record: str = json.dumps(_rec_dict, ensure_ascii=False)
+            conversation_id: str = str(_rec_dict.get("conversationId") or "")
+            answer_index: Any = _rec_dict.get("answerIndex", "")
             filename = f"feedback/{int(_time.time() * 1000)}.jsonl"
             api = HfApi(token=HF_DATASET_TOKEN)
             # Fix 3 (feedback): same event-loop fix as /v1/contribute — offload
@@ -1858,7 +1915,7 @@ async def feedback(request: Request) -> JSONResponse:
                         "event": "feedback.persist_ok",
                         "retract": is_retract,
                         "dedup_key": f"{conversation_id}:{answer_index}",
-                        "ip": client_ip,
+                        "ip": _mask_ip(client_ip),
                     }
                 )
             )

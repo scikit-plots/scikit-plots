@@ -29,7 +29,7 @@
  *   – Every public function is at module scope inside the IIFE.
  *   – The global 'click' listener for dropdown-close is registered once only
  *     (guarded by _listenersAttached).
- *   – Turndown is loaded lazily from CDN on first use.
+ *   – Turndown 7.1.2 is vendored inline — no CDN request, works everywhere.
  *   – Speech recognition is lazy-started on first mic click (no permission
  *     prompts until the user explicitly clicks the mic icon).
  */
@@ -64,6 +64,23 @@
 
     /** sessionStorage key for PDF mode persistence. */
     var _PDF_MODE_KEY = 'ai-assistant-pdf-mode';
+
+    /**
+     * Module-level fetch alias that delegates to AI_COMPAT.safeFetch when the
+     * compat layer is present, or falls back to the native fetch.
+     * Strips unsupported keepalive, removes AbortController.signal in environments
+     * that lack AbortController, and falls back to XHR in IE11.
+     *
+     * @type {function(string, Object=): Promise}
+     */
+    var _fetch = (window.AI_COMPAT && typeof window.AI_COMPAT.safeFetch === 'function')
+        ? window.AI_COMPAT.safeFetch.bind(window.AI_COMPAT)
+        : function _fetchFallback(url, opts) {
+            if (typeof fetch !== 'function') {
+                return Promise.reject(new Error('fetch is not available'));
+            }
+            return fetch(url, opts);
+        };
 
     /**
      * Stable radio-group name for the model sheet.
@@ -880,13 +897,18 @@
             _cancelTimer();
         }
 
+        // Delegate to the compat layer when available — it includes Touch
+        // Events and Mouse Events fallbacks below the Pointer Events path.
+        if (window.AI_COMPAT && typeof window.AI_COMPAT.attachLongPress === 'function') {
+            return window.AI_COMPAT.attachLongPress(element, onShortTap, onLongPress, opts);
+        }
+
+        // Own implementation: Pointer Events only (iOS 13+, Chrome 55+, Firefox 59+).
         element.addEventListener('pointerdown',   _onPointerDown);
         element.addEventListener('pointermove',   _onPointerMove);
         element.addEventListener('pointerup',     _onPointerUp);
         element.addEventListener('pointercancel', _onPointerCancel);
 
-        // Return a cleanup handle so the caller can remove listeners if the
-        // element is ever detached (prevents ghost-listener accumulation).
         return function cleanup() {
             _cancelTimer();
             if (_captureHandle) {
@@ -969,14 +991,23 @@
 
         // ── 7.5. Auto-link bare http/https URLs ───────────────────────────
         // Runs after explicit markdown links (step 7) are already wrapped in
-        // <a href="…">…</a>.  The negative lookbehind (?<!href=") ensures
-        // this pass never re-wraps the href attribute value those anchors
-        // already hold.  _escapeHtml (step 2) encoded & → &amp;, so
-        // query-param separators in plain URLs appear as &amp; in the working
-        // string and are safely matched by [^\s<>"].  Trailing prose
-        // punctuation (., ) ] ; ! ?) is stripped before the anchor is built
-        // so "Visit https://example.com." renders the period outside the link.
-        result = result.replace(/(?<!href=")https?:\/\/[^\s<>"]+/g, function (match) {
+        // <a href="…">…</a>.  The alternation (href="URL") | bare-URL is used
+        // instead of a negative lookbehind (?<!href=") because iOS Safari
+        // before version 16.4 (March 2023) does not support lookbehind
+        // assertions — encountering the regex literal at parse time throws a
+        // SyntaxError that aborts the entire IIFE, leaving no buttons or panel
+        // visible at all.  The alternation achieves identical behaviour:
+        //   • Group 1 matches the full href="URL" token → return it unchanged.
+        //   • No group 1 → bare URL → auto-link it.
+        // _escapeHtml (step 2) encoded & → &amp;, so query-param separators
+        // in plain URLs appear as &amp; in the working string and are safely
+        // matched by [^\s<>"].  Trailing prose punctuation (., ) ] ; ! ?) is
+        // stripped before the anchor is built so "Visit https://example.com."
+        // renders the period outside the link.
+        result = result.replace(/(href="https?:\/\/[^"]*")|https?:\/\/[^\s<>"]+/g, function (match, hrefAttr) {
+            // Group 1 matched: already inside href="…" — leave the attribute untouched.
+            if (hrefAttr !== undefined) { return hrefAttr; }
+            // Bare URL: strip trailing prose punctuation, then wrap in <a>.
             var trailingM = match.match(/[.,)\];!?]+$/);
             var trailing  = trailingM ? trailingM[0] : '';
             if (trailing) { match = match.slice(0, -trailing.length); }
@@ -1034,26 +1065,89 @@
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
+    // ── Turndown 7.1.2: vendored inline ──────────────────────────────────────
+    //
+    // WHAT:  HTML-to-Markdown converter — used only by convertToMarkdown()
+    //        ("Copy page as Markdown" menu item).
+    //
+    // WHY inline instead of CDN:
+    //   Loading Turndown from an external CDN (jsdelivr / unpkg) caused the
+    //   entire assistant widget to silently fail to render on any device or
+    //   network where those domains are blocked.  Common real-world causes:
+    //     • iOS Safari content-blockers (AdGuard, 1Blocker, Wipr, …)
+    //     • Apple Advanced Tracking & Fingerprinting Protection
+    //     • iCloud Private Relay routing CDN IPs differently
+    //     • MDM / corporate firewall profiles on managed iPhones / Macs
+    //     • Desktop ad-blocker browser extensions
+    //     • Offline documentation bundles (no internet at all)
+    //   In the old design, the CDN onerror handler never called the callback,
+    //   so createAIAssistantUI() was never reached and the DOM was never built.
+    //   Vendoring eliminates every one of those failure modes at once because
+    //   there is simply no network request to block.
+    //
+    // SCOPE:  Declared as a local `var` inside this IIFE — does NOT write to
+    //   window.TurndownService in the page's global scope.  If the host page
+    //   also loads Turndown independently the two are fully isolated.
+    //
+    // UPGRADING:  When bumping the Turndown version, replace the single
+    //   `var TurndownService = …` assignment below.  Generate the new content
+    //   with:
+    //     npm install turndown@<new-version>
+    //     npx terser node_modules/turndown/dist/turndown.js \
+    //       --compress --mangle --output turndown.vendor.min.js
+    //   Then paste the file content here and update the version tag.
+    //
+    // SOURCE:  turndown@7.1.2 dist/turndown.js
+    //          Minified with terser --compress --mangle
+    //
+    // LICENSE (MIT — Copyright © Dom Christie):
+    //   Permission is hereby granted, free of charge, to any person obtaining
+    //   a copy of this software and associated documentation files (the
+    //   "Software"), to deal in the Software without restriction, including
+    //   without limitation the rights to use, copy, modify, merge, publish,
+    //   distribute, sublicense, and/or sell copies of the Software, and to
+    //   permit persons to whom the Software is furnished to do so, subject to
+    //   the following conditions: The above copyright notice and this
+    //   permission notice shall be included in all copies or substantial
+    //   portions of the Software.
+    //   Full text: https://github.com/domchristie/turndown/blob/master/LICENSE
+    // ─────────────────────────────────────────────────────────────────────────
+    /* eslint-disable */
+    // turndown@7.1.2 — MIT — begin vendor
+    var TurndownService=function(){"use strict";function e(e,n){return Array(n+1).join(e)}var n=["ADDRESS","ARTICLE","ASIDE","AUDIO","BLOCKQUOTE","BODY","CANVAS","CENTER","DD","DIR","DIV","DL","DT","FIELDSET","FIGCAPTION","FIGURE","FOOTER","FORM","FRAMESET","H1","H2","H3","H4","H5","H6","HEADER","HGROUP","HR","HTML","ISINDEX","LI","MAIN","MENU","NAV","NOFRAMES","NOSCRIPT","OL","OUTPUT","P","PRE","SECTION","TABLE","TBODY","TD","TFOOT","TH","THEAD","TR","UL"];function t(e){return a(e,n)}var r=["AREA","BASE","BR","COL","COMMAND","EMBED","HR","IMG","INPUT","KEYGEN","LINK","META","PARAM","SOURCE","TRACK","WBR"];function i(e){return a(e,r)}var o=["A","TABLE","THEAD","TBODY","TFOOT","TH","TD","IFRAME","SCRIPT","AUDIO","VIDEO"];function a(e,n){return n.indexOf(e.nodeName)>=0}function l(e,n){return e.getElementsByTagName&&n.some(function(n){return e.getElementsByTagName(n).length})}var u={};function c(e){return e?e.replace(/(\n+\s*)+/g,"\n"):""}function s(e){for(var n in this.options=e,this._keep=[],this._remove=[],this.blankRule={replacement:e.blankReplacement},this.keepReplacement=e.keepReplacement,this.defaultRule={replacement:e.defaultReplacement},this.array=[],e.rules)this.array.push(e.rules[n])}function f(e,n,t){for(var r=0;r<e.length;r++){var i=e[r];if(d(i,n,t))return i}}function d(e,n,t){var r=e.filter;if("string"==typeof r){if(r===n.nodeName.toLowerCase())return!0}else if(Array.isArray(r)){if(r.indexOf(n.nodeName.toLowerCase())>-1)return!0}else{if("function"!=typeof r)throw new TypeError("`filter` needs to be a string, array, or function");if(r.call(e,n,t))return!0}}function p(e){var n=e.nextSibling||e.parentNode;return e.parentNode.removeChild(e),n}function h(e,n,t){return e&&e.parentNode===n||t(n)?n.nextSibling||n.parentNode:n.firstChild||n.nextSibling||n.parentNode}u.paragraph={filter:"p",replacement:function(e){return"\n\n"+e+"\n\n"}},u.lineBreak={filter:"br",replacement:function(e,n,t){return t.br+"\n"}},u.heading={filter:["h1","h2","h3","h4","h5","h6"],replacement:function(n,t,r){var i=Number(t.nodeName.charAt(1));return"setext"===r.headingStyle&&i<3?"\n\n"+n+"\n"+e(1===i?"=":"-",n.length)+"\n\n":"\n\n"+e("#",i)+" "+n+"\n\n"}},u.blockquote={filter:"blockquote",replacement:function(e){return"\n\n"+(e=(e=e.replace(/^\n+|\n+$/g,"")).replace(/^/gm,"> "))+"\n\n"}},u.list={filter:["ul","ol"],replacement:function(e,n){var t=n.parentNode;return"LI"===t.nodeName&&t.lastElementChild===n?"\n"+e:"\n\n"+e+"\n\n"}},u.listItem={filter:"li",replacement:function(e,n,t){e=e.replace(/^\n+/,"").replace(/\n+$/,"\n").replace(/\n/gm,"\n    ");var r=t.bulletListMarker+"   ",i=n.parentNode;if("OL"===i.nodeName){var o=i.getAttribute("start"),a=Array.prototype.indexOf.call(i.children,n);r=(o?Number(o)+a:a+1)+".  "}return r+e+(n.nextSibling&&!/\n$/.test(e)?"\n":"")}},u.indentedCodeBlock={filter:function(e,n){return"indented"===n.codeBlockStyle&&"PRE"===e.nodeName&&e.firstChild&&"CODE"===e.firstChild.nodeName},replacement:function(e,n,t){return"\n\n    "+n.firstChild.textContent.replace(/\n/g,"\n    ")+"\n\n"}},u.fencedCodeBlock={filter:function(e,n){return"fenced"===n.codeBlockStyle&&"PRE"===e.nodeName&&e.firstChild&&"CODE"===e.firstChild.nodeName},replacement:function(n,t,r){for(var i,o=((t.firstChild.getAttribute("class")||"").match(/language-(\S+)/)||[null,""])[1],a=t.firstChild.textContent,l=r.fence.charAt(0),u=3,c=new RegExp("^"+l+"{3,}","gm");i=c.exec(a);)i[0].length>=u&&(u=i[0].length+1);var s=e(l,u);return"\n\n"+s+o+"\n"+a.replace(/\n$/,"")+"\n"+s+"\n\n"}},u.horizontalRule={filter:"hr",replacement:function(e,n,t){return"\n\n"+t.hr+"\n\n"}},u.inlineLink={filter:function(e,n){return"inlined"===n.linkStyle&&"A"===e.nodeName&&e.getAttribute("href")},replacement:function(e,n){var t=n.getAttribute("href"),r=c(n.getAttribute("title"));return r&&(r=' "'+r+'"'),"["+e+"]("+t+r+")"}},u.referenceLink={filter:function(e,n){return"referenced"===n.linkStyle&&"A"===e.nodeName&&e.getAttribute("href")},replacement:function(e,n,t){var r,i,o=n.getAttribute("href"),a=c(n.getAttribute("title"));switch(a&&(a=' "'+a+'"'),t.linkReferenceStyle){case"collapsed":r="["+e+"][]",i="["+e+"]: "+o+a;break;case"shortcut":r="["+e+"]",i="["+e+"]: "+o+a;break;default:var l=this.references.length+1;r="["+e+"]["+l+"]",i="["+l+"]: "+o+a}return this.references.push(i),r},references:[],append:function(e){var n="";return this.references.length&&(n="\n\n"+this.references.join("\n")+"\n\n",this.references=[]),n}},u.emphasis={filter:["em","i"],replacement:function(e,n,t){return e.trim()?t.emDelimiter+e+t.emDelimiter:""}},u.strong={filter:["strong","b"],replacement:function(e,n,t){return e.trim()?t.strongDelimiter+e+t.strongDelimiter:""}},u.code={filter:function(e){var n=e.previousSibling||e.nextSibling,t="PRE"===e.parentNode.nodeName&&!n;return"CODE"===e.nodeName&&!t},replacement:function(e){if(!e)return"";e=e.replace(/\r?\n|\r/g," ");for(var n=/^`|^ .*?[^ ].* $|`$/.test(e)?" ":"",t="`",r=e.match(/`+/gm)||[];-1!==r.indexOf(t);)t+="`";return t+n+e+n+t}},u.image={filter:"img",replacement:function(e,n){var t=c(n.getAttribute("alt")),r=n.getAttribute("src")||"",i=c(n.getAttribute("title"));return r?"!["+t+"]("+r+(i?' "'+i+'"':"")+")":""}},s.prototype={add:function(e,n){this.array.unshift(n)},keep:function(e){this._keep.unshift({filter:e,replacement:this.keepReplacement})},remove:function(e){this._remove.unshift({filter:e,replacement:function(){return""}})},forNode:function(e){return e.isBlank?this.blankRule:(n=f(this.array,e,this.options))||(n=f(this._keep,e,this.options))||(n=f(this._remove,e,this.options))?n:this.defaultRule;var n},forEach:function(e){for(var n=0;n<this.array.length;n++)e(this.array[n],n)}};var g="undefined"!=typeof window?window:{};var m,v,A=function(){var e=g.DOMParser,n=!1;try{(new e).parseFromString("","text/html")&&(n=!0)}catch(e){}return n}()?g.DOMParser:(m=function(){},function(){var e=!1;try{document.implementation.createHTMLDocument("").open()}catch(n){window.ActiveXObject&&(e=!0)}return e}()?m.prototype.parseFromString=function(e){var n=new window.ActiveXObject("htmlfile");return n.designMode="on",n.open(),n.write(e),n.close(),n}:m.prototype.parseFromString=function(e){var n=document.implementation.createHTMLDocument("");return n.open(),n.write(e),n.close(),n},m);function y(e,n){var r;"string"==typeof e?r=(v=v||new A).parseFromString('<x-turndown id="turndown-root">'+e+"</x-turndown>","text/html").getElementById("turndown-root"):r=e.cloneNode(!0);return function(e){var n=e.element,t=e.isBlock,r=e.isVoid,i=e.isPre||function(e){return"PRE"===e.nodeName};if(n.firstChild&&!i(n)){for(var o=null,a=!1,l=null,u=h(l,n,i);u!==n;){if(3===u.nodeType||4===u.nodeType){var c=u.data.replace(/[ \r\n\t]+/g," ");if(o&&!/ $/.test(o.data)||a||" "!==c[0]||(c=c.substr(1)),!c){u=p(u);continue}u.data=c,o=u}else{if(1!==u.nodeType){u=p(u);continue}t(u)||"BR"===u.nodeName?(o&&(o.data=o.data.replace(/ $/,"")),o=null,a=!1):r(u)||i(u)?(o=null,a=!0):o&&(a=!1)}var s=h(l,u,i);l=u,u=s}o&&(o.data=o.data.replace(/ $/,""),o.data||p(o))}}({element:r,isBlock:t,isVoid:i,isPre:n.preformattedCode?N:null}),r}function N(e){return"PRE"===e.nodeName||"CODE"===e.nodeName}function E(e,n){return e.isBlock=t(e),e.isCode="CODE"===e.nodeName||e.parentNode.isCode,e.isBlank=function(e){return!i(e)&&!function(e){return a(e,o)}(e)&&/^\s*$/i.test(e.textContent)&&!function(e){return l(e,r)}(e)&&!function(e){return l(e,o)}(e)}(e),e.flankingWhitespace=function(e,n){if(e.isBlock||n.preformattedCode&&e.isCode)return{leading:"",trailing:""};var t=(r=e.textContent,i=r.match(/^(([ \t\r\n]*)(\s*))(?:(?=\S)[\s\S]*\S)?((\s*?)([ \t\r\n]*))$/),{leading:i[1],leadingAscii:i[2],leadingNonAscii:i[3],trailing:i[4],trailingNonAscii:i[5],trailingAscii:i[6]});var r,i;t.leadingAscii&&T("left",e,n)&&(t.leading=t.leadingNonAscii);t.trailingAscii&&T("right",e,n)&&(t.trailing=t.trailingNonAscii);return{leading:t.leading,trailing:t.trailing}}(e,n),e}function T(e,n,r){var i,o,a;return"left"===e?(i=n.previousSibling,o=/ $/):(i=n.nextSibling,o=/^ /),i&&(3===i.nodeType?a=o.test(i.nodeValue):r.preformattedCode&&"CODE"===i.nodeName?a=!1:1!==i.nodeType||t(i)||(a=o.test(i.textContent))),a}var R=Array.prototype.reduce,C=[[/\\/g,"\\\\"],[/\*/g,"\\*"],[/^-/g,"\\-"],[/^\+ /g,"\\+ "],[/^(=+)/g,"\\$1"],[/^(#{1,6}) /g,"\\$1 "],[/`/g,"\\`"],[/^~~~/g,"\\~~~"],[/\[/g,"\\["],[/\]/g,"\\]"],[/^>/g,"\\>"],[/_/g,"\\_"],[/^(\d+)\. /g,"$1\\. "]];function k(e){if(!(this instanceof k))return new k(e);var n={rules:u,headingStyle:"setext",hr:"* * *",bulletListMarker:"*",codeBlockStyle:"indented",fence:"```",emDelimiter:"_",strongDelimiter:"**",linkStyle:"inlined",linkReferenceStyle:"full",br:"  ",preformattedCode:!1,blankReplacement:function(e,n){return n.isBlock?"\n\n":""},keepReplacement:function(e,n){return n.isBlock?"\n\n"+n.outerHTML+"\n\n":n.outerHTML},defaultReplacement:function(e,n){return n.isBlock?"\n\n"+e+"\n\n":e}};this.options=function(e){for(var n=1;n<arguments.length;n++){var t=arguments[n];for(var r in t)t.hasOwnProperty(r)&&(e[r]=t[r])}return e}({},n,e),this.rules=new s(this.options)}function b(e){var n=this;return R.call(e.childNodes,function(e,t){var r="";return 3===(t=new E(t,n.options)).nodeType?r=t.isCode?t.nodeValue:n.escape(t.nodeValue):1===t.nodeType&&(r=D.call(n,t)),S(e,r)},"")}function O(e){var n=this;return this.rules.forEach(function(t){"function"==typeof t.append&&(e=S(e,t.append(n.options)))}),e.replace(/^[\t\r\n]+/,"").replace(/[\t\r\n\s]+$/,"")}function D(e){var n=this.rules.forNode(e),t=b.call(this,e),r=e.flankingWhitespace;return(r.leading||r.trailing)&&(t=t.trim()),r.leading+n.replacement(t,e,this.options)+r.trailing}function S(e,n){var t=function(e){for(var n=e.length;n>0&&"\n"===e[n-1];)n--;return e.substring(0,n)}(e),r=n.replace(/^\n*/,""),i=Math.max(e.length-t.length,n.length-r.length);return t+"\n\n".substring(0,i)+r}return k.prototype={turndown:function(e){if(!function(e){return null!=e&&("string"==typeof e||e.nodeType&&(1===e.nodeType||9===e.nodeType||11===e.nodeType))}(e))throw new TypeError(e+" is not a string, or an element/document/fragment node.");if(""===e)return"";var n=b.call(this,new y(e,this.options));return O.call(this,n)},use:function(e){if(Array.isArray(e))for(var n=0;n<e.length;n++)this.use(e[n]);else{if("function"!=typeof e)throw new TypeError("plugin must be a Function or an Array of Functions");e(this)}return this},addRule:function(e,n){return this.rules.add(e,n),this},keep:function(e){return this.rules.keep(e),this},remove:function(e){return this.rules.remove(e),this},escape:function(e){return C.reduce(function(e,n){return e.replace(n[0],n[1])},e)}},k}();
+    // turndown@7.1.2 — MIT — end vendor
+    /* eslint-enable */
+
+    /**
+     * Compatibility shim — previously performed async CDN loading of Turndown.
+     *
+     * TurndownService is now vendored inline (see block above) and is always
+     * synchronously available.  This function is retained so any call-site
+     * that passes a callback continues to work without modification; the
+     * callback is invoked synchronously on the same call stack.
+     *
+     * Developer note: do NOT restore CDN loading here.  The inline vendor is
+     * the correct long-term approach; it eliminates the entire class of
+     * iOS-Safari / ad-blocker / offline failures that motivated this change.
+     *
+     * @param {function(): void} callback  Called immediately.
+     */
     function loadTurndown(callback) {
-        if (typeof TurndownService !== 'undefined') { callback(); return; }
-        var script = document.createElement('script');
-        // Primary CDN
-        script.src = 'https://cdn.jsdelivr.net/npm/turndown@7.1.2/dist/turndown.min.js';
-        script.onload  = callback;
-        script.onerror = function () {
-            console.warn('AI Assistant: Primary CDN failed, attempting fallback...');
-            // Fallback to another CDN or a local path
-            var fallback = document.createElement('script');
-            fallback.src = 'https://unpkg.com/turndown@7.1.2/dist/turndown.js';
-            fallback.onload = callback;
-            fallback.onerror = function() { console.error('AI Assistant: Critical failure loading Turndown'); };
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(script);
+        callback();
     }
 
+    /**
+     * Bootstrap entry point — called by DOMContentLoaded (or immediately if
+     * the document is already interactive/complete).
+     *
+     * UI construction now runs unconditionally, without any network request.
+     * The previous implementation gated createAIAssistantUI() behind a CDN
+     * script load; if that load was blocked (iOS Safari content-blockers,
+     * corporate firewalls, offline docs) the callback was never called and
+     * nothing rendered.
+     */
     function initAIAssistant() {
-        loadTurndown(function () { createAIAssistantUI(); });
+        createAIAssistantUI();
     }
 
     // ── DOM construction ──────────────────────────────────────────────────────
@@ -1509,8 +1603,13 @@
         if (dropdownButton) {
             dropdownButton.addEventListener('click', function (e) {
                 e.stopPropagation();
-                // var isOpen = dropdown.style.display !== 'block';
-                var isOpen = window.getComputedStyle(dropdown).display !== 'none';
+                // BUG-2 fix: window.getComputedStyle() returns the CSS-declared
+                // value on iOS Safari when the element was recently toggled via
+                // style.display — the layout may not yet have been recalculated.
+                // Reading dropdown.style.display is a direct property access that
+                // always returns the current inline-style value: reliable on all
+                // browsers including iOS Safari.
+                var isOpen = dropdown.style.display === 'block';
                 if (isOpen) {
                     dropdown.style.display = 'none';
                     dropdownButton.setAttribute('aria-expanded', 'false');
@@ -3161,7 +3260,7 @@
             return;
         }
         try {
-            fetch(url, {
+            _fetch(url, {
                 method:    opts.method || 'POST',
                 headers:   headers,
                 body:      payload,
@@ -3191,7 +3290,7 @@
      *
      * @param {string} url    Endpoint URL from cfg.panelFeedbackEndpoint.
      * @param {string} token  Bearer token from cfg.panelFeedbackToken ('' for none).
-     * @param {Object} detail Complete feedback detail object (schemaVersion 1).
+     * @param {Object} detail Complete feedback detail object (schemaVersion 2).
      * @returns {void}
      *
      * @remarks
@@ -3258,7 +3357,7 @@
         if (!url || !prevSessionId) { return; }
         _remotePost(url, token, {
             action:         'retract',
-            schemaVersion:  1,
+            schemaVersion:  2,
             prevSessionId:  prevSessionId,
             answerIndex:    answerIndex,
             conversationId: conversationId,
@@ -3406,12 +3505,13 @@
         // chosen tracks the currently selected option across button clicks.
         // Pre-seed from prevEntry so the user can submit immediately if only
         // changing the message text without re-selecting an emoji.
-        var chosen = { label: null, value: null };
+        var chosen = { label: null, value: null, title: null };
         if (prevEntry && prevValue !== null) {
             // Reverse-lookup the label for the previously submitted value.
             opts.forEach(function (o, idx) {
                 if (scale[idx] === prevValue) {
                     chosen.label = o.value || o.title || o.emoji;
+                    chosen.title = o.title || o.value || o.emoji;
                     chosen.value = prevValue;
                 }
             });
@@ -3460,6 +3560,7 @@
 
             b.addEventListener('click', function () {
                 chosen.label = o.value || o.title || o.emoji;
+                chosen.title = o.title || o.value || o.emoji;
                 chosen.value = num;
                 optRow.querySelectorAll('button').forEach(function (x) {
                     x.setAttribute('aria-pressed', 'false');
@@ -3497,27 +3598,27 @@
                       '-' + answerIndex + '-' + Date.now();
             }
 
-            var modelInfo = null;
-            var activeModel = _getActiveModel(cfg);
-            if (activeModel) {
-                modelInfo = {
-                    id:       activeModel.id,
-                    provider: activeModel.provider || 'custom',
-                    model:    activeModel.model || activeModel.id,
-                };
-            } else if (typeof cfg.panelApiModel === 'string' && cfg.panelApiModel) {
-                modelInfo = {
-                    id:       cfg.panelApiModel,
-                    provider: 'anthropic',
-                    model:    cfg.panelApiModel,
-                };
-            }
+            var modelInfo = _buildModelInfo(cfg);
+
+            // Edit-chain linkage: prevEntry (above) is the rating being
+            // replaced, if any (gated on _pendingRetract — set by the Edit
+            // button).  null/0 for a first-time rating.
+            var _supersededFeedbackId = (prevEntry && prevEntry.sessionId) || null;
+            var _supersededEditCount  = (prevEntry && prevEntry.editCount) || 0;
 
             var detail = {
-                schemaVersion:  1,
+                schemaVersion:  2,
                 ratingValue:    chosen.value,
+                // ratingLabel is the snake_case slug (e.g. "mostly_positive").
+                // ratingTitle carries the human-readable string ("Mostly yes").
+                // rating is kept as a deprecated alias of ratingLabel.
                 ratingLabel:    chosen.label,
-                rating:         chosen.label,
+                ratingTitle:    chosen.title,
+                ratingMode:     'panel',
+                rating:         chosen.label,  // @deprecated: alias of ratingLabel
+                // prevFeedbackId / editCount: edit-chain linkage (see above).
+                prevFeedbackId: _supersededFeedbackId,
+                editCount:      _supersededFeedbackId ? (_supersededEditCount + 1) : 0,
                 message:        ta.value.trim(),
                 query:          (typeof questionText === 'string') ? questionText : '',
                 answer:         (typeof answerText === 'string') ? answerText : '',
@@ -3568,7 +3669,13 @@
             _feedbackGivenSet.add(answerIndex);
             _feedbackStore[answerIndex] = {
                 ratingValue:    chosen.value,
-                ratingLabel:    chosen.label,
+                ratingLabel:    chosen.label,   // snake_case slug ("mostly_positive")
+                ratingTitle:    chosen.title,   // human display string ("Mostly yes")
+                ratingMode:     'panel',
+                // Edit-chain linkage — forwarded into tRecords by
+                // /v1/contribute (see _supersededFeedbackId above).
+                prevFeedbackId: detail.prevFeedbackId,
+                editCount:      detail.editCount,
                 message:        ta.value.trim(),
                 ts:             Date.now(),
                 query:          detail.query,
@@ -3652,7 +3759,7 @@
      * POST a training contribution payload to the configured training endpoint.
      *
      * @param {string}   url       cfg.panelTrainingEndpoint.
-     * @param {Object}   payload   Contribution payload (schemaVersion 1, consentFlag: true).
+     * @param {Object}   payload   Contribution payload (schemaVersion 2, consentFlag: true).
      * @param {Function} onSuccess Called with {contributed, rows} on success.
      * @param {Function} onError   Called with {status, message} on failure.
      * @returns {void}
@@ -4193,9 +4300,14 @@
                 var ratingChip = '';
                 if (fb) {
                     var ratingInfo = _ratingDisplay(fb.ratingLabel, fb.ratingValue);
+                    // Display text uses ratingTitle ("Helpful", "Mostly yes") for
+                    // humans; the CSS class keeps the snake_case slug
+                    // (ratingLabel) for stable styling hooks. Falls back to the
+                    // slug if ratingTitle is unavailable (very old records).
+                    var ratingDisplayText = fb.ratingTitle || fb.ratingLabel;
                     ratingChip =
                         '<span class="badge badge--rating badge--' + _escapeHtml(fb.ratingLabel) + '">' +
-                            ratingInfo.emoji + ' ' + _escapeHtml(fb.ratingLabel) +
+                            ratingInfo.emoji + ' ' + _escapeHtml(ratingDisplayText) +
                             (fb.message
                                 ? ' \u2014 \u201c' + _escapeHtml(fb.message.slice(0, 120)) + '\u201d'
                                 : '') +
@@ -4641,15 +4753,30 @@ opts.jsonPayload + '\n' +
      * filename : string  Suggested download filename.
      */
     function _downloadBlob(content, mimeType, filename) {
-        var blob = new Blob([content], { type: mimeType });
-        var url  = URL.createObjectURL(blob);
-        var a    = document.createElement('a');
-        a.href     = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        // Delegate to the compat layer when available — it handles iOS Safari
+        // (where <a download> navigates the tab) and ultra-legacy fallbacks.
+        if (window.AI_COMPAT && typeof window.AI_COMPAT.downloadBlob === 'function') {
+            window.AI_COMPAT.downloadBlob(content, mimeType, filename);
+            return;
+        }
+        // Own fallback (non-iOS, modern desktop browsers only):
+        try {
+            var blob = new Blob([content], { type: mimeType });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href     = url;
+            a.download = filename || 'download';
+            a.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;pointer-events:none';
+            document.body.appendChild(a);
+            a.click();
+        } catch (blobErr) {
+            console.warn('[ai-assistant] _downloadBlob failed', blobErr);
+        } finally {
+            try { document.body.removeChild(a); } catch (_) {}
+            setTimeout(function () {
+                try { URL.revokeObjectURL(url); } catch (_) {}
+            }, 1500);
+        }
     }
 
     /**
@@ -4996,7 +5123,9 @@ opts.jsonPayload + '\n' +
             var fb = _feedbackStore[answerIndex];
             if (fb) {
                 var rdisp = _ratingDisplay(fb.ratingLabel, fb.ratingValue);
-                ratingLine = '\n\nRating: ' + rdisp.emoji + ' ' + fb.ratingLabel;
+                // ratingTitle ("Helpful", "Mostly yes") is the human-readable
+                // form; ratingLabel is the snake_case slug used for CSS/training.
+                ratingLine = '\n\nRating: ' + rdisp.emoji + ' ' + (fb.ratingTitle || fb.ratingLabel);
                 if (fb.message) { ratingLine += ' \u2014 \u201c' + fb.message + '\u201d'; }
             }
         }
@@ -5859,10 +5988,10 @@ opts.jsonPayload + '\n' +
      * console-logged.  Doc authors hook the event for their own analytics —
      * the extension itself stores nothing and sends nothing.
      *
-     * The event payload (``event.detail``) shape — version 1:
+     * The event payload (``event.detail``) shape — version 2:
      *
      *     {
-     *       schemaVersion : 1,                  // for forward compatibility
+     *       schemaVersion : 2,                  // for forward compatibility
      *       ratingValue   : -1 | 0 | +1 | ...,  // SIGNED INT (training signal)
      *       ratingLabel   : "negative" | ...,   // string (humans / dashboards)
      *       rating        : "negative" | ...,   // legacy alias = ratingLabel
@@ -5956,8 +6085,8 @@ opts.jsonPayload + '\n' +
         quick.className = 'ai-assistant-fbk-quick';
 
         var _quickOpts = [
-            { emoji: '\uD83D\uDC4E', sentiment: 'negative', value: -1, title: 'Not helpful' },
-            { emoji: '\uD83D\uDC4D', sentiment: 'positive', value: 1,  title: 'Helpful' },
+            { emoji: '\uD83D\uDC4E', sentiment: 'negative', value: -1, title: 'Not helpful', slug: 'not_helpful' },
+            { emoji: '\uD83D\uDC4D', sentiment: 'positive', value: 1,  title: 'Helpful',     slug: 'helpful'     },
         ];
 
         _quickOpts.forEach(function (opt) {
@@ -5986,6 +6115,18 @@ opts.jsonPayload + '\n' +
             btn.appendChild(scoreSpan);
 
             btn.addEventListener('click', function () {
+                // ── Edit-chain bookkeeping ──────────────────────────────────────
+                // Capture BEFORE any retraction/overwrite below: if this answer
+                // already has a stored rating (quick re-toggle, or panel rating
+                // marked _pendingRetract via the Edit button), this click
+                // SUPERSEDES it.  _supersededFeedbackId becomes
+                // detail.prevFeedbackId (sent to /v1/feedback) and is forwarded
+                // into _feedbackStore so /v1/contribute's tRecords can carry it
+                // too.  null on a first-time rating for this answer.
+                var _priorQEntry          = _feedbackStore[answerIndex] || null;
+                var _supersededFeedbackId = (_priorQEntry && _priorQEntry.sessionId) || null;
+                var _supersededEditCount  = (_priorQEntry && _priorQEntry.editCount) || 0;
+
                 // ── Edit path ────────────────────────────────────────────────
                 // If feedback was already given for this answer:
                 //   • Same button (aria-pressed="true") → no-op (nothing changed).
@@ -5995,7 +6136,7 @@ opts.jsonPayload + '\n' +
                 if (_feedbackGivenSet.has(answerIndex)) {
                     if (btn.getAttribute('aria-pressed') === 'true') { return; }
 
-                    var _prevQEntry = _feedbackStore[answerIndex];
+                    var _prevQEntry = _priorQEntry;
                     var _fbBaseQ  = _EP.hasProfiles()
                         ? _EP.resolve('feedback')
                         : (cfg.panelFeedbackEndpoint || '');
@@ -6020,23 +6161,70 @@ opts.jsonPayload + '\n' +
                 });
                 btn.setAttribute('aria-pressed', 'true');
 
+                // Model info — canonical 8-key shape shared with panel feedback
+                // and contributions (see _buildModelInfo).  null when no model
+                // is configured (graceful degradation).
+                var _quickModelInfo = _buildModelInfo(cfg);
+
+                // sessionId is THIS submission's own idempotency identifier,
+                // stored as `feedbackId` in the dataset (see
+                // _dataset_schema.CANONICAL_COLUMNS).  Also used as the
+                // prevSessionId/prevFeedbackId target if a later edit
+                // retracts/supersedes THIS record.
+                //
+                // Historically this was
+                //   _sessionId + '-quick-' + answerIndex + '-' + Date.now()
+                // — a composite string redundantly re-encoding ratingMode,
+                // answerIndex, and ts, which are now ALL separately-stored
+                // canonical fields (since schema v2).  That made feedbackId's
+                // FORMAT differ by ratingMode — a composite string for quick,
+                // a plain UUID for panel (see the `sid` computation in the
+                // panel submit handler below) — even though
+                // DATASET_COLLECTION_GUIDANCE.md §6 documents feedbackId as a
+                // plain "per-rating event UUID".  A bare UUID is globally
+                // unique on its own, so it satisfies the original "unique on
+                // every click, including edits" requirement without the
+                // redundant suffix, and matches panel's format.
+                //
+                // To reinstate the composite format (e.g. if a future
+                // consumer needs ratingMode/answerIndex/ts recoverable from
+                // feedbackId alone, without a dataset join), restore:
+                //   sid = _sessionId + '-quick-' + answerIndex + '-' + Date.now();
+                var sid;
+                try {
+                    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                        sid = window.crypto.randomUUID();
+                    }
+                } catch (_) {}
+                if (!sid) {
+                    sid = 'fb-' + (location ? location.pathname : 'p') +
+                          '-' + answerIndex + '-' + Date.now();
+                }
+
                 var detail = {
-                    schemaVersion:  1,
+                    schemaVersion:  2,
                     ratingValue:    opt.value,
-                    ratingLabel:    opt.title,
-                    rating:         opt.title,
+                    // ratingLabel is now always a snake_case slug matching the
+                    // panel feedback vocabulary (e.g. "not_helpful", "helpful").
+                    // ratingTitle carries the human-readable display string.
+                    // rating is kept as a deprecated alias of ratingLabel for
+                    // server-side back-compat; new consumers should use ratingSlug.
+                    ratingLabel:    opt.slug,
+                    ratingTitle:    opt.title,
+                    ratingMode:     'quick',
+                    rating:         opt.slug,   // @deprecated: alias of ratingLabel
+                    // prevFeedbackId / editCount: edit-chain linkage (see top of
+                    // this handler).  null / 0 for a first-time rating.
+                    prevFeedbackId: _supersededFeedbackId,
+                    editCount:      _supersededFeedbackId ? (_supersededEditCount + 1) : 0,
                     message:        '',
                     query:          (typeof questionText === 'string') ? questionText : '',
                     answer:         (typeof answerText === 'string')   ? answerText   : '',
-                    model:          null,
+                    model:          _quickModelInfo,
                     answerIndex:    answerIndex,
                     page:           (typeof location !== 'undefined') ? location.href : '',
                     ts:             Date.now(),
-                    // Append Date.now() so the sessionId is unique on every click
-                    // (including edits) — the server can deduplicate on
-                    // conversationId:answerIndex, so the uniqueness here is only
-                    // needed for the retraction prevSessionId lookup.
-                    sessionId:      _sessionId + '-quick-' + answerIndex + '-' + Date.now(),
+                    sessionId:      sid,
                     conversationId: _sessionId,
                 };
 
@@ -6071,12 +6259,19 @@ opts.jsonPayload + '\n' +
                 _feedbackGivenSet.add(answerIndex);
                 _feedbackStore[answerIndex] = {
                     ratingValue:    opt.value,
-                    ratingLabel:    opt.title,
+                    ratingLabel:    opt.slug,       // canonical slug (matches detail.ratingLabel)
+                    ratingTitle:    opt.title,       // human display string for dashboards
+                    ratingMode:     'quick',
+                    // Edit-chain linkage — forwarded into tRecords by
+                    // /v1/contribute so contributions can also carry the
+                    // supersession chain (see _priorQEntry above).
+                    prevFeedbackId: detail.prevFeedbackId,
+                    editCount:      detail.editCount,
                     message:        '',
                     ts:             Date.now(),
                     query:          detail.query,
                     answer:         detail.answer,
-                    model:          null,
+                    model:          _quickModelInfo, // populated so contributions carry model attr
                     sessionId:      detail.sessionId,
                     conversationId: detail.conversationId,
                     page:           detail.page,
@@ -6287,7 +6482,7 @@ opts.jsonPayload + '\n' +
 
         // Track BOTH the label (legacy) and the numeric value.  The numeric
         // value is the training signal; the label is for humans.
-        var chosen = { label: null, value: null };
+        var chosen = { label: null, value: null, title: null };
         opts.forEach(function (o, idx) {
             var b = document.createElement('button');
             b.className = 'ai-assistant-panel-feedback-btn';
@@ -6332,6 +6527,7 @@ opts.jsonPayload + '\n' +
 
             b.addEventListener('click', function () {
                 chosen.label = o.value || o.title || o.emoji;
+                chosen.title = o.title || o.value || o.emoji;
                 chosen.value = num;
                 optRow.querySelectorAll('button').forEach(function (x) {
                     x.setAttribute('aria-pressed', 'false');
@@ -6395,27 +6591,37 @@ opts.jsonPayload + '\n' +
             // The training pipeline reads ``model.id`` and ``model.provider``
             // to group ratings per model; the ``answerIndex`` + ``sessionId``
             // pair below is the idempotency key.
-            var modelInfo = null;
-            var activeModel = _getActiveModel(cfg);
-            if (activeModel) {
-                modelInfo = {
-                    id:       activeModel.id,
-                    provider: activeModel.provider || 'custom',
-                    model:    activeModel.model || activeModel.id,
-                };
-            } else if (typeof cfg.panelApiModel === 'string' && cfg.panelApiModel) {
-                modelInfo = {
-                    id:       cfg.panelApiModel,
-                    provider: 'anthropic',      // legacy single-model assumption
-                    model:    cfg.panelApiModel,
-                };
-            }
+            var modelInfo = _buildModelInfo(cfg);
+
+            // Edit-chain linkage.  Normally an edit goes through
+            // _rebuildFeedbackFormIn (Edit button -> _pendingRetract=true ->
+            // re-render -> that function's prevEntry).  This function is the
+            // INITIAL render and is only defensively re-entered (see the
+            // _bfbEntry comment below), so gate on _pendingRetract: only claim
+            // supersession when an edit was actually flagged for this answer.
+            var _priorBfbEntry        = _feedbackStore[answerIndex] || null;
+            var _supersededFeedbackId = (_priorBfbEntry && _priorBfbEntry._pendingRetract && _priorBfbEntry.sessionId)
+                ? _priorBfbEntry.sessionId
+                : null;
+            var _supersededEditCount  = (_priorBfbEntry && _priorBfbEntry._pendingRetract)
+                ? (_priorBfbEntry.editCount || 0)
+                : 0;
 
             var detail = {
-                schemaVersion:  1,
+                schemaVersion:  2,
                 ratingValue:    chosen.value,        // SIGNED INT
-                ratingLabel:    chosen.label,        // string
+                // ratingLabel is the snake_case slug (e.g. "mostly_positive");
+                // ratingTitle is the human-readable string (e.g. "Mostly yes").
+                // Both were previously MISSING from this code path's detail
+                // object (only present in the _feedbackStore write below),
+                // forcing the server to re-derive them from the slug alone.
+                ratingLabel:    chosen.label,        // snake_case slug
+                ratingTitle:    chosen.title,        // human display string
+                ratingMode:     'panel',
                 rating:         chosen.label,        // legacy alias (back-compat)
+                // prevFeedbackId / editCount: edit-chain linkage (see above).
+                prevFeedbackId: _supersededFeedbackId,
+                editCount:      _supersededFeedbackId ? (_supersededEditCount + 1) : 0,
                 message:        ta.value.trim(),
                 query:          (typeof questionText === 'string') ? questionText : '',
                 answer:         (typeof answerText === 'string') ? answerText : '',
@@ -6472,7 +6678,10 @@ opts.jsonPayload + '\n' +
                     // itself can also be re-entered if _feedbackGivenSet was
                     // cleared and the original wrap element is still live.
                     // Guard defensively so neither path double-posts.
-                    var _bfbEntry = _feedbackStore[answerIndex];
+                    // _priorBfbEntry (computed above, before `detail`, for
+                    // prevFeedbackId/editCount) is the SAME entry — reuse it
+                    // rather than re-reading _feedbackStore[answerIndex].
+                    var _bfbEntry = _priorBfbEntry;
                     if (_bfbEntry && _bfbEntry._pendingRetract && _bfbEntry.sessionId) {
                         _postFeedbackRetract(
                             _fbBase + '/v1/feedback', _fbToken,
@@ -6499,7 +6708,13 @@ opts.jsonPayload + '\n' +
             // query/answer/model/sessionId/page were previously dropped here.
             _feedbackStore[answerIndex] = {
                 ratingValue:    chosen.value,
-                ratingLabel:    chosen.label,
+                ratingLabel:    chosen.label,   // snake_case slug ("mostly_positive")
+                ratingTitle:    chosen.title,   // human display string ("Mostly yes")
+                ratingMode:     'panel',
+                // Edit-chain linkage — forwarded into tRecords by
+                // /v1/contribute (see _supersededFeedbackId above).
+                prevFeedbackId: detail.prevFeedbackId,
+                editCount:      detail.editCount,
                 message:        ta.value.trim(),
                 ts:             Date.now(),
                 // Added — required for POST /v1/feedback and training contribution:
@@ -8084,7 +8299,7 @@ opts.jsonPayload + '\n' +
                 _fail('timeout');
             }, 5000);
             try {
-                fetch(proxyBase + '/', {
+                _fetch(proxyBase + '/', {
                     method:  'GET',
                     mode:    'cors',
                     cache:   'no-store',
@@ -9232,7 +9447,7 @@ opts.jsonPayload + '\n' +
                     if (ac) { try { ac.abort(); } catch (_) {} }
                     _finish({ ok: false, status: 'timeout' });
                 }, 5000);
-                fetch(url, {
+                _fetch(url, {
                     method: 'HEAD',
                     mode:   'no-cors',
                     cache:  'no-store',
@@ -9468,6 +9683,59 @@ opts.jsonPayload + '\n' +
             cfg.panelApiModels.length === 0) return null;
         var id = _getActiveModelId(cfg.panelApiModels);
         return _findModel(cfg.panelApiModels, id);
+    }
+
+    /**
+     * Build the canonical 8-key model-attribution object stored in
+     * ``detail.model`` (POST /v1/feedback) and the contribute envelope's
+     * ``model`` (POST /v1/contribute).
+     *
+     * Single source of truth: previously, quick feedback, panel feedback (x2
+     * call sites), and the contribution envelope each built their OWN model
+     * object — with DIFFERENT shapes (3-key slim vs full cfg.panelApiModels
+     * entry vs nothing for quick).  That meant `feedback/*.jsonl` rows often
+     * had `model: {..., label: null, endpoint: null, info_url: null,
+     * description: null, default: null}` even though the SAME activeModel
+     * config had all of those fields populated (visible in `contributions/`
+     * rows for the identical conversation).  This function is now the ONLY
+     * place that builds a model object, called from all four sites, so every
+     * rated record — quick or panel, feedback or contribution — carries the
+     * SAME 8 keys with the SAME values.
+     *
+     * Resolution order (mirrors the original per-call-site logic):
+     *   1. cfg.panelApiModels (multi-model contract) via _getActiveModel —
+     *      returns the full config entry, so label/endpoint/info_url/
+     *      description/default come through as configured.
+     *   2. Legacy single-string cfg.panelApiModel — only id/provider/model
+     *      are knowable; the other 5 keys are explicitly null.
+     *   3. null when neither is configured (stub-mode reply).
+     *
+     * @param {object} cfg  window.AI_ASSISTANT_CONFIG
+     * @returns {object|null}  {id, provider, model, label, endpoint,
+     *                          info_url, description, default} or null.
+     */
+    function _buildModelInfo(cfg) {
+        var activeModel = _getActiveModel ? _getActiveModel(cfg) : null;
+        if (activeModel) {
+            return {
+                id:          activeModel.id,
+                provider:    activeModel.provider || 'custom',
+                model:       activeModel.model || activeModel.id,
+                label:       (activeModel.label       != null) ? activeModel.label       : null,
+                endpoint:    (activeModel.endpoint    != null) ? activeModel.endpoint    : null,
+                info_url:    (activeModel.info_url    != null) ? activeModel.info_url    : null,
+                description: (activeModel.description != null) ? activeModel.description : null,
+                default:     (activeModel.default     != null) ? activeModel.default     : null,
+            };
+        }
+        if (typeof cfg.panelApiModel === 'string' && cfg.panelApiModel) {
+            // Legacy single-model config: only id/provider/model are knowable.
+            return {
+                id: cfg.panelApiModel, provider: 'anthropic', model: cfg.panelApiModel,
+                label: null, endpoint: null, info_url: null, description: null, default: null,
+            };
+        }
+        return null;
     }
 
     // ── Phase C: Effort level, extended-thinking, and coming-soon features ──────
@@ -12630,7 +12898,7 @@ opts.jsonPayload + '\n' +
             // field is preserved for copy / share / bookmarking purposes.
             // The Blob URL is revoked after 30 s — enough for any browser to
             // start loading the content; it does NOT close the tab.
-            if (urlToOpen.startsWith('data:')) {
+            if (urlToOpen.indexOf('data:') === 0) {
                 try {
                     var content = meta.buildStr();
                     if (!content) {
@@ -13116,7 +13384,15 @@ opts.jsonPayload + '\n' +
         var _trBase = _profileTrainingUrl || (cfg.panelTrainingEndpoint || '');
 
         if (_trBase) {
-            var CONSENT_VERSION = 'v1.0';
+            // Reserved for future use: consent-version tracking is not yet
+            // enforced server-side (dataset_schema.py CONSENT_VERSION_ENABLED
+            // is False, so consentVersion is always normalised to null
+            // regardless of what is sent here).  When that flag is flipped to
+            // True, uncomment the line below, set RESERVED_CONSENT_VERSION in
+            // dataset_schema.py to match, and change `consentVersion: null`
+            // to `consentVersion: CONSENT_VERSION` in the /v1/contribute
+            // payload a few lines down.
+            // var CONSENT_VERSION = '1.0.0';
 
             var trainSep = document.createElement('hr');
             trainSep.className = 'ai-assistant-conv-share-sep';
@@ -13196,6 +13472,19 @@ opts.jsonPayload + '\n' +
                         answer:      tfb.answer      || '',
                         ratingValue: tfb.ratingValue != null ? tfb.ratingValue : null,
                         ratingLabel: tfb.ratingLabel || '',
+                        ratingTitle: tfb.ratingTitle || null,  // "Helpful" / "Mostly yes"
+                        ratingMode:  tfb.ratingMode  || null,  // "quick" | "panel"
+                        // feedbackId: links this contribution row back to the
+                        // per-answer feedback event (POST /v1/feedback) that
+                        // produced this rating, if the user rated this answer
+                        // individually before contributing.  null if they
+                        // contributed without ever rating this specific answer.
+                        feedbackId:     tfb.sessionId      || null,
+                        // prevFeedbackId / editCount: edit-chain linkage,
+                        // forwarded unchanged from the feedback event (see
+                        // ai-assistant-feedback handlers for how these are set).
+                        prevFeedbackId: tfb.prevFeedbackId || null,
+                        editCount:      tfb.editCount      || 0,
                         message:     tfb.message     || '',
                         ts:          tfb.ts          || Date.now(),
                         // Self-describing provenance tag.  The server overwrites
@@ -13219,12 +13508,17 @@ opts.jsonPayload + '\n' +
                 _postTrainingContribution(
                     _trBase.replace(/\/$/, '') + '/v1/contribute',
                     {
-                        schemaVersion:  1,
+                        schemaVersion:  2,
                         consentFlag:    true,
-                        consentVersion: CONSENT_VERSION,
+                        consentVersion: null,  // reserved — see CONSENT_VERSION comment above
                         sessionId:      _sessionId,
                         page:           location ? location.href : '',
-                        model:          _getActiveModel ? _getActiveModel(cfg) : null,
+                        // _buildModelInfo gives the same canonical 8-key shape
+                        // as feedback's detail.model (see definition near
+                        // _getActiveModel) — was previously the raw
+                        // _getActiveModel(cfg) object (8 keys but NOT
+                        // normalised: missing keys were absent rather than null).
+                        model:          _buildModelInfo(cfg),
                         records:        tRecords,
                     },
                     function onContributeSuccess(result) {
@@ -13274,7 +13568,7 @@ opts.jsonPayload + '\n' +
             // Revoke previous blob URL only (data: URIs are not registered with
             // the Blob URL store; revokeObjectURL on them is a no-op but guard
             // explicitly so browser devtools show clean resource lifetimes).
-            if (_activeBlobUrl && _activeBlobUrl.startsWith('blob:')) {
+            if (_activeBlobUrl && _activeBlobUrl.indexOf('blob:') === 0) {
                 try { URL.revokeObjectURL(_activeBlobUrl); } catch (_e) {}
             }
             _activeBlobUrl = null;
@@ -13341,7 +13635,7 @@ opts.jsonPayload + '\n' +
             // Revoke blob URLs only (data: URIs are not registered with the
             // Blob URL store — revokeObjectURL is a safe no-op on them, but
             // explicitly guard to avoid confusion in profilers/devtools).
-            if (_activeBlobUrl && _activeBlobUrl.startsWith('blob:')) {
+            if (_activeBlobUrl && _activeBlobUrl.indexOf('blob:') === 0) {
                 try { URL.revokeObjectURL(_activeBlobUrl); } catch (_e) {}
             }
             _activeBlobUrl = null;
@@ -15309,9 +15603,22 @@ opts.jsonPayload + '\n' +
         }
         _aiPanelEl.removeAttribute('data-minimized');
         _aiPanelEl.style.display = 'flex';
-        requestAnimationFrame(function () {
-            _aiPanelEl.classList.add('ai-assistant-panel--open');
-        });
+
+        // iOS Safari fix (BUG-1): A single requestAnimationFrame is coalesced
+        // with the display:flex assignment into ONE paint frame on iOS Safari.
+        // When both happen in the same frame the browser has no "before" state
+        // for the CSS transition, so opacity stays at 0 and pointer-events
+        // remains none — the panel is invisible and completely unclickable.
+        //
+        // Solution: force a SYNCHRONOUS reflow by reading offsetHeight.
+        // This compels iOS Safari to commit the display:flex change, record the
+        // current opacity:0 / pointer-events:none as the transition start state,
+        // THEN apply the --open class so the transition fires correctly.
+        //
+        // Do NOT remove this line — it is the canonical iOS Safari animation fix.
+        void _aiPanelEl.offsetHeight; // eslint-disable-line no-void
+        _aiPanelEl.classList.add('ai-assistant-panel--open');
+
         var inp = document.getElementById('ai-assistant-panel-input');
         if (inp) setTimeout(function () {
             inp.focus();
@@ -19337,7 +19644,9 @@ opts.jsonPayload + '\n' +
         if (_fetchAbortController) {
             _fetchAbortController.abort();
         }
-        _fetchAbortController = new AbortController();
+        _fetchAbortController = (window.AI_COMPAT && typeof window.AI_COMPAT.createAbortController === 'function')
+            ? window.AI_COMPAT.createAbortController()
+            : (typeof AbortController !== 'undefined' ? new AbortController() : null);
 
         // Stop speech if active
         _stopSpeechRecognition();
@@ -19589,7 +19898,7 @@ opts.jsonPayload + '\n' +
         }
 
         // ── 6. Non-streaming path ─────────────────────────────────────────
-        var response = await fetch(endpoint, {
+        var response = await _fetch(endpoint, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    body,
@@ -19640,7 +19949,7 @@ opts.jsonPayload + '\n' +
     }
 
     async function _panelApiCallStreaming(endpoint, bodyStr, provider) {
-        var response = await fetch(endpoint, {
+        var response = await _fetch(endpoint, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    bodyStr,
@@ -19693,7 +20002,22 @@ opts.jsonPayload + '\n' +
         if (panelBody) panelBody.appendChild(streamBubble);
 
         var accumulated = '';
-        var reader = response.body.getReader();
+        var reader;
+        try {
+            reader = response.body.getReader();
+        } catch (readerErr) {
+            // Some browsers (iOS Safari 14.0, partial ReadableStream) report a
+            // non-null body but throw on getReader(). Fall back to JSON parsing.
+            console.warn('[ai-assistant] ReadableStream.getReader() failed; JSON fallback', readerErr);
+            try {
+                var fbData = await response.clone().json().catch(function () { return {}; });
+                var fbReply = (fbData && (fbData.reply || fbData.answer || fbData.text)) || '';
+                _appendPanelMessage(fbReply || '(no response)', 'assistant');
+            } catch (_fbErr) {
+                _appendPanelMessage('(streaming unavailable in this browser)', 'assistant');
+            }
+            return;
+        }
         var decoder = new TextDecoder();
         var sseBuf = '';
         // Track the current SSE event type (RFC 6455 §10.1):
@@ -19716,7 +20040,7 @@ opts.jsonPayload + '\n' +
                         continue;
                     }
                     // Track event: field (sets type for subsequent data:)
-                    if (ln.startsWith('event: ')) {
+                    if (ln.indexOf('event: ') === 0) {
                         sseEventType = ln.slice(7).trim();
                         continue;
                     }
@@ -19724,7 +20048,7 @@ opts.jsonPayload + '\n' +
                         sseEventType = 'message';
                         continue;
                     }
-                    if (ln.startsWith('data: ')) {
+                    if (ln.indexOf('data: ') === 0) {
                         // Server-sent event: error — surface message to user.
                         // Some SSE servers emit "event: error\ndata: {...}" on
                         // rate-limit, auth failure, or upstream API errors.
@@ -19789,7 +20113,16 @@ opts.jsonPayload + '\n' +
             // Array.findLast (ES2023): declarative reverse scan — no mutable
             // sentinel, no manual break — semantically identical to the IIFE
             // used in the non-streaming _renderBubble path above.
-            var _lastUser = _transcript.findLast(function (m) { return m.role === 'user'; });
+            // findLast (ES2023) — polyfilled by ai-assistant-compat.js v1.1.0+.
+            // Inline fallback for defence-in-depth when compat load order is uncertain.
+            var _lastUser = (typeof _transcript.findLast === 'function')
+                ? _transcript.findLast(function (m) { return m.role === 'user'; })
+                : (function () {
+                    for (var _fi = _transcript.length - 1; _fi >= 0; _fi--) {
+                        if (_transcript[_fi].role === 'user') { return _transcript[_fi]; }
+                    }
+                    return undefined;
+                }());
             var retryQ2 = _lastUser ? _lastUser.text : null;
 
             // Hoist fbIdx2 before share button so its IIFE closure captures
