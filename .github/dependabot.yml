@@ -34,15 +34,21 @@ updates:
   # reasons. This strategy may be generalized to all other github actions
   # in the future.
   # ── GitHub Actions ────────────────────────────────────────────────────────
+  # https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#package-ecosystem-
   - package-ecosystem: github-actions # See documentation for possible values
     # Dependabot checks every workflow file under .github/workflows/
     directory: "/"    # ".github/workflows" Location of package manifests
     schedule:
-      interval: daily                # daily, weekly, monthly
+      interval: weekly  # "daily", weekly, monthly
       # day: "monday"
       # time: '11:11'
       # timezone: "UTC"
+    # https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-version-updates#disabling-dependabot-version-updates
     ignore:
+      # Ignore updates to packages that start with 'aws'
+      # Wildcards match zero or more arbitrary characters
+      # Ignore some updates to the 'express' package
+      # .github/workflows/ci_wheels_conda.yml:324:
       - dependency-name: "bus1/cabuild"
       # ── pypa/cibuildwheel: NEVER auto-update ──────────────────────────────
       # Reason: ci_wheels_conda.yml carries two intentionally different pins:
@@ -62,9 +68,10 @@ updates:
       # the full Python version support matrix remains intact.
       - dependency-name: "pypa/cibuildwheel"
         versions:
-          - "*"  # block every version, including patch and minor bumps
+          # - "*"  # block every version, including patch and minor bumps
+          - "3.x"  # Ignore only new versions for 3.x
     commit-message:
-      prefix: "MAINT"
+      prefix: "[MAINT]"
     labels:
       - "03 - Maintenance"
       - "build/ci"
@@ -80,48 +87,45 @@ updates:
         patterns:
           - "*"
     # cooldown:
-    #   default-days: 7
+    #   default-days: 7  # optional
     # reviewers:
     #   - "scikit-plots/core-devs"
 
   - package-ecosystem: pip
-    directory: /
+    directory: /  # /requirements
     schedule:
-      interval: daily  # "weekly" "monthly"
+      interval: weekly  # "daily", weekly, monthly
+      # day: "monday"
       # time: '11:11'
+      # timezone: "UTC"
     ignore:
-      - dependency-name: "bus1/cabuild"
-      # ── pypa/cibuildwheel: NEVER auto-update ──────────────────────────────
-      # Reason: ci_wheels_conda.yml carries two intentionally different pins:
-      #
-      #   Pin 1 → v3.4.1  used for cp38 and cp313t
-      #     cibuildwheel 4.x removed Python <3.9 support and cp313t support.
-      #     v3.4.1 is the last 3.x release that covers both; any 3.x→4.x bump
-      #     would immediately break every cp38 and cp313t matrix cell.
-      #
-      #   Pin 2 → v4.1.0  used for cp39 through cp314t
-      #     v4.1.0 is the first release where cp314t works without an explicit
-      #     cpython-freethreading enable flag.  A future patch might change the
-      #     build selector format or drop another Python version without notice.
-      #
-      # Both pins must be updated together, manually, after reading the upstream
-      # changelog at https://github.com/pypa/cibuildwheel/releases and verifying
-      # the full Python version support matrix remains intact.
-      - dependency-name: "pypa/cibuildwheel"
-        versions:
-          - "*"  # block every version, including patch and minor bumps
+      - dependency-name: "scipy-openblas32"
+      - dependency-name: "scipy-openblas64"
+      - dependency-name: "jupyterlite-pyodide-kernel"
+      - dependency-name: "sphinx"
     commit-message:
-      prefix: "MAINT"
+      prefix: "[MAINT]"
     labels:
       - "03 - Maintenance"
       - "build/ci"
       - "dependencies"
       - "maintenance"
       - no-changelog-entry-needed
+    # Group all non-ignored action bumps into a single PR to reduce noise.
+    groups:
+      python-deps:
+        applies-to: "version-updates"
+        patterns:
+          - "*"  # catches EVERY dependency in ALL requirements files
+    # cooldown:
+    #   default-days: 7  # optional
     # reviewers:
     #   - "scikit-plots/core-devs"
 
   - package-ecosystem: "conda"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: weekly  # "daily", weekly, monthly
+
+  # pipenv	pip	<= 2024.4.1
+  # - package-ecosystem: "pipenv"
