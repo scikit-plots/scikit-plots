@@ -584,7 +584,7 @@ jobs:
 
       - name: "📦 Build Wheels Packages"
         # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
-        uses: pypa/cibuildwheel@f03ac7617d6cff873ccf24cc0d567ef5ba5a9e6d # v4.0.0
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           ## ✅ Method 2: Use pyproject.toml (Best for portability & reuse)
           ## Specify target platform
@@ -939,7 +939,7 @@ jobs:
           fetch-tags: true
 
       - name: Build Wheels Packages
-        uses: pypa/cibuildwheel@f03ac7617d6cff873ccf24cc0d567ef5ba5a9e6d # v4.0.0
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
         continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
