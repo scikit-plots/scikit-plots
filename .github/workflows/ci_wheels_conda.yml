@@ -584,27 +584,58 @@ jobs:
 
       #     echo "CIBW_BEFORE_TEST=$DEPS0" >> "$GITHUB_ENV"
 
-      - name: "📦 Build Wheels Packages"
-        # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
-        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
-        env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
-          ## ✅ Method 2: Use pyproject.toml (Best for portability & reuse)
-          ## Specify target platform
+      # ── VERSIONING RATIONALE ────────────────────────────────────────────────────
+      # cibuildwheel 4.x dropped two categories of build selectors:
+      #   • Python < 3.9  → "cibuildwheel 4.x no longer supports Python < 3.9"
+      #   • cp313t        → "cibuildwheel 4.x no longer supports Python 3.13 free-threading"
+      # Fix: gate on matrix.python[0] to dispatch the correct action version.
+      #
+      # │ python[0]  │ cibuildwheel │ CIBW_ENABLE                                │
+      # │────────────│──────────────│────────────────────────────────────────────│
+      # │ cp38       │ v3.4.1       │ cpython-prerelease (freethreading harmless) │
+      # │ cp313t     │ v3.4.1       │ cpython-freethreading cpython-prerelease    │
+      # │ cp39+      │ v4.1.0       │ cpython-prerelease                          │
+      # │ cp314t     │ v4.1.0       │ cpython-prerelease (native support)         │
+      # ────────────────────────────────────────────────────────────────────────────
+
+      # ── cp38 | cp313t → cibuildwheel v3.4.1 ────────────────────────────────
+      # • cp38:   cibuildwheel 4.x dropped Python <3.9; must use 3.x series.
+      #           cpython-freethreading included here is harmless: no free-threaded
+      #           build identifier matches cp38-*, so it resolves to a no-op.
+      # • cp313t: cibuildwheel 4.x dropped cp313t; must use 3.x series.
+      #           CIBW_ENABLE MUST include cpython-freethreading in v3.x to
+      #           unlock the t-suffix build identifier.
+      - name: "📦 Build Wheels Packages (cp38 | cp313t → cibuildwheel v3.4.1)"
+        if: ${{ matrix.python[0] == 'cp38' || matrix.python[0] == 'cp313t' }}
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
+        env:
+          ## ✅ Use pyproject.toml (Best for portability & reuse)
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
           CIBW_ARCHS: ${{ matrix.buildplat[2] }}
-          ## Changed work version # v3.0.0 also defined TOML
-          ## https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml#L153
-          ## Deprecated `cpython-freethreading` to used for python 3.13t
-          CIBW_ENABLE: cpython-prerelease
-          ## Enable support for free-threaded builds (specific to some platforms)
-          ## Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
-          # CIBW_FREE_THREADED_SUPPORT: True
-          # CIBW_PRERELEASE_PYTHONS: True
+          ## cpython-freethreading: required by cp313t; harmless for cp38
+          ## cpython-prerelease:    retained for any pre-release selector in this group
+          CIBW_ENABLE: cpython-freethreading cpython-prerelease
           CIBW_TEST_SKIP: ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
-          # "x86", "arm64", "aarch64", "s390x".'
-          # ${{ (matrix.buildplat[1] == 'win' && matrix.buildplat[2] == 'ARM64') && 'x64' || '' }}
-          # 📝 Note: ${{ env.PKGCONFIG_EXE }} must have been set in a previous step using:
-          # ✅ Pass pkg-config config to cibuildwheel
+          # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
+          # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
+          # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
+
+      # ── cp39+ (excluding cp313t) → cibuildwheel v4.1.0 ─────────────────────
+      # Covers: cp39, cp310, cp311, cp312, cp313, cp314, cp314t
+      # cp314t is supported natively in v4.1.0 without a separate freethreading flag.
+      # https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml#L153
+      - name: "📦 Build Wheels Packages (cp39+ → cibuildwheel v4.1.0)"
+        if: ${{ matrix.python[0] != 'cp38' && matrix.python[0] != 'cp313t' }}
+        # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
+        env:
+          ## ✅ Use pyproject.toml (Best for portability & reuse)
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}*
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
+          ## cpython-prerelease enables cp314, cp314t selectors
+          ## cpython-freethreading NOT needed here: v4.1.0 handles 314t natively
+          CIBW_ENABLE: cpython-prerelease
+          CIBW_TEST_SKIP: ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
