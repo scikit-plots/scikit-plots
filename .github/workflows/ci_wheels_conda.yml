@@ -595,7 +595,7 @@ jobs:
           ## Changed work version # v3.0.0 also defined TOML
           ## https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml#L153
           ## Deprecated `cpython-freethreading` to used for python 3.13t
-          CIBW_ENABLE: cpython-freethreading cpython-prerelease
+          CIBW_ENABLE: cpython-prerelease
           ## Enable support for free-threaded builds (specific to some platforms)
           ## Set CIBW_PRERELEASE_PYTHONS to True to build for pre-release versions of Python
           # CIBW_FREE_THREADED_SUPPORT: True
