@@ -120,10 +120,33 @@ jobs:
           ## Gets the correct commit message for pull request
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
+      # Pre-0.21                           emscripten_{major}_{minor}_{patch}_wasm32 emscripten_3_1_27_wasm32   ❌
+      # cibuildwheel v2–v3 / Python ≤ 3.13 pyodide_{YEAR}_{PATCH}_wasm32             pyodide_2024_0_wasm32      ❌
+      # cibuildwheel v4 / Python 3.13+     pyemscripten_{YEAR}_{PATCH}_wasm32        pyemscripten_2025_0_wasm32 ✅
+      #
+      # Python  Tag produced by cibuildwheel v4           Pyodide runtime   PyPI OK?  CIBW_ENABLE needed?
+      # ──────  ──────────────────────────────────────     ───────────────   ────────  ───────────────────
+      # 3.11    not supported (dropped in cibuildwheel)    —                 —         —
+      # 3.12    pyodide_2024_0_wasm32                      0.26–0.28.x       ❌        pyodide-eol
+      # 3.13    pyemscripten_2025_0_wasm32                 0.29.x            ✅        (default)
+      # 3.14    pyemscripten_2026_0_wasm32                 314.x             ✅        (default)
       - name: Build Wheels Packages
-        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
+        # uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
+        continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
+          # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
+          # but anaconda.org accepts it fine for your nightly staging channel).
+          CIBW_ENABLE: pyodide-eol
+          # Explicit version selection (without this, ALL enabled versions build).
+          # cp312 → pyodide_2024_0_wasm32   (needs pyodide-eol above)
+          # cp313 → pyemscripten_2025_0_wasm32
+          # cp314 → pyemscripten_2026_0_wasm32
+          # scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl       (Pyodide 0.26–0.28.x which runs Python 3.12)
+          # scikit_plots-0.5.dev0-cp313-cp313-pyemscripten_2025_0_wasm32.whl  (Pyodide 0.28.x/0.29.x PyPI OK)
+          # scikit_plots-0.5.dev0-cp314-cp314-pyemscripten_2026_0_wasm32.whl  (Pyodide 314.x PyPI OK)
+          CIBW_BUILD: "cp312-* cp313-* cp314-*"
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step

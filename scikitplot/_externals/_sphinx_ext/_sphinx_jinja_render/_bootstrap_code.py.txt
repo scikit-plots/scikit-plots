@@ -1,9 +1,11 @@
 import micropip
 from itertools import combinations, product
-VERSIONS   = ["0.5.dev0", "0.4.0.post11"]
+VERSIONS   = ["0.5.dev0", "0.4.0.post12"]
 BUILD_TAGS = [
-    "cp313-cp313-pyodide_2025_0_wasm32",
-    "cp312-cp312-pyodide_2024_0_wasm32",
+    "cp314-cp314-pyemscripten_2026_0_wasm32",  # ✅ PyPI supported
+    "cp313-cp313-pyemscripten_2025_0_wasm32",  # ✅ PyPI supported
+    "cp313-cp313-pyodide_2025_0_wasm32",       # ❌ PyPI supported
+    "cp312-cp312-pyodide_2024_0_wasm32",       # ❌ PyPI supported
 ]
 URL_TEMPLATE = (
     # "https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/{v}/download/"

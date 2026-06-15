@@ -69,7 +69,7 @@ updates:
       - dependency-name: "pypa/cibuildwheel"
         versions:
           # - "*"  # block every version, including patch and minor bumps
-          - "3.x"  # Ignore only new versions for 3.x
+          - ">=4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
     commit-message:
       prefix: "[MAINT]"
     labels:
@@ -103,6 +103,7 @@ updates:
       - dependency-name: "scipy-openblas64"
       - dependency-name: "jupyterlite-pyodide-kernel"
       - dependency-name: "sphinx"
+      - dependency-name: "h5py"
     commit-message:
       prefix: "[MAINT]"
     labels:

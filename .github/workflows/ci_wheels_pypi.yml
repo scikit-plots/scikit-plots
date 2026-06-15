@@ -27,7 +27,7 @@ on:
       version:  # Specify the version of the package to upload
         description: 'Version to upload to PyPI (e.g., 1.0.0)'
         required: true  # 👈 This makes the input mandatory
-        default: '0.4.0.post11'  # 👈 Default is still used if user doesn't change it
+        default: '0.4.0.post12'  # 👈 Default is still used if user doesn't change it
         type: choice
         options:
           # 0.3.7
@@ -43,9 +43,9 @@ on:
           - '0.3.9.post1'
           - '0.3.9.post2'
           # 0.4.0
-          - '0.4.0.post11'  # 👈
-          - '0.4.0.post12'
+          - '0.4.0.post12'  # 👈
           - '0.4.0.post13'
+          - '0.4.0.post14'
           # 0.4.1
           - '0.4.1rc0'
           - '0.4.1'
@@ -152,17 +152,25 @@ jobs:
             scikit-plots \
             https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/
 
-      # ✅ Step 5: Dry run — list Pyodide/WASM wheels to be removed
+      # ✅ Step 5: Dry run — list pyodide/WASM wheels to be removed (keep pyemscripten/WASM)
       - name: "[Dry Run] Show Pyodide/WASM wheels that would be deleted"
         run: |
-          echo "Dry Run: These files match *pyodide*.whl or *wasm*.whl:"
-          find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print || echo "No matching files found."
+          echo "Dry Run: These files match *pyodide*.whl:"
+          # find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print || echo "No matching files found."
+          find dist/ -type f \
+            -name '*.whl' \
+            \( -name '*pyodide*' -o \( -name '*wasm*' ! -name '*pyemscripten*' \) \) \
+            -print || echo "No matching files found."
 
       # ✅ Step 6: Remove unsupported Pyodide/WASM wheels
       - name: Remove Pyodide/WASM wheels from dist/
         run: |
           echo "Removing unsupported pyodide/wasm wheels from dist/"
-          find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print -delete || echo "Nothing to delete."
+          # find dist/ -type f \( -name '*pyodide*.whl' -o -name '*wasm*.whl' \) -print -delete || echo "Nothing to delete."
+          find dist/ -type f \
+            -name '*.whl' \
+            \( -name '*pyodide*' -o \( -name '*wasm*' ! -name '*pyemscripten*' \) \) \
+            -print -delete || echo "Nothing to delete."
 
       # ✅ Step 7: List remaining valid files
       - name: List downloaded files in dist/
