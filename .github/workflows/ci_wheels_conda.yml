@@ -177,12 +177,13 @@ jobs:
           # [windows-latest, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
           - [ubuntu-22.04, manylinux, x86_64]
-          - [ubuntu-22.04, musllinux, x86_64]
           - [ubuntu-24.04-arm, manylinux, aarch64]
+          - [ubuntu-22.04, musllinux, x86_64]
           - [ubuntu-24.04-arm, musllinux, aarch64]
-          # - [macos-13, macosx, x86_64, openblas, "10.15"]  # Numcpp: C/C++ error: 'path' is unavailable: introduced in macOS 10.15
-          # - [macos-13, macosx, x86_64, accelerate, "14.0"]  # Depr macos-13 https://github.com/actions/runner-images/issues/13046
-          - [macos-15-intel, macosx, x86_64, openblas, "10.15"]  # MACOSX_DEPLOYMENT_TARGET Needed for full C++17 support on macOS >= macOS 10.14
+          # macos-15-intel, Depr macos-13 https://github.com/actions/runner-images/issues/13046
+          # macosx Numcpp: C/C++ error: 'path' is unavailable: Use introduced in macOS 10.15
+          # MACOSX_DEPLOYMENT_TARGET Needed for full C++17 support on macOS >= macOS 10.14
+          - [macos-15-intel, macosx, x86_64, openblas, "10.15"]
           - [macos-15-intel, macosx, x86_64, accelerate, "14.0"]
           - [macos-14, macosx, arm64, openblas, "12.3"]
           - [macos-14, macosx, arm64, accelerate, "14.0"]
@@ -204,27 +205,26 @@ jobs:
           # ["cp314t", "3.14"],  # CPython 3.14t  ?? asv, h5py, sklearn
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
-        # exclude:
-        #   # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
-        #   # Don't build PyPy 32-bit windows
-        #   # - buildplat: [windows-2019, win32,]
-        #   #   python: ["pp310", "3.10"]
-        #   #
-        #   # 3.8 is not supported some lib
-        #   - buildplat: [ubuntu-22.04, musllinux, x86_64]
-        #     python: ["cp38", "3.8"]  # need scipy, numpy, pandas
-        #   - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-        #     python: ["cp38", "3.8"]  # need scipy
-        #   - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-        #     python: ["cp39", "3.9"]  # need scipy
-        #   - buildplat: [windows-11-arm, win, ARM64]
-        #     python: ["cp38", "3.8"]  # need py
-        #   - buildplat: [windows-11-arm, win, ARM64]
-        #     python: ["cp39", "3.9"]  # need numpy
-        #   - buildplat: [windows-11-arm, win, ARM64]
-        #     python: ["cp39", "3.9"]  # need numpy 2.0.2 error
-        #   - buildplat: [windows-11-arm, win, ARM64]
-        #     python: ["cp310", "3.10"]  # build error clang (clang-cl /?) LLVM compiler
+        exclude:
+          # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
+          # Don't build PyPy 32-bit windows
+          # - buildplat: [windows-2019, win32,]
+          #   python: ["pp310", "3.10"]
+          # 3.8 is not supported some lib
+          - buildplat: [ubuntu-22.04, musllinux, x86_64]
+            python: ["cp38", "3.8"]  # need scipy Dependency "OpenBLAS" not found
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: ["cp38", "3.8"]  # need scipy Dependency "OpenBLAS" not found
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp38", "3.8"]  # 0 builds selected:
+          # 3.9 is not supported some lib
+          - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+            python: ["cp39", "3.9"]  # need scipy File _distributor_init_local.py does not exist.
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp39", "3.9"]  # need numpy ninja: build stopped: subcommand failed.
+          # 3.10
+          - buildplat: [windows-11-arm, win, ARM64]
+            python: ["cp310", "3.10"]  # need `clang-cl /?` -> 0 LLVM compiler
 
     # +-------------------------+---------------------+------------------------------------------+
     # | Context                 | Syntax              | Example                                  |
@@ -315,7 +315,7 @@ jobs:
 
       # Compiler	Use flags style
       # cl	      MSVC style /O2 /fp:precise
-      # clang-cl	MSVC style only
+      # clang-cl	MSVC style only  # clang (clang-cl /?) LLVM compiler
       # clang	    GCC style
       # gcc	      GCC style
       - name: "🛠️ Windows AMD64 Setup (MSVC/Clang ←→ Visual Studio) (32|64-bit)"  # 🔧 MSVC (Visual Studio only — no LLVM)
