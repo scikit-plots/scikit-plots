@@ -3,6 +3,26 @@
 # package ecosystems to update and where the package manifests are located.
 # Please see the documentation for all configuration options:
 # https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# ┌─ IMPORTANT: pypa/cibuildwheel is intentionally multi-pinned ────────────────┐
+# │                                                                             │
+# │  ci_wheels_conda.yml uses a deliberate two-version split:                   │
+# │                                                                             │
+# │   v3.4.1  (sha: 8d2b08b…)  cp38, cp313t                                     │
+# │            cibuildwheel 4.x dropped Python <3.9 AND cp313t entirely.        │
+# │            These builds MUST stay on 3.x; there is no 4.x equivalent.       │
+# │                                                                             │
+# │   v4.1.0  (sha: 2947353…)  cp39, cp310, cp311, cp312, cp313, cp314, cp314t  │
+# │            First 4.x release to support cp314t without the freethreading    │
+# │            enable flag; newer patch/minor bumps need explicit testing.      │
+# │                                                                             │
+# │  Any version bump — even a patch bump — to either pin can silently break    │
+# │  the split: a new 3.x might drop cp38, a new 4.x might drop cp314t, etc.    │
+# │  DO NOT allow Dependabot to auto-update pypa/cibuildwheel.                  │
+# │  Update both pins together, manually, after reading the cibuildwheel        │
+# │  release notes and re-verifying the Python version support matrix.          │
+# └─────────────────────────────────────────────────────────────────────────────┘
 
 version: 2
 
@@ -13,13 +33,36 @@ updates:
   # pypa/gh-action-pypi-publish should use hash-based versioning for security
   # reasons. This strategy may be generalized to all other github actions
   # in the future.
+  # ── GitHub Actions ────────────────────────────────────────────────────────
   - package-ecosystem: github-actions # See documentation for possible values
+    # Dependabot checks every workflow file under .github/workflows/
     directory: "/"    # ".github/workflows" Location of package manifests
     schedule:
       interval: daily                # daily, weekly, monthly
+      # day: "monday"
       # time: '11:11'
+      # timezone: "UTC"
     ignore:
       - dependency-name: "bus1/cabuild"
+      # ── pypa/cibuildwheel: NEVER auto-update ──────────────────────────────
+      # Reason: ci_wheels_conda.yml carries two intentionally different pins:
+      #
+      #   Pin 1 → v3.4.1  used for cp38 and cp313t
+      #     cibuildwheel 4.x removed Python <3.9 support and cp313t support.
+      #     v3.4.1 is the last 3.x release that covers both; any 3.x→4.x bump
+      #     would immediately break every cp38 and cp313t matrix cell.
+      #
+      #   Pin 2 → v4.1.0  used for cp39 through cp314t
+      #     v4.1.0 is the first release where cp314t works without an explicit
+      #     cpython-freethreading enable flag.  A future patch might change the
+      #     build selector format or drop another Python version without notice.
+      #
+      # Both pins must be updated together, manually, after reading the upstream
+      # changelog at https://github.com/pypa/cibuildwheel/releases and verifying
+      # the full Python version support matrix remains intact.
+      - dependency-name: "pypa/cibuildwheel"
+        versions:
+          - "*"  # block every version, including patch and minor bumps
     commit-message:
       prefix: "MAINT"
     labels:
@@ -30,7 +73,9 @@ updates:
       - "github_actions"
       - "maintenance"
       - no-changelog-entry-needed
+    # Group all non-ignored action bumps into a single PR to reduce noise.
     groups:
+      # github-actions-all:
       actions:
         patterns:
           - "*"
@@ -46,6 +91,25 @@ updates:
       # time: '11:11'
     ignore:
       - dependency-name: "bus1/cabuild"
+      # ── pypa/cibuildwheel: NEVER auto-update ──────────────────────────────
+      # Reason: ci_wheels_conda.yml carries two intentionally different pins:
+      #
+      #   Pin 1 → v3.4.1  used for cp38 and cp313t
+      #     cibuildwheel 4.x removed Python <3.9 support and cp313t support.
+      #     v3.4.1 is the last 3.x release that covers both; any 3.x→4.x bump
+      #     would immediately break every cp38 and cp313t matrix cell.
+      #
+      #   Pin 2 → v4.1.0  used for cp39 through cp314t
+      #     v4.1.0 is the first release where cp314t works without an explicit
+      #     cpython-freethreading enable flag.  A future patch might change the
+      #     build selector format or drop another Python version without notice.
+      #
+      # Both pins must be updated together, manually, after reading the upstream
+      # changelog at https://github.com/pypa/cibuildwheel/releases and verifying
+      # the full Python version support matrix remains intact.
+      - dependency-name: "pypa/cibuildwheel"
+        versions:
+          - "*"  # block every version, including patch and minor bumps
     commit-message:
       prefix: "MAINT"
     labels:

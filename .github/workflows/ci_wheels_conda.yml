@@ -607,6 +607,7 @@ jobs:
       #           unlock the t-suffix build identifier.
       - name: "📦 Build Wheels Packages (cp38 | cp313t → cibuildwheel v3.4.1)"
         if: ${{ matrix.python[0] == 'cp38' || matrix.python[0] == 'cp313t' }}
+        # uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         env:
           ## ✅ Use pyproject.toml (Best for portability & reuse)
@@ -626,7 +627,7 @@ jobs:
       # https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml#L153
       - name: "📦 Build Wheels Packages (cp39+ → cibuildwheel v4.1.0)"
         if: ${{ matrix.python[0] != 'cp38' && matrix.python[0] != 'cp313t' }}
-        # uses: pypa/cibuildwheel@faf86a6ed7efa889faf6996aa23820831055001a  # v2.23.3
+        # uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
         uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
         env:
           ## ✅ Use pyproject.toml (Best for portability & reuse)
