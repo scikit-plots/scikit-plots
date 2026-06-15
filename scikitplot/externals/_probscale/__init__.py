@@ -1,4 +1,4 @@
-# scikitplot/probscale/__init__.py
+# scikitplot/externals/_probscale/__init__.py
 
 # fmt: off
 # ruff: noqa
@@ -10,26 +10,41 @@
 
 # This module was copied from the matplotlib project.
 # https://github.com/matplotlib/mpl-probscale
+"""Real probability scales for matplotlib.
 
+Registering this module (via ``import``) adds a ``'prob'`` scale to
+matplotlib that is available to all Axes in the process.
+
+Notes
+-----
+``scale.register_scale(ProbScale)`` is called **once** at import time.
+Re-importing the module is safe: matplotlib's ``_scale_mapping`` is a
+plain dict and repeated registration simply overwrites the same entry.
 """
-Real probability scales for matplotlib.
-"""
 
-from matplotlib import scale
+from matplotlib import scale as _mpl_scale
 
-from .probscale import ProbScale
+from .probscale import ProbScale, _minimal_norm
 from .viz import *
 
-scale.register_scale(ProbScale)
-del scale
+__all__ = [
+    "ProbScale",
+    "_minimal_norm",
+]
 
-# Define the probscale version
+# Register once at import time.  Idempotent: repeated import just
+# overwrites the same key in matplotlib's internal _scale_mapping dict.
+_mpl_scale.register_scale(ProbScale)
+del _mpl_scale
+
+# ---------------------------------------------------------------------------
+# Version metadata
+# ---------------------------------------------------------------------------
 # https://github.com/matplotlib/mpl-probscale/blob/master/probscale/__init__.py
 __version__ = "0.2.6dev"
 __author__ = "Paul Hobson (Herrera Environmental Consultants)"
 __author_email__ = "phobson@herrerainc.com"
 
-# Define the probscale git hash
 from ..._build_utils.gitversion import git_remote_version
 
 # __git_hash__ = git_remote_version(url="https://github.com/scikit-plots/mpl-probscale")[0]

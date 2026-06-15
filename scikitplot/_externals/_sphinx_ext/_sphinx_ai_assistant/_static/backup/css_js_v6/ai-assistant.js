@@ -3594,8 +3594,9 @@
                 }
             } catch (_) {}
             if (!sid) {
-                sid = 'fb-' + (location ? location.pathname : 'p') +
-                      '-' + answerIndex + '-' + Date.now();
+                // Privacy: pathname omitted — raw page path leaks to server.
+                // Timestamp + answerIndex give sufficient ordering entropy.
+                sid = 'fb-anon-' + answerIndex + '-' + Date.now();
             }
 
             var modelInfo = _buildModelInfo(cfg);
@@ -3624,7 +3625,7 @@
                 answer:         (typeof answerText === 'string') ? answerText : '',
                 model:          modelInfo,
                 answerIndex:    answerIndex,
-                page:           location ? location.href : '',
+                page:           _sanitizePage(location ? location.href : ''),
                 ts:             Date.now(),
                 sessionId:      sid,
                 conversationId: _sessionId,
@@ -3663,7 +3664,7 @@
 
             if (cfg.panelFeedbackLog) {
                 // eslint-disable-next-line no-console
-                console.log('[ai-assistant] feedback (via _rebuildFeedbackFormIn)', detail);
+                console.log('[ai-assistant] feedback (via _rebuildFeedbackFormIn)', _redactPayloadForLog(detail));
             }
 
             _feedbackGivenSet.add(answerIndex);
@@ -3780,6 +3781,142 @@
         if (typeof str !== 'string') return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
+
+    // ── JS Privacy Layer v1.0 ────────────────────────────────────────────────
+    //
+    // Mirrors the two-layer defence-in-depth design of _shared_logic.py:
+    //
+    //   Layer 1 — Call-site sanitisation (_sanitizePage)
+    //     Strips ?query and #hash from location.href before it enters any
+    //     server-transmitted payload field.  Query strings frequently carry
+    //     OAuth state, session tokens, search terms, and other PII.  Hash
+    //     fragments expose internal navigation state.  origin + pathname is
+    //     sufficient for server-side page attribution.
+    //
+    //   Layer 2 — Defence-in-depth redaction (_redactPayloadForLog)
+    //     Applied to every console.log of a feedback/contribution detail
+    //     object when cfg.panelFeedbackLog is on.  Catches tokens or PII
+    //     that future code might inadvertently surface in DevTools, without
+    //     blocking the log call itself.  Mirrors _RedactingFilter in Python:
+    //     always returns a value (never raises), never mutates the original.
+    //
+    // Scope: server-transmitted payloads only.  Export downloads and
+    // clipboard copies are intentional user actions; data never leaves the
+    // browser except by explicit user choice, so those paths are not modified.
+
+    /**
+     * Ordered token/secret redaction patterns for _redactPayloadForLog.
+     *
+     * Pattern order matches _REDACT_PATTERNS in _shared_logic.py:
+     *   1. Bearer tokens  — Authorization header values leaked into logs.
+     *   2. HF tokens      — ``hf_`` prefix; same class as Python pattern[0].
+     *   3. OpenAI-style   — ``sk-`` prefix; common API key format.
+     *
+     * @type {Array<{pattern: RegExp, replacement: string}>}
+     */
+    var _JS_REDACT_PATTERNS = [
+        { pattern: /Bearer\s+[A-Za-z0-9\-._~+/]{20,}/g, replacement: 'Bearer <token-redacted>' },
+        { pattern: /hf_[A-Za-z0-9]{4,}/g,               replacement: '<token-redacted>' },
+        { pattern: /sk-[A-Za-z0-9]{20,}/g,              replacement: '<apikey-redacted>' },
+    ];
+
+    /**
+     * Strip ``?query`` and ``#hash`` from a URL, returning origin + pathname.
+     *
+     * Mirrors ``_mask_ip()`` in ``_shared_logic.py``:
+     *   - Never raises — parse failure returns ``'<page-redacted>'``.
+     *   - Empty / non-string values return ``''`` (no-op, not an error).
+     *   - Non-http/https schemes return ``'<page-redacted>'``.
+     *   - Applied only to server-transmitted fields, not to user-initiated
+     *     downloads or clipboard copies.
+     *
+     * Parameters
+     * ----------
+     * href : string
+     *     Raw ``location.href`` value, or ``''``.
+     *
+     * Returns
+     * -------
+     * string
+     *     ``origin + pathname`` only, e.g.
+     *     ``'https://docs.example.com/en/api/'``.
+     *     ``''`` when href is empty.
+     *     ``'<page-redacted>'`` on parse failure or non-http scheme.
+     *
+     * Examples
+     * --------
+     * _sanitizePage('https://docs.example.com/page/?token=abc#s2')
+     * // → 'https://docs.example.com/page/'
+     * _sanitizePage('')        // → ''
+     * _sanitizePage('file://') // → '<page-redacted>'
+     */
+    function _sanitizePage(href) {
+        if (!href || typeof href !== 'string') { return ''; }
+        try {
+            var _spParsed = new URL(href);
+            if (!/^https?:$/i.test(_spParsed.protocol)) { return '<page-redacted>'; }
+            return _spParsed.origin + _spParsed.pathname;
+        } catch (_) {
+            return '<page-redacted>';
+        }
+    }
+
+    /**
+     * Return a shallow, redacted clone of a feedback/contribution detail
+     * object that is safe to pass to ``console.log``.
+     *
+     * Mirrors ``_RedactingFilter`` in ``_shared_logic.py``:
+     *   - Never modifies the original object (pure function).
+     *   - Never raises — all field access is guarded.
+     *   - Always returns an object (callers never need to null-check).
+     *
+     * Fields scrubbed
+     * ---------------
+     * ``page``    → ``_sanitizePage()`` (strips ?query / #hash).
+     * ``query``   → ``'<redacted:Nchars>'`` length-only marker.
+     * ``answer``  → ``'<redacted:Nchars>'`` length-only marker.
+     *              (AI answers can be large and embed quoted user text.)
+     * ``message`` → ``_JS_REDACT_PATTERNS`` applied in order.
+     *
+     * Parameters
+     * ----------
+     * detail : Object
+     *     Feedback or contribution payload object.
+     *
+     * Returns
+     * -------
+     * Object
+     *     Shallow clone with sensitive fields scrubbed.
+     */
+    function _redactPayloadForLog(detail) {
+        if (!detail || typeof detail !== 'object') { return detail; }
+        var _rpOut  = {};
+        var _rpKeys = Object.keys(detail);
+        for (var _ri = 0; _ri < _rpKeys.length; _ri++) {
+            var _rk = _rpKeys[_ri];
+            var _rv = detail[_rk];
+            if (_rk === 'page') {
+                _rpOut[_rk] = _sanitizePage(typeof _rv === 'string' ? _rv : '');
+            } else if (_rk === 'query' || _rk === 'answer') {
+                _rpOut[_rk] = (typeof _rv === 'string' && _rv.length > 0)
+                    ? '<redacted:' + _rv.length + 'chars>'
+                    : _rv;
+            } else if (_rk === 'message' && typeof _rv === 'string') {
+                var _rScrubbed = _rv;
+                for (var _rp = 0; _rp < _JS_REDACT_PATTERNS.length; _rp++) {
+                    _rScrubbed = _rScrubbed.replace(
+                        _JS_REDACT_PATTERNS[_rp].pattern,
+                        _JS_REDACT_PATTERNS[_rp].replacement
+                    );
+                }
+                _rpOut[_rk] = _rScrubbed;
+            } else {
+                _rpOut[_rk] = _rv;
+            }
+        }
+        return _rpOut;
+    }
+    // ── end JS Privacy Layer ─────────────────────────────────────────────────
 
     // ═══════════════════════════════════════════════════════════════════════
     // v0.3 MODULE — conversation model, persistence, resize, shortcuts,
@@ -6197,8 +6334,8 @@ opts.jsonPayload + '\n' +
                     }
                 } catch (_) {}
                 if (!sid) {
-                    sid = 'fb-' + (location ? location.pathname : 'p') +
-                          '-' + answerIndex + '-' + Date.now();
+                    // Privacy: pathname omitted — raw page path leaks to server.
+                    sid = 'fb-anon-' + answerIndex + '-' + Date.now();
                 }
 
                 var detail = {
@@ -6222,7 +6359,7 @@ opts.jsonPayload + '\n' +
                     answer:         (typeof answerText === 'string')   ? answerText   : '',
                     model:          _quickModelInfo,
                     answerIndex:    answerIndex,
-                    page:           (typeof location !== 'undefined') ? location.href : '',
+                    page:           _sanitizePage((typeof location !== 'undefined') ? location.href : ''),
                     ts:             Date.now(),
                     sessionId:      sid,
                     conversationId: _sessionId,
@@ -6570,8 +6707,8 @@ opts.jsonPayload + '\n' +
                 }
             } catch (_) {}
             if (!sid) {
-                sid = 'fb-' + (location ? location.pathname : 'p') +
-                      '-' + answerIndex + '-' + Date.now();
+                // Privacy: pathname omitted — raw page path leaks to server.
+                sid = 'fb-anon-' + answerIndex + '-' + Date.now();
             }
 
             // ── Phase B: model attribution ────────────────────────────
@@ -6627,7 +6764,7 @@ opts.jsonPayload + '\n' +
                 answer:         (typeof answerText === 'string') ? answerText : '',
                 model:          modelInfo,
                 answerIndex:    answerIndex,
-                page:           location ? location.href : '',
+                page:           _sanitizePage(location ? location.href : ''),
                 ts:             Date.now(),
                 // ``sessionId`` is a per-click idempotency UUID (regenerated on
                 // every submit click to guard against double-sends).  Back-compat
@@ -6700,7 +6837,7 @@ opts.jsonPayload + '\n' +
             }
             if (cfg.panelFeedbackLog) {
                 // eslint-disable-next-line no-console
-                console.log('[ai-assistant] feedback', detail);
+                console.log('[ai-assistant] feedback', _redactPayloadForLog(detail));
             }
             _feedbackGivenSet.add(answerIndex);
             // v3: persist the full detail schema so share export enrichment,
@@ -13512,7 +13649,7 @@ opts.jsonPayload + '\n' +
                         consentFlag:    true,
                         consentVersion: null,  // reserved — see CONSENT_VERSION comment above
                         sessionId:      _sessionId,
-                        page:           location ? location.href : '',
+                        page:           _sanitizePage(location ? location.href : ''),
                         // _buildModelInfo gives the same canonical 8-key shape
                         // as feedback's detail.model (see definition near
                         // _getActiveModel) — was previously the raw
@@ -16833,8 +16970,6 @@ opts.jsonPayload + '\n' +
         if (!showSettings) { return; }
 
         var info = _getBrowserSettingsInfo();
-        console.log('info=', info);
-
         // Browser badge
         var badge = settSec.querySelector('.ai-assistant-mic-perm-settings-browser');
         if (badge) { badge.textContent = info.displayName; }
@@ -16869,10 +17004,6 @@ opts.jsonPayload + '\n' +
 
         // Steps list
         var stepsList = settSec.querySelector('.ai-assistant-mic-perm-settings-steps');
-        console.log(
-        'steps count=',
-        stepsList ? stepsList.children.length : 'missing'
-        );
         if (stepsList) {
             stepsList.innerHTML = '';
             info.steps.forEach(function (step) {
