@@ -204,27 +204,27 @@ jobs:
           # ["cp314t", "3.14"],  # CPython 3.14t  ?? asv, h5py, sklearn
           # Keep sync with cibuildwheel's supported Python versions by scikit-learn, numpy, scipy, pandas, etc.
         ]
-        exclude:
-          # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
-          # Don't build PyPy 32-bit windows
-          # - buildplat: [windows-2019, win32,]
-          #   python: ["pp310", "3.10"]
-          #
-          # 3.8 is not supported some lib
-          # - buildplat: [ubuntu-22.04, musllinux, x86_64]
-          #   python: ["cp38", "3.8"]  # need scipy, numpy, pandas
-          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-          #   python: ["cp38", "3.8"]  # need scipy
-          # - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
-          #   python: ["cp39", "3.9"]  # need scipy
-          # - buildplat: [windows-11-arm, win, ARM64]
-          #   python: ["cp38", "3.8"]  # need py
-          # - buildplat: [windows-11-arm, win, ARM64]
-          #   python: ["cp39", "3.9"]  # need numpy
-          # - buildplat: [windows-11-arm, win, ARM64]
-          #   python: ["cp39", "3.9"]  # need numpy 2.0.2 error
-          # - buildplat: [windows-11-arm, win, ARM64]
-          #   python: ["cp310", "3.10"]  # build error clang (clang-cl /?) LLVM compiler
+        # exclude:
+        #   # (Optional) Don't build PyPy 32-bit windows ("*-win32", "*-x86")
+        #   # Don't build PyPy 32-bit windows
+        #   # - buildplat: [windows-2019, win32,]
+        #   #   python: ["pp310", "3.10"]
+        #   #
+        #   # 3.8 is not supported some lib
+        #   - buildplat: [ubuntu-22.04, musllinux, x86_64]
+        #     python: ["cp38", "3.8"]  # need scipy, numpy, pandas
+        #   - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+        #     python: ["cp38", "3.8"]  # need scipy
+        #   - buildplat: [ubuntu-24.04-arm, musllinux, aarch64]
+        #     python: ["cp39", "3.9"]  # need scipy
+        #   - buildplat: [windows-11-arm, win, ARM64]
+        #     python: ["cp38", "3.8"]  # need py
+        #   - buildplat: [windows-11-arm, win, ARM64]
+        #     python: ["cp39", "3.9"]  # need numpy
+        #   - buildplat: [windows-11-arm, win, ARM64]
+        #     python: ["cp39", "3.9"]  # need numpy 2.0.2 error
+        #   - buildplat: [windows-11-arm, win, ARM64]
+        #     python: ["cp310", "3.10"]  # build error clang (clang-cl /?) LLVM compiler
 
     # +-------------------------+---------------------+------------------------------------------+
     # | Context                 | Syntax              | Example                                  |
