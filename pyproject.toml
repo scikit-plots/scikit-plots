@@ -1186,7 +1186,21 @@ ignore = [
 skip = ["*_i686", "*_ppc64le", "*_s390x", "*_universal2"]
 
 # In workflow yml -> CIBW_ENABLE="cpython-prerelease cpython-freethreading"
-enable = ["cpython-freethreading", "cpython-prerelease", "pypy"]  # for >=v3.0.0
+# https://github.com/scipy/scipy/blob/main/.github/workflows/wheels.yml#L153
+# https://github.com/numpy/numpy/blob/main/pyproject.toml#L195
+#
+# Valid group names are:
+#  cpython-prerelease,
+#  graalpy,
+#  pypy,
+#  pypy-eol,
+#  pyodide-eol,
+#  pyodide-prerelease
+enable = [  # for >=v3.0.0
+  # "cpython-freethreading",  # Not Support
+  "cpython-prerelease",
+  "pypy"
+]
 
 # https://cibuildwheel.pypa.io/en/stable/options/#build-frontend
 build-frontend = "build"
