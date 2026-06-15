@@ -1,12 +1,18 @@
 import micropip
 from itertools import combinations, product
 VERSIONS   = ["0.5.dev0", "0.4.0.post12"]
-BUILD_TAGS = [
-    "cp314-cp314-pyemscripten_2026_0_wasm32",  # ✅ PyPI supported
-    "cp313-cp313-pyemscripten_2025_0_wasm32",  # ✅ PyPI supported
-    "cp313-cp313-pyodide_2025_0_wasm32",       # ❌ PyPI supported
-    "cp312-cp312-pyodide_2024_0_wasm32",       # ❌ PyPI supported
+WASM_TAGS = [
+    "pyemscripten",  # ✅ PyPI supported
+    "pyodide",       # ❌ PyPI supported
+    # "emscripten",  # ❌ PyPI supported
 ]
+BUILD_TAGS = [
+    "cp314-cp314-{}_2026_0_wasm32",
+    "cp313-cp313-{}_2025_0_wasm32",
+    "cp312-cp312-{}_2024_0_wasm32",
+    "cp311-cp311-{}_2024_0_wasm32",
+]
+BUILD_TAGS = [b.format(w) for w in WASM_TAGS for b in BUILD_TAGS]
 URL_TEMPLATE = (
     # "https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots/{v}/download/"
     "https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple/scikit-plots/{v}/"

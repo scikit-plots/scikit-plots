@@ -990,9 +990,6 @@ jobs:
         continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
-          # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
-          # but anaconda.org accepts it fine for your nightly staging channel).
-          CIBW_ENABLE: pyodide-eol
           # Explicit version selection (without this, ALL enabled versions build).
           # cp312 → pyodide_2024_0_wasm32   (needs pyodide-eol above)
           # cp313 → pyemscripten_2025_0_wasm32
@@ -1000,7 +997,11 @@ jobs:
           # scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl       (Pyodide 0.26–0.28.x which runs Python 3.12)
           # scikit_plots-0.5.dev0-cp313-cp313-pyemscripten_2025_0_wasm32.whl  (Pyodide 0.28.x/0.29.x PyPI OK)
           # scikit_plots-0.5.dev0-cp314-cp314-pyemscripten_2026_0_wasm32.whl  (Pyodide 314.x PyPI OK)
-          CIBW_BUILD: "cp312-* cp313-* cp314-*"
+          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
+          # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
+          # but anaconda.org accepts it fine for your nightly staging channel).
+          # https://cibuildwheel.pypa.io/en/stable/options/#enable
+          # CIBW_ENABLE: pypy-eol pyodide-eol
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
@@ -1010,7 +1011,7 @@ jobs:
           # if-no-files-found: error
           # include-hidden-files: true
           path: ./wheelhouse/*.whl
-          name: cp312-pyodide_wasm32
+          # name: wasm32_artifact
 
       - name: Conda environment creation and activation anaconda-client
         uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
