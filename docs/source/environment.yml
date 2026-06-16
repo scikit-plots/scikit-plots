@@ -28,23 +28,20 @@ channels:
 # kernel is instantiated when running a JupyterLite site.
 # It is not possible to install these dependencies using pip.
 dependencies:
+  # Conda packages
+  # - python=3.11  # default
   # While we include the Python kernel here, it is also possible to install other kernels
   # for other languages, such as JavaScript, R, Lua, and so on; see:
   # https://jupyterlite-xeus.readthedocs.io/en/stable/#xeus-kernels-in-jupyterlite
   - xeus-python
-  - xeus-lua
   - xeus-cpp
   - xeus-sqlite
   - xeus-javascript
+  - xeus-lua
   - xeus-r
   - r-coursekata
-  # Conda packages
-  - python=3.12
-  # - xeus-python
+  - r-ggplot2
   - pip
-  - jupyter_server
-  - jupyterlite-core >=0.4.1,<0.5.0
-  # - jupyterlite-xeus>=2.0.0,<3  # environment.yml
   # pip dependencies from requirements.txt
   # - pip:
       # Use another requirements file.

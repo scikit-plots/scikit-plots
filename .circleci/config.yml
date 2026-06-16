@@ -272,9 +272,9 @@ commands:
 
             # JupyterLab: dark theme (optional)
             pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
-            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson
+            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson jupyterlab-git
             # Additional jupyterlite (optional)
-            pip install jupyterlite-core jupyterlite-xeus-python jupyterlite-terminal jupyterlite-javascript-kernel jupyterlite-p5-kernel
+            pip install jupyterlite-core jupyterlite-xeus-python jupyterlite-terminal jupyterlite-javascript-kernel
   build-scikit-plots:
     description: build scikit-plots
     steps:
@@ -302,21 +302,31 @@ commands:
           at: ~/
       - check-skip  # This calls your custom command
       - apt-install  # This calls your custom command
+
       - run:
           name: "📘 build docs"
           # no_output_timeout: 25m
           command: |
             export PYTHONPATH=$PWD/build-install/lib/python3.11/site-packages
-            cd docs && make html 2>&1 | tee sphinx_log.txt
+            cd docs && make html 2>&1 | tee ~/sphinx_log.txt
       - run:
           name: Check sphinx log for warnings (which are treated as errors)
           when: always
           command: |
-            ! grep "^.* WARNING: .*$" sphinx_log.txt
+            ! grep "^.* WARNING: .*$" ~/sphinx_log.txt
+      - run:
+          name: Save sphinx traceback
+          when: always
+          command: |
+            cp /tmp/sphinx-err-*.log ~/sphinx-traceback.log || true
+
       # you must store the artifact explicitly:
       - store_artifacts:
           path: ~/sphinx_log.txt
           destination: sphinx_log.txt
+      - store_artifacts:
+          path: ~/sphinx-traceback.log
+          destination: sphinx-traceback.log
       - store_artifacts:
           # path: docs/build/html/stable/index.html  # index.html
           path: docs/build/html/stable
@@ -368,13 +378,15 @@ jobs:
       - merge
       - submodules
       - apt-install
+      - pip-install
 
+      - restore_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}
       - restore_cache:
           keys:
             - deps_ccache-{{ .Branch }}
             - deps_ccache
 
-      - pip-install
       - build-scikit-plots
       # - upload-codecov
       # - store_artifacts:
@@ -385,6 +397,11 @@ jobs:
           paths:
             - ~/.ccache
             - ~/.cache/pip
+      - save_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}
+          paths:
+            - ~/scikit_plots_data
+
       - run:
           name: ccache performance
           command: |

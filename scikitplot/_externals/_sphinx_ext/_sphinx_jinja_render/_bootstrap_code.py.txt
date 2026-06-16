@@ -4,7 +4,6 @@ VERSIONS   = ["0.5.dev0", "0.4.0.post12"]
 WASM_TAGS = [
     "pyemscripten",  # ✅ PyPI supported
     "pyodide",       # ❌ PyPI supported
-    # "emscripten",  # ❌ PyPI supported
 ]
 BUILD_TAGS = [
     "cp314-cp314-{}_2026_0_wasm32",
