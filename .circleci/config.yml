@@ -266,6 +266,7 @@ commands:
             export SETUPTOOLS_USE_DISTUTILS=local
             pip install -U setuptools
 
+            # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
             # python -m pip check
             pip install -U "protobuf<7"
@@ -273,19 +274,13 @@ commands:
             # JupyterLab: dark theme (optional)
             pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
             pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson jupyterlab-git
+
             # Additional jupyterlite (optional)
             pip install -U \
               jupyterlite-core \
-              jupyterlite-sphinx \
-              jupyterlite-xeus-python
+              jupyterlite-xeus \
+              jupyterlite-sphinx
             pip install jupyterlite-terminal jupyterlite-javascript-kernel
-            # Escape the heredoc '\<<' in config or python -c (simplest)
-            python - \<<'PY'
-            import jupyterlite_xeus_python.build as b
-            print("PYTHON_VERSION =", b.PYTHON_VERSION)
-            print("XEUS_PYTHON_VERSION =", b.XEUS_PYTHON_VERSION)
-            print("CHANNELS =", b.CHANNELS)
-            PY
   build-scikit-plots:
     description: build scikit-plots
     steps:

@@ -3,7 +3,7 @@
 # https://github.com/jupyterlite/xeus-lite-demo/blob/main/environment.yml
 # https://jupyterlite-xeus.readthedocs.io/en/latest/environment.html
 #
-#
+# ⚠️ https://github.com/jupyterlite/xeus-python-kernel "jupyterlite-xeus-python" is DEPRECATED. Please use "jupyterlite-xeus" https://github.com/jupyterlite/xeus.
 # python - <<'PY'
 # import inspect
 # import jupyterlite_xeus_python.build as b
@@ -34,8 +34,8 @@
 #
 # pip install -U \
 #   jupyterlite-core \
-#   jupyterlite-sphinx \
-#   jupyterlite-xeus-python
+#   jupyterlite-xeus \
+#   jupyterlite-sphinx
 #
 ## The most useful next diagnostic is:
 # python - <<'PY'
@@ -47,6 +47,61 @@
 #
 # import jupyterlite_xeus_python.build as b
 # b.PYTHON_VERSION = "3.12"
+#
+# ✅ "jupyterlite-xeus" is architecturally different from the deprecated "jupyterlite-xeus-python".
+# In the old package: jupyterlite_xeus_python.build.PYTHON_VERSION jupyterlite_xeus_python.build.XEUS_PYTHON_VERSION existed and were hardcoded defaults.
+# jupyterlite_xeus now builds environments from: create_conda_env_from_env_file(...) create_conda_env_from_specs(...)
+#
+# Inspect environment creation
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus.create_conda_env as m
+# print(inspect.getsource(m.create_conda_env_from_specs))
+# PY
+#
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus.create_conda_env as m
+# print(inspect.getsource(m._create_conda_env_from_specs_impl))
+# PY
+#
+# Inspect addon
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus.add_on as m
+# print(inspect.getsource(m))
+# PY
+#
+# Find hardcoded Python versions
+# python - <<'PY'
+# import inspect
+# import pkgutil
+# import importlib
+# import jupyterlite_xeus
+# for m in pkgutil.walk_packages(
+#     jupyterlite_xeus.__path__,
+#     jupyterlite_xeus.__name__ + "."
+# ):
+#     mod = importlib.import_module(m.name)
+#     for name in dir(mod):
+#         try:
+#             value = getattr(mod, name)
+#             if isinstance(value, str):
+#                 if "3.11" in value or "3.12" in value:
+#                     print(m.name, name, value)
+#         except Exception:
+#             pass
+# PY
+#
+# Find where specs are assembled
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus.create_conda_env as m
+# src = inspect.getsource(m)
+# for i, line in enumerate(src.splitlines(), 1):
+#     if "spec" in line.lower():
+#         print(f"{i}: {line}")
+# PY
 ---
 
 # https://github.com/jupyterlite/sphinx-demo/blob/main/xeus-kernel-example/docs/source/environment.yml
@@ -74,7 +129,7 @@ channels:
 # It is not possible to install these dependencies using pip.
 dependencies:
   # Conda packages
-  - python=3.11  # default depends on jupyterlite_xeus_python PYTHON_VERSION
+  - python=3.12  # modern jupyterlite-xeus, the Python version is no longer hidden in package code
   # While we include the Python kernel here, it is also possible to install other kernels
   # for other languages, such as JavaScript, R, Lua, and so on; see:
   # https://jupyterlite-xeus.readthedocs.io/en/stable/#xeus-kernels-in-jupyterlite
