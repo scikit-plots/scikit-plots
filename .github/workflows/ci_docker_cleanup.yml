@@ -111,6 +111,7 @@ on:
           SAFE DEFAULT is 'true'.  Set to 'false' only when ready to delete.
         required: false
         type: choice
+        # defaults to 'true' — no deletes unless explicitly opted in.
         default: 'true'
         options:
           - 'true'
@@ -191,7 +192,8 @@ jobs:
       KEEP_DAYS:        ${{ inputs.cleanup_keep_days         || '0'    }}
       IGNORE_PATTERNS:  ${{ inputs.cleanup_ignore_patterns   || '^latest$,^latest-,^main$,^maintenance-,^v[0-9]' }}
       EXPLICIT_TAGS:    ${{ inputs.cleanup_explicit_tags     || ''     }}
-      DRY_RUN:          ${{ inputs.cleanup_dry_run           || 'true' }}
+      # defaults to 'true' — no deletes unless explicitly opted in.
+      DRY_RUN:          ${{ inputs.cleanup_dry_run           || 'false' }}
 
     steps:
 

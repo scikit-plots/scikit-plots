@@ -147,7 +147,8 @@ jobs:
           # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
           # but anaconda.org accepts it fine for your nightly staging channel).
           # https://cibuildwheel.pypa.io/en/stable/options/#enable
-          # CIBW_ENABLE: pypy-eol pyodide-eol
+          # Enable under python 3.13
+          CIBW_ENABLE: pypy-eol pyodide-eol
 
       - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
         id: artifact-upload-step
