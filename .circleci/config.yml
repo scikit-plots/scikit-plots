@@ -74,7 +74,7 @@ _defaults: &defaults
     # - image: cimg/base:current-22.04
     # documented at https://circleci.com/developer/images/image/cimg/python
     ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
-    - image: cimg/python:3.11
+    - image: cimg/python:3.12  #  cimg/python:3.11
   # environment:
   #   - MKL_NUM_THREADS: 2
   #   - OPENBLAS_NUM_THREADS: 2
@@ -307,7 +307,7 @@ commands:
           name: "📘 build docs"
           # no_output_timeout: 25m
           command: |
-            export PYTHONPATH=$PWD/build-install/lib/python3.11/site-packages
+            export PYTHONPATH=$PWD/build-install/lib/python3.12/site-packages
             cd docs && make html 2>&1 | tee ~/sphinx_log.txt
       - run:
           name: Check sphinx log for warnings (which are treated as errors)

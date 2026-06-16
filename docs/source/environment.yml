@@ -9,7 +9,7 @@
 # This doesn't matter much, as the environment is not used for anything
 # other than the installation of the packages that have been listed here.
 # For examples, visit: https://github.com/jupyterlite/xeus-lite-demo#-how-to-install-kernels-and-packages
-name: jupyterlite-wasm-env-xeus-kernels
+name: jupyterlite-wasm-env
 
 channels:
   # The emscripten-forge channel is used for wasm32-unknown-emscripten packages, which
@@ -29,7 +29,7 @@ channels:
 # It is not possible to install these dependencies using pip.
 dependencies:
   # Conda packages
-  # - python=3.11  # default
+  - python=3.12  # default sync with cimg/python:3.12
   # While we include the Python kernel here, it is also possible to install other kernels
   # for other languages, such as JavaScript, R, Lua, and so on; see:
   # https://jupyterlite-xeus.readthedocs.io/en/stable/#xeus-kernels-in-jupyterlite
