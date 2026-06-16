@@ -2,6 +2,51 @@
 # https://github.com/jupyterlite/jupyterlite-sphinx/tree/main
 # https://github.com/jupyterlite/xeus-lite-demo/blob/main/environment.yml
 # https://jupyterlite-xeus.readthedocs.io/en/latest/environment.html
+#
+#
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus_python.build as b
+# print(inspect.getsource(b.create_env))
+# PY
+#
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus_python.build as b
+# print(inspect.getsource(b.build_and_pack_emscripten_env))
+# PY
+#
+## To see exactly what the plugin is injecting, run:
+# python - <<'PY'
+# import inspect
+# import jupyterlite_xeus_python.env_build_addon as e
+# print(inspect.getsource(e.XeusPythonEnv))
+# PY
+#
+# python - <<'PY'
+# import jupyterlite_xeus_python.build as b
+# print("PYTHON_VERSION =", b.PYTHON_VERSION)
+# print("XEUS_PYTHON_VERSION =", b.XEUS_PYTHON_VERSION)
+# PY
+#
+# PYTHON_VERSION = 3.11
+# XEUS_PYTHON_VERSION = 0.15.10
+#
+# pip install -U \
+#   jupyterlite-core \
+#   jupyterlite-sphinx \
+#   jupyterlite-xeus-python
+#
+## The most useful next diagnostic is:
+# python - <<'PY'
+# import jupyterlite_xeus_python.build as b
+# print("PYTHON_VERSION =", b.PYTHON_VERSION)
+# print("XEUS_PYTHON_VERSION =", b.XEUS_PYTHON_VERSION)
+# print("CHANNELS =", b.CHANNELS)
+# PY
+#
+# import jupyterlite_xeus_python.build as b
+# b.PYTHON_VERSION = "3.12"
 ---
 
 # https://github.com/jupyterlite/sphinx-demo/blob/main/xeus-kernel-example/docs/source/environment.yml
@@ -29,7 +74,7 @@ channels:
 # It is not possible to install these dependencies using pip.
 dependencies:
   # Conda packages
-  - python=3.12  # default sync with cimg/python:3.12
+  - python=3.11  # default depends on jupyterlite_xeus_python PYTHON_VERSION
   # While we include the Python kernel here, it is also possible to install other kernels
   # for other languages, such as JavaScript, R, Lua, and so on; see:
   # https://jupyterlite-xeus.readthedocs.io/en/stable/#xeus-kernels-in-jupyterlite

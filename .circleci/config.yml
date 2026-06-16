@@ -274,7 +274,17 @@ commands:
             pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
             pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson jupyterlab-git
             # Additional jupyterlite (optional)
-            pip install jupyterlite-core jupyterlite-xeus-python jupyterlite-terminal jupyterlite-javascript-kernel
+            pip install -U \
+              jupyterlite-core \
+              jupyterlite-sphinx \
+              jupyterlite-xeus-python
+            pip install jupyterlite-terminal jupyterlite-javascript-kernel
+            python - <<'PY'
+            import jupyterlite_xeus_python.build as b
+            print("PYTHON_VERSION =", b.PYTHON_VERSION)
+            print("XEUS_PYTHON_VERSION =", b.XEUS_PYTHON_VERSION)
+            print("CHANNELS =", b.CHANNELS)
+            PY
   build-scikit-plots:
     description: build scikit-plots
     steps:
