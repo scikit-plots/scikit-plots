@@ -50,6 +50,9 @@ codecov:
 #   require_head: true            # [true :: must have a head report to post]
 #   hide_project_coverage: false  # [true :: only show coverage on the git diff]
 comment: false  # Disable comment
+  # layout: "diff, flags, files"
+  # behavior: default
+  # require_changes: false  # if true: only post the comment if coverage changes
 # slack_app: true
 
 # https://docs.codecov.com/docs/coverage-configuration
@@ -76,6 +79,7 @@ coverage:
         #   - master
         # if_ci_failed: error #success, failure, error, ignore
         if_ci_failed: ignore   # cancelled job is not a coverage failure
+        informational: true  # false
         # only_pulls: false
         # flags:
         #   - "unit"
@@ -117,7 +121,7 @@ coverage:
         #   - master
         # if_ci_failed: error #success, failure, error, ignore
         if_ci_failed: ignore   # cancelled job is not a coverage failure
-        # informational: false
+        informational: true  # false
         # only_pulls: false
 
 # https://docs.codecov.com/docs/codecovyml-reference#ignore

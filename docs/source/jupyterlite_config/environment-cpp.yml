@@ -1,0 +1,8 @@
+# https://github.com/jupyterlite/xeus/blob/main/docs/environment-cpp.yml
+
+name: xeus-cpp-kernel-docs
+channels:
+  - https://prefix.dev/emscripten-forge-4x
+  - https://prefix.dev/conda-forge
+dependencies:
+  - xeus-cpp

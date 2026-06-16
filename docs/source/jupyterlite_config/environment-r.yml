@@ -1,0 +1,9 @@
+# https://github.com/jupyterlite/xeus/blob/main/docs/environment-r.yml
+
+name: xeus-r-kernel-docs
+channels:
+  - https://prefix.dev/emscripten-forge-4x
+  - https://prefix.dev/conda-forge
+dependencies:
+  - xeus-r
+  - r-ggplot2

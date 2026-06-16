@@ -1,0 +1,10 @@
+# https://github.com/jupyterlite/xeus/blob/main/docs/environment-other.yml
+
+name: xeus-kernel-docs
+channels:
+  - https://repo.mamba.pm/emscripten-forge
+  - https://prefix.dev/conda-forge
+dependencies:
+  - xeus-lua
+  - xeus-javascript
+  - xeus-nelson

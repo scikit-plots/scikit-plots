@@ -269,6 +269,12 @@ commands:
             # python -c "import tensorflow as tf, google.protobuf as pb; print('tf', tf.__version__); print('protobuf', pb.__version__)"
             # python -m pip check
             pip install -U "protobuf<7"
+
+            # JupyterLab: dark theme (optional)
+            pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
+            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson
+            # Additional jupyterlite (optional)
+            pip install jupyterlite-core jupyterlite-xeus-python jupyterlite-terminal jupyterlite-javascript-kernel jupyterlite-p5-kernel
   build-scikit-plots:
     description: build scikit-plots
     steps:

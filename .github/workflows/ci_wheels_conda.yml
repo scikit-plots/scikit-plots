@@ -990,6 +990,16 @@ jobs:
         continue-on-error: true
         env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
           CIBW_PLATFORM: pyodide
+          # https://www.npmjs.com/package/pyodide?activeTab=versions
+          # https://pyodide.org/en/stable/development/abi.html#platform-versions
+          # https://pyodide.org/en/stable/usage/index.html#web-browsers
+          # Keep Kernel Sync with "docs/source/jupyter-lite.json":
+          # "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js"
+          # "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
+          # "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"
+          # "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"
+          # "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
+          #
           # Explicit version selection (without this, ALL enabled versions build).
           # cp312 → pyodide_2024_0_wasm32   (needs pyodide-eol above)
           # cp313 → pyemscripten_2025_0_wasm32
