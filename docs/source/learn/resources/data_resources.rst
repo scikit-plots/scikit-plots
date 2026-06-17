@@ -21,5 +21,8 @@
 Data Resources
 ============================
 
+* `https://ml-cheatsheet.readthedocs.io/en/latest/datasets.html
+  <https://ml-cheatsheet.readthedocs.io/en/latest/datasets.html>`_
+
 * `https://oad.simmons.edu/oadwiki/Data_repositories
   <https://oad.simmons.edu/oadwiki/Data_repositories>`_

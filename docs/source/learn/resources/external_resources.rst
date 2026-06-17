@@ -61,12 +61,6 @@ Books, chapters and articles
 Videos
 ======
 
-* `Plotting with matplotlib <https://www.youtube.com/watch?v=P7SVi0YTIuE>`_
-  by Mike Müller
-
-* `Introduction to NumPy and Matplotlib
-  <https://www.youtube.com/watch?v=3Fp1zn5ao2M&feature=plcp>`_ by Eric Jones
-
 * `Anatomy of Matplotlib
   <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=103>`_
   by Benjamin Root
@@ -74,12 +68,30 @@ Videos
 * `Data Visualization Basics with Python (O'Reilly)
   <https://www.oreilly.com/library/view/data-visualization-basics/9781771375573/>`_
   by Randal S. Olson
+
+* `Introduction to NumPy and Matplotlib
+  <https://www.youtube.com/watch?v=3Fp1zn5ao2M&feature=plcp>`_ by Eric Jones
+
+.. https://www.youtube.com/watch?v=3Fp1zn5ao2M
+..  youtube:: 3Fp1zn5ao2M
+
 * `Matplotlib Introduction
   <https://www.youtube.com/playlist?list=PLeo1K3hjS3uu4Lr8_kro2AqaO6CFYgKOl>`_
   by codebasics
+
+.. https://www.youtube.com/watch?v=qqwf4Vuj8oM&list=PLeo1K3hjS3uu4Lr8_kro2AqaO6CFYgKOl&index=1
+..  youtube:: qqwf4Vuj8oM
+
+* `Plotting with matplotlib <https://www.youtube.com/watch?v=P7SVi0YTIuE>`_
+  by Mike Müller
+
+..  youtube:: P7SVi0YTIuE
+
 * `Matplotlib
   <https://www.youtube.com/watch?v=wB9C0Mz9gSo>`_
   by Derek Banas
+
+..  youtube:: wB9C0Mz9gSo
 
 =========
 Tutorials

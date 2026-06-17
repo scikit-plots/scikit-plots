@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. https://devguide.python.org/documentation/markup/#substitutions
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..

@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. https://devguide.python.org/documentation/markup/#substitutions
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..
@@ -61,6 +63,16 @@ Resources
             :maxdepth: 3
 
             Data Resources <./data_resources.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **model**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Model Examples <./examples.rst>
 
     .. grid-item-card::
         :padding: 3

@@ -53,6 +53,18 @@ SOURCEDIR     = source
 BUILDDIR      = build
 PAPER         =
 
+ifeq ($(CI), true)
+	# On CircleCI using -j2 does not seem to speed up the html-noplot build
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+else ifeq ($(shell uname), Darwin)
+	# Avoid stalling issues on MacOS
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+else
+	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
+	# SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
+endif
+SPHINX_NUMJOBS ?= $(or $(SPHINX_NUMJOBS_NOPLOT_DEFAULT),1)
+
 # Put it first so that "make" without argument is like "make help".
 # help:
 # 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -138,17 +150,6 @@ html: clean
 	@echo "Running sphinx documentation build..."
 	@$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) -j$(SPHINX_NUMJOBS) $(BUILDDIR)/html/stable
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html/stable"
-
-
-ifeq ($(CI), true)
-	# On CircleCI using -j2 does not seem to speed up the html-noplot build
-	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
-else ifeq ($(shell uname), Darwin)
-	# Avoid stalling issues on MacOS
-	SPHINX_NUMJOBS_NOPLOT_DEFAULT=1
-else
-	SPHINX_NUMJOBS_NOPLOT_DEFAULT=auto
-endif
 
 # Default to SPHINX_NUMJOBS=auto (except on MacOS and CI) since this makes
 # html-noplot build faster

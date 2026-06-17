@@ -1,7 +1,6 @@
 :html_theme.sidebar_secondary.remove:
 
-.. _welcome:
-
+.. https://devguide.python.org/documentation/markup/#substitutions
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 ..
     substitutions don’t work in .. raw:: html
@@ -24,7 +23,9 @@
 
    <br/>
 
-:raw-html:`<div style="text-align: center"><strong>` 🤗 Welcome to Scikit-plots 101
+.. _scikit-plots-learn:
+
+:raw-html:`<div style="text-align: center"><strong>` 🤗 Scikit-plots Learn
 |br| |full_version| - |today|
 :raw-html:`</strong></div>`
 
@@ -45,59 +46,40 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _introduction-index:
+.. _learn-index:
 
 ======================================================================
-Introduction
+Learn
 ======================================================================
 
-.. grid:: 1 1 2 2
+.. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 2
-        :columns: 12 12 6 6
+        :padding: 3
 
-        **Installation**
+        **cheatsheet**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            Installation <../install/installation.rst>
+            Cheatsheet <./cheatsheet/index.rst>
 
     .. grid-item-card::
-        :padding: 2
-        :columns: 12 12 6 6
+        :padding: 3
 
-        **Quickstart Tutorial**
+        **resources**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
-            Quick Start <quick_start.rst>
+            Resources <resources/index.rst>
 
     .. grid-item-card::
-        :padding: 2
-        :columns: 12 12 12 12
+        :padding: 3
 
-        **Getting Started Guide**
+        **glossary**
         ^^^
-        .. grid:: 1 1 2 2
-            :class-row: sd-align-minor-center
+        .. toctree::
+            :maxdepth: 3
 
-            .. grid-item::
-
-                .. toctree::
-                    :maxdepth: 2
-
-                    Getting Started <getting_started.rst>
-
-            .. grid-item::
-
-                .. External links.
-                .. _special-names: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#special-names
-
-                *Indices and Tables*:
-
-                - :ref:`genindex`
-                - :ref:`modindex`
-                - :ref:`search`
+            Glossary <glossary/index.rst>

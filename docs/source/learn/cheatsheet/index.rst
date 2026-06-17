@@ -1,4 +1,4 @@
-.. currentmodule:: scikiplot
+:html_theme.sidebar_secondary.remove:
 
 ..
   https://devguide.python.org/documentation/markup/#sections
@@ -16,28 +16,39 @@
 .. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
 .. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _glossary-index:
+.. _cheatsheet-index:
 
-=====================
-scikit-plots Glossary
-=====================
+================
+Cheatsheet
+================
 
-.. warning::
+..
+  toctree::
+    :maxdepth: 2
 
-    Reserved...
-
+    Md Cheatsheet <cheatsheet_md.rst>
+    RST Cheatsheet <cheatsheet_rst.rst>
 
 .. grid:: 1 1 2 2
 
     .. grid-item-card::
         :padding: 2
-        :columns: 6
+        :columns: 12 12 6 6
 
-        **scikit-learn Glossary**
+        **markdown**
         ^^^
         .. toctree::
             :maxdepth: 2
-            :numbered:
-            :caption: glossary
 
-            https://scikit-learn.org/stable/glossary.html
+            Md Cheatsheet <cheatsheet_md.rst>
+
+    .. grid-item-card::
+        :padding: 2
+        :columns: 12 12 6 6
+
+        **reStructuredText**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            RST Cheatsheet <cheatsheet_rst.rst>

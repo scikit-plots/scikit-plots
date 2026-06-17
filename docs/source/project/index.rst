@@ -34,16 +34,14 @@ Project information
 .. toctree::
     :maxdepth: 2
 
-    Community <community.rst>
-    Citing Guide <citing.rst>
     history.rst
-    license.rst
-    mission.rst
-    Teams <teams/index.rst>
-    Code of Conduct <code_of_conduct.rst>
     Governance Process <governance.rst>
+    Teams <teams/index.rst>
+    Citing Guide <citing.rst>
+    license.rst
+    Code of Conduct <code_of_conduct.rst>
+    mission.rst
     Roadmap <roadmap.rst>
+    Community <community.rst>
     Funding <funding.rst>
-    Glossary <glossary/index.rst>
-    Cheatsheet <../cheatsheet/index.rst>
     FAQ <faq.rst>

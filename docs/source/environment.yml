@@ -102,6 +102,60 @@
 #     if "spec" in line.lower():
 #         print(f"{i}: {line}")
 # PY
+#
+# jupyter lite build \
+#   --lite-dir /work/docs/source \
+#   --output-dir /tmp/test \
+#   --debug 2>&1 | grep -i xeus
+#
+# jupyter lite build \
+#   --debug \
+#   --contents /work/docs/source/jupyterlite_contents \
+#   --contents /work/docs/source/_contents \
+#   --output-dir /work/docs/build/html/stable/lite \
+#   --apps notebooks \
+#   --apps edit \
+#   --apps lab \
+#   --apps repl \
+#   --apps tree \
+#   --apps consoles \
+#   --lite-dir /work/docs/source \
+#   2>&1 | tee /tmp/jupyterlite.log
+#
+# python -m jupyter lite build \
+#   --debug \
+#   --contents docs/source/jupyterlite_contents \
+#   --contents docs/source/_contents \
+#   --output-dir docs/build/html/stable/lite \
+#   --apps notebooks \
+#   --apps edit \
+#   --apps lab \
+#   --apps repl \
+#   --apps tree \
+#   --apps consoles \
+#   --lite-dir docs/source \
+#   > jupyterlite.log 2>&1 || true
+# cat jupyterlite.log
+#
+# - run:
+#     name: Debug JupyterLite
+#     command: |
+#       python -m jupyter lite build \
+#         --debug \
+#         --contents docs/source/jupyterlite_contents \
+#         --contents docs/source/_contents \
+#         --output-dir docs/build/html/stable/lite \
+#         --apps notebooks \
+#         --apps edit \
+#         --apps lab \
+#         --apps repl \
+#         --apps tree \
+#         --apps consoles \
+#         --lite-dir docs/source \
+#         > jupyterlite.log 2>&1 || true
+#       cat jupyterlite.log
+#
+# echo $?
 ---
 
 # https://github.com/jupyterlite/sphinx-demo/blob/main/xeus-kernel-example/docs/source/environment.yml
@@ -112,14 +166,14 @@
 name: jupyterlite-wasm-env
 
 channels:
-  # The emscripten-forge channel is used for wasm32-unknown-emscripten packages, which
-  # are loaded by the xeus-python kernel.
-  - https://repo.mamba.pm/emscripten-forge
   # Crucial! This maps out the WebAssembly-compiled package forge mirrors
   - https://repo.prefix.dev/emscripten-forge-dev
   - https://prefix.dev/emscripten-forge-4x
   # - https://repo.prefix.dev/conda-forge
   # - https://prefix.dev/conda-forge
+  # The emscripten-forge channel is used for wasm32-unknown-emscripten packages, which
+  # are loaded by the xeus-python kernel.
+  # - https://repo.mamba.pm/emscripten-forge
   # The conda-forge channel is used to provide the xeus-python kernel and its dependencies.
   - conda-forge
   # - defaults

@@ -6,6 +6,13 @@
 Sphinx AI Extensions (experimental)
 ======================================================================
 
+..
+  inspired:
+  * https://github.com/GitbookIO/gitbook
+  * https://gitbook.com/docs/ai-and-search/gitbook-ai-assistant#how-do-i-use-gitbook-ai-1
+  * https://github.com/SeldonIO/seldonio.github.com
+  * https://docs.seldon.ai/home
+
 
 Sphinx ai extensions for generated websites
 ----------------------------------------------------------------------

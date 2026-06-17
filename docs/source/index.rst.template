@@ -220,6 +220,7 @@ References:
 	:hidden:
 
 	Tutorials <auto_examples/index>
+	Learn <learn/index.rst>
 	Tags <_tags/tagsindex.rst>
 
 .. toctree::
@@ -227,7 +228,6 @@ References:
 	:caption: Project
 	:hidden:
 
-	Cheatsheet <cheatsheet/index.rst>
 	Code of Conduct <project/code_of_conduct.rst>
 	Community <project/community.rst>
 	{%- if development_link | default(false) %}
@@ -237,6 +237,5 @@ References:
 	{%- endif %}
 	Governance Process <project/governance.rst>
 	Release History <whats_new/index.rst>
-	Resources <resources/index.rst>
 	Roadmap <project/roadmap.rst>
 	About Us | Project <project/index.rst>

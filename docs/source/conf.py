@@ -74,6 +74,8 @@ except ImportError:
     # that need plotly.
     pass
 
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
+
 import jinja2
 from sphinx.application import Sphinx
 # from sphinx.locale import _
@@ -404,6 +406,7 @@ try:
     # jupyterlite_sphinx = run notebooks/code in the user’s browser at documentation viewing time
     # If you want live, browser-based execution with no server, use jupyterlite_sphinx
     # (No backend needed User browser Pyodide / WebAssembly).
+    # https://sphinx-book-theme.readthedocs.io/en/stable/content/launch.html#jupyterlite
     extensions.append("jupyterlite_sphinx")
     with_jupyterlite = True
 except ImportError:
@@ -933,6 +936,7 @@ templates_path = [
 
 # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
 # https://pydata-sphinx-theme.readthedocs.io/en/stable/examples/gallery.html#other-projects-using-this-theme
+# https://github.com/executablebooks/sphinx-book-theme
 # html_theme = "furo"
 html_theme = "pydata_sphinx_theme"  # scikit-learn like
 

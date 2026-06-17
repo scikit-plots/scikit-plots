@@ -51,3 +51,21 @@ Quick start
 .. rubric:: Examples
 
 * :ref:`sphx_glr_auto_examples_corpus_plot_corpus_who_per_file_script.py`: Example notebook.
+
+.. https://github.com/roy-ht/langdetect
+.. seealso::
+  Google's language-detection:
+
+  * https://github.com/google/cld3
+  * https://pypi.org/project/gcld3/
+  * https://github.com/Mimino666/langdetect
+  * https://github.com/shuyo/language-detection
+  * https://github.com/Abhijit-2592/spacy-langdetect
+  * https://spacy.io/models/en
+
+  facebookresearch:
+
+  * https://github.com/facebookresearch/fastText
+  * https://fasttext.cc/
+  * https://github.com/facebookresearch/faiss
+  * https://research.facebook.com/research-areas/facebook-ai-research-fair/

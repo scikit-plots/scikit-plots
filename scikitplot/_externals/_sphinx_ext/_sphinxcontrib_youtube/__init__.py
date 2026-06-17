@@ -15,6 +15,7 @@
 Sphinx "youtube" extension.
 
 ..seealso::
+  * https://github.com/sphinx-contrib/youtube
   * https://github.com/sphinx-contrib/youtube/commit/5238c057730f953ed7c38316aad692a5231294f1
 """
 
@@ -25,6 +26,8 @@ from . import peertube, utils, vimeo, youtube
 # maintainers = [{name = "David A. Ham", email = "david.ham@imperial.ac.uk"}]
 __version__ = "1.5.0"
 
+# https://github.com/sphinx-contrib/youtube
+__hash__ = "5238c057730f953ed7c38316aad692a5231294f1"
 
 def setup(app):
     """Set up Sphinx application."""
