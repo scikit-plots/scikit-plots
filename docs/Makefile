@@ -47,7 +47,7 @@ all: html-noplot
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS   ?= -T
+SPHINXOPTS   ?= -T -v
 SPHINXBUILD  ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build

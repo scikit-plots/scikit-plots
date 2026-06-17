@@ -1,0 +1,11 @@
+name: python-kernel-1
+dependencies:
+  - numpy
+  - matplotlib
+  - pillow
+  - ipywidgets
+  - pip:
+    # Installing a python package that ships a lab extension under share/
+    - ipycanvas
+    # Installing a pure python package
+    - py2vega

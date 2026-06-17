@@ -117,9 +117,9 @@ channels:
   - https://repo.mamba.pm/emscripten-forge
   # Crucial! This maps out the WebAssembly-compiled package forge mirrors
   - https://repo.prefix.dev/emscripten-forge-dev
-  - https://repo.prefix.dev/conda-forge
   - https://prefix.dev/emscripten-forge-4x
-  - https://prefix.dev/conda-forge
+  # - https://repo.prefix.dev/conda-forge
+  # - https://prefix.dev/conda-forge
   # The conda-forge channel is used to provide the xeus-python kernel and its dependencies.
   - conda-forge
   # - defaults
@@ -128,20 +128,21 @@ channels:
 # kernel is instantiated when running a JupyterLite site.
 # It is not possible to install these dependencies using pip.
 dependencies:
-  # Conda packages
-  - python=3.12  # modern jupyterlite-xeus, the Python version is no longer hidden in package code
   # While we include the Python kernel here, it is also possible to install other kernels
   # for other languages, such as JavaScript, R, Lua, and so on; see:
   # https://jupyterlite-xeus.readthedocs.io/en/stable/#xeus-kernels-in-jupyterlite
   - xeus-python
   - xeus-cpp
   - xeus-sqlite
-  - xeus-javascript
-  - xeus-lua
+  # - xeus-javascript
+  # - xeus-lua
   - xeus-r
-  - r-coursekata
   - r-ggplot2
-  - pip
+  # - r-coursekata
+
+  # Conda packages
+  # - python=3.12  # modern jupyterlite-xeus, the Python version is no longer hidden in package code
+  # - pip
   # pip dependencies from requirements.txt
   # - pip:
       # Use another requirements file.

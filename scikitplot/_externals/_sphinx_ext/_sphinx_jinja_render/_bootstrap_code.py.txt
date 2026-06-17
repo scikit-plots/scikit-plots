@@ -1,15 +1,13 @@
-import micropip
-from itertools import combinations, product
+import micropip; from itertools import combinations, product
 VERSIONS   = ["0.5.dev0", "0.4.0.post12"]
 WASM_TAGS = [
-    "pyemscripten",  # ✅ PyPI supported
-    "pyodide",       # ❌ PyPI supported
+    "pyemscripten",  # PyPI ✅ pyodide/v314.0.0 Emscripten-5.0.3-wasm32
+    "pyodide",       # PyPI ❌ pyodide/v0.29.4  Emscripten-4.0.9-wasm32
 ]
 BUILD_TAGS = [
     "cp314-cp314-{}_2026_0_wasm32",
     "cp313-cp313-{}_2025_0_wasm32",
     "cp312-cp312-{}_2024_0_wasm32",
-    "cp311-cp311-{}_2024_0_wasm32",
 ]
 BUILD_TAGS = [b.format(w) for w in WASM_TAGS for b in BUILD_TAGS]
 URL_TEMPLATE = (
@@ -30,3 +28,4 @@ else:
 import scikitplot as sp
 print("scikit-plots version:", sp.__version__)
 sp.show_versions()
+# https://pyodide.org/en/stable/usage/packages-in-pyodide.html#packages-in-pyodide

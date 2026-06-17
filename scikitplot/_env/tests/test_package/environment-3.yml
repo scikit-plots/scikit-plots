@@ -1,0 +1,4 @@
+name: python-kernel-3
+dependencies:
+  - pip:
+    - .

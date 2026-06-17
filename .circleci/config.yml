@@ -273,14 +273,16 @@ commands:
 
             # JupyterLab: dark theme (optional)
             pip install ipywidgets ipyevents ipympl ipycanvas ipyleaflet
-            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson jupyterlab-git
+            pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson
 
             # Additional jupyterlite (optional)
             pip install -U \
               jupyterlite-core \
+              jupyterlite-pyodide-kernel \
               jupyterlite-xeus \
               jupyterlite-sphinx
-            pip install jupyterlite-terminal jupyterlite-javascript-kernel
+            # pip install jupyterlite-javascript-kernel
+            # pip install jupyterlite-terminal jupyterlab-git
   build-scikit-plots:
     description: build scikit-plots
     steps:

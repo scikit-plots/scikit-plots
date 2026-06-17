@@ -1,0 +1,4 @@
+name: python-cpp-env
+dependencies:
+  - setuptools
+  - cython

@@ -1,0 +1,5 @@
+name: python-kernel-2
+dependencies:
+  - pip:
+    # Installing NumPy with pip should fail
+    - numpy
