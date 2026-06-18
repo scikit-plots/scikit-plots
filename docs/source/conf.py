@@ -284,13 +284,11 @@ extensions = [
     "sphinxcontrib.sass",  # Support for SASS stylesheets in Sphinx documentation.
     "sphinxcontrib.inkscapeconverter",  # Convert SVGs created by Inkscape.
     #
+    "sphinx_tags",  # Needs to be loaded *after* autodoc.
+    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
+    #
     # Custom extensions (these should be placed last to avoid conflicts)
     # See _sphinx_ext/
-    #
-    # https://pydata-sphinx-theme.readthedocs.io/en/stable/community/topics/galleries.html
-    # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
-    "scikitplot/_externals/_sphinx_ext/_pydata_sphinx_theme/gallery_directive.py"  # "_extension.gallery_directive",
-    "scikitplot/_externals/_sphinx_ext/_pydata_sphinx_theme/component_directive.py"  # "_extension.component_directive",
     #
     # local matplotlib: Custom extensions
     "_sphinx_ext.mpl_ext.redirect_from",
@@ -303,18 +301,21 @@ extensions = [
     "_sphinx_ext.sklearn_ext.override_pst_pagetoc",  # Custom extension for overriding page TOC in certain cases.
     "_sphinx_ext.sklearn_ext.sphinx_issues",  # Custom extension for managing and displaying issues.
     "_sphinx_ext.sklearn_ext.move_gallery_links",  # Custom extension for rearranging gallery links.
-    # local skplt or scikitplot lib: Custom extensions
-    "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
-    "sphinx_tags",  # Needs to be loaded *after* autodoc.
-    # "sphinx_remove_toctrees",       # Remove certain TOC trees from specific documentation pages.
     "_sphinx_ext.sklearn_ext.search_filter",  # Custom extension
     "_sphinx_ext.sklearn_ext.add_js_css_files",  # Custom extension
-    "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
+    # local skplt or scikitplot lib: Custom extensions
+    "_sphinx_ext.skplt_ext.version_info_extension",  # version_info_extension
     # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
     "scikitplot._externals._sphinx_ext._sphinx_jinja_render",  # "_sphinx_ext.skplt_ext.url_extension",  # URL, REPLite extension
-    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    # https://pydata-sphinx-theme.readthedocs.io/en/stable/community/topics/galleries.html
+    # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
+    "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.gallery_directive",  # "_extension.gallery_directive",
+    "scikitplot._externals._sphinx_ext._pydata_sphinx_theme.component_directive",  # "_extension.component_directive",
     # "sphinxcontrib.youtube",
     "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",
+    "scikitplot._externals._sphinx_ext._sphinx_gallery_jupyterlite",
+    "scikitplot._externals._sphinx_ext._sphinx_ai_assistant",
+    #
     # https://isolveit.github.io/sphinx-pdf-generate
     # "sphinx_pdf_generate",
 ]
