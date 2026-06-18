@@ -1,4 +1,5 @@
-.. https://snippets.documatt.com/
+..
+  # https://snippets.documatt.com/
 
 .. _jupyter_notebooks_examples:
 

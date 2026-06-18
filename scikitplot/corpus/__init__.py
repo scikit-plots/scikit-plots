@@ -7,7 +7,7 @@
 
 """
 scikitplot.corpus
-==================
+=================
 A production-grade document corpus ingestion, chunking, filtering,
 embedding, and export pipeline for NLP and ML workflows.
 

@@ -228,7 +228,7 @@ When all looks good you can delete your backup branch::
    git branch -D tmp
 
 If it doesn't look good you may need to have a look at
-:ref:`recovering-from-mess-up`.
+:ref:`recovering-from-mess-up` or :ref:`recovering-from-mess-up-git`.
 
 If you have made changes to files that have also changed in main, this may
 generate merge conflicts that you need to resolve - see the `git rebase`_ man
@@ -248,7 +248,7 @@ ways you can actually lose commits with git. Also note that it is never allowed
 to force push to the main astropy repo (typically called ``upstream``), because
 this would re-write commit history and thus cause problems for all others.
 
-.. _recovering-from-mess-up:
+.. _recovering-from-mess-up-git:
 
 Recovering from mess-ups
 ========================
@@ -278,7 +278,7 @@ If you forgot to make a backup branch::
    # Reset the branch to where it was before the botched rebase
    git reset --hard cool-feature@{2}
 
-.. _rewriting-commit-history:
+.. _rewriting-commit-history-git:
 
 Rewriting commit history
 ========================
@@ -363,7 +363,7 @@ and the history looks now like this::
      6ad92e5 * masked is now an instance of a new object, MaskedConstant
 
 If it went wrong, recovery is again possible as explained :ref:`above
-<recovering-from-mess-up>`.
+<recovering-from-mess-up>` or :ref:`recovering-from-mess-up-git`.
 
 .. _merge-commits-and-cherry-picks:
 

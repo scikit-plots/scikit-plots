@@ -74,7 +74,7 @@ When opening a pull request on Github, please ensure that:
 * :ref:`pr-automated-tests` pass
 
 For guidance on creating and managing a pull request, please see our
-:ref:`contributing <contributing>` and :ref:`pull request workflow <edit-flow>`
+:ref:`contributing <contributing>` and :ref:`pull request workflow <edit-flow>` or :ref:`edit-flow-work`
 guides.
 
 

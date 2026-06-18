@@ -1,3 +1,5 @@
+:orphan:
+
 # scikit-learn Brand Guidelines
 
 This section contains information around scikit-learn's brand standards and the use of scikit-learn assets. The purpose of these guidelines are to ensure the scikit-learn logo remains consistent and recognizable across all uses and communications. These guidelines also provide a common language for referring to the logos and their components.

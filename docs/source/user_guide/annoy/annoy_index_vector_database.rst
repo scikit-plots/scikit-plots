@@ -1,4 +1,6 @@
-.. docs/source/user_guide/annoy/annoy_index_vector_database.rst
+..
+  # docs/source/user_guide/annoy/annoy_index_vector_database.rst
+
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -9,15 +11,17 @@
   ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-.. # https://rsted.info.ucl.ac.be/
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-.. # https://documatt.com/restructuredtext-reference/element/admonition.html
-.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+..
+  # https://rsted.info.ucl.ac.be/
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://documatt.com/restructuredtext-reference/element/admonition.html
+  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. https://waldyrious.net/rst-playground/
-.. https://rst-tutorial.yakimka.me/playground
+..
+  # https://waldyrious.net/rst-playground/
+  # https://rst-tutorial.yakimka.me/playground
 
 .. currentmodule:: scikitplot.annoy
 

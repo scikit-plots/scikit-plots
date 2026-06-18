@@ -16,7 +16,7 @@ topics covered in the :ref:`quickstart_contributing` guide.
 Pre-commit
 **********
 
-All of the coding style checks described in :ref:`code-style` can be performed automatically
+All of the coding style checks described in :ref:`code-style` or :ref:`code-style-write` can be performed automatically
 when you make a git commit using our provided `pre-commit hook <https://pre-commit.com/>`_
 for git, for more information see
 `git hooks <https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks#_git_hooks>`_.
@@ -50,7 +50,7 @@ you can skip these checks by running::
   git commit --no-verify
 
 If you do not want to use ``pre-commit`` as part of your git workflow, you can
-still run the checks manually (see, :ref:`code-style`) using::
+still run the checks manually (see, :ref:`code-style` or :ref:`code-style-write`) using::
 
   tox -e codestyle
 

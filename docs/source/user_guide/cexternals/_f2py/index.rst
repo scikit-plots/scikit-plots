@@ -15,8 +15,10 @@ Fortran to Python Interface Generator :py:mod:`~._f2py`.
    * https://scipy-cookbook.readthedocs.io/items/F2Py.html
    * https://scipy-cookbook.readthedocs.io/items/idx_interfacing_with_other_languages.html
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot.cexternals import _f2py

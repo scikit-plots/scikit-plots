@@ -1,6 +1,8 @@
 :orphan:
+:no-index:
 
-.. # This file is included. So it needs to be marked as orphan to suppress warnings.
+..
+  # This file is included. So it needs to be marked as orphan to suppress warnings.
 
 .. _troubleshooting-install:
 

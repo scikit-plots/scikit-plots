@@ -5,7 +5,7 @@
 
 """
 scikitplot.cython
-==================
+=================
 A lightweight runtime Cython development kit with caching, pinning,
 garbage collection, and templating support.
 

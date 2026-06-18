@@ -8,12 +8,13 @@
   ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-.. # https://rsted.info.ucl.ac.be/
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-.. # https://documatt.com/restructuredtext-reference/element/admonition.html
-.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+..
+  # https://rsted.info.ucl.ac.be/
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://documatt.com/restructuredtext-reference/element/admonition.html
+  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. currentmodule:: scikitplot.cexperimental
 
@@ -63,8 +64,10 @@ The best way to truly understand ...
    * https://numpy.org/devdocs/user/c-info.html
    * https://numpy.org/devdocs/reference/c-api/index.html
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    import numpy as np
@@ -83,8 +86,10 @@ A lightweight version of NumPy (or similar functionality).
    * https://github.com/dpilger26/NumCpp
    * https://github.com/scikit-plots/lightnumpy
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
     try:
@@ -96,14 +101,18 @@ A lightweight version of NumPy (or similar functionality).
     else:
       !ls $inc_dir_lightnumpy
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc
    nc.get_include()
 
-.. .. code-block:: python
+..
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc

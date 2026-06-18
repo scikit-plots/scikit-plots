@@ -1,3 +1,5 @@
+:orphan:
+
 # Contributing to scikit-plots using GitHub codespaces
 
 * For a general overview of contributing to scikit-plots, see https://scikit-plots.github.io/dev/devel/index.html

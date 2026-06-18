@@ -19,8 +19,10 @@ This module contains functions related to :py:mod:`~._tweedie` under :py:mod:`~s
    * https://github.com/thequackdaddy/tweedie
    * Documentation is available in the docstrings and online at https://github.com/thequackdaddy/tweedie.
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    # (recommended) scikitplot stats also include _tweedie

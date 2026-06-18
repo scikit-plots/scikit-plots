@@ -12,14 +12,18 @@ See :py:mod:`~._numcpp` and :py:mod:`~.nc`.
 
    * https://github.com/scikit-plots/lightnumpy
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc
    nc.get_include()
 
-.. .. code-block:: python
+..
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc

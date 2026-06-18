@@ -57,14 +57,18 @@ np.sum(a)                nc::sum(a)
 np.linalg.inv(a)         nc::linalg::inv(a)
 =======================  ===========================
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc
    nc.get_include()
 
-.. .. code-block:: python
+..
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    from scikitplot import nc

@@ -1,5 +1,6 @@
-.. https://docs.astropy.org/en/latest/development/quickstart.html
-.. https://github.com/astropy/astropy/blob/main/docs/index_dev.rst
+..
+  # https://docs.astropy.org/en/latest/development/quickstart.html
+  # https://github.com/astropy/astropy/blob/main/docs/index_dev.rst
 
 .. _quickstart_contributing:
 
@@ -480,7 +481,7 @@ code or documentation! At a high level this breaks into a few parts:
 
 .. tip::
 
-    For more information and examples see :ref:`edit-flow` section.
+    For more information and examples see :ref:`edit-flow` or :ref:`edit-flow-work` section.
 
 You can see a summary of the changes you've currently made by running:
 

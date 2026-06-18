@@ -1,5 +1,6 @@
-.. https://overbits.herokuapp.com/rsteditor/
-.. https://rsted.info.ucl.ac.be/
+..
+  # https://overbits.herokuapp.com/rsteditor/
+  # https://rsted.info.ucl.ac.be/
 
 .. _python_nogil:
 

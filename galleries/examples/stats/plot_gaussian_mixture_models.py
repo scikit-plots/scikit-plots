@@ -8,7 +8,7 @@ Imagine you have a scatter plot of data and you can see a few separate
 clusters.  A Gaussian Mixture Model (GMM) formalises that intuition: it
 assumes the data came from K overlapping "blobs", each shaped like a
 multivariate Gaussian (bell curve).  We do not know K ahead of time —
-that is the whole point of this example.
+that is the whole point of this example. [1]_ [2]_ [3]_ [4]_ [5]_
 
 Mathematically, the model says:
 

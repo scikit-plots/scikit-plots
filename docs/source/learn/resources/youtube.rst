@@ -44,5 +44,7 @@ Videos
   <https://www.youtube.com/watch?v=JXtISpdDPNY>`_
   by Statistics Globe
 
-.. https://www.youtube.com/watch?v=qqwf4Vuj8oM&list=PLeo1K3hjS3uu4Lr8_kro2AqaO6CFYgKOl&index=1
+..
+  # https://www.youtube.com/watch?v=qqwf4Vuj8oM&list=PLeo1K3hjS3uu4Lr8_kro2AqaO6CFYgKOl&index=1
+
 ..  youtube:: JXtISpdDPNY

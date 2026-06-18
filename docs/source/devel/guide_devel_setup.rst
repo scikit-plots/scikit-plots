@@ -283,7 +283,7 @@ Install pre-commit hooks ::
     pre-commit install
 
 Hooks are run automatically after the ``git commit`` stage of the
-:ref:`editing workflow<edit-flow>`. When a hook has found and fixed an error in a
+:ref:`editing workflow<edit-flow>`  or :ref:`edit-flow-work`. When a hook has found and fixed an error in a
 file, that file must be *staged and committed* again.
 
 Hooks can also be run manually. All the hooks can be run, in order as

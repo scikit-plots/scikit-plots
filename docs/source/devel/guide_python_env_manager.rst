@@ -1,10 +1,10 @@
 :orphan:
 ..
   # This file is included. So it needs to be marked as orphan to suppress warnings.
+  # https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
   .. include:: guide_python_env_manager.rst
       :start-after: :orphan:
 
-.. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
 
 .. _python_env_manager:
 
@@ -14,7 +14,8 @@
 
 .. 🧊
 
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+..
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 
 .. seealso::
 
@@ -47,9 +48,9 @@
 🛠 The Main Tools (And What They're Good At)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#table-directives
 
 ..
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#table-directives
     =====  =====  =======
     A      B      A and B
     =====  =====  =======

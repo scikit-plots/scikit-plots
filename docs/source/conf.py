@@ -287,6 +287,11 @@ extensions = [
     # Custom extensions (these should be placed last to avoid conflicts)
     # See _sphinx_ext/
     #
+    # https://pydata-sphinx-theme.readthedocs.io/en/stable/community/topics/galleries.html
+    # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py
+    "scikitplot/_externals/_sphinx_ext/_pydata_sphinx_theme/gallery_directive.py"  # "_extension.gallery_directive",
+    "scikitplot/_externals/_sphinx_ext/_pydata_sphinx_theme/component_directive.py"  # "_extension.component_directive",
+    #
     # local matplotlib: Custom extensions
     "_sphinx_ext.mpl_ext.redirect_from",
     "_sphinx_ext.mpl_ext.github",
@@ -312,9 +317,6 @@ extensions = [
     "scikitplot._externals._sphinx_ext._sphinxcontrib_youtube",
     # https://isolveit.github.io/sphinx-pdf-generate
     # "sphinx_pdf_generate",
-    # custom extensions
-    # "_extension.gallery_directive",
-    # "_extension.component_directive",
 ]
 
 # %%

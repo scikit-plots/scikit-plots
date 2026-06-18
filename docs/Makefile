@@ -47,6 +47,7 @@ all: html-noplot
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
+# SPHINXOPTS   ?= -T -vvv -W --keep-going -n
 SPHINXOPTS   ?= -T -v
 SPHINXBUILD  ?= sphinx-build
 SOURCEDIR     = source
@@ -149,6 +150,7 @@ html: clean
 	@echo "$(ALLSPHINXOPTS)"
 	@echo "Running sphinx documentation build..."
 	@$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) -j$(SPHINX_NUMJOBS) $(BUILDDIR)/html/stable
+	@echo $? || true
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html/stable"
 
 # Default to SPHINX_NUMJOBS=auto (except on MacOS and CI) since this makes

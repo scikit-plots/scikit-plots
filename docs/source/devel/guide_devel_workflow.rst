@@ -103,7 +103,7 @@ default, git will have a link to your fork of the GitHub repo, called
    git push origin my-new-feature
 
 
-.. _edit-flow:
+.. _edit-flow-work:
 
 The editing workflow
 ====================
@@ -349,7 +349,7 @@ and now, the history looks like this::
      6ad92e5 * masked is now an instance of a new object, MaskedConstant
 
 If it went wrong, recovery is again possible as explained :ref:`above
-<recovering-from-mess-up>`.
+<recovering-from-mess-up>` or :ref:`recovering-from-mess-up-git`.
 
 If you have not yet pushed this branch to github, you can carry on as normal,
 however if you *have* already pushed this commit see :ref:`force-push` for how
@@ -417,7 +417,7 @@ When all looks good, you can delete your backup branch::
    git branch -D tmp
 
 If it doesn't look good you may need to have a look at
-:ref:`recovering-from-mess-up`.
+:ref:`recovering-from-mess-up` or :ref:`recovering-from-mess-up-git`.
 
 If you have made changes to files that have also changed in ``main``, this may
 generate merge conflicts that you need to resolve - see the `git rebase`_ man
@@ -523,7 +523,7 @@ pull request.
       - Check
       - Tips for finding cause of failure
     * - Linting
-      - :ref:`code style <code-style>`
+      - :ref:`code style <code-style>` or :ref:`code-style-write`
       - Errors are displayed as annotations on the pull request diff.
     * - | Mypy
         | Stubtest

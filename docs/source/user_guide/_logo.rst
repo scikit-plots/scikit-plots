@@ -28,8 +28,10 @@ This makes the logo easy to:
 
 .. rubric:: Examples
 
-.. .. jupyter-execute
-.. .. code-block:: python
+..
+  .. jupyter-execute
+  .. code-block:: python
+
 .. prompt:: python >>>
 
    import scikitplot as sp

@@ -14,26 +14,35 @@ An example showing the :py:class:`~scikitplot.annoy._annoy.Index` class.
 #
 # 1. **Parse** Hamlet into passages (speech blocks per character per scene)
 # 2. **Embed** passages into dense vectors using TF-IDF → truncated SVD
-# 3. **Build** Annoy indexes across multiple `dtype` / `metric` combinations
+# 3. **Build** Annoy indexes across multiple ``dtype`` / ``metric`` combinations
 #    — including **float16** for half-precision (TensorFlow/PyTorch style)
 # 4. **Query** for the most similar passages and compare results
 # 5. **Benchmark** disk usage and build time across dtypes
 #
 # Why Annoy?
 #
-# | Feature | Value |
-# |---|---|
-# | Algorithm | Random-projection forest + priority search |
-# | Index types | `int8` → `uint64` (any item-ID width) |
-# | Data types | `float16`, `float32`, `float64`, `float128` |
-# | Metrics | `angular`, `euclidean`, `manhattan`, `dot`, `hamming` |
-# | Thread-safety | Concurrent reads after build (GIL released) |
-# | Memory-map | `mmap`-based — indexes larger than RAM |
+# +---------------+--------------------------------------------------+
+# | Feature       | Value                                            |
+# +===============+==================================================+
+# | Algorithm     | Random-projection forest + priority search       |
+# +---------------+--------------------------------------------------+
+# | Index types   | ``int8`` → ``uint64`` (any item-ID width)        |
+# +---------------+--------------------------------------------------+
+# | Data types    | ``float16``, ``float32``, ``float64``,           |
+# |               | ``float128``                                     |
+# +---------------+--------------------------------------------------+
+# | Metrics       | ``angular``, ``euclidean``, ``manhattan``,       |
+# |               | ``dot``, ``hamming``                             |
+# +---------------+--------------------------------------------------+
+# | Thread-safety | Concurrent reads after build (GIL released)      |
+# +---------------+--------------------------------------------------+
+# | Memory-map    | ``mmap``-based — indexes larger than RAM         |
+# +---------------+--------------------------------------------------+
 #
 # **float16** stores each dimension in 2 bytes instead of 4 (float32) or 8 (float64).
 # For large-scale embeddings (millions of items × hundreds of dimensions),
 # this halves disk and memory usage with minimal accuracy loss — the same
-# trade-off used by PyTorch's `torch.float16` and TensorFlow's `tf.float16`.
+# trade-off used by PyTorch's ``torch.float16`` and TensorFlow's ``tf.float16``.
 
 import os
 import re
@@ -62,8 +71,8 @@ print(f"Index class: {Index}")
 # **speech blocks** — each block is one character's consecutive lines within a scene.
 # This gives us ~300–600 passages, each with enough text for meaningful similarity.
 #
-# ```
-# download_hamlet()
+# ::
+#   download_hamlet()
 #         │
 #         ├─ success → use Gutenberg full text
 #         │
@@ -71,7 +80,6 @@ print(f"Index class: {Index}")
 #                  │
 #                  ▼
 #              raw_text
-# ```
 
 # ---------------------------------------------------------------------------
 # Option A: Download from Project Gutenberg (if network available)
@@ -421,19 +429,18 @@ print(f"Raw text length: {len(raw_text):,} chars")
 print(raw_text[:200])
 
 # %%
-# ```
-# raw_text
-#    ↓
-# clean_text()
-#    ↓
-# tokenize()
-#    ↓
-# chunk_text()
-#    ↓
-# vectorize()
-#    ↓
-# Annoy index
-# ```
+# ::
+#     raw_text
+#     ↓
+#     clean_text()
+#     ↓
+#     tokenize()
+#     ↓
+#     chunk_text()
+#     ↓
+#     vectorize()
+#     ↓
+#     Annoy index
 
 # ---------------------------------------------------------------------------
 # Parse into passages: (character, act_scene, text)
@@ -721,15 +728,14 @@ print(f"Num passages    : {len(embeddings)}")
 # %%
 # ## 3. Build Annoy Indexes — Core API Walkthrough
 #
-# The `Index` class is the main entry point. Here's the lifecycle:
+# The ``Index`` class is the main entry point. Here's the lifecycle:
 #
-# ```python
-# idx = Index(f=64, metric='angular', dtype='float32')  # 1. Create
-# idx.add_item(0, vector)                                # 2. Add items
-# idx.build(n_trees=10)                                  # 3. Build forest
-# neighbors = idx.get_nns_by_item(0, 5)                  # 4. Query
-# idx.save('index.ann')                                  # 5. Persist
-# ```
+# ::
+#     idx = Index(f=64, metric='angular', dtype='float32')   # 1. Create
+#     idx.add_item(0, vector)                                # 2. Add items
+#     idx.build(n_trees=10)                                  # 3. Build forest
+#     neighbors = idx.get_nns_by_item(0, 5)                  # 4. Query
+#     idx.save('index.ann')                                  # 5. Persist
 
 # ---------------------------------------------------------------------------
 # 3a. Basic Index — angular metric, float32 (default)
@@ -920,22 +926,42 @@ for rank, (nid, dist) in enumerate(zip(neighbors, distances), 1):
 # %%
 # ## 4. float16 — Half-Precision for Fast & Compact Indexes
 #
-# The `float16` dtype stores each embedding dimension in **2 bytes** instead of
+# The ``float16`` dtype stores each embedding dimension in **2 bytes** instead of
 # 4 (float32) or 8 (float64). This is the same half-precision format used by:
 #
-# - **PyTorch**: `torch.float16` / `torch.half`
-# - **TensorFlow**: `tf.float16`
-# - **NumPy**: `np.float16`
+# - **PyTorch**: ``torch.float16`` / ``torch.half``
+# - **TensorFlow**: ``tf.float16``
+# - **NumPy**: ``np.float16``
 #
 # ### Trade-offs
 #
-# | Aspect | float16 | float32 | float64 |
-# |---|---|---|---|
-# | Bytes/dimension | 2 | 4 | 8 |
-# | Precision (decimal digits) | ~3.3 | ~7.2 | ~15.9 |
-# | Range | ±65504 | ±3.4×10³⁸ | ±1.8×10³⁰⁸ |
-# | Typical use case | Storage, inference | Training, general | Scientific computing |
-# | Disk for 1M × 128-d | ~244 MB | ~488 MB | ~976 MB |
+# .. list-table::
+#    :header-rows: 1
+#
+#    * - Aspect
+#      - float16
+#      - float32
+#      - float64
+#    * - Bytes/dimension
+#      - 2
+#      - 4
+#      - 8
+#    * - Precision (decimal digits)
+#      - ~3.3
+#      - ~7.2
+#      - ~15.9
+#    * - Range
+#      - ±65504
+#      - ±3.4×10³⁸
+#      - ±1.8×10³⁰⁸
+#    * - Typical use case
+#      - Storage, inference
+#      - Training, general
+#      - Scientific computing
+#    * - Disk for 1M × 128-d
+#      - ~244 MB
+#      - ~488 MB
+#      - ~976 MB
 #
 # For ANN search, the **distance ranking** (which neighbor is closest) is far
 # more important than the exact distance value. float16 preserves ranking
@@ -1049,13 +1075,27 @@ print(f"Overlap float32 ∩ float64 (top-10): {len(f32_set & f64_set)}/10")
 #
 # Annoy supports several metrics, each suited to different data:
 #
-# | Metric | Formula | Best for |
-# |---|---|---|
-# | `angular` | 1 − cos(u, v) | Normalized embeddings, text similarity |
-# | `euclidean` | ‖u − v‖₂ | Spatial data, un-normalized vectors |
-# | `manhattan` | ‖u − v‖₁ | Sparse features, robust to outliers |
-# | `dot` | −u·v (negated) | Recommendation scores, un-normalized |
-# | `hamming` | popcount(u ⊕ v) | Binary features, hash codes |
+# .. list-table::
+#    :header-rows: 1
+#
+#    * - Metric
+#      - Formula
+#      - Best for
+#    * - ``angular``
+#      - 1 − cos(u, v)
+#      - Normalized embeddings, text similarity
+#    * - ``euclidean``
+#      - ‖u − v‖₂
+#      - Spatial data, un-normalized vectors
+#    * - ``manhattan``
+#      - ‖u − v‖₁
+#      - Sparse features, robust to outliers
+#    * - ``dot``
+#      - −u·v (negated)
+#      - Recommendation scores, un-normalized
+#    * - ``hamming``
+#      - popcount(u ⊕ v)
+#      - Binary features, hash codes
 
 # ---------------------------------------------------------------------------
 # 5a. Compare metrics on the same query
@@ -1079,18 +1119,27 @@ for metric in ['angular', 'euclidean', 'manhattan', 'dot']:
 # %%
 # ## 6. Extended Index Types
 #
-# The `index_dtype` parameter controls the width of item IDs:
+# The ``index_dtype`` parameter controls the width of item IDs:
 #
-# | `index_dtype` | Max items | Memory/ID | Use case |
-# |---|---|---|---|
-# | `int8` | 127 | 1 byte | Tiny prototype indexes |
-# | `int16` | 32,767 | 2 bytes | Small datasets |
-# | `int32` | ~2.1B | 4 bytes | Standard (default) |
-# | `int64` | ~9.2×10¹⁸ | 8 bytes | Large-scale production |
-# | `uint8` | 255 | 1 byte | Labels, categories |
-# | `uint16` | 65,535 | 2 bytes | Medium catalogs |
-# | `uint32` | ~4.3B | 4 bytes | Very large datasets |
-# | `uint64` | ~9.2×10¹⁸ | 8 bytes | Maximum capacity |
+# +----------------+----------------+-----------+-------------------------+
+# | ``index_dtype``| Max items      | Memory/ID | Use case                |
+# +================+================+===========+=========================+
+# | ``int8``       | 127            | 1 byte    | Tiny prototype indexes  |
+# +----------------+----------------+-----------+-------------------------+
+# | ``int16``      | 32,767         | 2 bytes   | Small datasets          |
+# +----------------+----------------+-----------+-------------------------+
+# | ``int32``      | ~2.1B          | 4 bytes   | Standard (default)      |
+# +----------------+----------------+-----------+-------------------------+
+# | ``int64``      | ~9.2×10¹⁸      | 8 bytes   | Large-scale production  |
+# +----------------+----------------+-----------+-------------------------+
+# | ``uint8``      | 255            | 1 byte    | Labels, categories      |
+# +----------------+----------------+-----------+-------------------------+
+# | ``uint16``     | 65,535         | 2 bytes   | Medium catalogs         |
+# +----------------+----------------+-----------+-------------------------+
+# | ``uint32``     | ~4.3B          | 4 bytes   | Very large datasets     |
+# +----------------+----------------+-----------+-------------------------+
+# | ``uint64``     | ~9.2×10¹⁸      | 8 bytes   | Maximum capacity        |
+# +----------------+----------------+-----------+-------------------------+
 
 # ---------------------------------------------------------------------------
 # 6a. int8 index — tiny item IDs for small datasets (max 127 items)
@@ -1237,10 +1286,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
 #
 # For scenarios requiring maximum numerical fidelity (scientific computing,
 # high-dimensional geometry, accumulation-sensitive distance computations),
-# `float128` provides 128-bit storage:
+# ``float128`` provides 128-bit storage:
 #
-# - On GCC/Clang (x86): native `__float128` (33 decimal digits)
-# - On MSVC / other: falls back to `long double` (≥80-bit extended)
+# - On GCC/Clang (x86): native ``__float128`` (33 decimal digits)
+# - On MSVC / other: falls back to ``long double`` (≥80-bit extended)
 #
 # This is the counterpart to float16's "trade accuracy for size" —
 # float128 trades size for accuracy.
@@ -1343,48 +1392,47 @@ if 'Hamlet' in char_list:
 # %%
 # ## 11. API Quick Reference
 #
-# ```python
-# from scikitplot.annoy._annoy import Index
+# ::
+#     from scikitplot.annoy._annoy import Index
 #
-# # ── Construction ──────────────────────────────────────────────
-# idx = Index(
-#     f=128,                  # embedding dimension
-#     metric='angular',       # angular|euclidean|manhattan|dot|hamming
-#     dtype='float16',        # float16|float32|float64|float128
-#     index_dtype='int32',    # int8|int16|int32|int64|uint8|uint16|uint32|uint64
-#     seed=42,                # reproducible builds
-# )
+#     # ── Construction ──────────────────────────────────────────────
+#     idx = Index(
+#         f=128,                  # embedding dimension
+#         metric='angular',       # angular|euclidean|manhattan|dot|hamming
+#         dtype='float16',        # float16|float32|float64|float128
+#         index_dtype='int32',    # int8|int16|int32|int64|uint8|uint16|uint32|uint64
+#         seed=42,                # reproducible builds
+#     )
 #
-# # ── Adding items ──────────────────────────────────────────────
-# idx.add_item(item_id, vector)    # vector: list[float] of length f
+#     # ── Adding items ──────────────────────────────────────────────
+#     idx.add_item(item_id, vector)    # vector: list[float] of length f
 #
-# # ── Building ──────────────────────────────────────────────────
-# idx.build(n_trees=10)            # more trees → better recall
+#     # ── Building ──────────────────────────────────────────────────
+#     idx.build(n_trees=10)            # more trees → better recall
 #
-# # ── Querying ──────────────────────────────────────────────────
-# ids = idx.get_nns_by_item(id, n=10)                    # by item ID
-# ids = idx.get_nns_by_vector(vec, n=10)                  # by vector
-# ids, dists = idx.get_nns_by_item(id, 10,                # with distances
-#                                   include_distances=True)
+#     # ── Querying ──────────────────────────────────────────────────
+#     ids = idx.get_nns_by_item(id, n=10)                    # by item ID
+#     ids = idx.get_nns_by_vector(vec, n=10)                  # by vector
+#     ids, dists = idx.get_nns_by_item(id, 10,                # with distances
+#                                     include_distances=True)
 #
-# # ── Inspection ────────────────────────────────────────────────
-# idx.get_n_items()                # number of items
-# idx.get_n_trees()                # number of trees
-# idx.get_item(id)                 # retrieve stored vector
-# idx.get_distance(i, j)           # distance between two items
+#     # ── Inspection ────────────────────────────────────────────────
+#     idx.get_n_items()                # number of items
+#     idx.get_n_trees()                # number of trees
+#     idx.get_item(id)                 # retrieve stored vector
+#     idx.get_distance(i, j)           # distance between two items
 #
-# # ── Persistence ───────────────────────────────────────────────
-# idx.save('index.ann')            # save to disk
-# idx.load('index.ann')            # load (mmap-based, instant)
-# idx.unload()                     # release memory
+#     # ── Persistence ───────────────────────────────────────────────
+#     idx.save('index.ann')            # save to disk
+#     idx.load('index.ann')            # load (mmap-based, instant)
+#     idx.unload()                     # release memory
 #
-# # ── Context manager ───────────────────────────────────────────
-# with Index(f=128, metric='angular') as idx:
-#     idx.add_item(0, vec)
-#     idx.build(10)
-#     result = idx.get_nns_by_item(0, 5)
-# # auto-cleanup on exit
-# ```
+#     # ── Context manager ───────────────────────────────────────────
+#     with Index(f=128, metric='angular') as idx:
+#         idx.add_item(0, vec)
+#         idx.build(10)
+#         result = idx.get_nns_by_item(0, 5)
+#     # auto-cleanup on exit
 
 # %%
 # ## 12. Key Takeaways
@@ -1397,16 +1445,16 @@ if 'Hamlet' in char_list:
 #
 # **float128 for scientific computing:**
 # - Maximum numerical precision for sensitive distance computations
-# - Native `__float128` on GCC/Clang, `long double` fallback on MSVC
+# - Native ``__float128`` on GCC/Clang, ``long double`` fallback on MSVC
 #
-# **Extended index types (`int8` → `uint64`):**
+# **Extended index types (``int8`` → ``uint64``):**
 # - Match ID width to your dataset size
 # - Smaller IDs = less memory per tree node
 #
 # **Platform compatibility:**
 # - All features work on x86, x64, ARM (Apple Silicon, Android, RPi)
 # - Windows (MSVC), macOS (Clang), Linux (GCC) all supported
-# - The fixed `annoylib.h` handles all platform differences via compile-time detection
+# - The fixed ``annoylib.h`` handles all platform differences via compile-time detection
 
 # %%
 #

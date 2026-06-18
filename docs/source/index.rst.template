@@ -1,10 +1,10 @@
 {#-
 
-.. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
-.. https://snippets.documatt.com/
+..
+  # https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
+  # https://snippets.documatt.com/
 
 ..
-
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
   # with overline, for parts    : ######################################################################
@@ -14,20 +14,21 @@
   ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-.. # https://rsted.info.ucl.ac.be/
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-.. # https://documatt.com/restructuredtext-reference/element/admonition.html
-.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+..
+  # https://rsted.info.ucl.ac.be/
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://documatt.com/restructuredtext-reference/element/admonition.html
+  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
 
-.. Use the :doc: role to cross-reference another page, as opposed to a specific section, like what the :ref: role does.
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#xref-syntax
-.. https://sphinx-intro-tutorial.readthedocs.io/en/latest/sphinx_roles.html
-.. https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
-
-.. https://documatt.com/restructuredtext-reference/element/image.html
+..
+  # Use the :doc: role to cross-reference another page, as opposed to a specific section, like what the :ref: role does.
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#xref-syntax
+  # https://sphinx-intro-tutorial.readthedocs.io/en/latest/sphinx_roles.html
+  # https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects
+  # https://documatt.com/restructuredtext-reference/element/image.html
 
 References:
 - https://www.sphinx-doc.org/en/master/index.html
@@ -43,13 +44,15 @@ References:
 
 - https://sphinx-book-theme.readthedocs.io/en/stable/reference/kitchen-sink/generic.html#rubric
 
-.. https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
-.. https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
-
-.. rst Comments one-line below multi-line
-.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
 ..
+  # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#role-external
+  # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html#confval-intersphinx_mapping
 
+..
+  # rst Comments one-line below multi-line
+  # https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#comments
+
+..
 	Headings and Sections:
 
 	= Main title or top-level heading.
@@ -64,75 +67,86 @@ References:
 	Welcome to Scikit-plots 101<br>|full_version| - |today|
 	</strong></div>
 
-.. Use RST with Centering via CSS
-.. CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+..
+  # Use RST with Centering via CSS
+  # CSS Classes: https://sphinx-design.readthedocs.io/en/latest/css_classes.html
+
 .. container:: center-text
 
 	**Welcome to Scikit-plots 101**
 	|full_version| – |today|
 
 ..
-
 	.center-text {
 		text-align: center;
 		font-weight: bold;
 	}
 
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
-	centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
-
-.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#standard-roles
-.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
-
-.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#role
-.. role:: custom  # of using :custom:`interpreted text`
-
-.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
-.. role:: raw-latex(raw)
-   :format: latex
-.. https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
-.. role:: raw-html(raw)
-	:format: html
-.. :raw-html:`<br />`
-
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#substitutions
-.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#substitution-definitions
-.. |name| replace:: replacement *text*
-.. |br| raw:: html
-
-  <br/>
-
-.. https://pandemic-overview.readthedocs.io/en/latest/bareos/RestOverview.html#cross-linking-markup
-
-.. footnote-style reference in reStructuredText (reST)
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#toc-entry-35
-.. [#f1] Text of the first footnote.
-
-.. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#citations
-.. https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#citations
-.. [Ref] Book or article reference, URL or whatever.
-
-.. https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
-.. Use exclude_patterns to explicitly exclude documents or directories from building completely.
-.. Use the `:orphan:` metadata to let a document be built, but notify Sphinx that it is not reachable via a toctree.
-.. Sphinx issues a warning: WARNING: document isn't included in any toctree.
-.. Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
 ..
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-centered
+  .. centered:: Welcome to Scikit-plots 101 :raw-html:`<br />` |release|
 
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/roles.html#standard-roles
+  # https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
+
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/directives.html#role
+  .. role:: custom  # of using :custom:`interpreted text`
+
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/directives.html#custom-interpreted-text-roles
+  .. role:: raw-latex(raw)
+    :format: latex
+
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/roles.html#specialized-roles
+  .. role:: raw-html(raw)
+	:format: html
+  .. :raw-html:`<br />`
+
+..
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#substitutions
+  https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#substitution-definitions
+  |name| replace:: replacement *text*
+  .. |br| raw:: html
+    <br/>
+
+..
+  # https://pandemic-overview.readthedocs.io/en/latest/bareos/RestOverview.html#cross-linking-markup
+
+..
+  # footnote-style reference in reStructuredText (reST)
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#toc-entry-35
+  # [#f1] Text of the first footnote.
+
+..
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#citations
+  # https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#citations
+  # [Ref] Book or article reference, URL or whatever.
+
+..
+  # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-exclude_patterns
+  # Use exclude_patterns to explicitly exclude documents or directories from building completely.
+  # Use the `:orphan:` metadata to let a document be built, but notify Sphinx that it is not reachable via a toctree.
+  # Sphinx issues a warning: WARNING: document isn't included in any toctree.
+  # Sphinx suppresses the warning, and the file can still be built and accessed by its direct URL.
+
+..
   # This file is included. So it needs to be marked as orphan to suppress warnings.
-  .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/field-lists.html#metadata
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/field-lists.html#metadata
   .. include:: installation_instructions_conda.rst
 		:start-after: :orphan:
 
-.. https://www.tarantool.io/en/doc/latest/contributing/docs/sphinx-warnings/
-
-.. https://documatt.com/restructuredtext-reference/intro/sphinx-docutils.html
-.. https://documatt.com/restructuredtext-reference/element/literal-block.html
-.. https://documatt.com/restructuredtext-reference/element/code-block.html
-.. https://pygments.org/languages/
 ..
+  # https://www.tarantool.io/en/doc/latest/contributing/docs/sphinx-warnings/
+  # https://documatt.com/restructuredtext-reference/intro/sphinx-docutils.html
+  # https://documatt.com/restructuredtext-reference/element/literal-block.html
+  # https://documatt.com/restructuredtext-reference/element/code-block.html
+  # https://pygments.org/languages/
 
+..
 	# Code syntax
 	:: >>>
 	python, r, c, cpp, sql, bash, shell, make, cmake, docker,
@@ -187,17 +201,21 @@ References:
 
 -#}
 
-.. Used for setting metadata like the document's title for processing tools.
+..
+  # Used for setting metadata like the document's title for processing tools.
+
 .. title:: Homepage
 
-.. Label (target) used for internal referencing, use underscores or hyphens (no spaces allowed)
-.. Underscores are the official recommended separator in reST labels.
-.. Dashes are allowed but sometimes can conflict with word hyphens.
-.. See the section on `whatever <#root-index>`_ or See :ref:`root-index`.
+..
+  # Label (target) used for internal referencing, use underscores or hyphens (no spaces allowed)
+  # Underscores are the official recommended separator in reST labels.
+  # Dashes are allowed but sometimes can conflict with word hyphens.
+  # See the section on `whatever <#root-index>`_ or See :ref:`root-index`.
+
 .. _root-index:
 
 .. Define the overall structure, that affects the prev-next buttons and the order
-	of the sections in the top navbar.
+   of the sections in the top navbar.
 
 .. toctree::
 	:maxdepth: 2

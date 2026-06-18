@@ -1,4 +1,6 @@
-.. docs/source/user_guide/corpus/index.rst
+..
+  # docs/source/user_guide/corpus/index.rst
+
 ..
   https://devguide.python.org/documentation/markup/#sections
   https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections
@@ -9,12 +11,13 @@
   ^ for subsubsections          : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   " for paragraphs              : """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-.. # https://rsted.info.ucl.ac.be/
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
-.. # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
-.. # https://documatt.com/restructuredtext-reference/element/admonition.html
-.. # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
-.. # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
+..
+  # https://rsted.info.ucl.ac.be/
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#paragraph-level-markup
+  # https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#footnotes
+  # https://documatt.com/restructuredtext-reference/element/admonition.html
+  # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
+  # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
 .. currentmodule:: scikitplot.corpus
 
@@ -33,10 +36,12 @@ Quick start
 
 .. rubric:: Examples
 
-.. .. code-block:: python
-.. .. code-block:: bash
-.. .. jupyter-execute
-.. .. prompt:: python >>>
+..
+  .. code-block:: python
+  .. code-block:: bash
+  .. jupyter-execute
+  .. prompt:: python >>>
+
 .. prompt:: python >>>
 
     # First we download the media preproccess libraries (text, image, audio or video).
@@ -52,7 +57,9 @@ Quick start
 
 * :ref:`sphx_glr_auto_examples_corpus_plot_corpus_who_per_file_script.py`: Example notebook.
 
-.. https://github.com/roy-ht/langdetect
+..
+  # https://github.com/roy-ht/langdetect
+
 .. seealso::
   Google's language-detection:
 

@@ -1,3 +1,5 @@
+:orphan:
+
 # Gallery of sites using this theme
 
 This is a gallery of documentation sites built with `pydata-sphinx-theme`. If you'd like

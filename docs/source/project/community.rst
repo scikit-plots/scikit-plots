@@ -1,9 +1,11 @@
-.. https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
-.. https://snippets.documatt.com/
+..
+  # https://www.tutorialspoint.com/compilers/online-restructure-editor.htm
+  # https://snippets.documatt.com/
 
-.. https://john-cd.com/cheatsheets/Markup_and_Documentation/reStructuredText/#official-restructuredtext-cheatsheet
-.. https://waldyrious.net/rst-playground/
-.. https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
+..
+  # https://john-cd.com/cheatsheets/Markup_and_Documentation/reStructuredText/#official-restructuredtext-cheatsheet
+  # https://waldyrious.net/rst-playground/
+  # https://docutils.sourceforge.io/docs/ref/rst/directives.html#images
 
 .. _scikit-plots-community:
 
@@ -12,13 +14,13 @@ Scikit-Plots Community
 =======================
 
 ..
-   Community & Organization:
+   # Community & Organization:
    - ISNI ID for the organization (if available) (e.g., https://isni.org/isni/0000000119575136)
    - GRID ID for the organization (if available) (e.g., https://www.grid.ac/institutes/grid.463323.3)
    - Crossref Funder ID for the organization (if available) (e.g., https://doi.org/10.13039/100005595) (note: this is different from a publisher's Crossref prefix)
 
 ..
-   https://github.com/Ileriayo/markdown-badges
+   # https://github.com/Ileriayo/markdown-badges
    labelColor= (left side), color= (right side)
    https://img.shields.io/badge/scikit_plots-blue.svg?style=for-the-badge&label=linkedin&logo=linkedin&labelColor=blue&color=green
    https://img.shields.io/badge/scikit_plots-blue.svg?style=for-the-badge&label=github%20discussions&logo=github&labelColor=blue&color=green
@@ -103,8 +105,10 @@ Subscribe to releases
 * https://anaconda.org/channels/scikit-plots-wheels-staging-nightly/packages/scikit-plots/overview
 * https://hub.docker.com/r/scikitplot/scikit-plots
 
-.. - **Wikipedia:** `Scikit-Plots Wikipedia <https://en.wikipedia.org/wiki/Draft:Scikit-plots>`_
-.. - **Wikidata:** `Q136824098 <https://www.wikidata.org/wiki/Q136824098>`_
+..
+  # - **Wikipedia:** `Scikit-Plots Wikipedia <https://en.wikipedia.org/wiki/Draft:Scikit-plots>`_
+  # - **Wikidata:** `Q136824098 <https://www.wikidata.org/wiki/Q136824098>`_
+
 ..
     Downloads & Installation
     ========================
