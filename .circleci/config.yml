@@ -103,26 +103,21 @@ commands:
   #         name: Check for 'run-ci' label
   #         command: |
   #           set -euo pipefail  # safer bash: fail on error, undefined var, and fail pipe if any step fails
-
   #           # Extract PR number from CIRCLE_PULL_REQUEST URL, if empty skip gracefully
   #           if [ -z "${CIRCLE_PULL_REQUEST:-}" ]; then
   #             echo "No pull request context detected; skipping label check."
   #             exit 0
   #           fi
   #           PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | awk -F/ '{print $NF}')
-
   #           # Use GitHub API to fetch labels; handle errors gracefully without failing job
   #           LABELS=$(curl -sSf -H "Authorization: token $GITHUB_TOKEN" \
   #             "https://api.github.com/repos/your-org/your-repo/issues/$PR_NUMBER/labels" || echo "")
-
   #           if [ -z "$LABELS" ]; then
   #             echo "Warning: Unable to fetch labels or no labels found; proceeding with job."
   #             exit 0
   #           fi
-
   #           # Parse labels safely with jq; handle jq errors without failing
   #           RUN_CI=$(echo "$LABELS" | jq -r '.[].name' 2>/dev/null || echo "" | grep -q "run-ci" && echo "true" || echo "false")
-
   #           if [ "$RUN_CI" != "true" ]; then
   #             echo "Label 'run-ci' not found. Skipping job."
   #             circleci-agent step halt
@@ -138,7 +133,6 @@ commands:
               # Exit early without error — skip the rest of the job if condition is met.
               circleci-agent step halt;
             fi
-
             export GIT_LOG=$(git log --max-count=1 --pretty=format:"%B" | tr "\n" " ")
             echo "Got commit message:"
             echo "${GIT_LOG}"
@@ -188,11 +182,9 @@ commands:
             sudo apt-get update || true
             sudo apt-get install -y --fix-missing ca-certificates
             sudo update-ca-certificates
-
             # Replace HTTPS mirrors with HTTP to avoid cert errors in CI
             sudo sed -i 's|https://ftp.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
             sudo sed -i 's|https://security.ubuntu.com/ubuntu|http://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-
             # Clean apt cache and update package lists
             sudo apt-get clean
             sudo apt-get update --fix-missing -y
@@ -216,10 +208,8 @@ commands:
               libgmp-dev \
               libmpfr-dev \
               tesseract-ocr
-
             # List installed packs:
             tesseract --list-langs  || true
-
             # Expected output should include:
             #   ara   (Arabic + Ottoman)
             #   deu   (German)
@@ -234,13 +224,45 @@ commands:
               tesseract-ocr-heb \
               tesseract-ocr-tur \
               tesseract-ocr-ell
-
             # Alternatively use EasyOCR which handles multilingual without pack installs:
             # pip install easyocr
             # Then in reader_kwargs:
             #   "backend": "easyocr",
             #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
-
+  micromamba-install:
+    description: Install micromamba
+    steps:
+      - run:
+          name: "🐍 Install micromamba"
+          command: |
+            # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
+            # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
+            curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
+              | tar -xvj bin/micromamba
+            sudo mv bin/micromamba /usr/local/bin/
+            # If you want to quickly use micromamba in an ad-hoc usecase, you can run
+            # export MAMBA_ROOT_PREFIX=/some/prefix  # optional, defaults to ~/micromamba
+            # eval "$(./bin/micromamba shell hook -s posix)"
+            # Linux/bash:
+            # ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
+            # micromamba shell init -s bash -r ~/micromamba
+            # sourcing the bashrc file incorporates the changes into the running session.
+            # better yet, restart your terminal!
+            # source ~/.bashrc
+            # If you want to persist these changes, This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where the packages and repodata cache will live.
+            micromamba --version || true
+            which micromamba || true
+            # Now you can activate the base environment and install new packages, or create other environments.
+            # micromamba activate  # this activates the base environment
+            # micromamba install python=3.6 jupyter -c conda-forge
+            # # or
+            # micromamba create -n env_name xtensor -c conda-forge
+            # micromamba activate env_name
+      - run:
+          name: "Check emscripten channels in micromamba"
+          command: |
+            curl -I https://repo.mamba.pm/emscripten-forge/noarch/repodata.json || true
+            curl -I https://repo.prefix.dev/emscripten-forge-dev/noarch/repodata.json || true
   pip-install:
     description: Upgrade pip and setuptools and wheel to get as clean an install as possible
     steps:
@@ -276,6 +298,8 @@ commands:
             pip install jupyterlab-night jupyterlab_miami_nights jupyterlab-fasta jupyterlab-geojson
 
             # Additional jupyterlite (optional)
+            # Or with pip (you must install micromamba 2.0.5):
+            # https://github.com/jupyterlite/xeus#installation
             pip install -U \
               jupyterlite-core \
               jupyterlite-pyodide-kernel \
@@ -309,7 +333,11 @@ commands:
       - attach_workspace:
           at: ~/
       - check-skip  # This calls your custom command
+
+      ## deps
       - apt-install  # This calls your custom command
+      - micromamba-install
+      # - pip-install
 
       - run:
           name: "📘 build docs"
@@ -385,7 +413,10 @@ jobs:
       - check-skip  # This calls your custom command
       - merge
       - submodules
+
+      ## deps
       - apt-install
+      # - micromamba-install
       - pip-install
 
       - restore_cache:
