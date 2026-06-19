@@ -300,13 +300,13 @@ commands:
             # Additional jupyterlite (optional)
             # Or with pip (you must install micromamba 2.0.5):
             # https://github.com/jupyterlite/xeus#installation
+            # pip install jupyterlite-javascript-kernel
             pip install -U \
               jupyterlite-core \
+              jupyterlite-sphinx \
               jupyterlite-pyodide-kernel \
               jupyterlite-xeus \
-              jupyterlite-sphinx
-            # pip install jupyterlite-javascript-kernel
-            # pip install jupyterlite-terminal jupyterlab-git
+              jupyterlite-terminal
   build-scikit-plots:
     description: build scikit-plots
     steps:
