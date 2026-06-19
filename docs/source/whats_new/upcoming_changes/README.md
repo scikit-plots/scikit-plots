@@ -13,7 +13,7 @@ Each file should be named like `<PULL REQUEST>.<TYPE>.rst`, where
 * `enhancement`
 * `fix`
 * `api`
-* `other` (see [](#custom-top-level-folder))
+* `other` (🔗 see [Jump](#custom-top-level-folder))
 
 See [this](https://github.com/scikit-learn/scikit-learn/blob/main/doc/whats_new/changelog_legend.inc)
 for more details about the meaning of each type.
@@ -45,7 +45,11 @@ You can install [`towncrier`](https://github.com/twisted/towncrier) and run
 you want to get a preview of how your change will look in the final release
 notes.
 
-
+<!--
+ or in MyST/Sphinx:
+ (custom-top-level-folder)=
+ -->
+<a id="custom-top-level-folder"></a>
 ## `custom-top-level` folder
 
 The `custom-top-level` folder is for changes for which there is no good

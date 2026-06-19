@@ -128,6 +128,7 @@ commands:
       - run:
           name: "🔍 Check skip"
           command: |
+            set -Eeuo pipefail
             if [ ! -d "scikitplot" ]; then
               echo "Build was not run due to skip, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
               # Exit early without error — skip the rest of the job if condition is met.
@@ -178,6 +179,7 @@ commands:
       - run:
           name: "🛠️ Ensure CA certificates are installed and update apt sources to HTTP"
           command: |
+            set -Eeuo pipefail
             # Install CA certs to avoid SSL errors
             sudo apt-get update || true
             sudo apt-get install -y --fix-missing ca-certificates
@@ -191,6 +193,7 @@ commands:
       - run:
           name: "🛠️ Install system dependencies"
           command: |
+            set -Eeuo pipefail
             sudo apt-get install --fix-missing -y --no-install-recommends \
               build-essential \
               pkg-config \
@@ -235,11 +238,30 @@ commands:
       - run:
           name: "🐍 Install micromamba"
           command: |
+            set -Eeuo pipefail
             # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
             # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
-            curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
-              | tar -xvj bin/micromamba
-            sudo mv bin/micromamba /usr/local/bin/
+            # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
+            # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
+            # -S — show error anyway, even with -s on. This is the one I should have included before.
+            # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
+            # curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest \
+            #   | tar -xvj bin/micromamba
+            # sudo mv bin/micromamba /usr/local/bin/
+            # fetching the LATEST micromamba release, not version 2.0.5 as required.
+            # jupyterlite-xeus requires micromamba 2.0.5 for pip installs https://github.com/jupyterlite/xeus/tree/main#installation
+            # https://github.com/mamba-org/micromamba-releases/releases
+            # https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
+            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
+            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
+            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI).
+            curl -fsSL -o /usr/local/bin/micromamba \
+              "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            chmod +x /usr/local/bin/micromamba
+            which micromamba || true
+            # should now print 2.0.5 from
+            micromamba --version || true
             # If you want to quickly use micromamba in an ad-hoc usecase, you can run
             # export MAMBA_ROOT_PREFIX=/some/prefix  # optional, defaults to ~/micromamba
             # eval "$(./bin/micromamba shell hook -s posix)"
@@ -250,12 +272,10 @@ commands:
             # better yet, restart your terminal!
             # source ~/.bashrc
             # If you want to persist these changes, This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where the packages and repodata cache will live.
-            micromamba --version || true
-            which micromamba || true
             # Now you can activate the base environment and install new packages, or create other environments.
             # micromamba activate  # this activates the base environment
             # micromamba install python=3.6 jupyter -c conda-forge
-            # # or
+            # or
             # micromamba create -n env_name xtensor -c conda-forge
             # micromamba activate env_name
       - run:
@@ -269,6 +289,7 @@ commands:
       - run:
           name: "🐍 Setup Python venv upgrade pip, setuptools, wheel"
           command: |
+            set -Eeuo pipefail
             # python -m pip install --upgrade --user --progress-bar=off --pre pip
             # pip install -r ./requirements/build.txt
             pip install -r ./requirements/all.txt
@@ -285,7 +306,7 @@ commands:
 
             # ✅ It’s a distutils override conflict
             # pip install "setuptools>=69"
-            export SETUPTOOLS_USE_DISTUTILS=local
+            # export SETUPTOOLS_USE_DISTUTILS=local
             pip install -U setuptools
 
             # ⚠️ Escape the heredoc '\<<' in config or python -c (simplest)

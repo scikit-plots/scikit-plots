@@ -422,7 +422,7 @@ def compile_and_load(
         Cython source text.
     module_name : str or None, default=None
         Module name override.
-    **kwargs
+    **kwargs : dict
         Passed to :func:`compile_and_load_result`.
 
     Returns
@@ -448,7 +448,7 @@ def cython_import_result(
         Path to a ``.pyx`` file.
     module_name : str or None, default=None
         Module name override. If None, derived deterministically from file content.
-    **kwargs
+    **kwargs : dict
         Passed to :func:`compile_and_load_result`. The file's parent directory is
         automatically included in include paths.
 
@@ -837,7 +837,7 @@ def build_package_from_code_result(
         Package name.
     profile : {'fast-debug', 'release', 'annotate'} or None, default=None
         Optional build profile preset.
-    **kwargs
+    **kwargs : dict
         Passed to the underlying builder.
 
     Returns
@@ -1037,7 +1037,7 @@ def cython_import_all(
         Glob pattern to match files.
     recursive : bool, default=False
         If True, search recursively.
-    **kwargs
+    **kwargs : dict
         Passed to :func:`cython_import_result`.
 
     Returns

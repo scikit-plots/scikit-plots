@@ -1737,13 +1737,173 @@ autosummary_generate = True
 autosummary_filename_map = {
     # "sklearn.cluster.dbscan": "dbscan-function",
     "scikitplot.modelplotpy.ModelPlotPy": "modelplotpy-cls",
+    # ``scikitplot.logging`` re-exports the stdlib ``logging`` level *constants*
+    # (INFO, DEBUG, ...) alongside the same-named *functions* (info, debug, ...).
+    # Their fully-qualified names collide case-insensitively, so each function
+    # needs a distinct stub filename to avoid "stub file not found" warnings.
     "scikitplot.logging.critical": "critical-func",
     "scikitplot.logging.debug": "debug-func",
     "scikitplot.logging.error": "error-func",
     "scikitplot.logging.fatal": "fatal-func",
+    "scikitplot.logging.info": "info-func",
     "scikitplot.logging.warn": "warn-func",
     "scikitplot.logging.warning": "warning-func",
+    # ``scikitplot.corpus`` exposes lower-case converter functions whose names
+    # collide case-insensitively with upper-case lookup-table constants
+    # (e.g. ``iso_to_nltk`` vs ``ISO_TO_NLTK``); give the functions distinct stubs.
+    "scikitplot.corpus.iso_to_nltk": "iso_to_nltk-func",
+    "scikitplot.corpus.nltk_to_iso": "nltk_to_iso-func",
 }
+
+# ---------------------------------------------------------------------------
+# Future-proofing: auto-resolve any *remaining* case-insensitive stub-filename
+# collisions in namespaces that mix upper-case constants with lower-case
+# functions. This is purely additive -- explicit entries above are authoritative
+# and are never overridden -- and is a safe no-op if a namespace is unimportable.
+# Adding a new alias to such a namespace therefore needs no manual map edit.
+# ---------------------------------------------------------------------------
+
+def disambiguate_casefold_collisions(
+    fullnames,
+    filename_map=None,
+    suffix="-func",
+):
+    """Assign distinct autosummary stub filenames to case-colliding names.
+
+    On case-insensitive filesystems (the default on macOS and Windows) two
+    objects whose fully-qualified names differ only by letter case -- for
+    example ``scikitplot.logging.INFO`` (a constant) and
+    ``scikitplot.logging.info`` (a function) -- map to the same generated
+    autosummary stub filename and silently overwrite each other. Sphinx then
+    emits ``autosummary: stub file not found`` for the overwritten entry.
+
+    This returns an ``autosummary_filename_map`` that gives every colliding
+    member except one a distinct stub filename, so each object gets its own
+    stub. Pre-existing explicit entries are never overridden, making the
+    operation idempotent: applying it twice yields the same mapping.
+
+    Parameters
+    ----------
+    fullnames : iterable of str
+        Fully-qualified object names that autosummary will document.
+    filename_map : mapping of str to str, optional
+        Existing ``autosummary_filename_map``. Explicit entries are preserved
+        and never overridden. Defaults to an empty mapping.
+    suffix : str, default="-func"
+        Suffix appended to the leaf name when building a disambiguated stub
+        filename (matches the project's existing ``-func`` convention).
+
+    Returns
+    -------
+    dict of str to str
+        A new mapping containing every entry from ``filename_map`` plus one
+        added entry for each colliding name that is not already mapped and is
+        not the single member kept at its default filename.
+
+    See Also
+    --------
+    sphinx.ext.autosummary : The extension consuming ``autosummary_filename_map``.
+
+    Notes
+    -----
+    Within each collision group the function keeps one member at its default
+    filename (preferring a member that is not all-lowercase, i.e. the
+    constant) and remaps the rest. Stub filenames only affect generated file
+    names, not cross-references, so remapping never breaks ``:obj:`` links.
+    Generated filenames are guaranteed unique case-insensitively, including
+    against names kept at their default.
+
+    Examples
+    --------
+    >>> disambiguate_casefold_collisions(["pkg.INFO", "pkg.info"]) == {
+    ...     "pkg.info": "info-func"
+    ... }
+    True
+    >>> disambiguate_casefold_collisions(
+    ...     ["pkg.INFO", "pkg.info"], {"pkg.info": "custom"}
+    ... ) == {"pkg.info": "custom"}
+    True
+    >>> disambiguate_casefold_collisions(["pkg.alpha", "pkg.beta"])
+    {}
+    """
+    result = dict(filename_map or {})
+    groups = {}
+    for name in fullnames:
+        groups.setdefault(name.casefold(), []).append(name)
+
+    used = {value.casefold() for value in result.values()}
+    for members in groups.values():
+        unique_members = sorted(set(members))
+        if len(unique_members) < 2:
+            continue
+        keep = next(
+            (name for name in unique_members if name != name.lower()),
+            unique_members[0],
+        )
+        for name in unique_members:
+            if name == keep or name in result:
+                if name in result:
+                    used.add(result[name].casefold())
+                continue
+            leaf = name.rsplit(".", 1)[-1]
+            candidate = f"{leaf}{suffix}"
+            index = 2
+            while (
+                candidate.casefold() in used
+                or candidate.casefold() == name.casefold()
+            ):
+                candidate = f"{leaf}{suffix}-{index}"
+                index += 1
+            result[name] = candidate
+            used.add(candidate.casefold())
+    return result
+
+
+def _public_member_fullnames(module_name):
+    """Return ``module.member`` names for a module's public attributes.
+
+    Parameters
+    ----------
+    module_name : str
+        Importable module path (e.g. ``"scikitplot.logging"``).
+
+    Returns
+    -------
+    list of str
+        Fully-qualified names of the module's public members, or an empty
+        list if the module cannot be imported (kept non-fatal on purpose so a
+        missing optional dependency never breaks the documentation build).
+    """
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as exc:  # noqa: BLE001 - docs build must not hard-fail here
+        warnings.warn(
+            f"autosummary collision scan skipped for {module_name!r}: {exc}",
+            stacklevel=2,
+        )
+        return []
+    return [
+        f"{module_name}.{attr}"
+        for attr in vars(module)
+        if not attr.startswith("_")
+    ]
+
+
+# Namespaces that mix upper-case constants with same-named lower-case callables.
+# Extend this tuple if another such namespace is added; no further edits needed.
+_CASEFOLD_COLLISION_NAMESPACES = (
+    "scikitplot.logging",
+    "scikitplot.corpus",
+)
+
+_collision_candidates = [
+    fullname
+    for namespace in _CASEFOLD_COLLISION_NAMESPACES
+    for fullname in _public_member_fullnames(namespace)
+]
+autosummary_filename_map = disambiguate_casefold_collisions(
+    _collision_candidates, autosummary_filename_map
+)
 
 ##########################################################################
 ## Extension: numpydoc

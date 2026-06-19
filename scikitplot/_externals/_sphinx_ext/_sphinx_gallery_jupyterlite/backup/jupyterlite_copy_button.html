@@ -1,0 +1,115 @@
+<style>
+  .alert { padding: 14px 18px; border-radius: 6px; margin: 16px 0; }
+  .alert-warning { background: #fff3cd; border: 1px solid #ffe69c; color: #664d03; }
+  .alert h4 { margin-top: 0; font-size: 1.05rem; }
+  .alert ul { margin-bottom: 0; padding-left: 1.2em; }
+  .alert code { background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+  .alert a { color: #664d03; text-decoration: underline; }
+
+  [data-copy-block] { position: relative; margin-top: 12px; }
+  [data-copy-block] pre {
+    background: #2d2d2d; color: #e8e8e8; margin: 0; padding: 14px 16px;
+    border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
+  }
+  .copy-code-btn {
+    position: absolute; top: 8px; right: 8px;
+    font: inherit; font-size: 0.75rem; line-height: 1;
+    padding: 5px 10px; border-radius: 4px;
+    border: 1px solid #565656; background: #3a3a3a; color: #ddd;
+    cursor: pointer; transition: background 0.15s ease;
+  }
+  .copy-code-btn:hover { background: #4a4a4a; }
+  .copy-code-btn:disabled { cursor: default; opacity: 0.85; }
+  .copy-code-btn.is-success { background: #1e7e34; border-color: #1c7430; color: #fff; }
+  .copy-code-btn.is-error { background: #a02834; border-color: #8c2330; color: #fff; }
+</style>
+
+<div class="alert alert-warning">
+<h4>JupyterLite warning</h4>
+<ul>
+<li>Running the <strong>scikit-plots 0.5.dev0</strong> interactive examples in JupyterLite is experimental and may not always work as expected.</li>
+<li>With high load times especially on low-resource platforms, and the version of scikit-plots might not be in sync with the one you are browsing the documentation for.</li>
+<li>If you encounter any issues, please report them on the <a href="https://github.com/scikit-plots/scikit-plots/issues/new/choose">scikit-plots issue tracker</a>.</li>
+<li><code>micropip/piplite/pip</code> use <code>%pip</code> in JupyterLite instead of <code>pip</code> or <code>!pip</code></li>
+</ul>
+
+<div data-copy-block>
+<pre><code>## Installing the dependencies first, and then scikit-plots from Anaconda.org.
+import piplite; await piplite.install(  # or micropip
+   'scikit-plots==0.5.dev0',            # Download scikit-plots *pyodide_20XX_0_wasm32.whl
+   index_urls='https://pypi.anaconda.org/scikit-plots-wheels-staging-nightly/simple',
+); import sklearn; import scikitplot as sp; sp.show_versions();</code></pre>
+</div>
+</div>
+
+<script>
+(function () {
+  // One delegated click handler, attached once. Re-running this cell, or
+  // pasting this whole block into other cells, re-executes the IIFE —
+  // the window flag stops a duplicate listener from ever being added.
+  if (!window.__copyBtnHandlerInit) {
+    window.__copyBtnHandlerInit = true;
+
+    document.addEventListener('click', function (event) {
+      var btn = event.target.closest('.copy-code-btn');
+      if (!btn || btn.disabled) return;
+      var block = btn.closest('[data-copy-block]');
+      var codeEl = block && block.querySelector('pre code');
+      if (!codeEl) return;
+      copyText(codeEl.innerText, btn);
+    });
+  }
+
+  function copyText(text, btn) {
+    function settle(ok) {
+      btn.textContent = ok ? 'Copied!' : 'Copy failed';
+      btn.classList.add(ok ? 'is-success' : 'is-error');
+      btn.disabled = true;
+      setTimeout(function () {
+        btn.textContent = 'Copy';
+        btn.classList.remove('is-success', 'is-error');
+        btn.disabled = false;
+      }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { settle(true); },
+        function () { fallbackCopy(text, settle); }
+      );
+    } else {
+      fallbackCopy(text, settle);
+    }
+  }
+
+  // Fallback for older browsers / non-secure contexts without the
+  // Clipboard API.
+  function fallbackCopy(text, settle) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      settle(ok);
+    } catch (err) {
+      settle(false);
+    }
+  }
+
+  // Inject one button per code block, skipping blocks that already
+  // have one — keeps re-running the cell a no-op.
+  document.querySelectorAll('[data-copy-block]').forEach(function (block) {
+    if (block.querySelector('.copy-code-btn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-code-btn';
+    btn.textContent = 'Copy';
+    block.appendChild(btn);
+  });
+})();
+</script>

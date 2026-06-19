@@ -127,14 +127,23 @@ def _get_submodule(
                 f"Failed to import submodule '{submodule_name}' from module '{module_name}'. "
                 "Ensure the module is installed and available."
             ) from e
-        msg = (
+        # Non-strict: surface the failure as a visible warning block instead of
+        # silently falling through and emitting an ``.. automodule::`` directive
+        # for a module that does not import (which would later fail in Sphinx).
+        return (
             f".. warning:: Failed to import submodule `{full_name}` — {type(e).__name__}: {e}"
             if format == "rst"
             else f"> **Warning:** Could not import `{full_name}` ({e})."
         )
-        # return msg
     except ValueError as e:
-        pass
+        # Built-in / namespace package with no source file: cannot be autodoc'd.
+        if strict:
+            raise
+        return (
+            f".. warning:: Cannot document submodule `{full_name}` — {e}"
+            if format == "rst"
+            else f"> **Warning:** Cannot document `{full_name}` ({e})."
+        )
     # Extract docstring if desired
     # doc = (submod.__doc__ or "").strip() if include_docstring else ""
     # if not doc:
@@ -164,6 +173,273 @@ def _get_submodule(
         # f"{doc}\n"
     ]
     return "\n\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Idempotency invariants (shared single source of truth with the Jinja
+# templates ``module.rst.template`` and ``index.rst.template``).
+#
+# The templates can either re-implement these rules inline (using the
+# ``imp0rt('re')`` global already available to them) or delegate to the
+# functions below via :func:`register_api_jinja_globals`. Keeping the logic
+# here makes it directly unit-testable and guarantees both rendering paths
+# enforce identical, deterministic behaviour.
+#
+# All functions are pure (no I/O, no global state) and deterministic: the same
+# input always yields the same output, so re-rendering is a no-op (idempotent).
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+# Matches ``.. <directive>:: <target>`` anywhere in an RST block. ``<target>``
+# is the first whitespace-delimited token after the directive.
+_DIRECTIVE_RE = r"(?m)^\s*\.\.\s+{directive}::\s+(\S+)\s*$"
+
+
+def slugify_title(title):
+    """
+    Convert a human section title into a stable RST anchor slug.
+
+    The transformation is identical to the one historically inlined in
+    ``module.rst.template`` so that anchors remain backward compatible.
+
+    Parameters
+    ----------
+    title : str
+        The section title, e.g. ``"ModelPlotPy Initializer object"``.
+
+    Returns
+    -------
+    str
+        A lowercase, hyphen-separated slug, e.g.
+        ``"modelplotpy-initializer-object"``.
+
+    Examples
+    --------
+    >>> slugify_title("ModelPlotPy Initializer object")
+    'modelplotpy-initializer-object'
+    """
+    slug = title.lower()
+    slug = _re.sub(r"[^a-z0-9 ]+", "-", slug)
+    slug = _re.sub(r" +", "-", slug)
+    slug = _re.sub(r"^-|-$", "", slug)
+    return slug
+
+
+def unique_anchor(base_anchor, used):
+    """
+    Return a collision-free anchor and record it in ``used``.
+
+    The first time a ``base_anchor`` is seen it is returned unchanged (so
+    existing inbound links keep working); every subsequent occurrence receives
+    a deterministic numeric suffix (``-2``, ``-3``, ...). This prevents Sphinx's
+    "Duplicate explicit target name" warning when two sections share a title.
+
+    Parameters
+    ----------
+    base_anchor : str
+        The anchor that would be emitted without disambiguation.
+    used : list of str
+        Mutable accumulator of previously requested ``base_anchor`` values for
+        the current page. Updated in place.
+
+    Returns
+    -------
+    str
+        A page-unique anchor.
+
+    Examples
+    --------
+    >>> seen = []
+    >>> unique_anchor("decile_ref-modelplotpy", seen)
+    'decile_ref-modelplotpy'
+    >>> unique_anchor("decile_ref-modelplotpy", seen)
+    'decile_ref-modelplotpy-2'
+    """
+    seen = used.count(base_anchor)
+    used.append(base_anchor)
+    return base_anchor if seen == 0 else f"{base_anchor}-{seen + 1}"
+
+
+def extract_directive_targets(text, directive):
+    """
+    Extract every target of a given RST directive from a block of text.
+
+    Parameters
+    ----------
+    text : str or None
+        The RST block to scan (typically a section ``"description"``).
+    directive : str
+        The directive name without the trailing ``::`` (e.g. ``"automodule"``).
+
+    Returns
+    -------
+    list of str
+        Targets in order of appearance. Empty if ``text`` is falsy.
+
+    Examples
+    --------
+    >>> extract_directive_targets(".. automodule:: a.b\\n.. currentmodule:: a", "automodule")
+    ['a.b']
+    """
+    if not text:
+        return []
+    return _re.findall(_DIRECTIVE_RE.format(directive=directive), text)
+
+
+def automoduled_targets(module, sections):
+    """
+    Collect every module already documented by an explicit ``.. automodule::``.
+
+    This is the set used to suppress redundant autosummary entries whose
+    ``:toctree:`` stub would otherwise re-emit ``.. automodule::`` for the same
+    object (Sphinx's "duplicate object description" warning).
+
+    Parameters
+    ----------
+    module : str
+        The page-level module (always documented at the top of the page).
+    sections : iterable of dict
+        The module's ``"sections"`` list; each section's ``"description"`` is
+        scanned for embedded ``.. automodule::`` directives.
+
+    Returns
+    -------
+    set of str
+        Fully-qualified module names already documented on the page.
+    """
+    targets = {module}
+    for section in sections:
+        targets.update(
+            extract_directive_targets(section.get("description"), "automodule")
+        )
+    return targets
+
+
+def active_currentmodule(description, default):
+    """
+    Return the ``currentmodule`` in effect for a section's autosummary entries.
+
+    Parameters
+    ----------
+    description : str or None
+        The section description, possibly containing ``.. currentmodule:: X``.
+    default : str
+        Fallback when the description declares no ``currentmodule`` (the
+        page-level module).
+
+    Returns
+    -------
+    str
+        The last declared ``currentmodule`` target, else ``default``.
+    """
+    declared = extract_directive_targets(description, "currentmodule")
+    return declared[-1] if declared else default
+
+
+def visible_autosummary(entries, currentmodule, automoduled):
+    """
+    Drop autosummary entries already documented by an explicit automodule.
+
+    An entry is redundant when its fully-qualified name
+    (``currentmodule.entry``) — or the raw entry itself — is in ``automoduled``.
+    Removing it loses no information (the object is still documented by its
+    ``.. automodule::``) and prevents the duplicate ``:toctree:`` stub.
+
+    Parameters
+    ----------
+    entries : iterable of str
+        The section's ``"autosummary"`` entries (relative to ``currentmodule``).
+    currentmodule : str
+        The active module context used to qualify each entry.
+    automoduled : set of str
+        Fully-qualified modules already documented (see
+        :func:`automoduled_targets`).
+
+    Returns
+    -------
+    list of str
+        Surviving entries, original order preserved. May be empty, in which case
+        the caller must omit the ``.. autosummary::`` block entirely to avoid an
+        empty-block warning.
+
+    Examples
+    --------
+    >>> visible_autosummary(["_annoy", "_annoy.Annoy"],
+    ...                     "scikitplot.cexternals",
+    ...                     {"scikitplot.cexternals._annoy"})
+    ['_annoy.Annoy']
+    """
+    survivors = []
+    for entry in entries or []:
+        fqn = f"{currentmodule}.{entry}"
+        if fqn in automoduled or entry in automoduled:
+            continue
+        survivors.append(entry)
+    return survivors
+
+
+def qualified_object(module, obj):
+    """
+    Build the fully-qualified cross-reference target for the index table.
+
+    Using the fully-qualified name avoids Sphinx's "more than one target found"
+    warning for short names that exist in several modules (e.g. ``Annoy``,
+    ``get_include``). Render it as ``:obj:`~{qualified_object(...)}``` so the
+    ``~`` still abbreviates the displayed label to the last component.
+
+    Parameters
+    ----------
+    module : str
+        The owning module from ``APIS_REFERENCE``.
+    obj : str
+        The autosummary entry (possibly dotted, relative to ``module``).
+
+    Returns
+    -------
+    str
+        ``"{module}.{obj}"``.
+
+    Examples
+    --------
+    >>> qualified_object("scikitplot.cexternals", "_annoy.Annoy")
+    'scikitplot.cexternals._annoy.Annoy'
+    """
+    return f"{module}.{obj}"
+
+
+def register_api_jinja_globals(env, *, importer=None):
+    """
+    Register the idempotency helpers (and ``imp0rt``) on a Jinja environment.
+
+    Wiring the templates to these tested functions is optional: the templates
+    are self-contained via the ``imp0rt`` global. Use this when you prefer the
+    rendering to delegate to the Python single source of truth.
+
+    Parameters
+    ----------
+    env : jinja2.Environment
+        The environment used to render the API templates.
+    importer : callable, optional
+        Implementation for the ``imp0rt`` global. Defaults to
+        :func:`importlib.import_module`.
+
+    Returns
+    -------
+    jinja2.Environment
+        The same ``env``, for chaining.
+    """
+    env.globals.setdefault("imp0rt", importer or importlib.import_module)
+    env.globals.update(
+        slugify_title=slugify_title,
+        unique_anchor=unique_anchor,
+        extract_directive_targets=extract_directive_targets,
+        automoduled_targets=automoduled_targets,
+        active_currentmodule=active_currentmodule,
+        visible_autosummary=visible_autosummary,
+        qualified_object=qualified_object,
+    )
+    return env
 
 
 """

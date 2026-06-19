@@ -68,7 +68,7 @@ reference on concepts repeated across the APIs, see :ref:`glossary-index`.
 {%- set full_module = module -%}
 {%- endif %}
 
-  * - :obj:`~.{{ obj }}` {# * - :obj:`~{{ module }}.{{ obj }}` #}
+  * - :obj:`~{{ module }}.{{ obj }}` {# Fix D: `~.{{ obj }}` fully-qualified target avoids "more than one target found" for short names shared across modules (e.g. Annoy, get_include); ~ still shows only the last component. #}
     - .. div:: sk-apis-search-desc
 
         .. currentmodule:: {{ full_module }}

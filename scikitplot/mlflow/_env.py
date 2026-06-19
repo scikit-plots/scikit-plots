@@ -68,12 +68,12 @@ class EnvSnapshot:
 
 def parse_dotenv(path: str) -> dict[str, str]:
     """
-    Parse a minimal `.env` file containing KEY=VALUE assignments.
+    Parse a minimal ``.env`` file containing KEY=VALUE assignments.
 
     Parameters
     ----------
     path : str
-        Path to the `.env` file.
+        Path to the ``.env`` file.
 
     Returns
     -------
@@ -89,9 +89,9 @@ def parse_dotenv(path: str) -> dict[str, str]:
     -----
     Strict behavior:
 
-    - Empty lines and comments beginning with `#` are ignored
+    - Empty lines and comments beginning with ``#`` are ignored
     - No shell expansion is performed
-    - Optional leading `export ` is supported
+    - Optional leading ``export`` is supported
     - Surrounding matching-pair quotes are stripped from values
       (``"value"`` → ``value``, ``'value'`` → ``value``,
       but ``"value'`` is left unchanged — mismatched quotes are not stripped)

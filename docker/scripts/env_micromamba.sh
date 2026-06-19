@@ -180,6 +180,10 @@ env_micromamba_main() {
     setup_traps "$tmp"
 
     log_info "Installing micromamba (${platform}) -> ${bin_dir}/micromamba"
+    # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
+    # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
+    # -S — show error anyway, even with -s on. This is the one I should have included before.
+    # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
     if has_cmd curl; then
       (cd -- "$tmp" && curl -fsSL "$url" | tar -xvjf - "bin/micromamba")
     else

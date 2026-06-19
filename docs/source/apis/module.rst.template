@@ -14,6 +14,26 @@
 {%- set module_hook = None -%}
 {%- endif -%}
 
+{#- -------------------------------------------------------------------------- -#}
+{#- Idempotency pre-pass (Fix B/C): collect every module already documented    -#}
+{#- explicitly via `.. automodule::` on this page -- the page module itself    -#}
+{#- plus every automodule target embedded in any section description (these    -#}
+{#- come from ``_get_submodule`` in apis_reference.py). Any autosummary entry  -#}
+{#- that resolves to one of these is redundant: its autosummary ``:toctree:``  -#}
+{#- stub would emit a SECOND ``.. automodule::`` for the same object, which is -#}
+{#- exactly Sphinx's "duplicate object description" warning (and the knock-on  -#}
+{#- "duplicate citation" when that docstring carries citations). Deriving the  -#}
+{#- set from the rendered directives -- rather than from a hand-maintained     -#}
+{#- exclusion list -- keeps the rule general for any future submodule.         -#}
+{#- -------------------------------------------------------------------------- -#}
+{%- set doc = namespace(automoduled=[module]) -%}
+{%- for section in module_info["sections"] -%}
+{%- set sdesc = section.get("description") or "" -%}
+{%- for tgt in re.findall("(?m)^\\s*\\.\\.\\s+automodule::\\s+(\\S+)\\s*$", sdesc) -%}
+{%- set _ = doc.automoduled.append(tgt) -%}
+{%- endfor -%}
+{%- endfor -%}
+
 {%- if module_hook %}
 
 .. _{{ module_hook }}_ref:
@@ -29,6 +49,11 @@
 {{ module_info["description"] }}
 {%- endif -%}
 
+{#- Track emitted anchors (Fix A): identical section titles would otherwise    -#}
+{#- yield identical explicit targets ("duplicate explicit target name"). The   -#}
+{#- first occurrence keeps the clean slug (stable inbound links); each later   -#}
+{#- collision gets a deterministic numeric suffix (-2, -3, ...).               -#}
+{%- set anchors = namespace(used=[]) -%}
 {%- for section in module_info["sections"] -%}
 {%- if section["title"] and module_hook -%}
 {# Convert title to lowercase #}
@@ -38,9 +63,13 @@
 {# Replace spaces with hyphens #}
 {%- set title_slug = re.sub(' +', '-', title_slug ) -%}
 {# Remove leading or trailing hyphens #}
-{%- set title_slug = re.sub('^-|-$', '', title_slug ) %}
+{%- set title_slug = re.sub('^-|-$', '', title_slug ) -%}
+{%- set base_anchor = module_hook ~ "_ref-" ~ (title_slug | lower | replace(" ", "-")) -%}
+{%- set seen = anchors.used | select("equalto", base_anchor) | list | length -%}
+{%- set anchor = base_anchor if seen == 0 else base_anchor ~ "-" ~ (seen + 1) -%}
+{%- set _ = anchors.used.append(base_anchor) %}
 
-.. _{{ module_hook }}_ref-{{ title_slug | lower | replace(" ", "-") }}:
+.. _{{ anchor }}:
 {%- endif -%}
 
 {%- if section["title"] %}
@@ -52,14 +81,33 @@
 {%- if section["description"] %}
 
 {{ section["description"] }}
-{%- endif %}
+{%- endif -%}
+
+{#- Resolve this section's active currentmodule (the last one declared in the   -#}
+{#- description, else the page module), then keep only autosummary entries      -#}
+{#- whose fully-qualified name is NOT already documented by an explicit         -#}
+{#- automodule above. Only the toctree-stub side of autosummary triggers the    -#}
+{#- duplicate; dropping the redundant entry loses no information (the object is -#}
+{#- still documented by its automodule). The block is emitted only when at      -#}
+{#- least one entry survives, which also prevents empty-autosummary warnings.   -#}
+{%- set cms = re.findall("(?m)^\\s*\\.\\.\\s+currentmodule::\\s+(\\S+)\\s*$", section.get("description") or "") -%}
+{%- set cur = cms[-1] if cms else module -%}
+{%- set vis = namespace(items=[]) -%}
+{%- for obj in section.get("autosummary", []) -%}
+{%- set fqn = cur ~ "." ~ obj -%}
+{%- if fqn not in doc.automoduled and obj not in doc.automoduled -%}
+{%- set _ = vis.items.append(obj) -%}
+{%- endif -%}
+{%- endfor -%}
+{%- if vis.items %}
 
 .. autosummary::
   :nosignatures:
   :toctree: ../modules/generated/
   :template: base.rst
-  {% for obj in section["autosummary"] %}
+  {% for obj in vis.items %}  {# for obj in section["autosummary"] #}
   {{ obj }}
   {%- endfor %}
+{%- endif -%}
 
 {%- endfor -%}
