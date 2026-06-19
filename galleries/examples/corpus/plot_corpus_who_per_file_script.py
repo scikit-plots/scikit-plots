@@ -172,8 +172,8 @@ all_documents[60].text
 # %%
 # youtube
 # -------
-# * `https://youtu.be/rwPISgZcYIk`_
-# * `https://www.youtube.com/watch?v=rwPISgZcYIk`_
+# * `"https://youtu.be/rwPISgZcYIk" <https://youtu.be/rwPISgZcYIk>`_
+# * `"https://www.youtube.com/watch?v=rwPISgZcYIk" <https://www.youtube.com/watch?v=rwPISgZcYIk>`_
 #
 # ..  youtube:: rwPISgZcYIk
 

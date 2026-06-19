@@ -113,7 +113,7 @@ Next, `clone <https://git-scm.com/docs/git-clone>`__ your GitHub fork to your ma
 .. tip::
 
     Actually we run below scripts step-by-step in following Documentation.
-    (See Also: `https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt`_)
+    (See Also: `bash-first-run-notice.txt <https://github.com/scikit-plots/scikit-plots/blob/main/docker/scripts/bash-first-run-notice.txt>`_)
 
     .. prompt:: bash
 

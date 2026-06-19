@@ -346,10 +346,28 @@ commands:
             export PYTHONPATH=$PWD/build-install/lib/python3.12/site-packages
             cd docs && make html 2>&1 | tee ~/sphinx_log.txt
       - run:
-          name: Check sphinx log for warnings (which are treated as errors)
+          name: Check to show sphinx log for warnings (which are treated as errors)
           when: always
           command: |
-            ! grep "^.* WARNING: .*$" ~/sphinx_log.txt
+            # Condition	    grep exit code
+            # Found match	  0
+            # No match	    1
+            # Error	        2
+            # After !:
+            # Condition	    Result
+            # Found warning	1
+            # No warning	  0
+            # grep error	  0 (because non-zero is inverted)
+            # The ! in shell means invert the exit code.
+            # Exited with code exit status 1
+            # ! grep "^.* ERROR: .*$" ~/sphinx_log.txt
+            # ! grep "^.* WARNING: .*$" ~/sphinx_log.txt
+            # echo $?
+            # grep "^.* WARNING: .*$" ~/sphinx_log.txt || true
+            if grep -q "^.* WARNING: .*$" ~/sphinx_log.txt; then
+                echo "Warnings found:"
+                grep "^.* WARNING: .*$" ~/sphinx_log.txt || true
+            fi
       - run:
           name: Save sphinx traceback
           when: always

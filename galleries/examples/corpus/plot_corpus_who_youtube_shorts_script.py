@@ -46,7 +46,7 @@ pipeline
 # youtube
 # -------
 # Richard Feynman - The Character of Physical Law (1964) - Complete - Better Audio
-# `https://www.youtube.com/watch?v=kEx-gRfuhhk`_
+# `"https://www.youtube.com/watch?v=kEx-gRfuhhk" <https://www.youtube.com/watch?v=kEx-gRfuhhk>`_
 #
 # ..  youtube:: kEx-gRfuhhk
 

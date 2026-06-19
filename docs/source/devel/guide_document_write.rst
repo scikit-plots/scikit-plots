@@ -263,7 +263,7 @@ nor the ````literal```` role:
 Refer to other documents and sections
 -------------------------------------
 
-|sphinx| supports internal `https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html`_:
+|sphinx| supports internal `roles <https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html>`_:
 
 ==========  ===============  ===========================================
 Role        Links target     Representation in rendered HTML
@@ -509,7 +509,7 @@ An example docstring looks like:
 
 See the ``~.Axes.hlines`` documentation for how this renders.
 
-The |sphinx| website also contains plenty of `https://www.sphinx-doc.org/en/master/contents.html`_ concerning ReST
+The |sphinx| website also contains plenty of `contents <https://www.sphinx-doc.org/en/master/contents.html>`_ concerning ReST
 markup and working with Sphinx in general.
 
 Formatting conventions
@@ -1091,7 +1091,7 @@ Raw restructured text files in the gallery
 Python source files that are then translated to an ``index.rst`` file and a
 series of ``example_name.rst`` files in the :file:`doc/` subdirectories.
 However, Sphinx Gallery also allows raw ``*.rst`` files to be passed through a
-gallery (see `https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files`_
+gallery (see `manually-passing-files <https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files>`_
 in the Sphinx Gallery documentation). We
 use this feature in :file:`galleries/users_explain`, where, for instance,
 :file:`galleries/users_explain/colors` is a regular Sphinx Gallery
