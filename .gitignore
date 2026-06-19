@@ -110,6 +110,12 @@
 **jupyterlite_contents/
 **/modules/generated/
 
+# jupyter lite atifact
+**.jupyterlite.doit.db
+**cockle-config.json
+**.cockle_temp/
+**cockle_wasm_env
+
 # UI app
 .gradio
 # streamlit secret: .streamlit/secrets.toml or ~/.streamlit/secrets.toml

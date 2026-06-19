@@ -6,6 +6,12 @@ _contents/
 **jupyterlite_contents/
 **/modules/generated/
 
+# jupyter lite atifact
+**.jupyterlite.doit.db
+**cockle-config.json
+**.cockle_temp/
+**cockle_wasm_env
+
 # sphinx template artifact
 /index.rst
 /devel/index.rst

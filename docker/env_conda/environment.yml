@@ -83,6 +83,9 @@ channels:
   # - nvidia             # NVIDIA GPU libraries and drivers
   - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
   - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
+  # https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
+  # conda install scikit-plots-wheels-staging-nightly::<PACKAGE>
+  # - scikit-plots-wheels-staging-nightly
 
 dependencies:
   # === Base Dependencies ===
@@ -127,6 +130,7 @@ dependencies:
   - matplotlib-base
   - seaborn
   - pillow
+  # - scikit-plots-wheels-staging-nightly::scikit-plots
 
   # 🧠 Machine Learning Models
   - scikit-learn

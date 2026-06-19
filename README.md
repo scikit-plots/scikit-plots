@@ -407,6 +407,8 @@ micromamba repoquery search -c conda-forge "scikit-plots=0.4.0" --json \
 ```
 ```sh
 ## (conda, mamba or micromamba) Install scikit-plots
+# conda install -y scikit-plots-wheels-staging-nightly::scikit-plots
+# conda install -y scikit-plots-wheels-staging::scikit-plots
 # conda install -y conda-forge::scikit-plots
 # mamba install --yes --channel conda-forge scikit-plots
 micromamba install -y -c conda-forge scikit-plots

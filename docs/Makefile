@@ -122,6 +122,8 @@ clean: clean_basic
 	@echo "Removed $(SOURCEDIR)/_tags/"
 	@rm -rf "$(SOURCEDIR)/_contents/"
 	@echo "Removed $(SOURCEDIR)/_contents/"
+	@rm -rf "$(SOURCEDIR)/.jupyterlite.doit.db" "$(SOURCEDIR)/.cockle_temp/" "$(SOURCEDIR)/cockle_wasm_env/" "$(SOURCEDIR)/cockle-config.json"
+	@echo "Removed $(SOURCEDIR)/.jupyterlite.doit.db $(SOURCEDIR)/.cockle_temp/ $(SOURCEDIR)/cockle_wasm_env/ $(SOURCEDIR)/cockle-config.json"
 
 ######################################################################
 ## SPHINX
@@ -241,3 +243,19 @@ dist: html ziphtml
 
 serve:
 	cd ./build/html/stable && python -m http.server 8000
+
+# find . -name .jupyterlite.doit.db
+xeus:
+	jupyter lite build \
+		--debug \
+		--contents source/jupyterlite_contents \
+		--contents source/_contents \
+		--output-dir build/html/stable/lite \
+		--apps notebooks \
+		--apps edit \
+		--apps lab \
+		--apps repl \
+		--apps tree \
+		--apps consoles \
+		--lite-dir source \
+		2>&1 | tee /tmp/jupyterlite.log

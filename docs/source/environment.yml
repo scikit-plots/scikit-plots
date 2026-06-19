@@ -110,16 +110,16 @@
 #
 # jupyter lite build \
 #   --debug \
-#   --contents /work/docs/source/jupyterlite_contents \
-#   --contents /work/docs/source/_contents \
-#   --output-dir /work/docs/build/html/stable/lite \
+#   --contents docs/source/jupyterlite_contents \
+#   --contents docs/source/_contents \
+#   --output-dir docs/build/html/stable/lite \
 #   --apps notebooks \
 #   --apps edit \
 #   --apps lab \
 #   --apps repl \
 #   --apps tree \
 #   --apps consoles \
-#   --lite-dir /work/docs/source \
+#   --lite-dir docs/source \
 #   2>&1 | tee /tmp/jupyterlite.log
 #
 # python -m jupyter lite build \
@@ -177,6 +177,9 @@ channels:
   # The conda-forge channel is used to provide the xeus-python kernel and its dependencies.
   - conda-forge
   # - defaults
+  # https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
+  # conda install scikit-plots-wheels-staging-nightly::<PACKAGE>
+  # - scikit-plots-wheels-staging-nightly
 
 # These dependencies are pre-installed in the environment and are loaded when the xeus-python
 # kernel is instantiated when running a JupyterLite site.
@@ -194,6 +197,12 @@ dependencies:
   - r-ggplot2
   # - r-coursekata
 
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - scikit-learn
+  # - scikit-plots-wheels-staging-nightly::scikit-plots
   # Conda packages
   # - python=3.12  # modern jupyterlite-xeus, the Python version is no longer hidden in package code
   # - pip
