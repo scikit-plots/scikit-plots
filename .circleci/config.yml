@@ -239,29 +239,37 @@ commands:
           name: "🐍 Install micromamba"
           command: |
             set -Eeuo pipefail
+            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
+            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI).
+            # jupyterlite-xeus requires micromamba 2.0.5 for pip installs https://github.com/jupyterlite/xeus/tree/main#installation
+            # fetching the LATEST micromamba release, not version 2.0.5 as required.
+            # https://github.com/mamba-org/micromamba-releases/releases
+            # https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
+            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
+            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
+            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+            # should now print 2.0.5 from
+            id; ls -ld /usr/local/bin; df -h /usr/local/bin
+            mkdir -p "$HOME/bin"
+            curl -fsSL --retry 3 --retry-delay 2 -o "$HOME/bin/micromamba" \
+              "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
+              || "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh) || echo "⚠️ micromamba install failed!"
+            chmod 0755 "$HOME/bin/micromamba" || chmod 0755 "$(which micromamba)" || true
+            export PATH="$HOME/bin:$PATH"                         # visible now, this step
+            echo 'export PATH="$HOME/bin:$PATH"' >> "$BASH_ENV"   # visible in later steps
+            which micromamba
+            micromamba --version
             # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
             # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
             # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
             # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
             # -S — show error anyway, even with -s on. This is the one I should have included before.
             # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
-            # curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest \
-            #   | tar -xvj bin/micromamba
+            # curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvjf bin/micromamba
             # sudo mv bin/micromamba /usr/local/bin/
-            # fetching the LATEST micromamba release, not version 2.0.5 as required.
-            # jupyterlite-xeus requires micromamba 2.0.5 for pip installs https://github.com/jupyterlite/xeus/tree/main#installation
-            # https://github.com/mamba-org/micromamba-releases/releases
-            # https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
-            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
-            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
-            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
-            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI).
-            curl -fsSL -o /usr/local/bin/micromamba \
-              "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
-            chmod +x /usr/local/bin/micromamba
-            which micromamba || true
-            # should now print 2.0.5 from
-            micromamba --version || true
+            # sudo curl -fsSL -o /usr/local/bin/micromamba \
+            #   "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            # sudo chmod +x /usr/local/bin/micromamba
             # If you want to quickly use micromamba in an ad-hoc usecase, you can run
             # export MAMBA_ROOT_PREFIX=/some/prefix  # optional, defaults to ~/micromamba
             # eval "$(./bin/micromamba shell hook -s posix)"
@@ -356,7 +364,7 @@ commands:
       - check-skip  # This calls your custom command
 
       ## deps
-      - apt-install  # This calls your custom command
+      # - apt-install  # This calls your custom command
       - micromamba-install
       # - pip-install
 

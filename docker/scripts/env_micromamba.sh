@@ -172,6 +172,12 @@ env_micromamba_main() {
     _ensure_tools_for_install
     local url platform bin_dir tmp
     platform="$(micromamba_api_platform)"
+    # https://github.com/mamba-org/micromamba-releases/releases
+    # https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
+    # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
+    # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
+    # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+    # curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvjf bin/micromamba
     url="$(micromamba_api_url)"
     bin_dir="$(_bin_dir)"
     mkdir -p -- "$bin_dir"
@@ -209,6 +215,7 @@ env_micromamba_main() {
     log_warning "Running interactive micromamba install script"
     # curl -Ls https://micro.mamba.pm/install.sh | bash
     # curl -Ls https://micro.mamba.pm/install.sh | "${SHELL}" || echo "⚠️ micromamba install failed"
+    # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh) || echo "⚠️ micromamba install failed"
     # "${SHELL}" <(curl -Ls https://micro.mamba.pm/install.sh) < /dev/null
     "${SHELL}" <(curl -Ls micro.mamba.pm/install.sh) < /dev/null || bash <(curl -fsSL "https://micro.mamba.pm/install.sh") < /dev/null
   }
