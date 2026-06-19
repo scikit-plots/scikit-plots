@@ -10,11 +10,12 @@ assumes the data came from K overlapping "blobs", each shaped like a
 multivariate Gaussian (bell curve).  We do not know K ahead of time —
 that is the whole point of this example. [1]_ [2]_ [3]_ [4]_ [5]_
 
-Mathematically, the model says:
+Mathematically, the model says::
 
     p(x | θ) = Σ_j  α_j · N(x | μ_j, Σ_j)    for j = 1 … K
 
-where:
+where::
+
   K    — number of blobs (unknown, to be selected)
   α_j  — how big / common blob j is          (all α_j sum to 1)
   μ_j  — centre of blob j
@@ -23,7 +24,7 @@ where:
 
 How does sklearn fit the model?  (Expectation–Maximisation, EM)
 ----------------------------------------------------------------
-EM is an iterative two-step algorithm:
+EM is an iterative two-step algorithm::
 
   E-step  For each data point, calculate how likely it is that each
           blob generated it.  These are called "responsibilities".
@@ -42,21 +43,21 @@ That is what AIC, AICc, and BIC do.
 
 The three criteria
 ------------------
-All three are computed from the same two ingredients:
+All three are computed from the same two ingredients::
 
   - ln L*   the log-likelihood after EM has converged
             (bigger = the model explains the data better)
   - p       the number of free parameters in the model
             (bigger = the model is more complex)
 
-The formulas:
+The formulas::
 
   AIC  = -2 ln L*  +  2p
   AICc = -2 ln L*  +  2p  +  2p(p+1) / (N - p - 1)
   BIC  = -2 ln L*  +  p · ln N
 
 All three are **lower-is-better**.  The -2 ln L* term rewards a good fit;
-the second term penalises complexity.  The penalties differ:
+the second term penalises complexity.  The penalties differ::
 
   AIC   penalises each parameter by exactly 2.
   AICc  is AIC plus a small extra correction for small sample sizes.
@@ -67,19 +68,19 @@ the second term penalises complexity.  The penalties differ:
 
 When should I use each?
 -----------------------
-  AIC   — your goal is *prediction*.  You are building a generative model
-          and you want the best out-of-sample log-likelihood.  AIC's
-          softer penalty lets you keep richer structure when the data
-          support it.
+* AIC   — your goal is *prediction*.  You are building a generative model
+        and you want the best out-of-sample log-likelihood.  AIC's
+        softer penalty lets you keep richer structure when the data
+        support it.
 
-  AICc  — same goal as AIC but your dataset is small or the number of
-          parameters p is large relative to N.  Use AICc by default if
-          you are unsure; for large N it converges to AIC anyway.
+* AICc  — same goal as AIC but your dataset is small or the number of
+        parameters p is large relative to N.  Use AICc by default if
+        you are unsure; for large N it converges to AIC anyway.
 
-  BIC   — your goal is *structure recovery*: you want to know the true
-          number of clusters, not just predict well.  BIC's stronger
-          penalty makes it more likely to land on the right K when one
-          exists.  This example uses BIC to pick the final model.
+* BIC   — your goal is *structure recovery*: you want to know the true
+        number of clusters, not just predict well.  BIC's stronger
+        penalty makes it more likely to land on the right K when one
+        exists.  This example uses BIC to pick the final model.
 
   Practical tip: always plot all three.  If they all agree on K, you can
   be confident.  If they disagree, the difference is usually just ±1 and
@@ -87,16 +88,18 @@ When should I use each?
 
 How to read the AIC / AICc / BIC curves
 -----------------------------------------
-  1.  Plot score (y-axis) vs K (x-axis).
-  2.  The best K is at the minimum of the curve.
-  3.  A sharp dip    → the data strongly prefer that K.
-  4.  A flat plateau → nearby K values are nearly equivalent;
-                       pick the smaller K (simpler is safer).
-  5.  BIC minimum ≤ AIC minimum — BIC always penalises more,
-      so its minimum shifts left.  This is expected, not a bug.
+1.  Plot score (y-axis) vs K (x-axis).
+2.  The best K is at the minimum of the curve.
+3.  A sharp dip    → the data strongly prefer that K.
+4.  A flat plateau → nearby K values are nearly equivalent;
+                    pick the smaller K (simpler is safer).
+5.  BIC minimum ≤ AIC minimum — BIC always penalises more,
+    so its minimum shifts left.  This is expected, not a bug.
 
 Free parameter count for a full-covariance GMM on d-dimensional data
 ---------------------------------------------------------------------
+::
+
   means      :  K × d
   covariances:  K × d(d+1)/2    (symmetric matrix, upper triangle only)
   weights    :  K - 1           (K weights constrained to sum to 1)
@@ -111,7 +114,8 @@ This example
 We generate a 2-D dataset from K_true = 5 known Gaussian blobs.  Having
 a ground truth lets us check whether the criteria recover the right K.
 
-Steps:
+Steps::
+
   1.  Generate 2 000 points from 5 blobs with different spreads.
   2.  Fit GMMs for K = 1 … 13.
   3.  Compute AIC, AICc, and BIC for each K.

@@ -28,14 +28,14 @@ Getting started
 General file structure
 ----------------------
 
-All documentation is built from the :file:`doc/`.  The :file:`doc/`
+All documentation is built from the :file:`docs/`.  The :file:`docs/`
 directory contains configuration files for Sphinx and reStructuredText
 (|docutils|; ``.rst``) files that are rendered to documentation pages.
 
 Documentation is created in three ways.  First, API documentation
-(:file:`doc/api`) is created by |sphinx| from
+(:file:`docs/source/apis`) is created by |sphinx| from
 the docstrings of the classes in the Matplotlib library.  Except for
-:file:`doc/api/api_changes/`,  ``.rst`` files in :file:`doc/api` are created
+:file:`docs/source/whats_new/`,  ``.rst`` files in :file:`docs/source/apis` are created
 when the documentation is built.  See :ref:`writing-docstrings` below.
 
 Second, our example pages, tutorials, and some of the narrative documentation
@@ -150,10 +150,10 @@ classes and methods, in explicit ``.rst`` files, or in examples and tutorials.
 All of these use the |docutils| syntax and are processed by |sphinx|.
 
 The `Sphinx reStructuredText Primer
-<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_ is
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`__ is
 a good introduction into using ReST. More complete information is available in
 the `reStructuredText reference documentation
-<https://docutils.sourceforge.io/rst.html#reference-documentation>`_.
+<https://docutils.sourceforge.io/rst.html#reference-documentation>`__.
 
 This section contains additional information and conventions how ReST is used
 in the Matplotlib documentation.
@@ -199,8 +199,8 @@ Use `sentence case <https://apastyle.apa.org/style-grammar-guidelines/capitaliza
 ``Possible Hangups``.
 
 We aim to follow the recommendations from the
-`Python documentation <https://devguide.python.org/documenting/#sections>`_
-and the `Sphinx reStructuredText documentation <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections>`_
+`Python documentation <https://devguide.python.org/documenting/#sections>`__
+and the `Sphinx reStructuredText documentation <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#sections>`__
 for section markup characters, i.e.:
 
 - ``#`` with overline, for parts. This is reserved for the main title in
@@ -225,7 +225,7 @@ Given the size of the table and length of each entry, use:
 | long entry  | `list table`_                 | `csv table`_       |
 +-------------+-------------------------------+--------------------+
 
-For more information, see `rst tables <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#tables>`_.
+For more information, see `rst tables <https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#tables>`__.
 
 .. _`simple or grid table`: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#tables
 .. _`grid table`: https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html#grid-tables
@@ -263,7 +263,7 @@ nor the ````literal```` role:
 Refer to other documents and sections
 -------------------------------------
 
-|sphinx| supports internal `https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html`__:
+|sphinx| supports internal `https://www.sphinx-doc.org/en/stable/usage/restructuredtext/roles.html`_:
 
 ==========  ===============  ===========================================
 Role        Links target     Representation in rendered HTML
@@ -276,8 +276,11 @@ Role        Links target     Representation in rendered HTML
    See https://stackoverflow.com/a/4836544
 
 .. |doc-dir| replace:: ``:doc:``
+
 .. _doc-dir: https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#role-doc
+
 .. |ref-dir| replace:: ``:ref:``
+
 .. _ref-dir: https://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#role-ref
 
 Examples:
@@ -350,7 +353,7 @@ back ticks, for example:
 
   `matplotlib.collections.LineCollection`
 
-generates a link like this: `matplotlib.collections.LineCollection`.
+generates a link like this: ``matplotlib.collections.LineCollection``.
 
 *Note:* We use the sphinx setting ``default_role = 'obj'`` so that you don't
 have to use qualifiers like ``:class:``, ``:func:``, ``:meth:`` and the likes.
@@ -362,10 +365,10 @@ target is unambiguous you can simply leave them out:
 
   `.LineCollection`
 
-and the link still works: `.LineCollection`. Note that you should typically include
+and the link still works: ``.LineCollection``. Note that you should typically include
 the leading dot. It tells Sphinx to look for the given name in the whole project.
 See also the explanation at `Sphinx: Cross-referencing Python objects
-<https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects>`_.
+<https://www.sphinx-doc.org/en/master/usage/domains/python.html#cross-referencing-python-objects>`__.
 
 If there are multiple code elements with the same name (e.g. ``plot()`` is a
 method in multiple classes), you'll have to extend the definition:
@@ -374,23 +377,23 @@ method in multiple classes), you'll have to extend the definition:
 
   `.pyplot.plot` or `.Axes.plot`
 
-These will show up as `.pyplot.plot` or `.Axes.plot`. To still show only the
+These will show up as ``.pyplot.plot`` or ``.Axes.plot``. To still show only the
 last segment you can add a tilde as prefix:
 
 .. code-block:: rst
 
   `~.pyplot.plot` or `~.Axes.plot`
 
-will render as `~.pyplot.plot` or `~.Axes.plot`.
+will render as ``~.pyplot.plot`` or ``~.Axes.plot``.
 
 Other packages can also be linked via
-`intersphinx <http://www.sphinx-doc.org/en/master/ext/intersphinx.html>`_:
+`intersphinx <http://www.sphinx-doc.org/en/master/ext/intersphinx.html>`__:
 
 .. code-block:: rst
 
   `numpy.mean`
 
-will return this link: `numpy.mean`.  This works for Python, Numpy, Scipy,
+will return this link: ``numpy.mean``.  This works for Python, Numpy, Scipy,
 and Pandas (full list is in :file:`doc/conf.py`).  If external linking fails,
 you can check the full list of referenceable objects with the following
 commands::
@@ -437,7 +440,7 @@ extensions <https://www.sphinx-doc.org/en/master/usage/extensions/math.html>`__.
 In rare cases we want the rendering of the mathematical text in the
 documentation html to exactly match with the rendering of the mathematical
 expression in the Matplotlib figure. In these cases, you can use the
-`matplotlib.sphinxext.mathmpl` Sphinx extension (See also the
+``matplotlib.sphinxext.mathmpl`` Sphinx extension (See also the
 :external+matplotlib:doc:`users/explain/text/mathtext` tutorial.)
 
 .. _writing-docstrings:
@@ -504,9 +507,9 @@ An example docstring looks like:
         axhline : horizontal line across the Axes
         """
 
-See the `~.Axes.hlines` documentation for how this renders.
+See the ``~.Axes.hlines`` documentation for how this renders.
 
-The |sphinx| website also contains plenty of `https://www.sphinx-doc.org/en/master/contents.html`__ concerning ReST
+The |sphinx| website also contains plenty of `https://www.sphinx-doc.org/en/master/contents.html`_ concerning ReST
 markup and working with Sphinx in general.
 
 Formatting conventions
@@ -544,7 +547,7 @@ consistent with Python's documentation:
 
   If *linestyles* is *None*, the default is 'solid'.
 
-Do not use the ```default role``` or the ````literal```` role:
+  Do not use the ```default role``` or the ````literal```` role:
 
 .. code-block:: rst
 
@@ -614,12 +617,12 @@ Reference types
 
 Generally, the rules from referring-to-other-code_ apply. More specifically:
 
-Use full references ```~matplotlib.colors.Normalize``` with an
+Use full references ``~matplotlib.colors.Normalize`` with an
 abbreviation tilde in parameter types. While the full name helps the
 reader of plain text docstrings, the HTML does not need to show the full
 name as it links to it. Hence, the ``~``-shortening keeps it more readable.
 
-Use abbreviated links ```.Normalize``` in the text.
+Use abbreviated links ``.Normalize`` in the text.
 
 .. code-block:: rst
 
@@ -1088,7 +1091,7 @@ Raw restructured text files in the gallery
 Python source files that are then translated to an ``index.rst`` file and a
 series of ``example_name.rst`` files in the :file:`doc/` subdirectories.
 However, Sphinx Gallery also allows raw ``*.rst`` files to be passed through a
-gallery (see `https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files`__
+gallery (see `https://sphinx-gallery.github.io/stable/configuration.html#manually-passing-files`_
 in the Sphinx Gallery documentation). We
 use this feature in :file:`galleries/users_explain`, where, for instance,
 :file:`galleries/users_explain/colors` is a regular Sphinx Gallery
@@ -1225,8 +1228,8 @@ are centralized as a sphinx theme at
 `mpl_sphinx_theme <https://github.com/matplotlib/mpl-sphinx-theme>`_.  Changes to the
 style or topbar should be made there to propagate across all subprojects.
 
-.. TODO: Add section about uploading docs
-
-.. docutils: https://docutils.sourceforge.io/rst.html
-.. Sphinx: http://www.sphinx-doc.org
-.. `Sphinx Gallery`: https://sphinx-gallery.readthedocs.io/en/latest/
+..
+  # TODO: Add section about uploading docs
+  docutils: https://docutils.sourceforge.io/rst.html
+  Sphinx: http://www.sphinx-doc.org
+  `Sphinx Gallery`: https://sphinx-gallery.readthedocs.io/en/latest/

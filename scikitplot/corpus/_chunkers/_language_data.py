@@ -346,16 +346,12 @@ ISO_TO_NAME: Final[dict[str, str]] = {
     "zu": "Zulu",
 }
 
-# ---------------------------------------------------------------------------
-# Built-in stopwords for languages not covered (or thinly covered) by NLTK.
-# Each entry is a frozenset of lowercase strings.
-#
-# Coverage goal: sufficient for BM25 / TF-IDF sparse retrieval and
-# LLM context pruning.  Not exhaustive — NLTK/spaCy have fuller lists.
-# These are the fallback when NLTK is absent or the language is absent
-# from NLTK's stopwords corpus.
-# ---------------------------------------------------------------------------
-
+#: Built-in stopwords for languages not covered (or thinly covered) by NLTK.
+#: Each entry is a frozenset of lowercase strings.
+#: Coverage goal: sufficient for BM25 / TF-IDF sparse retrieval and
+#: LLM context pruning.  Not exhaustive — NLTK/spaCy have fuller lists.
+#: These are the fallback when NLTK is absent or the language is absent
+#: from NLTK's stopwords corpus.
 BUILTIN_LANG_STOPWORDS: Final[dict[str, frozenset[str]]] = {
     # ---- English (universal fallback) ----
     "english": frozenset(
@@ -1172,11 +1168,8 @@ BUILTIN_LANG_STOPWORDS: Final[dict[str, frozenset[str]]] = {
     # ---- These entries map regional names to canonical stopword keys ----
 }
 
-# ---------------------------------------------------------------------------
-# Regional / variant language aliases
-# Maps regional names → canonical key in BUILTIN_LANG_STOPWORDS or NLTK name.
-# ---------------------------------------------------------------------------
-
+#: Regional / variant language aliases
+#: Maps regional names → canonical key in BUILTIN_LANG_STOPWORDS or NLTK name.
 _REGIONAL_ALIASES: Final[dict[str, str]] = {
     # Spanish regional variants (all use standard Spanish)
     "chilean_spanish": "spanish",

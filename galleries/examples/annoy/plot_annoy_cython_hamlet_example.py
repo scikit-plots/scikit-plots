@@ -72,14 +72,15 @@ print(f"Index class: {Index}")
 # This gives us ~300–600 passages, each with enough text for meaningful similarity.
 #
 # ::
+#
 #   download_hamlet()
 #         │
 #         ├─ success → use Gutenberg full text
 #         │
 #         └─ failure → use embedded excerpt
-#                  │
-#                  ▼
-#              raw_text
+#                 │
+#                 ▼
+#             raw_text
 
 # ---------------------------------------------------------------------------
 # Option A: Download from Project Gutenberg (if network available)
@@ -430,6 +431,7 @@ print(raw_text[:200])
 
 # %%
 # ::
+#
 #     raw_text
 #     ↓
 #     clean_text()
@@ -731,6 +733,7 @@ print(f"Num passages    : {len(embeddings)}")
 # The ``Index`` class is the main entry point. Here's the lifecycle:
 #
 # ::
+#
 #     idx = Index(f=64, metric='angular', dtype='float32')   # 1. Create
 #     idx.add_item(0, vector)                                # 2. Add items
 #     idx.build(n_trees=10)                                  # 3. Build forest
@@ -1393,6 +1396,7 @@ if 'Hamlet' in char_list:
 # ## 11. API Quick Reference
 #
 # ::
+#
 #     from scikitplot.annoy._annoy import Index
 #
 #     # ── Construction ──────────────────────────────────────────────

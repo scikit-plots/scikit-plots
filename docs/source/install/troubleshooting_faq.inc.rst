@@ -1,15 +1,16 @@
 :orphan:
-:no-index:
 
 ..
   # This file is included. So it needs to be marked as orphan to suppress warnings.
 
-.. _troubleshooting-install:
+..
+  _troubleshooting-install:
 
 Troubleshooting
 ===============
 
-.. _matplotlib-version:
+..
+  _matplotlib-version:
 
 Obtaining Matplotlib version
 ----------------------------
@@ -22,7 +23,8 @@ To find out your Matplotlib version number, import it and print the
     '0.98.0'
 
 
-.. _locating-matplotlib-install:
+..
+  _locating-matplotlib-install:
 
 :file:`matplotlib` install location
 -----------------------------------
@@ -35,7 +37,8 @@ and printing the ``__file__`` attribute::
     '/home/jdhunter/dev/lib64/python2.5/site-packages/matplotlib/__init__.pyc'
 
 
-.. _locating-matplotlib-config-dir:
+..
+  _locating-matplotlib-config-dir:
 
 :file:`matplotlib` configuration and cache directory locations
 --------------------------------------------------------------
