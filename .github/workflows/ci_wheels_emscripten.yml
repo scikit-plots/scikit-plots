@@ -34,14 +34,54 @@
 #
 #  Python │ Pyodide   │ CIBW  │ Wheel tag                    │ PyPI │ Notes
 #  ───────┼───────────┼───────┼──────────────────────────────┼──────┼──────────
-#  cp312  │ 0.28.3    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-eol
+#  cp312  │ 0.28.3    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ default — see "v3 + pyodide-eol" note
 #  cp313  │ 0.28.3    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
-#  cp312  │ 0.29.4    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-eol
+#  cp312  │ 0.29.4    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ default — see "v3 + pyodide-eol" note
 #  cp313  │ 0.29.4    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
-#  cp312  │ 314.0.0   │  v4   │ pyemscripten_2024_0_wasm32    │  ❌  │ pyodide-eol
+#  cp312  │ 314.0.0   │  v4   │ pyemscripten_2024_0_wasm32    │  ❌  │ pyodide-eol · allow_failure — see note
 #  cp313  │ 314.0.0   │  v4   │ pyemscripten_2025_0_wasm32    │  ✅  │ default
 #  cp314  │ 314.0.0   │  v4   │ pyemscripten_2026_0_wasm32    │  ✅  │ default
 #  ───────┴───────────┴───────┴──────────────────────────────┴──────┴──────────
+#
+# NOTE — "v3 + pyodide-eol" (fixed 2026-06-21, was a hard failure):
+#   The two v3 cp312 rows used to carry cibw_enable: "pypy-eol pyodide-eol".
+#   Confirmed by direct inspection of cibuildwheel/selector.py for the pinned
+#   v3.4.1 wheel: its EnableGroup enum has NO "pyodide-eol" member (only
+#   cpython-freethreading, cpython-prerelease, graalpy, pypy, pypy-eol,
+#   pyodide-prerelease). Passing it crashed CLI argument parsing — exit code 2,
+#   before any build started ("Failed to parse enable group: pyodide-eol").
+#   v3.4.1 also has no cp312/pyodide build-id gating logic at all, so cp312
+#   needs NO special enable flag under CIBW v3 — "pypy-eol" alone is correct
+#   and matches the cp313 rows.
+#
+# NOTE — "cp312 × Pyodide 314.0.0 (CIBW v4)" — kept, marked allow_failure:
+#   cibuildwheel 4.1.0 DOES define EnableGroup.PyodideEoL = "pyodide-eol", with
+#   an explicit gate in selector.py:
+#     if EnableGroup.PyodideEoL not in enable and fnmatch(build_id, "cp312-pyodide_*"):
+#         return False
+#   So "pyodide-eol" is genuinely required here and the CLI parses it fine —
+#   this is NOT the same bug as the v3 rows above. The real failure happens one
+#   layer deeper: cibuildwheel 4.1.0 does not actually fetch the 314.0.0
+#   xbuildenv for cp312 — observed in run #63 (job 82521880793) it silently
+#   installs xbuildenv 0.27.7 instead ("Installing Pyodide xbuildenv version:
+#   0.27.7"). That xbuildenv's bundled python-3.12.pc reports
+#   `-I/usr/include/python3.12` (the HOST's native include path, which isn't
+#   even installed on the runner) instead of its own bundled WASM Python.h, so
+#   meson's `has_header('Python.h', dependencies: dep_py)` sanity check fails
+#   before any project code compiles:
+#     ERROR: Assert failed: meson.get_compiler('c').has_header('Python.h', ...)
+#   This is upstream xbuildenv/pkgconfig metadata breakage — not fixable in
+#   this repo's meson.build. Forcing it to "succeed" (e.g. apt-installing host
+#   python3.12-dev so the header merely exists) would link the wasm32 build
+#   against the wrong CPython ABI and risks a silently broken extension; that's
+#   a worse outcome than a red job.
+#   The row is kept (not deleted) with allow_failure: "true", wired to
+#   `continue-on-error:` at job level (see Step 3a/3b below), so it keeps
+#   probing on every scheduled run without turning the whole workflow red. The
+#   moment upstream ships a working 314.x-line xbuildenv for cp312, this row
+#   starts passing on its own — no manual re-enable needed. If it's still
+#   failing the same way after a future Pyodide/cibuildwheel version bump,
+#   re-read this note before assuming it's a new bug.
 #
 # WHY include-only matrix, not cross-product (python × pyodide):
 #   A 3×3 cross-product creates 9 jobs. Only 7 are valid — cp314 is unsupported
@@ -56,12 +96,24 @@
 #   `if: matrix.cibw_series == 'vN'` — is the canonical pattern.
 #
 # ── cibuildwheel flag semantics ───────────────────────────────────────────────
-#   pyodide-eol   Opt-in flag to enable cp312 WASM builds.
-#                 Produces non-PyPI-compatible tags (pyodide_/pyemscripten_
-#                 prefix is rejected by PyPI for older versions).
-#                 Wheels upload to Anaconda.org staging channels only.
+#   pyodide-eol   cibuildwheel ≥ 4.x ONLY (cibuildwheel/selector.py
+#                 EnableGroup). Gates cp312 under the pyodide platform — omit
+#                 it on v4 and cp312 is silently excluded rather than
+#                 attempted. NOT recognized by cibuildwheel 3.4.1 (pinned for
+#                 CIBW v3 below): passing it there is a hard CLI parse error,
+#                 not a no-op. Used only by the allow_failure cp312×314.0.0
+#                 row; the two v3 cp312 rows need no enable flag at all.
 #   pypy-eol      No-op for Pyodide/WASM (PyPy ≠ WebAssembly). Kept for
 #                 consistency with the project's CIBW_ENABLE convention.
+#
+# ── allow_failure semantics ───────────────────────────────────────────────────
+#   allow_failure "true" wires `continue-on-error:` at job level for that row
+#   only. The job still runs, still builds, still uploads a step summary and
+#   logs — it just can't flip the overall workflow run to "Failure" if the
+#   build step fails. Used for exactly one row today (see note above). Default
+#   "false" everywhere else; a typo'd "true" elsewhere would silently hide a
+#   real regression, so keep this field explicit per row rather than inferring
+#   it from pypi_ok or cibw_series.
 # ─────────────────────────────────────────────────────────────────────────────
 ---
 name: "CI 📦 Wheels Emscripten/Pyodide"
@@ -144,6 +196,12 @@ jobs:
 
     runs-on: ${{ matrix.build_platform }}
 
+    # Wired to matrix.allow_failure (see "allow_failure semantics" in the file
+    # header). "true" for exactly one row today — a build that fails on a known
+    # upstream xbuildenv bug, kept in the matrix to auto-recover once fixed
+    # upstream without blocking the rest of this workflow's status.
+    continue-on-error: ${{ matrix.allow_failure == 'true' }}
+
     # Prevent execution on forks (no upload tokens, no Anaconda access).
     # NOTE: the target_python dispatch filter (added below) is NOT applied
     # here. GitHub's job-level `if:` only has access to the github, needs,
@@ -178,6 +236,9 @@ jobs:
     #   cibw_enable      CIBW_ENABLE value for this combination
     #   whl_tag          Expected wheel platform tag (documentation + artifact name)
     #   pypi_ok          "true" if wheel tag is accepted by PyPI, else "false"
+    #   allow_failure    "true" wires continue-on-error: for this row only (see
+    #                    "allow_failure semantics" in the file header). "false"
+    #                    everywhere except one known-broken-upstream row today.
     #
     strategy:
       fail-fast: false  # Build all valid combinations even if one fails
@@ -194,9 +255,10 @@ jobs:
             pyodide_version: "0.28.3"
             build_platform:  "ubuntu-22.04"
             cibw_series:     "v3"
-            cibw_enable:     "pypy-eol pyodide-eol"
+            cibw_enable:     "pypy-eol"
             whl_tag:         "pyodide_2024_0_wasm32"
             pypi_ok:         "false"
+            allow_failure:   "false"
 
           - python:          "cp313"
             pyodide_version: "0.28.3"
@@ -205,6 +267,7 @@ jobs:
             cibw_enable:     "pypy-eol"
             whl_tag:         "pyodide_2025_0_wasm32"
             pypi_ok:         "false"
+            allow_failure:   "false"
 
           # ── Pyodide 0.29.4 — cibuildwheel v3 ─────────────────────────────
           # Produces: pyodide_2024_0_wasm32 / pyodide_2025_0_wasm32
@@ -215,9 +278,10 @@ jobs:
             pyodide_version: "0.29.4"
             build_platform:  "ubuntu-22.04"
             cibw_series:     "v3"
-            cibw_enable:     "pypy-eol pyodide-eol"
+            cibw_enable:     "pypy-eol"
             whl_tag:         "pyodide_2024_0_wasm32"
             pypi_ok:         "false"
+            allow_failure:   "false"
 
           - python:          "cp313"
             pyodide_version: "0.29.4"
@@ -226,10 +290,12 @@ jobs:
             cibw_enable:     "pypy-eol"
             whl_tag:         "pyodide_2025_0_wasm32"
             pypi_ok:         "false"
+            allow_failure:   "false"
 
           # ── Pyodide 314.0.0 — cibuildwheel v4 ────────────────────────────
           # Produces: pyemscripten_2024/2025/2026_0_wasm32
-          # cp312: pyodide-eol required → NOT accepted by PyPI.
+          # cp312: pyodide-eol required, but fails further downstream on an
+          #        upstream xbuildenv bug — see header note. allow_failure=true.
           # cp313, cp314: default flags → accepted by PyPI ✅
           # ──────────────────────────────────────────────────────────────────
 
@@ -240,6 +306,7 @@ jobs:
             cibw_enable:     "pypy-eol pyodide-eol"
             whl_tag:         "pyemscripten_2024_0_wasm32"
             pypi_ok:         "false"
+            allow_failure:   "true"   # known upstream xbuildenv bug — see header note
 
           - python:          "cp313"
             pyodide_version: "314.0.0"
@@ -248,6 +315,7 @@ jobs:
             cibw_enable:     "pypy-eol"
             whl_tag:         "pyemscripten_2025_0_wasm32"
             pypi_ok:         "true"
+            allow_failure:   "false"
 
           - python:          "cp314"
             pyodide_version: "314.0.0"
@@ -256,6 +324,7 @@ jobs:
             cibw_enable:     "pypy-eol"
             whl_tag:         "pyemscripten_2026_0_wasm32"
             pypi_ok:         "true"
+            allow_failure:   "false"
 
 
     permissions:
@@ -353,16 +422,21 @@ jobs:
       #
       - name: "✅ Validate matrix row invariants"
         env:
-          MX_CIBW_SERIES: ${{ matrix.cibw_series }}
-          MX_WHL_TAG:     ${{ matrix.whl_tag }}
-          MX_PYPI_OK:     ${{ matrix.pypi_ok }}
-          MX_CIBW_ENABLE: ${{ matrix.cibw_enable }}
+          MX_CIBW_SERIES:   ${{ matrix.cibw_series }}
+          MX_WHL_TAG:       ${{ matrix.whl_tag }}
+          MX_PYPI_OK:       ${{ matrix.pypi_ok }}
+          MX_CIBW_ENABLE:   ${{ matrix.cibw_enable }}
+          MX_ALLOW_FAILURE: ${{ matrix.allow_failure }}
         run: |
           fail=0
           case "$MX_CIBW_SERIES" in
             v3)
               if [[ "$MX_WHL_TAG" != pyodide_* ]]; then
                 echo "::error::cibw_series=v3 must produce a pyodide_* wheel tag, got '$MX_WHL_TAG'"
+                fail=1
+              fi
+              if [[ "$MX_CIBW_ENABLE" == *pyodide-eol* ]]; then
+                echo "::error::cibw_series=v3 (cibuildwheel 3.4.1) has no 'pyodide-eol' enable group — it was added in cibuildwheel 4.x. Remove it from this row's cibw_enable (confirmed 2026-06-21 by direct inspection of cibuildwheel/selector.py for both pinned versions)."
                 fail=1
               fi
               ;;
@@ -379,6 +453,10 @@ jobs:
           esac
           if [[ "$MX_PYPI_OK" == "true" && "$MX_CIBW_ENABLE" == *pyodide-eol* ]]; then
             echo "::error::pypi_ok=true but cibw_enable contains 'pyodide-eol', which always produces a non-PyPI tag — these two fields contradict each other on this row."
+            fail=1
+          fi
+          if [[ "$MX_ALLOW_FAILURE" != "true" && "$MX_ALLOW_FAILURE" != "false" ]]; then
+            echo "::error::allow_failure must be exactly 'true' or 'false', got '$MX_ALLOW_FAILURE' — check this matrix row for a typo."
             fail=1
           fi
           exit "$fail"
@@ -410,6 +488,7 @@ jobs:
           MX_CIBW_ENABLE:    ${{ matrix.cibw_enable }}
           MX_WHL_TAG:        ${{ matrix.whl_tag }}
           MX_PYPI_OK:        ${{ matrix.pypi_ok }}
+          MX_ALLOW_FAILURE:  ${{ matrix.allow_failure }}
           MX_UPLOAD_CHANNEL: ${{ github.event.inputs.anaconda_staging || 'scikit-plots-wheels-staging-nightly' }}
         run: |
           {
@@ -428,6 +507,9 @@ jobs:
               echo "| **PyPI OK**     | ✅ Yes |"
             else
               echo "| **PyPI OK**     | ❌ No — Anaconda.org staging only |"
+            fi
+            if [[ "$MX_ALLOW_FAILURE" == "true" ]]; then
+              echo "| **Allowed to fail** | ⚠️ Yes — known upstream issue, see file header. A red build here will NOT fail this workflow run. |"
             fi
             echo "| **Upload channel** | \`$MX_UPLOAD_CHANNEL\` |"
             echo ""
