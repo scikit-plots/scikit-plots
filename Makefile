@@ -1256,6 +1256,12 @@ endif
 ## Git Branch
 ######################################################################
 
+# ⛔ Merge error Head branch is out of date. Review and try the merge again.
+# 1. Refresh / re-run mergeability check
+empty:
+	@git commit --allow-empty -m "Trigger PR refresh"
+	@git push
+
 ## Add a Branch to the Local project
 ## maintenance/0.3.x
 # branch:
