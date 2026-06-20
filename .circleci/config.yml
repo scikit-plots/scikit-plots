@@ -76,6 +76,8 @@ _defaults: &defaults
     ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
     - image: cimg/python:3.12  # cimg/python:3.11 cimg/base:2026.06
   environment:
+    # NPX_INSTALL_DIR: /home/circleci/.local/npx     # "~/.local/npx"
+    # NPM_INSTALL_DIR: /home/circleci/.local/npm     # "~/.local/npm"
     NODE_INSTALL_DIR: /home/circleci/.local/node   # "~/.local/node"
     MICROMAMBA_BIN_DIR: /home/circleci/.local/bin  # "~/.local/bin"
     MAMBA_ROOT_PREFIX: /home/circleci/micromamba   # "~/micromamba"
@@ -259,7 +261,9 @@ commands:
             command: |
               set -Eeuo pipefail
               export NODE_INSTALL_DIR="/home/circleci/.local/node"
-              if [ -x "${NODE_INSTALL_DIR}/bin/node" ]; then
+              if [ -x "${NODE_INSTALL_DIR}/bin/node" ] && [ -x "${NODE_INSTALL_DIR}/bin/npm" ]; then
+                # ls -la /home/circleci/.local/node/bin/npm
+                # du -sh /home/circleci/.local/node/lib/node_modules/npm
                 echo "node/npm restored from cache, skipping download."
               else
                 NODE_VERSION="$(tail -1 .circleci/node-version.txt)"
@@ -284,6 +288,7 @@ commands:
               node --version
               npm --version
               test -x "${NODE_INSTALL_DIR}/bin/node"
+              test -x "${NODE_INSTALL_DIR}/bin/npm"
         - save_cache:
             key: node-bin-v1-{{ checksum ".circleci/node-version.txt" }}
             paths:
