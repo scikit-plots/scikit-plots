@@ -145,14 +145,13 @@ jobs:
     runs-on: ${{ matrix.build_platform }}
 
     # Prevent execution on forks (no upload tokens, no Anaconda access).
-    # Also respects the target_python dispatch filter: on workflow_dispatch,
-    # only the matching row(s) run; 'all' (the default) or any non-dispatch
-    # trigger (schedule) runs the complete matrix, unchanged from before.
-    if: >-
-      github.repository == 'scikit-plots/scikit-plots' &&
-      (github.event_name != 'workflow_dispatch' ||
-       github.event.inputs.target_python == 'all' ||
-       github.event.inputs.target_python == matrix.python)
+    # NOTE: the target_python dispatch filter (added below) is NOT applied
+    # here. GitHub's job-level `if:` only has access to the github, needs,
+    # vars, secrets, and inputs contexts — `matrix` is unrecognized at this
+    # path even though it works in runs-on:/env:/steps: for the same job.
+    # The filter is implemented as a step-level check instead (Step 0 below),
+    # where `matrix` is valid.
+    if: github.repository == 'scikit-plots/scikit-plots'
 
     # ── Matrix ──────────────────────────────────────────────────────────────
     #
@@ -313,7 +312,34 @@ jobs:
 
     steps:
 
-      # ── Step 0: Validate matrix row invariants ──────────────────────────────
+      # ── Step 0: Resolve target_python filter ────────────────────────────────
+      #
+      # WHY a dedicated step instead of the job-level `if:`: GitHub's
+      # job-level `if:` does not have access to the `matrix` context (only
+      # github/needs/vars/secrets/inputs — confirmed by an actual workflow
+      # validation error, not assumed). `matrix` IS valid in a step's `env:`,
+      # so the comparison happens here and the result is published as
+      # env.ROW_SELECTED for every later step to gate on.
+      #
+      # On schedule runs (or any non-dispatch trigger), ROW_SELECTED is
+      # always 'true' — the target_python input only exists for
+      # workflow_dispatch, so this filter is a no-op outside manual runs.
+      #
+      - name: "🎯 Resolve target_python filter"
+        env:
+          MX_PYTHON:     ${{ matrix.python }}
+          EVENT_NAME:    ${{ github.event_name }}
+          TARGET_PYTHON: ${{ github.event.inputs.target_python }}
+        run: |
+          if [[ "$EVENT_NAME" != "workflow_dispatch" || -z "$TARGET_PYTHON" || "$TARGET_PYTHON" == "all" || "$TARGET_PYTHON" == "$MX_PYTHON" ]]; then
+            echo "ROW_SELECTED=true" >> "$GITHUB_ENV"
+          else
+            echo "ROW_SELECTED=false" >> "$GITHUB_ENV"
+            echo "::notice::Skipping $MX_PYTHON row — target_python dispatch input is set to '$TARGET_PYTHON'."
+          fi
+
+
+      # ── Step 1: Validate matrix row invariants ──────────────────────────────
       #
       # WHY: the compatibility table in this file's header and the actual
       # `matrix.include` rows are two separately hand-maintained sources of
@@ -358,7 +384,7 @@ jobs:
           exit "$fail"
 
 
-      # ── Step 1: Matrix context summary ──────────────────────────────────────
+      # ── Step 2: Matrix context summary ──────────────────────────────────────
       #
       # WHY first (after validation): this step always runs (even if later
       # steps fail) and writes a markdown table to the GitHub Step Summary.
@@ -411,8 +437,13 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
 
-      # ── Step 2: Checkout ──────────────────────────────────────────────────
+      # ── Step 3: Checkout ──────────────────────────────────────────────────
+      #
+      # Skipped entirely when this row is filtered out by target_python —
+      # no point cloning (with LFS) for a row that won't build.
+      #
       - name: "⬇️ Checkout repository"
+        if: env.ROW_SELECTED == 'true'
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false   # No credential leakage via .git/config
