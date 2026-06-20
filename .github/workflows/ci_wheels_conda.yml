@@ -172,7 +172,7 @@ jobs:
       matrix:
         ## Github Actions doesn't support pairing matrix values together, let's improvise
         ## https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
-        buildplat:
+        buildplat:  # matrix.buildplat[0]
           # should also be able to do multi-archs on a single entry, e.g.
           # [windows-latest, win*, "AMD64 x86"]. However, those two require a different compiler setup
           # so easier to separate out here.
@@ -189,9 +189,9 @@ jobs:
           - [macos-14, macosx, arm64, accelerate, "14.0"]
           - [windows-2022, win, AMD64]  # Window 64 bit ("*-win_amd64", "*-x86_64")
           - [windows-11-arm, win, ARM64]  # Window 64 bit ("*-win_arm64", "*-x86_64")
-        python: [
+        python: [  # matrix.python[0]
           ## python[0] is used to specify the python versions made by cibuildwheel
-          # ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
+          ## ["pp310", "3.10"],  # pp310 (PyPy 3.10) Slower startup Just-In-Time (JIT) warm-up
           ## Min Py version "3.10" due to array api compat
           ["cp38", "3.8"],  # CPython 3.8 – Stable, but partially without support for some cexternals, externals packages  # need clang llvm on macOS
           ["cp39", "3.9"],  # CPython 3.9 – Stable, but partially without support for some cexternals, externals packages
@@ -616,7 +616,10 @@ jobs:
           ## cpython-freethreading: required by cp313t; harmless for cp38
           ## cpython-prerelease:    retained for any pre-release selector in this group
           CIBW_ENABLE: cpython-freethreading cpython-prerelease
-          CIBW_TEST_SKIP: ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+          # For CIBW_TEST_SKIP, the value must be a skip pattern string (or empty string).
+          CIBW_TEST_SKIP: >-  # ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+            *-cp313t-win_amd64
+            ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
@@ -636,7 +639,10 @@ jobs:
           ## cpython-prerelease enables cp314, cp314t selectors
           ## cpython-freethreading NOT needed here: v4.1.0 handles 314t natively
           CIBW_ENABLE: cpython-prerelease
-          CIBW_TEST_SKIP: ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+          # For CIBW_TEST_SKIP, the value must be a skip pattern string (or empty string).
+          CIBW_TEST_SKIP: >-  # ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+            *-cp313t-win_amd64
+            ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH

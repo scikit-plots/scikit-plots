@@ -1,317 +1,642 @@
-# Concept	    Analogy                             	Role (Related To)
-# WASM        Machine code                          The target binary format (WebAssembly VM, Browser)
-# WebAssembly	The CPU architecture                  Platform-independent bytecode spec (WASM, Browsers) = technology/platform.
-# Emscripten	The compiler (like GCC)               Compiles C/C++ → WebAssembly (Uses LLVM)
-# Pyodide	    Python interpreter running on WASM    Python compiled via Emscripten to WASM (Uses CPython + Emscripten) = an application/runtime built on WebAssembly.
-# +-------------------------------+
-# |       Your Browser           |
-# |                               |
-# |  +------------------------+   |
-# |  |  WebAssembly Runtime    |  <-- part of browser
-# |  |                        |   |
-# |  |  Runs .wasm binaries   |   |
-# |  +----------+-------------+   |
-# |             |                 |
-# |     +-------v---------+       |
-# |     |     Pyodide     |       | <-- .wasm file: CPython + Emscripten + numpy + ...
-# |     +-----------------+       |     Python compiled via Emscripten to WASM.
-# +-------------------------------+
+# ══════════════════════════════════════════════════════════════════════════════
+# CI Wheels — Emscripten / Pyodide (WebAssembly)
+# ══════════════════════════════════════════════════════════════════════════════
 #
-# https://anaconda.org/channels/pyodide
-# https://github.com/pyodide/pyodide-recipes
+# Concept      Analogy                        Role
+# ──────────── ────────────────────────────── ───────────────────────────────
+# WASM         Machine code                   Target binary format (WASM VM)
+# WebAssembly  CPU architecture               Platform-independent bytecode spec
+# Emscripten   Compiler (like GCC)            Compiles C/C++ → WASM (via LLVM)
+# Pyodide      Python interpreter on WASM     CPython compiled via Emscripten
+#
+#  ┌──────────────────────────────┐
+#  │         Your Browser         │
+#  │  ┌────────────────────────┐  │
+#  │  │  WebAssembly Runtime   │  │ ← part of browser
+#  │  │  Runs .wasm binaries   │  │
+#  │  └──────────┬─────────────┘  │
+#  │     ┌───────▼──────────┐     │
+#  │     │     Pyodide      │     │ ← CPython + Emscripten + packages → .wasm
+#  │     └──────────────────┘     │
+#  └──────────────────────────────┘
+#
+# References:
+#   https://pyodide.org/en/stable/development/abi.html#platform-versions
+#   https://cibuildwheel.pypa.io/en/stable/options/#enable
+#   https://anaconda.org/channels/pyodide
+#
+# Keep in sync with docs/source/jupyter-lite.json:
+#   https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js
+#   https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js
+#   https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js
+#
+# ── Compatibility truth table ─────────────────────────────────────────────────
+#
+#  Python │ Pyodide   │ CIBW  │ Wheel tag                    │ PyPI │ Notes
+#  ───────┼───────────┼───────┼──────────────────────────────┼──────┼──────────
+#  cp312  │ 0.28.3    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-eol
+#  cp313  │ 0.28.3    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
+#  cp312  │ 0.29.4    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-eol
+#  cp313  │ 0.29.4    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
+#  cp312  │ 314.0.0   │  v4   │ pyemscripten_2024_0_wasm32    │  ❌  │ pyodide-eol
+#  cp313  │ 314.0.0   │  v4   │ pyemscripten_2025_0_wasm32    │  ✅  │ default
+#  cp314  │ 314.0.0   │  v4   │ pyemscripten_2026_0_wasm32    │  ✅  │ default
+#  ───────┴───────────┴───────┴──────────────────────────────┴──────┴──────────
+#
+# WHY include-only matrix, not cross-product (python × pyodide):
+#   A 3×3 cross-product creates 9 jobs. Only 7 are valid — cp314 is unsupported
+#   by Pyodide ≤ 0.29.x. More critically, each valid combination requires a
+#   DIFFERENT cibuildwheel version, CIBW_ENABLE flags, wheel tag, and runner.
+#   An include-only matrix makes every field explicit, prevents invalid builds,
+#   and makes the log identity of each job immediately readable.
+#
+# WHY two conditional build steps instead of one dynamic step:
+#   GitHub Actions does not allow expressions in the `uses:` field. The action
+#   hash must be a literal string. Two steps — each guarded by
+#   `if: matrix.cibw_series == 'vN'` — is the canonical pattern.
+#
+# ── cibuildwheel flag semantics ───────────────────────────────────────────────
+#   pyodide-eol   Opt-in flag to enable cp312 WASM builds.
+#                 Produces non-PyPI-compatible tags (pyodide_/pyemscripten_
+#                 prefix is rejected by PyPI for older versions).
+#                 Wheels upload to Anaconda.org staging channels only.
+#   pypy-eol      No-op for Pyodide/WASM (PyPy ≠ WebAssembly). Kept for
+#                 consistency with the project's CIBW_ENABLE convention.
+# ─────────────────────────────────────────────────────────────────────────────
 ---
-name: "CI 📦 Wheels Emscripten/Pyodide"  # WebAssembly frontend (via pyodide)
+name: "CI 📦 Wheels Emscripten/Pyodide"
+
 
 on:
-  workflow_dispatch: # Allows manual triggering of the workflow
+  workflow_dispatch:
     inputs:
       anaconda_staging:
-        # Can be 'true' or 'false'. Default is 'false'.
-        # Warning: this will overwrite existing wheels.
         description: >-
-          Push wheels to Anaconda.org if the build succeeds.
+          Push wheels to Anaconda.org on successful build.
+          Warning: 'scikit-plots-wheels-staging' overwrites existing wheels.
         required: false
         default: 'scikit-plots-wheels-staging-nightly'
         type: choice
         options:
-          - 'scikit-plots-wheels-staging'          # 'true'
-          - 'scikit-plots-wheels-staging-nightly'  # 'false'
+          - 'scikit-plots-wheels-staging'          # stable staging  (IS_PUSH=true)
+          - 'scikit-plots-wheels-staging-nightly'  # nightly channel (IS_PUSH=false)
+
+      target_python:
+        description: >-
+          Run only the matrix row(s) for this CPython tag. Use 'all' to run
+          the full 7-row matrix (default — same behavior as before this
+          input existed). Lets you debug one version's log without scrolling
+          past 6 unrelated jobs.
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'cp312'
+          - 'cp313'
+          - 'cp314'
+
   # pull_request:
-  #   branches:
-  #     - main
-  #     - maintenance/**  # Release branches
-  #   paths-ignore:
-  #     - '**.pyi'
-  #     - '**.md'
-  #     - '**.rst'
-  #     - 'tools/stubtest/**'
+  #   branches: [main, "maintenance/**"]
+  #   paths-ignore: ["**.pyi", "**.md", "**.rst", "tools/stubtest/**"]
+
   schedule:
-    ## Automatically built and released every night (or at a regular interval, often nightly)
-    ## Cron schedule for automated runs
-    ## https://crontab.cronhub.io
-    ## https://freeformatter.com/cron-expression-generator-quartz.html#cronexpressionexamples
-    ## https://crontab.io/validator
-    ## https://cron-checker.com/
-    ## "* * * * * * *" 7 fields (Quartz with year)         <second> <minute> <hour> <day of month> <month> <day of week> <year>
-    ## "* * * * * *"   6 fields (Quartz / some schedulers) <second> <minute> <hour> <day of month> <month> <day of week>
-    ## "* * * * *"     5 fields (standard Unix cron)       <minute> <hour> <day of month> <month> <day of week>
-    ##        ┌─────────────────────── minute           (0 - 59)
-    ##        │  ┌──────────────────── hour             (0 - 23)
-    ##        │  │  ┌───────────────── day of the month (1 - 31)
-    ##        │  │  │ ┌─────────────── month            (1 - 12 or JAN-DEC)
-    ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
-    ##        │  │  │ │ │
-    ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
+    # Every Monday at 11:11 UTC — nightly nightly channel.
+    # https://crontab.io / https://crontab.cronhub.io
+    #
+    #   ┌──── minute (0-59)
+    #   │  ┌─ hour (0-23)
+    #   │  │  ┌ day-of-month (1-31)
+    #   │  │  │ ┌ month (1-12)
+    #   │  │  │ │ ┌ day-of-week (0-7, SUN=0 or 7)
     - cron: '11 11 * * 1'
 
 
+# Cancel superseded runs within the same workflow + branch.
+# PR runs use head_ref (branch name); push/schedule runs use run_id.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 
+# Minimal permissions at workflow level.
+# The job inherits and redeclares these (defense in depth).
 permissions:
-  contents: read  # to fetch code (actions/checkout)
+  contents: read  # checkout only
+
 
 env:
-  FORCE_COLOR: 3
+  FORCE_COLOR: 3  # Colorised output in cibuildwheel / pip logs
 
 
 jobs:
   build-wasm-emscripten:
-    name: Build WASM (WebAssembly/Emscripten/Pyodide)
-    # runs-on: ubuntu-latest  # Use the latest Ubuntu virtual environment
-    runs-on: ubuntu-22.04  # python3.12
+
+    # ── Job name ────────────────────────────────────────────────────────────
+    # Encodes the full matrix identity so each job is immediately identifiable
+    # in the GitHub Actions UI without opening the run log.
+    # Format: cp312 × Pyodide-v0.28.3 · CIBW-v3 [pyodide_2024_0_wasm32] ❌PyPI
+    name: >-
+      ${{ matrix.python }} × Pyodide-v${{ matrix.pyodide_version }} ·
+      CIBW-${{ matrix.cibw_series }}
+      [${{ matrix.whl_tag }}]
+      ${{ matrix.pypi_ok == 'true' && '✅PyPI' || '❌Staged' }}
+
+    runs-on: ${{ matrix.build_platform }}
+
+    # Prevent execution on forks (no upload tokens, no Anaconda access).
+    # Also respects the target_python dispatch filter: on workflow_dispatch,
+    # only the matching row(s) run; 'all' (the default) or any non-dispatch
+    # trigger (schedule) runs the complete matrix, unchanged from before.
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots' &&
+      (github.event_name != 'workflow_dispatch' ||
+       github.event.inputs.target_python == 'all' ||
+       github.event.inputs.target_python == matrix.python)
+
+    # ── Matrix ──────────────────────────────────────────────────────────────
+    #
+    # DESIGN: include-only — 7 explicit, correlated rows.
+    #
+    # Each row defines ALL fields needed to build and upload one wheel
+    # combination. No implicit cross-product. No fields inferred at runtime.
+    #
+    # To ADD a new combination (e.g. a new Pyodide version):
+    #   1. Consult the compatibility table in the file header.
+    #   2. Add a new `- python / pyodide_version / ... ` block below.
+    #   3. Verify which cibuildwheel series produces the correct wheel tag.
+    #   4. Set pypi_ok based on the compatibility table.
+    #
+    # To REMOVE a combination: delete the corresponding include block.
+    #
+    # Fields:
+    #   python           CPython tag passed to CIBW_BUILD (e.g. "cp312")
+    #   pyodide_version  Pyodide SDK target (drives cibw_series selection)
+    #   build_platform   GitHub-hosted runner label
+    #                    ubuntu-22.04 → stable GLIBC for Pyodide ≤ 0.29.x
+    #                    ubuntu-24.04 → newer toolchain for Pyodide 314.x / cp314
+    #   cibw_series      "v3" or "v4" — selects the guarded build step below
+    #   cibw_enable      CIBW_ENABLE value for this combination
+    #   whl_tag          Expected wheel platform tag (documentation + artifact name)
+    #   pypi_ok          "true" if wheel tag is accepted by PyPI, else "false"
+    #
+    strategy:
+      fail-fast: false  # Build all valid combinations even if one fails
+
+      matrix:
+        include:
+
+          # ── Pyodide 0.28.3 — cibuildwheel v3 ─────────────────────────────
+          # Produces: pyodide_2024_0_wasm32 / pyodide_2025_0_wasm32
+          # NOT accepted by PyPI. Upload to Anaconda.org staging only.
+          # ──────────────────────────────────────────────────────────────────
+
+          - python:          "cp312"
+            pyodide_version: "0.28.3"
+            build_platform:  "ubuntu-22.04"
+            cibw_series:     "v3"
+            cibw_enable:     "pypy-eol pyodide-eol"
+            whl_tag:         "pyodide_2024_0_wasm32"
+            pypi_ok:         "false"
+
+          - python:          "cp313"
+            pyodide_version: "0.28.3"
+            build_platform:  "ubuntu-22.04"
+            cibw_series:     "v3"
+            cibw_enable:     "pypy-eol"
+            whl_tag:         "pyodide_2025_0_wasm32"
+            pypi_ok:         "false"
+
+          # ── Pyodide 0.29.4 — cibuildwheel v3 ─────────────────────────────
+          # Produces: pyodide_2024_0_wasm32 / pyodide_2025_0_wasm32
+          # NOT accepted by PyPI. Upload to Anaconda.org staging only.
+          # ──────────────────────────────────────────────────────────────────
+
+          - python:          "cp312"
+            pyodide_version: "0.29.4"
+            build_platform:  "ubuntu-22.04"
+            cibw_series:     "v3"
+            cibw_enable:     "pypy-eol pyodide-eol"
+            whl_tag:         "pyodide_2024_0_wasm32"
+            pypi_ok:         "false"
+
+          - python:          "cp313"
+            pyodide_version: "0.29.4"
+            build_platform:  "ubuntu-22.04"
+            cibw_series:     "v3"
+            cibw_enable:     "pypy-eol"
+            whl_tag:         "pyodide_2025_0_wasm32"
+            pypi_ok:         "false"
+
+          # ── Pyodide 314.0.0 — cibuildwheel v4 ────────────────────────────
+          # Produces: pyemscripten_2024/2025/2026_0_wasm32
+          # cp312: pyodide-eol required → NOT accepted by PyPI.
+          # cp313, cp314: default flags → accepted by PyPI ✅
+          # ──────────────────────────────────────────────────────────────────
+
+          - python:          "cp312"
+            pyodide_version: "314.0.0"
+            build_platform:  "ubuntu-24.04"
+            cibw_series:     "v4"
+            cibw_enable:     "pypy-eol pyodide-eol"
+            whl_tag:         "pyemscripten_2024_0_wasm32"
+            pypi_ok:         "false"
+
+          - python:          "cp313"
+            pyodide_version: "314.0.0"
+            build_platform:  "ubuntu-24.04"
+            cibw_series:     "v4"
+            cibw_enable:     "pypy-eol"
+            whl_tag:         "pyemscripten_2025_0_wasm32"
+            pypi_ok:         "true"
+
+          - python:          "cp314"
+            pyodide_version: "314.0.0"
+            build_platform:  "ubuntu-24.04"
+            cibw_series:     "v4"
+            cibw_enable:     "pypy-eol"
+            whl_tag:         "pyemscripten_2026_0_wasm32"
+            pypi_ok:         "true"
+
 
     permissions:
-      contents: read  # to fetch code (actions/checkout)
+      contents: read  # Redeclared at job level (defense in depth)
 
-    env:  # Job level environment NAME: '', $NAME, ${{ env.NAME }}
-      # https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#example-matching-an-array-of-strings
-      # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' }}  # Build platform is 32-bit (e.g., 'x86', 'win32')
-      # IS_32_BIT: ${{ matrix.buildplat[2] == 'x86' || matrix.buildplat[2] == 'win32' }}
-      # IS_32_BIT: ${{ contains(fromJson('["x86", "win32"]'), matrix.buildplat[2]) }}
-      # upload to staging if it's a push to a maintenance branch
-      # and the last GIT COMMIT MESSAGE contains '[wheel build]'
-      # Check current EVENT is a "push" event
-      # Triggered for specific BRANCHES (e.g., main, maintenance/**)
-      # Triggered for TAGS starting with 'v'
+    # ── GitHub Environment (zizmor: secrets-outside-env, Medium) ──────────────
+    #
+    # WHAT THIS FIXES: SKPLT_STAGING_UPLOAD_TOKEN(_NIGHTLY) were referenced via
+    # `secrets.*` with no `environment:` on the job. zizmor flags that because
+    # there's no approval boundary around secret access — anyone who can run
+    # this workflow gets the token, with no option to require reviewers first.
+    #
+    # WHAT CHANGES RIGHT NOW: nothing behaviorally. If an Environment named
+    # "anaconda-publish" doesn't exist yet in repo Settings → Environments,
+    # GitHub auto-creates it on first run with NO protection rules — this job
+    # keeps working exactly as before, and your existing repository-level
+    # secrets remain readable (environment scoping is additive, it doesn't
+    # revoke repo-level secret access).
+    #
+    # WHAT YOU CAN DO LATER (manual, in repo Settings — not in this file):
+    #   - Add required reviewers to "anaconda-publish" to gate uploads on a
+    #     human approval before the job's secrets become readable.
+    #   - Optionally move SKPLT_STAGING_UPLOAD_TOKEN(_NIGHTLY) into this
+    #     Environment's own secret store instead of repo-level secrets.
+    #   - Add a deployment branch policy to restrict which branches/refs may
+    #     dispatch this workflow with upload intent.
+    #
+    # NOTE: one Environment currently covers BOTH staging channels (stable +
+    # nightly). If you want separate approval rules per channel, that needs
+    # two Environments and a dynamic `environment: ${{ ... }}` name — left
+    # out here because GH Actions' support for expressions in `environment:`
+    # has had inconsistent behavior across contexts; a static name is the
+    # version that's guaranteed to validate. Ask if you want that split.
+    #
+    environment:
+      name: anaconda-publish
+
+
+    env:
+      # IS_PUSH: true when the user explicitly selects the stable staging channel
+      # via workflow_dispatch. Used by upload_wheels.sh to pick the right token.
       IS_PUSH: >-
         ${{ github.event.inputs.anaconda_staging == 'scikit-plots-wheels-staging' }}
-      # Checks if the EVENT is a "schedule" or manual "workflow_dispatch"
+
+      # IS_SCHEDULE_DISPATCH: true for both scheduled and manual runs.
+      # Gating upload on this prevents accidental uploads from PR/push events
+      # if the pull_request trigger is re-enabled in the future.
       IS_SCHEDULE_DISPATCH: >-
         ${{
           github.event_name == 'workflow_dispatch' ||
           github.event_name == 'schedule'
         }}
 
-    # To enable this workflow on a fork, comment out:
-    if: github.repository == 'scikit-plots/scikit-plots'
 
     steps:
-      ## 📥 Checkout the Git repository into the runner
-      - name: "⬇️ Checkout (cloned) repository with full history"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      # ── Step 0: Validate matrix row invariants ──────────────────────────────
+      #
+      # WHY: the compatibility table in this file's header and the actual
+      # `matrix.include` rows are two separately hand-maintained sources of
+      # truth — nothing previously checked that they agree. Rather than try
+      # to parse the markdown comment table (fragile, since comments aren't
+      # structured data), this asserts the real invariants directly against
+      # each row's fields, so a future typo'd row (e.g. cibw_series: v3 paired
+      # with a pyemscripten_* tag, or pypi_ok: true alongside the
+      # pyodide-eol flag) fails the job immediately instead of silently
+      # producing a mistagged wheel.
+      #
+      - name: "✅ Validate matrix row invariants"
+        env:
+          MX_CIBW_SERIES: ${{ matrix.cibw_series }}
+          MX_WHL_TAG:     ${{ matrix.whl_tag }}
+          MX_PYPI_OK:     ${{ matrix.pypi_ok }}
+          MX_CIBW_ENABLE: ${{ matrix.cibw_enable }}
+        run: |
+          fail=0
+          case "$MX_CIBW_SERIES" in
+            v3)
+              if [[ "$MX_WHL_TAG" != pyodide_* ]]; then
+                echo "::error::cibw_series=v3 must produce a pyodide_* wheel tag, got '$MX_WHL_TAG'"
+                fail=1
+              fi
+              ;;
+            v4)
+              if [[ "$MX_WHL_TAG" != pyemscripten_* ]]; then
+                echo "::error::cibw_series=v4 must produce a pyemscripten_* wheel tag, got '$MX_WHL_TAG'"
+                fail=1
+              fi
+              ;;
+            *)
+              echo "::error::Unknown cibw_series '$MX_CIBW_SERIES' — only 'v3' and 'v4' have a guarded build step. Check this matrix row for a typo."
+              fail=1
+              ;;
+          esac
+          if [[ "$MX_PYPI_OK" == "true" && "$MX_CIBW_ENABLE" == *pyodide-eol* ]]; then
+            echo "::error::pypi_ok=true but cibw_enable contains 'pyodide-eol', which always produces a non-PyPI tag — these two fields contradict each other on this row."
+            fail=1
+          fi
+          exit "$fail"
+
+
+      # ── Step 1: Matrix context summary ──────────────────────────────────────
+      #
+      # WHY first (after validation): this step always runs (even if later
+      # steps fail) and writes a markdown table to the GitHub Step Summary.
+      # Engineers triaging a failure see the full build context without
+      # opening raw logs.
+      #
+      - name: "📋 Matrix context & build plan"
+        # SECURITY: every `${{ }}` value used to be spliced directly into this
+        # run: script (zizmor: template-injection, High confidence on the
+        # workflow_dispatch input). GitHub Actions performs that splice as a
+        # literal text substitution *before* bash parses the script, so a
+        # crafted value containing `$(...)`, backticks, or `"` could break out
+        # of the quoted context and execute as code — regardless of whether
+        # the field is currently constrained to a `type: choice` dropdown.
+        # Routing every value through `env:` instead means bash only ever
+        # sees a static script; the dynamic data arrives as inert process
+        # environment variables, referenced with quoted "$VAR" expansion.
+        env:
+          MX_PYTHON:         ${{ matrix.python }}
+          MX_PYODIDE:        ${{ matrix.pyodide_version }}
+          MX_RUNNER:         ${{ matrix.build_platform }}
+          MX_CIBW_SERIES:    ${{ matrix.cibw_series }}
+          MX_CIBW_ENABLE:    ${{ matrix.cibw_enable }}
+          MX_WHL_TAG:        ${{ matrix.whl_tag }}
+          MX_PYPI_OK:        ${{ matrix.pypi_ok }}
+          MX_UPLOAD_CHANNEL: ${{ github.event.inputs.anaconda_staging || 'scikit-plots-wheels-staging-nightly' }}
+        run: |
+          {
+            echo "## 🏗️ Build context — \`$MX_PYTHON\` × Pyodide v$MX_PYODIDE"
+            echo ""
+            echo "| Parameter       | Value |"
+            echo "| --------------- | ----- |"
+            echo "| **Python**      | \`$MX_PYTHON\` |"
+            echo "| **Pyodide**     | \`v$MX_PYODIDE\` |"
+            echo "| **Runner**      | \`$MX_RUNNER\` |"
+            echo "| **CIBW series** | \`cibuildwheel $MX_CIBW_SERIES\` |"
+            echo "| **CIBW_BUILD**  | \`${MX_PYTHON}-*\` |"
+            echo "| **CIBW_ENABLE** | \`$MX_CIBW_ENABLE\` |"
+            echo "| **Wheel tag**   | \`$MX_WHL_TAG\` |"
+            if [[ "$MX_PYPI_OK" == "true" ]]; then
+              echo "| **PyPI OK**     | ✅ Yes |"
+            else
+              echo "| **PyPI OK**     | ❌ No — Anaconda.org staging only |"
+            fi
+            echo "| **Upload channel** | \`$MX_UPLOAD_CHANNEL\` |"
+            echo ""
+            echo "> Exactly **one** build step executes per job:"
+            echo "> CIBW v3 → Pyodide ≤ 0.29.x (\`pyodide_\` prefix),"
+            echo "> CIBW v4 → Pyodide 314.x (\`pyemscripten_\` prefix)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+      # ── Step 2: Checkout ──────────────────────────────────────────────────
+      - name: "⬇️ Checkout repository"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
-          persist-credentials: false  # Prevents accidental credential exposure
-          # submodules: true  # Fetch Hugo themes (true OR recursive)
-          fetch-depth: 0    # Fetch all history for .GitInfo and .Lastmod
+          persist-credentials: false   # No credential leakage via .git/config
+          fetch-depth: 0               # Full history for version tags / GitInfo
           lfs: true
-          ## Gets the correct commit message for pull request
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-      # Pre-0.21                           emscripten_{major}_{minor}_{patch}_wasm32 emscripten_3_1_27_wasm32   ❌
-      # cibuildwheel v2–v3 / Python ≤ 3.13 pyodide_{YEAR}_{PATCH}_wasm32             pyodide_2024_0_wasm32      ❌
-      # cibuildwheel v4 / Python 3.13+     pyemscripten_{YEAR}_{PATCH}_wasm32        pyemscripten_2025_0_wasm32 ✅
+
+      # ── Step 3a: Build — cibuildwheel v3 (Pyodide ≤ 0.29.x) ─────────────
       #
-      # Python  Tag produced by cibuildwheel v4           Pyodide runtime   PyPI OK?  CIBW_ENABLE needed?
-      # ──────  ──────────────────────────────────────     ───────────────   ────────  ───────────────────
-      # 3.11    not supported (dropped in cibuildwheel)    —                 —         —
-      # 3.12    pyodide_2024_0_wasm32                      0.26–0.28.x       ❌        pyodide-eol
-      # 3.13    pyemscripten_2025_0_wasm32                 0.29.x            ✅        (default)
-      # 3.14    pyemscripten_2026_0_wasm32                 314.x             ✅        (default)
-      - name: Build Wheels Packages
+      # Runs ONLY when matrix.cibw_series == 'v3'.
+      # Produces wheels with `pyodide_{YEAR}_0_wasm32` tag prefix.
+      # Target versions: cp312 → pyodide_2024_0, cp313 → pyodide_2025_0
+      #
+      # NOTE: `uses:` does not support expressions — the action SHA must be a
+      # literal string. Two guarded steps is the canonical GitHub Actions pattern
+      # for selecting between action versions at runtime.
+      #
+      - name: "🔨 Build wheel · CIBW v3 · ${{ matrix.python }} × Pyodide v${{ matrix.pyodide_version }}"
+        id: build-cibw-v3
+        if: matrix.cibw_series == 'v3'
         uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
-        # uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
-        continue-on-error: true
-        env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
+        env:
           CIBW_PLATFORM: pyodide
-          # https://www.npmjs.com/package/pyodide?activeTab=versions
-          # https://pyodide.org/en/stable/development/abi.html#platform-versions
-          # https://pyodide.org/en/stable/usage/index.html#web-browsers
-          # Keep Kernel Sync with "docs/source/jupyter-lite.json":
-          # "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
-          #
-          # Explicit version selection (without this, ALL enabled versions build).
-          # cp312 → pyodide_2024_0_wasm32   (needs pyodide-eol above)
-          # cp313 → pyemscripten_2025_0_wasm32
-          # cp314 → pyemscripten_2026_0_wasm32
-          # scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl       (Pyodide 0.26–0.28.x which runs Python 3.12)
-          # scikit_plots-0.5.dev0-cp313-cp313-pyemscripten_2025_0_wasm32.whl  (Pyodide 0.28.x/0.29.x PyPI OK)
-          # scikit_plots-0.5.dev0-cp314-cp314-pyemscripten_2026_0_wasm32.whl  (Pyodide 314.x PyPI OK)
-          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
-          # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
-          # but anaconda.org accepts it fine for your nightly staging channel).
-          # https://cibuildwheel.pypa.io/en/stable/options/#enable
-          # Enable under python 3.13
-          CIBW_ENABLE: pypy-eol pyodide-eol
+          # Build ONLY the Python version specified in this matrix row.
+          # DO NOT use a hardcoded list — that defeats the matrix entirely.
+          CIBW_BUILD:   "${{ matrix.python }}-*"
+          CIBW_ENABLE:  "${{ matrix.cibw_enable }}"
+          # If cibuildwheel v3 adds PYODIDE_VERSION support in a future release,
+          # uncomment the line below to pin the exact Pyodide SDK:
+          # PYODIDE_VERSION: "${{ matrix.pyodide_version }}"
 
-      # Pre-0.21                           emscripten_{major}_{minor}_{patch}_wasm32 emscripten_3_1_27_wasm32   ❌
-      # cibuildwheel v2–v3 / Python ≤ 3.13 pyodide_{YEAR}_{PATCH}_wasm32             pyodide_2024_0_wasm32      ❌
-      # cibuildwheel v4 / Python 3.13+     pyemscripten_{YEAR}_{PATCH}_wasm32        pyemscripten_2025_0_wasm32 ✅
+
+      # ── Step 3b: Build — cibuildwheel v4 (Pyodide 314.x) ─────────────────
       #
-      # Python  Tag produced by cibuildwheel v4           Pyodide runtime   PyPI OK?  CIBW_ENABLE needed?
-      # ──────  ──────────────────────────────────────     ───────────────   ────────  ───────────────────
-      # 3.11    not supported (dropped in cibuildwheel)    —                 —         —
-      # 3.12    pyodide_2024_0_wasm32                      0.26–0.28.x       ❌        pyodide-eol
-      # 3.13    pyemscripten_2025_0_wasm32                 0.29.x            ✅        (default)
-      # 3.14    pyemscripten_2026_0_wasm32                 314.x             ✅        (default)
-      - name: Build Wheels Packages
-        # uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084  # v3.4.1
-        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
-        continue-on-error: true
-        env:  # Step level environment NAME: '', $NAME, ${{ env.NAME }}
+      # Runs ONLY when matrix.cibw_series == 'v4'.
+      # Produces wheels with `pyemscripten_{YEAR}_0_wasm32` tag prefix.
+      # cp312: pyodide-eol required → ❌ PyPI.
+      # cp313: pyemscripten_2025_0 → ✅ PyPI.
+      # cp314: pyemscripten_2026_0 → ✅ PyPI.
+      #
+      - name: "🔨 Build wheel · CIBW v4 · ${{ matrix.python }} × Pyodide v${{ matrix.pyodide_version }}"
+        id: build-cibw-v4
+        if: matrix.cibw_series == 'v4'
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
+        env:
           CIBW_PLATFORM: pyodide
-          # https://www.npmjs.com/package/pyodide?activeTab=versions
-          # https://pyodide.org/en/stable/development/abi.html#platform-versions
-          # https://pyodide.org/en/stable/usage/index.html#web-browsers
-          # Keep Kernel Sync with "docs/source/jupyter-lite.json":
-          # "https://cdn.jsdelivr.net/pyodide/v314.0.0/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"
-          # "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
-          #
-          # Explicit version selection (without this, ALL enabled versions build).
-          # cp312 → pyodide_2024_0_wasm32   (needs pyodide-eol above)
-          # cp313 → pyemscripten_2025_0_wasm32
-          # cp314 → pyemscripten_2026_0_wasm32
-          # scikit_plots-0.5.dev0-cp312-cp312-pyodide_2024_0_wasm32.whl       (Pyodide 0.26–0.28.x which runs Python 3.12)
-          # scikit_plots-0.5.dev0-cp313-cp313-pyemscripten_2025_0_wasm32.whl  (Pyodide 0.28.x/0.29.x PyPI OK)
-          # scikit_plots-0.5.dev0-cp314-cp314-pyemscripten_2026_0_wasm32.whl  (Pyodide 314.x PyPI OK)
-          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
-          # Opt-in to Python 3.12 (produces pyodide_2024_0 tag — PyPI rejects it,
-          # but anaconda.org accepts it fine for your nightly staging channel).
-          # https://cibuildwheel.pypa.io/en/stable/options/#enable
-          # Enable under python 3.13
-          CIBW_ENABLE: pypy-eol pyodide-eol
+          CIBW_BUILD:   "${{ matrix.python }}-*"
+          CIBW_ENABLE:  "${{ matrix.cibw_enable }}"
+          # Specify the exact Pyodide SDK version (supported in cibuildwheel v4+):
+          # PYODIDE_VERSION: "${{ matrix.pyodide_version }}"
 
-      - name: Upload Wheelhouse Wheels Artifact(s) (.whl Packages)
-        id: artifact-upload-step
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        continue-on-error: true
+
+      # ── Step 4: Aggregate build outcome ───────────────────────────────────
+      #
+      # WHY: every downstream step that needs "did a build succeed" used to
+      # repeat `steps.build-cibw-v3.outcome == 'success' ||
+      # steps.build-cibw-v4.outcome == 'success'` in its own `if:` (3 copies).
+      # Adding a v5 series meant hunting down and editing that condition in
+      # every one of those places. This step computes it ONCE into
+      # env.BUILD_OK via $GITHUB_ENV; downstream steps just check
+      # `env.BUILD_OK == 'true'`. Adding cibw_series v5 later means editing
+      # this one condition, not three.
+      #
+      # This also fails the job loudly — rather than silently staying green —
+      # if BOTH guarded build steps were skipped, which only happens when
+      # matrix.cibw_series doesn't match 'v3' or 'v4' (a typo'd matrix row).
+      #
+      - name: "🧮 Aggregate build outcome"
+        if: always()
+        env:
+          OUT_CIBW_V3:    ${{ steps.build-cibw-v3.outcome }}
+          OUT_CIBW_V4:    ${{ steps.build-cibw-v4.outcome }}
+          MX_CIBW_SERIES: ${{ matrix.cibw_series }}
+        run: |
+          if [[ "$OUT_CIBW_V3" == "skipped" && "$OUT_CIBW_V4" == "skipped" ]]; then
+            echo "::error::No build step ran for cibw_series='$MX_CIBW_SERIES'. Expected 'v3' or 'v4' — check this matrix row for a typo."
+            exit 1
+          fi
+          if [[ "$OUT_CIBW_V3" == "success" || "$OUT_CIBW_V4" == "success" ]]; then
+            echo "BUILD_OK=true" >> "$GITHUB_ENV"
+          else
+            echo "BUILD_OK=false" >> "$GITHUB_ENV"
+          fi
+
+
+      # ── Step 5: Inspect wheelhouse ────────────────────────────────────────
+      #
+      # Runs even if the build step failed (if: always()) so missing wheels
+      # are surfaced explicitly in the step summary rather than silently
+      # failing at the upload step.
+      #
+      - name: "🔍 Inspect wheelhouse"
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "### 📦 Built wheels"
+            echo ""
+            if compgen -G "./wheelhouse/*.whl" > /dev/null 2>&1; then
+              echo "\`\`\`"
+              ls -lh ./wheelhouse/*.whl
+              echo "\`\`\`"
+            else
+              echo "⚠️ **No wheels found** in \`./wheelhouse/\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+      # ── Step 6: Upload GitHub Actions artifact ────────────────────────────
+      #
+      # WHY named artifact per combination:
+      #   7 parallel jobs all write to the same workflow run. Without a unique
+      #   name, the last writer silently overwrites all prior uploads.
+      #   Naming convention: wasm32_<python>_pyodide-v<version>_<tag>
+      #   e.g.  wasm32_cp313_pyodide-v314.0.0_pyemscripten_2025_0_wasm32
+      #
+      # WHY no continue-on-error:
+      #   A failed artifact upload should surface as a job failure.
+      #   The upload condition (env.BUILD_OK, set in Step 4) already handles
+      #   partial success.
+      #
+      - name: "📤 Upload wheels artifact"
+        id: artifact-upload
+        if: env.BUILD_OK == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          # if-no-files-found: error
-          # include-hidden-files: true
+          name: >-
+            wasm32_${{ matrix.python }}_pyodide-v${{ matrix.pyodide_version }}_${{ matrix.whl_tag }}
           path: ./wheelhouse/*.whl
-          # name: cp3xx-pyodide_wasm32
+          if-no-files-found: warn  # Warn (not error) so the summary step still runs
 
-      - name: Conda environment creation and activation anaconda-client
-        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
-        continue-on-error: true
+
+      # ── Step 7: Setup Miniconda (anaconda-client) ─────────────────────────
+      #
+      # Only set up Miniconda when:
+      #   (a) a build step actually succeeded, AND
+      #   (b) this is a scheduled or manually dispatched run (not a stray PR)
+      # This avoids needlessly installing Miniconda on dry runs or build failures.
+      #
+      - name: "🐍 Setup Miniconda (anaconda-client)"
+        id: setup-miniconda
+        if: >-
+          env.BUILD_OK == 'true' &&
+          (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true')
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5  # v4.0.1
         with:
-          ## for installation of anaconda-client, required for upload to
-          ## anaconda.org
-          ## Note that this step is *after* specific pythons have been used to
-          ## build and test the wheel
-          ## for installation of anaconda-client, for upload to anaconda.org
-          ## environment will be activated after creation, and in future bash steps
-          ## environment-file: devtools/conda-envs/build_env.yaml    # Path to the build conda environment
-          # auto-activate-base: false
-          # conda-remove-defaults: "true"
-          # auto-update-conda: true
           python-version: "3.11"
           show-channel-urls: true
-          # mamba-version: "*"
           miniforge-version: latest
           channels: conda-forge,defaults
-          # channel-priority: true
           channel-priority: strict
-          # activate-environment: anaconda-client-env
-          # environment-file: etc/example-environment.yml
-          # environment-file: etc/example-explicit.conda.lock
 
-      - name: "📥 Upload Scikit-plots WASM Wheel (.whl) Package to Anaconda.org PyPI index"
-        if: success()
-        ## see https://github.com/marketplace/actions/setup-miniconda for why
-        ## `-el {0}` is required.
-        shell: bash -el {0}
-        # with: # Set the secret as an input
-        #   super_secret: ${{ secrets.SuperSecret }}
-        env: # Or as an environment variable
-          ## ${{ secrets.<SECRET_NAME> }} retrieves the value of a secret stored securely
-          ## in the Repository's Secrets or  Environments Secrets settings on GitHub.
-          SKPLT_STAGING_UPLOAD_TOKEN: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}  # Use as TOKEN
-          ## commented out so the sdist doesn't upload to nightly
-          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}  # Use as TOKEN
+
+      # ── Step 8: Upload to Anaconda.org ────────────────────────────────────
+      #
+      # WHY always() + explicit step-outcome checks instead of if: success():
+      #   success() is unreliable after steps that use continue-on-error.
+      #   It also cannot gate on a specific step — it checks the entire job so
+      #   far. Checking outcomes directly is deterministic and explicit.
+      #
+      # Upload destinations (set_upload_vars reads IS_PUSH / IS_SCHEDULE_DISPATCH):
+      #   IS_PUSH=true   → https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
+      #   IS_PUSH=false  → https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
+      #
+      # Tokens were generated at anaconda.org and stored as repository secrets,
+      # now scoped under the "anaconda-publish" Environment (see job-level
+      # `environment:` above).
+      # WARNING: overrides existing wheels on the staging channel when IS_PUSH=true.
+      #
+      - name: "📥 Upload WASM wheel to Anaconda.org — ${{ matrix.python }} × Pyodide v${{ matrix.pyodide_version }}"
+        id: anaconda-upload
+        if: >-
+          always() &&
+          env.BUILD_OK == 'true' &&
+          steps.setup-miniconda.outcome == 'success'
+        shell: bash -el {0}  # Required for conda environment activation
+        env:
+          SKPLT_STAGING_UPLOAD_TOKEN:         ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}
+          SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}
           ARTIFACTS_PATH: wheelhouse
         run: |
           source tools/wheels/upload_wheels.sh
-          set_upload_vars  # Required TOKEN, USERNAME
-          # For cron jobs (restricted to main branch) or "Run workflow" trigger
-          # an upload to:
-          #
-          # https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
-          #
-          # Pushes to a maintenance branch that contain '[wheel build]' will
-          # cause wheels to be built and uploaded to:
-          #
-          # https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
-          #
-          # The tokens were originally generated at anaconda.org
-          upload_wheels  # Required ARTIFACTS_PATH
+          set_upload_vars   # Sets TOKEN and USERNAME from IS_PUSH / IS_SCHEDULE_DISPATCH
+          upload_wheels     # Uploads all .whl files from ARTIFACTS_PATH
 
-  # build-wasm-emscripten:
-  #   name: Build NumPy distribution for Pyodide
-  #   runs-on: ubuntu-22.04
-  #   permissions:
-  #     contents: read  # to fetch code (actions/checkout)
-  #   # To enable this workflow on a fork, comment out:
-  #   if: github.repository == 'numpy/numpy'
-  #   steps:
-  #     - name: Checkout NumPy
-  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
-  #       with:
-  #         submodules: recursive
-  #         fetch-tags: true
-  #         persist-credentials: false
 
-  #     - uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55  # v4.1.0
-  #       env:
-  #         CIBW_PLATFORM: pyodide
-  #         CIBW_BUILD: cp312-*
-
-  #     - name: Upload wheel artifact(s)
-  #       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-  #       with:
-  #         name: wasm32_artifact
-  #         path: ./wheelhouse/*.whl
-  #         if-no-files-found: error
-
-  # # Push to https://anaconda.org/scientific-python-nightly-wheels/numpy
-  # # WARNING: this job will overwrite any existing WASM wheels.
-  # upload-wheels:
-  #   name: Upload NumPy WASM wheels to Anaconda.org
-  #   runs-on: ubuntu-22.04
-  #   permissions: {}
-  #   needs: [build-wasm-emscripten]
-  #   if: >-
-  #     (github.repository == 'numpy/numpy') &&
-  #     (github.event_name == 'workflow_dispatch' && github.event.inputs.push_wheels == 'true') ||
-  #     (github.event_name == 'schedule')
-  #   steps:
-  #     - name: Download wheel artifact(s)
-  #       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
-  #       with:
-  #         path: wheelhouse/
-  #         merge-multiple: true
-
-  #     - name: Push to Anaconda PyPI index
-  #       uses: scientific-python/upload-nightly-action@b36e8c0c10dbcfd2e05bf95f17ef8c14fd708dbf  # v0.6.2
-  #       with:
-  #         artifacts_path: wheelhouse/
-  #         anaconda_nightly_upload_token: ${{ secrets.NUMPY_NIGHTLY_UPLOAD_TOKEN }}
+      # ── Step 9: Final step-outcome summary ───────────────────────────────
+      #
+      # Appends a per-step outcome table to the GitHub Step Summary.
+      # Always runs so engineers see a complete picture even after failures.
+      #
+      - name: "📊 Final build status"
+        if: always()
+        # SECURITY: same template-injection pattern as Step 1 — step outcomes
+        # are enum-constrained by GitHub (success/failure/cancelled/skipped),
+        # so the realistic risk here was always low, but a static script with
+        # env:-sourced data is the uniform, audit-clean pattern for the whole
+        # file rather than a special case.
+        env:
+          OUT_CIBW_V3:   ${{ steps.build-cibw-v3.outcome }}
+          OUT_CIBW_V4:   ${{ steps.build-cibw-v4.outcome }}
+          OUT_ARTIFACT:  ${{ steps.artifact-upload.outcome }}
+          OUT_MINICONDA: ${{ steps.setup-miniconda.outcome }}
+          OUT_ANACONDA:  ${{ steps.anaconda-upload.outcome }}
+          MX_WHL_TAG:    ${{ matrix.whl_tag }}
+        run: |
+          {
+            echo ""
+            echo "## 📊 Step outcomes"
+            echo ""
+            echo "| Step                   | Outcome |"
+            echo "| ---------------------- | ------- |"
+            echo "| Build (CIBW v3)        | \`$OUT_CIBW_V3\` |"
+            echo "| Build (CIBW v4)        | \`$OUT_CIBW_V4\` |"
+            echo "| Artifact upload        | \`$OUT_ARTIFACT\` |"
+            echo "| Miniconda setup        | \`$OUT_MINICONDA\` |"
+            echo "| Anaconda.org upload    | \`$OUT_ANACONDA\` |"
+            echo ""
+            if [[ "$OUT_CIBW_V3" == "failure" || "$OUT_CIBW_V4" == "failure" ]]; then
+              echo "❌ **Build failed.** Check the build step log above for details."
+            elif [[ "$OUT_CIBW_V3" == "skipped" && "$OUT_CIBW_V4" == "skipped" ]]; then
+              echo "⚠️ **Both build steps skipped** — check matrix.cibw_series value."
+            else
+              echo "✅ **Build succeeded** — \`$MX_WHL_TAG\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
