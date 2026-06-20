@@ -1,0 +1,4 @@
+
+extensions = [
+    "jupyterlite_sphinx",
+]

@@ -76,8 +76,9 @@ _defaults: &defaults
     ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
     - image: cimg/python:3.12  # cimg/python:3.11 cimg/base:2026.06
   environment:
+    NODE_INSTALL_DIR: /home/circleci/.local/node   # "~/.local/node"
     MICROMAMBA_BIN_DIR: /home/circleci/.local/bin  # "~/.local/bin"
-    MAMBA_ROOT_PREFIX: /home/circleci/micromamba  # "~/micromamba"
+    MAMBA_ROOT_PREFIX: /home/circleci/micromamba   # "~/micromamba"
     # ENV_NAME: myenv
   # environment:
   #   - MKL_NUM_THREADS: 2
@@ -137,6 +138,7 @@ commands:
               echo "Build was not run due to skip, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
               # Exit early without error — skip the rest of the job if condition is met.
               circleci-agent step halt;
+              # exit 1
             fi
             export GIT_LOG=$(git log --max-count=1 --pretty=format:"%B" | tr "\n" " ")
             echo "Got commit message:"
@@ -154,7 +156,7 @@ commands:
     description: Merge with upstream
     steps:
       - run:
-          name: Merge with upstream
+          name: "🔎 Merge with upstream"
           command: |
             echo $(git log -1 --pretty=%B)    | tee gitlog.txt
 
@@ -177,6 +179,9 @@ commands:
             # git submodule init
             # git submodule update
             git submodule update --init --recursive || true
+            # if ! git submodule update --init --recursive; then
+            #   echo "WARNING: submodule update failed — build may be missing vendored content" >&2
+            # fi
   apt-install:
     description: Install system dependencies
     steps:
@@ -198,7 +203,7 @@ commands:
             sudo apt-get clean
             sudo apt-get update --fix-missing -y
       - run:
-          name: "🛠️ Install system dependencies"
+          name: "📦 Install system dependencies"
           command: |
             set -Eeuo pipefail
             sudo apt-get install --fix-missing -y --no-install-recommends \
@@ -239,6 +244,50 @@ commands:
             # Then in reader_kwargs:
             #   "backend": "easyocr",
             #   "ocr_lang": "en"   # EasyOCR uses ISO 639-1; add "ar", "de" etc. as needed
+  npm-install:
+      description: 🧊 Install Node.js + npm (needed for jupyterlite_terminal @jupyterlite/cockle)
+      steps:
+        # Cache keyed on a checksum of the pinned version file:
+        #   same pin   -> cache hit, no download
+        #   pin bumped -> checksum changes -> cache miss -> fresh install
+        - restore_cache:
+            keys:
+              - node-bin-v1-{{ checksum ".circleci/node-version.txt" }}
+        - run:
+            name: "🟩 Install Node.js + npm (skipped if cache hit)"
+          # YAML multi-line scripts | block scalar instead of a > flow scalar
+            command: |
+              set -Eeuo pipefail
+              export NODE_INSTALL_DIR="/home/circleci/.local/node"
+              if [ -x "${NODE_INSTALL_DIR}/bin/node" ]; then
+                echo "node/npm restored from cache, skipping download."
+              else
+                NODE_VERSION="$(tail -1 .circleci/node-version.txt)"
+                echo "Installing node v${NODE_VERSION}..."
+                mkdir -p "${NODE_INSTALL_DIR}"
+                # curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+                # sudo apt-get install -y nodejs npm # Debian's npm is often a stale/patched fork — nodejs That worked because NodeSource's nodejs package bundles npm in.
+                # The official nodejs.org tarball bundles npm inside it — under lib/node_modules/npm, with bin/npm and bin/npx already present alongside bin/node in the same archive.
+                # https://nodejs.org/dist/
+                curl -fsSL --retry 3 --retry-delay 2 \
+                  "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+                  | tar -xJf - \
+                    --strip-components=1 \
+                    -C "${NODE_INSTALL_DIR}"
+              fi
+              export PATH="${NODE_INSTALL_DIR}/bin:$PATH"
+              echo "export PATH=\"${NODE_INSTALL_DIR}/bin:\$PATH\"" >> "$BASH_ENV"
+              which node
+              which npm
+              # prints the full path of the npm that WILL run
+              command -v npm
+              node --version
+              npm --version
+              test -x "${NODE_INSTALL_DIR}/bin/node"
+        - save_cache:
+            key: node-bin-v1-{{ checksum ".circleci/node-version.txt" }}
+            paths:
+              - /home/circleci/.local/node
   micromamba-install:
     description: Install micromamba
     steps:
@@ -254,6 +303,8 @@ commands:
           # YAML multi-line scripts | block scalar instead of a > flow scalar
           command: |
             set -Eeuo pipefail
+            # export MICROMAMBA_BIN_DIR=/home/circleci/.local/bin
+            # export MAMBA_ROOT_PREFIX=/home/circleci/micromamba
             if [ -x "${MICROMAMBA_BIN_DIR}/micromamba" ]; then
               echo "micromamba binary restored from cache, skipping download."
             else
@@ -272,6 +323,7 @@ commands:
             export PATH="${MICROMAMBA_BIN_DIR}:$PATH"
             echo "export PATH=\"${MICROMAMBA_BIN_DIR}:\$PATH\"" >> "$BASH_ENV"
             which micromamba
+            command -v micromamba
             "${MICROMAMBA_BIN_DIR}/micromamba" --version
             test -x "${MICROMAMBA_BIN_DIR}/micromamba"
             ls -l "${MICROMAMBA_BIN_DIR}/micromamba"
@@ -416,6 +468,7 @@ commands:
       ## deps
       # This calls your custom command
       - apt-install  # need graphviz etc. to build the documentation
+      - npm-install  # jupyterlite_sphinx need terminal kernel
       - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
       # - pip-install
       - run:
@@ -506,13 +559,14 @@ jobs:
       - merge
       - submodules
       - restore_cache:
-          key: v1-deps_ccache-datasets-{{ .Branch }}
-      - restore_cache:
           keys:
-            - deps_ccache-{{ .Branch }}
-            - deps_ccache
+            - deps_ccache-{{ .Branch }}  # prefix match: latest cache for this branch
+            - deps_ccache                # prefix match: latest cache from any branch
+      - restore_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}  # v1-deps_ccache-datasets-{{ .Branch }}-{{ checksum "tools/circle/fetch_datasets.sh" }}
       ## os py deps
       - apt-install
+      - npm-install  # jupyterlite_sphinx need terminal kernel
       - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
       - pip-install
       - build-scikit-plots
@@ -524,14 +578,15 @@ jobs:
           paths:
             - ~/scikit_plots_data
       - save_cache:
-          key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}
+          key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}  # unique key, so save actually persists
           paths:
             - ~/.ccache
             - ~/.cache/pip
       - run:
           name: ccache performance
+          when: always
           command: |
-            ccache -vs
+            ccache -vs || echo "ccache stats unavailable" >&2
       ## Persists generated files
       - persist_to_workspace:
           root: ~/
