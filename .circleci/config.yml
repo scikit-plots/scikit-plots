@@ -74,7 +74,11 @@ _defaults: &defaults
     # - image: cimg/base:current-22.04
     # documented at https://circleci.com/developer/images/image/cimg/python
     ## https://circleci.com/docs/guides/execution-managed/using-docker/#specifying-docker-images
-    - image: cimg/python:3.12  #  cimg/python:3.11
+    - image: cimg/python:3.12  # cimg/python:3.11 cimg/base:2026.06
+  environment:
+    MICROMAMBA_BIN_DIR: /home/circleci/.local/bin  # "~/.local/bin"
+    MAMBA_ROOT_PREFIX: /home/circleci/micromamba  # "~/micromamba"
+    # ENV_NAME: myenv
   # environment:
   #   - MKL_NUM_THREADS: 2
   #   - OPENBLAS_NUM_THREADS: 2
@@ -83,7 +87,7 @@ _defaults: &defaults
   #   # Make sure that we fail if the documentation build generates warnings with
   #   # recent versions of the dependencies.
   #   - SKLEARN_WARNINGS_AS_ERRORS: '1'
-  working_directory: ~/repo
+  working_directory: ~/repo  # "/home/circleci/repo"
   ## https://circleci.com/docs/configuration-reference/#resourceclass
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#arm
   ## https://circleci.com/docs/guides/execution-managed/using-docker/#x86
@@ -180,6 +184,9 @@ commands:
           name: "🛠️ Ensure CA certificates are installed and update apt sources to HTTP"
           command: |
             set -Eeuo pipefail
+            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
+            # default: uid=1001(circleci) gid=1002(circleci) groups=1002(circleci)
+            id; ls -ld /usr/local/bin; df -h /usr/local/bin
             # Install CA certs to avoid SSL errors
             sudo apt-get update || true
             sudo apt-get install -y --fix-missing ca-certificates
@@ -235,51 +242,44 @@ commands:
   micromamba-install:
     description: Install micromamba
     steps:
+      # Cache keyed on a checksum of the pinned version file:
+      #   same pin    -> cache hit, no download
+      #   pin bumped  -> checksum changes -> cache miss -> fresh install,
+      #                  saved under the new key
+      - restore_cache:
+          keys:
+            - micromamba-bin-v1-{{ checksum ".circleci/micromamba-version.txt" }}
       - run:
-          name: "🐍 Install micromamba"
+          name: "🐍 Install micromamba (skipped if cache hit)"
           # YAML multi-line scripts | block scalar instead of a > flow scalar
           command: |
             set -Eeuo pipefail
-            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI).
-            # jupyterlite-xeus requires micromamba 2.0.5 for pip installs https://github.com/jupyterlite/xeus/tree/main#installation
-            # fetching the LATEST micromamba release, not version 2.0.5 as required.
-            # https://github.com/mamba-org/micromamba-releases/releases
-            # https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
-            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
-            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
-            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
-            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
-            # uid=1001(circleci) gid=1002(circleci) groups=1002(circleci)
-            id; ls -ld /usr/local/bin; df -h /usr/local/bin
-            mkdir -p "$HOME/bin"
-            curl -fsSL --retry 3 --retry-delay 2 -o "$HOME/bin/micromamba" \
-              "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
-              || "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh) || echo "⚠️ micromamba install failed!"
-            chmod 0755 "$HOME/bin/micromamba" || chmod 0755 "$(which micromamba)" || true
-            # visible now, this step
-            export PATH="$HOME/bin:$PATH"
-            # visible in later steps
-            echo 'export PATH="$HOME/bin:$PATH"' >> "$BASH_ENV"
+            if [ -x "${MICROMAMBA_BIN_DIR}/micromamba" ]; then
+              echo "micromamba binary restored from cache, skipping download."
+            else
+              # MM_VERSION="$(cat .circleci/micromamba-version.txt)"
+              MM_VERSION="$(tail -1 .circleci/micromamba-version.txt)"
+              echo "Installing micromamba ${MM_VERSION}..."
+              mkdir -p "${MICROMAMBA_BIN_DIR}"
+              curl -fsSL --retry 3 --retry-delay 2 \
+                "https://micro.mamba.pm/api/micromamba/linux-64/${MM_VERSION}" \
+                | tar -xvjf - \
+                  --strip-components=1 \
+                  -C "${MICROMAMBA_BIN_DIR}" \
+                  bin/micromamba
+              chmod 0755 "${MICROMAMBA_BIN_DIR}/micromamba"
+            fi
+            export PATH="${MICROMAMBA_BIN_DIR}:$PATH"
+            echo "export PATH=\"${MICROMAMBA_BIN_DIR}:\$PATH\"" >> "$BASH_ENV"
             which micromamba
-            # should now print 2.0.5 from
-            micromamba --version
-            # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
-            # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
-            # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
-            # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
-            # -S — show error anyway, even with -s on. This is the one I should have included before.
-            # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
-            # curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvjf bin/micromamba
-            # sudo mv bin/micromamba /usr/local/bin/
-            # sudo curl -fsSL -o /usr/local/bin/micromamba \
-            #   "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
-            # sudo chmod +x /usr/local/bin/micromamba
-            # If you want to quickly use micromamba in an ad-hoc usecase, you can run
-            # export MAMBA_ROOT_PREFIX=/some/prefix  # optional, defaults to ~/micromamba
-            # eval "$(./bin/micromamba shell hook -s posix)"
-            # Linux/bash:
-            # ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
-            # micromamba shell init -s bash -r ~/micromamba
+            "${MICROMAMBA_BIN_DIR}/micromamba" --version
+            test -x "${MICROMAMBA_BIN_DIR}/micromamba"
+            ls -l "${MICROMAMBA_BIN_DIR}/micromamba"
+
+            # If you want to quickly use micromamba in an ad-hoc usecase, you can run Linux/bash:
+            # export MAMBA_ROOT_PREFIX="$HOME/micromamba"  # optional, defaults to ~/micromamba
+            # eval "$("${MICROMAMBA_BIN_DIR}" shell hook -s bash)"  # posix
+            # /usr/local/bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
             # sourcing the bashrc file incorporates the changes into the running session.
             # better yet, restart your terminal!
             # source ~/.bashrc
@@ -290,11 +290,58 @@ commands:
             # or
             # micromamba create -n env_name xtensor -c conda-forge
             # micromamba activate env_name
+            # or
+            # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#automatic-install
+            # "${SHELL}" <(curl -L https://micro.mamba.pm/install.sh)
+            # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI). https://github.com/jupyterlite/xeus/tree/main#installation
+            # https://github.com/mamba-org/micromamba-releases/releases https://github.com/mamba-org/micromamba-releases/releases/tag/2.0.5-0
+            # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
+            # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
+            # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+            # curl -fsSL -o "~/.local/bin/micromamba" "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            # -f — fail on HTTP errors (4xx/5xx), so a bad URL gives a real non-zero exit instead of writing an error page to disk.
+            # -s — silent mode, suppresses the progress meter (good for keeping CI logs clean).
+            # -S — show error anyway, even with -s on. This is the one I should have included before.
+            # -L — follow redirects. GitHub release asset URLs redirect through object storage, so this is required (your original command already had it).
+            # sudo curl -fsSL https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvjf bin/micromamba && sudo mv bin/micromamba /usr/local/bin/
+            # sudo curl -fsSL -o /usr/local/bin/micromamba "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64"
+            # sudo chmod +x /usr/local/bin/micromamba
+      - save_cache:
+          key: micromamba-bin-v1-{{ checksum ".circleci/micromamba-version.txt" }}
+          paths:
+            - /home/circleci/.local/bin/micromamba
       - run:
           name: "Check emscripten channels in micromamba"
           command: |
             curl -I https://repo.mamba.pm/emscripten-forge/noarch/repodata.json || true
             curl -I https://repo.prefix.dev/emscripten-forge-dev/noarch/repodata.json || true
+      # -----------------------------------------------------------------
+      # Cache 2: the resolved environment (actual installed packages).
+      # Key depends on a checksum of environment.yml, so any dependency
+      # change correctly invalidates it, while unrelated commits reuse it.
+      # -----------------------------------------------------------------
+      # - restore_cache:
+      #     keys:
+      #       - micromamba-env-v1-{{ checksum "environment.yml" }}-{{ arch }}
+      # - run:
+      #     name: Create environment (skipped if cache hit)
+      #     command: |
+      #       set -euo pipefail
+      #       if [ -d "${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}" ]; then
+      #         echo "Environment '${ENV_NAME}' restored from cache, skipping create."
+      #       else
+      #         echo "Resolving and installing environment '${ENV_NAME}'..."
+      #         micromamba create -y -n "${ENV_NAME}" -f environment.yml
+      #       fi
+      # - save_cache:
+      #     key: micromamba-env-v1-{{ checksum "environment.yml" }}-{{ arch }}
+      #     paths:
+      #       - /home/circleci/micromamba
+      # - run:
+      #     name: Run tests
+      #     command: |
+      #       set -euo pipefail
+      #       micromamba run -n "${ENV_NAME}" pytest -q
   pip-install:
     description: Upgrade pip and setuptools and wheel to get as clean an install as possible
     steps:
@@ -349,7 +396,6 @@ commands:
             # cpu: tensorflow
             # pip install --no-cache-dir .[build,dev,test,doc]
             python -m pip install --no-build-isolation --no-cache-dir . -v
-
   # upload-codecov:
   #   description: Upload coverage results to codecov
   #   steps:
@@ -370,9 +416,8 @@ commands:
       ## deps
       # This calls your custom command
       - apt-install  # need graphviz etc. to build the documentation
-      - micromamba-install  # Need Xeus kernel "Or with pip (you must install micromamba 2.0.5):"
+      - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
       # - pip-install
-
       - run:
           name: "📘 build docs"
           # no_output_timeout: 25m
@@ -407,7 +452,6 @@ commands:
           when: always
           command: |
             cp /tmp/sphinx-err-*.log ~/sphinx-traceback.log || true
-
       # you must store the artifact explicitly:
       - store_artifacts:
           path: ~/sphinx_log.txt
@@ -448,51 +492,42 @@ jobs:
     # YAML anchor & alias
     <<: *defaults
     description: "Build new docs"
-
     steps:
       - run: echo "🤖 Hi I'm on a Container Runner!"
-
       - run:
           name: "🔧 Show run_docs_build flag"
           command: |
             echo "run_docs_build: << pipeline.parameters.run_docs_build >>" || true
-
       ## run built-in
       - checkout
       - run: ./tools/circle/checkout_merge_commit.sh
-
       ## run commands
       - check-skip  # This calls your custom command
       - merge
       - submodules
-
-      ## deps
-      - apt-install
-      # - micromamba-install
-      - pip-install
-
       - restore_cache:
           key: v1-deps_ccache-datasets-{{ .Branch }}
       - restore_cache:
           keys:
             - deps_ccache-{{ .Branch }}
             - deps_ccache
-
+      ## os py deps
+      - apt-install
+      - micromamba-install  # jupyterlite_sphinx need Xeus kernel "Or with pip (you must install micromamba):"
+      - pip-install
       - build-scikit-plots
       # - upload-codecov
       # - store_artifacts:
       #     path: results
-
+      - save_cache:
+          key: v1-deps_ccache-datasets-{{ .Branch }}
+          paths:
+            - ~/scikit_plots_data
       - save_cache:
           key: deps_ccache-{{ .Branch }}-{{ .BuildNum }}
           paths:
             - ~/.ccache
             - ~/.cache/pip
-      - save_cache:
-          key: v1-deps_ccache-datasets-{{ .Branch }}
-          paths:
-            - ~/scikit_plots_data
-
       - run:
           name: ccache performance
           command: |
@@ -519,16 +554,13 @@ jobs:
     description: "🌐 Deploy new docs"
     steps:
       - run: echo "🤖 Hi I'm on Runners!"
-
       - checkout
       - run: ./tools/circle/checkout_merge_commit.sh
-
       # Attach documentation generated in the 'docs' step so that it can be
       # deployed.
       - attach_workspace:
           at: docs/build/html
       - run: ls -ltrh docs/build/html/stable
-
       ## Add the SSH key to the environment (this step tells CircleCI to use the private key from the SSH Key settings)
       - add_ssh_keys:
           fingerprints:
@@ -575,7 +607,6 @@ jobs:
             # "1d:47:cf:2e:ea:7c:15:cf:ec:bb:1f:44:e2:56:16:d3"  # Replace with your public key's fingerprint
             - "fa:a7:3e:10:71:de:f5:31:0e:3a:44:6a:b4:f5:be:8f"  # Add fingerprint here
             - "37:fe:6f:1b:28:01:ba:85:73:01:ef:2e:15:14:65:d7"  # Add fingerprint here
-
       ## Add GitHub's SSH key to the known_hosts to avoid verification prompts
       - run:
           name: Trust GitHub SSH key
@@ -587,14 +618,12 @@ jobs:
             ssh-keyscan github.com >> ~/.ssh/known_hosts  # This step ensures GitHub's public key is trusted.
             ## Ensure the SSH config file (if used) is only accessible by the user
             chmod og= ~/.ssh/config  # Set permissions to only allow the user to access the config file.
-
       # Optionally, you could disable host key checking if you want to bypass the verification (not recommended for security reasons):
       # - run:
       #     name: Disable SSH StrictHostKeyChecking
       #     command: |
       #       echo -e "Host *\nStrictHostKeyChecking no" > ~/.ssh/config  # Disables SSH host key verification.
       #       chmod og= ~/.ssh/config  # Ensures the SSH config file is only accessible by the user (security).
-
       ## Use SSH to clone the repository
       - run:
           name: "📥 Upload new docs to cloned the repo over SSH"
@@ -603,7 +632,6 @@ jobs:
             if [[ "${CIRCLE_BRANCH}" =~ ^main$|^subpackage-bug-fix$|^((maintenance|release)/)?[0-9]+\.[0-9]+(\.x|\.[0-9]+)?$ ]]; then
               bash ./tools/circle/push_doc.sh docs/build/html/stable
             fi
-
       ## Use SSH to clone the repository
       ## https://github.com/devcontainers/template-starter/blob/main/.github/workflows/release.yaml
       # - run:
