@@ -240,7 +240,6 @@ commands:
           # YAML multi-line scripts | block scalar instead of a > flow scalar
           command: |
             set -Eeuo pipefail
-            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
             # Pin micromamba to 2.0.5-0 (matches documented requirement + upstream's own CI).
             # jupyterlite-xeus requires micromamba 2.0.5 for pip installs https://github.com/jupyterlite/xeus/tree/main#installation
             # fetching the LATEST micromamba release, not version 2.0.5 as required.
@@ -249,6 +248,8 @@ commands:
             # RELEASE_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${VERSION}/micromamba-${PLATFORM}-${ARCH}"
             # https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64
             # https://anaconda.org/conda-forge/micromamba/2.0.5/download/linux-64/micromamba-2.0.5-0.tar.bz2
+            # If id shows uid=1000(circleci) and ls -ld shows root root ownership without group-write, that's your answer.
+            # uid=1001(circleci) gid=1002(circleci) groups=1002(circleci)
             id; ls -ld /usr/local/bin; df -h /usr/local/bin
             mkdir -p "$HOME/bin"
             curl -fsSL --retry 3 --retry-delay 2 -o "$HOME/bin/micromamba" \
@@ -364,11 +365,12 @@ commands:
     steps:
       - attach_workspace:
           at: ~/
-      - check-skip  # This calls your custom command
-
+      # This calls your custom command
+      - check-skip  # check skip CI
       ## deps
-      # - apt-install  # This calls your custom command
-      - micromamba-install  # Need Xeus "Or with pip (you must install micromamba 2.0.5):"
+      # This calls your custom command
+      - apt-install  # need graphviz etc. to build the documentation
+      - micromamba-install  # Need Xeus kernel "Or with pip (you must install micromamba 2.0.5):"
       # - pip-install
 
       - run:
