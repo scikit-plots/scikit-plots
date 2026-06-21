@@ -159,7 +159,7 @@ anaconda_upload_with_retry() {
     # uploads to its own default label ("main"), matching pre-existing
     # behavior for every caller that doesn't set this variable.
     local -a label_args=()
-    local label_display="main (default)"
+    local label_display="main"  # (default)
     if [[ -n "${ANACONDA_LABEL:-}" ]]; then
         label_args=(--label "$ANACONDA_LABEL")
         label_display="$ANACONDA_LABEL"
@@ -340,7 +340,7 @@ upload_wheels() {
         return 1
     fi
 
-    echo "✅  All ${count} artifact(s) uploaded successfully  →  label: ${ANACONDA_LABEL:-main (default)}"
+    echo "✅  All ${count} artifact(s) uploaded successfully  →  label: ${ANACONDA_LABEL:-main}"
     echo "PyPI-style index: https://pypi.anaconda.org/${USERNAME}/simple"
     return 0
 }
