@@ -56,7 +56,7 @@ def mock_pypi_api(mock_responses):
 @contextmanager
 def mock_ml_package_versions_yml(src_base, src_ref):
     with tempfile.TemporaryDirectory() as tmp_dir:
-        yml_base = Path(tmp_dir).joinpath("base.yml")
+        yml_base = Path(tmp_dir).joinpath("environment.base.yml")
         yml_ref = Path(tmp_dir).joinpath("ref.yml")
         yml_base.write_text(src_base)
         yml_ref.write_text(src_ref)

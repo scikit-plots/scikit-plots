@@ -117,20 +117,44 @@ env_micromamba_main() {
   fi
 
   # ---- configuration (defaults consistent with orchestrator) ----
-  default_var PY_VERSION "3.12"
-  default_var ENV_NAME "py${PY_VERSION//./}"
+  # ── version / name ──
+  default_var PYTHON_VERSION "3.12"
+  if [[ -z "${PY_VERSION:-}" ]]; then PY_VERSION="$PYTHON_VERSION"; fi
+  default_var ENV_NAME "py${PYTHON_VERSION//./}"
 
-  # Prefer repo-root environment.yml, else docker/env_conda/environment.yml
-  if [[ -z "${ENV_FILE:-}" ]]; then
-    if [[ -f "$REPO_ROOT/environment.yml" ]]; then
-      ENV_FILE="$REPO_ROOT/environment.yml"
-    elif [[ -f "$REPO_ROOT/docker/env_conda/environment.yml" ]]; then
-      ENV_FILE="$REPO_ROOT/docker/env_conda/environment.yml"
-    else
-      log_error "ENV_FILE not set and no default found (expected $REPO_ROOT/environment.yml or $REPO_ROOT/docker/env_conda/environment.yml)"
-    fi
+  # ── VARIANT ──
+  default_var VARIANT "runtime"
+  case "${VARIANT}" in
+    runtime|devel) ;;
+    *) log_error "Invalid VARIANT='${VARIANT}' (expected runtime|devel)" ;;
+  esac
+
+  # ── Layered env files ──
+  local _env_dir_default="$REPO_ROOT/docker/env_conda"
+  default_var ENV_DIR "$_env_dir_default"
+  default_var ENV_FILE_BASE    "${ENV_DIR}/environment.base.yml"
+  default_var ENV_FILE_RUNTIME "${ENV_DIR}/environment.yml"
+  default_var ENV_FILE_DEVEL   "${ENV_DIR}/environment.devel.yml"
+
+  # Legacy backward compat: if ENV_FILE set alone (old callers), treat as runtime file.
+  if [[ -n "${ENV_FILE:-}" ]]; then
+    ENV_FILE_RUNTIME="$ENV_FILE"
+    log_info "env_micromamba: ENV_FILE override -> ENV_FILE_RUNTIME=$ENV_FILE_RUNTIME"
   fi
-  export PY_VERSION ENV_NAME ENV_FILE
+
+  # ── Resolve all env-file references to absolute, CWD-independent paths ──
+  # ENV_DIR may arrive bare ("docker/env_conda") or absolute; the three ENV_FILE_*
+  # may arrive as bare filenames (resolved under ENV_DIR), repo-root-relative paths,
+  # or absolute paths. This bridges differing Dockerfile conventions safely and
+  # makes the [[ -f ... ]] checks below independent of the current directory.
+  ENV_DIR="$(common_resolve_path "$ENV_DIR")"
+  ENV_FILE_BASE="$(common_resolve_path "$ENV_FILE_BASE" "$ENV_DIR")"
+  ENV_FILE_RUNTIME="$(common_resolve_path "$ENV_FILE_RUNTIME" "$ENV_DIR")"
+  ENV_FILE_DEVEL="$(common_resolve_path "$ENV_FILE_DEVEL" "$ENV_DIR")"
+  # Ensure ENV_FILE points to runtime for any legacy code that reads it.
+  ENV_FILE="$ENV_FILE_RUNTIME"
+
+  export PYTHON_VERSION PY_VERSION ENV_NAME VARIANT ENV_DIR ENV_FILE_BASE ENV_FILE_RUNTIME ENV_FILE_DEVEL ENV_FILE
 
   # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html
   default_var MICROMAMBA_ALLOW_INSTALL "1"
@@ -139,6 +163,7 @@ env_micromamba_main() {
   default_var MAMBA_ROOT_PREFIX "$HOME/micromamba"
   default_var MICROMAMBA_ENV_ACTION "ensure"
   default_var MICROMAMBA_PRUNE "0"
+  default_var MICROMAMBA_PIN_PYTHON "1"
 
   common_validate_enum MICROMAMBA_ENV_ACTION none ensure create update
   common_validate_enum MICROMAMBA_INSTALL_MODE api script
@@ -273,6 +298,67 @@ env_micromamba_main() {
     micromamba env list 2>/dev/null | awk 'NF && $1 !~ /^#/ {print $1}' | grep -Fxq -- "$name"
   }
 
+  # ── Layered apply helpers ──────────────────────────────────────────────────
+  # base (always) → runtime (always) → devel (only when VARIANT=devel).
+  _micromamba_update_layered() {
+    local env_n="$1"
+    local do_prune=0
+    common_is_true "${MICROMAMBA_PRUNE:-0}" && do_prune=1
+    local files=()
+    [[ -f "$ENV_FILE_BASE" ]]    && files+=("$ENV_FILE_BASE")    || log_warning "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+    [[ -f "$ENV_FILE_RUNTIME" ]] && files+=("$ENV_FILE_RUNTIME") || log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
+    if [[ "$VARIANT" == "devel" ]]; then
+      [[ -f "$ENV_FILE_DEVEL" ]] && files+=("$ENV_FILE_DEVEL")   || log_warning "VARIANT=devel but ENV_FILE_DEVEL not found: $ENV_FILE_DEVEL"
+    fi
+    local n=${#files[@]}
+    [[ $n -gt 0 ]] || log_error "No env files found for update (ENV_DIR=$ENV_DIR)"
+    local i f prune_flag
+    for ((i = 0; i < n; i++)); do
+      f="${files[$i]}"
+      prune_flag=""
+      # Apply --prune ONLY on the final layer: pruning per layer would drop packages
+      # introduced by earlier layers (base/runtime) that the current layer omits.
+      [[ $do_prune -eq 1 && $i -eq $((n - 1)) ]] && prune_flag="--prune"
+      log_info "Applying layer $((i + 1))/$n: $f${prune_flag:+  (--prune)}"
+      # shellcheck disable=SC2086
+      micromamba env update -n "$env_n" -f "$f" --yes $prune_flag
+    done
+  }
+
+  # Create a brand-new env: optionally seed the requested Python version, then layer
+  # base → runtime → (devel only when VARIANT=devel).
+  _micromamba_create_layered() {
+    local env_n="$1"
+    [[ -f "$ENV_FILE_BASE" ]] || log_error "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+    # Seed the env with the requested Python so ENV_NAME (pyNNN) matches the actual
+    # interpreter. The yml layers omit a python pin, so without this the solver would
+    # pick its own default. Opt out with MICROMAMBA_PIN_PYTHON=0.
+    if common_is_true "${MICROMAMBA_PIN_PYTHON:-1}" && [[ -n "${PYTHON_VERSION:-}" ]]; then
+      log_info "Creating env '$env_n' with python=${PYTHON_VERSION}, then layering base: $ENV_FILE_BASE"
+      micromamba create -n "$env_n" "python=${PYTHON_VERSION}" --yes
+      micromamba env update -n "$env_n" -f "$ENV_FILE_BASE" --yes
+    else
+      log_info "Creating env '$env_n' from base: $ENV_FILE_BASE"
+      micromamba env create -n "$env_n" -f "$ENV_FILE_BASE" --yes
+    fi
+
+    if [[ -f "$ENV_FILE_RUNTIME" ]]; then
+      log_info "Applying runtime layer: $ENV_FILE_RUNTIME"
+      micromamba env update -n "$env_n" -f "$ENV_FILE_RUNTIME" --yes
+    else
+      log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
+    fi
+
+    if [[ "$VARIANT" == "devel" ]]; then
+      if [[ -f "$ENV_FILE_DEVEL" ]]; then
+        log_info "Applying devel layer (VARIANT=devel): $ENV_FILE_DEVEL"
+        micromamba env update -n "$env_n" -f "$ENV_FILE_DEVEL" --yes
+      else
+        log_warning "VARIANT=devel but ENV_FILE_DEVEL not found: $ENV_FILE_DEVEL"
+      fi
+    fi
+  }
+
   # ---- run ----
   _ensure_micromamba
 
@@ -311,9 +397,10 @@ env_micromamba_main() {
   source ~/."$(basename $SHELL)"rc || echo "⚠️ Failed to source $SHELL_RC"
 
   echo "Creating micromamba base environment: $ENV_NAME"
-  micromamba install -n base python="$PY_VERSION" ipykernel pip -y || true
+  micromamba install -n base python="${PYTHON_VERSION:-$PY_VERSION}" ipykernel pip -y || true
 
-  [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
+  [[ -f "$ENV_FILE_BASE" ]] || log_error "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+  [[ -f "$ENV_FILE_RUNTIME" ]] || log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
 
   case "$MICROMAMBA_ENV_ACTION" in
     none)
@@ -323,32 +410,20 @@ env_micromamba_main() {
       if _env_exists "$ENV_NAME"; then
         log_info "Env exists: $ENV_NAME (create -> no-op)"
       else
-        log_info "Creating env '$ENV_NAME' from $ENV_FILE"
-        micromamba env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
-        # micromamba env create -f environment.yml --yes
-        # micromamba create -n "$ENV_NAME" python="$PY_VERSION" ipykernel pip -y || true
+        _micromamba_create_layered "$ENV_NAME"
       fi
       ;;
     update)
       _env_exists "$ENV_NAME" || log_error "Env not found: $ENV_NAME (update)"
-      log_info "Updating env '$ENV_NAME' from $ENV_FILE"
-      if common_is_true "$MICROMAMBA_PRUNE"; then
-        micromamba env update -n "$ENV_NAME" -f "$ENV_FILE" --yes --prune
-      else
-        micromamba env update -n "$ENV_NAME" -f "$ENV_FILE" --yes
-      fi
+      log_info "Updating env '$ENV_NAME' (VARIANT=$VARIANT)"
+      _micromamba_update_layered "$ENV_NAME"
       ;;
     ensure)
       if _env_exists "$ENV_NAME"; then
-        log_info "Env exists -> update ($ENV_NAME)"
-        if common_is_true "$MICROMAMBA_PRUNE"; then
-          micromamba env update -n "$ENV_NAME" -f "$ENV_FILE" --yes --prune
-        else
-          micromamba env update -n "$ENV_NAME" -f "$ENV_FILE" --yes
-        fi
+        log_info "Env exists -> update ($ENV_NAME, VARIANT=$VARIANT)"
+        _micromamba_update_layered "$ENV_NAME"
       else
-        log_info "Env missing -> create ($ENV_NAME)"
-        micromamba env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
+        _micromamba_create_layered "$ENV_NAME"
       fi
       ;;
   esac
@@ -356,7 +431,7 @@ env_micromamba_main() {
   export POST_CREATE_ENV_TOOL_SELECTED="micromamba"
   export POST_CREATE_ENV_READY="1"
   export ENV_NAME="$ENV_NAME"
-  log_success "Micromamba env ready: $ENV_NAME"
+  log_success "Micromamba env ready: $ENV_NAME (VARIANT=$VARIANT)"
 
   env_micromamba_restore
 

@@ -9,7 +9,9 @@
 #
 # GLOBAL INPUTS (recommended set by all_post_create.sh)
 # - REPO_ROOT, COMMON_SH
-# - PY_VERSION, ENV_NAME, ENV_FILE
+# - PYTHON_VERSION, ENV_NAME, VARIANT
+# - ENV_FILE_BASE, ENV_FILE_RUNTIME, ENV_FILE_DEVEL (set by all_post_create.sh)
+# - ENV_FILE: legacy single-file fallback (treated as ENV_FILE_RUNTIME)
 # - POST_CREATE_STRICT=0|1
 # - POST_CREATE_ENV_TOOL=auto|micromamba|conda           (optional)
 # - POST_CREATE_ENV_LOCK=0|1                             (optional, default 1)
@@ -102,19 +104,44 @@ env_conda_main() {
   fi
 
   # ---- configuration ----
-  default_var PY_VERSION "3.12"
-  default_var ENV_NAME "py${PY_VERSION//./}"
+  # ── version / name ──
+  default_var PYTHON_VERSION "3.12"
+  if [[ -z "${PY_VERSION:-}" ]]; then PY_VERSION="$PYTHON_VERSION"; fi
+  default_var ENV_NAME "py${PYTHON_VERSION//./}"
 
-  if [[ -z "${ENV_FILE:-}" ]]; then
-    if [[ -f "$REPO_ROOT/environment.yml" ]]; then
-      ENV_FILE="$REPO_ROOT/environment.yml"
-    elif [[ -f "$REPO_ROOT/docker/env_conda/environment.yml" ]]; then
-      ENV_FILE="$REPO_ROOT/docker/env_conda/environment.yml"
-    else
-      log_error "ENV_FILE not set and no default found (expected $REPO_ROOT/environment.yml or $REPO_ROOT/docker/env_conda/environment.yml)"
-    fi
+  # ── VARIANT ──
+  default_var VARIANT "runtime"
+  case "${VARIANT}" in
+    runtime|devel) ;;
+    *) log_error "Invalid VARIANT='${VARIANT}' (expected runtime|devel)" ;;
+  esac
+
+  # ── Layered env files ──
+  local _env_dir_default="$REPO_ROOT/docker/env_conda"
+  default_var ENV_DIR "$_env_dir_default"
+  default_var ENV_FILE_BASE    "${ENV_DIR}/environment.base.yml"
+  default_var ENV_FILE_RUNTIME "${ENV_DIR}/environment.yml"
+  default_var ENV_FILE_DEVEL   "${ENV_DIR}/environment.devel.yml"
+
+  # Legacy backward compat: if ENV_FILE set alone (old callers), treat as runtime file.
+  if [[ -n "${ENV_FILE:-}" ]]; then
+    ENV_FILE_RUNTIME="$ENV_FILE"
+    log_info "env_conda: ENV_FILE override -> ENV_FILE_RUNTIME=$ENV_FILE_RUNTIME"
   fi
-  export PY_VERSION ENV_NAME ENV_FILE
+
+  # ── Resolve all env-file references to absolute, CWD-independent paths ──
+  # ENV_DIR may arrive bare ("docker/env_conda") or absolute; the three ENV_FILE_*
+  # may arrive as bare filenames (resolved under ENV_DIR), repo-root-relative paths,
+  # or absolute paths. This bridges differing Dockerfile conventions safely and
+  # makes the [[ -f ... ]] checks below independent of the current directory.
+  ENV_DIR="$(common_resolve_path "$ENV_DIR")"
+  ENV_FILE_BASE="$(common_resolve_path "$ENV_FILE_BASE" "$ENV_DIR")"
+  ENV_FILE_RUNTIME="$(common_resolve_path "$ENV_FILE_RUNTIME" "$ENV_DIR")"
+  ENV_FILE_DEVEL="$(common_resolve_path "$ENV_FILE_DEVEL" "$ENV_DIR")"
+  # Ensure ENV_FILE points to runtime for any legacy code that reads it.
+  ENV_FILE="$ENV_FILE_RUNTIME"
+
+  export PYTHON_VERSION PY_VERSION ENV_NAME VARIANT ENV_DIR ENV_FILE_BASE ENV_FILE_RUNTIME ENV_FILE_DEVEL ENV_FILE
 
   default_var CONDA_ALLOW_INSTALL "1"
   default_var CONDA_MANAGER "auto"
@@ -122,6 +149,7 @@ env_conda_main() {
   default_var CONDA_ACTION "ensure"
   default_var CONDA_USE_FILE_NAME "0"
   default_var CONDA_PRUNE "0"
+  default_var CONDA_PIN_PYTHON "1"
 
   common_validate_enum CONDA_MANAGER auto conda mamba
   common_validate_enum CONDA_ACTION none ensure create update
@@ -224,17 +252,17 @@ env_conda_main() {
   }
 
   _yaml_env_name() {
-    # strict: first "name:" line (YAML convention)
-    awk -F: 'tolower($1)=="name" {gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit}' "$ENV_FILE"
+    # strict: first "name:" line (YAML convention), read from the runtime layer
+    awk -F: 'tolower($1)=="name" {gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit}' "${ENV_FILE_RUNTIME:-$ENV_FILE}"
   }
 
   _resolve_env_name() {
     if common_is_true "$CONDA_USE_FILE_NAME"; then
       local n
       n="$(_yaml_env_name)"
-      [[ -n "$n" ]] || log_error "CONDA_USE_FILE_NAME=1 but could not parse 'name:' from $ENV_FILE"
+      [[ -n "$n" ]] || log_error "CONDA_USE_FILE_NAME=1 but could not parse 'name:' from ${ENV_FILE_RUNTIME}"
       if [[ -n "${ENV_NAME:-}" && "${ENV_NAME}" != "$n" ]]; then
-        log_error "ENV_NAME='$ENV_NAME' conflicts with YAML name='$n' (set CONDA_USE_FILE_NAME=0 or align names)"
+        log_error "ENV_NAME='$ENV_NAME' conflicts with YAML name='$n' in ${ENV_FILE_RUNTIME} (set CONDA_USE_FILE_NAME=0 or align names)"
       fi
       ENV_NAME="$n"
       export ENV_NAME
@@ -259,6 +287,69 @@ env_conda_main() {
   _env_exists() {
     local mgr="$1" name="$2"
     "$mgr" env list 2>/dev/null | awk 'NF && $1 !~ /^#/ {print $1}' | grep -Fxq -- "$name"
+  }
+
+  # ── Layered apply helpers ──────────────────────────────────────────────────
+  # Apply all applicable yml layers in order to an EXISTING env named $2 via manager $1.
+  # base (always) → runtime (always) → devel (only when VARIANT=devel).
+  _conda_update_layered() {
+    local mgr="$1" env_n="$2"
+    local do_prune=0
+    common_is_true "${CONDA_PRUNE:-0}" && do_prune=1
+    local files=()
+    [[ -f "$ENV_FILE_BASE" ]]    && files+=("$ENV_FILE_BASE")    || log_warning "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+    [[ -f "$ENV_FILE_RUNTIME" ]] && files+=("$ENV_FILE_RUNTIME") || log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
+    if [[ "$VARIANT" == "devel" ]]; then
+      [[ -f "$ENV_FILE_DEVEL" ]] && files+=("$ENV_FILE_DEVEL")   || log_warning "VARIANT=devel but ENV_FILE_DEVEL not found: $ENV_FILE_DEVEL"
+    fi
+    local n=${#files[@]}
+    [[ $n -gt 0 ]] || log_error "No env files found for update (ENV_DIR=$ENV_DIR)"
+    local i f prune_flag
+    for ((i = 0; i < n; i++)); do
+      f="${files[$i]}"
+      prune_flag=""
+      # Apply --prune ONLY on the final layer: pruning per layer would drop packages
+      # introduced by earlier layers (base/runtime) that the current layer omits.
+      [[ $do_prune -eq 1 && $i -eq $((n - 1)) ]] && prune_flag="--prune"
+      log_info "Applying layer $((i + 1))/$n: $f${prune_flag:+  (--prune)}"
+      # shellcheck disable=SC2086
+      "$mgr" env update -n "$env_n" -f "$f" --yes $prune_flag
+    done
+  }
+
+  # Create a brand-new env: optionally seed the requested Python version, then layer
+  # base → runtime → (devel only when VARIANT=devel).
+  _conda_create_layered() {
+    local mgr="$1" env_n="$2"
+    [[ -f "$ENV_FILE_BASE" ]] || log_error "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+    # Seed the env with the requested Python so ENV_NAME (pyNNN) matches the actual
+    # interpreter. The yml layers omit a python pin, so without this the solver would
+    # pick its own default and a "py311" env could ship a different version. Opt out
+    # with CONDA_PIN_PYTHON=0.
+    if common_is_true "${CONDA_PIN_PYTHON:-1}" && [[ -n "${PYTHON_VERSION:-}" ]]; then
+      log_info "Creating env '$env_n' with python=${PYTHON_VERSION}, then layering base: $ENV_FILE_BASE"
+      "$mgr" create -n "$env_n" "python=${PYTHON_VERSION}" --yes
+      "$mgr" env update -n "$env_n" -f "$ENV_FILE_BASE" --yes
+    else
+      log_info "Creating env '$env_n' from base: $ENV_FILE_BASE"
+      "$mgr" env create -n "$env_n" -f "$ENV_FILE_BASE" --yes
+    fi
+
+    if [[ -f "$ENV_FILE_RUNTIME" ]]; then
+      log_info "Applying runtime layer: $ENV_FILE_RUNTIME"
+      "$mgr" env update -n "$env_n" -f "$ENV_FILE_RUNTIME" --yes
+    else
+      log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
+    fi
+
+    if [[ "$VARIANT" == "devel" ]]; then
+      if [[ -f "$ENV_FILE_DEVEL" ]]; then
+        log_info "Applying devel layer (VARIANT=devel): $ENV_FILE_DEVEL"
+        "$mgr" env update -n "$env_n" -f "$ENV_FILE_DEVEL" --yes
+      else
+        log_warning "VARIANT=devel but ENV_FILE_DEVEL not found: $ENV_FILE_DEVEL"
+      fi
+    fi
   }
 
   # ---- run ----
@@ -300,7 +391,8 @@ env_conda_main() {
 
   if _env_exists "$mgr" "$ENV_NAME"; then exists=1; fi
 
-  [[ -f "$ENV_FILE" ]] || log_error "ENV_FILE not found: $ENV_FILE"
+  [[ -f "$ENV_FILE_BASE" ]] || log_error "ENV_FILE_BASE not found: $ENV_FILE_BASE"
+  [[ -f "$ENV_FILE_RUNTIME" ]] || log_warning "ENV_FILE_RUNTIME not found: $ENV_FILE_RUNTIME"
 
   case "$CONDA_ACTION" in
     none)
@@ -310,30 +402,20 @@ env_conda_main() {
       if [[ "$exists" == "1" ]]; then
         log_info "Env exists: $ENV_NAME (create -> no-op)"
       else
-        log_info "Creating env '$ENV_NAME' from $ENV_FILE"
-        "$mgr" env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
+        _conda_create_layered "$mgr" "$ENV_NAME"
       fi
       ;;
     update)
       [[ "$exists" == "1" ]] || log_error "Env not found: $ENV_NAME (update)"
-      log_info "Updating env '$ENV_NAME' from $ENV_FILE"
-      if common_is_true "$CONDA_PRUNE"; then
-        "$mgr" env update -n "$ENV_NAME" -f "$ENV_FILE" --yes --prune
-      else
-        "$mgr" env update -n "$ENV_NAME" -f "$ENV_FILE" --yes
-      fi
+      log_info "Updating env '$ENV_NAME' (VARIANT=$VARIANT)"
+      _conda_update_layered "$mgr" "$ENV_NAME"
       ;;
     ensure)
       if [[ "$exists" == "1" ]]; then
-        log_info "Env exists -> update ($ENV_NAME)"
-        if common_is_true "$CONDA_PRUNE"; then
-          "$mgr" env update -n "$ENV_NAME" -f "$ENV_FILE" --yes --prune
-        else
-          "$mgr" env update -n "$ENV_NAME" -f "$ENV_FILE" --yes
-        fi
+        log_info "Env exists -> update ($ENV_NAME, VARIANT=$VARIANT)"
+        _conda_update_layered "$mgr" "$ENV_NAME"
       else
-        log_info "Env missing -> create ($ENV_NAME)"
-        "$mgr" env create -n "$ENV_NAME" -f "$ENV_FILE" --yes
+        _conda_create_layered "$mgr" "$ENV_NAME"
       fi
       ;;
   esac
@@ -341,7 +423,7 @@ env_conda_main() {
   export POST_CREATE_ENV_TOOL_SELECTED="conda"
   export POST_CREATE_ENV_READY="1"
   export ENV_NAME="$ENV_NAME"
-  log_success "Conda env ready: $ENV_NAME (manager=$mgr)"
+  log_success "Conda env ready: $ENV_NAME (manager=$mgr, VARIANT=$VARIANT)"
 
   env_conda_restore
   return 0

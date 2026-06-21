@@ -1,6 +1,9 @@
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
+# https://learnxinyminutes.com/yaml/
+# http://www.yamllint.com/
+
 # +-------------+------------------------------------------------------------+----------------------------+---------------------------------------------------------------+
 # | Tool        | Create Environment                                         | ⚠️ Activate Environment    | Critical Notes                                                |
 # +=============+============================================================+============================+===============================================================+
@@ -45,7 +48,21 @@
 # 🛠 How to Use It
 # -----------------------------------------------------------------------------
 # https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
-# Minimal base environment with just Python and IPython kernel support
+# This file installs optional/extended (devel) packages on top of the
+# runtime environment. It is the third of three layered files:
+#   environment.base.yml    minimal (ipykernel + pip only)
+#   environment.yml         full runtime ML/Jupyter stack
+#   environment.devel.yml   this file — compilers, docs, tests, lint, extra Jupyter
+#
+# Layer it onto an existing environment:
+#
+#   conda env update --name your-env-name --file environment.devel.yml
+#
+# Or build a full devel environment from scratch:
+#   conda create --name my-env
+#   conda env update --name my-env --file environment.base.yml
+#   conda env update --name my-env --file environment.yml
+#   conda env update --name my-env --file environment.devel.yml
 # -----------------------------------------------------------------------------
 
 ## ✅ How to Set channel_priority Correctly
@@ -59,20 +76,81 @@
 ## Or pass via command line:
 ##   - conda config --set channel_priority strict
 ---
-name: py312
+name: pyxxx  # placeholder — overridden via `-n/--name pyNNN` (e.g. py311) at create/update time; not read by Dockerfile builds
 
 channels:
   - conda-forge    # ✅ Preferred: community-driven, most packages, up-to-date, great for mamba/micromamba
-  # - nvidia             # NVIDIA GPU libraries and drivers
+  # - nvidia       # NVIDIA GPU libraries and drivers
   - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
   - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
+  # https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
+  # conda install scikit-plots-wheels-staging-nightly::<PACKAGE>
+  # - scikit-plots-wheels-staging-nightly
 
 dependencies:
-  - python=3.12
+  # === 🧩 Extended Dependencies ===
+  # - python=3.12  # version free prevent conflict
   - ipykernel
+  # - scikit-plots-wheels-staging-nightly::scikit-plots  # devel anaconda stage
+
+  # 📘 Jupyter and extensions
+  - notebook            # Classic Jupyter notebook
+  - jupyterhub          # Multi-user Jupyter server
+  - jupyterlab          # Modern Jupyter UI
+  - jupyterlab-git      # Git integration
+  - ipympl              # Matplotlib support in Jupyter
+  - ipywidgets          # Interactive widgets
+  - widgetsnbextension  # Widget rendering in classic notebook
+
+  # 🧰 Compilers and Build (C/C++ toolchain for compiled extensions)
+  - conda-lock
+  - meson
+  - ninja
+  - meson-python
+  - cython
+  - pybind11
+  - pythran
+
+  # 🛠️ Dev Tools
+  - pre_commit
+  - setuptools
+  - wheel
+  - build
+
+  # 📚 Docs
+  - sphinx
+  - numpydoc
+
+  # 🧪 Testing
+  - pytest
+  - hypothesis
+  - codecov
+  - cython-lint
+  - pandas-stubs
+
+  # 📊 Model Tracking and SQL DB
+  - mlflow               # Model tracking
+  - sqlalchemy           # SQL ORM
+  - sqlparse             # SQL formatting
+
+  # 🚀 Model Deployment
+  - streamlit            # Web apps for ML
+  - fastapi              # Async API framework
+  - flask                # Minimal API framework
+  - uvicorn              # ASGI server for FastAPI
+  - waitress             # WSGI for Windows
+  - gunicorn             # WSGI for Unix
+
+  # 📦 Requirements generation
+  - pipreqs
+  - pipenv
 
   # 📦 Optional pip section (can be removed if unused)
   - pip
-  # - pip:
-  #     # - your-package
-  #     - -r requirements/build.txt
+  - pip:
+      # - aggdraw  # Antialiased drawing for PIL
+      # ⚠️ Use ROOT Path, Not work for "docker/env_conda/environment.yml"
+      - -r requirements/build.txt
+
+  # 🖼️ Additional Visualization
+  # - aggdraw              # Antialiased drawing for PIL

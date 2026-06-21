@@ -178,6 +178,27 @@ need_cmd()  { has_cmd "$1" || log_error "Missing required command: $1"; }
 need_file() { [[ -f "$1" ]] || log_error "Missing required file: $1"; }
 need_dir()  { [[ -d "$1" ]] || log_error "Missing required dir: $1"; }
 
+# common_resolve_path REF [BASE_FOR_BARE]
+# Resolve a path reference to a usable, CWD-independent path WITHOUT requiring it
+# to exist yet:
+#   - absolute REF (/...)      -> returned unchanged
+#   - REF containing a '/'     -> resolved relative to ${REPO_ROOT:-.}
+#   - bare filename (no '/')   -> resolved under BASE_FOR_BARE
+#                                 (BASE_FOR_BARE defaults to ${REPO_ROOT:-.})
+# Rationale: a caller may hand us a path as absolute, repo-root-relative, or a
+# bare filename meant to live under a known directory (e.g. ENV_DIR). Collapsing
+# all three into one deterministic result removes any dependence on the current
+# working directory, which differs between Docker build stages and local runs.
+common_resolve_path() {
+  local ref="${1:-}" base="${2:-${REPO_ROOT:-.}}"
+  [[ -n "$ref" ]] || return 1
+  case "$ref" in
+    /*)  printf '%s\n' "$ref" ;;                  # absolute -> as-is
+    */*) printf '%s\n' "${REPO_ROOT:-.}/$ref" ;;  # has dir  -> repo-root relative
+    *)   printf '%s\n' "${base%/}/$ref" ;;        # bare     -> under base dir
+  esac
+}
+
 common_is_true() {
   local v="${1:-}"
   v="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')"

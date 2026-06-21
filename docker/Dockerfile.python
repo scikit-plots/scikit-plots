@@ -7,12 +7,22 @@
 ## python:3.11-slim@sha256:6d85378d88a19cd4d76079817532d62232be95757cb45945a99fec8e8084b9c2
 # ARG MICROMAMBA_IMAGE=mambaorg/micromamba:2.4.0
 ARG SCIKITPLOT_VERSION=0.4.0.post11
-ARG PY_VERSION=3.11
+## ⚠️ Renamed PY_VERSION -> PYTHON_VERSION: must match the build-arg name CI
+## actually passes (build-push-action sends `PYTHON_VERSION=${{ matrix.python_version }}`).
+## A mismatched ARG name is silently ignored by Docker, so every matrix row
+## was previously building 3.11 regardless of matrix.python_version.
+ARG PYTHON_VERSION=3.11
 ARG ENV_NAME
+## Build-time selector for OS packages + conda env layering (runtime|devel).
+## Mirrors CI matrix.variant, passed as `VARIANT=${{ matrix.variant }}`.
+ARG VARIANT=runtime
 
 ## Use an official Python runtime as a parent image
 # FROM ${MICROMAMBA_IMAGE} AS runtime
-FROM python:${PY_VERSION}-slim AS runtime
+## Renamed stage runtime -> base: this single stage now builds BOTH the
+## runtime and devel images, selected via the VARIANT build-arg below, not
+## via the stage name. (Safe to rename: nothing in CI passes --target.)
+FROM python:${PYTHON_VERSION}-slim AS base
 
 ## Set environment variables
 ## 🐳 Used to detect if running inside Docker (similar to checking /.dockerenv)
@@ -20,27 +30,54 @@ FROM python:${PY_VERSION}-slim AS runtime
 ENV IS_DOCKERENV=true
 
 ## ❌ Avoid redeclaring with a default after FROM, it overrides build-arg.
-## ARG PY_VERSION=3.11        # <-- This overrides any build-arg passed earlier!
+## ARG PYTHON_VERSION=3.11    # <-- This overrides any build-arg passed earlier!
 ## ✅ Valid and recommended to redeclare ARG after FROM without default to get the passed/default value correctly.
 ARG SCIKITPLOT_VERSION
-ARG PY_VERSION
+ARG PYTHON_VERSION
 ARG ENV_NAME
+ARG VARIANT
 
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
+## Promoted to ENV (not just ARG) so it's inspectable at runtime, consistent
+## with IS_DOCKERENV above, and so later RUN steps don't need to redeclare it.
+ENV VARIANT=${VARIANT}
 ## Use ENV with shell-style expansion to get ENV_NAME=py3.11
-## Replace '.' in PY_VERSION to get py311 instead of py3.11
-# ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
+## Replace '.' in PYTHON_VERSION to get py311 instead of py3.11
+# ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PYTHON_VERSION" | tr -d '.')}
 ## Bash-style string substitution syntax (${VAR//./})
-ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
+ENV ENV_NAME=${ENV_NAME:-py${PYTHON_VERSION//./}}
 
-# Optional heavy OS packages (OFF by default)
-ARG APT_INSTALL_DEVTOOLS=1
+## Fail fast on an unsupported VARIANT instead of a silent fallthrough later
+## (e.g. a typo'd `runime` would otherwise just skip the devel package block).
+RUN case "${VARIANT}" in \
+      runtime|devel) : ;; \
+      *) echo "Unknown VARIANT='${VARIANT}' (expected 'runtime' or 'devel')" >&2; exit 2 ;; \
+    esac
+
 # Needed if you want conda env active for subsequent shell-form RUN steps
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
-# Path to the conda environment spec inside the build context
-ARG ENV_FILE=environment.yml
+## Conda env spec paths (relative to build context). Three layered files
+## live in docker/env_conda/:
+##   environment.base.yml    minimal (ipykernel + pip only)
+##   environment.yml         full runtime ML/Jupyter stack
+##   environment.devel.yml   + compilers, docs, tests, lint, extra Jupyter
+## VARIANT=runtime -> install base + runtime. VARIANT=devel -> base + runtime + devel.
+## These ENV vars are the contract docker/scripts/all_post_create.sh reads
+## from; it is responsible for branching on $VARIANT to pick the file set.
+## NOTE: ENV_FILE_* use full repo-root-relative paths so the value works whether
+## or not it is combined with ENV_DIR. The post-create script's resolver also
+## accepts bare filenames (looked up under ENV_DIR) and absolute paths.
+ARG ENV_DIR=docker/env_conda
+ARG ENV_FILE_BASE=docker/env_conda/environment.base.yml
+ARG ENV_FILE_RUNTIME=docker/env_conda/environment.yml
+ARG ENV_FILE_DEVEL=docker/env_conda/environment.devel.yml
 # Optional: run repo post-create scripts at build time (OFF by default)
 ARG RUN_POST_CREATE=1
+
+ENV ENV_DIR=${ENV_DIR}
+ENV ENV_FILE_BASE=${ENV_FILE_BASE}
+ENV ENV_FILE_RUNTIME=${ENV_FILE_RUNTIME}
+ENV ENV_FILE_DEVEL=${ENV_FILE_DEVEL}
 
 ## Recommended Python environment variables (uncomment if needed)
 ## Prevent Python from writing .pyc files
@@ -75,13 +112,13 @@ LABEL maintainer="The scikit-plots developers <scikit-plots.github.io/dev>"
 # RUN bash -lc 'set -Eeuo pipefail; \
 SHELL ["/bin/bash", "-e", "-u", "-o", "pipefail", "-c"]
 
-## Install system dependencies (including bash and sudo)
-RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
-  apt-get update \
+## Install system dependencies.
+## Common packages install for BOTH variants. The build toolchain
+## (compilers, headers) only installs for VARIANT=devel, since runtime
+## images only need to *run* compiled extensions, not build them.
+RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
-    build-essential \
-    pkg-config \
     # - `tini` is installed as a helpful container entrypoint,
     #   that reaps zombie processes and such of the actual executable we want to start
     #   See https://github.com/krallin/tini#why-tini for details
@@ -96,25 +133,30 @@ RUN if [ "${APT_INSTALL_DEVTOOLS}" = "1" ]; then \
     unzip \
     jq \
     git \
-    gfortran \
-    ninja-build \
-    # lua5.3 → CLI interpreter
-    # liblua5.3-0 → runtime library
-    # liblua5.3-dev → headers & static libraries for compilation
-    # luarocks → Lua package manager
-    # lua5.3 \
-    # liblua5.3-0 \
-    # liblua5.3-dev \
-    # luarocks \
     ## newlines equivalent to single semicolon ; on terminal or in shell script.
     || { echo "Failed to install common dependencies"; exit 1; }; \
+  if [ "${VARIANT}" = "devel" ]; then \
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      pkg-config \
+      gfortran \
+      ninja-build \
+      # lua5.3 → CLI interpreter
+      # liblua5.3-0 → runtime library
+      # liblua5.3-dev → headers & static libraries for compilation
+      # luarocks → Lua package manager
+      # lua5.3 \
+      # liblua5.3-0 \
+      # liblua5.3-dev \
+      # luarocks \
+      || { echo "Failed to install devel build toolchain"; exit 1; }; \
+  fi; \
   echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
   && echo "C.UTF-8 UTF-8" >> /etc/locale.gen \
   && locale-gen || true; \
   ## Cleanup to reduce image size
   apt-get clean; \
-  rm -rf /var/lib/apt/lists/*; \
-fi
+  rm -rf /var/lib/apt/lists/*
 
 ######################################################################
 ## WORKDIR
@@ -128,17 +170,21 @@ WORKDIR /tmp
 # COPY --chown=$MAMBA_USER:$MAMBA_USER docker/ /workspace/docker/
 COPY requirements ./requirements/
 COPY docker ./docker/
-COPY docker/env_conda/environment.yml ./
+## (No separate flattening copy needed: `docker ./docker/` above already
+## brings in docker/env_conda/{environment.base,environment,environment.devel}.yml
+## at their real paths, which is what $ENV_DIR/$ENV_FILE_* point to.)
 
 # ------------------------------------------------------------------
 # Environment: install into the pre-existing `base` environment
 # ------------------------------------------------------------------
 # IMPORTANT:
-# - Ensure ENV_FILE includes python (e.g., python=3.11) because micromamba images
-#   do NOT include python by default.
+# - Ensure the selected env file(s) include python (e.g., python=3.11) because
+#   micromamba images do NOT include python by default.
 # - Using env name other than `base` is not recommended by micromamba-docker.
-# COPY --chown=$MAMBA_USER:$MAMBA_USER ${ENV_FILE} /tmp/environment.yml
-# RUN micromamba install --yes --name base --file /tmp/environment.yml \
+# RUN micromamba install --yes --name base \
+#     --file ${ENV_DIR}/${ENV_FILE_BASE} \
+#     --file ${ENV_DIR}/${ENV_FILE_RUNTIME} \
+#     $( [ "${VARIANT}" = "devel" ] && echo "--file ${ENV_DIR}/${ENV_FILE_DEVEL}" ) \
 #     && micromamba clean --all --yes
 
 # https://docs.rs/platforms/latest/platforms/target/enum.Arch.html
@@ -156,6 +202,13 @@ ARG TARGETARCH
 ## Docker/BuildKit TARGETARCH            ✅    ✅     ✗       ✗
 ## Linux uname -m                        ✗     ✗      ✅      ✅
 ## Red Hat Quay (no BuildKit injection)  ✗     ✗      ✅      ✅
+## 🔗 Contract with docker/scripts/all_post_create.sh: VARIANT, ENV_DIR,
+## ENV_FILE_BASE, ENV_FILE_RUNTIME and ENV_FILE_DEVEL are all real env vars
+## here (promoted via ENV above), so the script can read them directly —
+## e.g. branch on $VARIANT to decide whether to install just
+## $ENV_DIR/$ENV_FILE_BASE + $ENV_FILE_RUNTIME, or also layer $ENV_FILE_DEVEL.
+## ✅ Verified against the script: variable names match, and the script resolves
+## ENV_FILE_* to absolute paths (CWD-independent) before use.
 RUN bash -c 'set -Eeuo pipefail; \
   if [[ "${RUN_POST_CREATE}" == "1" ]]; then \
     _arch="${TARGETARCH:-$(uname -m)}"; \
@@ -199,7 +252,7 @@ RUN bash -c 'set -Eeuo pipefail; \
 ######################################################################
 ## -------- Final Stage --------
 ######################################################################
-# FROM python:${PY_VERSION}-slim
+# FROM python:${PYTHON_VERSION}-slim
 ## Copy micromamba installation and environment from builder stage
 # COPY --from=builder /root/micromamba /root/micromamba
 # COPY --from=builder /work /work
@@ -293,5 +346,5 @@ RUN passwd -d scikitplot && passwd -e scikitplot
 # USER scikitplot
 
 COPY requirements ./requirements/
-COPY docker/env_conda/environment.yml ./
+COPY docker/env_conda/ ./docker/env_conda/
 COPY docker/env_pipenv/ ./env_pipenv/

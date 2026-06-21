@@ -1,7 +1,7 @@
 # https://github.com/scipy/scipy/blob/main/.github/workflows/commit_message.yml
 #
 ---
-name: Skip tag checker
+name: yy CI 📘 Docs Commit Skip tag checker
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow

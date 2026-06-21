@@ -17,9 +17,12 @@
 #
 # CONFIG (strict precedence: existing ENV wins)
 # - REPO_ROOT (optional)              : absolute repo root; default derived from script dir
-# - PY_VERSION=3.12                  : default 3.12
-# - ENV_NAME=py312                   : default derived from PY_VERSION
-# - ENV_FILE=$REPO_ROOT/environment.yml
+# - PYTHON_VERSION=3.12               : default 3.12 (CI build-arg name; PY_VERSION kept as alias)
+# - ENV_NAME=py312                    : default derived from PYTHON_VERSION
+# - VARIANT=runtime|devel             : default runtime
+# - ENV_DIR=docker/env_conda          : base directory for env yml files
+# - ENV_FILE_BASE, ENV_FILE_RUNTIME, ENV_FILE_DEVEL   (derived from ENV_DIR)
+# - ENV_FILE                          : legacy alias for ENV_FILE_RUNTIME
 #
 # CONTROLS
 # - POST_CREATE_STRICT=0|1           : default 0 (warn + continue on step failures)
@@ -207,9 +210,41 @@ apc_main() {
   default_var POST_CREATE_INSTALL_DEV_TOOLS "0"
 
   # Core env
-  default_var PY_VERSION "3.12"
-  default_var ENV_NAME "py${PY_VERSION//./}"
-  default_var ENV_FILE "$REPO_ROOT/environment.yml"
+  # ── Python version (PYTHON_VERSION = CI build-arg name; PY_VERSION = legacy alias) ──
+  default_var PYTHON_VERSION "3.12"
+  # Keep PY_VERSION in sync for any legacy consumers not yet updated.
+  if [[ -z "${PY_VERSION:-}" ]]; then PY_VERSION="$PYTHON_VERSION"; fi
+  default_var ENV_NAME "py${PYTHON_VERSION//./}"
+
+  # ── VARIANT-based layered env files ──
+  default_var VARIANT "runtime"
+  case "${VARIANT}" in
+    runtime|devel) ;;
+    *) log_error "Invalid VARIANT='${VARIANT}' (expected runtime|devel)" ;;
+  esac
+
+  default_var ENV_DIR "$REPO_ROOT/docker/env_conda"
+  default_var ENV_FILE_BASE    "${ENV_DIR}/environment.base.yml"
+  default_var ENV_FILE_RUNTIME "${ENV_DIR}/environment.yml"
+  default_var ENV_FILE_DEVEL   "${ENV_DIR}/environment.devel.yml"
+
+  # Legacy backward compat: if caller set ENV_FILE before calling this script,
+  # use it as the runtime layer. Derive it from ENV_FILE_RUNTIME otherwise.
+  if [[ -n "${ENV_FILE:-}" && "${ENV_FILE}" != "${ENV_FILE_RUNTIME}" ]]; then
+    log_warning "ENV_FILE='$ENV_FILE' overrides ENV_FILE_RUNTIME (legacy caller)"
+    ENV_FILE_RUNTIME="$ENV_FILE"
+  fi
+  default_var ENV_FILE "$ENV_FILE_RUNTIME"
+
+  # Resolve env-file references to absolute, CWD-independent paths before exporting
+  # so child scripts and the printed config all see canonical locations. ENV_DIR may
+  # arrive bare/relative; the ENV_FILE_* may arrive as bare filenames (resolved under
+  # ENV_DIR), repo-root-relative paths, or absolute paths.
+  ENV_DIR="$(common_resolve_path "$ENV_DIR")"
+  ENV_FILE_BASE="$(common_resolve_path "$ENV_FILE_BASE" "$ENV_DIR")"
+  ENV_FILE_RUNTIME="$(common_resolve_path "$ENV_FILE_RUNTIME" "$ENV_DIR")"
+  ENV_FILE_DEVEL="$(common_resolve_path "$ENV_FILE_DEVEL" "$ENV_DIR")"
+  ENV_FILE="$(common_resolve_path "$ENV_FILE" "$ENV_DIR")"
 
   # Legacy alias
   if [[ -z "${POST_CREATE_RUN_CONDA:-}" && -n "${POST_CREATE_RUN_CONDA_MAMBA:-}" ]]; then
@@ -228,7 +263,8 @@ apc_main() {
   export \
     POST_CREATE_STRICT POST_CREATE_TRACE POST_CREATE_DIAGNOSTICS POST_CREATE_PRINT_CONFIG POST_CREATE_PRINTENV \
     POST_CREATE_ALLOW_INSTALL POST_CREATE_INSTALL_DEV_TOOLS \
-    PY_VERSION ENV_NAME ENV_FILE \
+    PYTHON_VERSION PY_VERSION ENV_NAME VARIANT \
+    ENV_DIR ENV_FILE_BASE ENV_FILE_RUNTIME ENV_FILE_DEVEL ENV_FILE \
     POST_CREATE_RUN_CONDA POST_CREATE_RUN_MICROMAMBA POST_CREATE_RUN_FIRST_NOTICE POST_CREATE_RUN_POST_CREATE
 
   if [[ "$POST_CREATE_TRACE" == "1" ]]; then
@@ -251,7 +287,8 @@ apc_main() {
   if [[ "$POST_CREATE_PRINT_CONFIG" == "1" ]]; then
     common_print_config_safe \
       REPO_ROOT SCRIPT_DIR COMMON_SH \
-      PY_VERSION ENV_NAME ENV_FILE \
+      PYTHON_VERSION PY_VERSION ENV_NAME VARIANT \
+      ENV_DIR ENV_FILE_BASE ENV_FILE_RUNTIME ENV_FILE_DEVEL ENV_FILE \
       POST_CREATE_STRICT POST_CREATE_TRACE POST_CREATE_DIAGNOSTICS POST_CREATE_PRINTENV \
       POST_CREATE_ALLOW_INSTALL POST_CREATE_INSTALL_DEV_TOOLS \
       POST_CREATE_RUN_CONDA POST_CREATE_RUN_MICROMAMBA POST_CREATE_RUN_FIRST_NOTICE POST_CREATE_RUN_POST_CREATE

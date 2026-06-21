@@ -1,7 +1,7 @@
 # https://github.com/manics/action-binderbadge
 # https://github.com/jupyterhub/repo2docker-action/blob/master/.github/workflows/binder.yaml
 ---
-name: "binder-badge"
+name: "yy mybinder.org binder-badge"
 
 
 on:

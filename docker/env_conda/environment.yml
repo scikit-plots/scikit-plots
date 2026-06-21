@@ -59,7 +59,7 @@
 #
 # Note:
 # - Requires conda >= 23.1 (support for optional-dependencies)
-# - Some tools (e.g. micromamba) may not support groups, in which case use two files (default.yml, extended.yml)
+# - Some tools (e.g. micromamba) may not support groups, in which case use two files (environment.yml, environment.devel.yml)
 # -----------------------------------------------------------------------------
 
 ## ✅ How to Set channel_priority Correctly
@@ -76,93 +76,54 @@
 # variables:
 #   VAR1: valueA
 ---
-name: py312
+name: pyxxx
 
 channels:
   - conda-forge    # ✅ Preferred: community-driven, most packages, up-to-date, great for mamba/micromamba
-  # - nvidia             # NVIDIA GPU libraries and drivers
+  # - nvidia       # NVIDIA GPU libraries and drivers
   - defaults       # ☑️ Standard Official Anaconda-maintained packages fallback
   - anaconda       # ⚠️ Optional, if you need Anaconda snapshot of defaults; only include if reproducing Anaconda dist
-  # https://anaconda.org/channels/scikit-plots-wheels-staging-nightly
-  # conda install scikit-plots-wheels-staging-nightly::<PACKAGE>
-  # - scikit-plots-wheels-staging-nightly
 
 dependencies:
-  # === Base Dependencies ===
-  - python=3.12
+  # - python=3.12  # version free prevent conflict
   - ipykernel
 
   # 📘 Jupyter and extensions
   - notebook
-  - jupyterhub
-  - jupyterlab
-  - jupyterlab-git
-  - ipympl
-  - ipywidgets
-  - widgetsnbextension
-
-  # 🧰 Compilers and Build
-  - conda-lock
-  - meson
-  - ninja
-  - meson-python
-  - cython
-  - pybind11
-  - pythran
-
-  # 📚 Docs
-  - sphinx
-  - numpydoc
+  # - ipywidgets
+  # - widgetsnbextension
 
   # 📊 Data Manipulation
-  - pandas
-  - scipy
+  - pandas               # Tabular data analysis
+  - scipy                # Scientific computing
 
   # 📥 File I/O and formats
   # - anaconda::click  # CLI utilities
-  - requests
-  - pyyaml
-  - xlrd
-  - openpyxl
-  - pyarrow
+  - requests             # HTTP for APIs
+  - pyyaml               # YAML parsing
+  - xlrd                 # Read Excel files (.xls)
+  - openpyxl             # Read/write Excel files (.xlsx)
+  - pyarrow              # Apache Arrow and Parquet
 
   # 📈 🖼️ Visualization
-  - matplotlib-base
-  - seaborn
-  - pillow
-  # - scikit-plots-wheels-staging-nightly::scikit-plots
+  - matplotlib-base      # 2D plotting
+  - seaborn              # Statistical visualization
+  - pillow               # Image processing
+  - scikit-plots         # last stable on conda-forge
 
   # 🧠 Machine Learning Models
-  - scikit-learn
-  - statsmodels
-  - catboost
-  - xgboost
+  - scikit-learn         # General ML
+  - statsmodels          # Statistical modeling
+  - catboost             # Gradient boosting (CatBoost)
+  - xgboost              # Gradient boosting (XGBoost)
 
   # 🔍 Hyperparameter Optimization
-  - optuna
-  - hyperopt
+  - optuna               # Bayesian optimization
+  - hyperopt             # Optimization library
 
   # 💾 Model saving
-  - joblib
-  - h5py
-
-  # === 🧩 Extended Dependencies (Optional) ===
-  # 📊 Model Tracking and SQL
-  - mlflow
-  - sqlalchemy
-  - sqlparse
-
-  # 🛠️ Dev Tools
-  - pre_commit
-  - setuptools
-  - wheel
-  - build
-
-  # 🧪 Testing
-  - pytest
-  - hypothesis
-  - codecov
-  - cython-lint
+  - joblib               # Model serialization
+  - h5py                 # HDF5 file format
 
   # 🚀 Deployment
   - streamlit
@@ -172,8 +133,7 @@ dependencies:
   - waitress
   - gunicorn
 
-  # 📦 Requirements generation
-  - pipreqs
+  # 📦 Requirements
   - pipenv
 
   # Comment out this line and download Rtools and add <path>\ucrt64\bin\ to your path:
@@ -182,5 +142,4 @@ dependencies:
   # 📦 Optional pip section (can be removed if unused)
   - pip
   - pip:
-      # ⚠️ Use ROOT Path, Not work for "docker/env_conda/environment.yml"
-      - -r requirements/build.txt
+      - scikit-plots  # last stable on PyPI

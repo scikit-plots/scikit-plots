@@ -353,7 +353,11 @@ pc_pip_upgrade_tools() {
 
 pc_pip_install_requirements_files() {
   local env_name="$1"
-  local files_csv="${POST_CREATE_REQUIREMENTS_FILES:-${POST_CREATE_REQUIREMENTS_FILE:-./requirements/build.txt}}"
+  # VARIANT-aware default: devel pulls the full stack (build+dev+doc+test via all.txt),
+  # runtime stays lean (build deps only). Explicit override always wins.
+  local _req_default="./requirements/build.txt"
+  [[ "${VARIANT:-runtime}" == "devel" ]] && _req_default="./requirements/all.txt"
+  local files_csv="${POST_CREATE_REQUIREMENTS_FILES:-${POST_CREATE_REQUIREMENTS_FILE:-$_req_default}}"
 
   IFS=',' read -r -a files <<< "$files_csv"
 
@@ -387,7 +391,12 @@ pc_install_project() {
 
   local allow_fallback="${POST_CREATE_ALLOW_FALLBACK:-0}"
   local mode="${POST_CREATE_PACKAGE_MODE:-auto}"
-  local extras="${POST_CREATE_PACKAGE_EXTRAS:-build,dev,test,doc}"
+  # VARIANT-aware extras default: devel installs editable with the full [build,dev,test,doc]
+  # toolchain (matches `pip install -e .[build,dev,test,doc]`); runtime builds the package
+  # without dev/test/doc extras. Explicit POST_CREATE_PACKAGE_EXTRAS always wins.
+  local _extras_default="build,dev,test,doc"
+  [[ "${VARIANT:-runtime}" == "devel" ]] || _extras_default="none"
+  local extras="${POST_CREATE_PACKAGE_EXTRAS:-$_extras_default}"
   extras="${extras//[[:space:]]/}"
   # If extras is empty or "none", install without extras (avoid invalid -e ".[ ]").
   local editable_target

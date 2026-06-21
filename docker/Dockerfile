@@ -42,8 +42,12 @@
 # ARG BASE_IMAGE=jupyter/scipy-notebook:latest@sha256:fca4bcc9cbd49d9a15e0e4df6c666adf17776c950da9fa94a4f0a045d5c4ad33
 ARG BASE_IMAGE=jupyter/scipy-notebook:latest
 ARG SCIKITPLOT_VERSION=0.4.0.post11
-ARG PY_VERSION=3.12
+## ⚠️ Must match the CI build-arg name: PYTHON_VERSION=${{ matrix.python_version }}
+ARG PYTHON_VERSION=3.12
 ARG ENV_NAME
+## runtime = lean image (no compilers); devel = full build toolchain
+ARG VARIANT=runtime
+## Optional: GPU / heavy BLAS packages — orthogonal to VARIANT, OFF by default
 ARG EXTENDED_PACKAGES=false
 
 ## Use the argument to specify the base image
@@ -52,28 +56,40 @@ FROM ${BASE_IMAGE} AS base
 ## (but their default value is retained if set previously)
 
 ARG SCIKITPLOT_VERSION
-ARG PY_VERSION
+ARG PYTHON_VERSION
 ARG ENV_NAME
+## VARIANT must be redeclared after FROM; value carried through from pre-FROM default or --build-arg
+ARG VARIANT=runtime
 
 ENV SCIKITPLOT_VERSION=${SCIKITPLOT_VERSION}
-## Use ENV with shell-style expansion to get ENV_NAME=py3.11
-## Replace '.' in PY_VERSION to get py311 instead of py3.11
-# ENV ENV_NAME=${ENV_NAME:-py$(printf '%s' "$PY_VERSION" | tr -d '.')}
-## Bash-style string substitution syntax (${VAR//./})
-ENV ENV_NAME=${ENV_NAME:-py${PY_VERSION//./}}
+## Use ENV with bash-style substitution to derive ENV_NAME=py39 / py311 / py312 / py314
+## Replace '.' in PYTHON_VERSION so py3.12 → py312
+ENV ENV_NAME=${ENV_NAME:-py${PYTHON_VERSION//./}}
+## Promote VARIANT to ENV so every subsequent RUN and the post-create script can read it
+ENV VARIANT=${VARIANT:-runtime}
 
-# Optional heavy OS packages (OFF by default)
-ARG APT_INSTALL_DEVTOOLS=1
-# Needed if you want conda env active for subsequent shell-form RUN steps
+## ── env-file paths (all promoted to ENV so the post-create script needs no Dockerfile changes) ─
+## Layering: base always applied → runtime always applied → devel applied only when VARIANT=devel
+ENV ENV_DIR=docker/env_conda
+ENV ENV_FILE_BASE=docker/env_conda/environment.base.yml
+ENV ENV_FILE_RUNTIME=docker/env_conda/environment.yml
+ENV ENV_FILE_DEVEL=docker/env_conda/environment.devel.yml
+
+# Needed if you want the conda env active for subsequent shell-form RUN steps
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
-# Path to the conda environment spec inside the build context
-ARG ENV_FILE=environment.yml
-# Optional: run repo post-create scripts at build time (OFF by default)
+# Optional: run repo post-create scripts at build time
 ARG RUN_POST_CREATE=1
 
 ## Set environment variable to avoid interactive prompts during builds
 ## Prevent apt install tzinfo from asking our location (assumes UTC)
 ENV DEBIAN_FRONTEND=noninteractive
+
+## Fail fast on unrecognised VARIANT so a typo (e.g. "runime") errors at build time
+## rather than silently producing a half-baked image.
+RUN case "${VARIANT}" in \
+      runtime|devel) echo "VARIANT=${VARIANT} ✓" ;; \
+      *) echo "Invalid VARIANT='${VARIANT}' (expected runtime|devel)" >&2; exit 2 ;; \
+    esac
 
 # MAINTAINER The scikit-plots developers <scikit-plots.github.io/dev>
 # LABEL org.opencontainers.image.base.name="${BASE_IMAGE}"
@@ -223,7 +239,8 @@ RUN apt-get update; \
 # RUN sed -i '/jammy-updates/s/^/#/' /etc/apt/sources.list \
 #     && sed -i '/jammy-security/s/^/#/' /etc/apt/sources.list
 
-## Install common dependencies
+## ── Common runtime packages ─ installed in BOTH runtime and devel images ─────────────────────
+## tini is already provided by the jupyter/scipy-notebook base image — no need to reinstall.
 RUN apt-get update --yes; \
   apt-get install -y --no-install-recommends \
     --fix-broken --allow-downgrades \
@@ -231,33 +248,16 @@ RUN apt-get update --yes; \
     ca-certificates \
     ## Provides the add-apt-repository command (useful for adding PPAs)
     software-properties-common \
-    # - `tini` is installed as a helpful container entrypoint,
-    #   that reaps zombie processes and such of the actual executable we want to start
-    #   See https://github.com/krallin/tini#why-tini for details
-    # tini \
-    ## Essential packages for building software
-    ## for cython: https://cython.readthedocs.io/en/latest/src/quickstart/install.html
-    ## installs gcc, g++, make, libc-dev for compiling native extensions
-    build-essential \
-    ## Tool for configuring compile-time flags for libraries
-    pkg-config \
-    ## Build system that focuses on speed
-    ninja-build \
-    ## Common useful utilities
-    # zsh \
-    # lsb-core \
-    # lsb-release \
     ## Text editors and utilities
     vim \
     nano \
     wget \
     curl \
     procps \
-    ## Git and related tools
+    ## Git and related tools — needed even in runtime for `pip install git+…`
     git \
     git-lfs \
-    ## Archive utilities
-    ## bzip2 is necessary to extract the micromamba executable.
+    ## Archive utilities (bzip2 also needed to extract the micromamba executable)
     bzip2 \
     gzip \
     p7zip-full \
@@ -266,55 +266,65 @@ RUN apt-get update --yes; \
     unrar \
     unzip \
     ## Documentation tools
-    ## pandoc is used to convert notebooks to html files
+    ## pandoc is used to convert notebooks to HTML files
     pandoc \
-    ## Ensures that pdflatex generates sharp, scalable fonts in PDFs instead of bitmap (raster) fonts.
+    ## Ensures sharp, scalable fonts in PDFs instead of bitmap (raster) fonts
     cm-super \
-    ## gives you all LaTeX packages
-    # texlive-full \
     ## File and directory utilities
-    ## Command-line utility for displaying directory structure
     tree \
     ## Graph visualization software: dot -V
     graphviz \
     ## Vector graphics editor
     inkscape \
-    ## image viewer
+    ## Image viewer / converter
     imagemagick \
     ## Multimedia tools for matplotlib animations
     ffmpeg \
-    ## Build tools
-    ## compiler caching tool that speeds up recompilation of C/C++ code by caching previous compilation results.
-    ccache \
-    ## Utility for building and compiling software projects
+    ## Minimal build support (Makefile invocations etc.) — tiny, useful even at runtime
     make \
-    ## Cross-platform build system generator
-    cmake \
-    ## Compilers and build dependencies
-    ## Clang compiler llvm-17 clang-17
-    clang \
-    ## automatically formats C++ (and other)
-    clang-format \
-    ## static analysis of C++ code
-    clang-tidy \
-    ## GNU C compiler, c/cpp 11.4.0 compiler version
-    gcc \
-    ## GNU C++ compiler
-    g++ \
-    ## GNU Fortran compiler (required for some scientific libraries)
-    gfortran\
-    ## Python-related tools
     ## Python package installer for Python 3
     python3-pip \
-    ## Python 3 virtual environments
-    # python3-venv \
-    # Python development headers, useful for compiling certain packages
-    # python3-dev \
-    ## newlines equivalent to single semicolon ; on terminal or in shell script.
-    || { echo "Failed to install common dependencies"; exit 1; }; \
+    || { echo "Failed to install common dependencies" >&2; exit 1; }; \
   ## Cleanup to reduce image size
   apt-get clean; \
   rm -rf /var/lib/apt/lists/*;
+
+## ── Devel-only compiler toolchain ─ installed ONLY when VARIANT=devel ───────────────────────
+## Provides the full build stack needed to compile Python C/C++/Fortran extensions from source.
+## runtime images skip this entirely so they stay lean.
+RUN if [ "${VARIANT}" = "devel" ]; then \
+    echo "VARIANT=devel: installing compiler toolchain…"; \
+    apt-get update --yes; \
+    apt-get install -y --no-install-recommends \
+      ## installs gcc, g++, make, libc-dev — foundation for compiling native extensions
+      ## see https://cython.readthedocs.io/en/latest/src/quickstart/install.html
+      build-essential \
+      ## Tool for querying compile-time flags for installed libraries
+      pkg-config \
+      ## Fast build system (used by CMake, meson, etc.)
+      ninja-build \
+      ## Compiler caching — speeds up recompilation of C/C++ code
+      ccache \
+      ## Cross-platform build system generator
+      cmake \
+      ## Clang compiler suite (llvm)
+      clang \
+      ## Automatic C/C++ code formatter
+      clang-format \
+      ## Static analysis for C/C++
+      clang-tidy \
+      ## GNU C compiler (also pulled in via build-essential, explicit for clarity)
+      gcc \
+      ## GNU C++ compiler
+      g++ \
+      ## GNU Fortran compiler — required by scipy, numpy, etc.
+      gfortran \
+      || { echo "Failed to install devel compiler toolchain" >&2; exit 1; }; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*; \
+  else \
+    echo "VARIANT=runtime: skipping compiler toolchain."; \
+  fi
 
 ## AdditinL OS AND Python packages (e.g. for GPU support, etc.)
 ARG EXTENDED_PACKAGES
@@ -380,15 +390,23 @@ WORKDIR /tmp
 COPY requirements ./requirements/
 COPY docker ./docker/
 # Install minimal due to disc size limit
-COPY docker/env_conda/base.yml ./environment.yml
+## docker/env_conda/{environment.base.yml,environment.yml,environment.devel.yml} are
+## already present at their real paths via 'COPY docker ./docker/' above.
+## $ENV_FILE_BASE / $ENV_FILE_RUNTIME / $ENV_FILE_DEVEL point to them directly;
+## no flat-copy alias needed.
 
 ARG TARGETARCH
-## micromamba and post create steps
-## Make sure there’s a space between the variable assignment and the . for sourcing.
-# RUN bash -i -c "SKIP_CONDA=${SKIP_CONDA:=true} . ./docker/scripts/all_post_create.sh"
-# RUN bash -i -c "SKIP_MICROMAMBA=${SKIP_MICROMAMBA:=true} . ./docker/scripts/all_post_create.sh"
-# Optional: reuse your post-create orchestration during build
-# NOTE: keep it non-interactive and explicit (no `source`, no `bash -i`).
+## ── Post-create env contract ──────────────────────────────────────────────────────────────
+## The following ENV vars (promoted via ENV earlier) are available to all_post_create.sh
+## as real shell environment variables — no Dockerfile changes needed when the script changes:
+##
+##   VARIANT          runtime | devel   → script decides which yml layers to apply
+##   ENV_DIR          docker/env_conda
+##   ENV_FILE_BASE    docker/env_conda/environment.base.yml   → always applied
+##   ENV_FILE_RUNTIME docker/env_conda/environment.yml        → always applied
+##   ENV_FILE_DEVEL   docker/env_conda/environment.devel.yml  → applied only when VARIANT=devel
+##   ENV_NAME         e.g. py312  → conda env name (passed as --name)
+##
 ## NOTE: TARGETARCH is only auto-injected by Docker BuildKit when --platform is passed
 ## (e.g., docker buildx build --platform linux/amd64). CI systems like Red Hat Quay
 ## do not inject it automatically. Fall back to `uname -m` when unset.
@@ -412,7 +430,6 @@ RUN set -Eeuo pipefail; \
     POST_CREATE_RUN_FIRST_NOTICE=1 \
     POST_CREATE_RUN_POST_CREATE=1 \
     \
-    # choose ONE env path:
     POST_CREATE_RUN_CONDA=1 \
     POST_CREATE_RUN_MICROMAMBA=0 \
     POST_CREATE_PACKAGE_EXTRAS="" \
@@ -451,32 +468,24 @@ RUN set -Eeuo pipefail; \
 ## Optionally, Ensure mamba as conda installations (if needed)
 ## RUN conda install -n base conda-forge::mamba -y
 ## RUN conda install -n base -c conda-forge mamba -y
-## RUN mamba create -n "py312" python=3.11 ipykernel -y
-# RUN { mamba env create -n "py312" -f "./docker/env_conda/base.yml" || echo "Failed to apply base environment"; } \
-#   ## Clean mamba, If fails continue
+## RUN mamba create -n "${ENV_NAME}" python=${PYTHON_VERSION} ipykernel -y
+##
+## ── Three-file layered install via $ENV_NAME and $ENV_FILE_* ─────────────────────────────
+## These are superseded by all_post_create.sh (invoked above) which reads VARIANT and
+## applies the correct yml layers automatically.  Left here as a manual-run reference.
+## Actual file names:
+##   base    → $ENV_FILE_BASE    = docker/env_conda/environment.base.yml
+##   runtime → $ENV_FILE_RUNTIME = docker/env_conda/environment.yml        (always)
+##   devel   → $ENV_FILE_DEVEL   = docker/env_conda/environment.devel.yml  (devel only)
+##
+# RUN { mamba env create -n "${ENV_NAME}" -f "${ENV_FILE_BASE}" || echo "Failed: base env"; } \
+#   && { mamba env update -n "${ENV_NAME}" -f "${ENV_FILE_RUNTIME}" || echo "Failed: runtime env"; } \
+#   && if [ "${VARIANT}" = "devel" ]; then \
+#        mamba env update -n "${ENV_NAME}" -f "${ENV_FILE_DEVEL}" || echo "Failed: devel env"; \
+#      fi \
 #   && { mamba clean --all -f -y || true; } \
 #   && { jupyter lab clean || true; } \
-#   && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
 #   && { rm -rf ${HOME}/.cache || true; }
-## Update environment with default.yml (always applied), Fails and exits script cleanly
-# RUN { mamba env update -n "py312" -f "./docker/env_conda/default.yml" || echo "Failed to apply default environment"; } \
-#   ## Clean mamba, If fails continue
-#   && { mamba clean --all -f -y || true; } \
-#   && { jupyter lab clean || true; } \
-#   && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-#   && { rm -rf ${HOME}/.cache || true; }
-## Conditionally apply extended.yml (only if EXTENDED_PACKAGES=true), Fails and exits script cleanly
-# RUN if [ "$EXTENDED_PACKAGES" = "true" ]; then \
-#     echo "Installing extended packages..."; \
-#     { mamba env update -n "py312" -f "./docker/env_conda/extended.yml" || echo "Failed to apply extended environment"; } \
-#     ## Clean mamba, If fails continue
-#     && { mamba clean --all -f -y || true; } \
-#     && { jupyter lab clean || true; } \
-#     && { rm -rf "/home/${NB_USER}/.cache/yarn" || true; } \
-#     && { rm -rf ${HOME}/.cache || true; }; \
-#   else \
-#     echo "Skipping extended packages."; \
-#   fi
 
 ## Fix permissions on "$HOME" as jovyan
 RUN { fix-permissions "/home/${NB_USER}" && fix-permissions "${CONDA_DIR}" || true; };
@@ -508,9 +517,10 @@ EXPOSE 9000-9001
 # "start.sh" — your actual container start script (e.g. to start Jupyter, Conda env, etc.)
 ENTRYPOINT ["tini", "-g", "--", "start.sh"]
 ## Configure container startup
+## start-notebook.py reads JUPYTER_PORT from the environment automatically (ENV JUPYTER_PORT is set).
+## Using exec-form without shell means variable expansion does NOT happen — drop the --port arg.
 # CMD bash -c 'start-notebook.py --port "${JUPYTER_PORT:-8888}"'
-# CMD ["start-notebook.py"]
-CMD ["start-notebook.py", "--port ${JUPYTER_PORT:-8888}"]
+CMD ["start-notebook.py"]
 
 ## Set the command to start Jupyter lab with the specified port
 ## CMD ["bash", "-c", "source /etc/bash.bashrc && jupyter notebook --notebook-dir=/tf --ip 0.0.0.0 --no-browser --allow-root"]
@@ -529,7 +539,12 @@ USER ${NB_UID}
 WORKDIR "${HOME}"
 
 COPY requirements ./requirements/
+## Bring all three layered env yml files into $HOME for user convenience and reference.
+## (The base stage already has them under /tmp/docker/env_conda/ — this makes them
+##  immediately visible to the notebook user without needing to navigate to /tmp.)
+COPY docker/env_conda/environment.base.yml ./
 COPY docker/env_conda/environment.yml ./
+COPY docker/env_conda/environment.devel.yml ./
 COPY docker/env_pipenv/ ./env_pipenv/
 
 # macOS Rosetta virtualization creates junk directory which gets owned by root further up.

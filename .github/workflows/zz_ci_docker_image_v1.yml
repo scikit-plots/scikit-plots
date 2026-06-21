@@ -42,7 +42,7 @@
 # export TAG=python-3.11 REF_TAG=ref_tags-python-3.11 ALIAS=latest-python-3.11 ALIAS2=latest
 # bash -euxo pipefail -c '...paste the run: | script body here...'
 ---
-name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push-action)  #  (Auto-Tagging with scikitplot)
+name: zz CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push-action)  #  (Auto-Tagging with scikitplot)
 
 # Trigger the workflow on push to any branch or tag
 on:
@@ -81,7 +81,7 @@ on:
     ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
     ##        │  │  │ │ │
     ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
-    - cron: '11 11 * * 1'
+    # - cron: '11 11 * * 1'
 
 
 ## simultaneity

@@ -1,0 +1,1098 @@
+# Tag grammar (DockerHub + GHCR + Quay.io, one build matrix row -> 1-2 tags per registry):
+#   TAG := channel [ "-" variant [ "-" interpreter_segment ] ]
+#   channel              := "latest" (branch main) | "<X.Y.Z>" (release/maintenance) | "nightly" (schedule)
+#   variant              := "devel" | "runtime" (implicit default — short alias omits the word;
+#                         a second, explicit "-runtime-" alias is ALSO published for runtime rows)
+#   interpreter_segment  := "" (python @ default version) | "python<X.Y>" | "jupyter" (@ default
+#                         version) | "jupyter-python<X.Y>"
+#
+# Git Context            Example tags generated
+# Push to main           :latest  :latest-runtime  :latest-jupyter  :latest-runtime-jupyter  :latest-devel
+#                         (3.14 is the current default version, so its interpreter
+#                         segment collapses -- it is NOT :latest-runtime-python3.14;
+#                         that explicit-version form only appears for non-default
+#                         versions, e.g. :latest-runtime-python3.9.)
+# Push to maintenance    :0.3.x  :0.3.x-python3.11  :0.3.x-devel-jupyter-python3.11
+# Push tag vX.Y.Z        :0.4.0  :0.4.0-python3.11  :0.4.0-devel-jupyter-python3.12
+# Scheduled (cron)       :nightly  :nightly-devel-jupyter-python3.12
+# PR / feature branch    build-only, no push           ci-<12-char-sha> (local label)
+#
+# Pushing images
+# You can push a new image to this repository using the CLI:
+# docker tag local-image:tagname new-repo:tagname
+# docker push new-repo:tagname
+# Make sure to replace tagname with your desired image repository tag.
+# docker tag <existing_image_name>:<existing_tag> <new_image_name>:<new_tag>
+#
+# https://hub.docker.com/u/scikitplot
+# https://hub.docker.com/r/scikitplot/scikit-plots
+# docker login -u scikitplot
+# Example:
+# scikitplot/<repo>:latest
+# docker build -t scikitplot/scikit-plots:latest .
+# docker push scikitplot/scikit-plots:latest
+# docker build -t scikitplot/scikit-plots:sha-abc1234 .
+# docker push scikitplot/scikit-plots:sha-abc1234
+# docker build -t scikitplot/scikit-plots:dev .
+# docker push scikitplot/scikit-plots:dev
+# docker build -t scikitplot/scikit-plots:v1.0.0 .
+#
+# https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
+# https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
+# https://github.com/docker/login-action?tab=readme-ov-file#github-container-registry
+#
+# python - <<'PY'
+# import yaml, sys
+# yaml.safe_load(open("ci_docker_image.yml","r",encoding="utf-8"))
+# print("OK: YAML parses")
+# PY
+#
+# Dry-run the tag logic (no push)
+# export GITHUB_EVENT_NAME=push
+# export GITHUB_SHA=0123456789abcdef0123456789abcdef01234567
+# export REF_TYPE=branch VERSION="" BRANCH=main
+# export IMAGE_NAMESPACE=scikitplot IMAGE_REPO=scikit-plots GHCR_ORG=scikit-plots
+# export PY_VERSIONS_JSON='["3.9","3.11","3.12","3.14"]'
+# export VARIANT=runtime INTERPRETER=python PYTHON_VERSION=3.14
+# bash -euxo pipefail -c '...paste the run: | script body here...'
+---
+name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push-action)  #  (Auto-Tagging with scikitplot)
+
+# Trigger the workflow on push to any branch or tag
+on:
+  workflow_dispatch:  # Allows manual triggering of the workflow
+    inputs:
+      free_disk_space:                                  # Specify true/false
+        description: 'free_disk_space pkg source'
+        required: false                                 # 👈 Optional — workflow runs with the default if omitted
+        type: choice                                    # choice type always passes a string to ${{ inputs.* }}
+        default: 'false'                                # 👈 quoted string — unquoted 'false' is a YAML boolean
+        # ⚠️ If/when the commented-out disk-space-cleanup steps below are revived,
+        # gate them on `if: inputs.free_disk_space == 'true'` — NOT bare
+        # `if: inputs.free_disk_space`. A `choice` input is always a non-empty
+        # string ("true" OR "false"), and a non-empty string is truthy in GitHub
+        # Actions expressions, so the bare form would run even when 'false' is selected.
+        options:
+          - 'true'
+          - 'false'                                     # Default
+  # push:
+  #   branches:
+  #     - '**'    # Matches all branches, including main, dev, feature/*
+  #     - main
+  #     - maintenance/**
+  #   tags:
+  #     - '*'     # Matches all Git tags (e.g., v1.0.0)
+  #     - 'v*.*.*'
+  schedule:
+    ## Automatically built and released every night (or at a regular interval, often nightly)
+    ## Cron schedule for automated runs
+    ## https://crontab.cronhub.io
+    ## https://freeformatter.com/cron-expression-generator-quartz.html#cronexpressionexamples
+    ## https://crontab.io/validator
+    ## https://cron-checker.com/
+    ## "* * * * * * *" 7 fields (Quartz with year)         <second> <minute> <hour> <day of month> <month> <day of week> <year>
+    ## "* * * * * *"   6 fields (Quartz / some schedulers) <second> <minute> <hour> <day of month> <month> <day of week>
+    ## "* * * * *"     5 fields (standard Unix cron)       <minute> <hour> <day of month> <month> <day of week>
+    ##                 ┌─────────────────────── minute           (0 - 59)
+    ##                 │  ┌──────────────────── hour             (0 - 23)
+    ##                 │  │  ┌───────────────── day of the month (1 - 31)
+    ##                 │  │  │ ┌─────────────── month            (1 - 12 or JAN-DEC)
+    ##                 │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
+    ##                 │  │  │ │ │
+    ## Example: cron: "11 11 * * SUN,WED"  # (alternate: every Sunday and Wednesday at 11:11 UTC)
+    - cron: '11 11 * * 1'
+
+
+## simultaneity
+## This ensures that only one deployment to "production" can happen at a time.
+## If a new commit is pushed before the current job finishes, the in-progress job is canceled.
+concurrency:
+  ## Ensures that only one instance of this workflow runs per branch or PR at a time.
+  ## The 'group' key defines a unique concurrency group:
+  ## - github.workflow: Name of the workflow file.
+  ## - github.head_ref: (Only on pull_request) The name of the branch from which the PR was created (source branch). Example: "feature/add-login"
+  ## - github.run_id: (Always) A unique numeric ID for each run of a workflow. Useful as a fallback for uniqueness. Example: 6432789156
+  ## - github.ref: (Always) The full ref path of the branch or tag that triggered the workflow. Examples: For a push to a branch: "refs/heads/main" For a PR: "refs/pull/42/merge" For a tag: "refs/tags/v1.0.0"
+  ## - github.ref_name: (Always) Just the final part of the ref path (branch or tag name, does not exist for PRs). Examples: For a push to a branch: "main" For a tag: "v1.0.0"
+  ## This ensures: PRs use head_ref, Pushes/Tags use ref or ref_name, Fallback to run_id in edge cases
+  ##
+  ## github.event_name is included because github.ref alone is NOT sufficient to
+  ## disambiguate triggers that share a ref: a `schedule` (cron) run and a manual
+  ## `workflow_dispatch` run against the same default branch both resolve to the
+  ## same github.ref (refs/heads/main). Without event_name in the group key, a
+  ## manually-triggered run would cancel an in-progress nightly build (or vice
+  ## versa) via cancel-in-progress below — silently, with no error, just a
+  ## vanished run. Multiple pushes to the same branch still collapse into one
+  ## group as intended, since github.event_name is identical ("push") across them.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref || github.run_id }}
+  ## If you push multiple times quickly, older runs would continue even though newer ones have started.
+  ## Canceling previous runs reduces resource usage and speeds up feedback.
+  ## If a new run is triggered for the same group, cancel the in-progress one.
+  cancel-in-progress: true
+
+
+## Top-level permissions (outside jobs)
+## Job-level permissions (inside a specific job)
+## Restrict the permissions granted to the use of secrets.GITHUB_TOKEN in this
+## github actions workflow:
+## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+##
+## Principle of least privilege: grant permissions at job level only, not workflow level.
+## This way only the 'docker' job gets packages:write; any other jobs added later get
+## the minimal read-only defaults automatically.
+##
+## GITHUB_TOKEN is auto-provisioned by GitHub for every run — you never define it.
+## Its capabilities are controlled entirely by the permissions: block below.
+## packages:write is required for any GHCR push (public or private repository).
+# permissions: {}  # Declare default permissions as read only.
+permissions:
+  contents: read  # for actions/checkout to fetch code
+  # packages: write is intentionally NOT declared here. It is granted only at
+  # job level (see the `docker:` job below) so any future job added to this
+  # workflow defaults to the read-only minimum instead of inheriting push
+  # rights it never asked for.
+
+
+# https://github.com/jupyterhub/repo2docker-action
+# https://github.com/scikit-hep/pyhf/blob/main/.github/workflows/docker.yml
+# https://github.com/jupyterhub/binderhub/blob/main/.github/workflows/test-docker-build.yaml
+# https://github.com/jupyterhub/binderhub/blob/main/helm-chart/chartpress.yaml
+# https://github.com/jupyterhub/chartpress
+jobs:
+  docker:
+    # Per-row display name for the Actions UI / status checks — mirrors the
+    # build_wheels job's "Wheel-<py>-<platform>" pattern. Job id stays `docker`
+    # (unchanged) so this is purely cosmetic and doesn't rename any existing
+    # required status check; rename the id too only if you also update branch
+    # protection rules to match.
+    name: >-
+      Image-${{ matrix.variant }}-${{ matrix.interpreter }}-py${{ matrix.python_version }}
+    runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
+    # Safety net for a hung multi-arch/QEMU build consuming the runner indefinitely.
+    # Placeholder value — tune to comfortably exceed your observed p95 build time.
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write      # required for GHCR push (ghcr.io); uses GITHUB_TOKEN
+      # attestations: write  # enable only when actions/attest step is active
+      # id-token: write      # enable only when using OIDC (cosign, sigstore, etc.)
+
+    ## https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions
+    ## Runtime `if:` filtering is unnecessary with a flat `include:` matrix — every row
+    ## below is already a deliberate, valid combination (no cross-product to filter).
+    strategy:
+      fail-fast: false  # Allow all jobs to run even if one fails
+      matrix:
+        # Flat enumeration (GitHub Actions' canonical "explicit list" pattern) — zero
+        # cross-product, zero `exclude:` entries. Scales by adding one row per new
+        # version. `python_version` is always quoted: unquoted YAML floats silently
+        # truncate trailing zeros (3.10 -> 3.1).
+        include:
+          # ---------- runtime · python ----------
+          - { variant: runtime, interpreter: python,  python_version: "3.9"  }
+          - { variant: runtime, interpreter: python,  python_version: "3.11" }
+          - { variant: runtime, interpreter: python,  python_version: "3.12" }
+          - { variant: runtime, interpreter: python,  python_version: "3.14" }
+          # ---------- runtime · jupyter ----------
+          - { variant: runtime, interpreter: jupyter, python_version: "3.9"  }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.11" }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.12" }
+          - { variant: runtime, interpreter: jupyter, python_version: "3.14" }
+          # ---------- devel · python ----------
+          - { variant: devel,   interpreter: python,  python_version: "3.9"  }
+          - { variant: devel,   interpreter: python,  python_version: "3.11" }
+          - { variant: devel,   interpreter: python,  python_version: "3.12" }
+          - { variant: devel,   interpreter: python,  python_version: "3.14" }
+          # ---------- devel · jupyter ----------
+          - { variant: devel,   interpreter: jupyter, python_version: "3.9"  }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.11" }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.12" }
+          - { variant: devel,   interpreter: jupyter, python_version: "3.14" }
+
+    # Set your DockerHub username as a fixed env var
+    # https://github.com/docker/login-action?tab=readme-ov-file#docker-hub
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context
+    env:
+      # REGISTRY: ghcr.io
+      # REPO_NAME: ${{ github.event.repository.name }}  # or in shell: $(basename "$GITHUB_REPOSITORY") full_repo_name: ${{ github.repository }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}  # ${{ github.actor }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}  # ${{ secrets.GITHUB_TOKEN }}
+      # Quay.io credentials (optional — same skip-don't-fail pattern as DockerHub above;
+      # GHCR never needs this since it authenticates with GITHUB_TOKEN instead).
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
+      # Constant across every matrix row (previously matrix.service[1]/[2] — both rows
+      # of the old `service` matrix carried identical org/image values, so this was
+      # never really a matrix axis). Single source of truth; update here if the
+      # DockerHub namespace ever changes.
+      IMAGE_NAMESPACE: scikitplot
+      IMAGE_REPO: scikit-plots
+      # Single source of truth for supported Python versions — ordered oldest -> newest.
+      # The matrix `include:` rows above must enumerate exactly this set (4 versions x
+      # 2 variants x 2 interpreters = 16 rows). The *default* (unversioned-alias)
+      # version is always the LAST element here, never a separately hardcoded literal,
+      # so it advances automatically the day this list is extended (currently 3.14).
+      PY_VERSIONS_JSON: '["3.9","3.11","3.12","3.14"]'
+      # SCIKITPLOT_VERSION: 0.4.0.post11  # install latest release on PyPI
+      # COMPOSE_FILE: docker/docker-compose.yml
+
+    ## To enable this workflow on a fork, comment out:
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    steps:
+      - name: Disk space report
+        shell: bash
+        run: |
+          echo "Memory and swap:"
+          sudo free -h
+          echo
+          sudo swapon --show
+          echo
+          echo "Available storage:"
+          sudo df -h
+
+      ## 📥 Checkout the Git repository into the runner
+      - name: "⬇️ Checkout (cloned) repository with full history"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false  # Prevents accidental credential exposure
+          # submodules: true  # Enable only if the build context vendors submodules
+          fetch-depth: 0    # Full history — unverified why this is needed for a Docker
+                            # build; verify whether it's for setuptools-scm version
+                            # derivation from Git tags, or reduce to a shallow fetch.
+                            # (Previous comment here referenced Hugo's .GitInfo/.Lastmod —
+                            # a static-site-generator concept, unrelated to this workflow;
+                            # leftover from a different template.)
+          lfs: true         # ⚠️ Also unverified, same as fetch-depth above: confirm the
+                            # repository actually has Git-LFS-tracked paths inside the
+                            # Docker build context before relying on this. If nothing in
+                            # the build context is LFS-tracked, this is a no-op fetch-time
+                            # cost (extra LFS API round-trip on every run) that should be
+                            # set to false instead.
+          ## Gets the correct commit message for pull request
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+
+      - name: 🔖 Export "branch" or "tag" from Git context
+        id: gitref
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          REF_TYPE=""
+          VERSION_TAG=""
+          BRANCH_TAG=""
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            REF_TYPE="tag"
+            # Two-step strip is required for idempotent version extraction:
+            #   Step 1: remove the fixed refs/tags/ prefix unconditionally.
+            #   Step 2: strip an optional leading 'v' (e.g. v1.0.0 → 1.0.0).
+            # Single-step '${GITHUB_REF#refs/tags/v}' fails for tags WITHOUT a 'v'
+            # prefix — e.g. refs/tags/1.0.0 would remain 'refs/tags/1.0.0' intact.
+            VERSION_TAG="${GITHUB_REF#refs/tags/}"  # refs/tags/v1.0.0 → v1.0.0
+            VERSION_TAG="${VERSION_TAG#v}"           # v1.0.0 → 1.0.0  (no-op if no v)
+          elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+            REF_TYPE="branch"
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            BRANCH_TAG="${BRANCH_NAME//\//-}"  # Replace slashes with dashes
+          fi
+          # Export "branch" or "tag" — grouped into one redirect block (SC2129).
+          {
+            echo "ref_type=$REF_TYPE"
+            echo "version_tag=$VERSION_TAG"
+            echo "branch_tag=$BRANCH_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 🏷️ Prepare Compute Docker build plan (tags, dockerfile, push)
+        id: docker_plan
+        shell: bash
+        env:
+          # GHCR/Quay: org is the GitHub organisation that owns this repo.
+          # github.repository_owner resolves correctly on forks too.
+          # No extra secret is needed for GHCR – GITHUB_TOKEN covers packages:write.
+          GHCR_ORG: ${{ github.repository_owner }}
+          REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
+          VERSION: ${{ steps.gitref.outputs.version_tag }}
+          BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+          # Matrix axes — see strategy.matrix.include above (flat enumeration, no cross-product).
+          VARIANT: ${{ matrix.variant }}
+          INTERPRETER: ${{ matrix.interpreter }}
+          PYTHON_VERSION: ${{ matrix.python_version }}
+          # NOTE: IMAGE_NAMESPACE, IMAGE_REPO, PY_VERSIONS_JSON, DOCKERHUB_USERNAME/TOKEN,
+          # QUAY_USERNAME/TOKEN are NOT redeclared here — they're already job-level
+          # `env:` (see strategy.matrix sibling block above) and GitHub Actions auto-
+          # exposes job-level env to every step's shell, including this one. Re-stating
+          # them here was redundant duplication of identical values; removed.
+        run: |
+          set -Eeuo pipefail
+
+          # ── Default Python version (derived, never hardcoded) ────────────────────
+          # PY_VERSIONS_JSON is maintained oldest -> newest by contract (see job env
+          # comment above); the default is simply its last element. No numeric sort is
+          # performed — string-sorting "3.9" vs "3.12" would be wrong anyway ("3.9" >
+          # "3.12" lexicographically) — so trusting the declared order is both simpler
+          # and correct.
+          DEFAULT_PYTHON_VERSION="$(jq -r '.[-1]' <<<"${PY_VERSIONS_JSON}")"
+          [[ -n "${DEFAULT_PYTHON_VERSION}" && "${DEFAULT_PYTHON_VERSION}" != "null" ]] \
+            || { echo "Could not derive default Python version from PY_VERSIONS_JSON=${PY_VERSIONS_JSON}" >&2; exit 2; }
+
+          # ── Matrix / PY_VERSIONS_JSON consistency guard ───────────────────────────
+          # PY_VERSIONS_JSON and strategy.matrix.include (job env, above) are two
+          # hand-maintained lists that must describe the same Python-version set —
+          # nothing previously enforced that. This catches ONE of the two ways they
+          # can drift: a version added to matrix.include but never added here, which
+          # would otherwise silently mis-derive the default-version collapse for this
+          # row (e.g. a real new "latest" version wrongly getting an explicit
+          # "-pythonX.Y" suffix instead of collapsing to the bare alias). Fail fast
+          # with an actionable message instead of producing a wrong tag silently.
+          # NOT caught by this (no per-row signal exists for it): the opposite drift,
+          # a version added HERE but never given a matrix.include row — that version
+          # then simply never builds, and if it's the new last element, the collapse
+          # rule stops matching ANY row (every row gets an explicit version suffix,
+          # including what used to be "latest"/"-runtime" with no suffix at all).
+          # Closing that direction needs either generating matrix.include dynamically
+          # from this same JSON (single source of truth, larger refactor) or a
+          # separate static-lint job that parses this workflow file's own YAML —
+          # left as a deliberate follow-up decision, not silently unaddressed.
+          jq -e --arg v "${PYTHON_VERSION}" 'index($v) != null' <<<"${PY_VERSIONS_JSON}" >/dev/null \
+            || { echo "PYTHON_VERSION='${PYTHON_VERSION}' (this matrix row) is not present in PY_VERSIONS_JSON=${PY_VERSIONS_JSON}. strategy.matrix.include and PY_VERSIONS_JSON have drifted out of sync -- update both to the same version set." >&2; exit 2; }
+
+          # ── Registry image names ──────────────────────────────────────────────────
+          # DockerHub : <org>/<repo>:<tag>          e.g. scikitplot/scikit-plots:latest
+          # GHCR      : ghcr.io/<org>/<repo>:<tag>  e.g. ghcr.io/scikit-plots/scikit-plots:latest
+          # Quay.io   : quay.io/<org>/<repo>:<tag>  e.g. quay.io/scikit-plots/scikit-plots:latest
+          # Note: DockerHub org is "scikitplot" (no hyphen); GHCR/Quay org is the GitHub
+          # organisation name "scikit-plots" (with hyphen) — these intentionally differ.
+          DH_IMAGE_NAME="${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+          GHCR_IMAGE_NAME="ghcr.io/${GHCR_ORG}/${IMAGE_REPO}"
+          QUAY_IMAGE_NAME="quay.io/${GHCR_ORG}/${IMAGE_REPO}"
+
+          # ── Dockerfile selection (determined by interpreter, not a flavour string) ─
+          # Two real Dockerfiles, one per interpreter; `variant` (devel/runtime) is
+          # passed through as a build-arg below instead of selecting a third file.
+          # ⚠️ Unverified assumption: docker/Dockerfile and docker/Dockerfile.python
+          # must actually consume a VARIANT build-arg for devel/runtime to differ —
+          # not yet checked against the Dockerfile contents themselves.
+          case "${INTERPRETER}" in
+            python)  DOCKERFILE_PATH="docker/Dockerfile.python" ;;
+            jupyter) DOCKERFILE_PATH="docker/Dockerfile" ;;
+            *) echo "Unknown INTERPRETER='${INTERPRETER}' (expected python|jupyter)" >&2; exit 2 ;;
+          esac
+
+          # ── Channel (resolved ONCE per run from the git ref / trigger — NOT a matrix
+          #    axis; every one of the 16 rows shares the same channel on a given run) ──
+          # Rules, checked in order:
+          #   schedule trigger (cron)                   → "nightly"
+          #   Git tag  (refs/tags/vX.Y.Z)               → "<X.Y.Z>"  (release channel)
+          #   Branch "main"                             → "latest"
+          #   Branch "maintenance-X.Y.x"                → "<X.Y.x>"  (maintenance channel)
+          #   Everything else (feature branches, PRs)   → "" (build-only, no push)
+          CHANNEL=""
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            CHANNEL="nightly"
+          elif [[ "${REF_TYPE}" == "tag" ]]; then
+            [[ -n "${VERSION}" ]] || { echo "VERSION is empty for a tag ref" >&2; exit 2; }
+            CHANNEL="${VERSION}"
+          elif [[ "${BRANCH}" == "main" ]]; then
+            CHANNEL="latest"
+          elif [[ "${BRANCH}" == maintenance-* ]]; then
+            BRANCH_VERSION="${BRANCH#maintenance-}"
+            [[ -n "${BRANCH_VERSION}" ]] || { echo "Invalid maintenance branch name: ${BRANCH}" >&2; exit 2; }
+            CHANNEL="${BRANCH_VERSION}"
+          else
+            echo "No push policy for BRANCH=${BRANCH} REF_TYPE=${REF_TYPE} EVENT=${GITHUB_EVENT_NAME}; build-only." >&2
+          fi
+
+          # ── Should we push at all? Computed ONCE here and reused below (tag-list
+          #    branch, DO_PUSH output, PRIMARY_TAG selection) instead of re-deriving
+          #    this same condition three separate times — a future edit to one copy
+          #    and not the others would otherwise silently desync push/tag logic.
+          SHOULD_PUSH="false"
+          if [[ -n "${CHANNEL}" && "${GITHUB_EVENT_NAME}" != "pull_request" ]]; then
+            SHOULD_PUSH="true"
+          fi
+
+          # ── Tag assembly: channel [ "-" variant [ "-" interpreter_segment ] ] ──────
+          # variant_segment    : "" for runtime (implicit default) | "devel" (always explicit)
+          # interpreter_segment: "" for python @ default version (fully collapses);
+          #                      "python<X.Y>" for python @ any other version;
+          #                      "jupyter" for jupyter @ default version;
+          #                      "jupyter-python<X.Y>" for jupyter @ any other version.
+          # Runtime rows additionally get a second, explicit "-runtime-" alias pointing
+          # at the same image; devel rows never collapse, so they get exactly one.
+          # This rule is *derived* from the confirmed grammar (roadmap §3), not
+          # separately re-confirmed — verified to reproduce all 8 worked examples there.
+          assemble_tag() {
+            local variant_segment="$1" interpreter_segment="$2" t="${CHANNEL}"
+            [[ -n "${variant_segment}" ]] && t="${t}-${variant_segment}"
+            [[ -n "${interpreter_segment}" ]] && t="${t}-${interpreter_segment}"
+            printf '%s' "${t}"
+          }
+
+          case "${VARIANT}" in
+            runtime) VARIANT_SEG="" ;;
+            devel)   VARIANT_SEG="devel" ;;
+            *) echo "Unknown VARIANT='${VARIANT}' (expected runtime|devel)" >&2; exit 2 ;;
+          esac
+
+          if [[ "${INTERPRETER}" == "python" ]]; then
+            if [[ "${PYTHON_VERSION}" == "${DEFAULT_PYTHON_VERSION}" ]]; then INTERP_SEG=""
+            else INTERP_SEG="python${PYTHON_VERSION}"; fi
+          else  # jupyter (already validated above)
+            if [[ "${PYTHON_VERSION}" == "${DEFAULT_PYTHON_VERSION}" ]]; then INTERP_SEG="jupyter"
+            else INTERP_SEG="jupyter-python${PYTHON_VERSION}"; fi
+          fi
+
+          PRIMARY_ALIAS="$(assemble_tag "${VARIANT_SEG}" "${INTERP_SEG}")"
+          ALIASES=("${PRIMARY_ALIAS}")
+          if [[ "${VARIANT}" == "runtime" ]]; then
+            ALIASES+=("$(assemble_tag "runtime" "${INTERP_SEG}")")
+          fi
+
+          # ── Tag list (newline-delimited for docker/build-push-action) ─────────────
+          # docker/build-push-action accepts tags from multiple registries in one list;
+          # a single build is produced and pushed to all registries simultaneously.
+          TAGS=()
+
+          if [[ "${SHOULD_PUSH}" == "true" ]]; then
+            # ── DockerHub tags ────────────────────────────────────────────────────
+            # DockerHub requires explicit credentials. Warn and skip (don't hard-fail)
+            # so GHCR push still succeeds even when DH secrets aren't configured yet.
+            if [[ -n "${DOCKERHUB_USERNAME}" && -n "${DOCKERHUB_TOKEN}" ]]; then
+              for a in "${ALIASES[@]}"; do TAGS+=("${DH_IMAGE_NAME}:${a}"); done
+            else
+              echo "⚠️  DOCKERHUB_USERNAME/DOCKERHUB_TOKEN not set; skipping DockerHub tags." >&2
+            fi
+            # ── GHCR tags ─────────────────────────────────────────────────────────
+            # GITHUB_TOKEN is always available (packages:write granted at job level).
+            # No credential check needed here.
+            for a in "${ALIASES[@]}"; do TAGS+=("${GHCR_IMAGE_NAME}:${a}"); done
+            # ── Quay.io tags ──────────────────────────────────────────────────────
+            # Same optional/skip-don't-fail pattern as DockerHub.
+            if [[ -n "${QUAY_USERNAME}" && -n "${QUAY_TOKEN}" ]]; then
+              for a in "${ALIASES[@]}"; do TAGS+=("${QUAY_IMAGE_NAME}:${a}"); done
+            else
+              echo "⚠️  QUAY_USERNAME/QUAY_TOKEN not set; skipping Quay.io tags." >&2
+            fi
+          else
+            # Build-only (PR / feature branch / no matching policy):
+            # Use a deterministic local-only tag — never pushed to any registry.
+            TAGS+=("${DH_IMAGE_NAME}:ci-${GITHUB_SHA::12}")
+          fi
+
+          # ── Push flag ─────────────────────────────────────────────────────────────
+          # True when there are registry-qualified tags to push (GHCR always qualifies
+          # when CHANNEL is set and it's not a PR; DH/Quay are additive when creds exist).
+          DO_PUSH="${SHOULD_PUSH}"
+
+          # ── Primary tag for downstream inspect / smoke-test steps ─────────────────
+          # Prefer GHCR (no pull-rate limits) when available; fall back to local ci tag.
+          if [[ "${SHOULD_PUSH}" == "true" ]]; then
+            PRIMARY_TAG="${GHCR_IMAGE_NAME}:${PRIMARY_ALIAS}"
+          else
+            PRIMARY_TAG="${DH_IMAGE_NAME}:ci-${GITHUB_SHA::12}"
+          fi
+
+          # ── Debug summary ─────────────────────────────────────────────────────────
+          echo "Channel    : ${CHANNEL:-<none, build-only>}" >&2
+          echo "Dockerfile : ${DOCKERFILE_PATH}" >&2
+          echo "Push       : ${DO_PUSH}" >&2
+          echo "Primary tag: ${PRIMARY_TAG}" >&2
+          echo "Tags:" >&2
+          printf '  - %s\n' "${TAGS[@]}" >&2
+
+          # ── Write step outputs ────────────────────────────────────────────────────
+          # `tags` is multi-line, so it needs the heredoc form for $GITHUB_OUTPUT.
+          # The delimiter is randomized (per GitHub's own hardening guidance) rather
+          # than the literal string "EOF", so a tag value that happened to equal
+          # "EOF" couldn't terminate the heredoc early and let the rest of that line
+          # get interpreted as extra, attacker-controlled output keys. TAGS here is
+          # built entirely from program-constructed, trusted values (not user input),
+          # so the practical risk is low today -- but a fixed delimiter is the known
+          # pattern that becomes a real problem the moment that stops being true, so
+          # fixing it now costs nothing.
+          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-a-random-delimiter
+          _output_delim="ghadelim_$(openssl rand -hex 8)"
+          {
+            echo "image_name=${DH_IMAGE_NAME}"
+            echo "ghcr_image_name=${GHCR_IMAGE_NAME}"
+            echo "quay_image_name=${QUAY_IMAGE_NAME}"
+            echo "primary_tag=${PRIMARY_TAG}"
+            echo "final_alias=${PRIMARY_ALIAS}"
+            echo "dockerfile=${DOCKERFILE_PATH}"
+            echo "push=${DO_PUSH}"
+            echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "tags<<${_output_delim}"
+            printf '%s\n' "${TAGS[@]}"
+            echo "${_output_delim}"
+          } >> "${GITHUB_OUTPUT}"
+
+      # ── Build-plan tracking log ──────────────────────────────────────────────
+      # GitHub concatenates every job's $GITHUB_STEP_SUMMARY onto ONE Summary tab
+      # for the whole workflow run, so each of the 16 matrix rows appending its
+      # own block here gives a single place to inspect what every row decided —
+      # no need to open 16 separate job logs to compare variant/tag/push choices.
+      - name: 📝 Log build plan to job summary
+        env:
+          MATRIX_VARIANT: ${{ matrix.variant }}
+          MATRIX_INTERPRETER: ${{ matrix.interpreter }}
+          MATRIX_PYTHON_VERSION: ${{ matrix.python_version }}
+          PLAN_DOCKERFILE: ${{ steps.docker_plan.outputs.dockerfile }}
+          PLAN_PUSH: ${{ steps.docker_plan.outputs.push }}
+          PLAN_PRIMARY_TAG: ${{ steps.docker_plan.outputs.primary_tag }}
+          PLAN_CREATED: ${{ steps.docker_plan.outputs.created }}
+          PLAN_TAGS: ${{ steps.docker_plan.outputs.tags }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "### 🐋 \`${MATRIX_VARIANT}\` · \`${MATRIX_INTERPRETER}\` · python \`${MATRIX_PYTHON_VERSION}\`"
+            echo
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Dockerfile | \`${PLAN_DOCKERFILE}\` |"
+            echo "| Will push? | \`${PLAN_PUSH}\` |"
+            echo "| Primary tag | \`${PLAN_PRIMARY_TAG}\` |"
+            echo "| Plan computed at | \`${PLAN_CREATED}\` |"
+            echo
+            echo "<details><summary>All tags for this row</summary>"
+            echo
+            echo '```'
+            printf '%s\n' "${PLAN_TAGS}"
+            echo '```'
+            echo "</details>"
+            echo
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      ################################################################
+      ## Docker build (multi-arch) — canonical Buildx workflow
+      ################################################################
+      - name: ⚙️ Set up QEMU (multi-arch emulation for docker buildx)
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+
+      - name: 🧱 Set up Docker Buildx (for chartpress multi-arch builds)
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: 🔐 Log in to Docker Hub
+        # Guard: only attempt login when we will actually push AND BOTH credential
+        # pieces are available. Checking only USERNAME here while docker_plan checks
+        # USERNAME *and* TOKEN created an asymmetry: a half-configured secret (e.g.
+        # username set, token left empty/rotated-out) would make docker_plan correctly
+        # omit DockerHub tags, yet this step would still run with an empty password,
+        # fail, and -- having no continue-on-error -- take the whole matrix row down.
+        # That's the opposite of the intended skip-don't-fail behavior, so the guard
+        # below must mirror docker_plan's check exactly, term for term.
+        # GitHub Actions sets env vars to empty string when a secret is absent (e.g.
+        # before it's been added to the repo), so '!= ""' is a safe empty-check here.
+        if: >-
+          steps.docker_plan.outputs.push == 'true' &&
+          env.DOCKERHUB_USERNAME != '' &&
+          env.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}  # ${{ github.actor }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  # ${{ secrets.GITHUB_TOKEN }}
+
+      # https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images#publishing-images-to-github-packages
+      # https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+      #
+      # GHCR authentication rules:
+      #   - registry  : always "ghcr.io"
+      #   - username  : github.actor (the actor who triggered this run)
+      #                 ⚠️  Do NOT use DOCKERHUB_USERNAME here — it will cause a 401.
+      #   - password  : secrets.GITHUB_TOKEN (auto-provisioned; packages:write grants push)
+      #                 No additional secret to configure -- GITHUB_TOKEN is always
+      #                 present for every run of this job.
+      - name: 🔐 Log in to the Container registry (GHCR)
+        # Guard: GITHUB_TOKEN is always available but login is only needed when pushing.
+        # Skipping on build-only runs avoids unnecessary network calls and potential
+        # transient auth failures that would abort an otherwise-valid build.
+        if: steps.docker_plan.outputs.push == 'true'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io                      # GitHub Container Registry
+          username: ${{ github.actor }}          # must be the triggering actor
+          password: ${{ secrets.GITHUB_TOKEN }}  # auto-provisioned; no extra secret needed
+
+      # https://github.com/docker/login-action?tab=readme-ov-file#quayio
+      # Quay.io authentication rules:
+      #   - registry  : always "quay.io"
+      #   - username  : a Quay.io robot account or user, stored as QUAY_USERNAME
+      #   - password  : a Quay.io token/password, stored as QUAY_TOKEN
+      - name: 🔐 Log in to Quay.io
+        # Guard: same fix as the DockerHub login above -- check BOTH credential
+        # pieces, matching docker_plan's gating exactly, so a half-configured
+        # secret skips cleanly instead of failing this step (which has no
+        # continue-on-error and would otherwise take the row down).
+        if: >-
+          steps.docker_plan.outputs.push == 'true' &&
+          env.QUAY_USERNAME != '' &&
+          env.QUAY_TOKEN != ''
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_TOKEN }}
+
+
+      # - name: Extract metadata (tags, labels) for Docker
+      #   # ⚠️ Two problems if reviving this, both same class as the actions/attest note
+      #   # above — verify before uncommenting, don't just delete the comment markers:
+      #   #   1. SHA is NOT a tagged release — `git describe` resolves it to
+      #   #      v4.3.0-19-g9ec57ed (19 commits past v4.3.0, pre-v4.4.0). Re-pin to an
+      #   #      actual release commit with a matching # vX.Y.Z comment, as every other
+      #   #      `uses:` in this file does.
+      #   #   2. env.REGISTRY / env.IMAGE_NAME are NOT defined anywhere in this job —
+      #   #      those names were retired when tag/registry logic moved into the
+      #   #      docker_plan step (see job `env:` block above: IMAGE_NAMESPACE,
+      #   #      IMAGE_REPO, GHCR_IMAGE_NAME / DH_IMAGE_NAME / QUAY_IMAGE_NAME). As
+      #   #      written this would resolve to an empty `images:` value, not an error —
+      #   #      a silent misconfiguration, not a fail-fast one.
+      #   # This action is currently fully superseded by docker_plan's custom tag
+      #   # assembly (channel + variant + interpreter grammar, multi-registry tag list,
+      #   # primary-tag selection) — there is no missing functionality today.
+      #   id: meta
+      #   uses: docker/metadata-action@COMMIT_SHA # vX.Y.Z — pin to an actual release before reviving
+      #   with:
+      #     images: ${{ env.GHCR_IMAGE_NAME }}
+
+      - name: 🏗️ (multi-arch) Build and Push Docker image
+        id: docker_build_release
+        # timeout-minutes: 60
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ${{ steps.docker_plan.outputs.dockerfile }}  # docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ steps.docker_plan.outputs.push }}
+          pull: true
+          tags: ${{ steps.docker_plan.outputs.tags }}  # ${{ steps.meta.outputs.tags }}
+          # ⚠️ Unverified assumption (see docker_plan comment above): the Dockerfiles
+          # must declare ARG VARIANT / ARG PYTHON_VERSION for these to take effect —
+          # not yet checked against docker/Dockerfile / docker/Dockerfile.python.
+          build-args: |
+            VARIANT=${{ matrix.variant }}
+            PYTHON_VERSION=${{ matrix.python_version }}
+          labels: |  # ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.title=scikit-plots
+            org.opencontainers.image.description=scikit-plots ${{ matrix.variant }} ${{ matrix.interpreter }} ${{ matrix.python_version }} image
+            org.opencontainers.image.version=${{ steps.docker_plan.outputs.final_alias }}
+            org.opencontainers.image.source=${{ github.event.repository.html_url }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.docker_plan.outputs.created }}
+          # Canonical cache backend for GitHub Actions runners. Scope includes the
+          # matrix axes (variant/interpreter/python_version) — without them all 16
+          # rows on a given branch would share ONE cache scope and thrash each other.
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}-${{ github.ref_name }}-${{ matrix.variant }}-${{ matrix.interpreter }}-${{ matrix.python_version }}
+          cache-from: type=gha,scope=${{ github.workflow }}-${{ github.ref_name }}-${{ matrix.variant }}-${{ matrix.interpreter }}-${{ matrix.python_version }}
+          # load: true  # is for local daemon usability, not for multi-arch publishing.
+          # Disable extra OCI attestations for maximum registry/tool compatibility
+          # and stable digest expectations in multi-arch publishing.
+          # provenance: false
+          # sbom: false
+
+      # - name: Generate artifact attestation
+      #   # ⚠️  actions/attest@v4 is NOT SHA-pinned — replace with a full commit SHA before
+      #   # enabling. Example: actions/attest@COMMIT_SHA  # vN.N.N
+      #   # Also enable: permissions: attestations:write  id-token:write  at job level.
+      #   uses: actions/attest@v4
+      #   with:
+      #     subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
+
+      # scikitplot/scikit-plots:sha-${GITHUB_SHA::8} corresponds to the tag, which resolves to the index digest.
+      # Index digest  — portable multi-platform reproducibility manifest list (what `docker pull` resolves).
+      # Manifest digest — one exact platform reproducibility image; use only when targeting a single architecture (e.g. linux/amd64 on Binder).
+      # - name: 🐳 Image index digest
+      #   continue-on-error: true
+      #   run: |
+      #     # For multi-arch builds this is returns the index digest, not per-platform digest.
+      #     # For multi-arch this is the manifest list / image index digest, not a single image digest.
+      #     echo "Digest: ${{ steps.docker_build_release.outputs.digest }}"
+
+      # steps.docker_plan.outputs.primary_tag points to GHCR when push=true (no pull-rate
+      # limits), or to the local ci-<sha> tag for build-only runs.
+      # Index digest  — portable multi-platform manifest list (what `docker pull` resolves).
+      # Manifest digest — single platform image; use only when targeting one arch (e.g. Binder).
+      #
+      # NOTE: imagetools inspect queries the REGISTRY — it cannot inspect a local-only image.
+      # Build-only runs produce a ci-<sha> tag that is never pushed, so this step must be
+      # gated on push==true to avoid a guaranteed failure on PRs and feature branches.
+      - name: 🔎 Inspect pushed manifest
+        id: docker_inspect
+        if: steps.docker_plan.outputs.push == 'true'
+        continue-on-error: true
+        env:
+          # Map the output to an env var here
+          PRIMARY_TAG: ${{ steps.docker_plan.outputs.primary_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use the shell variable syntax ($PRIMARY_TAG)
+          docker buildx imagetools inspect "$PRIMARY_TAG"
+
+      # docker pull ghcr.io/scikit-plots/scikit-plots:latest
+      # docker run ... ${{ steps.docker_plan.outputs.primary_tag }}
+      # Because GitHub runners are usually amd64, but explicit is safer and deterministic.
+      #
+      # NOTE: docker/build-push-action with multi-arch does NOT load the image into the
+      # local Docker daemon (load: true is incompatible with linux/amd64+linux/arm64).
+      # On build-only runs the ci-sha tag is never pushed and doesn't exist locally either,
+      # so docker run would fail. Gate on push==true so the runner pulls from GHCR.
+      - name: 🧪 Smoke test published image check for curl and git
+        id: smoke_test
+        if: steps.docker_plan.outputs.push == 'true'
+        continue-on-error: true
+        env:
+          # Map the output to an env var here
+          PRIMARY_TAG: ${{ steps.docker_plan.outputs.primary_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..2}; do
+            if docker run --rm \
+              --platform linux/amd64 \
+              --entrypoint /bin/bash \
+              "$PRIMARY_TAG" \
+              -c "uname -m && command -v curl && command -v git && git --version"; then
+              exit 0
+            fi
+            # Only sleep between attempts — not after the final one (no retry coming).
+            if [[ $i -lt 2 ]]; then
+              echo "Attempt ${i}/2 failed; retrying in 10s..."
+              sleep 10
+            fi
+          done
+          echo "Smoke test failed after 2 attempts." >&2
+          # `continue-on-error: true` above means this won't fail the job — it only
+          # marks this step itself as failed (visible as a non-blocking ⚠️ in the
+          # Actions UI) instead of being completely silent, which a bare `echo` with
+          # no exit code would otherwise be (echo always returns 0).
+          exit 1
+
+      # ── Build-result tracking log ────────────────────────────────────────────
+      # if: always() — log the outcome even when build/inspect/smoke-test failed,
+      # so a failure is something you can SEE on the Summary tab per row, not
+      # something you have to go dig out of a 16-job log list.
+      - name: 📝 Log build result to job summary
+        if: always()
+        env:
+          MATRIX_VARIANT: ${{ matrix.variant }}
+          MATRIX_INTERPRETER: ${{ matrix.interpreter }}
+          MATRIX_PYTHON_VERSION: ${{ matrix.python_version }}
+          BUILD_OUTCOME: ${{ steps.docker_build_release.outcome }}
+          BUILD_DIGEST: ${{ steps.docker_build_release.outputs.digest }}
+          INSPECT_OUTCOME: ${{ steps.docker_inspect.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke_test.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          outcome_icon() { case "$1" in success) echo "✅";; failure) echo "❌";; skipped) echo "⏭️";; *) echo "❔";; esac; }
+          {
+            echo "**Result — \`${MATRIX_VARIANT}\`/\`${MATRIX_INTERPRETER}\`/py\`${MATRIX_PYTHON_VERSION}\`:**"
+            echo
+            echo "| Step | Outcome |"
+            echo "|---|---|"
+            echo "| Build & push | $(outcome_icon "${BUILD_OUTCOME:-skipped}") ${BUILD_OUTCOME:-skipped} |"
+            echo "| Manifest inspect | $(outcome_icon "${INSPECT_OUTCOME:-skipped}") ${INSPECT_OUTCOME:-skipped} |"
+            echo "| Smoke test | $(outcome_icon "${SMOKE_OUTCOME:-skipped}") ${SMOKE_OUTCOME:-skipped} |"
+            echo "| Digest | \`${BUILD_DIGEST:-n/a}\` |"
+            echo
+            echo "---"
+            echo
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: 🧹 Cleanup (optional)
+        if: always()
+        continue-on-error: true
+        env:
+          # Mapped to an env var instead of interpolating ${{ github.repository_owner }}
+          # directly into the script body below -- same reasoning as the docker_inspect
+          # and smoke_test steps above, and the only step left in this file that hadn't
+          # been brought in line with that pattern. IMAGE_NAMESPACE/IMAGE_REPO need no
+          # equivalent mapping here; they're already job-level env (see strategy.matrix
+          # sibling block) and GitHub Actions auto-exposes those to every step's shell.
+          REPO_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker system prune -f
+          echo "🔗 DockerHub org  : https://hub.docker.com/u/${IMAGE_NAMESPACE}"
+          echo "🔗 DockerHub image: https://hub.docker.com/r/${IMAGE_NAMESPACE}/${IMAGE_REPO}"
+          echo "🔗 GHCR image     : https://ghcr.io/${REPO_OWNER}/${IMAGE_REPO}"
+          echo "🔗 Quay.io image  : https://quay.io/repository/${REPO_OWNER}/${IMAGE_REPO}"
+
+      ################################################################
+
+      ## https://github.com/jupyterhub/binderhub/blob/main/.github/workflows/test-docker-build.yaml
+      # - name: 📦 Build a multiple architecture Docker image
+      #   run: |
+      #     cd helm-chart
+      #     chartpress \
+      #         --builder docker-buildx \
+      #         --platform linux/amd64 --platform linux/arm64
+
+
+      ################################################################
+      ## Docker Compose file (only host-native architecture)
+      ################################################################
+      ## Define the Docker Compose file path and service name
+      ## ❗ Problem:
+      ## docker compose build builds only for the current architecture (e.g. amd64 on Intel Mac/PC, or arm64 on M1/M2 Mac).
+      ## Unfortunately, Docker Compose does not support multi-platform builds directly (as of 2025).
+      # - name: 🔧 Build Docker image via Compose service
+      #   # correctly filters for valid combinations
+      #   if: contains( matrix.service[0], matrix.tag.tag )
+      #   continue-on-error: true
+      #   run: |
+      #     set -euo pipefail
+
+      #     ## docker ps -a --format '{{.Names}}'
+      #     ## echo $(docker inspect --format='{{.Image}}' "scikit-plots_latest-jupyter")
+      #     ## echo $(docker inspect --format='{{index .Config.Image}}' "scikit-plots_latest-jupyter")
+      #     ##
+      #     ## (Optionally) Save the Container as a New Image as service name (If Needed)
+      #     ## This commits current container state, but it doesn't include volumes or changes outside the container filesystem.
+      #     ## If container name is not unique, you might need to include container ID in the tag.
+      #     ## docker commit my-python-container my-custom-image:tagname
+      #     # timestamp=$(date +%Y%m%d_%H%M%S)
+      #     # for id in $(docker ps -aq); do
+      #     #   # Get compose service name
+      #     #   name=$(docker inspect --format='{{.Name}}' "$id" | sed 's|/||')
+      #     #   # docker commit "$id" "${name}:backup-${timestamp}"
+      #     #   docker commit "$id" "${name}"
+      #     #   echo "Committed $id as ${name}"
+      #     # done
+
+      ## Build the Docker image and apply all necessary (multiple) tags
+      # - name: 🐳 Tag and Push Docker Compose Image
+      #   # correctly filters for valid combinations
+      #   if: contains( matrix.service[0], matrix.tag.tag )
+      #   env:
+      #     REF_TYPE: ${{ steps.gitref.outputs.ref_type }}
+      #     VERSION: ${{ steps.gitref.outputs.version_tag }}
+      #     BRANCH: ${{ steps.gitref.outputs.branch_tag }}
+      #   run: |
+      #     set -euo pipefail
+
+      #     SERVICE=${{ matrix.service[0] }}
+      #     IMAGE_NAME=${{ matrix.service[1] }}/${{ matrix.service[2] }}
+
+      #     ## Returns the ID of the thing you're inspecting.
+      #     ## If $SERVICE is a container, it returns the container ID.
+      #     ## If $SERVICE is an image, it returns the image ID (e.g. sha256:abcd...).
+      #     # IMAGE_ID=$(docker inspect --format='{{.Id}}' "$SERVICE")  # returns the unique "container ID", not the image ID.
+      #     ## the image name or ID that was used to start that container.
+      #     ## IMAGE_ID=$(docker inspect --format='{{index .Config.Image}}' "$SERVICE")  # returns the Image name/tag (string) used to start container
+      #     # IMAGE_ID=$(docker inspect --format='{{ .Config.Image }}' "$SERVICE")  # returns the Image name/tag (string) used to start container
+      #     ## Returns the image ID (sha256...) that the container was created from.
+      #     ## So for your tagging/pushing logic, the most correct would be:
+      #     ## Does not return the container ID — it traces back to the image used.
+      #     ##
+      #     ## So Save image that used to create the container that was pulled or created image
+      #     ## echo $(docker inspect --format='{{.Image}}' "scikit-plots_latest-jupyter")
+      #     IMAGE_ID=$(docker inspect --format='{{.Image}}' "$SERVICE")  # returns the "actual SHA" digest of the image (e.g. sha256:...) used to create the container that was pulled or created image
+
+      #     # echo "🧪 DEBUG: REF_TYPE=$REF_TYPE | BRANCH=$BRANCH | REF_TAG=$REF_TAG"
+      #     echo "🔎 Tagging context: $REF_TYPE (version=$VERSION, branch=$BRANCH)"
+
+      #     # Access tag details from matrix object
+      #     # TAG="${{ matrix.tag.tag }}"
+      #     # REF_TAG="${{ matrix.tag.ref_tag }}"
+      #     # ALIAS="${{ matrix.tag.alias }}"
+      #     # ALIAS2="${{ matrix.tag.alias2 || '' }}"
+
+      #     ## ✅ Best for: Simple, flat tag lists.
+      #     # for REF_TAG in "${{ join(matrix.tag, '" "') }}"; do
+
+      #     ## ✅ Best for: Complex nested arrays — if matrix.tag items are sublists of [TAG, REF_TAG, ALIAS].
+      #     ## ✅ Note the single quotes '...' around the full JSON block — that makes it a proper Bash string.
+      #     ## Get matrix.tag as full JSON
+      #     MATRIX_JSON='${{ toJSON(matrix.tag) }}'
+      #     # read -r -d '' MATRIX_JSON <<'EOF'
+      #     # {
+      #     #   "tag": "python-3.11",
+      #     #   "ref_tag": "ref_tags-python-3.11",
+      #     #   "alias": "latest-python-3.11"
+      #     # }
+      #     # EOF
+
+      #     # Loop through each tag entry as a compact JSON object
+      #     # for arr in "$(echo "$MATRIX_JSON" | jq -c '.')" ; do
+      #     #   IFS=',' read -r TAG REF_TAG ALIAS <<< "$(echo "$arr" | jq -r '. | join(",")')"
+
+      #     # Support both object or array with conditional logic
+      #     # If it's an object, wrap it in an array so '.[]' works
+      #     FORMATTED_JSON=$(echo "$MATRIX_JSON" | jq -c 'if type=="array" then . else [.] end')
+
+      #     # Optional push retry function (can be removed if not needed)
+      #     safe_push() {
+      #       local tag="$1"
+      #       for attempt in {1..3}; do
+      #         docker push "$IMAGE_NAME:$tag" && return 0
+      #         echo "🔴 Push failed for $tag (attempt $attempt), retrying..."
+      #         sleep 5
+      #       done
+      #       echo "⚠️ Push permanently failed for $tag"
+      #     }
+
+      #     echo "$FORMATTED_JSON" | jq -c '.[]' | while read -r arr; do
+      #       TAG=$(echo "$arr" | jq -r '.tag')
+      #       REF_TAG=$(echo "$arr" | jq -r '.ref_tag')
+      #       ALIAS=$(echo "$arr" | jq -r '.alias // empty')
+      #       ALIAS2=$(echo "$arr" | jq -r '.alias2 // empty')
+
+      #       echo "▶️ TAG=$TAG"
+      #       echo "📦 REF_TAG=$REF_TAG"
+      #       echo "🔖 ALIAS=$ALIAS"
+      #       echo "🪪 ALIAS2=$ALIAS2"
+
+      #       # Skip ref_tags-* on non-tag + non-main
+      #       # if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" != "tag" ]]; then
+      #       # # ⏭️ Skip ref-only tags unless it's a Git tag or main branch
+      #       # This lets you build ref_tags-* on tag and main builds, but not on PRs or feature branches.
+      #       # if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" != "tag" && "$BRANCH" != "main" ]]; then
+      #       #   echo "⏭️ Skipping tag: $TAG (used only for Git tags or main branch)"
+      #       #   continue
+      #       # fi
+
+      #       # Determine final tag based on context
+      #       if [[ "$REF_TAG" == ref_tags-* && "$REF_TYPE" == "tag" ]]; then
+      #         SUFFIX="${REF_TAG#ref_tags-}"         # e.g., 'jupyter'
+      #         FINAL_TAG="${VERSION}-${SUFFIX}"      # e.g., '1.2.3-jupyter', 'latest-jupyter'
+      #       elif [[ "$BRANCH" == "main" ]]; then
+      #         FINAL_TAG="$ALIAS"                    # e.g., 'latest-jupyter', 'latest-python-3.11'
+      #       elif [[ "$BRANCH" == maintenance-* ]]; then
+      #         BRANCH_VERSION="${BRANCH#maintenance-}"  # e.g., '0.3.x'
+      #         FINAL_TAG="${BRANCH_VERSION}-${TAG}"     # e.g., '0.3.x-jupyter'
+      #       else
+      #         echo "⏭️ Unknown branch pattern: $BRANCH — skipping tag $TAG"
+      #         continue
+      #       fi
+
+      #       echo "🏷️ Tagging image as $IMAGE_NAME:$FINAL_TAG"
+      #       docker tag "$IMAGE_ID" "$IMAGE_NAME:$FINAL_TAG"
+
+      #       echo "📤 Pushing $IMAGE_NAME:$FINAL_TAG"
+      #       # docker push "$IMAGE_NAME:$FINAL_TAG"
+      #       safe_push "$FINAL_TAG"
+
+      #       # ➕ Tag and push alias2 if it exists (e.g., 'latest')
+      #       if [[ -n "$ALIAS2" ]]; then
+      #         echo "🏷️ Tagging alias2 as $IMAGE_NAME:$ALIAS2"
+      #         docker tag "$IMAGE_ID" "$IMAGE_NAME:$ALIAS2"
+      #         echo "📤 Pushing $IMAGE_NAME:$ALIAS2"
+      #         docker push "$IMAGE_NAME:$ALIAS2"
+      #       fi
+      #     done
+
+      #     echo "✅ All applicable tags pushed."
+      #     echo "🔗 View at: https://hub.docker.com/r/$IMAGE_NAME/tags"
+
+      # - name: 🧹 Tear down Docker Compose
+      #   if: always()
+      #   continue-on-error: true
+      #   run: |
+      #     docker compose -f "$COMPOSE_FILE" down --remove-orphans --volumes
+
+      ################################################################
+      ## Docker tags alternative
+      ################################################################
+
+      # Determine tags for Docker image based on Git context
+      # - name: Determine Docker image tags
+      #   id: vars
+      #   run: |
+      #     set -euo pipefail
+
+      #     # Sanitize function to remove invalid characters for Docker tags
+      #     # SAFE_TAG='^[a-zA-Z0-9._-]+$'
+      #     # SAFE_REPO='^[a-zA-Z0-9._/-]+$'
+      #     # IMAGE_SAFE=$(sanitize "$IMAGE")
+      #     sanitize() {
+      #       echo "$1" | sed 's/[^a-zA-Z0-9._-]//g'
+      #     }
+
+      #     # Get the GitHub repository name (e.g., scikit-plots)
+      #     REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+      #     # "${VAR//-/}" remove all "-" character
+      #     # "${VAR%?}" or "${VAR::-1}" remove the last character
+      #     ORG_NAME="${REPO_NAME//-/}"; ORG_NAME="${ORG_NAME%?}"
+
+      #     # Compose the full Docker image name using Docker Hub username
+      #     # IMAGE_NAME="${DOCKERHUB_USERNAME}/${REPO_NAME}"
+      #     IMAGE_NAME="${ORG_NAME}/${{ matrix.service }}"
+
+      #     # Generate a short SHA tag (e.g., sha-abc1234)
+      #     TAG_SAFE=$(echo "${{ matrix.tag }}" | sed 's/[^a-zA-Z0-9._-]//g')
+      #     SHA_TAG="sha-${GITHUB_SHA::7}"
+
+      #     # Initialize optional tags with default empty values
+      #     BRANCH_TAG=""
+      #     DEV_TAG=""
+      #     VERSION_TAG=""
+
+      #     # Handle Git tag events (e.g., refs/tags/v1.0.0)
+      #     if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+      #       VERSION_TAG="${GITHUB_REF#refs/tags/}"  # Strip 'refs/tags/'
+      #     # Handle branch events (e.g., refs/heads/main, refs/heads/feature/foo)
+      #     elif [[ "${GITHUB_REF}" == refs/heads/* ]]; then
+      #       REF_BRANCH="${GITHUB_REF#refs/heads/}"  # Strip 'refs/heads/'
+
+      #       # Sanitize branch name for Docker tag: replace '/' with '-', remove invalid chars
+      #       # SAFE_PATTERN='^[a-zA-Z0-9._/-]+$'
+      #       SAFE_BRANCH=$(echo "$REF_BRANCH" | tr '/' '-' | sed 's/[^a-zA-Z0-9._-]//g')
+      #       BRANCH_TAG="$SAFE_BRANCH"
+
+      #       # Tag as 'dev' if the branch is 'main'
+      #       if [[ "$REF_BRANCH" == "main" ]]; then
+      #         BRANCH_TAG="latest-jupyter"
+      #         DEV_TAG="latest"
+      #       fi
+      #     fi
+
+      #     # Output variables for use in later steps
+      #     echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+      #     echo "sha_tag=$SHA_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "branch_tag=$BRANCH_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "dev_tag=$DEV_TAG" >> "$GITHUB_OUTPUT"
+      #     echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+
+      ################################################################
+
+      ## https://github.com/sagemath/sage/blob/develop/.github/workflows/docker.yml
+      ## https://github.com/jlumbroso/free-disk-space
+      # - name: Free Disk Space (Ubuntu)
+      #   uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be #v1.3.1
+      #   if: inputs.free_disk_space == 'true'
+      #   continue-on-error: true
+      #   with:
+      #     # this might remove tools that are actually needed,
+      #     # if set to "true" but frees about 6 GB
+      #     tool-cache: false
+      #     # all of these default to true, but feel free to set to
+      #     # "false" if necessary for your workflow
+      #     # => Android library: Saved 14GiB
+      #     # => .NET runtime: Saved 2.7GiB
+      #     # => Haskell runtime: Saved 0B
+      #     # => Large misc. packages: Saved 5.3GiB
+      #     # => Tool cache: Saved 5.9GiB
+      #     # => Swap storage: Saved 4.0GiB
+      #     android: true
+      #     dotnet: true
+      #     haskell: true
+      #     large-packages: false
+      #     docker-images: false
+      #     swap-storage: false
+      ## https://github.com/easimon/maximize-build-space
+      # - name: Github Maximize build disk space (Ubuntu)
+      #   uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c #v10
+      #   if: inputs.free_disk_space == 'true'
+      #   continue-on-error: true
+      #   with:
+      #     # need space in /var for Docker images
+      #     # root-reserve-mb:      30000
+      #     remove-dotnet:        true   # (frees ~17 GB)
+      #     remove-android:       true   # (frees ~11 GB)
+      #     remove-haskell:       true   # (frees ~2.7 GB)
+      #     remove-codeql:        false  # (frees ~5.4 GB)
+      #     remove-docker-images: false  # (frees ~3 GB)

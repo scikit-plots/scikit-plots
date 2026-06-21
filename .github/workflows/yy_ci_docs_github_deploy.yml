@@ -1,6 +1,6 @@
 # https://github.com/jupyterlite/xeus-lite-demo/blob/main/.github/workflows/deploy.yml
 ---
-name: Build and Deploy
+name: yy CI 📘 Docs GitHub Build and Deploy
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
