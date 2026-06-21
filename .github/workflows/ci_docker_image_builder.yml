@@ -170,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
     # Safety net for a hung multi-arch/QEMU build consuming the runner indefinitely.
     # Placeholder value — tune to comfortably exceed your observed p95 build time.
-    timeout-minutes: 90
+    timeout-minutes: 101
     permissions:
       contents: read
       packages: write      # required for GHCR push (ghcr.io); uses GITHUB_TOKEN
@@ -754,6 +754,11 @@ jobs:
               --entrypoint /bin/bash \
               "$PRIMARY_TAG" \
               -c "uname -m && command -v curl && command -v git && git --version"; then
+              docker run --rm \
+                --platform linux/amd64 \
+                --entrypoint /bin/bash \
+                "$PRIMARY_TAG" \
+                -c "scikitplot show_versions || true"
               exit 0
             fi
             # Only sleep between attempts — not after the final one (no retry coming).

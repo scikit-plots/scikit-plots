@@ -12,7 +12,7 @@
 #
 # In simpler terms, everything except the crosscompile toolchain will be emulated.
 
-name: Linux Qemu tests
+name: zz Linux Qemu tests
 
 on:
   workflow_dispatch:

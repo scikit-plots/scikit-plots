@@ -18,7 +18,7 @@
 # (not required here).
 # ──────────────────────────────────────────────────────────────────────────────
 
-name: Update Pipenv Artifacts
+name: CI 📦 Pipenv Artifacts Update
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
