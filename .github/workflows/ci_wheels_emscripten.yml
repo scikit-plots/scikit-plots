@@ -32,16 +32,19 @@
 #
 # ── Compatibility truth table ─────────────────────────────────────────────────
 #
-#  Python │ Pyodide   │ CIBW  │ Wheel tag                    │ PyPI │ Notes
-#  ───────┼───────────┼───────┼──────────────────────────────┼──────┼──────────
-#  cp312  │ 0.28.3    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ default — see "v3 + pyodide-eol" note
-#  cp313  │ 0.28.3    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
-#  cp312  │ 0.29.4    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ default — see "v3 + pyodide-eol" note
-#  cp313  │ 0.29.4    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ default
-#  cp312  │ 314.0.0   │  v4   │ pyemscripten_2024_0_wasm32    │  ❌  │ pyodide-eol · allow_failure — see note
-#  cp313  │ 314.0.0   │  v4   │ pyemscripten_2025_0_wasm32    │  ✅  │ default
-#  cp314  │ 314.0.0   │  v4   │ pyemscripten_2026_0_wasm32    │  ✅  │ default
-#  ───────┴───────────┴───────┴──────────────────────────────┴──────┴──────────
+#  Python │ Pyodide   │ CIBW  │ Wheel tag                     │ PyPI │ anaconda_label         │ latest │ Notes
+#  ───────┼───────────┼───────┼───────────────────────────────┼──────┼────────────────────────┼────────┼──────────
+#  cp312  │ 0.28.3    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-0.28.3         │  no    │ version-pinned slot only
+#  cp313  │ 0.28.3    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ pyodide-0.28.3         │  no    │ version-pinned slot only
+#  cp312  │ 0.29.4    │  v3   │ pyodide_2024_0_wasm32         │  ❌  │ pyodide-0.29.4         │  yes   │ + default/rollup channel
+#  cp313  │ 0.29.4    │  v3   │ pyodide_2025_0_wasm32         │  ❌  │ pyodide-0.29.4         │  yes   │ + default/rollup channel
+#  cp312  │ 314.0.0   │  v4   │ pyemscripten_2024_0_wasm32    │  ❌  │ pyemscripten-314.0.0   │  yes   │ pyodide-eol · allow_failure — see note
+#  cp313  │ 314.0.0   │  v4   │ pyemscripten_2025_0_wasm32    │  ✅  │ pyemscripten-314.0.0   │  yes   │ + default/rollup channel
+#  cp314  │ 314.0.0   │  v4   │ pyemscripten_2026_0_wasm32    │  ✅  │ pyemscripten-314.0.0   │  yes   │ + default/rollup channel
+#  ───────┴───────────┴───────┴───────────────────────────────┴──────┴────────────────────────┴────────┴──────────
+#
+# "anaconda_label" and "latest" drive the Anaconda.org upload-label architecture
+# — see the dedicated section below the cibuildwheel flag semantics notes.
 #
 # NOTE — "v3 + pyodide-eol" (fixed 2026-06-21, was a hard failure):
 #   The two v3 cp312 rows used to carry cibw_enable: "pypy-eol pyodide-eol".
@@ -114,6 +117,78 @@
 #   "false" everywhere else; a typo'd "true" elsewhere would silently hide a
 #   real regression, so keep this field explicit per row rather than inferring
 #   it from pypi_ok or cibw_series.
+#
+# ── Anaconda.org upload-label architecture ────────────────────────────────────
+#
+#   PROBLEM THIS SOLVES (was an active bug, fixed 2026-06-21):
+#   The wheel filename's platform tag (whl_tag, e.g. pyodide_2024_0_wasm32)
+#   encodes the CPython "year slot", NOT the precise Pyodide SDK version. Both
+#   the 0.28.3 and 0.29.4 rows for cp312 therefore produce a WHEEL WITH THE
+#   IDENTICAL FILENAME. upload_wheels.sh uses `anaconda upload --force`
+#   (intended for overwriting YESTERDAY's nightly with TODAY's, across days) —
+#   within a single run this meant the second matching upload silently
+#   discarded the first one on Anaconda.org. 6 builds → only 4 distinct files
+#   survived.
+#
+#   FIX — two fields per matrix row, resolved into TWO upload destinations:
+#
+#     anaconda_label  Static per-(Pyodide-version) label SUFFIX, e.g.
+#                      "pyodide-0.28.3", "pyodide-0.29.4",
+#                      "pyemscripten-314.0.0". At upload time (Step 0b below)
+#                      this is prefixed with a sanitized branch slug to form
+#                      the VERSION-PINNED label — e.g. branch "main" + this
+#                      field "pyodide-0.29.4" → "main-pyodide-0.29.4". EVERY
+#                      row uploads here, unconditionally. This is what "Add
+#                      pyodide_version to a separate upload label per Pyodide
+#                      version" means in practice — every SDK version gets its
+#                      own permanent, collision-free slot, addressable forever
+#                      (e.g. for JupyterLite configs pinned to an old Pyodide).
+#
+#     is_latest        "true" for exactly one row per whl_tag — the row whose
+#                      Pyodide SDK version is the one a plain
+#                      `pip install scikit-plots` (no label) should resolve
+#                      to. ONLY rows with is_latest: "true" ALSO upload to the
+#                      default/rollup channel (see below). Rows with
+#                      is_latest: "false" (today: the two 0.28.3 rows) upload
+#                      ONLY to their version-pinned label — this is the
+#                      "skip uploading the older/redundant version […]
+#                      especially main label" requirement: 0.28.3 simply never
+#                      touches the default channel, so there is nothing for
+#                      0.29.4 to silently overwrite there.
+#
+#   DEFAULT / ROLLUP CHANNEL (the second upload, is_latest rows only):
+#     On the production branch (ref name == "main"): uploaded with NO --label
+#     flag — anaconda-client's own true default label ("main" on Anaconda.org)
+#     — BYTE-IDENTICAL to this workflow's upload command before this redesign.
+#     Existing consumers (`pip install` against the unlabeled channel) are
+#     unaffected.
+#     On any OTHER branch (e.g. a maintenance branch manually dispatched):
+#     uploaded to a label equal to the sanitized branch slug alone (no version
+#     suffix), e.g. "maintenance-1-0-x". This is "add branch logic to
+#     different branch for label" — a non-production branch run can never
+#     overwrite the real production "main" channel, while still getting its
+#     own always-fresh rollup label.
+#
+#   WHERE THIS IS IMPLEMENTED:
+#     • Matrix fields (anaconda_label, is_latest)   → strategy.matrix.include below
+#     • Field validation                            → Step 1
+#     • Cross-row collision guardrail                → job validate-upload-labels
+#     • Branch-slug + final label resolution         → Step 0b
+#     • Visibility in logs / step summary             → Step 2, Step 8
+#     • Actual dual upload                            → Step 8
+#     • Label plumbing (--label flag)                 → tools/wheels/upload_wheels.sh
+#       (ANACONDA_LABEL is OPTIONAL there — any other CI workflow sourcing
+#       that script without setting it keeps its exact pre-existing,
+#       single-unlabeled-upload behavior; this is purely additive)
+#
+#   ADDING A NEW PYODIDE VERSION LATER (e.g. 0.30.0 under CIBW v3):
+#     1. Add the new row(s) with anaconda_label: "pyodide-0.30.0" and
+#        is_latest: "true".
+#     2. Flip the PREVIOUS latest row for the same whl_tag (today: 0.29.4) to
+#        is_latest: "false" — exactly one row per whl_tag may be "true".
+#     3. Update the ROWS table inside the validate-upload-labels job to match
+#        — it will fail the run loudly if you forget step 2 and leave two
+#        is_latest: "true" rows sharing a whl_tag.
 # ─────────────────────────────────────────────────────────────────────────────
 ---
 name: "CI 📦 Wheels Emscripten/Pyodide"
@@ -182,7 +257,96 @@ env:
 
 
 jobs:
+  # ── Pre-build: validate Anaconda upload-label invariants across ALL rows ──
+  #
+  # WHY a separate, non-matrix job:
+  #   Each matrix job only sees its OWN row (matrix.anaconda_label,
+  #   matrix.is_latest, etc.) — there is no way to compare rows against each
+  #   other from inside a matrix step. This small pre-job hardcodes the same
+  #   per-row data the matrix below uses and checks the two invariants that,
+  #   if violated, would silently reintroduce the original Anaconda.org
+  #   overwrite bug (two wheels landing on the same upload slot, last writer
+  #   wins — see "Anaconda.org upload-label architecture" note above):
+  #
+  #     1. No two rows share the same (python, anaconda_label) pair — that
+  #        would mean two version-pinned uploads collide.
+  #     2. No two rows with the SAME whl_tag both have is_latest: "true" —
+  #        that would mean two wheels both target the default/rollup channel
+  #        for the same Python build, recreating the exact bug this design
+  #        fixes.
+  #
+  # MAINTENANCE: when you add/remove/change a matrix row below, update the
+  #   ROWS table in this job to match. If you forget, this job's check is
+  #   simply stale (it won't see the new row) — it does NOT falsely pass a
+  #   bad new row as "validated". Step 1 in the build job independently
+  #   catches malformed individual rows regardless of this job.
+  #
+  validate-upload-labels:
+    name: "🔍 Validate Anaconda upload-label uniqueness"
+    runs-on: ubuntu-24.04
+    # Same fork guard as the build job, for consistency — this check has no
+    # secrets dependency, but matching the gate keeps the two jobs' on/off
+    # behavior predictable from one read of the file.
+    if: github.repository == 'scikit-plots/scikit-plots'
+    permissions:
+      contents: read
+    steps:
+      - name: "Check (python, anaconda_label) and (whl_tag, is_latest) invariants"
+        env:
+          # One line per ACTIVE matrix row below:
+          #   python|whl_tag|anaconda_label|is_latest
+          # KEEP IN SYNC with jobs.build-wasm-emscripten.strategy.matrix.include.
+          ROWS: |
+            cp312|pyodide_2024_0_wasm32|pyodide-0.28.3|false
+            cp313|pyodide_2025_0_wasm32|pyodide-0.28.3|false
+            cp312|pyodide_2024_0_wasm32|pyodide-0.29.4|true
+            cp313|pyodide_2025_0_wasm32|pyodide-0.29.4|true
+            cp313|pyemscripten_2025_0_wasm32|pyemscripten-314.0.0|true
+            cp314|pyemscripten_2026_0_wasm32|pyemscripten-314.0.0|true
+        run: |
+          fail=0
+
+          # Invariant 1: (python, anaconda_label) pairs must be unique —
+          # otherwise two rows write the SAME version-pinned label and the
+          # second silently overwrites the first.
+          declare -A label_seen=()
+          while IFS='|' read -r py tag label latest; do
+            [[ -z "$py" ]] && continue
+            key="${py}|${label}"
+            if [[ -n "${label_seen[$key]+x}" ]]; then
+              echo "::error::Duplicate version-pinned upload slot: python='$py' anaconda_label='$label'"
+              echo "::error::Two rows would silently overwrite each other on Anaconda.org. Give each row a distinct anaconda_label."
+              fail=1
+            fi
+            label_seen["$key"]=1
+          done <<< "$ROWS"
+
+          # Invariant 2: at most ONE is_latest=true row per whl_tag —
+          # otherwise two rows both target the default/rollup channel for the
+          # same Python build, recreating the original overwrite bug one
+          # layer up.
+          declare -A latest_seen=()
+          while IFS='|' read -r py tag label latest; do
+            [[ -z "$py" ]] && continue
+            if [[ "$latest" == "true" ]]; then
+              if [[ -n "${latest_seen[$tag]+x}" ]]; then
+                echo "::error::Two rows share whl_tag='$tag' and BOTH have is_latest=true."
+                echo "::error::Both would upload to the SAME default/rollup channel — recreating the original overwrite bug."
+                echo "::error::Exactly one row per whl_tag may have is_latest=true. Set the older row's is_latest to 'false'."
+                fail=1
+              fi
+              latest_seen["$tag"]=1
+            fi
+          done <<< "$ROWS"
+
+          if [[ "$fail" -eq 0 ]]; then
+            echo "✅ All (python, anaconda_label) pairs are unique, and each whl_tag has at most one is_latest=true row."
+          fi
+          exit "$fail"
+
+
   build-wasm-emscripten:
+    needs: [validate-upload-labels]
 
     # ── Job name ────────────────────────────────────────────────────────────
     # Encodes the full matrix identity so each job is immediately identifiable
@@ -239,6 +403,14 @@ jobs:
     #   allow_failure    "true" wires continue-on-error: for this row only (see
     #                    "allow_failure semantics" in the file header). "false"
     #                    everywhere except one known-broken-upstream row today.
+    #   anaconda_label   Per-Pyodide-version Anaconda.org label SUFFIX (branch
+    #                    slug is prefixed at runtime — Step 0b). EVERY row
+    #                    uploads here. See "Anaconda.org upload-label
+    #                    architecture" note in the file header.
+    #   is_latest        "true" for exactly one row per whl_tag — the row that
+    #                    ALSO uploads to the default/rollup channel (no
+    #                    version suffix). "false" rows upload ONLY to their
+    #                    anaconda_label slot. See file header note.
     #
     strategy:
       fail-fast: false  # Build all valid combinations even if one fails
@@ -249,6 +421,9 @@ jobs:
           # ── Pyodide 0.28.3 — cibuildwheel v3 ─────────────────────────────
           # Produces: pyodide_2024_0_wasm32 / pyodide_2025_0_wasm32
           # NOT accepted by PyPI. Upload to Anaconda.org staging only.
+          # is_latest: "false" — superseded by 0.29.4 below. Uploads ONLY to
+          # its own version-pinned label; never touches the default/rollup
+          # channel (see "Anaconda.org upload-label architecture" note).
           # ──────────────────────────────────────────────────────────────────
 
           - python:          "cp312"
@@ -259,6 +434,8 @@ jobs:
             whl_tag:         "pyodide_2024_0_wasm32"
             pypi_ok:         "false"
             allow_failure:   "false"
+            anaconda_label:  "pyodide-0.28.3"
+            is_latest:       "false"
 
           - python:          "cp313"
             pyodide_version: "0.28.3"
@@ -268,10 +445,16 @@ jobs:
             whl_tag:         "pyodide_2025_0_wasm32"
             pypi_ok:         "false"
             allow_failure:   "false"
+            anaconda_label:  "pyodide-0.28.3"
+            is_latest:       "false"
 
           # ── Pyodide 0.29.4 — cibuildwheel v3 ─────────────────────────────
           # Produces: pyodide_2024_0_wasm32 / pyodide_2025_0_wasm32
           # NOT accepted by PyPI. Upload to Anaconda.org staging only.
+          # is_latest: "true" — the newest Pyodide ≤0.29.x SDK. ALSO uploads
+          # to the default/rollup channel (in addition to its own
+          # version-pinned label) so a plain, unlabeled install resolves here
+          # rather than to the superseded 0.28.3 build.
           # ──────────────────────────────────────────────────────────────────
 
           - python:          "cp312"
@@ -282,6 +465,8 @@ jobs:
             whl_tag:         "pyodide_2024_0_wasm32"
             pypi_ok:         "false"
             allow_failure:   "false"
+            anaconda_label:  "pyodide-0.29.4"
+            is_latest:       "true"
 
           - python:          "cp313"
             pyodide_version: "0.29.4"
@@ -291,14 +476,20 @@ jobs:
             whl_tag:         "pyodide_2025_0_wasm32"
             pypi_ok:         "false"
             allow_failure:   "false"
+            anaconda_label:  "pyodide-0.29.4"
+            is_latest:       "true"
 
           # ── Pyodide 314.0.0 — cibuildwheel v4 ────────────────────────────
           # Produces: pyemscripten_2024/2025/2026_0_wasm32
           # cp312: pyodide-eol required, but fails further downstream on an
           #        upstream xbuildenv bug — see header note. allow_failure=true.
           # cp313, cp314: default flags → accepted by PyPI ✅
+          # is_latest: "true" for all three — 314.0.0 is currently the ONLY
+          # Pyodide 314.x build, so it is trivially the latest in its own
+          # whl_tag family. Each ALSO uploads to the default/rollup channel.
           # ──────────────────────────────────────────────────────────────────
 
+          # Has header "Python.h" with dependency python-3.12: NO
           - python:          "cp312"
             pyodide_version: "314.0.0"
             build_platform:  "ubuntu-24.04"
@@ -307,6 +498,8 @@ jobs:
             whl_tag:         "pyemscripten_2024_0_wasm32"
             pypi_ok:         "false"
             allow_failure:   "true"   # known upstream xbuildenv bug — see header note
+            anaconda_label:  "pyemscripten-314.0.0"
+            is_latest:       "true"
 
           - python:          "cp313"
             pyodide_version: "314.0.0"
@@ -316,6 +509,8 @@ jobs:
             whl_tag:         "pyemscripten_2025_0_wasm32"
             pypi_ok:         "true"
             allow_failure:   "false"
+            anaconda_label:  "pyemscripten-314.0.0"
+            is_latest:       "true"
 
           - python:          "cp314"
             pyodide_version: "314.0.0"
@@ -325,6 +520,8 @@ jobs:
             whl_tag:         "pyemscripten_2026_0_wasm32"
             pypi_ok:         "true"
             allow_failure:   "false"
+            anaconda_label:  "pyemscripten-314.0.0"
+            is_latest:       "true"
 
 
     permissions:
@@ -408,6 +605,70 @@ jobs:
           fi
 
 
+      # ── Step 0b: Resolve Anaconda upload labels ───────────────────────────
+      #
+      # WHY here (before Step 1's validation, after Step 0's filter):
+      #   Computed ONCE per job and exported via $GITHUB_ENV so every later
+      #   step (the Step 2 summary AND the Step 8 upload) reads the exact same
+      #   resolved strings — no duplicated branch-sanitization logic, no risk
+      #   of the summary showing one label while the upload uses another.
+      #
+      # WHAT THIS COMPUTES — see "Anaconda.org upload-label architecture" in
+      #   the file header for the full rationale:
+      #
+      #   BRANCH_SLUG             github.ref_name, sanitized to characters
+      #                            safe for an Anaconda.org label (branch
+      #                            names like "maintenance/1.0.x" contain '/',
+      #                            which is not safe to use as-is).
+      #
+      #   ANACONDA_VERSION_LABEL  "${BRANCH_SLUG}-${matrix.anaconda_label}" —
+      #                            e.g. "main-pyodide-0.29.4". EVERY row
+      #                            uploads here, unconditionally (Step 8).
+      #
+      #   ANACONDA_DEFAULT_LABEL  Empty string on the production branch
+      #                            ("main") — Step 8 then omits --label
+      #                            entirely, identical to this workflow's
+      #                            upload before this redesign. On any other
+      #                            branch: equals BRANCH_SLUG alone (no
+      #                            version suffix) — a per-branch rollup label
+      #                            that never touches the real "main" channel.
+      #                            Only consumed when matrix.is_latest == "true".
+      #
+      - name: "🏷️ Resolve Anaconda upload labels"
+        if: env.ROW_SELECTED == 'true'
+        env:
+          MX_ANACONDA_LABEL: ${{ matrix.anaconda_label }}
+          MX_IS_LATEST:      ${{ matrix.is_latest }}
+          RAW_REF_NAME:      ${{ github.ref_name }}
+          DEFAULT_BRANCH:    "main"  # this repo's production branch name
+        run: |
+          # Sanitize to [A-Za-z0-9._-] only, collapse repeated '-', and trim
+          # leading/trailing '-'. Covers branch names containing '/' (e.g.
+          # "maintenance/1.0.x") or other characters unsafe for a label.
+          BRANCH_SLUG=$(printf '%s' "$RAW_REF_NAME" \
+            | tr -c 'A-Za-z0-9._-' '-' \
+            | sed -E 's/-+/-/g; s/^-+//; s/-+$//')
+          if [[ -z "$BRANCH_SLUG" ]]; then
+            BRANCH_SLUG="unknown-ref"
+          fi
+
+          ANACONDA_VERSION_LABEL="${BRANCH_SLUG}-${MX_ANACONDA_LABEL}"
+
+          if [[ "$BRANCH_SLUG" == "$DEFAULT_BRANCH" ]]; then
+            ANACONDA_DEFAULT_LABEL=""
+          else
+            ANACONDA_DEFAULT_LABEL="$BRANCH_SLUG"
+          fi
+
+          {
+            echo "BRANCH_SLUG=$BRANCH_SLUG"
+            echo "ANACONDA_VERSION_LABEL=$ANACONDA_VERSION_LABEL"
+            echo "ANACONDA_DEFAULT_LABEL=$ANACONDA_DEFAULT_LABEL"
+          } >> "$GITHUB_ENV"
+
+          echo "Resolved — version-pinned label: '$ANACONDA_VERSION_LABEL' | default/rollup: '${ANACONDA_DEFAULT_LABEL:-<unlabeled main>}' (is_latest=$MX_IS_LATEST)"
+
+
       # ── Step 1: Validate matrix row invariants ──────────────────────────────
       #
       # WHY: the compatibility table in this file's header and the actual
@@ -427,6 +688,8 @@ jobs:
           MX_PYPI_OK:       ${{ matrix.pypi_ok }}
           MX_CIBW_ENABLE:   ${{ matrix.cibw_enable }}
           MX_ALLOW_FAILURE: ${{ matrix.allow_failure }}
+          MX_ANACONDA_LABEL: ${{ matrix.anaconda_label }}
+          MX_IS_LATEST:      ${{ matrix.is_latest }}
         run: |
           fail=0
           case "$MX_CIBW_SERIES" in
@@ -439,10 +702,18 @@ jobs:
                 echo "::error::cibw_series=v3 (cibuildwheel 3.4.1) has no 'pyodide-eol' enable group — it was added in cibuildwheel 4.x. Remove it from this row's cibw_enable (confirmed 2026-06-21 by direct inspection of cibuildwheel/selector.py for both pinned versions)."
                 fail=1
               fi
+              if [[ "$MX_ANACONDA_LABEL" != pyodide-* ]]; then
+                echo "::error::cibw_series=v3 rows must use an anaconda_label starting with 'pyodide-' (e.g. 'pyodide-0.29.4'), got '$MX_ANACONDA_LABEL'"
+                fail=1
+              fi
               ;;
             v4)
               if [[ "$MX_WHL_TAG" != pyemscripten_* ]]; then
                 echo "::error::cibw_series=v4 must produce a pyemscripten_* wheel tag, got '$MX_WHL_TAG'"
+                fail=1
+              fi
+              if [[ "$MX_ANACONDA_LABEL" != pyemscripten-* ]]; then
+                echo "::error::cibw_series=v4 rows must use an anaconda_label starting with 'pyemscripten-' (e.g. 'pyemscripten-314.0.0'), got '$MX_ANACONDA_LABEL'"
                 fail=1
               fi
               ;;
@@ -457,6 +728,18 @@ jobs:
           fi
           if [[ "$MX_ALLOW_FAILURE" != "true" && "$MX_ALLOW_FAILURE" != "false" ]]; then
             echo "::error::allow_failure must be exactly 'true' or 'false', got '$MX_ALLOW_FAILURE' — check this matrix row for a typo."
+            fail=1
+          fi
+          if [[ "$MX_IS_LATEST" != "true" && "$MX_IS_LATEST" != "false" ]]; then
+            echo "::error::is_latest must be exactly 'true' or 'false', got '$MX_IS_LATEST' — check this matrix row for a typo."
+            fail=1
+          fi
+          if [[ -z "$MX_ANACONDA_LABEL" ]]; then
+            echo "::error::anaconda_label must not be empty — every row needs a version-pinned upload slot."
+            fail=1
+          fi
+          if [[ "$MX_ANACONDA_LABEL" =~ [[:space:]/] ]]; then
+            echo "::error::anaconda_label must not contain whitespace or '/' — got '$MX_ANACONDA_LABEL'. Use hyphens (e.g. 'pyodide-0.28.3')."
             fail=1
           fi
           exit "$fail"
@@ -489,6 +772,7 @@ jobs:
           MX_WHL_TAG:        ${{ matrix.whl_tag }}
           MX_PYPI_OK:        ${{ matrix.pypi_ok }}
           MX_ALLOW_FAILURE:  ${{ matrix.allow_failure }}
+          MX_IS_LATEST:      ${{ matrix.is_latest }}
           MX_UPLOAD_CHANNEL: ${{ github.event.inputs.anaconda_staging || 'scikit-plots-wheels-staging-nightly' }}
         run: |
           {
@@ -512,6 +796,16 @@ jobs:
               echo "| **Allowed to fail** | ⚠️ Yes — known upstream issue, see file header. A red build here will NOT fail this workflow run. |"
             fi
             echo "| **Upload channel** | \`$MX_UPLOAD_CHANNEL\` |"
+            echo "| **Anaconda label (version-pinned)** | \`$ANACONDA_VERSION_LABEL\` — always uploaded |"
+            if [[ "$MX_IS_LATEST" == "true" ]]; then
+              if [[ -n "${ANACONDA_DEFAULT_LABEL:-}" ]]; then
+                echo "| **Anaconda label (default/rollup)** | \`$ANACONDA_DEFAULT_LABEL\` — also uploaded (is_latest=true, branch \`$BRANCH_SLUG\`) |"
+              else
+                echo "| **Anaconda label (default/rollup)** | unlabeled \`main\` channel — also uploaded (is_latest=true, production branch) |"
+              fi
+            else
+              echo "| **Anaconda label (default/rollup)** | — skipped (is_latest=false; superseded version, version-pinned label only) |"
+            fi
             echo ""
             echo "> Exactly **one** build step executes per job:"
             echo "> CIBW v3 → Pyodide ≤ 0.29.x (\`pyodide_\` prefix),"
@@ -687,9 +981,38 @@ jobs:
       #   It also cannot gate on a specific step — it checks the entire job so
       #   far. Checking outcomes directly is deterministic and explicit.
       #
+      # WHY two upload_wheels() calls per job — see "Anaconda.org upload-label
+      # architecture" in the file header for the full rationale. In short:
+      #   1. ALWAYS upload to $ANACONDA_VERSION_LABEL (e.g. "main-pyodide-
+      #      0.29.4") — every Pyodide SDK version gets its own permanent,
+      #      collision-free slot.
+      #   2. ONLY when matrix.is_latest == "true", ALSO upload to
+      #      $ANACONDA_DEFAULT_LABEL (empty on the production branch ⇒ no
+      #      --label flag ⇒ anaconda-client's true default "main"; on other
+      #      branches ⇒ the branch slug alone). This keeps the default/rollup
+      #      channel pointing at the freshest wheel ONLY — the superseded
+      #      0.28.3 rows (is_latest=false) never touch it, so there is
+      #      nothing left for the 0.29.4 upload to silently overwrite there.
+      #   Both calls use the same upload_wheels() function from
+      #   tools/wheels/upload_wheels.sh — ANACONDA_LABEL is the only thing
+      #   that changes between them. Re-exporting it between calls is the
+      #   officially documented way to upload the same artifacts to multiple
+      #   labels (see that file's upload_wheels() docstring).
+      #
+      # BACKWARD COMPATIBILITY: upload_wheels.sh's ANACONDA_LABEL support is
+      #   purely additive. Any OTHER CI workflow that sources the same script
+      #   without setting ANACONDA_LABEL keeps its exact original,
+      #   single-unlabeled-upload behavior — confirmed by inspection of the
+      #   script: an empty/unset ANACONDA_LABEL produces a byte-identical
+      #   `anaconda upload --force -u "$USERNAME" "$artifact"` command to the
+      #   one that existed before this field was introduced.
+      #
       # Upload destinations (set_upload_vars reads IS_PUSH / IS_SCHEDULE_DISPATCH):
       #   IS_PUSH=true   → https://anaconda.org/scikit-plots-wheels-staging/scikit-plots
       #   IS_PUSH=false  → https://anaconda.org/scikit-plots-wheels-staging-nightly/scikit-plots
+      #   …with /label/<ANACONDA_VERSION_LABEL> or /label/<ANACONDA_DEFAULT_LABEL>
+      #   appended for the respective upload (omitted entirely for the
+      #   unlabeled production-branch default).
       #
       # Tokens were generated at anaconda.org and stored as repository secrets,
       # now scoped under the "anaconda-publish" Environment (see job-level
@@ -707,10 +1030,34 @@ jobs:
           SKPLT_STAGING_UPLOAD_TOKEN:         ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN }}
           SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY: ${{ secrets.SKPLT_STAGING_UPLOAD_TOKEN_NIGHTLY }}
           ARTIFACTS_PATH: wheelhouse
+          MX_IS_LATEST:   ${{ matrix.is_latest }}
+          # ANACONDA_VERSION_LABEL / ANACONDA_DEFAULT_LABEL / BRANCH_SLUG come
+          # from Step 0b via $GITHUB_ENV — already plain env vars here, no
+          # re-declaration needed.
         run: |
           source tools/wheels/upload_wheels.sh
           set_upload_vars   # Sets TOKEN and USERNAME from IS_PUSH / IS_SCHEDULE_DISPATCH
-          upload_wheels     # Uploads all .whl files from ARTIFACTS_PATH
+
+          upload_failed=0
+
+          echo "── Upload 1/2 — version-pinned label: '${ANACONDA_VERSION_LABEL}' ──"
+          export ANACONDA_LABEL="$ANACONDA_VERSION_LABEL"
+          upload_wheels || upload_failed=1
+
+          if [[ "$MX_IS_LATEST" == "true" ]]; then
+            if [[ -n "${ANACONDA_DEFAULT_LABEL:-}" ]]; then
+              echo "── Upload 2/2 — default/rollup label: '${ANACONDA_DEFAULT_LABEL}' (latest Pyodide on branch '${BRANCH_SLUG}') ──"
+            else
+              echo "── Upload 2/2 — default Anaconda.org channel, no label (latest Pyodide on production branch '${BRANCH_SLUG}') ──"
+            fi
+            export ANACONDA_LABEL="${ANACONDA_DEFAULT_LABEL:-}"
+            upload_wheels || upload_failed=1
+          else
+            echo "ℹ️  is_latest=false for this row — skipping the default/rollup upload."
+            echo "ℹ️  This wheel is intentionally available ONLY under '${ANACONDA_VERSION_LABEL}'."
+          fi
+
+          exit "$upload_failed"
 
 
       # ── Step 9: Final step-outcome summary ───────────────────────────────

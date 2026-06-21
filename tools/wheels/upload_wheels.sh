@@ -39,6 +39,18 @@
 #   UPLOAD_MAX_ATTEMPTS  = 5    total attempts per artifact before giving up
 #   UPLOAD_RETRY_DELAY   = 30   initial back-off delay in seconds
 #   UPLOAD_MAX_DELAY     = 300  back-off ceiling in seconds (5 min)
+#   ANACONDA_LABEL       = ""   (optional) Anaconda.org label/channel to upload
+#                                to, e.g. "main-pyodide-0.29.4". Passed as
+#                                `anaconda upload --label <value>` when set.
+#                                Unset or empty (the default) ⇒ no --label
+#                                flag at all ⇒ anaconda-client's own default
+#                                label ("main") is used — IDENTICAL to this
+#                                script's behavior before ANACONDA_LABEL
+#                                existed. Callers that never set this variable
+#                                (any other CI workflow sourcing this file)
+#                                are completely unaffected — this is an
+#                                additive, opt-in parameter, not a new
+#                                required input.
 #
 # TIMING PROFILE (defaults)
 # ─────────────────────────
@@ -55,6 +67,13 @@ set -Eeuo pipefail
 # exported by the caller (CI matrix env, Travis, etc.).
 : "${IS_PUSH:="false"}"
 : "${IS_SCHEDULE_DISPATCH:="false"}"
+
+# ANACONDA_LABEL: optional, defaults to empty. Empty ⇒ no --label flag is
+# passed to `anaconda upload` ⇒ anaconda-client's own default ("main") is
+# used, exactly as before this variable existed. A caller (e.g. a CI matrix
+# row) opts in by exporting ANACONDA_LABEL before calling upload_wheels;
+# anything that doesn't export it gets the unchanged, pre-existing behavior.
+: "${ANACONDA_LABEL:=}"
 
 # ── set_travis_vars ──────────────────────────────────────────────────────────
 # Translates Travis-CI event variables into the IS_PUSH / IS_SCHEDULE_DISPATCH
@@ -110,6 +129,9 @@ set_upload_vars() {
 # -----------
 # TOKEN               : Anaconda.org API token
 # USERNAME            : Anaconda.org target user or organisation
+# ANACONDA_LABEL      : (optional) label/channel to upload to. Empty/unset
+#                        ⇒ no --label flag ⇒ anaconda-client's default
+#                        ("main"). Non-empty ⇒ `--label "$ANACONDA_LABEL"`.
 #
 # Tuneable (optional env vars with sane defaults)
 # --------
@@ -131,14 +153,28 @@ anaconda_upload_with_retry() {
     local out=""
     local next_delay=0  # declared once here; assigned inside the loop below
 
+    # Build the --label arg ONCE per artifact (not per attempt) — the value
+    # never changes across retries of the same upload.
+    # Empty ANACONDA_LABEL (the default) ⇒ no --label flag ⇒ anaconda-client
+    # uploads to its own default label ("main"), matching pre-existing
+    # behavior for every caller that doesn't set this variable.
+    local -a label_args=()
+    local label_display="main (default)"
+    if [[ -n "${ANACONDA_LABEL:-}" ]]; then
+        label_args=(--label "$ANACONDA_LABEL")
+        label_display="$ANACONDA_LABEL"
+    fi
+
     while (( attempt <= max_attempts )); do
-        echo "⏫  [${attempt}/${max_attempts}] ${basename_f}"
+        echo "⏫  [${attempt}/${max_attempts}] ${basename_f}  →  label: ${label_display}"
 
         # Temporarily disable errexit so we can capture both stdout+stderr
         # and the exit code in a single step.  set -e is restored immediately
         # afterwards so the outer errexit contract is never broken.
         set +e
-        out=$(anaconda --verbose -q -t "$TOKEN" upload --force -u "$USERNAME" "$artifact" 2>&1)
+        out=$(anaconda --verbose -q -t "$TOKEN" upload --force \
+            "${label_args[@]}" \
+            -u "$USERNAME" "$artifact" 2>&1)
         rc=$?
         set -e
 
@@ -146,7 +182,7 @@ anaconda_upload_with_retry() {
 
         # ── Success ──────────────────────────────────────────────────────────
         if (( rc == 0 )); then
-            echo "✅  Uploaded: ${basename_f}"
+            echo "✅  Uploaded: ${basename_f}  →  label: ${label_display}"
             return 0
         fi
 
@@ -199,6 +235,12 @@ anaconda_upload_with_retry() {
 # TOKEN           : Anaconda.org API token         (from set_upload_vars)
 # USERNAME        : Anaconda.org target user/org   (from set_upload_vars)
 # ARTIFACTS_PATH  : (optional) directory containing artifacts  (set by CI job)
+# ANACONDA_LABEL  : (optional) label/channel to upload to. Empty/unset is the
+#                    default and preserves the exact pre-existing behavior
+#                    (no --label flag). See file header for details. A caller
+#                    that wants to upload the SAME artifacts to multiple
+#                    labels calls upload_wheels() multiple times, re-exporting
+#                    ANACONDA_LABEL to a different value between calls.
 # CONDA           : (optional) path to conda installation base (set by runner)
 upload_wheels() {
     echo "PWD: ${PWD}"
@@ -298,7 +340,7 @@ upload_wheels() {
         return 1
     fi
 
-    echo "✅  All ${count} artifact(s) uploaded successfully"
+    echo "✅  All ${count} artifact(s) uploaded successfully  →  label: ${ANACONDA_LABEL:-main (default)}"
     echo "PyPI-style index: https://pypi.anaconda.org/${USERNAME}/simple"
     return 0
 }
