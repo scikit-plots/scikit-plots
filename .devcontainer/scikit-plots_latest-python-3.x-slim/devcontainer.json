@@ -40,7 +40,7 @@
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
   // "image": "python-3.11-slim",
-  "image": "scikitplot/scikit-plots:latest-python-3.11",  // "scikit-plots latest python 3.11 image"
+  "image": "scikitplot/scikit-plots:latest-devel",  // https://hub.docker.com/r/scikitplot/scikit-plots/tags?name=latest-devel
 
   // "composeContainer":
   // "dockerComposeFile": "../../docker/docker-compose.yml",

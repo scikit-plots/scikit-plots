@@ -63,18 +63,41 @@
   $ conda init
 
 • See environments:
+  $ micromamba --version
   $ micromamba info -e
+  $ micromamba info -e | awk '/py312/ {print $NF}'
   $ mamba info -e
   $ conda info -e
 
 • Activate environments (depending on tool):
 
 root@sp-docker /work/docs (subpackage-bug-fix)
-  $ micromamba --version
-  $ micromamba activate $(micromamba info -e | grep py312)
-  $ micromamba activate /root/micromamba/envs/py312
   $ micromamba activate py311
+  $ mamba activate py311
   $ conda activate py311
+
+• Activate environments by path (depending on tool):
+  $ micromamba activate /root/micromamba/envs/py312
+
+  # Activate the first environment whose prefix contains py312:
+  $ micromamba activate "$(micromamba info -e | awk '/\/py312$/ {print $NF}')"
+
+  # Extract the path automatically:
+  $ micromamba activate "$(micromamba info -e | grep py312 | awk '{print $NF}')"
+
+  # Activate the first non-base environment:
+  $ micromamba activate "$( micromamba info -e | awk 'NR>2 && $1!="base" {print $NF; exit}' )"
+
+  # Newest environment directory by modification time:
+  $ micromamba activate "$( ls -td /root/micromamba/envs/* | head -n1 )"
+
+  # Test pip show:
+  $ micromamba run -p "$(ls -td /root/micromamba/envs/* | head -n1)" python -m pip show scikit-plots || echo "⚠️ 'scikit-plots' Not Found."
+  $ micromamba run -p "$(ls -td /root/micromamba/envs/* | head -n1)" python -m pip show scikit-plots 2>/dev/null | awk '/^Version:/ {print $2}' || echo "⚠️ 'scikit-plots' Not Found."
+
+  # Test pip list:
+  $ micromamba run -p "$(ls -td /root/micromamba/envs/* | head -n1)" python -m pip list --format=freeze 2>/dev/null | grep '^scikit-plots==' || echo "⚠️ 'scikit-plots' Not Found."
+  $ micromamba run -p "$(ls -td /root/micromamba/envs/* | head -n1)" python -m pip list --format=freeze 2>/dev/null | awk -F'==' '/^scikit-plots==/ {print $2}' || echo "⚠️ 'scikit-plots' Not Found."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡  Troubleshooting:

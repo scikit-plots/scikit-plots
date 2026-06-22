@@ -150,7 +150,10 @@ dependencies:
   - pip:
       # - aggdraw  # Antialiased drawing for PIL
       # ⚠️ Use ROOT Path, Not work for "docker/env_conda/environment.yml"
-      - -r requirements/build.txt
+      # - -r requirements/build.txt
+      - -r requirements/all.txt
+      - -r requirements/cpu.txt
+      - -r requirements/corpus.txt
 
   # 🖼️ Additional Visualization
   # - aggdraw              # Antialiased drawing for PIL

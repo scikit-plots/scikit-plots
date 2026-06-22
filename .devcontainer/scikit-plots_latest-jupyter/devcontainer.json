@@ -39,7 +39,7 @@
   // "image": "mcr.microsoft.com/devcontainers/base:ubuntu",  // Use a basic Ubuntu-based image
   // "image": "mcr.microsoft.com/devcontainers/base:alpine",  // Use a basic Ubuntu-based image, user vscode
   // "image": "mcr.microsoft.com/devcontainers/universal:2",  // GitHub Codespaces image also include "conda", also create "venv", user codespace
-  "image": "scikitplot/scikit-plots:latest-jupyter",  // "scikit-plots latest jupyter image"
+  "image": "scikitplot/scikit-plots:latest-devel-jupyter",  // https://hub.docker.com/r/scikitplot/scikit-plots/tags?name=latest-devel-jupyter
 
   // "composeContainer":
   // "dockerComposeFile": "../../docker/docker-compose.yml",

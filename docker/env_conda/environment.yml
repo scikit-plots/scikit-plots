@@ -109,7 +109,7 @@ dependencies:
   - matplotlib-base      # 2D plotting
   - seaborn              # Statistical visualization
   - pillow               # Image processing
-  - scikit-plots         # last stable on conda-forge
+  - scikit-plots         # behind pypi release, last stable on conda-forge (e.g., py313hf3c7c41_10 ~ 0.4.0.post10)
 
   # 🧠 Machine Learning Models
   - scikit-learn         # General ML
@@ -141,5 +141,5 @@ dependencies:
   # - compilers  # Currently unavailable for Windows.
   # 📦 Optional pip section (can be removed if unused)
   - pip
-  - pip:
-      - scikit-plots  # last stable on PyPI
+  # - pip:
+  #     - scikit-plots  # most current, last stable on PyPI (e.g., 0.4.0.post11)

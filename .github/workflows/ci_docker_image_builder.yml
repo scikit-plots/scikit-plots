@@ -749,16 +749,33 @@ jobs:
         run: |
           set -euo pipefail
           for i in {1..2}; do
+            # if docker run ... first-check ...; then
+            #   docker run ... package-check ...
+            #   exit 0
+            # fi
             if docker run --rm \
               --platform linux/amd64 \
               --entrypoint /bin/bash \
               "$PRIMARY_TAG" \
               -c "uname -m && command -v curl && command -v git && git --version"; then
+              # Informational only; report version but never fail.
               docker run --rm \
                 --platform linux/amd64 \
                 --entrypoint /bin/bash \
                 "$PRIMARY_TAG" \
-                -c "scikitplot show_versions || true"
+                -c '
+                  ENV=$(ls -td /root/micromamba/envs/* 2>/dev/null | head -n1)
+                  if [ -z "$ENV" ]; then
+                    echo "No micromamba environment found"
+                    exit 0
+                  fi
+                  "$ENV/bin/python" -m pip list --format=freeze 2>/dev/null |
+                  grep "^scikit-plots==" ||
+                  echo "scikit-plots not installed"
+                '
+                # -c "ENV=\$(ls -td /root/micromamba/envs/* | head -n1); \
+                #     \$ENV/bin/python -m pip list --format=freeze | grep '^scikit-plots==' \
+                #     || { echo 'scikit-plots not installed'; exit 0; }"
               exit 0
             fi
             # Only sleep between attempts — not after the final one (no retry coming).
