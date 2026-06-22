@@ -170,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
     # Safety net for a hung multi-arch/QEMU build consuming the runner indefinitely.
     # Placeholder value — tune to comfortably exceed your observed p95 build time.
-    timeout-minutes: 101
+    timeout-minutes: 301
     permissions:
       contents: read
       packages: write      # required for GHCR push (ghcr.io); uses GITHUB_TOKEN
@@ -759,23 +759,37 @@ jobs:
               "$PRIMARY_TAG" \
               -c "uname -m && command -v curl && command -v git && git --version"; then
               # Informational only; report version but never fail.
+              # If your images always have a single active env and you want the newest one regardless of manager:
+              # ENV=$(
+              #   find /root/micromamba/envs /opt/conda/envs \
+              #     -mindepth 1 -maxdepth 1 -type d 2>/dev/null |
+              #   head -n1
+              # )
+              # ENV=$(
+              #   ls -td /root/micromamba/envs/* /opt/conda/envs/* 2>/dev/null |
+              #   head -n1
+              # )
               docker run --rm \
                 --platform linux/amd64 \
                 --entrypoint /bin/bash \
                 "$PRIMARY_TAG" \
                 -c '
-                  ENV=$(ls -td /root/micromamba/envs/* 2>/dev/null | head -n1)
-                  if [ -z "$ENV" ]; then
-                    echo "No micromamba environment found"
-                    exit 0
-                  fi
-                  "$ENV/bin/python" -m pip list --format=freeze 2>/dev/null |
-                  grep "^scikit-plots==" ||
-                  echo "scikit-plots not installed"
+                  found_env=0
+                  found_pkg=0
+                  for ENV in /root/micromamba/envs/* /opt/conda/envs/*; do
+                    [ -d "$ENV" ] || continue
+                    found_env=1
+                    if "$ENV/bin/python" -m pip list --format=freeze 2>/dev/null |
+                      grep -q "^scikit-plots=="; then
+                      echo "Found in $ENV"
+                      "$ENV/bin/python" -m pip list --format=freeze 2>/dev/null |
+                      grep "^scikit-plots=="
+                      found_pkg=1
+                    fi
+                  done
+                  [ "$found_env" -eq 1 ] || echo "No micromamba/conda environments found"
+                  [ "$found_pkg" -eq 1 ] || echo "scikit-plots not installed"
                 '
-                # -c "ENV=\$(ls -td /root/micromamba/envs/* | head -n1); \
-                #     \$ENV/bin/python -m pip list --format=freeze | grep '^scikit-plots==' \
-                #     || { echo 'scikit-plots not installed'; exit 0; }"
               exit 0
             fi
             # Only sleep between attempts — not after the final one (no retry coming).

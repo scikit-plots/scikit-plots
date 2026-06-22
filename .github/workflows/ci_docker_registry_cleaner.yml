@@ -35,6 +35,26 @@
 #   clearly before any action is taken.
 #   Explicit deletions honour dry-run mode.
 #
+# PURGE MODE (cleanup_purge)
+#   A "nuclear" sweep for end-of-month storage reclamation and stale-image
+#   cleanup.  When enabled, BOTH the age (cutoff) check AND the normal
+#   cleanup_ignore_patterns check are bypassed — every tag/version becomes a
+#   deletion candidate.  The ONLY survivors are tags matching
+#   cleanup_purge_keep_patterns (default: '^latest$'); set that input empty
+#   for a total wipe.  Purge is the right tool for the GHCR/Quay "stale
+#   manifest" problem where re-pushing a tag orphans the previous digest:
+#   untagged manifests carry no tags, so they never match a keep-pattern and
+#   are always reclaimed under purge.  Purge still honours dry-run mode and
+#   remains idempotent (HTTP 400/404 → already gone → not an error).
+#   Purge is auto-enabled on the last-day-of-month schedule (see SCHEDULING).
+#
+# SCHEDULING
+#   Two monthly cron triggers (see the schedule: block for the exact strings):
+#     • 1st of month   → routine cleanup  (purge OFF)
+#     • last day        → purge cleanup    (purge ON)
+#   The "last day" cron fires on days 28-31; the resolve step promotes it to a
+#   real purge only when tomorrow is the 1st, so it runs exactly once a month.
+#
 # CUTOFF DATE
 #   cutoff = midnight UTC of (today − cleanup_keep_days)
 #   cleanup_keep_days=0 → cutoff is today at 00:00 UTC
@@ -43,8 +63,13 @@
 #     → tags from the last 7 days are kept.
 #
 # SAFETY GUARANTEES
-#   • cleanup_dry_run defaults to 'true' — no deletes unless explicitly opted in.
-#   • Ignore patterns include common blessed tags by default.
+#   • Manual runs (workflow_dispatch) default to dry-run — no deletes unless
+#     the operator explicitly sets cleanup_dry_run=false.
+#   • Scheduled and post-build (workflow_run) runs execute LIVE by design;
+#     this is the unattended maintenance path.  Effective dry-run/purge values
+#     are resolved once, up front, by the 'resolve' step and echoed to the log.
+#   • Ignore patterns include common blessed tags by default; purge mode keeps
+#     only cleanup_purge_keep_patterns.
 #   • continue-on-error: true per registry step — one registry failure never
 #     blocks cleanup of the remaining registries when target='all'.
 #   • Idempotent — running twice produces the same final state.
@@ -76,6 +101,29 @@ on:
           - github_ghcr
           - redhat_quay
           - none
+      cleanup_purge:
+        description: >-
+          PURGE MODE (nuclear sweep).  When true, BOTH the age cutoff AND the
+          cleanup_ignore_patterns checks are bypassed — every tag/manifest is a
+          deletion candidate.  Only tags matching cleanup_purge_keep_patterns
+          survive.  Use for end-of-month storage reclamation and to clear
+          stale/orphaned (untagged) manifests left by re-pushed tags on GHCR
+          and Quay.  Still honours dry-run; still idempotent.  Default: false.
+        required: false
+        type: boolean
+        default: false
+      cleanup_purge_keep_patterns:
+        description: >-
+          Comma-separated POSIX ERE patterns (grep -E) that remain protected
+          EVEN IN PURGE MODE.  This is the last line of defence so a purge does
+          not wipe blessed pointers such as 'latest'.  Untagged manifests match
+          no pattern and are therefore always reclaimed.  Set to an empty string
+          for a TOTAL wipe (delete absolutely everything).  Ignored when
+          cleanup_purge is false.
+          Example: ^latest$,^stable$
+        required: false
+        type: string
+        default: '^latest$'
       cleanup_keep_days:
         description: >-
           Retain tags whose push date is on or after midnight UTC of
@@ -139,6 +187,16 @@ on:
     ##        │  │  │ │ │
     ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
     - cron: '11 11 * * *'
+    ## ── Monthly maintenance schedule ────────────────────────────────────────
+    ## These two cron strings MUST stay in sync with ROUTINE_CRON / PURGE_CRON
+    ## in the 'resolve' step below, which maps each trigger to its parameters.
+    ##
+    ##   1st of month, 11:11 UTC  → routine cleanup (purge OFF, live)
+    # - cron: '11 11 1 * *'
+    ##   days 28-31, 23:00 UTC    → purge candidate; the resolve step promotes
+    ##   this to a real purge ONLY when tomorrow is the 1st (true last day),
+    ##   so the purge runs exactly once per month regardless of month length.
+    - cron: '0 23 28-31 * *'
 
 
 ## Workflow-level permissions: minimal (principle of least privilege).
@@ -156,15 +214,19 @@ jobs:
     # Fork guard: only run on the canonical repository so fork PRs cannot
     # accidentally delete tags from the upstream registries.
     #
-    # workflow_run  : only when the upstream build actually succeeded.
+    # workflow_run     : only when the upstream build actually succeeded.
     # workflow_dispatch: honour 'none' to allow users to skip cleanup entirely.
+    # schedule         : monthly maintenance (routine on the 1st, purge on the
+    #                    last day).  Previously absent — scheduled runs silently
+    #                    no-opped because no branch matched event_name=schedule.
     if: >-
       github.repository == 'scikit-plots/scikit-plots' &&
       (
         (github.event_name == 'workflow_run' &&
          github.event.workflow_run.conclusion == 'success') ||
         (github.event_name == 'workflow_dispatch' &&
-         inputs.cleanup_registry != 'none')
+         inputs.cleanup_registry != 'none') ||
+        github.event_name == 'schedule'
       )
 
     runs-on: ubuntu-latest
@@ -175,35 +237,135 @@ jobs:
 
     env:
       # ── Fixed image coordinates — must stay in sync with ci_docker_image.yml ──
-      # DockerHub org  'scikitplot'          (no hyphen — matches Docker Hub account)
+      # DockerHub org  'scikitplot'             (no hyphen — matches Docker Hub account)
       # GHCR org        github.repository_owner (with hyphen — matches GitHub org)
       # QUAY_NAMESPACE  github.repository_owner (same org as GHCR)
       #   → quay.io/${QUAY_NAMESPACE}/${IMAGE_REPO}
-      #   → quay.io/scikit-plots/scikit-plots  (mirrors ghcr.io/scikit-plots/scikit-plots)
+      #   → quay.io/scikit-plots/scikit-plots   (mirrors ghcr.io/scikit-plots/scikit-plots)
       IMAGE_NAMESPACE:  scikitplot
       IMAGE_REPO:       scikit-plots
       GHCR_ORG:         ${{ github.repository_owner }}
       QUAY_NAMESPACE:   ${{ github.repository_owner }}
 
       # ── Cleanup parameters — workflow_dispatch values or safe defaults ────────
-      # The '|| default' fallback activates when triggered by workflow_run (no
-      # inputs available) or when the user omits an optional input field.
+      # The '|| default' fallback activates when triggered by workflow_run /
+      # schedule (no inputs available) or when the user omits an optional field.
       CLEANUP_TARGET:   ${{ inputs.cleanup_registry          || 'all'  }}
       KEEP_DAYS:        ${{ inputs.cleanup_keep_days         || '0'    }}
       IGNORE_PATTERNS:  ${{ inputs.cleanup_ignore_patterns   || '^latest$,^latest-,^main$,^maintenance-,^v[0-9]' }}
       EXPLICIT_TAGS:    ${{ inputs.cleanup_explicit_tags     || ''     }}
-      # defaults to 'true' — no deletes unless explicitly opted in.
-      DRY_RUN:          ${{ inputs.cleanup_dry_run           || 'false' }}
+      # Patterns that survive even a purge (empty input → total wipe).
+      PURGE_KEEP_PATTERNS: ${{ inputs.cleanup_purge_keep_patterns || '^latest$' }}
+      # NOTE: DRY_RUN and PURGE are intentionally NOT defined here.  They are
+      # trigger-dependent and resolved once by the 'resolve' step, then injected
+      # into each registry/summary step via steps.resolve.outputs.* — a single,
+      # deterministic source of truth (manual=dry-run by default; scheduled and
+      # post-build=live; purge auto-enabled on the last-day-of-month cron).
 
     steps:
+
+      # ════════════════════════════════════════════════════════════════════════
+      # Resolve effective parameters (trigger-aware) — single source of truth
+      # ════════════════════════════════════════════════════════════════════════
+      # GitHub Actions cannot run date logic inside `env:`/`if:` expressions, so
+      # the mapping "which trigger → which behaviour" lives here, runs once, and
+      # is exported as step outputs consumed by every downstream step:
+      #   • dry_run     — manual runs default to dry-run; scheduled & post-build
+      #                   runs are live.  Manual operators can still override.
+      #   • purge       — true only on the last-day-of-month cron (or when the
+      #                   operator ticks cleanup_purge on a manual run).
+      #   • run_cleanup — false when the 28-31 purge cron fires on a NON-last day
+      #                   (so the job no-ops instead of running an off-schedule
+      #                   sweep); true otherwise.
+      # Outputs (not $GITHUB_ENV) are used so they are usable in later `if:`.
+      - name: 🧭 Resolve effective parameters
+        id: resolve
+        shell: bash
+        env:
+          EVENT_NAME:   ${{ github.event_name }}
+          SCHED_CRON:   ${{ github.event.schedule }}
+          IN_PURGE:     ${{ inputs.cleanup_purge }}
+          IN_DRY_RUN:   ${{ inputs.cleanup_dry_run }}
+          # MUST match the cron strings in the schedule: block above.
+          ROUTINE_CRON: '11 11 * * *'
+          PURGE_CRON:   '0 23 28-31 * *'
+        run: |
+          set -Eeuo pipefail
+
+          purge='false'
+          dry_run='false'
+          run_cleanup='true'
+          reason=''
+
+          case "${EVENT_NAME}" in
+            workflow_dispatch)
+              # Manual: honour inputs; default to the SAFE dry-run path.
+              purge="${IN_PURGE:-false}"
+              dry_run="${IN_DRY_RUN:-true}"
+              reason="manual workflow_dispatch (purge=${purge}, dry_run=${dry_run})"
+              ;;
+            workflow_run)
+              # Automatic post-build cleanup: live, never purge.
+              dry_run='false'
+              reason='post-build workflow_run (live, no purge)'
+              ;;
+            schedule)
+              # Scheduled maintenance: live.
+              dry_run='false'
+              case "${SCHED_CRON}" in
+                "${ROUTINE_CRON}")
+                  reason='monthly routine cleanup — 1st of month (no purge)'
+                  ;;
+                "${PURGE_CRON}")
+                  # Promote to purge ONLY on the true last day of the month,
+                  # detected by 'tomorrow is the 1st'.  date math is UTC to
+                  # match the cutoff computation in the registry steps.
+                  if [[ "$(date -u -d 'tomorrow' +%d)" == '01' ]]; then
+                    purge='true'
+                    reason="monthly PURGE — last day of month ($(date -u +%Y-%m-%d))"
+                  else
+                    run_cleanup='false'
+                    reason="purge cron fired on non-last day ($(date -u +%Y-%m-%d)); no-op"
+                  fi
+                  ;;
+                *)
+                  reason="unrecognised schedule cron '${SCHED_CRON}'; defaulting to routine cleanup"
+                  ;;
+              esac
+              ;;
+            *)
+              reason="unhandled event '${EVENT_NAME}'; defaulting to dry-run"
+              dry_run='true'
+              ;;
+          esac
+
+          {
+            echo "purge=${purge}"
+            echo "dry_run=${dry_run}"
+            echo "run_cleanup=${run_cleanup}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "🧭  Resolved cleanup parameters"
+          echo "    Trigger     : ${EVENT_NAME}${SCHED_CRON:+ (cron: ${SCHED_CRON})}"
+          echo "    Decision    : ${reason}"
+          echo "    run_cleanup : ${run_cleanup}"
+          echo "    purge       : ${purge}"
+          echo "    dry_run     : ${dry_run}"
+          echo "═══════════════════════════════════════════════════════════════"
+          if [[ "${purge}" == 'true' && "${dry_run}" != 'true' ]]; then
+            echo "::warning::PURGE MODE (LIVE) — age and ignore-pattern filters are bypassed; only PURGE_KEEP_PATTERNS survive."
+          fi
 
       # ════════════════════════════════════════════════════════════════════════
       # Docker Hub
       # ════════════════════════════════════════════════════════════════════════
       - name: 🧹 Cleanup old tags — Docker Hub
         id: cleanup_dockerhub
-        # Step runs when target is 'all' or exactly 'docker_hub'.
-        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'docker_hub'
+        # Step runs when cleanup is active AND target is 'all' or 'docker_hub'.
+        if: >-
+          steps.resolve.outputs.run_cleanup == 'true' &&
+          (env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'docker_hub')
         # continue-on-error: isolates this registry's failure from others in
         # 'all' mode; the job outcome is still reported in the summary step.
         continue-on-error: true
@@ -211,6 +373,8 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+          DRY_RUN:            ${{ steps.resolve.outputs.dry_run }}
+          PURGE:              ${{ steps.resolve.outputs.purge }}
         run: |
           set -Eeuo pipefail
 
@@ -219,6 +383,7 @@ jobs:
           echo "    Image      : ${IMAGE_NAMESPACE}/${IMAGE_REPO}"
           echo "    Keep days  : ${KEEP_DAYS}"
           echo "    Dry run    : ${DRY_RUN}"
+          echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
           echo "═══════════════════════════════════════════════════════════════"
@@ -285,6 +450,52 @@ jobs:
             return 1  # no match — tag is a deletion candidate
           }
 
+          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
+          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
+          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
+          purge_is_kept() {
+            local tag="$1" pattern
+            [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
+            IFS="${OLD_IFS}"
+            for pattern in "${KEEP_PATTERNS[@]}"; do
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              [[ -z "${pattern}" ]] && continue
+              if echo "${tag}" | grep -Eq "${pattern}"; then
+                return 0  # protected even under purge
+              fi
+            done
+            return 1
+          }
+
+          # ── Helper: idempotent DELETE of one Docker Hub tag (honours DRY_RUN) ─
+          # Single source of truth for the destructive call, reused by both the
+          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
+          dockerhub_delete_tag() {
+            local tag="$1"
+            if [[ "${DRY_RUN}" == 'true' ]]; then
+              DELETED=$(( DELETED + 1 ))  # count as "would delete" — no API call
+              return 0
+            fi
+            local http
+            http=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X DELETE \
+              -H "${AUTH_HEADER}" \
+              "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${tag}")
+            if [[ "${http}" =~ ^2 ]]; then
+              DELETED=$(( DELETED + 1 ))
+            elif [[ "${http}" == "404" ]]; then
+              # Already absent — idempotent, do not count as error.
+              echo "    ℹ️  Tag already gone (HTTP 404) — skipping."
+            else
+              echo "    ⚠️  Delete failed (HTTP ${http})" >&2
+              ERRORS=$(( ERRORS + 1 ))
+            fi
+            sleep 0.3  # respect Docker Hub API rate limits
+          }
+
           # ── Paginate through all tags ────────────────────────────────────────
           # Docker Hub paginates with a 'next' URL; empty/null signals last page.
           # 'ordering=last_updated' ensures newest tags come first (faster for
@@ -297,6 +508,11 @@ jobs:
 
           # Avoid: `set -x` in secret-bearing workflows.
           AUTH_HEADER="Authorization: Bearer ${DH_JWT}"
+
+          if [[ "${PURGE}" == 'true' ]]; then
+            echo "🔥 PURGE MODE — deleting ALL tags regardless of age/ignore patterns."
+            echo "   Survivors limited to PURGE_KEEP_PATTERNS: '${PURGE_KEEP_PATTERNS:-<none — TOTAL WIPE>}'"
+          fi
 
           while [[ -n "${NEXT_URL}" ]]; do
             RESPONSE=$(curl -fsSL \
@@ -322,6 +538,18 @@ jobs:
               TAG_PUSHED=$(echo "${TAG_JSON}" | jq -r \
                 '.tag_last_pushed // .last_updated // empty')
 
+              # ── PURGE MODE: bypass age + ignore patterns entirely ──────────
+              if [[ "${PURGE}" == 'true' ]]; then
+                if purge_is_kept "${TAG_NAME}"; then
+                  echo "  🔒 PURGE-KEEP   ${TAG_NAME}  (matches purge keep pattern)"
+                  IGNORED=$(( IGNORED + 1 ))
+                  continue
+                fi
+                echo "  🔥 PURGE-DELETE ${TAG_NAME}  (pushed ${TAG_PUSHED:-unknown})"
+                dockerhub_delete_tag "${TAG_NAME}"
+                continue
+              fi
+
               # ── Ignore-list check (takes priority over date) ───────────────
               if tag_is_ignored "${TAG_NAME}"; then
                 echo "  🔒 IGNORE  ${TAG_NAME}  (matches ignore pattern)"
@@ -337,7 +565,15 @@ jobs:
               fi
 
               # ── Date check ─────────────────────────────────────────────────
-              TAG_EPOCH=$(date -u -d "${TAG_PUSHED}" +%s 2>/dev/null || echo 0)
+              # Unparsable-but-present timestamp → keep (safe default).  The
+              # previous `|| echo 0` set epoch=0, which is < any cutoff and would
+              # have WRONGLY deleted the tag — a silent data-loss bug.
+              TAG_EPOCH=$(date -u -d "${TAG_PUSHED}" +%s 2>/dev/null || true)
+              if [[ -z "${TAG_EPOCH}" || ! "${TAG_EPOCH}" =~ ^[0-9]+$ ]]; then
+                echo "  ✅ KEEP    ${TAG_NAME}  (unparsable timestamp '${TAG_PUSHED}' — kept by default)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
               if (( TAG_EPOCH >= CUTOFF_EPOCH )); then
                 echo "  ✅ KEEP    ${TAG_NAME}  (pushed ${TAG_PUSHED})"
                 KEPT=$(( KEPT + 1 ))
@@ -346,24 +582,7 @@ jobs:
 
               # ── Deletion candidate ─────────────────────────────────────────
               echo "  🗑️  DELETE  ${TAG_NAME}  (pushed ${TAG_PUSHED}, before cutoff ${CUTOFF_DATE})"
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                DELETED=$(( DELETED + 1 ))  # count as "would delete" — no API call
-              else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${TAG_NAME}")
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
-                  DELETED=$(( DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "404" ]]; then
-                  # Already absent — idempotent, do not count as error.
-                  echo "    ℹ️  Tag already gone (HTTP 404) — skipping."
-                else
-                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
-                  ERRORS=$(( ERRORS + 1 ))
-                fi
-                sleep 0.3  # respect Docker Hub API rate limits
-              fi
+              dockerhub_delete_tag "${TAG_NAME}"
             done < <(echo "${RESPONSE}" | jq -c '.results[]')
           done
 
@@ -434,12 +653,16 @@ jobs:
       #   run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: 🧹 Cleanup old tags — GitHub GHCR
         id: cleanup_ghcr
-        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'github_ghcr'
+        if: >-
+          steps.resolve.outputs.run_cleanup == 'true' &&
+          (env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'github_ghcr')
         continue-on-error: true
         shell: bash
         env:
           # GITHUB_TOKEN is auto-provisioned; packages:write is granted at job level.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN:  ${{ steps.resolve.outputs.dry_run }}
+          PURGE:    ${{ steps.resolve.outputs.purge }}
         run: |
           set -Eeuo pipefail
 
@@ -448,6 +671,7 @@ jobs:
           echo "    Image      : ghcr.io/${GHCR_ORG}/${IMAGE_REPO}"
           echo "    Keep days  : ${KEEP_DAYS}"
           echo "    Dry run    : ${DRY_RUN}"
+          echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
           echo "═══════════════════════════════════════════════════════════════"
@@ -489,6 +713,58 @@ jobs:
             return 1  # no tags are protected — version is a candidate
           }
 
+          # ── Helper: in PURGE mode, is ANY tag on the protected keep-list? ────
+          # Mirrors any_tag_is_ignored but against PURGE_KEEP_PATTERNS.  An
+          # untagged manifest (empty tag list) matches nothing → always purged,
+          # which is exactly how stale orphaned digests get reclaimed.
+          purge_any_tag_is_kept() {
+            local tags_json="$1"
+            local tag pattern
+            [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
+            IFS="${OLD_IFS}"
+            while IFS= read -r tag; do
+              [[ -z "${tag}" ]] && continue
+              for pattern in "${KEEP_PATTERNS[@]}"; do
+                pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+                pattern="${pattern%"${pattern##*[![:space:]]}"}"
+                [[ -z "${pattern}" ]] && continue
+                if echo "${tag}" | grep -Eq "${pattern}"; then
+                  return 0  # protected even under purge
+                fi
+              done
+            done < <(echo "${tags_json}" | jq -r '.[] // empty')
+            return 1
+          }
+
+          # ── Helper: idempotent DELETE of one GHCR version (honours DRY_RUN) ──
+          # Single source of truth for the destructive call; reused by the
+          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
+          ghcr_delete_version() {
+            local version_id="$1"
+            if [[ "${DRY_RUN}" == 'true' ]]; then
+              DELETED=$(( DELETED + 1 ))
+              return 0
+            fi
+            local http
+            http=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X DELETE \
+              -H "${AUTH_HEADER}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${BASE_URL}/${version_id}")
+            if [[ "${http}" =~ ^2 ]]; then
+              DELETED=$(( DELETED + 1 ))
+            elif [[ "${http}" == "404" ]]; then
+              echo "    ℹ️  Version already gone (HTTP 404) — skipping."
+            else
+              echo "    ⚠️  Delete failed (HTTP ${http})" >&2
+              ERRORS=$(( ERRORS + 1 ))
+            fi
+            sleep 0.3
+          }
+
           # ── Paginate through all package versions ────────────────────────────
           # GitHub's Packages API lists manifest versions (not individual tags).
           # Each version can carry multiple tags.  Deletion removes the version
@@ -503,6 +779,12 @@ jobs:
 
           # Avoid: `set -x` in secret-bearing workflows.
           AUTH_HEADER="Authorization: Bearer ${GH_TOKEN}"
+
+          if [[ "${PURGE}" == 'true' ]]; then
+            echo "🔥 PURGE MODE — deleting ALL manifest versions regardless of age/ignore patterns."
+            echo "   Survivors limited to PURGE_KEEP_PATTERNS: '${PURGE_KEEP_PATTERNS:-<none — TOTAL WIPE>}'"
+            echo "   Untagged/orphaned manifests carry no tags and are always reclaimed."
+          fi
 
           while true; do
             RESPONSE=$(curl -fsSL \
@@ -530,7 +812,21 @@ jobs:
               # Build a display string; untagged manifests show as <untagged>.
               TAGS_DISPLAY=$(echo "${TAGS_JSON}" | jq -r '.[]' \
                 | paste -sd ',' - 2>/dev/null || true)
-              [[ -z "${TAGS_DISPLAY}" ]] && TAGS_DISPLAY="<untagged>"
+              if [[ -z "${TAGS_DISPLAY}" ]]; then
+                TAGS_DISPLAY="<untagged — orphaned manifest>"
+              fi
+
+              # ── PURGE MODE: bypass age + ignore patterns entirely ──────────
+              if [[ "${PURGE}" == 'true' ]]; then
+                if purge_any_tag_is_kept "${TAGS_JSON}"; then
+                  echo "  🔒 PURGE-KEEP   version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (has purge-keep tag)"
+                  IGNORED=$(( IGNORED + 1 ))
+                  continue
+                fi
+                echo "  🔥 PURGE-DELETE version=${VERSION_ID} tags=[${TAGS_DISPLAY}]"
+                ghcr_delete_version "${VERSION_ID}"
+                continue
+              fi
 
               # ── Ignore-list check (whole version) ─────────────────────────
               if any_tag_is_ignored "${TAGS_JSON}"; then
@@ -547,7 +843,15 @@ jobs:
               fi
 
               # ── Date check ─────────────────────────────────────────────────
-              VERSION_EPOCH=$(date -u -d "${UPDATED_AT}" +%s 2>/dev/null || echo 0)
+              # Unparsable-but-present timestamp → keep (safe default).  The old
+              # `|| echo 0` set epoch=0 and would have WRONGLY deleted the
+              # version — a silent data-loss bug, now fixed.
+              VERSION_EPOCH=$(date -u -d "${UPDATED_AT}" +%s 2>/dev/null || true)
+              if [[ -z "${VERSION_EPOCH}" || ! "${VERSION_EPOCH}" =~ ^[0-9]+$ ]]; then
+                echo "  ✅ KEEP    version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (unparsable timestamp '${UPDATED_AT}' — kept)"
+                KEPT=$(( KEPT + 1 ))
+                continue
+              fi
               if (( VERSION_EPOCH >= CUTOFF_EPOCH )); then
                 echo "  ✅ KEEP    version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (updated ${UPDATED_AT})"
                 KEPT=$(( KEPT + 1 ))
@@ -556,25 +860,7 @@ jobs:
 
               # ── Deletion candidate ─────────────────────────────────────────
               echo "  🗑️  DELETE  version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (updated ${UPDATED_AT})"
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                DELETED=$(( DELETED + 1 ))
-              else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  -H "Accept: application/vnd.github+json" \
-                  -H "X-GitHub-Api-Version: 2022-11-28" \
-                  "${BASE_URL}/${VERSION_ID}")
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
-                  DELETED=$(( DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "404" ]]; then
-                  echo "    ℹ️  Version already gone (HTTP 404) — skipping."
-                else
-                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
-                  ERRORS=$(( ERRORS + 1 ))
-                fi
-                sleep 0.3
-              fi
+              ghcr_delete_version "${VERSION_ID}"
             done < <(echo "${RESPONSE}" | jq -c '.[]')
 
             PAGE=$(( PAGE + 1 ))
@@ -782,7 +1068,9 @@ jobs:
       # bash quay_token_test.sh
       - name: 🧹 Cleanup old tags — 🔴 RedHat Quay
         id: cleanup_quay
-        if: env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'redhat_quay'
+        if: >-
+          steps.resolve.outputs.run_cleanup == 'true' &&
+          (env.CLEANUP_TARGET == 'all' || env.CLEANUP_TARGET == 'redhat_quay')
         continue-on-error: true
         # shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
         shell: bash
@@ -793,6 +1081,8 @@ jobs:
           # OAuth Application Token — generated via the Applications tab in the
           # Quay organisation settings, NOT a robot account token.
           QUAY_OAUTH_TOKEN: ${{ secrets.QUAY_OAUTH_TOKEN }}
+          DRY_RUN: ${{ steps.resolve.outputs.dry_run }}
+          PURGE:   ${{ steps.resolve.outputs.purge }}
         run: |
           # Avoid: `set -x` in secret-bearing workflows.
           set -Eeuo pipefail
@@ -802,6 +1092,7 @@ jobs:
           echo "    Image      : quay.io/${QUAY_NAMESPACE}/${IMAGE_REPO}"
           echo "    Keep days  : ${KEEP_DAYS}"
           echo "    Dry run    : ${DRY_RUN}"
+          echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
           echo "═══════════════════════════════════════════════════════════════"
@@ -862,6 +1153,54 @@ jobs:
               fi
             done
             return 1  # no match — tag is a deletion candidate
+          }
+
+          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
+          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
+          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
+          purge_is_kept() {
+            local tag="$1" pattern
+            [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
+            IFS="${OLD_IFS}"
+            for pattern in "${KEEP_PATTERNS[@]}"; do
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              [[ -z "${pattern}" ]] && continue
+              if echo "${tag}" | grep -Eq "${pattern}"; then
+                return 0  # protected even under purge
+              fi
+            done
+            return 1
+          }
+
+          # ── Helper: idempotent DELETE of one Quay tag (honours DRY_RUN) ──────
+          # Single source of truth for the destructive call; reused by the
+          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
+          # Quay DELETE /tag/{tag}: 204 success; 400/404 → already gone.
+          quay_delete_tag() {
+            local tag="$1"
+            if [[ "${DRY_RUN}" == 'true' ]]; then
+              DELETED=$(( DELETED + 1 ))
+              return 0
+            fi
+            local resp http body
+            resp=$(curl -s -w "\n%{http_code}" \
+              -X DELETE \
+              -H "${AUTH_HEADER}" \
+              "${QUAY_API}/tag/${tag}")
+            http=$(printf '%s' "${resp}" | tail -1)
+            body=$(printf '%s' "${resp}" | head -n -1)
+            if [[ "${http}" =~ ^2 ]]; then
+              DELETED=$(( DELETED + 1 ))
+            elif [[ "${http}" == "400" || "${http}" == "404" ]]; then
+              echo "    ℹ️  Tag already gone (HTTP ${http}) — skipping."
+            else
+              echo "    ⚠️  Delete failed (HTTP ${http}): ${body}" >&2
+              ERRORS=$(( ERRORS + 1 ))
+            fi
+            sleep 0.3  # respect Quay API rate limits (~3 req/s sustained)
           }
 
           # ── Build auth header ─────────────────────────────────────────────────
@@ -940,6 +1279,11 @@ jobs:
           ERRORS=0
           QPAGE=1
 
+          if [[ "${PURGE}" == 'true' ]]; then
+            echo "🔥 PURGE MODE — deleting ALL tags regardless of age/ignore patterns."
+            echo "   Survivors limited to PURGE_KEEP_PATTERNS: '${PURGE_KEEP_PATTERNS:-<none — TOTAL WIPE>}'"
+          fi
+
           while true; do
             RESPONSE=$(curl -fsSL \
               -H "${AUTH_HEADER}" \
@@ -963,6 +1307,18 @@ jobs:
 
               # last_modified is RFC 2822, e.g. "Tue, 06 May 2026 00:02:00 -0000"
               TAG_MODIFIED=$(echo "${TAG_JSON}" | jq -r '.last_modified // empty')
+
+              # ── PURGE MODE: bypass age + ignore patterns entirely ──────────
+              if [[ "${PURGE}" == 'true' ]]; then
+                if purge_is_kept "${TAG_NAME}"; then
+                  echo "  🔒 PURGE-KEEP   ${TAG_NAME}  (matches purge keep pattern)"
+                  IGNORED=$(( IGNORED + 1 ))
+                  continue
+                fi
+                echo "  🔥 PURGE-DELETE ${TAG_NAME}  (modified ${TAG_MODIFIED:-unknown})"
+                quay_delete_tag "${TAG_NAME}"
+                continue
+              fi
 
               # Ignore-list check takes priority over date check.
               if tag_is_ignored "${TAG_NAME}"; then
@@ -994,29 +1350,8 @@ jobs:
               fi
 
               # Deletion candidate.
-              # Quay DELETE /api/v1/repository/{repo}/tag/{tag}
-              # 204 on success; 400/404 if already absent (idempotent).
               echo "  🗑️  DELETE  ${TAG_NAME}  (modified ${TAG_MODIFIED}, before cutoff ${CUTOFF_DATE})"
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                DELETED=$(( DELETED + 1 ))
-              else
-                DEL_RESP=$(curl -s -w "\n%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  "${QUAY_API}/tag/${TAG_NAME}")
-                DEL_HTTP=$(printf '%s' "${DEL_RESP}" | tail -1)
-                DEL_BODY=$(printf '%s' "${DEL_RESP}" | head -n -1)
-                if [[ "${DEL_HTTP}" =~ ^2 ]]; then
-                  DELETED=$(( DELETED + 1 ))
-                elif [[ "${DEL_HTTP}" == "400" || "${DEL_HTTP}" == "404" ]]; then
-                  # Already absent — idempotent, not an error.
-                  echo "    ℹ️  Tag already gone (HTTP ${DEL_HTTP}) — skipping."
-                else
-                  echo "    ⚠️  Delete failed (HTTP ${DEL_HTTP}): ${DEL_BODY}" >&2
-                  ERRORS=$(( ERRORS + 1 ))
-                fi
-                sleep 0.3  # respect Quay API rate limits (~3 req/s sustained)
-              fi
+              quay_delete_tag "${TAG_NAME}"
             done < <(echo "${RESPONSE}" | jq -c '.tags[]')
 
             # has_additional (bool) signals more pages exist.
@@ -1095,21 +1430,31 @@ jobs:
         if: always()
         shell: bash
         env:
-          # Map the output to an env var here
+          # Map step outcomes and resolved parameters to env vars here.
           DOCKER_HUB: ${{ steps.cleanup_dockerhub.outcome }}
           GHCR_HUB: ${{ steps.cleanup_ghcr.outcome }}
           QUAY_HUB: ${{ steps.cleanup_quay.outcome }}
+          # DRY_RUN/PURGE/RUN_CLEANUP come from the resolve step (job env no
+          # longer defines DRY_RUN — the resolver is the single source of truth).
+          DRY_RUN:     ${{ steps.resolve.outputs.dry_run }}
+          PURGE:       ${{ steps.resolve.outputs.purge }}
+          RUN_CLEANUP: ${{ steps.resolve.outputs.run_cleanup }}
         run: |
           {
             echo "## 🧹 Docker Registry Cleanup"
             echo ""
+            if [[ "${RUN_CLEANUP}" != 'true' ]]; then
+              echo "> ⏭️  **No-op run** — the last-day-of-month purge cron fired on a"
+              echo "> non-last day, so no cleanup was performed."
+              echo ""
+            fi
             echo "### Step outcomes"
             echo ""
             echo "| Registry        | Outcome |"
             echo "|-----------------|---------|"
-            echo "| Docker Hub      | \`${DOCKER_HUB:-}\` |"
-            echo "| GitHub GHCR     | \`${GHCR_HUB:-}\`       |"
-            echo "| RedHat Quay     | \`${QUAY_HUB:-}\`       |"
+            echo "| Docker Hub      | \`${DOCKER_HUB:-skipped}\` |"
+            echo "| GitHub GHCR     | \`${GHCR_HUB:-skipped}\`   |"
+            echo "| RedHat Quay     | \`${QUAY_HUB:-skipped}\`   |"
             echo ""
             echo "### Run parameters"
             echo ""
@@ -1117,10 +1462,17 @@ jobs:
             echo "|-------------------|-------|"
             echo "| Target            | \`${CLEANUP_TARGET}\`       |"
             echo "| Keep days         | \`${KEEP_DAYS}\`            |"
-            echo "| Dry run           | \`${DRY_RUN}\`              |"
+            echo "| Dry run           | \`${DRY_RUN:-?}\`           |"
+            echo "| Purge             | \`${PURGE:-?}\`             |"
             echo "| Ignore patterns   | \`${IGNORE_PATTERNS}\`      |"
+            echo "| Purge keep        | \`${PURGE_KEEP_PATTERNS:-<none — total wipe>}\` |"
             echo "| Explicit tags     | \`${EXPLICIT_TAGS:-<none>}\` |"
             echo ""
+            if [[ "${PURGE}" == 'true' ]]; then
+              echo "> 🔥 **PURGE MODE** — age and ignore-pattern filters were bypassed."
+              echo "> Only tags matching \`${PURGE_KEEP_PATTERNS:-<none>}\` were preserved."
+              echo ">"
+            fi
             if [[ "${DRY_RUN}" == 'true' ]]; then
               echo "> ℹ️  **Dry-run mode** — no tags were deleted."
               echo "> Set \`cleanup_dry_run\` to \`false\` to execute deletions."

@@ -247,24 +247,98 @@
   </a>:
  </h3>
 
- <h4> 🧠 Gotchas: </h4>
+ <h4>🧠 Gotchas</h4>
  <ul>
-  <li>⚠️ Partially support Python 3.8 3.9 without some packages in cexternals, externals due to externals lib dep (e.g.,
-  astropy.stats, arrat-api-compat, arrat-api-extra).
-  </li>
-  <li>⚠️ (Recommended): Use a Virtual Environmentt (like
-   <a href="https://docs.python.org/3/library/venv.html" target="_blank" rel="noopener noreferrer">
-    <code>venv</code>
-   </a>
-   <a href="https://pypi.org/project/pipenv/" target="_blank" rel="noopener noreferrer">
-    <code>pipenv</code>
-   </a>
-   ) to Avoid Conflicts.
-  </li>
-  <li>🚫 Don't use conda <code>base</code> — it's prone to conflicts.</li>
-  <li>✅ This avoids dependency issues and keeps your system stable.</li>
+   <li>
+     ⚠️ <strong>Python 3.8 and 3.9 are only partially supported:</strong> optional
+     packages such as <code>array-api-compat</code>, <code>array-api-extra</code>, and
+     <code>astropy.stats</code> require Python 3.10+ and will fail to install on older
+     versions. Upgrade to Python 3.10 or later for the full feature set.
+   </li>
+   <li>
+     🚫 <strong>Never install into conda's <code>base</code> environment</strong> — it
+     accumulates packages over time and is highly prone to conflicts. Always create a
+     dedicated environment instead.
+   </li>
+   <li>
+     ✅ <strong>Use an isolated environment</strong> to keep installs clean and avoid
+     conflicts with system packages:
+     <a href="https://docs.python.org/3/library/venv.html"
+       target="_blank" rel="noopener noreferrer"><code>venv</code></a>
+     (built-in, zero setup) or
+     <a href="https://pypi.org/project/pipenv/"
+       target="_blank" rel="noopener noreferrer"><code>pipenv</code></a>
+     (adds a lock file for reproducible installs).
+   </li>
+   <li>
+     ℹ️ <strong>PyPI carries the latest release</strong> (currently
+     <code>0.4.0.post11</code>). Use <code>pip install</code> if you need the most
+     recent bug fixes or features.
+   </li>
+   <li>
+     🚨 <strong>conda-forge lags behind PyPI:</strong> the latest conda-forge stable
+     build (<code>py313hf3c7c41_10</code>, equivalent to <code>0.4.0.post10</code>)
+     may be one or more releases behind PyPI. Use <code>pip install</code> inside your
+     conda environment if you need the newest version.
+   </li>
  </ul>
 
+ <h4>💡 Tips: Troubleshooting</h4>
+ <ul>
+   <li>
+     🖥️ <strong>Wheel built for a different CPU — <code>Illegal instruction (core dumped)</code>:</strong>
+     If pip downloads a pre-built wheel that was compiled with <code>-march=native</code>,
+     that binary is optimised for the specific CPU it was built on and will crash
+     immediately on any other CPU model. The fix is to build from source so the compiler
+     targets <em>your</em> machine directly:
+    <blockquote style="border-left: 4px solid #f0a500; padding-left: 12px; color: #555;">
+      <strong>⚠️ Important Note</strong><br>
+      <code>-march=native</code> creates binaries optimized for the <em>current machine only</em>.<br>
+      Builds produced this way <strong>may not run on different CPUs</strong> and can fail with errors such as:
+      <pre><code>Illegal instruction (core dumped)</code></pre>
+    </blockquote>
+     <pre><code>pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v</code></pre>
+     The <code>-v</code> flag shows the build steps so you can confirm a local compile is
+     happening rather than a cached wheel being unpacked.
+   </li>
+ </ul>
+
+<h4>🛠️ Build from Source — Safer Than Wheels — Avoid Prebuilt Wheel Pitfalls</h4>
+
+<pre><code class="language-sh"># ⚠️ Install all required build and runtime dependencies before proceeding.
+
+# ─────────────────────────────────────────────────────────────────────────
+# Option A — Install directly from a remote Git ref (builds from source)
+# ─────────────────────────────────────────────────────────────────────────
+# Pin to a specific commit (for reproducible installs):
+# pip install "git+https://github.com/scikit-plots/scikit-plots.git@&lt;commit_sha&gt;" -vvv
+# Pin to a tagged release:
+# pip install "git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0" -vv
+# Latest development build (main branch):
+pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
+
+# ─────────────────────────────────────────────────────────────────────────
+# Option B — Clone locally, then install (useful for development or patching)
+# ─────────────────────────────────────────────────────────────────────────
+git clone https://github.com/scikit-plots/scikit-plots.git
+cd scikit-plots
+python -m python -m pip install --no-build-isolation --no-cache-dir . -v
+# Editable:
+pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log.txt
+
+# ─────────────────────────────────────────────────────────────────────────
+# ⚠️ Why not simply `pip install scikit-plots`?
+#
+#     PyPI wheels may be compiled with -march=native — a compiler flag that
+#     generates CPU-specific instructions optimised for the build machine only.
+#     Running those binaries on a different CPU model crashes immediately with:
+#
+#       Illegal instruction (core dumped)
+#
+#     Building from source (Option A or B above) compiles the extension
+#     modules against YOUR machine's instruction set, which is always safe.
+# ─────────────────────────────────────────────────────────────────────────
+# pip install scikit-plots</code></pre>
 <!--
   # Source distribution (raw source code archive)
   # Think of -march as a strict requirement and -mtune as a strong suggestion.
@@ -288,31 +362,6 @@
   # -march=x86-64	   10/10 (Works on everything)	3/10	Basic CLI tools, non-math libs
   # -march=x86-64-v3	8/10 (2013+ CPUs)	        9/10	Vector DBs, AI, Data Science
 -->
-<h4>🚀 Tips: Troubleshooting CPU architecture pip downloading a wheel, try:</h4>
-
-<blockquote style="border-left: 4px solid #f0a500; padding-left: 12px; color: #555;">
-  <strong>⚠️ Important Note</strong><br>
-  <code>-march=native</code> creates binaries optimized for the <em>current machine only</em>.<br>
-  Builds produced this way <strong>may not run on different CPUs</strong> and can fail with errors such as:
-  <pre><code>Illegal instruction (core dumped)</code></pre>
-</blockquote>
-
-<pre><code class="language-sh">## ⚠️ Ensure installed the lost packages "Build and Runtime dependencies".
-
-## ✅ (Optionally) Use Remote Git branch, Remote Git specific commit, Remote Git tag / release
-# pip install "git+https://github.com/scikit-plots/scikit-plots.git@&lt;commit_sha&gt;" -v
-# pip install "git+https://github.com/scikit-plots/scikit-plots.git@v0.4.0" -v
-pip install "git+https://github.com/scikit-plots/scikit-plots.git@main" -v
-
-## ✅ (Optionally) Clone locally + install:
-git clone https://github.com/scikit-plots/scikit-plots.git
-cd scikit-plots
-python -m pip install --no-cache-dir . -v
-
-## TODO: Prevent runtime crashes caused by host-specific CPU instructions
-## (e.g., binaries built with -march=native). Ensure builds target a portable
-## baseline or perform runtime CPU feature detection before loading extensions.
-# pip install scikit-plots</code></pre>
 </div>
 
 
@@ -320,7 +369,7 @@ python -m pip install --no-cache-dir . -v
 <div>
  <h3>
   <a href="https://hub.docker.com/r/scikitplot/scikit-plots" target="_blank" rel="noopener noreferrer">
-   🐋 Scikit-plots Runtime Docker Images
+   🐋 Scikit-plots Runtime|Devel Docker Images
   </a>:
  </h3>
 
@@ -333,12 +382,12 @@ python -m pip install --no-cache-dir . -v
  🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
 ```bash
-## docker run -it --rm scikitplot/scikit-plots:latest
-docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
+## docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime] -i -c "scikitplot -V"
+docker run -it --rm scikitplot/scikit-plots
 ```
 ```bash
-## docker run -it scikitplot/scikit-plots:latest
-docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest
+## docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
+docker run -it --rm scikitplot/scikit-plots:latest-devel
 ```
 </div>
 
