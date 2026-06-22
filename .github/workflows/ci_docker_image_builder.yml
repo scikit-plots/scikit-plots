@@ -60,6 +60,20 @@ name: CI 🐋 Docker Recommended multi-platform flow (QEMU + Buildx + build-push
 
 # Trigger the workflow on push to any branch or tag
 on:
+  # Run after another workflow finishes → workflow_run
+  # workflow_run trigger removed: it is flagged by zizmor (dangerous-triggers /
+  # high severity) and is redundant with the coordinated schedule approach.
+  # Clean-first order is guaranteed by schedule offsets:
+  #   Cleaner: last-day-of-month 23:00 UTC (purge) + 1st 09:00 UTC (routine)
+  #   Builder: 1st-of-month 11:11 UTC  (2 h after routine cleaner finishes)
+  # Share logic between workflows → workflow_call
+  # workflow_call:  # Mark as Reusable Workflow
+  # call-workflow:  # Call a Reusable Workflow
+  #   uses: ./.github/workflows/ci_docker_registry_cleaner.yml
+  # Trigger conditionally or across repositories → repository_dispatch
+  # Start a workflow on demand from another workflow → workflow_dispatch API
+  # repository_dispatch:  # Mark as Workflow dispatch
+  #   types: [run-ci_docker_registry_cleaner]
   workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
       free_disk_space:                                  # Specify true/false
@@ -100,7 +114,8 @@ on:
     ##                 │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
     ##                 │  │  │ │ │
     ## Example: cron: "11 11 * * SUN,WED"  # (alternate: every Sunday and Wednesday at 11:11 UTC)
-    - cron: '11 11 * * 1'
+    # - cron: '11 11 * * 1'  # weekly, cause many stale image
+    - cron: '11 11 1 * *'  # 1st of month 11:11 UTC — starts 2 h after cleaner routine (09:00 UTC); purge completed last-day 23:00 UTC.
 
 
 ## simultaneity
@@ -170,6 +185,7 @@ jobs:
     runs-on: ubuntu-latest  # Use Ubuntu runner for Docker tasks
     # Safety net for a hung multi-arch/QEMU build consuming the runner indefinitely.
     # Placeholder value — tune to comfortably exceed your observed p95 build time.
+
     timeout-minutes: 301
     permissions:
       contents: read

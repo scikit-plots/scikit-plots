@@ -1,4 +1,4 @@
-# .github/workflows/ci_docker_cleanup.yml
+# .github/workflows/ci_docker_registry_cleaner.yml
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # Docker Registry Storage Management — Delete old image tags after a push.
@@ -58,10 +58,12 @@
 #
 # SCHEDULING
 #   Two monthly cron triggers (see the schedule: block for the exact strings):
-#     • 1st of month   → routine cleanup  (purge OFF)
-#     • last day        → purge cleanup    (purge ON)
+#     • 1st of month 09:00 UTC  → routine cleanup (purge OFF, runs 2 h before builder)
+#     • last day      23:00 UTC → purge cleanup   (purge ON)
 #   The "last day" cron fires on days 28-31; the resolve step promotes it to a
 #   real purge only when tomorrow is the 1st, so it runs exactly once a month.
+#   workflow_run is NOT an active trigger; the schedule offsets provide the
+#   correct clean-first ordering without the security risk (see zizmor).
 #
 # CUTOFF DATE
 #   cutoff = midnight UTC of (today − cleanup_keep_days)
@@ -90,9 +92,22 @@
 #   Quay.io API        : https://docs.quay.io/api/swagger/
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: CI 🐋 Docker Registry 🧹 — Cleanup Old Tags
+name: "CI 🐋 Docker Registry 🧹 — Cleanup Old Tags"
 
 on:
+  # Run after another workflow finishes → workflow_run
+  # workflow_run:
+  #   workflows: ["CI 🐋 Docker Registry 🧹 — Cleanup Old Tags"]  # should match
+  #   types:
+  #     - completed
+  # Share logic between workflows → workflow_call
+  # workflow_call:  # Mark as Reusable Workflow
+  # call-workflow:  # Call a Reusable Workflow
+  #   uses: ./.github/workflows/ci_docker_registry_cleaner.yml
+  # Trigger conditionally or across repositories → repository_dispatch
+  # Start a workflow on demand from another workflow → workflow_dispatch API
+  # repository_dispatch:  # Mark as Workflow dispatch
+  #   types: [run-ci_docker_registry_cleaner]
   workflow_dispatch: # Allows manual triggering of the workflow
     inputs:
       cleanup_registry:
@@ -164,8 +179,7 @@ on:
       cleanup_policies:
         description: >-
           Per-tag-pattern retention policies (JSON array, conda-channel style).
-          Each entry:
-          ```{ "pattern": "<POSIX ERE>", "keep_days": <int>, "label": "<str>" }```.
+          Each entry: { "pattern": "<POSIX ERE>", "keep_days": <int>, "label": "<str>" }.
           First matching policy wins (priority = array order).
           keep_days: -1  → keep forever (never a deletion candidate).
           keep_days: 0   → keep tags pushed today only (same as global default).
@@ -177,7 +191,6 @@ on:
           Leave empty to use the global cleanup_keep_days for every tag (default
           behaviour — fully backward compatible).
           Example (scikit-plots wheel matrix):
-          ```
             [
               {"pattern":"^Wheel-3\\.9-",  "keep_days":7,  "label":"py39 wheels"},
               {"pattern":"^Wheel-3\\.10-", "keep_days":14, "label":"py310 wheels"},
@@ -185,7 +198,6 @@ on:
               {"pattern":"^v[0-9]",        "keep_days":90, "label":"release tags"},
               {"pattern":"^latest$",       "keep_days":-1, "label":"latest pointer"}
             ]
-          ```
         required: false
         type: string
         default: ''
@@ -222,17 +234,19 @@ on:
     ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
     ##        │  │  │ │ │
     ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
-    - cron: '11 11 * * *'
+    # - cron: '11 11 * * *'  # daily
+    # - cron: '11 11 * * 1'  # weekly
     ## ── Monthly maintenance schedule ────────────────────────────────────────
     ## These two cron strings MUST stay in sync with ROUTINE_CRON / PURGE_CRON
     ## in the 'resolve' step below, which maps each trigger to its parameters.
     ##
     ##   1st of month, 11:11 UTC  → routine cleanup (purge OFF, live)
-    # - cron: '11 11 1 * *'
-    ##   days 28-31, 23:00 UTC    → purge candidate; the resolve step promotes
-    ##   this to a real purge ONLY when tomorrow is the 1st (true last day),
-    ##   so the purge runs exactly once per month regardless of month length.
-    - cron: '0 23 28-31 * *'
+    ##   1st of month, 09:00 UTC  → routine cleanup (purge OFF, live)
+    ##                              runs 2 h before the builder (11:11 UTC)
+    - cron: '0 9 1 * *'        # monthly, 1st of month 09:00 UTC — routine cleanup; 2 h before builder
+    ##   days 28-31, 23:00 UTC  → purge candidate; resolve step promotes to real
+    ##                           purge ONLY when tomorrow is the 1st (true last day)
+    - cron: '0 23 28-31 * *'   # monthly, last day 23:00 UTC — purge sweep
 
 
 ## Workflow-level permissions: minimal (principle of least privilege).
@@ -240,6 +254,22 @@ on:
 # permissions: {}  # Declare default permissions as read only.
 permissions:
   contents: read
+
+# ── Concurrency guard (MEDIUM-6) ────────────────────────────────────────────
+# The cleaner and the builder are coupled through TIME, not code — the only
+# thing preventing a builder run from starting mid-pagination of a cleaner
+# run is the 2-hour schedule offset (cleaner 09:00 UTC -> builder 11:11 UTC).
+# A manual cleanup_registry dispatch could still overlap an in-progress
+# scheduled run (or another manual dispatch), racing on DELETE/GET pagination
+# against the same registries. Queue (don't cancel) overlapping runs so a
+# half-finished pagination loop is never abandoned mid-flight.
+# cancel-in-progress is deliberately false: cancelling a cleanup run partway
+# through a DELETE loop is more dangerous than letting it finish and queuing
+# the next one — there is no useful "this run is stale, drop it" signal here
+# the way there is for, e.g., a build triggered by superseded source code.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 
 jobs:
@@ -250,16 +280,14 @@ jobs:
     # Fork guard: only run on the canonical repository so fork PRs cannot
     # accidentally delete tags from the upstream registries.
     #
-    # workflow_run     : only when the upstream build actually succeeded.
     # workflow_dispatch: honour 'none' to allow users to skip cleanup entirely.
-    # schedule         : monthly maintenance (routine on the 1st, purge on the
-    #                    last day).  Previously absent — scheduled runs silently
-    #                    no-opped because no branch matched event_name=schedule.
+    # schedule         : monthly maintenance:
+    #                      1st of month 09:00 UTC → routine cleanup (purge OFF)
+    #                      last day of month 23:00 UTC → purge sweep (purge ON
+    #                        on true last day only; resolve step enforces this).
     if: >-
       github.repository == 'scikit-plots/scikit-plots' &&
       (
-        (github.event_name == 'workflow_run' &&
-         github.event.workflow_run.conclusion == 'success') ||
         (github.event_name == 'workflow_dispatch' &&
          inputs.cleanup_registry != 'none') ||
         github.event_name == 'schedule'
@@ -284,8 +312,8 @@ jobs:
       QUAY_NAMESPACE:   ${{ github.repository_owner }}
 
       # ── Cleanup parameters — workflow_dispatch values or safe defaults ────────
-      # The '|| default' fallback activates when triggered by workflow_run /
-      # schedule (no inputs available) or when the user omits an optional field.
+      # The '|| default' fallback activates when triggered by schedule
+      # (no inputs available) or when the user omits an optional field.
       CLEANUP_TARGET:   ${{ inputs.cleanup_registry          || 'all'  }}
       KEEP_DAYS:        ${{ inputs.cleanup_keep_days         || '0'    }}
       IGNORE_PATTERNS:  ${{ inputs.cleanup_ignore_patterns   || '^latest$,^latest-,^main$,^maintenance-,^v[0-9]' }}
@@ -309,13 +337,30 @@ jobs:
       # GitHub Actions cannot run date logic inside `env:`/`if:` expressions, so
       # the mapping "which trigger → which behaviour" lives here, runs once, and
       # is exported as step outputs consumed by every downstream step:
-      #   • dry_run     — manual runs default to dry-run; scheduled & post-build
-      #                   runs are live.  Manual operators can still override.
-      #   • purge       — true only on the last-day-of-month cron (or when the
-      #                   operator ticks cleanup_purge on a manual run).
-      #   • run_cleanup — false when the 28-31 purge cron fires on a NON-last day
-      #                   (so the job no-ops instead of running an off-schedule
-      #                   sweep); true otherwise.
+      #   • dry_run       — manual runs default to dry-run; scheduled & post-build
+      #                     runs are live.  Manual operators can still override.
+      #   • purge         — true only on the last-day-of-month cron (or when the
+      #                     operator ticks cleanup_purge on a manual run).
+      #   • run_cleanup   — false when the 28-31 purge cron fires on a NON-last
+      #                     day (so the job no-ops instead of running an
+      #                     off-schedule sweep); true otherwise.
+      #   • today_midnight — (SUPP-3) midnight UTC of "today", computed ONCE
+      #                     here and reused by every registry step as the
+      #                     cutoff base.  Each registry step previously called
+      #                     `date -u +%Y-%m-%dT00:00:00Z` independently; a run
+      #                     straddling a UTC-midnight rollover could then see
+      #                     three DIFFERENT "today" values across DH/GHCR/Quay,
+      #                     silently shifting each registry's cutoff by a day
+      #                     relative to the others. One value, one source of
+      #                     truth, shared by all three.
+      # This step is also (NEW-A + MEDIUM-5) the single validation point for
+      # KEEP_DAYS and CLEANUP_POLICIES. Both were previously re-validated
+      # identically in the DH/GHCR/Quay steps — three copies of the same guard
+      # that only matters once: a bad value still wouldn't be caught until
+      # whichever registry step happened to run first, and a registry step
+      # that's skipped this run (cleanup_registry != 'all') would never see
+      # the check at all. Failing fast here means one bad input aborts the
+      # whole job before any step (let alone any destructive call) runs.
       # Outputs (not $GITHUB_ENV) are used so they are usable in later `if:`.
       - name: 🧭 Resolve effective parameters
         id: resolve
@@ -326,10 +371,56 @@ jobs:
           IN_PURGE:     ${{ inputs.cleanup_purge }}
           IN_DRY_RUN:   ${{ inputs.cleanup_dry_run }}
           # MUST match the cron strings in the schedule: block above.
-          ROUTINE_CRON: '11 11 * * *'
-          PURGE_CRON:   '0 23 28-31 * *'
+          ROUTINE_CRON: '0 9 1 * *'    # 1st of month — MUST stay in sync with schedule: block above
+          PURGE_CRON:   '0 23 28-31 * *'  # monthly
+          # KEEP_DAYS / CLEANUP_POLICIES are already job-level `env:` (see the
+          # job's env: block above) and so are already real shell variables in
+          # this step without being re-listed here; declared explicitly anyway
+          # for readability at the point of use.
+          KEEP_DAYS:        ${{ env.KEEP_DAYS }}
+          CLEANUP_POLICIES: ${{ env.CLEANUP_POLICIES }}
         run: |
           set -Eeuo pipefail
+
+          # ── Validate KEEP_DAYS once for the whole job (NEW-A) ────────────────
+          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
+            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
+            exit 1
+          fi
+
+          # ── Validate CLEANUP_POLICIES once for the whole job (MEDIUM-5) ──────
+          # Must be a JSON array; malformed JSON is a hard error (fail fast so
+          # the operator discovers the typo before any destructive action is
+          # taken). Each element is validated explicitly — no silent coercion
+          # of bad shapes — per the "validate all inputs and assumptions" rule.
+          # 'pattern' must be a non-empty string; 'keep_days' must be an
+          # integer >= -1. 'label' is optional/free-form, not validated beyond
+          # the array-of-objects shape check below.
+          if [[ -n "${CLEANUP_POLICIES:-}" ]]; then
+            if ! printf '%s' "${CLEANUP_POLICIES}" | jq -e 'type == "array"' > /dev/null 2>&1; then
+              echo "❌ cleanup_policies must be a valid JSON array." >&2
+              echo "   Got: '${CLEANUP_POLICIES:0:120}'" >&2
+              exit 1
+            fi
+            if ! printf '%s' "${CLEANUP_POLICIES}" | jq -e '
+                  all(.[]?;
+                    (.pattern | type == "string" and length > 0) and
+                    (.keep_days | type == "number" and (. == floor) and . >= -1)
+                  )' > /dev/null 2>&1; then
+              echo "❌ cleanup_policies has a malformed entry." >&2
+              echo "   Each entry needs: {\"pattern\":\"<non-empty POSIX ERE>\",\"keep_days\":<int >= -1>}" >&2
+              echo "   Got: '${CLEANUP_POLICIES:0:200}'" >&2
+              exit 1
+            fi
+          fi
+
+          # ── Centralised cutoff base (SUPP-3) ─────────────────────────────────
+          # Every registry step derives its cutoff from these values instead
+          # of computing its own "now", ensuring the comparison baseline is
+          # identical even if the run straddles midnight.
+          TODAY_MIDNIGHT="$(date -u +%Y-%m-%dT00:00:00Z)"
+          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
+          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
 
           purge='false'
           dry_run='false'
@@ -344,9 +435,10 @@ jobs:
               reason="manual workflow_dispatch (purge=${purge}, dry_run=${dry_run})"
               ;;
             workflow_run)
-              # Automatic post-build cleanup: live, never purge.
+              # Kept as a safe fallback: workflow_run is not an active trigger
+              # but if it were re-enabled it would behave sensibly here.
               dry_run='false'
-              reason='post-build workflow_run (live, no purge)'
+              reason='post-build workflow_run (live, no purge) [INACTIVE TRIGGER]'
               ;;
             schedule)
               # Scheduled maintenance: live.
@@ -382,6 +474,9 @@ jobs:
             echo "purge=${purge}"
             echo "dry_run=${dry_run}"
             echo "run_cleanup=${run_cleanup}"
+            echo "today_midnight=${TODAY_MIDNIGHT}"
+            echo "cutoff_epoch=${CUTOFF_EPOCH}"
+            echo "cutoff_date=${CUTOFF_DATE}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "═══════════════════════════════════════════════════════════════"
@@ -391,6 +486,8 @@ jobs:
           echo "    run_cleanup : ${run_cleanup}"
           echo "    purge       : ${purge}"
           echo "    dry_run     : ${dry_run}"
+          echo "    today (UTC) : ${TODAY_MIDNIGHT}"
+          echo "    cutoff (UTC): ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
           echo "═══════════════════════════════════════════════════════════════"
           if [[ "${purge}" == 'true' && "${dry_run}" != 'true' ]]; then
             echo "::warning::PURGE MODE (LIVE) — age and ignore-pattern filters are bypassed; only PURGE_KEEP_PATTERNS survive."
@@ -414,6 +511,12 @@ jobs:
           DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
           DRY_RUN:            ${{ steps.resolve.outputs.dry_run }}
           PURGE:              ${{ steps.resolve.outputs.purge }}
+          # (SUPP-3) Consumed from the resolve step's single source of truth
+          # instead of each registry step computing its own "today"/cutoff —
+          # see the resolve step for why that mattered.
+          TODAY_MIDNIGHT:     ${{ steps.resolve.outputs.today_midnight }}
+          CUTOFF_EPOCH:       ${{ steps.resolve.outputs.cutoff_epoch }}
+          CUTOFF_DATE:        ${{ steps.resolve.outputs.cutoff_date }}
         run: |
           set -Eeuo pipefail
 
@@ -425,6 +528,7 @@ jobs:
           echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH}) [global default]"
           echo "═══════════════════════════════════════════════════════════════"
 
           # ── Guard: credentials required ─────────────────────────────────────
@@ -437,45 +541,24 @@ jobs:
             exit 0
           fi
 
-          # ── Validate KEEP_DAYS is a non-negative integer ────────────────────
-          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
-            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
-            exit 1
-          fi
+          # KEEP_DAYS and CLEANUP_POLICIES are validated exactly once, in the
+          # 'resolve' step (NEW-A, MEDIUM-5) — that step has no
+          # continue-on-error, so an invalid value aborts the whole job before
+          # any registry step (this one included) ever runs. Re-validating here
+          # would be dead code: it could never fire with an input that didn't
+          # already fail resolve first.
 
-          # ── Compute global cutoff epoch (fallback for tags matching no policy) ─
-          # Mirrors the GHCR/Quay steps exactly so behaviour is identical when
-          # cleanup_policies is empty (fully backward compatible).
-          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
-          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
-          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
-          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH}) [global default]"
+          # ── Rate-limit / retry tuning (LOW-1) ────────────────────────────────
+          # Single named constants instead of a magic "sleep 0.3" repeated at
+          # every call site — easier to tune, and the intent ("respect Docker
+          # Hub's API rate limit") is visible at the definition instead of only
+          # in a comment next to one of several copies.
+          readonly API_DELETE_DELAY_SECONDS="0.3"
+          readonly MAX_DELETE_RETRIES=3
+          readonly RETRY_BASE_DELAY_SECONDS=1
 
-          # ── Validate CLEANUP_POLICIES JSON (if provided) ─────────────────────
-          # Must be a JSON array; malformed JSON is a hard error (fail fast so the
-          # operator discovers the typo before any destructive action is taken).
-          # Each element is validated explicitly — no silent coercion of bad
-          # shapes — per the "validate all inputs and assumptions" rule.
           POLICY_COUNT=0
           if [[ -n "${CLEANUP_POLICIES:-}" ]]; then
-            if ! printf '%s' "${CLEANUP_POLICIES}" | jq -e 'type == "array"' > /dev/null 2>&1; then
-              echo "❌ cleanup_policies must be a valid JSON array." >&2
-              echo "   Got: '${CLEANUP_POLICIES:0:120}'" >&2
-              exit 1
-            fi
-            # Structural validation of every element: 'pattern' must be a
-            # non-empty string, 'keep_days' must be an integer >= -1.
-            # 'label' is optional/free-form and not validated beyond type.
-            if ! printf '%s' "${CLEANUP_POLICIES}" | jq -e '
-                  all(.[]?;
-                    (.pattern | type == "string" and length > 0) and
-                    (.keep_days | type == "number" and (. == floor) and . >= -1)
-                  )' > /dev/null 2>&1; then
-              echo "❌ cleanup_policies has a malformed entry." >&2
-              echo "   Each entry needs: {\"pattern\":\"<non-empty POSIX ERE>\",\"keep_days\":<int >= -1>}" >&2
-              echo "   Got: '${CLEANUP_POLICIES:0:200}'" >&2
-              exit 1
-            fi
             POLICY_COUNT=$(printf '%s' "${CLEANUP_POLICIES}" | jq 'length')
             echo "    Policies   : ${POLICY_COUNT} per-tag retention policy/ies active"
           else
@@ -483,15 +566,23 @@ jobs:
           fi
 
           # ── Helper: resolve the effective keep_days for one tag name ────────
-          # First matching policy wins (array order = priority).  No match →
-          # fall back to the global KEEP_DAYS.  Pure function: reads only its
-          # argument and the read-only CLEANUP_POLICIES/KEEP_DAYS env vars.
+          # First matching policy in CLEANUP_POLICIES wins (array order =
+          # priority); no match falls back to the global KEEP_DAYS.
+          # Reads (besides its argument): POLICY_COUNT, CLEANUP_POLICIES,
+          # KEEP_DAYS from the step scope (NEW-C — previously undocumented).
+          # Pure with respect to side effects: no globals modified, no network
+          # calls, safe to call repeatedly per tag.
           get_policy_keep_days() {
             local tag="$1"
             [[ "${POLICY_COUNT}" -eq 0 ]] && { echo "${KEEP_DAYS}"; return 0; }
             local result
+            # (SUPP-1) `.pattern` must be read from the policy object *before*
+            # the pipe hands `.` over to the tag string, otherwise `test(.pattern)`
+            # tries to index the tag string itself and jq errors with "Cannot
+            # index string with string \"pattern\"" the first time a policy is
+            # actually supplied. Binding `.pattern` to $p up front fixes this.
             result=$(printf '%s' "${CLEANUP_POLICIES}" | jq -r --arg tag "${tag}" '
-              [ .[] | select(($tag | test(.pattern))) ] | .[0].keep_days // empty
+              [ .[] | select(.pattern as $p | ($tag | test($p))) ] | .[0].keep_days // empty
             ')
             if [[ -z "${result}" ]]; then
               echo "${KEEP_DAYS}"
@@ -504,6 +595,10 @@ jobs:
           # keep_days == -1 is the "keep forever" sentinel — represented as an
           # empty string so callers branch explicitly rather than relying on a
           # magic numeric cutoff that could accidentally compare true.
+          # Reads (besides its argument): KEEP_DAYS, CUTOFF_EPOCH,
+          # TODAY_MIDNIGHT from the step scope (NEW-C — previously undocumented;
+          # TODAY_MIDNIGHT in particular now comes from steps.resolve.outputs,
+          # not a local `date -u` call — see SUPP-3).
           policy_cutoff_epoch() {
             local kd="$1"
             if [[ "${kd}" == "-1" ]]; then
@@ -517,86 +612,185 @@ jobs:
             date -u -d "${TODAY_MIDNIGHT} - ${kd} days" +%s
           }
 
-          # Docker Hub v2 returns a short-lived Bearer JWT.
-          # We use -f so curl exits non-zero on HTTP 4xx/5xx (covered by set -e).
-          DH_JWT=$(curl -fsSL \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "{\"username\":\"${DOCKERHUB_USERNAME}\",\"password\":\"${DOCKERHUB_TOKEN}\"}" \
-            "https://hub.docker.com/v2/users/login" \
-            | jq -r '.token // empty')
-
-          if [[ -z "${DH_JWT}" ]]; then
-            echo "❌ Docker Hub login returned an empty token." >&2
-            exit 1
-          fi
-          echo "✅ Authenticated with Docker Hub."
-
-          # ── Helper: does a tag name match any ignore pattern? ────────────────
-          # Parses IGNORE_PATTERNS once per call (small overhead, explicit).
-          # Uses POSIX ERE (grep -E) for broad compatibility.
-          tag_is_ignored() {
-            local tag="$1"
-            local pattern
-            local OLD_IFS="${IFS}"
-            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
-            IFS="${OLD_IFS}"
-            for pattern in "${PATTERNS[@]}"; do
-              # Trim surrounding whitespace so "^latest$, ^main$" works too.
-              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
-              pattern="${pattern%"${pattern##*[![:space:]]}"}"
-              [[ -z "${pattern}" ]] && continue
-              if echo "${tag}" | grep -Eq "${pattern}"; then
-                return 0  # matched — tag is ignored
-              fi
-            done
-            return 1  # no match — tag is a deletion candidate
+          # ── Helper: authenticate with Docker Hub, set DH_JWT + AUTH_HEADER ───
+          # Factored out of the one-shot login below so it can also be called
+          # mid-run to refresh an expired token (CRITICAL-2). Docker Hub JWTs
+          # are short-lived (~5 minutes); a sweep over a large tag set can
+          # easily outlive one token, so refresh-on-401 is not optional for
+          # this registry the way it might be for a longer-lived credential.
+          dockerhub_login() {
+            local jwt
+            jwt=$(curl -fsSL \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -d "{\"username\":\"${DOCKERHUB_USERNAME}\",\"password\":\"${DOCKERHUB_TOKEN}\"}" \
+              "https://hub.docker.com/v2/users/login" \
+              | jq -r '.token // empty')
+            if [[ -z "${jwt}" ]]; then
+              echo "❌ Docker Hub login returned an empty token." >&2
+              exit 1
+            fi
+            DH_JWT="${jwt}"
+            # Avoid: `set -x` in secret-bearing workflows.
+            AUTH_HEADER="Authorization: Bearer ${DH_JWT}"
           }
 
-          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
-          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
-          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
-          purge_is_kept() {
-            local tag="$1" pattern
-            [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
+          dockerhub_login
+          echo "✅ Authenticated with Docker Hub."
+
+          # ── Helper: authenticated GET with one-shot JWT refresh on expiry ───
+          # (CRITICAL-2) On HTTP 401 we re-authenticate exactly once and retry
+          # the same request; a second 401 after a fresh login is a real auth
+          # failure, not a stale token, and is reported as such.
+          dockerhub_get() {
+            local url="$1" resp http body
+            resp=$(curl -s -w '\n%{http_code}' -H "${AUTH_HEADER}" "${url}")
+            http=$(printf '%s' "${resp}" | tail -n1)
+            body=$(printf '%s' "${resp}" | sed '$d')
+            if [[ "${http}" == "401" ]]; then
+              echo "    🔄 Docker Hub JWT expired (HTTP 401) — re-authenticating..." >&2
+              dockerhub_login
+              resp=$(curl -s -w '\n%{http_code}' -H "${AUTH_HEADER}" "${url}")
+              http=$(printf '%s' "${resp}" | tail -n1)
+              body=$(printf '%s' "${resp}" | sed '$d')
+            fi
+            if [[ ! "${http}" =~ ^2 ]]; then
+              echo "❌ Docker Hub GET failed (HTTP ${http}): ${url}" >&2
+              printf '%s' "${body}" | head -c 500 >&2
+              exit 1
+            fi
+            printf '%s' "${body}"
+          }
+
+          # ── Helper: does VALUE match any pattern in a comma-separated ERE
+          #    list? (MEDIUM-7) Single primitive shared by the ignore-pattern
+          #    and purge-keep-pattern checks below, which previously each
+          #    carried an identical copy of this IFS-split + trim + grep loop.
+          #    Trims surrounding whitespace from every pattern; empty patterns
+          #    (e.g. from a trailing comma) are skipped, not treated as "match
+          #    everything".
+          _value_matches_any_pattern() {
+            local value="$1" csv="$2" pattern
+            [[ -z "${csv}" ]] && return 1
             local OLD_IFS="${IFS}"
-            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
+            IFS=',' read -ra _PATTERNS <<< "${csv}"
             IFS="${OLD_IFS}"
-            for pattern in "${KEEP_PATTERNS[@]}"; do
+            for pattern in "${_PATTERNS[@]}"; do
               pattern="${pattern#"${pattern%%[![:space:]]*}"}"
               pattern="${pattern%"${pattern##*[![:space:]]}"}"
               [[ -z "${pattern}" ]] && continue
-              if echo "${tag}" | grep -Eq "${pattern}"; then
-                return 0  # protected even under purge
+              if echo "${value}" | grep -Eq "${pattern}"; then
+                return 0
               fi
             done
             return 1
           }
 
+          # ── Helper: does a tag name match any ignore pattern? ────────────────
+          tag_is_ignored() { _value_matches_any_pattern "$1" "${IGNORE_PATTERNS:-}"; }
+
+          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
+          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
+          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
+          purge_is_kept() { _value_matches_any_pattern "$1" "${PURGE_KEEP_PATTERNS:-}"; }
+
           # ── Helper: idempotent DELETE of one Docker Hub tag (honours DRY_RUN) ─
-          # Single source of truth for the destructive call, reused by both the
-          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
+          # Single source of truth for the destructive call — reused by the
+          # age-based loop, the purge loop, AND explicit deletion (HIGH-2;
+          # explicit deletion previously inlined its own separate curl call).
+          # Outcome is reported via stdout ("deleted" | "skipped" | error:<http>:
+          # <body>) and a non-zero return on error; the CALLER increments
+          # whichever counters apply to its context (main-loop vs explicit),
+          # which is what makes one helper safely reusable by both.
+          # Idempotency (CRITICAL-3): both HTTP 400 and 404 mean "already
+          # gone" — Docker Hub returns 400 for some not-found cases, not just
+          # 404, so treating only 404 as idempotent under-counted real
+          # failures as errors.
+          # Error visibility (MEDIUM-4): the response body is now captured and
+          # surfaced on failure instead of being discarded via -o /dev/null.
           dockerhub_delete_tag() {
-            local tag="$1"
+            local tag="$1" url resp http body
             if [[ "${DRY_RUN}" == 'true' ]]; then
-              DELETED=$(( DELETED + 1 ))  # count as "would delete" — no API call
+              echo "deleted"
               return 0
             fi
-            local http
-            http=$(curl -s -o /dev/null -w "%{http_code}" \
-              -X DELETE \
-              -H "${AUTH_HEADER}" \
-              "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${tag}")
-            if [[ "${http}" =~ ^2 ]]; then
-              DELETED=$(( DELETED + 1 ))
-            elif [[ "${http}" == "404" ]]; then
-              # Already absent — idempotent, do not count as error.
-              echo "    ℹ️  Tag already gone (HTTP 404) — skipping."
-            else
-              echo "    ⚠️  Delete failed (HTTP ${http})" >&2
-              ERRORS=$(( ERRORS + 1 ))
+            url="https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${tag}"
+            resp=$(curl -s -w '\n%{http_code}' -X DELETE -H "${AUTH_HEADER}" "${url}")
+            http=$(printf '%s' "${resp}" | tail -n1)
+            body=$(printf '%s' "${resp}" | sed '$d')
+            if [[ "${http}" == "401" ]]; then
+              echo "    🔄 Docker Hub JWT expired mid-delete (HTTP 401) — re-authenticating..." >&2
+              dockerhub_login
+              resp=$(curl -s -w '\n%{http_code}' -X DELETE -H "${AUTH_HEADER}" "${url}")
+              http=$(printf '%s' "${resp}" | tail -n1)
+              body=$(printf '%s' "${resp}" | sed '$d')
             fi
-            sleep 0.3  # respect Docker Hub API rate limits
+            sleep "${API_DELETE_DELAY_SECONDS}"  # respect Docker Hub API rate limits
+            if [[ "${http}" =~ ^2 ]]; then
+              echo "deleted"
+            elif [[ "${http}" == "400" || "${http}" == "404" ]]; then
+              echo "skipped"
+            else
+              echo "error:${http}:${body:0:200}"
+              return 1
+            fi
+          }
+
+          # ── Helper: retry a delete with exponential backoff on transient
+          #    failures (HIGH-1). Only HTTP 429 (rate-limited) and 5xx (server
+          #    error) are retried — both are plausibly transient. Any other
+          #    outcome (2xx, 400/404 "skipped", or a non-retryable 4xx) is
+          #    returned immediately on the first attempt. Backoff doubles each
+          #    attempt starting at RETRY_BASE_DELAY_SECONDS, up to
+          #    MAX_DELETE_RETRIES attempts total.
+          with_retry() {
+            local attempt=1 result
+            while true; do
+              result=$("$@")
+              case "${result}" in
+                deleted|skipped)
+                  echo "${result}"
+                  return 0
+                  ;;
+                error:429:*|error:5??:*)
+                  if (( attempt >= MAX_DELETE_RETRIES )); then
+                    echo "${result}"
+                    return 1
+                  fi
+                  local delay=$(( RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1)) ))
+                  echo "    ⏳ Transient failure (${result#error:}), retrying in ${delay}s (attempt ${attempt}/${MAX_DELETE_RETRIES})..." >&2
+                  sleep "${delay}"
+                  attempt=$(( attempt + 1 ))
+                  ;;
+                *)
+                  echo "${result}"
+                  return 1
+                  ;;
+              esac
+            done
+          }
+
+          # ── Helper: classify a with_retry result into the caller's counters ─
+          # Keeps the case/echo/counter-bump logic in one place instead of
+          # duplicating it at every one of the (main age-based, main purge,
+          # explicit) call sites that invoke a delete helper.
+          # $1/$2/$3 are the names of the deleted/skipped/errors counter
+          # variables to bump (different in the main loop vs explicit block).
+          _apply_delete_result() {
+            local result="$1" label="$2" deleted_var="$3" skipped_var="$4" errors_var="$5"
+            case "${result}" in
+              deleted)
+                printf -v "${deleted_var}" '%s' "$(( ${!deleted_var} + 1 ))"
+                ;;
+              skipped)
+                echo "    ℹ️  ${label} already gone — skipping." >&2
+                printf -v "${skipped_var}" '%s' "$(( ${!skipped_var} + 1 ))"
+                ;;
+              error:*)
+                echo "    ⚠️  Delete failed for ${label}: ${result#error:}" >&2
+                printf -v "${errors_var}" '%s' "$(( ${!errors_var} + 1 ))"
+                ;;
+            esac
           }
 
           # ── Paginate through all tags ────────────────────────────────────────
@@ -607,10 +801,8 @@ jobs:
           DELETED=0
           KEPT=0
           IGNORED=0
+          SKIPPED=0
           ERRORS=0
-
-          # Avoid: `set -x` in secret-bearing workflows.
-          AUTH_HEADER="Authorization: Bearer ${DH_JWT}"
 
           if [[ "${PURGE}" == 'true' ]]; then
             echo "🔥 PURGE MODE — deleting ALL tags regardless of age/ignore patterns."
@@ -618,9 +810,7 @@ jobs:
           fi
 
           while [[ -n "${NEXT_URL}" ]]; do
-            RESPONSE=$(curl -fsSL \
-              -H "${AUTH_HEADER}" \
-              "${NEXT_URL}")
+            RESPONSE=$(dockerhub_get "${NEXT_URL}")
 
             # Validate shape before iterating; a non-array here means an API error.
             if ! echo "${RESPONSE}" | jq -e '(.results | type) == "array"' > /dev/null 2>&1; then
@@ -649,7 +839,8 @@ jobs:
                   continue
                 fi
                 echo "  🔥 PURGE-DELETE ${TAG_NAME}  (pushed ${TAG_PUSHED:-unknown})"
-                dockerhub_delete_tag "${TAG_NAME}"
+                _apply_delete_result "$(with_retry dockerhub_delete_tag "${TAG_NAME}")" \
+                  "${TAG_NAME}" DELETED SKIPPED ERRORS
                 continue
               fi
 
@@ -699,13 +890,17 @@ jobs:
               # ── Deletion candidate ─────────────────────────────────────────
               TAG_CUTOFF_DATE=$(date -u -d "@${TAG_CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
               echo "  🗑️  DELETE  ${TAG_NAME}  (pushed ${TAG_PUSHED}, keep_days=${TAG_KEEP_DAYS}, before cutoff ${TAG_CUTOFF_DATE})"
-              dockerhub_delete_tag "${TAG_NAME}"
+              _apply_delete_result "$(with_retry dockerhub_delete_tag "${TAG_NAME}")" \
+                "${TAG_NAME}" DELETED SKIPPED ERRORS
             done < <(echo "${RESPONSE}" | jq -c '.results[]')
           done
 
           # ── Explicit tag deletion ────────────────────────────────────────────
           # Attempt to delete each tag named in EXPLICIT_TAGS, regardless of age
           # or ignore-pattern matching.  Idempotent: absent tags are skipped.
+          # (HIGH-2) Routed through the same dockerhub_delete_tag + with_retry
+          # helpers as the main loop instead of an independent inlined curl —
+          # one DELETE implementation, one retry policy, one idempotency rule.
           if [[ -n "${EXPLICIT_TAGS:-}" ]]; then
             echo ""
             echo "🎯  Explicit tag cleanup (Docker Hub):"
@@ -719,43 +914,47 @@ jobs:
               etag="${etag#"${etag%%[![:space:]]*}"}"
               etag="${etag%"${etag##*[![:space:]]}"}"
               [[ -z "${etag}" ]] && continue
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                echo "  🗑️  WOULD DELETE (explicit)  ${etag}"
-                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-              else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  "https://hub.docker.com/v2/repositories/${IMAGE_NAMESPACE}/${IMAGE_REPO}/tags/${etag}")
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
-                  echo "  🗑️  DELETED (explicit)  ${etag}"
-                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "404" ]]; then
-                  echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found — already removed)"
-                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
-                else
-                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${HTTP_STATUS})" >&2
-                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
-                fi
-                sleep 0.3
-              fi
+              # Single unconditional label — the age-based and purge loops
+              # above don't branch their DELETE / PURGE-DELETE lines on
+              # DRY_RUN either, so this block shouldn't be the odd one out.
+              # dockerhub_delete_tag itself no-ops on DRY_RUN=true (returns
+              # "deleted" without calling the API), so one call path covers
+              # both dry-run and live — no separate dry-run counter branch.
+              # The live/dry-run distinction is surfaced exactly once, via
+              # the DRY_LABEL suffix on the step summary's deleted count,
+              # rather than duplicated at every line that logs a delete.
+              echo "  🗑️  DELETE (explicit)  ${etag}"
+              _apply_delete_result "$(with_retry dockerhub_delete_tag "${etag}")" \
+                "${etag}" EXPLICIT_DELETED EXPLICIT_SKIPPED EXPLICIT_ERRORS
             done
             echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            SKIPPED=$(( SKIPPED + EXPLICIT_SKIPPED ))
             ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
           fi
 
           # ── Step summary ──────────────────────────────────────────────────
-          if [[ "${DRY_RUN}" == 'true' ]]; then
-            DRY_LABEL=" (dry-run)"
-          else
-            DRY_LABEL=""
-          fi
+          # (MEDIUM-3) One-liner form, consistent with the other two registry
+          # steps — previously this step alone used a 4-line if/else for the
+          # exact same "(dry-run)" suffix.
+          DRY_LABEL=""
+          [[ "${DRY_RUN}" == 'true' ]] && DRY_LABEL=" (dry-run)"
           echo ""
           echo "📊 Docker Hub cleanup complete:"
           echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
           echo "   Kept    : ${KEPT}"
           echo "   Ignored : ${IGNORED}"
+          echo "   Skipped : ${SKIPPED}  (already gone — idempotent no-ops, not errors)"
           echo "   Errors  : ${ERRORS}"
+
+          # (MEDIUM-2) Export per-registry counts as step outputs so the final
+          # job-summary step can render them without re-parsing this step's log.
+          {
+            echo "deleted=${DELETED}"
+            echo "kept=${KEPT}"
+            echo "ignored=${IGNORED}"
+            echo "skipped=${SKIPPED}"
+            echo "errors=${ERRORS}"
+          } >> "${GITHUB_OUTPUT}"
 
           if [[ "${ERRORS}" -gt 0 ]]; then
             exit 1
@@ -780,6 +979,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DRY_RUN:  ${{ steps.resolve.outputs.dry_run }}
           PURGE:    ${{ steps.resolve.outputs.purge }}
+          # Cutoff values resolved once by the resolve step (SUPP-3) — all
+          # registry steps consume the same baseline rather than each calling
+          # `date` independently.
+          TODAY_MIDNIGHT: ${{ steps.resolve.outputs.today_midnight }}
+          CUTOFF_EPOCH:   ${{ steps.resolve.outputs.cutoff_epoch }}
+          CUTOFF_DATE:    ${{ steps.resolve.outputs.cutoff_date }}
         run: |
           set -Eeuo pipefail
 
@@ -791,19 +996,37 @@ jobs:
           echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
           echo "═══════════════════════════════════════════════════════════════"
 
-          # ── Validate KEEP_DAYS ──────────────────────────────────────────────
-          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
-            echo "❌ cleanup_keep_days must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
-            exit 1
-          fi
+          # ── Rate-limit / retry tuning ─────────────────────────────────────────
+          readonly API_DELETE_DELAY_SECONDS="0.3"
+          readonly MAX_DELETE_RETRIES=3
+          readonly RETRY_BASE_DELAY_SECONDS=1
 
-          # ── Compute cutoff epoch ─────────────────────────────────────────────
-          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
-          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
-          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
-          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
+          # ── Helper: does VALUE match any pattern in a comma-separated ERE
+          #    list? Single primitive shared by the ignore-pattern and
+          #    purge-keep-pattern checks below, which previously each carried an
+          #    identical copy of the IFS-split + trim + grep loop.
+          #    Trims surrounding whitespace from every pattern; empty patterns
+          #    (e.g. from a trailing comma) are skipped, not treated as "match
+          #    everything".
+          _value_matches_any_pattern() {
+            local value="$1" csv="$2" pattern
+            [[ -z "${csv}" ]] && return 1
+            local OLD_IFS="${IFS}"
+            IFS=',' read -ra _PATTERNS <<< "${csv}"
+            IFS="${OLD_IFS}"
+            for pattern in "${_PATTERNS[@]}"; do
+              pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+              pattern="${pattern%"${pattern##*[![:space:]]}"}"
+              [[ -z "${pattern}" ]] && continue
+              if echo "${value}" | grep -Eq "${pattern}"; then
+                return 0
+              fi
+            done
+            return 1
+          }
 
           # ── Helper: does ANY tag in the JSON array match an ignore pattern? ──
           # Returns 0 (true = protected) if at least one tag matches.
@@ -811,21 +1034,10 @@ jobs:
           # candidates.  This prevents split-brain states where one tag on a
           # shared digest is deleted and another preserved.
           any_tag_is_ignored() {
-            local tags_json="$1"
-            local tag pattern
-            local OLD_IFS="${IFS}"
-            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
-            IFS="${OLD_IFS}"
+            local tags_json="$1" tag
             while IFS= read -r tag; do
               [[ -z "${tag}" ]] && continue
-              for pattern in "${PATTERNS[@]}"; do
-                pattern="${pattern#"${pattern%%[![:space:]]*}"}"
-                pattern="${pattern%"${pattern##*[![:space:]]}"}"
-                [[ -z "${pattern}" ]] && continue
-                if echo "${tag}" | grep -Eq "${pattern}"; then
-                  return 0  # at least one tag is protected — keep entire version
-                fi
-              done
+              _value_matches_any_pattern "${tag}" "${IGNORE_PATTERNS:-}" && return 0
             done < <(echo "${tags_json}" | jq -r '.[] // empty')
             return 1  # no tags are protected — version is a candidate
           }
@@ -835,51 +1047,99 @@ jobs:
           # untagged manifest (empty tag list) matches nothing → always purged,
           # which is exactly how stale orphaned digests get reclaimed.
           purge_any_tag_is_kept() {
-            local tags_json="$1"
-            local tag pattern
+            local tags_json="$1" tag
             [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
-            local OLD_IFS="${IFS}"
-            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
-            IFS="${OLD_IFS}"
             while IFS= read -r tag; do
               [[ -z "${tag}" ]] && continue
-              for pattern in "${KEEP_PATTERNS[@]}"; do
-                pattern="${pattern#"${pattern%%[![:space:]]*}"}"
-                pattern="${pattern%"${pattern##*[![:space:]]}"}"
-                [[ -z "${pattern}" ]] && continue
-                if echo "${tag}" | grep -Eq "${pattern}"; then
-                  return 0  # protected even under purge
-                fi
-              done
+              _value_matches_any_pattern "${tag}" "${PURGE_KEEP_PATTERNS}" && return 0
             done < <(echo "${tags_json}" | jq -r '.[] // empty')
             return 1
           }
 
           # ── Helper: idempotent DELETE of one GHCR version (honours DRY_RUN) ──
-          # Single source of truth for the destructive call; reused by the
-          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
+          # Returns "deleted", "skipped", or "error:<http>:<body>" as stdout.
+          # Does NOT mutate DELETED/ERRORS globals; callers use _apply_delete_result.
+          # Idempotency: 404 → "skipped" (already gone, not an error).
+          # Error visibility: response body is captured and surfaced on failure.
           ghcr_delete_version() {
             local version_id="$1"
             if [[ "${DRY_RUN}" == 'true' ]]; then
-              DELETED=$(( DELETED + 1 ))
+              echo "deleted"
               return 0
             fi
-            local http
-            http=$(curl -s -o /dev/null -w "%{http_code}" \
+            local resp http body
+            resp=$(curl -s -w '\n%{http_code}' \
               -X DELETE \
               -H "${AUTH_HEADER}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "${BASE_URL}/${version_id}")
+            http=$(printf '%s' "${resp}" | tail -n1)
+            body=$(printf '%s' "${resp}" | sed '$d')
+            sleep "${API_DELETE_DELAY_SECONDS}"
             if [[ "${http}" =~ ^2 ]]; then
-              DELETED=$(( DELETED + 1 ))
+              echo "deleted"
             elif [[ "${http}" == "404" ]]; then
-              echo "    ℹ️  Version already gone (HTTP 404) — skipping."
+              echo "skipped"
             else
-              echo "    ⚠️  Delete failed (HTTP ${http})" >&2
-              ERRORS=$(( ERRORS + 1 ))
+              echo "error:${http}:${body:0:200}"
+              return 1
             fi
-            sleep 0.3
+          }
+
+          # ── Helper: retry a delete with exponential backoff on transient
+          #    failures. Only HTTP 429 (rate-limited) and 5xx (server error)
+          #    are retried — both are plausibly transient. Any other outcome
+          #    (2xx, "skipped", or a non-retryable 4xx) is returned immediately.
+          #    Backoff doubles each attempt starting at RETRY_BASE_DELAY_SECONDS,
+          #    up to MAX_DELETE_RETRIES attempts total.
+          with_retry() {
+            local attempt=1 result
+            while true; do
+              result=$("$@")
+              case "${result}" in
+                deleted|skipped)
+                  echo "${result}"
+                  return 0
+                  ;;
+                error:429:*|error:5??:*)
+                  if (( attempt >= MAX_DELETE_RETRIES )); then
+                    echo "${result}"
+                    return 1
+                  fi
+                  local delay=$(( RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1)) ))
+                  echo "    ⏳ Transient failure (${result#error:}), retrying in ${delay}s (attempt ${attempt}/${MAX_DELETE_RETRIES})..." >&2
+                  sleep "${delay}"
+                  attempt=$(( attempt + 1 ))
+                  ;;
+                *)
+                  echo "${result}"
+                  return 1
+                  ;;
+              esac
+            done
+          }
+
+          # ── Helper: classify a with_retry result into the caller's counters.
+          #    Keeps the case/echo/counter-bump logic in one place instead of
+          #    duplicating it at every call site (main loop and explicit block).
+          #    $3/$4/$5 are the names of the deleted/skipped/errors counter
+          #    variables to bump (different in the main loop vs explicit block).
+          _apply_delete_result() {
+            local result="$1" label="$2" deleted_var="$3" skipped_var="$4" errors_var="$5"
+            case "${result}" in
+              deleted)
+                printf -v "${deleted_var}" '%s' "$(( ${!deleted_var} + 1 ))"
+                ;;
+              skipped)
+                echo "    ℹ️  ${label} already gone — skipping." >&2
+                printf -v "${skipped_var}" '%s' "$(( ${!skipped_var} + 1 ))"
+                ;;
+              error:*)
+                echo "    ⚠️  Delete failed for ${label}: ${result#error:}" >&2
+                printf -v "${errors_var}" '%s' "$(( ${!errors_var} + 1 ))"
+                ;;
+            esac
           }
 
           # ── Paginate through all package versions ────────────────────────────
@@ -891,6 +1151,7 @@ jobs:
           DELETED=0
           KEPT=0
           IGNORED=0
+          SKIPPED=0
           ERRORS=0
           PAGE=1
 
@@ -941,7 +1202,8 @@ jobs:
                   continue
                 fi
                 echo "  🔥 PURGE-DELETE version=${VERSION_ID} tags=[${TAGS_DISPLAY}]"
-                ghcr_delete_version "${VERSION_ID}"
+                _apply_delete_result "$(with_retry ghcr_delete_version "${VERSION_ID}")" \
+                  "version=${VERSION_ID}" DELETED SKIPPED ERRORS
                 continue
               fi
 
@@ -977,7 +1239,8 @@ jobs:
 
               # ── Deletion candidate ─────────────────────────────────────────
               echo "  🗑️  DELETE  version=${VERSION_ID} tags=[${TAGS_DISPLAY}]  (updated ${UPDATED_AT})"
-              ghcr_delete_version "${VERSION_ID}"
+              _apply_delete_result "$(with_retry ghcr_delete_version "${VERSION_ID}")" \
+                "version=${VERSION_ID}" DELETED SKIPPED ERRORS
             done < <(echo "${RESPONSE}" | jq -c '.[]')
 
             PAGE=$(( PAGE + 1 ))
@@ -1045,50 +1308,43 @@ jobs:
               fi
 
               # Warn that all co-located tags will be removed with this version.
-              echo "  🗑️  $([ "${DRY_RUN}" == 'true' ] && echo 'WOULD DELETE' || echo 'DELETE') (explicit)"
+              # Single unconditional label — ghcr_delete_version no-ops on
+              # DRY_RUN=true (returns "deleted" without calling the API), so
+              # one call path covers both modes.
+              echo "  🗑️  DELETE (explicit)"
               echo "      target-tag : ${etag}"
               echo "      version-id : ${FOUND_ID}"
               echo "      all-tags   : [${FOUND_ALL_TAGS}]"
               echo "      ⚠️  All tags on this manifest version are removed together."
-
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-              else
-                HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  -H "Accept: application/vnd.github+json" \
-                  -H "X-GitHub-Api-Version: 2022-11-28" \
-                  "${BASE_URL}/${FOUND_ID}")
-                if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
-                  echo "      ✅ Deleted version ${FOUND_ID}"
-                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-                elif [[ "${HTTP_STATUS}" == "404" ]]; then
-                  echo "      ℹ️  Version already gone (HTTP 404) — skipping."
-                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
-                else
-                  echo "    ⚠️  Delete failed (HTTP ${HTTP_STATUS})" >&2
-                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
-                fi
-                sleep 0.3
-              fi
+              _apply_delete_result "$(with_retry ghcr_delete_version "${FOUND_ID}")" \
+                "version=${FOUND_ID}" EXPLICIT_DELETED EXPLICIT_SKIPPED EXPLICIT_ERRORS
             done
             echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            SKIPPED=$(( SKIPPED + EXPLICIT_SKIPPED ))
             ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
           fi
 
           # ── Step summary ──────────────────────────────────────────────────
-          if [[ "${DRY_RUN}" == 'true' ]]; then
-            DRY_LABEL=" (dry-run)"
-          else
-            DRY_LABEL=""
-          fi
+          # (MEDIUM-3) One-liner form — consistent with Docker Hub and Quay.
+          DRY_LABEL=""
+          [[ "${DRY_RUN}" == 'true' ]] && DRY_LABEL=" (dry-run)"
           echo ""
           echo "📊 GHCR cleanup complete:"
           echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
           echo "   Kept    : ${KEPT}"
           echo "   Ignored : ${IGNORED}"
+          echo "   Skipped : ${SKIPPED}  (already gone — idempotent no-ops, not errors)"
           echo "   Errors  : ${ERRORS}"
+
+          # (MEDIUM-2) Export per-registry counts as step outputs so the final
+          # job-summary step can render them without re-parsing this step's log.
+          {
+            echo "deleted=${DELETED}"
+            echo "kept=${KEPT}"
+            echo "ignored=${IGNORED}"
+            echo "skipped=${SKIPPED}"
+            echo "errors=${ERRORS}"
+          } >> "${GITHUB_OUTPUT}"
 
           if [[ "${ERRORS}" -gt 0 ]]; then
             exit 1
@@ -1200,6 +1456,12 @@ jobs:
           QUAY_OAUTH_TOKEN: ${{ secrets.QUAY_OAUTH_TOKEN }}
           DRY_RUN: ${{ steps.resolve.outputs.dry_run }}
           PURGE:   ${{ steps.resolve.outputs.purge }}
+          # (SUPP-3) Consumed from the resolve step's single source of truth
+          # instead of each registry step computing its own "today"/cutoff —
+          # see the resolve step for why that mattered.
+          TODAY_MIDNIGHT: ${{ steps.resolve.outputs.today_midnight }}
+          CUTOFF_EPOCH:   ${{ steps.resolve.outputs.cutoff_epoch }}
+          CUTOFF_DATE:    ${{ steps.resolve.outputs.cutoff_date }}
         run: |
           # Avoid: `set -x` in secret-bearing workflows.
           set -Eeuo pipefail
@@ -1212,6 +1474,7 @@ jobs:
           echo "    Purge      : ${PURGE}"
           echo "    Ignore     : ${IGNORE_PATTERNS}"
           echo "    Explicit   : ${EXPLICIT_TAGS:-<none>}"
+          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH}) [global default]"
           echo "═══════════════════════════════════════════════════════════════"
 
           # ── Guard: credentials required ──────────────────────────────────────
@@ -1237,69 +1500,53 @@ jobs:
             exit 1
           fi
 
-          # ── Validate KEEP_DAYS is a non-negative integer ─────────────────────
-          if ! [[ "${KEEP_DAYS}" =~ ^[0-9]+$ ]]; then
-            echo "❌ KEEP_DAYS must be a non-negative integer; got: '${KEEP_DAYS}'" >&2
-            exit 1
-          fi
+          # ── Rate-limit / retry tuning ──────────────────────────────────────────
+          # Named constants instead of a magic "sleep 0.3" scattered at call sites.
+          readonly API_DELETE_DELAY_SECONDS="0.3"
+          readonly MAX_DELETE_RETRIES=3
+          readonly RETRY_BASE_DELAY_SECONDS=1
 
-          # ── Compute cutoff epoch ─────────────────────────────────────────────
-          # Cutoff = midnight UTC of (today − KEEP_DAYS days).
-          # Using midnight avoids race conditions with tags pushed moments ago.
-          TODAY_MIDNIGHT=$(date -u +%Y-%m-%dT00:00:00Z)
-          CUTOFF_EPOCH=$(date -u -d "${TODAY_MIDNIGHT} - ${KEEP_DAYS} days" +%s)
-          CUTOFF_DATE=$(date -u -d "@${CUTOFF_EPOCH}" +%Y-%m-%dT%H:%M:%SZ)
-          echo "    Cutoff     : ${CUTOFF_DATE} (epoch ${CUTOFF_EPOCH})"
-
-          # ── Helper: does a tag name match any ignore pattern? ─────────────────
-          # Parses IGNORE_PATTERNS (comma-separated ERE patterns).
-          # Trims surrounding whitespace from each pattern.
-          # Returns 0 (true) if the tag matches any pattern.
-          tag_is_ignored() {
-            local tag="$1"
-            local pattern
+          # ── Helper: does VALUE match any pattern in a comma-separated ERE
+          #    list? (MEDIUM-7) Single primitive shared by the ignore-pattern
+          #    and purge-keep-pattern checks below, which previously each
+          #    carried an identical copy of this IFS-split + trim + grep loop.
+          #    Trims surrounding whitespace from every pattern; empty patterns
+          #    (e.g. from a trailing comma) are skipped, not treated as "match
+          #    everything".
+          _value_matches_any_pattern() {
+            local value="$1" csv="$2" pattern
+            [[ -z "${csv}" ]] && return 1
             local OLD_IFS="${IFS}"
-            IFS=',' read -ra PATTERNS <<< "${IGNORE_PATTERNS}"
+            IFS=',' read -ra _PATTERNS <<< "${csv}"
             IFS="${OLD_IFS}"
-            for pattern in "${PATTERNS[@]}"; do
-              pattern="${pattern#"${pattern%%[![:space:]]*}"}"   # trim leading whitespace
-              pattern="${pattern%"${pattern##*[![:space:]]}"}"   # trim trailing whitespace
-              [[ -z "${pattern}" ]] && continue
-              if echo "${tag}" | grep -Eq "${pattern}"; then
-                return 0  # matched — tag is protected
-              fi
-            done
-            return 1  # no match — tag is a deletion candidate
-          }
-
-          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
-          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
-          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
-          purge_is_kept() {
-            local tag="$1" pattern
-            [[ -z "${PURGE_KEEP_PATTERNS:-}" ]] && return 1
-            local OLD_IFS="${IFS}"
-            IFS=',' read -ra KEEP_PATTERNS <<< "${PURGE_KEEP_PATTERNS}"
-            IFS="${OLD_IFS}"
-            for pattern in "${KEEP_PATTERNS[@]}"; do
+            for pattern in "${_PATTERNS[@]}"; do
               pattern="${pattern#"${pattern%%[![:space:]]*}"}"
               pattern="${pattern%"${pattern##*[![:space:]]}"}"
               [[ -z "${pattern}" ]] && continue
-              if echo "${tag}" | grep -Eq "${pattern}"; then
-                return 0  # protected even under purge
+              if echo "${value}" | grep -Eq "${pattern}"; then
+                return 0
               fi
             done
             return 1
           }
 
+          # ── Helper: does a tag name match any ignore pattern? ─────────────────
+          tag_is_ignored() { _value_matches_any_pattern "$1" "${IGNORE_PATTERNS:-}"; }
+
+          # ── Helper: in PURGE mode, is this tag on the protected keep-list? ───
+          # PURGE bypasses age + normal ignore patterns; PURGE_KEEP_PATTERNS is
+          # the ONLY survivor list.  Empty PURGE_KEEP_PATTERNS → total wipe.
+          purge_is_kept() { _value_matches_any_pattern "$1" "${PURGE_KEEP_PATTERNS:-}"; }
+
           # ── Helper: idempotent DELETE of one Quay tag (honours DRY_RUN) ──────
-          # Single source of truth for the destructive call; reused by the
-          # age-based loop and the purge loop.  Updates DELETED/ERRORS globals.
-          # Quay DELETE /tag/{tag}: 204 success; 400/404 → already gone.
+          # Returns "deleted", "skipped", or "error:<http>:<body>" as stdout.
+          # Does NOT mutate DELETED/ERRORS globals; callers use _apply_delete_result.
+          # Idempotency: 400/404 → "skipped" (already gone, not an error).
+          # Error visibility: response body is captured and surfaced on failure.
           quay_delete_tag() {
             local tag="$1"
             if [[ "${DRY_RUN}" == 'true' ]]; then
-              DELETED=$(( DELETED + 1 ))
+              echo "deleted"
               return 0
             fi
             local resp http body
@@ -1308,16 +1555,71 @@ jobs:
               -H "${AUTH_HEADER}" \
               "${QUAY_API}/tag/${tag}")
             http=$(printf '%s' "${resp}" | tail -1)
-            body=$(printf '%s' "${resp}" | head -n -1)
+            body=$(printf '%s' "${resp}" | sed '$d')
+            sleep "${API_DELETE_DELAY_SECONDS}"  # respect Quay API rate limits
             if [[ "${http}" =~ ^2 ]]; then
-              DELETED=$(( DELETED + 1 ))
+              echo "deleted"
             elif [[ "${http}" == "400" || "${http}" == "404" ]]; then
-              echo "    ℹ️  Tag already gone (HTTP ${http}) — skipping."
+              echo "skipped"
             else
-              echo "    ⚠️  Delete failed (HTTP ${http}): ${body}" >&2
-              ERRORS=$(( ERRORS + 1 ))
+              echo "error:${http}:${body:0:200}"
+              return 1
             fi
-            sleep 0.3  # respect Quay API rate limits (~3 req/s sustained)
+          }
+
+          # ── Helper: retry a delete with exponential backoff on transient
+          #    failures. Only HTTP 429 (rate-limited) and 5xx (server error)
+          #    are retried — both are plausibly transient. Any other outcome
+          #    (2xx, "skipped", or a non-retryable 4xx) is returned immediately.
+          #    Backoff doubles each attempt starting at RETRY_BASE_DELAY_SECONDS,
+          #    up to MAX_DELETE_RETRIES attempts total.
+          with_retry() {
+            local attempt=1 result
+            while true; do
+              result=$("$@")
+              case "${result}" in
+                deleted|skipped)
+                  echo "${result}"
+                  return 0
+                  ;;
+                error:429:*|error:5??:*)
+                  if (( attempt >= MAX_DELETE_RETRIES )); then
+                    echo "${result}"
+                    return 1
+                  fi
+                  local delay=$(( RETRY_BASE_DELAY_SECONDS * (2 ** (attempt - 1)) ))
+                  echo "    ⏳ Transient failure (${result#error:}), retrying in ${delay}s (attempt ${attempt}/${MAX_DELETE_RETRIES})..." >&2
+                  sleep "${delay}"
+                  attempt=$(( attempt + 1 ))
+                  ;;
+                *)
+                  echo "${result}"
+                  return 1
+                  ;;
+              esac
+            done
+          }
+
+          # ── Helper: classify a with_retry result into the caller's counters.
+          #    Keeps the case/echo/counter-bump logic in one place instead of
+          #    duplicating it at every call site (main loop and explicit block).
+          #    $3/$4/$5 are the names of the deleted/skipped/errors counter
+          #    variables to bump (different in the main loop vs explicit block).
+          _apply_delete_result() {
+            local result="$1" label="$2" deleted_var="$3" skipped_var="$4" errors_var="$5"
+            case "${result}" in
+              deleted)
+                printf -v "${deleted_var}" '%s' "$(( ${!deleted_var} + 1 ))"
+                ;;
+              skipped)
+                echo "    ℹ️  ${label} already gone — skipping." >&2
+                printf -v "${skipped_var}" '%s' "$(( ${!skipped_var} + 1 ))"
+                ;;
+              error:*)
+                echo "    ⚠️  Delete failed for ${label}: ${result#error:}" >&2
+                printf -v "${errors_var}" '%s' "$(( ${!errors_var} + 1 ))"
+                ;;
+            esac
           }
 
           # ── Build auth header ─────────────────────────────────────────────────
@@ -1393,6 +1695,7 @@ jobs:
           DELETED=0
           KEPT=0
           IGNORED=0
+          SKIPPED=0
           ERRORS=0
           QPAGE=1
 
@@ -1433,7 +1736,8 @@ jobs:
                   continue
                 fi
                 echo "  🔥 PURGE-DELETE ${TAG_NAME}  (modified ${TAG_MODIFIED:-unknown})"
-                quay_delete_tag "${TAG_NAME}"
+                _apply_delete_result "$(with_retry quay_delete_tag "${TAG_NAME}")" \
+                  "${TAG_NAME}" DELETED SKIPPED ERRORS
                 continue
               fi
 
@@ -1468,7 +1772,8 @@ jobs:
 
               # Deletion candidate.
               echo "  🗑️  DELETE  ${TAG_NAME}  (modified ${TAG_MODIFIED}, before cutoff ${CUTOFF_DATE})"
-              quay_delete_tag "${TAG_NAME}"
+              _apply_delete_result "$(with_retry quay_delete_tag "${TAG_NAME}")" \
+                "${TAG_NAME}" DELETED SKIPPED ERRORS
             done < <(echo "${RESPONSE}" | jq -c '.tags[]')
 
             # has_additional (bool) signals more pages exist.
@@ -1494,37 +1799,20 @@ jobs:
               etag="${etag#"${etag%%[![:space:]]*}"}"  # trim leading whitespace
               etag="${etag%"${etag##*[![:space:]]}"}"  # trim trailing whitespace
               [[ -z "${etag}" ]] && continue
-              if [[ "${DRY_RUN}" == 'true' ]]; then
-                echo "  🗑️  WOULD DELETE (explicit)  ${etag}"
-                EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-              else
-                EX_HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
-                  -X DELETE \
-                  -H "${AUTH_HEADER}" \
-                  "${QUAY_API}/tag/${etag}")
-                if [[ "${EX_HTTP}" =~ ^2 ]]; then
-                  echo "  🗑️  DELETED (explicit)  ${etag}"
-                  EXPLICIT_DELETED=$(( EXPLICIT_DELETED + 1 ))
-                elif [[ "${EX_HTTP}" == "400" || "${EX_HTTP}" == "404" ]]; then
-                  echo "  ⏭️  SKIP   (explicit)  ${etag}  (not found — already removed)"
-                  EXPLICIT_SKIPPED=$(( EXPLICIT_SKIPPED + 1 ))
-                else
-                  echo "    ⚠️  Explicit delete failed: ${etag} (HTTP ${EX_HTTP})" >&2
-                  EXPLICIT_ERRORS=$(( EXPLICIT_ERRORS + 1 ))
-                fi
-                sleep 0.3
-              fi
+              # Single unconditional label — quay_delete_tag no-ops on
+              # DRY_RUN=true (returns "deleted" without calling the API), so
+              # one call path covers both modes. The dry-run distinction is
+              # surfaced exactly once via the DRY_LABEL suffix in the summary.
+              echo "  🗑️  DELETE (explicit)  ${etag}"
+              _apply_delete_result "$(with_retry quay_delete_tag "${etag}")" \
+                "${etag}" EXPLICIT_DELETED EXPLICIT_SKIPPED EXPLICIT_ERRORS
             done
             echo "   Explicit: deleted=${EXPLICIT_DELETED}  skipped=${EXPLICIT_SKIPPED}  errors=${EXPLICIT_ERRORS}"
+            SKIPPED=$(( SKIPPED + EXPLICIT_SKIPPED ))
             ERRORS=$(( ERRORS + EXPLICIT_ERRORS ))
           fi
 
           # ── Step summary ──────────────────────────────────────────────────
-          # if [[ "${DRY_RUN}" == 'true' ]]; then
-          #   DRY_LABEL=" (dry-run)"
-          # else
-          #   DRY_LABEL=""
-          # fi
           DRY_LABEL=""
           [[ "${DRY_RUN}" == 'true' ]] && DRY_LABEL=" (dry-run)"
           echo ""
@@ -1532,7 +1820,18 @@ jobs:
           echo "   Would delete / Deleted : ${DELETED}${DRY_LABEL}"
           echo "   Kept    : ${KEPT}"
           echo "   Ignored : ${IGNORED}"
+          echo "   Skipped : ${SKIPPED}  (already gone — idempotent no-ops, not errors)"
           echo "   Errors  : ${ERRORS}"
+
+          # (MEDIUM-2) Export per-registry counts as step outputs so the final
+          # job-summary step can render them without re-parsing this step's log.
+          {
+            echo "deleted=${DELETED}"
+            echo "kept=${KEPT}"
+            echo "ignored=${IGNORED}"
+            echo "skipped=${SKIPPED}"
+            echo "errors=${ERRORS}"
+          } >> "${GITHUB_OUTPUT}"
 
           if [[ "${ERRORS}" -gt 0 ]]; then
             exit 1
