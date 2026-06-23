@@ -616,10 +616,16 @@ jobs:
           ## cpython-freethreading: required by cp313t; harmless for cp38
           ## cpython-prerelease:    retained for any pre-release selector in this group
           CIBW_ENABLE: cpython-freethreading cpython-prerelease
-          # For CIBW_TEST_SKIP, the value must be a skip pattern string (or empty string).
-          CIBW_TEST_SKIP: >-  # ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
-            *-cp313t-win_amd64
+          # https://cibuildwheel.pypa.io/en/stable/options/#build-skip-examples
+          CIBW_SKIP: >-  # "cp313t-macosx_arm64 cp313t-win_amd64 cp313t-win_arm64"
+            ${{ matrix.buildplat[2] == 'ARM64' && '*-cp313t-win_arm64*'    || '' }}
+            ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*'    || '' }}
+            ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
+          # The value must be a skip pattern string (or empty string).
+          CIBW_TEST_SKIP: >-  # "cp313t-win_arm64 cp313t-win_amd64 cp313t-macosx_arm64"
             ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+            ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*' || '' }}
+            ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH
@@ -639,10 +645,16 @@ jobs:
           ## cpython-prerelease enables cp314, cp314t selectors
           ## cpython-freethreading NOT needed here: v4.1.0 handles 314t natively
           CIBW_ENABLE: cpython-prerelease
-          # For CIBW_TEST_SKIP, the value must be a skip pattern string (or empty string).
-          CIBW_TEST_SKIP: >-  # ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
-            *-cp313t-win_amd64
+          # https://cibuildwheel.pypa.io/en/stable/options/#build-skip-examples
+          # CIBW_SKIP: >-  # "cp313t-macosx_arm64 cp313t-win_amd64 cp313t-win_arm64"
+          #   ${{ matrix.buildplat[2] == 'ARM64' && '*-cp313t-win_arm64*'    || '' }}
+          #   ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*'    || '' }}
+          #   ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
+          # The value must be a skip pattern string (or empty string).
+          CIBW_TEST_SKIP: >-  # "cp313t-win_arm64 cp313t-win_amd64 cp313t-macosx_arm64"
             ${{ matrix.buildplat[2] == 'ARM64' && '*-win_arm64*' || '' }}
+            ${{ matrix.buildplat[2] == 'AMD64' && '*-cp313t-win_amd64*' || '' }}
+            ${{ matrix.buildplat[2] == 'arm64' && '*-cp313t-macosx_arm64*' || '' }}
           # PKG_CONFIG: ${{ env.PKGCONFIG_EXE }}
           # PKG_CONFIG_PATH: ${{ github.workspace }}/.openblas
           # PATH: ${{ github.workspace }}/.openblas/bin;${{ github.workspace }}/.openblas/lib;$PATH

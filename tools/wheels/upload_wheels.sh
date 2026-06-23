@@ -173,7 +173,7 @@ anaconda_upload_with_retry() {
         # afterwards so the outer errexit contract is never broken.
         set +e
         out=$(anaconda --verbose -q -t "$TOKEN" upload --force \
-            "${label_args[@]}" \
+            ${label_args[@]+"${label_args[@]}"} \
             -u "$USERNAME" "$artifact" 2>&1)
         rc=$?
         set -e
