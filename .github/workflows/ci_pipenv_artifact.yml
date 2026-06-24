@@ -2,9 +2,33 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # PURPOSE
 # -------
-# Regenerate docker/env_pipenv/<pyXYY>/Pipfile and Pipfile.lock from the
-# project's requirements/*.txt sources, then open (or update) a Pull Request
-# so branch-protection rules and required status checks are honoured.
+# Regenerate docker/env_pipenv/<pyXYZ>/Pipfile and Pipfile.lock from the
+# project's requirements/*.txt sources — for ONE Python version, or for every
+# SUPPORTED version IN PARALLEL on separate Linux runners — then open (or
+# update) a Pull Request per version so branch-protection rules and required
+# status checks are honoured.
+#
+# DESIGN (read this before editing)
+# ----------------------------------
+# 1. `setup` expands the requested `py_version` input into a JSON matrix.
+#    It is the ONLY place the canonical list of supported Python versions
+#    lives (SUPPORTED array). Add/remove a version there only.
+# 2. `update-pipenv` fans out via `strategy.matrix: fromJSON(needs.setup
+#    .outputs.matrix)` — one fully isolated runner per Python version,
+#    each writing its own docker/env_pipenv/py<XYZ>/{Pipfile,Pipfile.lock}
+#    and opening its own bot/pipenv-lock-py<X.Y> branch + PR.
+# 3. Concurrency is JOB-level (keyed on ref + matrix.py_version), not
+#    workflow-level, so different Python versions run truly in parallel;
+#    re-triggering the SAME version on the SAME ref still queues safely.
+# 4. Exactly one version — ROOT_PY_VERSION — is also mirrored to the
+#    canonical docker/env_pipenv/Pipfile{,.lock} (for tooling that doesn't
+#    know which per-version sub-directory to use). ROOT_PY_VERSION is
+#    defined once in `setup` and propagated to `update-pipenv` as a job
+#    output (single source of truth — change it in `setup` only). The
+#    mirror step's `if:` checks BOTH update_root AND
+#    `PY_VERSION == ROOT_PY_VERSION`, so with N parallel matrix jobs
+#    exactly one (or zero, if ROOT_PY_VERSION was excluded from this run)
+#    ever writes the root files — no multi-writer race.
 #
 # PERMISSIONS REQUIRED
 # ────────────────────
@@ -13,9 +37,17 @@
 #
 # NOTE: PRs created via GITHUB_TOKEN DO trigger required CI checks on the
 # PR branch, satisfying branch-protection status-check requirements for
-# merging into `main`.  The only limitation is that workflow files themselves
+# merging into `main`. The only limitation is that workflow files themselves
 # cannot be modified; for that a PAT or GitHub App token would be needed
 # (not required here).
+#
+# OPERATIONAL NOTE: with the default input ("all"), a single trigger opens
+# up to 7 parallel PRs (one per Python version). If your branch-protection
+# rules pin required status checks to a literal job-name string, remember
+# that matrix expansion produces one check per version
+# (e.g. "Update Pipenv Artifacts (py3.11)") — update those rules accordingly,
+# or scope required checks to the workflow rather than individual matrix
+# names.
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CI 📦 Pipenv Artifacts Update
@@ -24,17 +56,40 @@ on:
   workflow_dispatch: # Allows manual triggering of the workflow
     inputs:
       py_version:
-        description: "Python version to target (e.g. 3.11)"
+        description: "Python version to update, or 'all' to update every supported version in parallel"
         required: false
-        default: "3.11"
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
       update_root_pipenv:
-        description: "Also update the root-level docker/env_pipenv/Pipfile{,.lock}"
+        description: "Mirror the canonical version's Pipfile{,.lock} to the root docker/env_pipenv/ store"
         required: false
         default: "true"
         type: choice
         options:
           - "true"
           - "false"
+      root_py_version:
+        description: "Python version into Pipfile{,.lock} to the root docker/env_pipenv/ store"
+        required: false
+        default: "3.11"
+        type: choice
+        options:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
   schedule:
     ## Automatically built and released every night (or at a regular interval, often nightly)
     ## Cron schedule for automated runs
@@ -52,43 +107,167 @@ on:
     ##        │  │  │ │ ┌───────────── day of the week  (0 - 7 or SUN-SAT)
     ##        │  │  │ │ │
     ## cron: "11 11 * * SUN,WED"  # Runs every Sunday and Wednesday at 11:11 UTC
+    # On schedule there are no `inputs`, so `setup` treats this as "all"
+    # versions with root mirroring enabled (see the `setup` job below).
     - cron: '11 11 * * 1'
 
-# ── Safety: one lock-update run per Python version at a time ─────────────────
-concurrency:
-  group: pipenv-update-${{ github.ref_name }}-py${{ inputs.py_version || '3.11' }}
-  cancel-in-progress: false   # let an in-progress run finish; queue the next
-
 # ── Minimal token permissions (principle of least privilege) ─────────────────
+# `update-pipenv` needs both; `setup` overrides this down to read-only below
+# since it never touches repository contents or PRs.
 permissions:
-  contents: write        # push the lock-update branch
-  pull-requests: write   # open / update the PR
+  contents: read
+  # contents: write        # push the lock-update branch
+  # pull-requests: write   # open / update the PR
 
 # ──────────────────────────────────────────────────────────────────────────────
 jobs:
-  update-pipenv:
-    name: >-
-      Update Pipenv Artifacts
-      (py${{ matrix.py_version }}, root=${{ matrix.update_root }})
+
+  # ────────────────────────────────────────────────────────────────────────
+  # SETUP — turns the single `py_version` input into a JSON matrix consumed
+  # by `update-pipenv`. No checkout needed; this job only computes outputs.
+  # ────────────────────────────────────────────────────────────────────────
+  setup:
+    name: 🧮 Resolve Python version matrix
     runs-on: ubuntu-latest
+
+    if: github.repository == 'scikit-plots/scikit-plots'
+
+    permissions:
+      contents: read
+
+    outputs:
+      matrix:           ${{ steps.resolve.outputs.matrix }}
+      update_root:      ${{ steps.resolve.outputs.update_root }}
+      root_py_version:  ${{ steps.resolve.outputs.root_py_version }}
+
+    steps:
+      - name: "🧮 Expand input into a JSON Python-version matrix"
+        id: resolve
+        shell: bash
+        env:
+          # Pass inputs through `env:` rather than interpolating `${{ }}`
+          # straight into the script body — keeps untrusted/edited input
+          # values out of the shell-parsed command text (script-injection
+          # hardening), consistent with how PY_VERSION etc. are handled
+          # further down in `update-pipenv`.
+          PY_VERSION_INPUT:  ${{ inputs.py_version }}
+          UPDATE_ROOT_INPUT: ${{ inputs.update_root_pipenv }}
+          ROOT_PY_VERSION:  ${{ inputs.root_py_version }}
+        run: |
+          set -Eeuo pipefail
+
+          # ── Canonical list of supported Python versions ────────────────
+          # This is the SINGLE SOURCE OF TRUTH. Add or remove a version
+          # here only — the dropdown above, the docker/env_pipenv/<pyXYZ>
+          # directories, and every downstream step derive from this list.
+          SUPPORTED=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
+
+          # The ONE Python version mirrored to docker/env_pipenv/Pipfile{,.lock}.
+          # Single source of truth: defined here and propagated to update-pipenv
+          # via job output — no second literal anywhere else in this file.
+          : "${ROOT_PY_VERSION:?PY_VER not set by build harness}"
+          ROOT_PY_VERSION="${ROOT_PY_VERSION:-3.11}"
+
+          REQUESTED="${PY_VERSION_INPUT}"
+          EVENT="${GITHUB_EVENT_NAME}"
+
+          # • schedule                               → full matrix
+          # • workflow_dispatch, empty or "all"      → full matrix
+          # • workflow_dispatch, a specific version  → that version only
+          if [[ "${EVENT}" == "schedule" || -z "${REQUESTED}" || "${REQUESTED}" == "all" ]]; then
+            VERSIONS=("${SUPPORTED[@]}")
+          else
+            FOUND=0
+            for v in "${SUPPORTED[@]}"; do
+              [[ "${v}" == "${REQUESTED}" ]] && FOUND=1
+            done
+            # Defensive check: the web UI dropdown (type: choice) already
+            # restricts valid values, but the workflow_dispatch REST API
+            # does NOT enforce `type: choice` — only the web UI does — so
+            # an API-triggered run could still send an arbitrary string.
+            if [[ "${FOUND}" -ne 1 ]]; then
+              echo "::error::Unsupported py_version '${REQUESTED}'. Supported: ${SUPPORTED[*]} or 'all'."
+              exit 1
+            fi
+            VERSIONS=("${REQUESTED}")
+          fi
+
+          # ── Build a JSON array of strings: ["3.8","3.9", ...] ───────────
+          JSON_VERSIONS=$(printf '"%s",' "${VERSIONS[@]}")
+          JSON_VERSIONS="[${JSON_VERSIONS%,}]"
+          MATRIX_JSON="{\"py_version\":${JSON_VERSIONS}}"
+
+          UPDATE_ROOT="${UPDATE_ROOT_INPUT}"
+          [[ -z "${UPDATE_ROOT}" ]] && UPDATE_ROOT="true"   # schedule default
+
+          {
+            echo "matrix=${MATRIX_JSON}"
+            echo "update_root=${UPDATE_ROOT}"
+            echo "root_py_version=${ROOT_PY_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Triggered by    : ${EVENT}"
+          echo "Requested input : ${REQUESTED:-<none>}"
+          echo "Resolved matrix : ${MATRIX_JSON}"
+          echo "Update root     : ${UPDATE_ROOT}"
+
+          # Early warning (not a failure) if root mirroring was requested
+          # but this run's matrix won't include the designated root version.
+          if [[ "${UPDATE_ROOT}" == "true" ]]; then
+            ROOT_IN_MATRIX=0
+            for v in "${VERSIONS[@]}"; do
+              [[ "${v}" == "${ROOT_PY_VERSION}" ]] && ROOT_IN_MATRIX=1
+            done
+            if [[ "${ROOT_IN_MATRIX}" -ne 1 ]]; then
+              echo "::warning::update_root_pipenv=true but ROOT_PY_VERSION=${ROOT_PY_VERSION} is not in the resolved matrix (${VERSIONS[*]}); docker/env_pipenv/Pipfile{,.lock} will NOT be touched this run."
+            fi
+          fi
+
+  # ────────────────────────────────────────────────────────────────────────
+  # UPDATE-PIPENV — fans out across the resolved Python-version matrix.
+  # Each entry runs on its own ubuntu-latest runner, fully isolated from
+  # the others, and produces its own
+  # docker/env_pipenv/<pyXYZ>/{Pipfile,Pipfile.lock} via its own PR.
+  # ────────────────────────────────────────────────────────────────────────
+  update-pipenv:
+    needs: setup
+    name: >-
+      Update Pipenv Artifacts (py${{ matrix.py_version }})
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write        # push the lock-update branch
+      pull-requests: write   # open / update the PR
+
+    # NOTE: needs.setup.result == 'success' is listed explicitly here because
+    # any custom `if:` replaces (not ANDs with) GitHub Actions' implicit
+    # success() check for jobs that declare `needs:`. Without it, if `setup`
+    # fails the matrix expansion evaluates fromJSON(''), producing a confusing
+    # error instead of a clean skip.
+    if: >-
+      github.repository == 'scikit-plots/scikit-plots' &&
+      needs.setup.result == 'success'
+    timeout-minutes: 90
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # Add additional rows here for other Python versions, e.g.:
-          #   - py_version: "3.12"
-          #     update_root: false
-          - py_version: ${{ inputs.py_version || '3.11' }}
-            # • When triggered by schedule:        inputs.update_root_pipenv == ''      → true
-            # • When triggered with input 'true':  inputs.update_root_pipenv == 'true'  → true
-            # • When triggered with input 'false': inputs.update_root_pipenv == 'false' → false
-            update_root: ${{ inputs.update_root_pipenv != 'false' }}
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+
+    # ── Safety: one lock-update run per (ref, Python version) at a time.
+    # JOB-level (not workflow-level) concurrency is what lets every matrix
+    # entry for a DIFFERENT Python version run fully in parallel, while
+    # still queueing duplicate runs of the SAME version on the SAME ref.
+    concurrency:
+      group: pipenv-update-${{ github.ref_name }}-py${{ matrix.py_version }}
+      cancel-in-progress: false   # let an in-progress run finish; queue the next
 
     # ── Job-level env vars ──────────────────────────────────────────────────
     env:
       PY_VERSION:                ${{ matrix.py_version }}
-      UPDATE_ROOT_PIPENV:        ${{ matrix.update_root }}
+      UPDATE_ROOT_PIPENV:        ${{ needs.setup.outputs.update_root }}
+      # Propagated from the setup job output — single source of truth.
+      # To change the root version, edit ROOT_PY_VERSION in setup only.
+      ROOT_PY_VERSION:           ${{ needs.setup.outputs.root_py_version }}
       PIPENV_STORE_DIR:          docker/env_pipenv
       REQUIREMENTS_DIR:          requirements
       # pipenv behaviour flags — keep verbosity off to reduce log noise
@@ -115,10 +294,14 @@ jobs:
           fetch-depth:         0      # full history needed for .GitInfo / .Lastmod
           lfs:                 true
 
-      # ── 2. Derive versioned directory name ────────────────────────────────
-      # Converts PY_VERSION ("3.11") → PY_DIR ("py311") and builds the
-      # absolute path used by all subsequent steps.
-      - name: Derive versioned directory name
+      # ── 2. Derive ALL versioned paths (single source of truth) ───────────
+      # Converts PY_VERSION ("3.11") → PY_DIR ("py311") and derives every
+      # path constant used downstream in ONE place: PY_DIR, VERSIONED_DIR,
+      # ABS_VERSIONED_DIR, PIPENV_PIPFILE, FLAT_DIR, REQ_RUNTIME, REQ_DEV.
+      # FLAT_DIR is suffixed with PY_DIR (not just GITHUB_RUN_ID) so that
+      # parallel matrix jobs sharing a host (e.g. self-hosted runners)
+      # never collide on the same /tmp directory.
+      - name: "🧭 Derive versioned paths"
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -126,23 +309,33 @@ jobs:
           # Remove dots and prepend "py": 3.11 → py311
           PY_DIR="py$(echo "${PY_VERSION}" | tr -d '.')"
           VERSIONED_DIR="${PIPENV_STORE_DIR}/${PY_DIR}"
+          ABS_VERSIONED_DIR="${GITHUB_WORKSPACE}/${VERSIONED_DIR}"
+          FLAT_DIR="/tmp/pipenv_flat_${GITHUB_RUN_ID}_${PY_DIR}"
 
-          echo "PY_DIR=${PY_DIR}"               >> "$GITHUB_ENV"
-          echo "VERSIONED_DIR=${VERSIONED_DIR}" >> "$GITHUB_ENV"
+          {
+            echo "PY_DIR=${PY_DIR}"
+            echo "VERSIONED_DIR=${VERSIONED_DIR}"
+            echo "ABS_VERSIONED_DIR=${ABS_VERSIONED_DIR}"
+            echo "PIPENV_PIPFILE=${ABS_VERSIONED_DIR}/Pipfile"
+            echo "FLAT_DIR=${FLAT_DIR}"
+            echo "REQ_RUNTIME=${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/default.txt"
+            echo "REQ_DEV=${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/all.txt"
+          } >> "$GITHUB_ENV"
 
-          echo "Python version  : ${PY_VERSION}"
-          echo "Directory name  : ${PY_DIR}"
-          echo "Versioned path  : ${VERSIONED_DIR}"
+          echo "Python version : ${PY_VERSION}"
+          echo "Directory name : ${PY_DIR}"
+          echo "Versioned path : ${VERSIONED_DIR}"
+          echo "Flat reqs dir  : ${FLAT_DIR}"
 
       # ── 3. Set up Python ──────────────────────────────────────────────────
-      - name: Set up Python ${{ matrix.py_version }}
+      - name: "🐍 Set up Python ${{ matrix.py_version }}"
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.py_version }}
           check-latest:   false
 
       # ── 4. Install pip and pipenv ─────────────────────────────────────────
-      - name: Install pip and pipenv
+      - name: "📦 Install pip and pipenv"
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -151,17 +344,13 @@ jobs:
           pipenv --version
 
       # ── 5. Validate requirements files and prepare workspace ─────────────
-      # Fail fast if source files are missing.
-      # Bootstraps the versioned directory with a clean slate.
-      - name: Validate requirements files and prepare workspace
+      # Fail fast if source files are missing. Path derivation now lives
+      # entirely in step 2 — this step only validates and clears the slate.
+      - name: "🧪 Validate requirements files and prepare workspace"
         shell: bash
         run: |
           set -Eeuo pipefail
 
-          REQ_RUNTIME="${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/default.txt"
-          REQ_DEV="${GITHUB_WORKSPACE}/${REQUIREMENTS_DIR}/all.txt"
-
-          # ── Validate top-level requirements files exist ──────────────────
           MISSING=0
           for req_file in "${REQ_RUNTIME}" "${REQ_DEV}"; do
             if [[ ! -f "${req_file}" ]]; then
@@ -180,20 +369,8 @@ jobs:
             exit 1
           fi
 
-          # ── Expose resolved absolute paths to subsequent steps ───────────
-          echo "REQ_RUNTIME=${REQ_RUNTIME}" >> "$GITHUB_ENV"
-          echo "REQ_DEV=${REQ_DEV}"         >> "$GITHUB_ENV"
-
-          # ── Pin PIPENV_PIPFILE to the versioned directory ────────────────
-          # Must be an absolute path so pipenv does not search parent dirs.
-          ABS_VERSIONED_DIR="${GITHUB_WORKSPACE}/${VERSIONED_DIR}"
-          echo "ABS_VERSIONED_DIR=${ABS_VERSIONED_DIR}"          >> "$GITHUB_ENV"
-          echo "PIPENV_PIPFILE=${ABS_VERSIONED_DIR}/Pipfile"     >> "$GITHUB_ENV"
-
           # ── Temporary directory for flattened requirements ───────────────
-          FLAT_DIR="/tmp/pipenv_flat_${GITHUB_RUN_ID}"
           mkdir -p "${FLAT_DIR}"
-          echo "FLAT_DIR=${FLAT_DIR}" >> "$GITHUB_ENV"
 
           # ── Clean slate inside the versioned directory ───────────────────
           mkdir -p "${ABS_VERSIONED_DIR}"
@@ -210,7 +387,7 @@ jobs:
       # ── 6. Flatten requirements for target Python version ─────────────────
       # The helper script evaluates PEP 508 environment markers (python_version,
       # sys_platform) and emits only the lines that apply to PY_VERSION.
-      - name: Flatten requirements for Python ${{ matrix.py_version }}
+      - name: "🧬 Flatten requirements for Python ${{ matrix.py_version }}"
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -241,7 +418,7 @@ jobs:
       #   does not yet exist on disk. We therefore write the Pipfile manually
       #   with `printf` BEFORE invoking any pipenv command, producing exactly
       #   the same content that `pipenv --python` would have created.
-      - name: Generate Pipfile and Pipfile.lock
+      - name: "🛠️ Generate Pipfile and Pipfile.lock"
         working-directory: ${{ env.ABS_VERSIONED_DIR }}
         shell: bash
         run: |
@@ -285,7 +462,7 @@ jobs:
 
       # ── 8. Validate generated artifacts ───────────────────────────────────
       # Fail fast — surface resolver errors before any git operations.
-      - name: Validate generated artifacts
+      - name: "🔎 Validate generated artifacts"
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -318,7 +495,7 @@ jobs:
       # ── 9. Remove transient files ─────────────────────────────────────────
       # The in-project .venv and /tmp flat-requirements directory are not
       # committed; remove them before the PR diff is computed.
-      - name: Remove transient files (.venv and flat requirements)
+      - name: "🧹 Remove transient files (.venv and flat requirements)"
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -340,12 +517,17 @@ jobs:
             echo "Flat requirements dir not present — nothing to remove."
           fi
 
-      # ── 10. Copy artifacts to the root store (optional) ───────────────────
-      # When UPDATE_ROOT_PIPENV=true the versioned lock files are also written
-      # to docker/env_pipenv/Pipfile{,.lock} so Docker builds can reference a
-      # single canonical location without knowing the Python sub-directory.
-      - name: Stage root-level Pipfile copies
-        if: env.UPDATE_ROOT_PIPENV == 'true'
+      # ── 10. Mirror ONE canonical version's artifacts to the root store ────
+      # When UPDATE_ROOT_PIPENV=true AND this job's PY_VERSION equals
+      # ROOT_PY_VERSION, the versioned lock files are also written to
+      # docker/env_pipenv/Pipfile{,.lock} so tooling can reference a single
+      # canonical location without knowing the Python sub-directory. The
+      # combined condition guarantees AT MOST ONE matrix job ever writes
+      # these two root files, even when all 7 versions run in parallel —
+      # eliminating the last-writer-wins race that exists if every version
+      # were allowed to copy to the same root path.
+      - name: "📌 Stage root-level Pipfile copies (canonical version only)"
+        if: env.UPDATE_ROOT_PIPENV == 'true' && env.PY_VERSION == env.ROOT_PY_VERSION
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -369,7 +551,11 @@ jobs:
       #   • Triggers all required CI checks (CodeQL, status checks) on the PR.
       #   • Deletes the branch automatically after the PR is merged or closed.
       #   • Skips opening a PR when no files changed (nothing to commit).
-      - name: Open or update Pull Request with updated lock files
+      #   • One branch/PR PER Python version (bot/pipenv-lock-py<X.Y>) keeps
+      #     each version's diff small, independently reviewable, and
+      #     independently revertable — deliberately not consolidated into a
+      #     single PR.
+      - name: "🔀 Open or update Pull Request with updated lock files"
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
@@ -382,14 +568,11 @@ jobs:
             Triggered by  : ${{ github.event_name }}
             Workflow run  : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Versioned dir : ${{ env.VERSIONED_DIR }}
-            Root updated  : ${{ env.UPDATE_ROOT_PIPENV }}
+            Root mirrored : ${{ env.UPDATE_ROOT_PIPENV == 'true' && env.PY_VERSION == env.ROOT_PY_VERSION }}
             Runtime deps  : ${{ env.REQUIREMENTS_DIR }}/default.txt
             Dev deps      : ${{ env.REQUIREMENTS_DIR }}/all.txt
 
           # ── Branch that receives the lock-file commit ──────────────────
-          # FIX: renamed prefix from `chore/` to `bot/` to avoid matching
-          # any repository ruleset that enforces status checks or linear
-          # history on `chore/**` branches (root cause of run 25769630725).
           # The `bot/` prefix is a conventional namespace for machine commits
           # that is unlikely to be included in restrictive branch rulesets.
           branch:        bot/pipenv-lock-py${{ matrix.py_version }}
@@ -407,7 +590,7 @@ jobs:
             |----------------|-------|
             | Python version | `${{ matrix.py_version }}` |
             | Versioned dir  | `${{ env.VERSIONED_DIR }}` |
-            | Root updated   | `${{ env.UPDATE_ROOT_PIPENV }}` |
+            | Root mirrored  | `${{ env.UPDATE_ROOT_PIPENV == 'true' && env.PY_VERSION == env.ROOT_PY_VERSION }}` |
             | Runtime deps   | `${{ env.REQUIREMENTS_DIR }}/default.txt` |
             | Dev deps       | `${{ env.REQUIREMENTS_DIR }}/all.txt` |
             | Triggered by   | `${{ github.event_name }}` |
@@ -416,8 +599,8 @@ jobs:
             ### Changed files
             - `${{ env.VERSIONED_DIR }}/Pipfile`
             - `${{ env.VERSIONED_DIR }}/Pipfile.lock`
-            - `${{ env.PIPENV_STORE_DIR }}/Pipfile` *(if root update enabled)*
-            - `${{ env.PIPENV_STORE_DIR }}/Pipfile.lock` *(if root update enabled)*
+            - `${{ env.PIPENV_STORE_DIR }}/Pipfile` *(only on the canonical root-mirror run, py${{ env.ROOT_PY_VERSION }})*
+            - `${{ env.PIPENV_STORE_DIR }}/Pipfile.lock` *(only on the canonical root-mirror run, py${{ env.ROOT_PY_VERSION }})*
 
             ---
             *This PR was opened automatically by the
@@ -439,8 +622,8 @@ jobs:
           # ── Target branch (must satisfy branch-protection requirements) ──
           base: ${{ github.ref_name }}
 
-      # ── 12. Log PR outcome ───────────────────────────────────────────────
-      - name: Report Pull Request outcome
+      # ── 12. Log PR outcome + write job summary ────────────────────────────
+      - name: "📝 Report Pull Request outcome and write job summary"
         if: always()
         shell: bash
         env:
@@ -449,6 +632,27 @@ jobs:
           PR_OP:     ${{ steps.cpr.outputs.pull-request-operation }}
         run: |
           set -Eeuo pipefail
+
+          if [[ "${UPDATE_ROOT_PIPENV}" == "true" && "${PY_VERSION}" == "${ROOT_PY_VERSION}" ]]; then
+            ROOT_MIRRORED="true"
+          else
+            ROOT_MIRRORED="false"
+          fi
+
+          {
+            echo "### 📦 py${PY_VERSION} — Pipenv artifacts"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Directory | \`${VERSIONED_DIR}\` |"
+            echo "| Root mirrored | \`${ROOT_MIRRORED}\` |"
+            if [[ -n "${PR_NUMBER:-}" ]]; then
+              echo "| Pull request | [#${PR_NUMBER}](${PR_URL}) (${PR_OP}) |"
+            else
+              echo "| Pull request | _none — already up to date_ |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
           if [[ -z "${PR_NUMBER:-}" ]]; then
             echo "ℹ️  No PR created — lock files are already up to date."
           else

@@ -382,11 +382,11 @@ pip install --no-build-isolation --no-cache-dir -e . -v 2>&1 | tee build.log.txt
  🔎 Run the latest scikit-plots container — with full or partial preinstallation — interactively:
 
 ```bash
-## docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime] -i -c "scikitplot -V"
+# docker run -it --rm scikitplot/scikit-plots[:latest|:latest-runtime|:latest-devel] -i -c "scikitplot -V"
 docker run -it --rm scikitplot/scikit-plots
 ```
 ```bash
-## docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
+# docker run -it -v "$(pwd):/work/notebooks:delegated" -p 8891:8891 scikitplot/scikit-plots:latest-devel
 docker run -it --rm scikitplot/scikit-plots:latest-devel
 ```
 </div>
