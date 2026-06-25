@@ -92,11 +92,58 @@ updates:
     #   - "scikit-plots/core-devs"
 
   - package-ecosystem: pip
-    directory: /  # /requirements
+    # ── Why `directories` instead of `directory: /` + `exclude-paths` ─────────
+    # `directory: /` triggers full auto-discovery of pip manifests.
+    # `exclude-paths` is supposed to prune the result, but is silently dropped
+    # for the pip ecosystem: the updater job receives `"exclude-paths":[]`
+    # regardless of what is written here (confirmed in the filter_excluded log
+    # line: `exclude_paths=[]`).  This is an upstream Dependabot limitation —
+    # the feature is still gated behind the experimental flag
+    # `enable-exclude-paths-subdirectory-manifest-files` and does not yet fully
+    # propagate for pip auto-discovery.
+    #
+    # The secondary issue: even if the patterns had been applied, they were
+    # wrong in two ways:
+    #   (a) missing leading `/`  → `docker/env_pipenv/py38/**` never matches
+    #       the auto-discovered entry `/docker/env_pipenv/py38`
+    #   (b) `/**` matches *files inside* a directory, not the directory root
+    #       itself as a manifest location
+    #
+    # Fix: enumerate exactly the directories we want Dependabot to scan.
+    # Source: the `"directories":[…]` list in the failing job's definition log.
+    #
+    # ⚠ Trade-off: new pip manifest directories added to the repo will NOT be
+    # auto-discovered — add them to this list explicitly when they are created.
+    #
+    # Omitted directories and reasons:
+    #   /docker/env_pipenv/py38  → Python 3.8 is EOL (since Oct 2024);
+    #                               Dependabot pip updater requires Python 3.10+
+    #   /docker/env_pipenv/py39  → Python 3.9 is EOL (since Oct 2025);
+    #
+    # directory: /  # /requirements  #  same constraint applies
+    directories:
+      - /
+      # - "/.binder"
+      # - "/docker/env_pipenv"
+      # - "/docker/env_pipenv/py310"
+      # - "/docker/env_pipenv/py311"
+      # - "/docker/env_pipenv/py312"
+      # # /docker/env_pipenv/py38 ← OMITTED: py38 EOL; Dependabot pip requires 3.10+
+      # # /docker/env_pipenv/py39 ← OMITTED: py39 EOL; Dependabot pip requires 3.10+
+      # - "/docs/source/binder"
+      # - "/galleries/gateway/plugin/my-llm"
+      # - "/requirements"
+      # - "/scikitplot/_env/tests/test_package"
+      # - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_model"
+      # - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy"
+      # - "/scikitplot/cexternals/_annoy"
+      # - "/tools/zz_yanked/azure"
+      # - "/tools/zz_yanked/pypi_packaging"
+    # https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#exclude-paths-
     exclude-paths:
       # "supported-versions": "3.10.*, 3.11.*, 3.12.*, 3.13.*, 3.14.*"
-      - docker/env_pipenv/py38/**
-      - docker/env_pipenv/py39/**
+      - /docker/env_pipenv/py38/**
+      - /docker/env_pipenv/py39/**
     schedule:
       interval: weekly  # "daily", weekly, monthly
       # day: "monday"

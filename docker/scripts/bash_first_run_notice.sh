@@ -244,7 +244,9 @@ main() {
     {
       cat -- "$tmp"
       printf '\n%s\n' "$begin"
-      printf '%s\n' 'case $- in *i*) ;; *) return ;; esac'
+      printf '%s\n' '# ⚠︎ Removed interactive guard: Docker runs scripts (like entrypoints) as non-interactive shells; this guard would force an immediate exit before Conda activates.'
+      printf '%s\n' '# If you were to put `echo $-` at the top of your Docker script, it would likely print something like: `hBc`'
+      printf '%s\n' '# case $- in *i*) ;; *) return ;; esac'
       printf '%s\n' "if [[ -d \"${SYS_D_DIR}\" ]]; then"
       printf '%s\n' "  for __sp_f in \"${SYS_D_DIR}\"/*.sh; do"
       printf '%s\n' '    [[ -r "$__sp_f" ]] && . "$__sp_f"'
