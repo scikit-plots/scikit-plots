@@ -202,6 +202,12 @@ main() {
     } >> "$target"
   }
 
+  # `echo $-`: himBH
+  # h (hashall): Bash remembers where commands are located so it doesn't have to search your $PATH every time.
+  # i (interactive): This is the one that caused your headache. It means the shell is connected to a terminal and expects a human to interact with it.
+  # m (monitor): Job control is enabled (allowing you to use ctrl+z, fg, bg).
+  # B (braceexpand): Allows you to use curly braces for lists, like echo {1..5}.
+  # H (histexpand): Allows you to use ! to recall history, like !! to run the last command.
   install_user_loader() {
     [[ "$USER_LOADER_ENABLE" == "1" ]] || return 0
     mkdir -p -- "$USER_D_DIR"
@@ -209,7 +215,9 @@ main() {
       "# >>> scikit-plots bashrc.d user loader >>>" \
       "# <<< scikit-plots bashrc.d user loader <<<" \
       "$HOME/.bashrc" \
-      'case $- in *i*) ;; *) return ;; esac' \
+      '# ⚠︎ Removed interactive guard: Docker runs scripts (like entrypoints) as non-interactive shells; this guard would force an immediate exit before Conda activates.' \
+      '# If you were to put `echo $-` at the top of your Docker script, it would likely print something like: `hBc`' \
+      '# case $- in *i*) ;; *) return ;; esac' \
       "if [[ -d \"${USER_D_DIR}\" ]]; then" \
       "  for __sp_f in \"${USER_D_DIR}\"/*.sh; do" \
       '    [[ -r "$__sp_f" ]] && . "$__sp_f"' \

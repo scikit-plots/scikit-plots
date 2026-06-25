@@ -6,11 +6,11 @@
 # >>> 00-scikit-plots-bashrc-prefix-config.sh scikit-plots personal initialization >>>
 # ====================================================================
 
-# Interactive shells only (must be first) $- contains shell flags (e.g. himBH).
+# 🚦 Interactive shells only (must be first) $- contains shell flags (e.g. himBH).
 # case $- in *i*) ;; *) return 0 ;; esac
 # case $- in *i*) ;; *) return || true ;; esac
 case $- in
-  *i*) ;;  # Interactive shell → continue
+  *i*) ;;  # 🚦 Interactive shell → continue
   *) return || true ;;  # Not interactive → stop
 esac
 

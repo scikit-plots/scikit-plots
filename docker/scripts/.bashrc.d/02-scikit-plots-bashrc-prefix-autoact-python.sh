@@ -14,9 +14,18 @@
 # >>> 02-scikit-plots-bashrc-prefix-autoact-python.sh scikit-plots personal initialization >>>
 # ====================================================================
 
-# Interactive shells only (must be first) $- contains shell flags (e.g. himBH).
+# ⚠︎ Removed interactive guard: Docker runs scripts (like entrypoints) as non-interactive shells; this guard would force an immediate exit before Conda activates.
+# If you were to put `echo $-` at the top of your Docker script, it would likely print something like: `hBc`
+# `echo $-`: himBH
+# h (hashall): Bash remembers where commands are located so it doesn't have to search your $PATH every time.
+# i (interactive): This is the one that caused your headache. It means the shell is connected to a terminal and expects a human to interact with it.
+# m (monitor): Job control is enabled (allowing you to use ctrl+z, fg, bg).
+# B (braceexpand): Allows you to use curly braces for lists, like echo {1..5}.
+# H (histexpand): Allows you to use ! to recall history, like !! to run the last command.
+
+# 🚦 Interactive shells only (must be first) $- contains shell flags (e.g. himBH).
 # case $- in *i*) ;; *) return 0 ;; esac
-case $- in *i*) ;; *) return || true ;; esac
+# case $- in *i*) ;; *) return || true ;; esac
 
 # Run-once guard
 # if [[ -n "${__SCIKIT_PLOTS_BASHRC_PREFIX_AUTOACT_PYTHON_ONCE:-}" ]]; then

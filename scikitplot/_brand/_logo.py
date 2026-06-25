@@ -1,4 +1,4 @@
-# scikitplot/_logo.py
+# scikitplot/_brand/_logo.py
 #
 # flake8: noqa: D213
 #
@@ -216,7 +216,7 @@ def list_variants() -> tuple[Variant, ...]:
     Examples
     --------
     >>> import scikitplot as sp
-    >>> sp._logo.list_variants()
+    >>> sp._brand._logo.list_variants()
     ('primary', 'small', 'metrics', 'knn')
     """
     return _VARIANTS
@@ -234,7 +234,7 @@ def list_size_presets() -> tuple[Preset, ...]:
     Examples
     --------
     >>> import scikitplot as sp
-    >>> sp._logo.list_size_presets()
+    >>> sp._brand._logo.list_size_presets()
     ('favicon', 'avatar', 'docs-hero')
     """
     return tuple(_SIZE_PRESETS.keys())
@@ -402,7 +402,7 @@ def draw(  # noqa: PLR0912
     >>> import matplotlib.pyplot as plt
     >>> import scikitplot as sp
     >>> fig, ax = plt.subplots(figsize=(4, 4), dpi=200)
-    >>> sp._logo.draw(ax, variant="metrics")
+    >>> sp._brand._logo.draw(ax, variant="metrics")
     """
     # FIX 4: Validate all enumerated arguments eagerly so callers receive
     # a clear ValueError pointing to the bad value and its allowed choices,
@@ -634,7 +634,7 @@ def create(
     Examples
     --------
     >>> import scikitplot as sp
-    >>> fig, ax = sp._logo.create(variant="small", preset="favicon")
+    >>> fig, ax = sp._brand._logo.create(variant="small", preset="favicon")
     >>> fig.savefig("favicon.png", transparent=True)
     """
     variant, dots, size, dpi = _apply_preset(
@@ -676,8 +676,8 @@ def show(
     Examples
     --------
     >>> import scikitplot as sp
-    >>> sp._logo.show()
-    >>> sp._logo.show(variant="metrics", theme="dark")
+    >>> sp._brand._logo.show()
+    >>> sp._brand._logo.show(variant="metrics", theme="dark")
     """
     fig, _ = create(
         variant=variant,
@@ -880,13 +880,13 @@ def save(  # noqa: D417
     Examples
     --------
     >>> import scikitplot as sp
-    >>> sp._logo.save("scikit-plots.svg")
+    >>> sp._brand._logo.save("scikit-plots.svg")
     ['scikit-plots.svg']
 
-    >>> sp._logo.save("scikit-plots.png", dpi=300)
+    >>> sp._brand._logo.save("scikit-plots.png", dpi=300)
     ['scikit-plots.png']
 
-    >>> sp._logo.save(
+    >>> sp._brand._logo.save(
     ...     "assets/scikit-plots-{variant}.svg",
     ...     variants=["primary", "small", "metrics", "knn"],
     ... )
@@ -1052,7 +1052,7 @@ class _WordmarkAPI:
     """
     Wordmark helper API.
 
-    This object is exposed as ``scikitplot._logo.wordmark``.
+    This object is exposed as ``scikitplot._brand._logo.wordmark``.
     """
 
     def create(  # noqa: D417
@@ -1103,13 +1103,13 @@ class _WordmarkAPI:
 
         See Also
         --------
-        scikitplot._logo.create
-        scikitplot._logo.save
+        scikitplot._brand._logo.create
+        scikitplot._brand._logo.save
 
         Examples
         --------
         >>> import scikitplot as sp
-        >>> fig, (ax_i, ax_t) = sp._logo.wordmark.create()
+        >>> fig, (ax_i, ax_t) = sp._brand._logo.wordmark.create()
         >>> fig.savefig("lockup.svg", transparent=True)
         """
         # Preset application (light touch)
@@ -1168,7 +1168,7 @@ class _WordmarkAPI:
         Examples
         --------
         >>> import scikitplot as sp
-        >>> sp._logo.wordmark.show()
+        >>> sp._brand._logo.wordmark.show()
         """
         fig, _ = self.create(**kwargs)
         plt.show()
@@ -1209,13 +1209,13 @@ class _WordmarkAPI:
 
         See Also
         --------
-        scikitplot._logo.save
+        scikitplot._brand._logo.save
         matplotlib.figure.Figure.savefig
 
         Examples
         --------
         >>> import scikitplot as sp
-        >>> sp._logo.wordmark.save("scikit-plots-lockup.svg")
+        >>> sp._brand._logo.wordmark.save("scikit-plots-lockup.svg")
         """
         fmt, out_path = _infer_format_from_filename(filename, ext, format)
 

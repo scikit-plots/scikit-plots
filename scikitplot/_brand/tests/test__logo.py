@@ -1,4 +1,4 @@
-# scikitplot/tests/test__logo.py
+# scikitplot/_brand/tests/test__logo.py
 #
 # flake8: noqa: D213
 #
@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 """
-Comprehensive tests for scikitplot._logo.
+Comprehensive tests for scikitplot._brand._logo.
 
 Test Strategy
 -------------
@@ -28,7 +28,7 @@ Test Strategy
 
 Notes
 -----
-- Private helpers are accessed via ``import scikitplot._logo as _logo``
+- Private helpers are accessed via ``import scikitplot._brand._logo as _logo``
   (white-box testing) rather than through the public ``_logo`` namespace.
 - Tests must pass with pytest ≥ 7 and Matplotlib ≥ 3.6.
 - The ``close_all_figures`` autouse fixture guarantees no figure leaks

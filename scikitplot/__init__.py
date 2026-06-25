@@ -142,7 +142,7 @@ _submodules = sorted(
         "visualkeras",
         ## A module is a .py file that is itself a module object when imported.
         "_globals",
-        "_logo",
+        "_brand",
         "_min_dependencies",
         "_preprocess",
         "_reset",

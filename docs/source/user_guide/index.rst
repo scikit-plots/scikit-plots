@@ -223,12 +223,12 @@ User Guide
     .. grid-item-card::
         :padding: 3
 
-        **brand logo**
+        **branding**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            ./_logo.rst
+            ./_brand/index.rst
 
 
 .. _under-development:

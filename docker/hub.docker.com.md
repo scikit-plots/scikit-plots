@@ -11,8 +11,9 @@ These containers are a quick way to run or try scikit-plots. The source is avail
 [scikit-plots-github.io-docker]: https://scikit-plots.github.io/dev/devel/guide_python_env_manager.html
 [scikit-plots-docker]: https://github.com/scikit-plots/scikit-plots/tree/main/docker
 
-- [scikitplot/scikit-plots:latest-python-3.11](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
-- [scikitplot/scikit-plots:latest-jupyter-python-3.12](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
+- [scikitplot/scikit-plots:latest](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
+- [scikitplot/scikit-plots:latest-runtime](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
+- [scikitplot/scikit-plots:latest-devel](https://hub.docker.com/r/scikitplot/scikit-plots/tags)
 
 ---
 
@@ -143,7 +144,7 @@ docker run -it --rm scikitplot/scikit-plots:latest -c "which python && pip list"
 docker run -it --rm scikitplot/scikit-plots:latest -i -c "micromamba info -e"
 ```
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest -i -c "which python && pip list"
+docker run -it --rm scikitplot/scikit-plots:latest -ic "which python && pip list"
 ```
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
@@ -151,12 +152,12 @@ docker run -it --rm scikitplot/scikit-plots:latest -i -c "scikitplot -V"
 
 ---
 
-### 👉 **latest-python-3.11** alias (**latest**) (partial pre-installed (e.g., gcc, g++, micromamba))
+### 👉 **latest-python3.11** alias (**latest-runtime-python3.11**) (partial pre-installed (e.g., gcc, g++, micromamba))
 
 #### 🏷️ fast-minimal (default entrypoint bash)
 ```sh
-# docker run -it --rm scikitplot/scikit-plots:latest-python-3.11
-docker run -it --rm scikitplot/scikit-plots:latest-python-3.11 -c bash
+# docker run -it --rm scikitplot/scikit-plots:latest -ic "bash -c scikitplot -V"
+docker run -it --rm scikitplot/scikit-plots:latest-python3.11 -c bash
 ```
 
 ---
@@ -174,7 +175,7 @@ docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "conda info -e"
 ```
 ```sh
-docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "which python && pip list"
+docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -ic "which python && pip list"
 ```
 ```sh
 docker run -it --rm scikitplot/scikit-plots:latest-jupyter bash -i -c "scikitplot -V"
