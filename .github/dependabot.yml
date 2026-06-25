@@ -142,8 +142,10 @@ updates:
     # https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#exclude-paths-
     exclude-paths:
       # "supported-versions": "3.10.*, 3.11.*, 3.12.*, 3.13.*, 3.14.*"
-      - /docker/env_pipenv/py38/**
-      - /docker/env_pipenv/py39/**
+      - docker/env_pipenv/py38*
+      - docker/env_pipenv/py39*
+      - docker/env_pipenv/py38/**
+      - docker/env_pipenv/py39/**
     schedule:
       interval: weekly  # "daily", weekly, monthly
       # day: "monday"
