@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-
+# scikitplot/_brand/_banner.py
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
