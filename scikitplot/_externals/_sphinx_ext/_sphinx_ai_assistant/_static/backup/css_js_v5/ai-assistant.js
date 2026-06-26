@@ -8,7 +8,7 @@
  *   • MCP tool integration (VS Code, Claude Desktop, …)
  *   • PDF export with URL-mode / Print-mode toggle
  *   • Floating AI panel with:
- *       – Minimize (hide to floating "Ask Us" trigger pill)
+ *       – Minimize (hide to floating "Ask AI" trigger pill)
  *       – Maximize (expand to full viewport height)
  *       – Quick-suggestion chips (customizable, 0–5 items)
  *       – "Speak with assistant" banner / microphone button
@@ -57,7 +57,7 @@
     var _aiPanelEl = null;
 
     /**
-     * Lazy singleton: the floating "Ask Us" trigger pill (shown when minimized).
+     * Lazy singleton: the floating "Ask AI" trigger pill (shown when minimized).
      * @type {HTMLElement|null}
      */
     var _aiTriggerEl = null;
@@ -3294,7 +3294,7 @@
      *   • Quick suggestion chips  — customizable list from config.
      *   • "Speak with assistant" banner  — dismissable pill above input.
      *   • Redesigned footer  — [textarea] [mic icon] [send icon].
-     *   • Floating trigger pill  — "Ask Us" button shown when minimized.
+     *   • Floating trigger pill  — "Ask AI" button shown when minimized.
      *
      * @returns {HTMLElement}
      */
@@ -4187,7 +4187,7 @@
     }
 
     /**
-     * Create the floating "Ask Us" trigger pill shown when the panel is minimized.
+     * Create the floating "Ask AI" trigger pill shown when the panel is minimized.
      *
      * @param {string} title  Panel title for aria-label.
      * @returns {HTMLButtonElement}
@@ -4206,10 +4206,10 @@
         iconWrap.innerHTML = ICONS.chat;   // ICONS constant — safe.
 
         var label = document.createElement('span');
-        // BUG-FIX: was hardcoded 'Ask Us' — now reads cfg.panelTriggerLabel
+        // BUG-FIX: was hardcoded 'Ask AI' — now reads cfg.panelTriggerLabel
         // so ai_assistant_panel_trigger_label in conf.py is actually applied.
         var cfg = window.AI_ASSISTANT_CONFIG || {};
-        label.textContent = cfg.panelTriggerLabel || 'Ask Us';
+        label.textContent = cfg.panelTriggerLabel || 'Ask AI';
 
         trigger.appendChild(iconWrap);
         trigger.appendChild(label);

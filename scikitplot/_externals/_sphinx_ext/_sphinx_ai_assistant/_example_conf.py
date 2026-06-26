@@ -842,14 +842,14 @@ ai_assistant_panel_quick_questions = [
 ai_assistant_panel_speak_banner = True
 
 # Type:    str
-# Default: "Ask Us"
+# Default: "Ask AI"
 #
 # Label displayed on the floating trigger pill that appears at the bottom-right
 # corner of the viewport when the user minimizes the panel (rather than closing
 # it).  Clicking the pill restores the panel with the conversation intact.
 #
 # User note: Keep very short (1–3 words).  Combined with a chat icon SVG.
-ai_assistant_panel_trigger_label = "Ask Us"
+ai_assistant_panel_trigger_label = "Ask AI"
 
 # Type:    bool
 # Default: True
@@ -858,7 +858,7 @@ ai_assistant_panel_trigger_label = "Ask Us"
 # load (True, default) or only after the user has opened then minimized the
 # panel (False).
 #
-# User note: When True the "Ask Us" pill is immediately visible at the
+# User note: When True the "Ask AI" pill is immediately visible at the
 # bottom-right of every page so readers can open the AI assistant with a
 # single click.  When False users must first click the toolbar expand button
 # then "AI Assistant" before the pill appears — two extra clicks.

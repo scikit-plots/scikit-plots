@@ -4459,9 +4459,9 @@ def add_ai_assistant_context(
         "panelSpeakBanner": _cfg_bool(
             app.config, "ai_assistant_panel_speak_banner", True
         ),
-        # Trigger pill label (the floating "Ask Us" button shown when minimized).
+        # Trigger pill label (the floating "Ask AI" button shown when minimized).
         "panelTriggerLabel": (
-            _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask Us"
+            _cfg_str(app.config, "ai_assistant_panel_trigger_label") or "Ask AI"
         ),
         # Initial panel state: True (default) → show trigger pill on page load
         # (panel starts minimized, pill visible — 1-click access).
@@ -4977,7 +4977,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     #
     # ``ai_assistant_panel_trigger_label``
     #     Label on the floating trigger pill shown when the panel is minimized.
-    #     Default: 'Ask Us'.
+    #     Default: 'Ask AI'.
     #
     # ``ai_assistant_panel_start_minimized``
     #     When True (default) the floating trigger pill is rendered eagerly on
@@ -4995,7 +4995,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("ai_assistant_panel_api_enabled", False, "html")
     app.add_config_value("ai_assistant_panel_quick_questions", [], "html")
     app.add_config_value("ai_assistant_panel_speak_banner", True, "html")
-    app.add_config_value("ai_assistant_panel_trigger_label", "Ask Us", "html")
+    app.add_config_value("ai_assistant_panel_trigger_label", "Ask AI", "html")
     app.add_config_value("ai_assistant_panel_start_minimized", True, "html")
 
     # -----------------------------------------------------------------------

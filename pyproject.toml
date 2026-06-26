@@ -460,6 +460,7 @@ doc = [
   ## sphinx
   "sphinx[testing]>=5.0.0,<100.0.0",        # Documentation generator include legacy "pytest-sphinx"
   "sphinx-copybutton",                      # Copy button for code blocks
+  "sphinx-togglebutton",                    # You can collapse admonitions (notes, warnings, etc) so that their content is hidden until users click the admonition title.
   "sphinx-design",                          # Modern design elements
   "sphinx-gallery",                         # Gallery examples
   "sphinx-prompt",                          # Shell prompts can be created using a prompt directive:

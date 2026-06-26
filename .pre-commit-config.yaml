@@ -103,8 +103,14 @@ repos:
             |benchmarks/asv\\.conf\\.json\
           )$"
       - id: check-yaml  # Attempts to load all yaml files to verify syntax.
-        exclude: "^(\\.conda-forge-recipes/.*/.*\\.yaml)$"
+        exclude: "^(\
+            \\.conda-forge-recipes/.*/.*\\.yaml\
+          )$"
       - id: check-toml  # Attempts to load all TOML files to verify syntax.
+        exclude: "^(\
+            docker/env_pipenv/py38/.*\\.template\
+            |docker/env_pipenv/py39/.*\\.template\
+          )$"
       - id: check-xml   # Attempts to load all xml files to verify syntax.
 
   # Conflict Prevention: Filename and symlink issues

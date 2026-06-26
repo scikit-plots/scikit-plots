@@ -64,12 +64,52 @@ Learn
     .. grid-item-card::
         :padding: 3
 
-        **cheatsheet**
+        **terminologies**
         ^^^
         .. toctree::
             :maxdepth: 2
 
-            Cheatsheet <./cheatsheet/index.rst>
+            Terminology <./terminology/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **data preparation & analysis**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Data Preparation & Analysis <./data_preparation_and_analysis/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **bayesian data analysis**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Bayesian Data Analysis <./bayesian_data_analysis/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **time series**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Time Series <./time_series/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **deep learning**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Deep Learning <./deep_learning/index.rst>
 
     .. grid-item-card::
         :padding: 3
@@ -84,7 +124,17 @@ Learn
     .. grid-item-card::
         :padding: 3
 
-        **glossary**
+        **cheatsheets**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Cheatsheet <./cheatsheet/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **glossaries**
         ^^^
         .. toctree::
             :maxdepth: 3

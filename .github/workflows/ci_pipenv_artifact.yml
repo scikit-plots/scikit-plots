@@ -48,6 +48,10 @@
 # (e.g. "Update Pipenv Artifacts (py3.11)") — update those rules accordingly,
 # or scope required checks to the workflow rather than individual matrix
 # names.
+#
+# TODO: dependabot.yml The graph pipeline performs its own manifest discovery.
+# It discovers the legacy py38/py39 Pipfiles.
+# Their python_version = "3.8" / "3.9" declarations cause an immediate hard failure because Dependabot only supports Python 3.10+ for graph generation.
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CI 📦 Pipenv Artifacts Update
@@ -62,8 +66,8 @@ on:
         type: choice
         options:
           - "all"
-          - "3.8"
-          - "3.9"
+          # - "3.8"
+          # - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
@@ -83,8 +87,8 @@ on:
         default: "3.11"
         type: choice
         options:
-          - "3.8"
-          - "3.9"
+          # - "3.8"
+          # - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"

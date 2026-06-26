@@ -810,7 +810,7 @@
     border-color: rgba(255,255,255,0.12);
 }
 
-/* ─── Floating "Ask Us" trigger icon ─────────────────────────────────────── */
+/* ─── Floating "Ask AI" trigger icon ─────────────────────────────────────── */
 /*
  * When the panel is minimized (or not yet opened), a compact pill-shaped
  * floating icon is shown at the bottom-right — like the Confluent example.

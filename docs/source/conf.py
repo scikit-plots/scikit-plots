@@ -271,12 +271,14 @@ extensions = [
     "sphinx_prompt",  # Add prompts and outputs to your documentation "sphinx-prompt"
     "sphinxext.opengraph",  # Add OpenGraph metadata for better sharing of documentation.
     "sphinx_copybutton",  # Add a "copy" button to code blocks in the documentation
+    "sphinx_togglebutton",   # https://sphinx-togglebutton.readthedocs.io/en/latest/index.html
     "sphinx_design",  # Add design components and elements to documentation.
     #
     # "_sphinx_ext.skplt_ext.sphinx_tabs_patch",   # <-- must come BEFORE sphinx_tabs.tabs
     'scikitplot.externals._sphinxext.sphinx_tabs_patch',   # <-- must come BEFORE sphinx_tabs.tabs
     "sphinx_tabs.tabs",  # Tabbed content extension
     #
+    # "ablog",  # https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py#L100
     'myst_parser',  # Markdown parser (.md files) with Sphinx
     # 'nbsphinx',  # to publish Jupyter notebooks as documentation pages.
     # gallery extensions (these affect layout and content presentation)
@@ -982,6 +984,9 @@ html_theme_options = {
         # the stable and devdocs.
         # "json_url": "https://scikit-plots.github.io/dev/_static/versions.json",
         "json_url": "https://scikit-plots.github.io/dev/_static/switcher.json",
+        # We want to keep the relative reference if we are in dev mode
+        # but we want the whole url if we are effectively in a released version
+        # json_url = "_static/switcher.json"
         "version_match": release,  # without git section choose by release
     },
     # check_switcher may be set to False if docbuild pipeline fails. See
@@ -1104,7 +1109,6 @@ html_theme_options = {
         # Regular docs > On this page > Show Source
         # Gallery pages > On this page > Download source code > Download notebook > Download zip > Lite / Binder
         "**": [
-            *(["edit-this-page"] if "dev" in release else []),
             "page-toc",
             # "sourcelink",  # Docs pages: sourcelink + html_copy_source = True + html_show_sourcelink = True
             # (recommended) Canonical Sphinx-Gallery components sidebar manually add
@@ -1122,6 +1126,9 @@ html_theme_options = {
             #   - Binder
             "sg_download_links",  # Sphinx-Gallery links to:
             "sg_launcher_links",
+            # *(["edit-this-page"] if "dev" in release else []),
+            "edit-this-page",
+            "sourcelink",
             # "funding_links",
         ],
     },
@@ -1218,23 +1225,22 @@ html_sidebars = {
         "search-field",
         "sidebar-nav-bs",
     ],
+    "auto_examples/00-jupyter_notebooks/index": [],
+    # "learn/glossary/index": [],
     "project/index": [  # This ensures we test for custom sidebars
         "sidebar-nav-bs",
         "custom-template",
     ],
+    # "project/governance": [],
+    # "project/teams/index": [],
+    # "project/roadmap": [],
     "project/community": [  # This ensures we test for custom sidebars
         "sidebar-nav-bs",
         "custom-template",
     ],
-    # "governance": [],
-    "project/glossary/index": [],
-    "project/glossary/sklearn_glossary": [],
+    # "project/funding": [],
     "project/faq": [],
-    # "roadmap": [],
     # "related_projects": [],
-    # "support": [],
-    # "teams/about": [],
-    "auto_examples/00-jupyter_notebooks/index": [],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -1293,7 +1299,7 @@ html_copy_source = True
 
 # Output file base name for HTML help builder.
 # The default is the project name with spaces removed and doc appended.
-# htmlhelp_basename = 'scikit-plotsdoc'
+htmlhelp_basename = 'scikit-plotsdoc'
 
 ##########################################################################
 ## Options for LaTeX output
@@ -1391,6 +1397,50 @@ html_copy_source = True
 # texinfo_show_urls = 'footnote'
 
 ##########################################################################
+## Options for "edit this page" link
+##########################################################################
+
+# -- application setup -------------------------------------------------------
+# https://github.com/pydata/pydata-sphinx-theme/blob/main/docs/conf.py#L333
+def setup_to_main(
+    app: Sphinx, pagename: str, templatename: str, context, doctree
+) -> None:
+    """
+    Add a function that jinja can access for returning an "edit this page" link
+    pointing to `main`.
+    """
+
+    def to_main(link: str) -> str:
+        """
+        Transform "edit on github" links and make sure they always point to the
+        main branch.
+
+        Args:
+            link: the link to the github edit interface
+
+        Returns:
+            the link to the tip of the main branch for the same file
+        """
+        links = link.split("/")
+        idx = links.index("edit")
+        return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
+    context["to_main"] = to_main
+
+def setup(app: Sphinx) -> dict[str, any]:
+    """Add custom configuration to sphinx app.
+
+    Args:
+        app: the Sphinx application
+    Returns:
+        the 2 parallel parameters set to ``True``.
+    """
+    app.connect("html-page-context", setup_to_main)
+    return {
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }
+
+##########################################################################
 ## Options for the linkcheck builder
 ##########################################################################
 
@@ -1400,10 +1450,38 @@ html_copy_source = True
 linkcheck_exclude_documents = [r"whats_new/.*"]
 
 # default timeout to make some sites links fail faster
+# we have had issues with linkcheck timing and retries on www.gnu.org
+# linkcheck_retries = 1
+# linkcheck_timeout = 30
+# linkcheck_report_timeouts_as_broken = True
 linkcheck_timeout = 10
 
 # Allow redirects from doi.org
-linkcheck_allowed_redirects = {r"https://doi.org/.+": r".*"}
+linkcheck_allowed_redirects = {
+    r"https://doi.org/.+": r".*",
+    # r"http://www.python.org": "https://www.python.org/",
+    # # :source:`something` linking files in the repository
+    # r"https://github.com/pydata/pydata-sphinx-theme/tree/.*": r"https://github.com/pydata/pydata-sphinx-theme/blob/.*",
+    # r"https://github.com/sphinx-themes/sphinx-themes.org/raw/.*": r"https://github.com/sphinx-themes/sphinx-themes.org/tree/.*",
+    # # project redirects
+    # r"https://pypi.org/project/[A-Za-z\d_\-\.]+/": r"https://pypi.org/project/[a-z\d\-\.]+/",
+    # r"https://virtualenv.pypa.io/": "https://virtualenv.pypa.io/en/latest/",
+    # # catching redirects in rtd
+    # r"https://[A-Za-z\d_\-\.]+.readthedocs.io/": r"https://[A-Za-z\d_\-\.]+\.readthedocs\.io(/en)?/(stable|latest)/",
+    # r"https://readthedocs.org/": r"https://about.readthedocs.com/\?ref=app.readthedocs.org",
+    # r"https://app.readthedocs.org/dashboard/": r"https://app.readthedocs.org/accounts/login/\?next=/dashboard/",
+    # # miscellanenous urls
+    # r"https://python.arviz.org/": "https://python.arviz.org/en/stable/",
+    # r"https://www.sphinx-doc.org/": "https://www.sphinx-doc.org/en/master/",
+    # r"https://idtracker.ai/": "https://idtracker.ai/latest/",
+    # r"https://gitlab.com": "https://about.gitlab.com/",
+    # r"https://feature-engine.readthedocs.io/": "https://feature-engine.trainindata.com/en/latest/",
+    # r"https://picsum.photos/": r"https://fastly.picsum.photos/",
+}
+# linkcheck_anchors_ignore = [
+#     # match any anchor that starts with a '/' since this is an invalid HTML anchor
+#     r"\/.*",
+# ]
 linkcheck_ignore = [
     # ignore links to local html files e.g. in image directive :target: field
     r"^..?/",
@@ -1454,6 +1532,20 @@ linkcheck_ignore = [
     # "#setting-the-maximum-size-of-thread-pools",
     # r"https://stackoverflow.com/questions/5836335/"
     # "consistently-create-same-random-numpy-array/5837352#comment6712034_5837352",
+    #
+    # The crawler gets "Anchor not found" for various anchors
+    # r"https://github.com.+?#.*",
+    # r"https://www.sphinx-doc.org/en/master/*/.+?#.+?",
+    # sample urls
+    # "https://someurl/release-0.1.0.tar-gz",
+    # for whatever reason the Ablog index is treated as broken
+    # "../examples/blog/index.html",
+    # get a 403 on CI
+    # "https://canvas.workday.com/styles/tokens/type",
+    # r"https?://www.gnu.org/software/gettext/.*",
+    # r"https://www.npmjs.com/.*",
+    # r"https://sass-lang.com/.*",
+    # r"https://docutils.sourceforge.io/.*",
 ]
 
 # Use Github token from environment variable to avoid Github rate limits when
@@ -1659,7 +1751,12 @@ def linkcode_resolve(domain, info):
 ## Extension: sphinx-copybutton configurations
 ##########################################################################
 
-# Specify how to identify the prompt when copying code snippets
+# -- Sphinx-copybutton options ---------------------------------------------
+# Exclude copy button from appearing over notebook cell numbers by using :not()
+# The default copybutton selector is `div.highlight pre`
+# https://github.com/executablebooks/sphinx-copybutton/blob/master/sphinx_copybutton/__init__.py#L82
+# copybutton_exclude = ".linenos, .gp"
+# copybutton_selector = ":not(.prompt) > div.highlight pre"
 # copybutton_prompt_text = r">>> | \.\.\."
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
@@ -2097,7 +2194,7 @@ html_context = {
     "github_user": "scikit-plots",
     "github_repo": "scikit-plots",
     "github_version": gh_branch,  # branch the docs are built from
-    # "doc_path": "docs",  # path to the docs directory inside the repo
+    "doc_path": "docs/source",  # Need by "edit" button https://github.com/pydata/pydata-sphinx-theme/blob/7d2dc8cc62a117036a7d417a542d45b1bc126196/src/pydata_sphinx_theme/edit_this_page.py#L18
 
     # 'repl_url': repl_url,  # populated by the extension
     # "shell": {
@@ -2923,43 +3020,3 @@ for rst_template_name, rst_target_name, kwargs in rst_templates:
 #         filename=None,
 #         body="window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({hashBasedRouting:true})",
 #     )
-
-# -- application setup -------------------------------------------------------
-# def setup_to_main(
-#     app: Sphinx, pagename: str, templatename: str, context, doctree
-# ) -> None:
-#     """
-#     Add a function that jinja can access for returning an "edit this page" link
-#     pointing to `main`.
-#     """
-
-#     def to_main(link: str) -> str:
-#         """
-#         Transform "edit on github" links and make sure they always point to the
-#         main branch.
-
-#         Args:
-#             link: the link to the github edit interface
-
-#         Returns:
-#             the link to the tip of the main branch for the same file
-#         """
-#         links = link.split("/")
-#         idx = links.index("edit")
-#         return "/".join(links[: idx + 1]) + "/main/" + "/".join(links[idx + 2 :])
-
-#     context["to_main"] = to_main
-# def setup(app: Sphinx) -> dict[str, any]:
-#     """Add custom configuration to sphinx app.
-
-#     Args:
-#         app: the Sphinx application
-#     Returns:
-#         the 2 parallel parameters set to ``True``.
-#     """
-#     app.connect("html-page-context", setup_to_main)
-
-#     return {
-#         "parallel_read_safe": True,
-#         "parallel_write_safe": True,
-#     }

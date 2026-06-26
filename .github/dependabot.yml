@@ -121,7 +121,7 @@ updates:
     #   /docker/env_pipenv/py39  → Python 3.9 is EOL (since Oct 2025);
     #
     directory: /  # /requirements  # Not affect graph pipeline performs
-    # TODO: The graph pipeline performs its own manifest discovery.
+    # TODO: dependabot.yml The graph pipeline performs its own manifest discovery.
     # It discovers the legacy py38/py39 Pipfiles.
     # Their python_version = "3.8" / "3.9" declarations cause an immediate hard failure because Dependabot only supports Python 3.10+ for graph generation.
     # directories:
