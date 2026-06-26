@@ -70,8 +70,7 @@
   $ conda info -e
 
 • Activate environments (depending on tool):
-
-root@sp-docker /work/docs (subpackage-bug-fix)
+  # root@sp-docker /work/docs (subpackage-bug-fix)
   $ micromamba activate py311
   $ mamba activate py311
   $ conda activate py311
@@ -121,8 +120,8 @@ root@sp-docker /work/docs (subpackage-bug-fix)
 ✍  Starting Development
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🌿  Create a new branch before working:
+• 🌿  Create a new branch before working:
   $ git checkout -b feature/my-new-feature
 
-✍  Proceed to create a branch if you have uncommitted changes and are beginning work on a new feature or bug fix.
-🔄  Read more: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch
+• ✍  Proceed to create a branch if you have uncommitted changes and are beginning work on a new feature or bug fix.
+• 🔄  Read more: https://scikit-plots.github.io/dev/devel/quickstart_contributing.html#creating-a-branch

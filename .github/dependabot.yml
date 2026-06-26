@@ -122,23 +122,29 @@ updates:
     #
     # directory: /  # /requirements  #  same constraint applies
     directories:
-      - /
-      # - "/.binder"
-      # - "/docker/env_pipenv"
-      # - "/docker/env_pipenv/py310"
-      # - "/docker/env_pipenv/py311"
-      # - "/docker/env_pipenv/py312"
-      # # /docker/env_pipenv/py38 ← OMITTED: py38 EOL; Dependabot pip requires 3.10+
-      # # /docker/env_pipenv/py39 ← OMITTED: py39 EOL; Dependabot pip requires 3.10+
-      # - "/docs/source/binder"
-      # - "/galleries/gateway/plugin/my-llm"
-      # - "/requirements"
-      # - "/scikitplot/_env/tests/test_package"
-      # - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_model"
-      # - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy"
-      # - "/scikitplot/cexternals/_annoy"
-      # - "/tools/zz_yanked/azure"
-      # - "/tools/zz_yanked/pypi_packaging"
+      # Root auto-discovery (`- /`) is intentionally NOT used here.
+      # Using `- /` triggers full auto-discovery, which finds py38 and py39.
+      # `exclude-paths` is silently dropped for pip (the updater receives
+      # `"exclude-paths":[]` regardless) — confirmed by filter_excluded log.
+      # Fix: enumerate only the directories Dependabot should actually scan.
+      # Source: `"directories":[…]` in the CI job definition log (2026-06-26).
+      # ⚠ When adding a new pip manifest directory to the repo, add it here too.
+      - "/.binder"
+      - "/docker/env_pipenv"
+      - "/docker/env_pipenv/py310"
+      - "/docker/env_pipenv/py311"
+      - "/docker/env_pipenv/py312"
+      # /docker/env_pipenv/py38 ← OMITTED: py38 EOL Oct 2024; Dependabot pip requires 3.10+
+      # /docker/env_pipenv/py39 ← OMITTED: py39 EOL Oct 2025; Dependabot pip requires 3.10+
+      - "/docs/source/binder"
+      - "/galleries/gateway/plugin/my-llm"
+      - "/requirements"
+      - "/scikitplot/_env/tests/test_package"
+      - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_model"
+      - "/scikitplot/_externals/_sphinx_ext/_sphinx_ai_assistant/_hf_spaces_proxy"
+      - "/scikitplot/cexternals/_annoy"
+      - "/tools/zz_yanked/azure"
+      - "/tools/zz_yanked/pypi_packaging"
     # https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#exclude-paths-
     exclude-paths:
       # "supported-versions": "3.10.*, 3.11.*, 3.12.*, 3.13.*, 3.14.*"

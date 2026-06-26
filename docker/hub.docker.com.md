@@ -130,7 +130,7 @@ docker run scikitplot/scikit-plots:latest
 
 #### run interactive shell (default entrypoint bash)
 
-##### 🚨 By using `-ic "bash -i"`, you are explicitly forcing Bash's hand. The -i flag tells Bash: "I don't care how you were started, force yourself into interactive mode."
+##### 🚨 By using `[bash] -ic "bash -i"`, you are explicitly forcing Bash's hand. The -i flag tells Bash: "I don't care how you were started, force yourself into interactive mode."
 
 ```sh
 # docker run -it --rm scikitplot/scikit-plots:latest

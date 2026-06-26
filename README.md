@@ -249,38 +249,44 @@
 
  <h4>🧠 Gotchas</h4>
  <ul>
-   <li>
-     ⚠️ <strong>Python 3.8 and 3.9 are only partially supported:</strong> optional
-     packages such as <code>array-api-compat</code>, <code>array-api-extra</code>, and
-     <code>astropy.stats</code> require Python 3.10+ and will fail to install on older
-     versions. Upgrade to Python 3.10 or later for the full feature set.
-   </li>
-   <li>
-     🚫 <strong>Never install into conda's <code>base</code> environment</strong> — it
-     accumulates packages over time and is highly prone to conflicts. Always create a
-     dedicated environment instead.
-   </li>
-   <li>
-     ✅ <strong>Use an isolated environment</strong> to keep installs clean and avoid
-     conflicts with system packages:
-     <a href="https://docs.python.org/3/library/venv.html"
-       target="_blank" rel="noopener noreferrer"><code>venv</code></a>
-     (built-in, zero setup) or
-     <a href="https://pypi.org/project/pipenv/"
-       target="_blank" rel="noopener noreferrer"><code>pipenv</code></a>
-     (adds a lock file for reproducible installs).
-   </li>
-   <li>
-     ℹ️ <strong>PyPI carries the latest release</strong> (currently
-     <code>0.4.0.post11</code>). Use <code>pip install</code> if you need the most
-     recent bug fixes or features.
-   </li>
-   <li>
-     🚨 <strong>conda-forge lags behind PyPI:</strong> the latest conda-forge stable
-     build (<code>py313hf3c7c41_10</code>, equivalent to <code>0.4.0.post10</code>)
-     may be one or more releases behind PyPI. Use <code>pip install</code> inside your
-     conda environment if you need the newest version.
-   </li>
+  <li>
+    ⚠️ <strong>Python 3.8 and 3.9 are only partially supported:</strong> optional
+    packages such as <code>array-api-compat</code>, <code>array-api-extra</code>, and
+    <code>astropy.stats</code> require Python 3.10+ and will fail to install on older
+    versions. Upgrade to Python 3.10 or later for the full feature set.
+  </li>
+  <li>
+    🚫 <strong>Never install into conda's <code>base</code> environment</strong> — it
+    accumulates packages over time and is highly prone to conflicts. Always create a
+    dedicated environment instead.
+  </li>
+  <li>
+    ✅ <strong>Use an isolated environment</strong> to keep installs clean and avoid
+    conflicts with system packages:
+    <a href="https://docs.python.org/3/library/venv.html"
+      target="_blank" rel="noopener noreferrer"><code>venv</code></a>
+    (built-in, zero setup) or
+    <a href="https://pypi.org/project/pipenv/"
+      target="_blank" rel="noopener noreferrer"><code>pipenv</code></a>
+    (adds a lock file for reproducible installs).
+  </li>
+  <li>
+    ℹ️ <strong>PyPI carries the latest release</strong> (currently
+    <code>0.4.0.post11</code>). Use <code>pip install</code> if you need the most
+    recent bug fixes or features.
+  </li>
+  <li>
+    🚨 <strong>conda-forge lags behind PyPI:</strong> the latest conda-forge stable
+    build (<code>py313hf3c7c41_10</code>, equivalent to <code>0.4.0.post10</code>)
+    may be one or more releases behind PyPI. Use <code>pip install</code> inside your
+    conda environment if you need the newest version.
+  </li>
+  <li>
+    🚨 By running <strong>Docker</strong> with <code>[bash] -ic "bash -i"</code>,
+    you override Bash's normal startup logic. The <code>-i</code> option
+    explicitly tells Bash: <em>"Start as an interactive shell, regardless
+    of how you were invoked."</em>
+  </li>
  </ul>
 
  <h4>💡 Tips: Troubleshooting</h4>
