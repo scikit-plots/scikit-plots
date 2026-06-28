@@ -267,7 +267,7 @@ def compile_and_load_result(  # noqa: D417
     force_rebuild: bool = False,
     verbose: int = 0,
     profile: str | None = None,
-    annotate: bool = False,
+    annotate: bool | None = None,
     view_annotate: bool = False,
     numpy_support: bool = True,
     numpy_required: bool = False,
@@ -845,7 +845,7 @@ def build_package_from_code_result(
     scikitplot.cython.PackageBuildResult
         Package build result.
     """
-    annotate = bool(kwargs.pop("annotate", False))
+    annotate = kwargs.pop("annotate", None)
     compiler_directives = kwargs.pop("compiler_directives", None)
     extra_compile_args = kwargs.pop("extra_compile_args", None)
     extra_link_args = kwargs.pop("extra_link_args", None)
@@ -896,7 +896,7 @@ def build_package_from_paths_result(
     """
     Build and import a multi-module extension package from ``.pyx`` file paths.
     """
-    annotate = bool(kwargs.pop("annotate", False))
+    annotate = kwargs.pop("annotate", None)
     compiler_directives = kwargs.pop("compiler_directives", None)
     extra_compile_args = kwargs.pop("extra_compile_args", None)
     extra_link_args = kwargs.pop("extra_link_args", None)

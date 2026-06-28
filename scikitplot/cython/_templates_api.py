@@ -495,7 +495,7 @@ def compile_template_result(  # noqa: D417
     profile: str | None = None,
     numpy_support: bool = True,
     numpy_required: bool | None = None,
-    annotate: bool = False,
+    annotate: bool | None = None,
     view_annotate: bool = False,
     compiler_directives: Mapping[str, Any] | None = None,
     include_dirs: list[str | Path] | None = None,
