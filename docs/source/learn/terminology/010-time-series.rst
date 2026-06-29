@@ -80,7 +80,7 @@ Evaluation metrics
 ------------------
 
 Forecasts are scored with **MAE**, **MSE**, **RMSE**, and percentage errors
-**MAP**, **sMAPE** and **WAPE**. Choose carefully: MAP explodes when actual
+**MAPE**, **sMAPE** and **WAPE**. Choose carefully: MAPE explodes when actual
 values are near zero and penalises over- and under-prediction asymmetrically;
 sMAPE and WAPE are more robust for intermittent or zero-heavy data.
 

@@ -18,9 +18,57 @@ A Priori Power Analysis
 
 *Computing the sample size required before a study for a target power and effect size.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**A-priori power analysis** computes the **sample size** :math:`n` **needed before
+collecting data**, from four inputs: the significance level :math:`\alpha` (Type I risk),
+the desired **power** :math:`1 - \beta` (chance of detecting a true effect), the expected
+**effect size** :math:`\delta`, and the data variance. The aim: a study **large enough to
+detect a meaningful effect** but no larger.
+
+Why it matters
+--------------
+
+It guards against **underpowered** studies (false negatives — missing real effects) and
+**overpowered** ones (wasted resources chasing trivial effects), and forces you to commit
+to a **minimum meaningful effect size** in advance rather than rationalising after the
+fact.
+
+The sample-size formula
+-----------------------
+
+For a two-sample mean test,
+
+.. math::
+
+   n = \left(\frac{Z_{1-\alpha/2} + Z_{1-\beta}}{\delta}\right)^2,
+
+where :math:`Z_{1-\alpha/2}` is the critical value for :math:`\alpha` (1.96 at
+:math:`\alpha = 0.05`, two-tailed), :math:`Z_{1-\beta}` the value for the target power
+(0.84 for 80%), and :math:`\delta = (\mu_1 - \mu_2)/\sigma` the standardised effect size
+(Cohen's d). In practice tools like **G\*Power**, R or ``statsmodels`` do the arithmetic.
+
+Example
+-------
+
+To detect a conversion lift from 10% to 11% at :math:`\alpha = 0.05` and **80% power**
+with an effect of 0.01, the analysis returns about **7,850 users per group** — testing
+only 1,000 per arm would be badly underpowered.
+
+The power-analysis family
+-------------------------
+
+**A-priori** (before) sets the sample size; **post-hoc** (after) estimates achieved power
+and is controversial; **sensitivity** asks, for a given :math:`n`, :math:`\alpha` and
+power, the *smallest detectable* effect. The everyday convention is :math:`\alpha = 0.05`,
+power = 0.80.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Post Hoc Power Analysis <094-post-hoc-power-analysis>` · :doc:`Compromise Power Analysis <093-compromise-power-analysis>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Fixed-Horizon Testing <082-fixed-horizon-testing>`
 
 ----
 

@@ -18,9 +18,45 @@ FLOPs
 
 *Floating-point operations — a measure of a model's compute cost.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**FLOPs — floating-point operations** — count the **mathematical operations** (adds, multiplies,
+divides) a model or algorithm performs. In ML, FLOPs are a standard **proxy for computational
+complexity** and for training/inference **cost** — they measure *workload*, not memory access or
+I/O.
+
+The units
+---------
+
+One operation is a **FLOP**, and the scale climbs fast: **MFLOPs** (millions), **GFLOPs**
+(billions), **TFLOPs** (trillions), **PFLOPs** (quadrillions). A single large matrix
+multiplication already involves enormous counts.
+
+Counting them
+-------------
+
+Multiplying an :math:`m \times n` matrix by an :math:`n \times p` matrix costs about
+:math:`2 \, m \, n \, p` FLOPs — so two :math:`1000 \times 1000` matrices run to roughly **2
+billion**. In deep learning, **training** FLOPs scale with dataset size × model size × epochs,
+while **inference** FLOPs per forward pass drive deployment latency. For comparison, ResNet-50 is
+~4 GFLOPs per image, BERT-base ~22 GFLOPs per sequence, and GPT-3 took an estimated
+:math:`3 \times 10^{23}` FLOPs to train.
+
+FLOPs vs FLOPS
+--------------
+
+Two letters, two meanings. **FLOPs** is a **count** of operations (the workload); **FLOPS** is
+**floating-point operations per second**, the **speed** of hardware — an NVIDIA A100 delivers
+~312 TFLOPS on its tensor cores. FLOPs is the job; FLOPS is how fast the worker does it. Because
+training cost scales almost linearly with FLOPs, the count is a key lever in the
+efficiency-versus-accuracy trade-off.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Model Weights <155-model-weights>` · :doc:`Quantization <343-quantization>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Cloud Inference <153-cloud-inference>` · :doc:`OpEx <157-opex>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

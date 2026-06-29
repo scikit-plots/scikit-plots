@@ -18,9 +18,56 @@ T-Test
 
 *A hypothesis test comparing means using the t-distribution for smaller samples.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+A **t-test** asks whether the **means of two groups differ significantly**, using the
+**Student's t-distribution**. It is the tool of choice when the **sample is small**
+(:math:`n < 30`) and the **population standard deviation is unknown** — estimated instead
+from the data, which the heavier-tailed t accounts for.
+
+The three forms
+---------------
+
+A **one-sample** t-test compares a sample mean to a known value (is the class average
+different from 70?); an **independent two-sample** test compares two separate groups (male
+vs female scores); and a **paired** test compares the *same* units measured twice (weight
+before vs after a diet).
+
+The statistic
+-------------
+
+For the independent test,
+
+.. math::
+
+   t = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{\dfrac{s_1^2}{n_1} + \dfrac{s_2^2}{n_2}}},
+
+the difference in means over its standard error. Compare :math:`t` to a **critical value**
+from the t-distribution at the appropriate **degrees of freedom** (for the independent test,
+:math:`df = n_1 + n_2 - 2`), or read a p-value.
+
+Example
+-------
+
+A sample of 25 with mean 72, against a hypothesised population mean of 70 with
+:math:`s = 5`, gives :math:`t = (72 - 70)/(5/\sqrt{25}) = 2`. The critical value at
+:math:`df = 24, \alpha = 0.05` is about **2.064**, and since :math:`2 < 2.064` we **fail to
+reject** :math:`H_0` — no significant difference.
+
+Assumptions
+-----------
+
+The data should be roughly **normal**; the independent test also assumes **independent
+groups** and **equal variances** — if the variances differ, use **Welch's t-test**. As
+:math:`n` grows the t-distribution approaches the normal, and the t-test converges to the
+z-test.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Z-Test <119-z-test>` · :doc:`Sample Mean <089-sample-mean>` · :doc:`Sample Standard Deviation <088-sample-standard-deviation>` · :doc:`Critical Value <087-critical-value>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`Effect Size (δ) <106-effect-size>`
 
 ----
 

@@ -18,9 +18,42 @@ Expanding Window Cross-Validation
 
 *Time-series CV that grows the training window as it walks forward.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Expanding-window** cross-validation is a time-series scheme where the **training set grows**
+over time while the test set always takes the **next** period. The rule is the usual one —
+**train on the past, predict the future** — and crucially, **once data enters training it
+stays** in every later fold.
+
+How it works
+------------
+
+Order the data chronologically, start from an initial training period, and validate on the
+next. Then **expand** the training window to absorb more past data and validate on the
+following period, repeating to the end of the series.
+
+Example
+-------
+
+Over **2020–2024**: train **2020** → test **2021**; train **2020–2021** → test **2022**;
+train **2020–2022** → test **2023**; train **2020–2023** → test **2024**. The training block
+**keeps growing**; the test always sits just after it.
+
+vs the rolling window
+---------------------
+
+Both respect time order; they differ on memory. **Expanding** accumulates **all** history,
+which helps when **older data is still relevant** (finance, macroeconomic forecasting). The
+**rolling/sliding** window holds a **fixed** size and drops the oldest data, which helps when
+**recent data dominates** (stock trading, demand forecasting). The choice is really a
+question of whether the process is stationary.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sliding Window (Rolling Window) Cross-Validation <129-sliding-window-rolling-window-cross-validation>` · :doc:`Blocked Splits (Single Holdout) <128-blocked-splits-single-holdout>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>` · :doc:`Time Series <010-time-series>` · :doc:`Data Leakage <131-data-leakage>`
 
 ----
 

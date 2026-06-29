@@ -18,9 +18,42 @@ Early Stopping
 
 *Halting training when validation performance stops improving, to curb overfitting.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Early stopping** is a **regularisation** technique: stop training **before the model
+overfits**. Rather than running a fixed number of epochs, you watch a **validation metric** and
+halt once it stops improving — capturing the model at its generalisation "sweet spot" and
+saving the wasted epochs beyond it.
+
+How it works
+------------
+
+Hold out a validation set, train across epochs, and after each one **score the validation
+metric** and remember the **best** so far. If it fails to improve for **N consecutive epochs** —
+the **patience** — stop. The key parameters are the **monitored metric**, the **mode**
+(``min`` for loss, ``max`` for accuracy or AUC), the **patience**, and **restore-best-weights**,
+which rolls the model back to its best epoch.
+
+Example
+-------
+
+Capped at 100 epochs, suppose validation loss improves until **epoch 25** and then climbs as
+the model starts overfitting. With **patience = 3**, training stops at **epoch 28** and restores
+the weights from epoch 25 — the genuine best.
+
+Benefits and drawbacks
+----------------------
+
+It **prevents overfitting**, **cuts training time**, and finds a near-optimal stopping point
+automatically. The costs are minor: it **needs a validation set**, and a noisy metric can trip
+it too soon — which is exactly what **patience** is there to absorb.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Epochs <141-epochs>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Frozen Encoder <172-frozen-encoder>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Quantization <343-quantization>`
 
 ----
 

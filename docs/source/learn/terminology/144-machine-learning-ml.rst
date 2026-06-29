@@ -18,9 +18,51 @@ Machine Learning (ML)
 
 *Algorithms that learn patterns from data rather than being explicitly programmed.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Machine learning (ML)** is the branch of AI in which computers **learn patterns from data**
+rather than following hand-written rules. You supply **examples**, the model **learns the
+relationship between inputs (features) and outputs (labels)**, and once trained it
+**predicts** on new, unseen data.
+
+The core idea
+-------------
+
+Formally, ML fits a function
+
+.. math::
+
+   y = f(X) + \varepsilon,
+
+where :math:`X` are the input features, :math:`y` the output, :math:`f` the function learned
+from data, and :math:`\varepsilon` irreducible noise. Learning means estimating :math:`f`.
+
+The kinds of learning
+---------------------
+
+**Supervised** learning uses labelled data — **regression** for continuous targets (house
+price), **classification** for categories (spam or not). **Unsupervised** learning works on
+unlabelled data — **clustering** (customer segmentation) and **dimensionality reduction** (PCA,
+embeddings). **Semi-supervised** mixes a little labelled with much unlabelled data (costly
+medical labels). **Reinforcement learning** has an agent learn from rewards by acting in an
+environment. And **self-supervised** learning predicts part of the input from the rest (masked
+words) — the engine behind modern LLMs.
+
+Workflow and an example
+-----------------------
+
+The lifecycle is collect → clean → choose a model → train → evaluate → deploy → **monitor and
+retrain**. Train a model on thousands of houses — 1,000 sqft and 3 rooms sold for ``$250,000`` —
+and it learns that price rises with size and rooms, so a new 1,200 sqft, 4-room house is
+predicted at roughly ``$300,000``. ML matters because it **automates pattern discovery** at a
+scale and complexity beyond hand-coded rules.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`Embedding <173-embedding>` · :doc:`Regression Coefficient <090-regression-coefficient>` · :doc:`Medical AI <145-medical-ai>`
 
 ----
 

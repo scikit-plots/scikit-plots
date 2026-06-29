@@ -18,9 +18,46 @@ Risk of Peeking
 
 *The inflated false-positive risk from repeatedly checking a fixed-horizon test early.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+**Peeking** is looking at an experiment's results **before it officially ends** and acting
+on that interim data. The **risk of peeking** is the **inflated false-positive (Type I)
+rate** that results from repeatedly checking and **stopping as soon as significance
+appears**.
+
+Why it breaks the test
+----------------------
+
+A fixed-horizon test assumes a **single look at a predetermined sample size**. Each extra
+peek is another **independent chance** for noise to cross :math:`p < 0.05`, so the true
+error rate compounds far above the nominal :math:`\alpha`. Peek ten times at a 5% threshold
+and the real false-positive rate can reach **20–30%** — this compounding is called **alpha
+inflation**.
+
+What it costs
+-------------
+
+Concretely: a button test shows A ahead on day 1 (:math:`p = 0.04`), you stop and crown
+A — but over the full two weeks **B** would have won. The early stop produced a **false
+conclusion**, and at scale that means wrong launches, lost revenue, and eroded trust in
+experimentation.
+
+How to avoid it
+---------------
+
+Four routes: **predefine** the sample size and duration and only check at the end; use
+**sequential testing / alpha-spending** designs built for interim looks (**group
+sequential**, **O'Brien–Fleming**, **Pocock**); use **Bayesian** methods designed for
+continuous monitoring; or, if peeks are unavoidable, apply **multiplicity corrections**
+(Bonferroni, Holm). The peeking problem is precisely why the whole machinery of
+fixed-horizon and sequential testing exists.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Fixed-Horizon Testing <082-fixed-horizon-testing>` · :doc:`Group Sequential Testing <079-group-sequential-testing>` · :doc:`O'Brien–Fleming (OBF) Method <078-o-brienfleming-obf-method>` · :doc:`Pocock Method <077-pocock-method>` · :doc:`Type I Error <080-type-i-error>`
 
 ----
 

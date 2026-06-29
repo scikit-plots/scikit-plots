@@ -18,9 +18,52 @@ Two-Proportion Z-Test
 
 *A hypothesis test for whether two groups' success proportions differ, using a normal approximation.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **two-proportion z-test** decides whether an outcome's **rate differs significantly
+between two independent groups** — the standard test behind A/B experiments (is control's
+5% really below treatment's 6.2%, or just noise?).
+
+Hypotheses
+----------
+
+The null is **equality**, :math:`H_0 : p_1 = p_2`; the alternative is
+:math:`H_1 : p_1 \neq p_2` (two-tailed) or a one-sided version.
+
+The statistic
+-------------
+
+.. math::
+
+   z = \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1 - \hat{p})\left(\frac{1}{n_1} + \frac{1}{n_2}\right)}},
+
+where :math:`\hat{p}_i = x_i / n_i` are the group proportions and
+:math:`\hat{p} = (x_1 + x_2)/(n_1 + n_2)` is the **pooled** proportion — the shared rate
+*assumed under* :math:`H_0`, used to build the standard error. Compare :math:`z` to a
+critical value (:math:`\pm 1.96` at :math:`\alpha = 0.05`) or convert it to a p-value.
+
+Worked example
+--------------
+
+Control: 100 of 1,000 → :math:`\hat{p}_1 = 0.10`. Treatment: 130 of 1,000 →
+:math:`\hat{p}_2 = 0.13`. Pooled :math:`\hat{p} = 230/2000 = 0.115`; standard error
+:math:`\sqrt{0.115 \times 0.885 \times 0.002} \approx 0.01425`; so
+:math:`z = (0.10 - 0.13)/0.01425 \approx -2.11`, a two-tailed :math:`p \approx 0.035`.
+Since :math:`p < 0.05`, reject :math:`H_0` — treatment converts significantly higher.
+
+Assumptions
+-----------
+
+Independent samples, binary (success/failure) observations, and samples large enough for
+the normal approximation (:math:`np \ge 5` and :math:`n(1 - p) \ge 5`). It powers A/B
+tests, clinical recovery-rate comparisons and survey yes/no contrasts alike.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Proportion <091-proportion>` · :doc:`Z-Score <097-z-score>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Statistical Significance <096-statistical-significance>`
 
 ----
 

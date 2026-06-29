@@ -18,9 +18,51 @@ Fixed-Horizon Testing
 
 *Testing where the sample size is fixed in advance and analysed only at the end.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+**Fixed-horizon testing** is the general statistical principle behind the classic
+experiment: **decide the sample size** :math:`n` **(or end time) in advance, collect data
+to that point, and run the hypothesis test exactly once.** The "horizon" is that
+pre-committed stopping point. Applied to an A/B test specifically, this *is* the
+**traditional A/B test**.
+
+Why the horizon matters
+-----------------------
+
+Fixing it up front is what keeps the statistics honest: the **Type I error stays at**
+:math:`\alpha`, **peeking is ruled out** (checking early and stopping on significance
+inflates false positives), and the resulting **p-values and confidence intervals remain
+valid** under their assumptions.
+
+The procedure
+-------------
+
+State :math:`H_0` and :math:`H_1`; choose :math:`\alpha` (say 0.05); run an **a-priori
+power analysis** to size the sample; fix the horizon; collect to it; test once; decide.
+
+Example
+-------
+
+To detect a **+10% lift** (5% → 5.5%) at :math:`\alpha = 0.05` and **power 0.80**, an
+a-priori power analysis calls for **≈ 7,850 users per variant**. You stop at that horizon
+and run a single two-proportion z-test: :math:`p \le 0.05` rejects :math:`H_0`, otherwise
+you fail to reject.
+
+Strengths and limits
+--------------------
+
+It is **simple, widely accepted, and preserves error guarantees**. The price is
+**rigidity**: no early stop even when the result is already obvious, wasted samples when
+an effect is large, and no continuous monitoring. **Sequential and adaptive** methods
+(α-spending, Bayesian updating, bandits) trade some of that simplicity for the ability to
+stop early.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Bayesian Sequential Testing <074-bayesian-sequential-testing>` · :doc:`Standard Error (SE) <084-standard-error-se>`
 
 ----
 

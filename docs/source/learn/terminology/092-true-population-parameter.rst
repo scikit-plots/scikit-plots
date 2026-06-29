@@ -18,9 +18,51 @@ True Population Parameter
 
 *The fixed, usually unknown quantity (mean, proportion, coefficient) that estimation targets.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A **true population parameter** is a **fixed (but usually unknown) number that describes a
+whole population**. The word *true* stresses that the value exists even though we seldom
+observe it. The familiar ones are written with Greek letters: :math:`\mu` (mean),
+:math:`\sigma` (standard deviation), :math:`p` (proportion) and :math:`\rho`
+(correlation).
+
+Parameter vs statistic
+----------------------
+
+Because we rarely measure an entire population, we draw a **sample** and compute a
+**statistic** to estimate each parameter:
+
+- mean — parameter :math:`\mu`, statistic :math:`\bar{x}`
+- standard deviation — :math:`\sigma`, statistic :math:`s`
+- proportion — :math:`p`, statistic :math:`\hat{p}`
+- correlation — :math:`\rho`, statistic :math:`r`
+
+The **statistic is random** (it depends on which sample you draw); the **parameter is
+fixed but unknown**. This single distinction underlies every "true vs sample" page in
+statistics.
+
+Example
+-------
+
+The parameter :math:`p` might be the real fraction of all U.S. voters who support
+candidate A; a survey of 1,000 gives the statistic :math:`\hat{p} = 0.52`, an **estimate**
+of that unknown :math:`p`.
+
+Inference is about parameters
+-----------------------------
+
+We never know a parameter exactly without a census, so we **infer** it: a **confidence
+interval** brackets it ("95% confident the true parameter lies in this range"), and a
+**hypothesis test** evaluates a claim about it (:math:`H_0 : \mu = 100`). Estimators,
+standard errors, intervals and tests all exist to pin down population parameters from
+sample data.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`True Mean (Population Mean) <085-true-mean-population-mean>` · :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Sample Mean <089-sample-mean>` · :doc:`Sample Standard Deviation <088-sample-standard-deviation>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Proportion <091-proportion>`
 
 ----
 

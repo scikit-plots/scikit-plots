@@ -18,9 +18,52 @@ Sample Mean
 
 *The arithmetic average of a sample, used to estimate the population mean.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **sample mean** :math:`\bar{x}` is the **arithmetic average of a sample** — the sum of
+the observations divided by their count. It is the **statistic** used to estimate the
+**true population mean** :math:`\mu`:
+
+.. math::
+
+   \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+Examples
+--------
+
+Test scores :math:`\{80, 85, 90, 95, 100\}` give :math:`\bar{x} = 450/5 = 90`. Ten people
+with total height 1,720 cm give :math:`\bar{x} = 172` cm.
+
+Its three key properties
+------------------------
+
+- **Unbiased** — :math:`\mathbb{E}[\bar{x}] = \mu`; on average the sample mean equals the
+  population mean.
+- **Sampling distribution (CLT)** — for large :math:`n`, the Central Limit Theorem makes
+  :math:`\bar{x}` approximately normal,
+
+  .. math::
+
+     \bar{x} \sim N\!\left(\mu, \frac{\sigma^2}{n}\right),
+
+  with **standard error of the mean** :math:`SE = \sigma/\sqrt{n}` — so its variability
+  shrinks as :math:`n` grows.
+- **Outlier-sensitive** — being a sum, the mean is pulled by extreme values (unlike the
+  median).
+
+Where it shows up
+-----------------
+
+The sample mean is everywhere: **descriptive** summaries, **estimating** :math:`\mu`,
+**hypothesis tests** (the one-sample t-test), and **confidence intervals**. It is the
+**best unbiased estimator** of the population mean.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sample Standard Deviation <088-sample-standard-deviation>` · :doc:`True Mean (Population Mean) <085-true-mean-population-mean>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Frequentist <059-frequentist>` · :doc:`Regression Coefficient <090-regression-coefficient>`
 
 ----
 

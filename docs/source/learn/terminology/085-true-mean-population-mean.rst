@@ -18,9 +18,52 @@ True Mean (Population Mean)
 
 *The actual mean of the whole population that a sample mean estimates.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **true mean**, or **population mean** :math:`\mu`, is the **actual arithmetic average
+of an entire population**. It is a **fixed** value but usually **unknown** — we can rarely
+measure everyone — so we estimate it with the **sample mean** :math:`\bar{x}`.
+
+Parameter vs estimate
+---------------------
+
+.. math::
+
+   \mu = \frac{1}{N}\sum_{i=1}^{N} x_i, \qquad \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+Here :math:`\mu` is a **parameter** (fixed, unknown) and :math:`\bar{x}` a **statistic**
+(random, changing from sample to sample). By the **Law of Large Numbers**, as :math:`n`
+grows, :math:`\bar{x} \to \mu`.
+
+Example
+-------
+
+For the population :math:`\{2, 4, 6, 8, 10\}`, the true mean is
+:math:`\mu = (2+4+6+8+10)/5 = 6`. A sample :math:`\{4, 10\}` gives :math:`\bar{x} = 7` —
+an *estimate* of the true 6, off by sampling luck.
+
+Inference about μ
+-----------------
+
+Everything in classical inference targets :math:`\mu`: a **hypothesis test** checks a
+claim like :math:`H_0 : \mu = 100`, and a **confidence interval** says "we're 95%
+confident the true mean :math:`\mu` lies between :math:`X` and :math:`Y`." The sample mean
+is the **best unbiased estimator** of :math:`\mu`, and tests and intervals quantify how
+far it might be from the truth.
+
+The proportion analogue
+-----------------------
+
+For yes/no outcomes the same parameter-vs-estimate story holds with the **true conversion
+rate** :math:`p` estimated by :math:`\hat{p}` — :math:`\mu \leftrightarrow p`,
+:math:`\bar{x} \leftrightarrow \hat{p}` — the mean and proportion versions of one idea.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Margin of Error (MoE) <086-margin-of-error-moe>` · :doc:`Frequentist <059-frequentist>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>`
 
 ----
 

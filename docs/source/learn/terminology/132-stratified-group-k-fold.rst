@@ -18,9 +18,50 @@ Stratified Group K-Fold
 
 *K-fold CV preserving class balance while keeping groups intact across folds.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Stratified Group K-Fold** is a cross-validation scheme that fuses **three requirements** at
+once: **k-fold** splitting, **stratification** (preserve the class balance in every fold), and
+**grouping** (keep every group — same patient, user, session — entirely on one side of each
+split). It is the right tool for **grouped *and* imbalanced** classification.
+
+Why it's needed
+---------------
+
+Each simpler scheme covers only part of the problem. **Stratified k-fold** balances classes
+but can let one group's rows fall into both train and validation, **leaking** information.
+**Group k-fold** prevents that overlap but can wreck the class balance. **Stratified group
+k-fold** does both — class proportions held *and* group boundaries respected.
+
+How it works and an example
+---------------------------
+
+Identify the group key, then build folds that are simultaneously class-balanced and
+group-clean. For 1,000 samples from **100 patients** with a 20/80 disease split and ``k = 5``,
+each fold holds about 20 patients, preserves the ~20/80 ratio, and shares **no patient**
+between train and validation.
+
+In scikit-learn
+---------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import StratifiedGroupKFold
+
+   cv = StratifiedGroupKFold(n_splits=5)
+   for train_idx, test_idx in cv.split(X, y, groups):  # groups = patient IDs
+       ...
+
+The comparison is clean: plain **k-fold** is neither stratified nor group-aware, **stratified
+k-fold** adds class balance, **group k-fold** adds group safety, and **stratified group
+k-fold** is the only one with both.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stratified Shuffle Split <133-stratified-shuffle-split>` · :doc:`Multiclass stratified CV <134-multiclass-stratified-cv>` · :doc:`k-fold cross-validation <135-k-fold-cross-validation>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Data Leakage <131-data-leakage>` · :doc:`Class Weighting <002-class-weighting>`
 
 ----
 

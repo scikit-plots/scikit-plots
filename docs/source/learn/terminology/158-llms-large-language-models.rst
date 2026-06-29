@@ -18,9 +18,44 @@ LLMs (Large Language Models)
 
 *Large neural networks trained on text to understand and generate language.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**LLMs — large language models** — are ML models trained on **massive text corpora** to
+understand and generate human language. Built on **transformer** architectures, they handle a
+wide range of NLP tasks **without task-specific training**, via zero-shot and few-shot prompting.
+
+How they work
+-------------
+
+The architecture is the **transformer** with **self-attention**, which lets the model weigh every
+word in a sequence for context. Training runs over **billions to trillions of tokens** (books,
+articles, code, the web) with a deceptively simple objective: **predict the next token**. From
+that single objective emerge text generation, summarisation, translation, reasoning and code
+generation.
+
+The landscape and uses
+----------------------
+
+The major families include OpenAI's **GPT**, Google's **Gemini**, Meta's **LLaMA**, Anthropic's
+**Claude** and Mistral's **Mixtral**. They power conversational assistants, content creation,
+**code copilots**, semantic search and **retrieval-augmented generation (RAG)**, and
+data-science tasks like query-to-SQL.
+
+The limitations
+---------------
+
+The caveats are serious: **hallucinations** (fluent but wrong answers), **bias** inherited from
+training data, **cost and energy** (very high OpEx to train and serve), **stale knowledge** that
+lags real-time events, and limited **explainability**. A useful mental model is a **very powerful
+autocomplete** — predict the most likely continuation — that, at sufficient scale, begins to show
+reasoning-like behaviour.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Embedding <173-embedding>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`FLOPs <156-flops>`
 
 ----
 

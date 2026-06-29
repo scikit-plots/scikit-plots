@@ -18,9 +18,44 @@ Hyperparameter
 
 *A setting fixed before training (e.g. learning rate) rather than learned.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+A **hyperparameter** is a setting **chosen before training** that controls **how a model
+learns or how it is structured** — as opposed to **parameters** (weights and biases), which the
+optimiser **learns from the data**. Hyperparameters are the model's *learning strategy*;
+parameters are its *learned knowledge*.
+
+The main kinds
+--------------
+
+They span four areas. **Model structure**: number of layers, neurons per layer, a tree's max
+depth. **Training process**: learning rate, batch size, number of epochs, dropout rate.
+**Regularisation**: L1/L2 penalty strength, weight decay. **Optimisation**: SGD momentum, the
+Adam beta values.
+
+Why they matter
+---------------
+
+The same model with different hyperparameters can perform **very differently** — poor choices
+cause underfitting, overfitting or painfully slow training, so **tuning is critical** for
+accuracy and generalisation.
+
+Tuning, and an example
+----------------------
+
+Common strategies escalate in sophistication: **manual** trial, **grid search** (every
+combination), **random search** (sample combinations — often more efficient), **Bayesian
+optimisation** (a probabilistic model guides the search), and **Hyperband / population-based**
+methods at scale. Training a net on MNIST one might fix learning rate ``0.001``, batch size
+``64``, dropout ``0.5`` and ``20`` epochs; the weights are learned automatically, but
+performance hinges on those chosen hyperparameters.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Epochs <141-epochs>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Early Stopping <140-early-stopping>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Quantization <343-quantization>`
 
 ----
 

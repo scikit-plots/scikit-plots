@@ -72,21 +72,22 @@ repos:
         exclude: "^(\
             benchmarks/.*|\
             docker/.*|\
-            docs/source/logos/.*|\
+            docs/source/.jupyterlite.doit.db|\
             docs/source/_static/gallery/.*|\
             docs/source/_static/logos/.*|\
             docs/source/_static/user_guide/corpus_any_to_any_architecture.png|\
+            docs/source/learn/term_content.py|\
+            docs/source/logos/.*|\
             docs/source/devel/sampledoc.pdf|\
             docs/source/user_guide/random/GoodPracticeRNG.pdf|\
-            docs/source/.jupyterlite.doit.db|\
-            galleries/.*|\
-            pixi-packages/scipy/pixi.lock|\
-            third_party/.*|\
             .*searchindex.dat|\
             .*CDNOW_master.txt|\
             .*example_transactions.csv|\
             .*ai-assistant.js|\
             .*ai-assistant.css|\
+            galleries/.*|\
+            pixi-packages/scipy/pixi.lock|\
+            third_party/.*|\
             scikitplot/cexternals/annoy/ann.png|\
             scikitplot/cexternals/_annoy/src/annoymodule.cc|\
           )$"

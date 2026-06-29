@@ -18,9 +18,52 @@ Churn
 
 *The rate at which customers stop using a product or cancel.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Churn** (customer churn) is the **rate at which customers stop using** a product or service
+over a period — the **mirror image of retention**, and a defining metric for SaaS,
+subscriptions, telecom and apps.
+
+The formula and types
+---------------------
+
+The basic customer churn rate is
+
+.. math::
+
+   \text{churn rate} = \frac{\text{customers lost in period}}{\text{customers at start}} \times 100.
+
+Beyond this, **revenue churn** tracks lost *revenue* (which can diverge from customer churn
+when large accounts leave), and churn splits into **voluntary** (the customer cancels) and
+**involuntary** (failed payments, expired cards).
+
+Examples
+--------
+
+A SaaS product going from 1,000 to 950 paying users in a month lost 50 — a **5% churn
+rate**. A mobile app where 40% of new users uninstall within 30 days has **40% 30-day
+churn**.
+
+Why it matters
+--------------
+
+Churn is **recurring revenue walking out the door**, and it caps growth: with enough churn,
+even strong acquisition nets to zero. Because keeping a customer typically costs **5–7×
+less** than winning a new one, reducing churn is usually the cheapest growth lever.
+
+Churn in ML and its mirror
+--------------------------
+
+Teams build **churn-prediction models** that flag at-risk users from behaviour (logins,
+purchases, complaints), then intervene with offers, better onboarding or support. And it is
+exactly complementary to retention: if monthly churn is **5%**, retention is **95%**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Retention <124-retention>` · :doc:`Revenue per User (RPU / ARPU) <122-revenue-per-user-rpu-arpu>` · :doc:`Customer Lifetime <042-customer-lifetime>` · :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>` · :doc:`SaaS (Software as a Service) <034-saas-software-as-a-service>` · :doc:`Customer Segmentation <033-customer-segmentation>`
 
 ----
 

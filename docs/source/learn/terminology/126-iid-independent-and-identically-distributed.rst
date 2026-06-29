@@ -18,9 +18,52 @@ IID (Independent and Identically Distributed)
 
 *An assumption that samples are mutually independent and share one distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+**IID** — **independent and identically distributed** — is the bedrock assumption of most
+statistics and machine learning. Two conditions: each observation is **independent** (knowing
+one tells you nothing about another) and all observations are **identically distributed**
+(drawn from the same :math:`P(X)`). Compactly,
+
+.. math::
+
+   X_1, X_2, \dots, X_n \sim \text{i.i.d. } P(X).
+
+Ten fair-coin flips are the canonical case — each flip independent, each with the same
+:math:`P(H) = 0.5`.
+
+The two halves
+--------------
+
+**Independence** fails when one sample carries information about another. **Identical
+distribution** fails when the underlying distribution shifts across the sample. Both can
+break separately: data can be dependent but identically distributed, or independent but
+drifting.
+
+When it holds and when it doesn't
+---------------------------------
+
+The clean case is **random sampling** from a fixed population (survey respondents drawn at
+random). It breaks in **time series** (today's stock price depends on yesterday's — not
+independent), under a **changing population** (early vs late customers differ — not
+identical), and with **grouped data** (several records from the same patient are correlated).
+
+Why it matters
+--------------
+
+IID is what makes the math tractable — the **law of large numbers** and the **central limit
+theorem** lean on it, and linear/logistic regression, hypothesis tests and freshly
+initialised neural nets all assume it. Violating it yields **biased estimates and
+overconfident predictions**. In ML the training set is usually assumed IID but often isn't
+(autocorrelation, drift, leakage), which is why **time-series CV, grouped CV and domain
+adaptation** exist to cope.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>` · :doc:`Time Series <010-time-series>` · :doc:`Probability <025-probability>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Blocked Splits (Single Holdout) <128-blocked-splits-single-holdout>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>`
 
 ----
 

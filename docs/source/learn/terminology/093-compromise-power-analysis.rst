@@ -18,9 +18,58 @@ Compromise Power Analysis
 
 *Sizing a study by trading Type I against Type II error at a fixed ratio rather than fixing one.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**Compromise power analysis** finds a sensible **balance between the Type I error**
+:math:`\alpha` (false positives) **and the Type II error** :math:`\beta` (false
+negatives) **when the sample size** :math:`n` **is fixed**. Unlike *a-priori* analysis —
+which fixes :math:`\alpha` and power and solves for :math:`n` — here you already know
+:math:`n` and ask what :math:`\alpha`/:math:`\beta` trade-off is reasonable.
+
+Why it's useful
+---------------
+
+Sometimes :math:`n` simply **cannot change** — a limited participant pool, a budget cap,
+or a historical dataset. A-priori analysis might say "you need 500 subjects" when you have
+200; compromise analysis answers the real question: *with 200, what :math:`\alpha` and
+:math:`\beta` give a balanced test?*
+
+How it works
+------------
+
+Specify the **effect size** :math:`\delta`, the **available** :math:`n`, and a desired
+**ratio of Type I to Type II error** (often :math:`\alpha = \beta`, i.e. a 1:1 ratio). The
+procedure then solves for the :math:`\alpha` and :math:`\beta` that satisfy the
+constraint.
+
+Example
+-------
+
+With a medium effect (Cohen's :math:`d = 0.5`), :math:`n = 40` (20 per group), and a
+requirement that :math:`\alpha = \beta`, the analysis might return
+:math:`\alpha = \beta = 0.12` (power :math:`= 0.88`). You **accept a higher false-positive
+rate (12%)** to keep false negatives equally low, given the small sample.
+
+The three power analyses
+------------------------
+
+- **A-priori** — input effect size, :math:`\alpha`, power → output **required** :math:`n`
+  ("how many subjects do I need?").
+- **Post-hoc** — input observed :math:`n` and effect size → output **achieved power**
+  ("given what I saw, what was the power?").
+- **Compromise** — input effect size, available :math:`n`, error ratio → output
+  **appropriate** :math:`\alpha` **and** :math:`\beta` ("with this :math:`n`, how do I
+  balance the two errors?").
+
+It is the pragmatic choice when data is scarce, though it is less conventional than the
+fixed :math:`\alpha = 0.05` and depends on an assumed effect size.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Type I Error <080-type-i-error>` · :doc:`Post Hoc Power Analysis <094-post-hoc-power-analysis>` · :doc:`A Priori Power Analysis <095-a-priori-power-analysis>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Frequentist <059-frequentist>`
 
 ----
 

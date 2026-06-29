@@ -18,9 +18,59 @@ Causal Impact
 
 *The estimated effect of an intervention, often via a counterfactual time-series model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Causal impact** is the **overall effect of an intervention** — a campaign, launch or
+policy — **on an outcome**. In data science the term usually points to **Google's
+CausalImpact** (Brodersen et al., 2015): a **Bayesian structural time-series** model that
+estimates what *would* have happened without the intervention and compares it to what
+actually did.
+
+Why it's needed
+---------------
+
+In an RCT or A/B test the causal effect is easy — you have treatment and control groups. But
+in **observational or time-series** settings there may be **no untreated control**: run a
+nationwide ad campaign and there is no parallel country that didn't see it. The fix is to
+model the **counterfactual** — the outcome you'd have seen without the intervention — and
+measure the gap.
+
+The method and formula
+----------------------
+
+CausalImpact fits a model on the **pre-intervention** period (using historical data and
+**control covariates**), forecasts the **counterfactual** for the post period, and
+subtracts:
+
+.. math::
+
+   \text{Causal Impact} = Y_{\text{observed, post}} - Y_{\text{predicted, counterfactual}},
+
+reporting the difference **with Bayesian credible intervals** rather than a single number.
+
+Example
+-------
+
+A firm launches a TV campaign in July. Trained on January–June sales, the model forecasts a
+**counterfactual of 50,000 units**; actual sales come in at **60,000** — an estimated impact
+of **+10,000 units**, with a credible interval of roughly [7,000, 13,000].
+
+Strengths, limits, and effect vs impact
+---------------------------------------
+
+It handles **time series** naturally, yields **full posterior distributions**, uses
+**covariates** to sharpen accuracy, and needs no RCT — but it **assumes the model captures
+the dynamics**, is **sensitive to the choice of controls**, and wants a **clear start date**.
+Note the level distinction: the **causal effect** is micro (the change per unit — a drug
+lowers blood pressure 5 mmHg), while the **causal impact** is macro (the aggregate — a
+nationwide rollout prevents 10,000 hospitalisations).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>`
 
 ----
 

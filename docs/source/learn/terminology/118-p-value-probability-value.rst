@@ -18,9 +18,51 @@ P-Value (probability value)
 
 *The probability of data at least as extreme as observed, assuming the null is true.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **p-value** is the probability of observing data **at least as extreme** as what you
+saw, **assuming the null hypothesis** :math:`H_0` **is true**. It is a measure of **evidence
+against** :math:`H_0`: a **low** p-value means the data would be surprising under
+:math:`H_0` (stronger evidence against it), a **high** one means the data sit comfortably
+with :math:`H_0`.
+
+Reading it
+----------
+
+By convention :math:`p < 0.01` is very strong evidence, :math:`p < 0.05` is "significant",
+:math:`p < 0.10` is weak, and :math:`p > 0.10` is not significant. The decision rule pairs it
+with a threshold: if :math:`p \le \alpha`, reject :math:`H_0`; if :math:`p > \alpha`, fail to
+reject.
+
+How it's computed
+-----------------
+
+Form the **test statistic** (z, t, :math:`\chi^2`…) and find the tail probability of a value
+that extreme under its distribution — one tail for a one-sided test, both for two-sided. For
+a two-tailed t-test,
+
+.. math::
+
+   p = 2 \times P\!\left(T \ge |t_{\text{observed}}|\right).
+
+For example, 17 heads in 20 tosses gives a binomial p of about **0.003** against a fair coin
+(reject); a two-sample test with :math:`t = 2.1, df = 28` gives :math:`p \approx 0.045`
+(reject at 0.05).
+
+What it is not
+--------------
+
+Three persistent misconceptions: the p-value is **not** the probability that :math:`H_0` is
+true; it is **not** an effect size (a tiny p means *surprising*, not *large*); and it is
+**sample-size sensitive** — huge samples make trivial effects significant, tiny samples can
+miss real ones. Always read it alongside an effect size and a confidence interval.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Statistical Significance <096-statistical-significance>` · :doc:`Significance Level (α) <105-significance-level>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Z-Test <119-z-test>`
 
 ----
 

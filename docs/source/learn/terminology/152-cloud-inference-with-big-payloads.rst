@@ -18,9 +18,47 @@ Cloud Inference with Big Payloads
 
 *Serving predictions on large inputs, needing batching or async handling.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+In **cloud inference**, the **payload** is the data you send the model. **Small payloads** are
+tabular rows or short prompts; **big payloads** are large images, long videos, audio, sprawling
+JSON feature sets or massive documents — and their size changes everything about how you serve
+the request.
+
+The challenges
+--------------
+
+Five bite. **Network latency and bandwidth**: uploading a 500MB video dwarfs a 1KB JSON call.
+**Serialisation and transfer costs**: JSON/Protobuf/gRPC overhead grows with size, and many
+APIs **cap request size**. **Compute cost**: more data means more FLOPs and higher OpEx — a 4K
+frame sequence costs far more than one image. **Timeouts and reliability**: big uploads time
+out more and are **harder to retry**. And **privacy**: sensitive payloads (medical scans) need
+encryption and compliance checks.
+
+The mitigations
+---------------
+
+Five answers. **Compress client-side** — resize images, sample video frames, extract audio
+features (MFCCs) before sending. **Stream in chunks** (gRPC, WebSocket) for live video or
+speech. **Go asynchronous** — upload to S3/GCS and send only a **file reference**, then poll or
+get a callback. **Split edge and cloud** — run a feature extractor on-device and send small
+**embeddings** rather than raw input. And **optimise the format** — binary serialisation
+(Protobuf, Avro, Arrow) over raw JSON, batching small requests together.
+
+Examples
+--------
+
+A 200MB **CT scan** goes to cloud storage, with only its reference passed to an async pipeline.
+**Video analytics** extracts one frame per second locally instead of streaming full HD. And a
+200-page document for an **LLM** is chunked into sections, processed sequentially or through
+**retrieval (RAG)** rather than sent whole.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AWS SageMaker Endpoints <151-aws-sagemaker-endpoints>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`Embedding <173-embedding>` · :doc:`Quantization <343-quantization>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Cloud Inference <153-cloud-inference>`
 
 ----
 

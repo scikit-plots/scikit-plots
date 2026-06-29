@@ -18,9 +18,43 @@ Cloud Inference
 
 *Running model predictions on managed cloud infrastructure.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Cloud inference** is running a **trained model on cloud infrastructure** to make predictions
+on new data. "Inference" means *using* a trained model rather than training one, and "cloud"
+means it runs on AWS, GCP or Azure rather than on local or on-device hardware.
+
+How it works
+------------
+
+Three stages. **Train** a model (locally or in the cloud) and save its weights. **Deploy** it to
+a cloud service (SageMaker, Vertex AI, Azure ML) behind an **API endpoint** (REST or gRPC).
+Then **infer**: the client sends input, the service loads the model, runs a forward pass and
+returns the prediction.
+
+Benefits and challenges
+-----------------------
+
+The upsides are **scalability** (autoscale to millions of requests), **low maintenance** (the
+provider runs servers and GPUs), **flexibility** (serve and version many models), and
+**accessibility** (any device can call the API). The costs are **latency** (a network round
+trip), **OpEx** per prediction at scale, **privacy** obligations when sensitive data leaves the
+device, and the need for **monitoring** to keep uptime and fairness in check.
+
+Cloud vs edge
+-------------
+
+The contrast is with **edge / on-device** inference. Cloud runs on powerful servers (GPUs,
+TPUs) and is easy to update but pays a network-latency cost; edge runs locally on a phone or
+IoT device with **low latency** but limited compute and harder remote updates. Image-tagging
+APIs, LLM chat services and fraud-scoring endpoints are all cloud inference.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cloud Inference with Big Payloads <152-cloud-inference-with-big-payloads>` · :doc:`AWS SageMaker Endpoints <151-aws-sagemaker-endpoints>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Vertex AI <149-vertex-ai>` · :doc:`Quantization <343-quantization>`
 
 ----
 

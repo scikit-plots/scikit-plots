@@ -20,4 +20,4 @@ python build_terminology.py   # clears old NNN-*.rst, rewrites index + 431 pages
 Fail-fast: aborts if inventory ↔ CONTENT/MINDMAP keys mismatch.
 
 ## Full-content progress
-75 / 431 pages have full source-faithful bodies (rest render a working summary until written).
+165 / 431 pages have full source-faithful bodies (rest render a working summary until written).

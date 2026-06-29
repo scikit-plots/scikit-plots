@@ -18,9 +18,42 @@ OpEx
 
 *Operating expenses — the ongoing cost of running operations.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**OpEx — operating expenses** — are the **ongoing, day-to-day costs** of running a business or
+system. They contrast with **CapEx (capital expenditures)**, the one-time, long-term investments
+like buying servers or buildings; OpEx is the **recurring** spend — salaries, rent, cloud usage.
+
+What counts as OpEx
+-------------------
+
+In a business: salaries, rent, utilities, marketing, maintenance. In a **tech/ML** setting:
+**cloud compute** (AWS, GCP, Azure), **data storage** (S3, BigQuery, Snowflake), **inference
+costs** (GPU time per prediction), **third-party API** fees, and **monitoring/logging**
+subscriptions.
+
+CapEx vs OpEx
+-------------
+
+The split is timing and accounting. **CapEx** is a **one-time** investment in a long-lived asset,
+**capitalised and depreciated** over years. **OpEx** is a **recurring** operating cost,
+**expensed immediately** on the income statement. Buying ``$500k`` of servers is CapEx; paying
+``$50k`` a month for cloud, salaries and electricity is OpEx.
+
+Why it matters
+--------------
+
+OpEx is **subtracted from revenue** to get operating profit, so businesses track it closely to
+**control recurring costs**. In ML specifically, **reducing OpEx** — more efficient models that
+burn fewer GPU hours — is what makes a deployment **sustainable** at scale, tying it directly to
+FLOPs and inference cost.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`FLOPs <156-flops>` · :doc:`Gross Margin <043-gross-margin>` · :doc:`Cloud Inference <153-cloud-inference>` · :doc:`SaaS (Software as a Service) <034-saas-software-as-a-service>` · :doc:`LLMs (Large Language Models) <158-llms-large-language-models>` · :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>`
 
 ----
 

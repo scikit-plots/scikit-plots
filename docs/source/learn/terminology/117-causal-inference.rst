@@ -18,9 +18,56 @@ Causal Inference
 
 *Drawing cause-and-effect conclusions from data, not merely associations.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Causal inference** is the discipline of establishing whether one variable **actually
+causes** a change in another, rather than merely **correlating** with it. The classic trap:
+ice-cream sales and drownings rise together, but neither causes the other — hot weather
+drives both. Causal inference is the toolkit for separating **causation from association**.
+
+Why it matters
+--------------
+
+Decisions hinge on it. Did the campaign **cause** the sales lift, or would sales have risen
+anyway? Did the treatment **cause** recovery, or was it natural? Did the policy **cause** the
+change, or did something else? Acting on a spurious correlation wastes money and harms
+people.
+
+The gold standard and its alternatives
+--------------------------------------
+
+A **randomised controlled trial (RCT)** assigns treatment and control **at random**, which
+balances confounders and makes the comparison causal. When randomisation is impossible
+(ethics, cost), **observational** methods approximate it: **regression** adjusts for measured
+confounders; **propensity-score matching** pairs treated and untreated units with similar
+covariates; **difference-in-differences** compares before/after trends against an untreated
+group; **instrumental variables** exploit a variable that moves treatment but not the
+outcome directly; and **regression discontinuity** compares units just above and below a
+treatment cutoff.
+
+The counterfactual core
+-----------------------
+
+Underneath sits the **potential-outcomes (Rubin) model**: each unit has a treated outcome
+:math:`Y_1` and an untreated outcome :math:`Y_0`, and the causal effect is
+:math:`E[Y_1 - Y_0]`. The **fundamental problem** is that we never observe **both** for the
+same unit — which is exactly why we need RCTs, DiD and the rest. **Directed acyclic graphs
+(DAGs)** complement this by mapping confounders and mediators visually.
+
+The pitfalls
+------------
+
+The enemies of causal claims are **confounding** (a third variable driving both),
+**selection bias** (groups that differ systematically), **reverse causality** (the outcome
+also influences the cause), and **unobserved variables** that can't be adjusted for if
+they're never measured.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Causal Impact <112-causal-impact>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Regression Coefficient <090-regression-coefficient>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Frequentist <059-frequentist>`
 
 ----
 

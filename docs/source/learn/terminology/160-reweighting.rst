@@ -18,9 +18,55 @@ Reweighting
 
 *Adjusting sample or class weights to correct bias or distribution shift.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Reweighting** assigns **different weights to samples, features or loss terms** so that training
+or evaluation reflects the **true importance, fairness or distribution** of the data. It leaves
+the raw data untouched and instead changes **how much influence** each part has.
+
+Where it's used
+---------------
+
+Several settings. **Class imbalance**: upweight rare positives (fraud, disease) so the model
+can't ignore them. **Covariate shift / domain adaptation**: reweight training samples to match
+the production distribution (an 80%-desktop training set toward 50%-mobile production).
+**Fairness**: upweight underrepresented protected groups for equal contribution. Plus **loss
+reweighting** (balancing terms in multi-task or adversarial training) and **importance sampling**
+(correcting biased draws for unbiased estimates).
+
+The math
+--------
+
+The ordinary average loss
+
+.. math::
+
+   L = \frac{1}{N} \sum_{i=1}^{N} \ell(f(x_i), y_i)
+
+becomes, with weights,
+
+.. math::
+
+   L = \frac{1}{N} \sum_{i=1}^{N} w_i \, \ell(f(x_i), y_i),
+
+where :math:`w_i` is the weight on sample :math:`i` — a larger :math:`w_i` gives that example
+more influence.
+
+Examples and trade-offs
+-----------------------
+
+On a **1%-fraud** dataset, an unweighted model predicts "not fraud" always; weighting fraud at 99
+against 1 makes those cases count and **lifts recall**. A loan model that is 80% male can upweight
+female applicants toward fairness. The benefits — handling imbalance and drift, improving
+fairness, **keeping data intact** (no over/undersampling) — come with risks: **extreme weights**
+can overfit the minority, and choosing weights well takes validation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Class Weighting <002-class-weighting>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>` · :doc:`Recalibration <159-recalibration>` · :doc:`Continuous Retraining <161-continuous-retraining>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>`
 
 ----
 

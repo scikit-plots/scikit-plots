@@ -18,9 +18,58 @@ Margin of Error (MoE)
 
 *The half-width of a confidence interval: the plus/minus range around a point estimate.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **margin of error (MoE)** is the **maximum expected gap between a sample estimate and
+the true population parameter**, at a stated confidence level. It is the **± half-width**
+of a confidence interval:
+
+.. math::
+
+   \text{Confidence Interval} = \text{Estimate} \pm \text{MoE}.
+
+A small MoE means a precise estimate; a large one, an imprecise estimate.
+
+How it's built
+--------------
+
+.. math::
+
+   \text{MoE} = (\text{critical value}) \times (\text{standard error}),
+
+where the **critical value** comes from the confidence level (1.96 for 95% under a normal
+model) and the **standard error** measures sampling variability.
+
+Two levers: confidence and sample size
+--------------------------------------
+
+- **Confidence level ↑** → larger critical value → **larger** MoE (more confidence costs
+  width).
+- **Sample size ↑** → smaller SE (:math:`\text{SE} \propto 1/\sqrt{n}`) → **smaller**
+  MoE. Because of the square root, **halving the MoE requires 4× the sample**.
+
+What it is not
+--------------
+
+MoE captures **random sampling error only**. It does **not** include bias, measurement
+error, bad sampling design or model misspecification — so a tight MoE means **precise,
+not necessarily accurate**. Two common traps: it isn't a hard maximum (it's
+probabilistic), and it depends on confidence and variability, not sample size alone.
+
+Why it matters
+--------------
+
+MoE turns a point estimate into an honest range ("support = 52% ± 3%" → true support
+roughly 49–55%). It encourages **interval thinking** over point thinking, and ties
+directly to significance: if a CI **excludes** the null value, the MoE is small enough to
+declare a difference; if it **includes** the null, uncertainty swamps the effect.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Critical Value <087-critical-value>` · :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Frequentist <059-frequentist>` · :doc:`True Mean (Population Mean) <085-true-mean-population-mean>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

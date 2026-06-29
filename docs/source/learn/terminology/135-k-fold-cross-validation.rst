@@ -18,9 +18,55 @@ k-fold cross-validation
 
 *Train on k-1 folds and test on the held-out fold, rotating through all k.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**k-fold cross-validation** splits the data into **k roughly equal folds** and trains and
+tests the model **k times**, each run holding out a **different fold** as the test set and
+training on the other :math:`k-1`. Averaging the k scores gives a lower-variance estimate of
+performance than any single train/test split — which is why it is the **default** CV method.
+
+How it works
+------------
+
+Shuffle (if order is irrelevant), split into **k folds** (commonly 5 or 10), and for each
+fold :math:`i` train on the other folds and test on fold :math:`i`. Collect the k scores and
+**average** them for the final metric.
+
+Example
+-------
+
+With 1,000 samples and ``k = 5``, each fold is 200 samples: every run trains on **800** and
+validates on **200**, rotating which 200 is held out, and the result is the **mean** across
+the five runs.
+
+Variations
+----------
+
+**Stratified k-fold** preserves class balance per fold (vital for imbalanced data);
+**repeated k-fold** re-runs the whole process with new splits for a steadier estimate; and
+**leave-one-out (LOOCV)** is the extreme :math:`k = N`, one sample per fold — very accurate,
+very expensive.
+
+In scikit-learn, and the trade-offs
+-----------------------------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import cross_val_score
+
+   scores = cross_val_score(model, X, y, cv=5)
+   print(scores.mean(), scores.std())
+
+The gains — a **reliable estimate**, less dependence on one random split, full use of the
+data, and a backbone for **hyperparameter tuning** — cost **k model fits**, and plain k-fold
+is **wrong for time series**, where time-aware CV is required instead.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Stratified Group K-Fold <132-stratified-group-k-fold>` · :doc:`Stratified Shuffle Split <133-stratified-shuffle-split>` · :doc:`Multiclass stratified CV <134-multiclass-stratified-cv>` · :doc:`Blocked Splits (Single Holdout) <128-blocked-splits-single-holdout>` · :doc:`Data Leakage <131-data-leakage>`
 
 ----
 

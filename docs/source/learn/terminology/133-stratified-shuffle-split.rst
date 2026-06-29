@@ -18,9 +18,49 @@ Stratified Shuffle Split
 
 *Repeated random splits that preserve class proportions in each split.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Stratified Shuffle Split** repeatedly carves a dataset into **random train/test splits
+while preserving the class distribution**. Unlike k-fold, it does **not** partition into fixed
+folds — it **reshuffles and resamples** as many times as you ask, each split a fresh random
+draw with the original class ratios intact.
+
+How it works
+------------
+
+Set **n_splits** (how many reshuffles) and a **train/test size**; for each split, shuffle,
+partition keeping the class proportions, and evaluate — then average across splits. Because
+test sets can overlap between splits (they are independent draws), it is not a partition the
+way k-fold is.
+
+Example
+-------
+
+For 1,000 samples at **80% class A, 20% class B** with ``test_size=0.2`` over 5 splits, each
+split yields train = 800 (A=640, B=160) and test = 200 (A=160, B=40) — the **80/20** ratio
+holds every time.
+
+In scikit-learn
+---------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import StratifiedShuffleSplit
+
+   sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+   for train_idx, test_idx in sss.split(X, y):
+       ...
+
+It shines on **imbalanced or small** data where you want **many randomized splits** rather
+than a fixed fold structure — the stratified counterpart to a plain shuffle split, which
+randomizes but does *not* preserve class balance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stratified Group K-Fold <132-stratified-group-k-fold>` · :doc:`Multiclass stratified CV <134-multiclass-stratified-cv>` · :doc:`k-fold cross-validation <135-k-fold-cross-validation>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Class Weighting <002-class-weighting>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>`
 
 ----
 

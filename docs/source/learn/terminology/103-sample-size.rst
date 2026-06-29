@@ -18,9 +18,59 @@ Sample size
 
 *The number of observations collected; larger samples shrink estimation error.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**Sample size** :math:`n` is the **number of observations** used to estimate a parameter
+or test a hypothesis. It is the master dial of inference, setting the **precision** of
+estimates, the **power** of tests, and the **stability** of conclusions — in a word, the
+*resolution* of what the data can tell you.
+
+The square-root law
+-------------------
+
+The central relationship is
+
+.. math::
+
+   \text{SE} \propto \frac{1}{\sqrt{n}}.
+
+The square root has a sharp consequence: **doubling** :math:`n` does *not* halve the
+standard error — to **halve** it you must **quadruple** :math:`n`. Precision is bought at
+an accelerating price.
+
+In estimation and testing
+-------------------------
+
+For **estimation**, larger :math:`n` means **narrower confidence intervals**. For
+**testing**, the statistic is roughly :math:`\text{effect}/\text{SE}`, so as the SE shrinks
+the statistic grows — the same effect becomes **easier to push past the critical value**,
+and **power rises**. Small effects only become detectable once :math:`n` is large enough.
+
+The trade-off with effect size
+------------------------------
+
+Sample size and effect size **substitute** for one another: a **large** effect shows up in
+a **small** sample, while a **small** effect needs a **large** one. In short, *sample size
+compensates for a weak signal* — which is exactly why it is chosen up front via **power
+analysis** from :math:`\alpha`, target power, the expected effect and the variance.
+
+What n cannot do
+----------------
+
+More data **cannot fix bias, poor measurement or a wrong model**, and it can make
+**trivial effects statistically significant** — precision is not correctness or importance.
+So interpretation, not just design, depends on :math:`n`: a non-significant result with
+small :math:`n` is *inconclusive*, and a significant one with enormous :math:`n` should be
+checked for **practical relevance**. The emphasis shifts by context — precision in
+estimation, power in testing, generalisation in ML, confounding in observational work — but
+the concept is one.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`A Priori Power Analysis <095-a-priori-power-analysis>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Power (1 – β) <104-power-1>` · :doc:`Trivial Effects <102-trivial-effects>`
 
 ----
 

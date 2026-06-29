@@ -18,9 +18,48 @@ Temporal autocorrelation (Serial Correlation)
 
 *Correlation of a time series with its own past values.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Temporal autocorrelation** (or **serial correlation**) is when the values of a **time
+series correlate with their own past** — the value at time :math:`t` depends partly on
+:math:`t-1, t-2, \dots`. It is the defining property of time-series data and the most common
+way the IID assumption breaks.
+
+The measure
+-----------
+
+The **autocorrelation function (ACF)** at lag :math:`k` is
+
+.. math::
+
+   \rho_k = \frac{\operatorname{Cov}(X_t, X_{t-k})}{\sigma^2},
+
+the correlation between the series and its own lag-:math:`k` copy, where :math:`\sigma^2` is
+the series variance. Stock prices (today near yesterday), temperature and weekly website
+traffic all show it.
+
+Why it matters
+--------------
+
+First, it **violates IID** — past strongly influences future, so models that assume
+independence are wrong. Second, it **drives forecasting**: ARIMA and SARIMA explicitly model
+autocorrelation, and **ACF/PACF** plots reveal the AR and MA orders. Third, it is a
+**diagnostic**: the **Durbin-Watson** test checks regression residuals, and autocorrelated
+residuals signal a misspecified model.
+
+Positive, negative, and reading the plot
+----------------------------------------
+
+**Positive** autocorrelation means high tends to follow high (**momentum**); **negative**
+means high tends to follow low (**mean-reversion**). On an ACF plot, strong spikes at lags
+1, 2 and 7 would suggest **weekly seasonality**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`IID (Independent and Identically Distributed) <126-iid-independent-and-identically-distributed>` · :doc:`Time Series <010-time-series>` · :doc:`Blocked Splits (Single Holdout) <128-blocked-splits-single-holdout>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Sliding Window (Rolling Window) Cross-Validation <129-sliding-window-rolling-window-cross-validation>`
 
 ----
 

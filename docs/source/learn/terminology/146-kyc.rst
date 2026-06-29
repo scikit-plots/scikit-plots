@@ -18,9 +18,43 @@ KYC
 
 *'Know Your Customer' — regulatory identity-verification processes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**KYC — Know Your Customer** (or Client) — is the **regulatory process** by which banks,
+financial institutions and fintechs **verify a customer's identity**. Its purpose is to prevent
+**fraud, money laundering (AML), terrorism financing and identity theft**.
+
+The three steps
+---------------
+
+**Customer identification**: collect official documents (passport, licence, ID, utility bills)
+and verify name, address and date of birth. **Customer due diligence (CDD)**: assess the
+customer's **risk level** — basic checks for most, **enhanced** due diligence for high-risk
+cases like large transactions or politically exposed persons. **Ongoing monitoring**: watch
+transactions for suspicious activity and periodically **re-verify** (re-KYC).
+
+Where it shows up
+-----------------
+
+Opening a **bank account** needs ID plus proof of address; a **crypto exchange** asks for a
+photo ID and a selfie before trading; a **loan application** verifies income documents and ID
+to cut fraud risk. KYC is **required by AML law**, shields institutions from fraud and fines,
+and builds trust with customers and regulators.
+
+The technology
+--------------
+
+Modern KYC leans on automation: **OCR** to read documents, **facial recognition** to match a
+selfie to an ID photo, **database checks** against sanction and politically-exposed-person
+lists, and **AI/ML models** to flag forged IDs and suspicious transaction patterns — the same
+fraud-detection machinery used across finance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`SaaS (Software as a Service) <034-saas-software-as-a-service>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>`
 
 ----
 

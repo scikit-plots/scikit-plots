@@ -18,9 +18,49 @@ Drift Detection
 
 *Monitoring for changes in data or target distributions that degrade a model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Drift detection** is the practice of **monitoring for changes in the data distribution or
+model behaviour over time** that can erode performance. Because real-world data evolves —
+seasonality, new users, shifting business conditions — a model that was accurate at launch can
+silently decay, and drift detection is what **triggers retraining or recalibration** before
+that decay bites.
+
+The three drifts
+----------------
+
+**Covariate (feature) drift**: the input distribution moves — 80% desktop users become 60%
+mobile. **Label drift** (prior shift): the target mix changes — fraud rises from 1% to 3%.
+**Concept drift**: the *relationship* between features and label changes — the same features
+no longer predict fraud because the tactics evolved. Only concept drift necessarily breaks the
+learned mapping; the others may or may not.
+
+How it's detected
+-----------------
+
+Four families. **Statistical tests** compare old and new distributions (Kolmogorov–Smirnov,
+chi-square, **PSI** — population stability index). **Distance measures** quantify the gap (KL
+and Jensen–Shannon divergence, Wasserstein, MMD). **Classifier two-sample tests** train a
+model to tell "old" from "new" — if it succeeds, the distributions differ. And **performance
+monitoring** tracks loss or AUC over time, though as a *lagging* signal it only fires once
+labels arrive.
+
+In practice
+-----------
+
+Set **baselines** from training data, compare **rolling windows** (last 24h vs last 4 weeks),
+fire **alerts** past a threshold (e.g. PSI > 0.2), and wire the signal into the pipeline to
+**retrain or recalibrate**. A credit model trained on 2022 data might, by 2025, see income
+shift toward gig workers — PSI flags the covariate drift and the monitor flags concept drift,
+triggering a retrain. The payoff is avoiding **silent degradation**, protecting **fairness**
+(drift can hit subgroups unevenly), and meeting **compliance** demands for monitoring.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Data Drift <331-data-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Recalibration <159-recalibration>` · :doc:`Re-scoring <137-re-scoring>`
 
 ----
 

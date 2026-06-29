@@ -18,9 +18,52 @@ AWS SageMaker Endpoints
 
 *Managed HTTPS endpoints that serve SageMaker model predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+An **AWS SageMaker endpoint** is a **fully managed API** for serving a trained model: you
+deploy the model and SageMaker handles **infrastructure, scaling and serving** so there are no
+servers to run. Input goes in, the endpoint runs inference, predictions come out.
+
+The three types
+---------------
+
+**Real-time** endpoints are always-on HTTPS with low latency and autoscaling — for fraud
+checks or chatbots. **Asynchronous** endpoints handle **large payloads or long jobs**: upload
+to S3, the endpoint processes, results land back in S3 — good for video or big documents.
+**Batch transform** runs **offline** over a whole S3 dataset with no live endpoint — ideal for
+scheduled jobs like scoring every customer monthly.
+
+Deploying one
+-------------
+
+The path is: train or **import** a model (any framework, or ONNX) and save artifacts to S3;
+**register** it as a Model with its inference script; create an **endpoint configuration**
+(instance type, scaling); deploy; then **invoke** via the SDK or REST:
+
+.. code-block:: python
+
+   import boto3
+   sm = boto3.client("sagemaker-runtime")
+   response = sm.invoke_endpoint(
+       EndpointName="my-endpoint",
+       ContentType="application/json",
+       Body='{"data":[1.0, 2.0, 3.0]}',
+   )
+
+Why use them
+------------
+
+They are **fully managed** (no EC2 to babysit), **autoscaling** for traffic spikes,
+**framework-flexible** (custom Docker too), **secure** (IAM, VPC, encryption), and **cost
+controllable** — pay for instance time, or shift to async/batch to save when latency is not
+critical.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Cloud Inference with Big Payloads <152-cloud-inference-with-big-payloads>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Vertex AI <149-vertex-ai>`
 
 ----
 

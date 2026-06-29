@@ -18,9 +18,47 @@ Model Distillation (Knowledge Distillation)
 
 *Training a small student model to mimic a larger teacher for efficiency.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Model distillation** (knowledge distillation) is a **compression** technique: a large,
+accurate **teacher** model transfers its knowledge to a smaller, faster **student**. The aim
+is a lighter model that **keeps most of the teacher's accuracy** while being cheap enough to
+deploy on phones and edge devices.
+
+How it works
+------------
+
+Train the big teacher (a large transformer, say), then have it produce **soft targets** — full
+probability distributions like ``[0.7 cat, 0.2 dog, 0.1 rabbit]`` rather than a bare hard
+label. The student trains to **mimic those soft outputs**, usually under a loss that blends a
+**distillation term** (student vs teacher) with a **supervised term** (student vs true labels).
+
+The objective
+-------------
+
+.. math::
+
+   L = \alpha \, L_{\text{hard}}(y, p_s) \; + \; (1 - \alpha)\, L_{\text{soft}}(p_t, p_s, T),
+
+where :math:`y` are true labels, :math:`p_t` and :math:`p_s` the teacher and student
+probabilities, :math:`T` a **temperature** that softens the teacher's distribution to expose
+its "dark knowledge", and :math:`\alpha` the balance between the two terms.
+
+Why, examples, and costs
+------------------------
+
+It buys **efficiency** (faster, cheaper inference), **deployability** (edge devices), and even
+better generalisation from the teacher's soft probabilities. **DistilBERT** is ~40% smaller and
+~60% faster than BERT at ~97% of its performance; **ResNet-50** distills into ResNet-18 at
+similar accuracy. The catches: the student **cannot capture everything**, :math:`T` and
+:math:`\alpha` need tuning, and you still pay to **train the teacher** first.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantization <343-quantization>` · :doc:`Frozen Encoder <172-frozen-encoder>` · :doc:`Embedding <173-embedding>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Early Stopping <140-early-stopping>` · :doc:`Epochs <141-epochs>`
 
 ----
 

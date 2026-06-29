@@ -216,7 +216,7 @@ A working glossary of **431 terms** spanning statistics, machine learning, forec
       * :doc:`Mann–Whitney U Test (also called the Wilcoxon rank-sum test) <026-mannwhitney-u-test-also-called-the-wilcoxon-rank>`
       * :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>`
       * :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>`
-      * :doc:`Mean Absolute Percentage Error (MAP) <425-mean-absolute-percentage-error-mape>`
+      * :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>`
       * :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>`
       * :doc:`Relative accuracy <258-relative-accuracy>`
       * :doc:`RMSLE (Root Mean Squared Logarithmic Error) <407-rmsle-root-mean-squared-logarithmic-error>`

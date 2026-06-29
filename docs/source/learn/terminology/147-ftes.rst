@@ -18,9 +18,42 @@ FTEs
 
 *Full-Time Equivalents — staffing normalised to full-time headcount.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+An **FTE — full-time equivalent** — standardises workforce size by converting **total hours
+worked into a number of full-time employees**. **1.0 FTE** is one person working full-time
+(commonly 40 hours/week in the US, though it varies by company and country), so the measure
+lets part-timers and contractors be compared on one scale.
+
+Why it's used
+-------------
+
+Three jobs. **Headcount planning** measures real staffing even when many work part-time;
+**budgeting** computes labour cost consistently; and **project management** estimates the
+resources available to deliver.
+
+Examples
+--------
+
+The arithmetic is hours-based: one full-timer at 40h/week is **1.0 FTE**, and **two
+part-timers** at 20h each also sum to **1.0 FTE**. A project needing **5 FTEs** for six months
+could be five full-time staff, ten half-time staff, or any mix totalling the same hours. On
+cost, if one FTE earns ``$100,000``/year, then 3.5 FTEs run about ``$350,000``/year.
+
+FTE vs headcount
+----------------
+
+The two answer different questions. **Headcount** is the raw number of people; **FTE** is that
+number **weighted by hours**. Ten employees each working half-time are a **headcount of 10**
+but an **FTE of 5** — which is why FTE, not headcount, is the fair basis for comparing
+workloads and costs.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SaaS (Software as a Service) <034-saas-software-as-a-service>` · :doc:`Gross Margin <043-gross-margin>` · :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>` · :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`KYC <146-kyc>` · :doc:`D2C (Direct-to-Consumer) <036-d2c-direct-to-consumer>`
 
 ----
 

@@ -18,9 +18,62 @@ Treatment Effect
 
 *The causal difference in outcome between treated and untreated units.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+The **treatment effect** is the **causal impact of an intervention** versus a control —
+*how much did the treatment change the outcome compared with what would have happened
+without it?* In the **potential-outcomes** framework,
+
+.. math::
+
+   \text{Treatment Effect} = Y(1) - Y(0),
+
+where :math:`Y(1)` is the outcome if the unit *is* treated and :math:`Y(0)` the outcome
+if it is *not*.
+
+The fundamental problem
+-----------------------
+
+For any single unit you only ever observe **one** of :math:`Y(1)` or :math:`Y(0)` — never
+both — so the individual effect is unobservable. This *fundamental problem of causal
+inference* is why we estimate **averages** instead of individual effects.
+
+The hierarchy of effects
+------------------------
+
+- **ITE (individual)** — :math:`Y_i(1) - Y_i(0)` for one unit; unobservable.
+- **ATE (average)** — :math:`\text{ATE} = \mathbb{E}[Y(1) - Y(0)]`, the
+  population-average effect, the usual target of RCTs and A/B tests.
+- **CATE (conditional average)** —
+  :math:`\text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]`, the effect within a
+  subgroup defined by covariates :math:`x` (age, segment) — the basis of personalised
+  interventions.
+- **LATE (local average)** — the effect for a specific compliant subgroup, typically via
+  instrumental variables.
+
+Examples
+--------
+
+A drug with 60% recovery vs 50% on placebo has :math:`\text{ATE} = +10` points. A website
+variant at 5.5% vs 5% conversion has :math:`\text{ATE} = +0.5` points, a
+:math:`(0.055 - 0.05)/0.05 = +10\%` relative lift.
+
+How it's estimated
+------------------
+
+In a **randomised controlled trial** (or A/B test), randomisation makes the groups
+comparable, so the **difference in group means** is an unbiased estimate of the ATE. In
+**observational** data, confounding must be removed with causal-inference tools —
+matching, regression adjustment, instrumental variables, difference-in-differences or
+**propensity scores**. ML methods increasingly estimate **heterogeneous (CATE)** effects
+for targeting.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`A/B Testing <380-a-b-testing>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Posterior probability of uplift <053-posterior-probability-of-uplift>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>`
 
 ----
 

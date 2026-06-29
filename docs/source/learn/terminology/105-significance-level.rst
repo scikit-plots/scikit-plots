@@ -18,9 +18,49 @@ Significance Level (α)
 
 *The tolerated false-positive probability, fixed before testing.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **significance level** :math:`\alpha` is the **threshold probability** for rejecting
+the null hypothesis :math:`H_0` — the **maximum risk of a Type I error** (rejecting a true
+:math:`H_0`) you are willing to accept. Common choices are :math:`\alpha = 0.05` (the
+default), :math:`0.01` (stricter, stronger evidence demanded) and :math:`0.10` (more
+lenient).
+
+The decision rule
+-----------------
+
+Compute a test statistic and its **p-value**, then compare: if :math:`p \le \alpha`,
+**reject** :math:`H_0`; if :math:`p > \alpha`, **fail to reject**. So :math:`\alpha` is
+simply the **decision cutoff** fixed in advance.
+
+What α is
+---------
+
+It is the **long-run false-positive rate**: at :math:`\alpha = 0.05`, about 5 in 100 tests
+of a *true* null will wrongly reject it. Choose it by stakes — **0.01** in medicine,
+genetics and other high-stakes settings; **0.05** as a general balance; **0.10** in
+exploratory work where missing a real effect costs more than a false alarm.
+
+Tied to the confidence level
+----------------------------
+
+Significance and confidence are complements: the **confidence level is** :math:`1 - \alpha`.
+An :math:`\alpha = 0.05` test corresponds to **95% confidence** — across repeated
+experiments, 95% of the resulting intervals would contain the true parameter.
+
+What it is not
+--------------
+
+Three cautions: :math:`\alpha` is **not** the probability that :math:`H_0` is true; it is
+chosen **before** the data, not tuned after; and clearing it means **statistically**
+significant, not **practically** important — for that you still need an effect size.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Type I Error <080-type-i-error>` · :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Statistical Significance <096-statistical-significance>` · :doc:`Power (1 – β) <104-power-1>` · :doc:`Critical Value <087-critical-value>` · :doc:`Effect Size (δ) <106-effect-size>`
 
 ----
 

@@ -18,9 +18,56 @@ Z-Test
 
 *A hypothesis test using the normal distribution when variance is known or n is large.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+A **z-test** is a hypothesis test for whether a **sample mean (or proportion) differs from a
+known population value**, built on the **standard normal** distribution. It applies when the
+**sample is large** (:math:`n > 30`, so the CLT holds) and the **population variance is
+known** — or well approximated by a large sample.
+
+The statistic
+-------------
+
+For a one-sample mean,
+
+.. math::
+
+   z = \frac{\bar{X} - \mu}{\sigma / \sqrt{n}},
+
+the gap between the sample mean :math:`\bar{X}` and the hypothesised :math:`\mu`, measured in
+**standard errors**. There are three common forms: **one-sample** (mean vs population),
+**two-sample** (two independent means), and the **proportion** z-test.
+
+The procedure
+-------------
+
+State :math:`H_0` (no difference) and :math:`H_1`; pick :math:`\alpha`; compute :math:`z`;
+and compare to the **critical value** (:math:`\pm 1.96` at :math:`\alpha = 0.05`, two-tailed)
+or read off a p-value — reject when :math:`|z|` exceeds it.
+
+Examples
+--------
+
+With :math:`\mu = 100, \sigma = 15, n = 50` and a sample mean of 105,
+:math:`z = 5 / 2.12 \approx 2.36 > 1.96`, so reject :math:`H_0`. For a proportion, 320 of 500
+(0.64) against a hypothesised 0.60 gives :math:`z = 0.04 / 0.022 \approx 1.82 < 1.96` —
+**fail** to reject.
+
+Z-test vs t-test
+----------------
+
+The choice turns on what you know about the variance. Use a **z-test** when :math:`\sigma` is
+**known** and the sample is **large**, working from the normal distribution; use a
+**t-test** when :math:`\sigma` is **unknown** and estimated from the sample :math:`s`,
+working from the heavier-tailed **Student's t** — the gap between them vanishes as :math:`n`
+grows.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Z-Score <097-z-score>` · :doc:`Two-Proportion Z-Test <098-two-proportion-z-test>` · :doc:`Critical Value <087-critical-value>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`T-Test <120-t-test>`
 
 ----
 

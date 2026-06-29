@@ -18,9 +18,55 @@ Regression Coefficient
 
 *The estimated effect of a predictor on the response in a regression model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A **regression coefficient** :math:`\beta` quantifies the **relationship between a
+predictor** :math:`X` **and the outcome** :math:`Y` in a regression model: how much
+:math:`Y` changes when :math:`X` rises by **one unit**, holding all other predictors
+fixed.
+
+Simple and multiple regression
+------------------------------
+
+In **simple** linear regression, :math:`Y = \beta_0 + \beta_1 X + \varepsilon`, where
+:math:`\beta_0` is the **intercept** (the value of :math:`Y` at :math:`X = 0`) and
+:math:`\beta_1` the **slope**. In **multiple** regression,
+:math:`Y = \beta_0 + \beta_1 X_1 + \dots + \beta_k X_k + \varepsilon`, each
+:math:`\beta_i` is a **partial** coefficient — the effect of :math:`X_i` *controlling for*
+the other predictors.
+
+Reading a coefficient
+---------------------
+
+Its **sign** gives direction (positive: :math:`Y` rises with :math:`X`; negative: it
+falls), its **magnitude** the strength of the effect, and its **p-value** whether it
+differs significantly from 0 (a non-significant coefficient may not contribute). For
+example, ``Salary = 30000 + 2000 × years`` says each extra year adds about 2,000 in
+salary; ``Price = 50000 + 100 × sqft + 20000 × garage`` says each square foot adds 100
+*holding garage fixed*, and a garage adds 20,000 *holding size fixed*.
+
+Standardised and logistic
+-------------------------
+
+**Unstandardised** coefficients are in original units (dollars, cm); **standardised** ones
+(:math:`\beta^*`) are in standard-deviation units, so effects on different scales can be
+compared. In **logistic** regression the coefficients are in **log-odds**; exponentiating
+gives an **odds ratio** — e.g. :math:`\beta = 0.7` gives :math:`e^{0.7} \approx 2.0`, so a
+one-unit increase roughly **doubles the odds** of the event.
+
+Why it matters
+--------------
+
+Regression coefficients are the **parameters of interest** in regression — read in
+context, alongside p-values, confidence intervals and effect sizes, and (in multiple
+models) always as *partial* effects.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Sample Mean <089-sample-mean>` · :doc:`Frequentist <059-frequentist>` · :doc:`Standard Error (SE) <084-standard-error-se>`
 
 ----
 

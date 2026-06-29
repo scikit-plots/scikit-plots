@@ -18,9 +18,53 @@ Sample Standard Deviation
 
 *An estimate of population spread from a sample, using n - 1 in the denominator.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **sample standard deviation** :math:`s` measures **how spread out the values in a
+sample are around the sample mean** :math:`\bar{x}`. It is the **square root of the sample
+variance** — roughly, the average distance of a data point from the mean.
+
+The formula and Bessel's correction
+-----------------------------------
+
+.. math::
+
+   s = \sqrt{\frac{\sum_{i=1}^{n} (x_i - \bar{x})^2}{n - 1}}.
+
+The denominator is :math:`n - 1`, not :math:`n` — **Bessel's correction**. Dividing by
+:math:`n` would *underestimate* the true spread, because the deviations are taken from the
+sample mean (which is itself fitted to the data); using :math:`n - 1` makes :math:`s^2` an
+**unbiased estimator** of the population variance :math:`\sigma^2`.
+
+Worked example
+--------------
+
+For :math:`\{5, 7, 9\}`: the mean is :math:`\bar{x} = 7`; deviations are
+:math:`-2, 0, +2`; squared, :math:`4, 0, 4`, summing to 8; divide by :math:`n - 1 = 2` to
+get 4; the square root is :math:`s = 2`.
+
+Reading it
+----------
+
+A **small** :math:`s` means points cluster near the mean (low variability); a **large**
+:math:`s` means they're spread out; :math:`s = 0` means every value is identical. The
+**population** standard deviation :math:`\sigma` uses :math:`N` in the denominator (the
+whole population); the **sample** version uses :math:`n - 1` (an estimate of
+:math:`\sigma`).
+
+Where it shows up
+-----------------
+
+:math:`s` is the raw material of inference: it feeds the **standard error**
+(:math:`SE = s/\sqrt{n}`), the **t-test**, **ANOVA** and **regression**, and the
+**confidence intervals** built around sample means.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sample Mean <089-sample-mean>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`True Mean (Population Mean) <085-true-mean-population-mean>` · :doc:`Frequentist <059-frequentist>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Margin of Error (MoE) <086-margin-of-error-moe>`
 
 ----
 

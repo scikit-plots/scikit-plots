@@ -18,9 +18,44 @@ Continuous Retraining
 
 *Automatically retraining models on fresh data to counter drift.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Continuous retraining** is the practice of **regularly updating a model with new data** to keep
+it accurate in production — also called online retraining or model refresh. It exists because
+real-world data **changes over time**: distribution shift, new categories, seasonal patterns.
+
+Why it's needed
+---------------
+
+Three pressures. **Drift** — feature distributions move (customer behaviour, fraud tactics) and
+feature-target relationships evolve. **Business change** — new products, regulations or customer
+segments. And **operational resilience** — keeping KPIs (AUC, calibration, accuracy) stable
+rather than letting the model **decay** on stale data.
+
+How it works
+------------
+
+A monitoring pipeline watches for **drift and KPI degradation**, then a **trigger** fires —
+**scheduled** (weekly/monthly refresh) or **event-driven** (drift past a threshold, KPI below
+target). The retraining pipeline pulls **new labelled data**, retrains or fine-tunes, **validates
+on a fresh holdout**, compares against the current model (A/B or shadow deployment), and
+**deploys only if it improves**.
+
+Approaches and trade-offs
+-------------------------
+
+**Batch** retraining rebuilds from scratch periodically — simple but resource-heavy.
+**Incremental / online** learning updates weights as data streams in. **Hybrid** keeps a frozen
+base and fine-tunes on recent data. The payoff is **stability under drift** with less manual work;
+the costs are needing **robust MLOps** (validation, reproducibility), **label availability** (no
+labels, no retraining), and guarding against **catastrophic forgetting** when old data is dropped.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Drift Detection <138-drift-detection>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Data Drift <331-data-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Recalibration <159-recalibration>` · :doc:`Reweighting <160-reweighting>`
 
 ----
 

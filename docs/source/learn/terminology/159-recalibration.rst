@@ -18,9 +18,47 @@ Recalibration
 
 *Re-aligning predicted probabilities with observed frequencies after drift.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Recalibration** adjusts a model's **predicted probabilities** so they match the **true
+likelihood** of outcomes. A model may output a 0.9 "probability of fraud", but if that score is
+**over- or under-confident**, recalibration corrects the mismatch — without touching the model's
+ranking.
+
+Why it's needed
+---------------
+
+Many models (SVMs, neural nets, boosted trees) are **poorly calibrated**: their raw outputs are
+useful for *ordering* cases but are not true probabilities. In high-stakes domains — medicine,
+finance, fraud — decisions need **trustworthy probabilities**, not just a ranking. The target is
+simple: of all cases scored **0.7**, about **70%** should actually be positive.
+
+How it's done
+-------------
+
+Fit a small **calibration model on a validation set**, comparing predicted scores to true
+outcomes. The common methods are **Platt scaling** (a logistic fit on the raw scores),
+**isotonic regression** (a non-parametric monotonic mapping), **temperature scaling** (one
+parameter on the logits, popular in deep learning), and **Bayesian** recalibration. A
+**calibration curve** — predicted probability versus observed frequency — diagnoses the need:
+deviation from the diagonal means miscalibration.
+
+Examples and the contrast
+-------------------------
+
+A spam filter scores an email **0.9**, but only 70% of such emails are truly spam — Platt scaling
+corrects it toward **0.72**. A mortality model predicts **0.2** where the real rate is **30%** —
+recalibration nudges it to **0.3**. This is distinct from **threshold tuning**, which moves the
+decision cutoff (say 0.5 → 0.3) to trade precision against recall; recalibration changes the
+**probabilities themselves**. It works as a **post-processing** step (no retraining), though it
+needs a reliable calibration set and may leave ranking metrics like AUC unchanged.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Re-scoring <137-re-scoring>` · :doc:`Platt Scaling <280-platt-scaling>` · :doc:`Isotonic Regression <281-isotonic-regression>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Recalibrate Thresholds <165-recalibrate-thresholds>` · :doc:`Drift Detection <138-drift-detection>`
 
 ----
 

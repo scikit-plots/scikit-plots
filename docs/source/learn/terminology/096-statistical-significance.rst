@@ -18,9 +18,53 @@ Statistical Significance
 
 *Evidence that an observed effect is unlikely under the null hypothesis, judged against a chosen threshold.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A result is **statistically significant** when it is **unlikely to have arisen by random
+chance alone, assuming the null hypothesis** :math:`H_0` **is true** — operationally, when
+the **p-value** :math:`\le \alpha`, the predefined significance level. It answers one
+narrow question: *is this result sufficiently inconsistent with* :math:`H_0`?
+
+What it does not tell you
+-------------------------
+
+Significance says nothing about **how large** the effect is, **whether it matters**, or
+**whether it will replicate**. And the **p-value** is widely misread: it is the
+probability, *under* :math:`H_0`, of data as extreme or more extreme than observed — *not*
+the probability that :math:`H_0` is true, nor the probability the result is "due to
+chance."
+
+Statistical vs practical significance
+-------------------------------------
+
+These come apart. **Statistical** significance is about *detectability* and depends
+heavily on sample size; **practical** significance is about *real-world importance* and
+depends on effect size and context. With a large enough :math:`n`, a **trivial** effect
+becomes significant; with a small :math:`n`, a **meaningful** one may not — so a result can
+be significant yet practically meaningless.
+
+Significance vs power
+---------------------
+
+Significance is a **binary** outcome (yes/no); **power** is the *probability* of achieving
+it when a real effect exists. High power makes a true effect likely to register; under low
+power, a non-significant result is **ambiguous** (it may just reflect too little data).
+
+A decision rule, not a verdict
+------------------------------
+
+Treat significance as a **decision rule for controlling false positives under repeated
+use** — part of a risk-management system, not a proof of truth. The :math:`\alpha = 0.05`
+line is a **convention**, not a law: "significant" is not "important," and "not
+significant" is not "no effect." Good practice reports **effect sizes, confidence
+intervals, and power** alongside it, never significance alone.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Frequentist <059-frequentist>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

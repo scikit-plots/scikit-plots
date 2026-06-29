@@ -18,9 +18,56 @@ Ranking Algorithms
 
 *Methods that order items by relevance or predicted value.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+A **ranking algorithm** **orders a set of items** — documents, products, ads, songs — so
+the **most relevant or useful appear at the top**. Given a **query** (a search term, a user
+profile), it scores items by predicted relevance, utility, or likelihood of interaction
+(click, purchase, watch) and sorts by that score. Search engines, recommenders, ad systems
+and social feeds are all ranking problems, and better ranking translates directly into user
+satisfaction and revenue.
+
+Classical IR
+------------
+
+The oldest rankers are lexical. **TF-IDF** weights a term by how often it appears in a
+document against how rare it is across the corpus; **BM25** refines this with
+**term-frequency saturation** and **document-length** normalisation, and remains a strong
+search baseline.
+
+Learning to rank
+----------------
+
+**Learning to rank (LTR)** trains a model from labelled relevance data, in three paradigms
+by what the loss looks at: **pointwise** scores each item alone (regression or
+classification — predict a click probability with logistic regression or gradient-boosted
+trees); **pairwise** learns from comparisons ("is A better than B?", e.g. RankNet); and
+**listwise** optimises the whole ordering at once (LambdaMART, ListNet), often against a
+ranking metric like **NDCG**.
+
+Neural rankers
+--------------
+
+The newest models use **embeddings** (Word2Vec, BERT, Transformers) to capture *semantic*
+match rather than exact words — **DSSM** projects queries and documents into a shared space,
+and **BERT-based rankers** (monoBERT, ColBERT) read query and document in context, sharply
+improving relevance at higher compute cost.
+
+How ranking is judged
+---------------------
+
+Ranking has its own metrics: **NDCG** (rewards relevant items near the top), **MAP**
+(average precision across queries), **MRR** (rank of the first relevant item), **CTR**, and
+**precision@k / recall@k**. The hard parts are **personalisation** (every user's "best"
+differs), **position bias** (higher slots get clicks regardless of quality), **scale**
+(rank billions of items fast), and **fairness** to minority items.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>` · :doc:`Probabilistic Interleaving <109-probabilistic-interleaving>` · :doc:`Team Draft Interleaving (TDI) <110-team-draft-interleaving-tdi>` · :doc:`Embedding <173-embedding>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>`
 
 ----
 

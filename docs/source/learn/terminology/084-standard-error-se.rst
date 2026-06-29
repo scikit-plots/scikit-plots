@@ -18,9 +18,66 @@ Standard Error (SE)
 
 *The standard deviation of a statistic's sampling distribution — how much an estimate varies across samples.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **standard error (SE)** measures **how much a sample statistic — a mean or a
+proportion — would vary across many random samples** from the same population. It is the
+**uncertainty of the estimate**: how far the sample value is likely to fall from the true
+population value.
+
+The formulas
+------------
+
+For a **mean** (population SD :math:`\sigma`, or sample SD :math:`s` when :math:`\sigma`
+is unknown):
+
+.. math::
+
+   SE_{\bar{x}} = \frac{\sigma}{\sqrt{n}} \quad\left(\text{or } \frac{s}{\sqrt{n}}\right).
+
+For a **proportion**:
+
+.. math::
+
+   SE_{\hat{p}} = \sqrt{\frac{\hat{p}(1 - \hat{p})}{n}}.
+
+Key properties
+--------------
+
+**Bigger samples shrink it** (:math:`SE \propto 1/\sqrt{n}`, so estimates get more
+precise), **more spread inflates it** (larger :math:`\sigma`), and it is the bridge to the
+**Central Limit Theorem**: for large :math:`n` the sample mean is approximately normal
+with the SE as its spread.
+
+Examples
+--------
+
+With :math:`\mu = 100, \sigma = 20, n = 25`, :math:`SE = 20/\sqrt{25} = 4` — sample means
+vary about ±4 around the truth. For a proportion, 520 "yes" out of 1,000 gives
+:math:`\hat{p} = 0.52` and :math:`SE = \sqrt{0.52 \times 0.48 / 1000} \approx 0.016`, a
+±1.6% margin.
+
+SE vs standard deviation
+------------------------
+
+They are easy to confuse: the **standard deviation** describes the spread of *individual
+data points*, while the **standard error** describes the spread of the *estimate*. SD is
+variability in the data; SE is variability in the statistic — and SE shrinks with
+:math:`n` while SD does not.
+
+Where it shows up
+-----------------
+
+The SE is the denominator of inference: **confidence intervals**
+(:math:`\text{estimate} \pm z_{\alpha/2}\, SE`), **test statistics** (the z- and
+t-tests), and **A/B comparisons** of conversion rates all run on it.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Frequentist <059-frequentist>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`True Mean (Population Mean) <085-true-mean-population-mean>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

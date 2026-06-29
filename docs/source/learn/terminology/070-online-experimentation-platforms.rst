@@ -18,9 +18,63 @@ Online Experimentation Platforms
 
 *Systems that randomise, run and analyse controlled experiments on live traffic.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+An **online experimentation platform** is the **infrastructure that lets a company run
+controlled experiments — A/B tests, multivariate tests, bandits — on a live digital
+product**, usually built internally at scale. It gives product managers, data scientists
+and engineers a way to randomly assign users to variants, log outcomes automatically,
+analyse them with sound statistics, and enforce guardrails so experiments don't harm
+users.
+
+Core components
+---------------
+
+- **Assignment & randomisation** — bucket users (by cookie, device or account) into
+  variants, with *stable* assignment so a user always sees the same one.
+- **Data collection & logging** — track clicks, conversions, retention and revenue
+  consistently across pipelines.
+- **Metrics framework** — predefined primary KPIs plus **guardrail metrics** (engagement
+  should rise, latency must not).
+- **Statistical engine** — frequentist (p-values, fixed-horizon or sequential), Bayesian
+  (posteriors, credible intervals), and variance reduction (CUPED) or stratified
+  sampling.
+- **Dashboard** — automated significance, effect sizes and time series.
+- **Governance / guardrails** — flag harmful launches and enforce GDPR/HIPAA compliance.
+
+Modern capabilities
+-------------------
+
+The leading platforms add **sequential testing** (safe peeking), **Bayesian analysis**,
+**multi-armed bandits** (adaptive traffic), **heterogeneous treatment-effect / CATE**
+analysis by segment, **ML-driven personalisation**, and **scale** to hundreds of
+simultaneous tests.
+
+Who builds them
+---------------
+
+Commercial tools include **Optimizely**, **Adobe Target**, **VWO** and feature-flag
+platforms like **Split.io / LaunchDarkly** (Google Optimize was retired in favour of
+GA4). The big platforms run their own: **Microsoft's ExP** (Bing, Office, Windows),
+**Airbnb's ERF**, **Uber's** and **Netflix's** XP infrastructure, **LinkedIn's XLNT**,
+and **Meta's PlanOut**.
+
+Hard problems
+-------------
+
+Running thousands of concurrent experiments raises real challenges: **statistical
+validity** at scale (many simultaneous tests), **interference / contamination** (users
+caught in several experiments), **metric definition** (does the KPI track product
+health?), sheer **scale**, and **ethics** (avoiding harmful or unfair experiments). The
+payoff is **evidence-based decisions** instead of intuition, lower launch risk, and
+continuous optimisation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Optimizely <069-optimizely>` · :doc:`Google Experiments <100-google-experiments>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Bandit Algorithms <113-bandit-algorithms>`
 
 ----
 

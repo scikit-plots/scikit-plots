@@ -18,9 +18,49 @@ Retention
 
 *The share of users who remain active over a given period.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Retention** measures how well a business **keeps its customers or users over time** — the
+**complement of churn**, and a direct signal of product value: if people keep coming back,
+the product is working.
+
+The metrics
+-----------
+
+The **customer retention rate (CRR)** strips out new sign-ups to measure how many existing
+customers stayed:
+
+.. math::
+
+   \text{CRR} = \frac{E - N}{S} \times 100,
+
+with :math:`S` customers at the start, :math:`E` at the end, and :math:`N` newly acquired.
+**Cohort retention** tracks a starting group over time (100 sign up in week 1, 40 still
+active in week 4 → **40% week-4 retention**), and **revenue retention** comes in two forms:
+**gross (GRR)**, which ignores expansion, and **net (NRR)**, which adds upsells and
+cross-sells.
+
+Example
+-------
+
+Start with 100 paying customers, lose 10 and gain 20: the CRR counts only the kept ones,
+:math:`(110 - 20)/100 = 90\%`. A mobile app with 300 of 1,000 installs still active at 30
+days has **30% retention**.
+
+Why it matters
+--------------
+
+Retention is **cheaper than acquisition**, drives **predictable recurring revenue**, and is
+the clearest **indicator of product value** — which is why it sits at the heart of
+**lifetime value** and growth. Teams raise it with onboarding, A/B tests and
+recommendations, and predict who is about to drop with the same models used for churn.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Churn <123-churn>` · :doc:`Revenue per User (RPU / ARPU) <122-revenue-per-user-rpu-arpu>` · :doc:`Customer Lifetime <042-customer-lifetime>` · :doc:`Cohort-Based LTV (Simple Version) <041-cohort-based-ltv-simple-version>` · :doc:`SaaS (Software as a Service) <034-saas-software-as-a-service>` · :doc:`Upselling <032-upselling>`
 
 ----
 

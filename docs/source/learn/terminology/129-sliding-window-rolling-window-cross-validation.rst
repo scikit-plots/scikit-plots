@@ -18,9 +18,47 @@ Sliding Window (Rolling Window) Cross-Validation
 
 *Time-series CV using a fixed-size window that moves forward through time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Sliding-window** (or **rolling-window**) cross-validation is a time-series validation
+scheme where the training set has a **fixed size** and **slides forward** through time: as
+new data enters the window, the **oldest data drops out**. Like all time-series CV, it
+**respects time order** — past trains, future tests.
+
+How it works
+------------
+
+Fix a **window size**, train on that window, validate on the next step, then **slide forward
+and repeat**. Each fold uses a same-length training block ending just before its test block.
+
+Example
+-------
+
+With a 2-year window over **2020–2024**: train **2020–2021** → test **2022**; train
+**2021–2022** → test **2023**; train **2022–2023** → test **2024**. Notice 2020 is
+**dropped** once the window moves past it.
+
+vs the expanding window
+-----------------------
+
+The contrast is what happens to old data. An **expanding window keeps all history**, suiting
+cases where old data stays relevant (macroeconomics, cumulative learning). A **sliding window
+discards it**, suiting **non-stationary** settings where recent data is more predictive —
+financial markets, demand forecasting, IoT sensor streams.
+
+Benefits and the size trade-off
+-------------------------------
+
+It keeps the model **focused on recent patterns** and **bounds compute** (the training set
+never grows without limit). The cost: it can **forget useful long-run history**, and the
+**window size is a critical knob** — too short is noisy, too long is unresponsive.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Expanding Window Cross-Validation <130-expanding-window-cross-validation>` · :doc:`Blocked Splits (Single Holdout) <128-blocked-splits-single-holdout>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>` · :doc:`Time Series <010-time-series>` · :doc:`Data Leakage <131-data-leakage>`
 
 ----
 

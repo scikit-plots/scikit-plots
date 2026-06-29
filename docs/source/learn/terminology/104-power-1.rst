@@ -18,9 +18,56 @@ Power (1 – β)
 
 *The probability a test correctly detects a real effect (rejects a false null).*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**Power** is the probability of **correctly rejecting** the null hypothesis :math:`H_0`
+when the alternative is true — of **detecting a real effect**. Formally,
+
+.. math::
+
+   \text{Power} = 1 - \beta,
+
+where :math:`\beta` is the probability of a **Type II error** (missing a true effect). The
+usual target is **power** :math:`\ge 0.80`: an 80% chance of catching an effect that is
+really there.
+
+The error triad
+---------------
+
+Three quantities partition the possibilities when :math:`H_0` is actually false or true:
+:math:`\alpha` is the **Type I** error (a false positive — rejecting a true :math:`H_0`),
+:math:`\beta` the **Type II** error (a false negative), and :math:`1 - \beta` the power (a
+true positive).
+
+What raises power
+-----------------
+
+Four levers. A larger **effect size** :math:`\delta` is easier to detect; a larger
+**sample size** :math:`n` shrinks the standard error and lifts power; a more lenient
+**significance level** :math:`\alpha` (say 0.10 rather than 0.05) raises power but admits
+more false positives; and **lower variance** :math:`\sigma^2` sharpens detection.
+
+Example
+-------
+
+Testing whether a drug lowers blood pressure, with a medium effect (:math:`\delta = 0.5`),
+:math:`n = 30` and :math:`\alpha = 0.05`, power might be only **0.60** — a 40% chance of
+missing the effect. Raising :math:`n` to **100** lifts power to about **0.90**.
+
+Where it's used
+---------------
+
+Power is the target of **a-priori power analysis**: fixing :math:`\alpha`, a desired power
+(commonly 0.80) and an expected :math:`\delta`, one solves for the **minimum sample size**
+needed — so that a true effect is very likely to register rather than slip away as a false
+negative.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Type I Error <080-type-i-error>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`A Priori Power Analysis <095-a-priori-power-analysis>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Sample size <103-sample-size>` · :doc:`Statistical Significance <096-statistical-significance>`
 
 ----
 

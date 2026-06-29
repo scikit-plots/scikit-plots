@@ -1027,7 +1027,7 @@ Evaluation metrics
 ------------------
 
 Forecasts are scored with **MAE**, **MSE**, **RMSE**, and percentage errors
-**MAP**, **sMAPE** and **WAPE**. Choose carefully: MAP explodes when actual
+**MAPE**, **sMAPE** and **WAPE**. Choose carefully: MAPE explodes when actual
 values are near zero and penalises over- and under-prediction asymmetrically;
 sMAPE and WAPE are more robust for intermittent or zero-heavy data.
 
@@ -5022,5 +5022,4444 @@ MINDMAP.update({
     "Optimizely": [
         "Google Experiments", "Online Experimentation Platforms", "A/B Testing",
         "Conversion Rate Uplift", "Sequential Settings",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Experimentation infrastructure & causal effects  (abtest / causal)
+# ----------------------------------------------------------------------
+
+CONTENT["Online Experimentation Platforms"] = r"""
+What it is
+----------
+
+An **online experimentation platform** is the **infrastructure that lets a company run
+controlled experiments — A/B tests, multivariate tests, bandits — on a live digital
+product**, usually built internally at scale. It gives product managers, data scientists
+and engineers a way to randomly assign users to variants, log outcomes automatically,
+analyse them with sound statistics, and enforce guardrails so experiments don't harm
+users.
+
+Core components
+---------------
+
+- **Assignment & randomisation** — bucket users (by cookie, device or account) into
+  variants, with *stable* assignment so a user always sees the same one.
+- **Data collection & logging** — track clicks, conversions, retention and revenue
+  consistently across pipelines.
+- **Metrics framework** — predefined primary KPIs plus **guardrail metrics** (engagement
+  should rise, latency must not).
+- **Statistical engine** — frequentist (p-values, fixed-horizon or sequential), Bayesian
+  (posteriors, credible intervals), and variance reduction (CUPED) or stratified
+  sampling.
+- **Dashboard** — automated significance, effect sizes and time series.
+- **Governance / guardrails** — flag harmful launches and enforce GDPR/HIPAA compliance.
+
+Modern capabilities
+-------------------
+
+The leading platforms add **sequential testing** (safe peeking), **Bayesian analysis**,
+**multi-armed bandits** (adaptive traffic), **heterogeneous treatment-effect / CATE**
+analysis by segment, **ML-driven personalisation**, and **scale** to hundreds of
+simultaneous tests.
+
+Who builds them
+---------------
+
+Commercial tools include **Optimizely**, **Adobe Target**, **VWO** and feature-flag
+platforms like **Split.io / LaunchDarkly** (Google Optimize was retired in favour of
+GA4). The big platforms run their own: **Microsoft's ExP** (Bing, Office, Windows),
+**Airbnb's ERF**, **Uber's** and **Netflix's** XP infrastructure, **LinkedIn's XLNT**,
+and **Meta's PlanOut**.
+
+Hard problems
+-------------
+
+Running thousands of concurrent experiments raises real challenges: **statistical
+validity** at scale (many simultaneous tests), **interference / contamination** (users
+caught in several experiments), **metric definition** (does the KPI track product
+health?), sheer **scale**, and **ethics** (avoiding harmful or unfair experiments). The
+payoff is **evidence-based decisions** instead of intuition, lower launch risk, and
+continuous optimisation.
+"""
+
+CONTENT["Stopping Rules"] = r"""
+What it is
+----------
+
+A **stopping rule** is the **pre-specified condition for ending an experiment** — it says
+*when* to stop collecting data and decide. Without one, you can **"peek" until the result
+looks significant**, which inflates the **Type I error** (false-positive) rate. The
+choice of stopping rule is what makes continuous monitoring valid or invalid.
+
+The families
+------------
+
+- **Fixed-horizon (the traditional A/B test)** — fix the sample size up front (say
+  10,000 per arm), analyse **once** at the end. Simple and protects :math:`\alpha`, but
+  inflexible.
+- **Group-sequential** — pre-plan **interim looks** (e.g. every 25%) and spend the error
+  budget with an **α-spending** rule (O'Brien–Fleming, Pocock), allowing early stops for
+  efficacy or futility. Efficient; standard in clinical trials.
+- **Sequential probability ratio test (SPRT)** — check a **likelihood ratio** after each
+  observation and stop once it crosses a bound for :math:`H_1` or :math:`H_0`; often uses
+  far fewer samples.
+- **Bayesian** — stop when a **posterior probability** crosses a threshold (e.g.
+  :math:`P(H_1 \mid \text{data}) > 0.95`); intuitive and needs no α-spending.
+- **Ethical / practical** — in trials, stop for **harm**, for **clear benefit** (it's
+  unethical to withhold), or for **futility**.
+
+Examples
+--------
+
+An A/B test might run to a fixed **50,000 visitors per arm**; or check every **5,000**
+and stop early if :math:`p < 0.001` under an O'Brien–Fleming bound; or stop once the
+posterior probability that B beats A exceeds **0.95**. A clinical trial planned for 1,000
+patients might look at 250, 500 and 750 — stopping early for strong benefit, immediately
+for harm, or for futility.
+
+Why they matter
+---------------
+
+Stopping rules prevent **p-hacking** (stopping the moment things look good), keep **Type
+I error** controlled, **save time and cost** by ending early when results are clear, and
+**protect participants** in clinical settings. The dividing line: **fixed horizon** (one
+look) versus **sequential / adaptive** (group-sequential, SPRT, Bayesian) that permit
+interim looks without inflating false positives.
+"""
+
+CONTENT["Treatment Effect"] = r"""
+What it is
+----------
+
+The **treatment effect** is the **causal impact of an intervention** versus a control —
+*how much did the treatment change the outcome compared with what would have happened
+without it?* In the **potential-outcomes** framework,
+
+.. math::
+
+   \text{Treatment Effect} = Y(1) - Y(0),
+
+where :math:`Y(1)` is the outcome if the unit *is* treated and :math:`Y(0)` the outcome
+if it is *not*.
+
+The fundamental problem
+-----------------------
+
+For any single unit you only ever observe **one** of :math:`Y(1)` or :math:`Y(0)` — never
+both — so the individual effect is unobservable. This *fundamental problem of causal
+inference* is why we estimate **averages** instead of individual effects.
+
+The hierarchy of effects
+------------------------
+
+- **ITE (individual)** — :math:`Y_i(1) - Y_i(0)` for one unit; unobservable.
+- **ATE (average)** — :math:`\text{ATE} = \mathbb{E}[Y(1) - Y(0)]`, the
+  population-average effect, the usual target of RCTs and A/B tests.
+- **CATE (conditional average)** —
+  :math:`\text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]`, the effect within a
+  subgroup defined by covariates :math:`x` (age, segment) — the basis of personalised
+  interventions.
+- **LATE (local average)** — the effect for a specific compliant subgroup, typically via
+  instrumental variables.
+
+Examples
+--------
+
+A drug with 60% recovery vs 50% on placebo has :math:`\text{ATE} = +10` points. A website
+variant at 5.5% vs 5% conversion has :math:`\text{ATE} = +0.5` points, a
+:math:`(0.055 - 0.05)/0.05 = +10\%` relative lift.
+
+How it's estimated
+------------------
+
+In a **randomised controlled trial** (or A/B test), randomisation makes the groups
+comparable, so the **difference in group means** is an unbiased estimate of the ATE. In
+**observational** data, confounding must be removed with causal-inference tools —
+matching, regression adjustment, instrumental variables, difference-in-differences or
+**propensity scores**. ML methods increasingly estimate **heterogeneous (CATE)** effects
+for targeting.
+"""
+
+MINDMAP.update({
+    "Online Experimentation Platforms": [
+        "Optimizely", "Google Experiments", "A/B Testing", "Stopping Rules",
+        "Sequential Settings", "Bandit Algorithms",
+    ],
+    "Stopping Rules": [
+        "Bayesian Stopping Rules", "Sequential Settings",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Frequentist",
+        "A/B Testing", "Online Experimentation Platforms",
+    ],
+    "Treatment Effect": [
+        "A/B Testing", "Conversion Rate Uplift", "Parameter(s) of Interest",
+        "Causal Inference", "Posterior probability of uplift",
+        "Online Experimentation Platforms",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Bayesian evidence & sequential testing  (bayes / abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["Posterior Probability"] = r"""
+What it is
+----------
+
+The **posterior probability** is the **probability of a hypothesis (or parameter value)
+after observing data**, computed with Bayes' theorem by combining the **prior** (belief
+before) with the **likelihood** (evidence from the data):
+
+.. math::
+
+   P(H \mid \text{data}) = \frac{P(\text{data} \mid H)\, P(H)}{P(\text{data})}.
+
+What it answers
+---------------
+
+It answers a directly useful question — *"given the data, how probable is this
+hypothesis?"* — which is **not** what a frequentist p-value answers (*"if* :math:`H_0`
+*were true, how likely is data this extreme?"*). The posterior is the quantity people
+usually *think* a p-value gives them.
+
+Worked example
+--------------
+
+Is a coin biased toward heads? Take two point hypotheses — :math:`H_0: p = 0.5` and
+:math:`H_1: p = 0.7` — with equal priors, and observe 7 heads in 10 tosses. The
+likelihoods are
+
+.. math::
+
+   P(\text{data} \mid H_0) = \binom{10}{7}(0.5)^{10} \approx 0.117, \qquad
+   P(\text{data} \mid H_1) = \binom{10}{7}(0.7)^7 (0.3)^3 \approx 0.266,
+
+so the posterior for the biased hypothesis is
+
+.. math::
+
+   P(H_1 \mid \text{data}) = \frac{0.266 \times 0.5}{0.266 \times 0.5 + 0.117 \times 0.5} \approx 0.69.
+
+After 7 heads in 10, there's about a **69% probability** the coin is biased.
+
+Parameter posteriors
+--------------------
+
+When the unknown is a continuous parameter rather than a discrete hypothesis, the
+posterior is a whole **distribution**,
+:math:`P(\theta \mid \text{data}) \propto P(\text{data} \mid \theta)\, P(\theta)` — the
+object used to estimate means, regression coefficients or conversion rates. (A single
+**posterior probability** is then one number read off that distribution.)
+
+Where it shows up
+-----------------
+
+Bayesian sequential testing (stop once :math:`P(H_1 \mid \text{data}) > 0.95`), Bayesian
+estimation, ML models (Naive Bayes, Bayesian nets), and medical diagnosis (probability of
+disease given a test result).
+"""
+
+CONTENT["Bayesian Sequential Testing"] = r"""
+What it is
+----------
+
+**Bayesian sequential testing** evaluates evidence **continuously (or at interim looks)
+using Bayesian updating**, instead of frequentist p-values against a fixed
+:math:`\alpha`. At every step you compute a **posterior probability** or **Bayes factor**
+and decide to **stop for** :math:`H_1`, **stop for** :math:`H_0`, or **keep sampling** —
+with **no pre-specified sample size**.
+
+The two evidence metrics
+------------------------
+
+- **Posterior probability** — via Bayes' theorem,
+  :math:`P(H \mid \text{data}) = P(\text{data} \mid H)\,P(H) / P(\text{data})`.
+- **Bayes factor** — :math:`\text{BF} = P(\text{data} \mid H_1)/P(\text{data} \mid H_0)`;
+  :math:`\text{BF} > 1` favours :math:`H_1`, with :math:`\text{BF} > 10` and
+  :math:`\text{BF} < 1/10` as strong-evidence thresholds.
+
+Decision rules
+--------------
+
+- **Stop for efficacy** — :math:`P(H_1 \mid \text{data}) > 0.95` (or
+  :math:`\text{BF} > 10`).
+- **Stop for futility** — :math:`P(H_0 \mid \text{data}) > 0.95` (or
+  :math:`\text{BF} < 1/10`).
+- **Continue** — evidence still inconclusive.
+
+The key property: **continuous monitoring does not inflate the Type I error rate**, so
+peeking is allowed.
+
+Example
+-------
+
+An A/B test with equal priors: after 5,000 visitors the posterior that B beats A is
+**0.93** → keep sampling; after 8,000 it reaches **0.97** → stop and conclude B is
+better.
+
+Vs frequentist sequential
+-------------------------
+
+The upside: no fixed horizon (stop anytime), intuitive **probability statements** ("97%
+chance B is better"), prior information can be folded in, and error is controlled
+**without α-spending** corrections. The downside: it needs a **prior** (a subjective
+choice that can sway results) and more **computation**. Where SPRT and group-sequential
+methods speak in p-values and likelihood ratios with α-spending, Bayesian sequential
+testing speaks in posteriors and Bayes factors and treats multiple looks as a non-issue.
+"""
+
+CONTENT["Likelihood Ratio (LR)"] = r"""
+What it is
+----------
+
+The **likelihood ratio (LR)** measures **how much more likely the observed data is under
+one hypothesis than another**, by dividing their likelihoods:
+
+.. math::
+
+   \Lambda = \frac{L(\text{data} \mid H_1)}{L(\text{data} \mid H_0)}.
+
+:math:`\Lambda = 1` means the data is equally likely under both; :math:`\Lambda > 1`
+favours :math:`H_1`; :math:`\Lambda < 1` favours :math:`H_0`.
+
+Two roles in testing
+--------------------
+
+- **Likelihood-ratio test (LRT)** — the generalised statistic
+  :math:`\Lambda = \sup_{\theta \in \Theta_0} L(\theta) / \sup_{\theta \in \Theta} L(\theta)`
+  compares the best fit under the null to the best fit overall; a small :math:`\Lambda`
+  is strong evidence against :math:`H_0`. (By the Neyman–Pearson lemma, the LR is the
+  *most powerful* test for simple hypotheses.)
+- **Sequential probability ratio test (SPRT)** — accumulate the ratio as data arrives,
+  :math:`\Lambda_n = L(\text{data}_{1:n} \mid H_1)/L(\text{data}_{1:n} \mid H_0)`, and
+  stop when it crosses an upper bound :math:`A` (accept :math:`H_1`) or lower bound
+  :math:`B` (accept :math:`H_0`), else continue.
+
+Worked example
+--------------
+
+Seven heads in 10 tosses, with :math:`H_0: p = 0.5` vs :math:`H_1: p = 0.7`:
+
+.. math::
+
+   L(H_0) = \binom{10}{7}(0.5)^{10} \approx 0.117, \quad
+   L(H_1) = \binom{10}{7}(0.7)^7(0.3)^3 \approx 0.266, \quad
+   \Lambda = \frac{0.266}{0.117} \approx 2.27,
+
+so the data is about **2.3 times more likely** under the biased hypothesis. Rough
+reading: :math:`\Lambda \approx 1` no evidence, :math:`> 3` moderate, :math:`> 10`
+strong.
+
+Where it shows up
+-----------------
+
+The LR is the backbone of likelihood-based inference: the **LRT** and **SPRT**, nested
+**model comparison**, and — closely related — the **Bayes factor**, which *is* a
+likelihood ratio when the hypotheses are simple (and an evidence ratio of marginal
+likelihoods when they are composite). In medicine, diagnostic **LR+ and LR−** update the
+odds of disease from a test result.
+"""
+
+MINDMAP.update({
+    "Posterior Probability": [
+        "Bayes' Theorem", "Posterior", "Prior Belief (or Prior Probability)",
+        "Bayesian Sequential Testing", "Posterior belief", "Frequentist",
+    ],
+    "Bayesian Sequential Testing": [
+        "Posterior Probability", "Bayesian Stopping Rules", "Sequential Settings",
+        "Likelihood Ratio (LR)", "Frequentist", "Conversion Rate Uplift",
+    ],
+    "Likelihood Ratio (LR)": [
+        "Sequential Probability Ratio Test (SPRT)", "Bayesian Sequential Testing",
+        "Marginal Likelihood (also called The Model Evidence or Integrated Likelihood)",
+        "Binomial Likelihood", "Frequentist", "Posterior Probability",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Frequentist sequential testing — SPRT & group-sequential  (abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["Sequential Probability Ratio Test (SPRT)"] = r"""
+What it is
+----------
+
+The **sequential probability ratio test (SPRT)**, due to Abraham **Wald**, is a
+hypothesis test that **evaluates data as it arrives** rather than fixing the sample size
+in advance. It compares two **simple** hypotheses,
+
+.. math::
+
+   H_0 : \theta = \theta_0 \quad \text{vs} \quad H_1 : \theta = \theta_1,
+
+and after each observation decides to **accept** :math:`H_0`, **accept** :math:`H_1`, or
+**keep sampling**.
+
+The running likelihood ratio
+----------------------------
+
+After :math:`n` observations, accumulate the likelihood ratio
+
+.. math::
+
+   \Lambda_n = \frac{L(\text{data}_{1:n} \mid H_1)}{L(\text{data}_{1:n} \mid H_0)}.
+
+Decision boundaries
+-------------------
+
+Two boundaries are set from the desired Type I (:math:`\alpha`) and Type II
+(:math:`\beta`) error rates:
+
+.. math::
+
+   A = \frac{1 - \beta}{\alpha}, \qquad B = \frac{\beta}{1 - \alpha}.
+
+Then stop when :math:`\Lambda_n \ge A` (accept :math:`H_1`) or :math:`\Lambda_n \le B`
+(accept :math:`H_0`); while :math:`B < \Lambda_n < A`, continue.
+
+Worked example
+--------------
+
+For conversion rates :math:`H_0 : p = 0.10` vs :math:`H_1 : p = 0.12` with
+:math:`\alpha = 0.05, \beta = 0.20`,
+
+.. math::
+
+   A = \frac{1 - 0.20}{0.05} = 16, \qquad B = \frac{0.20}{0.95} \approx 0.21.
+
+Update :math:`\Lambda_n` as conversions come in; cross 16 → conclude :math:`H_1`, drop
+below 0.21 → conclude :math:`H_0`, otherwise keep going.
+
+Strengths and limits
+--------------------
+
+On average the SPRT needs **fewer samples** than a fixed-horizon test, stops as soon as
+evidence is decisive, and holds the chosen :math:`\alpha` and :math:`\beta`. The catch:
+it's built for **simple** hypotheses (fixed :math:`\theta_0, \theta_1`), is awkward for
+**composite** ones (e.g. :math:`p \le 0.10`), and needs real-time monitoring. Wald
+introduced it for **WWII quality control** (accepting or rejecting munitions lots with
+fewer inspections); today it appears in clinical trials, sequential A/B testing and
+industrial QC. Versus group-sequential designs (which look at fixed checkpoints), the
+SPRT is genuinely **continuous**.
+"""
+
+CONTENT["Pocock Method"] = r"""
+What it is
+----------
+
+The **Pocock method** is a **group-sequential design** that allows several interim
+analyses while keeping the overall Type I error at :math:`\alpha`. Its defining choice:
+**every look — interim and final — uses the same significance threshold** (the same
+critical value), in contrast to O'Brien–Fleming, which varies it.
+
+How the threshold is set
+------------------------
+
+The constant cutoff is chosen so the *overall* error across all looks still equals
+:math:`\alpha`. For :math:`\alpha = 0.05` (two-sided) with 4 looks at 25/50/75/100%, the
+Pocock critical value is about :math:`z \approx \pm 2.41` (a nominal :math:`p \approx
+0.017`) **at every look** — stricter than 1.96 because four chances to reject must share
+the budget.
+
+Example
+-------
+
+A checkout-flow A/B test plans 40,000 users (20,000 per arm) with interim looks every
+10,000. The Pocock cutoff is :math:`z \ge 2.41` at every stage: an observed
+:math:`z = 2.6` at the first look means **stop early, B wins**; :math:`z = 2.0` means
+continue.
+
+Trade-offs vs OBF
+-----------------
+
+Pocock is **easy to communicate** ("same threshold every time") and **stops early more
+readily** for moderate effects, which saves resources. The cost: because it spends
+:math:`\alpha` evenly, the **final test is stricter** than a plain :math:`\alpha = 0.05`
+(≈ 0.017 with 4 looks), so it is **less powerful** if the trial runs to completion and
+may need a slightly larger sample. Rule of thumb: **Pocock when early stopping is likely**
+(business/exploratory A/B), **O'Brien–Fleming when the trial will probably run to the
+end** (safety-critical medicine).
+"""
+
+CONTENT["O'Brien–Fleming (OBF) Method"] = r"""
+What it is
+----------
+
+The **O'Brien–Fleming (OBF) method** is a **group-sequential design** that controls the
+overall Type I error :math:`\alpha` across multiple interim analyses with a distinctive
+spending shape: **very strict early, lenient late**. Early on you need overwhelming
+evidence to stop; by the final look the threshold is essentially the usual
+:math:`\alpha`.
+
+The spending shape
+------------------
+
+For :math:`\alpha = 0.05` (two-sided) with 4 looks, the OBF critical z-values are roughly
+
+- 25% — :math:`z \approx 3.47` (:math:`p \approx 0.0005`)
+- 50% — :math:`z \approx 2.45` (:math:`p \approx 0.014`)
+- 75% — :math:`z \approx 2.00` (:math:`p \approx 0.045`)
+- 100% — :math:`z \approx 1.98` (:math:`p \approx 0.048`)
+
+so the early bar is extreme and the final bar is almost a normal :math:`\alpha = 0.05`
+test. This is the opposite philosophy to Pocock's flat :math:`z \approx 2.41`.
+
+Example
+-------
+
+A heart-drug trial with 4 interim looks: at 25% an observed :math:`p = 0.002`
+(:math:`z \approx 3.1`) is **not** below the OBF bound (:math:`p \approx 0.0005`), so
+continue; at 50%, :math:`p = 0.009` (:math:`z \approx 2.6`) clears the bound
+(:math:`\approx 0.014`) → **stop early for efficacy**.
+
+Strengths and trade-offs
+------------------------
+
+OBF gives **strong early protection against false positives** (random noise can't stop
+the trial prematurely) while still permitting an early stop for a genuinely large effect,
+and its **final test barely loses power** versus fixed-horizon. The downside: it **rarely
+stops early** unless the effect is huge, so you often collect nearly the full sample.
+That conservatism is exactly why it suits **safety-critical** domains like medicine,
+whereas Pocock fits exploratory or business A/B tests where stopping early saves money.
+"""
+
+MINDMAP.update({
+    "Sequential Probability Ratio Test (SPRT)": [
+        "Likelihood Ratio (LR)", "Bayesian Sequential Testing", "Stopping Rules",
+        "Sequential Settings", "Frequentist", "Group Sequential Testing",
+    ],
+    "Pocock Method": [
+        "O'Brien–Fleming (OBF) Method", "Group Sequential Testing", "Stopping Rules",
+        "Frequentist", "Sequential Settings",
+        "Sequential Probability Ratio Test (SPRT)",
+    ],
+    "O'Brien–Fleming (OBF) Method": [
+        "Pocock Method", "Group Sequential Testing", "Stopping Rules", "Frequentist",
+        "Sequential Settings", "Traditional A/B Test (Fixed-Horizon A/B Test)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Group-sequential testing, Type I error, fixed-horizon baseline  (abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["Group Sequential Testing"] = r"""
+What it is
+----------
+
+**Group sequential testing** lets you **analyse accumulating data at several pre-planned
+interim points** during an experiment — not just once at the end — and at each look
+decide to **stop for efficacy** (the effect is clearly there), **stop for futility** (it
+clearly isn't), or **continue**. It is standard in clinical trials and increasingly used
+in A/B testing where stopping early saves resources.
+
+The peeking problem it solves
+-----------------------------
+
+Repeatedly checking a fixed-:math:`\alpha` test and stopping the moment :math:`p < 0.05`
+**inflates the Type I error** badly — with many looks, the chance of a false positive can
+climb to **20–30%**. Group sequential designs fix this with an **α-spending function**
+that divides the error budget across looks so the *overall* Type I rate stays at
+:math:`\alpha`.
+
+How it works
+------------
+
+Plan the number of interim analyses up front, then use an **α-spending rule** to set a
+significance cutoff at each: early looks get **stricter** thresholds, later looks more
+**lenient** ones, and you stop as soon as a threshold is crossed.
+
+The α-spending rules
+--------------------
+
+- **O'Brien–Fleming** — very strict early, lenient late (final ≈ fixed :math:`\alpha`).
+- **Pocock** — the same moderate threshold at every look.
+- **Lan–DeMets** — a flexible spending function that allocates :math:`\alpha`
+  adaptively, without fixing the look times in advance.
+
+Example
+-------
+
+A trial of 1,000 patients, analysed every 250 with total :math:`\alpha = 0.05` under an
+O'Brien–Fleming schedule, might spend :math:`\alpha = 0.001, 0.01, 0.02, 0.04` across the
+four looks. A p-value of 0.008 at 500 patients crosses the second bound → **stop early
+for efficacy**.
+
+Where it sits
+-------------
+
+It is the middle ground between extremes: more efficient than the **fixed-horizon** A/B
+test (one look, may waste data) and statistically valid unlike **naive peeking** (which
+inflates false positives), while **bandit / adaptive** methods go further still by
+reallocating traffic continuously.
+"""
+
+CONTENT["Type I Error"] = r"""
+What it is
+----------
+
+A **Type I error** is a **false positive**: you **reject the null hypothesis**
+:math:`H_0` **when it is actually true** — concluding there is an effect or difference
+when in reality there is none.
+
+Its probability is α
+--------------------
+
+The probability of a Type I error is exactly the **significance level** :math:`\alpha`,
+fixed *before* the test: :math:`\alpha = 0.05` accepts a 5% chance of wrongly rejecting a
+true :math:`H_0`; :math:`\alpha = 0.01` a 1% chance. Choosing :math:`\alpha` *is* choosing
+how often you are willing to cry wolf.
+
+Examples
+--------
+
+- **Medicine** — :math:`H_0`: the drug has no effect. If it truly doesn't, but the data
+  happen to give :math:`p < 0.05`, you reject :math:`H_0` and declare it works — a Type I
+  error.
+- **A/B testing** — :math:`H_0`: conversion rates are equal. If they really are, but
+  random variation produces a "significant" gap, you've made a Type I error.
+
+Geometrically, with overlapping :math:`H_0` and :math:`H_1` distributions, :math:`\alpha`
+is the **rejection region** in the tail; a statistic landing there *while* :math:`H_0`
+holds is the error.
+
+Type I vs Type II vs power
+--------------------------
+
+There are two ways to be wrong and one way the test "works":
+
+- **Type I (false positive)** — reject a true :math:`H_0`; probability :math:`\alpha`.
+- **Type II (false negative)** — fail to reject a false :math:`H_0`; probability
+  :math:`\beta`.
+- **Power** — correctly reject a false :math:`H_0`; equals :math:`1 - \beta` (and grows
+  with sample size, effect size and :math:`\alpha`).
+
+Lowering :math:`\alpha` reduces Type I errors but, all else equal, raises :math:`\beta` —
+the two trade off.
+
+Controlling it
+--------------
+
+Use a **stricter** :math:`\alpha`; apply **Bonferroni** or other multiple-testing
+corrections when running many tests; stick to **fixed-horizon** testing (no peeking), or
+an α-spending design if you must look early; and **replicate** to confirm.
+"""
+
+CONTENT["Traditional A/B Test (Fixed-Horizon A/B Test)"] = r"""
+What it is
+----------
+
+A **traditional A/B test** — equivalently a **fixed-horizon A/B test** — is the classical
+approach: **predefine a sample size or duration, collect data until that point, and run
+the hypothesis test exactly once at the end**. No interim decisions.
+
+The procedure
+-------------
+
+1. State the hypotheses (:math:`H_0`: :math:`CR_A = CR_B`).
+2. Choose a significance level :math:`\alpha` (typically 0.05).
+3. Run an **a-priori power analysis** to find the required sample size :math:`n`.
+4. **Fix the horizon** — e.g. "stop at 10,000 users per variant."
+5. Collect data to that horizon.
+6. Run the test (a **two-proportion z-test** for conversion rates).
+7. Reject or fail to reject :math:`H_0`.
+
+The defining feature is **no peeking**: because the analysis happens once, at a
+pre-committed sample size, the Type I error stays at :math:`\alpha`.
+
+Example
+-------
+
+To test a new button colour with a 5% baseline and a **minimum detectable lift** of +10%,
+an a-priori power analysis might call for **~8,000 users per group**. You run until each
+arm hits 8,000, then run a two-proportion z-test, and only then decide whether B beats A.
+
+Strengths and limits
+--------------------
+
+It is **rigorous, widely understood, and easy to explain**, and it controls Type I error
+cleanly when its assumptions hold. The cost is **inflexibility**: you must wait for the
+full horizon, which **wastes traffic** when one variant is clearly better early, and it
+can't adapt in real time. The modern alternatives relax exactly this — **sequential
+testing** (interim looks via α-spending), **Bayesian A/B** (probability of superiority,
+peek freely), and **multi-armed bandits** (shift traffic to the winner as you learn).
+"""
+
+MINDMAP.update({
+    "Group Sequential Testing": [
+        "O'Brien–Fleming (OBF) Method", "Pocock Method", "Stopping Rules",
+        "Sequential Settings", "Traditional A/B Test (Fixed-Horizon A/B Test)",
+        "Type I Error",
+    ],
+    "Type I Error": [
+        "Frequentist", "Traditional A/B Test (Fixed-Horizon A/B Test)",
+        "Stopping Rules", "Group Sequential Testing", "A/B Testing",
+        "Bayesian Sequential Testing",
+    ],
+    "Traditional A/B Test (Fixed-Horizon A/B Test)": [
+        "Type I Error", "Stopping Rules", "Sequential Settings",
+        "Bayesian Sequential Testing", "Bandit Algorithms", "Conversion Rate Uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Estimation & inference foundations — horizon, true rate, SE  (abtest / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Fixed-Horizon Testing"] = r"""
+What it is
+----------
+
+**Fixed-horizon testing** is the general statistical principle behind the classic
+experiment: **decide the sample size** :math:`n` **(or end time) in advance, collect data
+to that point, and run the hypothesis test exactly once.** The "horizon" is that
+pre-committed stopping point. Applied to an A/B test specifically, this *is* the
+**traditional A/B test**.
+
+Why the horizon matters
+-----------------------
+
+Fixing it up front is what keeps the statistics honest: the **Type I error stays at**
+:math:`\alpha`, **peeking is ruled out** (checking early and stopping on significance
+inflates false positives), and the resulting **p-values and confidence intervals remain
+valid** under their assumptions.
+
+The procedure
+-------------
+
+State :math:`H_0` and :math:`H_1`; choose :math:`\alpha` (say 0.05); run an **a-priori
+power analysis** to size the sample; fix the horizon; collect to it; test once; decide.
+
+Example
+-------
+
+To detect a **+10% lift** (5% → 5.5%) at :math:`\alpha = 0.05` and **power 0.80**, an
+a-priori power analysis calls for **≈ 7,850 users per variant**. You stop at that horizon
+and run a single two-proportion z-test: :math:`p \le 0.05` rejects :math:`H_0`, otherwise
+you fail to reject.
+
+Strengths and limits
+--------------------
+
+It is **simple, widely accepted, and preserves error guarantees**. The price is
+**rigidity**: no early stop even when the result is already obvious, wasted samples when
+an effect is large, and no continuous monitoring. **Sequential and adaptive** methods
+(α-spending, Bayesian updating, bandits) trade some of that simplicity for the ability to
+stop early.
+"""
+
+CONTENT["True Conversion Rate"] = r"""
+What it is
+----------
+
+The **true conversion rate** :math:`p` is the **actual probability that a user in the
+whole population converts** (clicks, buys, signs up). It is a **population parameter** —
+fixed but unknown. What an experiment actually measures is the **sample conversion rate**
+:math:`\hat{p}`, an *estimate* of :math:`p`.
+
+Parameter vs estimate
+---------------------
+
+.. math::
+
+   p = \frac{\text{conversions in the population}}{\text{users in the population}},
+   \qquad
+   \hat{p} = \frac{x}{n},
+
+where :math:`x` is conversions in the sample and :math:`n` the sample size. We can rarely
+see the whole population, so we work with :math:`\hat{p}` and quantify its uncertainty.
+
+Example
+-------
+
+1,000 users see version A and 50 convert, so :math:`\hat{p}_A = 50/1000 = 0.05` (5%). The
+true rate might be :math:`p = 0.052`, but we never observe it exactly — only estimate it.
+
+Confidence interval for p
+-------------------------
+
+Because :math:`\hat{p}` carries sampling error, a **Wald confidence interval** brackets
+the likely range of :math:`p`:
+
+.. math::
+
+   \text{CI} = \hat{p} \pm z_{\alpha/2}\, \sqrt{\frac{\hat{p}(1 - \hat{p})}{n}}.
+
+With :math:`\hat{p} = 0.05, n = 1000` and 95% confidence, the standard error is
+:math:`\sqrt{0.05 \times 0.95 / 1000} \approx 0.0069`, giving
+:math:`0.05 \pm 1.96 \times 0.0069 \approx [0.036, 0.064]` — we're 95% confident the true
+rate lies between **3.6% and 6.4%**.
+
+Why it matters
+--------------
+
+In A/B testing we never know either group's true rate; we estimate both with
+:math:`\hat{p}` and use a **two-proportion z-test** to judge whether the *observed*
+difference is real evidence of a difference in the **true** conversion rates — the actual
+quantity of interest.
+"""
+
+CONTENT["Standard Error (SE)"] = r"""
+What it is
+----------
+
+The **standard error (SE)** measures **how much a sample statistic — a mean or a
+proportion — would vary across many random samples** from the same population. It is the
+**uncertainty of the estimate**: how far the sample value is likely to fall from the true
+population value.
+
+The formulas
+------------
+
+For a **mean** (population SD :math:`\sigma`, or sample SD :math:`s` when :math:`\sigma`
+is unknown):
+
+.. math::
+
+   SE_{\bar{x}} = \frac{\sigma}{\sqrt{n}} \quad\left(\text{or } \frac{s}{\sqrt{n}}\right).
+
+For a **proportion**:
+
+.. math::
+
+   SE_{\hat{p}} = \sqrt{\frac{\hat{p}(1 - \hat{p})}{n}}.
+
+Key properties
+--------------
+
+**Bigger samples shrink it** (:math:`SE \propto 1/\sqrt{n}`, so estimates get more
+precise), **more spread inflates it** (larger :math:`\sigma`), and it is the bridge to the
+**Central Limit Theorem**: for large :math:`n` the sample mean is approximately normal
+with the SE as its spread.
+
+Examples
+--------
+
+With :math:`\mu = 100, \sigma = 20, n = 25`, :math:`SE = 20/\sqrt{25} = 4` — sample means
+vary about ±4 around the truth. For a proportion, 520 "yes" out of 1,000 gives
+:math:`\hat{p} = 0.52` and :math:`SE = \sqrt{0.52 \times 0.48 / 1000} \approx 0.016`, a
+±1.6% margin.
+
+SE vs standard deviation
+------------------------
+
+They are easy to confuse: the **standard deviation** describes the spread of *individual
+data points*, while the **standard error** describes the spread of the *estimate*. SD is
+variability in the data; SE is variability in the statistic — and SE shrinks with
+:math:`n` while SD does not.
+
+Where it shows up
+-----------------
+
+The SE is the denominator of inference: **confidence intervals**
+(:math:`\text{estimate} \pm z_{\alpha/2}\, SE`), **test statistics** (the z- and
+t-tests), and **A/B comparisons** of conversion rates all run on it.
+"""
+
+MINDMAP.update({
+    "Fixed-Horizon Testing": [
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Stopping Rules",
+        "Sequential Settings", "Type I Error", "Bayesian Sequential Testing",
+        "Standard Error (SE)",
+    ],
+    "True Conversion Rate": [
+        "Standard Error (SE)", "Conversion Rate (CR)", "Parameter(s) of Interest",
+        "Conversion Rate Uplift", "Frequentist", "A/B Testing",
+    ],
+    "Standard Error (SE)": [
+        "True Conversion Rate", "Bootstrap Confidence Intervals (CIs)", "Frequentist",
+        "Conversion Rate (CR)", "True Mean (Population Mean)", "A/B Testing",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: CI & estimation foundations — true mean, MoE, critical value  (inference / probstats)
+# ----------------------------------------------------------------------
+
+CONTENT["True Mean (Population Mean)"] = r"""
+What it is
+----------
+
+The **true mean**, or **population mean** :math:`\mu`, is the **actual arithmetic average
+of an entire population**. It is a **fixed** value but usually **unknown** — we can rarely
+measure everyone — so we estimate it with the **sample mean** :math:`\bar{x}`.
+
+Parameter vs estimate
+---------------------
+
+.. math::
+
+   \mu = \frac{1}{N}\sum_{i=1}^{N} x_i, \qquad \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+Here :math:`\mu` is a **parameter** (fixed, unknown) and :math:`\bar{x}` a **statistic**
+(random, changing from sample to sample). By the **Law of Large Numbers**, as :math:`n`
+grows, :math:`\bar{x} \to \mu`.
+
+Example
+-------
+
+For the population :math:`\{2, 4, 6, 8, 10\}`, the true mean is
+:math:`\mu = (2+4+6+8+10)/5 = 6`. A sample :math:`\{4, 10\}` gives :math:`\bar{x} = 7` —
+an *estimate* of the true 6, off by sampling luck.
+
+Inference about μ
+-----------------
+
+Everything in classical inference targets :math:`\mu`: a **hypothesis test** checks a
+claim like :math:`H_0 : \mu = 100`, and a **confidence interval** says "we're 95%
+confident the true mean :math:`\mu` lies between :math:`X` and :math:`Y`." The sample mean
+is the **best unbiased estimator** of :math:`\mu`, and tests and intervals quantify how
+far it might be from the truth.
+
+The proportion analogue
+-----------------------
+
+For yes/no outcomes the same parameter-vs-estimate story holds with the **true conversion
+rate** :math:`p` estimated by :math:`\hat{p}` — :math:`\mu \leftrightarrow p`,
+:math:`\bar{x} \leftrightarrow \hat{p}` — the mean and proportion versions of one idea.
+"""
+
+CONTENT["Margin of Error (MoE)"] = r"""
+What it is
+----------
+
+The **margin of error (MoE)** is the **maximum expected gap between a sample estimate and
+the true population parameter**, at a stated confidence level. It is the **± half-width**
+of a confidence interval:
+
+.. math::
+
+   \text{Confidence Interval} = \text{Estimate} \pm \text{MoE}.
+
+A small MoE means a precise estimate; a large one, an imprecise estimate.
+
+How it's built
+--------------
+
+.. math::
+
+   \text{MoE} = (\text{critical value}) \times (\text{standard error}),
+
+where the **critical value** comes from the confidence level (1.96 for 95% under a normal
+model) and the **standard error** measures sampling variability.
+
+Two levers: confidence and sample size
+--------------------------------------
+
+- **Confidence level ↑** → larger critical value → **larger** MoE (more confidence costs
+  width).
+- **Sample size ↑** → smaller SE (:math:`\text{SE} \propto 1/\sqrt{n}`) → **smaller**
+  MoE. Because of the square root, **halving the MoE requires 4× the sample**.
+
+What it is not
+--------------
+
+MoE captures **random sampling error only**. It does **not** include bias, measurement
+error, bad sampling design or model misspecification — so a tight MoE means **precise,
+not necessarily accurate**. Two common traps: it isn't a hard maximum (it's
+probabilistic), and it depends on confidence and variability, not sample size alone.
+
+Why it matters
+--------------
+
+MoE turns a point estimate into an honest range ("support = 52% ± 3%" → true support
+roughly 49–55%). It encourages **interval thinking** over point thinking, and ties
+directly to significance: if a CI **excludes** the null value, the MoE is small enough to
+declare a difference; if it **includes** the null, uncertainty swamps the effect.
+"""
+
+CONTENT["Critical Value"] = r"""
+What it is
+----------
+
+A **critical value** is the **cutoff on a distribution that marks the rejection boundary**
+for a hypothesis test. It separates the **acceptance region** (fail to reject :math:`H_0`)
+from the **rejection region** (reject :math:`H_0`), and depends on three things: the
+**significance level** :math:`\alpha`, whether the test is **one- or two-tailed**, and the
+**distribution** used (Z, t, :math:`\chi^2`, F).
+
+The decision rule
+-----------------
+
+If the **test statistic exceeds the critical value in magnitude**, reject :math:`H_0`; if
+it falls inside, fail to reject.
+
+Values by distribution
+----------------------
+
+- **Z** (large :math:`n`, known :math:`\sigma`) — two-tailed :math:`\alpha = 0.05` gives
+  :math:`\pm 1.96`; one-tailed, :math:`1.645`.
+- **t** (small :math:`n`, unknown :math:`\sigma`) — two-tailed, :math:`\alpha = 0.05`,
+  :math:`df = 10` gives :math:`\pm 2.228`; as :math:`n` grows, :math:`t \to z`.
+- **χ²** (goodness-of-fit, independence) — :math:`\alpha = 0.05, df = 4` gives
+  :math:`\approx 9.49`.
+- **F** (ANOVA) — :math:`\alpha = 0.05, df_1 = 3, df_2 = 20` gives :math:`\approx 3.10`.
+
+Two roles
+---------
+
+The same critical value drives both **confidence intervals** —
+:math:`\text{estimate} \pm (\text{critical value}) \times \text{SE}` (a 95% z-interval for
+a mean of 100 with :math:`\text{SE} = 2` is :math:`[96.08, 103.92]`) — and **hypothesis
+tests**.
+
+Worked test
+-----------
+
+Test :math:`H_0 : \mu = 50` vs :math:`H_1 : \mu \neq 50` with sample mean 53,
+:math:`\sigma = 10, n = 100`:
+
+.. math::
+
+   z = \frac{53 - 50}{10/\sqrt{100}} = \frac{3}{1} = 3.0.
+
+At :math:`\alpha = 0.05` two-tailed the critical value is :math:`\pm 1.96`; since
+:math:`3.0 > 1.96`, **reject** :math:`H_0`.
+"""
+
+MINDMAP.update({
+    "True Mean (Population Mean)": [
+        "True Conversion Rate", "Standard Error (SE)", "Parameter(s) of Interest",
+        "Margin of Error (MoE)", "Frequentist",
+        "Bootstrap Confidence Intervals (CIs)",
+    ],
+    "Margin of Error (MoE)": [
+        "Standard Error (SE)", "Critical Value", "True Conversion Rate", "Frequentist",
+        "True Mean (Population Mean)", "A/B Testing",
+    ],
+    "Critical Value": [
+        "Margin of Error (MoE)", "Standard Error (SE)", "Type I Error", "Frequentist",
+        "True Mean (Population Mean)", "Bootstrap Confidence Intervals (CIs)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Descriptive statistics & estimators — s, x-bar, beta  (probstats / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Sample Standard Deviation"] = r"""
+What it is
+----------
+
+The **sample standard deviation** :math:`s` measures **how spread out the values in a
+sample are around the sample mean** :math:`\bar{x}`. It is the **square root of the sample
+variance** — roughly, the average distance of a data point from the mean.
+
+The formula and Bessel's correction
+-----------------------------------
+
+.. math::
+
+   s = \sqrt{\frac{\sum_{i=1}^{n} (x_i - \bar{x})^2}{n - 1}}.
+
+The denominator is :math:`n - 1`, not :math:`n` — **Bessel's correction**. Dividing by
+:math:`n` would *underestimate* the true spread, because the deviations are taken from the
+sample mean (which is itself fitted to the data); using :math:`n - 1` makes :math:`s^2` an
+**unbiased estimator** of the population variance :math:`\sigma^2`.
+
+Worked example
+--------------
+
+For :math:`\{5, 7, 9\}`: the mean is :math:`\bar{x} = 7`; deviations are
+:math:`-2, 0, +2`; squared, :math:`4, 0, 4`, summing to 8; divide by :math:`n - 1 = 2` to
+get 4; the square root is :math:`s = 2`.
+
+Reading it
+----------
+
+A **small** :math:`s` means points cluster near the mean (low variability); a **large**
+:math:`s` means they're spread out; :math:`s = 0` means every value is identical. The
+**population** standard deviation :math:`\sigma` uses :math:`N` in the denominator (the
+whole population); the **sample** version uses :math:`n - 1` (an estimate of
+:math:`\sigma`).
+
+Where it shows up
+-----------------
+
+:math:`s` is the raw material of inference: it feeds the **standard error**
+(:math:`SE = s/\sqrt{n}`), the **t-test**, **ANOVA** and **regression**, and the
+**confidence intervals** built around sample means.
+"""
+
+CONTENT["Sample Mean"] = r"""
+What it is
+----------
+
+The **sample mean** :math:`\bar{x}` is the **arithmetic average of a sample** — the sum of
+the observations divided by their count. It is the **statistic** used to estimate the
+**true population mean** :math:`\mu`:
+
+.. math::
+
+   \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+Examples
+--------
+
+Test scores :math:`\{80, 85, 90, 95, 100\}` give :math:`\bar{x} = 450/5 = 90`. Ten people
+with total height 1,720 cm give :math:`\bar{x} = 172` cm.
+
+Its three key properties
+------------------------
+
+- **Unbiased** — :math:`\mathbb{E}[\bar{x}] = \mu`; on average the sample mean equals the
+  population mean.
+- **Sampling distribution (CLT)** — for large :math:`n`, the Central Limit Theorem makes
+  :math:`\bar{x}` approximately normal,
+
+  .. math::
+
+     \bar{x} \sim N\!\left(\mu, \frac{\sigma^2}{n}\right),
+
+  with **standard error of the mean** :math:`SE = \sigma/\sqrt{n}` — so its variability
+  shrinks as :math:`n` grows.
+- **Outlier-sensitive** — being a sum, the mean is pulled by extreme values (unlike the
+  median).
+
+Where it shows up
+-----------------
+
+The sample mean is everywhere: **descriptive** summaries, **estimating** :math:`\mu`,
+**hypothesis tests** (the one-sample t-test), and **confidence intervals**. It is the
+**best unbiased estimator** of the population mean.
+"""
+
+CONTENT["Regression Coefficient"] = r"""
+What it is
+----------
+
+A **regression coefficient** :math:`\beta` quantifies the **relationship between a
+predictor** :math:`X` **and the outcome** :math:`Y` in a regression model: how much
+:math:`Y` changes when :math:`X` rises by **one unit**, holding all other predictors
+fixed.
+
+Simple and multiple regression
+------------------------------
+
+In **simple** linear regression, :math:`Y = \beta_0 + \beta_1 X + \varepsilon`, where
+:math:`\beta_0` is the **intercept** (the value of :math:`Y` at :math:`X = 0`) and
+:math:`\beta_1` the **slope**. In **multiple** regression,
+:math:`Y = \beta_0 + \beta_1 X_1 + \dots + \beta_k X_k + \varepsilon`, each
+:math:`\beta_i` is a **partial** coefficient — the effect of :math:`X_i` *controlling for*
+the other predictors.
+
+Reading a coefficient
+---------------------
+
+Its **sign** gives direction (positive: :math:`Y` rises with :math:`X`; negative: it
+falls), its **magnitude** the strength of the effect, and its **p-value** whether it
+differs significantly from 0 (a non-significant coefficient may not contribute). For
+example, ``Salary = 30000 + 2000 × years`` says each extra year adds about 2,000 in
+salary; ``Price = 50000 + 100 × sqft + 20000 × garage`` says each square foot adds 100
+*holding garage fixed*, and a garage adds 20,000 *holding size fixed*.
+
+Standardised and logistic
+-------------------------
+
+**Unstandardised** coefficients are in original units (dollars, cm); **standardised** ones
+(:math:`\beta^*`) are in standard-deviation units, so effects on different scales can be
+compared. In **logistic** regression the coefficients are in **log-odds**; exponentiating
+gives an **odds ratio** — e.g. :math:`\beta = 0.7` gives :math:`e^{0.7} \approx 2.0`, so a
+one-unit increase roughly **doubles the odds** of the event.
+
+Why it matters
+--------------
+
+Regression coefficients are the **parameters of interest** in regression — read in
+context, alongside p-values, confidence intervals and effect sizes, and (in multiple
+models) always as *partial* effects.
+"""
+
+MINDMAP.update({
+    "Sample Standard Deviation": [
+        "Sample Mean", "Standard Error (SE)", "True Mean (Population Mean)",
+        "Frequentist", "Bootstrap Confidence Intervals (CIs)", "Margin of Error (MoE)",
+    ],
+    "Sample Mean": [
+        "Sample Standard Deviation", "True Mean (Population Mean)",
+        "Standard Error (SE)", "Parameter(s) of Interest", "Frequentist",
+        "Regression Coefficient",
+    ],
+    "Regression Coefficient": [
+        "Parameter(s) of Interest", "P-Value (probability value)",
+        "Logistic Regression", "Sample Mean", "Frequentist", "Standard Error (SE)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Proportions, the parameter umbrella, power balancing  (probstats / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Proportion"] = r"""
+What it is
+----------
+
+A **proportion** is a **part-to-whole ratio** — the fraction of a sample or population
+with a given characteristic, usually the fraction of **successes** ("yes" outcomes). The
+**sample proportion** estimates the true population proportion :math:`p`:
+
+.. math::
+
+   \hat{p} = \frac{x}{n},
+
+with :math:`x` the number of successes and :math:`n` the sample size.
+
+Population vs sample
+--------------------
+
+:math:`p` is the **true** proportion in the whole population (fixed, usually unknown);
+:math:`\hat{p}` is computed from a sample and **estimates** :math:`p`.
+
+Examples
+--------
+
+In a poll, 540 of 1,000 voters back candidate A → :math:`\hat{p} = 0.54` (true :math:`p`
+might be 0.55). In quality control, 10 defective bulbs out of 200 →
+:math:`\hat{p} = 0.05`, a 5% defect rate.
+
+In inference
+------------
+
+Proportions drive categorical inference: a **confidence interval**
+
+.. math::
+
+   \hat{p} \pm z\, \sqrt{\frac{\hat{p}(1 - \hat{p})}{n}},
+
+and hypothesis tests — a **one-sample** proportion test compares :math:`\hat{p}` to a
+hypothesised :math:`p_0`, and a **two-proportion z-test** compares :math:`\hat{p}_1` and
+:math:`\hat{p}_2` (the workhorse of A/B testing).
+
+Proportion ≈ probability
+------------------------
+
+A sample proportion **estimates a population probability**: if 30% of surveyed users
+clicked an ad, the probability a random user clicks is :math:`\approx 0.30`. This is why
+proportions sit at the centre of surveys, A/B tests, medical studies and quality control —
+they turn yes/no data into estimable probabilities.
+"""
+
+CONTENT["True Population Parameter"] = r"""
+What it is
+----------
+
+A **true population parameter** is a **fixed (but usually unknown) number that describes a
+whole population**. The word *true* stresses that the value exists even though we seldom
+observe it. The familiar ones are written with Greek letters: :math:`\mu` (mean),
+:math:`\sigma` (standard deviation), :math:`p` (proportion) and :math:`\rho`
+(correlation).
+
+Parameter vs statistic
+----------------------
+
+Because we rarely measure an entire population, we draw a **sample** and compute a
+**statistic** to estimate each parameter:
+
+- mean — parameter :math:`\mu`, statistic :math:`\bar{x}`
+- standard deviation — :math:`\sigma`, statistic :math:`s`
+- proportion — :math:`p`, statistic :math:`\hat{p}`
+- correlation — :math:`\rho`, statistic :math:`r`
+
+The **statistic is random** (it depends on which sample you draw); the **parameter is
+fixed but unknown**. This single distinction underlies every "true vs sample" page in
+statistics.
+
+Example
+-------
+
+The parameter :math:`p` might be the real fraction of all U.S. voters who support
+candidate A; a survey of 1,000 gives the statistic :math:`\hat{p} = 0.52`, an **estimate**
+of that unknown :math:`p`.
+
+Inference is about parameters
+-----------------------------
+
+We never know a parameter exactly without a census, so we **infer** it: a **confidence
+interval** brackets it ("95% confident the true parameter lies in this range"), and a
+**hypothesis test** evaluates a claim about it (:math:`H_0 : \mu = 100`). Estimators,
+standard errors, intervals and tests all exist to pin down population parameters from
+sample data.
+"""
+
+CONTENT["Compromise Power Analysis"] = r"""
+What it is
+----------
+
+**Compromise power analysis** finds a sensible **balance between the Type I error**
+:math:`\alpha` (false positives) **and the Type II error** :math:`\beta` (false
+negatives) **when the sample size** :math:`n` **is fixed**. Unlike *a-priori* analysis —
+which fixes :math:`\alpha` and power and solves for :math:`n` — here you already know
+:math:`n` and ask what :math:`\alpha`/:math:`\beta` trade-off is reasonable.
+
+Why it's useful
+---------------
+
+Sometimes :math:`n` simply **cannot change** — a limited participant pool, a budget cap,
+or a historical dataset. A-priori analysis might say "you need 500 subjects" when you have
+200; compromise analysis answers the real question: *with 200, what :math:`\alpha` and
+:math:`\beta` give a balanced test?*
+
+How it works
+------------
+
+Specify the **effect size** :math:`\delta`, the **available** :math:`n`, and a desired
+**ratio of Type I to Type II error** (often :math:`\alpha = \beta`, i.e. a 1:1 ratio). The
+procedure then solves for the :math:`\alpha` and :math:`\beta` that satisfy the
+constraint.
+
+Example
+-------
+
+With a medium effect (Cohen's :math:`d = 0.5`), :math:`n = 40` (20 per group), and a
+requirement that :math:`\alpha = \beta`, the analysis might return
+:math:`\alpha = \beta = 0.12` (power :math:`= 0.88`). You **accept a higher false-positive
+rate (12%)** to keep false negatives equally low, given the small sample.
+
+The three power analyses
+------------------------
+
+- **A-priori** — input effect size, :math:`\alpha`, power → output **required** :math:`n`
+  ("how many subjects do I need?").
+- **Post-hoc** — input observed :math:`n` and effect size → output **achieved power**
+  ("given what I saw, what was the power?").
+- **Compromise** — input effect size, available :math:`n`, error ratio → output
+  **appropriate** :math:`\alpha` **and** :math:`\beta` ("with this :math:`n`, how do I
+  balance the two errors?").
+
+It is the pragmatic choice when data is scarce, though it is less conventional than the
+fixed :math:`\alpha = 0.05` and depends on an assumed effect size.
+"""
+
+MINDMAP.update({
+    "Proportion": [
+        "True Conversion Rate", "Standard Error (SE)", "Probability",
+        "True Population Parameter", "Frequentist", "A/B Testing",
+    ],
+    "True Population Parameter": [
+        "True Mean (Population Mean)", "True Conversion Rate", "Sample Mean",
+        "Sample Standard Deviation", "Parameter(s) of Interest", "Proportion",
+    ],
+    "Compromise Power Analysis": [
+        "Type I Error", "Post Hoc Power Analysis", "A Priori Power Analysis",
+        "Statistical Power", "Effect Size (δ)", "Frequentist",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Power analysis trio & statistical significance  (abtest / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Post Hoc Power Analysis"] = r"""
+What it is
+----------
+
+**Post-hoc power analysis** computes the **statistical power of a test after the study is
+finished**, plugging in the **observed** sample size :math:`n`, the **observed** effect
+size :math:`\delta`, and the chosen :math:`\alpha`. It asks: *given what we actually saw,
+what was the probability we could have detected an effect?*
+
+Why people run it
+-----------------
+
+Usually to interpret a **non-significant** result ("was it real-but-missed, or genuinely
+null?"), to satisfy a journal asking about sensitivity, or to judge older studies in a
+meta-analysis. The calculation is the a-priori one with the *observed* effect size
+substituted in:
+
+.. math::
+
+   \text{Power} = P(\text{reject } H_0 \mid \delta_{\text{observed}}, n, \alpha).
+
+Example
+-------
+
+If :math:`H_0` is a 10% conversion rate, the treatment shows a tiny 10.2%, with 1,000 per
+group at :math:`\alpha = 0.05`, post-hoc power might be only **12%** — the study was
+**underpowered** to detect so small a lift.
+
+The tautology problem
+---------------------
+
+The deep flaw: post-hoc power is a **deterministic function of the p-value**, so it adds
+nothing. A non-significant result *always* yields low post-hoc power, and a significant
+one *always* high — it merely restates the test. Worse, it invites the fallacy
+"non-significant + low power ⇒ :math:`H_0` is true," when it only means "this study wasn't
+sensitive enough."
+
+Report this instead
+-------------------
+
+Rather than post-hoc power, report the **observed effect size** (Cohen's d, a difference
+in proportions, an odds ratio) and a **confidence interval** for the effect — these convey
+the strength and precision of the result without the circularity.
+"""
+
+CONTENT["A Priori Power Analysis"] = r"""
+What it is
+----------
+
+**A-priori power analysis** computes the **sample size** :math:`n` **needed before
+collecting data**, from four inputs: the significance level :math:`\alpha` (Type I risk),
+the desired **power** :math:`1 - \beta` (chance of detecting a true effect), the expected
+**effect size** :math:`\delta`, and the data variance. The aim: a study **large enough to
+detect a meaningful effect** but no larger.
+
+Why it matters
+--------------
+
+It guards against **underpowered** studies (false negatives — missing real effects) and
+**overpowered** ones (wasted resources chasing trivial effects), and forces you to commit
+to a **minimum meaningful effect size** in advance rather than rationalising after the
+fact.
+
+The sample-size formula
+-----------------------
+
+For a two-sample mean test,
+
+.. math::
+
+   n = \left(\frac{Z_{1-\alpha/2} + Z_{1-\beta}}{\delta}\right)^2,
+
+where :math:`Z_{1-\alpha/2}` is the critical value for :math:`\alpha` (1.96 at
+:math:`\alpha = 0.05`, two-tailed), :math:`Z_{1-\beta}` the value for the target power
+(0.84 for 80%), and :math:`\delta = (\mu_1 - \mu_2)/\sigma` the standardised effect size
+(Cohen's d). In practice tools like **G\*Power**, R or ``statsmodels`` do the arithmetic.
+
+Example
+-------
+
+To detect a conversion lift from 10% to 11% at :math:`\alpha = 0.05` and **80% power**
+with an effect of 0.01, the analysis returns about **7,850 users per group** — testing
+only 1,000 per arm would be badly underpowered.
+
+The power-analysis family
+-------------------------
+
+**A-priori** (before) sets the sample size; **post-hoc** (after) estimates achieved power
+and is controversial; **sensitivity** asks, for a given :math:`n`, :math:`\alpha` and
+power, the *smallest detectable* effect. The everyday convention is :math:`\alpha = 0.05`,
+power = 0.80.
+"""
+
+CONTENT["Statistical Significance"] = r"""
+What it is
+----------
+
+A result is **statistically significant** when it is **unlikely to have arisen by random
+chance alone, assuming the null hypothesis** :math:`H_0` **is true** — operationally, when
+the **p-value** :math:`\le \alpha`, the predefined significance level. It answers one
+narrow question: *is this result sufficiently inconsistent with* :math:`H_0`?
+
+What it does not tell you
+-------------------------
+
+Significance says nothing about **how large** the effect is, **whether it matters**, or
+**whether it will replicate**. And the **p-value** is widely misread: it is the
+probability, *under* :math:`H_0`, of data as extreme or more extreme than observed — *not*
+the probability that :math:`H_0` is true, nor the probability the result is "due to
+chance."
+
+Statistical vs practical significance
+-------------------------------------
+
+These come apart. **Statistical** significance is about *detectability* and depends
+heavily on sample size; **practical** significance is about *real-world importance* and
+depends on effect size and context. With a large enough :math:`n`, a **trivial** effect
+becomes significant; with a small :math:`n`, a **meaningful** one may not — so a result can
+be significant yet practically meaningless.
+
+Significance vs power
+---------------------
+
+Significance is a **binary** outcome (yes/no); **power** is the *probability* of achieving
+it when a real effect exists. High power makes a true effect likely to register; under low
+power, a non-significant result is **ambiguous** (it may just reflect too little data).
+
+A decision rule, not a verdict
+------------------------------
+
+Treat significance as a **decision rule for controlling false positives under repeated
+use** — part of a risk-management system, not a proof of truth. The :math:`\alpha = 0.05`
+line is a **convention**, not a law: "significant" is not "important," and "not
+significant" is not "no effect." Good practice reports **effect sizes, confidence
+intervals, and power** alongside it, never significance alone.
+"""
+
+MINDMAP.update({
+    "Post Hoc Power Analysis": [
+        "A Priori Power Analysis", "Compromise Power Analysis", "Statistical Power",
+        "Effect Size (δ)", "P-Value (probability value)", "Frequentist",
+    ],
+    "A Priori Power Analysis": [
+        "Post Hoc Power Analysis", "Compromise Power Analysis", "Statistical Power",
+        "Effect Size (δ)", "Type I Error", "Fixed-Horizon Testing",
+    ],
+    "Statistical Significance": [
+        "P-Value (probability value)", "Type I Error", "Statistical Power",
+        "Effect Size (δ)", "Frequentist", "A/B Testing",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: A/B-test statistics — z-score, two-proportion z-test, MDL  (abtest / probstats)
+# ----------------------------------------------------------------------
+
+CONTENT["Z-Score"] = r"""
+What it is
+----------
+
+A **z-score** (or **standard score**) says **how many standard deviations a value sits
+from the mean** of its distribution. It re-expresses raw numbers on a common, unit-free
+scale so values from different datasets can be compared directly.
+
+The formula
+-----------
+
+For a population,
+
+.. math::
+
+   z = \frac{x - \mu}{\sigma},
+
+with raw value :math:`x`, mean :math:`\mu` and standard deviation :math:`\sigma`. From a
+**sample**, use :math:`z = (x - \bar{x})/s`.
+
+Reading it
+----------
+
+:math:`z = 0` is exactly at the mean; :math:`z = +1` is one SD above; :math:`z = -2` two
+SD below. Large magnitudes (:math:`|z| > 3`) flag likely **outliers**.
+
+Examples
+--------
+
+An exam score of 85 with mean 70 and SD 10 gives :math:`z = (85 - 70)/10 = 1.5` — 1.5 SD
+above average. A height of 150 cm with mean 170 and SD 8 gives
+:math:`z = (150 - 170)/8 = -2.5`.
+
+Why it's useful
+---------------
+
+Three things at once: **standardisation** (compare maths and English scores on different
+scales), **probability** (in the standard normal — mean 0, SD 1 — a z maps to a tail area,
+e.g. :math:`z = 1.96` bounds the central 95%), and **test statistics** (z-, t- and
+χ²-tests all compare an observed value to its expected spread in z-like units). A
+**z-score** standardises one data point; a **z-test** uses that machinery to test a
+hypothesis about a mean or proportion.
+"""
+
+CONTENT["Two-Proportion Z-Test"] = r"""
+What it is
+----------
+
+The **two-proportion z-test** decides whether an outcome's **rate differs significantly
+between two independent groups** — the standard test behind A/B experiments (is control's
+5% really below treatment's 6.2%, or just noise?).
+
+Hypotheses
+----------
+
+The null is **equality**, :math:`H_0 : p_1 = p_2`; the alternative is
+:math:`H_1 : p_1 \neq p_2` (two-tailed) or a one-sided version.
+
+The statistic
+-------------
+
+.. math::
+
+   z = \frac{\hat{p}_1 - \hat{p}_2}{\sqrt{\hat{p}(1 - \hat{p})\left(\frac{1}{n_1} + \frac{1}{n_2}\right)}},
+
+where :math:`\hat{p}_i = x_i / n_i` are the group proportions and
+:math:`\hat{p} = (x_1 + x_2)/(n_1 + n_2)` is the **pooled** proportion — the shared rate
+*assumed under* :math:`H_0`, used to build the standard error. Compare :math:`z` to a
+critical value (:math:`\pm 1.96` at :math:`\alpha = 0.05`) or convert it to a p-value.
+
+Worked example
+--------------
+
+Control: 100 of 1,000 → :math:`\hat{p}_1 = 0.10`. Treatment: 130 of 1,000 →
+:math:`\hat{p}_2 = 0.13`. Pooled :math:`\hat{p} = 230/2000 = 0.115`; standard error
+:math:`\sqrt{0.115 \times 0.885 \times 0.002} \approx 0.01425`; so
+:math:`z = (0.10 - 0.13)/0.01425 \approx -2.11`, a two-tailed :math:`p \approx 0.035`.
+Since :math:`p < 0.05`, reject :math:`H_0` — treatment converts significantly higher.
+
+Assumptions
+-----------
+
+Independent samples, binary (success/failure) observations, and samples large enough for
+the normal approximation (:math:`np \ge 5` and :math:`n(1 - p) \ge 5`). It powers A/B
+tests, clinical recovery-rate comparisons and survey yes/no contrasts alike.
+"""
+
+CONTENT["Minimum Detectable Lift (MDL)"] = r"""
+What it is
+----------
+
+The **minimum detectable lift (MDL)** is the **smallest relative change in a metric** —
+conversion, revenue, clicks — that an experiment can **reliably detect**, given its sample
+size :math:`n`, significance level :math:`\alpha` and power :math:`1 - \beta`. It is, in
+effect, the smallest effect you have decided is worth catching.
+
+Why it matters
+--------------
+
+It stops teams **over-optimising for trivial effects** and forces the design question up
+front: *what improvement is big enough to justify the test?* Crucially, the relationship
+is inverse — **the smaller the MDL you want to detect, the larger the sample you need**.
+
+The formula
+-----------
+
+For conversion rates,
+
+.. math::
+
+   \text{MDL} = \frac{p_{\text{treatment}} - p_{\text{control}}}{p_{\text{control}}}.
+
+With a 5% baseline, :math:`\alpha = 0.05`, power 0.80 and 20,000 per variant, the design
+can detect a **10% relative lift** (5% → 5.5%) — so the MDL is +10%. A true lift of only
++2% would likely slip past undetected.
+
+MDL vs MDE
+----------
+
+The two are easy to confuse. The **minimum detectable effect (MDE)** is the smallest
+**absolute** change (e.g. +0.5 percentage points); the **MDL** is the smallest
+**relative** change (a percentage lift). For control 5% → treatment 5.5%, the MDE is +0.5
+points while the MDL is +10%.
+
+Striking the balance
+--------------------
+
+Set the MDL **too high** and you miss small-but-valuable wins; set it **too low** and the
+test may need millions of users. The resolution is a negotiation: the **business** names
+the smallest improvement worth acting on, and the **statistician** sizes the experiment to
+detect at least that.
+"""
+
+MINDMAP.update({
+    "Z-Score": [
+        "Standard Error (SE)", "Critical Value", "Sample Standard Deviation",
+        "True Mean (Population Mean)", "Two-Proportion Z-Test",
+        "Statistical Significance",
+    ],
+    "Two-Proportion Z-Test": [
+        "Proportion", "Z-Score", "Conversion Rate Uplift", "True Conversion Rate",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Statistical Significance",
+    ],
+    "Minimum Detectable Lift (MDL)": [
+        "A Priori Power Analysis", "Conversion Rate Uplift", "Statistical Power",
+        "Effect Size (δ)", "Two-Proportion Z-Test",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Practical significance, sample size, power  (abtest / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Trivial Effects"] = r"""
+What it is
+----------
+
+A **trivial effect** is a result that is **statistically significant**
+(:math:`p < \alpha`) yet **so small in magnitude that it has little or no practical
+importance**. The difference is *real* — not chance — but too tiny to matter.
+
+Why they appear
+---------------
+
+Two causes. First, **large samples**: with enough data, even a minuscule difference clears
+the significance bar — in an A/B test on millions of users, a 0.05% conversion bump can be
+"significant" yet meaningless. Second, **fixating on p-values**: a p-value says whether an
+effect exists, not how big it is, so reading it without an **effect size** invites
+over-interpretation.
+
+Examples
+--------
+
+A drug that lowers blood pressure by **0.5 mmHg** versus standard care, tested on 10,000
+patients, can show :math:`p < 0.001` — significant, but clinically trivial. A landing page
+that moves conversion from 10.00% to **10.05%** across 1,000,000 users gives
+:math:`p < 0.01`, yet a 0.05% lift is not worth deploying.
+
+How to avoid the trap
+---------------------
+
+Always report an **effect size** (Cohen's d, a difference in proportions) next to the
+p-value; read the **confidence interval** (a tight band hugging zero signals triviality);
+judge **practical relevance**; and fix a **minimum detectable effect** in advance — "we act
+only if conversion improves by at least +1%."
+
+The link to power and n
+-----------------------
+
+Because larger samples raise power, they make even **trivial** effects detectable. The
+discipline is to size a study to catch effects **worth caring about**, not the smallest
+detectable ones — significance is necessary for a finding to matter, but never sufficient.
+"""
+
+CONTENT["Sample size"] = r"""
+What it is
+----------
+
+**Sample size** :math:`n` is the **number of observations** used to estimate a parameter
+or test a hypothesis. It is the master dial of inference, setting the **precision** of
+estimates, the **power** of tests, and the **stability** of conclusions — in a word, the
+*resolution* of what the data can tell you.
+
+The square-root law
+-------------------
+
+The central relationship is
+
+.. math::
+
+   \text{SE} \propto \frac{1}{\sqrt{n}}.
+
+The square root has a sharp consequence: **doubling** :math:`n` does *not* halve the
+standard error — to **halve** it you must **quadruple** :math:`n`. Precision is bought at
+an accelerating price.
+
+In estimation and testing
+-------------------------
+
+For **estimation**, larger :math:`n` means **narrower confidence intervals**. For
+**testing**, the statistic is roughly :math:`\text{effect}/\text{SE}`, so as the SE shrinks
+the statistic grows — the same effect becomes **easier to push past the critical value**,
+and **power rises**. Small effects only become detectable once :math:`n` is large enough.
+
+The trade-off with effect size
+------------------------------
+
+Sample size and effect size **substitute** for one another: a **large** effect shows up in
+a **small** sample, while a **small** effect needs a **large** one. In short, *sample size
+compensates for a weak signal* — which is exactly why it is chosen up front via **power
+analysis** from :math:`\alpha`, target power, the expected effect and the variance.
+
+What n cannot do
+----------------
+
+More data **cannot fix bias, poor measurement or a wrong model**, and it can make
+**trivial effects statistically significant** — precision is not correctness or importance.
+So interpretation, not just design, depends on :math:`n`: a non-significant result with
+small :math:`n` is *inconclusive*, and a significant one with enormous :math:`n` should be
+checked for **practical relevance**. The emphasis shifts by context — precision in
+estimation, power in testing, generalisation in ML, confounding in observational work — but
+the concept is one.
+"""
+
+CONTENT["Power (1 – β)"] = r"""
+What it is
+----------
+
+**Power** is the probability of **correctly rejecting** the null hypothesis :math:`H_0`
+when the alternative is true — of **detecting a real effect**. Formally,
+
+.. math::
+
+   \text{Power} = 1 - \beta,
+
+where :math:`\beta` is the probability of a **Type II error** (missing a true effect). The
+usual target is **power** :math:`\ge 0.80`: an 80% chance of catching an effect that is
+really there.
+
+The error triad
+---------------
+
+Three quantities partition the possibilities when :math:`H_0` is actually false or true:
+:math:`\alpha` is the **Type I** error (a false positive — rejecting a true :math:`H_0`),
+:math:`\beta` the **Type II** error (a false negative), and :math:`1 - \beta` the power (a
+true positive).
+
+What raises power
+-----------------
+
+Four levers. A larger **effect size** :math:`\delta` is easier to detect; a larger
+**sample size** :math:`n` shrinks the standard error and lifts power; a more lenient
+**significance level** :math:`\alpha` (say 0.10 rather than 0.05) raises power but admits
+more false positives; and **lower variance** :math:`\sigma^2` sharpens detection.
+
+Example
+-------
+
+Testing whether a drug lowers blood pressure, with a medium effect (:math:`\delta = 0.5`),
+:math:`n = 30` and :math:`\alpha = 0.05`, power might be only **0.60** — a 40% chance of
+missing the effect. Raising :math:`n` to **100** lifts power to about **0.90**.
+
+Where it's used
+---------------
+
+Power is the target of **a-priori power analysis**: fixing :math:`\alpha`, a desired power
+(commonly 0.80) and an expected :math:`\delta`, one solves for the **minimum sample size**
+needed — so that a true effect is very likely to register rather than slip away as a false
+negative.
+"""
+
+MINDMAP.update({
+    "Trivial Effects": [
+        "Statistical Significance", "Minimum Detectable Lift (MDL)", "Effect Size (δ)",
+        "P-Value (probability value)", "Sample size", "Statistical Power",
+    ],
+    "Sample size": [
+        "Standard Error (SE)", "Statistical Power", "A Priori Power Analysis",
+        "Effect Size (δ)", "Power (1 – β)", "Trivial Effects",
+    ],
+    "Power (1 – β)": [
+        "Type I Error", "Statistical Power", "A Priori Power Analysis",
+        "Effect Size (δ)", "Sample size", "Statistical Significance",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Core inference triad — alpha, effect size, hypothesis testing  (inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Significance Level (α)"] = r"""
+What it is
+----------
+
+The **significance level** :math:`\alpha` is the **threshold probability** for rejecting
+the null hypothesis :math:`H_0` — the **maximum risk of a Type I error** (rejecting a true
+:math:`H_0`) you are willing to accept. Common choices are :math:`\alpha = 0.05` (the
+default), :math:`0.01` (stricter, stronger evidence demanded) and :math:`0.10` (more
+lenient).
+
+The decision rule
+-----------------
+
+Compute a test statistic and its **p-value**, then compare: if :math:`p \le \alpha`,
+**reject** :math:`H_0`; if :math:`p > \alpha`, **fail to reject**. So :math:`\alpha` is
+simply the **decision cutoff** fixed in advance.
+
+What α is
+---------
+
+It is the **long-run false-positive rate**: at :math:`\alpha = 0.05`, about 5 in 100 tests
+of a *true* null will wrongly reject it. Choose it by stakes — **0.01** in medicine,
+genetics and other high-stakes settings; **0.05** as a general balance; **0.10** in
+exploratory work where missing a real effect costs more than a false alarm.
+
+Tied to the confidence level
+----------------------------
+
+Significance and confidence are complements: the **confidence level is** :math:`1 - \alpha`.
+An :math:`\alpha = 0.05` test corresponds to **95% confidence** — across repeated
+experiments, 95% of the resulting intervals would contain the true parameter.
+
+What it is not
+--------------
+
+Three cautions: :math:`\alpha` is **not** the probability that :math:`H_0` is true; it is
+chosen **before** the data, not tuned after; and clearing it means **statistically**
+significant, not **practically** important — for that you still need an effect size.
+"""
+
+CONTENT["Effect Size (δ)"] = r"""
+What it is
+----------
+
+**Effect size** :math:`\delta` measures the **magnitude** of a difference or relationship
+— *how big* an effect is, not merely *whether* it exists. Where a p-value answers the
+yes/no question of detectability, effect size carries the **practical importance**, and it
+is the key input to **power analysis**.
+
+Why it matters
+--------------
+
+Statistical and practical significance diverge: with a huge sample a 0.1% difference can be
+"significant" yet trivial. Effect size restores the real-world magnitude, which is why it
+anchors **sample-size planning**, results reporting in medicine and psychology, and A/B
+testing in business.
+
+The common forms
+----------------
+
+- **Cohen's d** (standardised mean difference): :math:`d = (\bar{X}_1 - \bar{X}_2)/s_p`
+  with pooled SD :math:`s_p`; by rule of thumb **0.2 small, 0.5 medium, 0.8 large**.
+- **Noncentrality** :math:`\delta` (power analysis):
+  :math:`\delta = (\mu - \mu_0)/(\sigma/\sqrt{n})`, essentially the **expected
+  t-statistic** under :math:`H_1` — larger :math:`\delta`, higher power.
+- **Association**: Pearson :math:`r`, variance-explained :math:`R^2`, and ANOVA's
+  :math:`\eta^2`.
+- **Proportions** (A/B): the raw gap :math:`\delta = p_1 - p_2`, or the standardised
+  :math:`h = 2\arcsin\!\sqrt{p_1} - 2\arcsin\!\sqrt{p_2}`.
+
+Example
+-------
+
+A one-sample t-test with :math:`H_0` mean 100, sample mean 104, :math:`\sigma = 10`,
+:math:`n = 25` gives :math:`\delta = (104 - 100)/(10/\sqrt{25}) = 4/2 = 2.0` — the mean is
+**2 standard errors** from :math:`H_0`, a very large effect.
+
+Effect size vs p-value
+----------------------
+
+The crucial contrast: a **p-value** says whether an effect exists and **depends on sample
+size** (large :math:`n` makes tiny effects significant), while **effect size** says how big
+it is and is **independent of sample size**. Report them together — significance for
+detectability, effect size for meaning.
+"""
+
+CONTENT["Hypothesis Testing"] = r"""
+What it is
+----------
+
+**Hypothesis testing** is a formal procedure for **deciding about a population parameter
+from sample data while controlling the risk of error**. It is best read not as proof but
+as **risk-managed decision-making**.
+
+The two hypotheses
+------------------
+
+The **null** :math:`H_0` is the status quo — no effect, zero difference, zero coefficient.
+The **alternative** :math:`H_1` is a departure from it, either **two-sided** (:math:`\neq`)
+or **one-sided** (:math:`>` or :math:`<`). The test never *proves* :math:`H_1`; it asks
+whether the data are **inconsistent with** :math:`H_0`.
+
+The logic
+---------
+
+A proof-by-contradiction: **assume** :math:`H_0`, ask how likely data this extreme (or
+more) would be under it, and if that likelihood is tiny, **reject** :math:`H_0`. The
+machinery is a **test statistic**,
+
+.. math::
+
+   \text{test statistic} = \frac{\text{observed effect} - \text{effect under } H_0}{\text{standard error}},
+
+which under :math:`H_0` follows a **known sampling distribution** (normal for z, t for
+t-tests, :math:`\chi^2`, F) — that is what lets us turn it into a **p-value**, the
+probability under :math:`H_0` of data as extreme or more.
+
+The two errors
+--------------
+
+Decisions can fail two ways: a **Type I error** (reject a true :math:`H_0`, rate
+:math:`\alpha`) and a **Type II error** (fail to reject a false one, rate :math:`\beta`),
+with **power** :math:`= 1 - \beta`. The two trade off — tightening :math:`\alpha` raises
+:math:`\beta`. A **two-sided** test is more conservative; a **one-sided** test has more
+power but needs strong prior justification.
+
+What "fail to reject" means
+---------------------------
+
+Crucially, failing to reject :math:`H_0` is **not** evidence that :math:`H_0` is true or
+that no effect exists — only that the data are **insufficient against** :math:`H_0` at the
+chosen :math:`\alpha`. It could be a true null, a **small** effect, or simply **too little
+power**. And because large samples make trivial effects significant, always read the
+p-value **alongside an effect size and a confidence interval** — significance for whether,
+effect size for how much.
+"""
+
+MINDMAP.update({
+    "Significance Level (α)": [
+        "Type I Error", "P-Value (probability value)", "Statistical Significance",
+        "Power (1 – β)", "Critical Value", "Effect Size (δ)",
+    ],
+    "Effect Size (δ)": [
+        "Statistical Significance", "P-Value (probability value)", "Statistical Power",
+        "Sample size", "Minimum Detectable Lift (MDL)", "Hypothesis Testing",
+    ],
+    "Hypothesis Testing": [
+        "Statistical Significance", "Significance Level (α)",
+        "P-Value (probability value)", "Type I Error", "Power (1 – β)",
+        "Effect Size (δ)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Ranking & online ranker evaluation  (ranking)
+# ----------------------------------------------------------------------
+
+CONTENT["Ranking Algorithms"] = r"""
+What it is
+----------
+
+A **ranking algorithm** **orders a set of items** — documents, products, ads, songs — so
+the **most relevant or useful appear at the top**. Given a **query** (a search term, a user
+profile), it scores items by predicted relevance, utility, or likelihood of interaction
+(click, purchase, watch) and sorts by that score. Search engines, recommenders, ad systems
+and social feeds are all ranking problems, and better ranking translates directly into user
+satisfaction and revenue.
+
+Classical IR
+------------
+
+The oldest rankers are lexical. **TF-IDF** weights a term by how often it appears in a
+document against how rare it is across the corpus; **BM25** refines this with
+**term-frequency saturation** and **document-length** normalisation, and remains a strong
+search baseline.
+
+Learning to rank
+----------------
+
+**Learning to rank (LTR)** trains a model from labelled relevance data, in three paradigms
+by what the loss looks at: **pointwise** scores each item alone (regression or
+classification — predict a click probability with logistic regression or gradient-boosted
+trees); **pairwise** learns from comparisons ("is A better than B?", e.g. RankNet); and
+**listwise** optimises the whole ordering at once (LambdaMART, ListNet), often against a
+ranking metric like **NDCG**.
+
+Neural rankers
+--------------
+
+The newest models use **embeddings** (Word2Vec, BERT, Transformers) to capture *semantic*
+match rather than exact words — **DSSM** projects queries and documents into a shared space,
+and **BERT-based rankers** (monoBERT, ColBERT) read query and document in context, sharply
+improving relevance at higher compute cost.
+
+How ranking is judged
+---------------------
+
+Ranking has its own metrics: **NDCG** (rewards relevant items near the top), **MAP**
+(average precision across queries), **MRR** (rank of the first relevant item), **CTR**, and
+**precision@k / recall@k**. The hard parts are **personalisation** (every user's "best"
+differs), **position bias** (higher slots get clicks regardless of quality), **scale**
+(rank billions of items fast), and **fairness** to minority items.
+"""
+
+CONTENT["Probabilistic Interleaving"] = r"""
+What it is
+----------
+
+**Probabilistic interleaving** is an **online method for comparing ranking algorithms** by
+blending their results into one list shown to users. Unlike **balanced interleaving**
+(strict alternation) or **team-draft interleaving** (a draft pick), it builds the combined
+list **probabilistically** — each algorithm defines a distribution over its ranking (higher
+positions get more weight, e.g. a softmax over rank), and items are **sampled** from those
+distributions.
+
+Why use it
+----------
+
+Full **A/B testing** of rankers needs huge traffic and spends users on the worse variant;
+balanced interleaving can be biased when lists overlap; team-draft works only for two
+algorithms. Probabilistic interleaving is **flexible, scalable to many algorithms, and
+statistically principled**.
+
+How it works
+------------
+
+Build a rank-based probability distribution for each algorithm, **sample** items to form the
+interleaved list, show it, and then **attribute clicks probabilistically** — rather than a
+click belonging deterministically to one algorithm, the credit is **shared in proportion**
+to how strongly each ranked the clicked item. Comparing **expected credit** across
+algorithms reveals the winner.
+
+Example
+-------
+
+With A = [A1, A2, A3] and B = [B1, A2, B3], a sampled interleaving might be
+[A1, B1, A2, B3, A3]. If the user clicks **A2** — ranked highly by *both* — team-draft
+would hand the whole click to one side, but probabilistic interleaving **splits the credit**
+between A and B.
+
+Strengths and costs
+-------------------
+
+It handles **more than two** algorithms, stays **fair when rankings overlap** (shared items
+share credit), reduces bias, and is often **more sensitive** (detecting differences with
+fewer clicks). The price is **complexity**: probabilistic attribution is harder to explain,
+and the probability function (e.g. softmax temperature) needs careful design.
+"""
+
+CONTENT["Team Draft Interleaving (TDI)"] = r"""
+What it is
+----------
+
+**Team-draft interleaving (TDI)** is an **online method for comparing two ranking
+algorithms** A and B. Like balanced interleaving it merges both into one list shown to
+users, but it fills the list by a **draft pick** — exactly like two captains choosing
+players for a team — deciding which algorithm contributes the next slot.
+
+Why use it
+----------
+
+**A/B testing** splits traffic and needs large samples; **balanced interleaving** can favour
+one ranker depending on overlap and order. TDI **randomises the draft** so each algorithm
+gets an equal, unbiased chance to place its items.
+
+How it works
+------------
+
+Take the top-k from A and B; **randomly pick who drafts first**; then **alternate**: each
+algorithm in turn adds its **highest-ranked item not already in the list**, until the
+interleaving is full. Show it, and **attribute each click to whichever algorithm drafted
+that item** — attribution is **deterministic and unambiguous**.
+
+Example
+-------
+
+With A = [A1, A2, A3, A4] and B = [B1, B2, B3, B4], a draft might yield
+[A1, B1, A2, B2, A3, B3, A4, B4]. A click on **B2** credits **algorithm B**, because B
+drafted it.
+
+Strengths and limits
+--------------------
+
+TDI is **fair** (randomised drafting removes systematic bias), **efficient** (fewer users
+than A/B testing to detect a difference), gives **clear click ownership**, and is
+**sensitive** to small gaps — which made it an industry standard. Its limits: it compares
+**only two** algorithms at once, still assumes **clicks equal relevance** (noisy), and needs
+care with **ties and overlapping** results.
+"""
+
+MINDMAP.update({
+    "Ranking Algorithms": [
+        "NDCG (Normalized Discounted Cumulative Gain)", "Mean Average Precision (MAP)",
+        "Probabilistic Interleaving", "Team Draft Interleaving (TDI)", "Embedding",
+        "Online Experimentation Platforms",
+    ],
+    "Probabilistic Interleaving": [
+        "Team Draft Interleaving (TDI)", "Balanced Interleaving", "Ranking Algorithms",
+        "Online Experimentation Platforms", "A/B Testing",
+        "NDCG (Normalized Discounted Cumulative Gain)",
+    ],
+    "Team Draft Interleaving (TDI)": [
+        "Balanced Interleaving", "Probabilistic Interleaving", "Ranking Algorithms",
+        "Online Experimentation Platforms", "A/B Testing",
+        "NDCG (Normalized Discounted Cumulative Gain)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Beyond fixed A/B testing — interleaving, causal impact, bandits  (abtest / causal / bandits)
+# ----------------------------------------------------------------------
+
+CONTENT["Balanced Interleaving"] = r"""
+What it is
+----------
+
+**Balanced interleaving** is the simplest **online method for comparing two ranking
+algorithms**: it mixes their results into one combined list shown to users, then reads off
+which algorithm's items draw more clicks. Both rankers get a **fair, equal chance** to place
+items, so the comparison happens *within a single session* rather than across split traffic.
+
+Why use it
+----------
+
+Classic **A/B testing** sends half the users to A and half to B, which needs large samples
+and time. Interleaving shows **both at once**, making the comparison **faster and more
+sensitive** — small quality gaps surface with far fewer interactions.
+
+How it works
+------------
+
+Take the top-k from A and B and build the list by **strict alternation** — first from A,
+then B, then A, ensuring neither dominates by position. Show the combined list, **credit
+each click to the algorithm that contributed that item**, and the ranker with more credited
+clicks wins.
+
+Example
+-------
+
+With A = [A1, A2, A3, A4] and B = [B1, B2, B3, B4], the interleaving is
+[A1, B1, A2, B2, A3, B3, A4, B4]. If the user clicks A1, B2 and A3, then A scores **2** and
+B scores **1** — A wins this impression.
+
+Strengths and limits
+--------------------
+
+It is **efficient, fair and sensitive**, but it compares **only two** algorithms, assumes
+**clicks track relevance** (which is noisy), and needs care so that **position bias** in the
+alternation doesn't quietly favour one side. **Team-draft** and **probabilistic
+interleaving** were developed to address exactly these weaknesses.
+"""
+
+CONTENT["Causal Impact"] = r"""
+What it is
+----------
+
+**Causal impact** is the **overall effect of an intervention** — a campaign, launch or
+policy — **on an outcome**. In data science the term usually points to **Google's
+CausalImpact** (Brodersen et al., 2015): a **Bayesian structural time-series** model that
+estimates what *would* have happened without the intervention and compares it to what
+actually did.
+
+Why it's needed
+---------------
+
+In an RCT or A/B test the causal effect is easy — you have treatment and control groups. But
+in **observational or time-series** settings there may be **no untreated control**: run a
+nationwide ad campaign and there is no parallel country that didn't see it. The fix is to
+model the **counterfactual** — the outcome you'd have seen without the intervention — and
+measure the gap.
+
+The method and formula
+----------------------
+
+CausalImpact fits a model on the **pre-intervention** period (using historical data and
+**control covariates**), forecasts the **counterfactual** for the post period, and
+subtracts:
+
+.. math::
+
+   \text{Causal Impact} = Y_{\text{observed, post}} - Y_{\text{predicted, counterfactual}},
+
+reporting the difference **with Bayesian credible intervals** rather than a single number.
+
+Example
+-------
+
+A firm launches a TV campaign in July. Trained on January–June sales, the model forecasts a
+**counterfactual of 50,000 units**; actual sales come in at **60,000** — an estimated impact
+of **+10,000 units**, with a credible interval of roughly [7,000, 13,000].
+
+Strengths, limits, and effect vs impact
+---------------------------------------
+
+It handles **time series** naturally, yields **full posterior distributions**, uses
+**covariates** to sharpen accuracy, and needs no RCT — but it **assumes the model captures
+the dynamics**, is **sensitive to the choice of controls**, and wants a **clear start date**.
+Note the level distinction: the **causal effect** is micro (the change per unit — a drug
+lowers blood pressure 5 mmHg), while the **causal impact** is macro (the aggregate — a
+nationwide rollout prevents 10,000 hospitalisations).
+"""
+
+CONTENT["Bandit Algorithms"] = r"""
+What it is
+----------
+
+**Bandit algorithms** solve the **exploration–exploitation trade-off** in sequential
+decisions. Cast as a **multi-armed bandit (MAB)** — slot machines with several arms — the
+goal is to **maximise cumulative reward** by choosing which arm to pull, balancing
+**exploration** (trying options to learn their payoff) against **exploitation** (playing the
+best-known option now).
+
+Why it matters
+--------------
+
+An A/B test holds a **fixed split** until significance, spending traffic on losing variants
+the whole time. A bandit **reallocates traffic dynamically** toward what's winning, so better
+options get more users **sooner** — cutting the cost of learning. It powers ad selection,
+recommendations, pricing and adaptive trials.
+
+The core tension
+----------------
+
+Suppose three arms pay out at 5%, 7% and 6%. Always playing the current best (7%) risks
+**never discovering** the 6% arm is actually better with more data; always exploring
+**wastes** reward. Good bandits trade these off automatically.
+
+The main algorithms
+-------------------
+
+- **ε-greedy**: with probability :math:`\varepsilon` explore a random arm, otherwise exploit
+  the best — simple and effective.
+- **UCB** (upper confidence bound): play the arm with the highest **optimistic** estimate,
+  exploring when uncertainty is high and settling as data accrues.
+- **Thompson sampling** (Bayesian): keep a posterior per arm (a Beta distribution for
+  click/no-click), **sample** from each, and play the highest draw — a natural, highly
+  effective balance.
+- **Softmax / Boltzmann**: choose arms with probability rising in estimated reward, tuned by
+  a temperature.
+
+Trade-offs vs A/B testing
+-------------------------
+
+Bandits **maximise reward during the test** (not just identify a winner after it) and
+typically need **fewer samples**, at the cost of **more complexity** and less clean
+significance reporting. They shine when rewards are **immediate and measurable** and the
+environment is **stable**; rapidly shifting preferences or delayed rewards weaken them.
+"""
+
+MINDMAP.update({
+    "Balanced Interleaving": [
+        "Team Draft Interleaving (TDI)", "Probabilistic Interleaving", "Ranking Algorithms",
+        "Online Experimentation Platforms", "A/B Testing",
+        "NDCG (Normalized Discounted Cumulative Gain)",
+    ],
+    "Causal Impact": [
+        "Treatment Effect", "Causal Inference", "Bayesian Time Series",
+        "Online Experimentation Platforms", "A/B Testing", "Counterfactual Explanations",
+    ],
+    "Bandit Algorithms": [
+        "Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB))",
+        "Bayesian Decision Theory (BDT)", "A/B/n Test", "Beta Distribution", "A/B Testing",
+        "Online Experimentation Platforms",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Multi-variant testing & the peeking problem  (abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["A/B/n Test"] = r"""
+What it is
+----------
+
+An **A/B/n test** generalises the two-arm A/B test to **several variants at once** —
+A vs B vs C vs … n — of a page, app or feature, splitting traffic across all of them to find
+which scores best on a chosen metric (conversion, click-through, engagement).
+
+How it works
+------------
+
+Pick a **control** (A, the current design), build variants B, C, D…; **randomly split**
+users across them; track the metric; and use a statistical test (two-proportion z-test,
+chi-square or a Bayesian model) to pick the winner. Testing button text — "Buy Now" vs
+"Shop Now" vs "Get Yours Today" vs "Order Now" — sends each of four equal groups one variant
+and compares conversions.
+
+Why and when
+------------
+
+It tests **many ideas in one experiment** rather than a sequence of A/B tests, which is
+faster when you have several candidate designs and enough traffic for a **winner-takes-all**
+verdict.
+
+The costs
+---------
+
+Two prices. **Traffic**: a 50/50 split becomes 33/33/33 and beyond, so each arm gets less
+data and significance takes longer. And the **multiple-comparisons problem**: every extra
+variant is another chance for a false positive, so the family-wise error rate climbs unless
+corrected. It also reveals less about **element interactions** than a multivariate test.
+
+Example
+-------
+
+Optimising newsletter sign-ups across four calls to action at 25% traffic each, after two
+weeks A converts 5%, B 6%, **C 7.5%** and D 5.2%. C is the significant winner and ships.
+"""
+
+CONTENT["Multivariate Test (MVT)"] = r"""
+What it is
+----------
+
+A **multivariate test (MVT)** varies **several page elements at once** and tests their
+**combinations**, to learn not just which single change helps but **how elements interact**.
+Where A/B compares whole versions, MVT decomposes the page into factors.
+
+How it works
+------------
+
+Choose the elements to vary — say **headline, button colour, image** — and form the
+**combinations**. With two options each, that is :math:`2 \times 2 \times 2 = 8` versions;
+users are split across them and the metric measured per combination.
+
+Full vs fractional factorial
+----------------------------
+
+A **full factorial** MVT tests **every** combination, giving the cleanest read on **main
+effects** (each variable alone) and **interaction effects** (how they combine) — but the
+count explodes. A **fractional factorial** tests a **chosen subset**, cutting traffic and
+complexity at the cost of resolving some interactions.
+
+Why interactions matter
+-----------------------
+
+The payoff is the interaction. A landing-page test might find a strong headline worth
+**+10%**, a green button **+5%** and a lifestyle image **+2%** individually — yet the
+**combination** of all three lifts conversion **+25%**, more than the parts suggest. That
+synergy is invisible to separate A/B tests.
+
+The cost
+--------
+
+MVT needs **much larger samples** (variants multiply fast), is **harder to design and
+analyse**, and carries the same **multiple-comparisons** false-positive risk. Use it to
+**fine-tune many elements** once you have the traffic; use A/B for big, single-design
+changes.
+"""
+
+CONTENT["Risk of Peeking"] = r"""
+What it is
+----------
+
+**Peeking** is looking at an experiment's results **before it officially ends** and acting
+on that interim data. The **risk of peeking** is the **inflated false-positive (Type I)
+rate** that results from repeatedly checking and **stopping as soon as significance
+appears**.
+
+Why it breaks the test
+----------------------
+
+A fixed-horizon test assumes a **single look at a predetermined sample size**. Each extra
+peek is another **independent chance** for noise to cross :math:`p < 0.05`, so the true
+error rate compounds far above the nominal :math:`\alpha`. Peek ten times at a 5% threshold
+and the real false-positive rate can reach **20–30%** — this compounding is called **alpha
+inflation**.
+
+What it costs
+-------------
+
+Concretely: a button test shows A ahead on day 1 (:math:`p = 0.04`), you stop and crown
+A — but over the full two weeks **B** would have won. The early stop produced a **false
+conclusion**, and at scale that means wrong launches, lost revenue, and eroded trust in
+experimentation.
+
+How to avoid it
+---------------
+
+Four routes: **predefine** the sample size and duration and only check at the end; use
+**sequential testing / alpha-spending** designs built for interim looks (**group
+sequential**, **O'Brien–Fleming**, **Pocock**); use **Bayesian** methods designed for
+continuous monitoring; or, if peeks are unavoidable, apply **multiplicity corrections**
+(Bonferroni, Holm). The peeking problem is precisely why the whole machinery of
+fixed-horizon and sequential testing exists.
+"""
+
+MINDMAP.update({
+    "A/B/n Test": [
+        "A/B Testing", "Multivariate Test (MVT)",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Bandit Algorithms",
+        "Two-Proportion Z-Test", "Type I Error",
+    ],
+    "Multivariate Test (MVT)": [
+        "A/B/n Test", "A/B Testing", "Traditional A/B Test (Fixed-Horizon A/B Test)",
+        "Conversion Rate (CR)", "Type I Error", "Online Experimentation Platforms",
+    ],
+    "Risk of Peeking": [
+        "Stopping Rules", "Fixed-Horizon Testing", "Group Sequential Testing",
+        "O'Brien–Fleming (OBF) Method", "Pocock Method", "Type I Error",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Causal inference, the p-value, the z-test  (causal / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Causal Inference"] = r"""
+What it is
+----------
+
+**Causal inference** is the discipline of establishing whether one variable **actually
+causes** a change in another, rather than merely **correlating** with it. The classic trap:
+ice-cream sales and drownings rise together, but neither causes the other — hot weather
+drives both. Causal inference is the toolkit for separating **causation from association**.
+
+Why it matters
+--------------
+
+Decisions hinge on it. Did the campaign **cause** the sales lift, or would sales have risen
+anyway? Did the treatment **cause** recovery, or was it natural? Did the policy **cause** the
+change, or did something else? Acting on a spurious correlation wastes money and harms
+people.
+
+The gold standard and its alternatives
+--------------------------------------
+
+A **randomised controlled trial (RCT)** assigns treatment and control **at random**, which
+balances confounders and makes the comparison causal. When randomisation is impossible
+(ethics, cost), **observational** methods approximate it: **regression** adjusts for measured
+confounders; **propensity-score matching** pairs treated and untreated units with similar
+covariates; **difference-in-differences** compares before/after trends against an untreated
+group; **instrumental variables** exploit a variable that moves treatment but not the
+outcome directly; and **regression discontinuity** compares units just above and below a
+treatment cutoff.
+
+The counterfactual core
+-----------------------
+
+Underneath sits the **potential-outcomes (Rubin) model**: each unit has a treated outcome
+:math:`Y_1` and an untreated outcome :math:`Y_0`, and the causal effect is
+:math:`E[Y_1 - Y_0]`. The **fundamental problem** is that we never observe **both** for the
+same unit — which is exactly why we need RCTs, DiD and the rest. **Directed acyclic graphs
+(DAGs)** complement this by mapping confounders and mediators visually.
+
+The pitfalls
+------------
+
+The enemies of causal claims are **confounding** (a third variable driving both),
+**selection bias** (groups that differ systematically), **reverse causality** (the outcome
+also influences the cause), and **unobserved variables** that can't be adjusted for if
+they're never measured.
+"""
+
+CONTENT["P-Value (probability value)"] = r"""
+What it is
+----------
+
+The **p-value** is the probability of observing data **at least as extreme** as what you
+saw, **assuming the null hypothesis** :math:`H_0` **is true**. It is a measure of **evidence
+against** :math:`H_0`: a **low** p-value means the data would be surprising under
+:math:`H_0` (stronger evidence against it), a **high** one means the data sit comfortably
+with :math:`H_0`.
+
+Reading it
+----------
+
+By convention :math:`p < 0.01` is very strong evidence, :math:`p < 0.05` is "significant",
+:math:`p < 0.10` is weak, and :math:`p > 0.10` is not significant. The decision rule pairs it
+with a threshold: if :math:`p \le \alpha`, reject :math:`H_0`; if :math:`p > \alpha`, fail to
+reject.
+
+How it's computed
+-----------------
+
+Form the **test statistic** (z, t, :math:`\chi^2`…) and find the tail probability of a value
+that extreme under its distribution — one tail for a one-sided test, both for two-sided. For
+a two-tailed t-test,
+
+.. math::
+
+   p = 2 \times P\!\left(T \ge |t_{\text{observed}}|\right).
+
+For example, 17 heads in 20 tosses gives a binomial p of about **0.003** against a fair coin
+(reject); a two-sample test with :math:`t = 2.1, df = 28` gives :math:`p \approx 0.045`
+(reject at 0.05).
+
+What it is not
+--------------
+
+Three persistent misconceptions: the p-value is **not** the probability that :math:`H_0` is
+true; it is **not** an effect size (a tiny p means *surprising*, not *large*); and it is
+**sample-size sensitive** — huge samples make trivial effects significant, tiny samples can
+miss real ones. Always read it alongside an effect size and a confidence interval.
+"""
+
+CONTENT["Z-Test"] = r"""
+What it is
+----------
+
+A **z-test** is a hypothesis test for whether a **sample mean (or proportion) differs from a
+known population value**, built on the **standard normal** distribution. It applies when the
+**sample is large** (:math:`n > 30`, so the CLT holds) and the **population variance is
+known** — or well approximated by a large sample.
+
+The statistic
+-------------
+
+For a one-sample mean,
+
+.. math::
+
+   z = \frac{\bar{X} - \mu}{\sigma / \sqrt{n}},
+
+the gap between the sample mean :math:`\bar{X}` and the hypothesised :math:`\mu`, measured in
+**standard errors**. There are three common forms: **one-sample** (mean vs population),
+**two-sample** (two independent means), and the **proportion** z-test.
+
+The procedure
+-------------
+
+State :math:`H_0` (no difference) and :math:`H_1`; pick :math:`\alpha`; compute :math:`z`;
+and compare to the **critical value** (:math:`\pm 1.96` at :math:`\alpha = 0.05`, two-tailed)
+or read off a p-value — reject when :math:`|z|` exceeds it.
+
+Examples
+--------
+
+With :math:`\mu = 100, \sigma = 15, n = 50` and a sample mean of 105,
+:math:`z = 5 / 2.12 \approx 2.36 > 1.96`, so reject :math:`H_0`. For a proportion, 320 of 500
+(0.64) against a hypothesised 0.60 gives :math:`z = 0.04 / 0.022 \approx 1.82 < 1.96` —
+**fail** to reject.
+
+Z-test vs t-test
+----------------
+
+The choice turns on what you know about the variance. Use a **z-test** when :math:`\sigma` is
+**known** and the sample is **large**, working from the normal distribution; use a
+**t-test** when :math:`\sigma` is **unknown** and estimated from the sample :math:`s`,
+working from the heavier-tailed **Student's t** — the gap between them vanishes as :math:`n`
+grows.
+"""
+
+MINDMAP.update({
+    "Causal Inference": [
+        "Causal Impact", "Treatment Effect", "Regression Coefficient", "A/B Testing",
+        "Counterfactual Explanations", "Frequentist",
+    ],
+    "P-Value (probability value)": [
+        "Statistical Significance", "Significance Level (α)", "Hypothesis Testing",
+        "Type I Error", "Effect Size (δ)", "Z-Test",
+    ],
+    "Z-Test": [
+        "Z-Score", "Two-Proportion Z-Test", "Critical Value", "Standard Error (SE)",
+        "Hypothesis Testing", "T-Test",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: t-test, engagement & monetization metrics  (inference / growth)
+# ----------------------------------------------------------------------
+
+CONTENT["T-Test"] = r"""
+What it is
+----------
+
+A **t-test** asks whether the **means of two groups differ significantly**, using the
+**Student's t-distribution**. It is the tool of choice when the **sample is small**
+(:math:`n < 30`) and the **population standard deviation is unknown** — estimated instead
+from the data, which the heavier-tailed t accounts for.
+
+The three forms
+---------------
+
+A **one-sample** t-test compares a sample mean to a known value (is the class average
+different from 70?); an **independent two-sample** test compares two separate groups (male
+vs female scores); and a **paired** test compares the *same* units measured twice (weight
+before vs after a diet).
+
+The statistic
+-------------
+
+For the independent test,
+
+.. math::
+
+   t = \frac{\bar{X}_1 - \bar{X}_2}{\sqrt{\dfrac{s_1^2}{n_1} + \dfrac{s_2^2}{n_2}}},
+
+the difference in means over its standard error. Compare :math:`t` to a **critical value**
+from the t-distribution at the appropriate **degrees of freedom** (for the independent test,
+:math:`df = n_1 + n_2 - 2`), or read a p-value.
+
+Example
+-------
+
+A sample of 25 with mean 72, against a hypothesised population mean of 70 with
+:math:`s = 5`, gives :math:`t = (72 - 70)/(5/\sqrt{25}) = 2`. The critical value at
+:math:`df = 24, \alpha = 0.05` is about **2.064**, and since :math:`2 < 2.064` we **fail to
+reject** :math:`H_0` — no significant difference.
+
+Assumptions
+-----------
+
+The data should be roughly **normal**; the independent test also assumes **independent
+groups** and **equal variances** — if the variances differ, use **Welch's t-test**. As
+:math:`n` grows the t-distribution approaches the normal, and the t-test converges to the
+z-test.
+"""
+
+CONTENT["Session Length"] = r"""
+What it is
+----------
+
+**Session length** is the **time a user spends in a single session** with an app, site or
+product — from opening it to closing it or timing out from inactivity — usually in seconds
+or minutes.
+
+The formula
+-----------
+
+Per session it is simply
+
+.. math::
+
+   \text{Session Length} = \text{end time} - \text{start time},
+
+and across many sessions the **average session length** is total time spent divided by the
+number of sessions. Analytics platforms compute both automatically.
+
+Why it's tracked
+----------------
+
+It is a core **engagement** signal — longer sessions often mean users find value — and it
+feeds **retention** (consistently short sessions hint at usability problems),
+**monetisation** (in ad models, more time means more impressions), and **UX** decisions. A
+12-minute news session, a 2.5-minute site average (2,500 minutes over 1,000 sessions), or a
+45-minute gaming session each read differently.
+
+The interpretation trap
+-----------------------
+
+Longer is **not always better**. A short session can mean the user **found what they needed
+instantly** (checking the weather), and the "right" length is **product-specific** — a few
+minutes for a news site, 30–60 for video streaming. Beware **idle time**, too: an
+open-but-unused app can inflate the number. Session length is meaningful only **read against
+industry, product type and user intent**.
+"""
+
+CONTENT["Revenue per User (RPU / ARPU)"] = r"""
+What it is
+----------
+
+**Revenue per user (RPU)** — almost always called **average revenue per user (ARPU)** — is
+the **average income a business earns per customer** over a period (monthly, quarterly,
+yearly). A **unit-economics** metric, it answers how much revenue each unit of the user base
+generates, and it is a staple of telecom, streaming, SaaS and mobile-gaming reporting.
+
+The formula
+-----------
+
+.. math::
+
+   \text{ARPU} = \frac{\text{total revenue in period}}{\text{active users in period}},
+
+where revenue spans subscriptions, in-app purchases and ads, and "active users" is usually
+**MAU** or **DAU** depending on the business.
+
+The key variants
+----------------
+
+**ARPU** counts *all* users (free and paying); **ARPPU** counts only **paying** users —
+crucial for freemium models; and ARPU can be **blended** (across everyone) or **segmented**
+(by product, geography or cohort). A freemium game with ``$50,000`` revenue across 10,000
+MAU has an **ARPU of** ``$5``, but if only 2,000 pay, its **ARPPU is** ``$25`` — revealing
+that a small paying base carries the economics.
+
+How it fits the other metrics
+-----------------------------
+
+ARPU is a **short-term snapshot** of revenue per user, complementing the **lifetime view**:
+**CLV** is total expected revenue over the whole relationship, while **CAC** is the cost to
+acquire a user. A healthy business keeps :math:`\text{CLV} > \text{CAC}`, and ideally
+:math:`\text{ARPU} \times \text{retention} \gg \text{CAC}`.
+
+The limitations
+---------------
+
+ARPU is an **average**, so it hides the **distribution** (one user at ``$500`` and one at
+``$0`` both read as ``$50``), can **mask churn** (fewer customers paying more keeps ARPU flat
+while the base shrinks), and means little alone — it must be paired with **CAC, churn and
+CLV** to judge whether the business is actually healthy.
+"""
+
+MINDMAP.update({
+    "T-Test": [
+        "Z-Test", "Sample Mean", "Sample Standard Deviation", "Critical Value",
+        "Hypothesis Testing", "Effect Size (δ)",
+    ],
+    "Session Length": [
+        "Revenue per User (RPU / ARPU)", "Churn", "Retention", "Customer Segmentation",
+        "Conversion Rate (CR)", "SaaS (Software as a Service)",
+    ],
+    "Revenue per User (RPU / ARPU)": [
+        "LTV:CAC Ratio", "Customer Lifetime", "Blended CAC (Customer Acquisition Cost)",
+        "Churn", "SaaS (Software as a Service)", "Customer Segmentation",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: churn & retention; the significance result-label  (growth / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Churn"] = r"""
+What it is
+----------
+
+**Churn** (customer churn) is the **rate at which customers stop using** a product or service
+over a period — the **mirror image of retention**, and a defining metric for SaaS,
+subscriptions, telecom and apps.
+
+The formula and types
+---------------------
+
+The basic customer churn rate is
+
+.. math::
+
+   \text{churn rate} = \frac{\text{customers lost in period}}{\text{customers at start}} \times 100.
+
+Beyond this, **revenue churn** tracks lost *revenue* (which can diverge from customer churn
+when large accounts leave), and churn splits into **voluntary** (the customer cancels) and
+**involuntary** (failed payments, expired cards).
+
+Examples
+--------
+
+A SaaS product going from 1,000 to 950 paying users in a month lost 50 — a **5% churn
+rate**. A mobile app where 40% of new users uninstall within 30 days has **40% 30-day
+churn**.
+
+Why it matters
+--------------
+
+Churn is **recurring revenue walking out the door**, and it caps growth: with enough churn,
+even strong acquisition nets to zero. Because keeping a customer typically costs **5–7×
+less** than winning a new one, reducing churn is usually the cheapest growth lever.
+
+Churn in ML and its mirror
+--------------------------
+
+Teams build **churn-prediction models** that flag at-risk users from behaviour (logins,
+purchases, complaints), then intervene with offers, better onboarding or support. And it is
+exactly complementary to retention: if monthly churn is **5%**, retention is **95%**.
+"""
+
+CONTENT["Retention"] = r"""
+What it is
+----------
+
+**Retention** measures how well a business **keeps its customers or users over time** — the
+**complement of churn**, and a direct signal of product value: if people keep coming back,
+the product is working.
+
+The metrics
+-----------
+
+The **customer retention rate (CRR)** strips out new sign-ups to measure how many existing
+customers stayed:
+
+.. math::
+
+   \text{CRR} = \frac{E - N}{S} \times 100,
+
+with :math:`S` customers at the start, :math:`E` at the end, and :math:`N` newly acquired.
+**Cohort retention** tracks a starting group over time (100 sign up in week 1, 40 still
+active in week 4 → **40% week-4 retention**), and **revenue retention** comes in two forms:
+**gross (GRR)**, which ignores expansion, and **net (NRR)**, which adds upsells and
+cross-sells.
+
+Example
+-------
+
+Start with 100 paying customers, lose 10 and gain 20: the CRR counts only the kept ones,
+:math:`(110 - 20)/100 = 90\%`. A mobile app with 300 of 1,000 installs still active at 30
+days has **30% retention**.
+
+Why it matters
+--------------
+
+Retention is **cheaper than acquisition**, drives **predictable recurring revenue**, and is
+the clearest **indicator of product value** — which is why it sits at the heart of
+**lifetime value** and growth. Teams raise it with onboarding, A/B tests and
+recommendations, and predict who is about to drop with the same models used for churn.
+"""
+
+CONTENT["Statistically Significant"] = r"""
+What it is
+----------
+
+A result is **statistically significant** when the **observed effect is unlikely to have
+arisen by chance** under the null hypothesis, judged against a chosen significance level
+:math:`\alpha`. Operationally it means there is **enough evidence to reject** :math:`H_0` —
+and crucially, "significant" here means *statistical evidence*, **not real-world
+importance**.
+
+The decision rule
+-----------------
+
+It comes down to comparing the **p-value** to the threshold: if :math:`p \le \alpha`, the
+result **is** statistically significant and you reject :math:`H_0`; if :math:`p > \alpha`, it
+is **not**, and you fail to reject. The usual :math:`\alpha` is 0.05.
+
+Examples
+--------
+
+A drug trial with :math:`p = 0.01` against :math:`\alpha = 0.05` **is** significant —
+evidence the drug beats placebo. An A/B test where a new button lifts clicks 3% but returns
+:math:`p = 0.2` is **not** significant — the lift could be noise.
+
+The cautions
+------------
+
+Three matter. **Significance is not importance**: with a large enough dataset a trivial 0.5%
+effect can clear the bar yet mean nothing. It is **sample-size dependent**: bigger samples
+make significance easier to reach. And it is vulnerable to **p-hacking** — running many tests
+or slicing data until something crosses :math:`\alpha`. A significant result is a starting
+point for judgement, read alongside effect size and context, not a verdict on its own.
+"""
+
+MINDMAP.update({
+    "Churn": [
+        "Retention", "Revenue per User (RPU / ARPU)", "Customer Lifetime",
+        "Blended CAC (Customer Acquisition Cost)", "SaaS (Software as a Service)",
+        "Customer Segmentation",
+    ],
+    "Retention": [
+        "Churn", "Revenue per User (RPU / ARPU)", "Customer Lifetime",
+        "Cohort-Based LTV (Simple Version)", "SaaS (Software as a Service)", "Upselling",
+    ],
+    "Statistically Significant": [
+        "Statistical Significance", "P-Value (probability value)", "Significance Level (α)",
+        "Hypothesis Testing", "Type I Error", "Effect Size (δ)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: IID, its time-series violation, and time-aware validation  (probstats / validation)
+# ----------------------------------------------------------------------
+
+CONTENT["IID (Independent and Identically Distributed)"] = r"""
+What it is
+----------
+
+**IID** — **independent and identically distributed** — is the bedrock assumption of most
+statistics and machine learning. Two conditions: each observation is **independent** (knowing
+one tells you nothing about another) and all observations are **identically distributed**
+(drawn from the same :math:`P(X)`). Compactly,
+
+.. math::
+
+   X_1, X_2, \dots, X_n \sim \text{i.i.d. } P(X).
+
+Ten fair-coin flips are the canonical case — each flip independent, each with the same
+:math:`P(H) = 0.5`.
+
+The two halves
+--------------
+
+**Independence** fails when one sample carries information about another. **Identical
+distribution** fails when the underlying distribution shifts across the sample. Both can
+break separately: data can be dependent but identically distributed, or independent but
+drifting.
+
+When it holds and when it doesn't
+---------------------------------
+
+The clean case is **random sampling** from a fixed population (survey respondents drawn at
+random). It breaks in **time series** (today's stock price depends on yesterday's — not
+independent), under a **changing population** (early vs late customers differ — not
+identical), and with **grouped data** (several records from the same patient are correlated).
+
+Why it matters
+--------------
+
+IID is what makes the math tractable — the **law of large numbers** and the **central limit
+theorem** lean on it, and linear/logistic regression, hypothesis tests and freshly
+initialised neural nets all assume it. Violating it yields **biased estimates and
+overconfident predictions**. In ML the training set is usually assumed IID but often isn't
+(autocorrelation, drift, leakage), which is why **time-series CV, grouped CV and domain
+adaptation** exist to cope.
+"""
+
+CONTENT["Temporal autocorrelation (Serial Correlation)"] = r"""
+What it is
+----------
+
+**Temporal autocorrelation** (or **serial correlation**) is when the values of a **time
+series correlate with their own past** — the value at time :math:`t` depends partly on
+:math:`t-1, t-2, \dots`. It is the defining property of time-series data and the most common
+way the IID assumption breaks.
+
+The measure
+-----------
+
+The **autocorrelation function (ACF)** at lag :math:`k` is
+
+.. math::
+
+   \rho_k = \frac{\operatorname{Cov}(X_t, X_{t-k})}{\sigma^2},
+
+the correlation between the series and its own lag-:math:`k` copy, where :math:`\sigma^2` is
+the series variance. Stock prices (today near yesterday), temperature and weekly website
+traffic all show it.
+
+Why it matters
+--------------
+
+First, it **violates IID** — past strongly influences future, so models that assume
+independence are wrong. Second, it **drives forecasting**: ARIMA and SARIMA explicitly model
+autocorrelation, and **ACF/PACF** plots reveal the AR and MA orders. Third, it is a
+**diagnostic**: the **Durbin-Watson** test checks regression residuals, and autocorrelated
+residuals signal a misspecified model.
+
+Positive, negative, and reading the plot
+----------------------------------------
+
+**Positive** autocorrelation means high tends to follow high (**momentum**); **negative**
+means high tends to follow low (**mean-reversion**). On an ACF plot, strong spikes at lags
+1, 2 and 7 would suggest **weekly seasonality**.
+"""
+
+CONTENT["Blocked Splits (Single Holdout)"] = r"""
+What it is
+----------
+
+A **blocked split** (or **single holdout** for time series) is the simplest time-series
+validation: cut the data into **one contiguous training block** and **one later contiguous
+test block**. Unlike a random split, it **respects temporal order** — train on the past, test
+on the future — which is mandatory when observations are autocorrelated.
+
+How it works
+------------
+
+Order the data chronologically, take an **early block to train** and the **later block to
+test**, fit on the first and evaluate on the second. For data spanning **2018–2022**, train
+on **2018–2020** and test on **2021–2022** — a single cut, one split.
+
+Why and when
+------------
+
+It is **simple, fast**, and the natural **first baseline** for a time-series model — a good
+fit when retraining is infrequent or the series is stable.
+
+The limitation
+--------------
+
+There is **only one split**, so the estimate is **sensitive to where you cut** and gives a
+less robust read on generalisation than rolling schemes. An unusual test window (a pandemic
+spike, say) can misrepresent the model. The more robust alternatives keep the time order but
+add splits: an **expanding window** grows the train set forward over many folds, and a
+**sliding window** rolls a fixed-size train set forward — trading simplicity for a steadier
+estimate.
+"""
+
+MINDMAP.update({
+    "IID (Independent and Identically Distributed)": [
+        "Temporal autocorrelation (Serial Correlation)", "Time Series", "Probability",
+        "Signal Processing", "Blocked Splits (Single Holdout)", "Cross-Validation (CV)",
+    ],
+    "Temporal autocorrelation (Serial Correlation)": [
+        "IID (Independent and Identically Distributed)", "Time Series",
+        "Blocked Splits (Single Holdout)", "Bayesian Time Series", "Signal Processing",
+        "Sliding Window (Rolling Window) Cross-Validation",
+    ],
+    "Blocked Splits (Single Holdout)": [
+        "Sliding Window (Rolling Window) Cross-Validation", "Expanding Window Cross-Validation",
+        "Cross-Validation (CV)", "Temporal autocorrelation (Serial Correlation)",
+        "IID (Independent and Identically Distributed)", "Time Series",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: time-series cross-validation & data leakage  (validation)
+# ----------------------------------------------------------------------
+
+CONTENT["Sliding Window (Rolling Window) Cross-Validation"] = r"""
+What it is
+----------
+
+**Sliding-window** (or **rolling-window**) cross-validation is a time-series validation
+scheme where the training set has a **fixed size** and **slides forward** through time: as
+new data enters the window, the **oldest data drops out**. Like all time-series CV, it
+**respects time order** — past trains, future tests.
+
+How it works
+------------
+
+Fix a **window size**, train on that window, validate on the next step, then **slide forward
+and repeat**. Each fold uses a same-length training block ending just before its test block.
+
+Example
+-------
+
+With a 2-year window over **2020–2024**: train **2020–2021** → test **2022**; train
+**2021–2022** → test **2023**; train **2022–2023** → test **2024**. Notice 2020 is
+**dropped** once the window moves past it.
+
+vs the expanding window
+-----------------------
+
+The contrast is what happens to old data. An **expanding window keeps all history**, suiting
+cases where old data stays relevant (macroeconomics, cumulative learning). A **sliding window
+discards it**, suiting **non-stationary** settings where recent data is more predictive —
+financial markets, demand forecasting, IoT sensor streams.
+
+Benefits and the size trade-off
+-------------------------------
+
+It keeps the model **focused on recent patterns** and **bounds compute** (the training set
+never grows without limit). The cost: it can **forget useful long-run history**, and the
+**window size is a critical knob** — too short is noisy, too long is unresponsive.
+"""
+
+CONTENT["Expanding Window Cross-Validation"] = r"""
+What it is
+----------
+
+**Expanding-window** cross-validation is a time-series scheme where the **training set grows**
+over time while the test set always takes the **next** period. The rule is the usual one —
+**train on the past, predict the future** — and crucially, **once data enters training it
+stays** in every later fold.
+
+How it works
+------------
+
+Order the data chronologically, start from an initial training period, and validate on the
+next. Then **expand** the training window to absorb more past data and validate on the
+following period, repeating to the end of the series.
+
+Example
+-------
+
+Over **2020–2024**: train **2020** → test **2021**; train **2020–2021** → test **2022**;
+train **2020–2022** → test **2023**; train **2020–2023** → test **2024**. The training block
+**keeps growing**; the test always sits just after it.
+
+vs the rolling window
+---------------------
+
+Both respect time order; they differ on memory. **Expanding** accumulates **all** history,
+which helps when **older data is still relevant** (finance, macroeconomic forecasting). The
+**rolling/sliding** window holds a **fixed** size and drops the oldest data, which helps when
+**recent data dominates** (stock trading, demand forecasting). The choice is really a
+question of whether the process is stationary.
+"""
+
+CONTENT["Data Leakage"] = r"""
+What it is
+----------
+
+**Data leakage** is when **information from outside the training data slips into training**,
+giving the model unfair access to **future or hidden knowledge**. The signature is a model
+that looks **excellent in validation** but **collapses on real, unseen data**.
+
+The four types
+--------------
+
+**Target leakage**: a feature encodes the answer — predicting loan default from
+``debt_collected_after_default``, which only exists *because* of default. **Train-test
+contamination**: test information bleeds in via preprocessing — e.g. scaling with a mean and
+standard deviation computed over the **whole** dataset instead of the training fold alone.
+**Temporal leakage**: using **future** data to predict the past — forecasting January's price
+with March's trading volume. **Group leakage**: the **same group** (patient, user, session)
+lands in both train and test, so the model just **recognises the group**.
+
+How to prevent it
+-----------------
+
+Five guards: fit **preprocessing on the training fold only** and apply it to the rest; **drop
+features that wouldn't exist at prediction time**; use **time-aware splits** for temporal
+data; use **group-aware CV** (``GroupKFold``, ``StratifiedGroupKFold``) to keep groups
+intact; and **monitor after deployment** — a sharp drop from validation to production is the
+classic leakage tell.
+
+Why it's dangerous
+------------------
+
+Leakage manufactures a **false sense of performance**, masking **overfitting** and poor
+generalisation, and in regulated domains like finance and healthcare it can turn into a
+**compliance problem** when the model fails on the data that matters.
+"""
+
+MINDMAP.update({
+    "Sliding Window (Rolling Window) Cross-Validation": [
+        "Expanding Window Cross-Validation", "Blocked Splits (Single Holdout)",
+        "Cross-Validation (CV)", "Temporal autocorrelation (Serial Correlation)",
+        "Time Series", "Data Leakage",
+    ],
+    "Expanding Window Cross-Validation": [
+        "Sliding Window (Rolling Window) Cross-Validation", "Blocked Splits (Single Holdout)",
+        "Cross-Validation (CV)", "Temporal autocorrelation (Serial Correlation)",
+        "Time Series", "Data Leakage",
+    ],
+    "Data Leakage": [
+        "Cross-Validation (CV)", "Stratified Group K-Fold", "Blocked Splits (Single Holdout)",
+        "Sliding Window (Rolling Window) Cross-Validation",
+        "Temporal autocorrelation (Serial Correlation)", "Data Drift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: stratified cross-validation family  (validation)
+# ----------------------------------------------------------------------
+
+CONTENT["Stratified Group K-Fold"] = r"""
+What it is
+----------
+
+**Stratified Group K-Fold** is a cross-validation scheme that fuses **three requirements** at
+once: **k-fold** splitting, **stratification** (preserve the class balance in every fold), and
+**grouping** (keep every group — same patient, user, session — entirely on one side of each
+split). It is the right tool for **grouped *and* imbalanced** classification.
+
+Why it's needed
+---------------
+
+Each simpler scheme covers only part of the problem. **Stratified k-fold** balances classes
+but can let one group's rows fall into both train and validation, **leaking** information.
+**Group k-fold** prevents that overlap but can wreck the class balance. **Stratified group
+k-fold** does both — class proportions held *and* group boundaries respected.
+
+How it works and an example
+---------------------------
+
+Identify the group key, then build folds that are simultaneously class-balanced and
+group-clean. For 1,000 samples from **100 patients** with a 20/80 disease split and ``k = 5``,
+each fold holds about 20 patients, preserves the ~20/80 ratio, and shares **no patient**
+between train and validation.
+
+In scikit-learn
+---------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import StratifiedGroupKFold
+
+   cv = StratifiedGroupKFold(n_splits=5)
+   for train_idx, test_idx in cv.split(X, y, groups):  # groups = patient IDs
+       ...
+
+The comparison is clean: plain **k-fold** is neither stratified nor group-aware, **stratified
+k-fold** adds class balance, **group k-fold** adds group safety, and **stratified group
+k-fold** is the only one with both.
+"""
+
+CONTENT["Stratified Shuffle Split"] = r"""
+What it is
+----------
+
+**Stratified Shuffle Split** repeatedly carves a dataset into **random train/test splits
+while preserving the class distribution**. Unlike k-fold, it does **not** partition into fixed
+folds — it **reshuffles and resamples** as many times as you ask, each split a fresh random
+draw with the original class ratios intact.
+
+How it works
+------------
+
+Set **n_splits** (how many reshuffles) and a **train/test size**; for each split, shuffle,
+partition keeping the class proportions, and evaluate — then average across splits. Because
+test sets can overlap between splits (they are independent draws), it is not a partition the
+way k-fold is.
+
+Example
+-------
+
+For 1,000 samples at **80% class A, 20% class B** with ``test_size=0.2`` over 5 splits, each
+split yields train = 800 (A=640, B=160) and test = 200 (A=160, B=40) — the **80/20** ratio
+holds every time.
+
+In scikit-learn
+---------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import StratifiedShuffleSplit
+
+   sss = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+   for train_idx, test_idx in sss.split(X, y):
+       ...
+
+It shines on **imbalanced or small** data where you want **many randomized splits** rather
+than a fixed fold structure — the stratified counterpart to a plain shuffle split, which
+randomizes but does *not* preserve class balance.
+"""
+
+CONTENT["Multiclass stratified CV"] = r"""
+What it is
+----------
+
+**Multiclass stratified CV** is stratified k-fold extended **beyond two classes**: every fold
+keeps approximately the **same distribution across all classes** as the full dataset. It is
+the natural generalisation of binary stratification to **three or more** labels.
+
+How it works
+------------
+
+Measure the overall class mix — say **A = 60%, B = 30%, C = 10%** — and build each fold to
+mirror it, so every fold carries A, B and C in roughly those proportions. Both training and
+validation sets then **represent all classes**.
+
+Example
+-------
+
+For 1,000 samples split **A = 600, B = 300, C = 100** with ``k = 5``, a **regular k-fold**
+might leave some folds with almost no class-C examples. **Multiclass stratified k-fold** gives
+each fold about **A = 120, B = 60, C = 20** — the original shape, fold after fold.
+
+Why it matters
+--------------
+
+In **imbalanced multiclass** problems, plain k-fold can starve a minority class in some folds,
+producing **unstable, misleading metrics** (a fold with no class-C samples cannot measure
+class-C performance). Stratification makes the evaluation **fair and stable**. It applies to
+**classification only** — there is nothing to stratify in a regression target.
+"""
+
+MINDMAP.update({
+    "Stratified Group K-Fold": [
+        "Stratified Shuffle Split", "Multiclass stratified CV", "k-fold cross-validation",
+        "Cross-Validation (CV)", "Data Leakage", "Class Weighting",
+    ],
+    "Stratified Shuffle Split": [
+        "Stratified Group K-Fold", "Multiclass stratified CV", "k-fold cross-validation",
+        "Cross-Validation (CV)", "Class Weighting",
+        "SMOTE (Synthetic Minority Over-sampling Technique)",
+    ],
+    "Multiclass stratified CV": [
+        "Stratified Group K-Fold", "Stratified Shuffle Split", "k-fold cross-validation",
+        "Cross-Validation (CV)", "Class Weighting", "Multiclass AUROC",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: cross-validation foundation & post-hoc re-scoring  (validation / calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["k-fold cross-validation"] = r"""
+What it is
+----------
+
+**k-fold cross-validation** splits the data into **k roughly equal folds** and trains and
+tests the model **k times**, each run holding out a **different fold** as the test set and
+training on the other :math:`k-1`. Averaging the k scores gives a lower-variance estimate of
+performance than any single train/test split — which is why it is the **default** CV method.
+
+How it works
+------------
+
+Shuffle (if order is irrelevant), split into **k folds** (commonly 5 or 10), and for each
+fold :math:`i` train on the other folds and test on fold :math:`i`. Collect the k scores and
+**average** them for the final metric.
+
+Example
+-------
+
+With 1,000 samples and ``k = 5``, each fold is 200 samples: every run trains on **800** and
+validates on **200**, rotating which 200 is held out, and the result is the **mean** across
+the five runs.
+
+Variations
+----------
+
+**Stratified k-fold** preserves class balance per fold (vital for imbalanced data);
+**repeated k-fold** re-runs the whole process with new splits for a steadier estimate; and
+**leave-one-out (LOOCV)** is the extreme :math:`k = N`, one sample per fold — very accurate,
+very expensive.
+
+In scikit-learn, and the trade-offs
+-----------------------------------
+
+.. code-block:: python
+
+   from sklearn.model_selection import cross_val_score
+
+   scores = cross_val_score(model, X, y, cv=5)
+   print(scores.mean(), scores.std())
+
+The gains — a **reliable estimate**, less dependence on one random split, full use of the
+data, and a backbone for **hyperparameter tuning** — cost **k model fits**, and plain k-fold
+is **wrong for time series**, where time-aware CV is required instead.
+"""
+
+CONTENT["Cross-Validation (CV)"] = r"""
+What it is
+----------
+
+**Cross-validation (CV)** is the umbrella **model-evaluation technique**: split the data into
+multiple subsets, rotate which subset is held out for testing, and **average** the results so
+the performance estimate does not hinge on a single lucky or unlucky split. Its goal is to
+gauge how well a model **generalises to unseen data**, and it underpins **model selection,
+hyperparameter tuning and overfitting prevention**.
+
+How it works
+------------
+
+Partition into **k folds**; for each, train on the rest and test on the held-out fold; repeat
+so every fold serves as test once; average across folds for the final estimate.
+
+The main flavours
+-----------------
+
+**k-fold** is the balanced default; **stratified k-fold** holds class proportions steady for
+imbalanced classification; **leave-one-out (LOOCV)** uses one sample per fold — accurate but
+costly; **time-series CV** (rolling or expanding windows) respects time order for sequential
+data; and **nested CV** wraps an inner tuning loop inside an outer evaluation loop so that
+**hyperparameter selection does not leak** into the performance estimate.
+
+Why it matters, and the costs
+-----------------------------
+
+CV gives a **robust, lower-variance** read on generalisation and is the standard harness for
+**grid, random and Bayesian** hyperparameter search. The price is **compute** (the model is
+trained many times) and the need to **match the fold type to the data** — most importantly,
+never shuffling a time series.
+"""
+
+CONTENT["Re-scoring"] = r"""
+What it is
+----------
+
+**Re-scoring** is **adjusting or recomputing a model's scores** — predictions, probabilities
+or rankings — *after* the initial output, by layering on extra information, calibration or
+rules. It improves **relevance, fairness or calibration without retraining**, and shows up in
+ranking, recommendations, search, fraud detection and NLP pipelines.
+
+Where it's used
+---------------
+
+Five common settings. In **search and recommendation**, a base ranking is re-scored with
+business rules, diversity constraints or personalisation (boost new items, demote
+duplicates). In **classification**, raw probabilities are re-scored by **calibration** (Platt
+scaling, isotonic regression, Bayesian correction). In **ensembles**, several models' outputs
+are combined — a weighted average of fraud scores, say. For **fairness**, re-scoring enforces
+guardrails so no group is systematically disadvantaged. And in **NLP reranking**, an N-best
+list from an acoustic or translation model is re-scored by a second model (a language model)
+to pick the most fluent candidate.
+
+Examples
+--------
+
+A fraud model's **0.7** probability is re-scored against the customer's risk profile to
+**0.85**; an e-commerce relevance score gets a **+0.2** promotion boost; a speech system's
+N-best hypotheses are re-scored by a language model to choose the most fluent sentence.
+
+Benefits and challenges
+-----------------------
+
+It buys **accuracy without full retraining**, **flexibility** (rules, fairness) and
+**real-time, context-aware** adjustment. The risks: a complex re-scoring stage adds
+**latency**, weighting must be tuned to **avoid introducing bias**, and leaning on it too hard
+can **paper over** model weaknesses instead of fixing their root cause.
+"""
+
+MINDMAP.update({
+    "k-fold cross-validation": [
+        "Cross-Validation (CV)", "Stratified Group K-Fold", "Stratified Shuffle Split",
+        "Multiclass stratified CV", "Blocked Splits (Single Holdout)", "Data Leakage",
+    ],
+    "Cross-Validation (CV)": [
+        "k-fold cross-validation", "Stratified Group K-Fold", "Blocked Splits (Single Holdout)",
+        "Sliding Window (Rolling Window) Cross-Validation", "Expanding Window Cross-Validation",
+        "Data Leakage",
+    ],
+    "Re-scoring": [
+        "Platt Scaling", "Isotonic Regression", "Recalibration", "Ranking Algorithms",
+        "NDCG (Normalized Discounted Cumulative Gain)", "Demographic Parity (Statistical Parity)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: drift monitoring, distillation, early stopping  (drift / mlops / training)
+# ----------------------------------------------------------------------
+
+CONTENT["Drift Detection"] = r"""
+What it is
+----------
+
+**Drift detection** is the practice of **monitoring for changes in the data distribution or
+model behaviour over time** that can erode performance. Because real-world data evolves —
+seasonality, new users, shifting business conditions — a model that was accurate at launch can
+silently decay, and drift detection is what **triggers retraining or recalibration** before
+that decay bites.
+
+The three drifts
+----------------
+
+**Covariate (feature) drift**: the input distribution moves — 80% desktop users become 60%
+mobile. **Label drift** (prior shift): the target mix changes — fraud rises from 1% to 3%.
+**Concept drift**: the *relationship* between features and label changes — the same features
+no longer predict fraud because the tactics evolved. Only concept drift necessarily breaks the
+learned mapping; the others may or may not.
+
+How it's detected
+-----------------
+
+Four families. **Statistical tests** compare old and new distributions (Kolmogorov–Smirnov,
+chi-square, **PSI** — population stability index). **Distance measures** quantify the gap (KL
+and Jensen–Shannon divergence, Wasserstein, MMD). **Classifier two-sample tests** train a
+model to tell "old" from "new" — if it succeeds, the distributions differ. And **performance
+monitoring** tracks loss or AUC over time, though as a *lagging* signal it only fires once
+labels arrive.
+
+In practice
+-----------
+
+Set **baselines** from training data, compare **rolling windows** (last 24h vs last 4 weeks),
+fire **alerts** past a threshold (e.g. PSI > 0.2), and wire the signal into the pipeline to
+**retrain or recalibrate**. A credit model trained on 2022 data might, by 2025, see income
+shift toward gig workers — PSI flags the covariate drift and the monitor flags concept drift,
+triggering a retrain. The payoff is avoiding **silent degradation**, protecting **fairness**
+(drift can hit subgroups unevenly), and meeting **compliance** demands for monitoring.
+"""
+
+CONTENT["Model Distillation (Knowledge Distillation)"] = r"""
+What it is
+----------
+
+**Model distillation** (knowledge distillation) is a **compression** technique: a large,
+accurate **teacher** model transfers its knowledge to a smaller, faster **student**. The aim
+is a lighter model that **keeps most of the teacher's accuracy** while being cheap enough to
+deploy on phones and edge devices.
+
+How it works
+------------
+
+Train the big teacher (a large transformer, say), then have it produce **soft targets** — full
+probability distributions like ``[0.7 cat, 0.2 dog, 0.1 rabbit]`` rather than a bare hard
+label. The student trains to **mimic those soft outputs**, usually under a loss that blends a
+**distillation term** (student vs teacher) with a **supervised term** (student vs true labels).
+
+The objective
+-------------
+
+.. math::
+
+   L = \alpha \, L_{\text{hard}}(y, p_s) \; + \; (1 - \alpha)\, L_{\text{soft}}(p_t, p_s, T),
+
+where :math:`y` are true labels, :math:`p_t` and :math:`p_s` the teacher and student
+probabilities, :math:`T` a **temperature** that softens the teacher's distribution to expose
+its "dark knowledge", and :math:`\alpha` the balance between the two terms.
+
+Why, examples, and costs
+------------------------
+
+It buys **efficiency** (faster, cheaper inference), **deployability** (edge devices), and even
+better generalisation from the teacher's soft probabilities. **DistilBERT** is ~40% smaller and
+~60% faster than BERT at ~97% of its performance; **ResNet-50** distills into ResNet-18 at
+similar accuracy. The catches: the student **cannot capture everything**, :math:`T` and
+:math:`\alpha` need tuning, and you still pay to **train the teacher** first.
+"""
+
+CONTENT["Early Stopping"] = r"""
+What it is
+----------
+
+**Early stopping** is a **regularisation** technique: stop training **before the model
+overfits**. Rather than running a fixed number of epochs, you watch a **validation metric** and
+halt once it stops improving — capturing the model at its generalisation "sweet spot" and
+saving the wasted epochs beyond it.
+
+How it works
+------------
+
+Hold out a validation set, train across epochs, and after each one **score the validation
+metric** and remember the **best** so far. If it fails to improve for **N consecutive epochs** —
+the **patience** — stop. The key parameters are the **monitored metric**, the **mode**
+(``min`` for loss, ``max`` for accuracy or AUC), the **patience**, and **restore-best-weights**,
+which rolls the model back to its best epoch.
+
+Example
+-------
+
+Capped at 100 epochs, suppose validation loss improves until **epoch 25** and then climbs as
+the model starts overfitting. With **patience = 3**, training stops at **epoch 28** and restores
+the weights from epoch 25 — the genuine best.
+
+Benefits and drawbacks
+----------------------
+
+It **prevents overfitting**, **cuts training time**, and finds a near-optimal stopping point
+automatically. The costs are minor: it **needs a validation set**, and a noisy metric can trip
+it too soon — which is exactly what **patience** is there to absorb.
+"""
+
+MINDMAP.update({
+    "Drift Detection": [
+        "Data Drift", "Concept Drift", "Covariate Drift (a.k.a. Covariate Shift)",
+        "PSI (Population Stability Index)", "Recalibration", "Re-scoring",
+    ],
+    "Model Distillation (Knowledge Distillation)": [
+        "Quantization", "Frozen Encoder", "Embedding", "Autoencoder", "Early Stopping",
+        "Epochs",
+    ],
+    "Early Stopping": [
+        "Epochs", "Cross-Validation (CV)", "Model Distillation (Knowledge Distillation)",
+        "Frozen Encoder", "Autoencoder", "Quantization",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: training mechanics & the AI umbrella  (training / concepts)
+# ----------------------------------------------------------------------
+
+CONTENT["Epochs"] = r"""
+What it is
+----------
+
+An **epoch** is **one complete pass of the entire training set through the model**. In each
+epoch the model sees every training sample once — in **mini-batches**, not all at once — and
+across many epochs it refines its weights through repeated exposure.
+
+Epoch vs batch vs iteration
+---------------------------
+
+Three terms that are easy to conflate. A **batch** is a subset of the data processed together;
+an **iteration** is one update step (a forward and backward pass on one batch); and an
+**epoch** is one full cycle through *all* batches. So with **10,000 samples** and a **batch
+size of 100**, it takes **100 iterations to complete 1 epoch**.
+
+Too few, too many
+-----------------
+
+Epoch count trades **underfitting against overfitting**. Too few and the model **hasn't
+learned enough**; too many and it begins to **memorise** the training data and generalises
+worse. Loss falls with more epochs only **up to a point**.
+
+The training loop and an example
+--------------------------------
+
+The loop is: initialise weights; for each epoch, run forward/backward passes over the
+mini-batches and update, then evaluate on a validation set; stop when validation stops
+improving (**early stopping**). Training an image classifier on **CIFAR-10** for 20 epochs,
+the model sees all 50,000 images each epoch and, by epoch 20, the loss has stabilised. Since
+the right count is data-dependent — roughly **50–200** for small sets, **5–30** with early
+stopping for large ones — the **epoch count is itself a hyperparameter**.
+"""
+
+CONTENT["Hyperparameter"] = r"""
+What it is
+----------
+
+A **hyperparameter** is a setting **chosen before training** that controls **how a model
+learns or how it is structured** — as opposed to **parameters** (weights and biases), which the
+optimiser **learns from the data**. Hyperparameters are the model's *learning strategy*;
+parameters are its *learned knowledge*.
+
+The main kinds
+--------------
+
+They span four areas. **Model structure**: number of layers, neurons per layer, a tree's max
+depth. **Training process**: learning rate, batch size, number of epochs, dropout rate.
+**Regularisation**: L1/L2 penalty strength, weight decay. **Optimisation**: SGD momentum, the
+Adam beta values.
+
+Why they matter
+---------------
+
+The same model with different hyperparameters can perform **very differently** — poor choices
+cause underfitting, overfitting or painfully slow training, so **tuning is critical** for
+accuracy and generalisation.
+
+Tuning, and an example
+----------------------
+
+Common strategies escalate in sophistication: **manual** trial, **grid search** (every
+combination), **random search** (sample combinations — often more efficient), **Bayesian
+optimisation** (a probabilistic model guides the search), and **Hyperband / population-based**
+methods at scale. Training a net on MNIST one might fix learning rate ``0.001``, batch size
+``64``, dropout ``0.5`` and ``20`` epochs; the weights are learned automatically, but
+performance hinges on those chosen hyperparameters.
+"""
+
+CONTENT["AI (Artificial Intelligence)"] = r"""
+What it is
+----------
+
+**Artificial intelligence (AI)** is the broad field of computer science aimed at building
+systems that **perform tasks that normally require human intelligence** — reasoning, learning,
+problem-solving, perception, language and decision-making. It is the **umbrella term** beneath
+which Machine Learning, Deep Learning and other methods sit.
+
+Core capabilities
+-----------------
+
+AI systems aim at a handful of capabilities: **learning** from data or experience (ML, DL);
+**reasoning** to logical decisions (symbolic AI, expert systems); **perception** of the world
+(vision, speech); **language understanding** (NLP, large language models); and
+**action/autonomy** (robotics, self-driving cars, agents).
+
+Narrow, general, super
+----------------------
+
+Today's systems are **narrow (weak) AI** — focused on one task (spam filters, recommenders,
+voice assistants, chatbots). **General AI (AGI)** — human-level competence across arbitrary
+tasks — remains **hypothetical and unachieved**, and **superintelligence**, surpassing humans
+in every domain, is a theoretical further step.
+
+AI vs ML vs DL, and the trade-offs
+----------------------------------
+
+The nesting is the key relationship: **AI** is the broad goal, **machine learning** is the
+subset that learns from data, and **deep learning** is the subset of ML built on neural
+networks for complex perception and language. The field automates tasks, augments
+decision-making and unlocks insight from large data — across healthcare, finance, transport
+and generative tools — but carries real challenges: **bias and fairness**, the
+**interpretability** of black-box models, the **energy and cost** of training, and **safety,
+regulation and ethics**.
+"""
+
+MINDMAP.update({
+    "Epochs": [
+        "Hyperparameter", "Early Stopping", "Cross-Validation (CV)",
+        "Model Distillation (Knowledge Distillation)", "Neural Networks", "Quantization",
+    ],
+    "Hyperparameter": [
+        "Epochs", "Cross-Validation (CV)", "Early Stopping", "Neural Networks",
+        "Model Distillation (Knowledge Distillation)", "Quantization",
+    ],
+    "AI (Artificial Intelligence)": [
+        "Machine Learning (ML)", "Neural Networks", "Bayesian Neural Networks (BNNs)",
+        "Variational Inference (VI)", "Model Distillation (Knowledge Distillation)",
+        "Quantization",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: machine learning & two regulated-domain applications  (concepts / applied)
+# ----------------------------------------------------------------------
+
+CONTENT["Machine Learning (ML)"] = r"""
+What it is
+----------
+
+**Machine learning (ML)** is the branch of AI in which computers **learn patterns from data**
+rather than following hand-written rules. You supply **examples**, the model **learns the
+relationship between inputs (features) and outputs (labels)**, and once trained it
+**predicts** on new, unseen data.
+
+The core idea
+-------------
+
+Formally, ML fits a function
+
+.. math::
+
+   y = f(X) + \varepsilon,
+
+where :math:`X` are the input features, :math:`y` the output, :math:`f` the function learned
+from data, and :math:`\varepsilon` irreducible noise. Learning means estimating :math:`f`.
+
+The kinds of learning
+---------------------
+
+**Supervised** learning uses labelled data — **regression** for continuous targets (house
+price), **classification** for categories (spam or not). **Unsupervised** learning works on
+unlabelled data — **clustering** (customer segmentation) and **dimensionality reduction** (PCA,
+embeddings). **Semi-supervised** mixes a little labelled with much unlabelled data (costly
+medical labels). **Reinforcement learning** has an agent learn from rewards by acting in an
+environment. And **self-supervised** learning predicts part of the input from the rest (masked
+words) — the engine behind modern LLMs.
+
+Workflow and an example
+-----------------------
+
+The lifecycle is collect → clean → choose a model → train → evaluate → deploy → **monitor and
+retrain**. Train a model on thousands of houses — 1,000 sqft and 3 rooms sold for ``$250,000`` —
+and it learns that price rises with size and rooms, so a new 1,200 sqft, 4-room house is
+predicted at roughly ``$300,000``. ML matters because it **automates pattern discovery** at a
+scale and complexity beyond hand-coded rules.
+"""
+
+CONTENT["Medical AI"] = r"""
+What it is
+----------
+
+**Medical AI** is the application of AI techniques — machine learning, deep learning, NLP,
+computer vision — to **healthcare and medicine**: diagnosis, treatment, drug discovery, patient
+monitoring and operational efficiency.
+
+Where it's applied
+------------------
+
+The reach is broad. **Imaging and diagnostics** detect disease in X-rays, CT, MRI and
+ultrasound (lung nodules, diabetic retinopathy, fractures). **Clinical decision support**
+suggests treatments and dosages. **Predictive analytics** flag readmission or sepsis risk in
+the ICU. **Drug discovery** tackles protein folding and molecule generation — AlphaFold being
+the landmark. **NLP** mines electronic health records and powers triage chatbots.
+**Personalised medicine** fuses genomics with patient data, and **wearables** catch irregular
+heart rhythms or track glucose continuously.
+
+The benefits
+------------
+
+Done well, it brings **faster, more accurate diagnosis**, **less repetitive workload** for
+clinicians, **earlier detection** and better outcomes, and **lower cost** through efficiency.
+
+The hard parts
+--------------
+
+The obstacles are as real as the promise: **data privacy** (HIPAA, GDPR), **bias and fairness**
+when training data underrepresents groups, **interpretability** of black-box models that
+clinicians must trust, **regulatory approval** (FDA, EMA), and **integration** into clinical
+workflows without disrupting care. Deployed systems like FDA-cleared diabetic-retinopathy
+screening show the path through these constraints.
+"""
+
+CONTENT["KYC"] = r"""
+What it is
+----------
+
+**KYC — Know Your Customer** (or Client) — is the **regulatory process** by which banks,
+financial institutions and fintechs **verify a customer's identity**. Its purpose is to prevent
+**fraud, money laundering (AML), terrorism financing and identity theft**.
+
+The three steps
+---------------
+
+**Customer identification**: collect official documents (passport, licence, ID, utility bills)
+and verify name, address and date of birth. **Customer due diligence (CDD)**: assess the
+customer's **risk level** — basic checks for most, **enhanced** due diligence for high-risk
+cases like large transactions or politically exposed persons. **Ongoing monitoring**: watch
+transactions for suspicious activity and periodically **re-verify** (re-KYC).
+
+Where it shows up
+-----------------
+
+Opening a **bank account** needs ID plus proof of address; a **crypto exchange** asks for a
+photo ID and a selfie before trading; a **loan application** verifies income documents and ID
+to cut fraud risk. KYC is **required by AML law**, shields institutions from fraud and fines,
+and builds trust with customers and regulators.
+
+The technology
+--------------
+
+Modern KYC leans on automation: **OCR** to read documents, **facial recognition** to match a
+selfie to an ID photo, **database checks** against sanction and politically-exposed-person
+lists, and **AI/ML models** to flag forged IDs and suspicious transaction patterns — the same
+fraud-detection machinery used across finance.
+"""
+
+MINDMAP.update({
+    "Machine Learning (ML)": [
+        "AI (Artificial Intelligence)", "Neural Networks", "Customer Segmentation",
+        "Embedding", "Regression Coefficient", "Medical AI",
+    ],
+    "Medical AI": [
+        "AI (Artificial Intelligence)", "Machine Learning (ML)",
+        "Demographic Parity (Statistical Parity)", "Counterfactual Explanations",
+        "Drift Detection", "Neural Networks",
+    ],
+    "KYC": [
+        "AI (Artificial Intelligence)", "Machine Learning (ML)", "Drift Detection",
+        "Demographic Parity (Statistical Parity)", "SaaS (Software as a Service)",
+        "Counterfactual Explanations",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: workforce metric & managed ML platforms  (growth / platforms)
+# ----------------------------------------------------------------------
+
+CONTENT["FTEs"] = r"""
+What it is
+----------
+
+An **FTE — full-time equivalent** — standardises workforce size by converting **total hours
+worked into a number of full-time employees**. **1.0 FTE** is one person working full-time
+(commonly 40 hours/week in the US, though it varies by company and country), so the measure
+lets part-timers and contractors be compared on one scale.
+
+Why it's used
+-------------
+
+Three jobs. **Headcount planning** measures real staffing even when many work part-time;
+**budgeting** computes labour cost consistently; and **project management** estimates the
+resources available to deliver.
+
+Examples
+--------
+
+The arithmetic is hours-based: one full-timer at 40h/week is **1.0 FTE**, and **two
+part-timers** at 20h each also sum to **1.0 FTE**. A project needing **5 FTEs** for six months
+could be five full-time staff, ten half-time staff, or any mix totalling the same hours. On
+cost, if one FTE earns ``$100,000``/year, then 3.5 FTEs run about ``$350,000``/year.
+
+FTE vs headcount
+----------------
+
+The two answer different questions. **Headcount** is the raw number of people; **FTE** is that
+number **weighted by hours**. Ten employees each working half-time are a **headcount of 10**
+but an **FTE of 5** — which is why FTE, not headcount, is the fair basis for comparing
+workloads and costs.
+"""
+
+CONTENT["AWS SageMaker"] = r"""
+What it is
+----------
+
+**Amazon SageMaker** is AWS's **end-to-end, fully managed ML platform** for **building,
+training, deploying and monitoring** models at scale. It is the AWS answer to Google's Vertex
+AI and Microsoft's Azure ML.
+
+The pipeline it covers
+----------------------
+
+SageMaker spans the whole lifecycle. **Data prep** with Data Wrangler and a Feature Store
+(over S3, Redshift, Athena). **Training** for any major framework (TensorFlow, PyTorch,
+scikit-learn, XGBoost) on managed CPU/GPU instances, with distributed training and **automatic
+hyperparameter tuning**. **Deployment** as real-time, asynchronous or batch endpoints, with
+autoscaling. **MLOps** via Pipelines (CI/CD), Model Monitor (drift, bias, quality), Clarify
+(bias and explainability) and Debugger. And **generative AI** through JumpStart's pre-trained
+models.
+
+Workflow, benefits, costs
+-------------------------
+
+The flow is: prepare data in S3 → train on managed infrastructure → auto-tune → deploy to an
+endpoint → monitor and retrain. The upside is **scale, framework flexibility** (any Docker
+container), deep **AWS integration** and a full **MLOps** toolkit. The downside is
+**complexity** — many services and a steep curve — and **cost** that climbs fast if endpoints
+run 24/7.
+
+Versus the alternatives
+-----------------------
+
+Against **Vertex AI**, the two are close peers — both full end-to-end platforms, differing
+mainly by cloud ecosystem (AWS vs GCP). Against the **OpenAI API**, the trade is control for
+simplicity: SageMaker trains and serves *any* custom model, while an inference-only API is
+faster to start but limited to the provider's models.
+"""
+
+CONTENT["Vertex AI"] = r"""
+What it is
+----------
+
+**Vertex AI** is **Google Cloud's managed ML platform** for building, training, deploying and
+monitoring models end-to-end, unifying **data, training, inference and monitoring** in one
+workflow. It is the GCP counterpart to AWS SageMaker and Azure ML.
+
+The pipeline it covers
+----------------------
+
+**Training** for custom models (TensorFlow, PyTorch, scikit-learn, XGBoost) with distributed
+runs across CPUs, GPUs and **TPUs**, plus built-in tuning. **Deployment** as real-time or batch
+endpoints over Google Cloud Storage, with autoscaling. **Foundation models** — Google's PaLM,
+Gemini, Imagen and Chirp — accessible through **Vertex AI Studio** without training from
+scratch. **MLOps** with monitoring (drift, bias, feature skew), pipelines, **explainable AI**
+and metadata versioning. And a **Feature Store** integrated with BigQuery and Dataflow.
+
+Workflow, benefits, costs
+-------------------------
+
+The flow runs ingest (BigQuery, GCS) → prepare features → train (custom or **AutoML**) →
+deploy → monitor for drift, performance and fairness. Its strengths are being **fully
+managed**, **first-class access to Google's foundation models**, and tight **GCP integration**.
+The costs mirror SageMaker's: it can be **expensive at scale** and brings **vendor lock-in** to
+GCP.
+
+Versus SageMaker
+----------------
+
+The two are near-mirror images — both end-to-end, both supporting any framework and full
+MLOps. The real differentiators are **ecosystem** (BigQuery/GCS vs S3/Redshift) and
+**foundation-model access** (Gemini and friends native to Vertex). The choice usually follows
+whichever cloud an organisation already lives in.
+"""
+
+MINDMAP.update({
+    "FTEs": [
+        "SaaS (Software as a Service)", "Gross Margin",
+        "Blended CAC (Customer Acquisition Cost)", "Customer Segmentation", "KYC",
+        "D2C (Direct-to-Consumer)",
+    ],
+    "AWS SageMaker": [
+        "Vertex AI", "OpenAI API (ML API)", "Online Experimentation Platforms",
+        "Drift Detection", "Hyperparameter", "ONNX (Open Neural Network Exchange)",
+    ],
+    "Vertex AI": [
+        "AWS SageMaker", "OpenAI API (ML API)", "Online Experimentation Platforms",
+        "Drift Detection", "Hyperparameter", "Quantization",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: inference APIs, managed endpoints, big-payload serving  (platforms / ops)
+# ----------------------------------------------------------------------
+
+CONTENT["OpenAI API (ML API)"] = r"""
+What it is
+----------
+
+The **OpenAI API** is a cloud **machine-learning API**: it exposes OpenAI's models — LLMs,
+embeddings, fine-tuned variants — through simple **HTTP endpoints**. Rather than training and
+hosting a model yourself, you **send a request, the cloud runs inference, and JSON comes
+back** — inference-as-a-service.
+
+What it offers
+--------------
+
+The surface is broad. **Chat and text generation** (GPT-family models) for Q&A, summarisation
+and reasoning. An **embeddings** endpoint turning text into vectors for semantic search,
+clustering and **RAG**. A **fine-tuning** endpoint to specialise a model on your data.
+**Moderation** for unsafe content, **vision/multimodal** for images alongside text, and
+**speech** both ways (text-to-speech and Whisper transcription). Plus **batch/async**
+processing for volume.
+
+Calling it
+----------
+
+You POST to a REST endpoint (or use an SDK) and read the response:
+
+.. code-block:: python
+
+   from openai import OpenAI
+   client = OpenAI()
+
+   response = client.chat.completions.create(
+       model="gpt-4o-mini",
+       messages=[{"role": "user", "content": "Explain Bayesian inference simply."}],
+   )
+
+Benefits and limits
+-------------------
+
+The appeal is **no training or hosting**, **automatic scale**, and **simple integration** that
+improves as OpenAI ships new models. The constraints: it is **cloud-only** (needs internet),
+adds **network latency**, **costs per token** of input and output, and raises **privacy**
+questions — sensitive data must clear HIPAA/GDPR review before it leaves your systems.
+"""
+
+CONTENT["AWS SageMaker Endpoints"] = r"""
+What it is
+----------
+
+An **AWS SageMaker endpoint** is a **fully managed API** for serving a trained model: you
+deploy the model and SageMaker handles **infrastructure, scaling and serving** so there are no
+servers to run. Input goes in, the endpoint runs inference, predictions come out.
+
+The three types
+---------------
+
+**Real-time** endpoints are always-on HTTPS with low latency and autoscaling — for fraud
+checks or chatbots. **Asynchronous** endpoints handle **large payloads or long jobs**: upload
+to S3, the endpoint processes, results land back in S3 — good for video or big documents.
+**Batch transform** runs **offline** over a whole S3 dataset with no live endpoint — ideal for
+scheduled jobs like scoring every customer monthly.
+
+Deploying one
+-------------
+
+The path is: train or **import** a model (any framework, or ONNX) and save artifacts to S3;
+**register** it as a Model with its inference script; create an **endpoint configuration**
+(instance type, scaling); deploy; then **invoke** via the SDK or REST:
+
+.. code-block:: python
+
+   import boto3
+   sm = boto3.client("sagemaker-runtime")
+   response = sm.invoke_endpoint(
+       EndpointName="my-endpoint",
+       ContentType="application/json",
+       Body='{"data":[1.0, 2.0, 3.0]}',
+   )
+
+Why use them
+------------
+
+They are **fully managed** (no EC2 to babysit), **autoscaling** for traffic spikes,
+**framework-flexible** (custom Docker too), **secure** (IAM, VPC, encryption), and **cost
+controllable** — pay for instance time, or shift to async/batch to save when latency is not
+critical.
+"""
+
+CONTENT["Cloud Inference with Big Payloads"] = r"""
+What it is
+----------
+
+In **cloud inference**, the **payload** is the data you send the model. **Small payloads** are
+tabular rows or short prompts; **big payloads** are large images, long videos, audio, sprawling
+JSON feature sets or massive documents — and their size changes everything about how you serve
+the request.
+
+The challenges
+--------------
+
+Five bite. **Network latency and bandwidth**: uploading a 500MB video dwarfs a 1KB JSON call.
+**Serialisation and transfer costs**: JSON/Protobuf/gRPC overhead grows with size, and many
+APIs **cap request size**. **Compute cost**: more data means more FLOPs and higher OpEx — a 4K
+frame sequence costs far more than one image. **Timeouts and reliability**: big uploads time
+out more and are **harder to retry**. And **privacy**: sensitive payloads (medical scans) need
+encryption and compliance checks.
+
+The mitigations
+---------------
+
+Five answers. **Compress client-side** — resize images, sample video frames, extract audio
+features (MFCCs) before sending. **Stream in chunks** (gRPC, WebSocket) for live video or
+speech. **Go asynchronous** — upload to S3/GCS and send only a **file reference**, then poll or
+get a callback. **Split edge and cloud** — run a feature extractor on-device and send small
+**embeddings** rather than raw input. And **optimise the format** — binary serialisation
+(Protobuf, Avro, Arrow) over raw JSON, batching small requests together.
+
+Examples
+--------
+
+A 200MB **CT scan** goes to cloud storage, with only its reference passed to an async pipeline.
+**Video analytics** extracts one frame per second locally instead of streaming full HD. And a
+200-page document for an **LLM** is chunked into sections, processed sequentially or through
+**retrieval (RAG)** rather than sent whole.
+"""
+
+MINDMAP.update({
+    "OpenAI API (ML API)": [
+        "AWS SageMaker", "Vertex AI", "AWS SageMaker Endpoints", "Embedding",
+        "Cloud Inference with Big Payloads", "Online Experimentation Platforms",
+    ],
+    "AWS SageMaker Endpoints": [
+        "AWS SageMaker", "Cloud Inference with Big Payloads", "OpenAI API (ML API)",
+        "ONNX (Open Neural Network Exchange)", "Drift Detection", "Vertex AI",
+    ],
+    "Cloud Inference with Big Payloads": [
+        "AWS SageMaker Endpoints", "OpenAI API (ML API)", "Embedding", "Quantization",
+        "Model Distillation (Knowledge Distillation)", "Cloud Inference",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: cloud inference, ensembles, model weights  (ops / training)
+# ----------------------------------------------------------------------
+
+CONTENT["Cloud Inference"] = r"""
+What it is
+----------
+
+**Cloud inference** is running a **trained model on cloud infrastructure** to make predictions
+on new data. "Inference" means *using* a trained model rather than training one, and "cloud"
+means it runs on AWS, GCP or Azure rather than on local or on-device hardware.
+
+How it works
+------------
+
+Three stages. **Train** a model (locally or in the cloud) and save its weights. **Deploy** it to
+a cloud service (SageMaker, Vertex AI, Azure ML) behind an **API endpoint** (REST or gRPC).
+Then **infer**: the client sends input, the service loads the model, runs a forward pass and
+returns the prediction.
+
+Benefits and challenges
+-----------------------
+
+The upsides are **scalability** (autoscale to millions of requests), **low maintenance** (the
+provider runs servers and GPUs), **flexibility** (serve and version many models), and
+**accessibility** (any device can call the API). The costs are **latency** (a network round
+trip), **OpEx** per prediction at scale, **privacy** obligations when sensitive data leaves the
+device, and the need for **monitoring** to keep uptime and fairness in check.
+
+Cloud vs edge
+-------------
+
+The contrast is with **edge / on-device** inference. Cloud runs on powerful servers (GPUs,
+TPUs) and is easy to update but pays a network-latency cost; edge runs locally on a phone or
+IoT device with **low latency** but limited compute and harder remote updates. Image-tagging
+APIs, LLM chat services and fraud-scoring endpoints are all cloud inference.
+"""
+
+CONTENT["Ensemble"] = r"""
+What it is
+----------
+
+An **ensemble** combines **multiple models into one stronger predictor**. The intuition is the
+**wisdom of the crowd** — a group of diverse or individually "weak" models, averaged together,
+is usually more accurate and more stable than any one of them.
+
+Why use one
+-----------
+
+Ensembles **reduce variance** (steadier, less noise-sensitive predictions), can **reduce bias**
+(capturing more complex patterns), and **improve robustness** (one model's errors offset by
+others). They routinely win competitions like Kaggle for exactly these reasons.
+
+The five strategies
+-------------------
+
+**Bagging** (bootstrap aggregating) trains models on different random samples and averages or
+votes — **random forest** is bagged decision trees. **Boosting** trains models
+**sequentially**, each fixing the last one's errors (AdaBoost, gradient boosting, XGBoost,
+LightGBM, CatBoost). **Stacking** trains base models and a **meta-learner** to combine them.
+**Voting** takes a majority (hard) or averages probabilities (soft). **Blending** is stacking
+with the meta-learner trained on a **holdout set** rather than CV folds.
+
+Trade-offs
+----------
+
+The wins — **higher accuracy**, **resistance to overfitting**, complementary patterns from
+different algorithms — come at a price: **more compute**, **harder interpretability** than a
+single model, and **deployment complexity** (several models mean more latency and OpEx).
+"""
+
+CONTENT["Model Weights"] = r"""
+What it is
+----------
+
+**Model weights** are a model's **trainable parameters** — the numbers that determine how input
+features are turned into predictions. Each weight encodes the **importance** of a feature, and
+training **adjusts** them to minimise loss.
+
+By model type
+-------------
+
+In **linear regression**, :math:`y = w_1 x_1 + w_2 x_2 + b`, the weights :math:`w_1, w_2` say
+how much each feature contributes — if :math:`w_1 = 200`, every extra square foot adds ``$200``
+to the predicted price. In a **neural network**, every connection between neurons has a weight;
+the forward pass multiplies inputs by weights and applies an activation, and CNN filter weights
+learn patterns like edges. In **logistic regression**, weights are the **log-odds**
+contribution — positive pushes toward the positive class, negative away.
+
+How they're learned
+-------------------
+
+Weights start **random** (or from a heuristic), then a loop refines them: **forward pass** to
+predict, a **loss** against the truth, **backpropagation** for the gradients of loss with
+respect to each weight, and an **optimiser** (SGD, Adam) to update them — repeated until the
+loss settles.
+
+Why they matter
+---------------
+
+Weights **are** the model's learned knowledge: saving or loading a model *is* saving or loading
+its weights. In transfer learning we often **freeze** the encoder's weights and fine-tune only
+the last layers. Concretely, a spam classifier might learn a weight of **+2.5** for "free"
+(strongly spammy) and **-1.0** for "invoice" (less so).
+"""
+
+MINDMAP.update({
+    "Cloud Inference": [
+        "Cloud Inference with Big Payloads", "AWS SageMaker Endpoints", "OpenAI API (ML API)",
+        "AWS SageMaker", "Vertex AI", "Quantization",
+    ],
+    "Ensemble": [
+        "Re-scoring", "Cross-Validation (CV)", "Model Distillation (Knowledge Distillation)",
+        "Cloud Inference", "Bayesian Neural Networks (BNNs)", "Model Weights",
+    ],
+    "Model Weights": [
+        "Hyperparameter", "Frozen Encoder", "Regression Coefficient", "Epochs",
+        "Neural Networks", "FLOPs",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: compute, cost, and large language models  (compute / cost / concepts)
+# ----------------------------------------------------------------------
+
+CONTENT["FLOPs"] = r"""
+What it is
+----------
+
+**FLOPs — floating-point operations** — count the **mathematical operations** (adds, multiplies,
+divides) a model or algorithm performs. In ML, FLOPs are a standard **proxy for computational
+complexity** and for training/inference **cost** — they measure *workload*, not memory access or
+I/O.
+
+The units
+---------
+
+One operation is a **FLOP**, and the scale climbs fast: **MFLOPs** (millions), **GFLOPs**
+(billions), **TFLOPs** (trillions), **PFLOPs** (quadrillions). A single large matrix
+multiplication already involves enormous counts.
+
+Counting them
+-------------
+
+Multiplying an :math:`m \times n` matrix by an :math:`n \times p` matrix costs about
+:math:`2 \, m \, n \, p` FLOPs — so two :math:`1000 \times 1000` matrices run to roughly **2
+billion**. In deep learning, **training** FLOPs scale with dataset size × model size × epochs,
+while **inference** FLOPs per forward pass drive deployment latency. For comparison, ResNet-50 is
+~4 GFLOPs per image, BERT-base ~22 GFLOPs per sequence, and GPT-3 took an estimated
+:math:`3 \times 10^{23}` FLOPs to train.
+
+FLOPs vs FLOPS
+--------------
+
+Two letters, two meanings. **FLOPs** is a **count** of operations (the workload); **FLOPS** is
+**floating-point operations per second**, the **speed** of hardware — an NVIDIA A100 delivers
+~312 TFLOPS on its tensor cores. FLOPs is the job; FLOPS is how fast the worker does it. Because
+training cost scales almost linearly with FLOPs, the count is a key lever in the
+efficiency-versus-accuracy trade-off.
+"""
+
+CONTENT["OpEx"] = r"""
+What it is
+----------
+
+**OpEx — operating expenses** — are the **ongoing, day-to-day costs** of running a business or
+system. They contrast with **CapEx (capital expenditures)**, the one-time, long-term investments
+like buying servers or buildings; OpEx is the **recurring** spend — salaries, rent, cloud usage.
+
+What counts as OpEx
+-------------------
+
+In a business: salaries, rent, utilities, marketing, maintenance. In a **tech/ML** setting:
+**cloud compute** (AWS, GCP, Azure), **data storage** (S3, BigQuery, Snowflake), **inference
+costs** (GPU time per prediction), **third-party API** fees, and **monitoring/logging**
+subscriptions.
+
+CapEx vs OpEx
+-------------
+
+The split is timing and accounting. **CapEx** is a **one-time** investment in a long-lived asset,
+**capitalised and depreciated** over years. **OpEx** is a **recurring** operating cost,
+**expensed immediately** on the income statement. Buying ``$500k`` of servers is CapEx; paying
+``$50k`` a month for cloud, salaries and electricity is OpEx.
+
+Why it matters
+--------------
+
+OpEx is **subtracted from revenue** to get operating profit, so businesses track it closely to
+**control recurring costs**. In ML specifically, **reducing OpEx** — more efficient models that
+burn fewer GPU hours — is what makes a deployment **sustainable** at scale, tying it directly to
+FLOPs and inference cost.
+"""
+
+CONTENT["LLMs (Large Language Models)"] = r"""
+What it is
+----------
+
+**LLMs — large language models** — are ML models trained on **massive text corpora** to
+understand and generate human language. Built on **transformer** architectures, they handle a
+wide range of NLP tasks **without task-specific training**, via zero-shot and few-shot prompting.
+
+How they work
+-------------
+
+The architecture is the **transformer** with **self-attention**, which lets the model weigh every
+word in a sequence for context. Training runs over **billions to trillions of tokens** (books,
+articles, code, the web) with a deceptively simple objective: **predict the next token**. From
+that single objective emerge text generation, summarisation, translation, reasoning and code
+generation.
+
+The landscape and uses
+----------------------
+
+The major families include OpenAI's **GPT**, Google's **Gemini**, Meta's **LLaMA**, Anthropic's
+**Claude** and Mistral's **Mixtral**. They power conversational assistants, content creation,
+**code copilots**, semantic search and **retrieval-augmented generation (RAG)**, and
+data-science tasks like query-to-SQL.
+
+The limitations
+---------------
+
+The caveats are serious: **hallucinations** (fluent but wrong answers), **bias** inherited from
+training data, **cost and energy** (very high OpEx to train and serve), **stale knowledge** that
+lags real-time events, and limited **explainability**. A useful mental model is a **very powerful
+autocomplete** — predict the most likely continuation — that, at sufficient scale, begins to show
+reasoning-like behaviour.
+"""
+
+MINDMAP.update({
+    "FLOPs": [
+        "Model Weights", "Quantization", "Model Distillation (Knowledge Distillation)",
+        "Cloud Inference", "OpEx", "Neural Networks",
+    ],
+    "OpEx": [
+        "FLOPs", "Gross Margin", "Cloud Inference", "SaaS (Software as a Service)",
+        "LLMs (Large Language Models)", "Blended CAC (Customer Acquisition Cost)",
+    ],
+    "LLMs (Large Language Models)": [
+        "AI (Artificial Intelligence)", "Machine Learning (ML)", "Neural Networks", "Embedding",
+        "OpenAI API (ML API)", "FLOPs",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: probability recalibration, reweighting, continuous retraining  (calibration / drift / mlops)
+# ----------------------------------------------------------------------
+
+CONTENT["Recalibration"] = r"""
+What it is
+----------
+
+**Recalibration** adjusts a model's **predicted probabilities** so they match the **true
+likelihood** of outcomes. A model may output a 0.9 "probability of fraud", but if that score is
+**over- or under-confident**, recalibration corrects the mismatch — without touching the model's
+ranking.
+
+Why it's needed
+---------------
+
+Many models (SVMs, neural nets, boosted trees) are **poorly calibrated**: their raw outputs are
+useful for *ordering* cases but are not true probabilities. In high-stakes domains — medicine,
+finance, fraud — decisions need **trustworthy probabilities**, not just a ranking. The target is
+simple: of all cases scored **0.7**, about **70%** should actually be positive.
+
+How it's done
+-------------
+
+Fit a small **calibration model on a validation set**, comparing predicted scores to true
+outcomes. The common methods are **Platt scaling** (a logistic fit on the raw scores),
+**isotonic regression** (a non-parametric monotonic mapping), **temperature scaling** (one
+parameter on the logits, popular in deep learning), and **Bayesian** recalibration. A
+**calibration curve** — predicted probability versus observed frequency — diagnoses the need:
+deviation from the diagonal means miscalibration.
+
+Examples and the contrast
+-------------------------
+
+A spam filter scores an email **0.9**, but only 70% of such emails are truly spam — Platt scaling
+corrects it toward **0.72**. A mortality model predicts **0.2** where the real rate is **30%** —
+recalibration nudges it to **0.3**. This is distinct from **threshold tuning**, which moves the
+decision cutoff (say 0.5 → 0.3) to trade precision against recall; recalibration changes the
+**probabilities themselves**. It works as a **post-processing** step (no retraining), though it
+needs a reliable calibration set and may leave ranking metrics like AUC unchanged.
+"""
+
+CONTENT["Reweighting"] = r"""
+What it is
+----------
+
+**Reweighting** assigns **different weights to samples, features or loss terms** so that training
+or evaluation reflects the **true importance, fairness or distribution** of the data. It leaves
+the raw data untouched and instead changes **how much influence** each part has.
+
+Where it's used
+---------------
+
+Several settings. **Class imbalance**: upweight rare positives (fraud, disease) so the model
+can't ignore them. **Covariate shift / domain adaptation**: reweight training samples to match
+the production distribution (an 80%-desktop training set toward 50%-mobile production).
+**Fairness**: upweight underrepresented protected groups for equal contribution. Plus **loss
+reweighting** (balancing terms in multi-task or adversarial training) and **importance sampling**
+(correcting biased draws for unbiased estimates).
+
+The math
+--------
+
+The ordinary average loss
+
+.. math::
+
+   L = \frac{1}{N} \sum_{i=1}^{N} \ell(f(x_i), y_i)
+
+becomes, with weights,
+
+.. math::
+
+   L = \frac{1}{N} \sum_{i=1}^{N} w_i \, \ell(f(x_i), y_i),
+
+where :math:`w_i` is the weight on sample :math:`i` — a larger :math:`w_i` gives that example
+more influence.
+
+Examples and trade-offs
+-----------------------
+
+On a **1%-fraud** dataset, an unweighted model predicts "not fraud" always; weighting fraud at 99
+against 1 makes those cases count and **lifts recall**. A loan model that is 80% male can upweight
+female applicants toward fairness. The benefits — handling imbalance and drift, improving
+fairness, **keeping data intact** (no over/undersampling) — come with risks: **extreme weights**
+can overfit the minority, and choosing weights well takes validation.
+"""
+
+CONTENT["Continuous Retraining"] = r"""
+What it is
+----------
+
+**Continuous retraining** is the practice of **regularly updating a model with new data** to keep
+it accurate in production — also called online retraining or model refresh. It exists because
+real-world data **changes over time**: distribution shift, new categories, seasonal patterns.
+
+Why it's needed
+---------------
+
+Three pressures. **Drift** — feature distributions move (customer behaviour, fraud tactics) and
+feature-target relationships evolve. **Business change** — new products, regulations or customer
+segments. And **operational resilience** — keeping KPIs (AUC, calibration, accuracy) stable
+rather than letting the model **decay** on stale data.
+
+How it works
+------------
+
+A monitoring pipeline watches for **drift and KPI degradation**, then a **trigger** fires —
+**scheduled** (weekly/monthly refresh) or **event-driven** (drift past a threshold, KPI below
+target). The retraining pipeline pulls **new labelled data**, retrains or fine-tunes, **validates
+on a fresh holdout**, compares against the current model (A/B or shadow deployment), and
+**deploys only if it improves**.
+
+Approaches and trade-offs
+-------------------------
+
+**Batch** retraining rebuilds from scratch periodically — simple but resource-heavy.
+**Incremental / online** learning updates weights as data streams in. **Hybrid** keeps a frozen
+base and fine-tunes on recent data. The payoff is **stability under drift** with less manual work;
+the costs are needing **robust MLOps** (validation, reproducibility), **label availability** (no
+labels, no retraining), and guarding against **catastrophic forgetting** when old data is dropped.
+"""
+
+MINDMAP.update({
+    "Recalibration": [
+        "Re-scoring", "Platt Scaling", "Isotonic Regression", "Temperature Scaling",
+        "Recalibrate Thresholds", "Drift Detection",
+    ],
+    "Reweighting": [
+        "Class Weighting", "Demographic Parity (Statistical Parity)",
+        "SMOTE (Synthetic Minority Over-sampling Technique)", "Recalibration",
+        "Continuous Retraining", "Covariate Drift (a.k.a. Covariate Shift)",
+    ],
+    "Continuous Retraining": [
+        "Drift Detection", "Monitoring Pipelines", "Data Drift", "Concept Drift",
+        "Recalibration", "Reweighting",
     ],
 })

@@ -18,9 +18,46 @@ AWS SageMaker
 
 *Amazon's managed platform for building, training and deploying ML models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **ML Platforms &amp; Tools** terms below.
+**Amazon SageMaker** is AWS's **end-to-end, fully managed ML platform** for **building,
+training, deploying and monitoring** models at scale. It is the AWS answer to Google's Vertex
+AI and Microsoft's Azure ML.
+
+The pipeline it covers
+----------------------
+
+SageMaker spans the whole lifecycle. **Data prep** with Data Wrangler and a Feature Store
+(over S3, Redshift, Athena). **Training** for any major framework (TensorFlow, PyTorch,
+scikit-learn, XGBoost) on managed CPU/GPU instances, with distributed training and **automatic
+hyperparameter tuning**. **Deployment** as real-time, asynchronous or batch endpoints, with
+autoscaling. **MLOps** via Pipelines (CI/CD), Model Monitor (drift, bias, quality), Clarify
+(bias and explainability) and Debugger. And **generative AI** through JumpStart's pre-trained
+models.
+
+Workflow, benefits, costs
+-------------------------
+
+The flow is: prepare data in S3 → train on managed infrastructure → auto-tune → deploy to an
+endpoint → monitor and retrain. The upside is **scale, framework flexibility** (any Docker
+container), deep **AWS integration** and a full **MLOps** toolkit. The downside is
+**complexity** — many services and a steep curve — and **cost** that climbs fast if endpoints
+run 24/7.
+
+Versus the alternatives
+-----------------------
+
+Against **Vertex AI**, the two are close peers — both full end-to-end platforms, differing
+mainly by cloud ecosystem (AWS vs GCP). Against the **OpenAI API**, the trade is control for
+simplicity: SageMaker trains and serves *any* custom model, while an inference-only API is
+faster to start but limited to the provider's models.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Vertex AI <149-vertex-ai>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Hyperparameter <142-hyperparameter>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>`
 
 ----
 

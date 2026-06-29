@@ -18,9 +18,52 @@ OpenAI API (ML API)
 
 *A hosted API for accessing OpenAI's models programmatically.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **ML Platforms &amp; Tools** terms below.
+The **OpenAI API** is a cloud **machine-learning API**: it exposes OpenAI's models — LLMs,
+embeddings, fine-tuned variants — through simple **HTTP endpoints**. Rather than training and
+hosting a model yourself, you **send a request, the cloud runs inference, and JSON comes
+back** — inference-as-a-service.
+
+What it offers
+--------------
+
+The surface is broad. **Chat and text generation** (GPT-family models) for Q&A, summarisation
+and reasoning. An **embeddings** endpoint turning text into vectors for semantic search,
+clustering and **RAG**. A **fine-tuning** endpoint to specialise a model on your data.
+**Moderation** for unsafe content, **vision/multimodal** for images alongside text, and
+**speech** both ways (text-to-speech and Whisper transcription). Plus **batch/async**
+processing for volume.
+
+Calling it
+----------
+
+You POST to a REST endpoint (or use an SDK) and read the response:
+
+.. code-block:: python
+
+   from openai import OpenAI
+   client = OpenAI()
+
+   response = client.chat.completions.create(
+       model="gpt-4o-mini",
+       messages=[{"role": "user", "content": "Explain Bayesian inference simply."}],
+   )
+
+Benefits and limits
+-------------------
+
+The appeal is **no training or hosting**, **automatic scale**, and **simple integration** that
+improves as OpenAI ships new models. The constraints: it is **cloud-only** (needs internet),
+adds **network latency**, **costs per token** of input and output, and raises **privacy**
+questions — sensitive data must clear HIPAA/GDPR review before it leaves your systems.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Vertex AI <149-vertex-ai>` · :doc:`AWS SageMaker Endpoints <151-aws-sagemaker-endpoints>` · :doc:`Embedding <173-embedding>` · :doc:`Cloud Inference with Big Payloads <152-cloud-inference-with-big-payloads>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>`
 
 ----
 

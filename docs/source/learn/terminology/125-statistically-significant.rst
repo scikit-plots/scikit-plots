@@ -18,9 +18,43 @@ Statistically Significant
 
 *Describing a result unlikely under the null hypothesis at the chosen level.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A result is **statistically significant** when the **observed effect is unlikely to have
+arisen by chance** under the null hypothesis, judged against a chosen significance level
+:math:`\alpha`. Operationally it means there is **enough evidence to reject** :math:`H_0` —
+and crucially, "significant" here means *statistical evidence*, **not real-world
+importance**.
+
+The decision rule
+-----------------
+
+It comes down to comparing the **p-value** to the threshold: if :math:`p \le \alpha`, the
+result **is** statistically significant and you reject :math:`H_0`; if :math:`p > \alpha`, it
+is **not**, and you fail to reject. The usual :math:`\alpha` is 0.05.
+
+Examples
+--------
+
+A drug trial with :math:`p = 0.01` against :math:`\alpha = 0.05` **is** significant —
+evidence the drug beats placebo. An A/B test where a new button lifts clicks 3% but returns
+:math:`p = 0.2` is **not** significant — the lift could be noise.
+
+The cautions
+------------
+
+Three matter. **Significance is not importance**: with a large enough dataset a trivial 0.5%
+effect can clear the bar yet mean nothing. It is **sample-size dependent**: bigger samples
+make significance easier to reach. And it is vulnerable to **p-hacking** — running many tests
+or slicing data until something crosses :math:`\alpha`. A significant result is a starting
+point for judgement, read alongside effect size and context, not a verdict on its own.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Statistical Significance <096-statistical-significance>` · :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Significance Level (α) <105-significance-level>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Effect Size (δ) <106-effect-size>`
 
 ----
 

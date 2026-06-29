@@ -18,9 +18,60 @@ True Conversion Rate
 
 *The unknown underlying probability that a user converts, estimated from observed conversions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+The **true conversion rate** :math:`p` is the **actual probability that a user in the
+whole population converts** (clicks, buys, signs up). It is a **population parameter** —
+fixed but unknown. What an experiment actually measures is the **sample conversion rate**
+:math:`\hat{p}`, an *estimate* of :math:`p`.
+
+Parameter vs estimate
+---------------------
+
+.. math::
+
+   p = \frac{\text{conversions in the population}}{\text{users in the population}},
+   \qquad
+   \hat{p} = \frac{x}{n},
+
+where :math:`x` is conversions in the sample and :math:`n` the sample size. We can rarely
+see the whole population, so we work with :math:`\hat{p}` and quantify its uncertainty.
+
+Example
+-------
+
+1,000 users see version A and 50 convert, so :math:`\hat{p}_A = 50/1000 = 0.05` (5%). The
+true rate might be :math:`p = 0.052`, but we never observe it exactly — only estimate it.
+
+Confidence interval for p
+-------------------------
+
+Because :math:`\hat{p}` carries sampling error, a **Wald confidence interval** brackets
+the likely range of :math:`p`:
+
+.. math::
+
+   \text{CI} = \hat{p} \pm z_{\alpha/2}\, \sqrt{\frac{\hat{p}(1 - \hat{p})}{n}}.
+
+With :math:`\hat{p} = 0.05, n = 1000` and 95% confidence, the standard error is
+:math:`\sqrt{0.05 \times 0.95 / 1000} \approx 0.0069`, giving
+:math:`0.05 \pm 1.96 \times 0.0069 \approx [0.036, 0.064]` — we're 95% confident the true
+rate lies between **3.6% and 6.4%**.
+
+Why it matters
+--------------
+
+In A/B testing we never know either group's true rate; we estimate both with
+:math:`\hat{p}` and use a **two-proportion z-test** to judge whether the *observed*
+difference is real evidence of a difference in the **true** conversion rates — the actual
+quantity of interest.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Frequentist <059-frequentist>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

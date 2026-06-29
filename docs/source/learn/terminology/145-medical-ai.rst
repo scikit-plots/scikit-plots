@@ -18,9 +18,44 @@ Medical AI
 
 *The application of AI to clinical and healthcare problems.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Medical AI** is the application of AI techniques — machine learning, deep learning, NLP,
+computer vision — to **healthcare and medicine**: diagnosis, treatment, drug discovery, patient
+monitoring and operational efficiency.
+
+Where it's applied
+------------------
+
+The reach is broad. **Imaging and diagnostics** detect disease in X-rays, CT, MRI and
+ultrasound (lung nodules, diabetic retinopathy, fractures). **Clinical decision support**
+suggests treatments and dosages. **Predictive analytics** flag readmission or sepsis risk in
+the ICU. **Drug discovery** tackles protein folding and molecule generation — AlphaFold being
+the landmark. **NLP** mines electronic health records and powers triage chatbots.
+**Personalised medicine** fuses genomics with patient data, and **wearables** catch irregular
+heart rhythms or track glucose continuously.
+
+The benefits
+------------
+
+Done well, it brings **faster, more accurate diagnosis**, **less repetitive workload** for
+clinicians, **earlier detection** and better outcomes, and **lower cost** through efficiency.
+
+The hard parts
+--------------
+
+The obstacles are as real as the promise: **data privacy** (HIPAA, GDPR), **bias and fairness**
+when training data underrepresents groups, **interpretability** of black-box models that
+clinicians must trust, **regulatory approval** (FDA, EMA), and **integration** into clinical
+workflows without disrupting care. Deployed systems like FDA-cleared diabetic-retinopathy
+screening show the path through these constraints.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

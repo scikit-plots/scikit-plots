@@ -18,9 +18,55 @@ Minimum Detectable Lift (MDL)
 
 *The smallest effect an experiment is powered to detect reliably.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **minimum detectable lift (MDL)** is the **smallest relative change in a metric** —
+conversion, revenue, clicks — that an experiment can **reliably detect**, given its sample
+size :math:`n`, significance level :math:`\alpha` and power :math:`1 - \beta`. It is, in
+effect, the smallest effect you have decided is worth catching.
+
+Why it matters
+--------------
+
+It stops teams **over-optimising for trivial effects** and forces the design question up
+front: *what improvement is big enough to justify the test?* Crucially, the relationship
+is inverse — **the smaller the MDL you want to detect, the larger the sample you need**.
+
+The formula
+-----------
+
+For conversion rates,
+
+.. math::
+
+   \text{MDL} = \frac{p_{\text{treatment}} - p_{\text{control}}}{p_{\text{control}}}.
+
+With a 5% baseline, :math:`\alpha = 0.05`, power 0.80 and 20,000 per variant, the design
+can detect a **10% relative lift** (5% → 5.5%) — so the MDL is +10%. A true lift of only
++2% would likely slip past undetected.
+
+MDL vs MDE
+----------
+
+The two are easy to confuse. The **minimum detectable effect (MDE)** is the smallest
+**absolute** change (e.g. +0.5 percentage points); the **MDL** is the smallest
+**relative** change (a percentage lift). For control 5% → treatment 5.5%, the MDE is +0.5
+points while the MDL is +10%.
+
+Striking the balance
+--------------------
+
+Set the MDL **too high** and you miss small-but-valuable wins; set it **too low** and the
+test may need millions of users. The resolution is a negotiation: the **business** names
+the smallest improvement worth acting on, and the **statistician** sizes the experiment to
+detect at least that.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`A Priori Power Analysis <095-a-priori-power-analysis>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Two-Proportion Z-Test <098-two-proportion-z-test>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>`
 
 ----
 

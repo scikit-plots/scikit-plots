@@ -18,9 +18,46 @@ AI (Artificial Intelligence)
 
 *Systems that perform tasks normally requiring human intelligence.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Artificial intelligence (AI)** is the broad field of computer science aimed at building
+systems that **perform tasks that normally require human intelligence** — reasoning, learning,
+problem-solving, perception, language and decision-making. It is the **umbrella term** beneath
+which Machine Learning, Deep Learning and other methods sit.
+
+Core capabilities
+-----------------
+
+AI systems aim at a handful of capabilities: **learning** from data or experience (ML, DL);
+**reasoning** to logical decisions (symbolic AI, expert systems); **perception** of the world
+(vision, speech); **language understanding** (NLP, large language models); and
+**action/autonomy** (robotics, self-driving cars, agents).
+
+Narrow, general, super
+----------------------
+
+Today's systems are **narrow (weak) AI** — focused on one task (spam filters, recommenders,
+voice assistants, chatbots). **General AI (AGI)** — human-level competence across arbitrary
+tasks — remains **hypothetical and unachieved**, and **superintelligence**, surpassing humans
+in every domain, is a theoretical further step.
+
+AI vs ML vs DL, and the trade-offs
+----------------------------------
+
+The nesting is the key relationship: **AI** is the broad goal, **machine learning** is the
+subset that learns from data, and **deep learning** is the subset of ML built on neural
+networks for complex perception and language. The field automates tasks, augments
+decision-making and unlocks insight from large data — across healthcare, finance, transport
+and generative tools — but carries real challenges: **bias and fairness**, the
+**interpretability** of black-box models, the **energy and cost** of training, and **safety,
+regulation and ethics**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Bayesian Neural Networks (BNNs) <055-bayesian-neural-networks-bnns>` · :doc:`Variational Inference (VI) <056-variational-inference-vi>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Quantization <343-quantization>`
 
 ----
 

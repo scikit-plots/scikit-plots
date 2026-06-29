@@ -18,9 +18,40 @@ Multiclass stratified CV
 
 *Stratified cross-validation maintaining each class's proportion across folds.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Multiclass stratified CV** is stratified k-fold extended **beyond two classes**: every fold
+keeps approximately the **same distribution across all classes** as the full dataset. It is
+the natural generalisation of binary stratification to **three or more** labels.
+
+How it works
+------------
+
+Measure the overall class mix — say **A = 60%, B = 30%, C = 10%** — and build each fold to
+mirror it, so every fold carries A, B and C in roughly those proportions. Both training and
+validation sets then **represent all classes**.
+
+Example
+-------
+
+For 1,000 samples split **A = 600, B = 300, C = 100** with ``k = 5``, a **regular k-fold**
+might leave some folds with almost no class-C examples. **Multiclass stratified k-fold** gives
+each fold about **A = 120, B = 60, C = 20** — the original shape, fold after fold.
+
+Why it matters
+--------------
+
+In **imbalanced multiclass** problems, plain k-fold can starve a minority class in some folds,
+producing **unstable, misleading metrics** (a fold with no class-C samples cannot measure
+class-C performance). Stratification makes the evaluation **fair and stable**. It applies to
+**classification only** — there is nothing to stratify in a regression target.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stratified Group K-Fold <132-stratified-group-k-fold>` · :doc:`Stratified Shuffle Split <133-stratified-shuffle-split>` · :doc:`k-fold cross-validation <135-k-fold-cross-validation>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Class Weighting <002-class-weighting>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

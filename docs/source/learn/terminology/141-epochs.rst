@@ -18,9 +18,43 @@ Epochs
 
 *One full pass of the training algorithm over the entire dataset.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+An **epoch** is **one complete pass of the entire training set through the model**. In each
+epoch the model sees every training sample once — in **mini-batches**, not all at once — and
+across many epochs it refines its weights through repeated exposure.
+
+Epoch vs batch vs iteration
+---------------------------
+
+Three terms that are easy to conflate. A **batch** is a subset of the data processed together;
+an **iteration** is one update step (a forward and backward pass on one batch); and an
+**epoch** is one full cycle through *all* batches. So with **10,000 samples** and a **batch
+size of 100**, it takes **100 iterations to complete 1 epoch**.
+
+Too few, too many
+-----------------
+
+Epoch count trades **underfitting against overfitting**. Too few and the model **hasn't
+learned enough**; too many and it begins to **memorise** the training data and generalises
+worse. Loss falls with more epochs only **up to a point**.
+
+The training loop and an example
+--------------------------------
+
+The loop is: initialise weights; for each epoch, run forward/backward passes over the
+mini-batches and update, then evaluate on a validation set; stop when validation stops
+improving (**early stopping**). Training an image classifier on **CIFAR-10** for 20 epochs,
+the model sees all 50,000 images each epoch and, by epoch 20, the loss has stabilised. Since
+the right count is data-dependent — roughly **50–200** for small sets, **5–30** with early
+stopping for large ones — the **epoch count is itself a hyperparameter**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Hyperparameter <142-hyperparameter>` · :doc:`Early Stopping <140-early-stopping>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Quantization <343-quantization>`
 
 ----
 

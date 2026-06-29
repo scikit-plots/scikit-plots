@@ -18,9 +18,60 @@ Type I Error
 
 *Rejecting a true null hypothesis — a false positive, controlled at level alpha.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+A **Type I error** is a **false positive**: you **reject the null hypothesis**
+:math:`H_0` **when it is actually true** — concluding there is an effect or difference
+when in reality there is none.
+
+Its probability is α
+--------------------
+
+The probability of a Type I error is exactly the **significance level** :math:`\alpha`,
+fixed *before* the test: :math:`\alpha = 0.05` accepts a 5% chance of wrongly rejecting a
+true :math:`H_0`; :math:`\alpha = 0.01` a 1% chance. Choosing :math:`\alpha` *is* choosing
+how often you are willing to cry wolf.
+
+Examples
+--------
+
+- **Medicine** — :math:`H_0`: the drug has no effect. If it truly doesn't, but the data
+  happen to give :math:`p < 0.05`, you reject :math:`H_0` and declare it works — a Type I
+  error.
+- **A/B testing** — :math:`H_0`: conversion rates are equal. If they really are, but
+  random variation produces a "significant" gap, you've made a Type I error.
+
+Geometrically, with overlapping :math:`H_0` and :math:`H_1` distributions, :math:`\alpha`
+is the **rejection region** in the tail; a statistic landing there *while* :math:`H_0`
+holds is the error.
+
+Type I vs Type II vs power
+--------------------------
+
+There are two ways to be wrong and one way the test "works":
+
+- **Type I (false positive)** — reject a true :math:`H_0`; probability :math:`\alpha`.
+- **Type II (false negative)** — fail to reject a false :math:`H_0`; probability
+  :math:`\beta`.
+- **Power** — correctly reject a false :math:`H_0`; equals :math:`1 - \beta` (and grows
+  with sample size, effect size and :math:`\alpha`).
+
+Lowering :math:`\alpha` reduces Type I errors but, all else equal, raises :math:`\beta` —
+the two trade off.
+
+Controlling it
+--------------
+
+Use a **stricter** :math:`\alpha`; apply **Bonferroni** or other multiple-testing
+corrections when running many tests; stick to **fixed-horizon** testing (no peeking), or
+an α-spending design if you must look early; and **replicate** to confirm.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Frequentist <059-frequentist>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Group Sequential Testing <079-group-sequential-testing>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Bayesian Sequential Testing <074-bayesian-sequential-testing>`
 
 ----
 
