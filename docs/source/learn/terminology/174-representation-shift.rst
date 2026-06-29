@@ -18,9 +18,44 @@ Representation Shift
 
 *A change in learned feature representations between training and serving.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Representation shift** occurs when the **internal representation** of data — learned embeddings,
+feature vectors — **changes over time** between training and deployment, *even if the raw input
+distribution looks similar*. It is a special case of distribution shift, but focused on the
+**feature/embedding space** rather than the raw input.
+
+Where it appears
+----------------
+
+Three places. In **neural networks and embeddings**, the learned mapping can change (through
+retraining or new data), so downstream tasks built on the old space fail. In **preprocessing
+pipelines**, steps like TF-IDF, PCA or scaling drift as the data changes — TF-IDF weights move as
+new vocabulary dominates. And in **domain shift**, inputs that look similar can still drift in
+embedding space — a face model trained on frontal faces, deployed on side profiles.
+
+Why it matters
+--------------
+
+Downstream classifiers and regressors that **assume a stable representation degrade**;
+**similarity search** (nearest-neighbour in embedding space) returns wrong results; and **fairness**
+suffers if some groups' embeddings drift more than others.
+
+Detecting it, with an example
+------------------------------
+
+Detection works on the embeddings themselves: **distance metrics** (MMD, energy distance, KL),
+tracking cosine or Euclidean shifts; **visualisation** with t-SNE or UMAP to watch clusters move;
+and **classifier two-sample tests**. The classic example: the word "mask" embedded mostly as
+*cosmetic* in 2019 shifts toward *face covering* in 2020 — breaking any downstream sentiment or
+topic model that relied on the old representation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Embedding <173-embedding>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Leading Indicators <169-leading-indicators>` · :doc:`Classifier Two-Sample Tests (C2STs) <175-classifier-two-sample-tests-c2sts>` · :doc:`Energy Distance <176-energy-distance>`
 
 ----
 

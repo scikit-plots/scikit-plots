@@ -18,9 +18,41 @@ Categorical Explosions
 
 *A surge in distinct categorical values that strains encoders and models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+A **categorical explosion** happens when a categorical feature has a **very large number of unique
+levels**, so that naive encoding — one-hot in particular — produces a **feature explosion**: the
+dataset becomes enormously **wide and sparse**, straining storage, computation and model quality.
+
+The problem in numbers
+----------------------
+
+A ``Zip Code`` field with **50,000** values becomes **50,000 binary columns** after one-hot encoding;
+a ``Product ID`` with a million values becomes a **million columns**. The damage is fourfold: **high
+dimensionality** (overfitting), **sparsity** (mostly zeros), **compute cost** (slow, memory-hungry
+training), and **poor generalisation** to unseen categories.
+
+Handling it
+-----------
+
+Six strategies replace naive one-hot. **Group** rare categories into "Other" or bucket by region.
+**Frequency or target encoding** replaces a category with its count or mean target. The **hashing
+trick** maps categories into a fixed number of buckets. **Entity embeddings** learn dense vectors for
+each category during training. **Dimension reduction** (PCA, autoencoders) compresses the encoding.
+And **domain knowledge** lowers granularity — "Product Category" instead of "Product ID".
+
+Where it appears
+----------------
+
+The usual sources are **retail** (product and user IDs), **geography** (zip codes, GPS), **web data**
+(URLs, session and device IDs) and **healthcare** (ICD-10 codes, tens of thousands of them).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cardinality in Categorical Data <178-cardinality-in-categorical-data>` · :doc:`Embedding <173-embedding>` · :doc:`Categorical Drift <179-categorical-drift>` · :doc:`Cramér's V <180-cramer-s-v>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Drift Detection <138-drift-detection>`
 
 ----
 

@@ -18,9 +18,44 @@ Off-Distribution
 
 *Inputs that fall outside the distribution a model was trained on.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Off-distribution** data are points that **differ significantly from the distribution the model was
+trained on** — inputs outside its "familiar range". Models assume production data is drawn from the
+**same distribution** as training (the i.i.d. assumption); when that breaks, the input is
+off-distribution, also called **out-of-distribution (OOD)**.
+
+Examples
+--------
+
+A cats-versus-dogs classifier shown a **giraffe** is off-distribution. A credit model trained on
+2015-2020 applications meets **post-COVID** borrower behaviour it never saw. A diagnostic model
+trained on adult MRIs is handed a **child's** scan. In each case the input falls outside the learned
+scope.
+
+Why it's a problem, and detecting it
+--------------------------------------
+
+Models optimised for in-distribution data make **unreliable or overconfident** predictions on OOD
+inputs, with fairness risks for unseen subgroups. Detection draws on **distance metrics** (KL,
+Jensen-Shannon, KS), **embedding methods** (Mahalanobis or cosine distance in latent space),
+**uncertainty estimation** (Bayesian neural nets, deep ensembles, MC dropout), and dedicated **OOD
+classifiers**.
+
+Handling it
+-----------
+
+Five responses: **augment** the training data to broaden coverage; **adapt** the model to the new
+domain; build **robust** models with regularisation or adversarial training; add a **reject option**
+so the model can abstain ("I don't know"); and run **monitoring pipelines** to flag drift in
+production. Off-distribution is the abrupt cousin of gradual **data** and **concept drift**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`IID (Independent and Identically Distributed) <126-iid-independent-and-identically-distributed>` · :doc:`Data Drift <331-data-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Representation Shift <174-representation-shift>`
 
 ----
 

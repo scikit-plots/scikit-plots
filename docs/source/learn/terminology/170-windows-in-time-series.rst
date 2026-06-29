@@ -18,9 +18,41 @@ Windows (in Time-Series)
 
 *Fixed spans over which time-series features or aggregates are computed.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+In time-series analysis and monitoring, a **window** is a **slice of time** over which you compute a
+statistic — a mean, sum, baseline or anomaly score. The window defines **how much past data** counts,
+and it can **stay fixed**, **slide forward**, or **expand**.
+
+The three types
+---------------
+
+A **fixed window** always covers a set period — "weekly sales, Monday to Sunday". A **rolling (or
+sliding) window** moves forward step by step, recomputing as it goes — "a 7-day rolling average of
+temperature" — and is the workhorse for smoothing, baselines and anomaly detection. An **expanding
+window** starts at a point and **grows** as data arrives — "cumulative average sales since launch".
+
+Baseline vs current
+-------------------
+
+Monitoring usually compares two windows. A **baseline window** — a rolling average over the last N
+weeks — defines what "normal" looks like. A short **current window** — the last 24 hours to 7 days —
+shows whether recent behaviour has **deviated** from that baseline.
+
+An example
+----------
+
+For API monitoring, a rolling **8-week baseline** gives an average latency of **200ms**. The
+**current 24-hour window** shows **350ms**. Because 350ms far exceeds the baseline, the comparison
+**flags performance degradation** — the same windowed-comparison logic that underlies drift detection
+and leading indicators.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sliding Window (Rolling Window) Cross-Validation <129-sliding-window-rolling-window-cross-validation>` · :doc:`Expanding Window Cross-Validation <130-expanding-window-cross-validation>` · :doc:`Time Series <010-time-series>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Leading Indicators <169-leading-indicators>`
 
 ----
 

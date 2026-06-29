@@ -18,9 +18,54 @@ Maximum Mean Discrepancy (MMD)
 
 *A kernel-based distance between distributions for two-sample and drift tests.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Maximum mean discrepancy (MMD)** is a statistical test for the **difference between two
+distributions** :math:`P` and :math:`Q` from samples. Under a chosen kernel, **MMD is 0 exactly
+when the distributions match**, and grows as they diverge. It is widely used to detect **drift**,
+compare **train versus test** data, and evaluate **generative models** (GANs, VAEs, diffusion).
+
+The idea
+--------
+
+MMD compares the **mean embeddings** of the two distributions in a **reproducing kernel Hilbert
+space (RKHS)**:
+
+.. math::
+
+   \text{MMD}^2(P, Q) = \left\| \mu_P - \mu_Q \right\|_{\mathcal{H}}^2,
+
+where :math:`\mu_P = \mathbb{E}_{x \sim P}[\phi(x)]` is the mean embedding of :math:`P` under the
+feature map :math:`\phi` of a kernel :math:`k(x, y)`.
+
+Estimating it
+-------------
+
+The **kernel trick** gives an estimate from samples without ever touching the infinite-dimensional
+space — averaging within-:math:`P` kernels plus within-:math:`Q` kernels minus twice the cross
+kernels:
+
+.. math::
+
+   \widehat{\text{MMD}}^2 = \frac{1}{m^2}\sum_{i,i'} k(x_i, x_{i'}) + \frac{1}{n^2}\sum_{j,j'} k(y_j, y_{j'}) - \frac{2}{mn}\sum_{i,j} k(x_i, y_j),
+
+usually with a Gaussian RBF kernel.
+
+Where it's used
+---------------
+
+A **small** MMD means similar samples, a **large** one means different. It powers **drift detection**
+(train vs production, covariate drift), **GAN evaluation** (generated vs real), and **domain
+adaptation** (aligning source and target features, as in MMD-regularised networks). Train a fraud
+model on last year's data :math:`P`; if this year's :math:`Q` gives a high MMD, you have covariate
+drift and likely need to retrain.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Energy Distance <176-energy-distance>` · :doc:`Classifier Two-Sample Tests (C2STs) <175-classifier-two-sample-tests-c2sts>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Representation Shift <174-representation-shift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>`
 
 ----
 

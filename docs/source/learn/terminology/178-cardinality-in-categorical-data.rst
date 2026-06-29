@@ -18,9 +18,42 @@ Cardinality in Categorical Data
 
 *The number of distinct values a categorical feature can take.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Cardinality** is the number of **unique categories** in a categorical feature. ``Gender`` has just
+two values — **low cardinality**; a ``Zip Code`` field has thousands — **high cardinality**. The
+distinction matters because it changes how features should be measured and encoded.
+
+Why it matters for association
+--------------------------------
+
+Cardinality directly affects measures like **Cramér's V**, which divides by the smaller table
+dimension :math:`k = \min(\text{rows}, \text{cols})`. With **low cardinality** (Gender, Yes/No) the
+statistic is easy to read — Gender versus product preference giving V = 0.3 is a clear moderate
+association. With **high cardinality** (zip codes, product IDs) it grows unreliable: many categories
+have tiny counts, the chi-square statistic inflates, and an association can look strong when it is
+really just **sparsity**.
+
+Handling high cardinality
+---------------------------
+
+Three remedies. **Group** rare categories into an "Other" bucket. Use **target encoding** or
+**frequency encoding** rather than raw category comparison. And if using Cramér's V, ensure the
+**sample is large enough** that expected cell counts are not tiny.
+
+An example
+----------
+
+Comparing ``City`` (100 categories) against ``Purchase`` (Yes/No) might yield Cramér's V of **0.6**,
+suggesting a strong link — but that can simply reflect **too few samples per city**, not a real
+effect of city on purchasing.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Categorical Drift <179-categorical-drift>` · :doc:`Cramér's V <180-cramer-s-v>` · :doc:`Embedding <173-embedding>` · :doc:`Data Drift <331-data-drift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>`
 
 ----
 

@@ -18,9 +18,43 @@ Guardrails (in ML & Data Systems)
 
 *Automated checks that keep model behaviour within safe limits.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Guardrails** are **secondary checks, rules or constraints** that keep an ML system **safe** (no
+crashes or invalid inputs), **fair** (no harmful bias) and **reliable** (stable over time). They
+are not the primary objective — minimising loss, maximising AUC — but they **prevent unacceptable
+outcomes** once a system is deployed.
+
+The five kinds
+--------------
+
+**Data guardrails** clamp outliers (cap ages at 120), handle unseen categories and validate schema.
+**Performance guardrails** set a minimum acceptable accuracy or AUC and trigger retraining below it.
+**Fairness guardrails** enforce parity across groups (e.g. loan-approval gaps within a few points)
+and block non-compliant deployments. **Operational guardrails** cap latency (< 200ms), require
+throughput and hold cost per prediction under budget. And **monitoring guardrails** alert when
+drift (PSI, KL, MMD) or anomaly rates exceed limits, triggering rollback.
+
+Why they matter
+---------------
+
+A model can look excellent on paper — AUC 0.9 — and still fail in practice. Guardrails **catch the
+hidden risks** that headline metrics miss, which is what makes a system **trustworthy in
+production**.
+
+An analogy
+----------
+
+The primary metric is the **speedometer** — how fast the car is going. Guardrails are the **safety
+rails on the road**: they don't make you faster, but they stop you driving off a cliff, however
+fast you go.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Recalibrate Thresholds <165-recalibrate-thresholds>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Continuous Retraining <161-continuous-retraining>`
 
 ----
 

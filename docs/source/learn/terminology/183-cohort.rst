@@ -18,9 +18,43 @@ Cohort
 
 *A group of users sharing a common start characteristic, tracked over time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+A **cohort** is a **group of individuals who share a common characteristic within a defined time
+period**. Across statistics, business, healthcare and ML, cohorts let you study **patterns within one
+group over time** rather than blurring everyone together — the idea is to track the *journey* of a
+group that has something in common.
+
+Kinds of cohort
+---------------
+
+The shared trait varies. A **signup cohort** is everyone who joined in January 2024; an **acquisition
+cohort** is everyone won through a Q1 ad campaign; a **behavioural cohort** is those who purchased
+within their first week. The same idea drives a **medical** cohort (patients diagnosed in 2022) and
+an **education** cohort (the Fall 2020 entering class).
+
+Cohort analysis
+---------------
+
+**Cohort analysis** tracks a metric for each cohort over time. A retention table, for instance,
+follows monthly signup cohorts down the rows and elapsed months across the columns — a January cohort
+might retain 70% at month 1, 50% at month 2, 35% at month 3 — revealing whether **later cohorts
+behave differently** from earlier ones. It **removes noise** by comparing groups with shared starting
+points, and it controls for time-based effects like seasonality.
+
+Cohort vs segment
+-----------------
+
+The distinction is time. A **cohort** is defined by a **shared event in a time window** ("everyone who
+joined in March"); a **segment** is defined by **attributes regardless of when** ("all users aged
+18-24"). Cohorts answer "how does this group evolve?"; segments answer "who are these people?".
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`Retention <124-retention>` · :doc:`Churn <123-churn>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Revenue per User (RPU / ARPU) <122-revenue-per-user-rpu-arpu>`
 
 ----
 

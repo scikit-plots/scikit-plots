@@ -18,9 +18,42 @@ Model KPIs (Key Performance Indicators)
 
 *Metrics tracked to judge a deployed model's ongoing performance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Model KPIs** are the **key metrics that track a model's performance, reliability and impact**.
+They span **technical performance** (loss, accuracy, AUC, calibration) and **business impact** (ROI,
+churn reduction, revenue uplift) — answering both "does it predict well?" and "does it help the
+business?".
+
+The four families
+-----------------
+
+**Prediction quality**: for classifiers, accuracy, precision/recall/F1, ROC-AUC and PR-AUC, log
+loss and calibration; for regressors, MSE/RMSE, MAE and R². **Drift and stability**: feature drift
+(PSI, KS test), data-quality checks and representation drift. **Operational**: latency, throughput,
+uptime and cost per prediction. **Business impact**: revenue uplift, churn reduction, fraud savings
+and ROI.
+
+Examples
+--------
+
+A **fraud model** might report a technical KPI of **AUC 0.92**, an operational KPI of **50ms**
+latency, and a business KPI of ``$1.2M`` of fraud prevented last quarter. A **recommender** might
+report **NDCG@10 of 0.65**, sub-100ms response time, and an **8% lift in click-through rate**.
+
+Leading vs lagging
+------------------
+
+KPIs divide into two roles. **Leading indicators** like drift **warn of future trouble** before it
+hits performance. **Lagging indicators** like AUC, calibration and loss **confirm actual impact**
+after the fact. A healthy dashboard watches both.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Guardrails (in ML & Data Systems) <166-guardrails-in-ml-data-systems>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Lagging Indicators <168-lagging-indicators>` · :doc:`Recalibrate Thresholds <165-recalibrate-thresholds>`
 
 ----
 

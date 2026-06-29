@@ -9463,3 +9463,875 @@ MINDMAP.update({
         "Recalibration", "Reweighting",
     ],
 })
+
+
+# ----------------------------------------------------------------------
+# Theme: monitoring, active learning, Bayesian correction  (mlops / training / bayes)
+# ----------------------------------------------------------------------
+
+CONTENT["Monitoring Pipelines"] = r"""
+What it is
+----------
+
+A **monitoring pipeline** is the system of checks and data flows that **continuously tracks the
+health and performance** of an ML model in production — a "control tower" whose job is to catch
+**drift, degradation, anomalies and failures early**, before they cause silent harm.
+
+What it watches
+---------------
+
+Four layers. **Data monitoring**: schema validation, missing values and outliers, **feature
+drift** (PSI, KS test, MMD) and representation drift in embeddings. **Model performance**: AUC,
+precision, recall, F1 and calibration for classifiers; MSE/RMSE/MAE/R² for regressors; business
+metrics like CTR and fraud savings. **Operational**: latency, throughput, uptime, cost per
+prediction. And **guardrails**: alerts when thresholds break (drift > 0.2, latency > 200ms),
+triggering auto-retrain or rollback.
+
+How it flows
+------------
+
+The cycle is **collect** (log predictions, inputs, metadata, eventual outcomes) → **aggregate**
+(metrics over daily/weekly windows) → **compare** (against training baselines and SLAs) →
+**alert** (flag anomalies and degraded KPIs) → **action** (retrain, adjust thresholds, or
+investigate the data). Dashboards slice these signals by geo, device or cohort to separate
+leading from lagging indicators.
+
+Why it matters
+--------------
+
+A fraud model whose AUC quietly slips from 0.9 to 0.75, with latency spiking past 300ms, fails
+**silently** without monitoring. Pipelines prevent that — and underwrite **fairness and
+compliance** (no group disproportionately harmed), **accountability** to stakeholders, and the
+feedback loop that drives continuous retraining.
+"""
+
+CONTENT["Active Learning"] = r"""
+What it is
+----------
+
+**Active learning** trains a model **iteratively** and lets it **choose the most informative
+examples to label**, instead of labelling everything. The goal is **high accuracy from far fewer
+labels** — invaluable when annotation is expensive or slow, as with medical images or legal
+documents.
+
+The loop
+--------
+
+Start with a **small labelled set** and a large **unlabelled pool**. Train an initial model, use
+a **query strategy** to pick the most valuable unlabelled samples, send them to an **oracle** (a
+human expert) for labels, add them to the training set and retrain — repeating until the model is
+good enough or the labelling budget runs out.
+
+Query strategies
+----------------
+
+How to choose what to label. **Uncertainty sampling** picks the least confident cases (for binary
+classification, predicted probability near 0.5). **Query by committee** trains several models and
+picks where they **disagree** most. **Expected model change** chooses points that would most move
+the model. **Diversity sampling** picks examples **unlike** the existing training data to cover
+the input space.
+
+Why it works
+------------
+
+Given 100,000 unlabelled emails at ``$2`` each to label, training on 1,000 and then querying the
+500 most uncertain improves accuracy **faster than random labelling**. Active learning cuts
+**annotation cost**, accelerates learning, and naturally **prioritises rare or uncertain cases** —
+helping with imbalance for free.
+"""
+
+CONTENT["Bayesian Correction"] = r"""
+What it is
+----------
+
+**Bayesian correction** uses **Bayes' theorem** to **adjust raw probabilities, predictions or test
+results** when the observed data is biased, noisy or incomplete. It is, in essence, "correcting"
+outputs by **Bayesian updating** — folding in what we already know.
+
+Where it appears
+----------------
+
+Several places. **Base-rate adjustment**: a model trained as if classes were balanced can be
+corrected toward the **true prior** — a 90% rare-disease score shrinks sharply once low prevalence
+is accounted for, via :math:`P(y=1 \mid x) \propto P(x \mid y=1)\, P(y=1)`. **Diagnostic tests**:
+combining sensitivity and specificity with prevalence gives the true posterior,
+:math:`P(\text{disease} \mid +) = \frac{P(+ \mid \text{disease})\, P(\text{disease})}{P(+)}`.
+**Label-noise correction** estimates a noise transition matrix (e.g. for crowdsourced labels), and
+**Bayesian calibration** updates scores much like Platt scaling but through Bayesian inference.
+
+An example
+----------
+
+A spam classifier scores an email **0.8**, but the true spam base rate is only **10%**. After
+Bayesian correction with that prior, the calibrated probability might fall to **0.4** — preventing
+**overconfidence** when the prior is low.
+
+Why it's useful
+---------------
+
+The method handles **class imbalance**, corrects for **measurement noise**, and yields
+**better-calibrated probabilities** with **principled uncertainty** — exactly what risk-sensitive
+decisions need. It is the Bayesian sibling of recalibration: where Platt scaling fits a curve,
+Bayesian correction reasons from priors.
+"""
+
+MINDMAP.update({
+    "Monitoring Pipelines": [
+        "Drift Detection", "Continuous Retraining", "PSI (Population Stability Index)",
+        "Data Drift", "Concept Drift", "Re-scoring",
+    ],
+    "Active Learning": [
+        "Reweighting", "Continuous Retraining", "Ensemble", "Medical AI",
+        "Monitoring Pipelines", "Bayesian Correction",
+    ],
+    "Bayesian Correction": [
+        "Bayes' Theorem", "Recalibration", "Platt Scaling", "Posterior",
+        "Prior Belief (or Prior Probability)", "Recalibrate Thresholds",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: thresholds, guardrails, model KPIs  (mlops monitoring cluster)
+# ----------------------------------------------------------------------
+
+CONTENT["Recalibrate Thresholds"] = r"""
+What it is
+----------
+
+To **recalibrate thresholds** is to **adjust the decision cutoffs or alert limits** of a model or
+monitoring system so they stay valid as data or business needs change. In a **classifier**, that
+means moving the probability threshold (the default 0.5) used to split positive from negative; in
+**monitoring**, it means tuning alert limits on drift, anomaly rate or latency.
+
+Why it's needed
+---------------
+
+Thresholds go stale for four reasons. **Data drift** shifts the distribution so the old cutoff no
+longer fits. **Business shift** changes the relative cost of false positives versus false
+negatives. **Model updates** alter the calibration curve and thus the optimal cutoff. And
+**operational noise** makes metrics fluctuate more or less than before.
+
+Examples
+--------
+
+A fraud model defaults to flagging when :math:`p > 0.5`; once the business decides missed fraud is
+too costly, the threshold drops to **0.3** — more flags, higher recall, lower precision. A PSI
+drift alert at **0.1** proves too jumpy against seasonality, so it is relaxed to **0.2**. And after
+recalibrating an overconfident model (Platt scaling, isotonic regression), the decision cutoffs
+must move with it.
+
+How to do it
+------------
+
+Four approaches. **Empirical evaluation** — test candidate thresholds on a validation set.
+**Cost-sensitive analysis** — pick the threshold that maximises expected business value.
+**Periodic review** — revisit thresholds when retraining or after drift. And **dynamic thresholds**
+that adapt automatically to recent performance.
+"""
+
+CONTENT["Guardrails (in ML & Data Systems)"] = r"""
+What it is
+----------
+
+**Guardrails** are **secondary checks, rules or constraints** that keep an ML system **safe** (no
+crashes or invalid inputs), **fair** (no harmful bias) and **reliable** (stable over time). They
+are not the primary objective — minimising loss, maximising AUC — but they **prevent unacceptable
+outcomes** once a system is deployed.
+
+The five kinds
+--------------
+
+**Data guardrails** clamp outliers (cap ages at 120), handle unseen categories and validate schema.
+**Performance guardrails** set a minimum acceptable accuracy or AUC and trigger retraining below it.
+**Fairness guardrails** enforce parity across groups (e.g. loan-approval gaps within a few points)
+and block non-compliant deployments. **Operational guardrails** cap latency (< 200ms), require
+throughput and hold cost per prediction under budget. And **monitoring guardrails** alert when
+drift (PSI, KL, MMD) or anomaly rates exceed limits, triggering rollback.
+
+Why they matter
+---------------
+
+A model can look excellent on paper — AUC 0.9 — and still fail in practice. Guardrails **catch the
+hidden risks** that headline metrics miss, which is what makes a system **trustworthy in
+production**.
+
+An analogy
+----------
+
+The primary metric is the **speedometer** — how fast the car is going. Guardrails are the **safety
+rails on the road**: they don't make you faster, but they stop you driving off a cliff, however
+fast you go.
+"""
+
+CONTENT["Model KPIs (Key Performance Indicators)"] = r"""
+What it is
+----------
+
+**Model KPIs** are the **key metrics that track a model's performance, reliability and impact**.
+They span **technical performance** (loss, accuracy, AUC, calibration) and **business impact** (ROI,
+churn reduction, revenue uplift) — answering both "does it predict well?" and "does it help the
+business?".
+
+The four families
+-----------------
+
+**Prediction quality**: for classifiers, accuracy, precision/recall/F1, ROC-AUC and PR-AUC, log
+loss and calibration; for regressors, MSE/RMSE, MAE and R². **Drift and stability**: feature drift
+(PSI, KS test), data-quality checks and representation drift. **Operational**: latency, throughput,
+uptime and cost per prediction. **Business impact**: revenue uplift, churn reduction, fraud savings
+and ROI.
+
+Examples
+--------
+
+A **fraud model** might report a technical KPI of **AUC 0.92**, an operational KPI of **50ms**
+latency, and a business KPI of ``$1.2M`` of fraud prevented last quarter. A **recommender** might
+report **NDCG@10 of 0.65**, sub-100ms response time, and an **8% lift in click-through rate**.
+
+Leading vs lagging
+------------------
+
+KPIs divide into two roles. **Leading indicators** like drift **warn of future trouble** before it
+hits performance. **Lagging indicators** like AUC, calibration and loss **confirm actual impact**
+after the fact. A healthy dashboard watches both.
+"""
+
+MINDMAP.update({
+    "Recalibrate Thresholds": [
+        "Recalibration", "Bayesian Correction", "Monitoring Pipelines",
+        "Guardrails (in ML & Data Systems)", "Platt Scaling", "Critical Value",
+    ],
+    "Guardrails (in ML & Data Systems)": [
+        "Monitoring Pipelines", "Recalibrate Thresholds",
+        "Model KPIs (Key Performance Indicators)", "Drift Detection",
+        "Demographic Parity (Statistical Parity)", "Continuous Retraining",
+    ],
+    "Model KPIs (Key Performance Indicators)": [
+        "Monitoring Pipelines", "Guardrails (in ML & Data Systems)", "Drift Detection",
+        "PSI (Population Stability Index)", "Lagging Indicators", "Recalibrate Thresholds",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: leading/lagging indicators, time-series windows  (mlops metrics / signal)
+# ----------------------------------------------------------------------
+
+CONTENT["Lagging Indicators"] = r"""
+What it is
+----------
+
+A **lagging indicator** is a metric that **confirms the impact of a change after it has already
+happened**. Lagging indicators measure **outcomes**, not early signals — in ML monitoring, they are
+the **model-performance metrics**: loss, AUC, accuracy, calibration.
+
+Characteristics
+---------------
+
+They are **reactive**, surfacing a problem only once it has occurred. They are a **direct measure**
+of end results — model performance and business KPIs — which makes them the natural tools for
+**validation and confirmation** rather than early warning.
+
+Examples
+--------
+
+Three groups. **Performance metrics**: accuracy, precision/recall/F1, AUC, log loss, calibration
+error. **Business KPIs after the fact**: CTR falling, fraud losses rising, churn climbing. And in a
+**monitoring** context: an AUC drop that means drift *already* hurt predictions, or a loss spike
+that follows a distribution change.
+
+Why they matter
+---------------
+
+Lagging indicators **confirm whether the leading indicators actually mattered** — whether drift or a
+data-quality issue translated into real damage. They are what go/no-go **retraining decisions** rest
+on. In a fraud model, a leading indicator might be drift in ``transaction_type``; the **lagging**
+indicator is AUC sliding from 0.87 to 0.72 — proof the model is now underperforming.
+"""
+
+CONTENT["Leading Indicators"] = r"""
+What it is
+----------
+
+A **leading indicator** is an **early signal** that gives **advance warning** of a possible future
+problem. Leading indicators **predict** what might happen rather than confirming what already did,
+and in ML they usually concern **input data quality and distribution**.
+
+Characteristics
+---------------
+
+They are **proactive** — you can act before performance drops. They are **indirect**, measuring not
+the end result but the *conditions* that affect it. And they have **short-term sensitivity**,
+catching changes quickly.
+
+Examples
+--------
+
+Four kinds. **Data drift**: feature distributions shift (incomes skew higher) or category
+frequencies change (new device types). **Input-data quality**: a sudden rise in missing values or
+unexpected schema. **Operational**: latency spikes in feature pipelines, errors in upstream sources.
+And **representation shift**: embeddings of user behaviour drifting from historical patterns.
+
+Why they matter
+---------------
+
+Leading indicators are an **early-warning system** that fires *before* lagging metrics (AUC, loss,
+accuracy) degrade, enabling proactive retraining, pipeline fixes or alerts. In a fraud model, a
+**leading** signal — a surge in transactions from new countries — can precede the **lagging** AUC
+drop by a week, buying time to respond.
+"""
+
+CONTENT["Windows (in Time-Series)"] = r"""
+What it is
+----------
+
+In time-series analysis and monitoring, a **window** is a **slice of time** over which you compute a
+statistic — a mean, sum, baseline or anomaly score. The window defines **how much past data** counts,
+and it can **stay fixed**, **slide forward**, or **expand**.
+
+The three types
+---------------
+
+A **fixed window** always covers a set period — "weekly sales, Monday to Sunday". A **rolling (or
+sliding) window** moves forward step by step, recomputing as it goes — "a 7-day rolling average of
+temperature" — and is the workhorse for smoothing, baselines and anomaly detection. An **expanding
+window** starts at a point and **grows** as data arrives — "cumulative average sales since launch".
+
+Baseline vs current
+-------------------
+
+Monitoring usually compares two windows. A **baseline window** — a rolling average over the last N
+weeks — defines what "normal" looks like. A short **current window** — the last 24 hours to 7 days —
+shows whether recent behaviour has **deviated** from that baseline.
+
+An example
+----------
+
+For API monitoring, a rolling **8-week baseline** gives an average latency of **200ms**. The
+**current 24-hour window** shows **350ms**. Because 350ms far exceeds the baseline, the comparison
+**flags performance degradation** — the same windowed-comparison logic that underlies drift detection
+and leading indicators.
+"""
+
+MINDMAP.update({
+    "Lagging Indicators": [
+        "Leading Indicators", "Model KPIs (Key Performance Indicators)", "Monitoring Pipelines",
+        "Drift Detection", "Concept Drift", "Re-scoring",
+    ],
+    "Leading Indicators": [
+        "Lagging Indicators", "Model KPIs (Key Performance Indicators)", "Monitoring Pipelines",
+        "Drift Detection", "Data Drift", "Windows (in Time-Series)",
+    ],
+    "Windows (in Time-Series)": [
+        "Sliding Window (Rolling Window) Cross-Validation", "Expanding Window Cross-Validation",
+        "Time Series", "Monitoring Pipelines", "Drift Detection", "Leading Indicators",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: representation shift & distribution-distance drift tests  (drift / signal)
+# ----------------------------------------------------------------------
+
+CONTENT["Representation Shift"] = r"""
+What it is
+----------
+
+**Representation shift** occurs when the **internal representation** of data — learned embeddings,
+feature vectors — **changes over time** between training and deployment, *even if the raw input
+distribution looks similar*. It is a special case of distribution shift, but focused on the
+**feature/embedding space** rather than the raw input.
+
+Where it appears
+----------------
+
+Three places. In **neural networks and embeddings**, the learned mapping can change (through
+retraining or new data), so downstream tasks built on the old space fail. In **preprocessing
+pipelines**, steps like TF-IDF, PCA or scaling drift as the data changes — TF-IDF weights move as
+new vocabulary dominates. And in **domain shift**, inputs that look similar can still drift in
+embedding space — a face model trained on frontal faces, deployed on side profiles.
+
+Why it matters
+--------------
+
+Downstream classifiers and regressors that **assume a stable representation degrade**;
+**similarity search** (nearest-neighbour in embedding space) returns wrong results; and **fairness**
+suffers if some groups' embeddings drift more than others.
+
+Detecting it, with an example
+------------------------------
+
+Detection works on the embeddings themselves: **distance metrics** (MMD, energy distance, KL),
+tracking cosine or Euclidean shifts; **visualisation** with t-SNE or UMAP to watch clusters move;
+and **classifier two-sample tests**. The classic example: the word "mask" embedded mostly as
+*cosmetic* in 2019 shifts toward *face covering* in 2020 — breaking any downstream sentiment or
+topic model that relied on the old representation.
+"""
+
+CONTENT["Classifier Two-Sample Tests (C2STs)"] = r"""
+What it is
+----------
+
+A **classifier two-sample test (C2ST)** checks whether two datasets come from the **same
+distribution** by **training a classifier to tell them apart**. If the classifier **can't** beat
+chance, the distributions are likely the same; if it **can** separate them well, they differ — a
+distribution shift. It is a modern, high-dimensional-friendly alternative to classical tests like
+the KS test, MMD or energy distance.
+
+How it works
+------------
+
+Three steps. **Label** dataset A as 0 (say training data) and dataset B as 1 (production). **Train**
+a classifier — logistic regression, random forest, neural net — to predict which set a sample came
+from. **Evaluate**: accuracy near **50%** means the two are indistinguishable (same distribution),
+while accuracy well above 50% (or a high AUC) signals they differ.
+
+The hypothesis test
+-------------------
+
+Formally it tests :math:`H_0: P = Q` against :math:`H_1: P \neq Q`, using **classifier accuracy or
+AUC** as the test statistic and **permutation testing or bootstrapping** to get a p-value. Its
+strengths are working in **very high dimensions** (where KS or chi-square fail) and using
+off-the-shelf classifiers; its costs are the **compute** of training, **sensitivity to classifier
+choice**, and the need for enough data.
+
+Where it's used
+---------------
+
+C2STs power **data-drift detection** (train vs production), **generative-model evaluation** (real vs
+generated), and **bias detection** (comparing subgroups). Concretely: with 10,000 samples from 2024
+and 10,000 from 2025, an XGBoost separator reaching **AUC 0.90** means the two are easily
+distinguishable — strong drift.
+"""
+
+CONTENT["Energy Distance"] = r"""
+What it is
+----------
+
+**Energy distance** is a **statistical distance** between two probability distributions :math:`P`
+and :math:`Q`, built from **expected pairwise distances** between samples. It is **0 exactly when
+the distributions are identical**, and grows as they differ — making it a natural **two-sample
+test**, in the same family as MMD.
+
+The formula
+-----------
+
+For :math:`X \sim P` and :math:`Y \sim Q`,
+
+.. math::
+
+   D_E^2(P, Q) = 2\, \mathbb{E}\|X - Y\| - \mathbb{E}\|X - X'\| - \mathbb{E}\|Y - Y'\|,
+
+where :math:`X, X'` are independent draws from :math:`P`, :math:`Y, Y'` from :math:`Q`, and
+:math:`\|\cdot\|` is the Euclidean norm. The empirical version replaces these expectations with
+averages over the two samples — cross-distances minus within-distances.
+
+Properties
+----------
+
+It is a true **metric**: non-negative, symmetric, and zero iff :math:`P = Q`. Unlike MMD it is
+**kernel-free**, working directly with Euclidean distances, and like MMD it stays sensitive in
+**high dimensions** where the KS test fails. Both energy distance and MMD are **integral
+probability metrics**.
+
+Where it's used, with an example
+----------------------------------
+
+It serves **two-sample testing**, **drift detection** (training vs production), **GAN evaluation**
+and **clustering validation**. Comparing two customer-age distributions, an energy distance of
+**0.15** says they are fairly similar, while **1.2** signals a real difference — perhaps a much
+younger incoming sample.
+"""
+
+MINDMAP.update({
+    "Representation Shift": [
+        "Embedding", "Drift Detection", "Covariate Drift (a.k.a. Covariate Shift)",
+        "Leading Indicators", "Classifier Two-Sample Tests (C2STs)", "Energy Distance",
+    ],
+    "Classifier Two-Sample Tests (C2STs)": [
+        "Representation Shift", "Drift Detection", "Energy Distance", "Data Drift",
+        "PSI (Population Stability Index)", "Maximum Mean Discrepancy (MMD)",
+    ],
+    "Energy Distance": [
+        "Classifier Two-Sample Tests (C2STs)", "Representation Shift", "Drift Detection",
+        "Maximum Mean Discrepancy (MMD)", "PSI (Population Stability Index)", "Data Drift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: MMD distance, categorical cardinality & drift  (drift / features)
+# ----------------------------------------------------------------------
+
+CONTENT["Maximum Mean Discrepancy (MMD)"] = r"""
+What it is
+----------
+
+**Maximum mean discrepancy (MMD)** is a statistical test for the **difference between two
+distributions** :math:`P` and :math:`Q` from samples. Under a chosen kernel, **MMD is 0 exactly
+when the distributions match**, and grows as they diverge. It is widely used to detect **drift**,
+compare **train versus test** data, and evaluate **generative models** (GANs, VAEs, diffusion).
+
+The idea
+--------
+
+MMD compares the **mean embeddings** of the two distributions in a **reproducing kernel Hilbert
+space (RKHS)**:
+
+.. math::
+
+   \text{MMD}^2(P, Q) = \left\| \mu_P - \mu_Q \right\|_{\mathcal{H}}^2,
+
+where :math:`\mu_P = \mathbb{E}_{x \sim P}[\phi(x)]` is the mean embedding of :math:`P` under the
+feature map :math:`\phi` of a kernel :math:`k(x, y)`.
+
+Estimating it
+-------------
+
+The **kernel trick** gives an estimate from samples without ever touching the infinite-dimensional
+space — averaging within-:math:`P` kernels plus within-:math:`Q` kernels minus twice the cross
+kernels:
+
+.. math::
+
+   \widehat{\text{MMD}}^2 = \frac{1}{m^2}\sum_{i,i'} k(x_i, x_{i'}) + \frac{1}{n^2}\sum_{j,j'} k(y_j, y_{j'}) - \frac{2}{mn}\sum_{i,j} k(x_i, y_j),
+
+usually with a Gaussian RBF kernel.
+
+Where it's used
+---------------
+
+A **small** MMD means similar samples, a **large** one means different. It powers **drift detection**
+(train vs production, covariate drift), **GAN evaluation** (generated vs real), and **domain
+adaptation** (aligning source and target features, as in MMD-regularised networks). Train a fraud
+model on last year's data :math:`P`; if this year's :math:`Q` gives a high MMD, you have covariate
+drift and likely need to retrain.
+"""
+
+CONTENT["Cardinality in Categorical Data"] = r"""
+What it is
+----------
+
+**Cardinality** is the number of **unique categories** in a categorical feature. ``Gender`` has just
+two values — **low cardinality**; a ``Zip Code`` field has thousands — **high cardinality**. The
+distinction matters because it changes how features should be measured and encoded.
+
+Why it matters for association
+--------------------------------
+
+Cardinality directly affects measures like **Cramér's V**, which divides by the smaller table
+dimension :math:`k = \min(\text{rows}, \text{cols})`. With **low cardinality** (Gender, Yes/No) the
+statistic is easy to read — Gender versus product preference giving V = 0.3 is a clear moderate
+association. With **high cardinality** (zip codes, product IDs) it grows unreliable: many categories
+have tiny counts, the chi-square statistic inflates, and an association can look strong when it is
+really just **sparsity**.
+
+Handling high cardinality
+---------------------------
+
+Three remedies. **Group** rare categories into an "Other" bucket. Use **target encoding** or
+**frequency encoding** rather than raw category comparison. And if using Cramér's V, ensure the
+**sample is large enough** that expected cell counts are not tiny.
+
+An example
+----------
+
+Comparing ``City`` (100 categories) against ``Purchase`` (Yes/No) might yield Cramér's V of **0.6**,
+suggesting a strong link — but that can simply reflect **too few samples per city**, not a real
+effect of city on purchasing.
+"""
+
+CONTENT["Categorical Drift"] = r"""
+What it is
+----------
+
+**Categorical drift** is a change over time in the **distribution of categories** between training
+and production data. It is a form of data drift that specifically affects **categorical features**
+rather than continuous ones.
+
+What happens
+------------
+
+The **frequency of categories** shifts — if 80% of customers came from *Region A* in training but
+only 40% do in production, the feature has drifted. This **hurts models** trained on the old mix:
+predictions skew, once-rare categories become common, and entirely **unseen categories** can appear
+in production that the model never learned.
+
+Detecting it
+------------
+
+Standard tools compare category frequencies. A **chi-square test** weighs observed against expected
+counts; **Cramér's V** measures the strength of the shift; and the **Population Stability Index
+(PSI)** quantifies how much a categorical distribution has moved.
+
+Where it bites
+--------------
+
+The effects are concrete. In **e-commerce**, a recommender fails when new products dominate. In
+**healthcare**, a diagnosis model degrades as disease-code frequencies change. In **finance**, fraud
+detection weakens as transaction types (online, POS, crypto) shift — each a categorical drift the
+monitoring must catch.
+"""
+
+MINDMAP.update({
+    "Maximum Mean Discrepancy (MMD)": [
+        "Energy Distance", "Classifier Two-Sample Tests (C2STs)", "Drift Detection",
+        "Covariate Drift (a.k.a. Covariate Shift)", "Representation Shift",
+        "PSI (Population Stability Index)",
+    ],
+    "Cardinality in Categorical Data": [
+        "Categorical Drift", "Cramér's V", "Embedding", "Data Drift", "Drift Detection",
+        "PSI (Population Stability Index)",
+    ],
+    "Categorical Drift": [
+        "Cardinality in Categorical Data", "Cramér's V", "Data Drift",
+        "Covariate Drift (a.k.a. Covariate Shift)", "PSI (Population Stability Index)",
+        "Drift Detection",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Cramer's V, macro shifts, categorical explosions  (features / drift)
+# ----------------------------------------------------------------------
+
+CONTENT["Cramér's V"] = r"""
+What it is
+----------
+
+**Cramér's V** measures the **strength of association between two categorical variables**. Built on
+the **chi-square statistic**, it **normalises** the result to lie between **0 and 1**: 0 means the
+variables are completely independent, 1 means one fully determines the other.
+
+The formula
+-----------
+
+.. math::
+
+   V = \sqrt{\frac{\chi^2}{n \,(k - 1)}},
+
+where :math:`\chi^2` is the chi-square statistic, :math:`n` the total sample size, and :math:`k` the
+smaller of the number of rows and columns in the contingency table. Dividing by :math:`k - 1` is
+what keeps :math:`V` bounded regardless of table size.
+
+Reading the number
+------------------
+
+A rough guide: **0.0-0.1** very weak, **0.1-0.3** weak, **0.3-0.5** moderate, and **above 0.5**
+strong — though exact thresholds vary by field. Surveying 1,000 people on gender (male/female) and
+drink preference (coffee/tea), a computed **V = 0.25** signals a weak-to-moderate link between the
+two.
+
+Where it's used
+---------------
+
+In data science it does three jobs: detecting **categorical drift** by comparing distributions over
+time, flagging **redundant features** (two categoricals so strongly associated that one can be
+dropped), and testing **feature-target association** in classification.
+"""
+
+CONTENT["Macro Shifts"] = r"""
+What it is
+----------
+
+**Macro shifts** are **large-scale, external changes** in the broader environment — economic, social,
+political or technological — big enough to move markets and break models. In ML terms they are
+**system-wide distribution changes**, structural shifts well beyond ordinary small drift and usually
+outside the business's control.
+
+Examples
+--------
+
+The pattern recurs across domains. A **global recession** reshapes consumer spending; a **pandemic**
+collapses travel and surges e-commerce overnight; **inflation** rewrites buying habits. Each breaks
+models trained on the old world — a pre-pandemic **credit-risk** model misreads new borrower
+behaviour, **demand forecasts** built on old habits miss, and **supply-chain** lead times jump after
+a geopolitical disruption.
+
+Why they matter, and detecting them
+-------------------------------------
+
+Models assume **stationarity** — that the future resembles the past — and macro shifts shatter that
+assumption, causing prediction failure, strategic risk, and new **fairness** problems. They are
+caught with **drift measures** (PSI, KL or Jensen-Shannon divergence, KS tests), **performance
+monitoring** (sudden AUC or lift drops), and **external signals** (economic indicators, policy
+changes).
+
+Responding to them
+------------------
+
+The playbook: **retrain** on post-shift data, prefer **adaptive** models (online or fast time-series
+learners), run **scenario planning and stress tests**, keep **humans in the loop** under drastic
+change, and **diversify data sources**. A macro shift is the broad external force that often drives
+**concept drift** and **data drift** at the same time.
+"""
+
+CONTENT["Categorical Explosions"] = r"""
+What it is
+----------
+
+A **categorical explosion** happens when a categorical feature has a **very large number of unique
+levels**, so that naive encoding — one-hot in particular — produces a **feature explosion**: the
+dataset becomes enormously **wide and sparse**, straining storage, computation and model quality.
+
+The problem in numbers
+----------------------
+
+A ``Zip Code`` field with **50,000** values becomes **50,000 binary columns** after one-hot encoding;
+a ``Product ID`` with a million values becomes a **million columns**. The damage is fourfold: **high
+dimensionality** (overfitting), **sparsity** (mostly zeros), **compute cost** (slow, memory-hungry
+training), and **poor generalisation** to unseen categories.
+
+Handling it
+-----------
+
+Six strategies replace naive one-hot. **Group** rare categories into "Other" or bucket by region.
+**Frequency or target encoding** replaces a category with its count or mean target. The **hashing
+trick** maps categories into a fixed number of buckets. **Entity embeddings** learn dense vectors for
+each category during training. **Dimension reduction** (PCA, autoencoders) compresses the encoding.
+And **domain knowledge** lowers granularity — "Product Category" instead of "Product ID".
+
+Where it appears
+----------------
+
+The usual sources are **retail** (product and user IDs), **geography** (zip codes, GPS), **web data**
+(URLs, session and device IDs) and **healthcare** (ICD-10 codes, tens of thousands of them).
+"""
+
+MINDMAP.update({
+    "Cramér's V": [
+        "Categorical Drift", "Cardinality in Categorical Data", "Data Drift",
+        "PSI (Population Stability Index)", "Drift Detection", "Categorical Explosions",
+    ],
+    "Macro Shifts": [
+        "Concept Drift", "Data Drift", "Covariate Drift (a.k.a. Covariate Shift)",
+        "Drift Detection", "PSI (Population Stability Index)", "Continuous Retraining",
+    ],
+    "Categorical Explosions": [
+        "Cardinality in Categorical Data", "Embedding", "Categorical Drift", "Cramér's V",
+        "Autoencoder", "Drift Detection",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: cohorts, off-distribution data, discriminatory power  (analytics / drift / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Cohort"] = r"""
+What it is
+----------
+
+A **cohort** is a **group of individuals who share a common characteristic within a defined time
+period**. Across statistics, business, healthcare and ML, cohorts let you study **patterns within one
+group over time** rather than blurring everyone together — the idea is to track the *journey* of a
+group that has something in common.
+
+Kinds of cohort
+---------------
+
+The shared trait varies. A **signup cohort** is everyone who joined in January 2024; an **acquisition
+cohort** is everyone won through a Q1 ad campaign; a **behavioural cohort** is those who purchased
+within their first week. The same idea drives a **medical** cohort (patients diagnosed in 2022) and
+an **education** cohort (the Fall 2020 entering class).
+
+Cohort analysis
+---------------
+
+**Cohort analysis** tracks a metric for each cohort over time. A retention table, for instance,
+follows monthly signup cohorts down the rows and elapsed months across the columns — a January cohort
+might retain 70% at month 1, 50% at month 2, 35% at month 3 — revealing whether **later cohorts
+behave differently** from earlier ones. It **removes noise** by comparing groups with shared starting
+points, and it controls for time-based effects like seasonality.
+
+Cohort vs segment
+-----------------
+
+The distinction is time. A **cohort** is defined by a **shared event in a time window** ("everyone who
+joined in March"); a **segment** is defined by **attributes regardless of when** ("all users aged
+18-24"). Cohorts answer "how does this group evolve?"; segments answer "who are these people?".
+"""
+
+CONTENT["Off-Distribution"] = r"""
+What it is
+----------
+
+**Off-distribution** data are points that **differ significantly from the distribution the model was
+trained on** — inputs outside its "familiar range". Models assume production data is drawn from the
+**same distribution** as training (the i.i.d. assumption); when that breaks, the input is
+off-distribution, also called **out-of-distribution (OOD)**.
+
+Examples
+--------
+
+A cats-versus-dogs classifier shown a **giraffe** is off-distribution. A credit model trained on
+2015-2020 applications meets **post-COVID** borrower behaviour it never saw. A diagnostic model
+trained on adult MRIs is handed a **child's** scan. In each case the input falls outside the learned
+scope.
+
+Why it's a problem, and detecting it
+--------------------------------------
+
+Models optimised for in-distribution data make **unreliable or overconfident** predictions on OOD
+inputs, with fairness risks for unseen subgroups. Detection draws on **distance metrics** (KL,
+Jensen-Shannon, KS), **embedding methods** (Mahalanobis or cosine distance in latent space),
+**uncertainty estimation** (Bayesian neural nets, deep ensembles, MC dropout), and dedicated **OOD
+classifiers**.
+
+Handling it
+-----------
+
+Five responses: **augment** the training data to broaden coverage; **adapt** the model to the new
+domain; build **robust** models with regularisation or adversarial training; add a **reject option**
+so the model can abstain ("I don't know"); and run **monitoring pipelines** to flag drift in
+production. Off-distribution is the abrupt cousin of gradual **data** and **concept drift**.
+"""
+
+CONTENT["Discriminatory Power"] = r"""
+What it is
+----------
+
+**Discriminatory power** is a model's (or test's) ability to **distinguish correctly between two
+groups** — usually positives versus negatives: good versus bad credit, disease versus healthy,
+responder versus not. The plain question it answers: *how well can the model separate those who will
+do X from those who won't?*
+
+Where it applies
+----------------
+
+A classifier with high discriminatory power assigns **higher scores to positives** than negatives. A
+**credit scorecard** is judged on how cleanly it separates defaulters from non-defaulters; a
+**diagnostic test** on how well it separates the sick from the healthy.
+
+How it's measured
+-----------------
+
+Several metrics. **AUC** is the probability a random positive outscores a random negative — 0.5 is
+random, 1.0 is perfect. The **KS statistic** is the maximum gap between the cumulative score
+distributions of positives and negatives (0.4-0.6 is strong in credit risk). The **Gini coefficient**
+rescales AUC, :math:`\text{Gini} = 2 \times \text{AUC} - 1`. Lift and CAP curves give a visual read.
+
+An example, and why it matters
+--------------------------------
+
+If good borrowers average a score of 0.8 and bad ones 0.3, with **AUC 0.85 and KS 0.45**, the model
+has strong discriminatory power; **AUC 0.55, KS 0.08** is near-random. It drives better **targeting**
+and **lending** decisions, is a **regulatory** reporting requirement in finance, and reduces false
+positives and negatives for fairer outcomes.
+"""
+
+MINDMAP.update({
+    "Cohort": [
+        "Customer Segmentation", "Retention", "Churn", "Causal Inference",
+        "Revenue per User (RPU / ARPU)",
+    ],
+    "Off-Distribution": [
+        "IID (Independent and Identically Distributed)", "Data Drift", "Concept Drift",
+        "Covariate Drift (a.k.a. Covariate Shift)", "Drift Detection", "Representation Shift",
+    ],
+    "Discriminatory Power": [
+        "Gini Coefficient", "Multiclass AUROC", "KS Statistic (Kolmogorov–Smirnov Statistic)",
+        "Demographic Parity (Statistical Parity)", "Recalibration",
+    ],
+})

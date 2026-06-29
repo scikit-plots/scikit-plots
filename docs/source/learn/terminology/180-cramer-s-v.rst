@@ -18,9 +18,44 @@ Cramér's V
 
 *A measure of association between two categorical variables, derived from chi-squared.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Cramér's V** measures the **strength of association between two categorical variables**. Built on
+the **chi-square statistic**, it **normalises** the result to lie between **0 and 1**: 0 means the
+variables are completely independent, 1 means one fully determines the other.
+
+The formula
+-----------
+
+.. math::
+
+   V = \sqrt{\frac{\chi^2}{n \,(k - 1)}},
+
+where :math:`\chi^2` is the chi-square statistic, :math:`n` the total sample size, and :math:`k` the
+smaller of the number of rows and columns in the contingency table. Dividing by :math:`k - 1` is
+what keeps :math:`V` bounded regardless of table size.
+
+Reading the number
+------------------
+
+A rough guide: **0.0-0.1** very weak, **0.1-0.3** weak, **0.3-0.5** moderate, and **above 0.5**
+strong — though exact thresholds vary by field. Surveying 1,000 people on gender (male/female) and
+drink preference (coffee/tea), a computed **V = 0.25** signals a weak-to-moderate link between the
+two.
+
+Where it's used
+---------------
+
+In data science it does three jobs: detecting **categorical drift** by comparing distributions over
+time, flagging **redundant features** (two categoricals so strongly associated that one can be
+dropped), and testing **feature-target association** in classification.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Categorical Drift <179-categorical-drift>` · :doc:`Cardinality in Categorical Data <178-cardinality-in-categorical-data>` · :doc:`Data Drift <331-data-drift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Categorical Explosions <182-categorical-explosions>`
 
 ----
 

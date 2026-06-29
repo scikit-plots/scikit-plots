@@ -18,9 +18,42 @@ Discriminatory Power
 
 *A model's ability to separate positive from negative cases.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Discriminatory power** is a model's (or test's) ability to **distinguish correctly between two
+groups** — usually positives versus negatives: good versus bad credit, disease versus healthy,
+responder versus not. The plain question it answers: *how well can the model separate those who will
+do X from those who won't?*
+
+Where it applies
+----------------
+
+A classifier with high discriminatory power assigns **higher scores to positives** than negatives. A
+**credit scorecard** is judged on how cleanly it separates defaulters from non-defaulters; a
+**diagnostic test** on how well it separates the sick from the healthy.
+
+How it's measured
+-----------------
+
+Several metrics. **AUC** is the probability a random positive outscores a random negative — 0.5 is
+random, 1.0 is perfect. The **KS statistic** is the maximum gap between the cumulative score
+distributions of positives and negatives (0.4-0.6 is strong in credit risk). The **Gini coefficient**
+rescales AUC, :math:`\text{Gini} = 2 \times \text{AUC} - 1`. Lift and CAP curves give a visual read.
+
+An example, and why it matters
+--------------------------------
+
+If good borrowers average a score of 0.8 and bad ones 0.3, with **AUC 0.85 and KS 0.45**, the model
+has strong discriminatory power; **AUC 0.55, KS 0.08** is near-random. It drives better **targeting**
+and **lending** decisions, is a **regulatory** reporting requirement in finance, and reduces false
+positives and negatives for fairer outcomes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Gini Coefficient <023-gini-coefficient>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`KS Statistic (Kolmogorov–Smirnov Statistic) <186-ks-statistic-kolmogorovsmirnov-statistic>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Recalibration <159-recalibration>`
 
 ----
 

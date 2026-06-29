@@ -18,9 +18,44 @@ Recalibrate Thresholds
 
 *Updating decision cut-offs as data or costs change.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+To **recalibrate thresholds** is to **adjust the decision cutoffs or alert limits** of a model or
+monitoring system so they stay valid as data or business needs change. In a **classifier**, that
+means moving the probability threshold (the default 0.5) used to split positive from negative; in
+**monitoring**, it means tuning alert limits on drift, anomaly rate or latency.
+
+Why it's needed
+---------------
+
+Thresholds go stale for four reasons. **Data drift** shifts the distribution so the old cutoff no
+longer fits. **Business shift** changes the relative cost of false positives versus false
+negatives. **Model updates** alter the calibration curve and thus the optimal cutoff. And
+**operational noise** makes metrics fluctuate more or less than before.
+
+Examples
+--------
+
+A fraud model defaults to flagging when :math:`p > 0.5`; once the business decides missed fraud is
+too costly, the threshold drops to **0.3** — more flags, higher recall, lower precision. A PSI
+drift alert at **0.1** proves too jumpy against seasonality, so it is relaxed to **0.2**. And after
+recalibrating an overconfident model (Platt scaling, isotonic regression), the decision cutoffs
+must move with it.
+
+How to do it
+------------
+
+Four approaches. **Empirical evaluation** — test candidate thresholds on a validation set.
+**Cost-sensitive analysis** — pick the threshold that maximises expected business value.
+**Periodic review** — revisit thresholds when retraining or after drift. And **dynamic thresholds**
+that adapt automatically to recent performance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Recalibration <159-recalibration>` · :doc:`Bayesian Correction <164-bayesian-correction>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Guardrails (in ML & Data Systems) <166-guardrails-in-ml-data-systems>` · :doc:`Platt Scaling <280-platt-scaling>` · :doc:`Critical Value <087-critical-value>`
 
 ----
 

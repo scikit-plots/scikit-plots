@@ -18,9 +18,48 @@ Energy Distance
 
 *A distance between distributions used to test whether two samples differ.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Energy distance** is a **statistical distance** between two probability distributions :math:`P`
+and :math:`Q`, built from **expected pairwise distances** between samples. It is **0 exactly when
+the distributions are identical**, and grows as they differ — making it a natural **two-sample
+test**, in the same family as MMD.
+
+The formula
+-----------
+
+For :math:`X \sim P` and :math:`Y \sim Q`,
+
+.. math::
+
+   D_E^2(P, Q) = 2\, \mathbb{E}\|X - Y\| - \mathbb{E}\|X - X'\| - \mathbb{E}\|Y - Y'\|,
+
+where :math:`X, X'` are independent draws from :math:`P`, :math:`Y, Y'` from :math:`Q`, and
+:math:`\|\cdot\|` is the Euclidean norm. The empirical version replaces these expectations with
+averages over the two samples — cross-distances minus within-distances.
+
+Properties
+----------
+
+It is a true **metric**: non-negative, symmetric, and zero iff :math:`P = Q`. Unlike MMD it is
+**kernel-free**, working directly with Euclidean distances, and like MMD it stays sensitive in
+**high dimensions** where the KS test fails. Both energy distance and MMD are **integral
+probability metrics**.
+
+Where it's used, with an example
+----------------------------------
+
+It serves **two-sample testing**, **drift detection** (training vs production), **GAN evaluation**
+and **clustering validation**. Comparing two customer-age distributions, an energy distance of
+**0.15** says they are fairly similar, while **1.2** signals a real difference — perhaps a much
+younger incoming sample.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Classifier Two-Sample Tests (C2STs) <175-classifier-two-sample-tests-c2sts>` · :doc:`Representation Shift <174-representation-shift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Maximum Mean Discrepancy (MMD) <177-maximum-mean-discrepancy-mmd>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Data Drift <331-data-drift>`
 
 ----
 

@@ -18,9 +18,45 @@ Classifier Two-Sample Tests (C2STs)
 
 *Testing for shift by checking whether a classifier can tell two samples apart.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+A **classifier two-sample test (C2ST)** checks whether two datasets come from the **same
+distribution** by **training a classifier to tell them apart**. If the classifier **can't** beat
+chance, the distributions are likely the same; if it **can** separate them well, they differ — a
+distribution shift. It is a modern, high-dimensional-friendly alternative to classical tests like
+the KS test, MMD or energy distance.
+
+How it works
+------------
+
+Three steps. **Label** dataset A as 0 (say training data) and dataset B as 1 (production). **Train**
+a classifier — logistic regression, random forest, neural net — to predict which set a sample came
+from. **Evaluate**: accuracy near **50%** means the two are indistinguishable (same distribution),
+while accuracy well above 50% (or a high AUC) signals they differ.
+
+The hypothesis test
+-------------------
+
+Formally it tests :math:`H_0: P = Q` against :math:`H_1: P \neq Q`, using **classifier accuracy or
+AUC** as the test statistic and **permutation testing or bootstrapping** to get a p-value. Its
+strengths are working in **very high dimensions** (where KS or chi-square fail) and using
+off-the-shelf classifiers; its costs are the **compute** of training, **sensitivity to classifier
+choice**, and the need for enough data.
+
+Where it's used
+---------------
+
+C2STs power **data-drift detection** (train vs production), **generative-model evaluation** (real vs
+generated), and **bias detection** (comparing subgroups). Concretely: with 10,000 samples from 2024
+and 10,000 from 2025, an XGBoost separator reaching **AUC 0.90** means the two are easily
+distinguishable — strong drift.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Representation Shift <174-representation-shift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Energy Distance <176-energy-distance>` · :doc:`Data Drift <331-data-drift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Maximum Mean Discrepancy (MMD) <177-maximum-mean-discrepancy-mmd>`
 
 ----
 

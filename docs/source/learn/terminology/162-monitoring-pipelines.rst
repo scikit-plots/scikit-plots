@@ -18,9 +18,45 @@ Monitoring Pipelines
 
 *Automated systems that track model and data health in production.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+A **monitoring pipeline** is the system of checks and data flows that **continuously tracks the
+health and performance** of an ML model in production — a "control tower" whose job is to catch
+**drift, degradation, anomalies and failures early**, before they cause silent harm.
+
+What it watches
+---------------
+
+Four layers. **Data monitoring**: schema validation, missing values and outliers, **feature
+drift** (PSI, KS test, MMD) and representation drift in embeddings. **Model performance**: AUC,
+precision, recall, F1 and calibration for classifiers; MSE/RMSE/MAE/R² for regressors; business
+metrics like CTR and fraud savings. **Operational**: latency, throughput, uptime, cost per
+prediction. And **guardrails**: alerts when thresholds break (drift > 0.2, latency > 200ms),
+triggering auto-retrain or rollback.
+
+How it flows
+------------
+
+The cycle is **collect** (log predictions, inputs, metadata, eventual outcomes) → **aggregate**
+(metrics over daily/weekly windows) → **compare** (against training baselines and SLAs) →
+**alert** (flag anomalies and degraded KPIs) → **action** (retrain, adjust thresholds, or
+investigate the data). Dashboards slice these signals by geo, device or cohort to separate
+leading from lagging indicators.
+
+Why it matters
+--------------
+
+A fraud model whose AUC quietly slips from 0.9 to 0.75, with latency spiking past 300ms, fails
+**silently** without monitoring. Pipelines prevent that — and underwrite **fairness and
+compliance** (no group disproportionately harmed), **accountability** to stakeholders, and the
+feedback loop that drives continuous retraining.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Drift Detection <138-drift-detection>` · :doc:`Continuous Retraining <161-continuous-retraining>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Data Drift <331-data-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Re-scoring <137-re-scoring>`
 
 ----
 

@@ -18,9 +18,41 @@ Leading Indicators
 
 *Early-signal metrics that predict future outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+A **leading indicator** is an **early signal** that gives **advance warning** of a possible future
+problem. Leading indicators **predict** what might happen rather than confirming what already did,
+and in ML they usually concern **input data quality and distribution**.
+
+Characteristics
+---------------
+
+They are **proactive** — you can act before performance drops. They are **indirect**, measuring not
+the end result but the *conditions* that affect it. And they have **short-term sensitivity**,
+catching changes quickly.
+
+Examples
+--------
+
+Four kinds. **Data drift**: feature distributions shift (incomes skew higher) or category
+frequencies change (new device types). **Input-data quality**: a sudden rise in missing values or
+unexpected schema. **Operational**: latency spikes in feature pipelines, errors in upstream sources.
+And **representation shift**: embeddings of user behaviour drifting from historical patterns.
+
+Why they matter
+---------------
+
+Leading indicators are an **early-warning system** that fires *before* lagging metrics (AUC, loss,
+accuracy) degrade, enabling proactive retraining, pipeline fixes or alerts. In a fraud model, a
+**leading** signal — a surge in transactions from new countries — can precede the **lagging** AUC
+drop by a week, buying time to respond.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Lagging Indicators <168-lagging-indicators>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Data Drift <331-data-drift>` · :doc:`Windows (in Time-Series) <170-windows-in-time-series>`
 
 ----
 

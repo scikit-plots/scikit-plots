@@ -18,9 +18,41 @@ Lagging Indicators
 
 *Metrics that confirm trends after they occur, such as revenue or churn.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+A **lagging indicator** is a metric that **confirms the impact of a change after it has already
+happened**. Lagging indicators measure **outcomes**, not early signals — in ML monitoring, they are
+the **model-performance metrics**: loss, AUC, accuracy, calibration.
+
+Characteristics
+---------------
+
+They are **reactive**, surfacing a problem only once it has occurred. They are a **direct measure**
+of end results — model performance and business KPIs — which makes them the natural tools for
+**validation and confirmation** rather than early warning.
+
+Examples
+--------
+
+Three groups. **Performance metrics**: accuracy, precision/recall/F1, AUC, log loss, calibration
+error. **Business KPIs after the fact**: CTR falling, fraud losses rising, churn climbing. And in a
+**monitoring** context: an AUC drop that means drift *already* hurt predictions, or a loss spike
+that follows a distribution change.
+
+Why they matter
+---------------
+
+Lagging indicators **confirm whether the leading indicators actually mattered** — whether drift or a
+data-quality issue translated into real damage. They are what go/no-go **retraining decisions** rest
+on. In a fraud model, a leading indicator might be drift in ``transaction_type``; the **lagging**
+indicator is AUC sliding from 0.87 to 0.72 — proof the model is now underperforming.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Leading Indicators <169-leading-indicators>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Re-scoring <137-re-scoring>`
 
 ----
 
