@@ -45,7 +45,9 @@ compilers = {
   'CPP': cpp,
   'CYTHON': cy,
 }
-compilers += {'FORTRAN': ff}
+if have_fortran
+  compilers += {'FORTRAN': ff}
+endif
 
 # Add `pythran` information if present
 if get_option('pythran').enabled()

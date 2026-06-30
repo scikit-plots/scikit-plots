@@ -335,43 +335,54 @@ dep_all += [lapack_dep]
 
 # --- Fortran compiler ---
 # Adding at project level causes many spurious -lgfortran flags.
-add_languages('fortran', native: false)
-ff = meson.get_compiler('fortran')
+# Temporarily force it in Meson (for testing only)
+# have_fortran = false  # TEST ONLY
+have_fortran = add_languages('fortran', native: false, required: false)
 
-# gfortran unix: 'gcc', 'intel', 'intel-llvm'
-# gfortran win : 'intel-llvm-cl'
-if ff.get_id() == 'gcc'
-  # -std=legacy is not supported by all Fortran compilers, but very useful with
-  # gfortran since it avoids a ton of warnings that we don't care about.
-  # Needs fixing in Meson, see https://github.com/mesonbuild/meson/issues/11633.
-  add_project_arguments(ff.get_supported_arguments(['-std=legacy']), language: ['fortran'])
+if have_fortran
+  message('Fortran enabled')
+else
+  message('Fortran disabled')
 endif
 
-# --- Fortran Global compiler flags/options argument ---
-# The default list of warnings to ignore from Fortran code. There is a lot of
-# old, vendored code that is very bad and we want to compile it silently (at
-# least with GCC and Clang)
-_global_fortran_flags = [
-  # Define warning flags for Fortran compilation
-  '-Wno-argument-mismatch',      # Suppress warnings about mismatched argument types in subroutine/function calls
-  '-Wno-conversion',             # Suppress warnings about implicit type conversions
-  '-Wno-intrinsic-shadow',       # Suppress warnings about shadowing intrinsic names
-  '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized
-  '-Wno-surprising',             # Suppress warnings about non-standard Fortran practices
-  '-Wno-uninitialized',          # Suppress warnings about uninitialized variables
-  '-Wno-unused-dummy-argument',  # Suppress warnings about dummy arguments that are unused
-  '-Wno-unused-label',           # Suppress warnings about unused labels
-  '-Wno-unused-variable',        # Suppress warnings about unused variables
-  '-Wno-tabs',                   # Suppress warnings about tabs in the source code (often used in legacy code)
-]
-# foreach arg : _global_fortran_flags
-#   if ff.has_argument(arg)
-#     add_project_arguments(arg, language: 'fortran')
-#   else
-#     message('fortran compiler (' + ff.get_id() + ') does not support argument: ' + arg)
-#   endif
-# endforeach
-add_project_arguments(ff.get_supported_arguments(_global_fortran_flags), language: ['fortran'])
+if have_fortran
+  ff = meson.get_compiler('fortran')
+
+  # gfortran unix: 'gcc', 'intel', 'intel-llvm'
+  # gfortran win : 'intel-llvm-cl'
+  if ff.get_id() == 'gcc'
+    # -std=legacy is not supported by all Fortran compilers, but very useful with
+    # gfortran since it avoids a ton of warnings that we don't care about.
+    # Needs fixing in Meson, see https://github.com/mesonbuild/meson/issues/11633.
+    add_project_arguments(ff.get_supported_arguments(['-std=legacy']), language: ['fortran'])
+  endif
+
+  # --- Fortran Global compiler flags/options argument ---
+  # The default list of warnings to ignore from Fortran code. There is a lot of
+  # old, vendored code that is very bad and we want to compile it silently (at
+  # least with GCC and Clang)
+  _global_fortran_flags = [
+    # Define warning flags for Fortran compilation
+    '-Wno-argument-mismatch',      # Suppress warnings about mismatched argument types in subroutine/function calls
+    '-Wno-conversion',             # Suppress warnings about implicit type conversions
+    '-Wno-intrinsic-shadow',       # Suppress warnings about shadowing intrinsic names
+    '-Wno-maybe-uninitialized',    # Suppress warnings about variables that might be used uninitialized
+    '-Wno-surprising',             # Suppress warnings about non-standard Fortran practices
+    '-Wno-uninitialized',          # Suppress warnings about uninitialized variables
+    '-Wno-unused-dummy-argument',  # Suppress warnings about dummy arguments that are unused
+    '-Wno-unused-label',           # Suppress warnings about unused labels
+    '-Wno-unused-variable',        # Suppress warnings about unused variables
+    '-Wno-tabs',                   # Suppress warnings about tabs in the source code (often used in legacy code)
+  ]
+  # foreach arg : _global_fortran_flags
+  #   if ff.has_argument(arg)
+  #     add_project_arguments(arg, language: 'fortran')
+  #   else
+  #     message('fortran compiler (' + ff.get_id() + ') does not support argument: ' + arg)
+  #   endif
+  # endforeach
+  add_project_arguments(ff.get_supported_arguments(_global_fortran_flags), language: ['fortran'])
+endif
 
 ######################################################################
 ## 🔚 C and C++ Compiler Setup
@@ -735,28 +746,31 @@ dep_all += [dep_math]
 # that are gcc-specific in CFLAGS/CXXFLAGS/FFLAGS, which throws off the
 # detection logic below. You have to remove the wrong flags (only `-isystem`
 # is actually needed, everything else shouldn't be there).
-_intel_cflags = []
 _intel_fflags = []
+if have_fortran
+  if ff.get_id() in ['intel', 'intel-llvm']
+    _intel_fflags = ff.get_supported_arguments('-fp-model=strict')
+    minus0_arg = ['-assume', 'minus0']
+    if ff.has_multi_arguments(minus0_arg)
+      _intel_fflags += minus0_arg
+    endif
+  elif ff.get_id() in ['intel-cl', 'intel-llvm-cl']
+    # Intel Fortran on Windows does things differently, so deal with that
+    # (also specify dynamic linking and the right name mangling)
+    _intel_fflags = ff.get_supported_arguments(
+      '/fp:strict', '/MD', '/names:lowercase', '/assume:underscore',
+      '/assume:minus0'
+    )
+  endif
+  add_project_arguments(ff.get_supported_arguments(_intel_fflags), language: 'fortran')
+endif
+
+_intel_cflags = []
 if cc.get_id() in ['intel', 'intel-llvm']
   _intel_cflags += cc.get_supported_arguments('-fp-model=strict')
 elif cc.get_id() in ['intel-cl', 'intel-llvm-cl']
   _intel_cflags += cc.get_supported_arguments('/fp:strict')
 endif
-if ff.get_id() in ['intel', 'intel-llvm']
-  _intel_fflags = ff.get_supported_arguments('-fp-model=strict')
-  minus0_arg = ['-assume', 'minus0']
-  if ff.has_multi_arguments(minus0_arg)
-    _intel_fflags += minus0_arg
-  endif
-elif ff.get_id() in ['intel-cl', 'intel-llvm-cl']
-  # Intel Fortran on Windows does things differently, so deal with that
-  # (also specify dynamic linking and the right name mangling)
-  _intel_fflags = ff.get_supported_arguments(
-    '/fp:strict', '/MD', '/names:lowercase', '/assume:underscore',
-    '/assume:minus0'
-  )
-endif
-add_project_arguments(ff.get_supported_arguments(_intel_fflags), language: 'fortran')
 add_project_arguments(cc.get_supported_arguments(_intel_cflags), language: 'c')
 add_project_arguments(cpp.get_supported_arguments(_intel_cflags), language: 'cpp')
 
@@ -842,7 +856,7 @@ is_windows = host_machine.system() == 'windows'
 is_mingw = is_windows and cc.get_id() == 'gcc'
 # is_mingw = is_windows and cc.get_define('__MINGW32__') != ''
 
-if is_mingw and ff.get_id() != 'gcc'
+if is_mingw and have_fortran and ff.get_id() != 'gcc'
   error(
     'If you are using GCC on Windows, you must also use GFortran! ' +
     'Detected: @0@'.format(ff.get_id())
@@ -908,12 +922,18 @@ if host_machine.system() == 'darwin'
   if cc.has_link_argument('-Wl,-ld_classic')
     # New linker introduced in macOS 14 not working yet with at least OpenBLAS in Spack,
     # see gh-24964 (and linked scipy issue from there).
-    add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp', 'fortran'])
+    if have_fortran
+      add_project_link_arguments('-Wl,-ld_classic', language : ['fortran'])
+    endif
+    add_project_link_arguments('-Wl,-ld_classic', language : ['c', 'cpp'])
   endif
   # Check if the compiler supports the '-Wl,-dead_strip' argument (linker option to strip unused symbols)
   if cc.has_link_argument('-Wl,-dead_strip')
     # Allow linker to strip unused symbols
-    add_project_link_arguments('-Wl,-dead_strip', language : ['c', 'cpp', 'fortran'])
+    if have_fortran
+      add_project_link_arguments('-Wl,-dead_strip', language : ['fortran'])
+    endif
+    add_project_link_arguments('-Wl,-dead_strip', language : ['c', 'cpp'])
   endif
 endif
 
@@ -1205,7 +1225,10 @@ if is_mingw
   if not is_mingw_built_python
     # For mingw-w64, link statically against the UCRT.
     _gcc_link_args = ['-lucrt', '-static']
-    add_project_link_arguments(_gcc_link_args, language: ['c', 'cpp', 'fortran'])
+    if have_fortran
+      add_project_link_arguments(_gcc_link_args, language: ['fortran'])
+    endif
+    add_project_link_arguments(_gcc_link_args, language: ['c', 'cpp'])
     # Force gcc to float64 long doubles for compatibility with MSVC
     # builds, for C only.
     add_project_arguments(cc.get_supported_arguments(['-mlong-double-64']), language: 'c')
@@ -1238,7 +1261,9 @@ if is_mingw
   # undocumented C feature when passing single character string arguments. See:
   #   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90329
   #   https://github.com/wch/r-source/blob/838f9d5a7be08f2a8c08e47bcd28756f5d0aac90/src/gnuwin32/MkRules.rules#L121
-  add_project_arguments(ff.get_supported_arguments(['-fno-optimize-sibling-calls']), language: 'fortran')
+  if have_fortran
+    add_project_arguments(ff.get_supported_arguments(['-fno-optimize-sibling-calls']), language: 'fortran')
+  endif
 endif
 
 # Deal with M_PI & friends; add `use_math_defines` to c_args or cpp_args
