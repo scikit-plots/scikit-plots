@@ -34,11 +34,6 @@ mprotect_region
 msync_region
     Synchronize memory-mapped region with storage
 
-Module-Level Attributes
------------------------
-__version__ : str
-    Module version string
-
 Protection Flags
 ----------------
 PROT_NONE : int
@@ -182,7 +177,7 @@ from libc.string cimport memcpy  # , memset
 # Python-level imports
 # import os
 # from sys import platform
-from typing import Final
+# from typing import Final
 
 # MAP_FAILED: Final[int] = ((void *)-1)  # == -1 means “mmap failed”
 # Py_REFCNT and _Py_REFCNT are the same, except _Py_REFCNT takes
@@ -236,8 +231,6 @@ cdef extern from "../../cexternals/_annoy/src/mman.h" nogil:
 # Module metadata
 # ===========================================================================
 
-__version__: Final[str] = "1.0.1"
-
 __all__ = [
     # flags
     "PY_PROT_NONE",
@@ -276,10 +269,9 @@ __all__ = [
 # ===========================================================================
 # Compile-time constants using DEF
 # ===========================================================================
-
-DEF VERSION_MAJOR = 1
-DEF VERSION_MINOR = 0
-DEF VERSION_PATCH = 1
+# DEF VERSION_MAJOR = 1
+# DEF VERSION_MINOR = 0
+# DEF VERSION_PATCH = 1
 
 
 # ===========================================================================
