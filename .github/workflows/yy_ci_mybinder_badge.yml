@@ -8,6 +8,13 @@ on:
   workflow_dispatch: # Allows manual triggering of the workflow
 
 
+## Top-level default: deny-all. Each job below declares only the scopes
+## it actually needs (principle of least privilege). Without this block
+## GITHUB_TOKEN falls back to the repository/org default, which is often
+## broader than required (OpenSSF Scorecard Token-Permissions: Warn).
+permissions: {}
+
+
 jobs:
   badge:
     runs-on: ubuntu-latest

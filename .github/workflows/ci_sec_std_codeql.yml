@@ -69,12 +69,14 @@ concurrency:
 ## github actions workflow:
 ## https://docs.github.com/en/actions/security-guides/automatic-token-authentication
 permissions:
-  ## only required for workflows in private repositories
+  ## Workflow-level default kept read-only. `security-events: write` and
+  ## `packages: read` are only needed by codeql-action/analyze and (for
+  ## private CodeQL packs) codeql-action/init, so they're declared on the
+  ## `analyze` job below instead of here — any job added later without its
+  ## own permissions block still defaults to read-only.
   contents: read  # for actions/checkout to fetch code
   actions: read  # for github/codeql-action/init to get workflow details
   pull-requests: read
-  packages: read  # required to fetch internal or private CodeQL packs
-  security-events: write  # for github/codeql-action/autobuild to send a status report
 
 ## Global environment variables (available to all jobs and steps)
 ## Job-level environment variables (override global, scoped to this job)
@@ -93,6 +95,13 @@ jobs:
 
     # To enable this workflow on a fork, comment out:
     if: github.repository == 'scikit-plots/scikit-plots'
+
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      actions: read  # for github/codeql-action/init to get workflow details
+      pull-requests: read
+      packages: read  # required to fetch internal or private CodeQL packs
+      security-events: write  # for github/codeql-action/analyze to upload SARIF results
 
     strategy:
       fail-fast: false

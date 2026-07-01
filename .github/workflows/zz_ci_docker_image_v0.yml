@@ -18,9 +18,15 @@ on:
   #   branches: [ $default-branch ]
 
 
+## Least privilege: the build-and-push and cosign-sign steps below are
+## currently commented out, so nothing in this workflow writes packages.
+## Top level therefore stays read-only; re-add `packages: write` to the
+## `build` job's own permissions block (not here) if/when the push step
+## is re-enabled, so any future job added to this file still defaults
+## to read-only (OpenSSF Scorecard Token-Permissions: Warn on write-at-
+## top-level).
 permissions:
   contents: read
-  packages: write
 
 
 env:
@@ -41,7 +47,7 @@ jobs:
 
     permissions:
       contents: read
-      # packages: write
+      # packages: write  # uncomment together with the build-and-push step below
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       # id-token: write

@@ -116,10 +116,13 @@ concurrency:
 ## GITHUB_TOKEN is auto-provisioned by GitHub for every run — you never define it.
 ## Its capabilities are controlled entirely by the permissions: block below.
 ## packages:write is required for any GHCR push (public or private repository).
-# permissions: {}  # Declare default permissions as read only.
+## NOTE: a job's own `permissions:` block REPLACES the top-level block for
+## that job — it does not merge with it. So granting packages:write here
+## does nothing for the `docker` job below (which already declares its own
+## packages:write) and only widens the default for any job added later
+## that forgets to declare its own permissions. Keep top level read-only.
 permissions:
   contents: read  # for actions/checkout to fetch code
-  packages: write  # intentionally NOT granted at workflow level — set per-job below
 
 
 # https://github.com/jupyterhub/repo2docker-action
