@@ -44,3 +44,6 @@ catboost_info/
 #
 # Safer: ignore only that one directory you mentioned:
 # galleries/examples/00-jupyter_notebooks/annoy/*.csv
+
+# s_compile_cpp.sh
+precision_test
