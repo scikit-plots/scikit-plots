@@ -307,7 +307,9 @@
     rel="noopener noreferrer">
     xeus kernels in JupyterLite (XPython)
     </a>:
-    <pre><code># xeus kernels in JupyterLite<br>!micromamba install scikit-plots<br>!micromamba list</code></pre>
+    <pre><code># xeus kernels in JupyterLite
+!micromamba install scikit-plots
+!micromamba list</code></pre>
   </li>
  </ul>
 
