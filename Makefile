@@ -399,6 +399,9 @@ tree:
 ## Repair
 ######################################################################
 
+git_diff:
+	@git diff 1bf588a 2c378ee -- meson.build scikitplot/config/meson.build > my.patc
+
 git_reidx:
 	@set -euo pipefail; \
 	echo ">> Rebuilding Git pack indexes (*.idx) from existing *.pack files..."; \

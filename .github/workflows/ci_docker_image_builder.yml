@@ -115,7 +115,8 @@ on:
     ##                 │  │  │ │ │
     ## Example: cron: "11 11 * * SUN,WED"  # (alternate: every Sunday and Wednesday at 11:11 UTC)
     # - cron: '11 11 * * 1'  # weekly, cause many stale image
-    - cron: '11 11 1 * *'  # 1st of month 11:11 UTC — starts 2 h after cleaner routine (09:00 UTC); purge completed last-day 23:00 UTC.
+    # - cron: '11 11 1 * *'  # 1st of month 11:11 UTC — starts 2 h after cleaner routine (09:00 UTC); purge completed last-day 23:00 UTC.
+    - cron: '11 0 1 * *'  # 1st of month 00:11 UTC — starts 10 min after cleaner routine (00:01 UTC); purge completed last-day 23:00 UTC.
 
 
 ## simultaneity

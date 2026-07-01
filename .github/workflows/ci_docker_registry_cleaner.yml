@@ -241,7 +241,9 @@ on:
     ##   1st of month, 11:11 UTC  → routine cleanup (purge OFF, live)
     ##   1st of month, 09:00 UTC  → routine cleanup (purge OFF, live)
     ##                              runs 2 h before the builder (11:11 UTC)
-    - cron: '0 9 1 * *'        # monthly, 1st of month 09:00 UTC — routine cleanup; 2 h before builder
+    # - cron: '11 11 1 * *'        # monthly, 1st of month 11:11 UTC — routine cleanup; same builder
+    # - cron: '0 9 1 * *'        # monthly, 1st of month 09:00 UTC — routine cleanup; 2 h before builder
+    - cron: '1 0 1 * *'        # monthly, 1st of month 00:01 UTC — routine cleanup; 10 min before builder
     ##   days 28-31, 23:00 UTC  → purge candidate; resolve step promotes to real
     ##                           purge ONLY when tomorrow is the 1st (true last day)
     - cron: '0 23 28-31 * *'   # monthly, last day 23:00 UTC — purge sweep

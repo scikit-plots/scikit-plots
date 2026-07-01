@@ -1374,17 +1374,6 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
             "search_k": search_k,  # If -1, defaults to approximately n_trees * n
             "include_distances": True,  # (weights == "distance")
         }
-        # if hasattr(train_index, "query_vectors_by_vector"):
-        #     # scikit-plot wrapper API
-        #     query_kwargs.pop("n", None)
-        #     query_kwargs["n_neighbors"] = n_neighbors
-        #     query_kwargs["exclude_self"] = True
-        #     query_kwargs["output_type"] = "item"
-        #     neighbor_ids, dists = train_index.query_vectors_by_vector(
-        #         vec,  # row, X[i]
-        #         **query_kwargs,
-        #     )
-        # else:
         # raw spotify/annoy API
         neighbor_ids, dists = train_index.get_nns_by_vector(
             vec,  # row, X[i]
