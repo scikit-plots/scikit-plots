@@ -371,7 +371,7 @@ jobs:
           IN_PURGE:     ${{ inputs.cleanup_purge }}
           IN_DRY_RUN:   ${{ inputs.cleanup_dry_run }}
           # MUST match the cron strings in the schedule: block above.
-          ROUTINE_CRON: '0 9 1 * *'    # 1st of month — MUST stay in sync with schedule: block above
+          ROUTINE_CRON: '1 0 1 * *'  # '0 9 1 * *'  # 1st of month — MUST stay in sync with schedule: block above
           PURGE_CRON:   '0 23 28-31 * *'  # monthly
           # KEEP_DAYS / CLEANUP_POLICIES are already job-level `env:` (see the
           # job's env: block above) and so are already real shell variables in
