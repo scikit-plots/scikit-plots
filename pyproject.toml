@@ -289,6 +289,14 @@ dependencies = [
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
 ######################################################################
 
+[dependency-groups]
+dev = [
+    "scikit-plots[build]",
+    "scikit-plots[dev]",
+    "scikit-plots[test]",
+    "scikit-plots[doc]",
+]
+
 ## (Optionally)
 ## Development dependencies (for linting, type checking, and general dev tools)
 ## Defines optional dependencies (extras) that can be installed separately
@@ -704,10 +712,14 @@ openai = "scikitplot.deployments.openai"
 [tool.pytest.ini_options]
 minversion = "6.0"  # Specify the minimum version of pytest
 log_cli_level = "info"
+log_level = "info"
+
 xfail_strict = true
+
 filterwarnings = [
   "error",
 ]
+
 ## Add command-line options
 addopts = [
   "--color=yes",

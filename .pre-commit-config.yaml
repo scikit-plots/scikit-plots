@@ -29,7 +29,7 @@ repos:
 
   # Optional: Spell Checking
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words" [--ignore-words-list=ser]
@@ -61,7 +61,7 @@ repos:
 
   # Documentation and Specialized Linting
   - repo: https://github.com/woodruffw/zizmor-pre-commit
-    rev: v1.9.0
+    rev: v1.26.1
     hooks:
       - id: zizmor
 
@@ -172,7 +172,7 @@ repos:
 
   # Optional: Cython Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.18.1
+    rev: v0.21.0
     hooks:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
@@ -181,7 +181,7 @@ repos:
 
   # Code Quality: Formatter PyCQA flake8 vs ruff-format can be conflict make sure both compatipable
   - repo: https://github.com/pycqa/flake8
-    rev: 7.2.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         additional_dependencies:
@@ -200,7 +200,7 @@ repos:
   # black --verbose --check --diff .
   # pre-commit run black --verbose
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.1.0
+    rev: 26.5.1
     hooks:
       - id: black
         name: black
@@ -255,9 +255,10 @@ repos:
 
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+    rev: v0.15.20
     hooks:
-      - id: ruff  # Run the linter.
+      # - id: ruff  # Run the linter.
+      - id: ruff-check  # Change ruff hook → ruff-check
         args: ["--fix", "--show-fixes", "--output-format=full", "--verbose"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
@@ -273,7 +274,7 @@ repos:
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie
-    rev: 2025.05.02
+    rev: 2026.06.18
     hooks:
       - id: sp-repo-review
 
