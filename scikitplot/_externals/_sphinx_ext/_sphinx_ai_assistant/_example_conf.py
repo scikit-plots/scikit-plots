@@ -425,7 +425,7 @@ ai_assistant_max_workers = 1  # None / "auto" or a positive integer
 #
 # Default Ollama model used when the ``ollama`` provider is enabled and no
 # ``model`` override is given inside ``ai_assistant_providers["ollama"]``.
-# The widget JS reads this value to pre-select the model in the Ollama panel.
+# The widget JS reads this value to preselect the model in the Ollama panel.
 #
 # User note: Pull any model from the recommended list with
 # ``ollama pull <model>`` before setting it here.

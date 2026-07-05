@@ -4,11 +4,12 @@ runs:
   using: composite
   steps:
   - name: Build
-    shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
     env:
       TERM: xterm-256color
       PKG_CONFIG_PATH: ./.openblas
+    shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
     run: |
+      set -Eeuo pipefail
       echo "::group::Installing Build Dependencies"
       pip install -r requirements/build_requirements.txt
       echo "::endgroup::"
@@ -17,18 +18,20 @@ runs:
       echo "::endgroup::"
 
   - name: Meson Log
-    shell: bash
     if: always()
+    shell: bash
     run: |
+      set -Eeuo pipefail
       echo "::group::Meson Log"
       cat build/meson-logs/meson-log.txt
       echo "::endgroup::"
 
   - name: Test
-    shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
     env:
       TERM: xterm-256color
+    shell: 'script -q -e -c "bash --noprofile --norc -eo pipefail {0}"'
     run: |
+      set -Eeuo pipefail
       echo "::group::Installing Test Dependencies"
       pip install pytest pytest-xdist hypothesis typing_extensions setuptools
       echo "::endgroup::"

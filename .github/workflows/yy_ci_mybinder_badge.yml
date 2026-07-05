@@ -25,13 +25,13 @@ jobs:
 
     steps:
       # # - uses: manics/action-binderbadge@main
-      # - uses: manics/action-binderbadge@99560b89939071823821e105afc83aaa87927e03  #v3.0.0
+      # - uses: manics/action-binderbadge@99560b89939071823821e105afc83aaa87927e03  # v3.0.0
       #   with:
       #     githubToken: ${{ secrets.GITHUB_TOKEN }}
 
     - name: comment on PR with Binder link
       if: github.event == 'pull_request'
-      uses: actions/github-script@v9
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |

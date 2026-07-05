@@ -91,8 +91,11 @@ updates:
       actions:
         patterns:
           - "*"
-    # cooldown:
-    #   default-days: 7  # optional
+    cooldown:
+      default-days: 7  # optional
+      # semver-major-days: 30
+      # semver-minor-days: 7
+      # semver-patch-days: 2
     # reviewers:
     #   - "scikit-plots/core-devs"
 
@@ -110,6 +113,11 @@ updates:
     labels:
       - dependencies
       - pre-commit
+    cooldown:
+      default-days: 7  # optional
+      # semver-major-days: 30
+      # semver-minor-days: 7
+      # semver-patch-days: 2
 
   - package-ecosystem: pip
     # ── Why `directories` instead of `directory: /` + `exclude-paths` ─────────
@@ -214,8 +222,11 @@ updates:
         applies-to: "version-updates"
         patterns:
           - "*"  # catches EVERY dependency in ALL requirements files
-    # cooldown:
-    #   default-days: 7  # optional
+    cooldown:
+      default-days: 7  # optional
+      # semver-major-days: 30
+      # semver-minor-days: 7
+      # semver-patch-days: 2
     # reviewers:
     #   - "scikit-plots/core-devs"
 
@@ -223,6 +234,11 @@ updates:
     directory: "/"
     schedule:
       interval: weekly  # "daily", weekly, monthly
+    cooldown:
+      default-days: 7  # optional
+      # semver-major-days: 30
+      # semver-minor-days: 7
+      # semver-patch-days: 2
 
   # pipenv	pip	<= 2024.4.1
   # - package-ecosystem: "pipenv"

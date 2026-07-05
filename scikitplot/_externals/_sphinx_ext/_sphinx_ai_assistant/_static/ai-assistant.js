@@ -3472,7 +3472,7 @@
      * Developer: The ``chosen`` closure tracks the currently selected option
      *   across button clicks; it is pre-seeded when editing so the user can
      *   submit immediately without re-selecting if only the message changed.
-     * User: When editing, the previously chosen emoji is pre-selected and
+     * User: When editing, the previously chosen emoji is preselected and
      *   the previous message text is pre-filled in the textarea.
      */
     function _rebuildFeedbackFormIn(container, answerIndex, answerText, questionText) {
@@ -3554,7 +3554,7 @@
             b.setAttribute('aria-label', tip);
             b.setAttribute('data-value', String(num));
 
-            // Pre-select the previously submitted option when editing.
+            // preselect the previously submitted option when editing.
             b.setAttribute('aria-pressed',
                 (prevValue !== null && num === prevValue) ? 'true' : 'false');
 
@@ -10130,7 +10130,7 @@ opts.jsonPayload + '\n' +
             btn.appendChild(efLbl);
             btn.appendChild(efHint);
 
-            // Set initial description for the pre-selected level.
+            // Set initial description for the preselected level.
             if (ef.id === activeEffort) { effortDesc.textContent = ef.desc; }
 
             btn.addEventListener('click', function () {
