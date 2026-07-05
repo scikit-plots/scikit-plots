@@ -289,14 +289,6 @@ dependencies = [
 ## https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
 ######################################################################
 
-[dependency-groups]
-dev = [
-    "scikit-plots[build]",
-    "scikit-plots[dev]",
-    "scikit-plots[test]",
-    "scikit-plots[doc]",
-]
-
 ## (Optionally)
 ## Development dependencies (for linting, type checking, and general dev tools)
 ## Defines optional dependencies (extras) that can be installed separately
@@ -612,6 +604,72 @@ ci_requirements = [
   ## https://anaconda.org/conda-forge/blas
   "scikit-plots[ci32_requirements]",        # Reference the 'core' group as a dependency
   "scipy-openblas64==0.3.33.0.0",           # Keep this in sync with ci32_requirements.txt
+]
+
+######################################################################
+## 🔻 Dependency Groups (PEP 735)
+##
+## Dependency groups are intended for development environments and
+## local tooling (for example: uv, IDEs, CI, and contributors).
+##
+## They are NOT published as installable package extras.
+##
+## Examples:
+##
+##   # Install development environment
+##   uv sync --group dev
+##
+##   # Install only the test group
+##   uv sync --group test
+##
+## Unlike [project.optional-dependencies], dependency groups are not
+## part of the package's public API on PyPI.
+##
+## -------------------------------------------------------------------
+## Why both sections exist
+##
+## [project.optional-dependencies]
+##   • Public package extras (PEP 621)
+##   • Available to users after publishing to PyPI
+##   • Installed with:
+##
+##       pip install scikit-plots[test]
+##       pip install scikit-plots[doc]
+##       pip install scikit-plots[gpu]
+##
+##   • Forms part of the project's public interface and should remain
+##     stable for users.
+##
+## [dependency-groups]
+##   • Local development groups (PEP 735)
+##   • Used by development tools such as uv
+##   • Not exposed as package extras on PyPI
+##   • Intended for contributors, CI, and local development
+##
+## The two mechanisms complement each other rather than replace one
+## another. Optional dependencies describe installable package extras,
+## while dependency groups describe development environments.
+##
+## To avoid maintaining duplicate dependency lists, development groups
+## may reference the project's existing optional extras whenever
+## appropriate.
+##
+## References
+## ----------
+## PEP 621 - Project metadata:
+## https://peps.python.org/pep-0621/
+##
+## PEP 735 - Dependency Groups:
+## https://peps.python.org/pep-0735/
+######################################################################
+
+# ✅ uv sync --group dev installs the same environment.
+[dependency-groups]
+dev = [
+    "scikit-plots[build]",
+    "scikit-plots[dev]",
+    "scikit-plots[test]",
+    "scikit-plots[doc]",
 ]
 
 ######################################################################
