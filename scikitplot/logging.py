@@ -607,7 +607,7 @@ def google2_log_prefix(level=None, timestamp=None, file_and_line=None):
     now_tuple = time.localtime(now)
     now_microsecond = int(1e6 * (now % 1.0))
 
-    (filename, line) = file_and_line or _GetFileAndLine()
+    filename, line = file_and_line or _GetFileAndLine()
     basename = os.path.basename(filename)  # noqa: PTH119
 
     # Severity string
@@ -952,16 +952,14 @@ class AlwaysStdErrHandler(_logging.StreamHandler):  # type: ignore[type-arg]
 
     # Add a docstring to the inherited 'name' property if it doesn't already have one
     if not _logging.StreamHandler.name.__doc__:
-        _logging.StreamHandler.name.__doc__ = textwrap.dedent(
-            """
+        _logging.StreamHandler.name.__doc__ = textwrap.dedent("""
             This is the name property for StreamHandler.
 
             Returns
             -------
             str | None
                 The current handler object name if provided, otherwise None.
-        """
-        )
+        """)
 
     def __init__(self, stream: str | any | None = None) -> None:
         if stream is None:

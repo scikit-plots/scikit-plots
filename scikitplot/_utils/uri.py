@@ -248,7 +248,7 @@ def add_databricks_profile_info_to_artifact_uri(artifact_uri, databricks_profile
         if databricks_profile_uri == "databricks":
             netloc = "databricks"
         else:
-            (profile, key_prefix) = get_db_info_from_uri(databricks_profile_uri)
+            profile, key_prefix = get_db_info_from_uri(databricks_profile_uri)
             prefix = ":" + key_prefix if key_prefix else ""
             netloc = profile + prefix + "@databricks"
         new_parsed = artifact_uri_parsed._replace(netloc=netloc)

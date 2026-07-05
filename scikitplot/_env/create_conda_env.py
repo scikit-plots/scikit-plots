@@ -80,13 +80,11 @@ def _create_conda_env_from_specs_impl(env_name, root_prefix, specs, channels):
         channels_args.extend(["-c", channel])
 
     if not MICROMAMBA_COMMAND:
-        raise RuntimeError(
-            """
+        raise RuntimeError("""
             micromamba is needed for creating the emscripten environment.
             Please install it using conda `conda install micromamba -c conda-forge` or
             from https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html
-            """
-        )
+            """)
 
     subprocess_run(  # noqa: S603
         [

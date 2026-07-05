@@ -259,7 +259,7 @@ class _AssertNoWarningsContext:
 
         relevant = [
             w
-            for w in (self._recorded or [])
+            for w in self._recorded or []
             if issubclass(w.category, self.warning_class)
         ]
         if relevant:

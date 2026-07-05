@@ -1,0 +1,57 @@
+title	url	stage
+Why Do We Analyze Data?	https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/	foundations
+The Process of Data Analysis	https://insightful-data-lab.com/2026/01/14/the-process-of-data-analysis/	foundations
+CRISP-DM for Data Science	https://insightful-data-lab.com/2026/01/14/crisp-dm-for-data-science/	foundations
+Big Data: Definition, Characteristics, Evolution, and Business Impact	https://insightful-data-lab.com/2026/01/14/big-data-definition-characteristics-evolution-and-business-impact/	foundations
+The First Step in Knowing Your Data	https://insightful-data-lab.com/2026/01/14/the-first-step-in-knowing-your-data/	foundations
+IEEE 754 Floating-Point Standard	https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/	foundations
+Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022)	https://insightful-data-lab.com/2026/01/14/discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022/	associations
+Taxi Trips – 2022 dataset from the City of Chicago open data portal	https://insightful-data-lab.com/2026/01/14/taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal/	associations
+Objective Selection of the Bin Width for a Time Histogram	https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/	associations
+Measuring Associations in Data	https://insightful-data-lab.com/2026/01/14/measuring-associations-in-data/	associations
+Measuring Associations Between Two Continuous Variables	https://insightful-data-lab.com/2026/01/14/measuring-associations-between-two-continuous-variables/	associations
+Correlation Coefficients in Python (Pearson, Spearman, Kendall)	https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/	associations
+Karl Pearson	https://insightful-data-lab.com/2026/01/14/karl-pearson/	associations
+Harald Cramér	https://insightful-data-lab.com/2026/01/14/harald-cramer/	associations
+What Are Statistical Tests?	https://insightful-data-lab.com/2026/01/14/what-are-statistical-tests/	associations
+Eta Squared (η²): Effect Size in ANOVA	https://insightful-data-lab.com/2026/01/14/eta-squared-%ce%b7%c2%b2-effect-size-in-anova/	associations
+Understanding Market Baskets and Ideal Customers	https://insightful-data-lab.com/2026/01/14/understanding-market-baskets-and-ideal-customers/	market_basket
+What Can Association Rules Tell Us?	https://insightful-data-lab.com/2026/01/14/what-can-association-rules-tell-us/	market_basket
+How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach	https://insightful-data-lab.com/2026/01/14/how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach/	market_basket
+Apriori: Frequent Itemsets via the Apriori Algorithm	https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/	market_basket
+association_rules: Generating Association Rules from Frequent Itemsets (mlxtend)	https://insightful-data-lab.com/2026/01/14/association_rules-generating-association-rules-from-frequent-itemsets-mlxtend/	market_basket
+Cross-Selling	https://insightful-data-lab.com/2026/01/14/cross-selling-2/	market_basket
+Stratified Random Sampling	https://insightful-data-lab.com/2026/01/14/stratified-random-sampling/	segmentation
+Linear Congruential Random Number Generator (LCG)	https://insightful-data-lab.com/2026/01/14/linear-congruential-random-number-generator-lcg/	segmentation
+Partitioning Observations to Train Objective Models	https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/	segmentation
+Putting Similar Observations into Clusters	https://insightful-data-lab.com/2026/01/14/putting-similar-observations-into-clusters/	segmentation
+Clustering	https://insightful-data-lab.com/2026/01/14/clustering/	segmentation
+Recency, Frequency, and Monetary Value (RFM)	https://insightful-data-lab.com/2026/01/14/recency-frequency-and-monetary-value-rfm/	segmentation
+RFM Analysis	https://insightful-data-lab.com/2026/01/14/rfm-analysis/	segmentation
+Creating Segments of Observations for Business Reasons (RFM)	https://insightful-data-lab.com/2026/01/14/creating-segments-of-observations-for-business-reasons-rfm/	segmentation
+Least Squares Regression	https://insightful-data-lab.com/2026/01/16/least-squares-regression/	regression
+Multiple Linear Regression	https://insightful-data-lab.com/2026/01/16/multiple-linear-regression/	regression
+Feature Importance in Linear Regression	https://insightful-data-lab.com/2026/01/16/feature-importance-in-linear-regression/	regression
+Forward Selection: Definition and Core Idea	https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/	regression
+Forward Selection and Model Interpretation in Linear Regression	https://insightful-data-lab.com/2026/01/16/forward-selection-and-model-interpretation-in-linear-regression/	regression
+Understanding Forward and Backward Stepwise Regression	https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/	regression
+How Shapley Values Work	https://insightful-data-lab.com/2026/01/16/how-shapley-values-work/	regression
+Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds	https://insightful-data-lab.com/2026/01/16/logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds/	classification
+Maximum Likelihood (MLE): Fitting a Distribution to Observed Data	https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/	classification
+Assessing Model Fit in Logistic Regression	https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/	classification
+Complete and Quasi-Complete Separation in Logistic Regression	https://insightful-data-lab.com/2026/01/16/complete-and-quasi-complete-separation-in-logistic-regression/	classification
+Forward Selection with Nested Models and Deviance Tests	https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/	classification
+Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention	https://insightful-data-lab.com/2026/01/16/interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention/	classification
+Motivation of Decision Trees: An Incremental Model of Decision-Making	https://insightful-data-lab.com/2026/01/16/motivation-of-decision-trees-an-incremental-model-of-decision-making/	trees
+The CART Algorithm	https://insightful-data-lab.com/2026/01/16/the-cart-algorithm/	trees
+Decision Trees as Piecewise Models and Their Predictive Structure	https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/	trees
+How CART Decision Trees Model Interactions	https://insightful-data-lab.com/2026/01/16/how-cart-decision-trees-model-interactions/	trees
+Cluster Profiling Using Decision Trees	https://insightful-data-lab.com/2026/01/16/cluster-profiling-using-decision-trees/	trees
+Using Decision Trees to Explain Clustering Results	https://insightful-data-lab.com/2026/01/16/using-decision-trees-to-explain-clustering-results/	trees
+Assessing the Quality of Prediction Models	https://insightful-data-lab.com/2026/01/16/assessing-the-quality-of-prediction-models/	evaluation
+Binary Classification Models – Conceptual Framework and Evaluation Metrics	https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/	evaluation
+Nominal Classification Models: Model State and Evaluation Metrics	https://insightful-data-lab.com/2026/01/16/nominal-classification-models-model-state-and-evaluation-metrics/	evaluation
+Binary Classification Model Evaluation and Threshold Optimization	https://insightful-data-lab.com/2026/01/16/binary-classification-model-evaluation-and-threshold-optimization/	evaluation
+Identifying Outliers Using Residuals and Studentized Residuals	https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/	evaluation
+AUC–ROC Curve: Evaluating Classification Model Performance	https://insightful-data-lab.com/2026/01/16/auc-roc-curve-evaluating-classification-model-performance/	evaluation
+Lift Analysis for Direct Mail Campaigns: Concept, Process, and Business Value	https://insightful-data-lab.com/2026/01/16/lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value/	evaluation

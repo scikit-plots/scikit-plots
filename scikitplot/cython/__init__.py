@@ -17,8 +17,8 @@ low-level Cython packages and modules for immediate use and testing.
    * https://cython.readthedocs.io/en/latest/index.html
    * https://doc.sagemath.org/html/en/reference/misc/sage/misc/cython.html
 """  # noqa: D205, D400
-# A small runtime Cython devkit with caching, pinning, GC, and templates.
 
+# A small runtime Cython devkit with caching, pinning, GC, and templates.
 from __future__ import annotations
 
 from . import (

@@ -26,16 +26,14 @@ def _install_pip_dependencies(prefix_path, dependencies, log=None):
     # Isn't it easier to download the .whl ourselves? pip is hell
 
     if log is not None:
-        log.warning(
-            """
+        log.warning("""
             Installing pip dependencies. This is very much experimental so use
             this feature at your own risks.
             Note that you can only install pure-python packages.
             pip is being run with the --no-deps option to not pull undesired
             system-specific dependencies, so please install your package dependencies
             from emscripten-forge or conda-forge.
-            """
-        )
+            """)
 
     # Installing with pip in another prefix that has a different Python version IS NOT POSSIBLE
     # So we need to do this whole mess "manually"

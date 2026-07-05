@@ -391,3 +391,21 @@ must always hold after a successful build:**
 - **Rewrite, never copy** the source. **Verified sources only** — invent nothing.
 - **~3 terms per batch**, each deep (definition, formula, examples, edge cases, pitfalls,
   when-to-use, ML links, mind-map).
+
+## Hub layout (v2 — filterable browser)
+
+`index.rst` is emitted as a **collapsed, filterable browser** instead of the original
+always-expanded card grid (431 links were visible at once; the page now loads as ~30 rows):
+
+- a **live filter box** (small dependency-free JS, generator-emitted): typing filters every
+  term by name *or gloss keyword*, auto-opens matching theme dropdowns, and shows a match
+  count; with JS disabled the page degrades to plain collapsible sections;
+- one **`.. dropdown::` per theme** (26, grouped under the three level headers), each with
+  the theme blurb and a two-column `hlist` of its terms;
+- one **A–Z master dropdown** listing all terms alphabetically (regenerated + sorted
+  automatically);
+- **anchor contract preserved**: `_terminology-index:`, the legacy level anchors, and every
+  `_term-theme-<key>:` label (externally referenced, e.g. by the Bayesian hub) still resolve.
+
+Adding a term is unchanged (inventory row + GLOSS/ENRICH entry); counts, dropdown contents
+and the A–Z list regenerate deterministically. Term pages are untouched by the redesign.

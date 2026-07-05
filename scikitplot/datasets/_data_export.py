@@ -1792,7 +1792,7 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0912
     # ---------------------------
     if args.stream_hash_csv:
         # Streaming supports only absolute sizes
-        sizes_abs = sorted({int(s) for s in (args.sizes or []) if int(s) >= 0})
+        sizes_abs = sorted({int(s) for s in args.sizes or [] if int(s) >= 0})
         if not sizes_abs:
             raise ValueError(
                 "--stream-hash-csv requires at least one absolute size via --sizes"

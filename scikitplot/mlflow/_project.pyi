@@ -1,4 +1,4 @@
-# from __future__ import annotations
+# fmt: off
 
 from collections.abc import Iterator, Mapping, Sequence  # noqa: F401
 from dataclasses import dataclass
@@ -30,6 +30,7 @@ def ensure_local_store_layout(
     backend_store_uri: str | None,
     default_artifact_root: str | None,
 ) -> None: ...
+
 @dataclass(frozen=True)
 class ProjectConfig:
     profile: str = ...

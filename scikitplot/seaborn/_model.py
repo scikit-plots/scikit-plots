@@ -117,26 +117,20 @@ __all__ = [
 # ==================================================================================== #
 
 _model_docs = dict(  # noqa: C408
-    model_api=dedent(
-        """\
+    model_api=dedent("""\
         There are a number of mutually exclusive options for estimating the
         regression model. See the :ref:`tutorial <regression_tutorial>` for more
         information.\
-        """
-    ),
-    x_estimator=dedent(
-        """\
+        """),
+    x_estimator=dedent("""\
         x_estimator : model
             An instance so access the fitted model attribute(s).\
-        """
-    ),
-    scatter_line_kws=dedent(
-        """\
+        """),
+    scatter_line_kws=dedent("""\
         {scatter,line}_kws : dictionaries
             Additional keyword arguments to pass to ``plt.scatter`` and
             ``plt.plot``.\
-        """
-    ),
+        """),
 )
 # _model_docs.update(_facet_docs)
 
@@ -415,7 +409,7 @@ class _ModelPlotter(VectorPlotter):
                 decimals=2,
             )
             return cm, None, None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.warn(
                 f"Unable to compute confusion_matrix for subset : {e}",
                 UserWarning,

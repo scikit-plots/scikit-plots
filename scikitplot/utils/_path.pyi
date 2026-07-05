@@ -18,6 +18,7 @@ def sanitize_path_component(
     max_len: int = ...,
 ) -> str: ...
 def normalize_extension(ext: str | None) -> str: ...
+
 @dataclass(frozen=True)
 class PathNamer:
     root: Path

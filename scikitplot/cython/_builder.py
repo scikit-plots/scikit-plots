@@ -513,7 +513,7 @@ def build_extension_module_result(  # noqa: PLR0912
         inc_dirs.append(numpy_include.expanduser().resolve())
 
     inc_dirs_norm = [p.resolve() for p in inc_dirs]
-    lib_dirs_norm = [_to_path(p) for p in (library_dirs or [])]
+    lib_dirs_norm = [_to_path(p) for p in library_dirs or []]
 
     directives: dict[str, Any] = dict(DEFAULT_COMPILER_DIRECTIVES)
     if compiler_directives is not None:
@@ -1431,7 +1431,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
     if compiler_directives is not None:
         directives.update(dict(compiler_directives))
 
-    include_dir_list = [str(_to_path(p)) for p in (include_dirs or [])]
+    include_dir_list = [str(_to_path(p)) for p in include_dirs or []]
     if include_cwd:
         include_dir_list.append(str(Path.cwd().resolve()))
     if np_include is not None:
@@ -1451,7 +1451,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
         "modules": module_digests,
         "directives": dict(directives),
         "include_dirs": list(include_dir_list),
-        "library_dirs": [str(_to_path(p)) for p in (library_dirs or [])],
+        "library_dirs": [str(_to_path(p)) for p in library_dirs or []],
         "libraries": list(libraries or []),
         "define_macros": list(define_macros or []),
         "extra_compile_args": list(extra_compile_args or []),
@@ -1558,7 +1558,7 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
                         name=full_name,
                         sources=sources,
                         include_dirs=list(include_dir_list),
-                        library_dirs=[str(_to_path(p)) for p in (library_dirs or [])],
+                        library_dirs=[str(_to_path(p)) for p in library_dirs or []],
                         libraries=list(libraries or []),
                         define_macros=list(define_macros or []),
                         extra_compile_args=list(extra_compile_args or []),

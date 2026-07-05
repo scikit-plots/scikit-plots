@@ -98,7 +98,7 @@ class AliasedGroup(click.Group):
         name = "server" if name == "ui" else name
         try:
             return super().get_command(ctx, name)
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Load only when the command is invoked
             # mod = importlib.import_module(f"scikitplot._cli._commands.{name}")
             # print(mod)
@@ -211,11 +211,9 @@ _load_commands()
 ## ←→ Add a COMMAND to Entry-point: doctor()
 ######################################################################
 @cli.command(
-    short_help=textwrap.dedent(
-        """
-        Prints out useful information for debugging issues
-        with Scikit-plots."""
-    )
+    short_help=textwrap.dedent("""
+    Prints out useful information for debugging issues
+    with Scikit-plots."""),
 )
 # @click.help_option("-h", "--help")  # optional if not using apply_groups for help
 @_cmdoptions_click.apply_groups(

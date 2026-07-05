@@ -156,8 +156,7 @@ def validate_plotting_decorator(func):
 ######################################################################
 
 # The docstrings here must be generic enough to apply to all relevant methods.
-_docstring.interpd.register(
-    _validate_plotting_kwargs_doc="""\
+_docstring.interpd.register(_validate_plotting_kwargs_doc="""\
 ax : matplotlib.axes.Axes, optional, default=None
     The axis to plot the figure on. If None is passed in the current axes
     will be used (or generated if required).
@@ -188,8 +187,7 @@ plot_style : str, optional, default=None
     'seaborn-dark-palette', 'tableau-colorblind10', 'fast'].
 
     .. versionadded:: 0.4.0\
-""".rstrip()
-)
+""".rstrip())
 # index : int or tuple, optional, default=1
 #     The position of the subplot on the grid. It can be:
 #     - An integer specifying the position (1-based).
