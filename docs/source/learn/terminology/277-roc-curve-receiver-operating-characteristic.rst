@@ -18,9 +18,32 @@ ROC Curve (Receiver Operating Characteristic)
 
 *A plot of true- versus false-positive rate across thresholds.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+A **ROC curve** (Receiver Operating Characteristic) plots a binary classifier's **true positive rate**
+(sensitivity / recall) against its **false positive rate** (1 − specificity) as the **decision threshold**
+sweeps from strict to lenient. Each point is one threshold's (FPR, TPR) trade-off.
+
+Reading it
+----------
+
+Lowering the threshold labels **more** examples positive, so **both** TPR and FPR rise — the curve runs from
+(0, 0) to (1, 1). A curve hugging the **upper-left** corner (high TPR, low FPR) is excellent; the
+**diagonal** line is **random guessing**; the closer to the top-left, the better the separation.
+
+Why it's useful
+---------------
+
+Because it shows performance at **every** threshold, the ROC curve reveals the full **trade-off** between
+catching positives and raising false alarms — letting you pick an operating point for your costs, rather than
+being locked to one cutoff. It dates to **radar** signal detection in the 1940s.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`AUC (Area Under the Curve) <371-auc-area-under-the-curve>` · :doc:`Model Score <364-model-score>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>` · :doc:`Accuracy <323-accuracy>` · :doc:`Partial AUC (pAUC) <312-partial-auc-pauc>`
 
 ----
 

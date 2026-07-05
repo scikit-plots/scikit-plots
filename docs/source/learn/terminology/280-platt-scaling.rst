@@ -18,9 +18,38 @@ Platt Scaling
 
 *Fitting a logistic function to scores to produce calibrated probabilities.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Platt scaling** calibrates a classifier by fitting a **logistic (sigmoid)** function on its raw scores,
+mapping them to probabilities:
+
+.. math::
+
+   \hat{Q} = \sigma(a\,z + b).
+
+The two parameters **a** and **b** are fit by **negative log-likelihood** on a validation set. It was invented
+by John Platt for **SVMs**.
+
+How it relates
+--------------
+
+It is a **parametric** method that assumes a **sigmoid**-shaped miscalibration. **Temperature scaling** is
+essentially its **one-parameter, multi-class** special case (fixing the slope and dropping the offset), so
+the two are close cousins.
+
+When to use it
+--------------
+
+Platt scaling is a solid default for **binary** classifiers with **monotonic** score miscalibration and
+limited calibration data, since two parameters rarely overfit — but if the true miscalibration isn't
+sigmoid-shaped, a more flexible method like **isotonic regression** fits better.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Isotonic Regression <281-isotonic-regression>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>` · :doc:`Confidence Level <285-confidence-level>`
 
 ----
 

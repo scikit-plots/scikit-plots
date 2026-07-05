@@ -18,9 +18,57 @@ Prophet — Time Series Forecasting by Facebook (Meta)
 
 *An open-source library for decomposable time-series forecasting with trend and seasonality.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Prophet** is an **open-source forecasting library** from Facebook (now Meta) that makes time-series
+forecasting **simple, scalable and interpretable** — designed for business data with **trends,
+seasonality and holidays**, and usable without deep statistical expertise.
+
+The decomposable model
+------------------------
+
+Prophet models a series as a sum of interpretable components,
+
+.. math::
+
+   y(t) = g(t) + s(t) + h(t) + \varepsilon_t,
+
+where :math:`g(t)` is the **trend** (linear, or logistic with saturation
+:math:`g(t) = \frac{C}{1 + \exp(-k(t - m))}`, plus automatic **changepoints**), :math:`s(t)` is
+**seasonality** (a Fourier series for weekly, yearly or custom cycles), :math:`h(t)` captures
+**holidays and events** from a supplied list, and :math:`\varepsilon_t` is noise.
+
+Strengths and limits
+--------------------
+
+Prophet is **user-friendly** (just a ``ds``/``y`` DataFrame), **interpretable** (each component is
+separable), **robust** to missing data and outliers, detects changepoints automatically, and
+**scales** across many series. Its limits follow from its **additive** design: it does not model
+autoregressive correlations, it suits **daily/weekly/monthly** business data rather than
+high-frequency signals, and it is **less powerful than LSTMs or Transformers** on complex patterns.
+
+In practice
+-----------
+
+.. code-block:: python
+
+   from prophet import Prophet
+
+   # df has two columns: ds (datestamp) and y (value)
+   model = Prophet()
+   model.fit(df)
+
+   future = model.make_future_dataframe(periods=90)
+   forecast = model.predict(future)
+   model.plot(forecast)
+   model.plot_components(forecast)
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Time Series <010-time-series>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Stockout Rate <221-stockout-rate>`
 
 ----
 

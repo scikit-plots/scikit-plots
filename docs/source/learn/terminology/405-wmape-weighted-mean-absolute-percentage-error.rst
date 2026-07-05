@@ -18,9 +18,37 @@ WMAPE (Weighted Mean Absolute Percentage Error)
 
 *MAPE weighted by volume so large items count more.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Weighted Mean Absolute Percentage Error** divides the **total** absolute error by the **total** actual
+demand — the sum of errors over the sum of actuals:
+
+.. math::
+
+   \text{WMAPE} = \frac{\sum_i |y_i - \hat{y}_i|}{\sum_i |y_i|}.
+
+Rather than averaging per-item percentages, it weights each error by its **volume**.
+
+Why weighting matters
+---------------------
+
+Plain MAPE treats a 50% miss on a **tiny** item the same as on a **huge** one and blows up when actuals are
+near **zero**. WMAPE lets **high-volume** items dominate — reflecting real **business impact** — and stays
+defined as long as total demand isn't zero, making it a **retail** and demand-planning staple.
+
+Its trade-off
+-------------
+
+Because big items dominate, WMAPE can **hide** poor accuracy on the **long tail** of small items — a model can
+score well while badly missing many low-volume SKUs. It is closely related to **WAPE**, and best read
+**alongside** a per-item metric to catch tail errors.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`sMAPE (Symmetric Mean Absolute Percentage Error) <406-smape-symmetric-mean-absolute-percentage-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`WAPE (Weighted Absolute Percentage Error) <422-wape-weighted-absolute-percentage-error>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>`
 
 ----
 

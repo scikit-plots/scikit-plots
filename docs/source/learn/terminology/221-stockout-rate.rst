@@ -18,9 +18,45 @@ Stockout Rate
 
 *The frequency with which an item is out of stock.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Stockout Rate** is a supply-chain and inventory metric measuring **how often items are out of stock
+when there is demand** — the percentage of demand that could not be filled because the product was
+unavailable. It is a direct reading of **service-level** performance: a low rate means shelves stay
+stocked, a high rate means customers keep hitting empty ones.
+
+The formula
+-----------
+
+It is computed by demand or by orders,
+
+.. math::
+
+   \text{Stockout Rate} = \frac{\text{Unfulfilled Units}}{\text{Total Demand}} \times 100\%,
+
+or, order-based, the share of orders that hit at least one stockout.
+
+A worked example
+----------------
+
+A month's demand is 1,000 units; inventory covers 950 and 50 go unfilled. The stockout rate is
+50 / 1,000 = **5%** — one order in twenty meets an empty shelf.
+
+Why it matters, and reducing it
+---------------------------------
+
+Frequent stockouts **push customers to competitors**, forfeit sales, and flag weak forecasting, so the
+metric captures the tension between **service level** and **holding cost**. It falls with better
+**demand forecasting** (ARIMA, Prophet, LSTM), adequate **safety stock**, shorter vendor **lead
+times**, **multi-location** inventory and **real-time tracking**. It is the exact **complement of the
+fill rate**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Fill Rate <220-fill-rate>` · :doc:`Backorder Rate <218-backorder-rate>` · :doc:`Lost Sales Value <219-lost-sales-value>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`Prophet — Time Series Forecasting by Facebook (Meta) <222-prophet-time-series-forecasting-by-facebook-meta>`
 
 ----
 

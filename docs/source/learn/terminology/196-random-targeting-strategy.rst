@@ -18,9 +18,43 @@ Random Targeting Strategy
 
 *A random-selection baseline used to benchmark uplift models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+A **random targeting strategy** selects customers (or units) **at random** for an intervention — a
+campaign, treatment or policy — instead of using a predictive or uplift model. In uplift modelling it
+is the **baseline** against which a model is judged: if a model cannot beat random targeting, it is
+not useful.
+
+The diagonal baseline
+-----------------------
+
+Treat a random proportion of the whole population — 20%, 50%, 100% — and, because the choice is
+random, the **treatment effect spreads evenly**. On a Qini or uplift curve (proportion targeted on
+the X-axis, cumulative incremental gain on the Y-axis) this traces a **straight diagonal line**:
+uplift accumulates linearly with the fraction treated.
+
+A worked example
+----------------
+
+With 10,000 customers and an average treatment effect of **+5%**, random targeting of 20% (2,000)
+yields about **100** incremental conversions; 40% yields about **200**; and 100% yields about **500**
+— the campaign's total incremental benefit. The line from (0, 0) to (100%, 500) is the random
+baseline.
+
+Role, pros and cons
+---------------------
+
+That line is the **benchmark**: a good model's curve starts steep — finding persuadables first — and
+stays **above** it throughout; a curve that hugs the diagonal adds no value. Random targeting is
+**simple** and **fair** (hence its use in A/B testing), but it **wastes budget** on sure things, lost
+causes and do-not-disturbs, delivers lower ROI, and cannot adapt to customer heterogeneity.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Qini Curve <203-qini-curve>` · :doc:`Cumulative Uplift <198-cumulative-uplift>` · :doc:`Uplift Models <205-uplift-models>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Total Incremental Benefit (TIB) <201-total-incremental-benefit-tib>` · :doc:`Causal ML (Causal Machine Learning) <197-causal-ml-causal-machine-learning>`
 
 ----
 

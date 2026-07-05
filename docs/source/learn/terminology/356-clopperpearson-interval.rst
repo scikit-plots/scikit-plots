@@ -18,9 +18,32 @@ Clopper–Pearson Interval
 
 *An exact confidence interval for a binomial proportion.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **Clopper–Pearson interval** is the **"exact"** confidence interval for a **binomial proportion** — built
+directly from the **binomial distribution** (via **Beta-distribution** quantiles) rather than a normal
+approximation. It **inverts** the binomial CDF to find the proportions consistent with the data.
+
+Its guarantee
+-------------
+
+It **never has less than** the nominal coverage — a 95% Clopper–Pearson interval covers the true proportion
+**at least** 95% of the time for **every** p and n. That safety is its selling point when you **must not**
+under-cover.
+
+The cost
+--------
+
+Guaranteeing coverage makes it **conservative** — the actual coverage is often **~99%**, so the interval is
+**wider than necessary** and demands larger samples for a given precision. It is the **widest** of the common
+methods, best reserved for **very small samples** or when guaranteed coverage is essential.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Wilson Score Interval <357-wilson-score-interval>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Standard Error (SE) <084-standard-error-se>`
 
 ----
 

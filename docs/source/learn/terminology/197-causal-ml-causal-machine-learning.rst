@@ -18,9 +18,56 @@ Causal ML (Causal Machine Learning)
 
 *ML methods that estimate causal effects rather than predictive associations.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Causal ML (causal machine learning)** is the branch of machine learning that estimates
+**cause-and-effect relationships**, not merely correlations or predictions. Where traditional ML asks
+*"what is likely to happen?"*, causal ML asks *"what will happen* **because of** *this
+intervention?"* — making it essential for policy evaluation, medical treatment, marketing and any
+decision where an action *changes* the outcome.
+
+The counterfactual problem
+----------------------------
+
+Everything rests on **treatment versus control** — the intervention against no intervention. The
+difficulty is the **counterfactual problem**: for any individual we observe only *one* outcome
+(treated or not), never the other, so the effect must be **estimated**. That effect comes in three
+grains: the **ATE** (average treatment effect across the population,
+:math:`\text{ATE} = \mathbb{E}[Y(1) - Y(0)]`), the **CATE** (conditional on a subgroup), and the
+**ITE** (for a single individual).
+
+Methods
+-------
+
+The gold standard is **experimental** — a randomised controlled trial (RCT) assigns treatment at
+random, eliminating confounding. When experiments are impossible, **observational** methods step in:
+propensity-score matching, inverse-propensity weighting, and doubly-robust estimators that combine
+regression with weighting. **ML extensions** add **meta-learners** (S-, T-, X- and R-learners),
+**causal trees and forests** for heterogeneous effects, and deep models (Dragonnet, TARNet) — with
+libraries such as ``CausalML``, ``EconML`` and ``DoWhy``.
+
+An example
+----------
+
+In a marketing email campaign, traditional ML predicts **who will buy**; causal ML predicts **who
+will buy because of the email**. If the treatment group buys at 15% and the control at 10%, the
+**ATE is a 5% uplift** — and causal ML then estimates **CATE/ITE** to reveal which segments or
+individuals respond most.
+
+Benefits and challenges
+-----------------------
+
+The payoff is real: it captures **true causal effect** rather than correlation, targets only those
+who benefit, and supports **counterfactual reasoning** ("what if?"). The costs are structural — it
+needs a **treatment-control design** (experiments or strong assumptions), is **sensitive to
+confounding** in observational data, and is harder to explain and validate than standard ML.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Uplift Models <205-uplift-models>` · :doc:`Uplift <424-uplift>` · :doc:`Random Targeting Strategy <196-random-targeting-strategy>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>`
 
 ----
 

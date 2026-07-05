@@ -18,9 +18,38 @@ Binary Cross-Entropy (BCE)
 
 *The standard loss for binary classification, penalising confident wrong predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Binary cross-entropy** (log loss) is the standard **loss** for **binary classification**, for a true
+label :math:`y \in \{0,1\}` and predicted probability :math:`p = \sigma(z)`:
+
+.. math::
+
+   \text{BCE} = -\big[\,y \log(p) + (1 - y)\log(1 - p)\,\big], \qquad p = \sigma(z),
+
+averaged over the data.
+
+How it behaves
+--------------
+
+The **logarithm** gives an **asymmetric** penalty — a confident-correct prediction costs almost nothing
+(:math:`-\log 0.99 \approx 0.01`), a confident-wrong one costs a lot (:math:`-\log 0.01 \approx 4.6`). This
+pressures the model to be **confident when right and hesitant when wrong**, pushing toward **calibrated**
+probabilities.
+
+Why it fits
+-----------
+
+BCE is the **negative log-likelihood** of the **Bernoulli** distribution, so minimizing it is **maximum
+likelihood** — the natural partner of the **sigmoid**, with a clean gradient :math:`(p - y)`. Its
+multi-class analogue is **categorical cross-entropy** with **softmax**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Loss Functions <289-loss-functions>` · :doc:`Logit Space <291-logit-space>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>`
 
 ----
 

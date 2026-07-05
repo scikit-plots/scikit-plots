@@ -18,9 +18,36 @@ Average Absolute Error (AAE)
 
 *The mean of absolute differences between forecasts and outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+The **average absolute error** is the mean of the **absolute** errors — the average of
+:math:`|\text{forecast} - \text{actual}|` across all points. It answers *how big is the typical error?*
+in the **same units** as the data, and is identical to the **Mean Absolute Error (MAE)** (often also
+called the Mean Absolute Deviation):
+
+.. math::
+
+   \mathrm{AAE} = \frac{1}{n}\sum_{i=1}^{n} |y_i - \hat{y}_i|.
+
+Properties
+----------
+
+Because it uses **absolute** (not squared) errors, AAE is **robust to outliers** — a few large misses do
+not dominate — and it treats over- and under-prediction **symmetrically**, ignoring the *direction* of
+error. The forecast that minimizes it is the **median**.
+
+Limitation
+----------
+
+AAE is **scale-dependent**: you cannot compare it across series on different scales (an AAE of 10 is tiny
+for house prices, huge for temperatures). For that, switch to a **percentage** or **relative** metric.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Forecast Error <250-forecast-error>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Relative accuracy <258-relative-accuracy>` · :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Time Series Forecasting <256-time-series-forecasting>`
 
 ----
 

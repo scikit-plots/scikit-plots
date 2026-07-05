@@ -18,9 +18,32 @@ Multiclass Classification
 
 *Assigning each instance to one of three or more classes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Multiclass classification** predicts one of **more than two** mutually exclusive classes — a handwritten
+digit (0–9), a species, a product category. It generalizes **binary** classification, and its models usually
+end in a **softmax** layer that outputs a probability over the **K** classes.
+
+The evaluation twist
+--------------------
+
+Metrics built for two classes — **ROC-AUC**, **precision**, recall — have no direct multiclass definition,
+because "**positive** vs negative" is ambiguous with many classes. To use them, the problem is **binarized**
+(one class vs the others) and the per-class scores are **averaged**.
+
+The two decompositions
+----------------------
+
+**One-vs-Rest** turns K classes into K binary problems (each class against the rest); **One-vs-One** compares
+every **pair**. Either produces a set of per-class or per-pair scores that a **micro** or **macro** average
+then collapses into a single number.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Micro AUC <313-micro-auc>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

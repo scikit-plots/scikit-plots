@@ -18,9 +18,49 @@ Uplift@k
 
 *The incremental gain captured within the top-k targeted population.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Uplift@k** is a performance metric in uplift modelling and causal ML. It measures the **incremental
+effect** achieved if you target only the **top k%** of customers, ranked by the model's predicted
+uplift score. In plain terms: *if I contact only the top k%, how much extra impact do I get compared
+to not contacting them?*
+
+The formula
+-----------
+
+It is the **difference in average outcome** between the treatment and control groups **within the
+top-k% segment**,
+
+.. math::
+
+   \text{Uplift@}k = \bar{y}_{\text{treatment}}^{(k)} - \bar{y}_{\text{control}}^{(k)},
+
+where the averages are taken over the top k% by predicted uplift. Random targeting yields a small or
+zero value (treatment and control behave alike); a good model makes treatment clearly outperform
+control in that segment.
+
+A worked example
+----------------
+
+With 10,000 customers, targeting the **top 20%** (k = 20%) selects 2,000. If, within that segment, the
+treatment group's purchase probability exceeds the control group's by **5 percentage points**, then
+uplift@k = **+5pp** — the extra impact the model captures by choosing those 2,000.
+
+Uses, and versus uplift
+-------------------------
+
+In **marketing** it estimates incremental sales from promoting only the top k%; in **healthcare**, the
+incremental recovery from treating the top-k patients; in **recommendation**, the extra engagement
+from targeting the top-k users. The distinction from plain uplift is subtle but important: **uplift**
+asks *how effective is the treatment overall?*, while **uplift@k** asks *how good is my model at
+selecting the best subset to treat?*
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Models <205-uplift-models>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`AUUC (Area Under the Uplift Curve) <396-auuc-area-under-the-uplift-curve>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Uplift <424-uplift>`
 
 ----
 

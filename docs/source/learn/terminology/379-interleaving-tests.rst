@@ -18,9 +18,32 @@ Interleaving Tests
 
 *Online ranker comparison that blends two result lists and attributes clicks.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+**Interleaving** compares **two rankers** — say two search algorithms — by **blending their result lists
+into one** list shown to a **single user**, then crediting each **click** to whichever ranker supplied that
+item. The same user effectively judges both at once.
+
+Why it's powerful
+-----------------
+
+Because each user sees **both** rankers' results (a within-user comparison), interleaving is **far more
+sensitive** than an A/B test — it reaches a reliable conclusion from **far fewer interactions**, so **fewer
+users** are exposed to a possibly worse ranker. **Multileaving** extends the idea to compare **many** rankers
+simultaneously.
+
+Where it's used
+---------------
+
+Interleaving is a staple of **search and recommendation** evaluation and **learning-to-rank**, where ranking
+quality differences are subtle and A/B tests would need huge traffic to detect them.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`A/B Testing <380-a-b-testing>` · :doc:`Sequential Testing (also called sequential analysis) <376-sequential-testing-also-called-sequential-analys>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`A/B/n Test <114-a-b-n-test>`
 
 ----
 

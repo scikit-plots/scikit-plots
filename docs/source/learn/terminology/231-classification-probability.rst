@@ -18,9 +18,32 @@ Classification Probability
 
 *The probability a model assigns to a class for an instance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+The **classification probability** is the **score** a classifier assigns that an instance belongs to a
+class — an estimate of :math:`P(\text{class} \mid \text{features})` between **0 and 1**. It is the model's
+**confidence** *before* any hard decision is made.
+
+From probability to label
+-------------------------
+
+A **threshold** converts it to a class (in scikit-learn, ``predict_proba`` gives the probability,
+``predict`` applies the cutoff). Two instances scored 0.51 and 0.99 both become "positive," but they are
+**not** equally certain — which is why the probability carries more information than the label.
+
+Why calibration matters
+-----------------------
+
+The probability is only trustworthy if it is **calibrated** — if events predicted at 0.7 actually happen
+about 70% of the time. **Over-** or **under-confident** scores mislead any downstream **risk-based
+decision**, so probabilities are validated with calibration curves, not just accuracy.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Binary Classification <293-binary-classification>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

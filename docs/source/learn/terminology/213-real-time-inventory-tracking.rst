@@ -18,9 +18,32 @@ Real-Time Inventory Tracking
 
 *Continuously monitoring stock levels as they change.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Real-time inventory tracking** monitors stock levels **as they change** — continuously and instantly —
+instead of relying on periodic manual counts. Every scan at sale, receipt or transfer updates the count
+automatically, keyed by **SKU**.
+
+How it works
+------------
+
+Modern **POS**, **ERP** and warehouse systems update inventory the moment a product is scanned;
+**cloud-based** platforms expose that data from anywhere, keeping **multiple locations and sales channels**
+synchronized.
+
+Why it matters
+--------------
+
+It prevents **overselling** and **stockouts**, keeps multi-channel stock consistent, and lets the system
+**trigger reorders** and **flag anomalies** (a sudden drop in availability) without human polling. It is the
+**visibility layer** that makes automated **reorder-point** and **safety-stock** policies actually work.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SKU <212-sku>` · :doc:`Slow-Moving SKUs <211-slow-moving-skus>` · :doc:`Reorder Point (ROP) Optimization <216-reorder-point-rop-optimization>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Demand Forecasting <215-demand-forecasting>` · :doc:`Stockout Rate <221-stockout-rate>`
 
 ----
 

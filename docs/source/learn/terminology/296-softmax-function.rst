@@ -18,9 +18,36 @@ Softmax Function
 
 *Converts a vector of scores into a probability distribution over classes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+The **softmax** function generalizes the sigmoid to **many** classes. It takes a vector of **K** raw scores
+(**logits**), exponentiates each and normalizes by their sum, producing **K** probabilities that each lie
+in (0,1) and **sum to 1** — a full **distribution** over mutually exclusive classes:
+
+.. math::
+
+   \text{softmax}(z)_k = \frac{e^{z_k}}{\sum_{j=1}^{K} e^{z_j}}.
+
+Its role
+--------
+
+It is the standard **output layer** for **multi-class** classification, trained with **categorical
+cross-entropy**. It **amplifies** the largest score toward 1 while **dampening** the rest — a soft "winner."
+When :math:`K=2` it **reduces to the sigmoid**.
+
+Watch out
+---------
+
+Because the outputs are coupled (they must sum to 1), softmax assumes classes are **mutually exclusive** —
+for **multi-label** problems (independent classes) use per-class sigmoids instead. Its probabilities can
+also be **poorly calibrated**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Squashing Function <298-squashing-function>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Classification Models <294-classification-models>` · :doc:`Binary Classification <293-binary-classification>`
 
 ----
 

@@ -18,9 +18,37 @@ WAPE (Weighted Absolute Percentage Error)
 
 *Total absolute error divided by total actuals.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Weighted Absolute Percentage Error** divides the **total** absolute forecast error by the **total** actual
+demand:
+
+.. math::
+
+   \text{WAPE} = \frac{\sum_i |y_i - \hat{y}_i|}{\sum_i |y_i|}.
+
+It expresses aggregate error as a single percentage, weighting each item by its **volume**.
+
+Why retailers use it
+--------------------
+
+Unlike **MAPE**, WAPE doesn't **blow up** when individual actuals are near **zero** (common for slow-moving
+SKUs), and it lets **high-volume** items dominate — reflecting real demand. It stays defined as long as total
+demand isn't zero, which makes it the **default** accuracy metric in demand planning.
+
+How it connects
+---------------
+
+WAPE is effectively the same quantity as **WMAPE**, and it is the number that **drives inventory** — high WAPE
+means forecasts are far off, feeding both **overstock** and **stockouts**. Cutting WAPE is how planners
+**shrink** those costly failure modes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`WMAPE (Weighted Mean Absolute Percentage Error) <405-wmape-weighted-mean-absolute-percentage-error>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Overstock % <400-overstock>` · :doc:`Stockouts <401-stockouts>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>`
 
 ----
 

@@ -18,9 +18,37 @@ RMSLE (Root Mean Squared Logarithmic Error)
 
 *RMSE on log-scaled values, penalising under-prediction and easing large magnitudes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Root Mean Squared Logarithmic Error** is RMSE computed on the **logarithms** of the predictions and
+actuals — the root-mean-square of the differences in **log space**:
+
+.. math::
+
+   \text{RMSLE} = \sqrt{\frac{1}{N}\sum_{i=1}^{N}\big(\log(\hat{y}_i + 1) - \log(y_i + 1)\big)^2}.
+
+The **+1** lets it handle zeros.
+
+What the log changes
+--------------------
+
+Taking logs turns absolute errors into **relative** ones, so a fixed **percentage** miss costs the same
+whether the value is small or huge — making RMSLE **robust to scale** and to large **outliers**. It also
+becomes **asymmetric**: it penalizes **under**-prediction more than over-prediction.
+
+When to use it
+--------------
+
+RMSLE suits **positive**, **right-skewed** targets that span orders of magnitude — prices, counts, demand —
+and situations where **under-forecasting** is the costlier mistake. Its limits: it **can't** take negative
+values, and its log scaling makes the raw number **less intuitive** than RMSE.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`WAPE (Weighted Absolute Percentage Error) <422-wape-weighted-absolute-percentage-error>` · :doc:`Outlier <307-outlier>`
 
 ----
 

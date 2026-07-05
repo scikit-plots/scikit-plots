@@ -18,9 +18,44 @@ Fill Rate
 
 *The fraction of demand satisfied directly from inventory.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Fill Rate** is a supply-chain and inventory metric measuring the **percentage of customer demand
+met immediately from available stock, without delay**. It answers: *of everything customers wanted,
+how much did we deliver on time and in full, from stock?* A high fill rate means availability; a low
+one means frequent shortages, backorders and delays.
+
+The formulas
+------------
+
+It has three common forms. **Order fill rate** divides orders completely fulfilled by total orders;
+**line fill rate** divides order lines completely fulfilled by total order lines; and **unit fill
+rate** divides units delivered on the first shipment by total units ordered — each expressed as a
+percentage,
+
+.. math::
+
+   \text{Fill Rate (unit)} = \frac{\text{Units delivered on first shipment}}{\text{Total Units Ordered}} \times 100\%.
+
+A worked example
+----------------
+
+A week's demand is 1,000 units; the warehouse ships 970 immediately and backorders the remaining 30.
+The fill rate is 970 / 1,000 = **97%** — 97% of demand satisfied instantly from stock.
+
+Why it matters, and its mirror
+--------------------------------
+
+Fill rate drives **customer satisfaction** and **revenue**, signals forecasting and replenishment
+health, and is benchmarked at **95-98%** across many industries. It is the exact **complement of the
+stockout rate**: :math:`\text{Fill Rate} = 100\% - \text{Stockout Rate}`.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Backorder Rate <218-backorder-rate>` · :doc:`Stockout Rate <221-stockout-rate>` · :doc:`Lost Sales Value <219-lost-sales-value>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`SLA (Service Level Agreement) <208-sla-service-level-agreement>`
 
 ----
 

@@ -18,9 +18,38 @@ Long Lead Times
 
 *Extended delays between ordering and receiving goods.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Lead time** is the total span from **placing an order to having the goods available**; **long lead
+times** are extended delays — weeks or months for overseas sourcing, slow procurement, or constrained
+production.
+
+The inventory cost
+------------------
+
+Longer lead times force businesses to hold **more safety stock** to cover demand over the wait, directly
+**raising holding costs** — safety stock scales with the **square root of lead time**:
+
+.. math::
+
+   \text{SS} = Z \times \sigma_D \times \sqrt{L}.
+
+They also cut **agility**: you can't respond quickly to demand shifts, and the risk of **stockouts** and
+missed deliveries climbs.
+
+Variability is worse
+--------------------
+
+An unpredictable lead time is more damaging than a long-but-stable one, because its **variance** widens the
+buffer needed. Causes include geographic distance, production constraints, poor visibility and transport
+disruptions.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Safety Stock <217-safety-stock>` · :doc:`Reorder Point (ROP) Optimization <216-reorder-point-rop-optimization>` · :doc:`Supplier Constraints <209-supplier-constraints>` · :doc:`Supplier Management <214-supplier-management>` · :doc:`Demand Forecasting <215-demand-forecasting>` · :doc:`Stockout Rate <221-stockout-rate>`
 
 ----
 

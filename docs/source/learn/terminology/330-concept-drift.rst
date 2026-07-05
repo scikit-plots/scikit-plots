@@ -18,9 +18,33 @@ Concept Drift
 
 *When the relationship between inputs and target changes over time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Concept drift** is a change in the **relationship** between inputs and the outcome — formally a shift in
+:math:`P(Y \mid X)`. The inputs can look **identical**, but what they *mean* for the target has changed: the
+rules the model learned no longer hold.
+
+Why it's dangerous
+------------------
+
+Because the input distribution may look **normal**, concept drift is **hard to detect** — the model keeps
+predicting **confidently** while being **wrong**. It shows up as a **decline** in accuracy, F1, or business
+KPIs, which is why performance is monitored on **labeled** or delayed data, aided by detectors like
+**ADWIN**, **DDM**, or **Page-Hinkley**.
+
+Its forms and fix
+-----------------
+
+Drift can be **sudden** (a regime change), **gradual**, **incremental**, or **recurring** (seasonal patterns
+that revert). The remedy is **retraining** on fresh labeled data that reflects the new relationship — the
+reason production models need continuous **monitoring** and update loops.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Data Drift <331-data-drift>` · :doc:`Label Drift (a.k.a. Target Drift) <386-label-drift-a-k-a-target-drift>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Dataset Shift <353-dataset-shift>` · :doc:`Model Stability <187-model-stability>`
 
 ----
 

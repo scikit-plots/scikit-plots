@@ -18,9 +18,32 @@ Overconfident
 
 *When predicted probabilities are more extreme than the true accuracy warrants.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+A model is **overconfident** when its predicted probabilities are **too high** for its actual accuracy — it
+claims more certainty than it earns. A model that is 99% confident but only 90% accurate is overconfident.
+
+How to spot it
+--------------
+
+On a **reliability diagram**, overconfident points fall **below** the diagonal (accuracy < confidence), and
+the histogram piles predictions near **1.0**. Modern deep networks are frequently overconfident, having
+"memorized" training data and carried that certainty to new inputs; **log loss** flags it by punishing
+confident-wrong predictions heavily.
+
+Why it's dangerous
+------------------
+
+Overconfidence is a **safety** hazard in high-stakes settings — an overconfident medical or fraud model
+triggers costly actions on cases it has wrong. It is corrected **post-hoc** with methods like temperature
+scaling, Platt scaling or isotonic regression.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Underconfident <283-underconfident>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Softmax Function <296-softmax-function>`
 
 ----
 

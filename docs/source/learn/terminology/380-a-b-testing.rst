@@ -18,9 +18,32 @@ A/B Testing
 
 *A randomised experiment comparing two variants to measure an effect.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+An **A/B test** is a **controlled experiment** that **randomly assigns** users to two variants — **A**
+(control) and **B** (treatment) — and measures which performs better on a chosen **metric** (conversion
+rate, time on page, retention). Randomization is what lets you read the difference as **causal**.
+
+How it's run
+------------
+
+You fix the **metric**, use a **power analysis** to set the **sample size**, pick a **statistical test**
+(t-test, chi-square), and choose a **significance level α**. When the data are in, the test decides whether
+B's effect is **real** or noise.
+
+Its discipline
+--------------
+
+The classic A/B test is **fixed-horizon** — you must wait for the pre-planned sample before deciding.
+**Peeking** early and stopping when it looks significant **inflates false positives**, which is exactly the
+failure that **sequential** methods are designed to fix.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sequential Testing (also called sequential analysis) <376-sequential-testing-also-called-sequential-analys>` · :doc:`Interleaving Tests <379-interleaving-tests>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>`
 
 ----
 

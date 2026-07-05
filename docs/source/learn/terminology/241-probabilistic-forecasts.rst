@@ -18,9 +18,33 @@ Probabilistic Forecasts
 
 *Forecasts that quantify uncertainty as a full probability distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **probabilistic forecast** produces a **full predictive distribution** — a range of possible outcomes
+together with their probabilities — rather than a single value. By **quantifying uncertainty**, it lets
+decision-makers weigh risk instead of betting on one number.
+
+Forms and quality
+-----------------
+
+It can be expressed as **prediction intervals**, **quantiles**, a **density**, or **samples**. Quality is
+judged on two axes: **calibration** — do the stated probabilities match observed frequencies? — and
+**sharpness** — are the intervals as **tight** as possible *subject to* being calibrated? Sharp but
+miscalibrated is misleading; calibrated but diffuse is uninformative.
+
+Why it matters
+--------------
+
+Probabilistic forecasts support **decisions under uncertainty** — hedging, safety stock, capacity
+planning — especially where the **cost of outcomes is asymmetric**. Narrow bands signal agreement; wide
+spreads flag where more flexibility or hedging is needed. A point estimate alone cannot convey this.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Deterministic forecasts <242-deterministic-forecasts>` · :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>`
 
 ----
 

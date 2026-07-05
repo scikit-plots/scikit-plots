@@ -18,9 +18,36 @@ Naïve Baseline Forecast
 
 *A baseline predicting the next value equals the most recent observation.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+A **naïve baseline forecast** is the simplest possible forecast — use the **last observed value** as the
+prediction for the next period (the random-walk forecast). Its seasonal cousin, the **seasonal naïve**,
+uses the value from one season ago:
+
+.. math::
+
+   \hat{y}_{t+1} = y_t \qquad\text{(naïve)}, \qquad\qquad \hat{y}_{t+h} = y_{t+h-m} \quad\text{(seasonal naïve, period } m).
+
+Why it matters
+--------------
+
+It is the **benchmark every model must beat**. If a complex model cannot outperform *"just repeat the
+last value"*, the complexity is not paying off. It is also the reference in the **denominator of MASE**,
+computed on the **in-sample (training)** series so the benchmark does not leak future information.
+
+Which variant
+-------------
+
+The plain naïve suits **non-seasonal** data; the **seasonal naïve** is the right reference when there is a
+clear period (set :math:`m = 12` for monthly data with yearly seasonality, not :math:`m = 1`). Cheap,
+robust, and — for noisy or short series — surprisingly hard to beat.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Forecast Error <250-forecast-error>` · :doc:`Simple Baseline Methods <248-simple-baseline-methods>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`Point Forecasts <233-point-forecasts>`
 
 ----
 

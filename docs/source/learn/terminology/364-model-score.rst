@@ -18,9 +18,32 @@ Model Score
 
 *The raw numeric output a model assigns before thresholding.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+A **model score** is the **continuous output** a classifier assigns each example — a **probability** or
+real-valued score of belonging to the **positive** class — *before* it becomes a hard label. Logistic
+regression, random forests, and neural nets all emit scores.
+
+Score vs label
+--------------
+
+Turning a score into a **decision** requires a **threshold** — above it, positive; below, negative. The score
+carries **more** information than the label: its **ranking** (are positives scored above negatives?) is what
+threshold-free metrics like **AUC** measure, and its **magnitude** matters for ranking and prioritization.
+
+Score vs probability
+--------------------
+
+A score need not be a **calibrated** probability — a score of 0.9 doesn't guarantee a 90% chance of being
+positive unless the model is calibrated (e.g., via **temperature** or **Platt scaling**). Use the raw score
+for **ranking**, the calibrated one for **decisions** that need real probabilities.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`ROC Curve (Receiver Operating Characteristic) <277-roc-curve-receiver-operating-characteristic>` · :doc:`AUC (Area Under the Curve) <371-auc-area-under-the-curve>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Temperature Scaling <279-temperature-scaling>`
 
 ----
 

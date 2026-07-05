@@ -10335,3 +10335,8742 @@ MINDMAP.update({
         "Demographic Parity (Statistical Parity)", "Recalibration",
     ],
 })
+
+
+# ----------------------------------------------------------------------
+# Theme: KS statistic, model stability, feature values  (metrics / mlops / features)
+# ----------------------------------------------------------------------
+
+CONTENT["KS Statistic (Kolmogorov–Smirnov Statistic)"] = r"""
+What it is
+----------
+
+The **KS statistic** measures the **maximum difference between two cumulative distribution functions
+(CDFs)**. In statistics it underpins the **KS test** — do two samples come from the same
+distribution? In ML, especially credit scoring and binary classification, it measures how well a
+model **separates positives from negatives**: far-apart distributions give a large KS, heavily
+overlapping ones a small KS.
+
+The formula
+-----------
+
+For a binary problem, build the CDF of positives and the CDF of negatives across the score, then take
+the largest vertical gap between them:
+
+.. math::
+
+   KS = \max_x \left| F_{\text{pos}}(x) - F_{\text{neg}}(x) \right|,
+
+where :math:`F` is a cumulative distribution. Because it scans every threshold for the single point
+of greatest separation, KS is **threshold-independent**.
+
+A worked example
+----------------
+
+Score 1,000 customers — 500 good, 500 bad — and sort by predicted score. At each threshold track the
+share of bads captured against the share of goods captured; KS is the largest gap between those
+curves. If at score 0.65 the CDF of bads is 0.70 and the CDF of goods is 0.30, the gap is 0.40, so
+**KS = 40%**.
+
+Reading it, and its cousin AUC
+--------------------------------
+
+KS runs from **0 to 1**: 0 means no separating power (identical distributions), **0.4-0.6** is strong
+(typical in credit risk), below 0.2 is weak. It is closely related to **AUC** — both measure class
+separability and both are threshold-independent — but where AUC integrates the whole ROC curve, KS
+reports only the **single maximum point of separation**.
+"""
+
+CONTENT["Model Stability"] = r"""
+What it is
+----------
+
+**Model stability** is how **consistently** a model performs when faced with different data samples
+(train versus validation), new production data, and **time-evolving** data subject to drift. A stable
+model is reliable and predictable and does not swing wildly; an unstable one is sensitive to small
+changes in data or training splits and gives inconsistent results.
+
+Four dimensions
+---------------
+
+Stability has several faces: **performance** stability (accuracy, AUC, RMSE hold across datasets and
+time), **prediction** stability (similar inputs give similar outputs after retraining), **feature**
+stability (importances and coefficients stay consistent), and **temporal** stability (the model
+resists drift as new data arrives).
+
+Measuring it
+------------
+
+The tools are familiar: low **cross-validation variance** across folds, **retraining consistency**
+across random seeds, the **Population Stability Index (PSI)** for train-versus-production distribution
+shift, **feature-importance** consistency across runs, and ongoing **drift monitoring**. A credit
+model with validation AUC **0.85** that falls to **0.70** on next year's production data is unstable
+over time — concept drift has set in, and it needs retraining.
+
+Improving it, and why it matters
+----------------------------------
+
+Stability improves with **robust feature engineering**, **regularisation**, **ensembles** (which cut
+variance), **data-quality monitoring**, **drift-detection systems** (PSI, KS test), and a
+**retraining schedule**. It matters because stakeholders need **trust**, regulated industries demand
+it for **compliance**, and unstable models make **inconsistent business decisions** — approving and
+denying similar loans at random.
+"""
+
+CONTENT["Feature Values"] = r"""
+What it is
+----------
+
+**Feature values** are the actual **numerical, categorical or textual values** describing an
+observation. The distinction in terms: a **feature** is a variable — a column in the dataset — while
+a **feature value** is the concrete entry for one observation, a single cell in a given row.
+
+An example
+----------
+
+In a table predicting whether a customer buys, the **features** are Age, Gender and Income; the
+**feature values** for one customer might be Age = 25, Gender = Male, Income = ``40,000``, and for
+another Age = 32, Gender = Female, Income = ``55,000``. Each row supplies one set of feature values.
+
+Types of value
+--------------
+
+They come in several kinds: **numerical** (Age = 25), **categorical** (Gender = Male/Female),
+**binary** (Yes/No, 0/1), **textual** (reviews, turned into embeddings or bag-of-words), and
+**derived** features engineered from raw data ("income per household member").
+
+Their role, and why they matter
+---------------------------------
+
+Feature values are the **inputs** a model learns from to predict a target. A linear model writes the
+prediction as
+
+.. math::
+
+   \hat{y} = w_1 x_1 + w_2 x_2 + \dots + w_n x_n + b,
+
+with the :math:`x_i` the feature values and the :math:`w_i` the learned weights. Because they drive
+everything downstream, **data quality**, **scaling** (so no variable dominates), **engineering**, and
+**interpretability** all hinge on getting feature values right.
+"""
+
+MINDMAP.update({
+    "KS Statistic (Kolmogorov–Smirnov Statistic)": [
+        "Discriminatory Power", "Gini Coefficient", "Multiclass AUROC", "Energy Distance",
+        "PSI (Population Stability Index)",
+    ],
+    "Model Stability": [
+        "PSI (Population Stability Index)", "Drift Detection",
+        "KS Statistic (Kolmogorov–Smirnov Statistic)", "Concept Drift",
+        "Continuous Retraining", "Monitoring Pipelines",
+    ],
+    "Feature Values": [
+        "Hyperparameter", "Model Weights", "Embedding", "Cardinality in Categorical Data",
+        "Machine Learning (ML)", "Model Stability",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: four-fifths / 80% rule — adverse impact  (fairness)
+# ----------------------------------------------------------------------
+
+CONTENT["Four-Fifths (80%) Rule"] = r"""
+What it is
+----------
+
+The **four-fifths rule** — also called the **80% rule** — is the primary rule-of-thumb the U.S.
+**EEOC** uses to flag **adverse (disparate) impact** in a selection process. It comes from the
+**Uniform Guidelines on Employee Selection Procedures (UGESP, 1978)** and operates under **Title VII**
+of the Civil Rights Act. The rule: the **selection rate** for any protected group (by race, sex or
+ethnicity) that is **less than four-fifths (80%) of the rate of the highest-selected group** is
+generally treated as evidence of adverse impact.
+
+How the ratio is computed
+---------------------------
+
+Four steps. Compute each group's **selection rate** — the number selected divided by the number of
+applicants. Identify the group with the **highest** rate; that becomes the **baseline**. Divide every
+other group's rate by that baseline to get an **impact ratio**. If any ratio falls **below 0.80**,
+the procedure is flagged for that group.
+
+A worked example
+----------------
+
+An employer hires for a warehouse role: of 100 white applicants, 40 are hired (a **40%** rate); of 80
+Black applicants, 24 are hired (a **30%** rate). The impact ratio is 30 / 40 = **0.75**. Because 75%
+is below 80%, adverse impact is indicated against Black applicants and the procedure would be flagged
+for review. Note the test compares **rates, not head-counts** — a smaller group can still clear the
+bar if its rate is high enough.
+
+A threshold, not a verdict
+----------------------------
+
+Falling below 80% does **not** prove discrimination — it triggers **investigation**. Because the raw
+ratio ignores whether the gap is beyond chance, practitioners pair it with **significance tests**
+(Fisher's exact, chi-square, or a standard-deviation analysis). Once adverse impact is indicated, the
+employer must show the procedure is **job-related and consistent with business necessity**, offer a
+**less-discriminatory alternative**, or **modify** it. Courts treat the rule as guidance, not a
+definitive legal standard.
+
+Why it matters for ML
+---------------------
+
+The rule governs **automated selection** exactly as it governs human decisions: an AI resume screener
+or scoring model that selects one protected group at **under 80%** of the top group's rate carries
+indicated adverse impact — **even with no discriminatory intent**. This is why the 80% ratio is the
+legal touchstone behind fairness criteria like **demographic parity**, which compares
+positive-outcome rates across groups.
+"""
+
+MINDMAP.update({
+    "Four-Fifths (80%) Rule": [
+        "Demographic Parity (Statistical Parity)", "Equal Opportunity (Fairness)",
+        "Equalized Odds (Fairness)", "Predictive Parity (Calibration)",
+        "Discriminatory Power", "Statistical Significance",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: SLI, ROI, treatment cost  (ops / business value / uplift)
+# ----------------------------------------------------------------------
+
+CONTENT["SLI (Service Level Indicator)"] = r"""
+What it is
+----------
+
+A **Service Level Indicator (SLI)** is a **specific, measurable metric** that reflects a service's
+actual performance against what was agreed or expected — the **"thermometer"** of how well a service
+is running. It is the **raw measurement** used to judge whether a service is meeting its objective.
+
+SLI vs SLO vs SLA
+-----------------
+
+Three layers stack up. The **SLI** is the metric measured — "percentage of requests completed within
+300 ms". The **SLO** is the target for that metric — "99% of requests must complete within 300 ms".
+The **SLA** is the formal contract, often with penalties — "if availability drops below 99%, the
+provider credits the customer". SLI is the most granular layer; SLO and SLA build on it.
+
+Common SLIs
+-----------
+
+They fall into families: **reliability** (uptime %, mean time between failures), **performance**
+(latency, throughput in requests per second), and **quality** (error rate, data accuracy). The same
+idea appears in operations as **on-time delivery %**, **fill rate**, or **stockout frequency**.
+
+An example, and why it matters
+--------------------------------
+
+An e-commerce site might measure that **95%** of checkout requests finish in under two seconds (the
+SLI) against an SLO target of **99%**, under an SLA that compensates customers if uptime falls below
+**98%**. SLIs matter because they give **objective evidence** of performance, guide **where to
+improve**, and form the measurable **foundation** of every SLO and SLA.
+"""
+
+CONTENT["ROI (Return on Investment)"] = r"""
+What it is
+----------
+
+**ROI (Return on Investment)** is a **profitability metric**: how much return — gain or loss — an
+investment produces relative to its cost. It answers, for every ``$1`` spent, how much profit came
+back. It appears everywhere — marketing campaigns, product launches, financial portfolios, and
+operational change.
+
+The formula
+-----------
+
+.. math::
+
+   \text{ROI} = \frac{\text{Gain from Investment} - \text{Cost of Investment}}{\text{Cost of Investment}} \times 100\%,
+
+where the **gain** is the incremental revenue or benefit and the **cost** is the treatment cost,
+campaign spend, or project cost.
+
+A worked example
+----------------
+
+A promotion generates ``$15,000`` of incremental revenue for a ``$10,000`` cost. Then ROI =
+(15,000 − 10,000) / 10,000 × 100% = **50%** — every ``$1`` spent returned ``$1.50``, a 50-cent profit
+on the dollar.
+
+Variations, and the uplift view
+---------------------------------
+
+Common variants include **marketing ROI** (on incremental campaign revenue), **ROAS** (revenue over
+ad spend), **risk-adjusted** ROI (accounting for variance), and **time-adjusted** ROI (NPV, IRR). In
+**uplift modeling**, ROI is computed from incremental revenue against treatment cost, which steers
+spend toward **persuadables** — those where incremental benefit exceeds treatment cost — and away
+from sure things and lost causes.
+"""
+
+CONTENT["Treatment Cost"] = r"""
+What it is
+----------
+
+In **causal ML and uplift modeling**, **treatment cost** is the expense of applying an intervention
+to one individual, customer or unit — the **per-unit cost** of sending a coupon, serving an ad,
+granting a discount, or administering a drug. Summed over everyone treated, it becomes the **total
+cost of the campaign**.
+
+The formula
+-----------
+
+Per unit it is simply the direct cost of the intervention per customer; in total,
+
+.. math::
+
+   \text{Total Treatment Cost} = \text{Cost per unit} \times \text{Number of Treated Customers}.
+
+A worked example
+----------------
+
+A retailer sends a ``$5`` coupon to 2,000 customers, so the per-unit cost is ``$5`` and the total
+treatment cost is 2,000 × 5 = ``$10,000``. If that campaign produces ``$15,000`` in incremental
+revenue, the **net incremental profit** is 15,000 − 10,000 = ``$5,000``.
+
+Why it matters for uplift and ROI
+-----------------------------------
+
+Treatment cost is what turns raw uplift into *profit*. Incremental revenue is the extra money earned;
+treatment cost is what was spent to earn it; the difference is **incremental profit**, and the ratio
+is the **ROI of treatment**. Tracking it prevents targeting customers where **cost exceeds benefit**,
+enables **profit-based** (not conversion-only) uplift modeling, and forces attention on **net value**
+rather than gross outcomes.
+"""
+
+MINDMAP.update({
+    "SLI (Service Level Indicator)": [
+        "SLOs (Service Level Objectives)", "Model KPIs (Key Performance Indicators)",
+        "Monitoring Pipelines", "Guardrails (in ML & Data Systems)", "Model Stability",
+        "ROI (Return on Investment)",
+    ],
+    "ROI (Return on Investment)": [
+        "Treatment Cost", "Incremental Revenue", "Treatment Effect", "Valuation Metric",
+        "Gross Margin", "SLI (Service Level Indicator)",
+    ],
+    "Treatment Cost": [
+        "Incremental Revenue", "ROI (Return on Investment)", "Treatment Effect",
+        "Conversion Rate Uplift", "Causal Inference", "Posterior probability of uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: incremental revenue — causal revenue lift  (uplift / business value)
+# ----------------------------------------------------------------------
+
+CONTENT["Incremental Revenue"] = r"""
+What it is
+----------
+
+**Incremental revenue** is the additional revenue a business earns **specifically because of an
+action** — a campaign, promotion or treatment — **beyond the baseline it would have earned anyway**.
+It is a **causal** measure: it captures revenue the action *created*, not revenue it merely took
+credit for.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Incremental Revenue} = \text{Actual Revenue} - \text{Baseline Revenue}.
+
+If an e-commerce store averaging ``$50,000`` a month launches an affiliate program and revenue rises
+to ``$60,000``, the incremental revenue attributable to the program is ``$10,000``.
+
+Getting the baseline right
+----------------------------
+
+The **baseline is the whole game**. Because it represents what would have happened *without* the
+action, a careless baseline lets ordinary fluctuations masquerade as lift. Four forces routinely
+inflate a naive estimate: **seasonality**, pre-existing **organic growth trends**, **competitive
+dynamics**, and broader **shifts in customer behaviour**. Failing to adjust for them credits normal
+business change to the campaign.
+
+Measuring it credibly
+-----------------------
+
+The most reliable method is a **holdout (control-group) test** — a randomised experiment comparing an
+exposed group against an unexposed one, so the difference is genuinely causal. **Marketing mix
+modelling (MMM)** and **attribution modelling** offer alternative lenses, each isolating true lift
+from sales that would have occurred regardless.
+
+Link to profit and ROI
+------------------------
+
+Incremental revenue is the **foundation of profit-based evaluation**. Subtract the treatment cost and
+it becomes **incremental profit**; divide that profit by the cost and it becomes **ROI**. It is also
+the objective that **revenue uplift models** maximise, steering spend toward *persuadable* customers
+whose spending the action actually changes.
+"""
+
+MINDMAP.update({
+    "Incremental Revenue": [
+        "Treatment Cost", "ROI (Return on Investment)", "Conversion Rate Uplift",
+        "Treatment Effect", "Causal Inference", "Revenue per User (RPU / ARPU)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: Qini-curve construction — incremental gain, CIG, TIB  (uplift / ranking)
+# ----------------------------------------------------------------------
+
+CONTENT["Incremental Gain"] = r"""
+What it is
+----------
+
+**Incremental gain** is the **extra positive outcome** — conversions, sales, sign-ups — produced by
+applying a treatment (a campaign, discount or intervention) **versus not applying it**, measured for a
+**specific slice of the population**. It is the **building block** of the cumulative incremental gain
+and the Qini curve: the step-by-step value added as you target more people.
+
+The formula
+-----------
+
+For one segment,
+
+.. math::
+
+   \text{Incremental Gain} = \text{Responses}_{\text{treatment}} - \text{Responses}_{\text{control}},
+
+or, in probability terms, :math:`\left(P(\text{Outcome} \mid \text{Treatment}) - P(\text{Outcome} \mid \text{Control})\right) \times n`, where :math:`n` is the number of individuals targeted in that
+segment and the control response is what the same group would have done untreated.
+
+A worked example
+----------------
+
+Rank 2,000 customers by uplift score and split into deciles of 200. In the **top decile**, the
+treatment group converts at 18% (36 purchases) against a control of 10% (20) — an incremental gain of
+**16**. The **second decile** converts at 14% (28) versus 12% (24) — a gain of **4**. Their running
+total, the cumulative incremental gain after the top 20%, is **20 extra purchases**.
+
+Where it fits
+-------------
+
+Incremental gain is the **local** effect in each segment; summing it as you move down the ranking
+gives the **cumulative incremental gain**, and plotting that against the fraction targeted traces the
+**Qini curve**. Reading it segment by segment shows **where uplift is strongest** and where to stop
+targeting — once the gain flattens or turns negative, additional targeting destroys value.
+"""
+
+CONTENT["Total Incremental Benefit (TIB)"] = r"""
+What it is
+----------
+
+**Total incremental benefit (TIB)** is the **overall net gain** from applying a treatment compared to
+**not applying it at all** — the absolute improvement an uplift strategy delivers across the whole
+population. In uplift modelling it is the **final value of the cumulative incremental gain curve**, at
+100% of the targeted population.
+
+The formula
+-----------
+
+.. math::
+
+   \text{TIB} = \sum_{i=1}^{N} \left( y_i^{\text{treat}} - y_i^{\text{control}} \right),
+
+summing the treated-minus-untreated outcome over the whole population :math:`N`. Expressed in money,
+it becomes **incremental conversions × profit per conversion**.
+
+A worked example
+----------------
+
+A promotion runs on 10,000 customers: the treatment group (5,000) makes 700 purchases (14%), the
+control group (5,000) makes 500 (10%). That is **200 incremental conversions**; at ``$50`` profit
+each, the total incremental benefit is **``$10,000``** — 200 extra purchases the campaign genuinely
+caused.
+
+Why it matters
+--------------
+
+TIB puts a single number on a campaign's **business value**. It feeds ROI directly —
+
+.. math::
+
+   \text{ROI} = \frac{\text{TIB} - \text{Campaign Cost}}{\text{Campaign Cost}},
+
+and serves as a **benchmark** for comparing uplift models and a basis for **budget allocation**, since
+it reflects the true added impact rather than gross outcomes.
+"""
+
+CONTENT["Cumulative Incremental Gain (CIG)"] = r"""
+What it is
+----------
+
+**Cumulative incremental gain (CIG)** is an uplift-modelling measure of the **total additional
+outcomes** — purchases, sign-ups, conversions — won by targeting customers **ranked by uplift score**,
+relative to random or no targeting. It is the quantity plotted on the **Y-axis of a Qini curve**.
+
+How it's built
+---------------
+
+Four steps: **rank** customers by predicted uplift score, highest to lowest; **split** them into
+deciles or percentiles; for each segment compute the **incremental gain** as treatment responses minus
+control responses; then take the **running sum** of those gains down to the segment of interest.
+
+The formula
+-----------
+
+.. math::
+
+   \text{CIG}(p) = \sum_{i=1}^{pN} \left( y_i^{\text{treat}} - y_i^{\text{control}} \right),
+
+the treated-minus-untreated outcome accumulated over the top proportion :math:`p` of a population of
+size :math:`N`.
+
+A worked example
+----------------
+
+Across 10,000 customers, targeting the **top 20%** yields 400 treatment versus 300 control
+conversions — a gain of **100**; extending to the **top 40%** adds 750 versus 550 — a further **200**.
+The cumulative incremental gain at 40% is therefore **300 conversions**.
+
+Reading the Qini curve
+------------------------
+
+Plotting CIG against the percentage of the population targeted gives the **Qini curve**. A **steep
+early slope** means the model finds *persuadables* first and targeting pays off quickly; a **flat**
+curve means the model is no better than random. The shape reveals the **optimal targeting fraction** —
+where gain stops rising — and lets you **compare models** by how much incremental value each delivers.
+"""
+
+MINDMAP.update({
+    "Incremental Gain": [
+        "Cumulative Incremental Gain (CIG)", "Total Incremental Benefit (TIB)", "Qini Curve",
+        "Conversion Rate Uplift", "Treatment Effect", "Incremental Revenue",
+    ],
+    "Total Incremental Benefit (TIB)": [
+        "Cumulative Incremental Gain (CIG)", "Incremental Gain", "Qini Curve",
+        "ROI (Return on Investment)", "Incremental Revenue", "Treatment Cost",
+    ],
+    "Cumulative Incremental Gain (CIG)": [
+        "Incremental Gain", "Total Incremental Benefit (TIB)", "Qini Curve",
+        "Treatment Effect", "Posterior probability of uplift", "Conversion Rate Uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: uplift-model evaluation — uplift score, Qini curve, Qini coefficient  (uplift / ranking)
+# ----------------------------------------------------------------------
+
+CONTENT["Uplift Score"] = r"""
+What it is
+----------
+
+An **uplift score** is the number an **uplift model** assigns to an individual, estimating the
+**incremental impact** — positive or negative — of a treatment (a campaign, discount or medical
+intervention) on that person's likelihood of acting. It answers: *how much more (or less) likely is
+this person to act if we intervene than if we do not?*
+
+The formula
+-----------
+
+At the individual level,
+
+.. math::
+
+   \text{Uplift Score}_i = P(\text{Outcome} \mid \text{Treatment}, i) - P(\text{Outcome} \mid \text{Control}, i).
+
+A **positive** score means the treatment raises the chance of the desired outcome, a **negative**
+score means it backfires, and a score **near zero** means the treatment barely matters.
+
+A worked example
+----------------
+
+For a subscription campaign: **Customer A** has a treated probability of 0.40 versus 0.25 untreated —
+an uplift of **+0.15**, a strong target. **Customer B** sits at 0.70 versus 0.68 — just **+0.02**,
+barely worth the spend. **Customer C** is 0.10 versus 0.20 — an uplift of **-0.10**, meaning the
+campaign actively *hurts* (a "Do-Not-Disturb" case).
+
+How it's used
+-------------
+
+Uplift scores let you **rank and target** the highest-scoring customers — the *persuadables* — while
+avoiding *sure things* and *lost causes*, and **excluding negative-uplift** customers who might churn
+or unsubscribe if contacted. Aggregated across the population, the scores build the **uplift and Qini
+curves** whose quality the **Qini coefficient** summarises.
+"""
+
+CONTENT["Qini Curve"] = r"""
+What it is
+----------
+
+The **Qini curve** is the **visual evaluation tool** for uplift models (causal or
+incremental-response models). It shows the **incremental benefit** gained by targeting customers
+**ranked by predicted uplift score** — the uplift-modelling analogue of an ROC curve, measuring how
+well the model finds **persuadables**. The higher and more "bowed upward" it is, the better.
+
+How it's built
+---------------
+
+Rank customers by uplift score from highest to lowest, **incrementally target** the top *x*%, and for
+each portion compute the **incremental response** — treatment responses minus control responses. The
+**cumulative** incremental response is what gets plotted.
+
+Axes and baselines
+------------------
+
+The **X-axis** is the proportion of the population targeted (0% to 100%); the **Y-axis** is the
+cumulative incremental response. A **random-targeting diagonal** marks the uplift you would expect from
+targeting at random, and the **model curve** ideally sits well above it.
+
+Reading it, with an example
+-----------------------------
+
+Targeting the top 20% might show a treatment purchase rate of 18% against a control of 12% — a **+6%**
+incremental lift on those customers — and so on at 40%, 60%. A **steep early rise** means the model
+concentrates persuadables at the top; a **flat, near-diagonal** line means it is no better than
+random. The area between the model curve and the diagonal is the **Qini coefficient**.
+"""
+
+CONTENT["Qini Coefficient"] = r"""
+What it is
+----------
+
+The **Qini coefficient** is a single-number **performance metric for uplift models** — their
+equivalent of AUC. Where AUC asks how well a classifier predicts *who will buy*, the Qini coefficient
+asks how well an uplift model ranks people by *who will buy because of the treatment*.
+
+How it's computed
+-----------------
+
+Sort customers by predicted uplift (descending), split them into deciles or percentiles, and plot the
+**Qini curve** — cumulative incremental response (treatment minus control) against the proportion
+targeted. The coefficient is the **normalised area between the model's curve and the random-targeting
+diagonal**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Qini} = \frac{\int_0^1 \left( G_{\text{model}}(x) - G_{\text{random}}(x) \right) dx}{\int_0^1 \left( G_{\text{perfect}}(x) - G_{\text{random}}(x) \right) dx}.
+
+It ranges from **0 to 1** — 0.5 and up is decent, and close to 1 is excellent separation.
+
+A worked example, and cousins
+-------------------------------
+
+Targeting the top 20%, a random selection might yield +100 purchases while the model yields **+300** —
+the model curve sits above random, and the coefficient quantifies that gap. It is the **normalised**
+form of the **AUUC** (raw area under the uplift curve), which makes it comparable across datasets:
+ROC-AUC is to classification what the Qini coefficient is to uplift.
+"""
+
+MINDMAP.update({
+    "Uplift Score": [
+        "Uplift Models", "Qini Curve", "Qini Coefficient", "Conversion Rate Uplift",
+        "Treatment Effect", "Posterior probability of uplift",
+    ],
+    "Qini Curve": [
+        "Uplift Score", "Qini Coefficient", "Cumulative Incremental Gain (CIG)",
+        "Incremental Gain", "Treatment Effect", "Uplift Models",
+    ],
+    "Qini Coefficient": [
+        "Qini Curve", "Uplift Score", "AUUC (Area Under the Uplift Curve)", "Uplift Models",
+        "Cumulative Incremental Gain (CIG)", "Total Incremental Benefit (TIB)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: uplift foundations — uplift, uplift models, AUUC  (uplift / causal)
+# ----------------------------------------------------------------------
+
+CONTENT["Uplift"] = r"""
+What it is
+----------
+
+**Uplift** measures the **incremental impact** of an action, treatment or intervention compared to
+**not taking it**. In machine learning, **uplift modelling** — also called *incremental response* or
+*true lift* modelling — predicts the **change in outcome probability** caused by applying a treatment
+(say, sending a marketing offer). It is about **causal effect**, not mere correlation.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Uplift}(x) = P(Y = 1 \mid T = 1, X = x) - P(Y = 1 \mid T = 0, X = x),
+
+where :math:`Y` is the outcome (purchase, churn, click), :math:`T` is the treatment (1 = received,
+0 = not), and :math:`X` are the individual's features.
+
+A worked example
+----------------
+
+For a promotional email, compare each customer's treated and untreated purchase probability.
+**Customer A**: 30% with the email versus 25% without — an uplift of **+5%**, worth targeting.
+**Customer B**: 60% versus 60% — **0%**, the email is irrelevant. **Customer C**: 20% versus 30% — a
+**-10%** uplift, meaning the email actively *reduces* the chance (a spam-sensitive recipient).
+
+Why it matters
+--------------
+
+Uplift buys **targeting efficiency** — spending only on customers who change behaviour *because of*
+the treatment — and **cost savings**, by skipping "sure things" who would act anyway and "sleeping
+dogs" who react badly. Used across **marketing, healthcare, finance and policy**, it is measured with
+the **uplift (Qini) curve**, its area **AUUC**, and the **Qini coefficient**.
+"""
+
+CONTENT["Uplift Models"] = r"""
+What it is
+----------
+
+**Uplift models** — also called incremental, net-lift or true-lift models — are predictive models
+that estimate the **causal impact** of an action (a campaign, discount or treatment) on an
+individual's behaviour, rather than the behaviour itself. They shift the question from *"who will
+buy?"* to *"who will buy* **because of** *the campaign?"* — predicting incremental change, not raw
+outcome.
+
+Four kinds of customer
+------------------------
+
+Uplift modelling divides people by how they respond to intervention: **persuadables** act *only*
+because of it (the target), **sure things** would act anyway, **lost causes** never act, and
+**do-not-disturbs** react *negatively* if contacted. The goal is to reach persuadables, stop wasting
+budget on sure things and lost causes, and avoid provoking do-not-disturbs.
+
+Techniques
+----------
+
+Four families. The **two-model approach** trains separate treated- and control-group models and
+subtracts their probabilities. **Class transformation** relabels the target to encode both outcome
+and treatment, so a single classifier predicts uplift directly. **Uplift trees and forests** choose
+splits that maximise the treatment-control difference. And **meta-learners** (T-, S- and X-learners)
+build uplift on top of standard models within causal-ML frameworks.
+
+Evaluation and trade-offs
+---------------------------
+
+Because uplift concerns *causal* effect, accuracy and AUC are not enough; models are judged by the
+**Qini curve and coefficient**, the **uplift curve**, and **AUUC**. In a subscription campaign where
+the treatment group buys at 20% against a control's 15%, the model tries to pinpoint which
+individuals make up that **+5%**. The payoff is better spend, ROI and causal insight; the costs are a
+need for **experimental (A/B) data**, greater model complexity, and harder interpretation.
+"""
+
+CONTENT["AUUC (Area Under the Uplift Curve)"] = r"""
+What it is
+----------
+
+**AUUC (Area Under the Uplift Curve)** is the **cumulative incremental gain** of an uplift model,
+integrated over the **entire population** — the total area under the uplift curve (incremental gain
+against population proportion). It is an **overall** measure of how well the model ranks individuals
+by uplift.
+
+How it's computed
+------------------
+
+Sort customers by predicted uplift score (descending) and partition them into bins such as deciles.
+For each bin, compute the uplift as the treatment response rate minus the control rate,
+
+.. math::
+
+   \text{Uplift}_k = \frac{y^{T}_k}{n^{T}_k} - \frac{y^{C}_k}{n^{C}_k},
+
+then plot cumulative uplift against the fraction of the population targeted; **AUUC is the area under
+that curve**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{AUUC} = \int_0^1 U(x) \, dx,
+
+where :math:`U(x)` is the cumulative uplift at population fraction :math:`x`. A strong model traces a
+steep curve — targeting the top 20% might capture 80% of all achievable incremental responses — while
+random targeting hugs the baseline near zero.
+
+AUUC versus the Qini coefficient
+---------------------------------
+
+The two are close cousins. **AUUC** is a **raw** area, so it depends on dataset size and response
+rate — much like raw accuracy. The **Qini coefficient** is a **normalised** AUUC, scaled between
+random and perfect targeting, which makes it **comparable across datasets** — much like AUC. Both are
+core metrics for evaluating uplift models.
+"""
+
+MINDMAP.update({
+    "Uplift": [
+        "Uplift Models", "Uplift Score", "Treatment Effect", "Causal Inference",
+        "Conversion Rate Uplift", "Qini Coefficient",
+    ],
+    "Uplift Models": [
+        "Uplift", "Uplift Score", "Qini Curve", "AUUC (Area Under the Uplift Curve)",
+        "Causal ML (Causal Machine Learning)", "Treatment Effect",
+    ],
+    "AUUC (Area Under the Uplift Curve)": [
+        "Qini Coefficient", "Uplift Curve", "Cumulative Incremental Gain (CIG)",
+        "Total Incremental Benefit (TIB)", "Uplift Score", "Uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: uplift@k, uplift random forests, uplift curve  (uplift / algorithms / eval)
+# ----------------------------------------------------------------------
+
+CONTENT["Uplift@k"] = r"""
+What it is
+----------
+
+**Uplift@k** is a performance metric in uplift modelling and causal ML. It measures the **incremental
+effect** achieved if you target only the **top k%** of customers, ranked by the model's predicted
+uplift score. In plain terms: *if I contact only the top k%, how much extra impact do I get compared
+to not contacting them?*
+
+The formula
+-----------
+
+It is the **difference in average outcome** between the treatment and control groups **within the
+top-k% segment**,
+
+.. math::
+
+   \text{Uplift@}k = \bar{y}_{\text{treatment}}^{(k)} - \bar{y}_{\text{control}}^{(k)},
+
+where the averages are taken over the top k% by predicted uplift. Random targeting yields a small or
+zero value (treatment and control behave alike); a good model makes treatment clearly outperform
+control in that segment.
+
+A worked example
+----------------
+
+With 10,000 customers, targeting the **top 20%** (k = 20%) selects 2,000. If, within that segment, the
+treatment group's purchase probability exceeds the control group's by **5 percentage points**, then
+uplift@k = **+5pp** — the extra impact the model captures by choosing those 2,000.
+
+Uses, and versus uplift
+-------------------------
+
+In **marketing** it estimates incremental sales from promoting only the top k%; in **healthcare**, the
+incremental recovery from treating the top-k patients; in **recommendation**, the extra engagement
+from targeting the top-k users. The distinction from plain uplift is subtle but important: **uplift**
+asks *how effective is the treatment overall?*, while **uplift@k** asks *how good is my model at
+selecting the best subset to treat?*
+"""
+
+CONTENT["Uplift Random Forests"] = r"""
+What it is
+----------
+
+An **uplift random forest** is a modified random forest built to **estimate the causal effect** of a
+treatment directly, not merely to predict an outcome. Instead of modelling :math:`P(Y \mid X)`, it
+models the **treatment-versus-control difference**,
+
+.. math::
+
+   \Delta(X) = P(Y = 1 \mid T = 1, X) - P(Y = 1 \mid T = 0, X).
+
+How it works
+------------
+
+The trees are **uplift trees**: each split is chosen to **maximise the difference in treatment effect**
+between its branches, rather than to maximise class purity. Many such trees are then **averaged in an
+ensemble**, exactly as in an ordinary random forest, for stability — and each individual receives an
+estimated uplift, the incremental probability change caused by the treatment.
+
+Why use it
+-----------
+
+It **handles nonlinear relationships and feature interactions** automatically, **reduces variance**
+compared with a single uplift tree, and delivers **individual-level treatment-effect** predictions —
+learning how features *modify* the treatment effect, not just how they drive the outcome.
+
+Applications
+------------
+
+It powers **marketing** (targeting customers who respond *because of* a campaign), **personalised
+medicine** (patients who benefit most from a drug), and **policy** (subgroups most positively
+affected). It requires **both treated and control data** — an A/B setup. In an email sign-up campaign,
+a standard forest predicts the probability of signing up, while the uplift forest predicts the *extra*
+probability caused by the email — separating loyal always-signers (low uplift) from persuadables
+(high) and negative reactors (negative uplift).
+"""
+
+CONTENT["Uplift Curve"] = r"""
+What it is
+----------
+
+An **uplift curve** is a tool for **evaluating uplift models** (incremental-response models). It plots
+the **incremental gain** — the extra benefit caused by the treatment — against the **proportion of the
+population targeted**, showing how much improvement you gain by targeting the top fraction of customers
+ranked by uplift score. It is closely related to, and often drawn as, the **Qini curve**.
+
+Why not target everyone
+-------------------------
+
+Traditional models (like logistic regression) predict response probability, but in marketing you
+**don't want to target everyone** likely to buy — some would buy anyway, and some are even negatively
+influenced. The uplift curve reflects the model's job of isolating **persuadables**, those who change
+behaviour because of the treatment.
+
+How it's built
+---------------
+
+Rank customers by predicted uplift score from high to low, split them into buckets (top 10%, next
+10%, …), and for each bucket compute the **treated-minus-control** difference in outcome rate. Plotting
+the **cumulative** incremental gains against the percentage targeted gives the curve: the **X-axis** is
+the fraction targeted, the **Y-axis** the incremental gain, with a **random baseline** line and the
+**model curve** ideally above it.
+
+Reading it, with an example
+-----------------------------
+
+A **steeper** curve means the model is better at finding the most-influenced customers; a curve **close
+to the random line** adds little value; and the **area between the model curve and the random line**
+serves as a performance metric, much like AUC. For an email renewal campaign, the curve might show
+that targeting the **top 20%** by uplift score generates most of the incremental renewals, while
+targeting everyone simply wastes resources.
+"""
+
+MINDMAP.update({
+    "Uplift@k": [
+        "Uplift Models", "Uplift Score", "AUUC (Area Under the Uplift Curve)", "Qini Curve",
+        "Conversion Rate Uplift", "Uplift",
+    ],
+    "Uplift Random Forests": [
+        "Uplift Models", "Uplift", "Treatment Effect", "Causal Inference", "Uplift Score",
+        "Causal ML (Causal Machine Learning)",
+    ],
+    "Uplift Curve": [
+        "Qini Curve", "AUUC (Area Under the Uplift Curve)", "Uplift Score", "Incremental Gain",
+        "Uplift Models", "Uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: causal ML, random-targeting baseline, cumulative uplift  (causal / uplift)
+# ----------------------------------------------------------------------
+
+CONTENT["Causal ML (Causal Machine Learning)"] = r"""
+What it is
+----------
+
+**Causal ML (causal machine learning)** is the branch of machine learning that estimates
+**cause-and-effect relationships**, not merely correlations or predictions. Where traditional ML asks
+*"what is likely to happen?"*, causal ML asks *"what will happen* **because of** *this
+intervention?"* — making it essential for policy evaluation, medical treatment, marketing and any
+decision where an action *changes* the outcome.
+
+The counterfactual problem
+----------------------------
+
+Everything rests on **treatment versus control** — the intervention against no intervention. The
+difficulty is the **counterfactual problem**: for any individual we observe only *one* outcome
+(treated or not), never the other, so the effect must be **estimated**. That effect comes in three
+grains: the **ATE** (average treatment effect across the population,
+:math:`\text{ATE} = \mathbb{E}[Y(1) - Y(0)]`), the **CATE** (conditional on a subgroup), and the
+**ITE** (for a single individual).
+
+Methods
+-------
+
+The gold standard is **experimental** — a randomised controlled trial (RCT) assigns treatment at
+random, eliminating confounding. When experiments are impossible, **observational** methods step in:
+propensity-score matching, inverse-propensity weighting, and doubly-robust estimators that combine
+regression with weighting. **ML extensions** add **meta-learners** (S-, T-, X- and R-learners),
+**causal trees and forests** for heterogeneous effects, and deep models (Dragonnet, TARNet) — with
+libraries such as ``CausalML``, ``EconML`` and ``DoWhy``.
+
+An example
+----------
+
+In a marketing email campaign, traditional ML predicts **who will buy**; causal ML predicts **who
+will buy because of the email**. If the treatment group buys at 15% and the control at 10%, the
+**ATE is a 5% uplift** — and causal ML then estimates **CATE/ITE** to reveal which segments or
+individuals respond most.
+
+Benefits and challenges
+-----------------------
+
+The payoff is real: it captures **true causal effect** rather than correlation, targets only those
+who benefit, and supports **counterfactual reasoning** ("what if?"). The costs are structural — it
+needs a **treatment-control design** (experiments or strong assumptions), is **sensitive to
+confounding** in observational data, and is harder to explain and validate than standard ML.
+"""
+
+CONTENT["Random Targeting Strategy"] = r"""
+What it is
+----------
+
+A **random targeting strategy** selects customers (or units) **at random** for an intervention — a
+campaign, treatment or policy — instead of using a predictive or uplift model. In uplift modelling it
+is the **baseline** against which a model is judged: if a model cannot beat random targeting, it is
+not useful.
+
+The diagonal baseline
+-----------------------
+
+Treat a random proportion of the whole population — 20%, 50%, 100% — and, because the choice is
+random, the **treatment effect spreads evenly**. On a Qini or uplift curve (proportion targeted on
+the X-axis, cumulative incremental gain on the Y-axis) this traces a **straight diagonal line**:
+uplift accumulates linearly with the fraction treated.
+
+A worked example
+----------------
+
+With 10,000 customers and an average treatment effect of **+5%**, random targeting of 20% (2,000)
+yields about **100** incremental conversions; 40% yields about **200**; and 100% yields about **500**
+— the campaign's total incremental benefit. The line from (0, 0) to (100%, 500) is the random
+baseline.
+
+Role, pros and cons
+---------------------
+
+That line is the **benchmark**: a good model's curve starts steep — finding persuadables first — and
+stays **above** it throughout; a curve that hugs the diagonal adds no value. Random targeting is
+**simple** and **fair** (hence its use in A/B testing), but it **wastes budget** on sure things, lost
+causes and do-not-disturbs, delivers lower ROI, and cannot adapt to customer heterogeneity.
+"""
+
+CONTENT["Cumulative Uplift"] = r"""
+What it is
+----------
+
+**Cumulative uplift** is the **running total of the incremental effect** — extra responses,
+conversions or purchases — gained by targeting customers ranked by uplift score. It says how much
+total benefit has accrued up to a given proportion of the population, and it is the quantity on the
+**Y-axis of the Qini curve**.
+
+The formula
+-----------
+
+For the top :math:`k\%` of customers ranked by uplift score,
+
+.. math::
+
+   \text{Cumulative Uplift}(k) = \sum_{i=1}^{kN} \left( y_i^{\text{treatment}} - y_i^{\text{control}} \right),
+
+summing the treated-minus-untreated outcome over those customers, where :math:`N` is the total count.
+
+A worked example
+----------------
+
+Rank 1,000 customers (split treatment/control) by uplift score and walk down the deciles. The **top
+10%** gives 18 treatment versus 12 control conversions — **+6**, so cumulative uplift is **6**. The
+**top 20%** adds 32 versus 24 — **+8**, bringing it to **14**. The **top 30%** adds **+10**, reaching
+**24**. At 100% the final cumulative uplift equals the **total incremental benefit**.
+
+Why it matters, and its cousins
+---------------------------------
+
+The curve shows **where uplift concentrates** (the top 20% may hold most of the benefit), fixes the
+**optimal targeting cutoff** (stop where it flattens), and **evaluates models** — steep early is
+good, flat like the random baseline is bad. Its family: **incremental gain** is the per-group step,
+**cumulative uplift** (the cumulative incremental gain) the running sum, **total incremental benefit**
+the final value, and the **Qini curve** their plot.
+"""
+
+MINDMAP.update({
+    "Causal ML (Causal Machine Learning)": [
+        "Treatment Effect", "Causal Inference", "Uplift Models", "Uplift",
+        "Random Targeting Strategy", "Conversion Rate Uplift",
+    ],
+    "Random Targeting Strategy": [
+        "Qini Curve", "Cumulative Uplift", "Uplift Models", "Uplift Score",
+        "Total Incremental Benefit (TIB)", "Causal ML (Causal Machine Learning)",
+    ],
+    "Cumulative Uplift": [
+        "Cumulative Incremental Gain (CIG)", "Incremental Gain", "Total Incremental Benefit (TIB)",
+        "Qini Curve", "Uplift Score", "Uplift Models",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: incremental conversions, net revenue, causal effect  (uplift econ / causal)
+# ----------------------------------------------------------------------
+
+CONTENT["Incremental Conversions"] = r"""
+What it is
+----------
+
+**Incremental conversions** measure the **additional number of conversions caused by a treatment** —
+a campaign, promotion or intervention — compared with what would have happened without it (the
+control). They are the extra conversions **directly attributable** to the treatment, not the raw
+total.
+
+The formula
+-----------
+
+The basic form is treatment conversions minus control conversions. To scale the effect to a full
+population, use the rate-based version,
+
+.. math::
+
+   \text{Incremental Conversions} = \left( \frac{y^T}{n^T} - \frac{y^C}{n^C} \right) \times N,
+
+where :math:`y^T/n^T` and :math:`y^C/n^C` are the treatment and control conversion rates and
+:math:`N` is the total population you would target. This adjusts for the baseline rate and scales the
+per-user uplift up to everyone.
+
+A worked example
+----------------
+
+Run a campaign on 10,000 users: the treatment group (5,000) converts at 12% (600), the control group
+(5,000) at 8% (400). The rate difference is **4%**, so across the full 10,000 the incremental
+conversions are :math:`0.04 \times 10{,}000 = 400` — the extra conversions the campaign genuinely
+caused.
+
+Why it matters
+--------------
+
+**Total** conversions mislead, because some users would have converted anyway. **Incremental**
+conversions isolate the **causal effect** of the treatment, which is why they are the foundation of
+**uplift modelling** and incrementality testing across marketing, ads and A/B testing.
+"""
+
+CONTENT["Revenue net of treatment cost"] = r"""
+What it is
+----------
+
+**Revenue net of treatment cost** is the extra revenue a treatment earns **after subtracting the cost
+of running it**. It answers the blunt question: *after paying for the campaign, how much incremental
+revenue did we really keep?*
+
+The formula
+-----------
+
+.. math::
+
+   \text{Net Revenue} = \text{Incremental Revenue} - \text{Treatment Cost},
+
+where **incremental revenue** is treatment-group revenue minus control-group revenue, and **treatment
+cost** covers marketing spend, incentives, delivery fees — any direct cost of the treatment.
+
+A worked example
+----------------
+
+An email upsell campaign brings the treatment group to ``$120,000`` in revenue against the control's
+``$100,000`` — an incremental revenue of ``$20,000``. If the campaign cost ``$5,000`` to run, then net
+revenue is ``$15,000`` — the ``$20,000`` of incremental revenue minus the ``$5,000`` cost. The
+headline ``$20K`` uplift is really **``$15K``** once costs are counted.
+
+Why it matters
+--------------
+
+Uplift measured on revenue alone **overstates** the benefit. Net revenue sits closer to **ROI**
+(though ROI further accounts for profit margin) and is the right lens for **comparing campaigns**: two
+treatments with equal uplift are not equal if one costs far less to run.
+"""
+
+CONTENT["Causal Effect"] = r"""
+What it is
+----------
+
+A **causal effect** is the change in an outcome **directly caused** by a change in a treatment,
+**holding everything else constant** — *if X changes, how much does Y change because of X, and not
+because of other factors?* This is strictly stronger than **correlation**, which shows only
+association; causation means X **produces** the change in Y.
+
+The potential-outcomes view
+-----------------------------
+
+The **Rubin causal model** frames it with potential outcomes: :math:`Y(1)` is a unit's outcome if
+treated and :math:`Y(0)` its outcome if not, so the causal effect for that unit is
+:math:`Y(1) - Y(0)`. Because we can only ever observe **one** of the two for any individual — the
+**fundamental problem of causal inference** — we estimate the **average causal effect** instead,
+:math:`\text{ACE} = \mathbb{E}[Y(1) - Y(0)]`.
+
+Identifying it
+--------------
+
+Every method exists to **control for confounders** — factors that influence both treatment and
+outcome. The toolkit runs from **randomised controlled trials** and **matching / stratification**
+through **regression adjustment**, **instrumental variables** and **difference-in-differences**, up to
+**causal graphs (DAGs)** for reasoning about confounding formally.
+
+Why it matters
+--------------
+
+A causal effect is the **true impact** of one variable on another — what would change *if we
+intervened*. It tests mechanisms in **science**, tells **policy** whether an intervention actually
+works, and measures the real business impact of **marketing, pricing and product** changes.
+"""
+
+MINDMAP.update({
+    "Incremental Conversions": [
+        "Conversion Rate Uplift", "Treatment Effect", "Causal Effect", "Incremental Revenue",
+        "Uplift", "Causal Inference",
+    ],
+    "Revenue net of treatment cost": [
+        "Incremental Revenue", "Treatment Cost", "ROI (Return on Investment)",
+        "Incremental Conversions", "Conversion Rate Uplift", "Gross Margin",
+    ],
+    "Causal Effect": [
+        "Causal Inference", "Causal ML (Causal Machine Learning)", "Treatment Effect", "Uplift",
+        "Incremental Conversions", "Conversion Rate Uplift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: cannibalization + service-level SLO/SLA  (uplift econ / ops)
+# ----------------------------------------------------------------------
+
+CONTENT["Cannibalization"] = r"""
+What it is
+----------
+
+**Cannibalization** is the reduction in sales or revenue of an **existing** product, service or
+channel caused by introducing or promoting a **new** one **from the same company**. Put plainly: your
+new sales come at the **expense of your own old sales**, not from genuine market growth.
+
+Two examples
+------------
+
+A **discount campaign** cuts 20% off a product; many loyal customers who would have paid full price
+simply buy at the discount, so the apparent uplift is really **full-price sales shifted into
+discounted ones**. A **product launch** does the same across a portfolio: when a company releases its
+newest phone, part of that model's strong sales comes from customers who would have bought the
+previous model anyway — the new revenue **cannibalises** the old.
+
+The formula
+-----------
+
+In uplift and ROI analysis, cannibalization enters as a **negative adjustment**:
+
+.. math::
+
+   \text{Net Revenue} = \text{Incremental Revenue} - \text{Treatment Cost} - \text{Cannibalization Loss},
+
+where the **cannibalization loss** is the revenue lost from existing products because of the
+treatment.
+
+Why it matters
+--------------
+
+Ignore it and campaigns look **more successful than they are** — the overestimation risk. Accounting
+for it forces **whole-portfolio** thinking rather than single-product metrics, so true impact is
+**incremental gain minus treatment cost minus cannibalization**. In short, cannibalization is
+*stealing from yourself*: the hidden downside of a promotion or launch that must be subtracted from
+uplift to find the real net benefit.
+"""
+
+CONTENT["SLOs (Service Level Objectives)"] = r"""
+What it is
+----------
+
+A **Service Level Objective (SLO)** is a **measurable target** for how a service should perform —
+usually a percentage or number. It is the **goal** for reliability, performance or availability that a
+team commits to.
+
+The SLA, SLO, SLI hierarchy
+-----------------------------
+
+The three fit together. The **SLA** is the external **contract** with customers; the **SLO** is the
+internal **target** that supports it; and the **SLI** is the actual **measurement** used to check
+performance. The SLO sits in the middle — stricter than the SLA, expressed in terms the SLI can
+measure.
+
+Examples and error budgets
+----------------------------
+
+Typical SLOs cover **availability** ("99.9% uptime per month", SLI = uptime %), **latency** ("95% of
+requests under 300 ms"), **error rate** ("under 0.1% of requests return 5xx in 30 days") and
+**throughput** ("at least 5,000 requests per second at peak"). An SLO of 99.9% implies an **error
+budget** of 0.1% allowed downtime — the slack that decides when to prioritise reliability over new
+features, and that stops teams from the costly, unrealistic chase for 100%.
+
+A worked example
+----------------
+
+Suppose an SLA requires **99.5%** uptime. The internal SLO is set at **99.9%** for margin, and the SLI
+is measured uptime over the last 30 days. If uptime slips to **99.6%**, the SLA is still safe but the
+**SLO is breached** — an early warning of reliability risk *before* any SLA penalty is triggered.
+"""
+
+CONTENT["SLA (Service Level Agreement)"] = r"""
+What it is
+----------
+
+A **Service Level Agreement (SLA)** is a **formal contract** between a service provider and a client
+(or between two internal teams) that defines **what** will be delivered, the **quality and performance
+standards** expected, **how** performance is measured, and the **consequences** of missing targets. It
+governs supplier performance in **supply chains** (delivery, quality, responsiveness) and uptime and
+support speed in **IT**.
+
+Key components
+--------------
+
+A complete SLA names the **scope of services**; the **performance metrics (KPIs)** — on-time delivery,
+fill rate, defect rate, uptime, response and resolution time; the **service-level targets**;
+**monitoring and reporting**; **penalties and remedies**; each party's **responsibilities**; and the
+agreement's **duration and review** cycle.
+
+Example clauses
+---------------
+
+In a supply-chain context: **98%** of deliveries must arrive within three days of the promised date;
+at least **95%** of order lines must be filled completely on first shipment; defective items must stay
+**at or below 0.5%**; and the supplier must confirm receipt of a purchase order **within 24 hours**.
+
+Benefits and challenges
+-----------------------
+
+An SLA brings **clarity**, **accountability**, measurable **tracking**, **risk reduction** and
+**stronger relationships**. The pitfalls are equally concrete: **overly rigid** or **unrealistic**
+targets strain the relationship, **monitoring** every metric has real cost, and an SLA must **adapt**
+as business realities change.
+"""
+
+MINDMAP.update({
+    "Cannibalization": [
+        "Revenue net of treatment cost", "Incremental Revenue", "Treatment Cost",
+        "ROI (Return on Investment)", "Incremental Gain", "Conversion Rate Uplift",
+    ],
+    "SLOs (Service Level Objectives)": [
+        "SLI (Service Level Indicator)", "SLA (Service Level Agreement)",
+        "Model KPIs (Key Performance Indicators)", "Monitoring Pipelines",
+        "Guardrails (in ML & Data Systems)", "Model Stability",
+    ],
+    "SLA (Service Level Agreement)": [
+        "SLOs (Service Level Objectives)", "SLI (Service Level Indicator)",
+        "Model KPIs (Key Performance Indicators)", "SLA Breach Rate", "Monitoring Pipelines",
+        "Guardrails (in ML & Data Systems)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: SLA breach rate, SLA breaches, ops health dashboard  (ops / service)
+# ----------------------------------------------------------------------
+
+CONTENT["SLA Breach Rate"] = r"""
+What it is
+----------
+
+**SLA Breach Rate** is a **performance metric** measuring how often a service provider — a supplier,
+IT team or internal group — **fails to meet the service levels agreed in the SLA**. Each **breach** is
+a missed target (a late delivery, missed uptime, poor quality), and the rate reports the **percentage
+of obligations not met** over a period. It is the exact **opposite of the SLA compliance rate**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{SLA Breach Rate} = \frac{\text{Number of SLA breaches}}{\text{Total SLA obligations}} \times 100\%,
+
+where **breaches** count the times performance fell below target and **obligations** count every
+chance there was to meet it.
+
+Worked examples
+---------------
+
+In a **supply chain**, 1,000 orders with 50 delivered late gives a breach rate of 50 / 1,000 =
+**5%**. In an **IT support desk**, 2,000 tickets with 200 missing their resolution deadline gives
+200 / 2,000 = **10%**.
+
+Why it matters, and reducing it
+---------------------------------
+
+The rate drives **accountability**, signals **customer satisfaction**, triggers **contractual
+penalties or credits**, and pinpoints weak areas. It falls with **better forecasting**, **real-time
+monitoring and alerts**, **supplier collaboration**, **automated escalation**, and **realistic SLA
+reviews**. Its mirror image is the compliance rate (100% minus the breach rate), and the common KPIs
+it is measured against are on-time delivery, fill rate and uptime.
+"""
+
+CONTENT["SLA Breaches"] = r"""
+What it is
+----------
+
+An **SLA breach** occurs when a service falls **below the standard promised** in the Service Level
+Agreement — a missed uptime, a late delivery, a slow response. Breaches are tracked with the **SLA
+breach rate**, the percentage of commitments missed over a period.
+
+Where breaches happen
+-----------------------
+
+They span industries. In **IT and cloud** services, uptime dips below 99.9% or a response exceeds its
+threshold. In **customer support**, a ticket goes unanswered past four hours or unresolved past 24. In
+**logistics and supply chain**, deliveries run late or order accuracy falls short. In
+**manufacturing**, the defect rate climbs above the agreed limit.
+
+The consequences
+----------------
+
+The fallout is concrete: **financial penalties** (refunds, service credits), **customer
+dissatisfaction** and lost trust, **reputational damage** through negative reviews and churn, and
+**operational strain** as escalations and firefighting multiply.
+
+A worked example
+----------------
+
+An SLA promises that **95% of orders ship within 48 hours**. Of 1,000 orders, 920 arrive on time, so
+80 fall short — a breach rate of 80 / 1,000 = **8%**. A high rate translates directly into penalties,
+churn and inefficiency.
+"""
+
+CONTENT["Ops Health Dashboard"] = r"""
+What it is
+----------
+
+An **Ops (Operations) Health Dashboard** is a **visual, real-time monitoring tool** that gives an
+at-a-glance overview of key operational metrics — the **"control panel"** that tells managers whether
+supply chain, IT, production or customer service is running smoothly, by consolidating **KPIs, trends
+and alerts** in one place.
+
+Core features
+-------------
+
+Five capabilities define it: **real-time data** integration (with ERP, WMS, CRM and monitoring tools),
+**KPI visualisation** (charts, gauges, traffic-light indicators), **drill-down** from overall health
+to a specific issue, an **alerting system** that flags SLA breaches and anomalies, and **comparisons**
+against history and targets.
+
+What it tracks
+--------------
+
+The KPIs depend on context. **Supply-chain** ops watch stockout rate, fill rate, backorder rate,
+inventory turnover, lead time and supplier SLA breach rate; **IT/service** ops watch uptime, SLA
+breach rate, incident response time, MTTR and open-versus-resolved tickets; **business** ops watch
+order-processing time, OTIF, CSAT/NPS and revenue versus target. A typical layout leads with a
+composite score (say **92/100**) and green/yellow/red columns — for example a fill rate of 97%, uptime
+of 99.7%, and an order-processing cost of ``$2.50`` per unit.
+
+Benefits, and tools
+-------------------
+
+The dashboard becomes a **single source of truth**, speeds **issue detection**, improves
+**accountability**, and supports **data-driven decisions**. It is built with BI tools (Tableau,
+Power BI, Looker, Qlik), ops platforms (ServiceNow, Splunk, Datadog), built-in ERP/WMS dashboards
+(SAP, Oracle NetSuite), or custom stacks (Python Dash or Streamlit, R Shiny, Grafana).
+"""
+
+MINDMAP.update({
+    "SLA Breach Rate": [
+        "SLA (Service Level Agreement)", "SLOs (Service Level Objectives)",
+        "SLI (Service Level Indicator)", "SLA Breaches", "Ops Health Dashboard",
+        "Model KPIs (Key Performance Indicators)",
+    ],
+    "SLA Breaches": [
+        "SLA Breach Rate", "SLA (Service Level Agreement)", "SLOs (Service Level Objectives)",
+        "Ops Health Dashboard", "Supplier Management", "Model KPIs (Key Performance Indicators)",
+    ],
+    "Ops Health Dashboard": [
+        "SLA Breach Rate", "Model KPIs (Key Performance Indicators)", "Monitoring Pipelines",
+        "SLA (Service Level Agreement)", "Supplier Management", "Long Lead Times",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: inventory service metrics — fill rate, backorder rate, lost sales value  (ops / supply chain)
+# ----------------------------------------------------------------------
+
+CONTENT["Fill Rate"] = r"""
+What it is
+----------
+
+**Fill Rate** is a supply-chain and inventory metric measuring the **percentage of customer demand
+met immediately from available stock, without delay**. It answers: *of everything customers wanted,
+how much did we deliver on time and in full, from stock?* A high fill rate means availability; a low
+one means frequent shortages, backorders and delays.
+
+The formulas
+------------
+
+It has three common forms. **Order fill rate** divides orders completely fulfilled by total orders;
+**line fill rate** divides order lines completely fulfilled by total order lines; and **unit fill
+rate** divides units delivered on the first shipment by total units ordered — each expressed as a
+percentage,
+
+.. math::
+
+   \text{Fill Rate (unit)} = \frac{\text{Units delivered on first shipment}}{\text{Total Units Ordered}} \times 100\%.
+
+A worked example
+----------------
+
+A week's demand is 1,000 units; the warehouse ships 970 immediately and backorders the remaining 30.
+The fill rate is 970 / 1,000 = **97%** — 97% of demand satisfied instantly from stock.
+
+Why it matters, and its mirror
+--------------------------------
+
+Fill rate drives **customer satisfaction** and **revenue**, signals forecasting and replenishment
+health, and is benchmarked at **95-98%** across many industries. It is the exact **complement of the
+stockout rate**: :math:`\text{Fill Rate} = 100\% - \text{Stockout Rate}`.
+"""
+
+CONTENT["Backorder Rate"] = r"""
+What it is
+----------
+
+**Backorder Rate** is a supply-chain KPI measuring the **proportion of customer demand that cannot be
+filled immediately** and must be placed on backorder — **delayed** fulfillment, not necessarily lost.
+A high rate points to frequent shortages and weak planning; a low one to efficient inventory and
+satisfied customers.
+
+The formula
+-----------
+
+It is computed by units or by orders,
+
+.. math::
+
+   \text{Backorder Rate} = \frac{\text{Backordered Units}}{\text{Total Units Ordered}} \times 100\%,
+
+or, order-based, orders containing backordered items divided by total orders.
+
+A worked example
+----------------
+
+Of 1,000 units ordered in a month, 920 ship immediately and 80 are backordered, giving 80 / 1,000 =
+**8%** of demand delayed.
+
+Where it sits
+-------------
+
+Backorder rate shapes **customer experience**, **revenue** (some backorders convert later, some
+cancel), **forecasting accuracy** and **supply-chain health**, and it falls with better forecasting
+(ARIMA, Prophet, LSTM), proper safety stock, reliable suppliers and ABC segmentation. In one full
+snapshot — 920 shipped, 50 backordered then filled, 30 cancelled — the fill rate is 92%, the backorder
+rate 5%, the stockout rate 3%, and those 30 cancellations become **lost sales value**.
+"""
+
+CONTENT["Lost Sales Value"] = r"""
+What it is
+----------
+
+**Lost Sales Value** is the **monetary value of sales that could not be realised** because products
+were out of stock or unavailable when customers wanted them. It puts the **dollar impact** on
+stockouts, going beyond the percentages of stockout rate or fill rate. High lost-sales value means
+serious revenue leakage; low means sound inventory and demand planning.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Lost Sales Value} = \text{Unfulfilled Units} \times \text{Unit Selling Price},
+
+or equivalently the total demand value (demand units times price) minus the actual sales value
+(fulfilled units times price).
+
+A worked example
+----------------
+
+A customer wants 500 units but only 450 are in stock, so 50 go unfilled. At ``$20`` each, the lost
+sales value is 50 × 20 = ``$1,000`` — a thousand dollars of revenue forgone to the stockout.
+
+Why it matters
+--------------
+
+It shows the money lost **directly**, drives **customer-loyalty** concerns, informs the **inventory
+cost versus service level** trade-off, and prioritises the SKUs whose stockouts hurt most (typically
+high-margin ones). Alongside its percentage cousins — stockout rate (how *often*) and fill rate (how
+*much* is filled) — lost sales value answers how much revenue is actually lost: a snapshot might read
+5% stockout, 95% fill, and ``$50,000`` lost.
+"""
+
+MINDMAP.update({
+    "Fill Rate": [
+        "Backorder Rate", "Stockout Rate", "Lost Sales Value", "Safety Stock",
+        "Ops Health Dashboard", "SLA (Service Level Agreement)",
+    ],
+    "Backorder Rate": [
+        "Fill Rate", "Stockout Rate", "Lost Sales Value", "Safety Stock",
+        "Ops Health Dashboard", "SLA (Service Level Agreement)",
+    ],
+    "Lost Sales Value": [
+        "Stockout Rate", "Fill Rate", "Backorder Rate", "Safety Stock",
+        "Ops Health Dashboard", "SLA Breach Rate",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: stockout metric + forecasting methods (Prophet, LSTM)  (ops / repr / drift)
+# ----------------------------------------------------------------------
+
+CONTENT["Stockout Rate"] = r"""
+What it is
+----------
+
+**Stockout Rate** is a supply-chain and inventory metric measuring **how often items are out of stock
+when there is demand** — the percentage of demand that could not be filled because the product was
+unavailable. It is a direct reading of **service-level** performance: a low rate means shelves stay
+stocked, a high rate means customers keep hitting empty ones.
+
+The formula
+-----------
+
+It is computed by demand or by orders,
+
+.. math::
+
+   \text{Stockout Rate} = \frac{\text{Unfulfilled Units}}{\text{Total Demand}} \times 100\%,
+
+or, order-based, the share of orders that hit at least one stockout.
+
+A worked example
+----------------
+
+A month's demand is 1,000 units; inventory covers 950 and 50 go unfilled. The stockout rate is
+50 / 1,000 = **5%** — one order in twenty meets an empty shelf.
+
+Why it matters, and reducing it
+---------------------------------
+
+Frequent stockouts **push customers to competitors**, forfeit sales, and flag weak forecasting, so the
+metric captures the tension between **service level** and **holding cost**. It falls with better
+**demand forecasting** (ARIMA, Prophet, LSTM), adequate **safety stock**, shorter vendor **lead
+times**, **multi-location** inventory and **real-time tracking**. It is the exact **complement of the
+fill rate**.
+"""
+
+CONTENT["Prophet — Time Series Forecasting by Facebook (Meta)"] = r"""
+What it is
+----------
+
+**Prophet** is an **open-source forecasting library** from Facebook (now Meta) that makes time-series
+forecasting **simple, scalable and interpretable** — designed for business data with **trends,
+seasonality and holidays**, and usable without deep statistical expertise.
+
+The decomposable model
+------------------------
+
+Prophet models a series as a sum of interpretable components,
+
+.. math::
+
+   y(t) = g(t) + s(t) + h(t) + \varepsilon_t,
+
+where :math:`g(t)` is the **trend** (linear, or logistic with saturation
+:math:`g(t) = \frac{C}{1 + \exp(-k(t - m))}`, plus automatic **changepoints**), :math:`s(t)` is
+**seasonality** (a Fourier series for weekly, yearly or custom cycles), :math:`h(t)` captures
+**holidays and events** from a supplied list, and :math:`\varepsilon_t` is noise.
+
+Strengths and limits
+--------------------
+
+Prophet is **user-friendly** (just a ``ds``/``y`` DataFrame), **interpretable** (each component is
+separable), **robust** to missing data and outliers, detects changepoints automatically, and
+**scales** across many series. Its limits follow from its **additive** design: it does not model
+autoregressive correlations, it suits **daily/weekly/monthly** business data rather than
+high-frequency signals, and it is **less powerful than LSTMs or Transformers** on complex patterns.
+
+In practice
+-----------
+
+.. code-block:: python
+
+   from prophet import Prophet
+
+   # df has two columns: ds (datestamp) and y (value)
+   model = Prophet()
+   model.fit(df)
+
+   future = model.make_future_dataframe(periods=90)
+   forecast = model.predict(future)
+   model.plot(forecast)
+   model.plot_components(forecast)
+"""
+
+CONTENT["LSTM — Long Short-Term Memory Networks"] = r"""
+What it is
+----------
+
+An **LSTM (Long Short-Term Memory network)** is a special **recurrent neural network** for sequential
+data that overcomes the **vanishing- and exploding-gradient** problem of vanilla RNNs. It adds a
+**gated memory** structure that learns what to **keep, update and forget** across long sequences.
+
+The gated cell
+--------------
+
+A **cell state** runs through the sequence like a conveyor belt, and three **gates** — sigmoids in
+:math:`[0, 1]` that decide *how much* to let through — govern it: a **forget gate**
+:math:`f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)`, an **input gate** :math:`i_t` with candidate
+values :math:`\tilde{C}_t = \tanh(\cdot)`, and an **output gate** :math:`o_t`. The updates are
+
+.. math::
+
+   C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t, \qquad h_t = o_t \odot \tanh(C_t),
+
+with :math:`C_t` the long-term cell state and :math:`h_t` the short-term hidden state.
+
+Variants
+--------
+
+Common variants include the **bidirectional LSTM** (reads a sequence forwards and backwards), the
+**stacked LSTM** (several layers for depth), the **peephole LSTM** (gates can see the cell state), and
+the **GRU**, a simpler cousin that merges the forget and input gates.
+
+Uses, strengths, weaknesses
+---------------------------
+
+LSTMs power **NLP** (text generation, translation, sentiment), **speech recognition**, **time-series
+forecasting** (demand, stock prices, anomalies) and **control systems**. They capture dependencies
+across **50-100+ steps**, but they are **computationally heavy**, slower than GRUs, and now often
+**outperformed by Transformers** on very long sequences.
+"""
+
+MINDMAP.update({
+    "Stockout Rate": [
+        "Fill Rate", "Backorder Rate", "Lost Sales Value", "Safety Stock",
+        "Ops Health Dashboard", "Prophet — Time Series Forecasting by Facebook (Meta)",
+    ],
+    "Prophet — Time Series Forecasting by Facebook (Meta)": [
+        "LSTM — Long Short-Term Memory Networks",
+        "ARIMA (AutoRegressive Integrated Moving Average)", "Time Series",
+        "Bayesian Time Series", "Signal Processing", "Stockout Rate",
+    ],
+    "LSTM — Long Short-Term Memory Networks": [
+        "Prophet — Time Series Forecasting by Facebook (Meta)",
+        "ARIMA (AutoRegressive Integrated Moving Average)", "Autoencoder", "Embedding",
+        "Bayesian Neural Networks (BNNs)", "Time Series",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: classical time-series — ARIMA, seasonality  (concepts / forecasting)
+# ----------------------------------------------------------------------
+
+CONTENT["ARIMA (AutoRegressive Integrated Moving Average)"] = r"""
+What it is
+----------
+
+**ARIMA (AutoRegressive Integrated Moving Average)** is a classical statistical model for
+**time-series forecasting** that predicts future values from a series' **own past**. It fuses three
+ideas — **autoregression (AR)**, **integration / differencing (I)** and **moving average (MA)** — and
+describes a series by its **autocorrelations** rather than by explicit trend or seasonality. A model
+is written **ARIMA(p, d, q)**.
+
+The three parameters
+--------------------
+
+Each letter is one parameter. **p** is the **AR order** — how many lagged past *values* the current
+value is regressed on. **d** is the **differencing order** — how many times the series is differenced
+to make it **stationary** (removing trend). **q** is the **MA order** — how many past *error* terms
+feed the forecast. In backshift form,
+
+.. math::
+
+   \phi_p(B)\,(1 - B)^d\, y_t = \theta_q(B)\,\varepsilon_t,
+
+where :math:`B` is the backshift operator (:math:`B y_t = y_{t-1}`), :math:`\phi_p` and
+:math:`\theta_q` are the AR and MA polynomials, and :math:`(1 - B)^d` applies the differencing.
+Setting parameters to zero recovers the simpler **AR**, **MA** and **ARMA** models.
+
+Building one (Box-Jenkins)
+----------------------------
+
+The Box-Jenkins recipe has three stages. First, make the series **stationary** by differencing,
+checked with a unit-root test such as the **Dickey-Fuller** test. Next, pick **p** and **q**: the
+**ACF** (autocorrelation function) guides **q**, the **PACF** (partial autocorrelation function)
+guides **p**, and among candidates you choose the one with the lowest **AIC** (or BIC). Finally,
+**validate the residuals** — they should be uncorrelated white noise; if not, revisit the orders.
+
+Strengths, limits, and SARIMA
+-------------------------------
+
+ARIMA is **flexible** and **interpretable** for **linear, univariate** series — finance, demand,
+sales — and gives stable longer-term forecasts. But it **assumes a linear autocorrelation structure**,
+**requires stationarity**, and struggles with non-linear patterns where **LSTMs or Transformers**
+do better. For periodic data, the **SARIMA** extension adds seasonal terms, written
+:math:`\text{ARIMA}(p, d, q)(P, D, Q)_m` with season length :math:`m`.
+"""
+
+CONTENT["Seasonality"] = r"""
+What it is
+----------
+
+**Seasonality** is a pattern in a time series that **repeats at fixed, regular intervals** — driven by
+seasonal factors such as the time of year, the month, the day of the week or the hour of the day.
+Unlike a **trend** (a long-term rise or fall), seasonality is **periodic**, recurring with a fixed
+frequency. In a decomposition, a series splits into trend, seasonal and residual parts,
+:math:`y_t = T_t + S_t + \varepsilon_t`, with :math:`S_t` the seasonal component.
+
+Examples
+--------
+
+Retail sales spike every December, ice-cream demand rises each summer, website traffic dips every
+weekend, and electricity load peaks on hot afternoons. In each case the same shape returns on a
+predictable cycle.
+
+Detecting it
+------------
+
+Seasonality shows up as a **repeating shape** in a line plot, and is confirmed with **seasonal
+subseries** or **decomposition** plots and with the **autocorrelation function (ACF)**, which spikes at
+the **seasonal lag** — for example lag 12 for monthly data with yearly seasonality.
+
+Handling it in models
+---------------------
+
+Several tools absorb it: **seasonal differencing** removes it, **SARIMA** adds seasonal
+:math:`(P, D, Q)_m` terms, **Prophet** fits it with a Fourier series, and simpler models use
+**seasonal dummy variables**. Getting seasonality right is essential for accurate forecasting —
+ignoring it leaves systematic, repeating errors in the residuals.
+"""
+
+MINDMAP.update({
+    "ARIMA (AutoRegressive Integrated Moving Average)": [
+        "Prophet — Time Series Forecasting by Facebook (Meta)",
+        "LSTM — Long Short-Term Memory Networks", "Time Series", "Bayesian Time Series",
+        "Seasonality", "Temporal autocorrelation (Serial Correlation)",
+    ],
+    "Seasonality": [
+        "ARIMA (AutoRegressive Integrated Moving Average)",
+        "Prophet — Time Series Forecasting by Facebook (Meta)", "Time Series", "Seasonal Lag",
+        "Signal Processing", "Temporal autocorrelation (Serial Correlation)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: explainability trio — counterfactuals, LIME, SHAP  (xai)
+# ----------------------------------------------------------------------
+
+CONTENT["Counterfactual Explanations"] = r"""
+What it is
+----------
+
+A **counterfactual explanation** shows how a prediction would change **if the input were different**,
+answering: *what minimal change to this input would flip the model's decision?* It borrows the causal
+idea of a counterfactual — *what would have happened if ...?*
+
+The formal definition
+---------------------
+
+Given an instance :math:`x` with prediction :math:`f(x)`, a counterfactual is an alternative
+:math:`x'` that changes the outcome yet stays as close as possible to :math:`x`:
+
+.. math::
+
+   \min_{x'} \; d(x, x') \quad \text{s.t.} \quad f(x') = y_{\text{desired}},
+
+with :math:`f(x') \neq f(x)` and :math:`d(\cdot)` a distance metric (L1, L2 or a feature-specific
+cost).
+
+A worked example
+----------------
+
+For a **denied** loan, a counterfactual might say: *if income rose by* ``$5,000``\ *, or the credit
+score were 650 instead of 600, the loan would be approved* — actionable **recourse**. Good
+counterfactuals are **valid** (they flip the prediction), **proximal** and **sparse** (few, small
+changes), **actionable** (realistic and controllable — "get older" is not), and **diverse** (several
+options).
+
+Methods and uses
+----------------
+
+They are generated by **optimisation**, **gradient search** (for differentiable models) or
+**generative models** (VAE, GAN) for realism, via libraries like ``alibi`` and ``dice-ml``. They power
+**user recourse** ("what must I change?"), **fairness audits** (do minority groups need unfairly large
+changes for the same decision?) and **model debugging** — but they can be **unrealistic** (e.g. "if
+gender changed"), are **non-unique**, and need **domain constraints** to stay valid and fair.
+"""
+
+CONTENT["LIME (Local Interpretable Model-agnostic Explanations)"] = r"""
+What it is
+----------
+
+**LIME (Local Interpretable Model-agnostic Explanations)** explains an **individual prediction** of
+any ML model by approximating the black box **locally** — around the instance of interest — with a
+simpler, interpretable model such as linear regression. It answers: *why did the model predict this
+for this example?*
+
+How it works
+------------
+
+Six steps. Take the instance to explain; create **perturbed samples** by slightly varying its
+features; collect the black-box **predictions** for those samples; **weight** each sample by proximity
+to the original; fit a **simple interpretable model** (linear or tree) on that local neighbourhood;
+and read its **coefficients** as the feature contributions.
+
+A worked example
+----------------
+
+For a **denied** loan, perturbing income, age and debt and fitting a local linear model might yield
+Income **-0.4**, high debt **+0.3** and employment length **+0.1** — low income plus high debt pushed
+the decision toward denial.
+
+Strengths, limits, and SHAP
+-----------------------------
+
+LIME is **model-agnostic**, sharply **local** (one prediction at a time) and **human-friendly**, but
+it is **unstable** (different perturbations give different explanations), only **locally faithful**,
+**computationally expensive**, and shaky under **correlated features**. Against SHAP: LIME fits
+**local surrogate** models (faster, less stable) while SHAP uses **game theory** (local *and* global,
+more stable, an exact decomposition).
+
+In practice
+-----------
+
+.. code-block:: python
+
+   import lime.lime_tabular
+   from sklearn.datasets import load_iris
+   from sklearn.ensemble import RandomForestClassifier
+
+   X, y = load_iris(return_X_y=True)
+   model = RandomForestClassifier().fit(X, y)
+
+   explainer = lime.lime_tabular.LimeTabularExplainer(
+       X,
+       feature_names=["f1", "f2", "f3", "f4"],
+       class_names=["setosa", "versicolor", "virginica"],
+       discretize_continuous=True,
+   )
+   exp = explainer.explain_instance(X[0], model.predict_proba, num_features=2)
+   exp.show_in_notebook()
+"""
+
+CONTENT["SHAP (SHapley Additive exPlanations)"] = r"""
+What it is
+----------
+
+**SHAP (SHapley Additive exPlanations)** is a unified framework for explaining the predictions of
+**any** machine-learning model, built on **Shapley values** from cooperative game theory (Lloyd
+Shapley, 1953). Treat each feature as a **player** in a game and the prediction as the **payout**;
+SHAP assigns each feature a **fair share** of the contribution — how much it pushed the prediction up
+or down from a baseline.
+
+The additive decomposition
+----------------------------
+
+A prediction is decomposed **exactly** into per-feature contributions,
+
+.. math::
+
+   \hat{y} = \phi_0 + \sum_{i=1}^{M} \phi_i,
+
+where :math:`\phi_0` is the **baseline** (the average prediction when no features are known) and
+:math:`\phi_i` is the **SHAP value** of feature :math:`i`.
+
+A worked example
+----------------
+
+A loan-approval probability of **0.8** against a baseline of **0.5** might break down as Income
+**+0.2**, Employment history **+0.1**, Debt ratio **0** and Age **0**, so
+:math:`0.8 = 0.5 + 0.2 + 0.1`. Income and employment history raised the approval; the other features
+were neutral.
+
+Strengths, visuals, limits
+----------------------------
+
+SHAP is **consistent** (a fair allocation), works both **locally and globally**, and is
+**model-agnostic or model-specific** (tree models, deep nets, linear), with **force**, **summary** and
+**dependence** plots. Its costs: exact Shapley values are **exponential** in the number of features
+(SHAP uses approximations), explanations can be **misused** out of context, and **correlated
+features** are hard to attribute fairly.
+
+In practice
+-----------
+
+.. code-block:: python
+
+   import shap
+   import xgboost as xgb
+   from sklearn.datasets import fetch_california_housing
+
+   X, y = fetch_california_housing(return_X_y=True, as_frame=True)
+   model = xgb.XGBRegressor().fit(X, y)
+
+   explainer = shap.Explainer(model, X)
+   shap_values = explainer(X)
+
+   shap.summary_plot(shap_values, X)   # global feature importance
+   shap.plots.force(shap_values[0])    # local explanation for one row
+"""
+
+MINDMAP.update({
+    "Counterfactual Explanations": [
+        "SHAP (SHapley Additive exPlanations)",
+        "LIME (Local Interpretable Model-agnostic Explanations)", "Causal Effect",
+        "Causal Inference", "Post-hoc Explainability", "Equalized Odds (Fairness)",
+    ],
+    "LIME (Local Interpretable Model-agnostic Explanations)": [
+        "SHAP (SHapley Additive exPlanations)", "Counterfactual Explanations",
+        "Post-hoc Explainability", "Feature Values", "Discriminatory Power", "Deep Ensembles",
+    ],
+    "SHAP (SHapley Additive exPlanations)": [
+        "LIME (Local Interpretable Model-agnostic Explanations)", "Counterfactual Explanations",
+        "Post-hoc Explainability", "Feature Values", "Discriminatory Power", "Deep Ensembles",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: interpretability spectrum — decision trees, deep ensembles, post-hoc XAI  (xai / training)
+# ----------------------------------------------------------------------
+
+CONTENT["Decision Trees"] = r"""
+What it is
+----------
+
+A **decision tree** is a supervised-learning algorithm that splits data into branches by **feature
+values**, forming a tree. Each **internal node** is a decision (a feature and a threshold) and each
+**leaf** a prediction (a class label or a number) — think of it as a flowchart: ask questions, follow
+branches, reach a prediction. It comes in two flavours: **classification trees** (discrete labels) and
+**regression trees** (continuous values).
+
+How it learns, and splitting
+------------------------------
+
+Training is recursive: start with all data at the **root**, evaluate candidate **splits** for each
+feature, keep the split that best separates the data (minimises impurity), and repeat until a
+**stopping rule** (max depth, minimum samples per leaf). Classification trees split by **Gini
+impurity** or **entropy** (information gain); regression trees by **MSE reduction**. The Gini impurity
+at a node is
+
+.. math::
+
+   G = 1 - \sum_{k} p_k^2,
+
+where :math:`p_k` is the proportion of class :math:`k` at that node.
+
+Strengths and weaknesses
+--------------------------
+
+Trees are **easy to interpret and visualise**, handle **mixed numeric and categorical** features,
+capture **nonlinear boundaries and interactions**, and need no feature scaling. But a deep tree
+**overfits**, is **unstable** (a small data change reshapes it), splits **greedily** (it can miss the
+global optimum), and is **weaker alone** than an ensemble.
+
+From one tree to many
+-----------------------
+
+**Pruning** cuts back branches to curb overfitting; **random forests** bag many trees; and
+**gradient-boosted trees** (XGBoost, LightGBM, CatBoost) build trees sequentially to correct earlier
+errors.
+
+.. code-block:: python
+
+   from sklearn.datasets import load_iris
+   from sklearn.tree import DecisionTreeClassifier, export_text
+
+   X, y = load_iris(return_X_y=True)
+   tree = DecisionTreeClassifier(max_depth=3).fit(X, y)
+
+   print(export_text(tree, feature_names=["sepal_length", "sepal_width",
+                                          "petal_length", "petal_width"]))
+"""
+
+CONTENT["Deep Ensembles"] = r"""
+What it is
+----------
+
+A **deep ensemble** trains several neural networks **independently** and **aggregates** their
+predictions, improving both **accuracy** and **uncertainty estimation**. Each member shares the
+architecture but starts from a **different random initialisation** (and data order), so the networks
+settle into different modes of the loss landscape; averaging their outputs cancels errors and reduces
+variance:
+
+.. math::
+
+   \bar{p}(y \mid x) = \frac{1}{M} \sum_{m=1}^{M} p_{\theta_m}(y \mid x).
+
+Why it works, and uncertainty
+-------------------------------
+
+Because independently-initialised networks explore **different functions**, their **disagreement** is
+informative. Deep ensembles decompose predictive uncertainty into **aleatoric** (data noise) and
+**epistemic** (model) components and produce well-calibrated **predictive intervals** — rivalling
+**Bayesian neural networks** while being far simpler to implement.
+
+Calibration and cost
+--------------------
+
+They usually still need **calibration** (for example temperature scaling), especially under
+**distribution shift**. The main drawback is that cost grows **linearly** with the number of members
+:math:`M`, which motivates efficient variants such as **BatchEnsemble**, **snapshot ensembles**, and
+spreading members over time.
+
+Where it's used
+---------------
+
+Deep ensembles shine wherever **reliable confidence** matters as much as the point prediction —
+climate downscaling, **robotic perception** and safe human-robot interaction, and **low-data transfer
+learning**.
+"""
+
+CONTENT["Post-hoc Explainability"] = r"""
+What it is
+----------
+
+**Post-hoc explainability** means explaining a model's behaviour **after training**, without changing
+its internal structure — making **black-box models** (deep nets, ensembles, gradient boosting)
+interpretable. *Post-hoc* means *after the fact*: you do not train the model to be interpretable, you
+**analyse its outputs afterward**. It contrasts with **intrinsically interpretable** models (linear
+regression, small decision trees) that are transparent by design.
+
+Why it matters
+--------------
+
+Many high-performing models are **opaque**, yet users, regulators and businesses need to know **why** a
+prediction was made — for **debugging**, **trust and transparency**, and **compliance** (finance,
+healthcare, GDPR / AI Act).
+
+The techniques
+--------------
+
+The toolkit spans **feature importance** (global permutation or gain-based, and local),
+**surrogate models** (a simple tree approximating the black box), the local methods **LIME** and
+**SHAP**, **visualisations** — partial-dependence plots, ICE plots, and saliency maps / Grad-CAM for
+images — and **counterfactual explanations**. For a black-box loan model, SHAP might flag low income
+and short employment, while a counterfactual says "two more years of employment would flip the
+decision."
+
+Limitations
+-----------
+
+Post-hoc explanations are **approximations** of the true model logic, risk being **misleading** (the
+faithfulness problem), can be **computationally expensive**, and are **diagnostic only** — not a
+substitute for fair training practices.
+"""
+
+MINDMAP.update({
+    "Deep Ensembles": [
+        "Decision Trees", "Post-hoc Explainability", "Bayesian Neural Networks (BNNs)",
+        "Model Stability", "Uplift Random Forests", "SHAP (SHapley Additive exPlanations)",
+    ],
+    "Post-hoc Explainability": [
+        "SHAP (SHapley Additive exPlanations)",
+        "LIME (Local Interpretable Model-agnostic Explanations)", "Counterfactual Explanations",
+        "Decision Trees", "Feature Values", "Discriminatory Power",
+    ],
+    "Decision Trees": [
+        "Post-hoc Explainability", "Deep Ensembles", "Uplift Random Forests",
+        "SHAP (SHapley Additive exPlanations)", "Discriminatory Power",
+        "Bayesian Neural Networks (BNNs)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: model deployment format — ONNX  (platforms / mlops)
+# ----------------------------------------------------------------------
+
+CONTENT["ONNX (Open Neural Network Exchange)"] = r"""
+What it is
+----------
+
+**ONNX (Open Neural Network Exchange)** is an **open-source, standardised format** for representing
+machine-learning models — both deep-learning and traditional ML. It acts as a **universal
+translator**: build a model in one framework (PyTorch, TensorFlow, scikit-learn) and **deploy it in
+another** environment optimised for inference, without rewriting or retraining. Originally called
+*Toffee* and built by the PyTorch team at Facebook, it was renamed ONNX in September 2017 and is now
+backed by Microsoft, IBM, Intel, AMD, Arm, Qualcomm and others.
+
+How it represents a model
+---------------------------
+
+An ONNX model is an **extensible computation graph** — a directed acyclic graph whose **nodes** are
+**operators** (convolution, pooling, activation) with typed inputs and outputs. It defines a set of
+**built-in operators** and **standard data types**, and serialises the network structure (layers,
+connections) and parameters (weights, biases) in a **framework-agnostic** way using **Protocol
+Buffers** as the container format. The focus is on **inference** (evaluation), not training.
+
+The workflow
+------------
+
+The lifecycle is **train, export, run**. Train in any framework, **export** to a single ``.onnx`` file
+(for example with ``torch.onnx.export``), then execute it with a runtime such as **ONNX Runtime**,
+whose **execution providers** target CPUs, GPUs and specialised accelerators. The runtime applies
+**graph optimisations** — node fusion, constant folding — that cut inference latency.
+
+Why it matters
+--------------
+
+ONNX delivers **framework interoperability** (no ecosystem lock-in), **hardware optimisation** (one
+``.onnx`` runs on NVIDIA GPUs, Intel CPUs or mobile NPUs via tools like OpenVINO and CoreML),
+**faster inference**, and **simplified deployment** — one delivery format across cloud, edge, mobile
+and even the browser (ONNX Runtime Web on WebGL/WebAssembly). Its main limitation is that some
+**proprietary or very new operators** are not yet supported.
+
+.. code-block:: python
+
+   import torch
+   import onnxruntime as ort
+
+   # Export a trained PyTorch model to ONNX
+   dummy = torch.randn(1, 3, 224, 224)
+   torch.onnx.export(model, dummy, "model.onnx",
+                     input_names=["input"], output_names=["output"],
+                     dynamic_axes={"input": {0: "batch_size"}})
+
+   # Run inference with ONNX Runtime
+   session = ort.InferenceSession("model.onnx", providers=["CPUExecutionProvider"])
+   outputs = session.run(None, {"input": input_array})
+"""
+
+MINDMAP.update({
+    "ONNX (Open Neural Network Exchange)": [
+        "Quantization", "Caching", "Neural Networks", "TPU Clusters", "Latency Guardrails",
+        "Monitoring Pipelines",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: trustworthy evaluation & data quality — DeLong, dataset shift, label noise  (evaluation / drift)
+# ----------------------------------------------------------------------
+
+CONTENT["DeLong's Test"] = r"""
+What it is
+----------
+
+**DeLong's test** is a **non-parametric statistical test** for comparing the **ROC-AUCs of two
+correlated models** — answering *is model A's AUC significantly better than model B's?* Proposed by
+DeLong, DeLong & Clarke-Pearson (1988), it matters because two models are usually evaluated on the
+**same test set**, so their AUCs are **correlated** and their difference must be judged with a p-value,
+not by eye.
+
+Why you need it
+---------------
+
+AUCs are **random variables** — they depend on the sample — so a raw ``AUC_A - AUC_B`` gap could be
+noise. DeLong's test supplies the **standard error** of each AUC, the SE of their **difference**, and a
+**z-statistic and p-value**.
+
+How it works
+------------
+
+It treats AUC as the probability that a random positive outranks a random negative, and uses
+**U-statistics** to estimate the variances and covariances of those pairwise comparisons, giving
+
+.. math::
+
+   z = \frac{\text{AUC}_1 - \text{AUC}_2}{\text{SE}(\text{AUC}_1 - \text{AUC}_2)},
+
+which is referred to the standard normal for a p-value.
+
+A worked example
+----------------
+
+Model A scores **AUC = 0.88** and Model B **0.84**. The difference of **0.04** with an SE of **0.015**
+gives :math:`z \approx 2.67` and :math:`p \approx 0.0076` — so A is **significantly better**
+(p < 0.01).
+
+.. code-block:: python
+
+   # delong_roc_test is a small helper (from a gist/package)
+   from delong import delong_roc_test
+
+   # y_true = true labels; y_pred1, y_pred2 = the two models' scores
+   p_value = delong_roc_test(y_true, y_pred1, y_pred2)
+   print("p-value:", p_value)
+
+Alternatives
+------------
+
+Other options include **bootstrap confidence intervals** (resample and recompute the AUC-difference
+distribution), the older, less accurate **Hanley-McNeil** approximation, and **permutation tests**
+(shuffle labels to build the null).
+"""
+
+CONTENT["Dataset Shift"] = r"""
+What it is
+----------
+
+**Dataset shift** is when the **training** data distribution differs from the **test / production**
+distribution — formally :math:`P_{\text{train}}(X, Y) \neq P_{\text{test}}(X, Y)`. Because a model
+learns its patterns from training data, a shift makes it **perform worse in the real world**. It is the
+formal **umbrella** over the whole drift family.
+
+The three types
+---------------
+
+**Covariate shift**: :math:`P(X)` changes but :math:`P(Y \mid X)` stays — a spam filter trained on old
+emails, tested on new ones. **Prior (label) shift**: :math:`P(Y)` changes but :math:`P(X \mid Y)`
+stays — fraud is 1% in training but 5% in production. **Concept shift**: :math:`P(Y \mid X)` itself
+changes — the meaning of a label evolves, the hardest case to handle.
+
+Detecting it
+------------
+
+Use **statistical tests** (KS, chi-square, PSI, KL-divergence), a **train-versus-test discriminator**
+(if a classifier can tell the two sets apart, they differ), and **production monitoring** of accuracy,
+AUC and calibration.
+
+Coping
+------
+
+**Reweight** samples by importance, :math:`w(x) = \frac{P_{\text{test}}(x)}{P_{\text{train}}(x)}`, for
+covariate shift; **resample** to match real prevalence; apply **domain adaptation**; **retrain
+continually**; or build **robust, invariant** models. A model trained on one hospital's older, less
+diverse patients loses accuracy on another's younger, more diverse population.
+"""
+
+CONTENT["Label Noise"] = r"""
+What it is
+----------
+
+**Label noise** is **incorrect or unreliable labels** in a dataset — training examples assigned the
+wrong class or target, arising from human labellers, weak heuristics or imperfect sensors (a tweet "I
+love this" marked **negative**, or a misrecorded diagnosis).
+
+The three types
+---------------
+
+**Random (uniform) noise**: labels flipped independently of the features (say 10% at random).
+**Class-conditional noise**: mislabeling depends on the class — "cat" is confused for "dog" more often
+than for "car". **Feature-dependent (systematic) noise**: ambiguous or low-quality inputs are
+mislabeled more — blurry dog photos read as cats.
+
+Why it hurts
+------------
+
+It **degrades training** (models learn wrong patterns), **miscalibrates** probabilities, and
+**distorts evaluation** (a noisy test set makes metrics meaningless). Tell-tale signs: training
+accuracy never reaching 100%, a **stalling loss**, memorisation of noise with low validation
+performance, and **high disagreement among annotators**.
+
+Coping
+------
+
+**Clean** the data (multiple annotators, keep high-agreement labels); use **noise-robust losses** (MAE,
+generalised cross-entropy) with regularisation and early stopping; **model the noise** with a
+transition matrix; combine a small clean set with a large noisy one (**weak / semi-supervised**); and
+always keep a **clean gold-standard evaluation set** with robust metrics like AUC.
+"""
+
+MINDMAP.update({
+    "DeLong's Test": [
+        "Multiclass AUROC", "Discriminatory Power", "Statistical Power", "Dataset Shift",
+        "Evaluation Set", "Model KPIs (Key Performance Indicators)",
+    ],
+    "Dataset Shift": [
+        "Covariate Drift (a.k.a. Covariate Shift)", "Concept Drift", "Data Drift",
+        "PSI (Population Stability Index)", "KS Statistic (Kolmogorov–Smirnov Statistic)",
+        "Label Noise",
+    ],
+    "Label Noise": [
+        "Dataset Shift", "Evaluation Set", "Weak Supervision", "Full Annotation",
+        "Discriminatory Power", "Multiclass AUROC",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: classical supervised-learning models — SVM, logistic regression, neural networks  (concepts / training)
+# ----------------------------------------------------------------------
+
+CONTENT["Support Vector Machines (SVMs)"] = r"""
+What it is
+----------
+
+A **support vector machine** is a **supervised max-margin** algorithm for classification (and, as SVR,
+regression). It finds the **optimal separating hyperplane** — the decision boundary that **maximizes the
+margin**, the distance to the nearest points of each class. Developed from the work of Vapnik and
+Chervonenkis, with the soft-margin form due to Cortes & Vapnik (1995).
+
+.. math::
+
+   \mathbf{w}^\top \mathbf{x} + b = 0 \quad\text{(the separating hyperplane)}
+
+Margin and support vectors
+--------------------------
+
+The **support vectors** are the training points closest to the boundary — and they **alone** define it
+(remove any other point and nothing changes). A **hard margin** separates the classes perfectly; a
+**soft margin** tolerates some violations through **slack variables** :math:`\xi_i`, with the penalty
+**C** trading margin width against misclassification (large ``C`` → stricter, narrower margin; small
+``C`` → wider, more tolerant). The objective minimizes
+
+.. math::
+
+   \frac{1}{2}\|\mathbf{w}\|^2 + C \sum_i \xi_i,
+
+where the per-point cost is the **hinge loss** :math:`\max(0,\, 1 - y_i(\mathbf{w}^\top \mathbf{x}_i + b))`.
+
+The kernel trick
+----------------
+
+When data is not linearly separable, a **kernel** maps it into a higher-dimensional space where it is —
+**without ever computing the coordinates**, using only pairwise dot products. Common kernels are
+**linear**, **polynomial**, **RBF** (the most popular) and **sigmoid**; the choice trades accuracy
+against complexity and compute.
+
+When to use it
+--------------
+
+SVMs are strong on **high-dimensional** data (text, images, bioinformatics), **resilient to noise**, and
+guard against overfitting, but are **expensive on very large datasets** and sensitive to kernel choice.
+
+.. code-block:: python
+
+   from sklearn.svm import SVC
+
+   clf = SVC(kernel="rbf", C=1.0)   # RBF kernel, soft margin
+   clf.fit(X_train, y_train)
+   y_pred = clf.predict(X_test)
+"""
+
+CONTENT["Logistic Regression"] = r"""
+What it is
+----------
+
+**Logistic regression** is a **linear model for binary classification** that predicts the **probability**
+of the positive class. Despite *regression* in the name it **classifies**: it outputs a probability, then
+a **threshold** (usually 0.5) assigns the label.
+
+The sigmoid and log-odds
+------------------------
+
+It passes a linear combination through the **sigmoid**, squashing any real number into :math:`(0, 1)`:
+
+.. math::
+
+   \sigma(z) = \frac{1}{1 + e^{-z}}, \qquad z = \theta_0 + \boldsymbol{\theta}^\top \mathbf{x}.
+
+Equivalently, the **log-odds** (logit) — the natural log of the odds :math:`p/(1-p)` — is **linear in the
+features**, which is what makes the coefficients interpretable:
+
+.. math::
+
+   \log \frac{p}{1 - p} = \theta_0 + \boldsymbol{\theta}^\top \mathbf{x}.
+
+Fitting by maximum likelihood
+-----------------------------
+
+Coefficients are chosen to **maximize the likelihood** of the observed labels — equivalently, to minimize
+the **log loss** (negative log-likelihood), a **convex** objective solved by gradient-based methods:
+
+.. math::
+
+   \mathcal{L} = -\sum_i \big[\, y_i \log \hat{p}_i + (1 - y_i)\log(1 - \hat{p}_i) \,\big].
+
+Assumptions and multiclass
+--------------------------
+
+It assumes a **linear log-odds** relationship, **few extreme outliers**, and enough data; it extends to
+several classes via **one-vs-rest** or **multinomial (softmax)**. Simple, fast and interpretable, it is a
+workhorse for spam, fraud and medical diagnosis.
+
+.. code-block:: python
+
+   from sklearn.linear_model import LogisticRegression
+
+   clf = LogisticRegression(max_iter=1000)
+   clf.fit(X_train, y_train)
+   proba = clf.predict_proba(X_test)[:, 1]   # P(class 1)
+"""
+
+CONTENT["Neural Networks"] = r"""
+What it is
+----------
+
+A **neural network** is a model of interconnected **neurons** arranged in **layers** — an **input**
+layer, one or more **hidden** layers, and an **output** layer. Each neuron computes a **weighted sum** of
+its inputs, adds a **bias**, and passes the result through a **non-linear activation function**, letting
+the network model complex relationships.
+
+Weights, biases, activations
+----------------------------
+
+**Weights** set the strength of each connection and **biases** shift the activation; the **non-linearity**
+is what lets stacked layers represent functions a linear model cannot. Common activations are **ReLU**,
+**sigmoid** and **tanh**. A single unit computes
+
+.. math::
+
+   a = \phi\!\left( \sum_i w_i x_i + b \right),
+
+where :math:`\phi` is the activation function.
+
+Forward pass and backpropagation
+--------------------------------
+
+In the **forward pass**, inputs flow layer by layer to an output, and a **loss function** (MSE for
+regression, cross-entropy for classification) measures the error. **Backpropagation** then applies the
+**chain rule** to compute the gradient of that loss with respect to every weight, propagating the error
+**backward** from output to input; **gradient descent** updates the weights, with the **learning rate**
+:math:`\eta` setting the step size:
+
+.. math::
+
+   w \leftarrow w - \eta \, \frac{\partial \mathcal{L}}{\partial w}.
+
+In practice
+-----------
+
+Depth and width are chosen for the task, **validation** data guards against overfitting, and frameworks
+like **PyTorch**, **TensorFlow** and **Keras** implement backpropagation automatically.
+
+.. code-block:: python
+
+   from sklearn.neural_network import MLPClassifier
+
+   clf = MLPClassifier(hidden_layer_sizes=(64, 32), activation="relu", max_iter=500)
+   clf.fit(X_train, y_train)
+"""
+
+MINDMAP.update({
+    "Support Vector Machines (SVMs)": [
+        "Logistic Regression", "Neural Networks", "Decision Trees", "Linear Models",
+        "Multiclass AUROC", "Discriminatory Power",
+    ],
+    "Logistic Regression": [
+        "Linear Models", "Support Vector Machines (SVMs)", "Neural Networks", "Decision Trees",
+        "Multiclass AUROC", "Discriminatory Power",
+    ],
+    "Neural Networks": [
+        "Support Vector Machines (SVMs)", "Logistic Regression", "Decision Trees",
+        "LSTM — Long Short-Term Memory Networks", "Deep Ensembles", "Autoencoder",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: probabilistic forecasting backbone — point vs probabilistic forecasts, proper scoring  (evaluation / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Point Forecasts"] = r"""
+What it is
+----------
+
+A **point forecast** gives a **single predicted value** for each future period — the **deterministic**
+forecast, with all the outcome probability mass placed on one number. Historically the dominant approach
+because it is **easy to interpret and act on**: a demand at 5 p.m., a price in the day-ahead market.
+
+What it hides
+-------------
+
+A point forecast says nothing about **uncertainty** — two forecasts can share the *same* point estimate
+yet imply very different **risk**. The value reported is usually a **summary** of an underlying
+predictive distribution (typically its **mean** or **median**). As the saying goes, *it is better to be
+vaguely right than exactly wrong*.
+
+Scoring and context
+-------------------
+
+Point forecasts are scored against the realized value with **error metrics** — MAE, MSE / RMSE — which
+reward closeness but ignore calibration. Probabilistic forecasting does not *eliminate* point forecasts;
+it **places them in context** as one functional (mean, median, a quantile) of the full distribution.
+"""
+
+CONTENT["Probabilistic Forecasts"] = r"""
+What it is
+----------
+
+A **probabilistic forecast** produces a **full predictive distribution** — a range of possible outcomes
+together with their probabilities — rather than a single value. By **quantifying uncertainty**, it lets
+decision-makers weigh risk instead of betting on one number.
+
+Forms and quality
+-----------------
+
+It can be expressed as **prediction intervals**, **quantiles**, a **density**, or **samples**. Quality is
+judged on two axes: **calibration** — do the stated probabilities match observed frequencies? — and
+**sharpness** — are the intervals as **tight** as possible *subject to* being calibrated? Sharp but
+miscalibrated is misleading; calibrated but diffuse is uninformative.
+
+Why it matters
+--------------
+
+Probabilistic forecasts support **decisions under uncertainty** — hedging, safety stock, capacity
+planning — especially where the **cost of outcomes is asymmetric**. Narrow bands signal agreement; wide
+spreads flag where more flexibility or hedging is needed. A point estimate alone cannot convey this.
+"""
+
+CONTENT["Strictly Proper Scoring Rules"] = r"""
+What it is
+----------
+
+A **scoring rule** assigns a numerical score to a **probabilistic forecast** given the outcome that
+materializes. It is **proper** if the forecaster's *expected* score is maximized by reporting the **true**
+distribution, and **strictly proper** if that maximum is **unique** — attained *only* at the truth:
+
+.. math::
+
+   S(p, q) \;\le\; S(q, q) \quad \text{for all } p, q, \qquad \text{with equality} \iff p = q.
+
+Why it matters
+--------------
+
+Strict propriety makes **honesty optimal**: a forecaster cannot improve the expected score by hedging or
+shading probabilities away from their true beliefs. That single property is why these rules serve **both**
+as **training objectives** (to calibrate probabilistic models) and as **evaluation metrics** (to rank
+forecasts fairly). Foundational reference: Gneiting & Raftery (2007).
+
+Common examples
+---------------
+
+The **logarithmic score**, which is also **local** (it depends only on the density assigned to what
+actually happened):
+
+.. math::
+
+   S(q, x) = \log q(x) \quad\text{(its negative, } -\log q(x)\text{, is the log loss / NLL).}
+
+Others include the **Brier score** for probabilities and the **CRPS** and **pinball (quantile) loss** for
+full distributions and quantiles.
+"""
+
+MINDMAP.update({
+    "Point Forecasts": [
+        "Probabilistic Forecasts", "Deterministic forecasts", "Prediction Intervals (PI)",
+        "Forecast Error", "Quantile Forecasts", "Time Series Forecasting",
+    ],
+    "Probabilistic Forecasts": [
+        "Point Forecasts", "Deterministic forecasts", "Continuous Probabilistic Forecasts",
+        "Prediction Intervals (PI)", "Quantile Forecasts", "Strictly Proper Scoring Rules",
+    ],
+    "Strictly Proper Scoring Rules": [
+        "Probabilistic Forecasts", "Probability Forecasts", "Continuous Probabilistic Forecasts",
+        "Point Forecasts", "Quantile Regression", "Forecast Error",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: distribution representation — quantile forecasts, prediction intervals, quantile regression  (evaluation / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Quantile Forecasts"] = r"""
+What it is
+----------
+
+A **quantile forecast** expresses the prediction not as one number but as one or more **conditional
+quantiles** of the future value's distribution — for example the 10th, 50th and 90th percentiles. The
+0.5 level is the **median**; a pair like 0.1 / 0.9 brackets the outcome, saying it is unlikely (:math:`\le`
+10%) to fall below the lower or above the upper. Formally the :math:`\tau`-quantile forecast satisfies
+
+.. math::
+
+   \Pr\!\left(Y \le \hat{y}_\tau \mid X\right) = \tau.
+
+Why use them
+------------
+
+They convey **uncertainty and asymmetry** directly: you can act differently when under- and over-shooting
+carry different costs, **without** assuming a parametric (e.g. Gaussian) shape for the distribution.
+
+How they're scored
+------------------
+
+Quantile forecasts are evaluated with the **pinball (quantile) loss**, matched to each level; the
+**CRPS** (Continuous Ranked Probability Score) generalizes it by integrating the pinball loss across
+**all** quantiles, giving a single distributional score.
+"""
+
+CONTENT["Prediction Intervals (PI)"] = r"""
+What it is
+----------
+
+A **prediction interval** is a range :math:`[\,\text{lower},\ \text{upper}\,]` expected to contain the
+**future observation** with a stated probability — its **nominal coverage**, e.g. 90%. It is typically
+built from a **pair of quantiles**, the :math:`(1-\alpha)/2` and :math:`(1+\alpha)/2` levels (the 5th and
+95th percentiles for 90% coverage):
+
+.. math::
+
+   \big[\, \hat{Q}_{(1-\alpha)/2},\ \ \hat{Q}_{(1+\alpha)/2} \,\big]
+   \quad\Rightarrow\quad \text{nominal coverage } 1-\alpha.
+
+Coverage vs width
+-----------------
+
+Quality trades **coverage** — does the empirical fraction of actuals landing inside match the nominal
+level? — against **width / sharpness** — narrower is more useful, but only if coverage holds. (A PI is
+about a *future value*, distinct from a **confidence interval**, which is about a *parameter*.)
+
+Calibrating them
+----------------
+
+**Conformal prediction** is a model-agnostic wrapper that adjusts interval width on a held-out
+**calibration** set to guarantee the target coverage in **finite samples**, under mild assumptions.
+"""
+
+CONTENT["Quantile Regression"] = r"""
+What it is
+----------
+
+**Quantile regression** estimates a **conditional quantile** of the target instead of its mean: for a
+chosen level :math:`\tau \in (0, 1)` it predicts the :math:`\tau`-th quantile given the features. Fit
+every level and you recover the **inverse CDF** — the whole conditional distribution.
+
+The pinball loss and τ
+----------------------
+
+It minimizes the **pinball loss**, which weights over- and under-prediction **asymmetrically** by
+:math:`\tau`:
+
+.. math::
+
+   \ell_\tau(y, \hat{y}) =
+   \begin{cases}
+     \tau\,(y - \hat{y}) & y \ge \hat{y}, \\[2pt]
+     (1 - \tau)(\hat{y} - y) & y < \hat{y}.
+   \end{cases}
+
+At :math:`\tau = 0.5` this is symmetric and recovers the **median** (equivalent to minimizing MAE);
+:math:`\tau < 0.5` pushes the model to **under-predict**, :math:`\tau > 0.5` to **over-predict**, and the
+further :math:`\tau` is from 0.5 the stronger the asymmetry.
+
+In practice
+-----------
+
+It is **distribution-free** and robust (built on absolute differences), but fits each quantile
+**separately**, which can cause **quantile crossing** (a lower quantile predicted above a higher one)
+unless constrained. Common estimators: the linear ``QuantileRegressor``, gradient-boosted quantile
+models, and quantile random forests.
+
+.. code-block:: python
+
+   from sklearn.linear_model import QuantileRegressor
+
+   lower = QuantileRegressor(quantile=0.05, alpha=0.0).fit(X_train, y_train)
+   upper = QuantileRegressor(quantile=0.95, alpha=0.0).fit(X_train, y_train)
+   # [lower.predict(X), upper.predict(X)] is a 90% prediction interval
+"""
+
+MINDMAP.update({
+    "Quantile Forecasts": [
+        "Quantile Regression", "Prediction Intervals (PI)", "Probabilistic Forecasts",
+        "Quantile Level", "Predicting Percentiles", "Point Forecasts",
+    ],
+    "Prediction Intervals (PI)": [
+        "Quantile Forecasts", "Quantile Regression", "Probabilistic Forecasts",
+        "Continuous Probabilistic Forecasts", "Quantile Level", "Strictly Proper Scoring Rules",
+    ],
+    "Quantile Regression": [
+        "Quantile Forecasts", "Prediction Intervals (PI)", "Quantile Level",
+        "Predicting Percentiles", "Probabilistic Forecasts", "R² (R-squared)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: forecast error & benchmarking — error metrics, naive baseline, M-competitions  (evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Forecast Error"] = r"""
+What it is
+----------
+
+**Forecast error** is the gap between what happened and what was predicted — the residual
+
+.. math::
+
+   e_t = y_t - \hat{y}_t.
+
+A single error means little; forecast quality is summarized by **aggregating** errors into metrics.
+
+Common metrics
+--------------
+
+**MAE** :math:`= \frac{1}{N}\sum_t |y_t - \hat{y}_t|` is robust and interpretable, and the forecast that
+minimizes it is the **median**. **RMSE** :math:`= \sqrt{\frac{1}{N}\sum_t (y_t - \hat{y}_t)^2}` penalizes
+large misses more and is minimized by the **mean**, but is harder to read. **MAPE** (mean absolute
+*percentage* error) is scale-free but **explodes** when actuals are near zero; **sMAPE** is a bounded
+symmetric variant, still shaky near zero. **MASE** scales MAE by a naive forecast's error, making it
+**scale-free** and interpretable (:math:`<1` beats naive).
+
+Use several
+-----------
+
+No single metric tells the whole story — **MAPE** can look great while **bias** quietly builds, and
+**MAE** can hide a few enormous misses — so report several: an absolute metric (MAE / RMSE), a scaled one
+(MASE), and a **bias** measure.
+"""
+
+CONTENT["Naïve Baseline Forecast"] = r"""
+What it is
+----------
+
+A **naïve baseline forecast** is the simplest possible forecast — use the **last observed value** as the
+prediction for the next period (the random-walk forecast). Its seasonal cousin, the **seasonal naïve**,
+uses the value from one season ago:
+
+.. math::
+
+   \hat{y}_{t+1} = y_t \qquad\text{(naïve)}, \qquad\qquad \hat{y}_{t+h} = y_{t+h-m} \quad\text{(seasonal naïve, period } m).
+
+Why it matters
+--------------
+
+It is the **benchmark every model must beat**. If a complex model cannot outperform *"just repeat the
+last value"*, the complexity is not paying off. It is also the reference in the **denominator of MASE**,
+computed on the **in-sample (training)** series so the benchmark does not leak future information.
+
+Which variant
+-------------
+
+The plain naïve suits **non-seasonal** data; the **seasonal naïve** is the right reference when there is a
+clear period (set :math:`m = 12` for monthly data with yearly seasonality, not :math:`m = 1`). Cheap,
+robust, and — for noisy or short series — surprisingly hard to beat.
+"""
+
+CONTENT["M-Competitions (Makridakis Competitions)"] = r"""
+What they are
+-------------
+
+The **M-competitions** are a series of large-scale **forecasting competitions** (M1 through M6) organized
+by **Spyros Makridakis** and colleagues to gather **empirical evidence** about which forecasting methods
+actually work best in practice — not just in theory.
+
+Key findings
+------------
+
+Across the early competitions **no single method dominated**, and **simple methods** (naïve, exponential
+smoothing, ARIMA) proved **tough baselines** that often matched or beat more complex statistical models;
+**combining** forecasts reliably improved accuracy. **M4** (2018; 100,000 series, 61 methods) found the
+best results came from **hybrid statistical + ML** approaches and combinations, while pure-ML methods
+fared poorly. **M5** (2020; Walmart hierarchical retail data on Kaggle, roughly ``$100,000`` in prizes)
+was the first in which **ML methods dominated** the leaderboard, and it put **probabilistic / uncertainty**
+forecasting center stage.
+
+Why they matter
+---------------
+
+For four decades the M-competitions have shaped forecasting — establishing that **combinations and
+hybrids** win, that **simple baselines** must always be checked, and that **probabilistic forecasting** is
+now the standard. They directly inspired modern ML forecasting competitions (such as those on Kaggle).
+"""
+
+MINDMAP.update({
+    "Forecast Error": [
+        "Naïve Baseline Forecast", "Point Forecasts", "Forecasting Benchmarks",
+        "Average Absolute Error (AAE)", "Time Series Forecasting", "Relative accuracy",
+    ],
+    "Naïve Baseline Forecast": [
+        "Forecast Error", "Simple Baseline Methods", "Seasonal Lag", "Forecasting Benchmarks",
+        "M-Competitions (Makridakis Competitions)", "Point Forecasts",
+    ],
+    "M-Competitions (Makridakis Competitions)": [
+        "Forecasting Competitions", "Forecasting Benchmarks", "Naïve Baseline Forecast",
+        "Forecast Error", "Probabilistic Forecasts", "Time Series Forecasting",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: probability fundamentals — PMF, PDF, CDF  (probstats)
+# ----------------------------------------------------------------------
+
+CONTENT["Probability Mass"] = r"""
+What it is
+----------
+
+The **probability mass function (PMF)** of a **discrete** random variable gives the probability that it
+takes **exactly** a given value:
+
+.. math::
+
+   p(x) = \Pr[X = x].
+
+It maps each possible value to a probability — for a fair die, :math:`p(k) = 1/6` for :math:`k = 1,\dots,6`.
+
+Properties
+----------
+
+Every mass lies in :math:`[0, 1]`, and all masses **sum to one**:
+
+.. math::
+
+   \sum_x p(x) = 1.
+
+Discrete only
+-------------
+
+Mass applies to **discrete** outcomes, where a single value can carry **positive** probability — unlike a
+continuous variable, where any *exact* point has probability **zero** (there, density takes its place).
+"""
+
+CONTENT["Probability Density"] = r"""
+What it is
+----------
+
+The **probability density function (PDF)** :math:`f(x)` describes a **continuous** random variable. It is
+**not** a probability itself — its **area** is: the probability of landing in an interval is the integral
+
+.. math::
+
+   P(a \le X \le b) = \int_a^b f(x)\,dx.
+
+Properties
+----------
+
+The density satisfies :math:`f(x) \ge 0`, may **exceed 1** (it is a density, not a probability),
+integrates to **one** over the whole line, and assigns probability **zero** to any *exact* value. The bell
+curve of the **normal distribution** is the classic PDF.
+
+Link to the CDF
+---------------
+
+The density is the **derivative** of the cumulative distribution function,
+
+.. math::
+
+   f(x) = F'(x),
+
+so equivalently :math:`F` is the running integral of :math:`f`.
+"""
+
+CONTENT["Cumulative Distribution Function (CDF)"] = r"""
+What it is
+----------
+
+The **cumulative distribution function (CDF)** gives the probability that a random variable is **at
+most** :math:`x`:
+
+.. math::
+
+   F(x) = \Pr[X \le x].
+
+Unlike the PMF or PDF, it works for **both** discrete and continuous variables.
+
+Properties
+----------
+
+The CDF is **non-decreasing**, runs from **0 to 1**, and is right-continuous. For a **discrete** variable
+it is a **step function**; for a **continuous** one it is smooth:
+
+.. math::
+
+   F(x) = \sum_{k \le x} p(k) \quad\text{(discrete)}, \qquad F(x) = \int_{-\infty}^{x} f(t)\,dt \quad\text{(continuous)}.
+
+Why it's useful
+---------------
+
+It directly answers "**at most**" and interval questions, and it is the **bridge** between
+representations: **quantiles** are read off its inverse and the **density** is its derivative. For a fair
+die, :math:`F(2) = 1/3`.
+"""
+
+MINDMAP.update({
+    "Probability Density": [
+        "Probability Mass", "Cumulative Distribution Function (CDF)", "Probability Distribution",
+        "Normal Distribution", "Probabilistic Forecasts", "Quantile Regression",
+    ],
+    "Probability Mass": [
+        "Probability Density", "Cumulative Distribution Function (CDF)", "Probability Distribution",
+        "Classification Probability", "Probability", "Normal Distribution",
+    ],
+    "Cumulative Distribution Function (CDF)": [
+        "Probability Density", "Probability Mass", "Probability Distribution",
+        "Quantile Level", "Quantile Regression", "Normal Distribution",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: distribution & supervised-learning foundations — distribution, Gaussian, target  (probstats / concepts)
+# ----------------------------------------------------------------------
+
+CONTENT["Probability Distribution"] = r"""
+What it is
+----------
+
+A **probability distribution** describes how probability is **spread over the possible values** of a
+random variable — the full accounting of what can happen and how likely each outcome is.
+
+How it's described
+------------------
+
+For a **discrete** variable it is given by a **probability mass function**, for a **continuous** one by a
+**probability density function**, and for either by a **cumulative distribution function**. Whatever the
+form, the total probability is **one**:
+
+.. math::
+
+   \sum_x p(x) = 1 \quad\text{(discrete)}, \qquad \int_{-\infty}^{\infty} f(x)\,dx = 1 \quad\text{(continuous)}.
+
+Characterizing it
+-----------------
+
+Distributions are summarized by **parameters** (a **mean** for location, a **variance** for spread) and by
+**moments**; you can **fit** a distribution to data or **sample** synthetic data from one. Common families
+include the **normal**, **Bernoulli / binomial**, **Poisson** and **exponential**.
+"""
+
+CONTENT["Normal Distribution"] = r"""
+What it is
+----------
+
+The **normal (Gaussian) distribution** is the continuous, **bell-shaped**, symmetric distribution defined
+by two parameters — the **mean** :math:`\mu` (its center) and the **standard deviation** :math:`\sigma`
+(its spread; variance :math:`\sigma^2`):
+
+.. math::
+
+   X \sim \mathcal{N}(\mu, \sigma^2).
+
+Its **mean, median and mode coincide**, and it extends from :math:`-\infty` to :math:`+\infty`.
+
+The density
+-----------
+
+.. math::
+
+   f(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right).
+
+About **68%** of values lie within :math:`1\sigma` of the mean, **95%** within :math:`2\sigma`, and
+**99.7%** within :math:`3\sigma` (the *68–95–99.7 rule*). Standardizing with :math:`z = (x-\mu)/\sigma`
+maps any normal onto the **standard normal** :math:`\mathcal{N}(0, 1)`, so a single table serves all.
+
+Why it's everywhere
+-------------------
+
+The **Central Limit Theorem** — averages of many independent, finite-variance quantities tend toward a
+normal — makes it the default model for **measurement errors** and **aggregates**. But it has **light
+tails**: with heavy-tailed data or frequent **outliers** (e.g. Cauchy, Pareto) it fits poorly and
+least-squares methods grow unreliable.
+"""
+
+CONTENT["Target Variable"] = r"""
+What it is
+----------
+
+The **target variable** (:math:`y`) — also called the **dependent**, **response**, or **outcome**
+variable, or the **label** — is the quantity a **supervised** model is trained to **predict** from the
+input **features** (the independent variables). It is the "correct answer" that must be **observed** in
+the training data.
+
+Types
+-----
+
+It can be **continuous** (a regression target, e.g. a price) or **categorical** (a classification target,
+e.g. spam / not-spam), and also **ordinal** or **multi-label**. Its type **determines the problem** and
+which models fit.
+
+Why it matters
+--------------
+
+The algorithm only ever learns a **function mapping features to target**, so a **well-defined** target is
+decisive: without a labeled target, supervised learning cannot proceed, and a poorly chosen or **biased**
+target propagates straight into the model's behavior.
+"""
+
+MINDMAP.update({
+    "Probability Distribution": [
+        "Probability Density", "Probability Mass", "Cumulative Distribution Function (CDF)",
+        "Normal Distribution", "Probability", "Probabilistic Forecasts",
+    ],
+    "Normal Distribution": [
+        "Probability Distribution", "Probability Density", "Cumulative Distribution Function (CDF)",
+        "Z-Score", "Standard Error (SE)", "Bootstrap Confidence Intervals (CIs)",
+    ],
+    "Target Variable": [
+        "Feature Values", "Classification Probability", "Regression Coefficient",
+        "Point Forecasts", "Probabilistic Forecasts", "Label Noise",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: risk forecasting — return distribution, Value-at-Risk, risk forecast  (risk)
+# ----------------------------------------------------------------------
+
+CONTENT["Return Distribution"] = r"""
+What it is
+----------
+
+A **return distribution** is the probability distribution of an asset's (or portfolio's) **returns** over
+a period — the range of possible returns and how likely each is. From a price series
+:math:`(S_0, \dots, S_n)`, the simple return is
+
+.. math::
+
+   R_t = \frac{S_t - S_{t-1}}{S_{t-1}}
+
+(or, equivalently for many purposes, the **log return**).
+
+Why it matters
+--------------
+
+Every downside-risk measure is read **off this distribution** — for instance, **Value-at-Risk** is a
+tail **quantile** of it. Model the return distribution and you can **price** risk.
+
+The reality: fat tails
+----------------------
+
+Empirical returns are **not** normal — they have **heavy tails** and **skewness**, so extreme moves
+happen far more often than a Gaussian predicts. Assuming normality **understates** tail risk;
+heavy-tailed (**Student-t**) or **location-scale** models fit better.
+"""
+
+CONTENT["Value-at-Risk (VaR)"] = r"""
+What it is
+----------
+
+**Value-at-Risk** summarizes downside risk in a single number: the **maximum loss** over a holding period
+:math:`h` that will **not be exceeded** with confidence :math:`\alpha` (typically 95% or 99%) — anything
+worse occurs only with probability :math:`1 - \alpha`. Formally it is the :math:`\alpha`-**quantile** of
+the loss distribution (the negative :math:`\alpha`-quantile of returns):
+
+.. math::
+
+   \mathrm{VaR}_\alpha = -F_r^{-1}(\alpha), \qquad \Pr\!\left(L > \mathrm{VaR}_\alpha\right) = 1 - \alpha,
+
+with :math:`F_r` the return CDF and :math:`L` the loss.
+
+Where it comes from
+-------------------
+
+VaR was introduced by J. P. Morgan's **RiskMetrics** (1994) and enshrined by the **Basel** framework for
+bank regulatory capital. It is estimated by **historical simulation** (the empirical quantile over a
+rolling window), **parametric** methods (assume a normal / t distribution and scale by volatility, often
+via **GARCH**), or **Monte Carlo**.
+
+Its blind spot
+--------------
+
+VaR says **nothing about how bad** losses beyond the threshold are, and it is **not coherent** — it can
+violate **subadditivity**, so a diversified portfolio's VaR may exceed the sum of its parts. **Expected
+Shortfall** (CVaR) — the *average* loss **given** VaR is breached — repairs both and is coherent.
+"""
+
+CONTENT["Risk Forecast"] = r"""
+What it is
+----------
+
+A **risk forecast** predicts a risk measure — most often **VaR** or **Expected Shortfall** — for a
+**future** period. Because VaR is a quantile, forecasting it means forecasting the :math:`\tau`-**quantile
+of future returns** given today's information; the quantity is **unobserved** and estimated ahead of time.
+
+How it's done
+-------------
+
+Methods forecast the future **return distribution** (or just its **scale**): **GARCH**-family volatility
+models (forecast the variance, then scale a distributional quantile), **historical simulation**, **Extreme
+Value Theory** for the far tail, **quantile regression**, and hybrids of these.
+
+How it's judged
+---------------
+
+By **backtesting**: over a long out-of-sample run, the fraction of days the loss **breaches** the forecast
+VaR should match the stated level (about 1% of days for 99% VaR). Too many breaches means risk was
+**under-forecast**. This discipline is vital for banks, risk managers and regulators.
+"""
+
+MINDMAP.update({
+    "Return Distribution": [
+        "Value-at-Risk (VaR)", "Risk Forecast", "Probability Distribution",
+        "Normal Distribution", "Quantile Level", "Probabilistic Forecasts",
+    ],
+    "Value-at-Risk (VaR)": [
+        "Return Distribution", "Risk Forecast", "Quantile Level", "Quantile Regression",
+        "Cumulative Distribution Function (CDF)", "Probabilistic Scoring",
+    ],
+    "Risk Forecast": [
+        "Value-at-Risk (VaR)", "Return Distribution", "Probabilistic Forecasts",
+        "Quantile Regression", "Probabilistic Scoring", "Forecast Error",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: full-distribution forecasting — continuous prob. forecasts, full distribution, probabilistic scoring  (evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Continuous Probabilistic Forecasts"] = r"""
+What it is
+----------
+
+A **continuous probabilistic forecast** is a probabilistic forecast for a **continuous (real-valued)**
+outcome — a full **predictive distribution** over the variable (a density or CDF), rather than a single
+value or a class probability. It answers *what is the whole distribution of tomorrow's demand, price, or
+temperature?*
+
+How it's represented
+--------------------
+
+It can be given as a **parametric** distribution (e.g. a normal :math:`\mathcal{N}(\mu, \sigma^2)` with a
+forecast mean and variance), a set of **quantiles**, or an **ensemble** of sampled trajectories — each a
+way to describe the continuous outcome's uncertainty.
+
+Why it's useful
+---------------
+
+From one object it exposes **every** downstream quantity — the mean, any **quantile**, a **prediction
+interval**, or a **tail probability**. Because it lives on a continuum (unlike a discrete / categorical
+probabilistic forecast), it is scored with the **CRPS**.
+"""
+
+CONTENT["Full Distribution"] = r"""
+What it is
+----------
+
+Forecasting the **full distribution** means predicting the **entire** predictive distribution — the
+complete CDF / PDF over all possible outcomes — rather than a **summary** of it. A point forecast
+collapses it to one number; a quantile forecast reports a few points; the full distribution keeps
+**everything**.
+
+The richest target
+------------------
+
+From the full distribution you can **derive any summary** after the fact — the mean, the median, any
+**quantile**, a **prediction interval**, the probability of exceeding a threshold, or a risk measure such
+as **VaR**. Nothing about the uncertainty is discarded.
+
+How it's judged
+---------------
+
+Because it is a whole distribution, it is scored by a rule that reads the **entire shape** against the
+outcome — the **CRPS**, which compares the forecast CDF to the observation's step CDF — not a point-error
+metric like MAE.
+"""
+
+CONTENT["Probabilistic Scoring"] = r"""
+What it is
+----------
+
+**Probabilistic scoring** evaluates a **probabilistic forecast** — a whole predictive distribution —
+against the outcome that occurs, using a **scoring rule** (a loss function for distributions). To be
+trustworthy the rule should be **strictly proper**, so a forecaster **minimizes** the expected score
+*only* by reporting their true distribution.
+
+The workhorse: CRPS
+-------------------
+
+The **Continuous Ranked Probability Score** is the most-used score for real-valued forecasts. It
+integrates the **squared gap** between the forecast CDF :math:`F` and the step CDF of the observation
+:math:`y`, and is **negatively oriented** (lower is better):
+
+.. math::
+
+   \mathrm{CRPS}(F, y) = \int_{-\infty}^{\infty} \big(F(x) - \mathbb{1}\{x \ge y\}\big)^2 \, dx.
+
+It **generalizes the MAE** (for point forecasts) and the **Brier score** (for binary ones), reducing to
+them in those cases.
+
+What it captures
+----------------
+
+A proper score rewards both **calibration** (probabilities match reality) and **sharpness** (tight
+distributions) — the CRPS in fact **decomposes** into calibration, discrimination and uncertainty parts.
+The **log score** is a **local** alternative that looks only at the density assigned to the outcome.
+"""
+
+MINDMAP.update({
+    "Probabilistic Scoring": [
+        "Strictly Proper Scoring Rules", "Continuous Probabilistic Forecasts", "Probabilistic Forecasts",
+        "Full Distribution", "Cumulative Distribution Function (CDF)", "Quantile Forecasts",
+    ],
+    "Full Distribution": [
+        "Continuous Probabilistic Forecasts", "Probabilistic Forecasts", "Point Forecasts",
+        "Quantile Forecasts", "Probability Distribution", "Probabilistic Scoring",
+    ],
+    "Continuous Probabilistic Forecasts": [
+        "Probabilistic Forecasts", "Full Distribution", "Probabilistic Scoring",
+        "Strictly Proper Scoring Rules", "Quantile Forecasts", "Prediction Intervals (PI)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: forecast-accuracy metrics — AAE, relative accuracy, R-squared  (metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Average Absolute Error (AAE)"] = r"""
+What it is
+----------
+
+The **average absolute error** is the mean of the **absolute** errors — the average of
+:math:`|\text{forecast} - \text{actual}|` across all points. It answers *how big is the typical error?*
+in the **same units** as the data, and is identical to the **Mean Absolute Error (MAE)** (often also
+called the Mean Absolute Deviation):
+
+.. math::
+
+   \mathrm{AAE} = \frac{1}{n}\sum_{i=1}^{n} |y_i - \hat{y}_i|.
+
+Properties
+----------
+
+Because it uses **absolute** (not squared) errors, AAE is **robust to outliers** — a few large misses do
+not dominate — and it treats over- and under-prediction **symmetrically**, ignoring the *direction* of
+error. The forecast that minimizes it is the **median**.
+
+Limitation
+----------
+
+AAE is **scale-dependent**: you cannot compare it across series on different scales (an AAE of 10 is tiny
+for house prices, huge for temperatures). For that, switch to a **percentage** or **relative** metric.
+"""
+
+CONTENT["Relative accuracy"] = r"""
+What it is
+----------
+
+**Relative accuracy** measures forecast accuracy **relative to a benchmark** rather than in absolute
+units. You **normalize** the error by a reference method's error — usually the **naïve** (or
+seasonal-naïve) forecast — so results land on a **common, scale-free** scale comparable across series:
+
+.. math::
+
+   \text{relative error} = \frac{\mathrm{MAE}_{\text{model}}}{\mathrm{MAE}_{\text{benchmark}}}.
+
+How to read it
+--------------
+
+A value **< 1** means the model **beats** the benchmark, **= 1** means it **matches** it, and **> 1**
+means it is **worse** — a relative error of 0.6 is roughly **40% better** than the benchmark. This family
+includes **MASE**, **Theil's U** (:math:`<1` beats a naïve guess), and relative / bounded relative
+absolute errors.
+
+Why it matters
+--------------
+
+Absolute errors like MAE and RMSE are **meaningless without a reference** — *is an MAE of 10 good?*
+depends entirely on the problem — whereas relative accuracy is **interpretable** and puts easy and
+hard-to-forecast series on equal footing.
+"""
+
+CONTENT["R² (R-squared)"] = r"""
+What it is
+----------
+
+**R²**, the **coefficient of determination**, is the **proportion of variance** in the target that the
+model explains. It compares the model's **residual** error to the variance around the **mean**:
+
+.. math::
+
+   R^2 = 1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}}, \qquad
+   SS_{\text{res}} = \sum_i (y_i - \hat{y}_i)^2, \quad SS_{\text{tot}} = \sum_i (y_i - \bar{y})^2.
+
+How to read it
+--------------
+
+It usually runs **0 to 1** — **1** is a perfect fit, **0** means the model does no better than predicting
+the **mean** (and it can go **negative** for a model worse than that). Being **dimensionless**, it
+complements MAE / RMSE, which report error in the target's units; in simple regression it equals
+:math:`r^2`, the squared **Pearson correlation**.
+
+Caveats
+-------
+
+R² **never decreases** when predictors are added (even noise), so use **adjusted R²** to compare models
+of different size; it is sensitive to **outliers**, assumes the modeled relationship, and a high value
+implies **neither causation nor good out-of-sample** performance.
+"""
+
+MINDMAP.update({
+    "Average Absolute Error (AAE)": [
+        "Forecast Error", "Naïve Baseline Forecast", "Relative accuracy", "R² (R-squared)",
+        "Point Forecasts", "Time Series Forecasting",
+    ],
+    "Relative accuracy": [
+        "Forecast Error", "Naïve Baseline Forecast", "Average Absolute Error (AAE)",
+        "M-Competitions (Makridakis Competitions)", "R² (R-squared)", "Forecasting Benchmarks",
+    ],
+    "R² (R-squared)": [
+        "Forecast Error", "Average Absolute Error (AAE)", "Relative accuracy",
+        "Regression Coefficient", "Target Variable", "Point Forecasts",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: forecast benchmarking — simple baselines, benchmarks, competitions  (evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Simple Baseline Methods"] = r"""
+What they are
+-------------
+
+**Simple baseline methods** are a small family of trivially simple forecasts used to set a **statistical
+baseline** before anything complex. The staples: the **mean** method (forecast the historical **average**,
+which smooths away seasonality), the **naïve** method (carry the **last value** forward — a random walk),
+the **seasonal naïve** (carry the value from **one season ago**), and the **drift** method (naïve plus a
+**trend** equal to the average historical change).
+
+The drift formula
+-----------------
+
+.. math::
+
+   \hat{y}_{T+h} = y_T + h \cdot \frac{y_T - y_1}{T-1},
+
+equivalent to drawing a line through the **first and last** observations and extrapolating it forward.
+
+Why use them
+------------
+
+They are **cheap and transparent**, and any sophisticated model must **beat** them to earn its
+complexity. Choose by structure — the **mean** for a flat series, the **naïve** for a random walk, the
+**seasonal naïve** for strong seasonality, **drift** for a trend — and note that **averaging** several
+often improves accuracy. *KISS: keep it sophisticatedly simple.*
+"""
+
+CONTENT["Forecasting Benchmarks"] = r"""
+What it is
+----------
+
+A **forecasting benchmark** is the **reference forecast** a proposed model must **outperform** to be worth
+using. In practice the **simple baseline methods** (naïve, seasonal naïve, mean, drift) fill this role —
+the **naïve** forecast is the standard reference, and the basis of **MASE**.
+
+The discipline
+--------------
+
+Always establish a benchmark **before** reaching for complex models — a step that is often skipped. *Any
+complex model must be better than the baseline to be considered.* A model that only **marginally** beats
+the naïve forecast probably is not worth its added complexity and maintenance.
+
+Beyond one series
+-----------------
+
+Shared **datasets** (such as the M-competition series) act as **community benchmarks**, letting different
+methods be compared on **common ground** rather than on each author's private data.
+"""
+
+CONTENT["Forecasting Competitions"] = r"""
+What they are
+-------------
+
+**Forecasting competitions** are organized contests in which many teams forecast the **same datasets** and
+are **ranked** by accuracy on a held-out period — turning *which method is best?* into an **empirical**,
+reproducible question. The **M-competitions** are the archetype; **Kaggle** hosts many modern ones.
+
+How they work
+-------------
+
+They use standardized **data**, a hidden **test** horizon, and common **metrics** (often scale-free ones
+like MASE) so entries are **directly comparable**. Prizes and public **leaderboards** draw large fields of
+participants.
+
+Why they matter
+---------------
+
+They produce **durable evidence** — that **combinations and hybrids** tend to win, that **simple
+baselines** are hard to beat, and increasingly that **ML** is competitive — and they leave behind
+**reusable benchmark datasets** that shape later research.
+"""
+
+MINDMAP.update({
+    "Forecasting Benchmarks": [
+        "Simple Baseline Methods", "Naïve Baseline Forecast", "Forecast Error",
+        "M-Competitions (Makridakis Competitions)", "Relative accuracy", "Forecasting Competitions",
+    ],
+    "Simple Baseline Methods": [
+        "Naïve Baseline Forecast", "Forecasting Benchmarks", "Seasonal Lag", "Forecast Error",
+        "Time Series Forecasting", "Forecasting Competitions",
+    ],
+    "Forecasting Competitions": [
+        "M-Competitions (Makridakis Competitions)", "Forecasting Benchmarks", "Naïve Baseline Forecast",
+        "Simple Baseline Methods", "Forecast Error", "Probabilistic Forecasts",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: time-series concepts — TS forecasting, seasonal lag, log-space  (concepts / signal)
+# ----------------------------------------------------------------------
+
+CONTENT["Time Series Forecasting"] = r"""
+What it is
+----------
+
+**Time series forecasting** predicts **future values** of a **time-ordered** series from its past. Unlike
+ordinary supervised learning — where rows are independent and can be shuffled — a time series has
+**memory**: order matters, and each observation is **dependent** on its neighbors.
+
+The components
+--------------
+
+A series decomposes into a **trend** (long-term drift up or down), **seasonality** (regular patterns at a
+**fixed** period), **cycles** (longer, **aperiodic** swings with no fixed length), and **noise** (the
+irregular residual). Modeling means **separating** these.
+
+Stationarity and diagnostics
+----------------------------
+
+Many methods need **stationarity** (constant mean and variance); non-stationary series are made modelable
+by **differencing** (removes trend / seasonality from the mean) and a **log / Box-Cox** transform
+(stabilizes variance). Choose the model **after** diagnostics — time, seasonal and **lag** plots, and the
+**ACF / PACF** — and evaluate with **rolling-origin backtesting**, reporting error by **horizon** and
+publishing **intervals**, not just points.
+"""
+
+CONTENT["Seasonal Lag"] = r"""
+What it is
+----------
+
+A **lag** is a past value of the series, :math:`y_{t-k}`; the **seasonal lag** is the lag equal to the
+**seasonal period** :math:`m` — the value from the **same point one cycle ago**:
+
+.. math::
+
+   \text{seasonal lag: } y_{t-m}, \qquad \text{seasonal difference: } y_t - y_{t-m}.
+
+Common periods
+--------------
+
+The period is set by the calendar of the data: :math:`m = 12` for **monthly** data with yearly
+seasonality, :math:`m = 7` for **daily** data with weekly seasonality, :math:`m = 24` for **hourly** data
+with daily cycles.
+
+Where it's used
+---------------
+
+The seasonal lag underlies the **seasonal naïve** forecast (:math:`\hat{y}_t = y_{t-m}`), **seasonal
+differencing** (which strips out seasonality), and **lag features** in ML forecasting. A large
+**autocorrelation** at the seasonal lag is the signature of seasonality.
+"""
+
+CONTENT["Log-Space"] = r"""
+What it is
+----------
+
+Working in **log-space** means transforming a series to its **logarithm**, :math:`w_t = \log(y_t)`,
+instead of the raw values — a **variance-stabilizing** transform for when fluctuations **grow with the
+level** of the series (multiplicative or heteroscedastic behavior).
+
+What it does
+------------
+
+It **compresses large values** while leaving small ones nearly untouched, turns **multiplicative**
+structure into **additive**, and makes **relative (percentage) change** the natural unit — a difference in
+log-space is approximately a proportional change:
+
+.. math::
+
+   \log(y_t) - \log(y_{t-1}) \approx \frac{y_t - y_{t-1}}{y_{t-1}}.
+
+Caveats
+-------
+
+The logarithm is **undefined for zero or negative** values — use :math:`\log(y + 1)` or a **Box-Cox**
+transform instead — and any forecast made in log-space must be **back-transformed** (exponentiated) to the
+original scale.
+"""
+
+MINDMAP.update({
+    "Time Series Forecasting": [
+        "Seasonal Lag", "Log-Space", "Seasonality", "Naïve Baseline Forecast",
+        "Forecast Error", "Point Forecasts",
+    ],
+    "Seasonal Lag": [
+        "Time Series Forecasting", "Seasonality", "Naïve Baseline Forecast", "Log-Space",
+        "Temporal autocorrelation (Serial Correlation)", "Simple Baseline Methods",
+    ],
+    "Log-Space": [
+        "Time Series Forecasting", "Seasonal Lag", "Normal Distribution", "Forecast Error",
+        "Relative accuracy", "Seasonality",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: quantile levels & forecast types — quantile level, percentiles, deterministic  (evaluation / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Quantile Level"] = r"""
+What it is
+----------
+
+The **quantile level** :math:`\tau \in (0,1)` (sometimes written :math:`\alpha`) is the probability that
+**names which quantile** a forecast targets — the value :math:`q_\tau` below which the outcome is expected
+to fall a fraction :math:`\tau` of the time:
+
+.. math::
+
+   \Pr\!\left(Y \le q_\tau\right) = \tau, \qquad \tau \in (0, 1).
+
+Reading levels
+--------------
+
+:math:`\tau = 0.5` is the **median**; :math:`\tau = 0.1` is the 10th percentile (a pessimistic lower value
+the outcome undercuts 10% of the time); :math:`\tau = 0.9` the 90th (an optimistic upper value). A **set**
+of levels :math:`\{0.1, 0.5, 0.9, \dots\}` traces out the whole predictive distribution.
+
+Monotonicity
+------------
+
+In **quantile regression** the level is the **tilting parameter** of the pinball loss. Estimated quantiles
+should be **monotonically increasing** in :math:`\tau` — when a lower level's forecast exceeds a higher
+one's, that is **quantile crossing**, an error to constrain away.
+"""
+
+CONTENT["Predicting Percentiles"] = r"""
+What it is
+----------
+
+**Predicting percentiles** means forecasting specific **percentiles** (quantiles) of the outcome
+distribution — the value below which a given **percentage** of outcomes fall — instead of only a single
+mean. A percentile is a quantile stated as a percent: the 0.9 quantile is the **90th percentile**.
+
+Why percentiles
+---------------
+
+A handful of percentiles (say the **10th, 50th and 90th**) sketch the **range** of outcomes and their
+**best- and worst-case** scenarios, exposing **uncertainty** and enabling **asymmetric** decisions —
+without committing to a parametric distribution.
+
+How it's done
+-------------
+
+Percentiles are produced by **quantile regression** (and its tree / boosting variants), each trained on
+the **pinball loss** for its level; stacking many percentiles approximates the **full distribution**.
+"""
+
+CONTENT["Deterministic forecasts"] = r"""
+What it is
+----------
+
+A **deterministic forecast** outputs a **single value** for each future point — a **point estimate** with
+**no uncertainty** attached. It is the counterpart of a **probabilistic** forecast, which predicts a whole
+distribution; here all the probability sits on **one number**.
+
+What it hides
+-------------
+
+Two deterministic forecasts can agree on the number yet face very different **risk**, and the value is
+usually a **summary** of an implicit distribution — the **mean** (if fit by minimizing RMSE) or the
+**median** (if fit by MAE).
+
+When it's enough
+----------------
+
+It is simple to produce, communicate and act on, and fine when uncertainty is small or irrelevant — but
+where the **cost of being wrong is asymmetric**, a **probabilistic** or **quantile** forecast conveys far
+more.
+"""
+
+MINDMAP.update({
+    "Quantile Level": [
+        "Quantile Forecasts", "Quantile Regression", "Predicting Percentiles",
+        "Prediction Intervals (PI)", "Probabilistic Forecasts", "Cumulative Distribution Function (CDF)",
+    ],
+    "Predicting Percentiles": [
+        "Quantile Forecasts", "Quantile Level", "Quantile Regression",
+        "Prediction Intervals (PI)", "Probabilistic Forecasts", "Point Forecasts",
+    ],
+    "Deterministic forecasts": [
+        "Point Forecasts", "Probabilistic Forecasts", "Forecast Error", "Quantile Forecasts",
+        "Time Series Forecasting", "Full Distribution",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: recommender coverage — catalog, item, user coverage  (recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Catalog Coverage"] = r"""
+What it is
+----------
+
+**Catalog coverage** is the proportion of the entire item catalog that a recommender actually **surfaces**
+to users — the share of products that ever appear in someone's recommendations. It measures the
+**breadth** of the system's reach, not the quality of any one list.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Catalog Coverage} = \frac{|\text{distinct items recommended}|}{|\text{total items in catalog}|},
+
+computed as an **aggregate** over all users and a time window (often expressed as a percentage).
+
+Why it matters
+--------------
+
+**Low** coverage signals **popularity bias** — the system funnels everyone toward the same few hits,
+starving the **long tail** and neglecting niche tastes; **high** coverage means diverse, inclusive
+recommendations. Because recommending popular items is often **accurate but narrow**, coverage is reported
+**alongside** accuracy — a good system scores well on both.
+"""
+
+CONTENT["Item Coverage"] = r"""
+What it is
+----------
+
+**Item coverage** is the fraction of individual items the recommender is **able to recommend at all** —
+for which it can produce a prediction or place in a list. It asks *how many products can the system
+reach?*, item by item:
+
+.. math::
+
+   \text{Item Coverage} = \frac{|\text{items the system can recommend}|}{|\text{total items}|}.
+
+What limits it
+--------------
+
+Items with **no or few interactions** — new or niche products (the **cold-start** problem, data
+**sparsity**) — may be impossible to recommend, dragging item coverage down. **Content-based** signals or
+**hybrid** models raise it by letting the system reason about **unseen** items from their features.
+
+Recommendability
+----------------
+
+Item coverage is about **recommendability** (can this item ever surface?), whereas **catalog coverage** is
+about how much of the catalog **actually** surfaces in practice.
+"""
+
+CONTENT["User Coverage"] = r"""
+What it is
+----------
+
+**User coverage** is the fraction of the user base for whom the recommender can produce **useful
+recommendations** — *how many users can the system serve?* A system with excellent recommendations for
+only a subset of users has limited reach:
+
+.. math::
+
+   \text{User Coverage} = \frac{|\text{users served}|}{|\text{total users}|}.
+
+What limits it
+--------------
+
+**New users** with little or no history (the user-side **cold-start** problem) may get no personalized
+recommendations; **sparse** or atypical users are also hard to serve. Fallbacks — **popularity** lists,
+onboarding questionnaires, **content-based** profiles — extend coverage to these users.
+
+Why it matters
+--------------
+
+Coverage and accuracy trade off — it is easy to look accurate by only serving **well-understood** users —
+so user coverage keeps the evaluation **honest** about the whole population.
+"""
+
+MINDMAP.update({
+    "Catalog Coverage": [
+        "Item Coverage", "User Coverage", "Long-Tail Items", "Intra-List Diversity (ILD)",
+        "Diminishing Utility", "Relevance in Recommender Systems",
+    ],
+    "Item Coverage": [
+        "Catalog Coverage", "User Coverage", "Long-Tail Items", "Relevance in Recommender Systems",
+        "Intra-List Diversity (ILD)", "Diminishing Utility",
+    ],
+    "User Coverage": [
+        "Catalog Coverage", "Item Coverage", "Relevance in Recommender Systems",
+        "Customer Segmentation", "Long-Tail Items", "Intra-List Diversity (ILD)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: recommender similarity & diversity — cosine, Jaccard, ILD  (recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Cosine Similarity of Item Features"] = r"""
+What it is
+----------
+
+**Cosine similarity** measures how alike two items are by the **cosine of the angle** between their
+**feature vectors** — representations built from metadata (one-hot genres, tags, text) or learned
+**embeddings**. It captures **orientation**, not magnitude, so it is invariant to vector length.
+
+The formula
+-----------
+
+.. math::
+
+   \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\|\,\|\mathbf{B}\|},
+
+ranging from :math:`-1` to :math:`1` (0 to 1 for non-negative features) — **1** means identical direction
+(very similar), **0** means unrelated (orthogonal).
+
+Where it's used
+---------------
+
+It powers **content-based filtering** and **item-item** similarity (recommend items close to those a user
+liked), and it is the usual kernel for computing **intra-list similarity / diversity**.
+"""
+
+CONTENT["Jaccard index"] = r"""
+What it is
+----------
+
+The **Jaccard index** (Jaccard similarity coefficient) measures the overlap between two **sets** — the size
+of their **intersection** over the size of their **union**. For items, the sets are typically the **users
+who liked** each item, or their **tags / features**.
+
+The formula
+-----------
+
+.. math::
+
+   J(A, B) = \frac{|A \cap B|}{|A \cup B|},
+
+ranging 0 to 1 — **0** for disjoint sets, **1** for identical ones; the complement :math:`1 - J` is the
+**Jaccard distance**.
+
+When to use it
+--------------
+
+It is the natural choice for **binary** (like / dislike, present / absent) data, where magnitudes don't
+matter — only which elements are shared. Contrast with **cosine**, which works on real-valued vectors.
+"""
+
+CONTENT["Intra-List Diversity (ILD)"] = r"""
+What it is
+----------
+
+**Intra-list diversity** measures how **varied** the items within a **single** recommendation list are —
+the antidote to lists of near-identical products. It is defined from the **intra-list similarity (ILS)**,
+the **average pairwise similarity** of all items in the list; diversity is its complement.
+
+The formula
+-----------
+
+.. math::
+
+   \mathrm{ILD} = \frac{2}{|L|\,(|L|-1)} \sum_{i < j} \big(1 - \mathrm{sim}(i, j)\big),
+
+with :math:`\mathrm{sim}` a **cosine** (over embeddings / features) or **Jaccard** (over tags / genres)
+similarity. High ILS → similar items → **low** diversity; low ILS → varied items → **high** diversity.
+
+Why it matters
+--------------
+
+Accuracy alone rewards recommending ten versions of the same hit; **diversity** captures whether a list
+actually **broadens** what the user sees. It trades off against relevance — the art is a **diverse yet
+relevant** list.
+"""
+
+MINDMAP.update({
+    "Cosine Similarity of Item Features": [
+        "Jaccard index", "Intra-List Diversity (ILD)", "Embedding Similarity", "Genre Overlap",
+        "Embedding", "Relevance in Recommender Systems",
+    ],
+    "Jaccard index": [
+        "Cosine Similarity of Item Features", "Intra-List Diversity (ILD)", "Genre Overlap",
+        "Cramér's V", "Relevance in Recommender Systems", "Catalog Coverage",
+    ],
+    "Intra-List Diversity (ILD)": [
+        "Cosine Similarity of Item Features", "Jaccard index", "Genre Overlap", "Catalog Coverage",
+        "Long-Tail Items", "Relevance in Recommender Systems",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: recommender long-tail, novelty & relevance  (recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Long-Tail Items"] = r"""
+What it is
+----------
+
+In user-item interaction data, a **small number of "head" items** draw **most** of the interactions, while
+a **large number of "long-tail" items** each attract **very few** — a **power-law** (Pareto) popularity
+distribution. The long tail is where niche, specialized products live.
+
+Why they matter
+---------------
+
+Recommending only head items reinforces **popularity bias** and gives every user the same obvious hits;
+surfacing the long tail improves **coverage**, **diversity** and **novelty**, drives **discovery**, and can
+expand **sales diversity**. Long-tail items are inherently more **novel** because users are unlikely to
+already know them.
+
+The challenge
+-------------
+
+Long-tail items have **sparse** interaction data, so they suffer the **cold-start** problem and are hard to
+model — the reason accuracy-only systems ignore them. Long-tail recommendation therefore adds **coverage**
+and **diversity** metrics on top of accuracy.
+"""
+
+CONTENT["Self-Information of Popularity"] = r"""
+What it is
+----------
+
+A **novelty** measure borrowed from **information theory**. The **self-information** (surprisal) of
+recommending an item is the **negative base-2 logarithm** of its **popularity** — the probability that a
+random user has interacted with it. Rare events carry more information, so **rare items score high**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{self-information}(i) = -\log_2\!\left(\frac{\text{count}(i)}{|U|}\right),
+
+where :math:`\text{count}(i)` is the number of users who consumed item :math:`i` and :math:`|U|` is the
+total number of users. A metric averages this over a top-:math:`N` list and across users.
+
+What it captures
+----------------
+
+**Popular** items (high probability) have **low** self-information — they are unsurprising; **long-tail**
+items have **high** self-information — they are novel. It quantifies how much a recommendation tells the
+user something **new**.
+"""
+
+CONTENT["Relevance in Recommender Systems"] = r"""
+What it is
+----------
+
+**Relevance** is whether a recommended item actually **matches the user's tastes and needs** — an item they
+would find useful and want to engage with. It is the property that **accuracy** metrics (precision, recall,
+NDCG, MAP) are built to measure.
+
+The traditional goal
+--------------------
+
+Recommend **as many relevant items as possible**, maximizing accuracy. For a long time this was the sole
+objective of recommender systems.
+
+Not enough alone
+----------------
+
+A perfectly relevant list can still be **boring** — ten near-identical hits the user already knows. So
+relevance is balanced against **novelty**, **diversity** and **coverage**, and modern novelty / diversity
+metrics are made **relevance-aware** (rewarding items that are novel **and** relevant) so a system is not
+credited for surfacing surprising-but-useless items. The aim is **relevant *and* diverse**.
+"""
+
+MINDMAP.update({
+    "Long-Tail Items": [
+        "Self-Information of Popularity", "Catalog Coverage", "Item Coverage",
+        "Intra-List Diversity (ILD)", "Relevance in Recommender Systems", "Diminishing Utility",
+    ],
+    "Self-Information of Popularity": [
+        "Long-Tail Items", "Relevance in Recommender Systems", "Intra-List Diversity (ILD)",
+        "Catalog Coverage", "Diminishing Utility", "Dominating in Recommender Systems",
+    ],
+    "Relevance in Recommender Systems": [
+        "Long-Tail Items", "Self-Information of Popularity", "Intra-List Diversity (ILD)",
+        "Catalog Coverage", "Cosine Similarity of Item Features", "Dominating in Recommender Systems",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: recommender genre similarity, dominance & diminishing utility  (recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Genre Overlap"] = r"""
+What it is
+----------
+
+**Genre overlap** measures how similar two items are by **how many genres (or categories) they share** — a
+**metadata-based** similarity for items that carry categorical labels, like movies, music or books. It is
+the domain-specific counterpart to **cosine** or **Jaccard** similarity when the features are **genres**.
+
+How it's computed
+-----------------
+
+Often as the **Jaccard** of the two items' genre sets — the shared genres over the total distinct genres:
+
+.. math::
+
+   \text{overlap}(i, j) = \frac{|G_i \cap G_j|}{|G_i \cup G_j|}.
+
+Two movies both tagged :math:`\{\text{action}, \text{thriller}\}` overlap fully; an action film and a
+documentary don't overlap at all.
+
+Where it's used
+---------------
+
+It serves as the **similarity kernel** for **intra-list similarity / diversity** (a list of same-genre
+items has high overlap → low diversity), and it underpins **calibrated** recommendation, where the **genre
+mix** of a list is kept aligned with the user's historical tastes.
+"""
+
+CONTENT["Dominating in Recommender Systems"] = r"""
+What it is
+----------
+
+A **multi-criteria** notion. One item **dominates** another (**Pareto dominance**) when it is **at least as
+good on every criterion** and **strictly better on at least one**:
+
+.. math::
+
+   a \succ b \iff \big(\forall k:\ a_k \ge b_k\big) \ \wedge\ \big(\exists k:\ a_k > b_k\big).
+
+If a hotel is cheaper, closer **and** higher-rated than another, it dominates it.
+
+The skyline
+-----------
+
+The items **not dominated** by any other form the **skyline** (the **Pareto frontier**) — the only
+candidates worth recommending under multiple objectives, since every dominated item is beaten outright by
+something in the skyline.
+
+Why it matters
+--------------
+
+Multi-criteria recommenders (price, distance, rating, recency) use dominance to **prune** clearly-inferior
+options before ranking. Dominance also names a **failure mode** — when a few **popular** items dominate
+everyone's lists, crowding out the long tail and harming exposure fairness.
+"""
+
+CONTENT["Diminishing Utility"] = r"""
+What it is
+----------
+
+The principle of **diminishing marginal utility** applied to recommendation: **each additional similar item
+adds less value** than the one before. The third action movie in a row is not three times as useful as the
+first — its **marginal** contribution shrinks.
+
+Why it matters
+--------------
+
+This is the economic reason to **diversify**. Because utility from redundant items is **submodular**
+(diminishing returns), a **varied** list delivers more total value than a list of near-duplicates — so
+**marginal relevance** matters more than absolute relevance.
+
+How it's used
+-------------
+
+Diversification methods like **Maximal Marginal Relevance (MMR)** and submodular utility-maximization
+objectives encode diminishing utility directly — each pick is scored by its relevance **minus** its
+redundancy with what's already chosen, so once a genre or topic is covered, further items of the same kind
+are penalized.
+"""
+
+MINDMAP.update({
+    "Genre Overlap": [
+        "Cosine Similarity of Item Features", "Jaccard index", "Intra-List Diversity (ILD)",
+        "Relevance in Recommender Systems", "Embedding Similarity", "Catalog Coverage",
+    ],
+    "Dominating in Recommender Systems": [
+        "Relevance in Recommender Systems", "Long-Tail Items", "Intra-List Diversity (ILD)",
+        "Diminishing Utility", "Catalog Coverage", "Self-Information of Popularity",
+    ],
+    "Diminishing Utility": [
+        "Intra-List Diversity (ILD)", "Relevance in Recommender Systems", "Long-Tail Items",
+        "Dominating in Recommender Systems", "Genre Overlap", "Self-Information of Popularity",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: inventory replenishment — demand forecasting, ROP, safety stock  (ops / supply-chain)
+# ----------------------------------------------------------------------
+
+CONTENT["Demand Forecasting"] = r"""
+What it is
+----------
+
+**Demand forecasting** predicts **future customer demand** for a product from **historical sales**, market
+signals, seasonality and known upcoming events. It is the foundation of inventory planning — nearly every
+replenishment decision depends on it.
+
+How it's done
+-------------
+
+Methods range from **simple baselines** (moving averages) to **time-series** models (ARIMA, exponential
+smoothing, Prophet) and **ML**; what matters is capturing **trend**, **seasonality** and demand
+**variability** (its standard deviation), not just the average.
+
+Why accuracy matters
+--------------------
+
+Forecast **error** propagates downstream — the **reorder point** and **safety stock** are both sized from
+the forecast, so a biased or noisy forecast either **starves** shelves (stockouts) or **bloats** inventory
+(holding cost). Better forecasts shrink the safety buffer needed for a given service level.
+"""
+
+CONTENT["Reorder Point (ROP) Optimization"] = r"""
+What it is
+----------
+
+The **reorder point** is the inventory level that **triggers a new order** — set so stock arrives just
+before you run out. Under a **continuous-review** policy, when on-hand inventory falls to the ROP, a
+replenishment order is placed.
+
+The formula
+-----------
+
+.. math::
+
+   \text{ROP} = \underbrace{\mu_D \times L}_{\text{demand during lead time}} \;+\; \underbrace{\text{SS}}_{\text{safety stock}},
+
+where :math:`\mu_D` is average demand per period and :math:`L` is the lead time. The first term covers
+**expected** usage while the order is in transit; the second buffers **variability**.
+
+Optimizing it
+-------------
+
+A good ROP balances **stockout risk** against **holding cost**. It is tuned with **accurate demand
+forecasts**, measured **demand and lead-time variability**, and a chosen **service level**; modern systems
+recompute it in **real time** as those inputs drift. Drop the safety-stock term only when demand is very
+stable and suppliers are reliable.
+"""
+
+CONTENT["Safety Stock"] = r"""
+What it is
+----------
+
+**Safety stock** is the **buffer inventory** held to absorb **uncertainty** in demand and supply — the
+cushion that keeps you selling when demand spikes or a shipment is late. It is the difference between a
+naive "average" reorder level and a robust one.
+
+The formula
+-----------
+
+The statistical form sizes it from the **service level** and demand **variability**:
+
+.. math::
+
+   \text{SS} = Z \times \sigma_D \times \sqrt{L},
+
+where :math:`Z` is the service-level z-score (1.28 for 90\%, 1.65 for 95\%, 2.33 for 99\%), :math:`\sigma_D`
+is the standard deviation of demand per period, and :math:`L` is the lead time.
+
+The trade-off
+-------------
+
+More safety stock **raises** the service level (fewer stockouts) but **ties up capital** in holding cost —
+so the **service level** is chosen by weighing stockout cost against carrying cost, often set higher for
+critical or perishable items (via ABC / XYZ classing).
+"""
+
+MINDMAP.update({
+    "Demand Forecasting": [
+        "Reorder Point (ROP) Optimization", "Safety Stock", "Time Series Forecasting",
+        "Forecast Error", "Stockout Rate", "Long Lead Times",
+    ],
+    "Reorder Point (ROP) Optimization": [
+        "Safety Stock", "Demand Forecasting", "Long Lead Times", "Fill Rate",
+        "Stockout Rate", "Supplier Management",
+    ],
+    "Safety Stock": [
+        "Reorder Point (ROP) Optimization", "Demand Forecasting", "Fill Rate",
+        "Stockout Rate", "Backorder Rate", "Long Lead Times",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: supply side — supplier management, constraints, long lead times  (ops / supply-chain)
+# ----------------------------------------------------------------------
+
+CONTENT["Supplier Management"] = r"""
+What it is
+----------
+
+**Supplier management** is the discipline of selecting, monitoring and collaborating with the **vendors**
+who supply materials and goods — turning a loose set of purchase orders into managed, accountable
+**relationships**. It spans sourcing, performance tracking and communication.
+
+What it involves
+----------------
+
+**Supplier selection** and **diversification** (spreading dependence across several vendors so one failure
+doesn't halt production), **performance monitoring** via scorecards and audit trails, and **structured
+collaboration** that keeps purchase orders confirmed and current as dates, prices and quantities change.
+
+Why it matters
+--------------
+
+Strong supplier relationships **reduce bottlenecks**, delays and quality failures, and give planners early
+**visibility** into inbound risk. Over-reliance on a **single supplier** is a key vulnerability —
+diversification is the standard hedge against disruption.
+"""
+
+CONTENT["Supplier Constraints"] = r"""
+What it is
+----------
+
+**Supplier constraints** are the limits on what a supplier can actually deliver — **capacity** ceilings,
+**minimum order quantities**, **long or changing lead times**, **quality holds**, and transportation
+delays. They are the gap between the plan in your system and **supplier reality**.
+
+Why they bite
+-------------
+
+A constraint means the original schedule or lead time **no longer reflects** current conditions — parts are
+produced but can't ship, a promised date slips, an order can't be filled in full. Left invisible, these
+desynchronize the plan from the actual inbound supply.
+
+Managing them
+-------------
+
+Constraints aren't always avoidable, but **visibility** — capturing supplier confirmations and changes,
+flagging open-order risk — buys **time to respond**: re-plan, expedite, or shift to a **backup supplier**.
+Diversification and buffers absorb the rest.
+"""
+
+CONTENT["Long Lead Times"] = r"""
+What it is
+----------
+
+**Lead time** is the total span from **placing an order to having the goods available**; **long lead
+times** are extended delays — weeks or months for overseas sourcing, slow procurement, or constrained
+production.
+
+The inventory cost
+------------------
+
+Longer lead times force businesses to hold **more safety stock** to cover demand over the wait, directly
+**raising holding costs** — safety stock scales with the **square root of lead time**:
+
+.. math::
+
+   \text{SS} = Z \times \sigma_D \times \sqrt{L}.
+
+They also cut **agility**: you can't respond quickly to demand shifts, and the risk of **stockouts** and
+missed deliveries climbs.
+
+Variability is worse
+--------------------
+
+An unpredictable lead time is more damaging than a long-but-stable one, because its **variance** widens the
+buffer needed. Causes include geographic distance, production constraints, poor visibility and transport
+disruptions.
+"""
+
+MINDMAP.update({
+    "Supplier Management": [
+        "Supplier Constraints", "Long Lead Times", "Safety Stock",
+        "Reorder Point (ROP) Optimization", "Demand Forecasting", "Real-Time Inventory Tracking",
+    ],
+    "Supplier Constraints": [
+        "Supplier Management", "Long Lead Times", "Safety Stock", "Slow-Moving SKUs",
+        "Demand Forecasting", "Reorder Point (ROP) Optimization",
+    ],
+    "Long Lead Times": [
+        "Safety Stock", "Reorder Point (ROP) Optimization", "Supplier Constraints",
+        "Supplier Management", "Demand Forecasting", "Stockout Rate",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: SKU tracking — SKU, slow-moving SKUs, real-time tracking  (ops / supply-chain)
+# ----------------------------------------------------------------------
+
+CONTENT["SKU"] = r"""
+What it is
+----------
+
+A **stock keeping unit (SKU)** is a unique **alphanumeric code** a business assigns **internally** to each
+distinct product or variant, so it can be tracked through inventory. It is a **fingerprint** for an item —
+no two distinct products share one — and it encodes key **attributes** (category, brand, color, size), as
+in ``WREN-101-RED-SM`` (brand WREN, category 101, red, small).
+
+SKU vs UPC
+----------
+
+A SKU is **internal and custom** to each company — you design the format — whereas a **UPC** is a
+**universal**, standardized barcode shared across all retailers. The same physical product can carry
+different SKUs at different companies.
+
+Why it matters
+--------------
+
+The SKU is the **atom** of inventory operations — every movement (sold, received, returned, written off)
+references it. It drives **stock monitoring**, **reorder** triggers, warehouse **location** and picking,
+**ABC classification**, and per-product **sales analytics** that feed **demand forecasting**.
+"""
+
+CONTENT["Slow-Moving SKUs"] = r"""
+What it is
+----------
+
+**Slow-moving SKUs** are products with **low sales velocity** — they turn over slowly, sitting in the
+warehouse and **tying up capital** and space. Items that barely move at all become **dead stock**. They are
+the sluggish tail of the sales distribution, the opposite of fast-moving bestsellers.
+
+Why they cost
+-------------
+
+Unsold inventory accrues **holding costs** and risks **obsolescence** and write-offs — insufficient demand
+for a SKU can inflate its annual cost substantially. Every dollar in a slow-mover is a dollar not in a
+product that sells.
+
+What to do
+----------
+
+**Identify them early** with SKU-level velocity analytics, before they go obsolete, then act — **discount**,
+**bundle** a slow-mover with a fast one, **liquidate**, or **discontinue** — and **reduce or delay**
+purchase orders for them. In warehouse layout, they move to **less-accessible** zones (ABC classification).
+"""
+
+CONTENT["Real-Time Inventory Tracking"] = r"""
+What it is
+----------
+
+**Real-time inventory tracking** monitors stock levels **as they change** — continuously and instantly —
+instead of relying on periodic manual counts. Every scan at sale, receipt or transfer updates the count
+automatically, keyed by **SKU**.
+
+How it works
+------------
+
+Modern **POS**, **ERP** and warehouse systems update inventory the moment a product is scanned;
+**cloud-based** platforms expose that data from anywhere, keeping **multiple locations and sales channels**
+synchronized.
+
+Why it matters
+--------------
+
+It prevents **overselling** and **stockouts**, keeps multi-channel stock consistent, and lets the system
+**trigger reorders** and **flag anomalies** (a sudden drop in availability) without human polling. It is the
+**visibility layer** that makes automated **reorder-point** and **safety-stock** policies actually work.
+"""
+
+MINDMAP.update({
+    "SKU": [
+        "Slow-Moving SKUs", "Real-Time Inventory Tracking", "Demand Forecasting",
+        "Reorder Point (ROP) Optimization", "Safety Stock", "Stockout Rate",
+    ],
+    "Slow-Moving SKUs": [
+        "SKU", "Real-Time Inventory Tracking", "Long-Tail Items", "Demand Forecasting",
+        "Stockout Rate", "Reorder Point (ROP) Optimization",
+    ],
+    "Real-Time Inventory Tracking": [
+        "SKU", "Slow-Moving SKUs", "Reorder Point (ROP) Optimization", "Safety Stock",
+        "Demand Forecasting", "Stockout Rate",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: classification foundations — binary classification, class probability, log-odds  (concepts / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Binary Classification"] = r"""
+What it is
+----------
+
+**Binary classification** predicts one of **two classes** — positive/negative, 1/0, spam/not-spam. The
+model doesn't output a bare label directly; it estimates the **probability** that an instance belongs to
+the **positive** class, then a **decision threshold** turns that probability into a hard label.
+
+The threshold
+-------------
+
+By default the cutoff is **0.5** — probability :math:`\ge 0.5` → class 1, else class 0 — but 0.5 is **not**
+always right. On **imbalanced** data (e.g. fraud at 1%), 0.5 may label everything negative; the threshold
+is tuned against **precision / recall** or an **ROC** curve to match the cost of each error.
+
+How it's judged
+---------------
+
+Predictions map to the **confusion matrix** — true and false positives and negatives — from which
+precision, recall, F1 and AUROC follow. The threshold choice moves directly along that trade-off.
+"""
+
+CONTENT["Classification Probability"] = r"""
+What it is
+----------
+
+The **classification probability** is the **score** a classifier assigns that an instance belongs to a
+class — an estimate of :math:`P(\text{class} \mid \text{features})` between **0 and 1**. It is the model's
+**confidence** *before* any hard decision is made.
+
+From probability to label
+-------------------------
+
+A **threshold** converts it to a class (in scikit-learn, ``predict_proba`` gives the probability,
+``predict`` applies the cutoff). Two instances scored 0.51 and 0.99 both become "positive," but they are
+**not** equally certain — which is why the probability carries more information than the label.
+
+Why calibration matters
+-----------------------
+
+The probability is only trustworthy if it is **calibrated** — if events predicted at 0.7 actually happen
+about 70% of the time. **Over-** or **under-confident** scores mislead any downstream **risk-based
+decision**, so probabilities are validated with calibration curves, not just accuracy.
+"""
+
+CONTENT["Log-Odds"] = r"""
+What it is
+----------
+
+The **log-odds** (or **logit**) is the natural logarithm of the **odds** of an event — the ratio of its
+probability to its complement:
+
+.. math::
+
+   \text{logit}(p) = \log\!\left(\frac{p}{1 - p}\right), \qquad p = \sigma(z) = \frac{1}{1 + e^{-z}}.
+
+Odds run from 0 (at :math:`p=0`) through 1 (at :math:`p=0.5`) to :math:`\infty` (at :math:`p=1`); taking
+the log spreads them onto the full line, from :math:`-\infty` to :math:`+\infty`.
+
+Why models use it
+-----------------
+
+A probability is trapped in :math:`[0,1]`, awkward to model with a **linear** function; the log-odds is
+**unbounded**, so **logistic regression** (and the final layer of many classifiers) models the log-odds as
+a **linear** combination of features — the raw "score" before conversion.
+
+Back to probability
+-------------------
+
+The **sigmoid** :math:`\sigma` is the **inverse** of the logit — it maps a log-odds score :math:`z` back to
+a probability. So the pipeline runs linear score → log-odds → sigmoid → **classification probability** →
+threshold → class.
+"""
+
+MINDMAP.update({
+    "Classification Probability": [
+        "Binary Classification", "Log-Odds", "Sigmoid Function", "Logistic Regression",
+        "Probabilistic Forecasts", "Multiclass AUROC",
+    ],
+    "Binary Classification": [
+        "Classification Probability", "Log-Odds", "Sigmoid Function", "Logistic Regression",
+        "Classification Models", "Neural Networks",
+    ],
+    "Log-Odds": [
+        "Classification Probability", "Binary Classification", "Sigmoid Function", "Softmax Function",
+        "Logistic Regression", "Neural Networks",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: activations — sigmoid, softmax, squashing functions  (concepts / repr)
+# ----------------------------------------------------------------------
+
+CONTENT["Sigmoid Function"] = r"""
+What it is
+----------
+
+The **sigmoid** function :math:`\sigma` maps **any** real number to the open interval **(0, 1)**, tracing an
+**S-shaped** curve:
+
+.. math::
+
+   \sigma(z) = \frac{1}{1 + e^{-z}}.
+
+At :math:`z=0` it returns **0.5**; large positive :math:`z` → near **1**, large negative :math:`z` → near
+**0**.
+
+Its role
+--------
+
+It is the **inverse of the logit** — it turns a **log-odds** score back into a **probability** — which makes
+it the output activation of **logistic regression** and of **binary**-classification output layers, and the
+basis of **binary cross-entropy** loss. Each output is an **independent** probability, so sigmoid also
+serves **multi-label** problems.
+
+Watch out
+---------
+
+In the **hidden** layers of deep networks the sigmoid causes **vanishing gradients** (its slope flattens for
+large :math:`|z|`), so ReLU-family activations are preferred there; sigmoid is kept for the **output**.
+"""
+
+CONTENT["Softmax Function"] = r"""
+What it is
+----------
+
+The **softmax** function generalizes the sigmoid to **many** classes. It takes a vector of **K** raw scores
+(**logits**), exponentiates each and normalizes by their sum, producing **K** probabilities that each lie
+in (0,1) and **sum to 1** — a full **distribution** over mutually exclusive classes:
+
+.. math::
+
+   \text{softmax}(z)_k = \frac{e^{z_k}}{\sum_{j=1}^{K} e^{z_j}}.
+
+Its role
+--------
+
+It is the standard **output layer** for **multi-class** classification, trained with **categorical
+cross-entropy**. It **amplifies** the largest score toward 1 while **dampening** the rest — a soft "winner."
+When :math:`K=2` it **reduces to the sigmoid**.
+
+Watch out
+---------
+
+Because the outputs are coupled (they must sum to 1), softmax assumes classes are **mutually exclusive** —
+for **multi-label** problems (independent classes) use per-class sigmoids instead. Its probabilities can
+also be **poorly calibrated**.
+"""
+
+CONTENT["Squashing Function"] = r"""
+What it is
+----------
+
+A **squashing function** is any function that **compresses** an unbounded input — any real number in
+:math:`(-\infty, \infty)` — into a **bounded** range, giving the characteristic **S-shape**. It "squashes"
+an infinite domain into a finite interval.
+
+Examples
+--------
+
+The **sigmoid** squashes to **(0, 1)** (a probability), **tanh** to **(−1, 1)**, and **softmax** squashes a
+vector of logits into probabilities on (0,1). They are the classic **non-linear activations** that let a
+network turn raw scores into interpretable, constrained outputs.
+
+Why it matters
+--------------
+
+Squashing is what converts an **unbounded** linear score (like the **log-odds**) into something usable — a
+probability, or a normalized signal — and the non-linearity is what lets stacked layers model **complex**
+patterns. Its flat tails are also the source of **saturation** and vanishing gradients.
+"""
+
+MINDMAP.update({
+    "Sigmoid Function": [
+        "Log-Odds", "Softmax Function", "Squashing Function", "Logistic Regression",
+        "Binary Classification", "Classification Probability",
+    ],
+    "Softmax Function": [
+        "Sigmoid Function", "Squashing Function", "Log-Odds", "Neural Networks",
+        "Classification Models", "Binary Classification",
+    ],
+    "Squashing Function": [
+        "Sigmoid Function", "Softmax Function", "Neural Networks", "Log-Odds",
+        "Binary Classification", "Classification Probability",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: losses & stability — loss functions, BCE, logit space  (training / concepts)
+# ----------------------------------------------------------------------
+
+CONTENT["Loss Functions"] = r"""
+What it is
+----------
+
+A **loss function** (cost or objective) measures **how wrong** a model's predictions are on the training
+data — a single number the model **minimizes**. Lower loss means predictions closer to targets; it is the
+signal that **gradient descent** follows to update parameters.
+
+Matching loss to task
+---------------------
+
+The loss encodes what "wrong" means — **regression** uses **mean squared error** or MAE; **binary
+classification** uses **binary cross-entropy**; **multi-class** uses **categorical cross-entropy**. Squared
+error can't tell a bad classification from a disastrous one, which is why classification uses cross-entropy.
+
+Why it matters
+--------------
+
+The loss defines what the model actually **optimizes**, so a mismatched loss silently optimizes the wrong
+thing (MSE on a sigmoid gives a **non-convex** surface). A good loss is **differentiable**, fits the task,
+and aligns with the real objective.
+"""
+
+CONTENT["Binary Cross-Entropy (BCE)"] = r"""
+What it is
+----------
+
+**Binary cross-entropy** (log loss) is the standard **loss** for **binary classification**, for a true
+label :math:`y \in \{0,1\}` and predicted probability :math:`p = \sigma(z)`:
+
+.. math::
+
+   \text{BCE} = -\big[\,y \log(p) + (1 - y)\log(1 - p)\,\big], \qquad p = \sigma(z),
+
+averaged over the data.
+
+How it behaves
+--------------
+
+The **logarithm** gives an **asymmetric** penalty — a confident-correct prediction costs almost nothing
+(:math:`-\log 0.99 \approx 0.01`), a confident-wrong one costs a lot (:math:`-\log 0.01 \approx 4.6`). This
+pressures the model to be **confident when right and hesitant when wrong**, pushing toward **calibrated**
+probabilities.
+
+Why it fits
+-----------
+
+BCE is the **negative log-likelihood** of the **Bernoulli** distribution, so minimizing it is **maximum
+likelihood** — the natural partner of the **sigmoid**, with a clean gradient :math:`(p - y)`. Its
+multi-class analogue is **categorical cross-entropy** with **softmax**.
+"""
+
+CONTENT["Logit Space"] = r"""
+What it is
+----------
+
+**Logit space** means working with the **raw log-odds** scores :math:`z` (the **logits**) instead of the
+probabilities :math:`p = \sigma(z)` — the "pre-sigmoid" world, where values span the **whole real line**
+rather than being squeezed into (0,1).
+
+Why it's used
+-------------
+
+Computing the loss **directly from logits** is far more **numerically stable**. Converting a logit to a
+probability and then taking its log can **underflow** (a tiny :math:`p` rounds to 0, and :math:`\log 0 =
+-\infty`) or **overflow** (:math:`e^{z}` for a large logit exceeds the float range); staying in logit space
+with the **log-sum-exp** trick avoids both. This is why frameworks fuse sigmoid + BCE
+(``BCEWithLogitsLoss``) and softmax + cross-entropy into a single ``from_logits`` op.
+
+The payoff
+----------
+
+Better stability and cleaner gradients — the same reason **log-space** helps elsewhere. Logit space ties
+the **log-odds**, the **sigmoid**, and the **cross-entropy** loss into one numerically safe computation.
+"""
+
+MINDMAP.update({
+    "Loss Functions": [
+        "Binary Cross-Entropy (BCE)", "Logit Space", "Mean Squared Error (MSE)",
+        "Sigmoid Function", "Softmax Function", "Neural Networks",
+    ],
+    "Binary Cross-Entropy (BCE)": [
+        "Loss Functions", "Logit Space", "Sigmoid Function", "Log-Odds",
+        "Binary Classification", "Classification Probability",
+    ],
+    "Logit Space": [
+        "Log-Odds", "Binary Cross-Entropy (BCE)", "Sigmoid Function", "Loss Functions",
+        "Underflow", "Log-Space",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: calibration — confidence level, overconfident, underconfident  (calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["Confidence Level"] = r"""
+What it is
+----------
+
+A model's **confidence level** is the **probability it attaches** to its prediction — how sure it is that an
+instance belongs to the predicted class. It is only meaningful if it is **calibrated**: a model is
+**well-calibrated** when predictions made with confidence :math:`p` are correct about **100p%** of the time
+(predict 0.9 → right 90% of the time).
+
+How it's checked
+----------------
+
+A **reliability diagram** bins predictions by confidence level and plots confidence against actual
+**accuracy**; perfect calibration lies on the **diagonal**. The gap is summarized by the **Expected
+Calibration Error (ECE)** — the average distance between confidence and accuracy across bins.
+
+Why it matters
+--------------
+
+Raw **accuracy** says nothing about whether the confidence is honest, yet downstream **risk-based
+decisions** (which cases to escalate, when to defer) depend on trusting the number. This is the *model*
+sense of confidence, distinct from a statistical **confidence interval**.
+"""
+
+CONTENT["Overconfident"] = r"""
+What it is
+----------
+
+A model is **overconfident** when its predicted probabilities are **too high** for its actual accuracy — it
+claims more certainty than it earns. A model that is 99% confident but only 90% accurate is overconfident.
+
+How to spot it
+--------------
+
+On a **reliability diagram**, overconfident points fall **below** the diagonal (accuracy < confidence), and
+the histogram piles predictions near **1.0**. Modern deep networks are frequently overconfident, having
+"memorized" training data and carried that certainty to new inputs; **log loss** flags it by punishing
+confident-wrong predictions heavily.
+
+Why it's dangerous
+------------------
+
+Overconfidence is a **safety** hazard in high-stakes settings — an overconfident medical or fraud model
+triggers costly actions on cases it has wrong. It is corrected **post-hoc** with methods like temperature
+scaling, Platt scaling or isotonic regression.
+"""
+
+CONTENT["Underconfident"] = r"""
+What it is
+----------
+
+A model is **underconfident** when its predicted probabilities are **too low** for its actual accuracy — it
+hedges, claiming less certainty than it deserves. A model that is only 80% confident but 90% accurate is
+underconfident.
+
+How to spot it
+--------------
+
+On a **reliability diagram**, underconfident points fall **above** the diagonal (accuracy > confidence), and
+predictions **cluster near 0.5** rather than committing. It is the mirror image of overconfidence, and a
+single model can be **overconfident in some ranges and underconfident in others**.
+
+Why it matters
+--------------
+
+Though it feels "safe," underconfidence **wastes** the model's discriminative signal — useful, correct
+predictions get muted probabilities, so **thresholds** and **risk-based decisions** under-trigger. Like
+overconfidence, it is fixed by **recalibration**.
+"""
+
+MINDMAP.update({
+    "Confidence Level": [
+        "Overconfident", "Underconfident", "Classification Probability",
+        "Binary Cross-Entropy (BCE)", "Risk-Based Decisions", "Multiclass AUROC",
+    ],
+    "Overconfident": [
+        "Underconfident", "Confidence Level", "Classification Probability",
+        "Binary Cross-Entropy (BCE)", "Risk-Based Decisions", "Softmax Function",
+    ],
+    "Underconfident": [
+        "Overconfident", "Confidence Level", "Classification Probability",
+        "Risk-Based Decisions", "Binary Cross-Entropy (BCE)", "Sigmoid Function",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: probabilistic reasoning & decisions — probability forecasts, risk-based decisions, likelihood  (inference / risk)
+# ----------------------------------------------------------------------
+
+CONTENT["Probability Forecasts"] = r"""
+What it is
+----------
+
+A **probability forecast** states the **probability of a specific outcome or event** rather than a single
+deterministic value — "a 70% chance of rain," "a 4% probability of default." It is the event-focused face of
+**probabilistic forecasting**: instead of committing to one number, it quantifies **how likely** each
+outcome is.
+
+How it's expressed
+------------------
+
+As a probability per event, or as **certainty levels** on a distribution — a **P80** forecast is 80% certain
+(a 20% chance of being exceeded), a **P50** is the median. A full probability forecast carries the **whole
+distribution** of outcomes.
+
+Why it matters
+--------------
+
+Probabilities are what **risk-based decisions** consume — a threshold on the forecast (escalate if
+:math:`P(\text{default}) > 5\%`) turns uncertainty into action. They must be **calibrated** to be trusted,
+and are scored with **strictly proper scoring rules** (e.g. the log score), which reward honest
+probabilities.
+"""
+
+CONTENT["Risk-Based Decisions"] = r"""
+What it is
+----------
+
+A **risk-based decision** chooses the action that best balances **predicted probabilities against costs** —
+it acts on **expected risk**, not on the raw label. The basic definition of risk is the **expected cost**: a
+loss weighted by its probability,
+
+.. math::
+
+   R = \mathbb{E}[L] = \sum_i L_i \, p_i.
+
+How it works
+------------
+
+Under **Bayesian decision theory**, you pick the action that **minimizes total expected risk** given the
+**cost** of each error. Because false positives and false negatives usually cost **differently**, the
+optimal **decision threshold** on a probability is generally **not 0.5** — a cheap-to-check,
+expensive-to-miss event (fraud, disease) warrants a **lower** threshold.
+
+Why calibration matters
+-----------------------
+
+The whole scheme assumes the probabilities are **honest** — an **overconfident** model makes the
+expected-cost arithmetic wrong and triggers bad actions. So risk-based decisions rest on **calibrated**
+probability forecasts.
+"""
+
+CONTENT["Likelihood"] = r"""
+What it is
+----------
+
+The **likelihood** is the probability of the **observed data given a model's parameters** —
+:math:`\mathcal{L}(\theta) = P(\text{data} \mid \theta)`. The twist is perspective: it is read as a function
+of the **parameters** :math:`\theta` (with the data fixed), asking *which parameters make what we saw most
+probable?*
+
+Maximum likelihood
+------------------
+
+**MLE** picks the parameters that **maximize** the likelihood (in practice the **log**-likelihood, since
+sums are easier and more stable than products):
+
+.. math::
+
+   \hat{\theta}_{\text{MLE}} = \arg\max_{\theta} \; \mathcal{L}(\theta).
+
+It is the dominant engine of statistical **inference** — logistic regression, and most classifiers, are fit
+this way.
+
+The connection
+--------------
+
+Minimizing **cross-entropy** (like **binary cross-entropy**) is exactly **maximizing likelihood** — BCE is
+the **negative log-likelihood** of the Bernoulli model. Likelihood **ratios** also underlie optimal
+**decision** rules, tying estimation and decision-making together.
+"""
+
+MINDMAP.update({
+    "Probability Forecasts": [
+        "Probabilistic Forecasts", "Risk-Based Decisions", "Classification Probability",
+        "Quantile Forecasts", "Prediction Intervals (PI)", "Strictly Proper Scoring Rules",
+    ],
+    "Risk-Based Decisions": [
+        "Probability Forecasts", "Confidence Level", "Classification Probability",
+        "Overconfident", "Likelihood", "Binary Classification",
+    ],
+    "Likelihood": [
+        "Binary Cross-Entropy (BCE)", "Logistic Regression", "Probability Forecasts",
+        "Risk-Based Decisions", "Loss Functions", "Correlation",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: regression error metrics — MSE, RMSE, MAPE  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Mean Squared Error (MSE)"] = r"""
+What it is
+----------
+
+**Mean squared error** is the average of the **squared** differences between predictions and truth — the
+workhorse **loss** and metric for **regression** (also called **L2** or quadratic loss):
+
+.. math::
+
+   \text{MSE} = \frac{1}{n}\sum_{i=1}^{n}\big(y_i - \hat{y}_i\big)^2.
+
+Squaring makes every error positive and **weights large errors far more** than small ones.
+
+How it behaves
+--------------
+
+Because errors are squared, MSE is dominated by **big misses** and is **sensitive to outliers** — one large
+error can swamp many small ones. Its units are the **square** of the target's, so it doesn't read directly;
+minimizing MSE yields the **mean** (conditional expectation) as the optimal prediction.
+
+Why it's used
+-------------
+
+It is **smooth and differentiable**, ideal for **gradient descent** (it is the loss regression networks
+minimize), and it is the **maximum-likelihood** loss under **Gaussian** noise. When outliers should count
+less, **MAE** is preferred.
+"""
+
+CONTENT["Root Mean Squared Error (RMSE)"] = r"""
+What it is
+----------
+
+**Root mean squared error** is the **square root** of the MSE:
+
+.. math::
+
+   \text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}\big(y_i - \hat{y}_i\big)^2}.
+
+The root returns the error to the target's **original units**, so it reads as a **typical error magnitude**.
+
+How it behaves
+--------------
+
+RMSE keeps MSE's heavy **penalty on large errors** and its **outlier sensitivity**, but is far more
+**interpretable** — an RMSE of 5 means predictions are off by about **5 units** on average. It ranks models
+**identically** to MSE, is always **≥ the MAE**, and the RMSE–MAE gap widens as the **error variance** grows.
+
+When to use it
+--------------
+
+Report RMSE for regression when **large errors are costly** and you want a number in the data's units; pair
+it with **R²** for a scale-free complement. Like R², it also **falls** as you add variables, so watch
+**overfitting**.
+"""
+
+CONTENT["Mean Absolute Percentage Error (MAPE)"] = r"""
+What it is
+----------
+
+**Mean absolute percentage error** expresses each error as a **percentage of the actual** value, averaged:
+
+.. math::
+
+   \text{MAPE} = \frac{100\%}{n}\sum_{i=1}^{n}\left|\frac{y_i - \hat{y}_i}{y_i}\right|.
+
+This makes it **scale-free** — comparable across series of wildly different magnitudes.
+
+Why it's popular
+----------------
+
+"8% off" is instantly meaningful to non-specialists and lets you compare accuracy across products or regions
+on different scales — hence its ubiquity in **demand forecasting** and business reporting.
+
+The pitfalls
+------------
+
+MAPE **explodes when actuals are zero or near-zero** (the denominator → 0), and it is **asymmetric** —
+over-forecasts can incur unbounded percentage error while under-forecasts are capped at 100%, biasing it
+toward models that **under-predict**. For intermittent or zero-heavy data, **scaled** errors like **MASE**
+are safer.
+"""
+
+MINDMAP.update({
+    "Mean Squared Error (MSE)": [
+        "Root Mean Squared Error (RMSE)", "Mean Absolute Percentage Error (MAPE)", "Loss Functions",
+        "R² (R-squared)", "Regression Models", "Forecast Error",
+    ],
+    "Root Mean Squared Error (RMSE)": [
+        "Mean Squared Error (MSE)", "Mean Absolute Percentage Error (MAPE)", "R² (R-squared)",
+        "Loss Functions", "Regression Models", "Average Absolute Error (AAE)",
+    ],
+    "Mean Absolute Percentage Error (MAPE)": [
+        "Mean Squared Error (MSE)", "Root Mean Squared Error (RMSE)", "Relative accuracy",
+        "Forecast Error", "R² (R-squared)", "Regression Models",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: classification evaluation — precision, ROC-AUC, PR-AUC  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Precision (a.k.a. Positive Predictive Value, PPV)"] = r"""
+What it is
+----------
+
+**Precision** (also **positive predictive value**, **PPV**) is the fraction of **correct** positive
+predictions among **all** positive predictions:
+
+.. math::
+
+   \text{Precision} = \frac{TP}{TP + FP}.
+
+It answers: *of everything the model flagged positive, how much really was?*
+
+The trade-off
+-------------
+
+Precision counts **false positives** against you but ignores **false negatives** — so a model can reach high
+precision by only flagging the cases it is surest about. It is therefore read **together with recall**
+(:math:`TP/(TP+FN)`), which counts the positives **missed**; the **F1** score is their harmonic mean.
+
+When it matters
+---------------
+
+Precision is the priority when a **false positive is costly** — a spam filter deleting real mail, a system
+flagging innocent transactions as fraud — where you would rather miss some positives than raise false
+alarms.
+"""
+
+CONTENT["ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)"] = r"""
+What it is
+----------
+
+**ROC-AUC** is the **area under the ROC curve**, which plots the **true positive rate** (recall) against the
+**false positive rate** as the decision **threshold** sweeps from 0 to 1. It condenses that whole curve into
+**one number** in :math:`[0, 1]`.
+
+How to read it
+--------------
+
+**1.0** is a perfect classifier, **0.5** is random guessing. It has a clean probabilistic meaning — the
+chance that a randomly chosen **positive** is scored **higher** than a randomly chosen **negative** — so it
+measures **ranking** quality, independent of any single threshold and invariant to the score **scale**.
+
+The caveat
+----------
+
+Because the **false positive rate** has all the **true negatives** in its denominator, ROC-AUC can look
+**optimistically high** on **imbalanced** data where negatives dominate — a model can score well while still
+flooding a rare positive class with false alarms. There, **PR-AUC** is more honest.
+"""
+
+CONTENT["Precision–Recall AUC (PR-AUC)"] = r"""
+What it is
+----------
+
+**PR-AUC** is the **area under the precision–recall curve**, which plots **precision** against **recall**
+across thresholds — also called **Average Precision (AP)**, the mean precision over all recall levels. It
+ranges :math:`[0, 1]`, higher is better.
+
+Why it's imbalance-friendly
+---------------------------
+
+Unlike ROC-AUC, PR-AUC ignores **true negatives** entirely and focuses on the **positive** class, so it
+stays informative when positives are **rare**. Its **baseline** also shifts with prevalence — random
+guessing scores the **positive-class ratio** (0.5 when balanced, 0.01 at 1% positive), not a fixed 0.5.
+
+When to use it
+--------------
+
+Reach for PR-AUC on **highly imbalanced** problems where finding the **minority** positive is the goal —
+fraud, rare-disease, anomaly detection — where a high ROC-AUC can be misleading. Report it **alongside**
+ROC-AUC for the full picture.
+"""
+
+MINDMAP.update({
+    "Precision (a.k.a. Positive Predictive Value, PPV)": [
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Precision–Recall AUC (PR-AUC)", "Binary Classification", "Multiclass AUROC",
+        "Classification Probability", "Multiclass Classification",
+    ],
+    "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)": [
+        "Precision–Recall AUC (PR-AUC)", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "Multiclass AUROC", "Binary Classification", "Classification Probability",
+        "Multiclass Classification",
+    ],
+    "Precision–Recall AUC (PR-AUC)": [
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Precision (a.k.a. Positive Predictive Value, PPV)", "Binary Classification",
+        "Multiclass AUROC", "Classification Probability", "Macro AUC",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: multiclass AUROC — multiclass classification, OvR, macro AUC  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Multiclass Classification"] = r"""
+What it is
+----------
+
+**Multiclass classification** predicts one of **more than two** mutually exclusive classes — a handwritten
+digit (0–9), a species, a product category. It generalizes **binary** classification, and its models usually
+end in a **softmax** layer that outputs a probability over the **K** classes.
+
+The evaluation twist
+--------------------
+
+Metrics built for two classes — **ROC-AUC**, **precision**, recall — have no direct multiclass definition,
+because "**positive** vs negative" is ambiguous with many classes. To use them, the problem is **binarized**
+(one class vs the others) and the per-class scores are **averaged**.
+
+The two decompositions
+----------------------
+
+**One-vs-Rest** turns K classes into K binary problems (each class against the rest); **One-vs-One** compares
+every **pair**. Either produces a set of per-class or per-pair scores that a **micro** or **macro** average
+then collapses into a single number.
+"""
+
+CONTENT["One-vs-Rest (OvR)"] = r"""
+What it is
+----------
+
+**One-vs-Rest** (also **one-vs-all**) reduces a **K-class** problem to **K binary** ones — in each, a single
+class is the **positive** and all the others are lumped together as the **negative**. It's the simplest way
+to let binary tools handle many classes.
+
+How it's used
+-------------
+
+For a K-class model you get **K** ROC curves and AUCs, one per class, each answering *how well does the model
+separate this class from everything else?* scikit-learn exposes it as ``multi_class='ovr'``; it also matches
+the **multilabel** setting, where classes aren't exclusive.
+
+The catch
+---------
+
+Each binary split is **imbalanced** — the positive class is only about **1/K** of the data, and the "rest"
+group's makeup shifts with the class distribution, so OvR scores are **sensitive to class imbalance**. The
+alternative, **One-vs-One**, compares class **pairs** and is less imbalance-prone but trains
+:math:`O(K^2)` classifiers.
+"""
+
+CONTENT["Macro AUC"] = r"""
+What it is
+----------
+
+**Macro AUC** averages the per-class AUCs (from **One-vs-Rest**) with **equal weight** — every class counts
+the **same**, no matter how rare or common. It answers *how well does the model do on the average class?*
+
+Macro vs micro
+--------------
+
+The contrast is **micro AUC**, which pools every class's true/false-positive contributions into **one global**
+curve, effectively **weighting by prevalence** so frequent classes dominate. Macro treats a class with 10
+samples exactly like one with 10,000.
+
+When to use which
+-----------------
+
+**Macro** is the choice when the **rare** classes matter as much as the common ones (you want minority
+performance to show), while **micro** (or a **weighted** macro) better reflects **overall** accuracy on
+**imbalanced** data. Reporting both reveals whether a good score is carried by the majority classes.
+"""
+
+MINDMAP.update({
+    "Multiclass Classification": [
+        "One-vs-Rest (OvR)", "Macro AUC", "Micro AUC", "Binary Classification",
+        "Softmax Function", "Multiclass AUROC",
+    ],
+    "One-vs-Rest (OvR)": [
+        "Multiclass Classification", "Macro AUC", "Micro AUC", "Binary Classification",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)", "Multiclass AUROC",
+    ],
+    "Macro AUC": [
+        "Micro AUC", "One-vs-Rest (OvR)", "Multiclass Classification",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Multiclass AUROC", "Partial AUC (pAUC)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: AUC variants & baseline — micro AUC, partial AUC, accuracy  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Micro AUC"] = r"""
+What it is
+----------
+
+**Micro AUC** is the multiclass / multilabel AUROC that **pools** every class's predictions into **one
+global** ROC curve — aggregating all true-positive and false-positive counts across classes, then computing
+a single AUC. Because it counts **every prediction** equally, frequent classes contribute more.
+
+Micro vs macro
+--------------
+
+Where **macro AUC** averages per-class AUCs with equal weight, micro AUC is effectively **weighted by
+prevalence** — a rare class with few samples barely moves it. Micro answers *how well does the model do on
+the average prediction?*, macro *on the average class?*
+
+When to use it
+--------------
+
+Micro AUC suits **imbalanced** multiclass problems when you care about **overall** performance dominated by
+common classes, and it matches how a **multilabel** system is scored (over the flattened label matrix).
+Report it beside **macro** to expose class-size effects.
+"""
+
+CONTENT["Partial AUC (pAUC)"] = r"""
+What it is
+----------
+
+**Partial AUC** is the area under **only a slice** of the ROC curve — typically a confined range of **false
+positive rate** (say :math:`\text{FPR} \le 0.1`), sometimes of TPR, or both. It focuses the metric on the
+**operating region** that actually matters.
+
+Why restrict
+------------
+
+Full AUC weights **all** FPR regions equally, but many are operationally irrelevant — a radiologist doesn't
+care about performance at 80% FPR, a bank won't run a fraud model that flags half of transactions. pAUC
+scores the model **where it will be used** (low FPR / high TPR for screening), and is especially apt for
+**low-prevalence** data needing high specificity.
+
+The trade-off
+-------------
+
+pAUC is more **decision-relevant** than full AUC and distinguishes curves that **cross** yet share the same
+total AUC, but it **ignores** the ROC outside the band and its raw value depends on the **interval width**
+(so it's often **standardized**, e.g. McClish, back to :math:`[0,1]`). The bounds must be justified by the
+use case.
+"""
+
+CONTENT["Accuracy"] = r"""
+What it is
+----------
+
+**Accuracy** is the simplest classification metric — the **fraction of predictions that are correct**:
+
+.. math::
+
+   \text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}.
+
+It answers *what share did the model get right?*
+
+The imbalance trap
+------------------
+
+Accuracy is **misleading on imbalanced** data — if 99% of cases are negative, a model that predicts
+"negative" for **everything** scores **99%** while catching **zero** positives. That false sense of security
+is why fraud, disease and anomaly tasks report **precision / recall**, **AUC** or **F1** instead.
+
+When it's fine
+--------------
+
+Accuracy is a reasonable headline when classes are **roughly balanced** and every error costs about the
+**same**. Otherwise it hides **which** errors happen — a **confusion matrix** and threshold-aware metrics
+tell the real story.
+"""
+
+MINDMAP.update({
+    "Micro AUC": [
+        "Macro AUC", "One-vs-Rest (OvR)", "Multiclass Classification",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Multiclass AUROC", "Partial AUC (pAUC)",
+    ],
+    "Partial AUC (pAUC)": [
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)", "Macro AUC",
+        "Micro AUC", "Multiclass AUROC", "Binary Classification", "Precision–Recall AUC (PR-AUC)",
+    ],
+    "Accuracy": [
+        "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Binary Classification", "Multiclass Classification", "Macro AUC",
+        "Precision–Recall AUC (PR-AUC)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: distribution divergences — KL, JS, KS test  (drift / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Kullback–Leibler (KL) Divergence"] = r"""
+What it is
+----------
+
+**KL divergence** measures how much one probability distribution **P** differs from a reference **Q** — the
+**relative entropy**, the expected extra "surprise" from using Q when the truth is P:
+
+.. math::
+
+   D_{\text{KL}}(P \,\|\, Q) = \sum_{x} P(x)\,\log\!\frac{P(x)}{Q(x)} \;\ge\; 0,
+
+(an integral for continuous distributions). It is **0** only when P = Q.
+
+Its quirks
+----------
+
+KL is **asymmetric** — :math:`D_{\text{KL}}(P \| Q) \neq D_{\text{KL}}(Q \| P)` — so it is **not a true
+distance**, and it **blows up** when Q assigns zero probability where P doesn't (it needs **absolute
+continuity**). It is a **directed** measure, not a symmetric metric.
+
+Where it's used
+---------------
+
+It is the core of **variational** methods (the VAE loss), of **feature selection**, and of **drift
+detection**, where it behaves much like **PSI** — a solid default on large datasets, though its asymmetry
+means you read it as a **degree** of drift, not a comparable distance.
+"""
+
+CONTENT["Jensen–Shannon (JS) Divergence"] = r"""
+What it is
+----------
+
+**JS divergence** is the **symmetric, bounded** repair of KL. It averages the KL of each distribution to
+their **mixture** :math:`M = \tfrac{1}{2}(P+Q)`:
+
+.. math::
+
+   D_{\text{JS}}(P \,\|\, Q) = \tfrac{1}{2}D_{\text{KL}}(P \,\|\, M) + \tfrac{1}{2}D_{\text{KL}}(Q \,\|\, M).
+
+Unlike KL it is always **finite** and **symmetric**.
+
+Its properties
+--------------
+
+JS ranges from **0** (identical) to a bounded maximum (**1** in bits, :math:`\log 2` in nats, when the
+distributions are **disjoint**). Its **square root** is the **Jensen–Shannon distance**, which *is* a proper
+metric — so JS gives a well-behaved, comparable measure of distributional difference.
+
+Where it's used
+---------------
+
+It works on **numerical and categorical** features alike and is a popular **drift** signal — stable, less
+noisy, and slightly **more sensitive** than KL or PSI — which is why monitoring systems favour it when a
+symmetric, bounded score is wanted.
+"""
+
+CONTENT["Kolmogorov–Smirnov (KS) Test"] = r"""
+What it is
+----------
+
+The **KS test** is a **non-parametric** test of whether two samples come from the **same distribution**
+(two-sample), or whether a sample matches a **reference** distribution (goodness-of-fit). It compares their
+**cumulative distribution functions (CDFs)**.
+
+The statistic
+-------------
+
+Its **D-statistic** is the **largest vertical gap** between the two CDFs:
+
+.. math::
+
+   D = \sup_{x} \,\big|F_1(x) - F_2(x)\big|.
+
+A bigger D means the distributions are further apart. Because it uses the CDF directly, it makes **no
+assumptions** about the distribution's shape — its great strength.
+
+Where it's used
+---------------
+
+With a null of "same distribution," a small p-value flags a **significant** difference — making the KS test
+a standard tool for **drift detection** on continuous features and for **goodness-of-fit** checks. It
+underlies the **KS statistic** used as a drift metric.
+"""
+
+MINDMAP.update({
+    "Kullback–Leibler (KL) Divergence": [
+        "Jensen–Shannon (JS) Divergence", "Kolmogorov–Smirnov (KS) Test", "Data Drift",
+        "Statistical Tests", "Chi-square (χ²) Test", "Cramér's V",
+    ],
+    "Jensen–Shannon (JS) Divergence": [
+        "Kullback–Leibler (KL) Divergence", "Kolmogorov–Smirnov (KS) Test", "Data Drift",
+        "Concept Drift", "Statistical Tests", "Cramér's V",
+    ],
+    "Kolmogorov–Smirnov (KS) Test": [
+        "KS Statistic (Kolmogorov–Smirnov Statistic)", "Kullback–Leibler (KL) Divergence",
+        "Jensen–Shannon (JS) Divergence", "Data Drift", "Cumulative Distribution Function (CDF)",
+        "Statistical Tests",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: descriptive statistics — mean, median, outlier  (probstats)
+# ----------------------------------------------------------------------
+
+CONTENT["Mean"] = r"""
+What it is
+----------
+
+The **(arithmetic) mean** is the **average** — the sum of all values divided by their count:
+
+.. math::
+
+   \mu = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+It uses **every** data point, which makes it the natural summary of a **symmetric** distribution and the
+value that **minimizes squared error**.
+
+Its weakness
+------------
+
+Because it incorporates every value, the mean is **sensitive to outliers** and **skew** — a single extreme
+value drags it toward the tail. Statisticians say its **breakdown point is 0%**: one bad point can move it
+arbitrarily. On **skewed** data like income, the mean **overstates** where most values sit.
+
+When to use it
+--------------
+
+Prefer the mean for **roughly symmetric**, outlier-free numeric data, where it is efficient and
+mathematically convenient (it feeds variance, standard error, regression). For skewed or outlier-heavy
+data, reach for the **median**. It is undefined for **categorical** data.
+"""
+
+CONTENT["Median"] = r"""
+What it is
+----------
+
+The **median** is the **middle value** of the data once sorted — for an odd count the single center value,
+for an even count the **average of the two** middle values. It splits the data into two **equal halves** and
+is exactly the **0.5 quantile**.
+
+Its strength
+------------
+
+The median is **robust to outliers** — extreme values change **which** point sits in the middle only
+slightly, and never by their magnitude, so its **breakdown point is 50%**. That resilience makes it the
+right summary for **skewed** data (income, house prices) and the value that **minimizes absolute error**.
+
+The trade-off
+-------------
+
+The median ignores the **magnitudes** of all but the central values, so it discards information the mean
+uses, and it is **harder to manipulate** algebraically. It needs **orderable** data — it works on ordinal,
+not nominal, values.
+"""
+
+CONTENT["Outlier"] = r"""
+What it is
+----------
+
+An **outlier** is an **extreme, atypical** value that sits far from the bulk of the data. Outliers arise
+from genuine rare events, measurement or data-entry **errors**, or a mixture of populations — and spotting
+them matters because they can **distort** an analysis.
+
+What they break
+---------------
+
+Outliers hit statistics that use **every** value hardest — the **mean**, the **variance / standard
+deviation**, and **squared-error** losses like **MSE**, which square the large residual — while **robust**
+measures like the **median** barely move. This gap between mean and median is itself a **signal** of outliers
+or skew.
+
+How they're handled
+-------------------
+
+Outliers are **detected** (z-scores, the **IQR** rule, distance- or model-based methods), then
+**investigated** — a true error is corrected or removed, but a genuine extreme is often **kept** and handled
+with **robust** methods or transforms rather than silently discarded.
+"""
+
+MINDMAP.update({
+    "Mean": [
+        "Median", "Outlier", "Mean Squared Error (MSE)", "Normal Distribution",
+        "Standard Error (SE)", "Regression Models",
+    ],
+    "Median": [
+        "Mean", "Outlier", "Quantile Level", "Normal Distribution",
+        "Regression Models", "Mean Squared Error (MSE)",
+    ],
+    "Outlier": [
+        "Mean", "Median", "Mean Squared Error (MSE)", "Normal Distribution",
+        "Z-Score", "Standard Error (SE)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: feature engineering — sensitivity, encode, normalize  (features)
+# ----------------------------------------------------------------------
+
+CONTENT["Sensitivity in Feature Engineering"] = r"""
+What it is
+----------
+
+**Sensitivity** in feature engineering is the degree to which a model's predictions **depend on how features
+are represented** — their **scale**, distribution, and encoding. Some algorithms are highly **sensitive** to
+these choices; others are nearly **invariant** — and that difference decides how much preprocessing you must
+do.
+
+Who's sensitive
+---------------
+
+**Distance-based** models (KNN, SVM), **gradient-descent** learners (linear / logistic regression, neural
+nets), and **regularized** models are **scale-sensitive** — a feature with a large range will **dominate**
+distances or gradients unless it's **normalized**. **Tree-based** models (decision trees, random forests,
+gradient boosting) split one feature at a time and are essentially **scale-invariant**.
+
+Why it matters
+--------------
+
+Knowing a model's sensitivity tells you what preprocessing is **required** versus **wasted** — you **must**
+scale for KNN or a neural net, but scaling for a random forest changes little. The same lens underlies
+**feature-sensitivity analysis**: measuring how much the output moves when a feature changes reveals which
+features the model actually **relies on**.
+"""
+
+CONTENT["Encode (in Feature Engineering)"] = r"""
+What it is
+----------
+
+**Encoding** converts **categorical** (non-numeric) data into a **numerical** form, because most ML
+algorithms operate only on numbers. The trick is to add the numbers **without inventing meaning** that isn't
+there.
+
+The methods
+-----------
+
+**One-hot encoding** turns a category into several **binary** columns (exactly one 1) — right for **nominal**
+categories with **low cardinality**, since it implies no order. **Ordinal / label** encoding assigns
+integers, valid only when categories are genuinely **ordered**. For **high-cardinality** features,
+**frequency**, **target**, or learned **embedding** encodings avoid the column explosion of one-hot.
+
+Getting it wrong
+----------------
+
+Label-encoding a **nominal** variable (red = 1, blue = 2, green = 3) falsely tells the model green > blue — a
+fake ordering that distance- and gradient-based models will believe. Match the encoding to whether the
+category is **ordered**, and to its **cardinality**.
+"""
+
+CONTENT["Normalize (in Feature Engineering)"] = r"""
+What it is
+----------
+
+**Normalizing** (feature scaling) rescales numeric features to a **comparable range** so that features with
+large magnitudes don't **dominate** the ones with small magnitudes. It changes a feature's **range**, not its
+data type.
+
+The two workhorses
+------------------
+
+**Min-max scaling** maps values to **[0, 1]**; **standardization (Z-score)** centers to **mean 0, standard
+deviation 1**:
+
+.. math::
+
+   x' = \frac{x - \min(x)}{\max(x) - \min(x)} \quad\text{(min-max)}, \qquad x' = \frac{x - \mu}{\sigma} \quad\text{(Z-score)}.
+
+Min-max suits bounded data; Z-score suits Gaussian-ish data and methods like **PCA**. Min-max is
+**outlier-sensitive**, so **robust scaling** (median and **IQR**) is used when outliers are present.
+
+When and when not
+-----------------
+
+Normalize for **scale-sensitive** models (KNN, SVM, neural nets); it **speeds convergence** and prevents
+large-value bias. Don't normalize **one-hot** or categorical columns (they're already 0/1 and it destroys
+their meaning), and fit the scaler on the **training set only** to avoid leakage.
+"""
+
+MINDMAP.update({
+    "Sensitivity in Feature Engineering": [
+        "Encode (in Feature Engineering)", "Normalize (in Feature Engineering)", "Feature Values",
+        "Outlier", "Support Vector Machines (SVMs)", "Decision Trees",
+    ],
+    "Encode (in Feature Engineering)": [
+        "Normalize (in Feature Engineering)", "Sensitivity in Feature Engineering", "Embedding",
+        "Feature Values", "Outlier", "Neural Networks",
+    ],
+    "Normalize (in Feature Engineering)": [
+        "Encode (in Feature Engineering)", "Sensitivity in Feature Engineering", "Outlier",
+        "Z-Score", "Normal Distribution", "Neural Networks",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: hypothesis testing — statistical tests, chi-square, power analysis  (inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Statistical Tests"] = r"""
+What it is
+----------
+
+A **statistical test** is a formal procedure for deciding whether data provide enough evidence to **reject**
+a default assumption. Every test follows the same **five steps**: state a **null (H₀)** and **alternative
+(Hₐ)** hypothesis, pick a **significance level α**, compute a **test statistic**, find its **p-value**, and
+**interpret**.
+
+The decision rule
+-----------------
+
+**Reject H₀ when p < α** (the data would be surprising if H₀ were true), otherwise **fail to reject** it.
+Crucially, failing to reject is **not** proof that H₀ is true — absence of evidence is not evidence of
+absence. Two errors are possible: **Type I** (rejecting a true H₀, rate α) and **Type II** (missing a real
+effect, rate β).
+
+The families
+------------
+
+Tests split into **parametric** (assuming a distribution — t-test, ANOVA) and **non-parametric**
+(assumption-free — **KS**, chi-square), and into one- vs two-sided. The right test depends on the **data
+type**, the **question**, and the assumptions you can defend.
+"""
+
+CONTENT["Chi-square (χ²) Test"] = r"""
+What it is
+----------
+
+The **chi-square test** works on **categorical** data, comparing **observed** counts to the **expected**
+counts under a null hypothesis:
+
+.. math::
+
+   \chi^2 = \sum_{i} \frac{(O_i - E_i)^2}{E_i}.
+
+A large :math:`\chi^2` means observations stray far from expectation.
+
+Its two forms
+-------------
+
+**Goodness-of-fit** asks whether one categorical variable follows a **specified distribution** (do dice
+rolls look fair?); **independence** asks whether two categorical variables in a **contingency table** are
+**associated** (is purchase related to region?). The statistic is compared to the **χ² distribution** with
+the appropriate **degrees of freedom**.
+
+Reading it and its limits
+-------------------------
+
+A small **p-value** rejects the null (a real fit failure or association); the strength of an association is
+then summarized by **Cramér's V**. The test needs **adequate expected counts** per cell and has **low
+power** on small samples — a non-significant result is weak evidence, not confirmation.
+"""
+
+CONTENT["Power Analysis"] = r"""
+What it is
+----------
+
+**Power analysis** plans a study around its **statistical power** — the probability of **detecting a real
+effect** (correctly rejecting H₀ when it's false), which equals :math:`1 - \beta`. Most often it answers
+*how many samples do I need?*
+
+The four levers
+---------------
+
+Power, **effect size**, **significance level α**, and **sample size** are locked in a relationship — fix any
+**three** and the fourth is determined. Bigger effects, larger samples, or a looser α all **raise** power;
+the usual target is **≥ 0.80**.
+
+Why do it first
+---------------
+
+Run **before** collecting data, power analysis prevents **underpowered** experiments that waste resources
+and are likely to **miss** true effects (a high Type II risk). Run **after**, it tells you how much you could
+realistically have detected — and warns against over-reading a **non-significant** result.
+"""
+
+MINDMAP.update({
+    "Statistical Tests": [
+        "Chi-square (χ²) Test", "Kolmogorov–Smirnov (KS) Test", "Power Analysis",
+        "Statistical Power", "Confidence Intervals (CIs)", "A/B Testing",
+    ],
+    "Chi-square (χ²) Test": [
+        "Statistical Tests", "Cramér's V", "Kolmogorov–Smirnov (KS) Test", "Power Analysis",
+        "Kullback–Leibler (KL) Divergence", "Data Drift",
+    ],
+    "Power Analysis": [
+        "Statistical Tests", "Statistical Power", "Chi-square (χ²) Test", "A/B Testing",
+        "Confidence Intervals (CIs)", "Kolmogorov–Smirnov (KS) Test",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: confidence intervals — CIs, Clopper-Pearson, Wilson score  (inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Confidence Intervals (CIs)"] = r"""
+What it is
+----------
+
+A **confidence interval** is a **range** of plausible values for an unknown parameter — a mean, a
+proportion — computed from a sample together with a **confidence level** (typically **95%**). It expresses
+the **uncertainty** in a point estimate: a wider interval means less precision.
+
+What the level means
+--------------------
+
+The confidence level is a statement about the **procedure**, not any one interval. If you repeated the study
+many times, about **95% of the intervals** you built would contain the true value — it is **not** a 95%
+probability that the parameter lies in *this* interval (in the frequentist view the parameter is fixed).
+Intervals **narrow** as the sample size **grows**.
+
+How they're built
+-----------------
+
+A CI is typically an estimate **± a margin of error** (a critical value times a **standard error**), but for
+tricky quantities like a **binomial proportion** there are several methods — **Wald**, **Wilson**,
+**Clopper–Pearson**, **bootstrap** — that trade **coverage** against **width**.
+"""
+
+CONTENT["Clopper–Pearson Interval"] = r"""
+What it is
+----------
+
+The **Clopper–Pearson interval** is the **"exact"** confidence interval for a **binomial proportion** — built
+directly from the **binomial distribution** (via **Beta-distribution** quantiles) rather than a normal
+approximation. It **inverts** the binomial CDF to find the proportions consistent with the data.
+
+Its guarantee
+-------------
+
+It **never has less than** the nominal coverage — a 95% Clopper–Pearson interval covers the true proportion
+**at least** 95% of the time for **every** p and n. That safety is its selling point when you **must not**
+under-cover.
+
+The cost
+--------
+
+Guaranteeing coverage makes it **conservative** — the actual coverage is often **~99%**, so the interval is
+**wider than necessary** and demands larger samples for a given precision. It is the **widest** of the common
+methods, best reserved for **very small samples** or when guaranteed coverage is essential.
+"""
+
+CONTENT["Wilson Score Interval"] = r"""
+What it is
+----------
+
+The **Wilson score interval** is a well-calibrated confidence interval for a **binomial proportion**, derived
+by improving the crude **normal-approximation (Wald)** interval. Introduced by E. B. Wilson in 1927, it is
+**asymmetric** and always stays **within [0, 1]**.
+
+Why it's better
+---------------
+
+Unlike the **Wald** interval, it doesn't **overshoot** past 0 or 1 and doesn't collapse to **zero width**
+when the observed proportion is 0 or 1; and unlike **Clopper–Pearson**, it isn't overly **conservative** —
+its coverage sits **close to nominal**, so its intervals are **narrower**. That balance makes it the
+**recommended default** in most applications.
+
+The caveats
+-----------
+
+Its coverage can dip **slightly below** nominal for a few awkward proportions, and for **extremely small**
+samples the guaranteed **Clopper–Pearson** may still be safer. A continuity-corrected variant exists for
+tighter coverage.
+"""
+
+MINDMAP.update({
+    "Confidence Intervals (CIs)": [
+        "Clopper–Pearson Interval", "Wilson Score Interval", "Bootstrap Confidence Intervals (CIs)",
+        "Standard Error (SE)", "Statistical Tests", "Normal Distribution",
+    ],
+    "Clopper–Pearson Interval": [
+        "Confidence Intervals (CIs)", "Wilson Score Interval", "Normal Distribution",
+        "Statistical Tests", "Bootstrap Confidence Intervals (CIs)", "Standard Error (SE)",
+    ],
+    "Wilson Score Interval": [
+        "Confidence Intervals (CIs)", "Clopper–Pearson Interval", "Normal Distribution",
+        "Standard Error (SE)", "Z-Score", "Statistical Tests",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: averaging strategies — micro, macro, weighted averaging  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Micro Averaging"] = r"""
+What it is
+----------
+
+**Micro averaging** aggregates a metric by **pooling the counts** — it sums the **true positives, false
+positives and false negatives** across all classes first, then computes precision, recall or F1 from those
+totals. Every **instance** counts equally, so **frequent classes dominate**.
+
+Its behavior
+------------
+
+Because it is driven by raw counts, micro averaging gives an **overall**, accuracy-flavored number — in
+fact, for **single-label multiclass**, micro-F1 **equals accuracy**. Its weakness is that strong performance
+on a big class can **mask** poor performance on a small one.
+
+When to use it
+--------------
+
+Reach for micro averaging on **balanced** problems, in **multilabel** settings, or whenever you want a
+**single global** score reflecting overall correctness. Pair it with **macro** to expose whether minority
+classes are being hidden.
+"""
+
+CONTENT["Macro Averaging"] = r"""
+What it is
+----------
+
+**Macro averaging** computes the metric **separately for each class** (one-vs-rest), then takes the
+**unweighted arithmetic mean**. Every **class** counts the **same**, no matter how many samples it has:
+
+.. math::
+
+   P_{\text{macro}} = \frac{1}{C}\sum_{c=1}^{C}\frac{TP_c}{TP_c + FP_c}.
+
+Its behavior
+------------
+
+Because each class contributes equally, macro averaging **punishes ignoring minorities** — a model that aces
+the majority but fails a rare class gets a **low** macro score. That makes it sensitive to **rare-class**
+performance and a natural **fairness**-oriented headline.
+
+When to use it
+--------------
+
+Use macro averaging when **all classes matter equally**, especially on **imbalanced** data where you don't
+want the majority to drown out the rest. It can, however, look **pessimistic** if some tiny classes are
+inherently hard.
+"""
+
+CONTENT["Weighted Averaging"] = r"""
+What it is
+----------
+
+**Weighted averaging** is macro averaging with a twist — it computes each class's metric, then averages them
+**weighted by support** (the number of true instances in each class). Larger classes therefore **count
+more**.
+
+Its behavior
+------------
+
+This makes the score **reflect the actual class distribution** — it is essentially macro averaging
+**adjusted for imbalance**, sitting between micro and macro. On a **representative** test set, the weighted
+average estimates what you'd see on a **random production** example.
+
+When to use it
+--------------
+
+Weighted averaging suits **stakeholder and production** reporting, where you want one number that respects
+the **real class mix** without letting a tiny class swing the result. Use **macro** instead when minority
+classes must be weighted **equally** regardless of frequency.
+"""
+
+MINDMAP.update({
+    "Micro Averaging": [
+        "Macro Averaging", "Weighted Averaging", "Micro AUC", "One-vs-Rest (OvR)",
+        "Precision (a.k.a. Positive Predictive Value, PPV)", "Multiclass Classification",
+    ],
+    "Macro Averaging": [
+        "Micro Averaging", "Weighted Averaging", "Macro AUC", "One-vs-Rest (OvR)",
+        "F1-score", "Multiclass Classification",
+    ],
+    "Weighted Averaging": [
+        "Micro Averaging", "Macro Averaging", "F1-score", "Multiclass Classification",
+        "Precision (a.k.a. Positive Predictive Value, PPV)", "Macro AUC",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: precision-recall summaries — harmonic mean, F1-score, average precision  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Harmonic Mean"] = r"""
+What it is
+----------
+
+The **harmonic mean** is an average that **leans toward the smaller** of the values — the reciprocal of the
+average of reciprocals. For two numbers it is:
+
+.. math::
+
+   \text{HM} = \frac{2ab}{a + b}.
+
+It is always **≤ the arithmetic mean**, and equal only when the values match.
+
+Its key property
+----------------
+
+It **penalizes imbalance**. Averaging precision 0.95 and recall 0.20, the arithmetic mean gives a rosy
+**0.575**, but the harmonic mean gives **~0.33** — correctly flagging that one component is poor. A high
+harmonic mean requires **all** inputs to be high.
+
+Where it's used
+---------------
+
+That property is exactly why the **F1-score** uses it to combine precision and recall, and why harmonic
+means are the right average for **rates and ratios** (speeds, P/E ratios) rather than additive quantities.
+"""
+
+CONTENT["F1-score"] = r"""
+What it is
+----------
+
+The **F1-score** combines **precision** and **recall** into one number by taking their **harmonic mean**:
+
+.. math::
+
+   F_1 = 2\cdot\frac{P \cdot R}{P + R} = \frac{2\,TP}{2\,TP + FP + FN}.
+
+It ranges from **0 to 1**, and is high only when **both** precision and recall are high.
+
+Why harmonic
+------------
+
+Using the harmonic mean makes F1 **penalize lopsided** models — a classifier with 0.95 precision but 0.20
+recall scores a low F1, unlike accuracy or a plain average. This makes F1 far more informative than
+**accuracy** on **imbalanced** data, and it deliberately **ignores true negatives**.
+
+Its variants
+------------
+
+For **multiclass** problems, F1 is aggregated with **micro**, **macro** or **weighted** averaging; the
+general **Fβ** score tilts the balance toward recall (β > 1) or precision (β < 1) when the two errors carry
+different costs.
+"""
+
+CONTENT["Average Precision (AP)"] = r"""
+What it is
+----------
+
+**Average precision** summarizes the entire **precision–recall curve** in one number — the mean of precision
+across recall levels, computed as precision weighted by the **gain in recall** at each threshold:
+
+.. math::
+
+   \text{AP} = \sum_{n} (R_n - R_{n-1})\,P_n.
+
+It equals the **area under the PR curve** (PR-AUC / AUPRC).
+
+Why it's useful
+---------------
+
+Because it sweeps **all thresholds**, AP needs no single cutoff, and because it is built from **precision and
+recall** it **ignores true negatives** — making it far more informative than ROC-AUC on **imbalanced** data
+where the positive class is rare.
+
+Where it's used
+---------------
+
+AP is the standard score for **ranking** and **detection**; averaging it over classes or queries gives
+**mean average precision (mAP)**, the headline metric in information retrieval and object detection.
+"""
+
+MINDMAP.update({
+    "Harmonic Mean": [
+        "F1-score", "Mean", "Average Precision (AP)",
+        "Precision (a.k.a. Positive Predictive Value, PPV)", "Weighted Averaging", "Macro Averaging",
+    ],
+    "F1-score": [
+        "Harmonic Mean", "Precision (a.k.a. Positive Predictive Value, PPV)", "Average Precision (AP)",
+        "Accuracy", "Macro Averaging", "Micro Averaging",
+    ],
+    "Average Precision (AP)": [
+        "Precision–Recall AUC (PR-AUC)", "F1-score", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Harmonic Mean", "Macro Averaging",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: precision variants — per-class, multiclass, multilabel precision  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Per-class Precision (sometimes called class-wise precision)"] = r"""
+What it is
+----------
+
+**Per-class precision** is **precision computed separately for each class**, treating that class as the
+**positive** one and everything else as negative (**one-vs-rest**). For class :math:`c` it is
+
+.. math::
+
+   \text{precision}_c = \frac{TP_c}{TP_c + FP_c},
+
+answering *of everything predicted as class c, how much really was c?*
+
+Why report it
+-------------
+
+A single averaged number can **hide** a class the model handles badly; per-class precision exposes exactly
+**which** classes suffer false positives. In scikit-learn, ``precision_score(average=None)`` returns the
+whole **array** of per-class values.
+
+Its role
+--------
+
+Per-class precision is the **building block** that **micro**, **macro** and **weighted** averaging then
+collapse into one score. Best practice is to report the **per-class** values **alongside** any aggregate.
+"""
+
+CONTENT["Multiclass Precision"] = r"""
+What it is
+----------
+
+**Multiclass precision** is precision for a problem with **more than two mutually exclusive** classes. Since
+precision is defined on a **binary** positive/negative split, it is computed by treating the task as **K
+one-vs-rest** binary problems — the **per-class** precisions — then reduced to a single number.
+
+How it's reduced
+----------------
+
+The per-class values are combined by an **averaging** scheme — **micro** (pool counts,
+majority-dominated), **macro** (equal weight per class), or **weighted** (by support). The choice
+determines whether rare classes are surfaced or hidden, so it must be **stated** with the score.
+
+The caveat
+----------
+
+Because each class is scored against "the rest," each binary split is **imbalanced**; reporting the
+**per-class** precisions guards against an average that looks good only because the majority class does.
+"""
+
+CONTENT["Multilabel Precision"] = r"""
+What it is
+----------
+
+**Multilabel precision** is precision when each sample can carry **several labels at once** — the labels are
+**not** mutually exclusive. Targets are an **indicator matrix** (cell [i, j] = 1 if sample i has label j),
+and precision is computed **per label**, each label a binary problem.
+
+How it's aggregated
+-------------------
+
+As with multiclass, per-label precisions are combined by **micro**, **macro** or **weighted** averaging —
+but multilabel adds a distinctive **'samples'** average, which computes precision **per instance** (across
+that sample's labels) and averages over samples.
+
+Why it differs
+--------------
+
+Unlike multiclass, where exactly one class is correct, multilabel labels **co-occur**, so a prediction can
+be **partly** right (some labels correct, others missed). The averaging choice — especially **samples** vs
+**micro** — decides whether you're scoring per-label or per-example accuracy.
+"""
+
+MINDMAP.update({
+    "Per-class Precision (sometimes called class-wise precision)": [
+        "Multiclass Precision", "Multilabel Precision", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "One-vs-Rest (OvR)", "Macro Averaging", "Micro Averaging",
+    ],
+    "Multiclass Precision": [
+        "Per-class Precision (sometimes called class-wise precision)", "Multilabel Precision",
+        "Multiclass Classification", "Macro Averaging", "Weighted Averaging",
+        "Precision (a.k.a. Positive Predictive Value, PPV)",
+    ],
+    "Multilabel Precision": [
+        "Multiclass Precision", "Per-class Precision (sometimes called class-wise precision)",
+        "One-vs-Rest (OvR)", "Micro Averaging", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "F1-score",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: resampling — bootstrap, upsampling, downsampling  (imbalance / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Bootstrap"] = r"""
+What it is
+----------
+
+The **bootstrap** is a resampling method that draws new samples **with replacement** from the observed data
+— each resample the same size as the original, with some points repeated and others omitted. From many such
+resamples it estimates a statistic's **sampling distribution**.
+
+What it's for
+-------------
+
+By recomputing a statistic (a mean, an AUC) across hundreds or thousands of bootstrap resamples, you get its
+**standard error** and **confidence intervals** **without** assuming a formula or a distribution. That makes
+it a flexible, **non-parametric** way to quantify **uncertainty**.
+
+Where it appears
+----------------
+
+The same idea powers **bagging** (bootstrap aggregating) and **random forests**, which train each model on a
+different bootstrap sample to reduce variance. Its main cost is **compute** — many refits — and it can
+struggle with very small samples or extreme statistics.
+"""
+
+CONTENT["Upsampling"] = r"""
+What it is
+----------
+
+**Upsampling** (random **oversampling**) rebalances an **imbalanced** dataset by **inflating the minority
+class** — duplicating its examples until the classes are closer to even, so the classifier isn't overwhelmed
+by the majority.
+
+The risk
+--------
+
+Because it **repeats** existing points, upsampling can cause **overfitting** — the model learns patterns that
+only exist in the **duplicated** samples rather than the true minority distribution. The fix is **SMOTE**,
+which **interpolates** new synthetic points between a minority point and its nearest neighbors instead of
+copying, so no example is an exact duplicate.
+
+When to use it
+--------------
+
+Prefer upsampling when the dataset is **small** and discarding data would hurt. Critically, apply it to the
+**training set only** — resampling the validation or test set causes **data leakage** and inflates your
+metrics.
+"""
+
+CONTENT["Downsampling"] = r"""
+What it is
+----------
+
+**Downsampling** (random **undersampling**) rebalances an **imbalanced** dataset the opposite way — by
+**removing majority-class** examples until the classes are closer to even. It keeps all the minority data and
+thins out the majority.
+
+The risk
+--------
+
+Discarding majority examples can cause **underfitting** — the model loses **informative** cases and may miss
+the majority class's general pattern. In extreme imbalance you may throw away the vast bulk of the data
+(99%+), damaging its representation.
+
+When to use it
+--------------
+
+Prefer downsampling when data is **plentiful**, since it is **computationally efficient** (less data to train
+on) and **avoids the overfitting** of duplication. As with upsampling, apply it to the **training set only**
+to avoid **data leakage**.
+"""
+
+MINDMAP.update({
+    "Bootstrap": [
+        "Bootstrap Confidence Intervals (CIs)", "Standard Error (SE)", "Upsampling",
+        "Downsampling", "Decision Trees", "Confidence Intervals (CIs)",
+    ],
+    "Upsampling": [
+        "Downsampling", "Bootstrap", "SMOTE (Synthetic Minority Over-sampling Technique)",
+        "Recall", "Precision (a.k.a. Positive Predictive Value, PPV)", "Model Stability",
+    ],
+    "Downsampling": [
+        "Upsampling", "Bootstrap", "SMOTE (Synthetic Minority Over-sampling Technique)",
+        "Recall", "Precision (a.k.a. Positive Predictive Value, PPV)", "Model Stability",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: online experimentation — A/B testing, sequential testing, interleaving  (abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["A/B Testing"] = r"""
+What it is
+----------
+
+An **A/B test** is a **controlled experiment** that **randomly assigns** users to two variants — **A**
+(control) and **B** (treatment) — and measures which performs better on a chosen **metric** (conversion
+rate, time on page, retention). Randomization is what lets you read the difference as **causal**.
+
+How it's run
+------------
+
+You fix the **metric**, use a **power analysis** to set the **sample size**, pick a **statistical test**
+(t-test, chi-square), and choose a **significance level α**. When the data are in, the test decides whether
+B's effect is **real** or noise.
+
+Its discipline
+--------------
+
+The classic A/B test is **fixed-horizon** — you must wait for the pre-planned sample before deciding.
+**Peeking** early and stopping when it looks significant **inflates false positives**, which is exactly the
+failure that **sequential** methods are designed to fix.
+"""
+
+CONTENT["Sequential Testing (also called sequential analysis)"] = r"""
+What it is
+----------
+
+**Sequential testing** (sequential analysis) **monitors an experiment continuously** and lets you **stop as
+soon as** the evidence is conclusive — rather than waiting for a fixed sample size. It is built for the
+streaming data of modern experimentation platforms.
+
+The problem it solves
+---------------------
+
+Repeatedly checking a **fixed-horizon** test and stopping when it looks good — **peeking** — badly
+**inflates the Type I error**. Sequential methods like the **sequential probability ratio test (SPRT)** and
+group-sequential designs keep the false-positive rate controlled **at any time**, so early stopping is
+**valid**.
+
+The payoff
+----------
+
+Because it can end as soon as a winner (or a dead end) is clear, sequential testing **cuts the average
+sample size** and **deployment time**, exposing **fewer users** to an inferior variant — at the price of
+slightly more conservative thresholds to preserve error control.
+"""
+
+CONTENT["Interleaving Tests"] = r"""
+What it is
+----------
+
+**Interleaving** compares **two rankers** — say two search algorithms — by **blending their result lists
+into one** list shown to a **single user**, then crediting each **click** to whichever ranker supplied that
+item. The same user effectively judges both at once.
+
+Why it's powerful
+-----------------
+
+Because each user sees **both** rankers' results (a within-user comparison), interleaving is **far more
+sensitive** than an A/B test — it reaches a reliable conclusion from **far fewer interactions**, so **fewer
+users** are exposed to a possibly worse ranker. **Multileaving** extends the idea to compare **many** rankers
+simultaneously.
+
+Where it's used
+---------------
+
+Interleaving is a staple of **search and recommendation** evaluation and **learning-to-rank**, where ranking
+quality differences are subtle and A/B tests would need huge traffic to detect them.
+"""
+
+MINDMAP.update({
+    "A/B Testing": [
+        "Sequential Testing (also called sequential analysis)", "Interleaving Tests",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Power Analysis", "Statistical Tests",
+        "Conversion Rate (CR)",
+    ],
+    "Sequential Testing (also called sequential analysis)": [
+        "A/B Testing", "Interleaving Tests", "Statistical Tests", "Power Analysis",
+        "Bootstrap", "Confidence Intervals (CIs)",
+    ],
+    "Interleaving Tests": [
+        "A/B Testing", "Sequential Testing (also called sequential analysis)", "Statistical Tests",
+        "Traditional A/B Test (Fixed-Horizon A/B Test)", "Power Analysis", "A/B/n Test",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: validation splits — evaluation set, time-based splits, stratified k-fold CV  (validation)
+# ----------------------------------------------------------------------
+
+CONTENT["Evaluation Set"] = r"""
+What it is
+----------
+
+An **evaluation set** is data **held out** from training so a model can be scored on examples it has **never
+seen** — the only honest way to estimate how it will **generalize**. In practice it splits into two roles.
+
+Validation vs test
+------------------
+
+The **validation set** is used **repeatedly** during development — tuning hyperparameters, early stopping,
+choosing between models; the **test set** is touched **once**, at the very end, for a final **unbiased**
+estimate. Any peek at the test set during development **contaminates** it and inflates the reported score.
+
+The cardinal rule
+-----------------
+
+**Split first**, then fit every preprocessing step (scaling, encoding) on the **training data only** and
+apply it to the held-out sets. Fitting on all the data before splitting leaks information from the evaluation
+set into training — the classic **data leakage** that makes scores look better than reality.
+"""
+
+CONTENT["Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)"] = r"""
+What it is
+----------
+
+A **time-based split** orders data by **time** and trains on the **past** while validating and testing on the
+**future** — the earliest records for training, the most recent held out. It reproduces the reality of
+deployment, where **future data doesn't exist** at training time.
+
+Why it's needed
+---------------
+
+**Time-series** data violates the **i.i.d.** assumption behind ordinary splitting — observations depend on
+**prior** ones. Shuffling or random k-fold would let the model **train on the future** to predict the past, a
+**temporal leakage** that badly **overstates** accuracy.
+
+How it's done
+-------------
+
+Schemes like a **rolling forecasting origin** (walk-forward) or an **expanding / sliding window** repeatedly
+move the training window forward in time, so every evaluation always predicts **later** data than it trained
+on. Look-ahead **features** must be avoided too.
+"""
+
+CONTENT["k-fold Stratified Cross-Validation (Stratified CV)"] = r"""
+What it is
+----------
+
+**Stratified k-fold cross-validation** splits the data into **k folds** while **preserving each class's
+proportion** in every fold — so a fold of a 5%-positive dataset stays about **5% positive**. It combines the
+stability of k-fold CV with balanced folds.
+
+Why stratify
+------------
+
+Plain **k-fold** can, by chance, build folds with **too few or missing** minority-class examples, giving
+**biased** or unstable metrics — especially on **imbalanced** data. Stratification makes each fold **mirror**
+the overall distribution, so the k scores are **reliable** and comparable.
+
+How it's used
+-------------
+
+It is the **default** for classification (often **repeated stratified 10-fold**); scikit-learn provides
+``StratifiedKFold``. Two cautions carry over from any CV: fit preprocessing on the **training folds only** to
+avoid **leakage**, and don't use it on **time-series** data, where **time-based** splits are required instead.
+"""
+
+MINDMAP.update({
+    "Evaluation Set": [
+        "k-fold Stratified Cross-Validation (Stratified CV)",
+        "Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)",
+        "Cross-Validation (CV)", "Model Score", "Model Stability", "Data Drift",
+    ],
+    "Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)": [
+        "Sliding Window (Rolling Window) Cross-Validation", "Expanding Window Cross-Validation",
+        "Time Series Forecasting", "IID (Independent and Identically Distributed)",
+        "Evaluation Set", "Cross-Validation (CV)",
+    ],
+    "k-fold Stratified Cross-Validation (Stratified CV)": [
+        "Cross-Validation (CV)", "Stratified Group K-Fold", "Evaluation Set",
+        "Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)",
+        "Model Stability", "Data Drift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: distribution shift — covariate drift, label drift, PSI  (drift / mlops)
+# ----------------------------------------------------------------------
+
+CONTENT["Covariate Drift (a.k.a. Covariate Shift)"] = r"""
+What it is
+----------
+
+**Covariate drift** (covariate shift) is a change in the distribution of the **input features** a model sees
+— the production inputs no longer look like the training inputs — while the feature-to-label rule stays the
+same:
+
+.. math::
+
+   p_{\text{train}}(x) \neq p_{\text{prod}}(x), \qquad p(y \mid x)\ \text{unchanged}.
+
+The model is being asked about a **different population** than it learned on.
+
+How it differs
+--------------
+
+It is one of three **dataset shifts**. **Covariate drift** moves **p(x)** (the inputs), **label drift** moves
+**p(y)** (the target mix), and **concept drift** moves **p(y | x)** (the relationship itself). Only concept
+drift changes the *rule*; covariate drift changes *who* you're scoring.
+
+Detecting and fixing it
+-----------------------
+
+It is caught by comparing feature distributions per column with **PSI** or the **KS** test. Remedies include
+**importance weighting** — reweighting training points by the density ratio
+:math:`w(x) = p_{\text{prod}}(x) / p_{\text{train}}(x)` — retraining on **recent** data, and building
+**robust** features (winsorized, log-scaled, sensible bins).
+"""
+
+CONTENT["Label Drift (a.k.a. Target Drift)"] = r"""
+What it is
+----------
+
+**Label drift** (target drift) is a change in the distribution of the **target** itself — the **class
+balance** or outcome mix shifts between training and production, :math:`p_{\text{train}}(y) \neq
+p_{\text{prod}}(y)`, even when the feature-to-label relationship may be unchanged. A fraud rate that creeps
+from 1% to 3% is label drift.
+
+How it differs
+--------------
+
+Like covariate drift it is a **dataset shift**, but it moves **p(y)** rather than **p(x)** or **p(y | x)**.
+Because most classifiers implicitly assume the **base rate** they trained on, a shifted target distribution
+can throw off **calibrated probabilities** and **thresholds** even if each input still maps to the right
+answer.
+
+Detecting and fixing it
+-----------------------
+
+Monitor the **label** or **prediction** distribution over time (PSI on predicted classes, tracked class
+proportions). Fixes include **recalibrating** decision thresholds to the new base rate, **reweighting** or
+resampling to the current mix, and **retraining** on recent labels.
+"""
+
+CONTENT["PSI (Population Stability Index)"] = r"""
+What it is
+----------
+
+The **Population Stability Index** measures how much a variable's distribution has **shifted** between a
+**reference** ("expected") sample and a **current** ("actual") one — usually training vs production. It bins
+the variable and sums the per-bin discrepancy:
+
+.. math::
+
+   \text{PSI} = \sum_{b} (A_b - E_b)\,\ln\!\frac{A_b}{E_b},
+
+over bins :math:`b`. It is **0** when the distributions match and grows without bound as they diverge.
+
+How it's computed
+-----------------
+
+Choose **bins** (often 10, by quantile or equal width) using the **same edges** for both samples, take each
+bin's **proportion** in the expected and actual data, and sum the term above across bins. It is closely
+related to a **symmetrized KL divergence**.
+
+Reading it
+----------
+
+The rules of thumb are **< 0.1** stable, **0.1–0.25** moderate drift (**watch**), and **> 0.25** significant
+drift (**retrain**). Two cautions: an **empty bin** makes PSI undefined or unbounded (so proportions are
+clipped), and PSI tends to **rise with sample size**, so thresholds may need tuning.
+"""
+
+MINDMAP.update({
+    "Covariate Drift (a.k.a. Covariate Shift)": [
+        "Label Drift (a.k.a. Target Drift)", "Concept Drift", "Dataset Shift", "Data Drift",
+        "Drift Detection", "PSI (Population Stability Index)",
+    ],
+    "Label Drift (a.k.a. Target Drift)": [
+        "Covariate Drift (a.k.a. Covariate Shift)", "Concept Drift", "Dataset Shift",
+        "PSI (Population Stability Index)", "Data Drift", "Drift Detection",
+    ],
+    "PSI (Population Stability Index)": [
+        "Covariate Drift (a.k.a. Covariate Shift)", "Label Drift (a.k.a. Target Drift)",
+        "Kolmogorov–Smirnov (KS) Test", "Kullback–Leibler (KL) Divergence", "Data Drift",
+        "Drift Detection",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: operational cost — compute budgets, inference cost, manual review minutes  (ops / platforms)
+# ----------------------------------------------------------------------
+
+CONTENT["Compute budgets"] = r"""
+What it is
+----------
+
+A **compute budget** is the pool of **computational resources** — GPU / TPU hours, **FLOPs**, and the dollars
+behind them — allocated to an ML system's **training** and **serving**. It caps how big a model you can
+train and how much traffic you can serve.
+
+The two halves
+--------------
+
+**Training** is a **one-time** cost that grows with model and data size (its FLOPs approximated by the
+**6ND** rule — roughly 6 × parameters × tokens), while **inference** is an **ongoing** cost (about **2N**
+FLOPs per forward pass) that scales with usage:
+
+.. math::
+
+   C_{\text{train}} \approx 6ND, \qquad C_{\text{inf}} \approx 2N \ \text{FLOPs per pass}.
+
+In production, inference usually claims the **majority** of the budget.
+
+Managing it
+-----------
+
+Teams set **budgets and alerts**, model **optimistic / expected / pessimistic** scenarios, and track unit
+economics like **cost per prediction** and **GPU utilization**. Hidden drains — idle instances, failed runs,
+oversized experiments — routinely add **20–40%** over the planned figure.
+"""
+
+CONTENT["Inference Cost (Inference $)"] = r"""
+What it is
+----------
+
+**Inference cost** is the **ongoing** expense of **serving predictions** — the compute (and money) spent
+every time the deployed model answers a request. It is usually tracked as the **cost per prediction** (or
+per token), the fundamental **unit economic** of an ML product.
+
+Why it dominates
+----------------
+
+Unlike **training**, which is paid **once**, inference runs **continuously** and **scales with adoption** —
+every user request consumes compute, so cost grows with traffic. At scale it is the **larger** line item,
+often **65–80%** of an AI budget, and it is where revenue meets the bill.
+
+Bringing it down
+----------------
+
+It is driven by **model size**, **hardware**, and **utilization**, so it falls with **quantization**
+(smaller, faster weights), **caching**, **batching**, and **right-sizing** capacity to demand — techniques
+that can cut cost per prediction substantially. The target is a **declining** cost-per-prediction over time.
+"""
+
+CONTENT["Manual review minutes"] = r"""
+What it is
+----------
+
+**Manual review minutes** measure the **human time** spent checking model outputs in a **human-in-the-loop**
+pipeline — analysts working a **review queue** of **flagged** or **low-confidence** predictions, confirming
+or correcting each. It is the **labor** cost of keeping a model's decisions trustworthy.
+
+Why it matters
+--------------
+
+Human review is **expensive** — expert annotation runs to tens of dollars per hour, and for some systems
+this **labeling / review** cost dwarfs the **compute** cost. It is a real budget line, not a rounding error,
+and it scales with **how many** cases the model sends to a person.
+
+The lever
+---------
+
+Fewer needless escalations means fewer review minutes, so **precision** and a well-tuned **selection rate**
+(the share of cases flagged) directly control the cost. The design trade-off is **automation vs assurance**
+— routing more to humans is safer but slower and pricier; routing less is cheaper but riskier.
+"""
+
+MINDMAP.update({
+    "Compute budgets": [
+        "Inference Cost (Inference $)", "TPU Clusters", "Quantization", "Caching",
+        "Cloud Inference", "Latency Guardrails",
+    ],
+    "Inference Cost (Inference $)": [
+        "Compute budgets", "Manual review minutes", "Quantization", "Caching",
+        "TPU Clusters", "Cloud Inference",
+    ],
+    "Manual review minutes": [
+        "Inference Cost (Inference $)", "Compute budgets",
+        "Precision (a.k.a. Positive Predictive Value, PPV)", "Selection Rate",
+        "Latency Guardrails", "Cloud Inference",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: serving infrastructure — caching, quantization, TPU clusters  (platforms / ops)
+# ----------------------------------------------------------------------
+
+CONTENT["Caching"] = r"""
+What it is
+----------
+
+**Caching** stores the results of expensive computation and **reuses** them instead of recomputing —
+trading **memory** for **speed** and **cost**. If the same work would produce the same answer, a cache
+returns it instantly.
+
+In model serving
+----------------
+
+The signature example is the **KV cache** in transformers, which keeps the **key/value** tensors of earlier
+tokens so generating each new token doesn't re-process the whole sequence. It grows **linearly with sequence
+length** and can exceed the **model weights** in memory — which is why it is often **quantized**. Beyond
+that, **prediction caching** reuses answers to repeated requests and **feature caching** precomputes costly
+features.
+
+The trade-offs
+--------------
+
+A cache must handle **staleness** — cached values can go **out of date** when inputs or the model change — so
+it needs **invalidation** and **eviction** policies, and it consumes **memory** that must be budgeted against
+the speed it buys.
+"""
+
+CONTENT["Quantization"] = r"""
+What it is
+----------
+
+**Quantization** lowers the **numerical precision** of a model's **weights** (and often activations) — from
+32-bit floating point (**FP32**) down to **INT8**, **FP8**, or even **INT4**. Fewer bits per number means a
+**smaller, faster, cheaper** model.
+
+The payoff
+----------
+
+An **INT8** model uses about **75% less memory** than FP32, and because decoding is often
+**memory-bandwidth-bound**, 4-bit weights can be read up to **4× faster** than 16-bit — directly cutting
+**latency** and **inference cost** on hardware that supports low precision.
+
+Managing the trade-off
+----------------------
+
+Naive quantization **degrades accuracy**. **Post-training quantization (PTQ)** converts a trained model
+quickly (with a small calibration set), while **quantization-aware training (QAT)** bakes precision loss into
+training to preserve accuracy; advanced schemes like **AWQ** and **GPTQ** protect the most **sensitive**
+weights to reach near-FP16 quality at INT4 speeds.
+"""
+
+CONTENT["TPU Clusters"] = r"""
+What it is
+----------
+
+A **TPU** (Tensor Processing Unit) is Google's custom **ASIC** built for machine learning — hardware
+specialized for the massive **matrix multiplications** inside neural networks. A **TPU cluster** (or **pod**)
+links many of these chips with **high-speed interconnects** to train and serve **very large** models.
+
+Why it exists
+-------------
+
+General-purpose **CPUs** are too slow for deep learning and even **GPUs** aren't purpose-built for it; TPUs
+pack dense **matrix-multiply** units and high **memory bandwidth** to push far more throughput per watt on
+those specific operations. They are typically consumed via the **cloud**, on demand.
+
+How clusters help
+-----------------
+
+A single chip can't hold the largest models, so a cluster **splits the work** — across **data**, **model**,
+and **pipeline** parallelism — running in parallel over many TPUs. That is what makes training
+billion-parameter models, and serving them at scale, feasible.
+"""
+
+MINDMAP.update({
+    "Caching": [
+        "Quantization", "TPU Clusters", "Inference Cost (Inference $)", "Cloud Inference",
+        "Latency Guardrails", "Compute budgets",
+    ],
+    "Quantization": [
+        "Caching", "TPU Clusters", "Inference Cost (Inference $)", "Neural Networks",
+        "Compute budgets", "ONNX (Open Neural Network Exchange)",
+    ],
+    "TPU Clusters": [
+        "Quantization", "Caching", "Compute budgets", "Inference Cost (Inference $)",
+        "Cloud Inference", "Neural Networks",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: production guardrails — drift, latency, fairness guardrails  (mlops / ops)
+# ----------------------------------------------------------------------
+
+CONTENT["Drift Guardrails"] = r"""
+What it is
+----------
+
+**Drift guardrails** are automated monitoring rules that watch a deployed model's **inputs and predictions**
+for **distribution shift** and **trigger action** — an alert, an investigation, or a **retrain** — when the
+drift crosses a threshold. They turn passive monitoring into a **response**.
+
+How they're set
+---------------
+
+They compare live data to a **rolling baseline** with drift metrics like **PSI** and the **KS** test — for
+example, **PSI above 0.2–0.25** on a key feature raises an alert, and **prediction drift that stays over
+threshold for several consecutive days** kicks off **automatic retraining** on fresh labels.
+
+Why they matter
+---------------
+
+A model silently **degrades** as the world moves away from its training data, and no aggregate dashboard
+catches that on its own. Guardrails make the degradation **actionable** — often gating a retrained model
+through a **registry** that re-evaluates it against production before it sees traffic.
+"""
+
+CONTENT["Latency Guardrails"] = r"""
+What it is
+----------
+
+**Latency guardrails** are **budgets** on how long the model may take to respond — service-level objectives
+(**SLOs**) that trigger an alert when serving gets too slow. They protect the **user experience** and any
+latency **SLAs**.
+
+Tail, not average
+-----------------
+
+They track **tail percentiles** — **p50, p95, p99** — not just the mean, because a few very slow requests
+ruin the experience even when the average looks fine. A typical rule fires when the current **p99** exceeds,
+say, **1.5×** a rolling baseline.
+
+Setting the budget
+------------------
+
+Acceptable latency is set by the **use case** — on the order of tens of milliseconds for ad serving or fraud
+scoring, more for heavier recommendations — and the system is **designed and sized** to stay under it, then
+**measured continuously** with alerts on breach.
+"""
+
+CONTENT["Fairness Guardrails"] = r"""
+What it is
+----------
+
+**Fairness guardrails** are automated checks on a model's **disparity across groups** that **block a
+deployment** or **trigger retraining** when a fairness metric exceeds an agreed limit. They bake **equity**
+and **compliance** into the release process.
+
+How they're enforced
+--------------------
+
+A pre-deployment **fairness audit** requires disparity measures — such as the **demographic-parity
+difference** or **equalized-odds** gap — to stay **below a threshold** (for example **≤ 0.05**); if **DPD or
+EO exceeds** it, the release is **halted** and the model is **retrained**. Post-deployment, real-time
+monitoring watches for **bias spikes**.
+
+Why they matter
+---------------
+
+Fairness can **degrade** as populations drift, and regulated domains (lending, hiring, healthcare) demand
+**auditable** guarantees. Guardrails provide a **hard gate** and an **audit trail**, rather than relying on a
+one-time fairness check that goes stale.
+"""
+
+MINDMAP.update({
+    "Drift Guardrails": [
+        "Latency Guardrails", "Fairness Guardrails", "Drift Detection",
+        "PSI (Population Stability Index)", "Data Drift", "Kolmogorov–Smirnov (KS) Test",
+    ],
+    "Latency Guardrails": [
+        "Drift Guardrails", "Fairness Guardrails", "Inference Cost (Inference $)",
+        "Cloud Inference", "Compute budgets", "Caching",
+    ],
+    "Fairness Guardrails": [
+        "Drift Guardrails", "Latency Guardrails", "Selection Rate", "Drift Detection",
+        "PSI (Population Stability Index)", "Statistical Tests",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: model families — classification, regression, linear models  (concepts / training)
+# ----------------------------------------------------------------------
+
+CONTENT["Classification Models"] = r"""
+What it is
+----------
+
+**Classification models** predict a **discrete category** — spam or not, which digit, which disease. The
+output is a **class label** (often via a probability over classes), and the model learns a **decision
+boundary** that separates the classes in feature space.
+
+The landscape
+-------------
+
+They range from **linear** ones (**logistic regression**, linear SVM) to **non-linear** ones (**decision
+trees**, random forests, **neural networks**, kernel SVMs). Tasks split into **binary** (two classes),
+**multiclass** (one of many), and **multilabel** (several at once).
+
+How they're judged
+------------------
+
+Because the target is categorical, classification uses metrics like **accuracy**, **precision / recall**,
+**F1**, and **AUC** — not squared error — and its **loss functions** are typically **cross-entropy** rather
+than a distance. The right metric depends on **class balance** and error costs.
+"""
+
+CONTENT["Regression Models"] = r"""
+What it is
+----------
+
+**Regression models** predict a **continuous number** — a price, a temperature, a demand — rather than a
+class. They learn a function mapping features to a **real-valued** output, fitting a curve or surface through
+the data.
+
+The landscape
+-------------
+
+The simplest is **linear regression** (a weighted sum of features), extending to **polynomial**,
+**regularized** (ridge, lasso), tree-based (**random forests**, gradient boosting), and **neural**
+regressors. The same algorithm family often has both a classification and a regression form.
+
+How they're judged
+------------------
+
+Regression is scored by how far predictions land from the truth — **MSE / RMSE**, **MAE**, and **R²** — and
+trained to minimize a distance-based **loss**. Because those errors use magnitudes, regression is
+**sensitive to outliers**, which is why robust losses and metrics exist.
+"""
+
+CONTENT["Linear Models"] = r"""
+What it is
+----------
+
+A **linear model** predicts from a **weighted sum** of the input features, optionally passed through a link
+function:
+
+.. math::
+
+   \hat{y} = \mathbf{w}^\top \mathbf{x} + b.
+
+Its defining trait is that it is **linear in the parameters**, which makes it simple, fast, and highly
+**interpretable**.
+
+Both tasks
+----------
+
+The family spans **regression** (**linear regression**, ridge, lasso) and **classification** (**logistic
+regression**, linear SVM), where the linear combination is squashed by a **sigmoid** or **softmax** into
+probabilities. In every case the learned **weights** show each feature's direction and strength.
+
+Strengths and limits
+--------------------
+
+Linear models are **data-efficient**, **cheap** to train and serve, and **transparent** — but they can only
+capture **linear** relationships unless you add **interactions** or feature transforms. They are the natural
+**baseline** against which more complex models must justify themselves.
+"""
+
+MINDMAP.update({
+    "Classification Models": [
+        "Regression Models", "Linear Models", "Logistic Regression", "Decision Trees",
+        "Binary Classification", "Multiclass Classification",
+    ],
+    "Regression Models": [
+        "Classification Models", "Linear Models", "Mean Squared Error (MSE)", "Loss Functions",
+        "Outlier", "Neural Networks",
+    ],
+    "Linear Models": [
+        "Logistic Regression", "Classification Models", "Regression Models", "Neural Networks",
+        "Loss Functions", "Support Vector Machines (SVMs)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: perception & data — computer vision, NLP, full annotation  (repr / features)
+# ----------------------------------------------------------------------
+
+CONTENT["Computer Vision (CV)"] = r"""
+What it is
+----------
+
+**Computer vision** teaches machines to **interpret visual data** — images and video — extracting meaning the
+way human sight does. It turns pixels into **structured** understanding: what is present, where, and how it
+moves.
+
+Its tasks
+---------
+
+The core problems are **image classification** (what's in the picture), **object detection** (locating
+objects with **bounding boxes**), **segmentation** (labeling every **pixel**), plus recognition, pose, and
+tracking. Modern CV is dominated by **deep learning** — **convolutional neural networks** and **vision
+transformers**.
+
+What it needs
+-------------
+
+CV has historically relied on **large annotated** datasets (ImageNet-scale), because supervised models learn
+from labeled examples — which makes **annotation** a major cost and drives interest in self- and
+semi-supervised alternatives. It powers medical imaging, autonomous driving, and quality inspection.
+"""
+
+CONTENT["Natural Language Processing (NLP)"] = r"""
+What it is
+----------
+
+**Natural language processing** teaches machines to **understand and generate human language** — text and
+speech. It bridges unstructured language and computation, from parsing meaning to producing fluent output.
+
+Its tasks
+---------
+
+NLP spans **classification** (sentiment, topic), **named-entity recognition**, **translation**,
+**summarization**, **question answering**, and **generation**. Its architectures moved from RNNs and
+**LSTMs** to the **transformer**, behind **BERT** and **GPT**-style models.
+
+Its turning point
+-----------------
+
+NLP was the first great success of **self-supervised** pretraining — models learn from **masked-token**
+prediction on **huge unlabeled** text, then fine-tune on a smaller labeled task. That pretrain-then-finetune
+recipe reset the field and now underlies search, chatbots, and translation.
+"""
+
+CONTENT["Full Annotation"] = r"""
+What it is
+----------
+
+**Full annotation** means **labeling every example** in a dataset with its **ground-truth** target — the
+complete, high-quality supervision that classic **supervised learning** assumes. Each image gets its boxes,
+each sentence its tags.
+
+The cost
+--------
+
+It is **manual, slow, and expensive** — often the most **tedious** part of an ML project — and requires
+annotators following **guidelines**, whose **disagreements** become a data-quality issue (measured with
+inter-annotator agreement). At scale, labeling everything is simply **infeasible**.
+
+Why it persists
+---------------
+
+Despite the cost, fully annotated data gives the **strongest** signal and remains the **go-to** for
+production and the **gold-standard benchmark**. Its expense is exactly what motivates **weak**, **semi-**,
+and **self-supervised** learning, which trade some label quality for far less human effort.
+"""
+
+MINDMAP.update({
+    "Computer Vision (CV)": [
+        "Natural Language Processing (NLP)", "Neural Networks", "Full Annotation",
+        "Embedding", "Autoencoder", "Deep Ensembles",
+    ],
+    "Natural Language Processing (NLP)": [
+        "Computer Vision (CV)", "Neural Networks", "Embedding", "Full Annotation",
+        "LSTM — Long Short-Term Memory Networks", "Weak Supervision",
+    ],
+    "Full Annotation": [
+        "Weak Supervision", "Label Noise", "Computer Vision (CV)",
+        "Natural Language Processing (NLP)", "Neural Networks", "Manual review minutes",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: post-hoc calibration — temperature scaling, Platt scaling, isotonic regression  (calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["Temperature Scaling"] = r"""
+What it is
+----------
+
+**Temperature scaling** is the simplest **post-hoc calibration** method for neural nets — it divides the
+**logits** by a single learned scalar **T** before the **softmax**, softening or sharpening the
+probabilities:
+
+.. math::
+
+   \hat{Q} = \mathrm{softmax}(\mathbf{z} / T), \quad T > 0.
+
+It is a one-parameter fix applied **after** training.
+
+What T does
+-----------
+
+**T = 1** leaves the model unchanged; **T > 1** makes predictions **less confident** (softer), which corrects
+the **overconfidence** typical of modern networks; **T < 1** makes them sharper. T is fit on a **held-out**
+validation set by minimizing **negative log-likelihood**.
+
+Why it's popular
+----------------
+
+It is **simple**, **effective**, and crucially **accuracy-preserving** — dividing every logit by the same T
+never changes the **argmax**, so the decision boundary and accuracy are untouched. Its limit is
+**expressiveness**: it can only rescale confidence uniformly, not fix region-specific miscalibration.
+"""
+
+CONTENT["Platt Scaling"] = r"""
+What it is
+----------
+
+**Platt scaling** calibrates a classifier by fitting a **logistic (sigmoid)** function on its raw scores,
+mapping them to probabilities:
+
+.. math::
+
+   \hat{Q} = \sigma(a\,z + b).
+
+The two parameters **a** and **b** are fit by **negative log-likelihood** on a validation set. It was invented
+by John Platt for **SVMs**.
+
+How it relates
+--------------
+
+It is a **parametric** method that assumes a **sigmoid**-shaped miscalibration. **Temperature scaling** is
+essentially its **one-parameter, multi-class** special case (fixing the slope and dropping the offset), so
+the two are close cousins.
+
+When to use it
+--------------
+
+Platt scaling is a solid default for **binary** classifiers with **monotonic** score miscalibration and
+limited calibration data, since two parameters rarely overfit — but if the true miscalibration isn't
+sigmoid-shaped, a more flexible method like **isotonic regression** fits better.
+"""
+
+CONTENT["Isotonic Regression"] = r"""
+What it is
+----------
+
+**Isotonic regression** is a **non-parametric** calibration method that fits a **monotonic** (non-decreasing)
+**step function** mapping raw scores to calibrated probabilities — it assumes only that a higher score should
+mean a higher probability, nothing about the shape.
+
+Its strength
+------------
+
+Because it is **model-free**, it can correct **arbitrary** monotonic miscalibration that parametric methods
+(Platt, temperature) miss — and with **enough** calibration data it typically **outperforms** them. It is
+also a general tool for **monotonic regression**, not only calibration.
+
+Its weakness
+------------
+
+That flexibility makes it **prone to overfitting** when calibration data is **scarce**, and the
+piecewise-constant fit is less smooth. Unlike temperature scaling it does **not** guarantee the model's
+accuracy is preserved.
+"""
+
+MINDMAP.update({
+    "Temperature Scaling": [
+        "Platt Scaling", "Isotonic Regression", "Overconfident", "Confidence Level",
+        "Softmax Function", "Underconfident",
+    ],
+    "Platt Scaling": [
+        "Temperature Scaling", "Isotonic Regression", "Sigmoid Function", "Logistic Regression",
+        "Support Vector Machines (SVMs)", "Confidence Level",
+    ],
+    "Isotonic Regression": [
+        "Platt Scaling", "Temperature Scaling", "Confidence Level", "Overconfident",
+        "Regression Models", "Underconfident",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: calibration error — adaptive ECE, MCE, Murphy's decomposition  (calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["Adaptive ECE (Expected Calibration Error with Adaptive Binning)"] = r"""
+What it is
+----------
+
+**Adaptive ECE** measures a classifier's **miscalibration** — the gap between its **confidence** and its
+actual **accuracy** — using **equal-count** bins. Like standard **Expected Calibration Error**, it is a
+weighted average of |accuracy − confidence| across bins:
+
+.. math::
+
+   \text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{N}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+The "adaptive" part changes only **how the bins are drawn**.
+
+The problem it fixes
+--------------------
+
+Standard ECE uses **fixed equal-width** bins ([0.0–0.1], …), so when predictions **cluster** (modern nets
+pile probabilities near 1.0), some bins hold **few or zero** samples and give **noisy** estimates. Adaptive
+binning instead makes each bin hold **the same number** of predictions, so bin **widths vary** with the data.
+
+Why it helps
+------------
+
+Equal-count bins yield a **more stable, fairer** calibration estimate on **skewed** predictions, where
+equal-width ECE is unreliable. It shares ECE's caveat, though: the result still depends on the **number of
+bins**, and neither is a **proper scoring rule**.
+"""
+
+CONTENT["Maximum Calibration Error (MCE)"] = r"""
+What it is
+----------
+
+**Maximum Calibration Error** reports the **worst** calibration gap rather than the average — the **largest**
+difference between accuracy and confidence over all bins:
+
+.. math::
+
+   \text{MCE} = \max_{m}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+Where ECE asks *how miscalibrated on average?*, MCE asks *how bad does it get?*
+
+When it matters
+---------------
+
+MCE is the right lens for **safety-critical** systems — medical, autonomous, financial — where a single
+**badly** miscalibrated confidence region can cause harm, even if the **average** looks fine. Lower is
+better, as with ECE.
+
+Its limits
+----------
+
+Like ECE it is **binning-dependent** (the answer shifts with bin count and scheme), and it is **not a proper
+scoring rule** — a model can achieve low calibration error with **trivial** predictions, so MCE must be read
+**alongside** discrimination metrics, not alone.
+"""
+
+CONTENT["Murphy's Decomposition"] = r"""
+What it is
+----------
+
+**Murphy's decomposition** (1973) splits a **proper scoring rule** — classically the **Brier score** — into
+three interpretable pieces:
+
+.. math::
+
+   \text{Brier} = \text{Reliability} - \text{Resolution} + \text{Uncertainty}.
+
+It reveals *why* a probabilistic forecast scores as it does.
+
+The three terms
+---------------
+
+**Reliability** is the **calibration** error (how far forecast probabilities sit from observed frequencies —
+**lower** is better); **resolution** is how much the forecasts **vary** from the base rate to **separate**
+outcomes (**higher** is better); **uncertainty** is the **irreducible** variance of the event itself,
+independent of the model.
+
+Why it matters
+--------------
+
+It shows a good score needs **both** good calibration **and** good resolution — a perfectly calibrated model
+that always predicts the base rate has **zero** reliability error but **zero** resolution, and is useless. It
+is the theoretical reason calibration metrics like **ECE** tell only **half** the story.
+"""
+
+MINDMAP.update({
+    "Adaptive ECE (Expected Calibration Error with Adaptive Binning)": [
+        "Maximum Calibration Error (MCE)", "Murphy's Decomposition", "Confidence Level",
+        "Temperature Scaling", "Overconfident", "Underconfident",
+    ],
+    "Maximum Calibration Error (MCE)": [
+        "Adaptive ECE (Expected Calibration Error with Adaptive Binning)", "Murphy's Decomposition",
+        "Confidence Level", "Temperature Scaling", "Risk-Based Decisions", "Overconfident",
+    ],
+    "Murphy's Decomposition": [
+        "Adaptive ECE (Expected Calibration Error with Adaptive Binning)",
+        "Maximum Calibration Error (MCE)", "Strictly Proper Scoring Rules", "Confidence Level",
+        "Probabilistic Forecasts", "Temperature Scaling",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: ranking & IR benchmarks — DCG, Kaggle, TREC  (ranking / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["DCG (Discounted Cumulative Gain)"] = r"""
+What it is
+----------
+
+**Discounted Cumulative Gain** scores a **ranked list** by summing each item's **graded relevance**,
+discounted by how **far down** it sits — so a relevant result near the top counts far more than the same
+result buried lower:
+
+.. math::
+
+   \text{DCG}_p = \sum_{i=1}^{p} \frac{\mathrm{rel}_i}{\log_2(i+1)}.
+
+The **logarithmic** discount encodes that users examine top results most.
+
+Why it beats precision
+----------------------
+
+Unlike binary **precision / recall**, DCG uses **multi-level** relevance (say 0–3) **and** position, capturing
+both *how relevant* each item is and *where* it was ranked — exactly what matters for **search** and
+**recommendation**.
+
+Normalizing it
+--------------
+
+Raw DCG isn't comparable across queries with different numbers of relevant items, so
+:math:`\text{NDCG} = \text{DCG} / \text{IDCG}` divides by the **ideal** DCG (the best possible ordering),
+giving a **0-to-1** score where **1** is a perfect ranking. It is the standard offline ranking metric.
+"""
+
+CONTENT["Kaggle"] = r"""
+What it is
+----------
+
+**Kaggle** is an online **data-science competition** platform (owned by Google) where organizations post a
+dataset and a problem, and competitors submit predictions scored on a **held-out test set**, ranked on a
+**leaderboard**. It also hosts public **datasets**, **notebooks**, and courses.
+
+How competitions work
+---------------------
+
+Entrants train models and submit predictions evaluated by a **fixed metric**; a **public** leaderboard shows
+partial-data scores during the contest, while the final **private** leaderboard — on unseen test data —
+decides winners, guarding against **overfitting** the public split.
+
+Its influence and caveats
+-------------------------
+
+Kaggle **popularized** competitive, benchmark-driven ML and battle-tested techniques like **gradient-boosted
+trees** and **ensembling**. But winning solutions often **over-optimize** a single metric and stack many
+models, so they don't always translate to **production**, where latency and maintainability matter.
+"""
+
+CONTENT["TREC (Text REtrieval Conference)"] = r"""
+What it is
+----------
+
+The **Text REtrieval Conference** is an annual **information-retrieval benchmark** run by **NIST** since
+1992. It provides standard **test collections** — documents, query **topics**, and human **relevance
+judgments** — and organizes **tracks** so retrieval systems can be compared on common ground.
+
+Why it matters
+--------------
+
+TREC formalized the **shared-task** evaluation paradigm in IR — the **pooling** method for gathering
+relevance judgments at scale, reusable **test collections**, and the ``trec_eval`` scoring tool. Ranking
+metrics like **DCG / NDCG** and MAP were validated on TREC data.
+
+Its legacy
+----------
+
+Its **tracks** (ad-hoc, web, question answering, and more) drove decades of progress in **search** and now
+**retrieval-augmented** systems, and its methodology underpins modern IR **leaderboards**. It is to
+information retrieval what shared benchmarks are to the rest of ML.
+"""
+
+MINDMAP.update({
+    "DCG (Discounted Cumulative Gain)": [
+        "Kaggle", "TREC (Text REtrieval Conference)", "Average Precision (AP)",
+        "Relevance in Recommender Systems", "Intra-List Diversity (ILD)",
+        "Cosine Similarity of Item Features",
+    ],
+    "Kaggle": [
+        "TREC (Text REtrieval Conference)", "DCG (Discounted Cumulative Gain)",
+        "Forecasting Competitions", "Computer Vision (CV)", "Average Precision (AP)",
+        "Natural Language Processing (NLP)",
+    ],
+    "TREC (Text REtrieval Conference)": [
+        "DCG (Discounted Cumulative Gain)", "Kaggle", "Average Precision (AP)",
+        "Relevance in Recommender Systems", "Natural Language Processing (NLP)",
+        "Forecasting Competitions",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: score & ROC — model score, ROC curve, AUC  (metrics / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["ROC Curve (Receiver Operating Characteristic)"] = r"""
+What it is
+----------
+
+A **ROC curve** (Receiver Operating Characteristic) plots a binary classifier's **true positive rate**
+(sensitivity / recall) against its **false positive rate** (1 − specificity) as the **decision threshold**
+sweeps from strict to lenient. Each point is one threshold's (FPR, TPR) trade-off.
+
+Reading it
+----------
+
+Lowering the threshold labels **more** examples positive, so **both** TPR and FPR rise — the curve runs from
+(0, 0) to (1, 1). A curve hugging the **upper-left** corner (high TPR, low FPR) is excellent; the
+**diagonal** line is **random guessing**; the closer to the top-left, the better the separation.
+
+Why it's useful
+---------------
+
+Because it shows performance at **every** threshold, the ROC curve reveals the full **trade-off** between
+catching positives and raising false alarms — letting you pick an operating point for your costs, rather than
+being locked to one cutoff. It dates to **radar** signal detection in the 1940s.
+"""
+
+CONTENT["Model Score"] = r"""
+What it is
+----------
+
+A **model score** is the **continuous output** a classifier assigns each example — a **probability** or
+real-valued score of belonging to the **positive** class — *before* it becomes a hard label. Logistic
+regression, random forests, and neural nets all emit scores.
+
+Score vs label
+--------------
+
+Turning a score into a **decision** requires a **threshold** — above it, positive; below, negative. The score
+carries **more** information than the label: its **ranking** (are positives scored above negatives?) is what
+threshold-free metrics like **AUC** measure, and its **magnitude** matters for ranking and prioritization.
+
+Score vs probability
+--------------------
+
+A score need not be a **calibrated** probability — a score of 0.9 doesn't guarantee a 90% chance of being
+positive unless the model is calibrated (e.g., via **temperature** or **Platt scaling**). Use the raw score
+for **ranking**, the calibrated one for **decisions** that need real probabilities.
+"""
+
+CONTENT["AUC (Area Under the Curve)"] = r"""
+What it is
+----------
+
+**AUC** — the **area under the curve** — condenses an entire **ROC curve** into one number by measuring the
+area beneath it. It ranges from **0 to 1**: **1** is perfect, **0.5** is random guessing, and below 0.5 means
+the scores are **inverted**.
+
+Its meaning
+-----------
+
+AUC has a clean interpretation — it is the **probability that a random positive is scored higher than a
+random negative** (the Wilcoxon–Mann–Whitney statistic). So it measures how well the model **ranks**
+positives above negatives, independent of any single threshold.
+
+Why it beats accuracy
+---------------------
+
+AUC is **threshold-invariant** and always calibrated so **0.5 = useless**, unlike **accuracy**, which is
+misleading under **imbalance** (90% accuracy is trivial when 90% of data is negative). But on **heavily
+imbalanced** data the **PR-AUC** often tells a more honest story, since ROC-AUC can look optimistic.
+"""
+
+MINDMAP.update({
+    "ROC Curve (Receiver Operating Characteristic)": [
+        "AUC (Area Under the Curve)", "Model Score",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Precision–Recall AUC (PR-AUC)", "Accuracy", "Partial AUC (pAUC)",
+    ],
+    "Model Score": [
+        "ROC Curve (Receiver Operating Characteristic)", "AUC (Area Under the Curve)",
+        "Confidence Level", "Log-Odds", "Sigmoid Function", "Temperature Scaling",
+    ],
+    "AUC (Area Under the Curve)": [
+        "ROC Curve (Receiver Operating Characteristic)",
+        "ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)",
+        "Precision–Recall AUC (PR-AUC)", "Model Score", "Partial AUC (pAUC)", "Accuracy",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: drift core — concept drift, data drift, KS shift  (drift)
+# ----------------------------------------------------------------------
+
+CONTENT["Concept Drift"] = r"""
+What it is
+----------
+
+**Concept drift** is a change in the **relationship** between inputs and the outcome — formally a shift in
+:math:`P(Y \mid X)`. The inputs can look **identical**, but what they *mean* for the target has changed: the
+rules the model learned no longer hold.
+
+Why it's dangerous
+------------------
+
+Because the input distribution may look **normal**, concept drift is **hard to detect** — the model keeps
+predicting **confidently** while being **wrong**. It shows up as a **decline** in accuracy, F1, or business
+KPIs, which is why performance is monitored on **labeled** or delayed data, aided by detectors like
+**ADWIN**, **DDM**, or **Page-Hinkley**.
+
+Its forms and fix
+-----------------
+
+Drift can be **sudden** (a regime change), **gradual**, **incremental**, or **recurring** (seasonal patterns
+that revert). The remedy is **retraining** on fresh labeled data that reflects the new relationship — the
+reason production models need continuous **monitoring** and update loops.
+"""
+
+CONTENT["Data Drift"] = r"""
+What it is
+----------
+
+**Data drift** — also called **covariate shift** — is a change in the **input** distribution :math:`P(X)`
+while the model itself stays **fixed**. Its weights and logic are unchanged, but the data arriving at
+inference no longer **resembles** the training data, so predictions grow **less reliable**.
+
+Drift vs noise
+--------------
+
+Data drift is **systematic** — a sustained, directional shift — not the random fluctuation that's normal and
+expected. Examples: a fraud model meeting **new devices and geographies**, or a credit model trained on
+salaried workers now scoring **gig workers**.
+
+Detecting and relating it
+-------------------------
+
+It's caught by comparing a **production** window to a **reference** window with statistical tests (**KS**,
+**Chi-square**), **PSI**, or divergence metrics — the input side, so it's detectable **before** labels
+arrive. Data drift can **evolve into** concept drift, which is why teams monitor :math:`P(X)` first, then
+investigate the input–output relationship if performance drops.
+"""
+
+CONTENT["KS shift (Kolmogorov–Smirnov shift)"] = r"""
+What it is
+----------
+
+**KS shift** detects **data drift** in a **continuous** feature with the **two-sample Kolmogorov–Smirnov
+test** — it compares the feature's **cumulative distribution** in a reference window against the current
+production window and measures their **largest** gap:
+
+.. math::
+
+   D = \sup_{x}\,\big| F_{\text{ref}}(x) - F_{\text{prod}}(x) \big|.
+
+A large **D** means the two samples likely come from **different** distributions.
+
+Why it's used
+-------------
+
+The KS test is **non-parametric** — it assumes **no** particular distribution shape — so it flags
+**arbitrary** changes in a numeric feature's distribution. When **D** exceeds a **critical value** (or its
+p-value falls below a threshold), the shift is **statistically significant**.
+
+Using it in practice
+--------------------
+
+At production scale, tiny shifts become "significant" on **huge** samples, so the threshold is **calibrated**
+to batch size to avoid **alert fatigue**. KS shift complements **PSI** (which grades severity) and
+**Chi-square** (for categorical features) as part of a drift-monitoring suite.
+"""
+
+MINDMAP.update({
+    "Concept Drift": [
+        "Data Drift", "Label Drift (a.k.a. Target Drift)", "Covariate Drift (a.k.a. Covariate Shift)",
+        "Drift Detection", "Dataset Shift", "Model Stability",
+    ],
+    "Data Drift": [
+        "Concept Drift", "Covariate Drift (a.k.a. Covariate Shift)", "PSI (Population Stability Index)",
+        "KS shift (Kolmogorov–Smirnov shift)", "Drift Detection", "Categorical Drift",
+    ],
+    "KS shift (Kolmogorov–Smirnov shift)": [
+        "Kolmogorov–Smirnov (KS) Test", "Cumulative Distribution Function (CDF)", "Data Drift",
+        "PSI (Population Stability Index)", "Covariate Drift (a.k.a. Covariate Shift)", "Concept Drift",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: scale-free forecast error — MASE, WMAPE, sMAPE  (evaluation / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["MASE (Mean Absolute Scaled Error)"] = r"""
+What it is
+----------
+
+**Mean Absolute Scaled Error** divides a forecast's **mean absolute error** by the MAE of an **in-sample
+naive** benchmark — the seasonal-naive or last-value forecast — giving a pure ratio:
+
+.. math::
+
+   \text{MASE} = \frac{\text{MAE}_{\text{model}}}{\text{MAE}_{\text{naive}}}.
+
+It answers a single question: *did the model beat the trivial baseline?*
+
+Reading it
+----------
+
+**MASE < 1** means the forecast **outperforms** naive; **= 1** ties it; **> 1** means the naive forecast
+**wins** and the model should be reconsidered. Because numerator and denominator share **units**, MASE is
+**scale-free** and comparable across series of wildly different magnitudes.
+
+Why it's the gold standard
+--------------------------
+
+Unlike percentage errors, MASE is **symmetric** (over- and under-forecasts penalized equally), **robust** to
+**zeros** and outliers (the naive step is bounded away from zero unless the series is constant), and
+**interpretable**. Proposed by Hyndman & Koehler (2006), it is a default for forecasting **competitions** and
+multi-SKU demand.
+"""
+
+CONTENT["WMAPE (Weighted Mean Absolute Percentage Error)"] = r"""
+What it is
+----------
+
+**Weighted Mean Absolute Percentage Error** divides the **total** absolute error by the **total** actual
+demand — the sum of errors over the sum of actuals:
+
+.. math::
+
+   \text{WMAPE} = \frac{\sum_i |y_i - \hat{y}_i|}{\sum_i |y_i|}.
+
+Rather than averaging per-item percentages, it weights each error by its **volume**.
+
+Why weighting matters
+---------------------
+
+Plain MAPE treats a 50% miss on a **tiny** item the same as on a **huge** one and blows up when actuals are
+near **zero**. WMAPE lets **high-volume** items dominate — reflecting real **business impact** — and stays
+defined as long as total demand isn't zero, making it a **retail** and demand-planning staple.
+
+Its trade-off
+-------------
+
+Because big items dominate, WMAPE can **hide** poor accuracy on the **long tail** of small items — a model can
+score well while badly missing many low-volume SKUs. It is closely related to **WAPE**, and best read
+**alongside** a per-item metric to catch tail errors.
+"""
+
+CONTENT["sMAPE (Symmetric Mean Absolute Percentage Error)"] = r"""
+What it is
+----------
+
+**Symmetric Mean Absolute Percentage Error** fixes MAPE's asymmetry by putting the **average** of actual and
+forecast in the denominator:
+
+.. math::
+
+   \text{sMAPE} = \frac{1}{n}\sum_{i=1}^{n} \frac{|y_i - \hat{y}_i|}{(|y_i| + |\hat{y}_i|)/2}.
+
+In its common form it is **bounded** between 0% and 200%.
+
+What it fixes (and doesn't)
+---------------------------
+
+Plain MAPE penalizes **over-forecasts** more than under-forecasts and explodes as actuals approach zero;
+sMAPE is more **balanced** and **bounded**, which is why it served as the official metric of the
+**M-competitions**. But it is **not** perfectly symmetric, and it still misbehaves when both actual and
+forecast are near **zero** (the error jumps toward 100–200%).
+
+When to use it
+--------------
+
+Reach for sMAPE when you want a **bounded**, roughly symmetric percentage error for comparing across series —
+but avoid it on **intermittent** or zero-heavy demand, where **MASE** is the safer scale-free choice.
+"""
+
+MINDMAP.update({
+    "MASE (Mean Absolute Scaled Error)": [
+        "WMAPE (Weighted Mean Absolute Percentage Error)",
+        "sMAPE (Symmetric Mean Absolute Percentage Error)", "Mean Absolute Percentage Error (MAPE)",
+        "Mean Absolute Error (MAE)", "Root Mean Squared Error (RMSE)", "Forecasting Competitions",
+    ],
+    "WMAPE (Weighted Mean Absolute Percentage Error)": [
+        "MASE (Mean Absolute Scaled Error)", "sMAPE (Symmetric Mean Absolute Percentage Error)",
+        "Mean Absolute Percentage Error (MAPE)", "WAPE (Weighted Absolute Percentage Error)",
+        "Mean Absolute Error (MAE)", "Root Mean Squared Error (RMSE)",
+    ],
+    "sMAPE (Symmetric Mean Absolute Percentage Error)": [
+        "MASE (Mean Absolute Scaled Error)", "WMAPE (Weighted Mean Absolute Percentage Error)",
+        "Mean Absolute Percentage Error (MAPE)", "Root Mean Squared Error (RMSE)",
+        "Forecasting Competitions", "Mean Absolute Error (MAE)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: point-to-distribution error — MAE, pinball loss, CRPS  (evaluation / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Mean Absolute Error (MAE)"] = r"""
+What it is
+----------
+
+**Mean Absolute Error** is the average **absolute** gap between prediction and truth — the **L1** error:
+
+.. math::
+
+   \text{MAE} = \frac{1}{N}\sum_{i=1}^{N} |y_i - \hat{y}_i|.
+
+It reports the typical error in the **same units** as the target, with no squaring.
+
+How it behaves
+--------------
+
+Because it takes **absolute** values rather than squares, MAE weights **all** errors **linearly** and is far
+more **robust to outliers** than MSE / RMSE — one huge miss doesn't dominate. The forecast that minimizes MAE
+is the **median** of the target (for RMSE it is the mean).
+
+When to use it
+--------------
+
+MAE is the right choice when you want an **interpretable**, outlier-**resistant** measure of typical error and
+don't need to punish large mistakes extra hard. Its main limits: it is **scale-dependent** (not comparable
+across series — use **MASE** for that) and, being **point-only**, it can't score probabilistic forecasts.
+"""
+
+CONTENT["Pinball Loss (a.k.a. Quantile Loss)"] = r"""
+What it is
+----------
+
+**Pinball loss** (a.k.a. **quantile loss**) scores a **quantile** forecast by penalizing errors
+**asymmetrically** — under- and over-prediction get different weights set by the target quantile
+:math:`\tau`:
+
+.. math::
+
+   L_\tau(y, \hat{y}) = \max\big(\tau(y - \hat{y}),\ (\tau - 1)(y - \hat{y})\big).
+
+Minimizing it makes :math:`\hat{y}` approach the true :math:`\tau`-quantile.
+
+Why asymmetry
+-------------
+
+For a high quantile (say :math:`\tau = 0.9`), **under**-predicting is penalized far more than over-predicting,
+pushing the forecast **up** to cover the upper tail — exactly what you want for a 90% **prediction interval**.
+At :math:`\tau = 0.5` the two weights match and pinball loss reduces to (half) the **MAE**.
+
+Where it's used
+---------------
+
+It trains and evaluates **quantile regressors** and probabilistic models that output **intervals** rather than
+points, without assuming any distribution. A caveat: fitting several quantiles independently can cause
+**quantile crossing**, where a lower quantile's forecast exceeds a higher one's.
+"""
+
+CONTENT["Continuous Ranked Probability Score (CRPS)"] = r"""
+What it is
+----------
+
+The **Continuous Ranked Probability Score** grades a **full probabilistic** forecast by comparing its
+predicted **CDF** to the observed outcome — the integrated squared gap between the forecast distribution and a
+step at the truth:
+
+.. math::
+
+   \text{CRPS}(F, y) = \int_{-\infty}^{\infty} \big(F(z) - \mathbb{1}\{y \le z\}\big)^2\, dz.
+
+**Lower** is better, and it rewards mass placed **near** the observation.
+
+Its key properties
+------------------
+
+CRPS is a **strictly proper scoring rule** — it is minimized only by **honest**, well-calibrated
+distributions, penalizing **overconfidence** — and it reports in the target's **units** (like MAE). It equals
+the integral of **pinball loss** over **all** quantiles, tying the whole family together.
+
+How it relates to MAE
+---------------------
+
+For a **point** (degenerate) forecast, the predicted CDF becomes a step function and CRPS **collapses to the
+MAE**. So CRPS is literally MAE **generalized** to distributions — the natural score for **weather**,
+**energy**, and **demand** probabilistic forecasting, though it is **unbounded**.
+"""
+
+MINDMAP.update({
+    "Mean Absolute Error (MAE)": [
+        "Pinball Loss (a.k.a. Quantile Loss)", "Continuous Ranked Probability Score (CRPS)",
+        "Root Mean Squared Error (RMSE)", "Mean Squared Error (MSE)",
+        "MASE (Mean Absolute Scaled Error)", "Mean Absolute Percentage Error (MAPE)",
+    ],
+    "Pinball Loss (a.k.a. Quantile Loss)": [
+        "Continuous Ranked Probability Score (CRPS)", "Mean Absolute Error (MAE)",
+        "Probabilistic Forecasts", "Strictly Proper Scoring Rules", "Root Mean Squared Error (RMSE)",
+        "MASE (Mean Absolute Scaled Error)",
+    ],
+    "Continuous Ranked Probability Score (CRPS)": [
+        "Pinball Loss (a.k.a. Quantile Loss)", "Mean Absolute Error (MAE)",
+        "Strictly Proper Scoring Rules", "Probabilistic Forecasts", "Brier Score",
+        "Cumulative Distribution Function (CDF)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: top-N recsys accuracy — hit rate, NDCG, MAP  (ranking / recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Hit Rate (HR)"] = r"""
+What it is
+----------
+
+**Hit Rate** is the simplest top-N recommendation metric — it asks whether **at least one** relevant item
+appears in a user's top-**K** list. Each user scores **1** if there's any hit and **0** otherwise, and the
+metric is the **average** across users:
+
+.. math::
+
+   \text{HR@}K = \frac{\#\{\text{users with} \ge 1 \text{ relevant item in top } K\}}{|U|}.
+
+What it captures
+----------------
+
+HR measures **coverage of intent** at the coarsest level — did we surface *something* the user wanted? — which
+is exactly right for feeds, "you might also like" rows, and any setting where a **single** good hit is a win.
+It is intuitive and easy to explain to stakeholders.
+
+Its limits
+----------
+
+HR is **binary** and **position-blind** — it doesn't care **where** in the list the hit landed or **how
+many** relevant items were found, so a hit at rank 1 and a hit at rank 10 score the same. It also **rises**
+mechanically with **K**, so always report the cutoff (Hit@5 vs Hit@10) and pair it with a **ranking** metric.
+"""
+
+CONTENT["NDCG (Normalized Discounted Cumulative Gain)"] = r"""
+What it is
+----------
+
+**Normalized Discounted Cumulative Gain** measures **ranking quality** using both **graded relevance** and
+**position**. It sums each item's relevance with a **logarithmic** discount for lower ranks (DCG), then
+divides by the **ideal** ordering's score (IDCG):
+
+.. math::
+
+   \text{NDCG@}K = \frac{\text{DCG@}K}{\text{IDCG@}K} \in [0, 1].
+
+A perfect ranking scores **1**.
+
+Why it's powerful
+-----------------
+
+Unlike Hit Rate, NDCG rewards putting **highly** relevant items **near the top** and handles **multi-level**
+relevance (a 5-star match beats a 3-star one). Normalizing by IDCG makes it **comparable** across users with
+different numbers of relevant items — the reason it is the **default** offline ranking metric for
+recommenders and search.
+
+In recsys
+---------
+
+Computed **per user** then **averaged**, NDCG@K captures the personalized-ordering quality that drives
+engagement. It is the recommender-system application of the same **DCG** used in information retrieval, so IR
+and recsys share this yardstick.
+"""
+
+CONTENT["Mean Average Precision (MAP)"] = r"""
+What it is
+----------
+
+**Mean Average Precision** is the **mean**, across all users, of each user's **Average Precision (AP)**. AP
+averages the **precision** measured at **every** rank where a relevant item appears — the area under that
+user's **precision–recall** curve:
+
+.. math::
+
+   \text{MAP} = \frac{1}{|U|}\sum_{u \in U} \text{AP}_u.
+
+It rolls per-user ranking quality into one number.
+
+What AP rewards
+---------------
+
+Because AP recomputes precision at each **relevant** position, it **emphasizes** getting relevant items
+**early** — a relevant item at rank 1 lifts every later precision term, while one at rank 10 lifts few. So MAP
+is strongly **order-sensitive**, rewarding front-loaded relevance.
+
+How it compares
+---------------
+
+MAP works with **binary** relevance (relevant or not), where **NDCG** handles **graded** relevance; MAP
+summarizes the **whole** precision–recall trade-off, where **Hit Rate** only checks for any hit. Reported at a
+cutoff (MAP@K), it is a standard top-N metric for search and recommendation.
+"""
+
+MINDMAP.update({
+    "Hit Rate (HR)": [
+        "NDCG (Normalized Discounted Cumulative Gain)", "Mean Average Precision (MAP)",
+        "DCG (Discounted Cumulative Gain)", "Average Precision (AP)",
+        "Relevance in Recommender Systems", "Recall",
+    ],
+    "NDCG (Normalized Discounted Cumulative Gain)": [
+        "DCG (Discounted Cumulative Gain)", "Mean Average Precision (MAP)", "Hit Rate (HR)",
+        "Average Precision (AP)", "Relevance in Recommender Systems", "Intra-List Diversity (ILD)",
+    ],
+    "Mean Average Precision (MAP)": [
+        "Average Precision (AP)", "NDCG (Normalized Discounted Cumulative Gain)", "Hit Rate (HR)",
+        "DCG (Discounted Cumulative Gain)", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "Relevance in Recommender Systems",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: beyond-accuracy recsys — novelty, diversity, coverage  (recsys)
+# ----------------------------------------------------------------------
+
+CONTENT["Novelty (in Recommender Systems)"] = r"""
+What it is
+----------
+
+**Novelty** measures how **new** or **unfamiliar** a recommender's suggestions are to a user — surfacing items
+they're **unlikely to have already seen** rather than obvious mainstream hits. It is a **beyond-accuracy**
+objective: a technically accurate list of things the user already knows adds little value.
+
+How it's measured
+-----------------
+
+Novelty is usually tied to **popularity** — the less popular an item, the more novel — so metrics use
+**average recommendation popularity** (lower means more novel) or the **self-information** (the negative log
+of an item's popularity). Recommending from the **long tail** raises novelty.
+
+Why it matters
+--------------
+
+Novelty drives **discovery** and helps monetize the **long tail**, but pushed too far it sacrifices
+**relevance** — nobody wants *random* items. The art is balancing the **accuracy-novelty** trade-off;
+combined with relevance and surprise, novelty becomes **serendipity**.
+"""
+
+CONTENT["Diversity (in Recommender Systems)"] = r"""
+What it is
+----------
+
+**Diversity** measures how **varied** the items **within** a single recommendation list are — the opposite of
+ten near-identical suggestions. A diverse list spans a user's **multiple** interests rather than hammering
+one.
+
+How it's measured
+-----------------
+
+The standard gauge is **intra-list dissimilarity** — the average **pairwise** distance between recommended
+items (often 1 − **cosine similarity** of their features), captured by **Intra-List Diversity**. At the
+catalog level, **Gini** or **entropy** across all recommendations measures aggregate diversity.
+
+Why it matters
+--------------
+
+Diversity improves the **experience** — it hedges against a wrong guess about intent and keeps lists
+interesting — but there's an **accuracy-diversity** trade-off, since the most "accurate" items are often
+**similar**. Good systems tune diversity **without** dumping relevance.
+"""
+
+CONTENT["Coverage"] = r"""
+What it is
+----------
+
+**Coverage** measures how much of the **catalog** a recommender actually uses — the share of available items
+it is able to, or chooses to, recommend. A system can be accurate yet only ever surface a **handful** of
+popular items, ignoring the rest.
+
+Two flavors
+-----------
+
+**Prediction coverage** is the fraction of items for which the model **can** make a prediction at all;
+**catalog coverage** is the fraction of items that actually **appear** in the recommendation lists users see.
+The latter is the usual beyond-accuracy target.
+
+Why it matters
+--------------
+
+High coverage means the **long tail** gets exposure and the catalog isn't wasted — countering **popularity
+bias**. A limitation of plain coverage: it counts an item shown **once** the same as one shown **thousands**
+of times, which is why **Gini** and **entropy** refine it to capture how **evenly** exposure is spread.
+"""
+
+MINDMAP.update({
+    "Novelty (in Recommender Systems)": [
+        "Diversity (in Recommender Systems)", "Coverage", "Intra-List Diversity (ILD)",
+        "Relevance in Recommender Systems", "Hit Rate (HR)", "Cosine Similarity of Item Features",
+    ],
+    "Diversity (in Recommender Systems)": [
+        "Novelty (in Recommender Systems)", "Coverage", "Intra-List Diversity (ILD)",
+        "Cosine Similarity of Item Features", "Relevance in Recommender Systems",
+        "NDCG (Normalized Discounted Cumulative Gain)",
+    ],
+    "Coverage": [
+        "Novelty (in Recommender Systems)", "Diversity (in Recommender Systems)",
+        "Intra-List Diversity (ILD)", "Relevance in Recommender Systems", "Hit Rate (HR)",
+        "Mean Average Precision (MAP)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: calibration diagnostics — ECE, reliability curves, Brier score  (calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["Expected Calibration Error (ECE)"] = r"""
+What it is
+----------
+
+**Expected Calibration Error** summarizes miscalibration in **one number** — the **weighted average** gap
+between a model's **confidence** and its **accuracy**, taken over bins of predictions:
+
+.. math::
+
+   \text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{N}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+Geometrically, it is the average distance of the **calibration curve** from the diagonal.
+
+How it's computed
+-----------------
+
+Predictions are grouped into **bins** by confidence; in each bin you compare the **fraction correct**
+(accuracy) to the **average confidence**, and weight each bin's gap by its **size**. The result is
+**bounded** in [0, 1] and easy to report — the standard scalar for comparing calibration.
+
+Its caveats
+-----------
+
+ECE is **bin-dependent** (the number and placement of bins move the value) and, being an **average**, it can
+**hide** a badly miscalibrated region behind well-behaved bins. It is also **not a proper scoring rule** — a
+trivial model can score low — so it is read with **reliability curves** and **Brier score**. Its variants are
+**MCE** and **Adaptive ECE**.
+"""
+
+CONTENT["Reliability Curves (also called Calibration Curves)"] = r"""
+What it is
+----------
+
+A **reliability curve** (or calibration curve / reliability diagram) is the **visual** check for calibration —
+it plots **predicted probability** on the x-axis against the **observed frequency** of the outcome on the
+y-axis. A perfectly calibrated model traces the **diagonal** :math:`y = x`.
+
+Reading it
+----------
+
+Points **below** the diagonal mean the model is **overconfident** (accuracy falls short of its confidence);
+points **above** mean it is **underconfident**. A companion **histogram** of confidences shows whether
+predictions pile up at the **extremes** — a hallmark of overconfident networks.
+
+Why it complements ECE
+----------------------
+
+A single ECE number can't say **where** miscalibration happens, and two models with the **same** ECE can have
+very different curves. The reliability curve **localizes** the problem across the confidence range — and the
+weighted gap between it and the diagonal **is** the ECE.
+"""
+
+CONTENT["Brier Score"] = r"""
+What it is
+----------
+
+The **Brier score** is the **mean squared error** of probabilistic predictions — the average squared gap
+between the predicted probability and the **actual** (0/1) outcome:
+
+.. math::
+
+   \text{BS} = \frac{1}{N}\sum_{i=1}^{N} (p_i - y_i)^2.
+
+**Lower** is better, with **0** perfect. It is a single sample-level number for binary or multiclass problems.
+
+Why it's special
+----------------
+
+Unlike ECE, the Brier score is a **strictly proper scoring rule** — it is minimized only by **honest**
+probabilities, and by **Murphy's decomposition** it splits into **calibration** plus **refinement** terms. So
+a low Brier score means the model is **both** well-calibrated **and** discriminating.
+
+Its limitation
+--------------
+
+Because it **blends** calibration and discrimination, the Brier score can't tell you **which** is lacking — a
+sharp-but-miscalibrated model and a calibrated-but-vague one can score similarly. That is why it is reported
+**alongside** ECE and reliability curves, which isolate the calibration piece.
+"""
+
+MINDMAP.update({
+    "Expected Calibration Error (ECE)": [
+        "Adaptive ECE (Expected Calibration Error with Adaptive Binning)",
+        "Maximum Calibration Error (MCE)", "Reliability Curves (also called Calibration Curves)",
+        "Confidence Level", "Temperature Scaling", "Brier Score",
+    ],
+    "Reliability Curves (also called Calibration Curves)": [
+        "Expected Calibration Error (ECE)", "Overconfident", "Underconfident", "Confidence Level",
+        "Brier Score", "Temperature Scaling",
+    ],
+    "Brier Score": [
+        "Expected Calibration Error (ECE)", "Murphy's Decomposition", "Strictly Proper Scoring Rules",
+        "Continuous Ranked Probability Score (CRPS)",
+        "Reliability Curves (also called Calibration Curves)",
+        "Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: calibration & scores — log loss, calibration quality, logits  (calibration)
+# ----------------------------------------------------------------------
+
+CONTENT["Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)"] = r"""
+What it is
+----------
+
+**Log loss** (logarithmic loss / **cross-entropy** loss) scores a probabilistic classifier by the **negative
+log-likelihood** of the true labels — how surprised the model is by reality. For binary labels:
+
+.. math::
+
+   \text{LogLoss} = -\frac{1}{N}\sum_{i=1}^{N}\big[y_i \log \hat{p}_i + (1 - y_i)\log(1 - \hat{p}_i)\big].
+
+It runs from **0** (perfect) to **∞**.
+
+Its defining trait
+------------------
+
+The **logarithm** makes log loss punish **confident** mistakes **brutally** — predicting 0.01 for a true
+positive costs far more than predicting 0.4. This **exponential** penalty for overconfidence is exactly why
+it is the standard **training objective** for logistic regression and neural nets, which optimize it directly.
+
+When to use it (and a caveat)
+-----------------------------
+
+Reach for log loss whenever **calibrated** probabilities matter — fraud, diagnosis, risk. It **requires**
+genuine probabilities, so raw **logits** must be squashed (softmax / sigmoid) first, and it is harsher on
+overconfidence than the **Brier score**. Compare a model's log loss to the **base-rate** log loss to confirm
+it adds value.
+"""
+
+CONTENT["Calibration quality (Model Calibration)"] = r"""
+What it is
+----------
+
+**Calibration quality** describes how well a model's predicted **probabilities** match **reality** — a
+well-calibrated model that says "80% confident" is right about **80%** of the time. It is a property of the
+**probabilities**, separate from whether the model is **accurate**.
+
+Calibration vs accuracy
+-----------------------
+
+A model can be **accurate** yet badly calibrated (right often, but its confidence numbers are meaningless) or
+**calibrated** yet weakly **discriminating**. The two are distinct axes, which is why **proper scores** like
+log loss and Brier — which reward **both** — are read together with pure calibration measures.
+
+Why it matters
+--------------
+
+Whenever probabilities feed **decisions** — thresholds, expected-value calculations, downstream systems —
+calibration is essential, and modern deep networks are typically **overconfident**. It is measured with
+**ECE**, **reliability curves**, and **Brier score**, and repaired **post-hoc** with **temperature**,
+**Platt**, or **isotonic** scaling.
+"""
+
+CONTENT["Logits"] = r"""
+What it is
+----------
+
+**Logits** are the **raw, unnormalized** scores a classifier's final layer produces **before** they're turned
+into probabilities. They range over **all** real numbers — positive, negative, unbounded — and live in
+**log-odds** space, not probability space.
+
+From logits to probabilities
+-----------------------------
+
+A **softmax** turns a vector of logits into a probability **distribution** that sums to 1 (for multiclass),
+while a **sigmoid** maps a single logit to one probability (for binary). Because softmax **normalizes**,
+raising one logit **lowers** the others' probabilities — the competition that sharpens a prediction.
+
+Why keep them raw
+-----------------
+
+Exposing logits enables **numerically stable** training (log-softmax beats probabilities-then-log, which is
+why frameworks feed **cross-entropy** raw logits) and **post-hoc calibration** — **temperature scaling**
+divides logits by T *before* softmax, which is only possible when the logits are available.
+"""
+
+MINDMAP.update({
+    "Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)": [
+        "Brier Score", "Expected Calibration Error (ECE)", "Binary Cross-Entropy (BCE)",
+        "Softmax Function", "Logistic Regression", "Strictly Proper Scoring Rules",
+    ],
+    "Calibration quality (Model Calibration)": [
+        "Expected Calibration Error (ECE)", "Reliability Curves (also called Calibration Curves)",
+        "Temperature Scaling", "Overconfident", "Confidence Level", "Brier Score",
+    ],
+    "Logits": [
+        "Softmax Function", "Sigmoid Function", "Logit Space", "Log-Odds", "Temperature Scaling",
+        "Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: digital advertising metrics — conversion rate, CPC, CTR  (growth / abtest)
+# ----------------------------------------------------------------------
+
+CONTENT["Conversion Rate (CR)"] = r"""
+What it is
+----------
+
+**Conversion rate** is the share of visitors who complete a **desired action** — a purchase, sign-up, or form
+submission — out of all visitors:
+
+.. math::
+
+   \text{CR} = \frac{\text{conversions}}{\text{total visitors}} \times 100.
+
+It measures how effectively traffic turns into **outcomes**.
+
+Where it sits
+-------------
+
+CR is a **mid-to-bottom-of-funnel** metric — it captures what people do **after** they've arrived, so it
+reflects the quality of the **landing page**, offer, and checkout, not just the ad. It is the KPI most
+**directly tied to revenue**, which is why marketers watch it closely.
+
+How to move it
+--------------
+
+Conversion rate is improved by sharpening the **offer** and **copy**, streamlining the **funnel**, and running
+**A/B tests** on page variants — not by chasing more clicks. A campaign with modest traffic but high CR often
+beats a high-traffic, low-CR one on profit.
+"""
+
+CONTENT["Cost-Per-Click (CPC) Models"] = r"""
+What it is
+----------
+
+**Cost-per-click** is the **pay-per-click (PPC)** pricing model where an advertiser pays each time someone
+**clicks** their ad — total spend divided by clicks:
+
+.. math::
+
+   \text{CPC} = \frac{\text{ad spend}}{\text{clicks}}.
+
+You pay for **engagement**, not mere exposure.
+
+How it's set
+------------
+
+CPC isn't fixed — it comes out of an **auction** shaped by your **bid**, the ad's **quality score /
+relevance**, and **competition** for the audience. A higher **CTR** signals relevance and typically
+**lowers** your CPC, so better creative pays for itself.
+
+CPC vs CPM
+----------
+
+Under CPC you pay only when users **act**, making it ideal for **traffic and conversion** goals; under
+**CPM** (cost per thousand impressions) you pay for **visibility** regardless of clicks, better for
+**awareness**. The two connect: CPC is roughly CPM divided by (1000 × CTR).
+"""
+
+CONTENT["CTR (Click-Through Rate)"] = r"""
+What it is
+----------
+
+**Click-through rate** is the share of people who **click** an ad or link after **seeing** it — clicks divided
+by **impressions**:
+
+.. math::
+
+   \text{CTR} = \frac{\text{clicks}}{\text{impressions}} \times 100.
+
+It is the earliest online-advertising metric, dating to 1994 banner ads.
+
+What it signals
+---------------
+
+CTR is a **top-of-funnel** engagement gauge — it measures whether the **creative, targeting, and message**
+capture attention. On ad platforms a high CTR raises the **quality score**, which in turn **lowers CPC** and
+wins better **placement**, so relevance compounds.
+
+Its trap
+--------
+
+A **high** CTR is **not** success by itself — if those clicks don't **convert**, you're paying for traffic
+that doesn't pay back. CTR must be read **with conversion rate**: high CTR + low CR usually means the ad
+**over-promises** relative to the landing page or offer.
+"""
+
+MINDMAP.update({
+    "Conversion Rate (CR)": [
+        "CTR (Click-Through Rate)", "Cost-Per-Click (CPC) Models", "True Conversion Rate",
+        "Conversion Rate Uplift", "Incremental Conversions", "CAC (Customer Acquisition Cost)",
+    ],
+    "Cost-Per-Click (CPC) Models": [
+        "CTR (Click-Through Rate)", "Conversion Rate (CR)", "CAC (Customer Acquisition Cost)",
+        "Incremental Conversions", "Conversion Rate Uplift", "Paid CAC (Customer Acquisition Cost)",
+    ],
+    "CTR (Click-Through Rate)": [
+        "Conversion Rate (CR)", "Cost-Per-Click (CPC) Models", "Conversion Rate Uplift",
+        "CAC (Customer Acquisition Cost)", "True Conversion Rate", "A/B Testing",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: retail demand forecasting — overstock, stockouts, WAPE  (supply chain / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Overstock %"] = r"""
+What it is
+----------
+
+**Overstock %** is the share of inventory that sits **in excess** of what demand needs — the fraction of
+stock held **beyond** target or forecast requirements. It is the "**too much**" side of inventory planning.
+
+What it costs
+-------------
+
+Excess stock isn't free — it ties up **capital**, consumes **warehouse** space, and risks **obsolescence**,
+spoilage, and eventual **markdowns**; holding costs often run to a fifth or more of the inventory's value.
+High overstock usually traces to **over-forecasting** demand or over-ordering to avoid the opposite problem.
+
+The trade-off
+-------------
+
+Overstock is one horn of the classic inventory dilemma — cutting it too aggressively invites **stockouts**.
+The balance point is a chosen **service level**, and better **demand forecasts** (lower error) are what let a
+business hold **less** safety stock without more shortages.
+"""
+
+CONTENT["Stockouts"] = r"""
+What it is
+----------
+
+A **stockout** is when an item is **unavailable** — demand arrives but inventory is **gone**. It is the "**too
+little**" side of inventory planning, and each stockout is a **missed** sale at the moment of intent.
+
+What it costs
+-------------
+
+Stockouts cause **lost revenue**, frustrated customers, and **substitution** to competitors — and the damage
+can outlast the event if shoppers **don't return**. They stem from **under-forecasting**, demand spikes, or
+**supply** disruptions, and most are preventable failures of replenishment rather than supplier problems.
+
+The trade-off
+-------------
+
+Stockouts are the mirror image of **overstock** — you can eliminate them by holding **more** inventory, but
+that raises **holding costs**. Firms manage the tension with **safety stock** sized to a target **service
+level**, and sharper forecasts shrink both failure modes at once.
+"""
+
+CONTENT["WAPE (Weighted Absolute Percentage Error)"] = r"""
+What it is
+----------
+
+**Weighted Absolute Percentage Error** divides the **total** absolute forecast error by the **total** actual
+demand:
+
+.. math::
+
+   \text{WAPE} = \frac{\sum_i |y_i - \hat{y}_i|}{\sum_i |y_i|}.
+
+It expresses aggregate error as a single percentage, weighting each item by its **volume**.
+
+Why retailers use it
+--------------------
+
+Unlike **MAPE**, WAPE doesn't **blow up** when individual actuals are near **zero** (common for slow-moving
+SKUs), and it lets **high-volume** items dominate — reflecting real demand. It stays defined as long as total
+demand isn't zero, which makes it the **default** accuracy metric in demand planning.
+
+How it connects
+---------------
+
+WAPE is effectively the same quantity as **WMAPE**, and it is the number that **drives inventory** — high WAPE
+means forecasts are far off, feeding both **overstock** and **stockouts**. Cutting WAPE is how planners
+**shrink** those costly failure modes.
+"""
+
+MINDMAP.update({
+    "Overstock %": [
+        "Stockouts", "WAPE (Weighted Absolute Percentage Error)",
+        "WMAPE (Weighted Mean Absolute Percentage Error)", "Mean Absolute Percentage Error (MAPE)",
+        "Time Series Forecasting", "Seasonality",
+    ],
+    "Stockouts": [
+        "Overstock %", "WAPE (Weighted Absolute Percentage Error)",
+        "WMAPE (Weighted Mean Absolute Percentage Error)", "Time Series Forecasting",
+        "MASE (Mean Absolute Scaled Error)", "Seasonality",
+    ],
+    "WAPE (Weighted Absolute Percentage Error)": [
+        "WMAPE (Weighted Mean Absolute Percentage Error)", "MASE (Mean Absolute Scaled Error)",
+        "Mean Absolute Percentage Error (MAPE)", "Overstock %", "Stockouts",
+        "Mean Absolute Error (MAE)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: regulation & high-stakes — fair lending, Basel III, high-stakes domains  (fairness / risk)
+# ----------------------------------------------------------------------
+
+CONTENT["Fair Lending laws"] = r"""
+What they are
+-------------
+
+**Fair lending laws** are the US statutes that **prohibit discrimination** in credit — chiefly the **Equal
+Credit Opportunity Act (ECOA)**, covering all credit transactions, and the **Fair Housing Act**, covering
+mortgages and housing. They bar decisions based on **protected characteristics** like race, sex, age,
+religion, or national origin.
+
+Two theories of harm
+--------------------
+
+Enforcement rests on **disparate treatment** (treating applicants differently **on purpose**) and **disparate
+impact** (a **facially neutral** rule that disproportionately **burdens** a protected group, even with **no**
+intent). Crucially, **statistical disparities alone** can trigger scrutiny before any intent is shown.
+
+Why they matter for ML
+----------------------
+
+A credit model can discriminate through **proxies** — zip code or surname standing in for race — so compliance
+demands **fairness testing**, sensitivity analysis, and ongoing **monitoring**. It also requires
+**adverse-action** explanations specific enough to tell a rejected applicant **why**, which is hard for
+**opaque** models — a driver of explainable AI in finance.
+"""
+
+CONTENT["Basel III"] = r"""
+What it is
+----------
+
+**Basel III** is the international **banking regulation** framework from the **Basel Committee**, written after
+the **2007–09 financial crisis** to make banks more **resilient**. It tightens the **capital**, **liquidity**,
+and **leverage** a bank must hold against its risks.
+
+Its core requirements
+---------------------
+
+It raises both the **quantity** and **quality** of capital (more **common equity**), adds **liquidity** rules
+(holding enough liquid assets to survive stress), a **leverage** cap, and **buffers** that build up in good
+times to absorb losses in bad ones — all aimed at reducing **systemic** risk.
+
+Why it matters for ML
+---------------------
+
+Banks estimate **credit risk** — probability of default, loss given default — with models whose outputs feed
+**capital** calculations and **stress tests**. That puts those models under strict **model-risk management**
+and validation, making Basel III a major reason financial ML must be **auditable** and **robust**.
+"""
+
+CONTENT["High-Stakes Domains"] = r"""
+What they are
+-------------
+
+**High-stakes domains** are application areas where a model's **mistakes carry severe consequences** — harm to
+**health**, **liberty**, **livelihood**, or **safety**. Think medical diagnosis, criminal-justice risk
+scoring, credit and hiring decisions, and autonomous driving.
+
+Why they're different
+----------------------
+
+In these settings **accuracy alone is not enough**. A model must also be **interpretable**, **fair**,
+**calibrated**, and **robust**, with rigorous **validation**, **uncertainty** estimates, and **human
+oversight** — because a confident wrong answer can ruin a life, not just a recommendation.
+
+What they demand
+----------------
+
+High-stakes use is where **trustworthy-AI** requirements concentrate — **explainability** (SHAP, LIME),
+**fairness** auditing, calibration, guardrails, and regulatory compliance (**fair-lending** law, **Basel
+III**, medical-device rules). It is the contrast case to **low-stakes** tasks like movie recommendations,
+where an error is trivial.
+"""
+
+MINDMAP.update({
+    "Fair Lending laws": [
+        "High-Stakes Domains", "Basel III", "Fairness Guardrails", "Risk-Based Decisions",
+        "SHAP (SHapley Additive exPlanations)",
+        "LIME (Local Interpretable Model-agnostic Explanations)",
+    ],
+    "Basel III": [
+        "High-Stakes Domains", "Fair Lending laws", "Risk-Based Decisions", "Model Stability",
+        "Fairness Guardrails", "LIME (Local Interpretable Model-agnostic Explanations)",
+    ],
+    "High-Stakes Domains": [
+        "Fair Lending laws", "Basel III", "Fairness Guardrails", "Risk-Based Decisions",
+        "SHAP (SHapley Additive exPlanations)", "Model Stability",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: fairness metrics — fairness parity, selection rate, recall  (fairness / metrics)
+# ----------------------------------------------------------------------
+
+CONTENT["Fairness parity"] = r"""
+What it is
+----------
+
+**Fairness parity** is the family of **group-fairness** criteria that demand some metric be **equal across**
+demographic groups — that the model treat protected groups **comparably**. Which metric you equalize defines
+the flavor of parity.
+
+The main flavors
+----------------
+
+**Demographic (statistical) parity** equalizes the **positive-outcome rate** across groups; **equal
+opportunity** equalizes the **true-positive rate** (recall) among those who **qualify**; **equalized odds**
+equalizes **both** TPR and FPR; **predictive parity** equalizes **precision**. Each is measured as a
+**difference** or a **ratio** between groups.
+
+Why it's hard
+-------------
+
+The different parities **conflict** — impossibility results show you generally **can't** satisfy all at once
+(the **COMPAS** debate turned on predictive parity holding while equalized odds failed). Enforcing any parity
+also usually **costs accuracy**, so teams choose the criterion that fits the **harm** they most need to
+prevent. The **four-fifths (80%) rule** is a common legal threshold.
+"""
+
+CONTENT["Selection Rate"] = r"""
+What it is
+----------
+
+The **selection rate** is the fraction of a group that receives a **favorable** decision — the share predicted
+**positive**, :math:`P(\hat{Y} = 1)` for that group. If a lender approves 60% of one group and 40% of
+another, those are the two selection rates.
+
+What it drives
+--------------
+
+Selection rate is the quantity behind **demographic parity** — parity holds exactly when selection rates are
+**equal** across groups. The **disparate-impact ratio** divides the **lowest** group's selection rate by the
+**highest**; a ratio **below 0.8** (the four-fifths rule) flags potential **adverse impact**.
+
+Where it's used
+---------------
+
+It is the core number in auditing **hiring**, **lending**, and admissions for bias, because it captures **who
+gets the good outcome** without needing labels. But equal selection rates say **nothing** about whether the
+**right** people were chosen — that is why it is paired with error-based metrics like **recall**.
+"""
+
+CONTENT["Recall"] = r"""
+What it is
+----------
+
+**Recall** — also the **true positive rate** or **sensitivity** — is the share of **actual positives** the
+model correctly **catches**:
+
+.. math::
+
+   \text{Recall} = \frac{TP}{TP + FN}.
+
+It answers "**of everything that was truly positive, how much did we find?**" and falls when **false
+negatives** pile up.
+
+The trade-off
+-------------
+
+Recall trades off against **precision** — loosening the threshold catches more positives (higher recall) but
+admits more false alarms (lower precision), which is why they're read together via the **F1-score**. High
+recall matters most when a **miss** is costly: disease screening, fraud, safety.
+
+Its fairness role
+-----------------
+
+Comparing recall **across groups** is exactly the **equal-opportunity** fairness test — it asks whether
+**qualified** members of every group have the **same** chance of being correctly selected. Unequal recall
+means the model **misses** true positives more often for one group, a common and consequential bias.
+"""
+
+MINDMAP.update({
+    "Fairness parity": [
+        "Selection Rate", "Recall", "Fairness Guardrails", "Fair Lending laws",
+        "High-Stakes Domains", "Precision (a.k.a. Positive Predictive Value, PPV)",
+    ],
+    "Selection Rate": [
+        "Fairness parity", "Recall", "Fair Lending laws", "Fairness Guardrails",
+        "High-Stakes Domains", "Conversion Rate (CR)",
+    ],
+    "Recall": [
+        "Fairness parity", "Selection Rate", "Precision (a.k.a. Positive Predictive Value, PPV)",
+        "F1-score", "Macro Recall", "Micro Recall",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: unit economics — LTV, CAC, incremental sales  (growth)
+# ----------------------------------------------------------------------
+
+CONTENT["LTV (Customer Lifetime Value)"] = r"""
+What it is
+----------
+
+**Customer lifetime value (LTV)** is the total **revenue** — or, more precisely, **profit** — an average
+customer generates over their **entire relationship** with the business, from first purchase to churn. It
+answers *how much is a customer actually worth?*
+
+How it's estimated
+------------------
+
+A common form multiplies **average revenue per account** by **gross margin** and divides by the **churn
+rate** (equivalently, revenue per period times expected lifetime). So LTV rises with **higher retention**,
+fatter **margins**, and more **revenue per customer** — retention being the biggest lever.
+
+Why it matters
+--------------
+
+LTV is the **value** half of **unit economics**. It sets the ceiling on what you can afford to **spend**
+acquiring customers, justifies investment in **retention** and **upsell**, and — paired with acquisition cost
+— tells investors whether the business is **sustainable**. A small lift in retention can swing LTV
+dramatically.
+"""
+
+CONTENT["CAC (Customer Acquisition Cost)"] = r"""
+What it is
+----------
+
+**Customer acquisition cost (CAC)** is the total **sales and marketing** spend required to win one new
+customer — all acquisition costs divided by the **number** of customers acquired in the period. It is the
+**cost** half of unit economics.
+
+What goes in it
+---------------
+
+CAC bundles **ad spend**, marketing tools and agencies, and **sales** salaries and commissions — not just
+media cost. It differs from **CPA** (cost per acquisition), which is usually a **single-channel** metric, and
+it must be computed with **matched** time periods so costs line up with the customers they actually acquired.
+
+The LTV:CAC ratio
+-----------------
+
+CAC only means something **next to LTV**. The **LTV:CAC ratio** — lifetime value divided by acquisition cost —
+gauges whether growth is **profitable**: around **3:1** is the healthy benchmark, **below 1:1** loses money on
+every customer, and **above ~5:1** can signal you're **under-investing** in growth.
+"""
+
+CONTENT["Incremental Sales"] = r"""
+What it is
+----------
+
+**Incremental sales** are the **extra** sales a specific action — a campaign, promotion, or discount —
+actually **caused**, over and above the **baseline** that would have happened **anyway**. It is the sales
+figure with the campaign **minus** the counterfactual without it.
+
+Why it's tricky
+---------------
+
+Raw campaign sales **overstate** impact, because some buyers would have purchased **regardless**. Isolating
+the true lift requires an **incrementality test** — a **holdout** or control group that doesn't see the
+campaign — so the **difference** between treated and control reveals the **causal** effect, not mere
+correlation.
+
+Why it matters
+--------------
+
+Incremental sales are the honest basis for **marketing ROI** and **budget** decisions — you should credit a
+campaign only with the revenue it **truly** drove, not sales it merely **coincided** with. The same logic
+underlies **incremental conversions** and **uplift** modeling: measure what **wouldn't** have happened
+otherwise.
+"""
+
+MINDMAP.update({
+    "LTV (Customer Lifetime Value)": [
+        "CAC (Customer Acquisition Cost)", "Incremental Sales", "Conversion Rate (CR)",
+        "Blended CAC (Customer Acquisition Cost)", "Paid CAC (Customer Acquisition Cost)",
+        "Incremental Conversions",
+    ],
+    "CAC (Customer Acquisition Cost)": [
+        "LTV (Customer Lifetime Value)", "Incremental Sales", "Conversion Rate (CR)",
+        "CTR (Click-Through Rate)", "Cost-Per-Click (CPC) Models",
+        "Blended CAC (Customer Acquisition Cost)",
+    ],
+    "Incremental Sales": [
+        "Incremental Conversions", "LTV (Customer Lifetime Value)", "CAC (Customer Acquisition Cost)",
+        "Conversion Rate Uplift", "Conversion Rate (CR)", "Incremental Recovery Rate (IRR)",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: classical statistics — population proportion, correlation, statistical power  (probstats / inference)
+# ----------------------------------------------------------------------
+
+CONTENT["Population Proportion"] = r"""
+What it is
+----------
+
+The **population proportion** is the **true fraction** of an entire population that has some characteristic —
+the real conversion rate, defect rate, or approval share — usually written **p**. It is a **parameter**: a
+fixed but usually **unknown** number you want to learn.
+
+Estimating it
+-------------
+
+Since you rarely measure everyone, you estimate p with the **sample proportion** :math:`\hat{p} = x/n`
+(successes over sample size). :math:`\hat{p}` is a **statistic** that varies from sample to sample, with
+**standard error** :math:`\sqrt{p(1-p)/n}` shrinking as **n** grows — the basis for **confidence intervals**
+and **hypothesis tests** about p.
+
+Where it shows up
+-----------------
+
+Proportions are everywhere in ML and analytics — **conversion rates**, click rates, and accuracy are all
+population proportions estimated from samples. That is why **A/B tests** and polls rest on proportion
+inference, and why bigger samples give **tighter** estimates.
+"""
+
+CONTENT["Correlation"] = r"""
+What it is
+----------
+
+**Correlation** measures the **strength and direction** of the relationship between two variables. The
+**Pearson coefficient** — **r** in a sample, **ρ** in the population — runs from **−1 to +1**: −1 a perfect
+**negative** line, +1 a perfect **positive** line, and **0** no **linear** relationship.
+
+How to read it
+--------------
+
+The **sign** gives direction, the **magnitude** gives strength; squaring it yields **r²**, the share of one
+variable's **variance explained** by the other. Rough effect-size guides call 0.1 small, 0.3 medium, 0.5
+large — but a statistically significant r can still be **trivially** small in a large sample.
+
+Its limits
+----------
+
+Correlation captures only **linear** association, so it can **miss** strong nonlinear patterns; it is **not
+robust** to **outliers**, which can inflate or hide it; and, crucially, **correlation is not causation** — two
+variables can move together because a **third** drives both. Use rank correlation (Spearman) for monotonic,
+non-linear ties.
+"""
+
+CONTENT["Statistical Power"] = r"""
+What it is
+----------
+
+**Statistical power** is the probability that a test **correctly detects a real effect** — that it **rejects**
+the null hypothesis when the null is genuinely **false**. Formally it is :math:`1 - \beta`, where
+:math:`\beta` is the **Type II error** (false-negative) rate.
+
+What it depends on
+------------------
+
+Power rises with **larger effect sizes**, **bigger samples**, a **looser** significance level :math:`\alpha`,
+and **lower** variance. Researchers conventionally target **0.80** — an 80% chance of catching a true effect —
+and solve for the **sample size** that achieves it via **power analysis**.
+
+Why it matters
+--------------
+
+An **underpowered** study is likely to **miss** true effects and produces findings that **don't replicate**;
+power is the guard against **false negatives**, the complement of the :math:`\alpha` that guards against false
+positives. Too much power on a huge sample flips the risk — flagging **trivial** effects as significant, which
+is why **effect size** is reported alongside significance.
+"""
+
+MINDMAP.update({
+    "Population Proportion": [
+        "Confidence Intervals (CIs)", "Statistical Tests", "Standard Error (SE)", "Statistical Power",
+        "Conversion Rate (CR)", "Bootstrap Confidence Intervals (CIs)",
+    ],
+    "Correlation": [
+        "R² (R-squared)", "Statistical Power", "Statistical Tests", "Confidence Intervals (CIs)",
+        "Population Proportion", "Outlier",
+    ],
+    "Statistical Power": [
+        "Power Analysis", "Confidence Intervals (CIs)", "Statistical Tests", "Population Proportion",
+        "Correlation", "Chi-square (χ²) Test",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: causal & probabilistic inference — causal trees, IRR, Bayesian inference  (causal / bayes)
+# ----------------------------------------------------------------------
+
+CONTENT["Causal Trees"] = r"""
+What it is
+----------
+
+**Causal trees** estimate **heterogeneous treatment effects** — how an intervention's impact **varies** across
+subgroups — by **recursively partitioning** the feature space into **leaves** within which the treatment
+effect (treated-vs-control outcome difference) is roughly **constant**. Introduced by **Athey and Imbens**,
+they adapt decision trees from **prediction** to **causal** estimation.
+
+The honesty trick
+-----------------
+
+Unlike a standard tree, a causal tree uses **honest** estimation — one part of the data **chooses** the
+splits, a **separate** part **estimates** the effect in each leaf. This prevents the tree from **overfitting**
+the same data it split on, giving effect estimates you can build **confidence intervals** around.
+
+What it's for
+-------------
+
+Causal trees answer **who benefits** — the core question of **uplift modeling**, personalized medicine, and
+policy targeting. Extended to **causal forests** for stability, and to **Bayesian** versions (causal BART)
+that return a full **posterior** over each unit's effect for uncertainty-aware decisions.
+"""
+
+CONTENT["Incremental Recovery Rate (IRR)"] = r"""
+What it is
+----------
+
+The **incremental recovery rate** measures the **lift** an intervention produces in a **recovery** outcome —
+reactivating lapsed customers, collecting overdue accounts, or winning back churned users — beyond what would
+have recovered **anyway**. It is the treated group's recovery rate **minus** a control group's:
+
+.. math::
+
+   \text{IRR} = \text{recovery rate}_{\text{treated}} - \text{recovery rate}_{\text{control}}.
+
+Why the baseline matters
+------------------------
+
+A raw recovery rate **overstates** a campaign's value, because some accounts **self-cure** or return without
+any nudge. Subtracting a **holdout** control isolates the **causal** lift — the recoveries the intervention
+**actually** caused — the same incrementality logic behind incremental sales and conversions.
+
+Where it's used
+---------------
+
+IRR drives **targeting** and **budget** in collections, retention, and win-back — you focus effort on segments
+with the **highest** incremental recovery, not the highest raw recovery, since some of those would come back
+**for free**. It pairs naturally with **uplift** models that predict per-customer lift.
+"""
+
+CONTENT["Bayesian Inference."] = r"""
+What it is
+----------
+
+**Bayesian inference** updates **beliefs** in light of evidence using **Bayes' theorem** — it combines a
+**prior** (what you believed before) with the **likelihood** (how probable the data are under each hypothesis)
+to produce a **posterior** (what you believe after):
+
+.. math::
+
+   \text{posterior} \propto \text{prior} \times \text{likelihood}.
+
+Parameters are treated as **random variables** with distributions, not fixed points.
+
+What makes it distinctive
+-------------------------
+
+Because it yields a **full posterior distribution**, Bayesian inference quantifies **uncertainty** directly — a
+**credible interval** says there's a 95% probability the parameter lies inside it — and it naturally
+**incorporates prior knowledge** and **updates sequentially** as data arrive. This contrasts with the
+**frequentist** view of fixed parameters and p-values.
+
+The catch and the tools
+-----------------------
+
+Posteriors are usually **intractable**, so they're approximated with **Markov Chain Monte Carlo** or
+variational methods via tools like **Stan**, **PyMC**, or NumPyro. Bayesian inference underlies **Bayesian A/B
+testing**, **Bayesian optimization**, and the **causal** tree models above.
+"""
+
+MINDMAP.update({
+    "Causal Trees": [
+        "Uplift Random Forests", "Decision Trees", "Bayesian Inference.",
+        "Incremental Recovery Rate (IRR)", "Incremental Sales", "Conversion Rate Uplift",
+    ],
+    "Incremental Recovery Rate (IRR)": [
+        "Incremental Sales", "Incremental Conversions", "Causal Trees", "Conversion Rate Uplift",
+        "Uplift Random Forests", "CAC (Customer Acquisition Cost)",
+    ],
+    "Bayesian Inference.": [
+        "Causal Trees", "Likelihood", "Normal Distribution", "Statistical Tests",
+        "Confidence Intervals (CIs)", "Uplift Random Forests",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: pragmatic modeling — weak supervision, RMSLE, baseline heuristics  (features / evaluation)
+# ----------------------------------------------------------------------
+
+CONTENT["Weak Supervision"] = r"""
+What it is
+----------
+
+**Weak supervision** trains models from **noisy, cheap, or imprecise** label sources instead of costly
+**hand-labeling** — a direct answer to the training-data **bottleneck**. Rather than perfect ground truth, it
+leans on many **imperfect** signals.
+
+How it works
+------------
+
+Users write **labeling functions** — small snippets of **heuristics**, keyword rules, external knowledge, or
+other models' outputs — that each **label** or **abstain**, often with **unknown** accuracy and **conflicting**
+votes. A **label model** then **de-noises** and combines them, estimating each function's reliability to
+produce **probabilistic** consensus labels — with **no** ground truth. Those labels train a downstream
+classifier. This is the **Snorkel / data-programming** paradigm.
+
+Its trade-off
+-------------
+
+Weak supervision makes labeling **dramatically** faster and its rules **interpretable** and easy to update, at
+the cost of **noisier** labels than full annotation. Best practice keeps a small **hand-labeled** set to
+**validate** quality and compare against fully supervised baselines.
+"""
+
+CONTENT["RMSLE (Root Mean Squared Logarithmic Error)"] = r"""
+What it is
+----------
+
+**Root Mean Squared Logarithmic Error** is RMSE computed on the **logarithms** of the predictions and
+actuals — the root-mean-square of the differences in **log space**:
+
+.. math::
+
+   \text{RMSLE} = \sqrt{\frac{1}{N}\sum_{i=1}^{N}\big(\log(\hat{y}_i + 1) - \log(y_i + 1)\big)^2}.
+
+The **+1** lets it handle zeros.
+
+What the log changes
+--------------------
+
+Taking logs turns absolute errors into **relative** ones, so a fixed **percentage** miss costs the same
+whether the value is small or huge — making RMSLE **robust to scale** and to large **outliers**. It also
+becomes **asymmetric**: it penalizes **under**-prediction more than over-prediction.
+
+When to use it
+--------------
+
+RMSLE suits **positive**, **right-skewed** targets that span orders of magnitude — prices, counts, demand —
+and situations where **under-forecasting** is the costlier mistake. Its limits: it **can't** take negative
+values, and its log scaling makes the raw number **less intuitive** than RMSE.
+"""
+
+CONTENT["Baseline Heuristics"] = r"""
+What it is
+----------
+
+**Baseline heuristics** are the **simple, naive** reference models a real system must **beat** to earn its
+complexity — the "**dumb**" benchmark. Predicting the **mean** or **median**, the **majority class**, the
+**last value**, or a basic **if-then rule** are all baselines.
+
+Why they're essential
+---------------------
+
+A metric is **meaningless** in isolation — 90% accuracy is trivial if the majority class is already 90%. A
+baseline sets the **floor**: if a complex model **can't** beat it, the model adds **no value** and may even
+hide a **bug**. Baselines are **cheap**, fast, and interpretable, so they cost almost nothing to run.
+
+Where they show up
+------------------
+
+Baselines frame every honest **evaluation** and are **built into** metrics — **MASE**, for instance, divides a
+forecast's error by a **naive** baseline's, so a score below 1 literally means "**better than the
+heuristic**." Always establish the baseline **first**.
+"""
+
+MINDMAP.update({
+    "Weak Supervision": [
+        "Full Annotation", "Label Noise", "Computer Vision (CV)",
+        "Natural Language Processing (NLP)", "Embedding", "Neural Networks",
+    ],
+    "RMSLE (Root Mean Squared Logarithmic Error)": [
+        "Root Mean Squared Error (RMSE)", "Mean Absolute Error (MAE)",
+        "MASE (Mean Absolute Scaled Error)", "Mean Absolute Percentage Error (MAPE)",
+        "WAPE (Weighted Absolute Percentage Error)", "Outlier",
+    ],
+    "Baseline Heuristics": [
+        "MASE (Mean Absolute Scaled Error)", "Root Mean Squared Error (RMSE)", "Accuracy",
+        "Mean Absolute Error (MAE)", "Time Series Forecasting", "Model Score",
+    ],
+})
+
+
+# ----------------------------------------------------------------------
+# Theme: final miscellany — underflow, crew overtime, advanced spreadsheet sorting
+# ----------------------------------------------------------------------
+
+CONTENT["Underflow"] = r"""
+What it is
+----------
+
+**Underflow** happens when a computation produces a number **too small** to represent in the floating-point
+format — smaller than the tiniest positive value — so the computer **rounds it to zero**, destroying a real
+nonzero result. It is the small-magnitude counterpart of **overflow**.
+
+Why ML hits it
+--------------
+
+Machine learning multiplies **many small probabilities** — in Naive Bayes, HMMs, and likelihoods — and the
+product of hundreds of values below 1 quickly drops below the representable floor, collapsing to **0** and
+corrupting the result. Low-precision (**float16**) training underflows even sooner, showing up as **vanishing
+gradients**.
+
+The fix
+-------
+
+Compute in **log space**. Because :math:`\log(a \cdot b) = \log(a) + \log(b)`, a fragile **product** of tiny
+probabilities becomes a stable **sum** of log-probabilities — the reason libraries use **log-likelihoods** and
+the **LogSumExp** trick, and why scikit-learn's Naive Bayes works with logs internally.
+"""
+
+CONTENT["Crew Overtime"] = r"""
+What it is
+----------
+
+**Crew overtime** is the labor a workforce puts in **beyond** its scheduled hours — and the **premium pay**
+that comes with it. It is a core **operational cost** in airlines, logistics, transit, and any **shift-based**
+operation, and a number planners work hard to keep down.
+
+What drives it
+--------------
+
+Overtime spikes from **disruptions** — delays, absences, demand surges — and from **poor scheduling** or
+inaccurate **demand forecasts** that leave too few people rostered. It is a **reactive** cost: you pay it when
+the plan doesn't survive contact with reality.
+
+Why it's optimized
+------------------
+
+Crew overtime is a **penalty** term in scheduling and rostering models, balanced against **understaffing**
+(which causes delays and missed service) and **overstaffing** (idle labor). Better **forecasting** and robust
+scheduling shrink it — a direct link between prediction quality and operating cost.
+"""
+
+CONTENT["Advanced Sorting in Spreadsheets"] = r"""
+What it is
+----------
+
+**Advanced sorting** in spreadsheets means ordering data by more than a single column A-to-Z — **multi-level**
+sorts that break ties across several keys, **custom** orders, and sorts by **color** or **format**. It goes
+well beyond the one-click sort button.
+
+How it works
+------------
+
+The core tool is a **multi-key** sort — order by one column, then by a second **within** ties, then a third —
+plus **custom lists** (sorting Low, Medium, High in **logical** rather than alphabetical order), case-sensitive
+sorting, and sorting **left-to-right** by rows. Excel's Sort dialog and Google Sheets both expose these, and
+functions like **SORT / SORTBY** do it dynamically.
+
+Why it matters
+--------------
+
+Sorting is a foundational step in **exploring** and **preparing** tabular data — grouping records, surfacing
+extremes, and readying data for analysis. The key **caution**: always extend the sort to **all related
+columns**, or you'll shuffle one field out of alignment with the rest and silently **corrupt** the rows.
+"""
+
+MINDMAP.update({
+    "Underflow": [
+        "Logits", "Softmax Function",
+        "Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)", "Log-Odds",
+        "Quantization", "Sigmoid Function",
+    ],
+    "Crew Overtime": [
+        "Manual review minutes", "Compute budgets", "Overstock %", "Stockouts",
+        "Time Series Forecasting", "Inference Cost (Inference $)",
+    ],
+    "Advanced Sorting in Spreadsheets": [
+        "Encode (in Feature Engineering)", "Normalize (in Feature Engineering)",
+        "Sensitivity in Feature Engineering", "Outlier", "Correlation", "Median",
+    ],
+})

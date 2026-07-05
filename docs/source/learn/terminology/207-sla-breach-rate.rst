@@ -18,9 +18,45 @@ SLA Breach Rate
 
 *The fraction of time a service fails to meet its agreed service level.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**SLA Breach Rate** is a **performance metric** measuring how often a service provider — a supplier,
+IT team or internal group — **fails to meet the service levels agreed in the SLA**. Each **breach** is
+a missed target (a late delivery, missed uptime, poor quality), and the rate reports the **percentage
+of obligations not met** over a period. It is the exact **opposite of the SLA compliance rate**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{SLA Breach Rate} = \frac{\text{Number of SLA breaches}}{\text{Total SLA obligations}} \times 100\%,
+
+where **breaches** count the times performance fell below target and **obligations** count every
+chance there was to meet it.
+
+Worked examples
+---------------
+
+In a **supply chain**, 1,000 orders with 50 delivered late gives a breach rate of 50 / 1,000 =
+**5%**. In an **IT support desk**, 2,000 tickets with 200 missing their resolution deadline gives
+200 / 2,000 = **10%**.
+
+Why it matters, and reducing it
+---------------------------------
+
+The rate drives **accountability**, signals **customer satisfaction**, triggers **contractual
+penalties or credits**, and pinpoints weak areas. It falls with **better forecasting**, **real-time
+monitoring and alerts**, **supplier collaboration**, **automated escalation**, and **realistic SLA
+reviews**. Its mirror image is the compliance rate (100% minus the breach rate), and the common KPIs
+it is measured against are on-time delivery, fill rate and uptime.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SLA (Service Level Agreement) <208-sla-service-level-agreement>` · :doc:`SLOs (Service Level Objectives) <391-slos-service-level-objectives>` · :doc:`SLI (Service Level Indicator) <190-sli-service-level-indicator>` · :doc:`SLA Breaches <399-sla-breaches>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>`
 
 ----
 

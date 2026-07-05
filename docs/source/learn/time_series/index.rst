@@ -1,17 +1,5 @@
 :html_theme.sidebar_secondary.remove:
 
-..
-   ##################################################################
-   learn/time_series/index.rst
-   ==================================================================
-   Classical (Box–Jenkins) time-series hub, framed for scikit-plots
-   users.  Source context (framing only, re-expressed here):
-   https://insightful-data-lab.com/category/introduction-to-time-series/ (18 posts)
-   ------------------------------------------------------------------
-   Extensions: sphinx_design, sphinx_tags (bottom), sphinx_copybutton.
-   Underlines: = section (overline)  - subsection  ^ subsubsection
-   ##################################################################
-
 .. role:: raw-html(raw)
    :format: html
 
@@ -30,471 +18,208 @@
 Time Series
 ======================================================================
 
-A **time series** is a sequence of observations indexed by time, where
-order and dependence matter. This hub walks the classical **Box–Jenkins**
-path that the source corpus follows: from stationarity and autocorrelation,
-through the AR / MA / ARMA / ARIMA / SARIMA model family, to estimation,
-diagnostics and forecasting.
+A **time series** is a sequence of observations indexed by time, where **order and
+dependence carry information**. This hub walks the classical **Box–Jenkins** path the
+source corpus follows — from stationarity and autocorrelation, through the
+AR / MA / ARMA / ARIMA / SARIMA model family, to estimation, diagnostics and forecasting —
+as an ordered, self-contained course of 18 lessons.
 
 Read it at any depth:
 
 * **newcomers** — what makes time-series data special, and stationarity;
-* **practitioners** — reading ACF/PACF and fitting ARIMA in statsmodels;
-* **researchers** — estimation (Yule–Walker, MLE), order selection and
-  residual diagnostics.
+* **practitioners** — reading the ACF / PACF and fitting ARIMA in ``statsmodels``;
+* **researchers** — estimation (Yule–Walker, Gaussian MLE), order selection and residual diagnostics.
 
 .. warning::
 
-   Time series breaks the i.i.d. assumption behind ordinary
-   cross-validation. **Never** shuffle: validate forward in time
-   (walk-forward) to avoid leaking the future into the past.
+   Time series breaks the i.i.d. assumption behind ordinary cross-validation. **Never**
+   shuffle: validate forward in time (**walk-forward**) so the future never leaks into the past.
 
 .. note::
 
-   Open a dropdown for detail and follow **See also** links. Snippets use
-   real ``statsmodels`` / ``pandas`` / ``scikit-learn`` calls. This page
-   pairs with the :ref:`Terminology reference <terminology-index>` (Signal
-   Processing & Time Series) and the
-   :ref:`Bayesian Data Analysis hub <bayesian-data-analysis-index>`.
+   Follow the lessons in order with **Next ▶**, or jump in by stage below. Snippets use
+   real ``statsmodels`` / ``pandas`` / ``numpy`` calls. This course pairs with the
+   :ref:`Terminology reference <terminology-index>` (Signal Processing & Time Series).
 
-----------------------------------------------------------------------
+======================================================================
 
-.. _ts-discovery:
+🧭 Stage 1 — Orientation
+------------------------------------------------------------------------
 
-Discovery at a Glance
-----------------------------------------------------------------------
+*What time-series data is, why order carries information, and setting up the tools.*
 
-.. tab-set::
-   :class: sd-width-100
-
-   .. tab-item:: 🟢 Start Here — Foundations
-      :sync: level-foundations
-
-      What is different about ordered data.
-
-      .. grid:: 2 2 3 3
-         :gutter: 2
-
-         .. grid-item-card:: 📈 What is a Time Series?
-            :link: ts-what-is
-            :link-type: ref
-            :class-card: sd-border-1
-
-            Trend, seasonality and noise — the components hiding in a
-            sequence.
-
-         .. grid-item-card:: ⚖️ Stationarity
-            :link: ts-stationarity
-            :link-type: ref
-            :class-card: sd-border-1
-
-            The property most classical models assume, and how to get it
-            by differencing.
-
-         .. grid-item-card:: 🔗 ACF & PACF
-            :link: ts-acf-pacf
-            :link-type: ref
-            :class-card: sd-border-1
-
-            The two correlation fingerprints that reveal model order.
-
-   .. tab-item:: 🔵 Core — The Model Family
-      :sync: level-core
-
-      AR, MA and their combinations.
-
-      .. grid:: 2 2 3 3
-         :gutter: 2
-
-         .. grid-item-card:: 🔁 AR & MA
-            :link: ts-ar-ma
-            :link-type: ref
-            :class-card: sd-border-1
-
-            Regress on the past (AR) or on past shocks (MA) — the two
-            atoms.
-
-         .. grid-item-card:: 🧱 ARIMA
-            :link: ts-arima
-            :link-type: ref
-            :class-card: sd-border-1
-
-            How a nonstationary model is built from a stationary ARMA via
-            differencing.
-
-         .. grid-item-card:: 🌗 SARIMA
-            :link: ts-sarima
-            :link-type: ref
-            :class-card: sd-border-1
-
-            Adding a seasonal layer for weekly / yearly periodicity.
-
-   .. tab-item:: 🔴 Advanced — Estimate, Select, Forecast
-      :sync: level-advanced
-
-      Fit it, check it, project it forward.
-
-      .. grid:: 2 2 3 3
-         :gutter: 2
-
-         .. grid-item-card:: 🧮 Estimation
-            :link: ts-estimation
-            :link-type: ref
-            :class-card: sd-border-1
-
-            Yule–Walker and Gaussian maximum likelihood for ARMA
-            parameters.
-
-         .. grid-item-card:: 🎯 Order Selection & Diagnostics
-            :link: ts-order-diagnostics
-            :link-type: ref
-            :class-card: sd-border-1
-
-            AIC/BIC to pick (p, d, q); residual checks to trust the fit.
-
-         .. grid-item-card:: 🔮 Forecasting
-            :link: ts-forecasting
-            :link-type: ref
-            :class-card: sd-border-1
-
-            Best linear prediction, multi-step horizons, and exponential
-            smoothing.
-
-----------------------------------------------------------------------
-
-.. _ts-foundations:
-
-Part 1 — Time Series Foundations
-----------------------------------------------------------------------
-
-.. dropdown:: What is a Time Series?
-   :color: primary
-   :icon: graph
-   :name: ts-what-is
-   :open:
-
-   **What is it?**
-
-   An ordered sequence :math:`\{x_t\}_{t=1}^{T}` of observations sampled
-   over time. It is usually decomposed into:
-
-   * **Trend** — long-run direction;
-   * **Seasonality** — fixed-period cycles (daily, weekly, yearly);
-   * **Residual / noise** — what is left after trend and seasonality.
-
-   **pandas**
-
-   .. code-block:: python
-
-      import pandas as pd
-      from statsmodels.tsa.seasonal import seasonal_decompose
-
-      s = pd.read_csv("series.csv", parse_dates=["date"], index_col="date")
-      result = seasonal_decompose(s["value"], model="additive", period=12)
-      result.plot()
-
-   .. seealso::
-
-      :ref:`ts-stationarity` · :ref:`terminology-signal-timeseries`
-
-.. dropdown:: Stationarity
-   :color: primary
-   :icon: meter
-   :name: ts-stationarity
-
-   **What is it?**
-
-   A series is (weakly) **stationary** when its mean, variance and
-   autocovariance do not change over time. Most classical models assume
-   this, so a trending/seasonal series is first **differenced** to remove
-   the changing parts:
-
-   .. math::
-
-      \nabla x_t = x_t - x_{t-1}
-
-   The **ADF test** checks for a unit root (nonstationarity):
-
-   .. code-block:: python
-
-      from statsmodels.tsa.stattools import adfuller
-      stat, pvalue, *_ = adfuller(s["value"])
-      # small p-value → reject unit root → treat as stationary
-
-   .. seealso::
-
-      :ref:`ts-acf-pacf` · :ref:`ts-arima`
-
-.. dropdown:: Autocorrelation — ACF & PACF
-   :color: primary
-   :icon: pulse
-   :name: ts-acf-pacf
-
-   **What is it?**
-
-   * **ACF** (autocorrelation function) — correlation between the series
-     and its own lag :math:`k`:
-
-   .. math::
-
-      \rho(k) = \frac{\gamma(k)}{\gamma(0)}, \qquad
-      \gamma(k) = \operatorname{Cov}(x_t, x_{t-k})
-
-   * **PACF** (partial autocorrelation) — the correlation at lag :math:`k`
-     *after removing* the effect of shorter lags.
-
-   Their decay/cut-off patterns are the classic fingerprint for choosing
-   AR vs. MA order: a PACF that cuts off after lag *p* suggests AR(*p*); an
-   ACF that cuts off after lag *q* suggests MA(*q*).
-
-   .. code-block:: python
-
-      from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-      plot_acf(s["value"], lags=40)
-      plot_pacf(s["value"], lags=40, method="ywm")   # Yule–Walker
-
-   .. seealso::
-
-      :ref:`ts-ar-ma` · :ref:`ts-estimation`
-
-----------------------------------------------------------------------
-
-.. _ts-models:
-
-Part 2 — The Classical Model Family
-----------------------------------------------------------------------
-
-.. dropdown:: AR & MA Models
-   :color: info
-   :icon: sync
-   :name: ts-ar-ma
-
-   **Autoregressive — AR(p)** regresses the present on its own past:
-
-   .. math::
-
-      x_t = c + \sum_{i=1}^{p} \phi_i\, x_{t-i} + \varepsilon_t
-
-   **Moving average — MA(q)** regresses the present on past shocks:
-
-   .. math::
-
-      x_t = \mu + \varepsilon_t + \sum_{j=1}^{q} \theta_j\, \varepsilon_{t-j}
-
-   **ARMA(p, q)** combines both on a stationary series.
-
-   .. seealso::
-
-      :ref:`ts-arima` · :ref:`ts-acf-pacf`
-
-.. dropdown:: ARIMA — Integrating Nonstationary Series
-   :color: info
-   :icon: stack
-   :name: ts-arima
-
-   **What is it?**
-
-   **ARIMA(p, d, q)** applies an ARMA(p, q) model to a series that has
-   been **differenced** :math:`d` times to make it stationary — exactly
-   the "build a nonstationary model from a stationary one" idea in the
-   source.
-
-   **statsmodels**
-
-   .. code-block:: python
-
-      from statsmodels.tsa.arima.model import ARIMA
-
-      model = ARIMA(s["value"], order=(1, 1, 1))   # (p, d, q)
-      fit = model.fit()
-      print(fit.summary())
-
-   .. seealso::
-
-      :ref:`ts-sarima` · :ref:`ts-order-diagnostics`
-
-.. dropdown:: SARIMA — Adding Seasonality
-   :color: info
-   :icon: calendar
-   :name: ts-sarima
-
-   **What is it?**
-
-   **SARIMA** extends ARIMA with a seasonal :math:`(P, D, Q)_m` component
-   (period :math:`m`) to capture repeating cycles on top of the
-   non-seasonal dynamics.
-
-   .. code-block:: python
-
-      from statsmodels.tsa.statespace.sarimax import SARIMAX
-
-      model = SARIMAX(s["value"], order=(1, 1, 1),
-                      seasonal_order=(1, 1, 1, 12))   # monthly seasonality
-      fit = model.fit(disp=False)
-
-   .. seealso::
-
-      :ref:`ts-forecasting`
-
-----------------------------------------------------------------------
-
-.. _ts-fit:
-
-Part 3 — Estimate, Select & Forecast
-----------------------------------------------------------------------
-
-.. dropdown:: Estimation — Yule–Walker & Gaussian MLE
-   :color: secondary
-   :icon: number
-   :name: ts-estimation
-
-   **What is it?**
-
-   * **Yule–Walker** — solves the linear system linking AR coefficients to
-     the autocovariances; a fast, closed-form *preliminary* estimate for
-     AR models.
-   * **Gaussian MLE** — maximises the likelihood under a Gaussian
-     innovation assumption; the standard estimator for full ARMA/ARIMA
-     models (what ``statsmodels`` reports).
-
-   .. seealso::
-
-      :ref:`ts-order-diagnostics`
-
-.. dropdown:: Order Selection & Residual Diagnostics
-   :color: secondary
-   :icon: checklist
-   :name: ts-order-diagnostics
-
-   **Selecting (p, d, q)** — fit candidates and compare information
-   criteria; lower is better:
-
-   .. math::
-
-      \text{AIC} = 2k - 2\ln \hat{L}, \qquad
-      \text{BIC} = k\ln n - 2\ln \hat{L}
-
-   **Diagnostics after fitting** — the residuals should look like white
-   noise: no autocorrelation (Ljung–Box test), roughly normal, constant
-   variance.
-
-   .. code-block:: python
-
-      import statsmodels.api as sm
-      fit.plot_diagnostics(figsize=(10, 8))            # built-in panel
-      sm.stats.acorr_ljungbox(fit.resid, lags=[10])    # whiteness test
-
-   .. seealso::
-
-      :ref:`ts-forecasting` · :ref:`data-prep-residuals`
-
-.. dropdown:: Forecasting — Linear Prediction & Smoothing
-   :color: secondary
-   :icon: telescope
-   :name: ts-forecasting
-
-   **Best linear predictor** — under stationarity, the minimum-MSE linear
-   forecast is built from the autocovariance structure (and the PACF gives
-   the one-step coefficients). Forecasts extend to **multi-step** horizons
-   with widening uncertainty bands.
-
-   **Exponential smoothing** — a complementary family that forecasts by
-   exponentially weighting recent observations (Holt–Winters adds trend
-   and seasonality):
-
-   .. code-block:: python
-
-      from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
-      hw = ExponentialSmoothing(s["value"], trend="add",
-                                seasonal="add", seasonal_periods=12).fit()
-      forecast = hw.forecast(12)
-
-   **Validate forward in time:**
-
-   .. code-block:: python
-
-      from sklearn.model_selection import TimeSeriesSplit
-      for tr_idx, te_idx in TimeSeriesSplit(n_splits=5).split(s):
-          ...   # train on the past, test on the next block
-
-   .. seealso::
-
-      :ref:`ts-sarima` · :ref:`terminology-signal-timeseries`
-
-----------------------------------------------------------------------
-
-.. _ts-stack-map:
-
-Map to the Python Time-Series Stack
-----------------------------------------------------------------------
-
-.. grid:: 1 2 2 3
+.. grid:: 1 2 2 2
    :gutter: 2
 
-   .. grid-item-card:: statsmodels — tsa
-      :link: https://www.statsmodels.org/stable/tsa.html
+   .. grid-item-card:: 01 · What Are Time Series, and How Are They Used?
+      :link: ts-what-are-time-series-and-how-are-they-used
+      :link-type: ref
 
-      ARIMA, SARIMAX, exponential smoothing, ACF/PACF, diagnostics.
+      Sequences of time-ordered observations, their trend / seasonal / residual parts, and where forecasting applies.
 
-   .. grid-item-card:: pandas — time series
-      :link: https://pandas.pydata.org/docs/user_guide/timeseries.html
+   .. grid-item-card:: 02 · Getting Started with R
+      :link: ts-getting-started-with-r
+      :link-type: ref
 
-      Datetime indexing, resampling, rolling windows.
+      Setting up a working environment — the source's R tooling and the Python (statsmodels) path used here.
 
-   .. grid-item-card:: scikit-learn — TimeSeriesSplit
-      :link: https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html
+📐 Stage 2 — Stationarity
+------------------------------------------------------------------------
 
-      Leakage-free walk-forward cross-validation.
+*The property that makes a series learnable — how to recognise it and how to achieve it.*
 
-   .. grid-item-card:: scikit-plots — residual diagnostics
-      :link: https://scikit-plots.github.io/dev/auto_examples/stats/plot_residuals_distribution_script.html
+.. grid:: 1 2 2 2
+   :gutter: 2
 
-      Distribution / Q–Q checks for model residuals.
+   .. grid-item-card:: 03 · A Gentle Introduction to Stationarity
+      :link: ts-a-gentle-introduction-to-stationarity
+      :link-type: ref
 
-----------------------------------------------------------------------
+      Why a stable mean, variance and autocovariance make a series learnable — and how differencing helps.
 
-.. _ts-sources:
+   .. grid-item-card:: 04 · Weak and Strong Stationarity
+      :link: ts-weak-and-strong-stationarity
+      :link-type: ref
 
-Sources
-----------------------------------------------------------------------
+      The precise definitions: strict distributional invariance versus the weaker second-order (covariance) form.
 
-Verified during preparation of this page; resolvable at build date.
+🔗 Stage 3 — Linear & ARMA Processes
+------------------------------------------------------------------------
 
-**Source context (framing only, re-expressed in our own words)**
+*The building blocks: linear processes, the AR / MA / ARMA family, and their autocorrelation.*
 
-* Introduction to Time Series category (18 posts):
-  https://insightful-data-lab.com/category/introduction-to-time-series/
+.. grid:: 1 2 2 2
+   :gutter: 2
 
-**Official documentation (API calls used above)**
+   .. grid-item-card:: 05 · Linear Processes
+      :link: ts-linear-processes
+      :link-type: ref
 
-* statsmodels — time-series analysis (``tsa``):
-  https://www.statsmodels.org/stable/tsa.html
-* pandas — time-series / date functionality:
-  https://pandas.pydata.org/docs/user_guide/timeseries.html
-* scikit-learn — ``TimeSeriesSplit``:
-  https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html
+      Series written as a linear filter of white noise — the general form underlying AR, MA and ARMA.
 
-**scikit-plots (this project)**
+   .. grid-item-card:: 06 · Understanding ARMA Processes
+      :link: ts-understanding-arma-processes
+      :link-type: ref
 
-* Example gallery: https://scikit-plots.github.io/dev/auto_examples/index.html
-* Terminology reference: :ref:`terminology-index`
+      Combining autoregressive and moving-average terms; causality, invertibility and what each parameter does.
 
-**Standard references**
+   .. grid-item-card:: 07 · Computing ACFs of Causal AR(2) Processes Using Difference Equations
+      :link: ts-computing-acfs-of-causal-ar-2-processes-using-difference-equations
+      :link-type: ref
 
-* Hyndman & Athanasopoulos, *Forecasting: Principles and Practice* (3rd
-  ed., free): https://otexts.com/fpp3/
-* Brockwell & Davis, *Introduction to Time Series and Forecasting*.
+      Solving the autocorrelation of an AR(2) by treating its recursion as a linear difference equation.
 
-..
-   ##################################################################
-   Tags — bottom of page, project controlled vocabulary only.
-   (Promote to `domain: time series` once multiple TS pages exist.)
-   ##################################################################
+   .. grid-item-card:: 08 · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q)
+      :link: ts-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q
+      :link-type: ref
 
-.. tags::
-   purpose: reference,
-   domain: statistics,
-   level: beginner,
-   level: intermediate,
-   level: advanced
+      Generalising the difference-equation method to the autocorrelation of any AR(p) or ARMA(p, q).
+
+🎯 Stage 4 — Prediction & the Sample ACF / PACF
+------------------------------------------------------------------------
+
+*Optimal linear forecasting and the empirical correlation tools used to identify model order.*
+
+.. grid:: 1 2 2 2
+   :gutter: 2
+
+   .. grid-item-card:: 09 · Best Linear Predictor of a Stationary Process
+      :link: ts-best-linear-predictor-of-a-stationary-process
+      :link-type: ref
+
+      The optimal linear forecast, the projection principle, and how the PACF emerges from it.
+
+   .. grid-item-card:: 10 · Sample ACF and Sample PACF
+      :link: ts-sample-acf-and-sample-pacf
+      :link-type: ref
+
+      Estimating autocorrelation from data, their sampling behaviour, and reading them to pick model order.
+
+🧮 Stage 5 — Estimation
+------------------------------------------------------------------------
+
+*Fitting parameters: Yule–Walker for AR models, Gaussian maximum likelihood for ARMA.*
+
+.. grid:: 1 2 2 2
+   :gutter: 2
+
+   .. grid-item-card:: 11 · Preliminary Estimation for AR Models and the Yule–Walker Equations
+      :link: ts-preliminary-estimation-for-ar-models-and-the-yule-walker-equations
+      :link-type: ref
+
+      Method-of-moments AR fitting by solving the Yule–Walker system from sample autocovariances.
+
+   .. grid-item-card:: 12 · Maximum Likelihood Estimation for ARMA Models (Gaussian MLE)
+      :link: ts-maximum-likelihood-estimation-for-arma-models-gaussian-mle
+      :link-type: ref
+
+      Fitting ARMA by maximising the Gaussian likelihood — the standard, efficient estimator.
+
+🏗️ Stage 6 — Building & Forecasting Models
+------------------------------------------------------------------------
+
+*Diagnostics, order selection, ARIMA / SARIMA, multi-step forecasting and exponential smoothing.*
+
+.. grid:: 1 2 2 2
+   :gutter: 2
+
+   .. grid-item-card:: 13 · Diagnostics After Fitting a Time Series Model
+      :link: ts-diagnostics-after-fitting-a-time-series-model
+      :link-type: ref
+
+      Checking standardized residuals for leftover structure: normality, autocorrelation and the Ljung–Box test.
+
+   .. grid-item-card:: 14 · Order Selection for Time Series Models
+      :link: ts-order-selection-for-time-series-models
+      :link-type: ref
+
+      Choosing p, d, q with information criteria (AIC / BIC) balanced against parsimony and diagnostics.
+
+   .. grid-item-card:: 15 · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones
+      :link: ts-arima-models-how-nonstationary-models-are-built-from-stationary-ones
+      :link-type: ref
+
+      Differencing to remove trend, turning a nonstationary series into an ARMA-modellable one.
+
+   .. grid-item-card:: 16 · SARIMA Models: Seasonal ARIMA
+      :link: ts-sarima-models-seasonal-arima
+      :link-type: ref
+
+      Extending ARIMA with seasonal AR, differencing and MA terms for periodic patterns.
+
+   .. grid-item-card:: 17 · Beyond One-Step Ahead Predictions
+      :link: ts-beyond-one-step-ahead-predictions
+      :link-type: ref
+
+      Multi-step forecasting, how uncertainty compounds with horizon, and forecast intervals.
+
+   .. grid-item-card:: 18 · Exponential Smoothing Models
+      :link: ts-exponential-smoothing-models
+      :link-type: ref
+
+      Weighted-average forecasting (simple, Holt, Holt–Winters) as a practical complement to ARIMA.
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+
+   01-what-are-time-series-and-how-are-they-used
+   02-getting-started-with-r
+   03-a-gentle-introduction-to-stationarity
+   04-weak-and-strong-stationarity
+   05-linear-processes
+   06-understanding-arma-processes
+   07-computing-acfs-of-causal-ar-2-processes-using-difference-equations
+   08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q
+   09-best-linear-predictor-of-a-stationary-process
+   10-sample-acf-and-sample-pacf
+   11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations
+   12-maximum-likelihood-estimation-for-arma-models-gaussian-mle
+   13-diagnostics-after-fitting-a-time-series-model
+   14-order-selection-for-time-series-models
+   15-arima-models-how-nonstationary-models-are-built-from-stationary-ones
+   16-sarima-models-seasonal-arima
+   17-beyond-one-step-ahead-predictions
+   18-exponential-smoothing-models
+
+.. tags:: purpose: reference, topic: time series

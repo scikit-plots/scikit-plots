@@ -18,9 +18,38 @@ KS shift (Kolmogorov–Smirnov shift)
 
 *Using the KS statistic to quantify distribution shift in a feature.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**KS shift** detects **data drift** in a **continuous** feature with the **two-sample Kolmogorov–Smirnov
+test** — it compares the feature's **cumulative distribution** in a reference window against the current
+production window and measures their **largest** gap:
+
+.. math::
+
+   D = \sup_{x}\,\big| F_{\text{ref}}(x) - F_{\text{prod}}(x) \big|.
+
+A large **D** means the two samples likely come from **different** distributions.
+
+Why it's used
+-------------
+
+The KS test is **non-parametric** — it assumes **no** particular distribution shape — so it flags
+**arbitrary** changes in a numeric feature's distribution. When **D** exceeds a **critical value** (or its
+p-value falls below a threshold), the shift is **statistically significant**.
+
+Using it in practice
+--------------------
+
+At production scale, tiny shifts become "significant" on **huge** samples, so the threshold is **calibrated**
+to batch size to avoid **alert fatigue**. KS shift complements **PSI** (which grades severity) and
+**Chi-square** (for categorical features) as part of a drift-monitoring suite.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Data Drift <331-data-drift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Concept Drift <330-concept-drift>`
 
 ----
 

@@ -18,9 +18,34 @@ Statistical Tests
 
 *Procedures for deciding whether data support a hypothesis.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+A **statistical test** is a formal procedure for deciding whether data provide enough evidence to **reject**
+a default assumption. Every test follows the same **five steps**: state a **null (H₀)** and **alternative
+(Hₐ)** hypothesis, pick a **significance level α**, compute a **test statistic**, find its **p-value**, and
+**interpret**.
+
+The decision rule
+-----------------
+
+**Reject H₀ when p < α** (the data would be surprising if H₀ were true), otherwise **fail to reject** it.
+Crucially, failing to reject is **not** proof that H₀ is true — absence of evidence is not evidence of
+absence. Two errors are possible: **Type I** (rejecting a true H₀, rate α) and **Type II** (missing a real
+effect, rate β).
+
+The families
+------------
+
+Tests split into **parametric** (assuming a distribution — t-test, ANOVA) and **non-parametric**
+(assumption-free — **KS**, chi-square), and into one- vs two-sided. The right test depends on the **data
+type**, the **question**, and the assumptions you can defend.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Chi-square (χ²) Test <324-chi-square-2-test>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

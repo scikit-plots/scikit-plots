@@ -18,9 +18,36 @@ Root Mean Squared Error (RMSE)
 
 *The square root of mean squared error, in the target's units.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Root mean squared error** is the **square root** of the MSE:
+
+.. math::
+
+   \text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}\big(y_i - \hat{y}_i\big)^2}.
+
+The root returns the error to the target's **original units**, so it reads as a **typical error magnitude**.
+
+How it behaves
+--------------
+
+RMSE keeps MSE's heavy **penalty on large errors** and its **outlier sensitivity**, but is far more
+**interpretable** — an RMSE of 5 means predictions are off by about **5 units** on average. It ranks models
+**identically** to MSE, is always **≥ the MAE**, and the RMSE–MAE gap widens as the **error variance** grows.
+
+When to use it
+--------------
+
+Report RMSE for regression when **large errors are costly** and you want a number in the data's units; pair
+it with **R²** for a scale-free complement. Like R², it also **falls** as you add variables, so watch
+**overfitting**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Regression Models <309-regression-models>` · :doc:`Average Absolute Error (AAE) <246-average-absolute-error-aae>`
 
 ----
 

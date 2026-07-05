@@ -18,9 +18,31 @@ Binary Classification
 
 *Predicting one of two classes for each instance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Binary classification** predicts one of **two classes** — positive/negative, 1/0, spam/not-spam. The
+model doesn't output a bare label directly; it estimates the **probability** that an instance belongs to
+the **positive** class, then a **decision threshold** turns that probability into a hard label.
+
+The threshold
+-------------
+
+By default the cutoff is **0.5** — probability :math:`\ge 0.5` → class 1, else class 0 — but 0.5 is **not**
+always right. On **imbalanced** data (e.g. fraud at 1%), 0.5 may label everything negative; the threshold
+is tuned against **precision / recall** or an **ROC** curve to match the cost of each error.
+
+How it's judged
+---------------
+
+Predictions map to the **confusion matrix** — true and false positives and negatives — from which
+precision, recall, F1 and AUROC follow. The threshold choice moves directly along that trade-off.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Classification Probability <231-classification-probability>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Classification Models <294-classification-models>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

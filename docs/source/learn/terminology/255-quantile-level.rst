@@ -18,9 +18,36 @@ Quantile Level
 
 *The probability level (e.g. 0.9) targeted by a quantile forecast.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+The **quantile level** :math:`\tau \in (0,1)` (sometimes written :math:`\alpha`) is the probability that
+**names which quantile** a forecast targets — the value :math:`q_\tau` below which the outcome is expected
+to fall a fraction :math:`\tau` of the time:
+
+.. math::
+
+   \Pr\!\left(Y \le q_\tau\right) = \tau, \qquad \tau \in (0, 1).
+
+Reading levels
+--------------
+
+:math:`\tau = 0.5` is the **median**; :math:`\tau = 0.1` is the 10th percentile (a pessimistic lower value
+the outcome undercuts 10% of the time); :math:`\tau = 0.9` the 90th (an optimistic upper value). A **set**
+of levels :math:`\{0.1, 0.5, 0.9, \dots\}` traces out the whole predictive distribution.
+
+Monotonicity
+------------
+
+In **quantile regression** the level is the **tilting parameter** of the pinball loss. Estimated quantiles
+should be **monotonically increasing** in :math:`\tau` — when a lower level's forecast exceeds a higher
+one's, that is **quantile crossing**, an error to constrain away.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Predicting Percentiles <252-predicting-percentiles>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>`
 
 ----
 

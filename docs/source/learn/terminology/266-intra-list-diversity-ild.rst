@@ -18,9 +18,35 @@ Intra-List Diversity (ILD)
 
 *The average dissimilarity among items within a single recommendation list.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Intra-list diversity** measures how **varied** the items within a **single** recommendation list are —
+the antidote to lists of near-identical products. It is defined from the **intra-list similarity (ILS)**,
+the **average pairwise similarity** of all items in the list; diversity is its complement.
+
+The formula
+-----------
+
+.. math::
+
+   \mathrm{ILD} = \frac{2}{|L|\,(|L|-1)} \sum_{i < j} \big(1 - \mathrm{sim}(i, j)\big),
+
+with :math:`\mathrm{sim}` a **cosine** (over embeddings / features) or **Jaccard** (over tags / genres)
+similarity. High ILS → similar items → **low** diversity; low ILS → varied items → **high** diversity.
+
+Why it matters
+--------------
+
+Accuracy alone rewards recommending ten versions of the same hit; **diversity** captures whether a list
+actually **broadens** what the user sees. It trades off against relevance — the art is a **diverse yet
+relevant** list.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>` · :doc:`Jaccard index <264-jaccard-index>` · :doc:`Genre Overlap <263-genre-overlap>` · :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>`
 
 ----
 

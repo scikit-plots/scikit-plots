@@ -18,9 +18,33 @@ Full Distribution
 
 *Predicting the entire outcome distribution rather than a single value.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+Forecasting the **full distribution** means predicting the **entire** predictive distribution — the
+complete CDF / PDF over all possible outcomes — rather than a **summary** of it. A point forecast
+collapses it to one number; a quantile forecast reports a few points; the full distribution keeps
+**everything**.
+
+The richest target
+------------------
+
+From the full distribution you can **derive any summary** after the fact — the mean, the median, any
+**quantile**, a **prediction interval**, the probability of exceeding a threshold, or a risk measure such
+as **VaR**. Nothing about the uncertainty is discarded.
+
+How it's judged
+---------------
+
+Because it is a whole distribution, it is scored by a rule that reads the **entire shape** against the
+outcome — the **CRPS**, which compares the forecast CDF to the observation's step CDF — not a point-error
+metric like MAE.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Probabilistic Scoring <228-probabilistic-scoring>`
 
 ----
 

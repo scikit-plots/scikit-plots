@@ -18,9 +18,49 @@ Total Incremental Benefit (TIB)
 
 *The total added benefit from treating a targeted population versus not.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Total incremental benefit (TIB)** is the **overall net gain** from applying a treatment compared to
+**not applying it at all** — the absolute improvement an uplift strategy delivers across the whole
+population. In uplift modelling it is the **final value of the cumulative incremental gain curve**, at
+100% of the targeted population.
+
+The formula
+-----------
+
+.. math::
+
+   \text{TIB} = \sum_{i=1}^{N} \left( y_i^{\text{treat}} - y_i^{\text{control}} \right),
+
+summing the treated-minus-untreated outcome over the whole population :math:`N`. Expressed in money,
+it becomes **incremental conversions × profit per conversion**.
+
+A worked example
+----------------
+
+A promotion runs on 10,000 customers: the treatment group (5,000) makes 700 purchases (14%), the
+control group (5,000) makes 500 (10%). That is **200 incremental conversions**; at ``$50`` profit
+each, the total incremental benefit is **``$10,000``** — 200 extra purchases the campaign genuinely
+caused.
+
+Why it matters
+--------------
+
+TIB puts a single number on a campaign's **business value**. It feeds ROI directly —
+
+.. math::
+
+   \text{ROI} = \frac{\text{TIB} - \text{Campaign Cost}}{\text{Campaign Cost}},
+
+and serves as a **benchmark** for comparing uplift models and a basis for **budget allocation**, since
+it reflects the true added impact rather than gross outcomes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Incremental Gain <200-incremental-gain>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`ROI (Return on Investment) <191-roi-return-on-investment>` · :doc:`Incremental Revenue <193-incremental-revenue>` · :doc:`Treatment Cost <192-treatment-cost>`
 
 ----
 

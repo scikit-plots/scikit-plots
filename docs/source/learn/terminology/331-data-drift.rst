@@ -18,9 +18,33 @@ Data Drift
 
 *When the distribution of input data shifts away from training.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Data drift** — also called **covariate shift** — is a change in the **input** distribution :math:`P(X)`
+while the model itself stays **fixed**. Its weights and logic are unchanged, but the data arriving at
+inference no longer **resembles** the training data, so predictions grow **less reliable**.
+
+Drift vs noise
+--------------
+
+Data drift is **systematic** — a sustained, directional shift — not the random fluctuation that's normal and
+expected. Examples: a fraud model meeting **new devices and geographies**, or a credit model trained on
+salaried workers now scoring **gig workers**.
+
+Detecting and relating it
+-------------------------
+
+It's caught by comparing a **production** window to a **reference** window with statistical tests (**KS**,
+**Chi-square**), **PSI**, or divergence metrics — the input side, so it's detectable **before** labels
+arrive. Data drift can **evolve into** concept drift, which is why teams monitor :math:`P(X)` first, then
+investigate the input–output relationship if performance drops.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Concept Drift <330-concept-drift>` · :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`KS shift (Kolmogorov–Smirnov shift) <388-ks-shift-kolmogorovsmirnov-shift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Categorical Drift <179-categorical-drift>`
 
 ----
 

@@ -18,9 +18,37 @@ Mean
 
 *The arithmetic average of a set of values.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **(arithmetic) mean** is the **average** — the sum of all values divided by their count:
+
+.. math::
+
+   \mu = \frac{1}{n}\sum_{i=1}^{n} x_i.
+
+It uses **every** data point, which makes it the natural summary of a **symmetric** distribution and the
+value that **minimizes squared error**.
+
+Its weakness
+------------
+
+Because it incorporates every value, the mean is **sensitive to outliers** and **skew** — a single extreme
+value drags it toward the tail. Statisticians say its **breakdown point is 0%**: one bad point can move it
+arbitrarily. On **skewed** data like income, the mean **overstates** where most values sit.
+
+When to use it
+--------------
+
+Prefer the mean for **roughly symmetric**, outlier-free numeric data, where it is efficient and
+mathematically convenient (it feeds variance, standard error, regression). For skewed or outlier-heavy
+data, reach for the **median**. It is undefined for **categorical** data.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Median <315-median>` · :doc:`Outlier <307-outlier>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Regression Models <309-regression-models>`
 
 ----
 

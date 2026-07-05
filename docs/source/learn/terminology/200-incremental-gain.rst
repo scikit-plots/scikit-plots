@@ -18,9 +18,47 @@ Incremental Gain
 
 *The improvement in outcome from targeting versus a baseline.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Incremental gain** is the **extra positive outcome** — conversions, sales, sign-ups — produced by
+applying a treatment (a campaign, discount or intervention) **versus not applying it**, measured for a
+**specific slice of the population**. It is the **building block** of the cumulative incremental gain
+and the Qini curve: the step-by-step value added as you target more people.
+
+The formula
+-----------
+
+For one segment,
+
+.. math::
+
+   \text{Incremental Gain} = \text{Responses}_{\text{treatment}} - \text{Responses}_{\text{control}},
+
+or, in probability terms, :math:`\left(P(\text{Outcome} \mid \text{Treatment}) - P(\text{Outcome} \mid \text{Control})\right) \times n`, where :math:`n` is the number of individuals targeted in that
+segment and the control response is what the same group would have done untreated.
+
+A worked example
+----------------
+
+Rank 2,000 customers by uplift score and split into deciles of 200. In the **top decile**, the
+treatment group converts at 18% (36 purchases) against a control of 10% (20) — an incremental gain of
+**16**. The **second decile** converts at 14% (28) versus 12% (24) — a gain of **4**. Their running
+total, the cumulative incremental gain after the top 20%, is **20 extra purchases**.
+
+Where it fits
+-------------
+
+Incremental gain is the **local** effect in each segment; summing it as you move down the ranking
+gives the **cumulative incremental gain**, and plotting that against the fraction targeted traces the
+**Qini curve**. Reading it segment by segment shows **where uplift is strongest** and where to stop
+targeting — once the gain flattens or turns negative, additional targeting destroys value.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Total Incremental Benefit (TIB) <201-total-incremental-benefit-tib>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Incremental Revenue <193-incremental-revenue>`
 
 ----
 

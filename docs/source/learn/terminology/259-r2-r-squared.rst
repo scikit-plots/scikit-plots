@@ -18,9 +18,37 @@ R² (R-squared)
 
 *The share of variance in the target explained by a regression model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**R²**, the **coefficient of determination**, is the **proportion of variance** in the target that the
+model explains. It compares the model's **residual** error to the variance around the **mean**:
+
+.. math::
+
+   R^2 = 1 - \frac{SS_{\text{res}}}{SS_{\text{tot}}}, \qquad
+   SS_{\text{res}} = \sum_i (y_i - \hat{y}_i)^2, \quad SS_{\text{tot}} = \sum_i (y_i - \bar{y})^2.
+
+How to read it
+--------------
+
+It usually runs **0 to 1** — **1** is a perfect fit, **0** means the model does no better than predicting
+the **mean** (and it can go **negative** for a model worse than that). Being **dimensionless**, it
+complements MAE / RMSE, which report error in the target's units; in simple regression it equals
+:math:`r^2`, the squared **Pearson correlation**.
+
+Caveats
+-------
+
+R² **never decreases** when predictors are added (even noise), so use **adjusted R²** to compare models
+of different size; it is sensitive to **outliers**, assumes the modeled relationship, and a high value
+implies **neither causation nor good out-of-sample** performance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Forecast Error <250-forecast-error>` · :doc:`Average Absolute Error (AAE) <246-average-absolute-error-aae>` · :doc:`Relative accuracy <258-relative-accuracy>` · :doc:`Regression Coefficient <090-regression-coefficient>` · :doc:`Target Variable <236-target-variable>` · :doc:`Point Forecasts <233-point-forecasts>`
 
 ----
 

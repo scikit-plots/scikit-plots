@@ -18,9 +18,32 @@ Drift Guardrails
 
 *Automated thresholds that flag or block on detected drift.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Drift guardrails** are automated monitoring rules that watch a deployed model's **inputs and predictions**
+for **distribution shift** and **trigger action** — an alert, an investigation, or a **retrain** — when the
+drift crosses a threshold. They turn passive monitoring into a **response**.
+
+How they're set
+---------------
+
+They compare live data to a **rolling baseline** with drift metrics like **PSI** and the **KS** test — for
+example, **PSI above 0.2–0.25** on a key feature raises an alert, and **prediction drift that stays over
+threshold for several consecutive days** kicks off **automatic retraining** on fresh labels.
+
+Why they matter
+---------------
+
+A model silently **degrades** as the world moves away from its training data, and no aggregate dashboard
+catches that on its own. Guardrails make the degradation **actionable** — often gating a retrained model
+through a **registry** that re-evaluates it against production before it sees traffic.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Latency Guardrails <350-latency-guardrails>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Data Drift <331-data-drift>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>`
 
 ----
 

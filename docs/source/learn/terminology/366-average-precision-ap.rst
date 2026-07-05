@@ -18,9 +18,36 @@ Average Precision (AP)
 
 *The area under the precision-recall curve summarising ranked retrieval.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Average precision** summarizes the entire **precision–recall curve** in one number — the mean of precision
+across recall levels, computed as precision weighted by the **gain in recall** at each threshold:
+
+.. math::
+
+   \text{AP} = \sum_{n} (R_n - R_{n-1})\,P_n.
+
+It equals the **area under the PR curve** (PR-AUC / AUPRC).
+
+Why it's useful
+---------------
+
+Because it sweeps **all thresholds**, AP needs no single cutoff, and because it is built from **precision and
+recall** it **ignores true negatives** — making it far more informative than ROC-AUC on **imbalanced** data
+where the positive class is rare.
+
+Where it's used
+---------------
+
+AP is the standard score for **ranking** and **detection**; averaging it over classes or queries gives
+**mean average precision (mAP)**, the headline metric in information retrieval and object detection.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>` · :doc:`F1-score <363-f1-score>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Harmonic Mean <362-harmonic-mean>` · :doc:`Macro Averaging <370-macro-averaging>`
 
 ----
 

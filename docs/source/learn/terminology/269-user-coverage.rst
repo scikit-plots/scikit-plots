@@ -18,9 +18,35 @@ User Coverage
 
 *The share of users for whom the system can make useful recommendations.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**User coverage** is the fraction of the user base for whom the recommender can produce **useful
+recommendations** — *how many users can the system serve?* A system with excellent recommendations for
+only a subset of users has limited reach:
+
+.. math::
+
+   \text{User Coverage} = \frac{|\text{users served}|}{|\text{total users}|}.
+
+What limits it
+--------------
+
+**New users** with little or no history (the user-side **cold-start** problem) may get no personalized
+recommendations; **sparse** or atypical users are also hard to serve. Fallbacks — **popularity** lists,
+onboarding questionnaires, **content-based** profiles — extend coverage to these users.
+
+Why it matters
+--------------
+
+Coverage and accuracy trade off — it is easy to look accurate by only serving **well-understood** users —
+so user coverage keeps the evaluation **honest** about the whole population.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`Item Coverage <270-item-coverage>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>`
 
 ----
 

@@ -18,9 +18,36 @@ Harmonic Mean
 
 *The reciprocal-based mean underlying the F1 score.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+The **harmonic mean** is an average that **leans toward the smaller** of the values — the reciprocal of the
+average of reciprocals. For two numbers it is:
+
+.. math::
+
+   \text{HM} = \frac{2ab}{a + b}.
+
+It is always **≤ the arithmetic mean**, and equal only when the values match.
+
+Its key property
+----------------
+
+It **penalizes imbalance**. Averaging precision 0.95 and recall 0.20, the arithmetic mean gives a rosy
+**0.575**, but the harmonic mean gives **~0.33** — correctly flagging that one component is poor. A high
+harmonic mean requires **all** inputs to be high.
+
+Where it's used
+---------------
+
+That property is exactly why the **F1-score** uses it to combine precision and recall, and why harmonic
+means are the right average for **rates and ratios** (speeds, P/E ratios) rather than additive quantities.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`F1-score <363-f1-score>` · :doc:`Mean <316-mean>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Weighted Averaging <361-weighted-averaging>` · :doc:`Macro Averaging <370-macro-averaging>`
 
 ----
 

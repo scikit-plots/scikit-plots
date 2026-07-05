@@ -18,9 +18,32 @@ Power Analysis
 
 *Planning sample size so a test can detect an effect of interest.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**Power analysis** plans a study around its **statistical power** — the probability of **detecting a real
+effect** (correctly rejecting H₀ when it's false), which equals :math:`1 - \beta`. Most often it answers
+*how many samples do I need?*
+
+The four levers
+---------------
+
+Power, **effect size**, **significance level α**, and **sample size** are locked in a relationship — fix any
+**three** and the fourth is determined. Bigger effects, larger samples, or a looser α all **raise** power;
+the usual target is **≥ 0.80**.
+
+Why do it first
+---------------
+
+Run **before** collecting data, power analysis prevents **underpowered** experiments that waste resources
+and are likely to **miss** true effects (a high Type II risk). Run **after**, it tells you how much you could
+realistically have detected — and warns against over-reading a **non-significant** result.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Chi-square (χ²) Test <324-chi-square-2-test>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>`
 
 ----
 

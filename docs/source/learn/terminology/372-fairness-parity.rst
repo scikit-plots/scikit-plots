@@ -18,9 +18,34 @@ Fairness parity
 
 *Equalising a chosen metric across protected groups.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Fairness &amp; Calibration** terms below.
+**Fairness parity** is the family of **group-fairness** criteria that demand some metric be **equal across**
+demographic groups — that the model treat protected groups **comparably**. Which metric you equalize defines
+the flavor of parity.
+
+The main flavors
+----------------
+
+**Demographic (statistical) parity** equalizes the **positive-outcome rate** across groups; **equal
+opportunity** equalizes the **true-positive rate** (recall) among those who **qualify**; **equalized odds**
+equalizes **both** TPR and FPR; **predictive parity** equalizes **precision**. Each is measured as a
+**difference** or a **ratio** between groups.
+
+Why it's hard
+-------------
+
+The different parities **conflict** — impossibility results show you generally **can't** satisfy all at once
+(the **COMPAS** debate turned on predictive parity holding while equalized odds failed). Enforcing any parity
+also usually **costs accuracy**, so teams choose the criterion that fits the **harm** they most need to
+prevent. The **four-fifths (80%) rule** is a common legal threshold.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Selection Rate <390-selection-rate>` · :doc:`Recall <423-recall>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>`
 
 ----
 

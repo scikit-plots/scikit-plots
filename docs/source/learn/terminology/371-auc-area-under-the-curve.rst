@@ -18,9 +18,32 @@ AUC (Area Under the Curve)
 
 *The area under a ROC or PR curve summarising performance across thresholds.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**AUC** — the **area under the curve** — condenses an entire **ROC curve** into one number by measuring the
+area beneath it. It ranges from **0 to 1**: **1** is perfect, **0.5** is random guessing, and below 0.5 means
+the scores are **inverted**.
+
+Its meaning
+-----------
+
+AUC has a clean interpretation — it is the **probability that a random positive is scored higher than a
+random negative** (the Wilcoxon–Mann–Whitney statistic). So it measures how well the model **ranks**
+positives above negatives, independent of any single threshold.
+
+Why it beats accuracy
+---------------------
+
+AUC is **threshold-invariant** and always calibrated so **0.5 = useless**, unlike **accuracy**, which is
+misleading under **imbalance** (90% accuracy is trivial when 90% of data is negative). But on **heavily
+imbalanced** data the **PR-AUC** often tells a more honest story, since ROC-AUC can look optimistic.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`ROC Curve (Receiver Operating Characteristic) <277-roc-curve-receiver-operating-characteristic>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>` · :doc:`Model Score <364-model-score>` · :doc:`Partial AUC (pAUC) <312-partial-auc-pauc>` · :doc:`Accuracy <323-accuracy>`
 
 ----
 

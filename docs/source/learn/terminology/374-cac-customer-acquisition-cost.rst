@@ -18,9 +18,32 @@ CAC (Customer Acquisition Cost)
 
 *The average cost to acquire one new customer.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Customer acquisition cost (CAC)** is the total **sales and marketing** spend required to win one new
+customer — all acquisition costs divided by the **number** of customers acquired in the period. It is the
+**cost** half of unit economics.
+
+What goes in it
+---------------
+
+CAC bundles **ad spend**, marketing tools and agencies, and **sales** salaries and commissions — not just
+media cost. It differs from **CPA** (cost per acquisition), which is usually a **single-channel** metric, and
+it must be computed with **matched** time periods so costs line up with the customers they actually acquired.
+
+The LTV:CAC ratio
+-----------------
+
+CAC only means something **next to LTV**. The **LTV:CAC ratio** — lifetime value divided by acquisition cost —
+gauges whether growth is **profitable**: around **3:1** is the healthy benchmark, **below 1:1** loses money on
+every customer, and **above ~5:1** can signal you're **under-investing** in growth.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`LTV (Customer Lifetime Value) <373-ltv-customer-lifetime-value>` · :doc:`Incremental Sales <195-incremental-sales>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`CTR (Click-Through Rate) <421-ctr-click-through-rate>` · :doc:`Cost-Per-Click (CPC) Models <300-cost-per-click-cpc-models>` · :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>`
 
 ----
 

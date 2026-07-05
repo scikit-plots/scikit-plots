@@ -18,9 +18,51 @@ AUUC (Area Under the Uplift Curve)
 
 *A summary of uplift-model quality as the area under its uplift curve.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**AUUC (Area Under the Uplift Curve)** is the **cumulative incremental gain** of an uplift model,
+integrated over the **entire population** — the total area under the uplift curve (incremental gain
+against population proportion). It is an **overall** measure of how well the model ranks individuals
+by uplift.
+
+How it's computed
+------------------
+
+Sort customers by predicted uplift score (descending) and partition them into bins such as deciles.
+For each bin, compute the uplift as the treatment response rate minus the control rate,
+
+.. math::
+
+   \text{Uplift}_k = \frac{y^{T}_k}{n^{T}_k} - \frac{y^{C}_k}{n^{C}_k},
+
+then plot cumulative uplift against the fraction of the population targeted; **AUUC is the area under
+that curve**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{AUUC} = \int_0^1 U(x) \, dx,
+
+where :math:`U(x)` is the cumulative uplift at population fraction :math:`x`. A strong model traces a
+steep curve — targeting the top 20% might capture 80% of all achievable incremental responses — while
+random targeting hugs the baseline near zero.
+
+AUUC versus the Qini coefficient
+---------------------------------
+
+The two are close cousins. **AUUC** is a **raw** area, so it depends on dataset size and response
+rate — much like raw accuracy. The **Qini coefficient** is a **normalised** AUUC, scaled between
+random and perfect targeting, which makes it **comparable across datasets** — much like AUC. Both are
+core metrics for evaluating uplift models.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Qini Coefficient <397-qini-coefficient>` · :doc:`Uplift Curve <303-uplift-curve>` · :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Total Incremental Benefit (TIB) <201-total-incremental-benefit-tib>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Uplift <424-uplift>`
 
 ----
 

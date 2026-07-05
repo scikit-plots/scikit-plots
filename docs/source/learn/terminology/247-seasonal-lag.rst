@@ -18,9 +18,35 @@ Seasonal Lag
 
 *The offset to the same point in a previous season, used in seasonal models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+A **lag** is a past value of the series, :math:`y_{t-k}`; the **seasonal lag** is the lag equal to the
+**seasonal period** :math:`m` — the value from the **same point one cycle ago**:
+
+.. math::
+
+   \text{seasonal lag: } y_{t-m}, \qquad \text{seasonal difference: } y_t - y_{t-m}.
+
+Common periods
+--------------
+
+The period is set by the calendar of the data: :math:`m = 12` for **monthly** data with yearly
+seasonality, :math:`m = 7` for **daily** data with weekly seasonality, :math:`m = 24` for **hourly** data
+with daily cycles.
+
+Where it's used
+---------------
+
+The seasonal lag underlies the **seasonal naïve** forecast (:math:`\hat{y}_t = y_{t-m}`), **seasonal
+differencing** (which strips out seasonality), and **lag features** in ML forecasting. A large
+**autocorrelation** at the seasonal lag is the signature of seasonality.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Seasonality <329-seasonality>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Log-Space <257-log-space>` · :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>` · :doc:`Simple Baseline Methods <248-simple-baseline-methods>`
 
 ----
 

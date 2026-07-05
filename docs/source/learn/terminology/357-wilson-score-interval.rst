@@ -18,9 +18,33 @@ Wilson Score Interval
 
 *An accurate confidence interval for a proportion, robust for small samples.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **Wilson score interval** is a well-calibrated confidence interval for a **binomial proportion**, derived
+by improving the crude **normal-approximation (Wald)** interval. Introduced by E. B. Wilson in 1927, it is
+**asymmetric** and always stays **within [0, 1]**.
+
+Why it's better
+---------------
+
+Unlike the **Wald** interval, it doesn't **overshoot** past 0 or 1 and doesn't collapse to **zero width**
+when the observed proportion is 0 or 1; and unlike **Clopper–Pearson**, it isn't overly **conservative** —
+its coverage sits **close to nominal**, so its intervals are **narrower**. That balance makes it the
+**recommended default** in most applications.
+
+The caveats
+-----------
+
+Its coverage can dip **slightly below** nominal for a few awkward proportions, and for **extremely small**
+samples the guaranteed **Clopper–Pearson** may still be safer. A continuity-corrected variant exists for
+tighter coverage.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Clopper–Pearson Interval <356-clopperpearson-interval>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Z-Score <097-z-score>` · :doc:`Statistical Tests <328-statistical-tests>`
 
 ----
 

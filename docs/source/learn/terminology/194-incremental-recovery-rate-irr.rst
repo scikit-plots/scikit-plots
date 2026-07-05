@@ -18,9 +18,36 @@ Incremental Recovery Rate (IRR)
 
 *The added recovery (e.g. in collections) attributable to a treatment.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+The **incremental recovery rate** measures the **lift** an intervention produces in a **recovery** outcome —
+reactivating lapsed customers, collecting overdue accounts, or winning back churned users — beyond what would
+have recovered **anyway**. It is the treated group's recovery rate **minus** a control group's:
+
+.. math::
+
+   \text{IRR} = \text{recovery rate}_{\text{treated}} - \text{recovery rate}_{\text{control}}.
+
+Why the baseline matters
+------------------------
+
+A raw recovery rate **overstates** a campaign's value, because some accounts **self-cure** or return without
+any nudge. Subtracting a **holdout** control isolates the **causal** lift — the recoveries the intervention
+**actually** caused — the same incrementality logic behind incremental sales and conversions.
+
+Where it's used
+---------------
+
+IRR drives **targeting** and **budget** in collections, retention, and win-back — you focus effort on segments
+with the **highest** incremental recovery, not the highest raw recovery, since some of those would come back
+**for free**. It pairs naturally with **uplift** models that predict per-customer lift.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Incremental Sales <195-incremental-sales>` · :doc:`Incremental Conversions <394-incremental-conversions>` · :doc:`Causal Trees <301-causal-trees>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Uplift Random Forests <302-uplift-random-forests>` · :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>`
 
 ----
 

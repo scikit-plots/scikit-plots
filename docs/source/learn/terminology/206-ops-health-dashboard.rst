@@ -18,9 +18,45 @@ Ops Health Dashboard
 
 *A dashboard tracking the operational health of deployed systems.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+An **Ops (Operations) Health Dashboard** is a **visual, real-time monitoring tool** that gives an
+at-a-glance overview of key operational metrics — the **"control panel"** that tells managers whether
+supply chain, IT, production or customer service is running smoothly, by consolidating **KPIs, trends
+and alerts** in one place.
+
+Core features
+-------------
+
+Five capabilities define it: **real-time data** integration (with ERP, WMS, CRM and monitoring tools),
+**KPI visualisation** (charts, gauges, traffic-light indicators), **drill-down** from overall health
+to a specific issue, an **alerting system** that flags SLA breaches and anomalies, and **comparisons**
+against history and targets.
+
+What it tracks
+--------------
+
+The KPIs depend on context. **Supply-chain** ops watch stockout rate, fill rate, backorder rate,
+inventory turnover, lead time and supplier SLA breach rate; **IT/service** ops watch uptime, SLA
+breach rate, incident response time, MTTR and open-versus-resolved tickets; **business** ops watch
+order-processing time, OTIF, CSAT/NPS and revenue versus target. A typical layout leads with a
+composite score (say **92/100**) and green/yellow/red columns — for example a fill rate of 97%, uptime
+of 99.7%, and an order-processing cost of ``$2.50`` per unit.
+
+Benefits, and tools
+-------------------
+
+The dashboard becomes a **single source of truth**, speeds **issue detection**, improves
+**accountability**, and supports **data-driven decisions**. It is built with BI tools (Tableau,
+Power BI, Looker, Qlik), ops platforms (ServiceNow, Splunk, Datadog), built-in ERP/WMS dashboards
+(SAP, Oracle NetSuite), or custom stacks (Python Dash or Streamlit, R Shiny, Grafana).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SLA Breach Rate <207-sla-breach-rate>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`SLA (Service Level Agreement) <208-sla-service-level-agreement>` · :doc:`Supplier Management <214-supplier-management>` · :doc:`Long Lead Times <210-long-lead-times>`
 
 ----
 

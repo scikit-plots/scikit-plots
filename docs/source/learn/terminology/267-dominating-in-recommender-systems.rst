@@ -18,9 +18,37 @@ Dominating in Recommender Systems
 
 *When a few popular items crowd out the rest of recommendations.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+A **multi-criteria** notion. One item **dominates** another (**Pareto dominance**) when it is **at least as
+good on every criterion** and **strictly better on at least one**:
+
+.. math::
+
+   a \succ b \iff \big(\forall k:\ a_k \ge b_k\big) \ \wedge\ \big(\exists k:\ a_k > b_k\big).
+
+If a hotel is cheaper, closer **and** higher-rated than another, it dominates it.
+
+The skyline
+-----------
+
+The items **not dominated** by any other form the **skyline** (the **Pareto frontier**) — the only
+candidates worth recommending under multiple objectives, since every dominated item is beaten outright by
+something in the skyline.
+
+Why it matters
+--------------
+
+Multi-criteria recommenders (price, distance, rating, recency) use dominance to **prune** clearly-inferior
+options before ranking. Dominance also names a **failure mode** — when a few **popular** items dominate
+everyone's lists, crowding out the long tail and harming exposure fairness.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Diminishing Utility <271-diminishing-utility>` · :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`Self-Information of Popularity <261-self-information-of-popularity>`
 
 ----
 

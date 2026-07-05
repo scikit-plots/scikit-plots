@@ -18,9 +18,33 @@ Advanced Sorting in Spreadsheets
 
 *Ordering and arranging tabular data, including with dynamic sort functions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Data Preparation &amp; Features** terms below.
+**Advanced sorting** in spreadsheets means ordering data by more than a single column A-to-Z — **multi-level**
+sorts that break ties across several keys, **custom** orders, and sorts by **color** or **format**. It goes
+well beyond the one-click sort button.
+
+How it works
+------------
+
+The core tool is a **multi-key** sort — order by one column, then by a second **within** ties, then a third —
+plus **custom lists** (sorting Low, Medium, High in **logical** rather than alphabetical order), case-sensitive
+sorting, and sorting **left-to-right** by rows. Excel's Sort dialog and Google Sheets both expose these, and
+functions like **SORT / SORTBY** do it dynamically.
+
+Why it matters
+--------------
+
+Sorting is a foundational step in **exploring** and **preparing** tabular data — grouping records, surfacing
+extremes, and readying data for analysis. The key **caution**: always extend the sort to **all related
+columns**, or you'll shuffle one field out of alignment with the rest and silently **corrupt** the rows.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Encode (in Feature Engineering) <318-encode-in-feature-engineering>` · :doc:`Normalize (in Feature Engineering) <319-normalize-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>` · :doc:`Outlier <307-outlier>` · :doc:`Correlation <305-correlation>` · :doc:`Median <315-median>`
 
 ----
 

@@ -18,9 +18,32 @@ Risk Forecast
 
 *A forward-looking estimate of potential loss or adverse outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **risk forecast** predicts a risk measure — most often **VaR** or **Expected Shortfall** — for a
+**future** period. Because VaR is a quantile, forecasting it means forecasting the :math:`\tau`-**quantile
+of future returns** given today's information; the quantity is **unobserved** and estimated ahead of time.
+
+How it's done
+-------------
+
+Methods forecast the future **return distribution** (or just its **scale**): **GARCH**-family volatility
+models (forecast the variance, then scale a distributional quantile), **historical simulation**, **Extreme
+Value Theory** for the far tail, **quantile regression**, and hybrids of these.
+
+How it's judged
+---------------
+
+By **backtesting**: over a long out-of-sample run, the fraction of days the loss **breaches** the forecast
+VaR should match the stated level (about 1% of days for 99% VaR). Too many breaches means risk was
+**under-forecast**. This discipline is vital for banks, risk managers and regulators.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Value-at-Risk (VaR) <226-value-at-risk-var>` · :doc:`Return Distribution <225-return-distribution>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Probabilistic Scoring <228-probabilistic-scoring>` · :doc:`Forecast Error <250-forecast-error>`
 
 ----
 

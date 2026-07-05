@@ -18,9 +18,40 @@ Probabilistic Scoring
 
 *Evaluating forecasts by how well their predicted probabilities match outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+**Probabilistic scoring** evaluates a **probabilistic forecast** — a whole predictive distribution —
+against the outcome that occurs, using a **scoring rule** (a loss function for distributions). To be
+trustworthy the rule should be **strictly proper**, so a forecaster **minimizes** the expected score
+*only* by reporting their true distribution.
+
+The workhorse: CRPS
+-------------------
+
+The **Continuous Ranked Probability Score** is the most-used score for real-valued forecasts. It
+integrates the **squared gap** between the forecast CDF :math:`F` and the step CDF of the observation
+:math:`y`, and is **negatively oriented** (lower is better):
+
+.. math::
+
+   \mathrm{CRPS}(F, y) = \int_{-\infty}^{\infty} \big(F(x) - \mathbb{1}\{x \ge y\}\big)^2 \, dx.
+
+It **generalizes the MAE** (for point forecasts) and the **Brier score** (for binary ones), reducing to
+them in those cases.
+
+What it captures
+----------------
+
+A proper score rewards both **calibration** (probabilities match reality) and **sharpness** (tight
+distributions) — the CRPS in fact **decomposes** into calibration, discrimination and uncertainty parts.
+The **log score** is a **local** alternative that looks only at the density assigned to the outcome.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Full Distribution <229-full-distribution>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Quantile Forecasts <232-quantile-forecasts>`
 
 ----
 

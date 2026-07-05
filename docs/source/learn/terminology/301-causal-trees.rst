@@ -18,9 +18,33 @@ Causal Trees
 
 *Decision trees that partition data by differences in treatment effect.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Causal trees** estimate **heterogeneous treatment effects** — how an intervention's impact **varies** across
+subgroups — by **recursively partitioning** the feature space into **leaves** within which the treatment
+effect (treated-vs-control outcome difference) is roughly **constant**. Introduced by **Athey and Imbens**,
+they adapt decision trees from **prediction** to **causal** estimation.
+
+The honesty trick
+-----------------
+
+Unlike a standard tree, a causal tree uses **honest** estimation — one part of the data **chooses** the
+splits, a **separate** part **estimates** the effect in each leaf. This prevents the tree from **overfitting**
+the same data it split on, giving effect estimates you can build **confidence intervals** around.
+
+What it's for
+-------------
+
+Causal trees answer **who benefits** — the core question of **uplift modeling**, personalized medicine, and
+policy targeting. Extended to **causal forests** for stability, and to **Bayesian** versions (causal BART)
+that return a full **posterior** over each unit's effect for uncertainty-aware decisions.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Random Forests <302-uplift-random-forests>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Bayesian Inference. <375-bayesian-inference>` · :doc:`Incremental Recovery Rate (IRR) <194-incremental-recovery-rate-irr>` · :doc:`Incremental Sales <195-incremental-sales>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>`
 
 ----
 

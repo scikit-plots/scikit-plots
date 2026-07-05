@@ -18,9 +18,33 @@ Upsampling
 
 *Increasing minority-class examples to balance a dataset.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Imbalanced Learning &amp; Resampling** terms below.
+**Upsampling** (random **oversampling**) rebalances an **imbalanced** dataset by **inflating the minority
+class** — duplicating its examples until the classes are closer to even, so the classifier isn't overwhelmed
+by the majority.
+
+The risk
+--------
+
+Because it **repeats** existing points, upsampling can cause **overfitting** — the model learns patterns that
+only exist in the **duplicated** samples rather than the true minority distribution. The fix is **SMOTE**,
+which **interpolates** new synthetic points between a minority point and its nearest neighbors instead of
+copying, so no example is an exact duplicate.
+
+When to use it
+--------------
+
+Prefer upsampling when the dataset is **small** and discarding data would hurt. Critically, apply it to the
+**training set only** — resampling the validation or test set causes **data leakage** and inflates your
+metrics.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Downsampling <368-downsampling>` · :doc:`Bootstrap <365-bootstrap>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>` · :doc:`Recall <423-recall>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Model Stability <187-model-stability>`
 
 ----
 

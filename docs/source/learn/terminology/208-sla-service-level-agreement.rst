@@ -18,9 +18,43 @@ SLA (Service Level Agreement)
 
 *A contract specifying expected service performance and reliability targets.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+A **Service Level Agreement (SLA)** is a **formal contract** between a service provider and a client
+(or between two internal teams) that defines **what** will be delivered, the **quality and performance
+standards** expected, **how** performance is measured, and the **consequences** of missing targets. It
+governs supplier performance in **supply chains** (delivery, quality, responsiveness) and uptime and
+support speed in **IT**.
+
+Key components
+--------------
+
+A complete SLA names the **scope of services**; the **performance metrics (KPIs)** — on-time delivery,
+fill rate, defect rate, uptime, response and resolution time; the **service-level targets**;
+**monitoring and reporting**; **penalties and remedies**; each party's **responsibilities**; and the
+agreement's **duration and review** cycle.
+
+Example clauses
+---------------
+
+In a supply-chain context: **98%** of deliveries must arrive within three days of the promised date;
+at least **95%** of order lines must be filled completely on first shipment; defective items must stay
+**at or below 0.5%**; and the supplier must confirm receipt of a purchase order **within 24 hours**.
+
+Benefits and challenges
+-----------------------
+
+An SLA brings **clarity**, **accountability**, measurable **tracking**, **risk reduction** and
+**stronger relationships**. The pitfalls are equally concrete: **overly rigid** or **unrealistic**
+targets strain the relationship, **monitoring** every metric has real cost, and an SLA must **adapt**
+as business realities change.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SLOs (Service Level Objectives) <391-slos-service-level-objectives>` · :doc:`SLI (Service Level Indicator) <190-sli-service-level-indicator>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>` · :doc:`SLA Breach Rate <207-sla-breach-rate>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>` · :doc:`Guardrails (in ML & Data Systems) <166-guardrails-in-ml-data-systems>`
 
 ----
 

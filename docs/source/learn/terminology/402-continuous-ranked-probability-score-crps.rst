@@ -18,9 +18,38 @@ Continuous Ranked Probability Score (CRPS)
 
 *A proper score comparing a full predicted distribution to the outcome.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+The **Continuous Ranked Probability Score** grades a **full probabilistic** forecast by comparing its
+predicted **CDF** to the observed outcome — the integrated squared gap between the forecast distribution and a
+step at the truth:
+
+.. math::
+
+   \text{CRPS}(F, y) = \int_{-\infty}^{\infty} \big(F(z) - \mathbb{1}\{y \le z\}\big)^2\, dz.
+
+**Lower** is better, and it rewards mass placed **near** the observation.
+
+Its key properties
+------------------
+
+CRPS is a **strictly proper scoring rule** — it is minimized only by **honest**, well-calibrated
+distributions, penalizing **overconfidence** — and it reports in the target's **units** (like MAE). It equals
+the integral of **pinball loss** over **all** quantiles, tying the whole family together.
+
+How it relates to MAE
+---------------------
+
+For a **point** (degenerate) forecast, the predicted CDF becomes a step function and CRPS **collapses to the
+MAE**. So CRPS is literally MAE **generalized** to distributions — the natural score for **weather**,
+**energy**, and **demand** probabilistic forecasting, though it is **unbounded**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Pinball Loss (a.k.a. Quantile Loss) <404-pinball-loss-a-k-a-quantile-loss>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Brier Score <418-brier-score>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>`
 
 ----
 

@@ -18,9 +18,33 @@ Point Forecasts
 
 *A single best-estimate prediction, without an uncertainty range.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **point forecast** gives a **single predicted value** for each future period — the **deterministic**
+forecast, with all the outcome probability mass placed on one number. Historically the dominant approach
+because it is **easy to interpret and act on**: a demand at 5 p.m., a price in the day-ahead market.
+
+What it hides
+-------------
+
+A point forecast says nothing about **uncertainty** — two forecasts can share the *same* point estimate
+yet imply very different **risk**. The value reported is usually a **summary** of an underlying
+predictive distribution (typically its **mean** or **median**). As the saying goes, *it is better to be
+vaguely right than exactly wrong*.
+
+Scoring and context
+-------------------
+
+Point forecasts are scored against the realized value with **error metrics** — MAE, MSE / RMSE — which
+reward closeness but ignore calibration. Probabilistic forecasting does not *eliminate* point forecasts;
+it **places them in context** as one functional (mean, median, a quantile) of the full distribution.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Deterministic forecasts <242-deterministic-forecasts>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Time Series Forecasting <256-time-series-forecasting>`
 
 ----
 

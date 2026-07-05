@@ -18,9 +18,32 @@ TREC (Text REtrieval Conference)
 
 *A long-running benchmark effort for information-retrieval evaluation.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+The **Text REtrieval Conference** is an annual **information-retrieval benchmark** run by **NIST** since
+1992. It provides standard **test collections** — documents, query **topics**, and human **relevance
+judgments** — and organizes **tracks** so retrieval systems can be compared on common ground.
+
+Why it matters
+--------------
+
+TREC formalized the **shared-task** evaluation paradigm in IR — the **pooling** method for gathering
+relevance judgments at scale, reusable **test collections**, and the ``trec_eval`` scoring tool. Ranking
+metrics like **DCG / NDCG** and MAP were validated on TREC data.
+
+Its legacy
+----------
+
+Its **tracks** (ad-hoc, web, question answering, and more) drove decades of progress in **search** and now
+**retrieval-augmented** systems, and its methodology underpins modern IR **leaderboards**. It is to
+information retrieval what shared benchmarks are to the rest of ML.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Kaggle <273-kaggle>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Forecasting Competitions <251-forecasting-competitions>`
 
 ----
 

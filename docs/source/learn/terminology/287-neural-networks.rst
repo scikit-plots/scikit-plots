@@ -18,9 +18,58 @@ Neural Networks
 
 *Layered models of interconnected units that learn complex functions from data.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+A **neural network** is a model of interconnected **neurons** arranged in **layers** — an **input**
+layer, one or more **hidden** layers, and an **output** layer. Each neuron computes a **weighted sum** of
+its inputs, adds a **bias**, and passes the result through a **non-linear activation function**, letting
+the network model complex relationships.
+
+Weights, biases, activations
+----------------------------
+
+**Weights** set the strength of each connection and **biases** shift the activation; the **non-linearity**
+is what lets stacked layers represent functions a linear model cannot. Common activations are **ReLU**,
+**sigmoid** and **tanh**. A single unit computes
+
+.. math::
+
+   a = \phi\!\left( \sum_i w_i x_i + b \right),
+
+where :math:`\phi` is the activation function.
+
+Forward pass and backpropagation
+--------------------------------
+
+In the **forward pass**, inputs flow layer by layer to an output, and a **loss function** (MSE for
+regression, cross-entropy for classification) measures the error. **Backpropagation** then applies the
+**chain rule** to compute the gradient of that loss with respect to every weight, propagating the error
+**backward** from output to input; **gradient descent** updates the weights, with the **learning rate**
+:math:`\eta` setting the step size:
+
+.. math::
+
+   w \leftarrow w - \eta \, \frac{\partial \mathcal{L}}{\partial w}.
+
+In practice
+-----------
+
+Depth and width are chosen for the task, **validation** data guards against overfitting, and frameworks
+like **PyTorch**, **TensorFlow** and **Keras** implement backpropagation automatically.
+
+.. code-block:: python
+
+   from sklearn.neural_network import MLPClassifier
+
+   clf = MLPClassifier(hidden_layer_sizes=(64, 32), activation="relu", max_iter=500)
+   clf.fit(X_train, y_train)
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`Deep Ensembles <335-deep-ensembles>` · :doc:`Autoencoder <171-autoencoder>`
 
 ----
 

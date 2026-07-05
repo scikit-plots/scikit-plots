@@ -18,9 +18,54 @@ ARIMA (AutoRegressive Integrated Moving Average)
 
 *A classic model combining autoregression, differencing and moving-average terms for forecasting.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**ARIMA (AutoRegressive Integrated Moving Average)** is a classical statistical model for
+**time-series forecasting** that predicts future values from a series' **own past**. It fuses three
+ideas — **autoregression (AR)**, **integration / differencing (I)** and **moving average (MA)** — and
+describes a series by its **autocorrelations** rather than by explicit trend or seasonality. A model
+is written **ARIMA(p, d, q)**.
+
+The three parameters
+--------------------
+
+Each letter is one parameter. **p** is the **AR order** — how many lagged past *values* the current
+value is regressed on. **d** is the **differencing order** — how many times the series is differenced
+to make it **stationary** (removing trend). **q** is the **MA order** — how many past *error* terms
+feed the forecast. In backshift form,
+
+.. math::
+
+   \phi_p(B)\,(1 - B)^d\, y_t = \theta_q(B)\,\varepsilon_t,
+
+where :math:`B` is the backshift operator (:math:`B y_t = y_{t-1}`), :math:`\phi_p` and
+:math:`\theta_q` are the AR and MA polynomials, and :math:`(1 - B)^d` applies the differencing.
+Setting parameters to zero recovers the simpler **AR**, **MA** and **ARMA** models.
+
+Building one (Box-Jenkins)
+----------------------------
+
+The Box-Jenkins recipe has three stages. First, make the series **stationary** by differencing,
+checked with a unit-root test such as the **Dickey-Fuller** test. Next, pick **p** and **q**: the
+**ACF** (autocorrelation function) guides **q**, the **PACF** (partial autocorrelation function)
+guides **p**, and among candidates you choose the one with the lowest **AIC** (or BIC). Finally,
+**validate the residuals** — they should be uncorrelated white noise; if not, revisit the orders.
+
+Strengths, limits, and SARIMA
+-------------------------------
+
+ARIMA is **flexible** and **interpretable** for **linear, univariate** series — finance, demand,
+sales — and gives stable longer-term forecasts. But it **assumes a linear autocorrelation structure**,
+**requires stationarity**, and struggles with non-linear patterns where **LSTMs or Transformers**
+do better. For periodic data, the **SARIMA** extension adds seasonal terms, written
+:math:`\text{ARIMA}(p, d, q)(P, D, Q)_m` with season length :math:`m`.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Prophet — Time Series Forecasting by Facebook (Meta) <222-prophet-time-series-forecasting-by-facebook-meta>` · :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`Time Series <010-time-series>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Seasonality <329-seasonality>` · :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>`
 
 ----
 

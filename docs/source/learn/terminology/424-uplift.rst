@@ -18,9 +18,45 @@ Uplift
 
 *The incremental effect of an action on an individual's outcome.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Uplift** measures the **incremental impact** of an action, treatment or intervention compared to
+**not taking it**. In machine learning, **uplift modelling** — also called *incremental response* or
+*true lift* modelling — predicts the **change in outcome probability** caused by applying a treatment
+(say, sending a marketing offer). It is about **causal effect**, not mere correlation.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Uplift}(x) = P(Y = 1 \mid T = 1, X = x) - P(Y = 1 \mid T = 0, X = x),
+
+where :math:`Y` is the outcome (purchase, churn, click), :math:`T` is the treatment (1 = received,
+0 = not), and :math:`X` are the individual's features.
+
+A worked example
+----------------
+
+For a promotional email, compare each customer's treated and untreated purchase probability.
+**Customer A**: 30% with the email versus 25% without — an uplift of **+5%**, worth targeting.
+**Customer B**: 60% versus 60% — **0%**, the email is irrelevant. **Customer C**: 20% versus 30% — a
+**-10%** uplift, meaning the email actively *reduces* the chance (a spam-sensitive recipient).
+
+Why it matters
+--------------
+
+Uplift buys **targeting efficiency** — spending only on customers who change behaviour *because of*
+the treatment — and **cost savings**, by skipping "sure things" who would act anyway and "sleeping
+dogs" who react badly. Used across **marketing, healthcare, finance and policy**, it is measured with
+the **uplift (Qini) curve**, its area **AUUC**, and the **Qini coefficient**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Models <205-uplift-models>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Qini Coefficient <397-qini-coefficient>`
 
 ----
 

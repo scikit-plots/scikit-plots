@@ -18,9 +18,37 @@ Genre Overlap
 
 *The degree to which recommended items share genres, a diversity signal.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Genre overlap** measures how similar two items are by **how many genres (or categories) they share** — a
+**metadata-based** similarity for items that carry categorical labels, like movies, music or books. It is
+the domain-specific counterpart to **cosine** or **Jaccard** similarity when the features are **genres**.
+
+How it's computed
+-----------------
+
+Often as the **Jaccard** of the two items' genre sets — the shared genres over the total distinct genres:
+
+.. math::
+
+   \text{overlap}(i, j) = \frac{|G_i \cap G_j|}{|G_i \cup G_j|}.
+
+Two movies both tagged :math:`\{\text{action}, \text{thriller}\}` overlap fully; an action film and a
+documentary don't overlap at all.
+
+Where it's used
+---------------
+
+It serves as the **similarity kernel** for **intra-list similarity / diversity** (a list of same-genre
+items has high overlap → low diversity), and it underpins **calibrated** recommendation, where the **genre
+mix** of a list is kept aligned with the user's historical tastes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>` · :doc:`Jaccard index <264-jaccard-index>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Catalog Coverage <268-catalog-coverage>`
 
 ----
 

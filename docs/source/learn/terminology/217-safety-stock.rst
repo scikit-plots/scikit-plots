@@ -18,9 +18,37 @@ Safety Stock
 
 *Extra inventory held to buffer against demand or supply variability.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Safety stock** is the **buffer inventory** held to absorb **uncertainty** in demand and supply — the
+cushion that keeps you selling when demand spikes or a shipment is late. It is the difference between a
+naive "average" reorder level and a robust one.
+
+The formula
+-----------
+
+The statistical form sizes it from the **service level** and demand **variability**:
+
+.. math::
+
+   \text{SS} = Z \times \sigma_D \times \sqrt{L},
+
+where :math:`Z` is the service-level z-score (1.28 for 90\%, 1.65 for 95\%, 2.33 for 99\%), :math:`\sigma_D`
+is the standard deviation of demand per period, and :math:`L` is the lead time.
+
+The trade-off
+-------------
+
+More safety stock **raises** the service level (fewer stockouts) but **ties up capital** in holding cost —
+so the **service level** is chosen by weighing stockout cost against carrying cost, often set higher for
+critical or perishable items (via ABC / XYZ classing).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Reorder Point (ROP) Optimization <216-reorder-point-rop-optimization>` · :doc:`Demand Forecasting <215-demand-forecasting>` · :doc:`Fill Rate <220-fill-rate>` · :doc:`Stockout Rate <221-stockout-rate>` · :doc:`Backorder Rate <218-backorder-rate>` · :doc:`Long Lead Times <210-long-lead-times>`
 
 ----
 

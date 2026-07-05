@@ -18,9 +18,64 @@ LIME (Local Interpretable Model-agnostic Explanations)
 
 *Explaining a prediction by fitting a simple local surrogate model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Explainability &amp; Governance** terms below.
+**LIME (Local Interpretable Model-agnostic Explanations)** explains an **individual prediction** of
+any ML model by approximating the black box **locally** — around the instance of interest — with a
+simpler, interpretable model such as linear regression. It answers: *why did the model predict this
+for this example?*
+
+How it works
+------------
+
+Six steps. Take the instance to explain; create **perturbed samples** by slightly varying its
+features; collect the black-box **predictions** for those samples; **weight** each sample by proximity
+to the original; fit a **simple interpretable model** (linear or tree) on that local neighbourhood;
+and read its **coefficients** as the feature contributions.
+
+A worked example
+----------------
+
+For a **denied** loan, perturbing income, age and debt and fitting a local linear model might yield
+Income **-0.4**, high debt **+0.3** and employment length **+0.1** — low income plus high debt pushed
+the decision toward denial.
+
+Strengths, limits, and SHAP
+-----------------------------
+
+LIME is **model-agnostic**, sharply **local** (one prediction at a time) and **human-friendly**, but
+it is **unstable** (different perturbations give different explanations), only **locally faithful**,
+**computationally expensive**, and shaky under **correlated features**. Against SHAP: LIME fits
+**local surrogate** models (faster, less stable) while SHAP uses **game theory** (local *and* global,
+more stable, an exact decomposition).
+
+In practice
+-----------
+
+.. code-block:: python
+
+   import lime.lime_tabular
+   from sklearn.datasets import load_iris
+   from sklearn.ensemble import RandomForestClassifier
+
+   X, y = load_iris(return_X_y=True)
+   model = RandomForestClassifier().fit(X, y)
+
+   explainer = lime.lime_tabular.LimeTabularExplainer(
+       X,
+       feature_names=["f1", "f2", "f3", "f4"],
+       class_names=["setosa", "versicolor", "virginica"],
+       discretize_continuous=True,
+   )
+   exp = explainer.explain_instance(X[0], model.predict_proba, num_features=2)
+   exp.show_in_notebook()
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`Feature Values <188-feature-values>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`Deep Ensembles <335-deep-ensembles>`
 
 ----
 

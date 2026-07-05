@@ -18,9 +18,40 @@ SLA Breaches
 
 *Events where service performance falls below its agreement.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+An **SLA breach** occurs when a service falls **below the standard promised** in the Service Level
+Agreement — a missed uptime, a late delivery, a slow response. Breaches are tracked with the **SLA
+breach rate**, the percentage of commitments missed over a period.
+
+Where breaches happen
+-----------------------
+
+They span industries. In **IT and cloud** services, uptime dips below 99.9% or a response exceeds its
+threshold. In **customer support**, a ticket goes unanswered past four hours or unresolved past 24. In
+**logistics and supply chain**, deliveries run late or order accuracy falls short. In
+**manufacturing**, the defect rate climbs above the agreed limit.
+
+The consequences
+----------------
+
+The fallout is concrete: **financial penalties** (refunds, service credits), **customer
+dissatisfaction** and lost trust, **reputational damage** through negative reviews and churn, and
+**operational strain** as escalations and firefighting multiply.
+
+A worked example
+----------------
+
+An SLA promises that **95% of orders ship within 48 hours**. Of 1,000 orders, 920 arrive on time, so
+80 fall short — a breach rate of 80 / 1,000 = **8%**. A high rate translates directly into penalties,
+churn and inefficiency.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`SLA Breach Rate <207-sla-breach-rate>` · :doc:`SLA (Service Level Agreement) <208-sla-service-level-agreement>` · :doc:`SLOs (Service Level Objectives) <391-slos-service-level-objectives>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`Supplier Management <214-supplier-management>` · :doc:`Model KPIs (Key Performance Indicators) <167-model-kpis-key-performance-indicators>`
 
 ----
 

@@ -18,9 +18,32 @@ Micro AUC
 
 *AUC pooled across all classes by aggregating decisions before averaging.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Micro AUC** is the multiclass / multilabel AUROC that **pools** every class's predictions into **one
+global** ROC curve — aggregating all true-positive and false-positive counts across classes, then computing
+a single AUC. Because it counts **every prediction** equally, frequent classes contribute more.
+
+Micro vs macro
+--------------
+
+Where **macro AUC** averages per-class AUCs with equal weight, micro AUC is effectively **weighted by
+prevalence** — a rare class with few samples barely moves it. Micro answers *how well does the model do on
+the average prediction?*, macro *on the average class?*
+
+When to use it
+--------------
+
+Micro AUC suits **imbalanced** multiclass problems when you care about **overall** performance dominated by
+common classes, and it matches how a **multilabel** system is scored (over the flattened label matrix).
+Report it beside **macro** to expose class-size effects.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Macro AUC <314-macro-auc>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Partial AUC (pAUC) <312-partial-auc-pauc>`
 
 ----
 

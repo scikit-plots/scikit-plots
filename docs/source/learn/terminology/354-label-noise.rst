@@ -18,9 +18,42 @@ Label Noise
 
 *Errors in training labels that can mislead a model.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Label noise** is **incorrect or unreliable labels** in a dataset — training examples assigned the
+wrong class or target, arising from human labellers, weak heuristics or imperfect sensors (a tweet "I
+love this" marked **negative**, or a misrecorded diagnosis).
+
+The three types
+---------------
+
+**Random (uniform) noise**: labels flipped independently of the features (say 10% at random).
+**Class-conditional noise**: mislabeling depends on the class — "cat" is confused for "dog" more often
+than for "car". **Feature-dependent (systematic) noise**: ambiguous or low-quality inputs are
+mislabeled more — blurry dog photos read as cats.
+
+Why it hurts
+------------
+
+It **degrades training** (models learn wrong patterns), **miscalibrates** probabilities, and
+**distorts evaluation** (a noisy test set makes metrics meaningless). Tell-tale signs: training
+accuracy never reaching 100%, a **stalling loss**, memorisation of noise with low validation
+performance, and **high disagreement among annotators**.
+
+Coping
+------
+
+**Clean** the data (multiple annotators, keep high-agreement labels); use **noise-robust losses** (MAE,
+generalised cross-entropy) with regularisation and early stopping; **model the noise** with a
+transition matrix; combine a small clean set with a large noisy one (**weak / semi-supervised**); and
+always keep a **clean gold-standard evaluation set** with robust metrics like AUC.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Dataset Shift <353-dataset-shift>` · :doc:`Evaluation Set <355-evaluation-set>` · :doc:`Weak Supervision <346-weak-supervision>` · :doc:`Full Annotation <345-full-annotation>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

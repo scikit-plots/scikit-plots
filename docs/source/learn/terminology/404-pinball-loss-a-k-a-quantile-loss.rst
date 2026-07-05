@@ -18,9 +18,38 @@ Pinball Loss (a.k.a. Quantile Loss)
 
 *The loss minimised by an accurate quantile forecast.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+**Pinball loss** (a.k.a. **quantile loss**) scores a **quantile** forecast by penalizing errors
+**asymmetrically** — under- and over-prediction get different weights set by the target quantile
+:math:`\tau`:
+
+.. math::
+
+   L_\tau(y, \hat{y}) = \max\big(\tau(y - \hat{y}),\ (\tau - 1)(y - \hat{y})\big).
+
+Minimizing it makes :math:`\hat{y}` approach the true :math:`\tau`-quantile.
+
+Why asymmetry
+-------------
+
+For a high quantile (say :math:`\tau = 0.9`), **under**-predicting is penalized far more than over-predicting,
+pushing the forecast **up** to cover the upper tail — exactly what you want for a 90% **prediction interval**.
+At :math:`\tau = 0.5` the two weights match and pinball loss reduces to (half) the **MAE**.
+
+Where it's used
+---------------
+
+It trains and evaluates **quantile regressors** and probabilistic models that output **intervals** rather than
+points, without assuming any distribution. A caveat: fitting several quantiles independently can cause
+**quantile crossing**, where a lower quantile's forecast exceeds a higher one's.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Continuous Ranked Probability Score (CRPS) <402-continuous-ranked-probability-score-crps>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>`
 
 ----
 

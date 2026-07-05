@@ -18,9 +18,33 @@ Outlier
 
 *An observation far from the bulk of the data.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+An **outlier** is an **extreme, atypical** value that sits far from the bulk of the data. Outliers arise
+from genuine rare events, measurement or data-entry **errors**, or a mixture of populations — and spotting
+them matters because they can **distort** an analysis.
+
+What they break
+---------------
+
+Outliers hit statistics that use **every** value hardest — the **mean**, the **variance / standard
+deviation**, and **squared-error** losses like **MSE**, which square the large residual — while **robust**
+measures like the **median** barely move. This gap between mean and median is itself a **signal** of outliers
+or skew.
+
+How they're handled
+-------------------
+
+Outliers are **detected** (z-scores, the **IQR** rule, distance- or model-based methods), then
+**investigated** — a true error is corrected or removed, but a genuine extreme is often **kept** and handled
+with **robust** methods or transforms rather than silently discarded.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Mean <316-mean>` · :doc:`Median <315-median>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Z-Score <097-z-score>` · :doc:`Standard Error (SE) <084-standard-error-se>`
 
 ----
 

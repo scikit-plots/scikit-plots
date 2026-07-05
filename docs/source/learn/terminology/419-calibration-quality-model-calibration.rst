@@ -18,9 +18,33 @@ Calibration quality (Model Calibration)
 
 *How well predicted probabilities match real-world frequencies.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Calibration quality** describes how well a model's predicted **probabilities** match **reality** — a
+well-calibrated model that says "80% confident" is right about **80%** of the time. It is a property of the
+**probabilities**, separate from whether the model is **accurate**.
+
+Calibration vs accuracy
+-----------------------
+
+A model can be **accurate** yet badly calibrated (right often, but its confidence numbers are meaningless) or
+**calibrated** yet weakly **discriminating**. The two are distinct axes, which is why **proper scores** like
+log loss and Brier — which reward **both** — are read together with pure calibration measures.
+
+Why it matters
+--------------
+
+Whenever probabilities feed **decisions** — thresholds, expected-value calculations, downstream systems —
+calibration is essential, and modern deep networks are typically **overconfident**. It is measured with
+**ECE**, **reliability curves**, and **Brier score**, and repaired **post-hoc** with **temperature**,
+**Platt**, or **isotonic** scaling.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Expected Calibration Error (ECE) <415-expected-calibration-error-ece>` · :doc:`Reliability Curves (also called Calibration Curves) <416-reliability-curves-also-called-calibration-curve>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Overconfident <284-overconfident>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Brier Score <418-brier-score>`
 
 ----
 

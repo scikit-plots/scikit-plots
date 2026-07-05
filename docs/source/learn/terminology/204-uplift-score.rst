@@ -18,9 +18,47 @@ Uplift Score
 
 *A model's estimate of how much an action changes an individual's outcome.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+An **uplift score** is the number an **uplift model** assigns to an individual, estimating the
+**incremental impact** — positive or negative — of a treatment (a campaign, discount or medical
+intervention) on that person's likelihood of acting. It answers: *how much more (or less) likely is
+this person to act if we intervene than if we do not?*
+
+The formula
+-----------
+
+At the individual level,
+
+.. math::
+
+   \text{Uplift Score}_i = P(\text{Outcome} \mid \text{Treatment}, i) - P(\text{Outcome} \mid \text{Control}, i).
+
+A **positive** score means the treatment raises the chance of the desired outcome, a **negative**
+score means it backfires, and a score **near zero** means the treatment barely matters.
+
+A worked example
+----------------
+
+For a subscription campaign: **Customer A** has a treated probability of 0.40 versus 0.25 untreated —
+an uplift of **+0.15**, a strong target. **Customer B** sits at 0.70 versus 0.68 — just **+0.02**,
+barely worth the spend. **Customer C** is 0.10 versus 0.20 — an uplift of **-0.10**, meaning the
+campaign actively *hurts* (a "Do-Not-Disturb" case).
+
+How it's used
+-------------
+
+Uplift scores let you **rank and target** the highest-scoring customers — the *persuadables* — while
+avoiding *sure things* and *lost causes*, and **excluding negative-uplift** customers who might churn
+or unsubscribe if contacted. Aggregated across the population, the scores build the **uplift and Qini
+curves** whose quality the **Qini coefficient** summarises.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Models <205-uplift-models>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`Qini Coefficient <397-qini-coefficient>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Posterior probability of uplift <053-posterior-probability-of-uplift>`
 
 ----
 

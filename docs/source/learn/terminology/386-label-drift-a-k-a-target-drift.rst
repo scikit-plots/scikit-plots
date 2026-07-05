@@ -18,9 +18,34 @@ Label Drift (a.k.a. Target Drift)
 
 *A change over time in the distribution of the target variable.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Label drift** (target drift) is a change in the distribution of the **target** itself — the **class
+balance** or outcome mix shifts between training and production, :math:`p_{\text{train}}(y) \neq
+p_{\text{prod}}(y)`, even when the feature-to-label relationship may be unchanged. A fraud rate that creeps
+from 1% to 3% is label drift.
+
+How it differs
+--------------
+
+Like covariate drift it is a **dataset shift**, but it moves **p(y)** rather than **p(x)** or **p(y | x)**.
+Because most classifiers implicitly assume the **base rate** they trained on, a shifted target distribution
+can throw off **calibrated probabilities** and **thresholds** even if each input still maps to the right
+answer.
+
+Detecting and fixing it
+-----------------------
+
+Monitor the **label** or **prediction** distribution over time (PSI on predicted classes, tracked class
+proportions). Fixes include **recalibrating** decision thresholds to the new base rate, **reweighting** or
+resampling to the current mix, and **retraining** on recent labels.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Dataset Shift <353-dataset-shift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Data Drift <331-data-drift>` · :doc:`Drift Detection <138-drift-detection>`
 
 ----
 

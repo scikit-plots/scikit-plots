@@ -18,9 +18,38 @@ Chi-square (χ²) Test
 
 *A test of association between categorical variables using expected counts.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **chi-square test** works on **categorical** data, comparing **observed** counts to the **expected**
+counts under a null hypothesis:
+
+.. math::
+
+   \chi^2 = \sum_{i} \frac{(O_i - E_i)^2}{E_i}.
+
+A large :math:`\chi^2` means observations stray far from expectation.
+
+Its two forms
+-------------
+
+**Goodness-of-fit** asks whether one categorical variable follows a **specified distribution** (do dice
+rolls look fair?); **independence** asks whether two categorical variables in a **contingency table** are
+**associated** (is purchase related to region?). The statistic is compared to the **χ² distribution** with
+the appropriate **degrees of freedom**.
+
+Reading it and its limits
+-------------------------
+
+A small **p-value** rejects the null (a real fit failure or association); the strength of an association is
+then summarized by **Cramér's V**. The test needs **adequate expected counts** per cell and has **low
+power** on small samples — a non-significant result is weak evidence, not confirmation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Cramér's V <180-cramer-s-v>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Kullback–Leibler (KL) Divergence <327-kullbackleibler-kl-divergence>` · :doc:`Data Drift <331-data-drift>`
 
 ----
 

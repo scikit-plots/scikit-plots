@@ -18,9 +18,38 @@ Compute budgets
 
 *Limits on the compute resources a workload may consume.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+A **compute budget** is the pool of **computational resources** — GPU / TPU hours, **FLOPs**, and the dollars
+behind them — allocated to an ML system's **training** and **serving**. It caps how big a model you can
+train and how much traffic you can serve.
+
+The two halves
+--------------
+
+**Training** is a **one-time** cost that grows with model and data size (its FLOPs approximated by the
+**6ND** rule — roughly 6 × parameters × tokens), while **inference** is an **ongoing** cost (about **2N**
+FLOPs per forward pass) that scales with usage:
+
+.. math::
+
+   C_{\text{train}} \approx 6ND, \qquad C_{\text{inf}} \approx 2N \ \text{FLOPs per pass}.
+
+In production, inference usually claims the **majority** of the budget.
+
+Managing it
+-----------
+
+Teams set **budgets and alerts**, model **optimistic / expected / pessimistic** scenarios, and track unit
+economics like **cost per prediction** and **GPU utilization**. Hidden drains — idle instances, failed runs,
+oversized experiments — routinely add **20–40%** over the planned figure.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Inference Cost (Inference $) <385-inference-cost-inference>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Quantization <343-quantization>` · :doc:`Caching <342-caching>` · :doc:`Cloud Inference <153-cloud-inference>` · :doc:`Latency Guardrails <350-latency-guardrails>`
 
 ----
 

@@ -18,9 +18,40 @@ Cumulative Distribution Function (CDF)
 
 *The probability that a variable is at most a given value.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **cumulative distribution function (CDF)** gives the probability that a random variable is **at
+most** :math:`x`:
+
+.. math::
+
+   F(x) = \Pr[X \le x].
+
+Unlike the PMF or PDF, it works for **both** discrete and continuous variables.
+
+Properties
+----------
+
+The CDF is **non-decreasing**, runs from **0 to 1**, and is right-continuous. For a **discrete** variable
+it is a **step function**; for a **continuous** one it is smooth:
+
+.. math::
+
+   F(x) = \sum_{k \le x} p(k) \quad\text{(discrete)}, \qquad F(x) = \int_{-\infty}^{x} f(t)\,dt \quad\text{(continuous)}.
+
+Why it's useful
+---------------
+
+It directly answers "**at most**" and interval questions, and it is the **bridge** between
+representations: **quantiles** are read off its inverse and the **density** is its derivative. For a fair
+die, :math:`F(2) = 1/3`.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Density <237-probability-density>` · :doc:`Probability Mass <239-probability-mass>` · :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Normal Distribution <238-normal-distribution>`
 
 ----
 

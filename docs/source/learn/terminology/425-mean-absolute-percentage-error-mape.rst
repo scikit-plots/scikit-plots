@@ -18,9 +18,36 @@ Mean Absolute Percentage Error (MAPE)
 
 *The average absolute error expressed as a percentage of actuals.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Mean absolute percentage error** expresses each error as a **percentage of the actual** value, averaged:
+
+.. math::
+
+   \text{MAPE} = \frac{100\%}{n}\sum_{i=1}^{n}\left|\frac{y_i - \hat{y}_i}{y_i}\right|.
+
+This makes it **scale-free** — comparable across series of wildly different magnitudes.
+
+Why it's popular
+----------------
+
+"8% off" is instantly meaningful to non-specialists and lets you compare accuracy across products or regions
+on different scales — hence its ubiquity in **demand forecasting** and business reporting.
+
+The pitfalls
+------------
+
+MAPE **explodes when actuals are zero or near-zero** (the denominator → 0), and it is **asymmetric** —
+over-forecasts can incur unbounded percentage error while under-forecasts are capped at 100%, biasing it
+toward models that **under-predict**. For intermittent or zero-heavy data, **scaled** errors like **MASE**
+are safer.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Relative accuracy <258-relative-accuracy>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Regression Models <309-regression-models>`
 
 ----
 

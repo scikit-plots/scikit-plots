@@ -18,9 +18,32 @@ Downsampling
 
 *Reducing majority-class examples to balance a dataset.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Imbalanced Learning &amp; Resampling** terms below.
+**Downsampling** (random **undersampling**) rebalances an **imbalanced** dataset the opposite way — by
+**removing majority-class** examples until the classes are closer to even. It keeps all the minority data and
+thins out the majority.
+
+The risk
+--------
+
+Discarding majority examples can cause **underfitting** — the model loses **informative** cases and may miss
+the majority class's general pattern. In extreme imbalance you may throw away the vast bulk of the data
+(99%+), damaging its representation.
+
+When to use it
+--------------
+
+Prefer downsampling when data is **plentiful**, since it is **computationally efficient** (less data to train
+on) and **avoids the overfitting** of duplication. As with upsampling, apply it to the **training set only**
+to avoid **data leakage**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Upsampling <367-upsampling>` · :doc:`Bootstrap <365-bootstrap>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>` · :doc:`Recall <423-recall>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Model Stability <187-model-stability>`
 
 ----
 

@@ -18,9 +18,47 @@ Cumulative Uplift
 
 *The running incremental effect as more of the targeted population is treated.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Cumulative uplift** is the **running total of the incremental effect** — extra responses,
+conversions or purchases — gained by targeting customers ranked by uplift score. It says how much
+total benefit has accrued up to a given proportion of the population, and it is the quantity on the
+**Y-axis of the Qini curve**.
+
+The formula
+-----------
+
+For the top :math:`k\%` of customers ranked by uplift score,
+
+.. math::
+
+   \text{Cumulative Uplift}(k) = \sum_{i=1}^{kN} \left( y_i^{\text{treatment}} - y_i^{\text{control}} \right),
+
+summing the treated-minus-untreated outcome over those customers, where :math:`N` is the total count.
+
+A worked example
+----------------
+
+Rank 1,000 customers (split treatment/control) by uplift score and walk down the deciles. The **top
+10%** gives 18 treatment versus 12 control conversions — **+6**, so cumulative uplift is **6**. The
+**top 20%** adds 32 versus 24 — **+8**, bringing it to **14**. The **top 30%** adds **+10**, reaching
+**24**. At 100% the final cumulative uplift equals the **total incremental benefit**.
+
+Why it matters, and its cousins
+---------------------------------
+
+The curve shows **where uplift concentrates** (the top 20% may hold most of the benefit), fixes the
+**optimal targeting cutoff** (stop where it flattens), and **evaluates models** — steep early is
+good, flat like the random baseline is bad. Its family: **incremental gain** is the per-group step,
+**cumulative uplift** (the cumulative incremental gain) the running sum, **total incremental benefit**
+the final value, and the **Qini curve** their plot.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Incremental Gain <200-incremental-gain>` · :doc:`Total Incremental Benefit (TIB) <201-total-incremental-benefit-tib>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Uplift Models <205-uplift-models>`
 
 ----
 

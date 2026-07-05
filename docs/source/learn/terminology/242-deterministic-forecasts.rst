@@ -18,9 +18,32 @@ Deterministic forecasts
 
 *Single-valued forecasts that carry no explicit uncertainty.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **deterministic forecast** outputs a **single value** for each future point — a **point estimate** with
+**no uncertainty** attached. It is the counterpart of a **probabilistic** forecast, which predicts a whole
+distribution; here all the probability sits on **one number**.
+
+What it hides
+-------------
+
+Two deterministic forecasts can agree on the number yet face very different **risk**, and the value is
+usually a **summary** of an implicit distribution — the **mean** (if fit by minimizing RMSE) or the
+**median** (if fit by MAE).
+
+When it's enough
+----------------
+
+It is simple to produce, communicate and act on, and fine when uncertainty is small or irrelevant — but
+where the **cost of being wrong is asymmetric**, a **probabilistic** or **quantile** forecast conveys far
+more.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Full Distribution <229-full-distribution>`
 
 ----
 

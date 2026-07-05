@@ -1,0 +1,18 @@
+title	url	stage
+What is a Neural Network?	https://insightful-data-lab.com/2025/04/07/what-is-a-neural-network/	intro
+Supervised Learning and Neural Networks	https://insightful-data-lab.com/2025/04/07/supervised-learning-and-neural-networks/	intro
+Why Deep Learning is Taking Off	https://insightful-data-lab.com/2025/04/07/why-deep-learning-is-taking-off/	intro
+Geoffrey Hinton Interview	https://insightful-data-lab.com/2025/04/07/geoffrey-hinton-interview/	intro
+Binary Classification and Logistic Regression (Neural Network Basics)	https://insightful-data-lab.com/2025/04/07/binary-classification-and-logistic-regression-neural-network-basics/	neuron
+Logistic Regression (Binary Classification Model)	https://insightful-data-lab.com/2025/04/07/logistic-regression-binary-classification-model/	neuron
+Logistic Regression – Loss Function and Cost Function	https://insightful-data-lab.com/2025/04/07/logistic-regression-loss-function-and-cost-function/	neuron
+Gradient Descent in Logistic Regression	https://insightful-data-lab.com/2025/04/07/gradient-descent-in-logistic-regression/	calculus
+Derivatives	https://insightful-data-lab.com/2025/04/07/derivatives/	calculus
+More Derivative Examples	https://insightful-data-lab.com/2025/04/07/more-derivative-examples/	calculus
+Computation Graph	https://insightful-data-lab.com/2025/04/07/computation-graph/	calculus
+Derivatives with a Computation Graph	https://insightful-data-lab.com/2025/04/07/derivatives-with-a-computation-graph/	calculus
+Logistic Regression Gradient Descent	https://insightful-data-lab.com/2025/04/07/logistic-regression-gradient-descent/	training
+Gradient Descent on m Training Examples	https://insightful-data-lab.com/2025/04/07/gradient-descent-on-m-training-examples/	training
+Vectorization in Logistic Regression	https://insightful-data-lab.com/2025/04/07/vectorization-in-logistic-regression/	training
+More Vectorization Examples	https://insightful-data-lab.com/2025/04/07/more-vectorization-examples/	training
+Vectorizing Logistic Regression	https://insightful-data-lab.com/2025/04/07/vectorizing-logistic-regression/	training

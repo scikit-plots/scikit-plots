@@ -18,9 +18,33 @@ Correlation
 
 *The strength and direction of a linear relationship between variables.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+**Correlation** measures the **strength and direction** of the relationship between two variables. The
+**Pearson coefficient** — **r** in a sample, **ρ** in the population — runs from **−1 to +1**: −1 a perfect
+**negative** line, +1 a perfect **positive** line, and **0** no **linear** relationship.
+
+How to read it
+--------------
+
+The **sign** gives direction, the **magnitude** gives strength; squaring it yields **r²**, the share of one
+variable's **variance explained** by the other. Rough effect-size guides call 0.1 small, 0.3 medium, 0.5
+large — but a statistically significant r can still be **trivially** small in a large sample.
+
+Its limits
+----------
+
+Correlation captures only **linear** association, so it can **miss** strong nonlinear patterns; it is **not
+robust** to **outliers**, which can inflate or hide it; and, crucially, **correlation is not causation** — two
+variables can move together because a **third** drives both. Use rank correlation (Spearman) for monotonic,
+non-linear ties.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Population Proportion <199-population-proportion>` · :doc:`Outlier <307-outlier>`
 
 ----
 

@@ -18,9 +18,46 @@ Uplift Models
 
 *Models that predict the incremental effect of treating each individual.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Uplift models** — also called incremental, net-lift or true-lift models — are predictive models
+that estimate the **causal impact** of an action (a campaign, discount or treatment) on an
+individual's behaviour, rather than the behaviour itself. They shift the question from *"who will
+buy?"* to *"who will buy* **because of** *the campaign?"* — predicting incremental change, not raw
+outcome.
+
+Four kinds of customer
+------------------------
+
+Uplift modelling divides people by how they respond to intervention: **persuadables** act *only*
+because of it (the target), **sure things** would act anyway, **lost causes** never act, and
+**do-not-disturbs** react *negatively* if contacted. The goal is to reach persuadables, stop wasting
+budget on sure things and lost causes, and avoid provoking do-not-disturbs.
+
+Techniques
+----------
+
+Four families. The **two-model approach** trains separate treated- and control-group models and
+subtracts their probabilities. **Class transformation** relabels the target to encode both outcome
+and treatment, so a single classifier predicts uplift directly. **Uplift trees and forests** choose
+splits that maximise the treatment-control difference. And **meta-learners** (T-, S- and X-learners)
+build uplift on top of standard models within causal-ML frameworks.
+
+Evaluation and trade-offs
+---------------------------
+
+Because uplift concerns *causal* effect, accuracy and AUC are not enough; models are judged by the
+**Qini curve and coefficient**, the **uplift curve**, and **AUUC**. In a subscription campaign where
+the treatment group buys at 20% against a control's 15%, the model tries to pinpoint which
+individuals make up that **+5%**. The payoff is better spend, ROI and causal insight; the costs are a
+need for **experimental (A/B) data**, greater model complexity, and harder interpretation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift <424-uplift>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Qini Curve <203-qini-curve>` · :doc:`AUUC (Area Under the Uplift Curve) <396-auuc-area-under-the-uplift-curve>` · :doc:`Causal ML (Causal Machine Learning) <197-causal-ml-causal-machine-learning>` · :doc:`Treatment Effect <072-treatment-effect>`
 
 ----
 

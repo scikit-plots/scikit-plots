@@ -18,9 +18,31 @@ Natural Language Processing (NLP)
 
 *The field of processing and understanding human language with machines.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Natural language processing** teaches machines to **understand and generate human language** — text and
+speech. It bridges unstructured language and computation, from parsing meaning to producing fluent output.
+
+Its tasks
+---------
+
+NLP spans **classification** (sentiment, topic), **named-entity recognition**, **translation**,
+**summarization**, **question answering**, and **generation**. Its architectures moved from RNNs and
+**LSTMs** to the **transformer**, behind **BERT** and **GPT**-style models.
+
+Its turning point
+-----------------
+
+NLP was the first great success of **self-supervised** pretraining — models learn from **masked-token**
+prediction on **huge unlabeled** text, then fine-tune on a smaller labeled task. That pretrain-then-finetune
+recipe reset the field and now underlies search, chatbots, and translation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Embedding <173-embedding>` · :doc:`Full Annotation <345-full-annotation>` · :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`Weak Supervision <346-weak-supervision>`
 
 ----
 

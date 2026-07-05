@@ -18,9 +18,38 @@ Mean Average Precision (MAP)
 
 *The mean of average-precision scores across queries.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+**Mean Average Precision** is the **mean**, across all users, of each user's **Average Precision (AP)**. AP
+averages the **precision** measured at **every** rank where a relevant item appears — the area under that
+user's **precision–recall** curve:
+
+.. math::
+
+   \text{MAP} = \frac{1}{|U|}\sum_{u \in U} \text{AP}_u.
+
+It rolls per-user ranking quality into one number.
+
+What AP rewards
+---------------
+
+Because AP recomputes precision at each **relevant** position, it **emphasizes** getting relevant items
+**early** — a relevant item at rank 1 lifts every later precision term, while one at rank 10 lifts few. So MAP
+is strongly **order-sensitive**, rewarding front-loaded relevance.
+
+How it compares
+---------------
+
+MAP works with **binary** relevance (relevant or not), where **NDCG** handles **graded** relevance; MAP
+summarizes the **whole** precision–recall trade-off, where **Hit Rate** only checks for any hit. Reported at a
+cutoff (MAP@K), it is a standard top-N metric for search and recommendation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>` · :doc:`Hit Rate (HR) <412-hit-rate-hr>` · :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>`
 
 ----
 

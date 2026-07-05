@@ -18,9 +18,33 @@ Sequential Testing (also called sequential analysis)
 
 *Analysing results as data arrive while controlling error from repeated looks.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **A/B Testing &amp; Experimentation** terms below.
+**Sequential testing** (sequential analysis) **monitors an experiment continuously** and lets you **stop as
+soon as** the evidence is conclusive — rather than waiting for a fixed sample size. It is built for the
+streaming data of modern experimentation platforms.
+
+The problem it solves
+---------------------
+
+Repeatedly checking a **fixed-horizon** test and stopping when it looks good — **peeking** — badly
+**inflates the Type I error**. Sequential methods like the **sequential probability ratio test (SPRT)** and
+group-sequential designs keep the false-positive rate controlled **at any time**, so early stopping is
+**valid**.
+
+The payoff
+----------
+
+Because it can end as soon as a winner (or a dead end) is clear, sequential testing **cuts the average
+sample size** and **deployment time**, exposing **fewer users** to an inferior variant — at the price of
+slightly more conservative thresholds to preserve error control.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`A/B Testing <380-a-b-testing>` · :doc:`Interleaving Tests <379-interleaving-tests>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Bootstrap <365-bootstrap>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>`
 
 ----
 

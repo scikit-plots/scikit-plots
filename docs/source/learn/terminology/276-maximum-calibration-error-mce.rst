@@ -18,9 +18,37 @@ Maximum Calibration Error (MCE)
 
 *The largest gap between confidence and accuracy across calibration bins.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Maximum Calibration Error** reports the **worst** calibration gap rather than the average — the **largest**
+difference between accuracy and confidence over all bins:
+
+.. math::
+
+   \text{MCE} = \max_{m}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+Where ECE asks *how miscalibrated on average?*, MCE asks *how bad does it get?*
+
+When it matters
+---------------
+
+MCE is the right lens for **safety-critical** systems — medical, autonomous, financial — where a single
+**badly** miscalibrated confidence region can cause harm, even if the **average** looks fine. Lower is
+better, as with ECE.
+
+Its limits
+----------
+
+Like ECE it is **binning-dependent** (the answer shifts with bin count and scheme), and it is **not a proper
+scoring rule** — a model can achieve low calibration error with **trivial** predictions, so MCE must be read
+**alongside** discrimination metrics, not alone.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Adaptive ECE (Expected Calibration Error with Adaptive Binning) <275-adaptive-ece-expected-calibration-error-with-ada>` · :doc:`Murphy's Decomposition <278-murphy-s-decomposition>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Overconfident <284-overconfident>`
 
 ----
 

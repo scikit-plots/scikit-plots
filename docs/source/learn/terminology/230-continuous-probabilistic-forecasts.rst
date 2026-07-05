@@ -18,9 +18,33 @@ Continuous Probabilistic Forecasts
 
 *Forecasts expressed as continuous probability distributions over outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **continuous probabilistic forecast** is a probabilistic forecast for a **continuous (real-valued)**
+outcome — a full **predictive distribution** over the variable (a density or CDF), rather than a single
+value or a class probability. It answers *what is the whole distribution of tomorrow's demand, price, or
+temperature?*
+
+How it's represented
+--------------------
+
+It can be given as a **parametric** distribution (e.g. a normal :math:`\mathcal{N}(\mu, \sigma^2)` with a
+forecast mean and variance), a set of **quantiles**, or an **ensemble** of sampled trajectories — each a
+way to describe the continuous outcome's uncertainty.
+
+Why it's useful
+---------------
+
+From one object it exposes **every** downstream quantity — the mean, any **quantile**, a **prediction
+interval**, or a **tail probability**. Because it lives on a continuum (unlike a discrete / categorical
+probabilistic forecast), it is scored with the **CRPS**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Full Distribution <229-full-distribution>` · :doc:`Probabilistic Scoring <228-probabilistic-scoring>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>`
 
 ----
 

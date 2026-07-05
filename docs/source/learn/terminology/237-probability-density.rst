@@ -18,9 +18,39 @@ Probability Density
 
 *The relative likelihood of a continuous variable at a value, given by its PDF.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **probability density function (PDF)** :math:`f(x)` describes a **continuous** random variable. It is
+**not** a probability itself — its **area** is: the probability of landing in an interval is the integral
+
+.. math::
+
+   P(a \le X \le b) = \int_a^b f(x)\,dx.
+
+Properties
+----------
+
+The density satisfies :math:`f(x) \ge 0`, may **exceed 1** (it is a density, not a probability),
+integrates to **one** over the whole line, and assigns probability **zero** to any *exact* value. The bell
+curve of the **normal distribution** is the classic PDF.
+
+Link to the CDF
+---------------
+
+The density is the **derivative** of the cumulative distribution function,
+
+.. math::
+
+   f(x) = F'(x),
+
+so equivalently :math:`F` is the running integral of :math:`f`.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Mass <239-probability-mass>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Quantile Regression <254-quantile-regression>`
 
 ----
 

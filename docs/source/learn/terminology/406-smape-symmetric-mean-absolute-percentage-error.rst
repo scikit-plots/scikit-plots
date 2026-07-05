@@ -18,9 +18,37 @@ sMAPE (Symmetric Mean Absolute Percentage Error)
 
 *A symmetric percentage error bounded between 0 and 200%.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Symmetric Mean Absolute Percentage Error** fixes MAPE's asymmetry by putting the **average** of actual and
+forecast in the denominator:
+
+.. math::
+
+   \text{sMAPE} = \frac{1}{n}\sum_{i=1}^{n} \frac{|y_i - \hat{y}_i|}{(|y_i| + |\hat{y}_i|)/2}.
+
+In its common form it is **bounded** between 0% and 200%.
+
+What it fixes (and doesn't)
+---------------------------
+
+Plain MAPE penalizes **over-forecasts** more than under-forecasts and explodes as actuals approach zero;
+sMAPE is more **balanced** and **bounded**, which is why it served as the official metric of the
+**M-competitions**. But it is **not** perfectly symmetric, and it still misbehaves when both actual and
+forecast are near **zero** (the error jumps toward 100–200%).
+
+When to use it
+--------------
+
+Reach for sMAPE when you want a **bounded**, roughly symmetric percentage error for comparing across series —
+but avoid it on **intermittent** or zero-heavy demand, where **MASE** is the safer scale-free choice.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`WMAPE (Weighted Mean Absolute Percentage Error) <405-wmape-weighted-mean-absolute-percentage-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>`
 
 ----
 

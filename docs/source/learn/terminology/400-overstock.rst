@@ -18,9 +18,31 @@ Overstock %
 
 *The share of inventory held in excess of demand.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Overstock %** is the share of inventory that sits **in excess** of what demand needs — the fraction of
+stock held **beyond** target or forecast requirements. It is the "**too much**" side of inventory planning.
+
+What it costs
+-------------
+
+Excess stock isn't free — it ties up **capital**, consumes **warehouse** space, and risks **obsolescence**,
+spoilage, and eventual **markdowns**; holding costs often run to a fifth or more of the inventory's value.
+High overstock usually traces to **over-forecasting** demand or over-ordering to avoid the opposite problem.
+
+The trade-off
+-------------
+
+Overstock is one horn of the classic inventory dilemma — cutting it too aggressively invites **stockouts**.
+The balance point is a chosen **service level**, and better **demand forecasts** (lower error) are what let a
+business hold **less** safety stock without more shortages.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stockouts <401-stockouts>` · :doc:`WAPE (Weighted Absolute Percentage Error) <422-wape-weighted-absolute-percentage-error>` · :doc:`WMAPE (Weighted Mean Absolute Percentage Error) <405-wmape-weighted-mean-absolute-percentage-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Seasonality <329-seasonality>`
 
 ----
 

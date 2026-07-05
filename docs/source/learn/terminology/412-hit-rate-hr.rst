@@ -18,9 +18,36 @@ Hit Rate (HR)
 
 *The share of users for whom a relevant item appears in the top-N list.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Hit Rate** is the simplest top-N recommendation metric — it asks whether **at least one** relevant item
+appears in a user's top-**K** list. Each user scores **1** if there's any hit and **0** otherwise, and the
+metric is the **average** across users:
+
+.. math::
+
+   \text{HR@}K = \frac{\#\{\text{users with} \ge 1 \text{ relevant item in top } K\}}{|U|}.
+
+What it captures
+----------------
+
+HR measures **coverage of intent** at the coarsest level — did we surface *something* the user wanted? — which
+is exactly right for feeds, "you might also like" rows, and any setting where a **single** good hit is a win.
+It is intuitive and easy to explain to stakeholders.
+
+Its limits
+----------
+
+HR is **binary** and **position-blind** — it doesn't care **where** in the list the hit landed or **how
+many** relevant items were found, so a hit at rank 1 and a hit at rank 10 score the same. It also **rises**
+mechanically with **K**, so always report the cutoff (Hit@5 vs Hit@10) and pair it with a **ranking** metric.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>` · :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Recall <423-recall>`
 
 ----
 

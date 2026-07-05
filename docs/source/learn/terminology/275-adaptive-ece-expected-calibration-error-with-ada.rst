@@ -18,9 +18,38 @@ Adaptive ECE (Expected Calibration Error with Adaptive Binning)
 
 *A calibration error using adaptive bins so each holds a similar count.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Adaptive ECE** measures a classifier's **miscalibration** — the gap between its **confidence** and its
+actual **accuracy** — using **equal-count** bins. Like standard **Expected Calibration Error**, it is a
+weighted average of |accuracy − confidence| across bins:
+
+.. math::
+
+   \text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{N}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+The "adaptive" part changes only **how the bins are drawn**.
+
+The problem it fixes
+--------------------
+
+Standard ECE uses **fixed equal-width** bins ([0.0–0.1], …), so when predictions **cluster** (modern nets
+pile probabilities near 1.0), some bins hold **few or zero** samples and give **noisy** estimates. Adaptive
+binning instead makes each bin hold **the same number** of predictions, so bin **widths vary** with the data.
+
+Why it helps
+------------
+
+Equal-count bins yield a **more stable, fairer** calibration estimate on **skewed** predictions, where
+equal-width ECE is unreliable. It shares ECE's caveat, though: the result still depends on the **number of
+bins**, and neither is a **proper scoring rule**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Maximum Calibration Error (MCE) <276-maximum-calibration-error-mce>` · :doc:`Murphy's Decomposition <278-murphy-s-decomposition>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Overconfident <284-overconfident>` · :doc:`Underconfident <283-underconfident>`
 
 ----
 

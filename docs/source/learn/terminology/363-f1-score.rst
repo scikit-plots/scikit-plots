@@ -18,9 +18,36 @@ F1-score
 
 *The harmonic mean of precision and recall.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+The **F1-score** combines **precision** and **recall** into one number by taking their **harmonic mean**:
+
+.. math::
+
+   F_1 = 2\cdot\frac{P \cdot R}{P + R} = \frac{2\,TP}{2\,TP + FP + FN}.
+
+It ranges from **0 to 1**, and is high only when **both** precision and recall are high.
+
+Why harmonic
+------------
+
+Using the harmonic mean makes F1 **penalize lopsided** models — a classifier with 0.95 precision but 0.20
+recall scores a low F1, unlike accuracy or a plain average. This makes F1 far more informative than
+**accuracy** on **imbalanced** data, and it deliberately **ignores true negatives**.
+
+Its variants
+------------
+
+For **multiclass** problems, F1 is aggregated with **micro**, **macro** or **weighted** averaging; the
+general **Fβ** score tilts the balance toward recall (β > 1) or precision (β < 1) when the two errors carry
+different costs.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Harmonic Mean <362-harmonic-mean>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Accuracy <323-accuracy>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Micro Averaging <369-micro-averaging>`
 
 ----
 

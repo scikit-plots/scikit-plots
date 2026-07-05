@@ -18,9 +18,46 @@ Feature Values
 
 *The actual input feature values fed to a model at scoring time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Feature values** are the actual **numerical, categorical or textual values** describing an
+observation. The distinction in terms: a **feature** is a variable — a column in the dataset — while
+a **feature value** is the concrete entry for one observation, a single cell in a given row.
+
+An example
+----------
+
+In a table predicting whether a customer buys, the **features** are Age, Gender and Income; the
+**feature values** for one customer might be Age = 25, Gender = Male, Income = ``40,000``, and for
+another Age = 32, Gender = Female, Income = ``55,000``. Each row supplies one set of feature values.
+
+Types of value
+--------------
+
+They come in several kinds: **numerical** (Age = 25), **categorical** (Gender = Male/Female),
+**binary** (Yes/No, 0/1), **textual** (reviews, turned into embeddings or bag-of-words), and
+**derived** features engineered from raw data ("income per household member").
+
+Their role, and why they matter
+---------------------------------
+
+Feature values are the **inputs** a model learns from to predict a target. A linear model writes the
+prediction as
+
+.. math::
+
+   \hat{y} = w_1 x_1 + w_2 x_2 + \dots + w_n x_n + b,
+
+with the :math:`x_i` the feature values and the :math:`w_i` the learned weights. Because they drive
+everything downstream, **data quality**, **scaling** (so no variable dominates), **engineering**, and
+**interpretability** all hinge on getting feature values right.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Hyperparameter <142-hyperparameter>` · :doc:`Model Weights <155-model-weights>` · :doc:`Embedding <173-embedding>` · :doc:`Cardinality in Categorical Data <178-cardinality-in-categorical-data>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Model Stability <187-model-stability>`
 
 ----
 

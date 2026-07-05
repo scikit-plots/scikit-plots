@@ -18,9 +18,32 @@ Underconfident
 
 *When predicted probabilities are less extreme than the true accuracy warrants.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+A model is **underconfident** when its predicted probabilities are **too low** for its actual accuracy — it
+hedges, claiming less certainty than it deserves. A model that is only 80% confident but 90% accurate is
+underconfident.
+
+How to spot it
+--------------
+
+On a **reliability diagram**, underconfident points fall **above** the diagonal (accuracy > confidence), and
+predictions **cluster near 0.5** rather than committing. It is the mirror image of overconfidence, and a
+single model can be **overconfident in some ranges and underconfident in others**.
+
+Why it matters
+--------------
+
+Though it feels "safe," underconfidence **wastes** the model's discriminative signal — useful, correct
+predictions get muted probabilities, so **thresholds** and **risk-based decisions** under-trigger. Like
+overconfidence, it is fixed by **recalibration**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Overconfident <284-overconfident>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Sigmoid Function <297-sigmoid-function>`
 
 ----
 

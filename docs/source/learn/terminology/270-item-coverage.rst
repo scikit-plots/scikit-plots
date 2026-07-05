@@ -18,9 +18,35 @@ Item Coverage
 
 *The share of items that the system is able to recommend.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Item coverage** is the fraction of individual items the recommender is **able to recommend at all** —
+for which it can produce a prediction or place in a list. It asks *how many products can the system
+reach?*, item by item:
+
+.. math::
+
+   \text{Item Coverage} = \frac{|\text{items the system can recommend}|}{|\text{total items}|}.
+
+What limits it
+--------------
+
+Items with **no or few interactions** — new or niche products (the **cold-start** problem, data
+**sparsity**) — may be impossible to recommend, dragging item coverage down. **Content-based** signals or
+**hybrid** models raise it by letting the system reason about **unseen** items from their features.
+
+Recommendability
+----------------
+
+Item coverage is about **recommendability** (can this item ever surface?), whereas **catalog coverage** is
+about how much of the catalog **actually** surfaces in practice.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`User Coverage <269-user-coverage>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Diminishing Utility <271-diminishing-utility>`
 
 ----
 

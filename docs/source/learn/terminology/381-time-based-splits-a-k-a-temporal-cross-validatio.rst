@@ -18,9 +18,32 @@ Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)
 
 *Validation that respects time order to avoid using the future to predict the past.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+A **time-based split** orders data by **time** and trains on the **past** while validating and testing on the
+**future** — the earliest records for training, the most recent held out. It reproduces the reality of
+deployment, where **future data doesn't exist** at training time.
+
+Why it's needed
+---------------
+
+**Time-series** data violates the **i.i.d.** assumption behind ordinary splitting — observations depend on
+**prior** ones. Shuffling or random k-fold would let the model **train on the future** to predict the past, a
+**temporal leakage** that badly **overstates** accuracy.
+
+How it's done
+-------------
+
+Schemes like a **rolling forecasting origin** (walk-forward) or an **expanding / sliding window** repeatedly
+move the training window forward in time, so every evaluation always predicts **later** data than it trained
+on. Look-ahead **features** must be avoided too.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sliding Window (Rolling Window) Cross-Validation <129-sliding-window-rolling-window-cross-validation>` · :doc:`Expanding Window Cross-Validation <130-expanding-window-cross-validation>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`IID (Independent and Identically Distributed) <126-iid-independent-and-identically-distributed>` · :doc:`Evaluation Set <355-evaluation-set>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>`
 
 ----
 

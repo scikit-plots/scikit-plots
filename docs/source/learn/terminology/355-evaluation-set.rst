@@ -18,9 +18,31 @@ Evaluation Set
 
 *Held-out data used to measure model performance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+An **evaluation set** is data **held out** from training so a model can be scored on examples it has **never
+seen** — the only honest way to estimate how it will **generalize**. In practice it splits into two roles.
+
+Validation vs test
+------------------
+
+The **validation set** is used **repeatedly** during development — tuning hyperparameters, early stopping,
+choosing between models; the **test set** is touched **once**, at the very end, for a final **unbiased**
+estimate. Any peek at the test set during development **contaminates** it and inflates the reported score.
+
+The cardinal rule
+-----------------
+
+**Split first**, then fit every preprocessing step (scaling, encoding) on the **training data only** and
+apply it to the held-out sets. Fitting on all the data before splitting leaks information from the evaluation
+set into training — the classic **data leakage** that makes scores look better than reality.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`k-fold Stratified Cross-Validation (Stratified CV) <382-k-fold-stratified-cross-validation-stratified-cv>` · :doc:`Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation) <381-time-based-splits-a-k-a-temporal-cross-validatio>` · :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Model Score <364-model-score>` · :doc:`Model Stability <187-model-stability>` · :doc:`Data Drift <331-data-drift>`
 
 ----
 

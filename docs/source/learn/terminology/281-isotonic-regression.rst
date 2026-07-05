@@ -18,9 +18,32 @@ Isotonic Regression
 
 *A nonparametric, monotonic fit used to calibrate predicted probabilities.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Isotonic regression** is a **non-parametric** calibration method that fits a **monotonic** (non-decreasing)
+**step function** mapping raw scores to calibrated probabilities — it assumes only that a higher score should
+mean a higher probability, nothing about the shape.
+
+Its strength
+------------
+
+Because it is **model-free**, it can correct **arbitrary** monotonic miscalibration that parametric methods
+(Platt, temperature) miss — and with **enough** calibration data it typically **outperforms** them. It is
+also a general tool for **monotonic regression**, not only calibration.
+
+Its weakness
+------------
+
+That flexibility makes it **prone to overfitting** when calibration data is **scarce**, and the
+piecewise-constant fit is less smooth. Unlike temperature scaling it does **not** guarantee the model's
+accuracy is preserved.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Platt Scaling <280-platt-scaling>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Overconfident <284-overconfident>` · :doc:`Regression Models <309-regression-models>` · :doc:`Underconfident <283-underconfident>`
 
 ----
 

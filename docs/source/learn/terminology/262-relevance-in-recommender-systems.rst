@@ -18,9 +18,32 @@ Relevance in Recommender Systems
 
 *How well a recommended item matches a user's interests.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Relevance** is whether a recommended item actually **matches the user's tastes and needs** — an item they
+would find useful and want to engage with. It is the property that **accuracy** metrics (precision, recall,
+NDCG, MAP) are built to measure.
+
+The traditional goal
+--------------------
+
+Recommend **as many relevant items as possible**, maximizing accuracy. For a long time this was the sole
+objective of recommender systems.
+
+Not enough alone
+----------------
+
+A perfectly relevant list can still be **boring** — ten near-identical hits the user already knows. So
+relevance is balanced against **novelty**, **diversity** and **coverage**, and modern novelty / diversity
+metrics are made **relevance-aware** (rewarding items that are novel **and** relevant) so a system is not
+credited for surfacing surprising-but-useless items. The aim is **relevant *and* diverse**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Self-Information of Popularity <261-self-information-of-popularity>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>` · :doc:`Dominating in Recommender Systems <267-dominating-in-recommender-systems>`
 
 ----
 

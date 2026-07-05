@@ -18,9 +18,32 @@ Novelty (in Recommender Systems)
 
 *How unfamiliar or unexpected recommended items are to the user.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Novelty** measures how **new** or **unfamiliar** a recommender's suggestions are to a user — surfacing items
+they're **unlikely to have already seen** rather than obvious mainstream hits. It is a **beyond-accuracy**
+objective: a technically accurate list of things the user already knows adds little value.
+
+How it's measured
+-----------------
+
+Novelty is usually tied to **popularity** — the less popular an item, the more novel — so metrics use
+**average recommendation popularity** (lower means more novel) or the **self-information** (the negative log
+of an item's popularity). Recommending from the **long tail** raises novelty.
+
+Why it matters
+--------------
+
+Novelty drives **discovery** and helps monetize the **long tail**, but pushed too far it sacrifices
+**relevance** — nobody wants *random* items. The art is balancing the **accuracy-novelty** trade-off;
+combined with relevance and surprise, novelty becomes **serendipity**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Diversity (in Recommender Systems) <410-diversity-in-recommender-systems>` · :doc:`Coverage <411-coverage>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Hit Rate (HR) <412-hit-rate-hr>` · :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>`
 
 ----
 

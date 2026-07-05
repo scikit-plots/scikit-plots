@@ -18,9 +18,32 @@ Coverage
 
 *The share of outcomes that fall within predicted intervals.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Coverage** measures how much of the **catalog** a recommender actually uses — the share of available items
+it is able to, or chooses to, recommend. A system can be accurate yet only ever surface a **handful** of
+popular items, ignoring the rest.
+
+Two flavors
+-----------
+
+**Prediction coverage** is the fraction of items for which the model **can** make a prediction at all;
+**catalog coverage** is the fraction of items that actually **appear** in the recommendation lists users see.
+The latter is the usual beyond-accuracy target.
+
+Why it matters
+--------------
+
+High coverage means the **long tail** gets exposure and the catalog isn't wasted — countering **popularity
+bias**. A limitation of plain coverage: it counts an item shown **once** the same as one shown **thousands**
+of times, which is why **Gini** and **entropy** refine it to capture how **evenly** exposure is spread.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Novelty (in Recommender Systems) <409-novelty-in-recommender-systems>` · :doc:`Diversity (in Recommender Systems) <410-diversity-in-recommender-systems>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Hit Rate (HR) <412-hit-rate-hr>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>`
 
 ----
 

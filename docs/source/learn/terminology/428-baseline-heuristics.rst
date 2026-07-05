@@ -18,9 +18,32 @@ Baseline Heuristics
 
 *Simple rules used as reference points to judge whether a model adds value.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Baseline heuristics** are the **simple, naive** reference models a real system must **beat** to earn its
+complexity — the "**dumb**" benchmark. Predicting the **mean** or **median**, the **majority class**, the
+**last value**, or a basic **if-then rule** are all baselines.
+
+Why they're essential
+---------------------
+
+A metric is **meaningless** in isolation — 90% accuracy is trivial if the majority class is already 90%. A
+baseline sets the **floor**: if a complex model **can't** beat it, the model adds **no value** and may even
+hide a **bug**. Baselines are **cheap**, fast, and interpretable, so they cost almost nothing to run.
+
+Where they show up
+------------------
+
+Baselines frame every honest **evaluation** and are **built into** metrics — **MASE**, for instance, divides a
+forecast's error by a **naive** baseline's, so a score below 1 literally means "**better than the
+heuristic**." Always establish the baseline **first**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Accuracy <323-accuracy>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Model Score <364-model-score>`
 
 ----
 

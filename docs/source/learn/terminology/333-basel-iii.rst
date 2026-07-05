@@ -18,9 +18,32 @@ Basel III
 
 *International banking rules on capital and risk management.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Explainability &amp; Governance** terms below.
+**Basel III** is the international **banking regulation** framework from the **Basel Committee**, written after
+the **2007–09 financial crisis** to make banks more **resilient**. It tightens the **capital**, **liquidity**,
+and **leverage** a bank must hold against its risks.
+
+Its core requirements
+---------------------
+
+It raises both the **quantity** and **quality** of capital (more **common equity**), adds **liquidity** rules
+(holding enough liquid assets to survive stress), a **leverage** cap, and **buffers** that build up in good
+times to absorb losses in bad ones — all aimed at reducing **systemic** risk.
+
+Why it matters for ML
+---------------------
+
+Banks estimate **credit risk** — probability of default, loss given default — with models whose outputs feed
+**capital** calculations and **stress tests**. That puts those models under strict **model-risk management**
+and validation, making Basel III a major reason financial ML must be **auditable** and **robust**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Model Stability <187-model-stability>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>`
 
 ----
 

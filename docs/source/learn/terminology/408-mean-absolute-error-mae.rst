@@ -18,9 +18,36 @@ Mean Absolute Error (MAE)
 
 *The average absolute difference between predictions and actuals.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Mean Absolute Error** is the average **absolute** gap between prediction and truth — the **L1** error:
+
+.. math::
+
+   \text{MAE} = \frac{1}{N}\sum_{i=1}^{N} |y_i - \hat{y}_i|.
+
+It reports the typical error in the **same units** as the target, with no squaring.
+
+How it behaves
+--------------
+
+Because it takes **absolute** values rather than squares, MAE weights **all** errors **linearly** and is far
+more **robust to outliers** than MSE / RMSE — one huge miss doesn't dominate. The forecast that minimizes MAE
+is the **median** of the target (for RMSE it is the mean).
+
+When to use it
+--------------
+
+MAE is the right choice when you want an **interpretable**, outlier-**resistant** measure of typical error and
+don't need to punish large mistakes extra hard. Its main limits: it is **scale-dependent** (not comparable
+across series — use **MASE** for that) and, being **point-only**, it can't score probabilistic forecasts.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Pinball Loss (a.k.a. Quantile Loss) <404-pinball-loss-a-k-a-quantile-loss>` · :doc:`Continuous Ranked Probability Score (CRPS) <402-continuous-ranked-probability-score-crps>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>`
 
 ----
 

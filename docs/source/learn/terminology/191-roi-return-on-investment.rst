@@ -18,9 +18,45 @@ ROI (Return on Investment)
 
 *The ratio of net gain to the cost of an investment.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**ROI (Return on Investment)** is a **profitability metric**: how much return — gain or loss — an
+investment produces relative to its cost. It answers, for every ``$1`` spent, how much profit came
+back. It appears everywhere — marketing campaigns, product launches, financial portfolios, and
+operational change.
+
+The formula
+-----------
+
+.. math::
+
+   \text{ROI} = \frac{\text{Gain from Investment} - \text{Cost of Investment}}{\text{Cost of Investment}} \times 100\%,
+
+where the **gain** is the incremental revenue or benefit and the **cost** is the treatment cost,
+campaign spend, or project cost.
+
+A worked example
+----------------
+
+A promotion generates ``$15,000`` of incremental revenue for a ``$10,000`` cost. Then ROI =
+(15,000 − 10,000) / 10,000 × 100% = **50%** — every ``$1`` spent returned ``$1.50``, a 50-cent profit
+on the dollar.
+
+Variations, and the uplift view
+---------------------------------
+
+Common variants include **marketing ROI** (on incremental campaign revenue), **ROAS** (revenue over
+ad spend), **risk-adjusted** ROI (accounting for variance), and **time-adjusted** ROI (NPV, IRR). In
+**uplift modeling**, ROI is computed from incremental revenue against treatment cost, which steers
+spend toward **persuadables** — those where incremental benefit exceeds treatment cost — and away
+from sure things and lost causes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Treatment Cost <192-treatment-cost>` · :doc:`Incremental Revenue <193-incremental-revenue>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Valuation Metric <035-valuation-metric>` · :doc:`Gross Margin <043-gross-margin>` · :doc:`SLI (Service Level Indicator) <190-sli-service-level-indicator>`
 
 ----
 

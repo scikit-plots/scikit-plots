@@ -18,9 +18,48 @@ Incremental Conversions
 
 *Extra conversions caused by a treatment beyond the baseline.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Incremental conversions** measure the **additional number of conversions caused by a treatment** —
+a campaign, promotion or intervention — compared with what would have happened without it (the
+control). They are the extra conversions **directly attributable** to the treatment, not the raw
+total.
+
+The formula
+-----------
+
+The basic form is treatment conversions minus control conversions. To scale the effect to a full
+population, use the rate-based version,
+
+.. math::
+
+   \text{Incremental Conversions} = \left( \frac{y^T}{n^T} - \frac{y^C}{n^C} \right) \times N,
+
+where :math:`y^T/n^T` and :math:`y^C/n^C` are the treatment and control conversion rates and
+:math:`N` is the total population you would target. This adjusts for the baseline rate and scales the
+per-user uplift up to everyone.
+
+A worked example
+----------------
+
+Run a campaign on 10,000 users: the treatment group (5,000) converts at 12% (600), the control group
+(5,000) at 8% (400). The rate difference is **4%**, so across the full 10,000 the incremental
+conversions are :math:`0.04 \times 10{,}000 = 400` — the extra conversions the campaign genuinely
+caused.
+
+Why it matters
+--------------
+
+**Total** conversions mislead, because some users would have converted anyway. **Incremental**
+conversions isolate the **causal effect** of the treatment, which is why they are the foundation of
+**uplift modelling** and incrementality testing across marketing, ads and A/B testing.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Causal Effect <306-causal-effect>` · :doc:`Incremental Revenue <193-incremental-revenue>` · :doc:`Uplift <424-uplift>` · :doc:`Causal Inference <117-causal-inference>`
 
 ----
 

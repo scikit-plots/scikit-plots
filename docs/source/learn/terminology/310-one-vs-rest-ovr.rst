@@ -18,9 +18,33 @@ One-vs-Rest (OvR)
 
 *A multiclass strategy fitting one binary classifier per class.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**One-vs-Rest** (also **one-vs-all**) reduces a **K-class** problem to **K binary** ones — in each, a single
+class is the **positive** and all the others are lumped together as the **negative**. It's the simplest way
+to let binary tools handle many classes.
+
+How it's used
+-------------
+
+For a K-class model you get **K** ROC curves and AUCs, one per class, each answering *how well does the model
+separate this class from everything else?* scikit-learn exposes it as ``multi_class='ovr'``; it also matches
+the **multilabel** setting, where classes aren't exclusive.
+
+The catch
+---------
+
+Each binary split is **imbalanced** — the positive class is only about **1/K** of the data, and the "rest"
+group's makeup shifts with the class distribution, so OvR scores are **sensitive to class imbalance**. The
+alternative, **One-vs-One**, compares class **pairs** and is less imbalance-prone but trains
+:math:`O(K^2)` classifiers.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Micro AUC <313-micro-auc>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

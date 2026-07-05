@@ -18,9 +18,31 @@ Predicting Percentiles
 
 *Forecasting specific percentiles to convey the outcome distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+**Predicting percentiles** means forecasting specific **percentiles** (quantiles) of the outcome
+distribution — the value below which a given **percentage** of outcomes fall — instead of only a single
+mean. A percentile is a quantile stated as a percent: the 0.9 quantile is the **90th percentile**.
+
+Why percentiles
+---------------
+
+A handful of percentiles (say the **10th, 50th and 90th**) sketch the **range** of outcomes and their
+**best- and worst-case** scenarios, exposing **uncertainty** and enabling **asymmetric** decisions —
+without committing to a parametric distribution.
+
+How it's done
+-------------
+
+Percentiles are produced by **quantile regression** (and its tree / boosting variants), each trained on
+the **pinball loss** for its level; stacking many percentiles approximates the **full distribution**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Point Forecasts <233-point-forecasts>`
 
 ----
 

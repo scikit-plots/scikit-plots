@@ -18,9 +18,37 @@ Return Distribution
 
 *The distribution of asset returns, central to financial risk modelling.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **return distribution** is the probability distribution of an asset's (or portfolio's) **returns** over
+a period — the range of possible returns and how likely each is. From a price series
+:math:`(S_0, \dots, S_n)`, the simple return is
+
+.. math::
+
+   R_t = \frac{S_t - S_{t-1}}{S_{t-1}}
+
+(or, equivalently for many purposes, the **log return**).
+
+Why it matters
+--------------
+
+Every downside-risk measure is read **off this distribution** — for instance, **Value-at-Risk** is a
+tail **quantile** of it. Model the return distribution and you can **price** risk.
+
+The reality: fat tails
+----------------------
+
+Empirical returns are **not** normal — they have **heavy tails** and **skewness**, so extreme moves
+happen far more often than a Gaussian predicts. Assuming normality **understates** tail risk;
+heavy-tailed (**Student-t**) or **location-scale** models fit better.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Value-at-Risk (VaR) <226-value-at-risk-var>` · :doc:`Risk Forecast <227-risk-forecast>` · :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>`
 
 ----
 

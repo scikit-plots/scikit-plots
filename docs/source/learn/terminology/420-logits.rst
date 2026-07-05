@@ -18,9 +18,32 @@ Logits
 
 *Raw pre-activation scores before a sigmoid or softmax.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Logits** are the **raw, unnormalized** scores a classifier's final layer produces **before** they're turned
+into probabilities. They range over **all** real numbers — positive, negative, unbounded — and live in
+**log-odds** space, not probability space.
+
+From logits to probabilities
+-----------------------------
+
+A **softmax** turns a vector of logits into a probability **distribution** that sums to 1 (for multiclass),
+while a **sigmoid** maps a single logit to one probability (for binary). Because softmax **normalizes**,
+raising one logit **lowers** the others' probabilities — the competition that sharpens a prediction.
+
+Why keep them raw
+-----------------
+
+Exposing logits enables **numerically stable** training (log-softmax beats probabilities-then-log, which is
+why frameworks feed **cross-entropy** raw logits) and **post-hoc calibration** — **temperature scaling**
+divides logits by T *before* softmax, which is only possible when the logits are available.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Softmax Function <296-softmax-function>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Logit Space <291-logit-space>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Log Loss (also called Logarithmic Loss or Cross-Entropy Loss) <417-log-loss-also-called-logarithmic-loss-or-cross-e>`
 
 ----
 

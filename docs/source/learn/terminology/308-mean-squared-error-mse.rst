@@ -18,9 +18,37 @@ Mean Squared Error (MSE)
 
 *The average of squared differences between predictions and actuals.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Mean squared error** is the average of the **squared** differences between predictions and truth — the
+workhorse **loss** and metric for **regression** (also called **L2** or quadratic loss):
+
+.. math::
+
+   \text{MSE} = \frac{1}{n}\sum_{i=1}^{n}\big(y_i - \hat{y}_i\big)^2.
+
+Squaring makes every error positive and **weights large errors far more** than small ones.
+
+How it behaves
+--------------
+
+Because errors are squared, MSE is dominated by **big misses** and is **sensitive to outliers** — one large
+error can swamp many small ones. Its units are the **square** of the target's, so it doesn't read directly;
+minimizing MSE yields the **mean** (conditional expectation) as the optimal prediction.
+
+Why it's used
+-------------
+
+It is **smooth and differentiable**, ideal for **gradient descent** (it is the loss regression networks
+minimize), and it is the **maximum-likelihood** loss under **Gaussian** noise. When outliers should count
+less, **MAE** is preferred.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Regression Models <309-regression-models>` · :doc:`Forecast Error <250-forecast-error>`
 
 ----
 

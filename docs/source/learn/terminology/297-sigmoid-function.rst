@@ -18,9 +18,38 @@ Sigmoid Function
 
 *Maps any real value to (0, 1), used for probabilities and gating.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+The **sigmoid** function :math:`\sigma` maps **any** real number to the open interval **(0, 1)**, tracing an
+**S-shaped** curve:
+
+.. math::
+
+   \sigma(z) = \frac{1}{1 + e^{-z}}.
+
+At :math:`z=0` it returns **0.5**; large positive :math:`z` → near **1**, large negative :math:`z` → near
+**0**.
+
+Its role
+--------
+
+It is the **inverse of the logit** — it turns a **log-odds** score back into a **probability** — which makes
+it the output activation of **logistic regression** and of **binary**-classification output layers, and the
+basis of **binary cross-entropy** loss. Each output is an **independent** probability, so sigmoid also
+serves **multi-label** problems.
+
+Watch out
+---------
+
+In the **hidden** layers of deep networks the sigmoid causes **vanishing gradients** (its slope flattens for
+large :math:`|z|`), so ReLU-family activations are preferred there; sigmoid is kept for the **output**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Log-Odds <295-log-odds>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Squashing Function <298-squashing-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>`
 
 ----
 

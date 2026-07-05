@@ -18,9 +18,42 @@ Seasonality
 
 *Regular, calendar-linked cycles in a time series.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Seasonality** is a pattern in a time series that **repeats at fixed, regular intervals** — driven by
+seasonal factors such as the time of year, the month, the day of the week or the hour of the day.
+Unlike a **trend** (a long-term rise or fall), seasonality is **periodic**, recurring with a fixed
+frequency. In a decomposition, a series splits into trend, seasonal and residual parts,
+:math:`y_t = T_t + S_t + \varepsilon_t`, with :math:`S_t` the seasonal component.
+
+Examples
+--------
+
+Retail sales spike every December, ice-cream demand rises each summer, website traffic dips every
+weekend, and electricity load peaks on hot afternoons. In each case the same shape returns on a
+predictable cycle.
+
+Detecting it
+------------
+
+Seasonality shows up as a **repeating shape** in a line plot, and is confirmed with **seasonal
+subseries** or **decomposition** plots and with the **autocorrelation function (ACF)**, which spikes at
+the **seasonal lag** — for example lag 12 for monthly data with yearly seasonality.
+
+Handling it in models
+---------------------
+
+Several tools absorb it: **seasonal differencing** removes it, **SARIMA** adds seasonal
+:math:`(P, D, Q)_m` terms, **Prophet** fits it with a Fourier series, and simpler models use
+**seasonal dummy variables**. Getting seasonality right is essential for accurate forecasting —
+ignoring it leaves systematic, repeating errors in the residuals.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Prophet — Time Series Forecasting by Facebook (Meta) <222-prophet-time-series-forecasting-by-facebook-meta>` · :doc:`Time Series <010-time-series>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Temporal autocorrelation (Serial Correlation) <127-temporal-autocorrelation-serial-correlation>`
 
 ----
 

@@ -18,9 +18,41 @@ Qini Curve
 
 *An uplift-evaluation curve plotting incremental gain against the fraction targeted.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+The **Qini curve** is the **visual evaluation tool** for uplift models (causal or
+incremental-response models). It shows the **incremental benefit** gained by targeting customers
+**ranked by predicted uplift score** — the uplift-modelling analogue of an ROC curve, measuring how
+well the model finds **persuadables**. The higher and more "bowed upward" it is, the better.
+
+How it's built
+---------------
+
+Rank customers by uplift score from highest to lowest, **incrementally target** the top *x*%, and for
+each portion compute the **incremental response** — treatment responses minus control responses. The
+**cumulative** incremental response is what gets plotted.
+
+Axes and baselines
+------------------
+
+The **X-axis** is the proportion of the population targeted (0% to 100%); the **Y-axis** is the
+cumulative incremental response. A **random-targeting diagonal** marks the uplift you would expect from
+targeting at random, and the **model curve** ideally sits well above it.
+
+Reading it, with an example
+-----------------------------
+
+Targeting the top 20% might show a treatment purchase rate of 18% against a control of 12% — a **+6%**
+incremental lift on those customers — and so on at 40%, 60%. A **steep early rise** means the model
+concentrates persuadables at the top; a **flat, near-diagonal** line means it is no better than
+random. The area between the model curve and the diagonal is the **Qini coefficient**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Score <204-uplift-score>` · :doc:`Qini Coefficient <397-qini-coefficient>` · :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Incremental Gain <200-incremental-gain>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Uplift Models <205-uplift-models>`
 
 ----
 

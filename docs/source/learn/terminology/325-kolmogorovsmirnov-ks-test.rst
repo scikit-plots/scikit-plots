@@ -18,9 +18,37 @@ Kolmogorov–Smirnov (KS) Test
 
 *A test comparing distributions via their largest cumulative gap.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+The **KS test** is a **non-parametric** test of whether two samples come from the **same distribution**
+(two-sample), or whether a sample matches a **reference** distribution (goodness-of-fit). It compares their
+**cumulative distribution functions (CDFs)**.
+
+The statistic
+-------------
+
+Its **D-statistic** is the **largest vertical gap** between the two CDFs:
+
+.. math::
+
+   D = \sup_{x} \,\big|F_1(x) - F_2(x)\big|.
+
+A bigger D means the distributions are further apart. Because it uses the CDF directly, it makes **no
+assumptions** about the distribution's shape — its great strength.
+
+Where it's used
+---------------
+
+With a null of "same distribution," a small p-value flags a **significant** difference — making the KS test
+a standard tool for **drift detection** on continuous features and for **goodness-of-fit** checks. It
+underlies the **KS statistic** used as a drift metric.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`KS Statistic (Kolmogorov–Smirnov Statistic) <186-ks-statistic-kolmogorovsmirnov-statistic>` · :doc:`Kullback–Leibler (KL) Divergence <327-kullbackleibler-kl-divergence>` · :doc:`Jensen–Shannon (JS) Divergence <326-jensenshannon-js-divergence>` · :doc:`Data Drift <331-data-drift>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Statistical Tests <328-statistical-tests>`
 
 ----
 

@@ -18,9 +18,33 @@ Target Variable
 
 *The quantity a supervised model is trained to predict.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+The **target variable** (:math:`y`) — also called the **dependent**, **response**, or **outcome**
+variable, or the **label** — is the quantity a **supervised** model is trained to **predict** from the
+input **features** (the independent variables). It is the "correct answer" that must be **observed** in
+the training data.
+
+Types
+-----
+
+It can be **continuous** (a regression target, e.g. a price) or **categorical** (a classification target,
+e.g. spam / not-spam), and also **ordinal** or **multi-label**. Its type **determines the problem** and
+which models fit.
+
+Why it matters
+--------------
+
+The algorithm only ever learns a **function mapping features to target**, so a **well-defined** target is
+decisive: without a labeled target, supervised learning cannot proceed, and a poorly chosen or **biased**
+target propagates straight into the model's behavior.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Feature Values <188-feature-values>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Regression Coefficient <090-regression-coefficient>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Label Noise <354-label-noise>`
 
 ----
 

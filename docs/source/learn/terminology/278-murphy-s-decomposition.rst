@@ -18,9 +18,38 @@ Murphy's Decomposition
 
 *A breakdown of a probabilistic score into calibration and refinement parts.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Murphy's decomposition** (1973) splits a **proper scoring rule** — classically the **Brier score** — into
+three interpretable pieces:
+
+.. math::
+
+   \text{Brier} = \text{Reliability} - \text{Resolution} + \text{Uncertainty}.
+
+It reveals *why* a probabilistic forecast scores as it does.
+
+The three terms
+---------------
+
+**Reliability** is the **calibration** error (how far forecast probabilities sit from observed frequencies —
+**lower** is better); **resolution** is how much the forecasts **vary** from the base rate to **separate**
+outcomes (**higher** is better); **uncertainty** is the **irreducible** variance of the event itself,
+independent of the model.
+
+Why it matters
+--------------
+
+It shows a good score needs **both** good calibration **and** good resolution — a perfectly calibrated model
+that always predicts the base rate has **zero** reliability error but **zero** resolution, and is useless. It
+is the theoretical reason calibration metrics like **ECE** tell only **half** the story.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Adaptive ECE (Expected Calibration Error with Adaptive Binning) <275-adaptive-ece-expected-calibration-error-with-ada>` · :doc:`Maximum Calibration Error (MCE) <276-maximum-calibration-error-mce>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Temperature Scaling <279-temperature-scaling>`
 
 ----
 

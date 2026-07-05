@@ -18,9 +18,38 @@ PSI (Population Stability Index)
 
 *A widely used score measuring how much a distribution has shifted.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+The **Population Stability Index** measures how much a variable's distribution has **shifted** between a
+**reference** ("expected") sample and a **current** ("actual") one — usually training vs production. It bins
+the variable and sums the per-bin discrepancy:
+
+.. math::
+
+   \text{PSI} = \sum_{b} (A_b - E_b)\,\ln\!\frac{A_b}{E_b},
+
+over bins :math:`b`. It is **0** when the distributions match and grows without bound as they diverge.
+
+How it's computed
+-----------------
+
+Choose **bins** (often 10, by quantile or equal width) using the **same edges** for both samples, take each
+bin's **proportion** in the expected and actual data, and sum the term above across bins. It is closely
+related to a **symmetrized KL divergence**.
+
+Reading it
+----------
+
+The rules of thumb are **< 0.1** stable, **0.1–0.25** moderate drift (**watch**), and **> 0.25** significant
+drift (**retrain**). Two cautions: an **empty bin** makes PSI undefined or unbounded (so proportions are
+clipped), and PSI tends to **rise with sample size**, so thresholds may need tuning.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Covariate Drift (a.k.a. Covariate Shift) <387-covariate-drift-a-k-a-covariate-shift>` · :doc:`Label Drift (a.k.a. Target Drift) <386-label-drift-a-k-a-target-drift>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Kullback–Leibler (KL) Divergence <327-kullbackleibler-kl-divergence>` · :doc:`Data Drift <331-data-drift>` · :doc:`Drift Detection <138-drift-detection>`
 
 ----
 

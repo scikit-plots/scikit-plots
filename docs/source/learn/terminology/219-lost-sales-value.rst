@@ -18,9 +18,44 @@ Lost Sales Value
 
 *Revenue forgone when demand cannot be met from available stock.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Lost Sales Value** is the **monetary value of sales that could not be realised** because products
+were out of stock or unavailable when customers wanted them. It puts the **dollar impact** on
+stockouts, going beyond the percentages of stockout rate or fill rate. High lost-sales value means
+serious revenue leakage; low means sound inventory and demand planning.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Lost Sales Value} = \text{Unfulfilled Units} \times \text{Unit Selling Price},
+
+or equivalently the total demand value (demand units times price) minus the actual sales value
+(fulfilled units times price).
+
+A worked example
+----------------
+
+A customer wants 500 units but only 450 are in stock, so 50 go unfilled. At ``$20`` each, the lost
+sales value is 50 × 20 = ``$1,000`` — a thousand dollars of revenue forgone to the stockout.
+
+Why it matters
+--------------
+
+It shows the money lost **directly**, drives **customer-loyalty** concerns, informs the **inventory
+cost versus service level** trade-off, and prioritises the SKUs whose stockouts hurt most (typically
+high-margin ones). Alongside its percentage cousins — stockout rate (how *often*) and fill rate (how
+*much* is filled) — lost sales value answers how much revenue is actually lost: a snapshot might read
+5% stockout, 95% fill, and ``$50,000`` lost.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Stockout Rate <221-stockout-rate>` · :doc:`Fill Rate <220-fill-rate>` · :doc:`Backorder Rate <218-backorder-rate>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`SLA Breach Rate <207-sla-breach-rate>`
 
 ----
 

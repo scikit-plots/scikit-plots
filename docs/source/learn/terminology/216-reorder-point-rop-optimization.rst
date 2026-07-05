@@ -18,9 +18,36 @@ Reorder Point (ROP) Optimization
 
 *Setting the stock level at which to reorder to avoid stockouts.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+The **reorder point** is the inventory level that **triggers a new order** — set so stock arrives just
+before you run out. Under a **continuous-review** policy, when on-hand inventory falls to the ROP, a
+replenishment order is placed.
+
+The formula
+-----------
+
+.. math::
+
+   \text{ROP} = \underbrace{\mu_D \times L}_{\text{demand during lead time}} \;+\; \underbrace{\text{SS}}_{\text{safety stock}},
+
+where :math:`\mu_D` is average demand per period and :math:`L` is the lead time. The first term covers
+**expected** usage while the order is in transit; the second buffers **variability**.
+
+Optimizing it
+-------------
+
+A good ROP balances **stockout risk** against **holding cost**. It is tuned with **accurate demand
+forecasts**, measured **demand and lead-time variability**, and a chosen **service level**; modern systems
+recompute it in **real time** as those inputs drift. Drop the safety-stock term only when demand is very
+stable and suppliers are reliable.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Safety Stock <217-safety-stock>` · :doc:`Demand Forecasting <215-demand-forecasting>` · :doc:`Long Lead Times <210-long-lead-times>` · :doc:`Fill Rate <220-fill-rate>` · :doc:`Stockout Rate <221-stockout-rate>` · :doc:`Supplier Management <214-supplier-management>`
 
 ----
 

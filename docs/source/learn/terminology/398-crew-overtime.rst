@@ -18,9 +18,32 @@ Crew Overtime
 
 *Extra paid hours worked beyond scheduled time, an operations cost.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Crew overtime** is the labor a workforce puts in **beyond** its scheduled hours — and the **premium pay**
+that comes with it. It is a core **operational cost** in airlines, logistics, transit, and any **shift-based**
+operation, and a number planners work hard to keep down.
+
+What drives it
+--------------
+
+Overtime spikes from **disruptions** — delays, absences, demand surges — and from **poor scheduling** or
+inaccurate **demand forecasts** that leave too few people rostered. It is a **reactive** cost: you pay it when
+the plan doesn't survive contact with reality.
+
+Why it's optimized
+------------------
+
+Crew overtime is a **penalty** term in scheduling and rostering models, balanced against **understaffing**
+(which causes delays and missed service) and **overstaffing** (idle labor). Better **forecasting** and robust
+scheduling shrink it — a direct link between prediction quality and operating cost.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Manual review minutes <384-manual-review-minutes>` · :doc:`Compute budgets <383-compute-budgets>` · :doc:`Overstock % <400-overstock>` · :doc:`Stockouts <401-stockouts>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Inference Cost (Inference $) <385-inference-cost-inference>`
 
 ----
 

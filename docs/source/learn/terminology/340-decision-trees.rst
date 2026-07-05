@@ -18,9 +18,61 @@ Decision Trees
 
 *Models that split data on feature thresholds to reach predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+A **decision tree** is a supervised-learning algorithm that splits data into branches by **feature
+values**, forming a tree. Each **internal node** is a decision (a feature and a threshold) and each
+**leaf** a prediction (a class label or a number) — think of it as a flowchart: ask questions, follow
+branches, reach a prediction. It comes in two flavours: **classification trees** (discrete labels) and
+**regression trees** (continuous values).
+
+How it learns, and splitting
+------------------------------
+
+Training is recursive: start with all data at the **root**, evaluate candidate **splits** for each
+feature, keep the split that best separates the data (minimises impurity), and repeat until a
+**stopping rule** (max depth, minimum samples per leaf). Classification trees split by **Gini
+impurity** or **entropy** (information gain); regression trees by **MSE reduction**. The Gini impurity
+at a node is
+
+.. math::
+
+   G = 1 - \sum_{k} p_k^2,
+
+where :math:`p_k` is the proportion of class :math:`k` at that node.
+
+Strengths and weaknesses
+--------------------------
+
+Trees are **easy to interpret and visualise**, handle **mixed numeric and categorical** features,
+capture **nonlinear boundaries and interactions**, and need no feature scaling. But a deep tree
+**overfits**, is **unstable** (a small data change reshapes it), splits **greedily** (it can miss the
+global optimum), and is **weaker alone** than an ensemble.
+
+From one tree to many
+-----------------------
+
+**Pruning** cuts back branches to curb overfitting; **random forests** bag many trees; and
+**gradient-boosted trees** (XGBoost, LightGBM, CatBoost) build trees sequentially to correct earlier
+errors.
+
+.. code-block:: python
+
+   from sklearn.datasets import load_iris
+   from sklearn.tree import DecisionTreeClassifier, export_text
+
+   X, y = load_iris(return_X_y=True)
+   tree = DecisionTreeClassifier(max_depth=3).fit(X, y)
+
+   print(export_text(tree, feature_names=["sepal_length", "sepal_width",
+                                          "petal_length", "petal_width"]))
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`Deep Ensembles <335-deep-ensembles>` · :doc:`Uplift Random Forests <302-uplift-random-forests>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`Bayesian Neural Networks (BNNs) <055-bayesian-neural-networks-bnns>`
 
 ----
 

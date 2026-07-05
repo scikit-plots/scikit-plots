@@ -18,9 +18,31 @@ Macro AUC
 
 *AUC averaged equally across per-class scores.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Macro AUC** averages the per-class AUCs (from **One-vs-Rest**) with **equal weight** — every class counts
+the **same**, no matter how rare or common. It answers *how well does the model do on the average class?*
+
+Macro vs micro
+--------------
+
+The contrast is **micro AUC**, which pools every class's true/false-positive contributions into **one global**
+curve, effectively **weighting by prevalence** so frequent classes dominate. Macro treats a class with 10
+samples exactly like one with 10,000.
+
+When to use which
+-----------------
+
+**Macro** is the choice when the **rare** classes matter as much as the common ones (you want minority
+performance to show), while **micro** (or a **weighted** macro) better reflects **overall** accuracy on
+**imbalanced** data. Reporting both reveals whether a good score is carried by the majority classes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Micro AUC <313-micro-auc>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Partial AUC (pAUC) <312-partial-auc-pauc>`
 
 ----
 

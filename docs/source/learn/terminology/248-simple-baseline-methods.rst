@@ -18,9 +18,37 @@ Simple Baseline Methods
 
 *Easy reference forecasts (last value, mean) that stronger models must beat.*
 
-.. note::
+What they are
+-------------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Simple baseline methods** are a small family of trivially simple forecasts used to set a **statistical
+baseline** before anything complex. The staples: the **mean** method (forecast the historical **average**,
+which smooths away seasonality), the **naïve** method (carry the **last value** forward — a random walk),
+the **seasonal naïve** (carry the value from **one season ago**), and the **drift** method (naïve plus a
+**trend** equal to the average historical change).
+
+The drift formula
+-----------------
+
+.. math::
+
+   \hat{y}_{T+h} = y_T + h \cdot \frac{y_T - y_1}{T-1},
+
+equivalent to drawing a line through the **first and last** observations and extrapolating it forward.
+
+Why use them
+------------
+
+They are **cheap and transparent**, and any sophisticated model must **beat** them to earn its
+complexity. Choose by structure — the **mean** for a flat series, the **naïve** for a random walk, the
+**seasonal naïve** for strong seasonality, **drift** for a trend — and note that **averaging** several
+often improves accuracy. *KISS: keep it sophisticatedly simple.*
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Forecasting Competitions <251-forecasting-competitions>`
 
 ----
 

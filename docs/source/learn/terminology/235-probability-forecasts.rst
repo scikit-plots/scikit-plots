@@ -18,9 +18,34 @@ Probability Forecasts
 
 *Forecasts stated as probabilities of events.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **probability forecast** states the **probability of a specific outcome or event** rather than a single
+deterministic value — "a 70% chance of rain," "a 4% probability of default." It is the event-focused face of
+**probabilistic forecasting**: instead of committing to one number, it quantifies **how likely** each
+outcome is.
+
+How it's expressed
+------------------
+
+As a probability per event, or as **certainty levels** on a distribution — a **P80** forecast is 80% certain
+(a 20% chance of being exceeded), a **P50** is the median. A full probability forecast carries the **whole
+distribution** of outcomes.
+
+Why it matters
+--------------
+
+Probabilities are what **risk-based decisions** consume — a threshold on the forecast (escalate if
+:math:`P(\text{default}) > 5\%`) turns uncertainty into action. They must be **calibrated** to be trusted,
+and are scored with **strictly proper scoring rules** (e.g. the log score), which reward honest
+probabilities.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>`
 
 ----
 

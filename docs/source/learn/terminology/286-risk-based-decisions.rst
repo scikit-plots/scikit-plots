@@ -18,9 +18,37 @@ Risk-Based Decisions
 
 *Choosing actions by weighing outcome probabilities against their costs.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **risk-based decision** chooses the action that best balances **predicted probabilities against costs** —
+it acts on **expected risk**, not on the raw label. The basic definition of risk is the **expected cost**: a
+loss weighted by its probability,
+
+.. math::
+
+   R = \mathbb{E}[L] = \sum_i L_i \, p_i.
+
+How it works
+------------
+
+Under **Bayesian decision theory**, you pick the action that **minimizes total expected risk** given the
+**cost** of each error. Because false positives and false negatives usually cost **differently**, the
+optimal **decision threshold** on a probability is generally **not 0.5** — a cheap-to-check,
+expensive-to-miss event (fraud, disease) warrants a **lower** threshold.
+
+Why calibration matters
+-----------------------
+
+The whole scheme assumes the probabilities are **honest** — an **overconfident** model makes the
+expected-cost arithmetic wrong and triggers bad actions. So risk-based decisions rest on **calibrated**
+probability forecasts.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Forecasts <235-probability-forecasts>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Overconfident <284-overconfident>` · :doc:`Likelihood <304-likelihood>` · :doc:`Binary Classification <293-binary-classification>`
 
 ----
 

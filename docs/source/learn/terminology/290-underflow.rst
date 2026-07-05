@@ -18,9 +18,33 @@ Underflow
 
 *Numerical loss of precision when values become too small to represent.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Underflow** happens when a computation produces a number **too small** to represent in the floating-point
+format — smaller than the tiniest positive value — so the computer **rounds it to zero**, destroying a real
+nonzero result. It is the small-magnitude counterpart of **overflow**.
+
+Why ML hits it
+--------------
+
+Machine learning multiplies **many small probabilities** — in Naive Bayes, HMMs, and likelihoods — and the
+product of hundreds of values below 1 quickly drops below the representable floor, collapsing to **0** and
+corrupting the result. Low-precision (**float16**) training underflows even sooner, showing up as **vanishing
+gradients**.
+
+The fix
+-------
+
+Compute in **log space**. Because :math:`\log(a \cdot b) = \log(a) + \log(b)`, a fragile **product** of tiny
+probabilities becomes a stable **sum** of log-probabilities — the reason libraries use **log-likelihoods** and
+the **LogSumExp** trick, and why scikit-learn's Naive Bayes works with logs internally.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Logits <420-logits>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Log Loss (also called Logarithmic Loss or Cross-Entropy Loss) <417-log-loss-also-called-logarithmic-loss-or-cross-e>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Quantization <343-quantization>` · :doc:`Sigmoid Function <297-sigmoid-function>`
 
 ----
 

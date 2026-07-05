@@ -18,9 +18,32 @@ Multilabel Precision
 
 *Precision when each instance may carry several labels at once.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Multilabel precision** is precision when each sample can carry **several labels at once** — the labels are
+**not** mutually exclusive. Targets are an **indicator matrix** (cell [i, j] = 1 if sample i has label j),
+and precision is computed **per label**, each label a binary problem.
+
+How it's aggregated
+-------------------
+
+As with multiclass, per-label precisions are combined by **micro**, **macro** or **weighted** averaging —
+but multilabel adds a distinctive **'samples'** average, which computes precision **per instance** (across
+that sample's labels) and averages over samples.
+
+Why it differs
+--------------
+
+Unlike multiclass, where exactly one class is correct, multilabel labels **co-occur**, so a prediction can
+be **partly** right (some labels correct, others missed). The averaging choice — especially **samples** vs
+**micro** — decides whether you're scoring per-label or per-example accuracy.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Multiclass Precision <359-multiclass-precision>` · :doc:`Per-class Precision (sometimes called class-wise precision) <358-per-class-precision-sometimes-called-class-wise>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Micro Averaging <369-micro-averaging>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`F1-score <363-f1-score>`
 
 ----
 

@@ -18,9 +18,60 @@ Support Vector Machines (SVMs)
 
 *Classifiers that find the maximum-margin boundary, optionally via kernels.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+A **support vector machine** is a **supervised max-margin** algorithm for classification (and, as SVR,
+regression). It finds the **optimal separating hyperplane** — the decision boundary that **maximizes the
+margin**, the distance to the nearest points of each class. Developed from the work of Vapnik and
+Chervonenkis, with the soft-margin form due to Cortes & Vapnik (1995).
+
+.. math::
+
+   \mathbf{w}^\top \mathbf{x} + b = 0 \quad\text{(the separating hyperplane)}
+
+Margin and support vectors
+--------------------------
+
+The **support vectors** are the training points closest to the boundary — and they **alone** define it
+(remove any other point and nothing changes). A **hard margin** separates the classes perfectly; a
+**soft margin** tolerates some violations through **slack variables** :math:`\xi_i`, with the penalty
+**C** trading margin width against misclassification (large ``C`` → stricter, narrower margin; small
+``C`` → wider, more tolerant). The objective minimizes
+
+.. math::
+
+   \frac{1}{2}\|\mathbf{w}\|^2 + C \sum_i \xi_i,
+
+where the per-point cost is the **hinge loss** :math:`\max(0,\, 1 - y_i(\mathbf{w}^\top \mathbf{x}_i + b))`.
+
+The kernel trick
+----------------
+
+When data is not linearly separable, a **kernel** maps it into a higher-dimensional space where it is —
+**without ever computing the coordinates**, using only pairwise dot products. Common kernels are
+**linear**, **polynomial**, **RBF** (the most popular) and **sigmoid**; the choice trades accuracy
+against complexity and compute.
+
+When to use it
+--------------
+
+SVMs are strong on **high-dimensional** data (text, images, bioinformatics), **resilient to noise**, and
+guard against overfitting, but are **expensive on very large datasets** and sensitive to kernel choice.
+
+.. code-block:: python
+
+   from sklearn.svm import SVC
+
+   clf = SVC(kernel="rbf", C=1.0)   # RBF kernel, soft margin
+   clf.fit(X_train, y_train)
+   y_pred = clf.predict(X_test)
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Linear Models <341-linear-models>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Discriminatory Power <185-discriminatory-power>`
 
 ----
 

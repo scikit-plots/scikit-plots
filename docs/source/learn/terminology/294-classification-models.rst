@@ -18,9 +18,32 @@ Classification Models
 
 *Models that assign inputs to discrete categories.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Classification models** predict a **discrete category** — spam or not, which digit, which disease. The
+output is a **class label** (often via a probability over classes), and the model learns a **decision
+boundary** that separates the classes in feature space.
+
+The landscape
+-------------
+
+They range from **linear** ones (**logistic regression**, linear SVM) to **non-linear** ones (**decision
+trees**, random forests, **neural networks**, kernel SVMs). Tasks split into **binary** (two classes),
+**multiclass** (one of many), and **multilabel** (several at once).
+
+How they're judged
+------------------
+
+Because the target is categorical, classification uses metrics like **accuracy**, **precision / recall**,
+**F1**, and **AUC** — not squared error — and its **loss functions** are typically **cross-entropy** rather
+than a distance. The right metric depends on **class balance** and error costs.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Regression Models <309-regression-models>` · :doc:`Linear Models <341-linear-models>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Multiclass Classification <311-multiclass-classification>`
 
 ----
 

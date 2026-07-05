@@ -18,9 +18,33 @@ Confidence Intervals (CIs)
 
 *A range that would contain the true parameter a stated fraction of the time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+A **confidence interval** is a **range** of plausible values for an unknown parameter — a mean, a
+proportion — computed from a sample together with a **confidence level** (typically **95%**). It expresses
+the **uncertainty** in a point estimate: a wider interval means less precision.
+
+What the level means
+--------------------
+
+The confidence level is a statement about the **procedure**, not any one interval. If you repeated the study
+many times, about **95% of the intervals** you built would contain the true value — it is **not** a 95%
+probability that the parameter lies in *this* interval (in the frequentist view the parameter is fixed).
+Intervals **narrow** as the sample size **grows**.
+
+How they're built
+-----------------
+
+A CI is typically an estimate **± a margin of error** (a critical value times a **standard error**), but for
+tricky quantities like a **binomial proportion** there are several methods — **Wald**, **Wilson**,
+**Clopper–Pearson**, **bootstrap** — that trade **coverage** against **width**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Clopper–Pearson Interval <356-clopperpearson-interval>` · :doc:`Wilson Score Interval <357-wilson-score-interval>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Normal Distribution <238-normal-distribution>`
 
 ----
 

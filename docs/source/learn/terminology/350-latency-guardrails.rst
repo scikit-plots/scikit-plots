@@ -18,9 +18,32 @@ Latency Guardrails
 
 *Thresholds that alert or act when response times exceed limits.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Latency guardrails** are **budgets** on how long the model may take to respond — service-level objectives
+(**SLOs**) that trigger an alert when serving gets too slow. They protect the **user experience** and any
+latency **SLAs**.
+
+Tail, not average
+-----------------
+
+They track **tail percentiles** — **p50, p95, p99** — not just the mean, because a few very slow requests
+ruin the experience even when the average looks fine. A typical rule fires when the current **p99** exceeds,
+say, **1.5×** a rolling baseline.
+
+Setting the budget
+------------------
+
+Acceptable latency is set by the **use case** — on the order of tens of milliseconds for ad serving or fraud
+scoring, more for heavier recommendations — and the system is **designed and sized** to stay under it, then
+**measured continuously** with alerts on breach.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Drift Guardrails <349-drift-guardrails>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Inference Cost (Inference $) <385-inference-cost-inference>` · :doc:`Cloud Inference <153-cloud-inference>` · :doc:`Compute budgets <383-compute-budgets>` · :doc:`Caching <342-caching>`
 
 ----
 

@@ -18,9 +18,38 @@ DCG (Discounted Cumulative Gain)
 
 *A ranking metric that rewards relevant items more when ranked higher.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+**Discounted Cumulative Gain** scores a **ranked list** by summing each item's **graded relevance**,
+discounted by how **far down** it sits — so a relevant result near the top counts far more than the same
+result buried lower:
+
+.. math::
+
+   \text{DCG}_p = \sum_{i=1}^{p} \frac{\mathrm{rel}_i}{\log_2(i+1)}.
+
+The **logarithmic** discount encodes that users examine top results most.
+
+Why it beats precision
+----------------------
+
+Unlike binary **precision / recall**, DCG uses **multi-level** relevance (say 0–3) **and** position, capturing
+both *how relevant* each item is and *where* it was ranked — exactly what matters for **search** and
+**recommendation**.
+
+Normalizing it
+--------------
+
+Raw DCG isn't comparable across queries with different numbers of relevant items, so
+:math:`\text{NDCG} = \text{DCG} / \text{IDCG}` divides by the **ideal** DCG (the best possible ordering),
+giving a **0-to-1** score where **1** is a perfect ranking. It is the standard offline ranking metric.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Kaggle <273-kaggle>` · :doc:`TREC (Text REtrieval Conference) <274-trec-text-retrieval-conference>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>`
 
 ----
 

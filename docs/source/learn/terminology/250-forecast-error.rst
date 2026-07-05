@@ -18,9 +18,39 @@ Forecast Error
 
 *The difference between a forecast and the realised value.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Forecast error** is the gap between what happened and what was predicted — the residual
+
+.. math::
+
+   e_t = y_t - \hat{y}_t.
+
+A single error means little; forecast quality is summarized by **aggregating** errors into metrics.
+
+Common metrics
+--------------
+
+**MAE** :math:`= \frac{1}{N}\sum_t |y_t - \hat{y}_t|` is robust and interpretable, and the forecast that
+minimizes it is the **median**. **RMSE** :math:`= \sqrt{\frac{1}{N}\sum_t (y_t - \hat{y}_t)^2}` penalizes
+large misses more and is minimized by the **mean**, but is harder to read. **MAPE** (mean absolute
+*percentage* error) is scale-free but **explodes** when actuals are near zero; **sMAPE** is a bounded
+symmetric variant, still shaky near zero. **MASE** scales MAE by a naive forecast's error, making it
+**scale-free** and interpretable (:math:`<1` beats naive).
+
+Use several
+-----------
+
+No single metric tells the whole story — **MAPE** can look great while **bias** quietly builds, and
+**MAE** can hide a few enormous misses — so report several: an absolute metric (MAE / RMSE), a scaled one
+(MASE), and a **bias** measure.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`Average Absolute Error (AAE) <246-average-absolute-error-aae>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Relative accuracy <258-relative-accuracy>`
 
 ----
 

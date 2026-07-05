@@ -18,9 +18,32 @@ Weighted Averaging
 
 *Averaging per-class metrics weighted by class support.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Weighted averaging** is macro averaging with a twist — it computes each class's metric, then averages them
+**weighted by support** (the number of true instances in each class). Larger classes therefore **count
+more**.
+
+Its behavior
+------------
+
+This makes the score **reflect the actual class distribution** — it is essentially macro averaging
+**adjusted for imbalance**, sitting between micro and macro. On a **representative** test set, the weighted
+average estimates what you'd see on a **random production** example.
+
+When to use it
+--------------
+
+Weighted averaging suits **stakeholder and production** reporting, where you want one number that respects
+the **real class mix** without letting a tiny class swing the result. Use **macro** instead when minority
+classes must be weighted **equally** regardless of frequency.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Micro Averaging <369-micro-averaging>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`F1-score <363-f1-score>` · :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Macro AUC <314-macro-auc>`
 
 ----
 

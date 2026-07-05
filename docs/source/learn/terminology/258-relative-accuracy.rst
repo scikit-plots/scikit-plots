@@ -18,9 +18,37 @@ Relative accuracy
 
 *Forecast accuracy measured against a baseline rather than in absolute terms.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Relative accuracy** measures forecast accuracy **relative to a benchmark** rather than in absolute
+units. You **normalize** the error by a reference method's error — usually the **naïve** (or
+seasonal-naïve) forecast — so results land on a **common, scale-free** scale comparable across series:
+
+.. math::
+
+   \text{relative error} = \frac{\mathrm{MAE}_{\text{model}}}{\mathrm{MAE}_{\text{benchmark}}}.
+
+How to read it
+--------------
+
+A value **< 1** means the model **beats** the benchmark, **= 1** means it **matches** it, and **> 1**
+means it is **worse** — a relative error of 0.6 is roughly **40% better** than the benchmark. This family
+includes **MASE**, **Theil's U** (:math:`<1` beats a naïve guess), and relative / bounded relative
+absolute errors.
+
+Why it matters
+--------------
+
+Absolute errors like MAE and RMSE are **meaningless without a reference** — *is an MAE of 10 good?*
+depends entirely on the problem — whereas relative accuracy is **interpretable** and puts easy and
+hard-to-forecast series on equal footing.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Forecast Error <250-forecast-error>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Average Absolute Error (AAE) <246-average-absolute-error-aae>` · :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`R² (R-squared) <259-r2-r-squared>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>`
 
 ----
 

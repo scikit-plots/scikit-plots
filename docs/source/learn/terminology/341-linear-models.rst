@@ -18,9 +18,38 @@ Linear Models
 
 *Models predicting from a weighted sum of features.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+A **linear model** predicts from a **weighted sum** of the input features, optionally passed through a link
+function:
+
+.. math::
+
+   \hat{y} = \mathbf{w}^\top \mathbf{x} + b.
+
+Its defining trait is that it is **linear in the parameters**, which makes it simple, fast, and highly
+**interpretable**.
+
+Both tasks
+----------
+
+The family spans **regression** (**linear regression**, ridge, lasso) and **classification** (**logistic
+regression**, linear SVM), where the linear combination is squashed by a **sigmoid** or **softmax** into
+probabilities. In every case the learned **weights** show each feature's direction and strength.
+
+Strengths and limits
+--------------------
+
+Linear models are **data-efficient**, **cheap** to train and serve, and **transparent** — but they can only
+capture **linear** relationships unless you add **interactions** or feature transforms. They are the natural
+**baseline** against which more complex models must justify themselves.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Classification Models <294-classification-models>` · :doc:`Regression Models <309-regression-models>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>`
 
 ----
 

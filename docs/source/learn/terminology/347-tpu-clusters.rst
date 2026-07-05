@@ -18,9 +18,32 @@ TPU Clusters
 
 *Groups of tensor-processing units for large-scale training and inference.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **ML Platforms &amp; Tools** terms below.
+A **TPU** (Tensor Processing Unit) is Google's custom **ASIC** built for machine learning — hardware
+specialized for the massive **matrix multiplications** inside neural networks. A **TPU cluster** (or **pod**)
+links many of these chips with **high-speed interconnects** to train and serve **very large** models.
+
+Why it exists
+-------------
+
+General-purpose **CPUs** are too slow for deep learning and even **GPUs** aren't purpose-built for it; TPUs
+pack dense **matrix-multiply** units and high **memory bandwidth** to push far more throughput per watt on
+those specific operations. They are typically consumed via the **cloud**, on demand.
+
+How clusters help
+-----------------
+
+A single chip can't hold the largest models, so a cluster **splits the work** — across **data**, **model**,
+and **pipeline** parallelism — running in parallel over many TPUs. That is what makes training
+billion-parameter models, and serving them at scale, feasible.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantization <343-quantization>` · :doc:`Caching <342-caching>` · :doc:`Compute budgets <383-compute-budgets>` · :doc:`Inference Cost (Inference $) <385-inference-cost-inference>` · :doc:`Cloud Inference <153-cloud-inference>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

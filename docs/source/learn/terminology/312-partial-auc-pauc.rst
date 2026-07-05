@@ -18,9 +18,34 @@ Partial AUC (pAUC)
 
 *AUC restricted to a region of interest of the ROC curve.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Partial AUC** is the area under **only a slice** of the ROC curve — typically a confined range of **false
+positive rate** (say :math:`\text{FPR} \le 0.1`), sometimes of TPR, or both. It focuses the metric on the
+**operating region** that actually matters.
+
+Why restrict
+------------
+
+Full AUC weights **all** FPR regions equally, but many are operationally irrelevant — a radiologist doesn't
+care about performance at 80% FPR, a bank won't run a fraud model that flags half of transactions. pAUC
+scores the model **where it will be used** (low FPR / high TPR for screening), and is especially apt for
+**low-prevalence** data needing high specificity.
+
+The trade-off
+-------------
+
+pAUC is more **decision-relevant** than full AUC and distinguishes curves that **cross** yet share the same
+total AUC, but it **ignores** the ROC outside the band and its raw value depends on the **interval width**
+(so it's often **standardized**, e.g. McClish, back to :math:`[0,1]`). The bounds must be justified by the
+use case.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Micro AUC <313-micro-auc>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>`
 
 ----
 

@@ -18,9 +18,32 @@ Precision–Recall AUC (PR-AUC)
 
 *Area under the precision-recall curve, informative under class imbalance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**PR-AUC** is the **area under the precision–recall curve**, which plots **precision** against **recall**
+across thresholds — also called **Average Precision (AP)**, the mean precision over all recall levels. It
+ranges :math:`[0, 1]`, higher is better.
+
+Why it's imbalance-friendly
+---------------------------
+
+Unlike ROC-AUC, PR-AUC ignores **true negatives** entirely and focuses on the **positive** class, so it
+stays informative when positives are **rare**. Its **baseline** also shifts with prevalence — random
+guessing scores the **positive-class ratio** (0.5 when balanced, 0.01 at 1% positive), not a fixed 0.5.
+
+When to use it
+--------------
+
+Reach for PR-AUC on **highly imbalanced** problems where finding the **minority** positive is the goal —
+fraud, rare-disease, anomaly detection — where a high ROC-AUC can be misleading. Report it **alongside**
+ROC-AUC for the full picture.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Macro AUC <314-macro-auc>`
 
 ----
 

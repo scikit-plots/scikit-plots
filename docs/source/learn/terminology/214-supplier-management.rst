@@ -18,9 +18,32 @@ Supplier Management
 
 *Coordinating and optimising relationships with suppliers.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Supplier management** is the discipline of selecting, monitoring and collaborating with the **vendors**
+who supply materials and goods — turning a loose set of purchase orders into managed, accountable
+**relationships**. It spans sourcing, performance tracking and communication.
+
+What it involves
+----------------
+
+**Supplier selection** and **diversification** (spreading dependence across several vendors so one failure
+doesn't halt production), **performance monitoring** via scorecards and audit trails, and **structured
+collaboration** that keeps purchase orders confirmed and current as dates, prices and quantities change.
+
+Why it matters
+--------------
+
+Strong supplier relationships **reduce bottlenecks**, delays and quality failures, and give planners early
+**visibility** into inbound risk. Over-reliance on a **single supplier** is a key vulnerability —
+diversification is the standard hedge against disruption.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Supplier Constraints <209-supplier-constraints>` · :doc:`Long Lead Times <210-long-lead-times>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Reorder Point (ROP) Optimization <216-reorder-point-rop-optimization>` · :doc:`Demand Forecasting <215-demand-forecasting>` · :doc:`Real-Time Inventory Tracking <213-real-time-inventory-tracking>`
 
 ----
 

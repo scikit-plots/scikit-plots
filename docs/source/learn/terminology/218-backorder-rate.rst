@@ -18,9 +18,45 @@ Backorder Rate
 
 *The share of orders that cannot be filled immediately from stock.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+**Backorder Rate** is a supply-chain KPI measuring the **proportion of customer demand that cannot be
+filled immediately** and must be placed on backorder — **delayed** fulfillment, not necessarily lost.
+A high rate points to frequent shortages and weak planning; a low one to efficient inventory and
+satisfied customers.
+
+The formula
+-----------
+
+It is computed by units or by orders,
+
+.. math::
+
+   \text{Backorder Rate} = \frac{\text{Backordered Units}}{\text{Total Units Ordered}} \times 100\%,
+
+or, order-based, orders containing backordered items divided by total orders.
+
+A worked example
+----------------
+
+Of 1,000 units ordered in a month, 920 ship immediately and 80 are backordered, giving 80 / 1,000 =
+**8%** of demand delayed.
+
+Where it sits
+-------------
+
+Backorder rate shapes **customer experience**, **revenue** (some backorders convert later, some
+cancel), **forecasting accuracy** and **supply-chain health**, and it falls with better forecasting
+(ARIMA, Prophet, LSTM), proper safety stock, reliable suppliers and ABC segmentation. In one full
+snapshot — 920 shipped, 50 backordered then filled, 30 cancelled — the fill rate is 92%, the backorder
+rate 5%, the stockout rate 3%, and those 30 cancellations become **lost sales value**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Fill Rate <220-fill-rate>` · :doc:`Stockout Rate <221-stockout-rate>` · :doc:`Lost Sales Value <219-lost-sales-value>` · :doc:`Safety Stock <217-safety-stock>` · :doc:`Ops Health Dashboard <206-ops-health-dashboard>` · :doc:`SLA (Service Level Agreement) <208-sla-service-level-agreement>`
 
 ----
 

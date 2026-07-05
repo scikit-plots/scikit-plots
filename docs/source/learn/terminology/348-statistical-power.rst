@@ -18,9 +18,33 @@ Statistical Power
 
 *The probability of detecting a true effect when one exists.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Statistical Inference &amp; Power** terms below.
+**Statistical power** is the probability that a test **correctly detects a real effect** — that it **rejects**
+the null hypothesis when the null is genuinely **false**. Formally it is :math:`1 - \beta`, where
+:math:`\beta` is the **Type II error** (false-negative) rate.
+
+What it depends on
+------------------
+
+Power rises with **larger effect sizes**, **bigger samples**, a **looser** significance level :math:`\alpha`,
+and **lower** variance. Researchers conventionally target **0.80** — an 80% chance of catching a true effect —
+and solve for the **sample size** that achieves it via **power analysis**.
+
+Why it matters
+--------------
+
+An **underpowered** study is likely to **miss** true effects and produces findings that **don't replicate**;
+power is the guard against **false negatives**, the complement of the :math:`\alpha` that guards against false
+positives. Too much power on a huge sample flips the risk — flagging **trivial** effects as significant, which
+is why **effect size** is reported alongside significance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Power Analysis <378-power-analysis>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Population Proportion <199-population-proportion>` · :doc:`Correlation <305-correlation>` · :doc:`Chi-square (χ²) Test <324-chi-square-2-test>`
 
 ----
 

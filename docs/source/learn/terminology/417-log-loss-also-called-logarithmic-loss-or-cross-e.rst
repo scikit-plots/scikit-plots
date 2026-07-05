@@ -18,9 +18,38 @@ Log Loss (also called Logarithmic Loss or Cross-Entropy Loss)
 
 *A loss penalising confident wrong probabilistic predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Log loss** (logarithmic loss / **cross-entropy** loss) scores a probabilistic classifier by the **negative
+log-likelihood** of the true labels — how surprised the model is by reality. For binary labels:
+
+.. math::
+
+   \text{LogLoss} = -\frac{1}{N}\sum_{i=1}^{N}\big[y_i \log \hat{p}_i + (1 - y_i)\log(1 - \hat{p}_i)\big].
+
+It runs from **0** (perfect) to **∞**.
+
+Its defining trait
+------------------
+
+The **logarithm** makes log loss punish **confident** mistakes **brutally** — predicting 0.01 for a true
+positive costs far more than predicting 0.4. This **exponential** penalty for overconfidence is exactly why
+it is the standard **training objective** for logistic regression and neural nets, which optimize it directly.
+
+When to use it (and a caveat)
+-----------------------------
+
+Reach for log loss whenever **calibrated** probabilities matter — fraud, diagnosis, risk. It **requires**
+genuine probabilities, so raw **logits** must be squashed (softmax / sigmoid) first, and it is harsher on
+overconfidence than the **Brier score**. Compare a model's log loss to the **base-rate** log loss to confirm
+it adds value.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Brier Score <418-brier-score>` · :doc:`Expected Calibration Error (ECE) <415-expected-calibration-error-ece>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>`
 
 ----
 

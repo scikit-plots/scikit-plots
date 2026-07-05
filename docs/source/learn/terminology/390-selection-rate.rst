@@ -18,9 +18,32 @@ Selection Rate
 
 *The fraction of a group that receives a positive decision.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Fairness &amp; Calibration** terms below.
+The **selection rate** is the fraction of a group that receives a **favorable** decision — the share predicted
+**positive**, :math:`P(\hat{Y} = 1)` for that group. If a lender approves 60% of one group and 40% of
+another, those are the two selection rates.
+
+What it drives
+--------------
+
+Selection rate is the quantity behind **demographic parity** — parity holds exactly when selection rates are
+**equal** across groups. The **disparate-impact ratio** divides the **lowest** group's selection rate by the
+**highest**; a ratio **below 0.8** (the four-fifths rule) flags potential **adverse impact**.
+
+Where it's used
+---------------
+
+It is the core number in auditing **hiring**, **lending**, and admissions for bias, because it captures **who
+gets the good outcome** without needing labels. But equal selection rates say **nothing** about whether the
+**right** people were chosen — that is why it is paired with error-based metrics like **recall**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Fairness parity <372-fairness-parity>` · :doc:`Recall <423-recall>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>`
 
 ----
 

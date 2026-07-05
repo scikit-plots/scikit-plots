@@ -18,9 +18,37 @@ Jensen–Shannon (JS) Divergence
 
 *A symmetric, bounded measure of difference between two distributions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**JS divergence** is the **symmetric, bounded** repair of KL. It averages the KL of each distribution to
+their **mixture** :math:`M = \tfrac{1}{2}(P+Q)`:
+
+.. math::
+
+   D_{\text{JS}}(P \,\|\, Q) = \tfrac{1}{2}D_{\text{KL}}(P \,\|\, M) + \tfrac{1}{2}D_{\text{KL}}(Q \,\|\, M).
+
+Unlike KL it is always **finite** and **symmetric**.
+
+Its properties
+--------------
+
+JS ranges from **0** (identical) to a bounded maximum (**1** in bits, :math:`\log 2` in nats, when the
+distributions are **disjoint**). Its **square root** is the **Jensen–Shannon distance**, which *is* a proper
+metric — so JS gives a well-behaved, comparable measure of distributional difference.
+
+Where it's used
+---------------
+
+It works on **numerical and categorical** features alike and is a popular **drift** signal — stable, less
+noisy, and slightly **more sensitive** than KL or PSI — which is why monitoring systems favour it when a
+symmetric, bounded score is wanted.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Kullback–Leibler (KL) Divergence <327-kullbackleibler-kl-divergence>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Data Drift <331-data-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Cramér's V <180-cramer-s-v>`
 
 ----
 

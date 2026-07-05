@@ -18,9 +18,43 @@ Qini Coefficient
 
 *A normalised summary of the Qini curve measuring uplift-model performance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+The **Qini coefficient** is a single-number **performance metric for uplift models** — their
+equivalent of AUC. Where AUC asks how well a classifier predicts *who will buy*, the Qini coefficient
+asks how well an uplift model ranks people by *who will buy because of the treatment*.
+
+How it's computed
+-----------------
+
+Sort customers by predicted uplift (descending), split them into deciles or percentiles, and plot the
+**Qini curve** — cumulative incremental response (treatment minus control) against the proportion
+targeted. The coefficient is the **normalised area between the model's curve and the random-targeting
+diagonal**.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Qini} = \frac{\int_0^1 \left( G_{\text{model}}(x) - G_{\text{random}}(x) \right) dx}{\int_0^1 \left( G_{\text{perfect}}(x) - G_{\text{random}}(x) \right) dx}.
+
+It ranges from **0 to 1** — 0.5 and up is decent, and close to 1 is excellent separation.
+
+A worked example, and cousins
+-------------------------------
+
+Targeting the top 20%, a random selection might yield +100 purchases while the model yields **+300** —
+the model curve sits above random, and the coefficient quantifies that gap. It is the **normalised**
+form of the **AUUC** (raw area under the uplift curve), which makes it comparable across datasets:
+ROC-AUC is to classification what the Qini coefficient is to uplift.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Qini Curve <203-qini-curve>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`AUUC (Area Under the Uplift Curve) <396-auuc-area-under-the-uplift-curve>` · :doc:`Uplift Models <205-uplift-models>` · :doc:`Cumulative Incremental Gain (CIG) <202-cumulative-incremental-gain-cig>` · :doc:`Total Incremental Benefit (TIB) <201-total-incremental-benefit-tib>`
 
 ----
 

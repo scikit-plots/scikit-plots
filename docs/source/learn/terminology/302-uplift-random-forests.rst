@@ -18,9 +18,47 @@ Uplift Random Forests
 
 *An ensemble of trees that estimates individual-level treatment effects.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+An **uplift random forest** is a modified random forest built to **estimate the causal effect** of a
+treatment directly, not merely to predict an outcome. Instead of modelling :math:`P(Y \mid X)`, it
+models the **treatment-versus-control difference**,
+
+.. math::
+
+   \Delta(X) = P(Y = 1 \mid T = 1, X) - P(Y = 1 \mid T = 0, X).
+
+How it works
+------------
+
+The trees are **uplift trees**: each split is chosen to **maximise the difference in treatment effect**
+between its branches, rather than to maximise class purity. Many such trees are then **averaged in an
+ensemble**, exactly as in an ordinary random forest, for stability — and each individual receives an
+estimated uplift, the incremental probability change caused by the treatment.
+
+Why use it
+-----------
+
+It **handles nonlinear relationships and feature interactions** automatically, **reduces variance**
+compared with a single uplift tree, and delivers **individual-level treatment-effect** predictions —
+learning how features *modify* the treatment effect, not just how they drive the outcome.
+
+Applications
+------------
+
+It powers **marketing** (targeting customers who respond *because of* a campaign), **personalised
+medicine** (patients who benefit most from a drug), and **policy** (subgroups most positively
+affected). It requires **both treated and control data** — an A/B setup. In an email sign-up campaign,
+a standard forest predicts the probability of signing up, while the uplift forest predicts the *extra*
+probability caused by the email — separating loyal always-signers (low uplift) from persuadables
+(high) and negative reactors (negative uplift).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Uplift Models <205-uplift-models>` · :doc:`Uplift <424-uplift>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Causal Inference <117-causal-inference>` · :doc:`Uplift Score <204-uplift-score>` · :doc:`Causal ML (Causal Machine Learning) <197-causal-ml-causal-machine-learning>`
 
 ----
 

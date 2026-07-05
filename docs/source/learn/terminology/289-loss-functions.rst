@@ -18,9 +18,32 @@ Loss Functions
 
 *Objectives quantifying prediction error that training seeks to minimise.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+A **loss function** (cost or objective) measures **how wrong** a model's predictions are on the training
+data — a single number the model **minimizes**. Lower loss means predictions closer to targets; it is the
+signal that **gradient descent** follows to update parameters.
+
+Matching loss to task
+---------------------
+
+The loss encodes what "wrong" means — **regression** uses **mean squared error** or MAE; **binary
+classification** uses **binary cross-entropy**; **multi-class** uses **categorical cross-entropy**. Squared
+error can't tell a bad classification from a disastrous one, which is why classification uses cross-entropy.
+
+Why it matters
+--------------
+
+The loss defines what the model actually **optimizes**, so a mismatched loss silently optimizes the wrong
+thing (MSE on a sigmoid gives a **non-convex** surface). A good loss is **differentiable**, fits the task,
+and aligns with the real objective.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Logit Space <291-logit-space>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

@@ -18,9 +18,38 @@ Recall
 
 *The share of actual positives the model correctly identifies.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Recall** — also the **true positive rate** or **sensitivity** — is the share of **actual positives** the
+model correctly **catches**:
+
+.. math::
+
+   \text{Recall} = \frac{TP}{TP + FN}.
+
+It answers "**of everything that was truly positive, how much did we find?**" and falls when **false
+negatives** pile up.
+
+The trade-off
+-------------
+
+Recall trades off against **precision** — loosening the threshold catches more positives (higher recall) but
+admits more false alarms (lower precision), which is why they're read together via the **F1-score**. High
+recall matters most when a **miss** is costly: disease screening, fraud, safety.
+
+Its fairness role
+-----------------
+
+Comparing recall **across groups** is exactly the **equal-opportunity** fairness test — it asks whether
+**qualified** members of every group have the **same** chance of being correctly selected. Unequal recall
+means the model **misses** true positives more often for one group, a common and consequential bias.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Fairness parity <372-fairness-parity>` · :doc:`Selection Rate <390-selection-rate>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`F1-score <363-f1-score>` · :doc:`Macro Recall <020-macro-recall>` · :doc:`Micro Recall <015-micro-recall>`
 
 ----
 

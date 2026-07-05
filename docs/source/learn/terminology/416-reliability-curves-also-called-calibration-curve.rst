@@ -18,9 +18,32 @@ Reliability Curves (also called Calibration Curves)
 
 *Plots of predicted probability against observed frequency.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+A **reliability curve** (or calibration curve / reliability diagram) is the **visual** check for calibration —
+it plots **predicted probability** on the x-axis against the **observed frequency** of the outcome on the
+y-axis. A perfectly calibrated model traces the **diagonal** :math:`y = x`.
+
+Reading it
+----------
+
+Points **below** the diagonal mean the model is **overconfident** (accuracy falls short of its confidence);
+points **above** mean it is **underconfident**. A companion **histogram** of confidences shows whether
+predictions pile up at the **extremes** — a hallmark of overconfident networks.
+
+Why it complements ECE
+----------------------
+
+A single ECE number can't say **where** miscalibration happens, and two models with the **same** ECE can have
+very different curves. The reliability curve **localizes** the problem across the confidence range — and the
+weighted gap between it and the diagonal **is** the ECE.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Expected Calibration Error (ECE) <415-expected-calibration-error-ece>` · :doc:`Overconfident <284-overconfident>` · :doc:`Underconfident <283-underconfident>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Brier Score <418-brier-score>` · :doc:`Temperature Scaling <279-temperature-scaling>`
 
 ----
 

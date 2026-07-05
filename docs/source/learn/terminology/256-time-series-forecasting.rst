@@ -18,9 +18,34 @@ Time Series Forecasting
 
 *Predicting future values of a time-ordered series.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Time series forecasting** predicts **future values** of a **time-ordered** series from its past. Unlike
+ordinary supervised learning — where rows are independent and can be shuffled — a time series has
+**memory**: order matters, and each observation is **dependent** on its neighbors.
+
+The components
+--------------
+
+A series decomposes into a **trend** (long-term drift up or down), **seasonality** (regular patterns at a
+**fixed** period), **cycles** (longer, **aperiodic** swings with no fixed length), and **noise** (the
+irregular residual). Modeling means **separating** these.
+
+Stationarity and diagnostics
+----------------------------
+
+Many methods need **stationarity** (constant mean and variance); non-stationary series are made modelable
+by **differencing** (removes trend / seasonality from the mean) and a **log / Box-Cox** transform
+(stabilizes variance). Choose the model **after** diagnostics — time, seasonal and **lag** plots, and the
+**ACF / PACF** — and evaluate with **rolling-origin backtesting**, reporting error by **horizon** and
+publishing **intervals**, not just points.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Log-Space <257-log-space>` · :doc:`Seasonality <329-seasonality>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Point Forecasts <233-point-forecasts>`
 
 ----
 

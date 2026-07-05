@@ -18,9 +18,38 @@ Normalize (in Feature Engineering)
 
 *Rescaling features to a common range or distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Data Preparation &amp; Features** terms below.
+**Normalizing** (feature scaling) rescales numeric features to a **comparable range** so that features with
+large magnitudes don't **dominate** the ones with small magnitudes. It changes a feature's **range**, not its
+data type.
+
+The two workhorses
+------------------
+
+**Min-max scaling** maps values to **[0, 1]**; **standardization (Z-score)** centers to **mean 0, standard
+deviation 1**:
+
+.. math::
+
+   x' = \frac{x - \min(x)}{\max(x) - \min(x)} \quad\text{(min-max)}, \qquad x' = \frac{x - \mu}{\sigma} \quad\text{(Z-score)}.
+
+Min-max suits bounded data; Z-score suits Gaussian-ish data and methods like **PCA**. Min-max is
+**outlier-sensitive**, so **robust scaling** (median and **IQR**) is used when outliers are present.
+
+When and when not
+-----------------
+
+Normalize for **scale-sensitive** models (KNN, SVM, neural nets); it **speeds convergence** and prevents
+large-value bias. Don't normalize **one-hot** or categorical columns (they're already 0/1 and it destroys
+their meaning), and fit the scaler on the **training set only** to avoid leakage.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Encode (in Feature Engineering) <318-encode-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>` · :doc:`Outlier <307-outlier>` · :doc:`Z-Score <097-z-score>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

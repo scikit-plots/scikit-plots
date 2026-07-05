@@ -18,9 +18,43 @@ Strictly Proper Scoring Rules
 
 *Scoring rules minimised only by reporting the true probability distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **scoring rule** assigns a numerical score to a **probabilistic forecast** given the outcome that
+materializes. It is **proper** if the forecaster's *expected* score is maximized by reporting the **true**
+distribution, and **strictly proper** if that maximum is **unique** — attained *only* at the truth:
+
+.. math::
+
+   S(p, q) \;\le\; S(q, q) \quad \text{for all } p, q, \qquad \text{with equality} \iff p = q.
+
+Why it matters
+--------------
+
+Strict propriety makes **honesty optimal**: a forecaster cannot improve the expected score by hedging or
+shading probabilities away from their true beliefs. That single property is why these rules serve **both**
+as **training objectives** (to calibrate probabilistic models) and as **evaluation metrics** (to rank
+forecasts fairly). Foundational reference: Gneiting & Raftery (2007).
+
+Common examples
+---------------
+
+The **logarithmic score**, which is also **local** (it depends only on the density assigned to what
+actually happened):
+
+.. math::
+
+   S(q, x) = \log q(x) \quad\text{(its negative, } -\log q(x)\text{, is the log loss / NLL).}
+
+Others include the **Brier score** for probabilities and the **CRPS** and **pinball (quantile) loss** for
+full distributions and quantiles.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Probability Forecasts <235-probability-forecasts>` · :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Forecast Error <250-forecast-error>`
 
 ----
 

@@ -18,9 +18,37 @@ Prediction Intervals (PI)
 
 *A range expected to contain the outcome with a stated probability.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **prediction interval** is a range :math:`[\,\text{lower},\ \text{upper}\,]` expected to contain the
+**future observation** with a stated probability — its **nominal coverage**, e.g. 90%. It is typically
+built from a **pair of quantiles**, the :math:`(1-\alpha)/2` and :math:`(1+\alpha)/2` levels (the 5th and
+95th percentiles for 90% coverage):
+
+.. math::
+
+   \big[\, \hat{Q}_{(1-\alpha)/2},\ \ \hat{Q}_{(1+\alpha)/2} \,\big]
+   \quad\Rightarrow\quad \text{nominal coverage } 1-\alpha.
+
+Coverage vs width
+-----------------
+
+Quality trades **coverage** — does the empirical fraction of actuals landing inside match the nominal
+level? — against **width / sharpness** — narrower is more useful, but only if coverage holds. (A PI is
+about a *future value*, distinct from a **confidence interval**, which is about a *parameter*.)
+
+Calibrating them
+----------------
+
+**Conformal prediction** is a model-agnostic wrapper that adjusts interval width on a held-out
+**calibration** set to guarantee the target coverage in **finite samples**, under mild assumptions.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>`
 
 ----
 

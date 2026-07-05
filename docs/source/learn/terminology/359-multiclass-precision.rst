@@ -18,9 +18,31 @@ Multiclass Precision
 
 *Precision aggregated across the classes of a multiclass problem.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Multiclass precision** is precision for a problem with **more than two mutually exclusive** classes. Since
+precision is defined on a **binary** positive/negative split, it is computed by treating the task as **K
+one-vs-rest** binary problems — the **per-class** precisions — then reduced to a single number.
+
+How it's reduced
+----------------
+
+The per-class values are combined by an **averaging** scheme — **micro** (pool counts,
+majority-dominated), **macro** (equal weight per class), or **weighted** (by support). The choice
+determines whether rare classes are surfaced or hidden, so it must be **stated** with the score.
+
+The caveat
+----------
+
+Because each class is scored against "the rest," each binary split is **imbalanced**; reporting the
+**per-class** precisions guards against an average that looks good only because the majority class does.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Per-class Precision (sometimes called class-wise precision) <358-per-class-precision-sometimes-called-class-wise>` · :doc:`Multilabel Precision <360-multilabel-precision>` · :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Weighted Averaging <361-weighted-averaging>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>`
 
 ----
 

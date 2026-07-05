@@ -18,9 +18,35 @@ Macro Averaging
 
 *Computing a metric per class then averaging them equally.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Macro averaging** computes the metric **separately for each class** (one-vs-rest), then takes the
+**unweighted arithmetic mean**. Every **class** counts the **same**, no matter how many samples it has:
+
+.. math::
+
+   P_{\text{macro}} = \frac{1}{C}\sum_{c=1}^{C}\frac{TP_c}{TP_c + FP_c}.
+
+Its behavior
+------------
+
+Because each class contributes equally, macro averaging **punishes ignoring minorities** — a model that aces
+the majority but fails a rare class gets a **low** macro score. That makes it sensitive to **rare-class**
+performance and a natural **fairness**-oriented headline.
+
+When to use it
+--------------
+
+Use macro averaging when **all classes matter equally**, especially on **imbalanced** data where you don't
+want the majority to drown out the rest. It can, however, look **pessimistic** if some tiny classes are
+inherently hard.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Micro Averaging <369-micro-averaging>` · :doc:`Weighted Averaging <361-weighted-averaging>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`F1-score <363-f1-score>` · :doc:`Multiclass Classification <311-multiclass-classification>`
 
 ----
 

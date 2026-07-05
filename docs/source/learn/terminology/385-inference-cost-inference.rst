@@ -18,9 +18,32 @@ Inference Cost (Inference $)
 
 *The monetary cost of serving model predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Inference cost** is the **ongoing** expense of **serving predictions** — the compute (and money) spent
+every time the deployed model answers a request. It is usually tracked as the **cost per prediction** (or
+per token), the fundamental **unit economic** of an ML product.
+
+Why it dominates
+----------------
+
+Unlike **training**, which is paid **once**, inference runs **continuously** and **scales with adoption** —
+every user request consumes compute, so cost grows with traffic. At scale it is the **larger** line item,
+often **65–80%** of an AI budget, and it is where revenue meets the bill.
+
+Bringing it down
+----------------
+
+It is driven by **model size**, **hardware**, and **utilization**, so it falls with **quantization**
+(smaller, faster weights), **caching**, **batching**, and **right-sizing** capacity to demand — techniques
+that can cut cost per prediction substantially. The target is a **declining** cost-per-prediction over time.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Compute budgets <383-compute-budgets>` · :doc:`Manual review minutes <384-manual-review-minutes>` · :doc:`Quantization <343-quantization>` · :doc:`Caching <342-caching>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Cloud Inference <153-cloud-inference>`
 
 ----
 

@@ -18,9 +18,32 @@ Diversity (in Recommender Systems)
 
 *How varied the items within a recommendation list are.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Diversity** measures how **varied** the items **within** a single recommendation list are — the opposite of
+ten near-identical suggestions. A diverse list spans a user's **multiple** interests rather than hammering
+one.
+
+How it's measured
+-----------------
+
+The standard gauge is **intra-list dissimilarity** — the average **pairwise** distance between recommended
+items (often 1 − **cosine similarity** of their features), captured by **Intra-List Diversity**. At the
+catalog level, **Gini** or **entropy** across all recommendations measures aggregate diversity.
+
+Why it matters
+--------------
+
+Diversity improves the **experience** — it hedges against a wrong guess about intent and keeps lists
+interesting — but there's an **accuracy-diversity** trade-off, since the most "accurate" items are often
+**similar**. Good systems tune diversity **without** dumping relevance.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Novelty (in Recommender Systems) <409-novelty-in-recommender-systems>` · :doc:`Coverage <411-coverage>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>`
 
 ----
 

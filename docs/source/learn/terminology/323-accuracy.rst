@@ -18,9 +18,36 @@ Accuracy
 
 *The fraction of predictions that are correct.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Accuracy** is the simplest classification metric — the **fraction of predictions that are correct**:
+
+.. math::
+
+   \text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}.
+
+It answers *what share did the model get right?*
+
+The imbalance trap
+------------------
+
+Accuracy is **misleading on imbalanced** data — if 99% of cases are negative, a model that predicts
+"negative" for **everything** scores **99%** while catching **zero** positives. That false sense of security
+is why fraud, disease and anomaly tasks report **precision / recall**, **AUC** or **F1** instead.
+
+When it's fine
+--------------
+
+Accuracy is a reasonable headline when classes are **roughly balanced** and every error costs about the
+**same**. Otherwise it hides **which** errors happen — a **confusion matrix** and threshold-aware metrics
+tell the real story.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Multiclass Classification <311-multiclass-classification>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>`
 
 ----
 

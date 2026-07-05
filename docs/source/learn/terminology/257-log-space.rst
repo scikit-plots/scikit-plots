@@ -18,9 +18,36 @@ Log-Space
 
 *Working with log-transformed values to stabilise variance or handle scale.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+Working in **log-space** means transforming a series to its **logarithm**, :math:`w_t = \log(y_t)`,
+instead of the raw values — a **variance-stabilizing** transform for when fluctuations **grow with the
+level** of the series (multiplicative or heteroscedastic behavior).
+
+What it does
+------------
+
+It **compresses large values** while leaving small ones nearly untouched, turns **multiplicative**
+structure into **additive**, and makes **relative (percentage) change** the natural unit — a difference in
+log-space is approximately a proportional change:
+
+.. math::
+
+   \log(y_t) - \log(y_{t-1}) \approx \frac{y_t - y_{t-1}}{y_{t-1}}.
+
+Caveats
+-------
+
+The logarithm is **undefined for zero or negative** values — use :math:`\log(y + 1)` or a **Box-Cox**
+transform instead — and any forecast made in log-space must be **back-transformed** (exponentiated) to the
+original scale.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Relative accuracy <258-relative-accuracy>` · :doc:`Seasonality <329-seasonality>`
 
 ----
 

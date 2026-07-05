@@ -18,9 +18,33 @@ Population Proportion
 
 *The fraction of an entire population with a given attribute.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **population proportion** is the **true fraction** of an entire population that has some characteristic —
+the real conversion rate, defect rate, or approval share — usually written **p**. It is a **parameter**: a
+fixed but usually **unknown** number you want to learn.
+
+Estimating it
+-------------
+
+Since you rarely measure everyone, you estimate p with the **sample proportion** :math:`\hat{p} = x/n`
+(successes over sample size). :math:`\hat{p}` is a **statistic** that varies from sample to sample, with
+**standard error** :math:`\sqrt{p(1-p)/n}` shrinking as **n** grows — the basis for **confidence intervals**
+and **hypothesis tests** about p.
+
+Where it shows up
+-----------------
+
+Proportions are everywhere in ML and analytics — **conversion rates**, click rates, and accuracy are all
+population proportions estimated from samples. That is why **A/B tests** and polls rest on proportion
+inference, and why bigger samples give **tighter** estimates.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>`
 
 ----
 

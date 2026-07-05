@@ -18,9 +18,39 @@ NDCG (Normalized Discounted Cumulative Gain)
 
 *DCG normalised by the ideal ordering, bounded between 0 and 1.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Ranking &amp; Interleaving** terms below.
+**Normalized Discounted Cumulative Gain** measures **ranking quality** using both **graded relevance** and
+**position**. It sums each item's relevance with a **logarithmic** discount for lower ranks (DCG), then
+divides by the **ideal** ordering's score (IDCG):
+
+.. math::
+
+   \text{NDCG@}K = \frac{\text{DCG@}K}{\text{IDCG@}K} \in [0, 1].
+
+A perfect ranking scores **1**.
+
+Why it's powerful
+-----------------
+
+Unlike Hit Rate, NDCG rewards putting **highly** relevant items **near the top** and handles **multi-level**
+relevance (a 5-star match beats a 3-star one). Normalizing by IDCG makes it **comparable** across users with
+different numbers of relevant items — the reason it is the **default** offline ranking metric for
+recommenders and search.
+
+In recsys
+---------
+
+Computed **per user** then **averaged**, NDCG@K captures the personalized-ordering quality that drives
+engagement. It is the recommender-system application of the same **DCG** used in information retrieval, so IR
+and recsys share this yardstick.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>` · :doc:`Hit Rate (HR) <412-hit-rate-hr>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>`
 
 ----
 

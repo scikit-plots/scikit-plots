@@ -18,9 +18,32 @@ Kaggle
 
 *A platform hosting data-science competitions, datasets and notebooks.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **ML Platforms &amp; Tools** terms below.
+**Kaggle** is an online **data-science competition** platform (owned by Google) where organizations post a
+dataset and a problem, and competitors submit predictions scored on a **held-out test set**, ranked on a
+**leaderboard**. It also hosts public **datasets**, **notebooks**, and courses.
+
+How competitions work
+---------------------
+
+Entrants train models and submit predictions evaluated by a **fixed metric**; a **public** leaderboard shows
+partial-data scores during the contest, while the final **private** leaderboard — on unseen test data —
+decides winners, guarding against **overfitting** the public split.
+
+Its influence and caveats
+-------------------------
+
+Kaggle **popularized** competitive, benchmark-driven ML and battle-tested techniques like **gradient-boosted
+trees** and **ensembling**. But winning solutions often **over-optimize** a single metric and stack many
+models, so they don't always translate to **production**, where latency and maintainability matter.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`TREC (Text REtrieval Conference) <274-trec-text-retrieval-conference>` · :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>`
 
 ----
 

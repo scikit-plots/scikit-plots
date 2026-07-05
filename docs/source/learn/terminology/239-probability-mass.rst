@@ -18,9 +18,38 @@ Probability Mass
 
 *The probability assigned to each value of a discrete variable.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **probability mass function (PMF)** of a **discrete** random variable gives the probability that it
+takes **exactly** a given value:
+
+.. math::
+
+   p(x) = \Pr[X = x].
+
+It maps each possible value to a probability — for a fair die, :math:`p(k) = 1/6` for :math:`k = 1,\dots,6`.
+
+Properties
+----------
+
+Every mass lies in :math:`[0, 1]`, and all masses **sum to one**:
+
+.. math::
+
+   \sum_x p(x) = 1.
+
+Discrete only
+-------------
+
+Mass applies to **discrete** outcomes, where a single value can carry **positive** probability — unlike a
+continuous variable, where any *exact* point has probability **zero** (there, density takes its place).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Density <237-probability-density>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Probability <025-probability>` · :doc:`Normal Distribution <238-normal-distribution>`
 
 ----
 

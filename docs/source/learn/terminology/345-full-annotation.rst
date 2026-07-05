@@ -18,9 +18,32 @@ Full Annotation
 
 *Labelling every example fully, the most costly supervision setting.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Full annotation** means **labeling every example** in a dataset with its **ground-truth** target — the
+complete, high-quality supervision that classic **supervised learning** assumes. Each image gets its boxes,
+each sentence its tags.
+
+The cost
+--------
+
+It is **manual, slow, and expensive** — often the most **tedious** part of an ML project — and requires
+annotators following **guidelines**, whose **disagreements** become a data-quality issue (measured with
+inter-annotator agreement). At scale, labeling everything is simply **infeasible**.
+
+Why it persists
+---------------
+
+Despite the cost, fully annotated data gives the **strongest** signal and remains the **go-to** for
+production and the **gold-standard benchmark**. Its expense is exactly what motivates **weak**, **semi-**,
+and **self-supervised** learning, which trade some label quality for far less human effort.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Weak Supervision <346-weak-supervision>` · :doc:`Label Noise <354-label-noise>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Manual review minutes <384-manual-review-minutes>`
 
 ----
 

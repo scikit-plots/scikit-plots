@@ -18,9 +18,38 @@ Expected Calibration Error (ECE)
 
 *The average gap between confidence and accuracy across probability bins.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Expected Calibration Error** summarizes miscalibration in **one number** — the **weighted average** gap
+between a model's **confidence** and its **accuracy**, taken over bins of predictions:
+
+.. math::
+
+   \text{ECE} = \sum_{m=1}^{M} \frac{|B_m|}{N}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|.
+
+Geometrically, it is the average distance of the **calibration curve** from the diagonal.
+
+How it's computed
+-----------------
+
+Predictions are grouped into **bins** by confidence; in each bin you compare the **fraction correct**
+(accuracy) to the **average confidence**, and weight each bin's gap by its **size**. The result is
+**bounded** in [0, 1] and easy to report — the standard scalar for comparing calibration.
+
+Its caveats
+-----------
+
+ECE is **bin-dependent** (the number and placement of bins move the value) and, being an **average**, it can
+**hide** a badly miscalibrated region behind well-behaved bins. It is also **not a proper scoring rule** — a
+trivial model can score low — so it is read with **reliability curves** and **Brier score**. Its variants are
+**MCE** and **Adaptive ECE**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Adaptive ECE (Expected Calibration Error with Adaptive Binning) <275-adaptive-ece-expected-calibration-error-with-ada>` · :doc:`Maximum Calibration Error (MCE) <276-maximum-calibration-error-mce>` · :doc:`Reliability Curves (also called Calibration Curves) <416-reliability-curves-also-called-calibration-curve>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Temperature Scaling <279-temperature-scaling>` · :doc:`Brier Score <418-brier-score>`
 
 ----
 

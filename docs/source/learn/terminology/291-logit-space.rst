@@ -18,9 +18,33 @@ Logit Space
 
 *The pre-activation, log-odds scale on which linear models and nets operate.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Logit space** means working with the **raw log-odds** scores :math:`z` (the **logits**) instead of the
+probabilities :math:`p = \sigma(z)` — the "pre-sigmoid" world, where values span the **whole real line**
+rather than being squeezed into (0,1).
+
+Why it's used
+-------------
+
+Computing the loss **directly from logits** is far more **numerically stable**. Converting a logit to a
+probability and then taking its log can **underflow** (a tiny :math:`p` rounds to 0, and :math:`\log 0 =
+-\infty`) or **overflow** (:math:`e^{z}` for a large logit exceeds the float range); staying in logit space
+with the **log-sum-exp** trick avoids both. This is why frameworks fuse sigmoid + BCE
+(``BCEWithLogitsLoss``) and softmax + cross-entropy into a single ``from_logits`` op.
+
+The payoff
+----------
+
+Better stability and cleaner gradients — the same reason **log-space** helps elsewhere. Logit space ties
+the **log-odds**, the **sigmoid**, and the **cross-entropy** loss into one numerically safe computation.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Log-Odds <295-log-odds>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Underflow <290-underflow>` · :doc:`Log-Space <257-log-space>`
 
 ----
 

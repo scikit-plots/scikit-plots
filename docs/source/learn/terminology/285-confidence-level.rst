@@ -18,9 +18,33 @@ Confidence Level
 
 *The long-run proportion of intervals expected to contain the true parameter.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A model's **confidence level** is the **probability it attaches** to its prediction — how sure it is that an
+instance belongs to the predicted class. It is only meaningful if it is **calibrated**: a model is
+**well-calibrated** when predictions made with confidence :math:`p` are correct about **100p%** of the time
+(predict 0.9 → right 90% of the time).
+
+How it's checked
+----------------
+
+A **reliability diagram** bins predictions by confidence level and plots confidence against actual
+**accuracy**; perfect calibration lies on the **diagonal**. The gap is summarized by the **Expected
+Calibration Error (ECE)** — the average distance between confidence and accuracy across bins.
+
+Why it matters
+--------------
+
+Raw **accuracy** says nothing about whether the confidence is honest, yet downstream **risk-based
+decisions** (which cases to escalate, when to defer) depend on trusting the number. This is the *model*
+sense of confidence, distinct from a statistical **confidence interval**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Overconfident <284-overconfident>` · :doc:`Underconfident <283-underconfident>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 

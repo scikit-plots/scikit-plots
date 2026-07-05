@@ -18,9 +18,37 @@ CTR (Click-Through Rate)
 
 *The share of impressions that result in a click.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Click-through rate** is the share of people who **click** an ad or link after **seeing** it — clicks divided
+by **impressions**:
+
+.. math::
+
+   \text{CTR} = \frac{\text{clicks}}{\text{impressions}} \times 100.
+
+It is the earliest online-advertising metric, dating to 1994 banner ads.
+
+What it signals
+---------------
+
+CTR is a **top-of-funnel** engagement gauge — it measures whether the **creative, targeting, and message**
+capture attention. On ad platforms a high CTR raises the **quality score**, which in turn **lowers CPC** and
+wins better **placement**, so relevance compounds.
+
+Its trap
+--------
+
+A **high** CTR is **not** success by itself — if those clicks don't **convert**, you're paying for traffic
+that doesn't pay back. CTR must be read **with conversion rate**: high CTR + low CR usually means the ad
+**over-promises** relative to the landing page or offer.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Cost-Per-Click (CPC) Models <300-cost-per-click-cpc-models>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>` · :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`A/B Testing <380-a-b-testing>`
 
 ----
 

@@ -18,9 +18,32 @@ Micro Averaging
 
 *Aggregating counts across classes before computing a metric.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Micro averaging** aggregates a metric by **pooling the counts** — it sums the **true positives, false
+positives and false negatives** across all classes first, then computes precision, recall or F1 from those
+totals. Every **instance** counts equally, so **frequent classes dominate**.
+
+Its behavior
+------------
+
+Because it is driven by raw counts, micro averaging gives an **overall**, accuracy-flavored number — in
+fact, for **single-label multiclass**, micro-F1 **equals accuracy**. Its weakness is that strong performance
+on a big class can **mask** poor performance on a small one.
+
+When to use it
+--------------
+
+Reach for micro averaging on **balanced** problems, in **multilabel** settings, or whenever you want a
+**single global** score reflecting overall correctness. Pair it with **macro** to expose whether minority
+classes are being hidden.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Weighted Averaging <361-weighted-averaging>` · :doc:`Micro AUC <313-micro-auc>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Multiclass Classification <311-multiclass-classification>`
 
 ----
 

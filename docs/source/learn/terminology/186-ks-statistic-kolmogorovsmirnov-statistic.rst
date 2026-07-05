@@ -18,9 +18,49 @@ KS Statistic (Kolmogorov–Smirnov Statistic)
 
 *The maximum gap between two cumulative distributions; measures separation or shift.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+The **KS statistic** measures the **maximum difference between two cumulative distribution functions
+(CDFs)**. In statistics it underpins the **KS test** — do two samples come from the same
+distribution? In ML, especially credit scoring and binary classification, it measures how well a
+model **separates positives from negatives**: far-apart distributions give a large KS, heavily
+overlapping ones a small KS.
+
+The formula
+-----------
+
+For a binary problem, build the CDF of positives and the CDF of negatives across the score, then take
+the largest vertical gap between them:
+
+.. math::
+
+   KS = \max_x \left| F_{\text{pos}}(x) - F_{\text{neg}}(x) \right|,
+
+where :math:`F` is a cumulative distribution. Because it scans every threshold for the single point
+of greatest separation, KS is **threshold-independent**.
+
+A worked example
+----------------
+
+Score 1,000 customers — 500 good, 500 bad — and sort by predicted score. At each threshold track the
+share of bads captured against the share of goods captured; KS is the largest gap between those
+curves. If at score 0.65 the CDF of bads is 0.70 and the CDF of goods is 0.30, the gap is 0.40, so
+**KS = 40%**.
+
+Reading it, and its cousin AUC
+--------------------------------
+
+KS runs from **0 to 1**: 0 means no separating power (identical distributions), **0.4-0.6** is strong
+(typical in credit risk), below 0.2 is weak. It is closely related to **AUC** — both measure class
+separability and both are threshold-independent — but where AUC integrates the whole ROC curve, KS
+reports only the **single maximum point of separation**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`Gini Coefficient <023-gini-coefficient>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Energy Distance <176-energy-distance>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>`
 
 ----
 

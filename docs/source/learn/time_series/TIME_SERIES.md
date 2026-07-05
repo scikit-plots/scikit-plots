@@ -1,0 +1,371 @@
+# scikit-plots `learn/time_series` — Regeneration & Maintenance Guide
+
+**One document to rebuild, extend, or recreate this course — no chat history required.**
+
+| | |
+|---|---|
+| **Folder** | `docs/source/learn/time_series/` |
+| **Renders at** | `https://scikit-plots.github.io/dev/learn/time_series/index.html` |
+| **Scope** | An **ordered 18-lesson course** on classical (Box–Jenkins) time series + one staged hub |
+| **Generator** | `build_time_series.py` (Python 3, standard library only) |
+| **Determinism** | Same inputs → **byte-identical** output, every run (ordered, no RNG) |
+| **Status** | 18 / 18 lessons complete, all cross-linked, all links + underlines valid |
+
+> **Golden rules** (violate none):
+> 1. **Idempotent** — rebuilding never changes output unless an input changed.
+> 2. **Verified-only** — every fact and formula is grounded in a real source; nothing invented.
+> 3. **Re-express, never copy** — the source corpus is *framing only*; all prose is original.
+> 4. **Fail-fast** — a title/key mismatch aborts the build; there are no silent gaps.
+
+This folder is the **second** built on the shared pattern; the terminology glossary
+(`learn/terminology/`) is the first. The engine here is the same, specialised for an **ordered
+curriculum** (prev/next navigation, stage grouping) instead of an alphabetical glossary.
+
+---
+
+## 0. TL;DR — rebuild in one command
+
+```bash
+cd docs/source/learn/time_series
+python build_time_series.py      # clears old NN-*.rst, rewrites index.rst + all 18 lessons
+```
+
+Then validate (Section 4). Expected evidence line:
+
+```
+broken :doc: 0 | broken :ref: 0 | underline errors 0
+```
+
+No arguments, no environment, no network. Pure Python standard library
+(`csv`, `re`, `sys`, `unicodedata`, `pathlib`).
+
+---
+
+## 1. What lives in this folder
+
+```
+time_series/
+├── TIME_SERIES.md          ← this guide (the only doc you need to read)
+├── build_time_series.py    ← the deterministic generator (edit for stages / glosses / layout)
+├── dl-style content:
+│   └── ts_content.py       ← CONTENT + MINDMAP: the per-lesson bodies and lateral links (grows)
+├── ts_inventory.tsv        ← 18 frozen `title <TAB> url <TAB> stage` rows, in CURRICULUM order
+├── index.rst               ← GENERATED: the staged learning-path hub (4 view-levels, 6 stages)
+├── 01-<slug>.rst           ← GENERATED: one lesson page per post (NN = curriculum order) …
+│   …                          each with ◀ Previous / Next ▶ navigation
+└── 18-<slug>.rst           ← GENERATED: … through lesson 18
+```
+
+**Source-of-truth files you edit** (then regenerate): `ts_inventory.tsv`, `build_time_series.py`,
+`ts_content.py`. **Generated files you never hand-edit**: `index.rst`, every `NN-*.rst`.
+
+---
+
+## 2. Architecture — how the pieces fit
+
+```
+ts_inventory.tsv ─┐
+ (title/url/stage) │
+                   ├─►  build_time_series.py  ─►  index.rst  (staged hub + hidden toctree)
+STAGES + GLOSS ────┤        (deterministic)   └►  01-*.rst … 18-*.rst  (one page/lesson,
+ (inside script)   │                              with prev/next + See-also)
+                   │
+ts_content.py ─────┘
+ (CONTENT bodies +
+  MINDMAP links)
+```
+
+Three inputs, joined **by exact title string**:
+
+1. **`ts_inventory.tsv`** — the frozen syllabus. Row *i* (1-based, after the header) fixes lesson
+   *i*'s permanent id `NN` **and its reading order**. Columns: `title`, `url` (source, for
+   traceability), `stage`. **18 rows.** Order is **pedagogical**, not chronological (Section 8).
+   Append only; never reorder (it renumbers pages).
+2. **`STAGES` + `GLOSS`** (dicts inside `build_time_series.py`) — `STAGES[key] = (emoji, title,
+   level, blurb)` defines the six course stages; `GLOSS[title]` is the one-line summary shown on
+   each hub card.
+3. **`CONTENT` + `MINDMAP`** (dicts inside `ts_content.py`) — `CONTENT[title]` is the full RST body;
+   `MINDMAP[title]` lists **lateral** "See also" links (exact titles). Prev/next links are **not**
+   stored — the generator derives them from curriculum order.
+
+The generator emits, per lesson: an auto H1, a stage/level badge, **◀ Previous / Next ▶**
+navigation, the body (or a working stub), a "Related lessons" See-also, and a source link. The hub
+`index.rst` groups all lessons into **6 stages** and adds a hidden ordered toctree for sidebar nav.
+
+### The 6 stages (in order)
+
+| # | Stage key | Title | Level |
+|---|---|---|---|
+| 1 | `orient` | Orientation | beginner |
+| 2 | `stationarity` | Stationarity | beginner |
+| 3 | `arma` | Linear & ARMA Processes | intermediate |
+| 4 | `prediction` | Prediction & the Sample ACF / PACF | intermediate |
+| 5 | `estimation` | Estimation | advanced |
+| 6 | `building` | Building & Forecasting Models | advanced |
+
+`STAGE_ORDER` fixes the sequence; lessons appear in inventory order within each stage.
+
+---
+
+## 3. Regenerating the pages (the build)
+
+```bash
+cd time_series
+python build_time_series.py
+```
+
+What it does, in order:
+
+1. Loads `ts_inventory.tsv` → the ordered list of 18 `(title, url, stage)` rows.
+2. **Fail-fast checks** (Section 10) — inventory ↔ GLOSS, stages ↔ STAGES, CONTENT/MINDMAP keys ↔
+   inventory titles.
+3. Deletes existing `NN-*.rst` pages (glob `[0-9][0-9]-*.rst`) so the set never drifts, then writes
+   all 18 fresh. **Only** that glob is removed — toolkit files (`.py`, `.tsv`, `.md`) and `index.rst`
+   are never touched by the clear step.
+4. Overwrites `index.rst` with the regenerated staged hub.
+
+**Idempotency guarantee (verified):** the build is fully ordered and uses no randomness, so running
+it twice with unchanged inputs produces byte-for-byte identical output. `__file__`-relative paths
+(`HERE = Path(__file__).resolve().parent`, `OUT = HERE/"index.rst"`, `PAGES_DIR = HERE`) plus
+`sys.path.insert(0, str(HERE))` mean it runs from any working directory and imports `ts_content`
+cleanly.
+
+---
+
+## 4. Validating (run after every change — mandatory)
+
+The build must always leave three counters at zero. Paste this validator and run it from the
+folder's parent:
+
+```python
+import re, glob, os
+files = sorted(glob.glob("time_series/*.rst"))
+defined, docnames = set(), set()
+for f in files:
+    t = open(f, encoding="utf-8").read()
+    for m in re.finditer(r'^\.\.\s+_([A-Za-z0-9_-]+):\s*$', t, re.M): defined.add(m.group(1))
+    for m in re.finditer(r'^\s*:name:\s+([A-Za-z0-9_-]+)\s*$', t, re.M): defined.add(m.group(1))
+    dn = f[:-4]; docnames.add(dn); docnames.add(os.path.basename(dn))
+defined.add("terminology-index")            # cross-folder anchor referenced by the hub
+bd = br = ue = 0
+for f in files:
+    t = open(f, encoding="utf-8").read()
+    for m in re.finditer(r':doc:`(?:[^`<]*<)?([^`>]+)>?`', t):
+        tg = m.group(1).strip()
+        if tg not in docnames and os.path.basename(tg) not in docnames: bd += 1
+    for m in re.finditer(r':ref:`(?:[^`<]*<)?([A-Za-z0-9_-]+)>?`', t):
+        if m.group(1) not in defined: br += 1
+    L = t.split("\n")
+    for i in range(len(L) - 1):
+        head, under = L[i], L[i + 1]
+        if under.strip() and re.fullmatch(r'[=\-^"~]{3,}', under.strip()) \
+           and len(set(under.strip())) == 1 \
+           and not re.fullmatch(r'[=\-^"~]{3,}', head.strip()) \
+           and head.strip() and len(under.strip()) < len(head.rstrip()):
+            ue += 1; print("  UNDERLINE SHORT:", f, repr(head))
+print(f"broken :doc: {bd} | broken :ref: {br} | underline errors {ue}")
+```
+
+**Report this exact evidence line every time you change content:**
+`broken :doc: 0 | broken :ref: 0 | underline errors 0`.
+
+**Title verification must be done in Python, never with a bash read-loop** — Unicode titles
+(en-dashes, parentheses) survive Python string comparison but are mangled by shell word-splitting.
+Completeness check:
+
+```python
+import ts_content as tc
+inv = [l.split("\t")[0].strip() for l in open("ts_inventory.tsv", encoding="utf-8")]
+missing = [inv[i] for i in range(1, 19) if inv[i] not in tc.CONTENT]   # row 0 is the header
+print("lessons missing full content:", len(missing), missing)
+print("MINDMAP entries:", len(tc.MINDMAP))
+```
+
+---
+
+## 5. Updating & extending (add or edit lessons)
+
+### Edit an existing lesson
+1. Edit `CONTENT["<exact title>"]` (and/or `MINDMAP["<exact title>"]`) in `ts_content.py`.
+2. `python build_time_series.py`  →  3. validate.
+
+### Add a new lesson
+1. **Append** a row to `ts_inventory.tsv`: `title<TAB>url<TAB>stage` — append only; the new row
+   becomes the next `NN` and slots into its stage.
+2. Add a `GLOSS["<title>"]` line in `build_time_series.py` (and a new `STAGES` entry if it starts a
+   new stage; extend `STAGE_ORDER`).
+3. Add `CONTENT["<title>"] = r"""…"""` and `MINDMAP["<title>"] = [<lateral titles>]` in
+   `ts_content.py` (append with a **single-quoted heredoc** `cat >> ts_content.py << 'PYEOF'` so
+   UTF-8 and LaTeX backslashes survive verbatim).
+4. `python build_time_series.py`  →  5. validate.
+
+### The exact-title rule (critical)
+Every `CONTENT` / `MINDMAP` / `GLOSS` key must equal an inventory title **character-for-character**.
+The fail-fast guard rejects mismatches. Titles in this course include an **en-dash** (`–`, U+2013)
+in *"Logistic Regression – Loss Function and Cost Function"*-style titles and **parentheticals**
+(e.g. *"Maximum Likelihood Estimation for ARMA Models (Gaussian MLE)"*, the en-dash *"Yule–Walker"*)
+— reproduce them exactly.
+
+### Batch cadence
+Work in batches of **~3 lessons** in curriculum order. Each finished page carries: a plain-language
+idea, the **formula / derivation** where quantitative (these lessons are math-dense — difference
+equations, Yule–Walker, Gaussian MLE, information criteria), a **worked intuition**, **pitfalls**,
+**when-to-use** notes, ML / `statsmodels` connections, and a curated **MINDMAP** of ~4 lateral
+lessons. Validate after every batch.
+
+---
+
+## 6. Page content contract (what a good lesson contains)
+
+Each `CONTENT[title]` is a raw RST string. The generator supplies the H1, the stage/level badge,
+prev/next navigation and the See-also block; the body provides the substance. A strong lesson:
+
+- opens with a **plain-English idea**, re-expressed (not paraphrased from the source);
+- states the **formula** in a `.. math::` block when quantitative (omit for narrative lessons like
+  the Hinton interview);
+- explains **how to read / apply it**, **when it holds**, **edge cases**, and **pitfalls**;
+- draws **`statsmodels` / `pandas` / scikit-plots** connections (real calls, e.g. `adfuller`,
+  `plot_acf`, `ARIMA`, `plot_diagnostics`);
+- ends implicitly with the auto **"Related lessons"** See-also from `MINDMAP[title]`.
+
+Keep every lesson **self-contained** — a reader arriving by search should not need another page —
+while the **prev/next** links preserve the intended reading path.
+
+---
+
+## 7. RST / formatting conventions (what keeps the build clean)
+
+- **Section underlines must be ≥ the header length.** Sphinx errors if an underline is *shorter*;
+  equal or longer is fine. **Pad each underline a few dashes longer** for safety. Only *section*
+  underlines are hand-authored inside `CONTENT`; the page H1 is generated for you.
+- **Unicode counts as one column.** En/em-dashes, Greek (`α β γ φ θ`), `∇`, `∞`, `≈`, `≥` each
+  occupy one column — Python's `len()` matches Sphinx, so measure headings with `len()`.
+- **Bodies are raw strings** (`r"""…"""`) so LaTeX backslashes stay literal (`\frac`, `\sqrt`,
+  `\Gamma`, `\phi`). Write Unicode characters **directly** (a literal `–`, not `\u2013`), since raw
+  strings do not interpret `\u` escapes.
+- **Math** uses `.. math::` (display) or `:math:`…`` (inline), LaTeX syntax.
+- **Dollar signs:** avoid a bare `$` in prose (it can trigger math parsing); none are needed here.
+  A bare `%` renders fine.
+- **Horizontal rules / transitions** need a blank line on both sides so docutils reads them as
+  transitions, not underlines.
+- Available Sphinx extensions include `sphinx_design` (`grid`, `grid-item-card`, `dropdown`,
+  `badge`), `sphinx_tags`, `sphinx_copybutton`, and math directives. Do not use extensions that are
+  not enabled.
+
+---
+
+## 8. Regenerating from scratch (if you start with nothing but this guide)
+
+If `ts_inventory.tsv` / `ts_content.py` were ever lost, this is the methodology that produced them.
+
+**Source corpus (context and framing only — never copied):**
+`https://insightful-data-lab.com/category/introduction-to-time-series/` (18 posts, author
+*Ju Yeon Eum*). It follows a classic Box–Jenkins syllabus (Shumway–Stoffer / Brockwell–Davis
+lineage) taught in **R**.
+
+**Freshness anchor (last verified):** all 18 posts are dated **2025→2026-01-17**; the
+category's newest post is `…/2026/01/17/exponential-smoothing-models/` (which is also the site-wide
+newest post). If newer posts appear past that date, the inventory may need new rows.
+
+**The process:**
+1. **Harvest all 18 titles deterministically** by paginating the category
+   (`/category/introduction-to-time-series/page/N/`, ~10 posts/page → 2 pages). Record `title <TAB>
+   url`.
+2. **Order pedagogically, not chronologically.** The posts share one publish date, so timestamp
+   order is only a proxy. Arrange them along the **Box–Jenkins learning path**: orientation →
+   stationarity → linear/ARMA processes → prediction & the sample ACF/PACF → estimation → building &
+   forecasting. Assign each a `stage`. This is the reverse of the newest-first listing, refined.
+3. **Reframe R → Python.** The source teaches in R; this reference uses the **Python** stack
+   (`numpy`, `pandas`, `statsmodels`, `matplotlib`). The mathematics is identical; translate the
+   code and cite real `statsmodels` calls.
+4. **Ground each lesson** against authoritative references (textbooks, `statsmodels` docs, university
+   lecture notes) before writing — never rely on memory for a formula or condition.
+5. **Verify exact titles + lateral neighbours in Python** (never a bash read-loop).
+6. **Rewrite in original words**, append `CONTENT` + `MINDMAP`, add `GLOSS` + `stage`.
+7. **Regenerate → validate** (`broken :doc: 0 | broken :ref: 0 | underline errors 0`).
+
+---
+
+## 9. Deterministic sync + zip (only if publishing to a separate output dir)
+
+Mirror the built folder to a publish directory, then zip. A transient copy error occasionally
+appears; it recovers with no data loss because the source folder is never mutated:
+
+```bash
+OUT=/path/to/output/learn/time_series
+sync
+rm -rf "$OUT" && mkdir -p "$OUT" && cp ./*.rst ./*.py ./*.tsv ./*.md "$OUT/"
+# (do NOT copy __pycache__; exclude *.pyc from any zip)
+```
+
+The version-controlled source tree is always intact; only the copy is retried.
+
+---
+
+## 10. Fail-fast guard & invariants (the safety net)
+
+`build_time_series.py` aborts (non-zero exit, nothing written) if any hold:
+
+- the inventory does not have exactly **18** lesson rows;
+- an inventory title has **no** `GLOSS` entry, or a `GLOSS` entry is **not** an inventory title;
+- an inventory `stage` is **not** in `STAGES`;
+- a `CONTENT` key is **not** an exact inventory title;
+- a `MINDMAP` key or any neighbour it references is **not** an exact inventory title.
+
+Verified across three cases (bad content key → exit 1, no pages; bad mind-map neighbour → exit 1;
+valid empty content → 18 stub pages). **Invariants after a successful build:**
+
+- `ts_inventory.tsv` has exactly **18** lesson rows (plus a header).
+- Lesson ids `01`–`18` map 1-to-1 to curriculum order and never change.
+- Output is **byte-identical** run-to-run for unchanged inputs.
+- Every `:doc:` and `:ref:` resolves; every section underline is ≥ its heading.
+- `len(CONTENT) == 18` and `len(MINDMAP) == 18` when the course is complete.
+
+---
+
+## 11. Suggestions & future work
+
+- **Keep the Sphinx build warning-free.** The toolkit files (`.py`, `.tsv`, this `.md`) live beside
+  the `.rst` lessons. Sphinx ignores `.py`/`.tsv`, but a `.md` in a source tree can emit a
+  "document isn't included in any toctree" warning. Add to `exclude_patterns` in `conf.py`:
+  ```python
+  exclude_patterns += [
+      "learn/time_series/TIME_SERIES.md",
+      "learn/time_series/*.py",
+      "learn/time_series/*.tsv",
+  ]
+  ```
+  (or move the toolkit into an underscore-prefixed `time_series/_toolkit/`, which Sphinx skips by
+  default, adjusting `HERE` so pages still land in `time_series/`).
+- **Wire the hub into navigation.** Ensure the parent `learn/index.rst` toctree references
+  `time_series/index.rst` (it does today, as a `grid-item-card`).
+- **Add a CI gate.** Run `python build_time_series.py` then the Section 4 validator on every PR; fail
+  on idempotency drift or any non-zero counter.
+- **Continuing the corpus.** The same generator + inventory + content + fail-fast + validate loop
+  transfers to the remaining source categories:
+
+  | Source category | Posts | Folder |
+  |---|---|---|
+  | Terminology | 431 ✓ complete | `learn/terminology/` |
+  | **Introduction to Time Series (this folder)** | **18 ✓ complete** | `learn/time_series/` |
+  | Deep Learning (Neural Networks and Deep Learning 17; four further sub-modules currently 0) | 17 | `learn/deep_learning/` |
+  | Bayesian Data Analysis | 144 | `learn/bayesian_data_analysis/` |
+  | Data Analytics (8 sub-sections) | 216 | — |
+  | Data Preparation and Analysis | 56 | `learn/data_preparation_and_analysis/` |
+
+---
+
+## 12. Quick rule card (pin this)
+
+- **Rebuild:** `cd time_series && python build_time_series.py`. Pure stdlib, no args, no network.
+- **Idempotent:** unchanged inputs → identical bytes. Never hand-edit `index.rst` or `NN-*.rst`.
+- **Edit content** in `ts_content.py`; **add lessons** by appending to `ts_inventory.tsv`
+  (+ `GLOSS` + `CONTENT` + `MINDMAP`, + a `STAGES` entry if new), then rebuild.
+- **Keys must match inventory titles exactly** (en-dashes, parentheses). Fail-fast enforces this.
+- **Underlines ≥ heading length** (pad longer); Unicode counts as one column; write Unicode literally
+  in raw strings; avoid bare `$`.
+- **Validate every change:** `broken :doc: 0 | broken :ref: 0 | underline errors 0`. Verify titles in
+  **Python**, never a bash read-loop.
+- **Order is pedagogical**, not chronological. **Prev/next** is auto; **MINDMAP** is lateral.
+- **Rewrite, never copy** the source; **verified sources only** — invent nothing.
+- **~3 lessons per batch**, each deep (idea, formula, worked example, pitfalls, when-to-use, links).

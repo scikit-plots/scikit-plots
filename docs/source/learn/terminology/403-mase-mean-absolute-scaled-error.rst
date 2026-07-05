@@ -18,9 +18,38 @@ MASE (Mean Absolute Scaled Error)
 
 *Forecast error scaled by a naive baseline's error, comparable across series.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Evaluation &amp; Uncertainty** terms below.
+**Mean Absolute Scaled Error** divides a forecast's **mean absolute error** by the MAE of an **in-sample
+naive** benchmark — the seasonal-naive or last-value forecast — giving a pure ratio:
+
+.. math::
+
+   \text{MASE} = \frac{\text{MAE}_{\text{model}}}{\text{MAE}_{\text{naive}}}.
+
+It answers a single question: *did the model beat the trivial baseline?*
+
+Reading it
+----------
+
+**MASE < 1** means the forecast **outperforms** naive; **= 1** ties it; **> 1** means the naive forecast
+**wins** and the model should be reconsidered. Because numerator and denominator share **units**, MASE is
+**scale-free** and comparable across series of wildly different magnitudes.
+
+Why it's the gold standard
+--------------------------
+
+Unlike percentage errors, MASE is **symmetric** (over- and under-forecasts penalized equally), **robust** to
+**zeros** and outliers (the naive step is bounded away from zero unless the series is constant), and
+**interpretable**. Proposed by Hyndman & Koehler (2006), it is a default for forecasting **competitions** and
+multi-SKU demand.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`WMAPE (Weighted Mean Absolute Percentage Error) <405-wmape-weighted-mean-absolute-percentage-error>` · :doc:`sMAPE (Symmetric Mean Absolute Percentage Error) <406-smape-symmetric-mean-absolute-percentage-error>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`Forecasting Competitions <251-forecasting-competitions>`
 
 ----
 

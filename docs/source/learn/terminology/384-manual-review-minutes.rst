@@ -18,9 +18,32 @@ Manual review minutes
 
 *Human-review effort spent per period, an operational cost metric.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **MLOps, Serving &amp; Monitoring** terms below.
+**Manual review minutes** measure the **human time** spent checking model outputs in a **human-in-the-loop**
+pipeline — analysts working a **review queue** of **flagged** or **low-confidence** predictions, confirming
+or correcting each. It is the **labor** cost of keeping a model's decisions trustworthy.
+
+Why it matters
+--------------
+
+Human review is **expensive** — expert annotation runs to tens of dollars per hour, and for some systems
+this **labeling / review** cost dwarfs the **compute** cost. It is a real budget line, not a rounding error,
+and it scales with **how many** cases the model sends to a person.
+
+The lever
+---------
+
+Fewer needless escalations means fewer review minutes, so **precision** and a well-tuned **selection rate**
+(the share of cases flagged) directly control the cost. The design trade-off is **automation vs assurance**
+— routing more to humans is safer but slower and pricier; routing less is cheaper but riskier.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Inference Cost (Inference $) <385-inference-cost-inference>` · :doc:`Compute budgets <383-compute-budgets>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Selection Rate <390-selection-rate>` · :doc:`Latency Guardrails <350-latency-guardrails>` · :doc:`Cloud Inference <153-cloud-inference>`
 
 ----
 

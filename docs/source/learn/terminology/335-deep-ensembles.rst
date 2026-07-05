@@ -18,9 +18,47 @@ Deep Ensembles
 
 *Averaging several independently trained networks for accuracy and uncertainty.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+A **deep ensemble** trains several neural networks **independently** and **aggregates** their
+predictions, improving both **accuracy** and **uncertainty estimation**. Each member shares the
+architecture but starts from a **different random initialisation** (and data order), so the networks
+settle into different modes of the loss landscape; averaging their outputs cancels errors and reduces
+variance:
+
+.. math::
+
+   \bar{p}(y \mid x) = \frac{1}{M} \sum_{m=1}^{M} p_{\theta_m}(y \mid x).
+
+Why it works, and uncertainty
+-------------------------------
+
+Because independently-initialised networks explore **different functions**, their **disagreement** is
+informative. Deep ensembles decompose predictive uncertainty into **aleatoric** (data noise) and
+**epistemic** (model) components and produce well-calibrated **predictive intervals** — rivalling
+**Bayesian neural networks** while being far simpler to implement.
+
+Calibration and cost
+--------------------
+
+They usually still need **calibration** (for example temperature scaling), especially under
+**distribution shift**. The main drawback is that cost grows **linearly** with the number of members
+:math:`M`, which motivates efficient variants such as **BatchEnsemble**, **snapshot ensembles**, and
+spreading members over time.
+
+Where it's used
+---------------
+
+Deep ensembles shine wherever **reliable confidence** matters as much as the point prediction —
+climate downscaling, **robotic perception** and safe human-robot interaction, and **low-data transfer
+learning**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Decision Trees <340-decision-trees>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`Bayesian Neural Networks (BNNs) <055-bayesian-neural-networks-bnns>` · :doc:`Model Stability <187-model-stability>` · :doc:`Uplift Random Forests <302-uplift-random-forests>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>`
 
 ----
 

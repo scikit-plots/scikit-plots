@@ -18,9 +18,33 @@ Fairness Guardrails
 
 *Automated checks that enforce fairness constraints on outputs.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Fairness &amp; Calibration** terms below.
+**Fairness guardrails** are automated checks on a model's **disparity across groups** that **block a
+deployment** or **trigger retraining** when a fairness metric exceeds an agreed limit. They bake **equity**
+and **compliance** into the release process.
+
+How they're enforced
+--------------------
+
+A pre-deployment **fairness audit** requires disparity measures — such as the **demographic-parity
+difference** or **equalized-odds** gap — to stay **below a threshold** (for example **≤ 0.05**); if **DPD or
+EO exceeds** it, the release is **halted** and the model is **retrained**. Post-deployment, real-time
+monitoring watches for **bias spikes**.
+
+Why they matter
+---------------
+
+Fairness can **degrade** as populations drift, and regulated domains (lending, hiring, healthcare) demand
+**auditable** guarantees. Guardrails provide a **hard gate** and an **audit trail**, rather than relying on a
+one-time fairness check that goes stale.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Drift Guardrails <349-drift-guardrails>` · :doc:`Latency Guardrails <350-latency-guardrails>` · :doc:`Selection Rate <390-selection-rate>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Statistical Tests <328-statistical-tests>`
 
 ----
 

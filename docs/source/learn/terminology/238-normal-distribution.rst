@@ -18,9 +18,43 @@ Normal Distribution
 
 *The bell-shaped Gaussian distribution defined by its mean and variance.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **normal (Gaussian) distribution** is the continuous, **bell-shaped**, symmetric distribution defined
+by two parameters — the **mean** :math:`\mu` (its center) and the **standard deviation** :math:`\sigma`
+(its spread; variance :math:`\sigma^2`):
+
+.. math::
+
+   X \sim \mathcal{N}(\mu, \sigma^2).
+
+Its **mean, median and mode coincide**, and it extends from :math:`-\infty` to :math:`+\infty`.
+
+The density
+-----------
+
+.. math::
+
+   f(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right).
+
+About **68%** of values lie within :math:`1\sigma` of the mean, **95%** within :math:`2\sigma`, and
+**99.7%** within :math:`3\sigma` (the *68–95–99.7 rule*). Standardizing with :math:`z = (x-\mu)/\sigma`
+maps any normal onto the **standard normal** :math:`\mathcal{N}(0, 1)`, so a single table serves all.
+
+Why it's everywhere
+-------------------
+
+The **Central Limit Theorem** — averages of many independent, finite-variance quantities tend toward a
+normal — makes it the default model for **measurement errors** and **aggregates**. But it has **light
+tails**: with heavy-tailed data or frequent **outliers** (e.g. Cauchy, Pareto) it fits poorly and
+least-squares methods grow unreliable.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Distribution <240-probability-distribution>` · :doc:`Probability Density <237-probability-density>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Z-Score <097-z-score>` · :doc:`Standard Error (SE) <084-standard-error-se>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>`
 
 ----
 

@@ -18,9 +18,34 @@ Cosine Similarity of Item Features
 
 *Similarity as the cosine of the angle between two items' feature vectors.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Cosine similarity** measures how alike two items are by the **cosine of the angle** between their
+**feature vectors** — representations built from metadata (one-hot genres, tags, text) or learned
+**embeddings**. It captures **orientation**, not magnitude, so it is invariant to vector length.
+
+The formula
+-----------
+
+.. math::
+
+   \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\|\,\|\mathbf{B}\|},
+
+ranging from :math:`-1` to :math:`1` (0 to 1 for non-negative features) — **1** means identical direction
+(very similar), **0** means unrelated (orthogonal).
+
+Where it's used
+---------------
+
+It powers **content-based filtering** and **item-item** similarity (recommend items close to those a user
+liked), and it is the usual kernel for computing **intra-list similarity / diversity**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Jaccard index <264-jaccard-index>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Genre Overlap <263-genre-overlap>` · :doc:`Embedding <173-embedding>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>`
 
 ----
 

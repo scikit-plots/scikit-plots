@@ -18,9 +18,34 @@ Jaccard index
 
 *Intersection over union of two sets, a similarity measure.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+The **Jaccard index** (Jaccard similarity coefficient) measures the overlap between two **sets** — the size
+of their **intersection** over the size of their **union**. For items, the sets are typically the **users
+who liked** each item, or their **tags / features**.
+
+The formula
+-----------
+
+.. math::
+
+   J(A, B) = \frac{|A \cap B|}{|A \cup B|},
+
+ranging 0 to 1 — **0** for disjoint sets, **1** for identical ones; the complement :math:`1 - J` is the
+**Jaccard distance**.
+
+When to use it
+--------------
+
+It is the natural choice for **binary** (like / dislike, present / absent) data, where magnitudes don't
+matter — only which elements are shared. Contrast with **cosine**, which works on real-valued vectors.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Genre Overlap <263-genre-overlap>` · :doc:`Cramér's V <180-cramer-s-v>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Catalog Coverage <268-catalog-coverage>`
 
 ----
 

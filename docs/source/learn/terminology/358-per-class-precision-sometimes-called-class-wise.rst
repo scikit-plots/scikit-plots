@@ -18,9 +18,36 @@ Per-class Precision (sometimes called class-wise precision)
 
 *Precision computed separately for each class.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**Per-class precision** is **precision computed separately for each class**, treating that class as the
+**positive** one and everything else as negative (**one-vs-rest**). For class :math:`c` it is
+
+.. math::
+
+   \text{precision}_c = \frac{TP_c}{TP_c + FP_c},
+
+answering *of everything predicted as class c, how much really was c?*
+
+Why report it
+-------------
+
+A single averaged number can **hide** a class the model handles badly; per-class precision exposes exactly
+**which** classes suffer false positives. In scikit-learn, ``precision_score(average=None)`` returns the
+whole **array** of per-class values.
+
+Its role
+--------
+
+Per-class precision is the **building block** that **micro**, **macro** and **weighted** averaging then
+collapse into one score. Best practice is to report the **per-class** values **alongside** any aggregate.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Multiclass Precision <359-multiclass-precision>` · :doc:`Multilabel Precision <360-multilabel-precision>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`One-vs-Rest (OvR) <310-one-vs-rest-ovr>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Micro Averaging <369-micro-averaging>`
 
 ----
 

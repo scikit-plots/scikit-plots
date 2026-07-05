@@ -18,9 +18,32 @@ ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)
 
 *The probability a random positive outranks a random negative.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Classification &amp; Averaging Metrics** terms below.
+**ROC-AUC** is the **area under the ROC curve**, which plots the **true positive rate** (recall) against the
+**false positive rate** as the decision **threshold** sweeps from 0 to 1. It condenses that whole curve into
+**one number** in :math:`[0, 1]`.
+
+How to read it
+--------------
+
+**1.0** is a perfect classifier, **0.5** is random guessing. It has a clean probabilistic meaning — the
+chance that a randomly chosen **positive** is scored **higher** than a randomly chosen **negative** — so it
+measures **ranking** quality, independent of any single threshold and invariant to the score **scale**.
+
+The caveat
+----------
+
+Because the **false positive rate** has all the **true negatives** in its denominator, ROC-AUC can look
+**optimistically high** on **imbalanced** data where negatives dominate — a model can score well while still
+flooding a rare positive class with false alarms. There, **PR-AUC** is more honest.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Multiclass Classification <311-multiclass-classification>`
 
 ----
 

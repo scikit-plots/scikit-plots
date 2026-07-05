@@ -1,0 +1,19 @@
+title	url	stage
+What Are Time Series, and How Are They Used?	https://insightful-data-lab.com/2026/01/17/what-are-time-series-and-how-are-they-used/	orient
+Getting Started with R	https://insightful-data-lab.com/2026/01/17/getting-started-with-r/	orient
+A Gentle Introduction to Stationarity	https://insightful-data-lab.com/2026/01/17/a-gentle-introduction-to-stationarity/	stationarity
+Weak and Strong Stationarity	https://insightful-data-lab.com/2026/01/17/weak-and-strong-stationarity/	stationarity
+Linear Processes	https://insightful-data-lab.com/2026/01/17/linear-processes/	arma
+Understanding ARMA Processes	https://insightful-data-lab.com/2026/01/17/understanding-arma-processes/	arma
+Computing ACFs of Causal AR(2) Processes Using Difference Equations	https://insightful-data-lab.com/2026/01/17/computing-acfs-of-causal-ar2-processes-using-difference-equations/	arma
+Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q)	https://insightful-data-lab.com/2026/01/17/understanding-acfs-via-difference-equations-for-arp-and-armap-q/	arma
+Best Linear Predictor of a Stationary Process	https://insightful-data-lab.com/2026/01/17/best-linear-predictor-of-a-stationary-process-forecasting-principles-and-the-pacf/	prediction
+Sample ACF and Sample PACF	https://insightful-data-lab.com/2026/01/17/sample-acf-and-sample-pacf/	prediction
+Preliminary Estimation for AR Models and the Yule–Walker Equations	https://insightful-data-lab.com/2026/01/17/preliminary-estimation-for-ar-models-and-the-yule-walker-equations/	estimation
+Maximum Likelihood Estimation for ARMA Models (Gaussian MLE)	https://insightful-data-lab.com/2026/01/17/maximum-likelihood-estimation-for-arma-models-gaussian-mle/	estimation
+Diagnostics After Fitting a Time Series Model	https://insightful-data-lab.com/2026/01/17/diagnostics-after-fitting-a-time-series-model-standardized-residuals-normality-and-autocorrelation/	building
+Order Selection for Time Series Models	https://insightful-data-lab.com/2026/01/17/order-selection-for-time-series-models/	building
+ARIMA Models: How Nonstationary Models Are Built from Stationary Ones	https://insightful-data-lab.com/2026/01/17/arima-models-how-nonstationary-models-are-built-from-stationary-ones/	building
+SARIMA Models: Seasonal ARIMA	https://insightful-data-lab.com/2026/01/17/sarima-models-seasonal-arima/	building
+Beyond One-Step Ahead Predictions	https://insightful-data-lab.com/2026/01/17/beyond-one-step-ahead-predictions/	building
+Exponential Smoothing Models	https://insightful-data-lab.com/2026/01/17/exponential-smoothing-models/	building

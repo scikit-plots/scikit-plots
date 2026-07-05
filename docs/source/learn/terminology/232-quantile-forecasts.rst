@@ -18,9 +18,36 @@ Quantile Forecasts
 
 *Forecasts of specific quantiles of the outcome distribution.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+A **quantile forecast** expresses the prediction not as one number but as one or more **conditional
+quantiles** of the future value's distribution — for example the 10th, 50th and 90th percentiles. The
+0.5 level is the **median**; a pair like 0.1 / 0.9 brackets the outcome, saying it is unlikely (:math:`\le`
+10%) to fall below the lower or above the upper. Formally the :math:`\tau`-quantile forecast satisfies
+
+.. math::
+
+   \Pr\!\left(Y \le \hat{y}_\tau \mid X\right) = \tau.
+
+Why use them
+------------
+
+They convey **uncertainty and asymmetry** directly: you can act differently when under- and over-shooting
+carry different costs, **without** assuming a parametric (e.g. Gaussian) shape for the distribution.
+
+How they're scored
+------------------
+
+Quantile forecasts are evaluated with the **pinball (quantile) loss**, matched to each level; the
+**CRPS** (Continuous Ranked Probability Score) generalizes it by integrating the pinball loss across
+**all** quantiles, giving a single distributional score.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Predicting Percentiles <252-predicting-percentiles>` · :doc:`Point Forecasts <233-point-forecasts>`
 
 ----
 

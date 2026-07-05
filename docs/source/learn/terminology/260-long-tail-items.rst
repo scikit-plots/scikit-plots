@@ -18,9 +18,33 @@ Long-Tail Items
 
 *Numerous low-demand products that collectively matter but are hard to forecast.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+In user-item interaction data, a **small number of "head" items** draw **most** of the interactions, while
+a **large number of "long-tail" items** each attract **very few** — a **power-law** (Pareto) popularity
+distribution. The long tail is where niche, specialized products live.
+
+Why they matter
+---------------
+
+Recommending only head items reinforces **popularity bias** and gives every user the same obvious hits;
+surfacing the long tail improves **coverage**, **diversity** and **novelty**, drives **discovery**, and can
+expand **sales diversity**. Long-tail items are inherently more **novel** because users are unlikely to
+already know them.
+
+The challenge
+-------------
+
+Long-tail items have **sparse** interaction data, so they suffer the **cold-start** problem and are hard to
+model — the reason accuracy-only systems ignore them. Long-tail recommendation therefore adds **coverage**
+and **diversity** metrics on top of accuracy.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Self-Information of Popularity <261-self-information-of-popularity>` · :doc:`Catalog Coverage <268-catalog-coverage>` · :doc:`Item Coverage <270-item-coverage>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Diminishing Utility <271-diminishing-utility>`
 
 ----
 

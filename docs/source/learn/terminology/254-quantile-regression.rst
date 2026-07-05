@@ -18,9 +18,52 @@ Quantile Regression
 
 *Regression that estimates conditional quantiles rather than the mean.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Risk &amp; Probabilistic Forecasting** terms below.
+**Quantile regression** estimates a **conditional quantile** of the target instead of its mean: for a
+chosen level :math:`\tau \in (0, 1)` it predicts the :math:`\tau`-th quantile given the features. Fit
+every level and you recover the **inverse CDF** — the whole conditional distribution.
+
+The pinball loss and τ
+----------------------
+
+It minimizes the **pinball loss**, which weights over- and under-prediction **asymmetrically** by
+:math:`\tau`:
+
+.. math::
+
+   \ell_\tau(y, \hat{y}) =
+   \begin{cases}
+     \tau\,(y - \hat{y}) & y \ge \hat{y}, \\[2pt]
+     (1 - \tau)(\hat{y} - y) & y < \hat{y}.
+   \end{cases}
+
+At :math:`\tau = 0.5` this is symmetric and recovers the **median** (equivalent to minimizing MAE);
+:math:`\tau < 0.5` pushes the model to **under-predict**, :math:`\tau > 0.5` to **over-predict**, and the
+further :math:`\tau` is from 0.5 the stronger the asymmetry.
+
+In practice
+-----------
+
+It is **distribution-free** and robust (built on absolute differences), but fits each quantile
+**separately**, which can cause **quantile crossing** (a lower quantile predicted above a higher one)
+unless constrained. Common estimators: the linear ``QuantileRegressor``, gradient-boosted quantile
+models, and quantile random forests.
+
+.. code-block:: python
+
+   from sklearn.linear_model import QuantileRegressor
+
+   lower = QuantileRegressor(quantile=0.05, alpha=0.0).fit(X_train, y_train)
+   upper = QuantileRegressor(quantile=0.95, alpha=0.0).fit(X_train, y_train)
+   # [lower.predict(X), upper.predict(X)] is a 90% prediction interval
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Predicting Percentiles <252-predicting-percentiles>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`R² (R-squared) <259-r2-r-squared>`
 
 ----
 

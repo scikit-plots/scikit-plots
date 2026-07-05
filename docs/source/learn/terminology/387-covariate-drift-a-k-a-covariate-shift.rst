@@ -18,9 +18,39 @@ Covariate Drift (a.k.a. Covariate Shift)
 
 *A change in the input distribution while the input-output relationship holds.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Distribution Shift &amp; Drift** terms below.
+**Covariate drift** (covariate shift) is a change in the distribution of the **input features** a model sees
+— the production inputs no longer look like the training inputs — while the feature-to-label rule stays the
+same:
+
+.. math::
+
+   p_{\text{train}}(x) \neq p_{\text{prod}}(x), \qquad p(y \mid x)\ \text{unchanged}.
+
+The model is being asked about a **different population** than it learned on.
+
+How it differs
+--------------
+
+It is one of three **dataset shifts**. **Covariate drift** moves **p(x)** (the inputs), **label drift** moves
+**p(y)** (the target mix), and **concept drift** moves **p(y | x)** (the relationship itself). Only concept
+drift changes the *rule*; covariate drift changes *who* you're scoring.
+
+Detecting and fixing it
+-----------------------
+
+It is caught by comparing feature distributions per column with **PSI** or the **KS** test. Remedies include
+**importance weighting** — reweighting training points by the density ratio
+:math:`w(x) = p_{\text{prod}}(x) / p_{\text{train}}(x)` — retraining on **recent** data, and building
+**robust** features (winsorized, log-scaled, sensible bins).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Label Drift (a.k.a. Target Drift) <386-label-drift-a-k-a-target-drift>` · :doc:`Concept Drift <330-concept-drift>` · :doc:`Dataset Shift <353-dataset-shift>` · :doc:`Data Drift <331-data-drift>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>`
 
 ----
 

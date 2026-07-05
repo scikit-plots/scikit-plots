@@ -18,9 +18,43 @@ Causal Effect
 
 *The change in an outcome caused by an intervention, all else equal.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+A **causal effect** is the change in an outcome **directly caused** by a change in a treatment,
+**holding everything else constant** — *if X changes, how much does Y change because of X, and not
+because of other factors?* This is strictly stronger than **correlation**, which shows only
+association; causation means X **produces** the change in Y.
+
+The potential-outcomes view
+-----------------------------
+
+The **Rubin causal model** frames it with potential outcomes: :math:`Y(1)` is a unit's outcome if
+treated and :math:`Y(0)` its outcome if not, so the causal effect for that unit is
+:math:`Y(1) - Y(0)`. Because we can only ever observe **one** of the two for any individual — the
+**fundamental problem of causal inference** — we estimate the **average causal effect** instead,
+:math:`\text{ACE} = \mathbb{E}[Y(1) - Y(0)]`.
+
+Identifying it
+--------------
+
+Every method exists to **control for confounders** — factors that influence both treatment and
+outcome. The toolkit runs from **randomised controlled trials** and **matching / stratification**
+through **regression adjustment**, **instrumental variables** and **difference-in-differences**, up to
+**causal graphs (DAGs)** for reasoning about confounding formally.
+
+Why it matters
+--------------
+
+A causal effect is the **true impact** of one variable on another — what would change *if we
+intervened*. It tests mechanisms in **science**, tells **policy** whether an intervention actually
+works, and measures the real business impact of **marketing, pricing and product** changes.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Causal Inference <117-causal-inference>` · :doc:`Causal ML (Causal Machine Learning) <197-causal-ml-causal-machine-learning>` · :doc:`Treatment Effect <072-treatment-effect>` · :doc:`Uplift <424-uplift>` · :doc:`Incremental Conversions <394-incremental-conversions>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>`
 
 ----
 

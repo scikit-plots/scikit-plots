@@ -18,9 +18,33 @@ Encode (in Feature Engineering)
 
 *Converting categorical or text data into numeric form for models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Data Preparation &amp; Features** terms below.
+**Encoding** converts **categorical** (non-numeric) data into a **numerical** form, because most ML
+algorithms operate only on numbers. The trick is to add the numbers **without inventing meaning** that isn't
+there.
+
+The methods
+-----------
+
+**One-hot encoding** turns a category into several **binary** columns (exactly one 1) — right for **nominal**
+categories with **low cardinality**, since it implies no order. **Ordinal / label** encoding assigns
+integers, valid only when categories are genuinely **ordered**. For **high-cardinality** features,
+**frequency**, **target**, or learned **embedding** encodings avoid the column explosion of one-hot.
+
+Getting it wrong
+----------------
+
+Label-encoding a **nominal** variable (red = 1, blue = 2, green = 3) falsely tells the model green > blue — a
+fake ordering that distance- and gradient-based models will believe. Match the encoding to whether the
+category is **ordered**, and to its **cardinality**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Normalize (in Feature Engineering) <319-normalize-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>` · :doc:`Embedding <173-embedding>` · :doc:`Feature Values <188-feature-values>` · :doc:`Outlier <307-outlier>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

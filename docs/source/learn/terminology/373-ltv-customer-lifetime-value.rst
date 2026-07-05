@@ -18,9 +18,33 @@ LTV (Customer Lifetime Value)
 
 *The total value a customer is expected to generate over time.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Customer lifetime value (LTV)** is the total **revenue** — or, more precisely, **profit** — an average
+customer generates over their **entire relationship** with the business, from first purchase to churn. It
+answers *how much is a customer actually worth?*
+
+How it's estimated
+------------------
+
+A common form multiplies **average revenue per account** by **gross margin** and divides by the **churn
+rate** (equivalently, revenue per period times expected lifetime). So LTV rises with **higher retention**,
+fatter **margins**, and more **revenue per customer** — retention being the biggest lever.
+
+Why it matters
+--------------
+
+LTV is the **value** half of **unit economics**. It sets the ceiling on what you can afford to **spend**
+acquiring customers, justifies investment in **retention** and **upsell**, and — paired with acquisition cost
+— tells investors whether the business is **sustainable**. A small lift in retention can swing LTV
+dramatically.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>` · :doc:`Incremental Sales <195-incremental-sales>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>` · :doc:`Paid CAC (Customer Acquisition Cost) <046-paid-cac-customer-acquisition-cost>` · :doc:`Incremental Conversions <394-incremental-conversions>`
 
 ----
 

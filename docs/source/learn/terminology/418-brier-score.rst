@@ -18,9 +18,37 @@ Brier Score
 
 *The mean squared error of probabilistic predictions.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+The **Brier score** is the **mean squared error** of probabilistic predictions — the average squared gap
+between the predicted probability and the **actual** (0/1) outcome:
+
+.. math::
+
+   \text{BS} = \frac{1}{N}\sum_{i=1}^{N} (p_i - y_i)^2.
+
+**Lower** is better, with **0** perfect. It is a single sample-level number for binary or multiclass problems.
+
+Why it's special
+----------------
+
+Unlike ECE, the Brier score is a **strictly proper scoring rule** — it is minimized only by **honest**
+probabilities, and by **Murphy's decomposition** it splits into **calibration** plus **refinement** terms. So
+a low Brier score means the model is **both** well-calibrated **and** discriminating.
+
+Its limitation
+--------------
+
+Because it **blends** calibration and discrimination, the Brier score can't tell you **which** is lacking — a
+sharp-but-miscalibrated model and a calibrated-but-vague one can score similarly. That is why it is reported
+**alongside** ECE and reliability curves, which isolate the calibration piece.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Expected Calibration Error (ECE) <415-expected-calibration-error-ece>` · :doc:`Murphy's Decomposition <278-murphy-s-decomposition>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Continuous Ranked Probability Score (CRPS) <402-continuous-ranked-probability-score-crps>` · :doc:`Reliability Curves (also called Calibration Curves) <416-reliability-curves-also-called-calibration-curve>` · :doc:`Log Loss (also called Logarithmic Loss or Cross-Entropy Loss) <417-log-loss-also-called-logarithmic-loss-or-cross-e>`
 
 ----
 

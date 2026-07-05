@@ -18,9 +18,47 @@ LSTM — Long Short-Term Memory Networks
 
 *A recurrent network with gating that captures long-range dependencies in sequences.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+An **LSTM (Long Short-Term Memory network)** is a special **recurrent neural network** for sequential
+data that overcomes the **vanishing- and exploding-gradient** problem of vanilla RNNs. It adds a
+**gated memory** structure that learns what to **keep, update and forget** across long sequences.
+
+The gated cell
+--------------
+
+A **cell state** runs through the sequence like a conveyor belt, and three **gates** — sigmoids in
+:math:`[0, 1]` that decide *how much* to let through — govern it: a **forget gate**
+:math:`f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)`, an **input gate** :math:`i_t` with candidate
+values :math:`\tilde{C}_t = \tanh(\cdot)`, and an **output gate** :math:`o_t`. The updates are
+
+.. math::
+
+   C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t, \qquad h_t = o_t \odot \tanh(C_t),
+
+with :math:`C_t` the long-term cell state and :math:`h_t` the short-term hidden state.
+
+Variants
+--------
+
+Common variants include the **bidirectional LSTM** (reads a sequence forwards and backwards), the
+**stacked LSTM** (several layers for depth), the **peephole LSTM** (gates can see the cell state), and
+the **GRU**, a simpler cousin that merges the forget and input gates.
+
+Uses, strengths, weaknesses
+---------------------------
+
+LSTMs power **NLP** (text generation, translation, sentiment), **speech recognition**, **time-series
+forecasting** (demand, stock prices, anomalies) and **control systems**. They capture dependencies
+across **50-100+ steps**, but they are **computationally heavy**, slower than GRUs, and now often
+**outperformed by Transformers** on very long sequences.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Prophet — Time Series Forecasting by Facebook (Meta) <222-prophet-time-series-forecasting-by-facebook-meta>` · :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Embedding <173-embedding>` · :doc:`Bayesian Neural Networks (BNNs) <055-bayesian-neural-networks-bnns>` · :doc:`Time Series <010-time-series>`
 
 ----
 

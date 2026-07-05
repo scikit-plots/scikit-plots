@@ -18,9 +18,32 @@ Squashing Function
 
 *Any bounded nonlinearity (sigmoid, tanh) that compresses its input range.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+A **squashing function** is any function that **compresses** an unbounded input — any real number in
+:math:`(-\infty, \infty)` — into a **bounded** range, giving the characteristic **S-shape**. It "squashes"
+an infinite domain into a finite interval.
+
+Examples
+--------
+
+The **sigmoid** squashes to **(0, 1)** (a probability), **tanh** to **(−1, 1)**, and **softmax** squashes a
+vector of logits into probabilities on (0,1). They are the classic **non-linear activations** that let a
+network turn raw scores into interpretable, constrained outputs.
+
+Why it matters
+--------------
+
+Squashing is what converts an **unbounded** linear score (like the **log-odds**) into something usable — a
+probability, or a normalized signal — and the non-linearity is what lets stacked layers model **complex**
+patterns. Its flat tails are also the source of **saturation** and vanishing gradients.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>`
 
 ----
 

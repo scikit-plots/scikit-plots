@@ -18,9 +18,34 @@ Weak Supervision
 
 *Training from noisy, heuristic or partial labels instead of clean ones.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Weak supervision** trains models from **noisy, cheap, or imprecise** label sources instead of costly
+**hand-labeling** — a direct answer to the training-data **bottleneck**. Rather than perfect ground truth, it
+leans on many **imperfect** signals.
+
+How it works
+------------
+
+Users write **labeling functions** — small snippets of **heuristics**, keyword rules, external knowledge, or
+other models' outputs — that each **label** or **abstain**, often with **unknown** accuracy and **conflicting**
+votes. A **label model** then **de-noises** and combines them, estimating each function's reliability to
+produce **probabilistic** consensus labels — with **no** ground truth. Those labels train a downstream
+classifier. This is the **Snorkel / data-programming** paradigm.
+
+Its trade-off
+-------------
+
+Weak supervision makes labeling **dramatically** faster and its rules **interpretable** and easy to update, at
+the cost of **noisier** labels than full annotation. Best practice keeps a small **hand-labeled** set to
+**validate** quality and compare against fully supervised baselines.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Full Annotation <345-full-annotation>` · :doc:`Label Noise <354-label-noise>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Embedding <173-embedding>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

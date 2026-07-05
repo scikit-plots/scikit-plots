@@ -18,9 +18,33 @@ Quantization
 
 *Reducing numeric precision of weights to shrink and speed up models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+**Quantization** lowers the **numerical precision** of a model's **weights** (and often activations) — from
+32-bit floating point (**FP32**) down to **INT8**, **FP8**, or even **INT4**. Fewer bits per number means a
+**smaller, faster, cheaper** model.
+
+The payoff
+----------
+
+An **INT8** model uses about **75% less memory** than FP32, and because decoding is often
+**memory-bandwidth-bound**, 4-bit weights can be read up to **4× faster** than 16-bit — directly cutting
+**latency** and **inference cost** on hardware that supports low precision.
+
+Managing the trade-off
+----------------------
+
+Naive quantization **degrades accuracy**. **Post-training quantization (PTQ)** converts a trained model
+quickly (with a small calibration set), while **quantization-aware training (QAT)** bakes precision loss into
+training to preserve accuracy; advanced schemes like **AWQ** and **GPTQ** protect the most **sensitive**
+weights to reach near-FP16 quality at INT4 speeds.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Caching <342-caching>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Inference Cost (Inference $) <385-inference-cost-inference>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Compute budgets <383-compute-budgets>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>`
 
 ----
 

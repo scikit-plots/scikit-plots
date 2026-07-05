@@ -18,9 +18,35 @@ Catalog Coverage
 
 *The share of the item catalog that ever gets recommended.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+**Catalog coverage** is the proportion of the entire item catalog that a recommender actually **surfaces**
+to users — the share of products that ever appear in someone's recommendations. It measures the
+**breadth** of the system's reach, not the quality of any one list.
+
+The formula
+-----------
+
+.. math::
+
+   \text{Catalog Coverage} = \frac{|\text{distinct items recommended}|}{|\text{total items in catalog}|},
+
+computed as an **aggregate** over all users and a time window (often expressed as a percentage).
+
+Why it matters
+--------------
+
+**Low** coverage signals **popularity bias** — the system funnels everyone toward the same few hits,
+starving the **long tail** and neglecting niche tastes; **high** coverage means diverse, inclusive
+recommendations. Because recommending popular items is often **accurate but narrow**, coverage is reported
+**alongside** accuracy — a good system scores well on both.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Item Coverage <270-item-coverage>` · :doc:`User Coverage <269-user-coverage>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Diminishing Utility <271-diminishing-utility>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>`
 
 ----
 

@@ -18,9 +18,31 @@ Stockouts
 
 *Events where demand cannot be met because an item is unavailable.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Operations &amp; Supply Chain** terms below.
+A **stockout** is when an item is **unavailable** — demand arrives but inventory is **gone**. It is the "**too
+little**" side of inventory planning, and each stockout is a **missed** sale at the moment of intent.
+
+What it costs
+-------------
+
+Stockouts cause **lost revenue**, frustrated customers, and **substitution** to competitors — and the damage
+can outlast the event if shoppers **don't return**. They stem from **under-forecasting**, demand spikes, or
+**supply** disruptions, and most are preventable failures of replenishment rather than supplier problems.
+
+The trade-off
+-------------
+
+Stockouts are the mirror image of **overstock** — you can eliminate them by holding **more** inventory, but
+that raises **holding costs**. Firms manage the tension with **safety stock** sized to a target **service
+level**, and sharper forecasts shrink both failure modes at once.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Overstock % <400-overstock>` · :doc:`WAPE (Weighted Absolute Percentage Error) <422-wape-weighted-absolute-percentage-error>` · :doc:`WMAPE (Weighted Mean Absolute Percentage Error) <405-wmape-weighted-mean-absolute-percentage-error>` · :doc:`Time Series Forecasting <256-time-series-forecasting>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Seasonality <329-seasonality>`
 
 ----
 

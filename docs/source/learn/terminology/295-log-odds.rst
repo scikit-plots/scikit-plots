@@ -18,9 +18,38 @@ Log-Odds
 
 *The logarithm of the odds, the natural scale for logistic models.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Model Training &amp; Optimization** terms below.
+The **log-odds** (or **logit**) is the natural logarithm of the **odds** of an event — the ratio of its
+probability to its complement:
+
+.. math::
+
+   \text{logit}(p) = \log\!\left(\frac{p}{1 - p}\right), \qquad p = \sigma(z) = \frac{1}{1 + e^{-z}}.
+
+Odds run from 0 (at :math:`p=0`) through 1 (at :math:`p=0.5`) to :math:`\infty` (at :math:`p=1`); taking
+the log spreads them onto the full line, from :math:`-\infty` to :math:`+\infty`.
+
+Why models use it
+-----------------
+
+A probability is trapped in :math:`[0,1]`, awkward to model with a **linear** function; the log-odds is
+**unbounded**, so **logistic regression** (and the final layer of many classifiers) models the log-odds as
+a **linear** combination of features — the raw "score" before conversion.
+
+Back to probability
+-------------------
+
+The **sigmoid** :math:`\sigma` is the **inverse** of the logit — it maps a log-odds score :math:`z` back to
+a probability. So the pipeline runs linear score → log-odds → sigmoid → **classification probability** →
+threshold → class.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Classification Probability <231-classification-probability>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Sigmoid Function <297-sigmoid-function>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

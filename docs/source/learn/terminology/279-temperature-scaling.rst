@@ -18,9 +18,38 @@ Temperature Scaling
 
 *A simple post-hoc method that rescales logits to calibrate probabilities.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability Calibration** terms below.
+**Temperature scaling** is the simplest **post-hoc calibration** method for neural nets — it divides the
+**logits** by a single learned scalar **T** before the **softmax**, softening or sharpening the
+probabilities:
+
+.. math::
+
+   \hat{Q} = \mathrm{softmax}(\mathbf{z} / T), \quad T > 0.
+
+It is a one-parameter fix applied **after** training.
+
+What T does
+-----------
+
+**T = 1** leaves the model unchanged; **T > 1** makes predictions **less confident** (softer), which corrects
+the **overconfidence** typical of modern networks; **T < 1** makes them sharper. T is fit on a **held-out**
+validation set by minimizing **negative log-likelihood**.
+
+Why it's popular
+----------------
+
+It is **simple**, **effective**, and crucially **accuracy-preserving** — dividing every logit by the same T
+never changes the **argmax**, so the decision boundary and accuracy are untouched. Its limit is
+**expressiveness**: it can only rescale confidence uniformly, not fix region-specific miscalibration.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Platt Scaling <280-platt-scaling>` · :doc:`Isotonic Regression <281-isotonic-regression>` · :doc:`Overconfident <284-overconfident>` · :doc:`Confidence Level <285-confidence-level>` · :doc:`Softmax Function <296-softmax-function>` · :doc:`Underconfident <283-underconfident>`
 
 ----
 

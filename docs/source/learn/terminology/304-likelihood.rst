@@ -18,9 +18,39 @@ Likelihood
 
 *How probable observed data are under a model's parameters.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+The **likelihood** is the probability of the **observed data given a model's parameters** —
+:math:`\mathcal{L}(\theta) = P(\text{data} \mid \theta)`. The twist is perspective: it is read as a function
+of the **parameters** :math:`\theta` (with the data fixed), asking *which parameters make what we saw most
+probable?*
+
+Maximum likelihood
+------------------
+
+**MLE** picks the parameters that **maximize** the likelihood (in practice the **log**-likelihood, since
+sums are easier and more stable than products):
+
+.. math::
+
+   \hat{\theta}_{\text{MLE}} = \arg\max_{\theta} \; \mathcal{L}(\theta).
+
+It is the dominant engine of statistical **inference** — logistic regression, and most classifiers, are fit
+this way.
+
+The connection
+--------------
+
+Minimizing **cross-entropy** (like **binary cross-entropy**) is exactly **maximizing likelihood** — BCE is
+the **negative log-likelihood** of the Bernoulli model. Likelihood **ratios** also underlie optimal
+**decision** rules, tying estimation and decision-making together.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Probability Forecasts <235-probability-forecasts>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Correlation <305-correlation>`
 
 ----
 

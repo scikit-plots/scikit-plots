@@ -18,9 +18,33 @@ Computer Vision (CV)
 
 *The field of teaching machines to interpret images and video.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Computer vision** teaches machines to **interpret visual data** — images and video — extracting meaning the
+way human sight does. It turns pixels into **structured** understanding: what is present, where, and how it
+moves.
+
+Its tasks
+---------
+
+The core problems are **image classification** (what's in the picture), **object detection** (locating
+objects with **bounding boxes**), **segmentation** (labeling every **pixel**), plus recognition, pose, and
+tracking. Modern CV is dominated by **deep learning** — **convolutional neural networks** and **vision
+transformers**.
+
+What it needs
+-------------
+
+CV has historically relied on **large annotated** datasets (ImageNet-scale), because supervised models learn
+from labeled examples — which makes **annotation** a major cost and drives interest in self- and
+semi-supervised alternatives. It powers medical imaging, autonomous driving, and quality inspection.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Full Annotation <345-full-annotation>` · :doc:`Embedding <173-embedding>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Deep Ensembles <335-deep-ensembles>`
 
 ----
 

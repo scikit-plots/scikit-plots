@@ -18,9 +18,48 @@ Cannibalization
 
 *When a new offering eats into sales of an existing one.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Cannibalization** is the reduction in sales or revenue of an **existing** product, service or
+channel caused by introducing or promoting a **new** one **from the same company**. Put plainly: your
+new sales come at the **expense of your own old sales**, not from genuine market growth.
+
+Two examples
+------------
+
+A **discount campaign** cuts 20% off a product; many loyal customers who would have paid full price
+simply buy at the discount, so the apparent uplift is really **full-price sales shifted into
+discounted ones**. A **product launch** does the same across a portfolio: when a company releases its
+newest phone, part of that model's strong sales comes from customers who would have bought the
+previous model anyway — the new revenue **cannibalises** the old.
+
+The formula
+-----------
+
+In uplift and ROI analysis, cannibalization enters as a **negative adjustment**:
+
+.. math::
+
+   \text{Net Revenue} = \text{Incremental Revenue} - \text{Treatment Cost} - \text{Cannibalization Loss},
+
+where the **cannibalization loss** is the revenue lost from existing products because of the
+treatment.
+
+Why it matters
+--------------
+
+Ignore it and campaigns look **more successful than they are** — the overestimation risk. Accounting
+for it forces **whole-portfolio** thinking rather than single-product metrics, so true impact is
+**incremental gain minus treatment cost minus cannibalization**. In short, cannibalization is
+*stealing from yourself*: the hidden downside of a promotion or launch that must be subtracted from
+uplift to find the real net benefit.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Revenue net of treatment cost <393-revenue-net-of-treatment-cost>` · :doc:`Incremental Revenue <193-incremental-revenue>` · :doc:`Treatment Cost <192-treatment-cost>` · :doc:`ROI (Return on Investment) <191-roi-return-on-investment>` · :doc:`Incremental Gain <200-incremental-gain>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>`
 
 ----
 

@@ -18,9 +18,36 @@ M-Competitions (Makridakis Competitions)
 
 *Influential forecasting competitions benchmarking time-series methods.*
 
-.. note::
+What they are
+-------------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+The **M-competitions** are a series of large-scale **forecasting competitions** (M1 through M6) organized
+by **Spyros Makridakis** and colleagues to gather **empirical evidence** about which forecasting methods
+actually work best in practice — not just in theory.
+
+Key findings
+------------
+
+Across the early competitions **no single method dominated**, and **simple methods** (naïve, exponential
+smoothing, ARIMA) proved **tough baselines** that often matched or beat more complex statistical models;
+**combining** forecasts reliably improved accuracy. **M4** (2018; 100,000 series, 61 methods) found the
+best results came from **hybrid statistical + ML** approaches and combinations, while pure-ML methods
+fared poorly. **M5** (2020; Walmart hierarchical retail data on Kaggle, roughly ``$100,000`` in prizes)
+was the first in which **ML methods dominated** the leaderboard, and it put **probabilistic / uncertainty**
+forecasting center stage.
+
+Why they matter
+---------------
+
+For four decades the M-competitions have shaped forecasting — establishing that **combinations and
+hybrids** win, that **simple baselines** must always be checked, and that **probabilistic forecasting** is
+now the standard. They directly inspired modern ML forecasting competitions (such as those on Kaggle).
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Time Series Forecasting <256-time-series-forecasting>`
 
 ----
 

@@ -18,9 +18,43 @@ Revenue net of treatment cost
 
 *Incremental revenue from a treatment after subtracting its cost.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Causal Inference &amp; Uplift** terms below.
+**Revenue net of treatment cost** is the extra revenue a treatment earns **after subtracting the cost
+of running it**. It answers the blunt question: *after paying for the campaign, how much incremental
+revenue did we really keep?*
+
+The formula
+-----------
+
+.. math::
+
+   \text{Net Revenue} = \text{Incremental Revenue} - \text{Treatment Cost},
+
+where **incremental revenue** is treatment-group revenue minus control-group revenue, and **treatment
+cost** covers marketing spend, incentives, delivery fees — any direct cost of the treatment.
+
+A worked example
+----------------
+
+An email upsell campaign brings the treatment group to ``$120,000`` in revenue against the control's
+``$100,000`` — an incremental revenue of ``$20,000``. If the campaign cost ``$5,000`` to run, then net
+revenue is ``$15,000`` — the ``$20,000`` of incremental revenue minus the ``$5,000`` cost. The
+headline ``$20K`` uplift is really **``$15K``** once costs are counted.
+
+Why it matters
+--------------
+
+Uplift measured on revenue alone **overstates** the benefit. Net revenue sits closer to **ROI**
+(though ROI further accounts for profit margin) and is the right lens for **comparing campaigns**: two
+treatments with equal uplift are not equal if one costs far less to run.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Incremental Revenue <193-incremental-revenue>` · :doc:`Treatment Cost <192-treatment-cost>` · :doc:`ROI (Return on Investment) <191-roi-return-on-investment>` · :doc:`Incremental Conversions <394-incremental-conversions>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Gross Margin <043-gross-margin>`
 
 ----
 

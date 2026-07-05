@@ -18,9 +18,39 @@ Bayesian Inference.
 
 *Updating beliefs about parameters using priors and observed data.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Bayesian Inference** terms below.
+**Bayesian inference** updates **beliefs** in light of evidence using **Bayes' theorem** — it combines a
+**prior** (what you believed before) with the **likelihood** (how probable the data are under each hypothesis)
+to produce a **posterior** (what you believe after):
+
+.. math::
+
+   \text{posterior} \propto \text{prior} \times \text{likelihood}.
+
+Parameters are treated as **random variables** with distributions, not fixed points.
+
+What makes it distinctive
+-------------------------
+
+Because it yields a **full posterior distribution**, Bayesian inference quantifies **uncertainty** directly — a
+**credible interval** says there's a 95% probability the parameter lies inside it — and it naturally
+**incorporates prior knowledge** and **updates sequentially** as data arrive. This contrasts with the
+**frequentist** view of fixed parameters and p-values.
+
+The catch and the tools
+-----------------------
+
+Posteriors are usually **intractable**, so they're approximated with **Markov Chain Monte Carlo** or
+variational methods via tools like **Stan**, **PyMC**, or NumPyro. Bayesian inference underlies **Bayesian A/B
+testing**, **Bayesian optimization**, and the **causal** tree models above.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Causal Trees <301-causal-trees>` · :doc:`Likelihood <304-likelihood>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Uplift Random Forests <302-uplift-random-forests>`
 
 ----
 

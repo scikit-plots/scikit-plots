@@ -18,9 +18,37 @@ Conversion Rate (CR)
 
 *The share of users who complete a desired action.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Business &amp; Growth Analytics** terms below.
+**Conversion rate** is the share of visitors who complete a **desired action** — a purchase, sign-up, or form
+submission — out of all visitors:
+
+.. math::
+
+   \text{CR} = \frac{\text{conversions}}{\text{total visitors}} \times 100.
+
+It measures how effectively traffic turns into **outcomes**.
+
+Where it sits
+-------------
+
+CR is a **mid-to-bottom-of-funnel** metric — it captures what people do **after** they've arrived, so it
+reflects the quality of the **landing page**, offer, and checkout, not just the ad. It is the KPI most
+**directly tied to revenue**, which is why marketers watch it closely.
+
+How to move it
+--------------
+
+Conversion rate is improved by sharpening the **offer** and **copy**, streamlining the **funnel**, and running
+**A/B tests** on page variants — not by chasing more clicks. A campaign with modest traffic but high CR often
+beats a high-traffic, low-CR one on profit.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`CTR (Click-Through Rate) <421-ctr-click-through-rate>` · :doc:`Cost-Per-Click (CPC) Models <300-cost-per-click-cpc-models>` · :doc:`True Conversion Rate <083-true-conversion-rate>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Incremental Conversions <394-incremental-conversions>` · :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>`
 
 ----
 

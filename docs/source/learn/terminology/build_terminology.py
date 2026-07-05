@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------
 # Reads the verified inventory (term_inventory.tsv: title <TAB> url ...)
 # joins it with the ENRICH table below (theme + rewritten gloss), and
-# emits a complete, idempotent terminology/index.rst:
+# emits a complete, idempotent index.rst (in place, inside terminology/):
 #   * centred banner + intro + how-to note
 #   * "Discovery at a Glance" tab-set (by level) -> theme section cards
 #   * one section per theme, each term a sphinx_design dropdown carrying
@@ -26,8 +26,9 @@ import unicodedata
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))          # make term_content importable regardless of CWD
 INVENTORY = HERE / "term_inventory.tsv"
-OUT = HERE / "terminology" / "index.rst"
+OUT = HERE / "index.rst"               # this script now lives INSIDE terminology/
 
 # ----------------------------------------------------------------------
 # Theme registry: key -> (emoji, display title, level, one-line blurb)
@@ -663,7 +664,7 @@ def load_inventory() -> list[tuple[str, str]]:
 # Re-runnable: same inputs -> identical tree. Old NNN-*.rst are cleared
 # first so the set never drifts.
 # ----------------------------------------------------------------------
-PAGES_DIR = HERE / "terminology"
+PAGES_DIR = HERE                        # NNN-*.rst pages are siblings of this script
 RAW_HTML = ".. role:: raw-html(raw)\n   :format: html"
 LEVEL_WORD = {"foundations": "beginner", "applied": "intermediate", "advanced": "advanced"}
 
@@ -901,7 +902,7 @@ def main() -> int:
     OUT.write_text("\n".join(I), encoding="utf-8")
 
     n_pages = len(inv_titles)
-    print(f"Wrote terminology/index.rst + {n_pages} term pages "
+    print(f"Wrote index.rst + {n_pages} term pages "
           f"({n_rich} with full content, {n_pages - n_rich} summary) "
           f"across {len(active_themes)} themes.")
     return 0

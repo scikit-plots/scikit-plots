@@ -18,9 +18,32 @@ k-fold Stratified Cross-Validation (Stratified CV)
 
 *K-fold CV that preserves class proportions in every fold.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Validation &amp; Cross-Validation** terms below.
+**Stratified k-fold cross-validation** splits the data into **k folds** while **preserving each class's
+proportion** in every fold — so a fold of a 5%-positive dataset stays about **5% positive**. It combines the
+stability of k-fold CV with balanced folds.
+
+Why stratify
+------------
+
+Plain **k-fold** can, by chance, build folds with **too few or missing** minority-class examples, giving
+**biased** or unstable metrics — especially on **imbalanced** data. Stratification makes each fold **mirror**
+the overall distribution, so the k scores are **reliable** and comparable.
+
+How it's used
+-------------
+
+It is the **default** for classification (often **repeated stratified 10-fold**); scikit-learn provides
+``StratifiedKFold``. Two cautions carry over from any CV: fit preprocessing on the **training folds only** to
+avoid **leakage**, and don't use it on **time-series** data, where **time-based** splits are required instead.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Cross-Validation (CV) <136-cross-validation-cv>` · :doc:`Stratified Group K-Fold <132-stratified-group-k-fold>` · :doc:`Evaluation Set <355-evaluation-set>` · :doc:`Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation) <381-time-based-splits-a-k-a-temporal-cross-validatio>` · :doc:`Model Stability <187-model-stability>` · :doc:`Data Drift <331-data-drift>`
 
 ----
 

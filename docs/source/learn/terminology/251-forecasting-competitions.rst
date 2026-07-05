@@ -18,9 +18,32 @@ Forecasting Competitions
 
 *Public contests that benchmark forecasting accuracy across methods.*
 
-.. note::
+What they are
+-------------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Signal Processing &amp; Time Series** terms below.
+**Forecasting competitions** are organized contests in which many teams forecast the **same datasets** and
+are **ranked** by accuracy on a held-out period — turning *which method is best?* into an **empirical**,
+reproducible question. The **M-competitions** are the archetype; **Kaggle** hosts many modern ones.
+
+How they work
+-------------
+
+They use standardized **data**, a hidden **test** horizon, and common **metrics** (often scale-free ones
+like MASE) so entries are **directly comparable**. Prizes and public **leaderboards** draw large fields of
+participants.
+
+Why they matter
+---------------
+
+They produce **durable evidence** — that **combinations and hybrids** tend to win, that **simple
+baselines** are hard to beat, and increasingly that **ML** is competitive — and they leave behind
+**reusable benchmark datasets** that shape later research.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Simple Baseline Methods <248-simple-baseline-methods>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>`
 
 ----
 

@@ -18,9 +18,33 @@ Diminishing Utility
 
 *The decreasing marginal value of additional similar or lower-ranked items.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Recommender Systems** terms below.
+The principle of **diminishing marginal utility** applied to recommendation: **each additional similar item
+adds less value** than the one before. The third action movie in a row is not three times as useful as the
+first — its **marginal** contribution shrinks.
+
+Why it matters
+--------------
+
+This is the economic reason to **diversify**. Because utility from redundant items is **submodular**
+(diminishing returns), a **varied** list delivers more total value than a list of near-duplicates — so
+**marginal relevance** matters more than absolute relevance.
+
+How it's used
+-------------
+
+Diversification methods like **Maximal Marginal Relevance (MMR)** and submodular utility-maximization
+objectives encode diminishing utility directly — each pick is scored by its relevance **minus** its
+redundancy with what's already chosen, so once a genre or topic is covered, further items of the same kind
+are penalized.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Long-Tail Items <260-long-tail-items>` · :doc:`Dominating in Recommender Systems <267-dominating-in-recommender-systems>` · :doc:`Genre Overlap <263-genre-overlap>` · :doc:`Self-Information of Popularity <261-self-information-of-popularity>`
 
 ----
 

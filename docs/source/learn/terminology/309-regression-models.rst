@@ -18,9 +18,32 @@ Regression Models
 
 *Models that predict continuous numeric outcomes.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **AI &amp; ML Concepts** terms below.
+**Regression models** predict a **continuous number** — a price, a temperature, a demand — rather than a
+class. They learn a function mapping features to a **real-valued** output, fitting a curve or surface through
+the data.
+
+The landscape
+-------------
+
+The simplest is **linear regression** (a weighted sum of features), extending to **polynomial**,
+**regularized** (ridge, lasso), tree-based (**random forests**, gradient boosting), and **neural**
+regressors. The same algorithm family often has both a classification and a regression form.
+
+How they're judged
+------------------
+
+Regression is scored by how far predictions land from the truth — **MSE / RMSE**, **MAE**, and **R²** — and
+trained to minimize a distance-based **loss**. Because those errors use magnitudes, regression is
+**sensitive to outliers**, which is why robust losses and metrics exist.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Classification Models <294-classification-models>` · :doc:`Linear Models <341-linear-models>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Outlier <307-outlier>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 

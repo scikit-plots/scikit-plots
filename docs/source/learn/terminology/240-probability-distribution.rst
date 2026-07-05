@@ -18,9 +18,35 @@ Probability Distribution
 
 *A description of how probability is spread over a variable's possible values.*
 
-.. note::
+What it is
+----------
 
-   A full, self-contained explanation of this term is being written. The definition above is the working summary; meanwhile, explore the related **Probability &amp; Statistics Foundations** terms below.
+A **probability distribution** describes how probability is **spread over the possible values** of a
+random variable — the full accounting of what can happen and how likely each outcome is.
+
+How it's described
+------------------
+
+For a **discrete** variable it is given by a **probability mass function**, for a **continuous** one by a
+**probability density function**, and for either by a **cumulative distribution function**. Whatever the
+form, the total probability is **one**:
+
+.. math::
+
+   \sum_x p(x) = 1 \quad\text{(discrete)}, \qquad \int_{-\infty}^{\infty} f(x)\,dx = 1 \quad\text{(continuous)}.
+
+Characterizing it
+-----------------
+
+Distributions are summarized by **parameters** (a **mean** for location, a **variance** for spread) and by
+**moments**; you can **fit** a distribution to data or **sample** synthetic data from one. Common families
+include the **normal**, **Bernoulli / binomial**, **Poisson** and **exponential**.
+
+----
+
+**Mind map — connected ideas**
+
+   :doc:`Probability Density <237-probability-density>` · :doc:`Probability Mass <239-probability-mass>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Probability <025-probability>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>`
 
 ----
 
