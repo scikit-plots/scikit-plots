@@ -1,9 +1,16 @@
-# https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-hooks.yaml
-
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
+# https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-hooks.yaml
+# https://github.com/asottile/pyupgrade/blob/main/.pre-commit-hooks.yaml
 
 # - id: scikitplot
 #   name: Scikit-plots
 #   description: Automatically upgrade syntax for newer versions.
 #   entry: scikitplot
+#   language: python
+#   types: [python]
+#   # for backward compatibility
+#   # files: ^\.pre-commit-hooks\.yaml$
+#   # files: ''
+#   # minimum_pre_commit_version: 0.15.0

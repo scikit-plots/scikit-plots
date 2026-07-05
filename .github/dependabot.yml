@@ -23,6 +23,10 @@
 # │  Update both pins together, manually, after reading the cibuildwheel        │
 # │  release notes and re-verifying the Python version support matrix.          │
 # └─────────────────────────────────────────────────────────────────────────────┘
+#
+# https://github.blog/changelog/2026-03-10-dependabot-now-supports-pre-commit-hooks/
+# https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configure-version-updates
+#
 
 version: 2
 
@@ -72,6 +76,7 @@ updates:
           - ">=4.0.0"  # would affect all uses of cibuildwheel, including the workflow already on 4.x.
     commit-message:
       prefix: "[MAINT]"
+      # include: "scope"
     labels:
       - "03 - Maintenance"
       - "build/ci"
@@ -90,6 +95,21 @@ updates:
     #   default-days: 7  # optional
     # reviewers:
     #   - "scikit-plots/core-devs"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "11:11"
+      timezone: "UTC"
+    # open-pull-requests-limit: 10
+    commit-message:
+      prefix: "[MAINT]"
+      # include: "scope"
+    labels:
+      - dependencies
+      - pre-commit
 
   - package-ecosystem: pip
     # ── Why `directories` instead of `directory: /` + `exclude-paths` ─────────
