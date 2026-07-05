@@ -22,8 +22,8 @@ cpdef long fib(int n):
 
     cdef long a = 0
     cdef long b = 1
-    cdef int i
+    cdef int _i
 
-    for i in range(n):
+    for _i in range(n):
         a, b = b, a + b
     return a

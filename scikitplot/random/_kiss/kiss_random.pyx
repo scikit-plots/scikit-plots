@@ -2613,7 +2613,7 @@ cdef class KissBitGenerator:
         """
         # cdef declarations must precede all Python executable statements.
         # 'import time' was moved to the module-level imports for this reason.
-        cdef size_t i
+        # cdef size_t _i
         cdef size_t _cnt = <size_t>cnt
         # Typed sink variable — keeps kiss() results at C level, no boxing.
         cdef uint64_t _val
@@ -2627,11 +2627,11 @@ cdef class KissBitGenerator:
         if method in ["uint64", "double"]:
             if method == "uint64":
                 # Measures full Python-API round-trip including GIL overhead.
-                for i in range(_cnt):
+                for _ in range(_cnt):
                     self.random_raw()
             elif method == "double":
                 # Measures Python API + float division overhead.
-                for i in range(_cnt):
+                for _ in range(_cnt):
                     self.random_raw() / (2**64)
         # int32, uint32, float
         elif method in ["uint32", "float"]:
@@ -2639,12 +2639,12 @@ cdef class KissBitGenerator:
                 # Measures raw C++ RNG throughput.  Result is captured in a typed
                 # local so no Python int object is created on the heap.
                 with self.lock:
-                    for i in range(_cnt):
+                    for _ in range(_cnt):
                         _val = self._rng.kiss()
             elif method == "float":
                 # Measures Python API + float division overhead.
                 with self.lock:
-                    for i in range(_cnt):
+                    for _ in range(_cnt):
                         _val = self._rng.kiss() / (2**32)
         else:
             raise ValueError(
