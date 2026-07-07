@@ -938,8 +938,9 @@ class PipelineHooks:
 
         hooks = PipelineHooks(
             pre_read_hook=lambda src: print(f"Starting: {src}"),
-            post_read_hook=lambda src, docs: log_read(src, docs)
-            or keep_research(src, docs),
+            post_read_hook=lambda src, docs: (
+                log_read(src, docs) or keep_research(src, docs)
+            ),
         )
         pipeline = HookableCorpusPipeline(hooks=hooks)
     """
