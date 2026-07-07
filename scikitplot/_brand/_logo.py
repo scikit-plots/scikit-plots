@@ -48,8 +48,7 @@ Preset = Literal["favicon", "avatar", "docs-hero"]
 # FIX 1: lstrip() result was previously discarded (dead statement).
 # Strip the leading newline so the banner prints cleanly without a blank
 # first line, while preserving all ASCII art content.
-_SCIKITPLOT_BANNER: str = (
-    r"""
+_SCIKITPLOT_BANNER: str = r"""
  ____       _ _    _ _              _       _
 / ___|  ___(_) | _(_) |_      _ __ | | ___ | |_ ___
 \___ \ / __| | |/ / | __|____| '_ \| |/ _ \| __/ __|
@@ -57,7 +56,7 @@ _SCIKITPLOT_BANNER: str = (
 |____/ \___|_|_|\_\_|\__|    | .__/|_|\___/ \__|___/
                              |_|
 """
-).lstrip("\n")
+_SCIKITPLOT_BANNER = _SCIKITPLOT_BANNER.lstrip("\n")
 
 _VARIANTS: tuple[Variant, ...] = ("primary", "small", "metrics", "knn")
 

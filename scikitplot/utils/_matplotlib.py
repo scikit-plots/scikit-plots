@@ -233,7 +233,7 @@ verbose : bool, optional
 
     .. versionadded:: 0.4.0
         The `verbose` parameter was added to control logging and user feedback verbosity.\
-""".rstrip()
+""".rstrip(),
 )
 
 

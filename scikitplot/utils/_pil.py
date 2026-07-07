@@ -3,11 +3,13 @@
 # pylint: disable=unused-argument
 # pylint: disable=broad-exception-caught
 # pylint: disable=logging-fstring-interpolation
+#
+# Authors: The scikit-plots developers
+# SPDX-License-Identifier: BSD-3-Clause
 
 """_pil.py."""
 
-# Authors: The scikit-plots developers
-# SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
 
 # import inspect
 # import logging
@@ -34,8 +36,7 @@ from ._path import get_path
 # Runtime-safe imports for type hints (avoids runtime overhead)
 if TYPE_CHECKING:
     # Only imported during type checking
-    from typing import Optional, Union
-
+    # from typing import Optional
     import PIL
 
 ## Define __all__ to specify the public interface of the module
@@ -53,7 +54,7 @@ __all__ = [
 def _cached_truetype(
     path: str,
     size: int,
-) -> "PIL.ImageFont.ImageFont":
+) -> PIL.ImageFont.ImageFont:
     """
     Load a TrueType font with the specified path and size.
 
@@ -79,7 +80,7 @@ def _cached_truetype(
 
 
 def _validate_font_size(
-    font_size: "Optional[int]",
+    font_size: int | None,
 ) -> int:
     """
     Validate that the font size is a positive integer.
@@ -104,7 +105,7 @@ def _validate_font_size(
     return font_size
 
 
-def load_default_font(font_size: int = 10) -> "PIL.ImageFont.ImageFont":
+def load_default_font(font_size: int = 10) -> PIL.ImageFont.ImageFont:
     """
     Load the default PIL font with version compatibility for different Pillow versions.
 
@@ -127,11 +128,11 @@ def load_default_font(font_size: int = 10) -> "PIL.ImageFont.ImageFont":
 
 
 def load_font(
-    font_path: "Optional[str]" = None,
+    font_path: str | None = None,
     font_size: int = 10,
     use_default_font: bool = True,
     verbose: bool = False,
-) -> "PIL.ImageFont.ImageFont":
+) -> PIL.ImageFont.ImageFont:
     """
     Get a font object for text rendering, with an optional custom font path and size.
 
@@ -208,8 +209,8 @@ def load_font(
 
 
 def get_font(
-    font: "Optional[Union[PIL.ImageFont.ImageFont, dict]]" = None,
-) -> "PIL.ImageFont.ImageFont":
+    font: PIL.ImageFont.ImageFont | dict | None = None,
+) -> PIL.ImageFont.ImageFont:
     """
     Obtain a font object, either directly or by resolving parameters via `load_font`.
 
@@ -244,7 +245,7 @@ def get_font(
 
 
 def save_image_with_pil(
-    img: "PIL.Image.Image",
+    img: PIL.Image.Image,
     to_file: str,
     show_os_viewer: bool = False,
     **kwargs,
@@ -362,14 +363,14 @@ verbose : bool, optional
 
     .. versionadded:: 0.4.0
         The `verbose` parameter was added to control logging and user feedback verbosity.\
-""".rstrip()
+""".rstrip(),
 )
 
 
 @_docstring.interpd
 def save_image_pil_kwargs(
     *args: tuple,
-    result: "PIL.Image.Image" = None,
+    result: PIL.Image.Image = None,
     func_name: str = "",
     **kwargs: dict,
 ):
@@ -416,7 +417,7 @@ def save_image_pil_kwargs(
 
     """
     # Extract optional parameters with defaults
-    backend: Optional[Union[bool, str]] = kwargs.get(  # noqa: UP037
+    backend: bool | str | None = kwargs.get(  # noqa: UP037
         "backend",
         "matplotlib",
     )
@@ -516,10 +517,10 @@ def save_image_pil_decorator(
     # Not needed as a placeholder, but kept for parameterized usage
     # *dargs,  # not need placeholder
     # The target function to be decorated (passed when no parameters are used)
-    func: "Optional[callable[..., any]]" = None,
+    func: callable[..., any] | None = None,
     # *,  # indicates that all following parameters must be passed as keyword
     **dkwargs: dict,  # Keyword arguments passed to the decorator for customization (e.g., verbose)
-) -> "callable[..., any]":
+) -> callable[..., any]:
     """
     Decorate that supports both parameterized and non-parameterized usage.
 
@@ -567,7 +568,7 @@ def save_image_pil_decorator(
     """
 
     # The case where the decorator is called with parameters (returns a decorator)
-    def decorator(inner_func: "callable") -> "callable":
+    def decorator(inner_func: callable) -> callable:
         """
         Decorate function that wraps the target function.
 
@@ -586,7 +587,7 @@ def save_image_pil_decorator(
         """
 
         @_functools.wraps(inner_func)
-        def wrapper(*args, **kwargs) -> "any":
+        def wrapper(*args, **kwargs) -> any:
             # Call the actual plotting function
             result = inner_func(*args, **kwargs)
             # Call the validation function to ensure proper fig and ax are set

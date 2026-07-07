@@ -146,54 +146,89 @@ repos:
         exclude_types: [svg]  # Python Covered by Ruff W291?
       - id: mixed-line-ending  # Checks for mixed line endings.
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
-    hooks:
-      - id: mypy
-        pass_filenames: false  # Prevent passing filenames to the hook.
-        args:  # [--config-file=.mypy.ini, --follow-imports=skip]
-          - --config-file=.mypy.ini
-          - --follow-imports=skip
-          - --no-incremental  # skip: Serializes the AST and type information into .mypy_cache.
-          # - --cache-dir=/dev/null
-          - --show-traceback
-          # - -v
-        # Use regex to specify the files to check
-        files: scikitplot/externals/_seaborn/_(core|marks|stats)/
-        additional_dependencies:  # [pytest, numpy]
-          - pytest
-          - numpy
-        # exclude: utils
+  # Comprehensive CI pipeline:
+  # Source
+  #   │
+  #   ▼
+  # isort / Ruff import sorting-ordering
+  #   │
+  #   ▼
+  # autoflake
+  #   │
+  #   ▼
+  # pyupgrade
+  #   │
+  #   ▼
+  # flynt
+  #   │
+  #   ▼
+  # refurb
+  #   │
+  #   ▼
+  # Ruff --fix Import sorting, lint fixes, modernization, cleanup
+  #   │
+  #   ▼
+  # Black / Ruff format Formatting only
+  #   │
+  #   ▼
+  # Ruff (check)
+  #   │
+  #   ▼
+  # Pylint Deep static analysis and design checks
+  #   │
+  #   ▼
+  # Bandit Security analysis
+  #   │
+  #   ▼
+  # Vulture Dead code detection
+  #   │
+  #   ▼
+  # MyPy / Pyright Static type checking
+  #   │
+  #   ▼
+  # pytest Unit and integration testing / Hypothesis Property-based testing
+  #   │
+  #   ▼
+  # Coverage (coverage.py / pytest-cov)
+  #
+  # 1. cython-lint (fixes, if any)
+  # 2. double-quote-cython-strings
+  # 3. isort (or Ruff I rules)
+  # 4. autoflake
+  # 5. pyupgrade
+  # 6. flynt
+  # 7. refurb
+  # 8. ruff-check --fix
+  # 9. black OR ruff-format (choose one formatter)
+  # ────────────────────────────────────────
+  # 10. flake8
+  # 11. ruff-check (without --fix)   ← optional but recommended in CI
+  # 12. mypy
+  # 13. pylint (if used)
+  # 14. bandit
+  # 15. vulture
+  # 16. pytest
+  # 17. coverage
 
-  # - repo: https://github.com/pre-commit/mirrors-prettier
-  #   rev: v4.0.0-alpha.8
-  #   hooks:
-  #     - id: prettier
-
-  # Optional: Cython Linting
+  # 1. Cython formatting/fixes Linting
   - repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.21.0
     hooks:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
-      - id: cython-lint
       - id: double-quote-cython-strings
+      - id: cython-lint
 
-  # Code Quality: Formatter PyCQA flake8 vs ruff-format can be conflict make sure both compatipable
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.3.0
+  # 2. Ruff auto-fixes
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
     hooks:
-      - id: flake8
-        additional_dependencies:
-          - flake8-bugbear  # Catches common situations that tend to create bugs.
-          - flake8-docstrings>1.4.0  # --docstring-convention=pep257 is default, numpy and google also allowed.
-          - flake8-force
-          - flake8-type-checking
-          - pydocstyle>5.1.0
-        args: [--config=.flake8, --docstring-convention=all]  # '--exit-zero' Customize as needed.
-        types: [file, python]
-        # exclude: ^scikitplot/(externals/|_seaborn/)
+      # - id: ruff  # Run the linter.
+      - id: ruff-check  # Change linter ruff hook → ruff-check
+        args: ["--fix", "--show-fixes", "--output-format=full", "--verbose"]  # --unsafe-fixes
+        # types_or: [ python, pyi ]
 
+  # 3. Formatter (choose ONE)
   # Code Quality: Formatter black vs ruff-format can be conflict make sure both compatipable
   # - repo: https://github.com/psf/black
   # Using this mirror lets us use mypyc-compiled black, which is about 2x faster
@@ -252,15 +287,10 @@ repos:
   #       name: ruff (Python linter)
   #       files: \.py$
   #       args: ["--config", ".ruff.toml"]  # Point to your custom ruff.toml file
-
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.20
     hooks:
-      # - id: ruff  # Run the linter.
-      - id: ruff-check  # Change ruff hook → ruff-check
-        args: ["--fix", "--show-fixes", "--output-format=full", "--verbose"]  # --unsafe-fixes
-        # types_or: [ python, pyi ]
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       - id: ruff-format  # Run the formatter.
         args:
@@ -271,6 +301,47 @@ repos:
           # - --config=pyproject.toml   # Optional: use custom config file
         # verbose: true  # Force Ruff to show which files were modified
         # types_or: [ python, pyi ]
+
+  # 4. Check-only linters
+  # Code Quality: Formatter PyCQA flake8 vs ruff-format can be conflict make sure both compatipable
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        additional_dependencies:
+          - flake8-bugbear  # Catches common situations that tend to create bugs.
+          - flake8-docstrings>1.4.0  # --docstring-convention=pep257 is default, numpy and google also allowed.
+          - flake8-force
+          - flake8-type-checking
+          - pydocstyle>5.1.0
+        args: [--config=.flake8, --docstring-convention=all]  # '--exit-zero' Customize as needed.
+        types: [file, python]
+        # exclude: ^scikitplot/(externals/|_seaborn/)
+
+  # 5. Type checker
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.1.0
+    hooks:
+      - id: mypy
+        pass_filenames: false  # Prevent passing filenames to the hook.
+        args:  # [--config-file=.mypy.ini, --follow-imports=skip]
+          - --config-file=.mypy.ini
+          - --follow-imports=skip
+          - --no-incremental  # skip: Serializes the AST and type information into .mypy_cache.
+          # - --cache-dir=/dev/null
+          - --show-traceback
+          # - -v
+        # Use regex to specify the files to check
+        files: scikitplot/externals/_seaborn/_(core|marks|stats)/
+        additional_dependencies:  # [pytest, numpy]
+          - pytest
+          - numpy
+        # exclude: utils
+
+  # - repo: https://github.com/pre-commit/mirrors-prettier
+  #   rev: v4.0.0-alpha.8
+  #   hooks:
+  #     - id: prettier
 
   # Optional: Custom Repository Review
   - repo: https://github.com/scientific-python/cookie
