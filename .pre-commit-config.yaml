@@ -317,7 +317,7 @@ repos:
       - id: flake8
         additional_dependencies:
           - flake8-bugbear  # Catches common situations that tend to create bugs.
-          - flake8-docstrings>1.4.0  # --docstring-convention=pep257 is default, numpy and google also allowed.
+          - flake8-docstrings>=1.7.0  # --docstring-convention=pep257 is default, numpy and google also allowed.
           - flake8-force
           - flake8-type-checking
           - pydocstyle>5.1.0
