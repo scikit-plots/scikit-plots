@@ -78,6 +78,7 @@ updates:
       prefix: "[MAINT]"
       # include: "scope"
     labels:
+      - no-changelog-entry-needed
       - "03 - Maintenance"
       - "build/ci"
       - "dependencies"
@@ -111,6 +112,7 @@ updates:
       prefix: "[MAINT]"
       # include: "scope"
     labels:
+      - no-changelog-entry-needed
       - dependencies
       - pre-commit
     cooldown:
@@ -208,9 +210,11 @@ updates:
       - dependency-name: "jupyterlite-pyodide-kernel"
       - dependency-name: "sphinx"
       - dependency-name: "h5py"
+      - dependency-name: "voyager"
     commit-message:
       prefix: "[MAINT]"
     labels:
+      - no-changelog-entry-needed
       - "03 - Maintenance"
       - "build/ci"
       - "dependencies"
