@@ -169,8 +169,8 @@ jobs:
           # The ONE Python version mirrored to docker/env_pipenv/Pipfile{,.lock}.
           # Single source of truth: defined here and propagated to update-pipenv
           # via job output — no second literal anywhere else in this file.
-          : "${ROOT_PY_VERSION:?PY_VER not set by build harness}"
           ROOT_PY_VERSION="${ROOT_PY_VERSION:-3.11}"
+          : "${ROOT_PY_VERSION:?ROOT_PY_VERSION not set by build harness}"
 
           REQUESTED="${PY_VERSION_INPUT}"
           EVENT="${GITHUB_EVENT_NAME}"
