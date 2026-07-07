@@ -320,7 +320,7 @@ repos:
           - flake8-docstrings>1.4.0  # --docstring-convention=pep257 is default, numpy and google also allowed.
           - flake8-force
           - flake8-type-checking
-          - pydocstyle>5.1.0
+          - pydocstyle>=6.3.0
         args: [--config=.flake8, --docstring-convention=all]  # '--exit-zero' Customize as needed.
         types: [file, python]
         # exclude: ^scikitplot/(externals/|_seaborn/)
