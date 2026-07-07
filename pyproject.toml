@@ -328,7 +328,8 @@ core = [
   # --- Impute Dependency ---
   'voyager>=1.2.5;python_version<"3.13"',  # fast approximate nearest-neighbor searches on an in-memory collection of vectors.
   # For VCS URLs, PEP 508 requires a package name before the @ URL, for maximum compatibility you should include the spaces:
-  'voyager @ git+https://github.com/spotify/voyager.git@v2.1.1 ; python_version >= "3.13"',
+  # https://raw.githubusercontent.com/spotify/voyager/refs/tags/v2.1.1/python/pyproject.toml
+  'voyager @ git+https://github.com/spotify/voyager.git@v2.1.1#subdirectory=python ; python_version >= "3.13"',
 
   # --- Optional Web Interface Dependencies (commented out) ---
   # "docker>=4.0.0,<8",

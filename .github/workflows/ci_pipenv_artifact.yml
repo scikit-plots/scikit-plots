@@ -164,7 +164,8 @@ jobs:
           # This is the SINGLE SOURCE OF TRUTH. Add or remove a version
           # here only — the dropdown above, the docker/env_pipenv/<pyXYZ>
           # directories, and every downstream step derive from this list.
-          SUPPORTED=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
+          # SUPPORTED=(3.8 3.9 3.10 3.11 3.12 3.13 3.14)
+          SUPPORTED=(3.10 3.11 3.12 3.13 3.14)
 
           # The ONE Python version mirrored to docker/env_pipenv/Pipfile{,.lock}.
           # Single source of truth: defined here and propagated to update-pipenv
