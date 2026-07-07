@@ -420,7 +420,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 zero_division=np.nan,
             )
             return 0, 0.5, str(s)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.warn(
                 f"Unable to compute classification_report for subset : {e}",
                 UserWarning,
@@ -452,7 +452,7 @@ class _ConfusionMatrixPlotter(VectorPlotter):
                 decimals=2,
             )
             return cm, None, None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.warn(
                 f"Unable to compute confusion_matrix for subset : {e}",
                 UserWarning,

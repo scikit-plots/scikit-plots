@@ -9,6 +9,8 @@
 # pylint: disable=disallowed-name
 # pylint: disable=broad-exception-caught
 
+from __future__ import annotations
+
 import collections.abc as _cab
 import json as _json
 import os as _os
@@ -171,7 +173,7 @@ def serialize_histplot(ax):
             "counts": counts,
         }
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"[serialize_histplot ERROR] {e}")  # noqa: T201
         return None
 
@@ -199,7 +201,7 @@ def serialize_barplot(ax):
             "heights": heights,
         }
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"[serialize_barplot ERROR] {e}")  # noqa: T201
         return None
 
@@ -231,7 +233,7 @@ def serialize_lineplot(ax):
             "lines": all_lines,
         }
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"[serialize_lineplot ERROR] {e}")  # noqa: T201
         return None
 
@@ -272,7 +274,7 @@ def serialize_plot(input_plot=None, pretty=True):
             data, indent=4 if pretty else None, default=safe_json_converter
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"[serialize_plot ERROR] {e}")  # noqa: T201
         return None
 
@@ -296,5 +298,5 @@ def save_to_file(json_str, path):
         with open(path, "w", encoding="utf-8") as f:  # noqa: PTH123
             f.write(json_str)
         print(f"[INFO] Saved plot JSON to: {path}")  # noqa: T201
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"[save_to_file ERROR] {e}")  # noqa: T201

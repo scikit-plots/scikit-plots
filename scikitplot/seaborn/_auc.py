@@ -795,7 +795,7 @@ class _AucPlotter(VectorPlotter):
             )
             # Plot with recall on x-axis, precision on y-axis
             return recall, precision, ap
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.warn(
                 f"Unable to compute PR curve for subset {''}: {e}",
                 UserWarning,
@@ -819,7 +819,7 @@ class _AucPlotter(VectorPlotter):
             )
             # Plot with fpr on x-axis, tpr on y-axis
             return fpr, tpr, auc(fpr, tpr)  # roc_auc
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             warnings.warn(
                 f"Unable to compute ROC curve for subset: {e}",
                 UserWarning,

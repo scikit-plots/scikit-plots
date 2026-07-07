@@ -220,7 +220,7 @@ class Index(
         # when the C-extension type does not support dynamic attributes.
         try:
             lock = object.__getattribute__(self, "_lock")
-        except Exception:
+        except Exception:  # noqa: BLE001
             lock = None
         if isinstance(lock, _RLOCK_TYPE):
             return lock
@@ -228,7 +228,7 @@ class Index(
         new_lock = threading.RLock()
         try:
             object.__setattr__(self, "_lock", new_lock)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return FALLBACK_LOCK
         return new_lock
 
@@ -294,7 +294,7 @@ class Index(
         ------
         TypeError
             If ``obj`` is not an Annoy instance.
-        RuntimeError
+        TypeError
             If serialization or deserialization fails, or required configuration
             (e.g., ``f``) cannot be determined.
 
@@ -322,12 +322,12 @@ class Index(
         with lock:
             payload = obj.serialize()
             if not isinstance(payload, (bytes, bytearray, memoryview)):
-                raise RuntimeError("Annoy.serialize() must return a bytes-like object.")
+                raise TypeError("Annoy.serialize() must return a bytes-like object.")
             payload = bytes(payload)
             # Copy stable configuration (sklearn-style) before restoring the payload.
             try:
                 params = dict(obj.get_params(deep=False))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 params = {}
 
         # lazy default None

@@ -27,12 +27,11 @@ from collections.abc import Mapping
 from enum import Enum
 
 # Only imports when type checking
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast  # noqa: F401
 
-if TYPE_CHECKING:
-    from typing import Any
-
-    from typing_extensions import Self
+# if TYPE_CHECKING:
+#     from typing import Any
+from typing_extensions import Self
 
 from .._utils import atomic_write_text, backend_for, lock_for, read_text
 
@@ -58,12 +57,12 @@ def _require_schema_version(obj: object) -> int:
         ) from e
 
 
-def _is_json_scalar(value: Any) -> bool:
+def _is_json_scalar(value: any) -> bool:
     """Return True if *value* is a JSON scalar (or None)."""
     return value is None or isinstance(value, (str, int, float, bool))
 
 
-def _encode_persistence_value(value: Any) -> Any:
+def _encode_persistence_value(value: any) -> any:
     """
     Encode a persistence knob into a JSON/YAML-safe representation.
 
@@ -82,7 +81,7 @@ def _encode_persistence_value(value: Any) -> Any:
     raise TypeError(f"Unsupported persistence value type: {type(value)!r}")
 
 
-def _apply_persistence_value(obj: object, key: str, raw: Any) -> None:
+def _apply_persistence_value(obj: object, key: str, raw: any) -> None:
     """
     Best-effort restore of a persistence knob on *obj*.
 
@@ -94,7 +93,7 @@ def _apply_persistence_value(obj: object, key: str, raw: Any) -> None:
 
     try:
         current = getattr(obj, key)
-    except Exception:
+    except Exception:  # noqa: BLE001
         current = None
 
     if isinstance(current, Enum):
@@ -103,14 +102,14 @@ def _apply_persistence_value(obj: object, key: str, raw: Any) -> None:
         try:
             setattr(obj, key, enum_cls(raw))
             return
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
         # Fall back to restoring by name, if *raw* looks like a name.
         if isinstance(raw, str):
             try:
                 setattr(obj, key, enum_cls[raw])
                 return
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
     setattr(obj, key, raw)
@@ -120,9 +119,9 @@ class IndexMetadata(TypedDict, total=True):
     """Serializable metadata for an Annoy-backed index."""
 
     index_schema_version: int
-    params: dict[str, Any]
-    info: dict[str, Any] | None
-    persistence: dict[str, Any] | None
+    params: dict[str, any]
+    info: dict[str, any] | None
+    persistence: dict[str, any] | None
 
 
 class MetaMixin:
@@ -131,12 +130,12 @@ class MetaMixin:
 
     The concrete class (or its backend) must implement:
 
-    - ``get_params(deep: bool = ...) -> Mapping[str, Any]``
+    - ``get_params(deep: bool = ...) -> Mapping[str, any]``
     - ``set_params(**params) -> Self``
 
     Optional backend methods:
 
-    - ``info() -> Mapping[str, Any] | None``
+    - ``info() -> Mapping[str, any] | None``
 
     The concrete class must define:
 
@@ -179,7 +178,7 @@ class MetaMixin:
             If ``_META_SCHEMA_VERSION`` is missing on the concrete class.
         TypeError
             If ``get_params`` does not return a mapping.
-        AttributeError
+        TypeError
             If neither the instance nor the backend implements ``get_params``.
         TypeError
             If a persistence knob (e.g., ``pickle_mode``) is not JSON/YAML-serializable.
@@ -199,7 +198,7 @@ class MetaMixin:
             get_params = getattr(backend, "get_params", None)
             get_params_owner = backend
         if not callable(get_params):
-            raise AttributeError("Missing get_params(deep=...) on instance/backend")
+            raise TypeError("Missing get_params(deep=...) on instance/backend")
 
         info_fn = getattr(self, "info", None)
         info_owner: object = self
@@ -223,7 +222,7 @@ class MetaMixin:
             with contextlib.suppress(Exception):
                 params["on_disk_path"] = os.fspath(params["on_disk_path"])
 
-        info_payload: dict[str, Any] | None = None
+        info_payload: dict[str, any] | None = None
         if include_info and callable(info_fn):
             try:
                 with lock_for(self):
@@ -240,7 +239,7 @@ class MetaMixin:
                 else:
                     info_payload = dict(info_obj)
 
-        persistence: dict[str, Any] = {}
+        persistence: dict[str, any] = {}
         for key in ("pickle_mode", "compress_mode"):
             with contextlib.suppress(Exception):
                 value = getattr(self, key)
@@ -257,7 +256,7 @@ class MetaMixin:
     @classmethod
     def from_metadata(  # noqa: PLR0912
         cls: type[Self],
-        metadata: Mapping[str, Any],
+        metadata: Mapping[str, any],
         *,
         load: bool = True,
     ) -> Self:
@@ -266,7 +265,7 @@ class MetaMixin:
 
         Parameters
         ----------
-        metadata : Mapping[str, Any]
+        metadata : Mapping[str, any]
             Payload as produced by :meth:`to_metadata`.
         load : bool, default=True
             If True and ``params['on_disk_path']`` is present, attempt to load the
@@ -434,7 +433,7 @@ class MetaMixin:
         obj = json.loads(read_text(path))
         if not isinstance(obj, Mapping):
             raise TypeError("JSON root must be a mapping")
-        return cls.from_metadata(cast(Mapping[str, Any], obj), load=load)
+        return cls.from_metadata(cast(Mapping[str, any], obj), load=load)
 
     def to_yaml(
         self,
@@ -475,7 +474,7 @@ class MetaMixin:
         obj = yaml.safe_load(read_text(path))
         if not isinstance(obj, Mapping):
             raise TypeError("YAML root must be a mapping")
-        return cls.from_metadata(cast(Mapping[str, Any], obj), load=load)
+        return cls.from_metadata(cast(Mapping[str, any], obj), load=load)
 
 
 class MetadataRoutingMixin:
@@ -490,7 +489,7 @@ class MetadataRoutingMixin:
     scikit-learn is imported lazily and only when these methods are called.
     """
 
-    def get_metadata_routing(self) -> Any:
+    def get_metadata_routing(self) -> any:
         """Return a scikit-learn ``MetadataRequest`` describing consumed metadata."""
         try:
             from sklearn.utils.metadata_routing import MetadataRequest  # noqa: PLC0415
@@ -509,7 +508,7 @@ class MetadataRoutingMixin:
                 return MetadataRequest()
 
     @staticmethod
-    def build_metadata_router(*, owner: object) -> Any:
+    def build_metadata_router(*, owner: object) -> any:
         """Build a scikit-learn ``MetadataRouter`` for a given owner."""
         try:
             from sklearn.utils.metadata_routing import MetadataRouter  # noqa: PLC0415

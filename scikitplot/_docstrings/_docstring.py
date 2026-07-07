@@ -106,7 +106,7 @@ class Substitution:
         if style not in (None, "percent", "format"):
             raise ValueError("style must be 'percent', 'format', or None")
         # If no positional arguments are provided, fallback to keyword arguments
-        self.params: tuple | dict[str, any] = args if args else (kwargs or {})
+        self.params: tuple | dict[str, any] = args or (kwargs or {})
         # Default to 'percent' if no style is provided
         self.style = style or "percent"
 
@@ -152,7 +152,7 @@ class Substitution:
                 # Try both
                 try:
                     obj.__doc__ = cleaned % self.params
-                except Exception:
+                except Exception:  # noqa: BLE001
                     obj.__doc__ = cleaned.format(
                         **(
                             self.params
@@ -160,7 +160,7 @@ class Substitution:
                             else (*self.params,)
                         )
                     )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"Substitution failed for {obj.__name__!r}: {e}")
         return obj
 
@@ -405,14 +405,14 @@ class _ArtistPropertiesSubstitution:
             doc = getattr(obj, "__doc__", "")
             if doc:
                 obj.__doc__ = inspect.cleandoc(doc) % self.params
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"Docstring substitution failed for {obj.__name__!r}: {e}")
 
         # Apply substitution to __init__ if the object is a class
         try:
             if isinstance(obj, type) and obj.__init__ != object.__init__:
                 self(obj.__init__)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(
                 f"Substitution on __init__ failed for class {obj.__name__!r}: {e}"
             )
@@ -443,7 +443,7 @@ class _ArtistPropertiesSubstitution:
         """
         try:
             self.params.update(**kwargs)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"Failed to register docstring parameters: {e}")
 
     def to_json(self) -> str:
@@ -455,7 +455,7 @@ class _ArtistPropertiesSubstitution:
                 if isinstance(k, str) and isinstance(v, str)
             }
             return json.dumps(serializable_data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"Failed to serialize _ArtistPropertiesSubstitution: {e}")
             return "{}"
 
@@ -465,7 +465,7 @@ class _ArtistPropertiesSubstitution:
             data = json.loads(json_str)
             if isinstance(data, dict):
                 self.register(**data)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning(f"Failed to deserialize _ArtistPropertiesSubstitution: {e}")
 
 

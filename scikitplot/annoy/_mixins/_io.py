@@ -85,7 +85,7 @@ class IndexIOMixin:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If the backend does not provide ``save(path, prefault=...)``.
         OSError
             For filesystem-level failures.
@@ -93,7 +93,7 @@ class IndexIOMixin:
         backend = backend_for(self)
         save = getattr(backend, "save", None)
         if not callable(save):
-            raise AttributeError("Backend does not provide save(path, prefault=...)")
+            raise TypeError("Backend does not provide save(path, prefault=...)")
 
         p = os.fspath(path)
         ensure_parent_dir(p)
@@ -132,7 +132,7 @@ class IndexIOMixin:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If the backend does not provide ``load(path, prefault=...)``.
         OSError
             If loading fails (backend or filesystem).
@@ -146,7 +146,7 @@ class IndexIOMixin:
         backend = backend_for(obj)
         load = getattr(backend, "load", None)
         if not callable(load):
-            raise AttributeError("Backend does not provide load(path, prefault=...)")
+            raise TypeError("Backend does not provide load(path, prefault=...)")
 
         p = os.fspath(path)
 
@@ -186,7 +186,7 @@ class IndexIOMixin:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If :py:meth:`to_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         OSError
             On filesystem failures.
@@ -194,9 +194,7 @@ class IndexIOMixin:
         # `MetaMixin` provides `to_json()`; keep the dependency explicit.
         to_json = getattr(self, "to_json", None)
         if not callable(to_json):
-            raise AttributeError(
-                "save_bundle requires to_json() (compose with MetaMixin)."
-            )
+            raise TypeError("save_bundle requires to_json() (compose with MetaMixin).")
 
         manifest_path: str | PathLike[str] = os.fspath(manifest_filename)
         index_path: str | PathLike[str] = os.fspath(index_filename)
@@ -235,7 +233,7 @@ class IndexIOMixin:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If :py:meth:`from_json` is not available (compose with :class:`~scikitplot.annoy._mixins._meta.MetaMixin`).
         TypeError
             If :py:meth:`from_json` returns an unexpected type.
@@ -244,7 +242,7 @@ class IndexIOMixin:
         """
         from_json = getattr(cls, "from_json", None)
         if not callable(from_json):
-            raise AttributeError(
+            raise TypeError(
                 "load_bundle requires from_json() (compose with MetaMixin)."
             )
 
@@ -288,7 +286,7 @@ class IndexIOMixin:
 
         Raises
         ------
-        AttributeError
+        TypeError
             If the backend does not provide ``serialize``.
         RuntimeError
             If serialization fails.
@@ -306,7 +304,7 @@ class IndexIOMixin:
         backend = backend_for(self)
         serialize = getattr(backend, "serialize", None)
         if not callable(serialize):
-            raise AttributeError("Backend does not provide serialize() -> bytes-like")
+            raise TypeError("Backend does not provide serialize() -> bytes-like")
 
         lock = lock_for(self)
         with lock:
@@ -349,7 +347,7 @@ class IndexIOMixin:
             If ``data`` is not bytes-like.
         ValueError
             If ``f`` or ``metric`` is invalid.
-        AttributeError
+        TypeError
             If the backend does not provide ``deserialize``.
 
         Notes
@@ -372,9 +370,7 @@ class IndexIOMixin:
         backend = backend_for(obj)
         deserialize = getattr(backend, "deserialize", None)
         if not callable(deserialize):
-            raise AttributeError(
-                "Backend does not provide deserialize(data, prefault=...)"
-            )
+            raise TypeError("Backend does not provide deserialize(data, prefault=...)")
 
         lock = lock_for(obj)
         with lock:

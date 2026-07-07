@@ -370,7 +370,7 @@ def print_labels(
             print(json.dumps(labels, indent=indent, ensure_ascii=False))  # noqa: T201
         else:
             pprint(labels, sort_dicts=False, width=100)  # noqa: T203
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print("⚠️ Failed to print labels:", e)  # noqa: T201
         pprint(labels, sort_dicts=False, width=100)  # noqa: T203
 
@@ -1789,7 +1789,7 @@ def decileplot(  # noqa: D417
             from IPython.display import display  # noqa: PLC0415
 
             display(dt)
-        except Exception:
+        except Exception:  # noqa: BLE001
             print(dt)  # noqa: T201
     return ax
 

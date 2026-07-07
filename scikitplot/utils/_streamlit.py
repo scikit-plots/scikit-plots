@@ -8,10 +8,12 @@
 
 """_streamlit.py."""
 
+from __future__ import annotations
+
 import os as _os
 from collections.abc import Generator
-from typing import Union
 
+# from typing import Union
 from .. import logger as _logger
 from .._compat.optional_deps import HAS_STREAMLIT, safe_import
 from ..exceptions import ScikitplotException
@@ -19,8 +21,8 @@ from ._toml import read_toml
 
 
 def streamlit_stream_or_return(
-    content: Union[str, Generator[str, None, None]],
-) -> Union[str, None]:
+    content: str | Generator[str, None, None],
+) -> str | None:
     """
     Conditionally stream content in Streamlit if streaming is available.
 
@@ -118,7 +120,7 @@ def save_st_secrets(
 
 def get_env_st_secrets(
     key: str,
-    default: "any | None" = None,
+    default: any | None = None,
 ) -> any:
     """
     Get a secret value from Streamlit's secrets or return a fallback.
@@ -143,5 +145,5 @@ def get_env_st_secrets(
             if hasattr(st, "secrets") and key in st.secrets
             else default
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         return default

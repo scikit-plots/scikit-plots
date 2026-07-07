@@ -58,7 +58,7 @@ def lock_for(obj: Any) -> threading.RLock:
             lock = get_lock()
             if isinstance(lock, _RLOCK_TYPE):
                 return lock
-        except Exception:
+        except Exception:  # noqa: BLE001
             # Never let lock acquisition become user-visible; fall back.
             pass
 
@@ -66,7 +66,7 @@ def lock_for(obj: Any) -> threading.RLock:
         lock = obj._lock
         if isinstance(lock, _RLOCK_TYPE):
             return lock
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     lock = threading.RLock()
@@ -74,11 +74,11 @@ def lock_for(obj: Any) -> threading.RLock:
     try:
         object.__setattr__(obj, "_lock", lock)
         return lock
-    except Exception:
+    except Exception:  # noqa: BLE001
         try:
             obj._lock = lock
             return lock
-        except Exception:
+        except Exception:  # noqa: BLE001
             return FALLBACK_LOCK
 
 
@@ -111,7 +111,7 @@ def backend_for(obj: Any) -> Any:
     # Fast-path: composition attribute, accessed defensively.
     try:
         return object.__getattribute__(obj, "_annoy")
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
     backend_attr = getattr(obj, "_backend", None)

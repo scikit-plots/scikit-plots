@@ -33,7 +33,7 @@ def first_run_notice(path=DEFAULT_NOTICE_PATH, message=DEFAULT_MESSAGE):
             f.write(message + "\n")
         print(f"\n📢 First-Run Notice:\n{message}\n")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"❌ Failed to load or write notice file: {e}")
 
 

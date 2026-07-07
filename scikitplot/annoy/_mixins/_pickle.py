@@ -41,8 +41,8 @@ from pathlib import Path  # noqa: F401
 # Only imports when type checking
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, cast  # noqa: F401
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
+# if TYPE_CHECKING:
+from typing_extensions import Self
 
 from .._utils import backend_for, lock_for
 
@@ -130,7 +130,7 @@ def _load_index_into(obj: Any, path: str, *, prefault: bool) -> None:
     backend = backend_for(obj)
     load = getattr(backend, "load", None)
     if not callable(load):
-        raise AttributeError("Backend does not provide load(path, prefault=...)")
+        raise TypeError("Backend does not provide load(path, prefault=...)")
 
     lock = lock_for(obj)
     with lock:
@@ -145,7 +145,7 @@ def _serialize_backend(obj: Any) -> bytes:
         # Some backends may expose serialize() directly on the wrapper.
         serialize = getattr(obj, "serialize", None)
     if not callable(serialize):
-        raise AttributeError("Backend does not provide serialize() -> bytes-like")
+        raise TypeError("Backend does not provide serialize() -> bytes-like")
 
     data = serialize()
     if not isinstance(data, (bytes, bytearray, memoryview)):
@@ -163,7 +163,7 @@ def _deserialize_backend(
         # Some backends may expose deserialize() directly on the wrapper.
         deserialize = getattr(obj, "deserialize", None)
     if not callable(deserialize):
-        raise AttributeError("Backend does not provide deserialize(data, prefault=...)")
+        raise TypeError("Backend does not provide deserialize(data, prefault=...)")
 
     lock = lock_for(obj)
     with lock:
@@ -316,7 +316,7 @@ class PickleMixin:
             backend, "get_n_trees"
         )
         if not callable(get_n_trees):
-            raise RuntimeError(
+            raise TypeError(
                 "pickle_mode='byte' requires get_n_trees() to determine whether the index is built."
             )
 
@@ -383,7 +383,7 @@ class PickleMixin:
         else:
             try:
                 instance = cls(f=f, metric=metric, prefault=prefault)  # type: ignore[call-arg]
-            except Exception:
+            except Exception:  # noqa: BLE001
                 instance = cls(f, metric)
 
         # Ensure lock exists even if cls.__init__ did not initialize it.

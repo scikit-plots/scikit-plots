@@ -87,7 +87,7 @@ def _raise_if_not_built(backend: Any) -> None:
     if callable(get_n_trees):
         try:
             n_trees = int(get_n_trees())
-        except Exception:
+        except Exception:  # noqa: BLE001
             return
         if n_trees <= 0:
             raise NotFittedError(
@@ -125,7 +125,7 @@ def _validate_query_matrix(
             copy=copy,
             reset=False,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         Xv = check_array(  # noqa: N806
             X,
             accept_sparse=False,
@@ -369,7 +369,7 @@ class VectorOpsMixin:
         if callable(get_n_items):
             try:
                 n_items = int(get_n_items())
-            except Exception:
+            except Exception:  # noqa: BLE001
                 n_items = 0
             if n_items > 0:
                 n_request = min(n_request, n_items)

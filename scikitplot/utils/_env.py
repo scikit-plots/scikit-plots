@@ -5,13 +5,15 @@
 
 """utils_env."""
 
+from __future__ import annotations
+
 import os as _os
 
 from ._dotenv import run_load_dotenv
 from ._streamlit import get_env_st_secrets
 
 
-def get_env_var(env_var: str = "", fallback: "str | None" = None) -> "str | None":
+def get_env_var(env_var: str = "", fallback: str | None = None) -> str | None:
     """
     Retrieve token from environment variable or Streamlit secrets.
 
@@ -30,5 +32,5 @@ def get_env_var(env_var: str = "", fallback: "str | None" = None) -> "str | None
     try:
         run_load_dotenv(override=False)
         return _os.getenv(env_var) or get_env_st_secrets(env_var, fallback)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return fallback

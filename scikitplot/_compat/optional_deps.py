@@ -175,7 +175,7 @@ def nested_import(  # noqa: PLR0912
             logger.exception(f"Unexpected error while importing {module_path!r}")
             if error == "ignore":
                 return default
-            raise e
+            raise
 
     # 3. Handle case where no module prefix could be imported
     if module is None:
@@ -287,7 +287,7 @@ def _get_source_path(obj: object):
         try:
             # _, lineno = inspect.getsourcelines(obj)
             return inspect.getfile(obj)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass  # May be a built-in or a C-extension
 
         # Fallback via code object
@@ -472,7 +472,7 @@ class LazyImport(ModuleType):
         try:
             simple_name = self._name.lstrip(".").split(".")[-1]
             self._parent_module_globals[simple_name] = obj
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
         # Only register real modules in sys.modules
@@ -526,7 +526,7 @@ class LazyImport(ModuleType):
         """
         try:
             return self.resolved is not _NoValue
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
     @property
@@ -540,7 +540,7 @@ class LazyImport(ModuleType):
         """
         try:
             return type(self.resolved)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return type(None)
 
     # ------------------------------------------------------------------
@@ -565,7 +565,7 @@ class LazyImport(ModuleType):
                 source = _get_source_path(self._resolved)
                 status = "(Loaded)"
             return f"<LazyImport → {resolved_type!r} {self._name!r} from {source!r} {status}>"
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return f"<LazyImport (repr error: {e}) {self._name!r}>"
 
     def __call__(self, *args: any, **kwargs: any) -> any:
@@ -621,7 +621,7 @@ class LazyImport(ModuleType):
         if self._loaded:
             try:
                 return bool(self._resolved)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 return False
 
         # Not loaded yet: cheap availability check via find_spec
@@ -637,7 +637,7 @@ class LazyImport(ModuleType):
 
         try:
             spec = importlib.util.find_spec(candidate)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
         return spec is not None
@@ -650,7 +650,7 @@ class LazyImport(ModuleType):
         """
         try:
             return sorted(set(dir(self.resolved)))
-        except Exception:
+        except Exception:  # noqa: BLE001
             return sorted(super().__dir__())
 
     def __getattr__(self, attr: str) -> any:
@@ -685,7 +685,7 @@ class LazyImport(ModuleType):
             if isinstance(other, LazyImport):
                 return self.resolved == other.resolved
             return self.resolved == other
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
 

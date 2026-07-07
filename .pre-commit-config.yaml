@@ -31,6 +31,7 @@ repos:
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:
+      # pre-commit run codespell --all-files --verbose
       - id: codespell
         args: ["--write-changes"]  # "--ignore-words", ".codespellrc-ignore-words" [--ignore-words-list=ser]
         # files: \.(py|rst|md)$
@@ -63,6 +64,7 @@ repos:
   - repo: https://github.com/woodruffw/zizmor-pre-commit
     rev: v1.26.1
     hooks:
+      # pre-commit run zizmor --all-files --verbose
       - id: zizmor
 
   # Critical Checks: Sensitive data, large files, and merge conflicts
@@ -217,6 +219,7 @@ repos:
       # TODO: add the double-quote-cython-strings hook when it's usability has improved:
       # possibility to pass a directory and use it as a check instead of auto-formatter.
       - id: double-quote-cython-strings
+      # pre-commit run cython-lint --all-files --verbose
       - id: cython-lint
 
   # 2. Ruff auto-fixes
@@ -224,6 +227,7 @@ repos:
     rev: v0.15.20
     hooks:
       # - id: ruff  # Run the linter.
+      # pre-commit run ruff-check --all-files --verbose
       - id: ruff-check  # Change linter ruff hook → ruff-check
         args: ["--fix", "--show-fixes", "--output-format=full", "--verbose"]  # --unsafe-fixes
         # types_or: [ python, pyi ]
@@ -237,6 +241,7 @@ repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 26.5.1
     hooks:
+      # pre-commit run black --all-files --verbose
       - id: black
         name: black
         description: "Black: The uncompromising Python code formatter"
@@ -292,6 +297,7 @@ repos:
     rev: v0.15.20
     hooks:
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
+      # pre-commit run ruff-format --all-files --verbose
       - id: ruff-format  # Run the formatter.
         args:
           - --verbose                 # Show additional debugging or context info.
@@ -307,6 +313,7 @@ repos:
   - repo: https://github.com/pycqa/flake8
     rev: 7.3.0
     hooks:
+      # pre-commit run flake8 --all-files --verbose
       - id: flake8
         additional_dependencies:
           - flake8-bugbear  # Catches common situations that tend to create bugs.
@@ -322,6 +329,7 @@ repos:
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.1.0
     hooks:
+      # pre-commit run mypy --all-files --verbose
       - id: mypy
         pass_filenames: false  # Prevent passing filenames to the hook.
         args:  # [--config-file=.mypy.ini, --follow-imports=skip]
@@ -347,6 +355,7 @@ repos:
   - repo: https://github.com/scientific-python/cookie
     rev: 2026.06.18
     hooks:
+      # pre-commit run sp-repo-review --all-files --verbose
       - id: sp-repo-review
 
   # - repo: https://github.com/asottile/reorder-python-imports
