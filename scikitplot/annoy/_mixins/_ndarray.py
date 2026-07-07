@@ -232,7 +232,7 @@ class NDArrayMixin:
         try:
             with lock_for(self):
                 n_trees = int(get_n_trees())
-        except Exception:
+        except Exception:  # noqa: BLE001
             # If the backend cannot report build state reliably, do not guess.
             return
 
@@ -464,7 +464,7 @@ class NDArrayMixin:
         # sklearn-style fitted metadata (safe even without MetaMixin)
         try:
             object.__setattr__(self, "n_features_in_", int(n_features))
-        except Exception:
+        except Exception:  # noqa: BLE001
             with contextlib.suppress(Exception):
                 self.n_features_in_ = int(n_features)
 
@@ -476,10 +476,10 @@ class NDArrayMixin:
                     names = np.asarray([str(c) for c in cols], dtype=object)
                     try:
                         object.__setattr__(self, "feature_names_in_", names)
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         with contextlib.suppress(Exception):
                             self.feature_names_in_ = names
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
         if ids is None:
@@ -751,7 +751,7 @@ class NDArrayMixin:
             if feature_names_in_ is not None:
                 try:
                     names = [str(c) for c in list(feature_names_in_)]
-                except Exception:
+                except Exception:  # noqa: BLE001
                     names = []
                 cols = names if len(names) == f else [f"feature_{j}" for j in range(f)]
             else:
