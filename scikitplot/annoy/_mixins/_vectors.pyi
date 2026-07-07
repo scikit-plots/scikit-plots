@@ -1,4 +1,6 @@
 # scikitplot/annoy/_mixins/_vectors.pyi
+#
+# fmt: off
 
 """Typing stubs for vector neighbor utilities."""  # noqa: PYI021
 

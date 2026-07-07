@@ -1,4 +1,6 @@
 # scikitplot/annoy/_mixins/_ndarray.pyi
+#
+# fmt: off
 
 """Typing stubs for NumPy / SciPy / pandas interoperability."""  # noqa: PYI021
 

@@ -1,4 +1,7 @@
 # scikitplot/annoy/_mixins/_pickle.pyi
+#
+# fmt: off
+
 """Typing stubs for :mod:`scikitplot.annoy._mixins._pickle`."""  # noqa: PYI021
 
 # from __future__ import annotations
