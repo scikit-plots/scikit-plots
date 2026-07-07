@@ -2263,29 +2263,29 @@
         },
         "jupyterlite-core": {
             "hashes": [
-                "sha256:549071b6d037b5545bfc8a3733a7bfc1faa4d0c42dbe87faed0f49d29591f58f",
-                "sha256:bc2393d2218dbd666a2854c669b59503de207110511baa80b0025facb7f0c9e0"
+                "sha256:051dbb45d401336400a894d9eb8021968bf52645b23ce31a0dfc2914ebcb2faa",
+                "sha256:81234b918bf93c15228b31edc87dac07c92b26bb13148826ced9144407b06daa"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==0.7.6"
+            "version": "==0.8.0"
         },
         "jupyterlite-pyodide-kernel": {
             "hashes": [
-                "sha256:4a3466c5e18adc9ac4db7a8386fc63da2fc9e6b6df8a23cb65a81e8343f1baae",
-                "sha256:b03de062804b2b70cfaccd2918b78a20a4a874e9adde2fe02ee8cb7db79ccbf7"
+                "sha256:58c8c6f3f660f8fcb404afe8efc822145a96abffcbd10e6523978b0b3d95346a",
+                "sha256:8e3a8ad56d9e2d3d69452ba44409164fb7c92b8b8c62d7f21726ab1db89b1a14"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==0.7.2"
+            "version": "==0.8.1"
         },
         "jupyterlite-sphinx": {
             "hashes": [
-                "sha256:e13682884deaecdb88dc81917df8a7275291f17575c3d1707b791e4a876a8556",
-                "sha256:eb00be3a39cecd08307cae86f605705af1af5f95e678b8a2be55eccd66de284b"
+                "sha256:9be4ac99e98b03f125b9ae5b63a137a6d1d7ba0bdf61dd1aedbf83ae77fe0716",
+                "sha256:be6332d16490ea2fa90b78187a2c5e1c357195966a25741d60b1790346571041"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.9'",
-            "version": "==0.22.1"
+            "markers": "python_version >= '3.8'",
+            "version": "==0.9.3"
         },
         "jupytext": {
             "hashes": [
