@@ -85,7 +85,6 @@ updates:
       - "dev-automation"
       - "github_actions"
       - "maintenance"
-      - no-changelog-entry-needed
     # Group all non-ignored action bumps into a single PR to reduce noise.
     groups:
       # github-actions-all:
@@ -120,6 +119,27 @@ updates:
       # semver-major-days: 30
       # semver-minor-days: 7
       # semver-patch-days: 2
+
+  - package-ecosystem: "conda"
+    directory: "/"
+    schedule:
+      interval: weekly  # "daily", weekly, monthly
+    commit-message:
+      prefix: "[MAINT]"
+    labels:
+      - no-changelog-entry-needed
+      - "03 - Maintenance"
+      - "build/ci"
+      - "dependencies"
+      - "maintenance"
+    cooldown:
+      default-days: 7  # optional
+      # semver-major-days: 30
+      # semver-minor-days: 7
+      # semver-patch-days: 2
+
+  # pipenv	pip	<= 2024.4.1
+  # - package-ecosystem: "pipenv"
 
   - package-ecosystem: pip
     # ── Why `directories` instead of `directory: /` + `exclude-paths` ─────────
@@ -204,13 +224,17 @@ updates:
       # day: "monday"
       # time: '11:11'
       # timezone: "UTC"
+    # https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/controlling-dependencies-updated#ignoring-specific-dependencies
     ignore:
       - dependency-name: "scipy-openblas32"
       - dependency-name: "scipy-openblas64"
       - dependency-name: "jupyterlite-pyodide-kernel"
       - dependency-name: "sphinx"
+        # versions: [ "[1.1,)" ]
       - dependency-name: "h5py"
-      - dependency-name: "voyager"
+      - dependency-name: "voyager:*"
+        # Ignore versions of voyager that are equal to or greater than 1.2.5 We have a separate process for updating them
+        versions: [ ">=1.2.5" ]
     commit-message:
       prefix: "[MAINT]"
     labels:
@@ -219,7 +243,6 @@ updates:
       - "build/ci"
       - "dependencies"
       - "maintenance"
-      - no-changelog-entry-needed
     # Group all non-ignored action bumps into a single PR to reduce noise.
     groups:
       python-deps:
@@ -233,16 +256,3 @@ updates:
       # semver-patch-days: 2
     # reviewers:
     #   - "scikit-plots/core-devs"
-
-  - package-ecosystem: "conda"
-    directory: "/"
-    schedule:
-      interval: weekly  # "daily", weekly, monthly
-    cooldown:
-      default-days: 7  # optional
-      # semver-major-days: 30
-      # semver-minor-days: 7
-      # semver-patch-days: 2
-
-  # pipenv	pip	<= 2024.4.1
-  # - package-ecosystem: "pipenv"
