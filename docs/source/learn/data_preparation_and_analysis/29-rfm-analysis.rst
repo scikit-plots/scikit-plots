@@ -6,7 +6,7 @@ RFM Analysis
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 29 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`   ·   :doc:`Next · Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm> ▶`
+:doc:`◀ Previous · Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`   ·   :doc:`Next · Creating Segments of Observations for Business Reasons (RFM) ▶ <30-creating-segments-of-observations-for-business-reasons-rfm>`
 
 
 From raw values to scores

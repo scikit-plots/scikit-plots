@@ -6,7 +6,7 @@ Forward Selection and Model Interpretation in Linear Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 35 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Forward Selection: Definition and Core Idea <34-forward-selection-definition-and-core-idea>`   ·   :doc:`Next · Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression> ▶`
+:doc:`◀ Previous · Forward Selection: Definition and Core Idea <34-forward-selection-definition-and-core-idea>`   ·   :doc:`Next · Understanding Forward and Backward Stepwise Regression ▶ <36-understanding-forward-and-backward-stepwise-regression>`
 
 
 Building the model

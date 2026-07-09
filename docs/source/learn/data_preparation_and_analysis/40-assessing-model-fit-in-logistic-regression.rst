@@ -6,7 +6,7 @@ Assessing Model Fit in Logistic Regression
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 40 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`   ·   :doc:`Next · Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression> ▶`
+:doc:`◀ Previous · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`   ·   :doc:`Next · Complete and Quasi-Complete Separation in Logistic Regression ▶ <41-complete-and-quasi-complete-separation-in-logistic-regression>`
 
 
 No R² to lean on

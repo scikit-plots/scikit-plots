@@ -6,7 +6,7 @@ IEEE 754 Floating-Point Standard
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 06 of 56  ·  *beginner*
 
-:doc:`◀ Previous · The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`   ·   :doc:`Next · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022> ▶`
+:doc:`◀ Previous · The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`   ·   :doc:`Next · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) ▶ <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`
 
 
 Storing real numbers

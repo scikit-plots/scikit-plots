@@ -6,7 +6,7 @@ What Are Time Series, and How Are They Used?
 
 **Stage 1 · 🧭 Orientation**  ·  Lesson 01 of 18  ·  *beginner*
 
-:doc:`Next · Getting Started with R <02-getting-started-with-r> ▶`
+:doc:`Next · Getting Started with R ▶ <02-getting-started-with-r>`
 
 
 What it is

@@ -6,7 +6,7 @@ The CART Algorithm
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 45 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`   ·   :doc:`Next · Decision Trees as Piecewise Models and Their Predictive Structure <46-decision-trees-as-piecewise-models-and-their-predictive-structure> ▶`
+:doc:`◀ Previous · Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`   ·   :doc:`Next · Decision Trees as Piecewise Models and Their Predictive Structure ▶ <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`
 
 
 Growing a tree from data

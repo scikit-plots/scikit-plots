@@ -6,7 +6,7 @@ A Gentle Introduction to Stationarity
 
 **Stage 2 · 📐 Stationarity**  ·  Lesson 03 of 18  ·  *beginner*
 
-:doc:`◀ Previous · Getting Started with R <02-getting-started-with-r>`   ·   :doc:`Next · Weak and Strong Stationarity <04-weak-and-strong-stationarity> ▶`
+:doc:`◀ Previous · Getting Started with R <02-getting-started-with-r>`   ·   :doc:`Next · Weak and Strong Stationarity ▶ <04-weak-and-strong-stationarity>`
 
 
 What it is

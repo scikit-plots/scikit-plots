@@ -6,7 +6,7 @@ What is a Neural Network?
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 01 of 17  ·  *beginner*
 
-:doc:`Next · Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks> ▶`
+:doc:`Next · Supervised Learning and Neural Networks ▶ <02-supervised-learning-and-neural-networks>`
 
 
 A single neuron

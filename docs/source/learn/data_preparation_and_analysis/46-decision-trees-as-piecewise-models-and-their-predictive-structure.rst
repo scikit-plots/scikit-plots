@@ -6,7 +6,7 @@ Decision Trees as Piecewise Models and Their Predictive Structure
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 46 of 56  ·  *advanced*
 
-:doc:`◀ Previous · The CART Algorithm <45-the-cart-algorithm>`   ·   :doc:`Next · How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions> ▶`
+:doc:`◀ Previous · The CART Algorithm <45-the-cart-algorithm>`   ·   :doc:`Next · How CART Decision Trees Model Interactions ▶ <47-how-cart-decision-trees-model-interactions>`
 
 
 Boxes in feature space

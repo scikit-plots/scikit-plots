@@ -1011,7 +1011,8 @@ html_theme_options = {
             "url": "https://pypi.org/project/scikit-plots",
             # "icon": "fa-custom fa-pypi",
             # "icon": "fa-brands fa-python", "type": "fontawesome",
-            "icon": "_static/logos/python-logo.png", "type": "local",
+            # "icon": "_static/logos/python-logo.png", "type": "local",
+            "icon": "_static/logos/pypi-logo.png", "type": "local",
         },
         {
             # Label for this link

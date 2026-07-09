@@ -6,7 +6,7 @@ How Shapley Values Work
 
 **Stage 5 · 📈 Regression**  ·  Lesson 37 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`   ·   :doc:`Next · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds> ▶`
+:doc:`◀ Previous · Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`   ·   :doc:`Next · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds ▶ <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`
 
 
 A fair division problem

@@ -6,7 +6,7 @@ Big Data: Definition, Characteristics, Evolution, and Business Impact
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 04 of 56  ·  *beginner*
 
-:doc:`◀ Previous · CRISP-DM for Data Science <03-crisp-dm-for-data-science>`   ·   :doc:`Next · The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data> ▶`
+:doc:`◀ Previous · CRISP-DM for Data Science <03-crisp-dm-for-data-science>`   ·   :doc:`Next · The First Step in Knowing Your Data ▶ <05-the-first-step-in-knowing-your-data>`
 
 
 What makes data 'big'

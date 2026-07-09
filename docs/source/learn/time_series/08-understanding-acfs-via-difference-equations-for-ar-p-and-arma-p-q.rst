@@ -6,7 +6,7 @@ Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q)
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 08 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`   ·   :doc:`Next · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process> ▶`
+:doc:`◀ Previous · Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`   ·   :doc:`Next · Best Linear Predictor of a Stationary Process ▶ <09-best-linear-predictor-of-a-stationary-process>`
 
 
 The general rule

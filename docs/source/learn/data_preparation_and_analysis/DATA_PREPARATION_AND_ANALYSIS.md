@@ -10,7 +10,7 @@
 | **Generator** | `build_data_preparation.py` (Python 3, standard library only) |
 | **Determinism** | Same inputs → **byte-identical** output, every run (ordered, no RNG) |
 | **Status** | 56 / 56 lessons complete, all cross-linked, all links + underlines valid |
-| **Seal sha256** | `41cd74771e818433290f349c70f22068db4603d66e10a499ed1cb7b709186302` (concatenated `01-…56-*.rst` + `index.rst`, sorted) |
+| **Seal sha256** | `27077cbff841f1fa423a9d631722b32b147fb6ef59eea6219aa6236313622623` (concatenated `01-…56-*.rst` + `index.rst`, sorted) |
 
 > **Golden rules** (violate none):
 > 1. **Idempotent** — rebuilding never changes output unless an input changed.
@@ -349,8 +349,8 @@ warning is never removed.
   scikit-plots ROC/lift/confusion charts once the docs build budget allows.
 * **Terminology deep-links**: individual metric mentions (precision, recall, AUC…) could link
   to their glossary term pages, not just the hub anchor.
-* **Hub scaling**: if this hub ever feels heavy, the terminology **v2 filterable browser**
-  pattern (collapsed dropdowns + live JS filter + A–Z) is a drop-in upgrade.
+* **Hub scaling**: applied — this hub now uses the terminology **v2 filterable browser**
+  pattern (see “Hub layout (v2)” below).
 
 ---
 
@@ -362,3 +362,23 @@ warning is never removed.
 4. Rebuild → validate (0/0/0) → idempotency (seal sha) → sync → zip. Every time.
 5. Never edit generated `.rst`; never ship `__pycache__`.
 6. Report performance on **held-out test data** — the course's own rule applies to its authors.
+
+## Hub layout (v2 — filterable browser)
+
+`index.rst` is now emitted in the **shared v2 browser design** (first shipped on
+`learn/terminology/`), replacing the always-expanded per-stage card grids:
+
+- a **live filter box** (small dependency-free JS, generator-emitted): typing filters every
+  lesson by **title or GLOSS keyword**, auto-opens matching stage dropdowns, and shows a live
+  match count; without JS the page degrades to plain collapsible sections;
+- one **`.. dropdown::` per stage** (8 of them), titled with the stage emoji, number, name
+  and lesson count; the body carries the stage blurb + level and one line per lesson:
+  `NN · Title — gloss` (order preserved, glosses retained);
+- one **A–Z master dropdown** listing all 56 lessons alphabetically (auto-sorted);
+- **new stable anchors**: `_dpa-stage-<key>:` before each stage dropdown (linkable from
+  other hubs); the page anchor is unchanged;
+- **lesson pages untouched** by the redesign (proven byte-identical), and the same JS/classes
+  (`details.sd-dropdown`, `.term-az`, `#term-filter`) as every other hub — one pattern, four hubs.
+
+The **seal sha in the header table reflects the v2 index**. Everything else in this guide is
+unchanged: same inputs, same fail-fast guards, same validator, same workflow.

@@ -6,7 +6,7 @@ Geoffrey Hinton Interview
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 04 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`   ·   :doc:`Next · Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics> ▶`
+:doc:`◀ Previous · Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`   ·   :doc:`Next · Binary Classification and Logistic Regression (Neural Network Basics) ▶ <05-binary-classification-and-logistic-regression-neural-network-basics>`
 
 
 Heroes of Deep Learning

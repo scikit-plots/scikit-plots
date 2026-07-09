@@ -6,7 +6,7 @@ Feature Importance in Linear Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 33 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Multiple Linear Regression <32-multiple-linear-regression>`   ·   :doc:`Next · Forward Selection: Definition and Core Idea <34-forward-selection-definition-and-core-idea> ▶`
+:doc:`◀ Previous · Multiple Linear Regression <32-multiple-linear-regression>`   ·   :doc:`Next · Forward Selection: Definition and Core Idea ▶ <34-forward-selection-definition-and-core-idea>`
 
 
 Which features matter?

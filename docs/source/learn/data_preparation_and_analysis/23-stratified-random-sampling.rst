@@ -6,7 +6,7 @@ Stratified Random Sampling
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 23 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Cross-Selling <22-cross-selling>`   ·   :doc:`Next · Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg> ▶`
+:doc:`◀ Previous · Cross-Selling <22-cross-selling>`   ·   :doc:`Next · Linear Congruential Random Number Generator (LCG) ▶ <24-linear-congruential-random-number-generator-lcg>`
 
 
 Representative by design

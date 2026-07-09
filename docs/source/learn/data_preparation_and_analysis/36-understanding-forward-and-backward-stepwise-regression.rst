@@ -6,7 +6,7 @@ Understanding Forward and Backward Stepwise Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 36 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`   ·   :doc:`Next · How Shapley Values Work <37-how-shapley-values-work> ▶`
+:doc:`◀ Previous · Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`   ·   :doc:`Next · How Shapley Values Work ▶ <37-how-shapley-values-work>`
 
 
 Three directions

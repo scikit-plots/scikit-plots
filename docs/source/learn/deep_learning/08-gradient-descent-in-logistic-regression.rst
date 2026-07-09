@@ -6,7 +6,7 @@ Gradient Descent in Logistic Regression
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 08 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`   ·   :doc:`Next · Derivatives <09-derivatives> ▶`
+:doc:`◀ Previous · Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`   ·   :doc:`Next · Derivatives ▶ <09-derivatives>`
 
 
 The optimization problem

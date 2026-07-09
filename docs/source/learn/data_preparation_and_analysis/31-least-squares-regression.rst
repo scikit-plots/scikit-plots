@@ -6,7 +6,7 @@ Least Squares Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 31 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`   ·   :doc:`Next · Multiple Linear Regression <32-multiple-linear-regression> ▶`
+:doc:`◀ Previous · Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`   ·   :doc:`Next · Multiple Linear Regression ▶ <32-multiple-linear-regression>`
 
 
 Fitting a line

@@ -6,7 +6,7 @@ What Are Statistical Tests?
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 15 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Harald Cramér <14-harald-cramer>`   ·   :doc:`Next · Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova> ▶`
+:doc:`◀ Previous · Harald Cramér <14-harald-cramer>`   ·   :doc:`Next · Eta Squared (η²): Effect Size in ANOVA ▶ <16-eta-squared-2-effect-size-in-anova>`
 
 
 Is it real or chance?

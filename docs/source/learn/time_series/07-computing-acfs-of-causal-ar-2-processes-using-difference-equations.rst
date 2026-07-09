@@ -6,7 +6,7 @@ Computing ACFs of Causal AR(2) Processes Using Difference Equations
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 07 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding ARMA Processes <06-understanding-arma-processes>`   ·   :doc:`Next · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q> ▶`
+:doc:`◀ Previous · Understanding ARMA Processes <06-understanding-arma-processes>`   ·   :doc:`Next · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) ▶ <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`
 
 
 The recursion

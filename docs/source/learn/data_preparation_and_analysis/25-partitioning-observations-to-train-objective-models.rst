@@ -6,7 +6,7 @@ Partitioning Observations to Train Objective Models
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 25 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`   ·   :doc:`Next · Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters> ▶`
+:doc:`◀ Previous · Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`   ·   :doc:`Next · Putting Similar Observations into Clusters ▶ <26-putting-similar-observations-into-clusters>`
 
 
 The temptation to cheat

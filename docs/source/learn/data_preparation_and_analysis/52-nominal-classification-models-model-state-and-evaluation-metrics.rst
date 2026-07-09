@@ -6,7 +6,7 @@ Nominal Classification Models: Model State and Evaluation Metrics
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 52 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`Next · Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization> ▶`
+:doc:`◀ Previous · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`Next · Binary Classification Model Evaluation and Threshold Optimization ▶ <53-binary-classification-model-evaluation-and-threshold-optimization>`
 
 
 Beyond two classes

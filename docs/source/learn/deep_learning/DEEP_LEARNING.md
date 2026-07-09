@@ -417,3 +417,24 @@ exit 1). **Invariants after a successful build:**
 - **Rewrite, never copy** the source; **verified sources only** — invent nothing.
 - **~3 lessons per batch**, each deep (idea, formula, worked example / numpy snippet, pitfalls,
   links).
+
+## Hub layout (v2 — filterable browser)
+
+`index.rst` is now emitted in the **shared v2 browser design** (first shipped on
+`learn/terminology/`), replacing the always-expanded per-stage card grids:
+
+- a **live filter box** (small dependency-free JS, generator-emitted): typing filters every
+  lesson by **title or GLOSS keyword**, auto-opens matching stage dropdowns, and shows a live
+  match count; without JS the page degrades to plain collapsible sections;
+- one **`.. dropdown::` per stage** (4 of them), titled with the stage emoji, number, name
+  and lesson count; the body carries the stage blurb + level and one line per lesson:
+  `NN · Title — gloss` (order preserved, glosses retained);
+- one **A–Z master dropdown** listing all 17 lessons alphabetically (auto-sorted);
+- **new stable anchors**: `_dl-stage-<key>:` before each stage dropdown (linkable from
+  other hubs); the page anchor is unchanged;
+- **lesson pages untouched** by the redesign (proven byte-identical), and the same JS/classes
+  (`details.sd-dropdown`, `.term-az`, `#term-filter`) as every other hub — one pattern, four hubs.
+
+The canonical **v2 seal sha** (concatenated sorted `NN-*.rst` + `index.rst`) is
+`02ec64079327ead38448230d9e300f59e792f9f99c2c4a54d5f6f5ba1a07b11a`. Everything else in this guide is
+unchanged: same inputs, same fail-fast guards, same validator, same workflow.

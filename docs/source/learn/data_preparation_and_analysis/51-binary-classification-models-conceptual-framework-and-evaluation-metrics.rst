@@ -6,7 +6,7 @@ Binary Classification Models – Conceptual Framework and Evaluation Metrics
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 51 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`   ·   :doc:`Next · Nominal Classification Models: Model State and Evaluation Metrics <52-nominal-classification-models-model-state-and-evaluation-metrics> ▶`
+:doc:`◀ Previous · Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`   ·   :doc:`Next · Nominal Classification Models: Model State and Evaluation Metrics ▶ <52-nominal-classification-models-model-state-and-evaluation-metrics>`
 
 
 Four kinds of outcome

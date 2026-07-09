@@ -6,7 +6,7 @@ Supervised Learning and Neural Networks
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 02 of 17  ·  *beginner*
 
-:doc:`◀ Previous · What is a Neural Network? <01-what-is-a-neural-network>`   ·   :doc:`Next · Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off> ▶`
+:doc:`◀ Previous · What is a Neural Network? <01-what-is-a-neural-network>`   ·   :doc:`Next · Why Deep Learning is Taking Off ▶ <03-why-deep-learning-is-taking-off>`
 
 
 Learning a mapping

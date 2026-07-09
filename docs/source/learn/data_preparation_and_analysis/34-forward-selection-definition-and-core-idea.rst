@@ -6,7 +6,7 @@ Forward Selection: Definition and Core Idea
 
 **Stage 5 · 📈 Regression**  ·  Lesson 34 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`   ·   :doc:`Next · Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression> ▶`
+:doc:`◀ Previous · Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`   ·   :doc:`Next · Forward Selection and Model Interpretation in Linear Regression ▶ <35-forward-selection-and-model-interpretation-in-linear-regression>`
 
 
 Too many features

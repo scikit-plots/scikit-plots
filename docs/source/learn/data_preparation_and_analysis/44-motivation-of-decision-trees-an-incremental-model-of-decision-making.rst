@@ -6,7 +6,7 @@ Motivation of Decision Trees: An Incremental Model of Decision-Making
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 44 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`   ·   :doc:`Next · The CART Algorithm <45-the-cart-algorithm> ▶`
+:doc:`◀ Previous · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`   ·   :doc:`Next · The CART Algorithm ▶ <45-the-cart-algorithm>`
 
 
 How people decide

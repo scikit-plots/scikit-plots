@@ -6,7 +6,7 @@ Weak and Strong Stationarity
 
 **Stage 2 · 📐 Stationarity**  ·  Lesson 04 of 18  ·  *beginner*
 
-:doc:`◀ Previous · A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`   ·   :doc:`Next · Linear Processes <05-linear-processes> ▶`
+:doc:`◀ Previous · A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`   ·   :doc:`Next · Linear Processes ▶ <05-linear-processes>`
 
 
 Two definitions

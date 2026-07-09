@@ -6,7 +6,7 @@ Getting Started with R
 
 **Stage 1 · 🧭 Orientation**  ·  Lesson 02 of 18  ·  *beginner*
 
-:doc:`◀ Previous · What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`   ·   :doc:`Next · A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity> ▶`
+:doc:`◀ Previous · What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`   ·   :doc:`Next · A Gentle Introduction to Stationarity ▶ <03-a-gentle-introduction-to-stationarity>`
 
 
 The toolkit

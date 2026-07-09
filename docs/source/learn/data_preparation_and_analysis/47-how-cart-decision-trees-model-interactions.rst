@@ -6,7 +6,7 @@ How CART Decision Trees Model Interactions
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 47 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Decision Trees as Piecewise Models and Their Predictive Structure <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`   ·   :doc:`Next · Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees> ▶`
+:doc:`◀ Previous · Decision Trees as Piecewise Models and Their Predictive Structure <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`   ·   :doc:`Next · Cluster Profiling Using Decision Trees ▶ <48-cluster-profiling-using-decision-trees>`
 
 
 What is an interaction?

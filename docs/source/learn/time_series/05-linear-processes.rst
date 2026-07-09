@@ -6,7 +6,7 @@ Linear Processes
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 05 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Weak and Strong Stationarity <04-weak-and-strong-stationarity>`   ·   :doc:`Next · Understanding ARMA Processes <06-understanding-arma-processes> ▶`
+:doc:`◀ Previous · Weak and Strong Stationarity <04-weak-and-strong-stationarity>`   ·   :doc:`Next · Understanding ARMA Processes ▶ <06-understanding-arma-processes>`
 
 
 What it is

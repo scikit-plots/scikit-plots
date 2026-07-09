@@ -6,7 +6,7 @@ Interpreting and Assessing a Forward-Selection Logistic Regression Model for Col
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 43 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`   ·   :doc:`Next · Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making> ▶`
+:doc:`◀ Previous · Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`   ·   :doc:`Next · Motivation of Decision Trees: An Incremental Model of Decision-Making ▶ <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`
 
 
 A real prediction problem

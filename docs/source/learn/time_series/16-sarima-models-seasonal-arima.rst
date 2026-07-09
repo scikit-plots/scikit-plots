@@ -6,7 +6,7 @@ SARIMA Models: Seasonal ARIMA
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 16 of 18  ·  *advanced*
 
-:doc:`◀ Previous · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`   ·   :doc:`Next · Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions> ▶`
+:doc:`◀ Previous · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`   ·   :doc:`Next · Beyond One-Step Ahead Predictions ▶ <17-beyond-one-step-ahead-predictions>`
 
 
 The seasonal problem

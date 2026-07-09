@@ -6,7 +6,7 @@ Beyond One-Step Ahead Predictions
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 17 of 18  ·  *advanced*
 
-:doc:`◀ Previous · SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`   ·   :doc:`Next · Exponential Smoothing Models <18-exponential-smoothing-models> ▶`
+:doc:`◀ Previous · SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`   ·   :doc:`Next · Exponential Smoothing Models ▶ <18-exponential-smoothing-models>`
 
 
 Forecasting further

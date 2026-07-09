@@ -6,7 +6,7 @@ Using Decision Trees to Explain Clustering Results
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 49 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees>`   ·   :doc:`Next · Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models> ▶`
+:doc:`◀ Previous · Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees>`   ·   :doc:`Next · Assessing the Quality of Prediction Models ▶ <50-assessing-the-quality-of-prediction-models>`
 
 
 Explaining a black box

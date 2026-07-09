@@ -6,7 +6,7 @@ Derivatives with a Computation Graph
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 12 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Computation Graph <11-computation-graph>`   ·   :doc:`Next · Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent> ▶`
+:doc:`◀ Previous · Computation Graph <11-computation-graph>`   ·   :doc:`Next · Logistic Regression Gradient Descent ▶ <13-logistic-regression-gradient-descent>`
 
 
 Walking backward

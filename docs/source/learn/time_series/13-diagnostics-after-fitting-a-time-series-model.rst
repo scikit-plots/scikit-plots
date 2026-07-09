@@ -6,7 +6,7 @@ Diagnostics After Fitting a Time Series Model
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 13 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`   ·   :doc:`Next · Order Selection for Time Series Models <14-order-selection-for-time-series-models> ▶`
+:doc:`◀ Previous · Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`   ·   :doc:`Next · Order Selection for Time Series Models ▶ <14-order-selection-for-time-series-models>`
 
 
 The goal

@@ -6,7 +6,7 @@ Vectorization in Logistic Regression
 
 **Stage 4 · ⚙️ Backprop & Vectorization**  ·  Lesson 15 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`   ·   :doc:`Next · More Vectorization Examples <16-more-vectorization-examples> ▶`
+:doc:`◀ Previous · Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`   ·   :doc:`Next · More Vectorization Examples ▶ <16-more-vectorization-examples>`
 
 
 What vectorization is

@@ -6,7 +6,7 @@ Gradient Descent on m Training Examples
 
 **Stage 4 · ⚙️ Backprop & Vectorization**  ·  Lesson 14 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`   ·   :doc:`Next · Vectorization in Logistic Regression <15-vectorization-in-logistic-regression> ▶`
+:doc:`◀ Previous · Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`   ·   :doc:`Next · Vectorization in Logistic Regression ▶ <15-vectorization-in-logistic-regression>`
 
 
 Averaging the gradient

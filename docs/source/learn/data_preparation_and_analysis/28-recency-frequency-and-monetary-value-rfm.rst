@@ -6,7 +6,7 @@ Recency, Frequency, and Monetary Value (RFM)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 28 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Clustering <27-clustering>`   ·   :doc:`Next · RFM Analysis <29-rfm-analysis> ▶`
+:doc:`◀ Previous · Clustering <27-clustering>`   ·   :doc:`Next · RFM Analysis ▶ <29-rfm-analysis>`
 
 
 Three questions about a customer

@@ -6,7 +6,7 @@ Understanding Market Baskets and Ideal Customers
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 17 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`   ·   :doc:`Next · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us> ▶`
+:doc:`◀ Previous · Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`   ·   :doc:`Next · What Can Association Rules Tell Us? ▶ <18-what-can-association-rules-tell-us>`
 
 
 What's in the basket

@@ -6,7 +6,7 @@ Derivatives
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 09 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`   ·   :doc:`Next · More Derivative Examples <10-more-derivative-examples> ▶`
+:doc:`◀ Previous · Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`   ·   :doc:`Next · More Derivative Examples ▶ <10-more-derivative-examples>`
 
 
 Derivative means slope

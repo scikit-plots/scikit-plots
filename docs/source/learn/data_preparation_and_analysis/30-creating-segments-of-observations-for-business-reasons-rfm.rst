@@ -6,7 +6,7 @@ Creating Segments of Observations for Business Reasons (RFM)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 30 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · RFM Analysis <29-rfm-analysis>`   ·   :doc:`Next · Least Squares Regression <31-least-squares-regression> ▶`
+:doc:`◀ Previous · RFM Analysis <29-rfm-analysis>`   ·   :doc:`Next · Least Squares Regression ▶ <31-least-squares-regression>`
 
 
 From codes to segments

@@ -6,7 +6,7 @@ Cross-Selling
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 22 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`   ·   :doc:`Next · Stratified Random Sampling <23-stratified-random-sampling> ▶`
+:doc:`◀ Previous · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`   ·   :doc:`Next · Stratified Random Sampling ▶ <23-stratified-random-sampling>`
 
 
 Selling the complement

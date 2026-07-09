@@ -6,7 +6,7 @@ What Can Association Rules Tell Us?
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 18 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`   ·   :doc:`Next · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach> ▶`
+:doc:`◀ Previous · Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`   ·   :doc:`Next · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach ▶ <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`
 
 
 If this, then that

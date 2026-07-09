@@ -6,7 +6,7 @@ association_rules: Generating Association Rules from Frequent Itemsets (mlxtend)
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 21 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`Next · Cross-Selling <22-cross-selling> ▶`
+:doc:`◀ Previous · Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`Next · Cross-Selling ▶ <22-cross-selling>`
 
 
 From itemsets to rules in code

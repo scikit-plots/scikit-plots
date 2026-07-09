@@ -6,7 +6,7 @@ Why Do We Analyze Data?
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 01 of 56  ·  *beginner*
 
-:doc:`Next · The Process of Data Analysis <02-the-process-of-data-analysis> ▶`
+:doc:`Next · The Process of Data Analysis ▶ <02-the-process-of-data-analysis>`
 
 
 From data to decisions

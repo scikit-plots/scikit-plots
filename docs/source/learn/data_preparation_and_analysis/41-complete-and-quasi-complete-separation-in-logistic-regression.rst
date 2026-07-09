@@ -6,7 +6,7 @@ Complete and Quasi-Complete Separation in Logistic Regression
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 41 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`   ·   :doc:`Next · Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests> ▶`
+:doc:`◀ Previous · Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`   ·   :doc:`Next · Forward Selection with Nested Models and Deviance Tests ▶ <42-forward-selection-with-nested-models-and-deviance-tests>`
 
 
 When the fit blows up

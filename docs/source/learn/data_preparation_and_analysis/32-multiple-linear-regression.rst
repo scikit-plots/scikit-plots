@@ -6,7 +6,7 @@ Multiple Linear Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 32 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Least Squares Regression <31-least-squares-regression>`   ·   :doc:`Next · Feature Importance in Linear Regression <33-feature-importance-in-linear-regression> ▶`
+:doc:`◀ Previous · Least Squares Regression <31-least-squares-regression>`   ·   :doc:`Next · Feature Importance in Linear Regression ▶ <33-feature-importance-in-linear-regression>`
 
 
 More than one predictor

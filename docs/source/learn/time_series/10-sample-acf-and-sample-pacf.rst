@@ -6,7 +6,7 @@ Sample ACF and Sample PACF
 
 **Stage 4 · 🎯 Prediction & the Sample ACF / PACF**  ·  Lesson 10 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`Next · Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations> ▶`
+:doc:`◀ Previous · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`Next · Preliminary Estimation for AR Models and the Yule–Walker Equations ▶ <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`
 
 
 From process to sample

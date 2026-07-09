@@ -6,7 +6,7 @@ Karl Pearson
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 13 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`   ·   :doc:`Next · Harald Cramér <14-harald-cramer> ▶`
+:doc:`◀ Previous · Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`   ·   :doc:`Next · Harald Cramér ▶ <14-harald-cramer>`
 
 
 The founder of the field

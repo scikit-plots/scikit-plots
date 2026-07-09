@@ -6,7 +6,7 @@ Taxi Trips – 2022 dataset from the City of Chicago open data portal
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 08 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`   ·   :doc:`Next · Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram> ▶`
+:doc:`◀ Previous · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`   ·   :doc:`Next · Objective Selection of the Bin Width for a Time Histogram ▶ <09-objective-selection-of-the-bin-width-for-a-time-histogram>`
 
 
 An open, real dataset

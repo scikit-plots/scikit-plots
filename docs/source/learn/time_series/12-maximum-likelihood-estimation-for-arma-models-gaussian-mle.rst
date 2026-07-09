@@ -6,7 +6,7 @@ Maximum Likelihood Estimation for ARMA Models (Gaussian MLE)
 
 **Stage 5 · 🧮 Estimation**  ·  Lesson 12 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`Next · Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model> ▶`
+:doc:`◀ Previous · Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`Next · Diagnostics After Fitting a Time Series Model ▶ <13-diagnostics-after-fitting-a-time-series-model>`
 
 
 The likelihood

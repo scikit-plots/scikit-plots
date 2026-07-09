@@ -6,7 +6,7 @@ Binary Classification Model Evaluation and Threshold Optimization
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 53 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Nominal Classification Models: Model State and Evaluation Metrics <52-nominal-classification-models-model-state-and-evaluation-metrics>`   ·   :doc:`Next · Identifying Outliers Using Residuals and Studentized Residuals <54-identifying-outliers-using-residuals-and-studentized-residuals> ▶`
+:doc:`◀ Previous · Nominal Classification Models: Model State and Evaluation Metrics <52-nominal-classification-models-model-state-and-evaluation-metrics>`   ·   :doc:`Next · Identifying Outliers Using Residuals and Studentized Residuals ▶ <54-identifying-outliers-using-residuals-and-studentized-residuals>`
 
 
 The hidden dial

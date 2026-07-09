@@ -6,7 +6,7 @@ Forward Selection with Nested Models and Deviance Tests
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 42 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression>`   ·   :doc:`Next · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention> ▶`
+:doc:`◀ Previous · Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression>`   ·   :doc:`Next · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention ▶ <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`
 
 
 Selecting features by deviance

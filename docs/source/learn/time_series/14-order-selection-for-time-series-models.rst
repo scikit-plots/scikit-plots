@@ -6,7 +6,7 @@ Order Selection for Time Series Models
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 14 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`   ·   :doc:`Next · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones> ▶`
+:doc:`◀ Previous · Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`   ·   :doc:`Next · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones ▶ <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`
 
 
 The trade-off

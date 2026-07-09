@@ -6,7 +6,7 @@ Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 38 of 56  ·  *advanced*
 
-:doc:`◀ Previous · How Shapley Values Work <37-how-shapley-values-work>`   ·   :doc:`Next · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data> ▶`
+:doc:`◀ Previous · How Shapley Values Work <37-how-shapley-values-work>`   ·   :doc:`Next · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data ▶ <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`
 
 
 When the outcome is yes or no

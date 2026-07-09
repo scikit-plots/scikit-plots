@@ -6,7 +6,7 @@ Clustering
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 27 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters>`   ·   :doc:`Next · Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm> ▶`
+:doc:`◀ Previous · Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters>`   ·   :doc:`Next · Recency, Frequency, and Monetary Value (RFM) ▶ <28-recency-frequency-and-monetary-value-rfm>`
 
 
 Algorithms for groups

@@ -6,7 +6,7 @@ Maximum Likelihood (MLE): Fitting a Distribution to Observed Data
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 39 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`   ·   :doc:`Next · Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression> ▶`
+:doc:`◀ Previous · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`   ·   :doc:`Next · Assessing Model Fit in Logistic Regression ▶ <40-assessing-model-fit-in-logistic-regression>`
 
 
 What parameters best explain the data?

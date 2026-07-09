@@ -6,7 +6,7 @@ Harald Cramér
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 14 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Karl Pearson <13-karl-pearson>`   ·   :doc:`Next · What Are Statistical Tests? <15-what-are-statistical-tests> ▶`
+:doc:`◀ Previous · Karl Pearson <13-karl-pearson>`   ·   :doc:`Next · What Are Statistical Tests? ▶ <15-what-are-statistical-tests>`
 
 
 A Swedish statistician

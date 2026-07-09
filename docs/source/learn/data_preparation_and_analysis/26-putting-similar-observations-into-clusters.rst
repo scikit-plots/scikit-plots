@@ -6,7 +6,7 @@ Putting Similar Observations into Clusters
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 26 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`   ·   :doc:`Next · Clustering <27-clustering> ▶`
+:doc:`◀ Previous · Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`   ·   :doc:`Next · Clustering ▶ <27-clustering>`
 
 
 Grouping without labels

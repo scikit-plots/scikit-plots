@@ -6,7 +6,7 @@ CRISP-DM for Data Science
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 03 of 56  ·  *beginner*
 
-:doc:`◀ Previous · The Process of Data Analysis <02-the-process-of-data-analysis>`   ·   :doc:`Next · Big Data: Definition, Characteristics, Evolution, and Business Impact <04-big-data-definition-characteristics-evolution-and-business-impact> ▶`
+:doc:`◀ Previous · The Process of Data Analysis <02-the-process-of-data-analysis>`   ·   :doc:`Next · Big Data: Definition, Characteristics, Evolution, and Business Impact ▶ <04-big-data-definition-characteristics-evolution-and-business-impact>`
 
 
 A shared blueprint

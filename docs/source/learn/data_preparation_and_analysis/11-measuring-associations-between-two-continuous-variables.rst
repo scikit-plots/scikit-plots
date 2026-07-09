@@ -6,7 +6,7 @@ Measuring Associations Between Two Continuous Variables
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 11 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Measuring Associations in Data <10-measuring-associations-in-data>`   ·   :doc:`Next · Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall> ▶`
+:doc:`◀ Previous · Measuring Associations in Data <10-measuring-associations-in-data>`   ·   :doc:`Next · Correlation Coefficients in Python (Pearson, Spearman, Kendall) ▶ <12-correlation-coefficients-in-python-pearson-spearman-kendall>`
 
 
 Covariance: direction

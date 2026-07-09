@@ -6,7 +6,7 @@ Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Tr
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 07 of 56  ·  *beginner*
 
-:doc:`◀ Previous · IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard>`   ·   :doc:`Next · Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal> ▶`
+:doc:`◀ Previous · IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard>`   ·   :doc:`Next · Taxi Trips – 2022 dataset from the City of Chicago open data portal ▶ <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`
 
 
 Things that move together

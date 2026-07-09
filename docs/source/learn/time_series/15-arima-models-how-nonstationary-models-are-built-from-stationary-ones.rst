@@ -6,7 +6,7 @@ ARIMA Models: How Nonstationary Models Are Built from Stationary Ones
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 15 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Order Selection for Time Series Models <14-order-selection-for-time-series-models>`   ·   :doc:`Next · SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima> ▶`
+:doc:`◀ Previous · Order Selection for Time Series Models <14-order-selection-for-time-series-models>`   ·   :doc:`Next · SARIMA Models: Seasonal ARIMA ▶ <16-sarima-models-seasonal-arima>`
 
 
 The core idea

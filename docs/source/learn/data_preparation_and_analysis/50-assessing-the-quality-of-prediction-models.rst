@@ -6,7 +6,7 @@ Assessing the Quality of Prediction Models
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 50 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`   ·   :doc:`Next · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics> ▶`
+:doc:`◀ Previous · Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`   ·   :doc:`Next · Binary Classification Models – Conceptual Framework and Evaluation Metrics ▶ <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`
 
 
 The essential question

@@ -6,7 +6,7 @@ The First Step in Knowing Your Data
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 05 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Big Data: Definition, Characteristics, Evolution, and Business Impact <04-big-data-definition-characteristics-evolution-and-business-impact>`   ·   :doc:`Next · IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard> ▶`
+:doc:`◀ Previous · Big Data: Definition, Characteristics, Evolution, and Business Impact <04-big-data-definition-characteristics-evolution-and-business-impact>`   ·   :doc:`Next · IEEE 754 Floating-Point Standard ▶ <06-ieee-754-floating-point-standard>`
 
 
 Look before you model

@@ -6,7 +6,7 @@ How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 19 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`   ·   :doc:`Next · Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm> ▶`
+:doc:`◀ Previous · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`   ·   :doc:`Next · Apriori: Frequent Itemsets via the Apriori Algorithm ▶ <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`
 
 
 Three measures of a rule

@@ -6,7 +6,7 @@ Objective Selection of the Bin Width for a Time Histogram
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 09 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`   ·   :doc:`Next · Measuring Associations in Data <10-measuring-associations-in-data> ▶`
+:doc:`◀ Previous · Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`   ·   :doc:`Next · Measuring Associations in Data ▶ <10-measuring-associations-in-data>`
 
 
 The bin-width problem

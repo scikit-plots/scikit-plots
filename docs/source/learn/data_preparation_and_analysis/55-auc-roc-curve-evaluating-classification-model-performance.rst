@@ -6,7 +6,7 @@ AUC–ROC Curve: Evaluating Classification Model Performance
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 55 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Identifying Outliers Using Residuals and Studentized Residuals <54-identifying-outliers-using-residuals-and-studentized-residuals>`   ·   :doc:`Next · Lift Analysis for Direct Mail Campaigns: Concept, Process, and Business Value <56-lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value> ▶`
+:doc:`◀ Previous · Identifying Outliers Using Residuals and Studentized Residuals <54-identifying-outliers-using-residuals-and-studentized-residuals>`   ·   :doc:`Next · Lift Analysis for Direct Mail Campaigns: Concept, Process, and Business Value ▶ <56-lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value>`
 
 
 Every threshold at once

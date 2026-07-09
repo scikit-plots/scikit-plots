@@ -6,7 +6,7 @@ The Process of Data Analysis
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 02 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Why Do We Analyze Data? <01-why-do-we-analyze-data>`   ·   :doc:`Next · CRISP-DM for Data Science <03-crisp-dm-for-data-science> ▶`
+:doc:`◀ Previous · Why Do We Analyze Data? <01-why-do-we-analyze-data>`   ·   :doc:`Next · CRISP-DM for Data Science ▶ <03-crisp-dm-for-data-science>`
 
 
 It starts with a question

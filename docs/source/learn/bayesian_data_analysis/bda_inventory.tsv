@@ -1,0 +1,145 @@
+title	url	stage
+The three steps of Bayesian data analysis	https://insightful-data-lab.com/2025/11/08/the-three-steps-of-bayesian-data-analysis/	bayes_idea
+General Notation for Statistical Inference	https://insightful-data-lab.com/2025/11/08/general-notation-for-statistical-inference/	bayes_idea
+Bayesian Inference	https://insightful-data-lab.com/2025/11/08/bayesian-inference-2/	bayes_idea
+Discrete Bayesian Examples – Genetics and Spell Checking (with θ)	https://insightful-data-lab.com/2025/11/08/discrete-bayesian-examples-genetics-and-spell-checking-with-%ce%b8/	bayes_idea
+Probability as a Measure of Uncertainty	https://insightful-data-lab.com/2025/11/08/probability-as-a-measure-of-uncertainty/	bayes_idea
+Example — Probabilities from Football Point Spreads	https://insightful-data-lab.com/2025/11/08/example-probabilities-from-football-point-spreads/	bayes_idea
+Example — Calibration for Record Linkage	https://insightful-data-lab.com/2025/11/08/example-calibration-for-record-linkage/	bayes_idea
+Some Useful Results from Probability Theory	https://insightful-data-lab.com/2025/11/08/some-useful-results-from-probability-theory/	bayes_idea
+Computation and Software	https://insightful-data-lab.com/2025/11/09/computation-and-software/	bayes_idea
+Bayesian Inference in Applied Statistics	https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/	bayes_idea
+Estimating a Probability from Binomial Data	https://insightful-data-lab.com/2025/11/09/estimating-a-probability-from-binomial-data/	single_param
+Posterior as a Compromise Between Data and Prior Information	https://insightful-data-lab.com/2025/11/09/posterior-as-a-compromise-between-data-and-prior-information/	single_param
+Summarizing Posterior Inference	https://insightful-data-lab.com/2025/11/09/summarizing-posterior-inference/	single_param
+Informative Prior Distributions	https://insightful-data-lab.com/2025/11/09/informative-prior-distributions/	single_param
+Normal Distribution with Known Variance	https://insightful-data-lab.com/2025/11/09/normal-distribution-with-known-variance/	single_param
+Other Standard Single-Parameter Models	https://insightful-data-lab.com/2025/11/09/other-standard-single-parameter-models/	single_param
+Informative Prior Distribution for Cancer Rates	https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/	single_param
+Noninformative Prior Distributions	https://insightful-data-lab.com/2025/11/09/noninformative-prior-distributions/	single_param
+Weakly Informative Prior Distributions	https://insightful-data-lab.com/2025/11/09/weakly-informative-prior-distributions/	single_param
+Averaging Over Nuisance Parameters	https://insightful-data-lab.com/2025/11/09/averaging-over-nuisance-parameters/	multiparam
+Normal Data with a Noninformative Prior Distribution	https://insightful-data-lab.com/2025/11/09/normal-data-with-a-noninformative-prior-distribution/	multiparam
+Normal Data with a Conjugate Prior Distribution	https://insightful-data-lab.com/2025/11/09/normal-data-with-a-conjugate-prior-distribution/	multiparam
+Multinomial Model for Categorical Data	https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/	multiparam
+Multivariate Normal Model with Known Variance	https://insightful-data-lab.com/2025/11/09/multivariate-normal-model-with-known-variance/	multiparam
+Multivariate Normal with Unknown Mean and Variance	https://insightful-data-lab.com/2025/11/09/multivariate-normal-with-unknown-mean-and-variance/	multiparam
+Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate)	https://insightful-data-lab.com/2025/11/09/example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate/	multiparam
+Summary of Elementary Modeling and Computation	https://insightful-data-lab.com/2025/11/09/summary-of-elementary-modeling-and-computation/	multiparam
+Normal Approximations to the Posterior Distribution	https://insightful-data-lab.com/2025/11/09/normal-approximations-to-the-posterior-distribution/	asymptotics
+Large-Sample Theory	https://insightful-data-lab.com/2025/11/09/large-sample-theory/	asymptotics
+Counterexamples to large-sample (asymptotic) Bayesian theorems	https://insightful-data-lab.com/2025/11/09/counterexamples-to-large-sample-asymptotic-bayesian-theorems/	asymptotics
+Frequency Evaluations of Bayesian Inferences	https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/	asymptotics
+Bayesian interpretations of other statistical methods	https://insightful-data-lab.com/2025/11/09/bayesian-interpretations-of-other-statistical-methods/	asymptotics
+Constructing a Parameterized Prior Distribution	https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/	hierarchical
+Exchangeability and hierarchical models	https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/	hierarchical
+Bayesian analysis of conjugate hierarchical models	https://insightful-data-lab.com/2025/11/09/bayesian-analysis-of-conjugate-hierarchical-models/	hierarchical
+Normal model with exchangeable parameters	https://insightful-data-lab.com/2025/11/09/normal-model-with-exchangeable-parameters/	hierarchical
+Example: parallel experiments in eight schools	https://insightful-data-lab.com/2025/11/09/example-parallel-experiments-in-eight-schools/	hierarchical
+Hierarchical modeling applied to a meta-analysis	https://insightful-data-lab.com/2025/11/10/hierarchical-modeling-applied-to-a-meta-analysis/	hierarchical
+Weakly Informative Priors for Variance Parameters	https://insightful-data-lab.com/2025/11/10/weakly-informative-priors-for-variance-parameters/	hierarchical
+The Place of Model Checking in Applied Bayesian Statistics	https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/	checking
+Do the Inferences from the Model Make Sense?	https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/	checking
+Posterior predictive checking	https://insightful-data-lab.com/2025/11/10/posterior-predictive-checking/	checking
+Graphical posterior predictive checks	https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/	checking
+Model checking for the educational testing example	https://insightful-data-lab.com/2025/11/10/model-checking-for-the-educational-testing-example/	checking
+Measures of predictive accuracy	https://insightful-data-lab.com/2025/11/10/measures-of-predictive-accuracy/	checking
+Model comparison based on predictive performance	https://insightful-data-lab.com/2025/11/10/model-comparison-based-on-predictive-performance/	checking
+Model comparison using Bayes factors	https://insightful-data-lab.com/2025/11/10/model-comparison-using-bayes-factors/	checking
+Continuous model expansion	https://insightful-data-lab.com/2025/11/10/continuous-model-expansion/	checking
+Implicit assumptions and model expansion: an example	https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/	checking
+Bayesian inference requires a model for data collection	https://insightful-data-lab.com/2025/11/11/bayesian-inference-requires-a-model-for-data-collection/	collection_decision
+Data-collection models and ignorability	https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/	collection_decision
+Sample surveys	https://insightful-data-lab.com/2025/11/11/sample-surveys/	collection_decision
+Designed experiments	https://insightful-data-lab.com/2025/11/11/designed-experiments/	collection_decision
+Sensitivity and the role of randomization	https://insightful-data-lab.com/2025/11/11/sensitivity-and-the-role-of-randomization/	collection_decision
+Observational studies	https://insightful-data-lab.com/2025/11/11/observational-studies/	collection_decision
+Censoring and truncation	https://insightful-data-lab.com/2025/11/11/censoring-and-truncation/	collection_decision
+Bayesian decision theory in diﬀerent contexts	https://insightful-data-lab.com/2025/11/11/bayesian-decision-theory-in-di%ef%ac%80erent-contexts/	collection_decision
+Using regression predictions: survey incentives	https://insightful-data-lab.com/2025/11/11/using-regression-predictions-survey-incentives/	collection_decision
+Multistage decision making: medical screening	https://insightful-data-lab.com/2025/11/11/multistage-decision-making-medical-screening/	collection_decision
+Hierarchical decision analysis for home radon	https://insightful-data-lab.com/2025/11/11/hierarchical-decision-analysis-for-home-radon/	collection_decision
+Personal vs. institutional decision analysis	https://insightful-data-lab.com/2025/11/11/personal-vs-institutional-decision-analysis/	collection_decision
+Numerical integration	https://insightful-data-lab.com/2025/11/11/numerical-integration/	simulation
+Distributional approximations	https://insightful-data-lab.com/2025/11/11/distributional-approximations/	simulation
+Direct simulation and rejection sampling	https://insightful-data-lab.com/2025/11/11/direct-simulation-and-rejection-sampling/	simulation
+Importance sampling	https://insightful-data-lab.com/2025/11/11/importance-sampling/	simulation
+How many simulation draws are needed?	https://insightful-data-lab.com/2025/11/11/how-many-simulation-draws-are-needed/	simulation
+Computing environments	https://insightful-data-lab.com/2025/11/11/computing-environments/	simulation
+Debugging Bayesian computing	https://insightful-data-lab.com/2025/11/11/debugging-bayesian-computing/	simulation
+Gibbs sampler	https://insightful-data-lab.com/2025/11/12/gibbs-sampler/	mcmc
+Metropolis and Metropolis-Hastings algorithms	https://insightful-data-lab.com/2025/11/12/metropolis-and-metropolis-hastings-algorithms/	mcmc
+Using Gibbs and Metropolis as building blocks	https://insightful-data-lab.com/2025/11/12/using-gibbs-and-metropolis-as-building-blocks/	mcmc
+Inference and assessing convergence	https://insightful-data-lab.com/2025/11/12/inference-and-assessing-convergence/	mcmc
+Eﬀective number of simulation draws	https://insightful-data-lab.com/2025/11/12/e%ef%ac%80ective-number-of-simulation-draws/	mcmc
+Example: hierarchical normal model	https://insightful-data-lab.com/2025/11/12/example-hierarchical-normal-model/	mcmc
+Eﬃcient Gibbs samplers	https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-gibbs-samplers/	mcmc
+Eﬃcient Metropolis jumping rules	https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/	mcmc
+Further extensions to Gibbs and Metropolis	https://insightful-data-lab.com/2025/11/21/further-extensions-to-gibbs-and-metropolis/	mcmc
+Hamiltonian Monte Carlo	https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo/	mcmc
+Hamiltonian Monte Carlo for a hierarchical model	https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo-for-a-hierarchical-model/	mcmc
+Stan: developing a computing environment	https://insightful-data-lab.com/2025/11/22/stan-developing-a-computing-environment/	mcmc
+Finding posterior modes	https://insightful-data-lab.com/2025/11/22/finding-posterior-modes/	approximation
+Boundary-avoiding priors for modal summaries	https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/	approximation
+Normal and related mixture approximations	https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/	approximation
+Finding marginal posterior modes using EM	https://insightful-data-lab.com/2025/11/22/finding-marginal-posterior-modes-using-em/	approximation
+Conditional and marginal posterior approximations	https://insightful-data-lab.com/2025/11/22/conditional-and-marginal-posterior-approximations/	approximation
+Example: hierarchical normal model (continued)	https://insightful-data-lab.com/2025/11/22/example-hierarchical-normal-model-2/	approximation
+Variational inference	https://insightful-data-lab.com/2025/11/22/variational-inference/	approximation
+Expectation propagation	https://insightful-data-lab.com/2025/11/23/expectation-propagation/	approximation
+Other approximations	https://insightful-data-lab.com/2025/11/23/other-approximations/	approximation
+Unknown normalizing factors	https://insightful-data-lab.com/2025/11/23/unknown-normalizing-factors/	approximation
+Conditional modeling	https://insightful-data-lab.com/2025/11/23/conditional-modeling/	regression
+Bayesian analysis of classical regression	https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/	regression
+Regression for causal inference: incumbency and voting	https://insightful-data-lab.com/2025/11/23/regression-for-causal-inference-incumbency-and-voting/	regression
+Goals of regression analysis	https://insightful-data-lab.com/2025/11/23/goals-of-regression-analysis/	regression
+Assembling the matrix of explanatory variables	https://insightful-data-lab.com/2025/11/23/assembling-the-matrix-of-explanatory-variables/	regression
+Regularization and dimension reduction	https://insightful-data-lab.com/2025/11/23/regularization-and-dimension-reduction/	regression
+Unequal variances and correlations	https://insightful-data-lab.com/2025/11/23/unequal-variances-and-correlations/	regression
+Including numerical prior information	https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/	regression
+Regression coeﬃcients exchangeable in batches	https://insightful-data-lab.com/2025/11/24/regression-coe%ef%ac%83cients-exchangeable-in-batches/	hier_regression
+Example: forecasting U.S. presidential elections	https://insightful-data-lab.com/2025/11/24/example-forecasting-u-s-presidential-elections/	hier_regression
+Interpreting a normal prior distribution as extra data	https://insightful-data-lab.com/2025/11/24/interpreting-a-normal-prior-distribution-as-extra-data/	hier_regression
+Varying intercepts and slopes	https://insightful-data-lab.com/2025/11/24/varying-intercepts-and-slopes/	hier_regression
+Computation: batching and transformation	https://insightful-data-lab.com/2025/12/06/computation-batching-and-transformation/	hier_regression
+Analysis of variance and the batching of coeﬃcients	https://insightful-data-lab.com/2025/12/06/analysis-of-variance-and-the-batching-of-coe%ef%ac%83cients/	hier_regression
+Hierarchical models for batches of variance components	https://insightful-data-lab.com/2025/12/06/hierarchical-models-for-batches-of-variance-components/	hier_regression
+Standard generalized linear model likelihoods	https://insightful-data-lab.com/2025/12/06/standard-generalized-linear-model-likelihoods/	glm
+Working with generalized linear models	https://insightful-data-lab.com/2025/12/06/working-with-generalized-linear-models/	glm
+Weakly informative priors for logistic regression	https://insightful-data-lab.com/2025/12/06/weakly-informative-priors-for-logistic-regression/	glm
+Overdispersed Poisson regression for police stops	https://insightful-data-lab.com/2025/12/06/overdispersed-poisson-regression-for-police-stops/	glm
+State-level opinons from national polls	https://insightful-data-lab.com/2025/12/06/state-level-opinons-from-national-polls/	glm
+Models for multivariate and multinomial responses	https://insightful-data-lab.com/2025/12/06/models-for-multivariate-and-multinomial-responses/	glm
+Loglinear models for multivariate discrete data	https://insightful-data-lab.com/2025/12/06/loglinear-models-for-multivariate-discrete-data/	glm
+Aspects of robustness	https://insightful-data-lab.com/2025/12/07/aspects-of-robustness/	robust_missing
+Overdispersed versions of standard models	https://insightful-data-lab.com/2025/12/07/overdispersed-versions-of-standard-models/	robust_missing
+Posterior inference and computation	https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/	robust_missing
+Robust inference for the eight schools	https://insightful-data-lab.com/2025/12/07/robust-inference-for-the-eight-schools/	robust_missing
+Robust regression using t-distributed errors	https://insightful-data-lab.com/2025/12/07/robust-regression-using-t-distributed-errors/	robust_missing
+Notation	https://insightful-data-lab.com/2025/12/07/notation/	robust_missing
+Multiple imputation	https://insightful-data-lab.com/2025/12/07/multiple-imputation/	robust_missing
+Missing data in the multivariate normal and t models	https://insightful-data-lab.com/2025/12/07/missing-data-in-the-multivariate-normal-and-t-models/	robust_missing
+Example: multiple imputation for a series of polls	https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/	robust_missing
+Missing values with counted data	https://insightful-data-lab.com/2025/12/09/missing-values-with-counted-data/	robust_missing
+Example: an opinion poll in Slovenia	https://insightful-data-lab.com/2025/12/09/example-an-opinion-poll-in-slovenia/	robust_missing
+Example: serial dilution assay	https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/	gp_basis
+Example: population toxicokinetics	https://insightful-data-lab.com/2025/12/09/example-population-toxicokinetics/	gp_basis
+Splines and weighted sums of basis functions	https://insightful-data-lab.com/2025/12/09/splines-and-weighted-sums-of-basis-functions/	gp_basis
+Basis selection and shrinkage of coeﬃcients	https://insightful-data-lab.com/2025/12/09/basis-selection-and-shrinkage-of-coe%ef%ac%83cients/	gp_basis
+Non-normal models and regression surfaces	https://insightful-data-lab.com/2025/12/09/non-normal-models-and-regression-surfaces/	gp_basis
+Gaussian process regression	https://insightful-data-lab.com/2025/12/09/gaussian-process-regression/	gp_basis
+Example: birthdays and birthdates	https://insightful-data-lab.com/2025/12/09/example-birthdays-and-birthdates/	gp_basis
+Latent Gaussian process models	https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/	gp_basis
+Functional data analysis	https://insightful-data-lab.com/2025/12/09/functional-data-analysis/	gp_basis
+Density estimation and regression	https://insightful-data-lab.com/2025/12/09/density-estimation-and-regression/	nonparametric
+Setting up and interpreting mixture models	https://insightful-data-lab.com/2025/12/09/setting-up-and-interpreting-mixture-models/	nonparametric
+Example: reaction times and schizophrenia	https://insightful-data-lab.com/2025/12/09/example-reaction-times-and-schizophrenia/	nonparametric
+Label switching and posterior computation	https://insightful-data-lab.com/2025/12/09/label-switching-and-posterior-computation/	nonparametric
+Unspecified number of mixture components	https://insightful-data-lab.com/2025/12/09/unspecified-number-of-mixture-components/	nonparametric
+Mixture models for classification and regression	https://insightful-data-lab.com/2025/12/09/mixture-models-for-classification-and-regression/	nonparametric
+Bayesian histograms	https://insightful-data-lab.com/2025/12/13/bayesian-histograms/	nonparametric
+Dirichlet process prior distributions	https://insightful-data-lab.com/2025/12/13/dirichlet-process-prior-distributions/	nonparametric
+Dirichlet process mixtures	https://insightful-data-lab.com/2025/12/13/dirichlet-process-mixtures/	nonparametric
+Beyond density estimation	https://insightful-data-lab.com/2025/12/13/beyond-density-estimation/	nonparametric
+Hierarchical dependence	https://insightful-data-lab.com/2025/12/13/hierarchical-dependence/	nonparametric
+Density regression	https://insightful-data-lab.com/2025/12/13/density-regression/	nonparametric

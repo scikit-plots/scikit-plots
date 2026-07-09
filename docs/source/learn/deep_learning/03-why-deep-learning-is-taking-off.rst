@@ -6,7 +6,7 @@ Why Deep Learning is Taking Off
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 03 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`   ·   :doc:`Next · Geoffrey Hinton Interview <04-geoffrey-hinton-interview> ▶`
+:doc:`◀ Previous · Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`   ·   :doc:`Next · Geoffrey Hinton Interview ▶ <04-geoffrey-hinton-interview>`
 
 
 An old idea, newly working

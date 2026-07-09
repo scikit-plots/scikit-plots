@@ -6,7 +6,7 @@ Measuring Associations in Data
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 10 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram>`   ·   :doc:`Next · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables> ▶`
+:doc:`◀ Previous · Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram>`   ·   :doc:`Next · Measuring Associations Between Two Continuous Variables ▶ <11-measuring-associations-between-two-continuous-variables>`
 
 
 One idea, many measures

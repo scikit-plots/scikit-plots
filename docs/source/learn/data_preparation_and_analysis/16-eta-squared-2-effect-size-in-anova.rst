@@ -6,7 +6,7 @@ Eta Squared (η²): Effect Size in ANOVA
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 16 of 56  ·  *beginner*
 
-:doc:`◀ Previous · What Are Statistical Tests? <15-what-are-statistical-tests>`   ·   :doc:`Next · Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers> ▶`
+:doc:`◀ Previous · What Are Statistical Tests? <15-what-are-statistical-tests>`   ·   :doc:`Next · Understanding Market Baskets and Ideal Customers ▶ <17-understanding-market-baskets-and-ideal-customers>`
 
 
 How big, not just whether

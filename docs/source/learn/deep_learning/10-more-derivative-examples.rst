@@ -6,7 +6,7 @@ More Derivative Examples
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 10 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Derivatives <09-derivatives>`   ·   :doc:`Next · Computation Graph <11-computation-graph> ▶`
+:doc:`◀ Previous · Derivatives <09-derivatives>`   ·   :doc:`Next · Computation Graph ▶ <11-computation-graph>`
 
 
 When the slope changes

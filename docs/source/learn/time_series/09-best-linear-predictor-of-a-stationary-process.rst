@@ -6,7 +6,7 @@ Best Linear Predictor of a Stationary Process
 
 **Stage 4 · 🎯 Prediction & the Sample ACF / PACF**  ·  Lesson 09 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`Next · Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf> ▶`
+:doc:`◀ Previous · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`Next · Sample ACF and Sample PACF ▶ <10-sample-acf-and-sample-pacf>`
 
 
 The prediction problem

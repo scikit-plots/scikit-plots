@@ -6,7 +6,7 @@ Linear Congruential Random Number Generator (LCG)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 24 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Stratified Random Sampling <23-stratified-random-sampling>`   ·   :doc:`Next · Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models> ▶`
+:doc:`◀ Previous · Stratified Random Sampling <23-stratified-random-sampling>`   ·   :doc:`Next · Partitioning Observations to Train Objective Models ▶ <25-partitioning-observations-to-train-objective-models>`
 
 
 Randomness you can repeat

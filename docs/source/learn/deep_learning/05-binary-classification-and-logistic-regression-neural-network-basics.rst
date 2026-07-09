@@ -6,7 +6,7 @@ Binary Classification and Logistic Regression (Neural Network Basics)
 
 **Stage 2 · 🔵 Logistic Regression as a Neuron**  ·  Lesson 05 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Geoffrey Hinton Interview <04-geoffrey-hinton-interview>`   ·   :doc:`Next · Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model> ▶`
+:doc:`◀ Previous · Geoffrey Hinton Interview <04-geoffrey-hinton-interview>`   ·   :doc:`Next · Logistic Regression (Binary Classification Model) ▶ <06-logistic-regression-binary-classification-model>`
 
 
 The task

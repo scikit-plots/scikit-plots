@@ -6,7 +6,7 @@ Cluster Profiling Using Decision Trees
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 48 of 56  ·  *advanced*
 
-:doc:`◀ Previous · How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`   ·   :doc:`Next · Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results> ▶`
+:doc:`◀ Previous · How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`   ·   :doc:`Next · Using Decision Trees to Explain Clustering Results ▶ <49-using-decision-trees-to-explain-clustering-results>`
 
 
 Clusters without descriptions

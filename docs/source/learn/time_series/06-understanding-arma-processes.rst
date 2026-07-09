@@ -6,7 +6,7 @@ Understanding ARMA Processes
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 06 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Linear Processes <05-linear-processes>`   ·   :doc:`Next · Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations> ▶`
+:doc:`◀ Previous · Linear Processes <05-linear-processes>`   ·   :doc:`Next · Computing ACFs of Causal AR(2) Processes Using Difference Equations ▶ <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`
 
 
 The model

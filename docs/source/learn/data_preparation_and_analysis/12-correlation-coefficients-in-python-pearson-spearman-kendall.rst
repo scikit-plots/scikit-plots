@@ -6,7 +6,7 @@ Correlation Coefficients in Python (Pearson, Spearman, Kendall)
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 12 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`Next · Karl Pearson <13-karl-pearson> ▶`
+:doc:`◀ Previous · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`Next · Karl Pearson ▶ <13-karl-pearson>`
 
 
 Three coefficients
