@@ -11,9 +11,15 @@
  */
 
 /* ─── Container ──────────────────────────────────────────────────────────── */
+/**
+ * z-index: 1021;
+ *
+ * z-index: 1030; .bd-header
+ * z-index: 1080; #pst-back-to-top
+ */
 
 .ai-assistant-container {
-    z-index: 1080;
+    z-index: 1021;
     position: relative;
     overflow-x: visible !important;
     overflow: visible !important;
@@ -140,7 +146,7 @@
 /* ─── Dropdown panel ────────────────────────────────────────────────────── */
 
 .ai-assistant-dropdown {
-    z-index: 1080;
+    z-index: 1021;
     /* JS: dropdown.style.display = 'none'; */
     display: none;
     position: absolute;
@@ -256,7 +262,7 @@
 /* ─── Toast notification ────────────────────────────────────────────────── */
 
 .ai-assistant-notification {
-    z-index: 1080;
+    z-index: 1021;
     position: fixed;
     top: 1rem;
     right: 1rem;
@@ -315,7 +321,7 @@
 .toc-sidebar .ai-assistant-container,
 .sidebar-secondary .ai-assistant-container,
 .bd-sidebar-secondary .ai-assistant-container {
-    z-index: 1080;
+    z-index: 1021;
     display: block;
     position: relative;
     padding-top: 1rem;
@@ -355,7 +361,7 @@
 /* ─── Panel root ────────────────────────────────────────────────────────── */
 
 .ai-assistant-panel {
-    z-index: 1080;
+    z-index: 1021;
     /* resize: both; overflow: auto; */
     /* overflow:visible is the CSS default but stated explicitly so a cloud
      * theme rule (e.g. .bd-main .ai-assistant-panel { overflow:hidden }) cannot
@@ -969,7 +975,7 @@
  */
 
 .ai-assistant-panel-trigger {
-    z-index: 1080;
+    z-index: 1021;
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
@@ -1080,7 +1086,7 @@
 .ai-assistant-panel-resizer {
     /* z-index one step above left/top grips so the corner wins at the
        18×18 overlap now that both edge grips extend to top:0 / left:0. */
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     top: 0;
     left: 0;
@@ -1134,7 +1140,7 @@ body.ai-assistant-resizing .ai-assistant-panel {
    z-index:100000 takes priority at the shared 18×18 corner. */
 
 .ai-assistant-panel-resizer-left {
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     left: 0;
     top: 0;               /* full-height: was 18px; corner grip wins at top via z-index */
@@ -1161,7 +1167,7 @@ body.ai-assistant-resizing .ai-assistant-panel {
    z-index:100000 takes priority at the shared 18×18 corner. */
 
 .ai-assistant-panel-resizer-top {
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     top: 0;
     left: 0;              /* full-width: was 18px; corner grip wins at left via z-index */
@@ -1356,7 +1362,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 
 /* Submenu: floats above the button row, left-aligned with the toggle.       */
 .ai-assistant-panel-bubble-action-more-menu {
-    z-index: 1080;
+    z-index: 1021;
     display: none;
     position: absolute;
     bottom: calc(100% + 0.3rem);
@@ -1902,7 +1908,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
    panel's theming and stacking context. Toggled by a footer/header link. */
 
 .ai-assistant-panel-privacy {
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     inset: 0;
     /* FIX Issue 10: keep display:flex always so the sheet can be transitioned.
@@ -2525,7 +2531,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
  *   the minimum value that preserves the same visual result after the
  *   "stay on current page" fix. */
 .ai-assistant-panel-hamburger {
-    z-index: 1080;        /* above sheets (99999); was 5 when sheet was pre-dismissed */
+    z-index: 1021;        /* above sheets (99999); was 5 when sheet was pre-dismissed */
     position: absolute;
     top: 3.3rem;            /* below the header (0.75 + 1.75 content + 0.75 + 1px border) */
     left: 1rem;             /* aligns with header-title left edge (header padding-left) */
@@ -3961,7 +3967,7 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
  */
 
 .ai-assistant-mic-popup {
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     bottom: calc(100% + 0.45rem);
     right: 0;
@@ -5654,7 +5660,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
 
 /* Drop-down listbox (shown/hidden by JS) */
 .ai-assistant-panel-filter-sort-menu {
-    z-index: 1080;    /* above all other panel content */
+    z-index: 1021;    /* above all other panel content */
     position: absolute;
     top: calc(100% + 5px);
     right: 0;
@@ -6495,7 +6501,7 @@ ol.ai-assistant-mic-perm-settings-legacy-body[aria-hidden="true"] {
  * other floating surfaces in this stylesheet.
  */
 .ai-assistant-export-menu {
-    z-index: 1080;
+    z-index: 1021;
     display: none;
     position: absolute;
     top: calc(100% + 0.3rem);
@@ -9929,7 +9935,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 
 /* Copy confirmation toast — absolute overlay, fades out automatically. */
 .ai-assistant-panel-ep-copy-toast {
-    z-index: 1080;
+    z-index: 1021;
     position: absolute;
     right: 0;
     top: 50%;
@@ -10852,6 +10858,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 
 [data-bs-theme="dark"] .ai-assistant-panel-ep-profile-health-badge {
     /* Preserve dark-mode override chain without adding new styles. */
+    outline-offset: 1px;   /* visible on :focus-visible only */
 }
 
 /* Reduced-motion: disable prof-group-header and ssrf-warn transitions. */
@@ -11348,7 +11355,7 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
    Pattern mirrors .ai-assistant-mic-popup.
    ═══════════════════════════════════════════════════════════════════════════ */
 .ai-assistant-fbk-popup {
-    z-index: 1080;   /*one below mic popup — no overlap */
+    z-index: 1021;   /*one below mic popup — no overlap */
     position: absolute;
     bottom: calc(100% + 0.45rem);
     right: 0;
