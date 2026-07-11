@@ -74,7 +74,17 @@ Learn
     .. grid-item-card::
         :padding: 3
 
-        **data preparation & analysis**
+        **data analytics**
+        ^^^
+        .. toctree::
+            :maxdepth: 3
+
+            Data Analytics <./data_analytics/index.rst>
+
+    .. grid-item-card::
+        :padding: 3
+
+        **data analysis**
         ^^^
         .. toctree::
             :maxdepth: 3
