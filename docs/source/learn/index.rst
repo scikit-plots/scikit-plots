@@ -67,7 +67,7 @@ Learn
         **terminologies**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Terminology <./terminology/index.rst>
 
@@ -77,7 +77,7 @@ Learn
         **data preparation & analysis**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Data Preparation & Analysis <./data_preparation_and_analysis/index.rst>
 
@@ -87,7 +87,7 @@ Learn
         **bayesian data analysis**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Bayesian Data Analysis <./bayesian_data_analysis/index.rst>
 
@@ -97,7 +97,7 @@ Learn
         **time series**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Time Series <./time_series/index.rst>
 
@@ -107,7 +107,7 @@ Learn
         **deep learning**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Deep Learning <./deep_learning/index.rst>
 
@@ -127,7 +127,7 @@ Learn
         **cheatsheets**
         ^^^
         .. toctree::
-            :maxdepth: 2
+            :maxdepth: 3
 
             Cheatsheet <./cheatsheet/index.rst>
 
