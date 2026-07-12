@@ -6,7 +6,7 @@ Noninformative Prior Distributions
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 018 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Informative Prior Distribution for Cancer Rates <017-informative-prior-distribution-for-cancer-rates>`   ·   :doc:`Next · Weakly Informative Prior Distributions ▶ <019-weakly-informative-prior-distributions>`
+:doc:`◀ Previous · Informative Prior Distribution for Cancer Rates <017-informative-prior-distribution-for-cancer-rates>`   ·   :doc:`Next · Weakly Informative Prior Distributions ▶ <019-weakly-informative-prior-distributions>`   ·   :doc:`↑ Section <index>`
 
 
 Letting the data speak
@@ -63,10 +63,12 @@ while the sampler reports numbers regardless.
 Modern practice has largely moved on: rather than chase an unattainable neutrality, use a
 **weakly informative** prior that rules out the absurd while letting the data dominate.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`  ·  :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Some Useful Results from Probability Theory <008-some-useful-results-from-probability-theory>`  ·  :doc:`Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/noninformative-prior-distributions/ <https://insightful-data-lab.com/2025/11/09/noninformative-prior-distributions/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/noninformative-prior-distributions/ <https://insightful-data-lab.com/2025/11/09/noninformative-prior-distributions/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

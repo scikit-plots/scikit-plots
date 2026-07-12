@@ -6,7 +6,7 @@ Bayesian analysis of conjugate hierarchical models
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 035 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`   ·   :doc:`Next · Normal model with exchangeable parameters ▶ <036-normal-model-with-exchangeable-parameters>`
+:doc:`◀ Previous · Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`   ·   :doc:`Next · Normal model with exchangeable parameters ▶ <036-normal-model-with-exchangeable-parameters>`   ·   :doc:`↑ Section <index>`
 
 
 The rat tumours
@@ -68,10 +68,12 @@ reparameterises to the population mean :math:`\alpha/(\alpha+\beta)` and a trans
 placing a proper prior there. The lesson from Stage 2 returns with teeth: for hierarchical variance and
 concentration parameters, **check propriety**, and prefer weakly informative hyperpriors.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Constructing a Parameterized Prior Distribution <033-constructing-a-parameterized-prior-distribution>`  ·  :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`  ·  :doc:`Informative Prior Distribution for Cancer Rates <017-informative-prior-distribution-for-cancer-rates>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/bayesian-analysis-of-conjugate-hierarchical-models/ <https://insightful-data-lab.com/2025/11/09/bayesian-analysis-of-conjugate-hierarchical-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/bayesian-analysis-of-conjugate-hierarchical-models/ <https://insightful-data-lab.com/2025/11/09/bayesian-analysis-of-conjugate-hierarchical-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

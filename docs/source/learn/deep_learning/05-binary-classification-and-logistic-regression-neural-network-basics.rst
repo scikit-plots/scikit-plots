@@ -6,7 +6,7 @@ Binary Classification and Logistic Regression (Neural Network Basics)
 
 **Stage 2 · 🔵 Logistic Regression as a Neuron**  ·  Lesson 05 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Geoffrey Hinton Interview <04-geoffrey-hinton-interview>`   ·   :doc:`Next · Logistic Regression (Binary Classification Model) ▶ <06-logistic-regression-binary-classification-model>`
+:doc:`◀ Previous · Geoffrey Hinton Interview <04-geoffrey-hinton-interview>`   ·   :doc:`Next · Logistic Regression (Binary Classification Model) ▶ <06-logistic-regression-binary-classification-model>`   ·   :doc:`↑ Section <index>`
 
 
 The task
@@ -45,10 +45,12 @@ Putting examples in **columns** rather than rows is a deliberate convention: it 
 no transposes to track. A small choice now, much tidier code from Lesson 15 onward. In ``numpy`` the
 shapes are ``X.shape == (n_x, m)`` and ``Y.shape == (1, m)``.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`  ·  :doc:`Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`  ·  :doc:`What is a Neural Network? <01-what-is-a-neural-network>`  ·  :doc:`Vectorizing Logistic Regression <17-vectorizing-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/binary-classification-and-logistic-regression-neural-network-basics/ <https://insightful-data-lab.com/2025/04/07/binary-classification-and-logistic-regression-neural-network-basics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/binary-classification-and-logistic-regression-neural-network-basics/ <https://insightful-data-lab.com/2025/04/07/binary-classification-and-logistic-regression-neural-network-basics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

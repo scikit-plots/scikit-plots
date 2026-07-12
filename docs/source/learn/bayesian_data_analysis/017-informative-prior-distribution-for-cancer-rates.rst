@@ -6,7 +6,7 @@ Informative Prior Distribution for Cancer Rates
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 017 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Other Standard Single-Parameter Models <016-other-standard-single-parameter-models>`   ·   :doc:`Next · Noninformative Prior Distributions ▶ <018-noninformative-prior-distributions>`
+:doc:`◀ Previous · Other Standard Single-Parameter Models <016-other-standard-single-parameter-models>`   ·   :doc:`Next · Noninformative Prior Distributions ▶ <018-noninformative-prior-distributions>`   ·   :doc:`↑ Section <index>`
 
 
 The map that lies
@@ -61,10 +61,12 @@ trade when the alternative is ranking noise. And note what this analysis is quie
 prior rate :math:`\alpha/\beta` should really be **estimated from the counties themselves**. That is a
 **hierarchical model**, and it arrives in Stage 5.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Other Standard Single-Parameter Models <016-other-standard-single-parameter-models>`  ·  :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/ <https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/ <https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

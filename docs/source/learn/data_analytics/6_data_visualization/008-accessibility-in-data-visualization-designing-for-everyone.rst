@@ -22,6 +22,8 @@ Accessibility in Data Visualization: Designing for Everyone
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/accessibility-in-data-visualization-designing-for-everyone/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/accessibility-in-data-visualization-designing-for-everyone/ <https://insightful-data-lab.com/2023/11/26/accessibility-in-data-visualization-designing-for-everyone/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, principles

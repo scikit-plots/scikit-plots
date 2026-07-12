@@ -6,7 +6,7 @@ Summarizing Posterior Inference
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 013 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`   ·   :doc:`Next · Informative Prior Distributions ▶ <014-informative-prior-distributions>`
+:doc:`◀ Previous · Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`   ·   :doc:`Next · Informative Prior Distributions ▶ <014-informative-prior-distributions>`   ·   :doc:`↑ Section <index>`
 
 
 The posterior is the answer
@@ -60,10 +60,12 @@ probability :math:`\theta` lies in this range"* — precisely what a frequentist
 does **not** license. But do not let the summary replace the distribution: plot the posterior, and
 report the probability of the hypotheses you actually care about, which the draws give directly.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Bayesian Inference <003-bayesian-inference>`  ·  :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`  ·  :doc:`Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/summarizing-posterior-inference/ <https://insightful-data-lab.com/2025/11/09/summarizing-posterior-inference/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/summarizing-posterior-inference/ <https://insightful-data-lab.com/2025/11/09/summarizing-posterior-inference/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

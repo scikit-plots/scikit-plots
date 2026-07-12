@@ -6,7 +6,7 @@ Cluster Profiling Using Decision Trees
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 48 of 56  ·  *advanced*
 
-:doc:`◀ Previous · How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`   ·   :doc:`Next · Using Decision Trees to Explain Clustering Results ▶ <49-using-decision-trees-to-explain-clustering-results>`
+:doc:`◀ Previous · How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`   ·   :doc:`Next · Using Decision Trees to Explain Clustering Results ▶ <49-using-decision-trees-to-explain-clustering-results>`   ·   :doc:`↑ Section <index>`
 
 
 Clusters without descriptions
@@ -44,10 +44,12 @@ machine learning: use a **transparent** model to **explain** the output of an op
 lesson of this stage takes the idea one step further — using a tree as a **surrogate** to explain
 clustering results in general.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`  ·  :doc:`Clustering <27-clustering>`  ·  :doc:`Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`  ·  :doc:`The CART Algorithm <45-the-cart-algorithm>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/cluster-profiling-using-decision-trees/ <https://insightful-data-lab.com/2026/01/16/cluster-profiling-using-decision-trees/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/cluster-profiling-using-decision-trees/ <https://insightful-data-lab.com/2026/01/16/cluster-profiling-using-decision-trees/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

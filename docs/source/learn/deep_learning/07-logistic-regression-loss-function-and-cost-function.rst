@@ -6,7 +6,7 @@ Logistic Regression – Loss Function and Cost Function
 
 **Stage 2 · 🔵 Logistic Regression as a Neuron**  ·  Lesson 07 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`   ·   :doc:`Next · Gradient Descent in Logistic Regression ▶ <08-gradient-descent-in-logistic-regression>`
+:doc:`◀ Previous · Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`   ·   :doc:`Next · Gradient Descent in Logistic Regression ▶ <08-gradient-descent-in-logistic-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Measuring one prediction
@@ -54,10 +54,12 @@ Loss scores **one** example; the **cost function** averages it over **all** :mat
 **Loss is per-example; cost is the whole-set average.** Training means finding the
 :math:`\mathbf{w}, b` that **minimise** :math:`J` — the job of the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`  ·  :doc:`Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`  ·  :doc:`Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/logistic-regression-loss-function-and-cost-function/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-loss-function-and-cost-function/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/logistic-regression-loss-function-and-cost-function/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-loss-function-and-cost-function/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

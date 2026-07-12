@@ -6,7 +6,7 @@ Objective Selection of the Bin Width for a Time Histogram
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 09 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`   ·   :doc:`Next · Measuring Associations in Data ▶ <10-measuring-associations-in-data>`
+:doc:`◀ Previous · Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`   ·   :doc:`Next · Measuring Associations in Data ▶ <10-measuring-associations-in-data>`   ·   :doc:`↑ Section <index>`
 
 
 The bin-width problem
@@ -49,10 +49,12 @@ bin width can quietly manufacture or hide patterns. A principled rule makes the 
 **reproducible** — the same data yields the same histogram for everyone — which is exactly the standard
 the rest of this course holds its methods to.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`  ·  :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`  ·  :doc:`Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/ <https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/ <https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

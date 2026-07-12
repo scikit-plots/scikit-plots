@@ -6,7 +6,7 @@ Sample ACF and Sample PACF
 
 **Stage 4 · 🎯 Prediction & the Sample ACF / PACF**  ·  Lesson 10 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`Next · Preliminary Estimation for AR Models and the Yule–Walker Equations ▶ <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`
+:doc:`◀ Previous · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`Next · Preliminary Estimation for AR Models and the Yule–Walker Equations ▶ <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`↑ Section <index>`
 
 
 From process to sample
@@ -52,10 +52,12 @@ Identification is a two-plot habit. An **ACF that cuts off** after lag :math:`q`
 **tailing ACF** suggests **AR(p)**; **both tailing off** suggests **ARMA**. In ``statsmodels`` these
 plots are ``plot_acf`` and ``plot_pacf``.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`  ·  :doc:`Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`  ·  :doc:`Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`  ·  :doc:`Order Selection for Time Series Models <14-order-selection-for-time-series-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/sample-acf-and-sample-pacf/ <https://insightful-data-lab.com/2026/01/17/sample-acf-and-sample-pacf/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/sample-acf-and-sample-pacf/ <https://insightful-data-lab.com/2026/01/17/sample-acf-and-sample-pacf/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: intermediate

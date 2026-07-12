@@ -6,7 +6,7 @@ Importance sampling
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 065 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Direct simulation and rejection sampling <064-direct-simulation-and-rejection-sampling>`   ·   :doc:`Next · How many simulation draws are needed? ▶ <066-how-many-simulation-draws-are-needed>`
+:doc:`◀ Previous · Direct simulation and rejection sampling <064-direct-simulation-and-rejection-sampling>`   ·   :doc:`Next · How many simulation draws are needed? ▶ <066-how-many-simulation-draws-are-needed>`   ·   :doc:`↑ Section <index>`
 
 
 Draw from the wrong distribution, then correct
@@ -73,10 +73,12 @@ toward the true posterior; computing **leave-one-out** predictions from a single
 diagnosing prior sensitivity by reweighting to a perturbed prior; and inside particle filters. Use it to
 adjust a nearly-right answer, not to find one.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Direct simulation and rejection sampling <064-direct-simulation-and-rejection-sampling>`  ·  :doc:`Distributional approximations <063-distributional-approximations>`  ·  :doc:`Model comparison based on predictive performance <046-model-comparison-based-on-predictive-performance>`  ·  :doc:`How many simulation draws are needed? <066-how-many-simulation-draws-are-needed>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/importance-sampling/ <https://insightful-data-lab.com/2025/11/11/importance-sampling/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/importance-sampling/ <https://insightful-data-lab.com/2025/11/11/importance-sampling/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

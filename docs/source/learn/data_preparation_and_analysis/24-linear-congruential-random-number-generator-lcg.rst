@@ -6,7 +6,7 @@ Linear Congruential Random Number Generator (LCG)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 24 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Stratified Random Sampling <23-stratified-random-sampling>`   ·   :doc:`Next · Partitioning Observations to Train Objective Models ▶ <25-partitioning-observations-to-train-objective-models>`
+:doc:`◀ Previous · Stratified Random Sampling <23-stratified-random-sampling>`   ·   :doc:`Next · Partitioning Observations to Train Objective Models ▶ <25-partitioning-observations-to-train-objective-models>`   ·   :doc:`↑ Section <index>`
 
 
 Randomness you can repeat
@@ -50,10 +50,12 @@ detectable lattice patterns, and the low-order bits are weakly random. Modern li
 default to stronger generators (numpy now uses a **PCG64** generator by default), while keeping the
 same crucial habit: **set a seed** so your sampling, splitting and modelling can be reproduced exactly.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Stratified Random Sampling <23-stratified-random-sampling>`  ·  :doc:`Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`  ·  :doc:`IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard>`  ·  :doc:`Clustering <27-clustering>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/linear-congruential-random-number-generator-lcg/ <https://insightful-data-lab.com/2026/01/14/linear-congruential-random-number-generator-lcg/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/linear-congruential-random-number-generator-lcg/ <https://insightful-data-lab.com/2026/01/14/linear-congruential-random-number-generator-lcg/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

@@ -6,7 +6,7 @@ Eta Squared (η²): Effect Size in ANOVA
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 16 of 56  ·  *beginner*
 
-:doc:`◀ Previous · What Are Statistical Tests? <15-what-are-statistical-tests>`   ·   :doc:`Next · Understanding Market Baskets and Ideal Customers ▶ <17-understanding-market-baskets-and-ideal-customers>`
+:doc:`◀ Previous · What Are Statistical Tests? <15-what-are-statistical-tests>`   ·   :doc:`Next · Understanding Market Baskets and Ideal Customers ▶ <17-understanding-market-baskets-and-ideal-customers>`   ·   :doc:`↑ Section <index>`
 
 
 How big, not just whether
@@ -49,10 +49,12 @@ variable — :math:`r^2` when the predictor is also continuous (as in regression
 the same question: **how much does one variable tell you about another?** (In multi-factor models, a
 variant called *partial* eta squared isolates one factor's contribution.)
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What Are Statistical Tests? <15-what-are-statistical-tests>`  ·  :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`  ·  :doc:`Harald Cramér <14-harald-cramer>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/eta-squared-%ce%b7%c2%b2-effect-size-in-anova/ <https://insightful-data-lab.com/2026/01/14/eta-squared-%ce%b7%c2%b2-effect-size-in-anova/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/eta-squared-%ce%b7%c2%b2-effect-size-in-anova/ <https://insightful-data-lab.com/2026/01/14/eta-squared-%ce%b7%c2%b2-effect-size-in-anova/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

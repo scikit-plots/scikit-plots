@@ -10,7 +10,7 @@
 
 .. _term-cramer-s-v:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Cramér's V</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Cramér's V</b></div>`
 
 ============
 Cramér's V
@@ -53,22 +53,24 @@ dropped), and testing **feature-target association** in classification.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Model Evaluation & Uncertainty <term-theme-evaluation>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Categorical Drift <179-categorical-drift>` · :doc:`Cardinality in Categorical Data <178-cardinality-in-categorical-data>` · :doc:`Data Drift <331-data-drift>` · :doc:`PSI (Population Stability Index) <389-psi-population-stability-index>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Categorical Explosions <182-categorical-explosions>`
 
 ----
 
-**More in Model Evaluation & Uncertainty**
+.. hint::
+   **More in Model Evaluation & Uncertainty**
 
    :doc:`Average Absolute Error (AAE) <246-average-absolute-error-aae>` · :doc:`Baseline Heuristics <428-baseline-heuristics>` · :doc:`Bootstrap <365-bootstrap>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Coverage <411-coverage>` · :doc:`DeLong's Test <352-delong-s-test>` · :doc:`KS Statistic (Kolmogorov–Smirnov Statistic) <186-ks-statistic-kolmogorovsmirnov-statistic>` · :doc:`Likelihood Ratio (LR) <075-likelihood-ratio-lr>` · :doc:`Mann–Whitney U Test (also called the Wilcoxon rank-sum test) <026-mannwhitney-u-test-also-called-the-wilcoxon-rank>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Mean Absolute Percentage Error (MAPE) <425-mean-absolute-percentage-error-mape>` · :doc:`Mean Squared Error (MSE) <308-mean-squared-error-mse>` · :doc:`Relative accuracy <258-relative-accuracy>`
 
-----
-
-*Theme:* :ref:`Model Evaluation & Uncertainty <term-theme-evaluation>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Cramér's V <https://insightful-data-lab.com/2025/08/23/cramers-v/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Cramér's V <https://insightful-data-lab.com/2025/08/23/cramers-v/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

@@ -6,7 +6,7 @@ Gibbs sampler
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 069 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Debugging Bayesian computing <068-debugging-bayesian-computing>`   ·   :doc:`Next · Metropolis and Metropolis-Hastings algorithms ▶ <070-metropolis-and-metropolis-hastings-algorithms>`
+:doc:`◀ Previous · Debugging Bayesian computing <068-debugging-bayesian-computing>`   ·   :doc:`Next · Metropolis and Metropolis-Hastings algorithms ▶ <070-metropolis-and-metropolis-hastings-algorithms>`   ·   :doc:`↑ Section <index>`
 
 
 Sampling one coordinate at a time
@@ -65,10 +65,12 @@ or **block** highly dependent parameters and update them jointly. And where a co
 closed form, a Metropolis step can be substituted for that coordinate — the hybrid that the next two
 lessons build.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`  ·  :doc:`Using Gibbs and Metropolis as building blocks <071-using-gibbs-and-metropolis-as-building-blocks>`  ·  :doc:`Example: hierarchical normal model <074-example-hierarchical-normal-model>`  ·  :doc:`Direct simulation and rejection sampling <064-direct-simulation-and-rejection-sampling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/12/gibbs-sampler/ <https://insightful-data-lab.com/2025/11/12/gibbs-sampler/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/12/gibbs-sampler/ <https://insightful-data-lab.com/2025/11/12/gibbs-sampler/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

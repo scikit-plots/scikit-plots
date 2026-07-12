@@ -6,7 +6,7 @@ Missing data in the multivariate normal and t models
 
 **Part 4 · Stage 14 · 🛡️ Robustness & Missing Data**  ·  Lesson 120 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Multiple imputation <119-multiple-imputation>`   ·   :doc:`Next · Example: multiple imputation for a series of polls ▶ <121-example-multiple-imputation-for-a-series-of-polls>`
+:doc:`◀ Previous · Multiple imputation <119-multiple-imputation>`   ·   :doc:`Next · Example: multiple imputation for a series of polls ▶ <121-example-multiple-imputation-for-a-series-of-polls>`   ·   :doc:`↑ Section <index>`
 
 
 Imputation from a joint model
@@ -74,10 +74,12 @@ with continuous) are handled by chained-equations imputation or by more elaborat
 principle is unchanged: **model the variables together, and the conditional distribution of the missing
 given the observed is the imputation.**
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multiple imputation <119-multiple-imputation>`  ·  :doc:`Notation <118-notation>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`  ·  :doc:`Robust regression using t-distributed errors <117-robust-regression-using-t-distributed-errors>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/07/missing-data-in-the-multivariate-normal-and-t-models/ <https://insightful-data-lab.com/2025/12/07/missing-data-in-the-multivariate-normal-and-t-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/missing-data-in-the-multivariate-normal-and-t-models/ <https://insightful-data-lab.com/2025/12/07/missing-data-in-the-multivariate-normal-and-t-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

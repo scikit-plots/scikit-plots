@@ -6,7 +6,7 @@ Karl Pearson
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 13 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`   ·   :doc:`Next · Harald Cramér ▶ <14-harald-cramer>`
+:doc:`◀ Previous · Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`   ·   :doc:`Next · Harald Cramér ▶ <14-harald-cramer>`   ·   :doc:`↑ Section <index>`
 
 
 The founder of the field
@@ -43,10 +43,12 @@ views on race and class that are rightly rejected today. It is worth holding bot
 the mathematical machinery is foundational and still in daily use, and that the ideology some of it
 was built to serve was harmful. The tools outlived the purpose.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`  ·  :doc:`What Are Statistical Tests? <15-what-are-statistical-tests>`  ·  :doc:`Harald Cramér <14-harald-cramer>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/karl-pearson/ <https://insightful-data-lab.com/2026/01/14/karl-pearson/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/karl-pearson/ <https://insightful-data-lab.com/2026/01/14/karl-pearson/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

@@ -6,7 +6,7 @@ The Process of Data Analysis
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 02 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Why Do We Analyze Data? <01-why-do-we-analyze-data>`   ·   :doc:`Next · CRISP-DM for Data Science ▶ <03-crisp-dm-for-data-science>`
+:doc:`◀ Previous · Why Do We Analyze Data? <01-why-do-we-analyze-data>`   ·   :doc:`Next · CRISP-DM for Data Science ▶ <03-crisp-dm-for-data-science>`   ·   :doc:`↑ Section <index>`
 
 
 It starts with a question
@@ -41,10 +41,12 @@ modelling reveals a preparation step you missed; a failed evaluation returns you
 board. Good analysis **iterates** — circling back as each stage teaches you something the last one
 could not. The next lesson gives this loop a formal name and shape: **CRISP-DM**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Why Do We Analyze Data? <01-why-do-we-analyze-data>`  ·  :doc:`CRISP-DM for Data Science <03-crisp-dm-for-data-science>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`  ·  :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/the-process-of-data-analysis/ <https://insightful-data-lab.com/2026/01/14/the-process-of-data-analysis/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/the-process-of-data-analysis/ <https://insightful-data-lab.com/2026/01/14/the-process-of-data-analysis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

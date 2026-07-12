@@ -6,7 +6,7 @@ Estimating a Probability from Binomial Data
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 011 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Bayesian Inference in Applied Statistics <010-bayesian-inference-in-applied-statistics>`   ·   :doc:`Next · Posterior as a Compromise Between Data and Prior Information ▶ <012-posterior-as-a-compromise-between-data-and-prior-information>`
+:doc:`◀ Previous · Bayesian Inference in Applied Statistics <010-bayesian-inference-in-applied-statistics>`   ·   :doc:`Next · Posterior as a Compromise Between Data and Prior Information ▶ <012-posterior-as-a-compromise-between-data-and-prior-information>`   ·   :doc:`↑ Section <index>`
 
 
 The workhorse model
@@ -68,10 +68,12 @@ With :math:`\mathrm{Beta}(1,1)` (uniform) and 8 successes in 10 trials:
 The MLE is :math:`8/10 = 0.80`; the posterior mean is :math:`0.75`, pulled toward the prior mean of
 :math:`0.5`. That pull — its size, and its fate as :math:`n` grows — is the subject of the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`  ·  :doc:`Summarizing Posterior Inference <013-summarizing-posterior-inference>`  ·  :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Discrete Bayesian Examples – Genetics and Spell Checking (with θ) <004-discrete-bayesian-examples-genetics-and-spell-checking-with>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/estimating-a-probability-from-binomial-data/ <https://insightful-data-lab.com/2025/11/09/estimating-a-probability-from-binomial-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/estimating-a-probability-from-binomial-data/ <https://insightful-data-lab.com/2025/11/09/estimating-a-probability-from-binomial-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

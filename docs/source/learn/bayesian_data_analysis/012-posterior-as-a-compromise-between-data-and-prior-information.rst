@@ -6,7 +6,7 @@ Posterior as a Compromise Between Data and Prior Information
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 012 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`   ·   :doc:`Next · Summarizing Posterior Inference ▶ <013-summarizing-posterior-inference>`
+:doc:`◀ Previous · Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`   ·   :doc:`Next · Summarizing Posterior Inference ▶ <013-summarizing-posterior-inference>`   ·   :doc:`↑ Section <index>`
 
 
 Between two answers
@@ -62,10 +62,12 @@ that a **badly chosen** informative prior biases the answer, most damagingly whe
 and the pull is strongest. Hence the discipline: state the prior, justify it, and **check the
 sensitivity** of conclusions to reasonable alternatives.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Noninformative Prior Distributions <018-noninformative-prior-distributions>`  ·  :doc:`Large-Sample Theory <029-large-sample-theory>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/posterior-as-a-compromise-between-data-and-prior-information/ <https://insightful-data-lab.com/2025/11/09/posterior-as-a-compromise-between-data-and-prior-information/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/posterior-as-a-compromise-between-data-and-prior-information/ <https://insightful-data-lab.com/2025/11/09/posterior-as-a-compromise-between-data-and-prior-information/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

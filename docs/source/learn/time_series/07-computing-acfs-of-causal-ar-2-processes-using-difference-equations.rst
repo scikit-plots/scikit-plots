@@ -6,7 +6,7 @@ Computing ACFs of Causal AR(2) Processes Using Difference Equations
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 07 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding ARMA Processes <06-understanding-arma-processes>`   ·   :doc:`Next · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) ▶ <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`
+:doc:`◀ Previous · Understanding ARMA Processes <06-understanding-arma-processes>`   ·   :doc:`Next · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) ▶ <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`↑ Section <index>`
 
 
 The recursion
@@ -50,10 +50,12 @@ Either way the ACF **tails off** toward zero but never truly **cuts off** — th
 autoregressive process. (Its partner, the **PACF**, does cut off, after lag 2.) Reading whether the
 decay is exponential or oscillatory is a first clue to the underlying dynamics.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`  ·  :doc:`Weak and Strong Stationarity <04-weak-and-strong-stationarity>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/computing-acfs-of-causal-ar2-processes-using-difference-equations/ <https://insightful-data-lab.com/2026/01/17/computing-acfs-of-causal-ar2-processes-using-difference-equations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/computing-acfs-of-causal-ar2-processes-using-difference-equations/ <https://insightful-data-lab.com/2026/01/17/computing-acfs-of-causal-ar2-processes-using-difference-equations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: intermediate

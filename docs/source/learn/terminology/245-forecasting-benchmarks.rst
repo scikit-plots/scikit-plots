@@ -10,7 +10,7 @@
 
 .. _term-forecasting-benchmarks:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Forecasting Benchmarks</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Forecasting Benchmarks</b></div>`
 
 ========================
 Forecasting Benchmarks
@@ -40,22 +40,24 @@ methods be compared on **common ground** rather than on each author's private da
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Signal Processing & Time Series <term-theme-signal>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Simple Baseline Methods <248-simple-baseline-methods>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`Relative accuracy <258-relative-accuracy>` · :doc:`Forecasting Competitions <251-forecasting-competitions>`
 
 ----
 
-**More in Signal Processing & Time Series**
+.. hint::
+   **More in Signal Processing & Time Series**
 
    :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Log-Space <257-log-space>` · :doc:`Low-pass Filtering <005-low-pass-filtering>` · :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Prophet — Time Series Forecasting by Facebook (Meta) <222-prophet-time-series-forecasting-by-facebook-meta>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Seasonality <329-seasonality>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Simple Baseline Methods <248-simple-baseline-methods>`
 
-----
-
-*Theme:* :ref:`Signal Processing & Time Series <term-theme-signal>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Forecasting Benchmarks <https://insightful-data-lab.com/2025/08/22/forecasting-benchmarks/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Forecasting Benchmarks <https://insightful-data-lab.com/2025/08/22/forecasting-benchmarks/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

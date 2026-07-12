@@ -6,7 +6,7 @@ Bayesian analysis of classical regression
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 092 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Conditional modeling <091-conditional-modeling>`   ·   :doc:`Next · Regression for causal inference: incumbency and voting ▶ <093-regression-for-causal-inference-incumbency-and-voting>`
+:doc:`◀ Previous · Conditional modeling <091-conditional-modeling>`   ·   :doc:`Next · Regression for causal inference: incumbency and voting ▶ <093-regression-for-causal-inference-incumbency-and-voting>`   ·   :doc:`↑ Section <index>`
 
 
 The normal linear model
@@ -74,10 +74,12 @@ independence** (relaxed later in this stage), and an :math:`X^{\top}X` that is *
 well-conditioned. When :math:`k` approaches :math:`n`, or predictors are collinear, the noninformative
 posterior is diffuse or improper — and the remedy is a **prior**, which is exactly regularisation.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Conditional modeling <091-conditional-modeling>`  ·  :doc:`Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`  ·  :doc:`Regularization and dimension reduction <096-regularization-and-dimension-reduction>`  ·  :doc:`Goals of regression analysis <094-goals-of-regression-analysis>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/ <https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/ <https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

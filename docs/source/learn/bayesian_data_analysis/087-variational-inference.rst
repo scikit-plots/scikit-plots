@@ -6,7 +6,7 @@ Variational inference
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 087 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Example: hierarchical normal model (continued) <086-example-hierarchical-normal-model-continued>`   ·   :doc:`Next · Expectation propagation ▶ <088-expectation-propagation>`
+:doc:`◀ Previous · Example: hierarchical normal model (continued) <086-example-hierarchical-normal-model-continued>`   ·   :doc:`Next · Expectation propagation ▶ <088-expectation-propagation>`   ·   :doc:`↑ Section <index>`
 
 
 Turn inference into optimisation
@@ -67,10 +67,12 @@ Unlike MCMC, VI has no :math:`\hat{R}` — the optimiser converging says nothing
 **simulation-based calibration**. Use VI for exploration, for very large models, and as an initialiser —
 and never report a VI interval without checking it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Distributional approximations <063-distributional-approximations>`  ·  :doc:`Expectation propagation <088-expectation-propagation>`  ·  :doc:`Normal and related mixture approximations <083-normal-and-related-mixture-approximations>`  ·  :doc:`Importance sampling <065-importance-sampling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/variational-inference/ <https://insightful-data-lab.com/2025/11/22/variational-inference/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/variational-inference/ <https://insightful-data-lab.com/2025/11/22/variational-inference/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

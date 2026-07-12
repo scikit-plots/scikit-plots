@@ -6,7 +6,7 @@ Getting Started with R
 
 **Stage 1 · 🧭 Orientation**  ·  Lesson 02 of 18  ·  *beginner*
 
-:doc:`◀ Previous · What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`   ·   :doc:`Next · A Gentle Introduction to Stationarity ▶ <03-a-gentle-introduction-to-stationarity>`
+:doc:`◀ Previous · What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`   ·   :doc:`Next · A Gentle Introduction to Stationarity ▶ <03-a-gentle-introduction-to-stationarity>`   ·   :doc:`↑ Section <index>`
 
 
 The toolkit
@@ -47,10 +47,12 @@ The classic R verbs map cleanly onto the Python stack:
 
 Reach for whichever environment you like; this course uses the Python calls throughout.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`  ·  :doc:`A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/getting-started-with-r/ <https://insightful-data-lab.com/2026/01/17/getting-started-with-r/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/getting-started-with-r/ <https://insightful-data-lab.com/2026/01/17/getting-started-with-r/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: beginner

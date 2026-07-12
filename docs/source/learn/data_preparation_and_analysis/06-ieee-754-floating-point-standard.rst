@@ -6,7 +6,7 @@ IEEE 754 Floating-Point Standard
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 06 of 56  ·  *beginner*
 
-:doc:`◀ Previous · The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`   ·   :doc:`Next · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) ▶ <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`
+:doc:`◀ Previous · The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`   ·   :doc:`Next · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) ▶ <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`   ·   :doc:`↑ Section <index>`
 
 
 Storing real numbers
@@ -48,10 +48,12 @@ formulations. And know the **special values** the standard defines — positive 
 and ``NaN`` (not-a-number) — because ``NaN`` in particular is how missing or undefined numeric results
 surface throughout ``pandas``.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`  ·  :doc:`Big Data: Definition, Characteristics, Evolution, and Business Impact <04-big-data-definition-characteristics-evolution-and-business-impact>`  ·  :doc:`Least Squares Regression <31-least-squares-regression>`  ·  :doc:`Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/ <https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/ <https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

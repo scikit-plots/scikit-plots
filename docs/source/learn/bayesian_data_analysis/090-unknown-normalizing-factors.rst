@@ -6,7 +6,7 @@ Unknown normalizing factors
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 090 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Other approximations <089-other-approximations>`   ·   :doc:`Next · Conditional modeling ▶ <091-conditional-modeling>`
+:doc:`◀ Previous · Other approximations <089-other-approximations>`   ·   :doc:`Next · Conditional modeling ▶ <091-conditional-modeling>`   ·   :doc:`↑ Section <index>`
 
 
 When the likelihood has a constant you cannot compute
@@ -80,10 +80,12 @@ demand a different bargain — auxiliary variables, unbiased estimators, or simu
 and each buys correctness with either exact sampling or extra Monte Carlo noise. With the machinery
 established, Part IV returns to modelling: regression, and the structure that makes models useful.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Other approximations <089-other-approximations>`  ·  :doc:`Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`  ·  :doc:`Model comparison using Bayes factors <047-model-comparison-using-bayes-factors>`  ·  :doc:`Importance sampling <065-importance-sampling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/unknown-normalizing-factors/ <https://insightful-data-lab.com/2025/11/23/unknown-normalizing-factors/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/unknown-normalizing-factors/ <https://insightful-data-lab.com/2025/11/23/unknown-normalizing-factors/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

@@ -6,7 +6,7 @@ Normal Data with a Noninformative Prior Distribution
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 021 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`   ·   :doc:`Next · Normal Data with a Conjugate Prior Distribution ▶ <022-normal-data-with-a-conjugate-prior-distribution>`
+:doc:`◀ Previous · Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`   ·   :doc:`Next · Normal Data with a Conjugate Prior Distribution ▶ <022-normal-data-with-a-conjugate-prior-distribution>`   ·   :doc:`↑ Section <index>`
 
 
 Two unknowns at last
@@ -68,10 +68,12 @@ interval is numerically the classical :math:`t` confidence interval, though its 
 One caveat: this prior is **improper**, and with :math:`n = 1` the posterior for :math:`\mu` fails to
 integrate — a reminder to check propriety rather than trust the algebra.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`  ·  :doc:`Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`  ·  :doc:`Noninformative Prior Distributions <018-noninformative-prior-distributions>`  ·  :doc:`Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/normal-data-with-a-noninformative-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-data-with-a-noninformative-prior-distribution/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/normal-data-with-a-noninformative-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-data-with-a-noninformative-prior-distribution/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

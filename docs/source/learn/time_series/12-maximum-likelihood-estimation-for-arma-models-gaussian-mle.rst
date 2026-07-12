@@ -6,7 +6,7 @@ Maximum Likelihood Estimation for ARMA Models (Gaussian MLE)
 
 **Stage 5 · 🧮 Estimation**  ·  Lesson 12 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`Next · Diagnostics After Fitting a Time Series Model ▶ <13-diagnostics-after-fitting-a-time-series-model>`
+:doc:`◀ Previous · Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`Next · Diagnostics After Fitting a Time Series Model ▶ <13-diagnostics-after-fitting-a-time-series-model>`   ·   :doc:`↑ Section <index>`
 
 
 The likelihood
@@ -42,10 +42,12 @@ lowest-variance estimates available — and, remarkably, its **asymptotic distri
 even when the data are not Gaussian**. That combination is why ``statsmodels``' ``ARIMA`` fits by
 **exact MLE** (via a state-space / Kalman filter) by default.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`Order Selection for Time Series Models <14-order-selection-for-time-series-models>`  ·  :doc:`Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/maximum-likelihood-estimation-for-arma-models-gaussian-mle/ <https://insightful-data-lab.com/2026/01/17/maximum-likelihood-estimation-for-arma-models-gaussian-mle/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/maximum-likelihood-estimation-for-arma-models-gaussian-mle/ <https://insightful-data-lab.com/2026/01/17/maximum-likelihood-estimation-for-arma-models-gaussian-mle/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

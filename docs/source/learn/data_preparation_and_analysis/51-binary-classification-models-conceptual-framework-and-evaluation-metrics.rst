@@ -6,7 +6,7 @@ Binary Classification Models – Conceptual Framework and Evaluation Metrics
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 51 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`   ·   :doc:`Next · Nominal Classification Models: Model State and Evaluation Metrics ▶ <52-nominal-classification-models-model-state-and-evaluation-metrics>`
+:doc:`◀ Previous · Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`   ·   :doc:`Next · Nominal Classification Models: Model State and Evaluation Metrics ▶ <52-nominal-classification-models-model-state-and-evaluation-metrics>`   ·   :doc:`↑ Section <index>`
 
 
 Four kinds of outcome
@@ -52,10 +52,12 @@ less than letting fraud through. **Accuracy** alone hides this, and is especiall
 **imbalanced** data — which is why precision, recall and the threshold-based tools of the next lessons
 exist. The choice of which count to minimise is where evaluation meets the **business goal**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`  ·  :doc:`Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`  ·  :doc:`AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`  ·  :doc:`Nominal Classification Models: Model State and Evaluation Metrics <52-nominal-classification-models-model-state-and-evaluation-metrics>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/ <https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/ <https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

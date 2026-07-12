@@ -1,5 +1,9 @@
 .. _da-foundations-index:
 
+:raw-html:`<div style="text-align:center"><strong>` 🌱 Foundations
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
+
 ========================================================================
 🌱 Foundations
 ========================================================================
@@ -12,10 +16,12 @@ The case for data, the analysis process and data life cycle, analytical thinking
 
 .. raw:: html
 
-   <input type="text" id="term-filter" placeholder="🔍 Filter this section by title or keyword…"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
           style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -81,9 +87,9 @@ The case for data, the analysis process and data life cycle, analytical thinking
          <div class="da-row" data-k="Applying Analytical Skills in a Business Context the five skills at work on a real business problem, phase by phase"><a href="014-applying-analytical-skills-in-a-business-context.html">014 · Applying Analytical Skills in a Business Context — the five skills at work on a real business problem, phase by phase</a></div>
          <div class="da-row" data-k="Analytical Thinking and Its Core Components the five aspects — visualization, strategy, problem-orientation, correlation, big picture + detail"><a href="015-analytical-thinking-and-its-core-components.html">015 · Analytical Thinking and Its Core Components — the five aspects — visualization, strategy, problem-orientation, correlation, big picture + detail</a></div>
          <div class="da-row" data-k="Analytical Thinking and Questions for Problem Solving turning the aspects into questions: root causes, gaps, and the unconsidered"><a href="016-analytical-thinking-and-questions-for-problem-solving.html">016 · Analytical Thinking and Questions for Problem Solving — turning the aspects into questions: root causes, gaps, and the unconsidered</a></div>
-         <div class="da-row" data-k="Root Cause Analysis and Business Applications of the Five Whys "><a href="017-root-cause-analysis-and-business-applications-of-the-five-whys.html">017 · Root Cause Analysis and Business Applications of the Five Whys</a></div>
-         <div class="da-row" data-k="Data-Driven Decision-Making and the Role of Analytical Skills "><a href="018-data-driven-decision-making-and-the-role-of-analytical-skills.html">018 · Data-Driven Decision-Making and the Role of Analytical Skills</a></div>
-         <div class="da-row" data-k="Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making "><a href="019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making.html">019 · Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making</a></div>
+         <div class="da-row" data-k="Root Cause Analysis and Business Applications of the Five Whys Toyota's why-times-five: digging past symptoms to causes worth fixing"><a href="017-root-cause-analysis-and-business-applications-of-the-five-whys.html">017 · Root Cause Analysis and Business Applications of the Five Whys — Toyota's why-times-five: digging past symptoms to causes worth fixing</a></div>
+         <div class="da-row" data-k="Data-Driven Decision-Making and the Role of Analytical Skills how the five skills power each step of the decision loop"><a href="018-data-driven-decision-making-and-the-role-of-analytical-skills.html">018 · Data-Driven Decision-Making and the Role of Analytical Skills — how the five skills power each step of the decision loop</a></div>
+         <div class="da-row" data-k="Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making the evidence in action: research findings and worked cases where data changed the outcome"><a href="019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making.html">019 · Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making — the evidence in action: research findings and worked cases where data changed the outcome</a></div>
 
 .. dropdown:: 🧰 Tools, Applications & Ethics
    :class-container: sd-dropdown
@@ -92,14 +98,17 @@ The case for data, the analysis process and data life cycle, analytical thinking
 
    .. raw:: html
 
-         <div class="da-row" data-k="Overview of Core Tools Used by Data Analysts "><a href="020-overview-of-core-tools-used-by-data-analysts.html">020 · Overview of Core Tools Used by Data Analysts</a></div>
-         <div class="da-row" data-k="The Role of Spreadsheets in Data Analysis and Basic Concepts "><a href="021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts.html">021 · The Role of Spreadsheets in Data Analysis and Basic Concepts</a></div>
-         <div class="da-row" data-k="The Concept and Basic Use of SQL (Query Language) "><a href="022-the-concept-and-basic-use-of-sql-query-language.html">022 · The Concept and Basic Use of SQL (Query Language)</a></div>
-         <div class="da-row" data-k="The Role and Importance of Data Visualization "><a href="023-the-role-and-importance-of-data-visualization.html">023 · The Role and Importance of Data Visualization</a></div>
-         <div class="da-row" data-k="Industries Where Data Analysts Work and How Data Is Used "><a href="024-industries-where-data-analysts-work-and-how-data-is-used.html">024 · Industries Where Data Analysts Work and How Data Is Used</a></div>
-         <div class="da-row" data-k="The Role of Business Tasks in Data Analysis "><a href="025-the-role-of-business-tasks-in-data-analysis.html">025 · The Role of Business Tasks in Data Analysis</a></div>
-         <div class="da-row" data-k="Fairness in Data Analysis "><a href="026-fairness-in-data-analysis.html">026 · Fairness in Data Analysis</a></div>
-         <div class="da-row" data-k="Key Factors to Consider When Choosing a Data Analytics Role "><a href="027-key-factors-to-consider-when-choosing-a-data-analytics-role.html">027 · Key Factors to Consider When Choosing a Data Analytics Role</a></div>
+         <div class="da-row" data-k="Overview of Core Tools Used by Data Analysts the working toolkit — spreadsheets, SQL, visualization tools, and code — and when each fits"><a href="020-overview-of-core-tools-used-by-data-analysts.html">020 · Overview of Core Tools Used by Data Analysts — the working toolkit — spreadsheets, SQL, visualization tools, and code — and when each fits</a></div>
+         <div class="da-row" data-k="The Role of Spreadsheets in Data Analysis and Basic Concepts the analyst's first instrument: cells, formulas, and functions in a visible grid"><a href="021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts.html">021 · The Role of Spreadsheets in Data Analysis and Basic Concepts — the analyst's first instrument: cells, formulas, and functions in a visible grid</a></div>
+         <div class="da-row" data-k="The Concept and Basic Use of SQL (Query Language) asking databases questions: SELECT, FROM, WHERE and why they scale"><a href="022-the-concept-and-basic-use-of-sql-query-language.html">022 · The Concept and Basic Use of SQL (Query Language) — asking databases questions: SELECT, FROM, WHERE and why they scale</a></div>
+         <div class="da-row" data-k="The Role and Importance of Data Visualization why pictures beat tables: seeing structure that summary numbers hide"><a href="023-the-role-and-importance-of-data-visualization.html">023 · The Role and Importance of Data Visualization — why pictures beat tables: seeing structure that summary numbers hide</a></div>
+         <div class="da-row" data-k="Industries Where Data Analysts Work and How Data Is Used the same craft in many rooms: retail to healthcare to public service"><a href="024-industries-where-data-analysts-work-and-how-data-is-used.html">024 · Industries Where Data Analysts Work and How Data Is Used — the same craft in many rooms: retail to healthcare to public service</a></div>
+         <div class="da-row" data-k="The Role of Business Tasks in Data Analysis the question behind the work: how business tasks anchor every analysis"><a href="025-the-role-of-business-tasks-in-data-analysis.html">025 · The Role of Business Tasks in Data Analysis — the question behind the work: how business tasks anchor every analysis</a></div>
+         <div class="da-row" data-k="Fairness in Data Analysis analysis that does not create or reinforce bias — and a famous failure to learn from"><a href="026-fairness-in-data-analysis.html">026 · Fairness in Data Analysis — analysis that does not create or reinforce bias — and a famous failure to learn from</a></div>
+         <div class="da-row" data-k="Key Factors to Consider When Choosing a Data Analytics Role industry, company size, specialisation, growth: weighing where to start"><a href="027-key-factors-to-consider-when-choosing-a-data-analytics-role.html">027 · Key Factors to Consider When Choosing a Data Analytics Role — industry, company size, specialisation, growth: weighing where to start</a></div>
+
+🔤 Every lesson, A–Z
+---------------------
 
 .. dropdown:: 🔠 A–Z index
    :class-container: term-az

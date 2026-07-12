@@ -75,13 +75,15 @@ of an analyst's practical skill is mapping the ecosystem *as it actually is* —
 where the trustworthy source of a number lives — rather than as the architecture
 diagram claims.
 
-.. seealso::
+.. hint::
 
    - :doc:`The Origins of Data Analysis and the Many Ways to Structure It <006-the-origins-of-data-analysis-and-the-many-ways-to-structure-it>`
    - :doc:`Understanding the Data Life Cycle <009-understanding-the-data-life-cycle>`
    - :doc:`Overview of Core Tools Used by Data Analysts <020-overview-of-core-tools-used-by-data-analysts>`
    - :doc:`How Data Is Generated and Collected <../3_data_preparation/001-how-data-is-generated-and-collected>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/understanding-the-data-ecosystem/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-ecosystem/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-ecosystem/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, process

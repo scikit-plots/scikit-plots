@@ -6,7 +6,7 @@ Lift Analysis for Direct Mail Campaigns: Concept, Process, and Business Value
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 56 of 56  ·  *advanced*
 
-:doc:`◀ Previous · AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`
+:doc:`◀ Previous · AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`   ·   :doc:`↑ Section <index>`
 
 
 A budget, not a threshold
@@ -55,10 +55,12 @@ course: the journey that began with *why we analyse data* ends with a model, hon
 held-out data, telling a business **exactly what to do** — the prescriptive payoff the first lesson
 promised.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`  ·  :doc:`Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`  ·  :doc:`Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`  ·  :doc:`Why Do We Analyze Data? <01-why-do-we-analyze-data>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value/ <https://insightful-data-lab.com/2026/01/16/lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value/ <https://insightful-data-lab.com/2026/01/16/lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

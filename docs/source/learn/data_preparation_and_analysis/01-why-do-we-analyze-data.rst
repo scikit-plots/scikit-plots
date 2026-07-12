@@ -6,7 +6,7 @@ Why Do We Analyze Data?
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 01 of 56  ·  *beginner*
 
-:doc:`Next · The Process of Data Analysis ▶ <02-the-process-of-data-analysis>`
+:doc:`Next · The Process of Data Analysis ▶ <02-the-process-of-data-analysis>`   ·   :doc:`↑ Section <index>`
 
 
 From data to decisions
@@ -37,10 +37,12 @@ answering "what happened" may be all a question needs; a churn-prevention campai
 about matching the question to a method — and then, in the final stage, **checking the answer is
 trustworthy** before anyone relies on it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The Process of Data Analysis <02-the-process-of-data-analysis>`  ·  :doc:`CRISP-DM for Data Science <03-crisp-dm-for-data-science>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/ <https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/ <https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

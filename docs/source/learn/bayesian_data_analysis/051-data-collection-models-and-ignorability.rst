@@ -6,7 +6,7 @@ Data-collection models and ignorability
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 051 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Bayesian inference requires a model for data collection <050-bayesian-inference-requires-a-model-for-data-collection>`   ·   :doc:`Next · Sample surveys ▶ <052-sample-surveys>`
+:doc:`◀ Previous · Bayesian inference requires a model for data collection <050-bayesian-inference-requires-a-model-for-data-collection>`   ·   :doc:`Next · Sample surveys ▶ <052-sample-surveys>`   ·   :doc:`↑ Section <index>`
 
 
 When can the design be ignored?
@@ -67,10 +67,12 @@ ignorable design into a biased analysis.
 Randomisation, then, is not a ritual: assigning treatment by a coin flip makes :math:`I` depend on
 nothing but a known probability, guaranteeing ignorability **by design** rather than by assumption.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian inference requires a model for data collection <050-bayesian-inference-requires-a-model-for-data-collection>`  ·  :doc:`Sensitivity and the role of randomization <054-sensitivity-and-the-role-of-randomization>`  ·  :doc:`Observational studies <055-observational-studies>`  ·  :doc:`Multiple imputation <119-multiple-imputation>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/ <https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/ <https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

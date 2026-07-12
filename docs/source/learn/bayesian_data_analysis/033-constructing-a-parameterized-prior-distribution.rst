@@ -6,7 +6,7 @@ Constructing a Parameterized Prior Distribution
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 033 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Bayesian interpretations of other statistical methods <032-bayesian-interpretations-of-other-statistical-methods>`   ·   :doc:`Next · Exchangeability and hierarchical models ▶ <034-exchangeability-and-hierarchical-models>`
+:doc:`◀ Previous · Bayesian interpretations of other statistical methods <032-bayesian-interpretations-of-other-statistical-methods>`   ·   :doc:`Next · Exchangeability and hierarchical models ▶ <034-exchangeability-and-hierarchical-models>`   ·   :doc:`↑ Section <index>`
 
 
 Where does the prior come from?
@@ -66,10 +66,12 @@ borrowing strength from the others. The **amount** of borrowing is not chosen by
 propagates into every group's interval. But the construction needs a justification — why should
 :math:`\theta_j` share a distribution at all? That is **exchangeability**, and it is the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Informative Prior Distribution for Cancer Rates <017-informative-prior-distribution-for-cancer-rates>`  ·  :doc:`Bayesian analysis of conjugate hierarchical models <035-bayesian-analysis-of-conjugate-hierarchical-models>`  ·  :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

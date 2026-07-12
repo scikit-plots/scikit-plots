@@ -10,7 +10,7 @@
 
 .. _term-embedding:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Embedding</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Embedding</b></div>`
 
 ===========
 Embedding
@@ -72,22 +72,24 @@ Where it's used
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Autoencoder <171-autoencoder>` · :doc:`Frozen Encoder <172-frozen-encoder>`
 
 ----
 
-**More in Representations & Embeddings**
+.. hint::
+   **More in Representations & Embeddings**
 
    :doc:`Autoencoder <171-autoencoder>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Frozen Encoder <172-frozen-encoder>`
 
-----
-
-*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Embedding <https://insightful-data-lab.com/2025/08/23/embedding/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Embedding <https://insightful-data-lab.com/2025/08/23/embedding/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

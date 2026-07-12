@@ -6,7 +6,7 @@ Understanding Forward and Backward Stepwise Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 36 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`   ·   :doc:`Next · How Shapley Values Work ▶ <37-how-shapley-values-work>`
+:doc:`◀ Previous · Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`   ·   :doc:`Next · How Shapley Values Work ▶ <37-how-shapley-values-work>`   ·   :doc:`↑ Section <index>`
 
 
 Three directions
@@ -47,10 +47,12 @@ theory is thin, always confirming the final model on held-out data. When you can
 a feature's contribution more fairly — like the **Shapley values** of the next lesson — sidestep some
 of these pitfalls.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Forward Selection: Definition and Core Idea <34-forward-selection-definition-and-core-idea>`  ·  :doc:`Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`  ·  :doc:`Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/ <https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/ <https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

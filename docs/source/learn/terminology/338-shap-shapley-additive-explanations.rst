@@ -10,7 +10,7 @@
 
 .. _term-shap-shapley-additive-explanations:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>SHAP (SHapley Additive exPlanations)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>SHAP (SHapley Additive exPlanations)</b></div>`
 
 ======================================
 SHAP (SHapley Additive exPlanations)
@@ -76,22 +76,24 @@ In practice
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`Feature Values <188-feature-values>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`Deep Ensembles <335-deep-ensembles>`
 
 ----
 
-**More in Explainability & Governance**
+.. hint::
+   **More in Explainability & Governance**
 
    :doc:`Basel III <333-basel-iii>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>`
 
-----
-
-*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `SHAP (SHapley Additive exPlanations) <https://insightful-data-lab.com/2025/08/20/shap-shapley-additive-explanations/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `SHAP (SHapley Additive exPlanations) <https://insightful-data-lab.com/2025/08/20/shap-shapley-additive-explanations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

@@ -6,7 +6,7 @@ Bayesian interpretations of other statistical methods
 
 **Part 1 · Stage 4 · 📏 Asymptotics & Frequentist Ties**  ·  Lesson 032 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Frequency Evaluations of Bayesian Inferences <031-frequency-evaluations-of-bayesian-inferences>`   ·   :doc:`Next · Constructing a Parameterized Prior Distribution ▶ <033-constructing-a-parameterized-prior-distribution>`
+:doc:`◀ Previous · Frequency Evaluations of Bayesian Inferences <031-frequency-evaluations-of-bayesian-inferences>`   ·   :doc:`Next · Constructing a Parameterized Prior Distribution ▶ <033-constructing-a-parameterized-prior-distribution>`   ·   :doc:`↑ Section <index>`
 
 
 Priors in disguise
@@ -67,10 +67,12 @@ cures separation (Part IV). The Bayesian reading gives each a language for **why
 penalty stabilises the fit", but "here is what the analysis assumes about the world" — a claim that can
 be stated, checked, and defended.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Frequency Evaluations of Bayesian Inferences <031-frequency-evaluations-of-bayesian-inferences>`  ·  :doc:`Large-Sample Theory <029-large-sample-theory>`  ·  :doc:`Regularization and dimension reduction <096-regularization-and-dimension-reduction>`  ·  :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/bayesian-interpretations-of-other-statistical-methods/ <https://insightful-data-lab.com/2025/11/09/bayesian-interpretations-of-other-statistical-methods/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/bayesian-interpretations-of-other-statistical-methods/ <https://insightful-data-lab.com/2025/11/09/bayesian-interpretations-of-other-statistical-methods/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

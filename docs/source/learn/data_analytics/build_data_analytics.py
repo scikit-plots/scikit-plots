@@ -265,10 +265,12 @@ def validate(rows: list[dict]) -> None:
 # ------------------------------------------------------------------------------
 FILTER_JS = """.. raw:: html
 
-   <input type="text" id="term-filter" placeholder="\U0001F50D Filter %(scope)s by title or keyword\u2026"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="\U0001F50D Type to filter %(scope)s &mdash; by title or keyword\u2026"
           style="width:100%%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -315,6 +317,10 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
     out: list[str] = []
     out.append(f".. _{page_anchor}:")
     out.append("")
+    out.append(f":raw-html:`<div style=\"text-align:center\"><strong>` {h1}")
+    out.append("|br| |full_version| - |today|")
+    out.append(":raw-html:`</strong></div>`")
+    out.append("")
     out.append(bar(h1, "="))
     out.append(h1)
     out.append(bar(h1, "="))
@@ -323,6 +329,7 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
     out.append("")
     out.append(FILTER_JS % {"scope": scope_word})
     out.append("")
+
     for g in groups:
         head = f"{g['emoji']} {g['title']}"
         out.append(f".. dropdown:: {head}")
@@ -336,7 +343,12 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
         for label, key, tgt in g["rows"]:
             out.append("      " + browser_row(label, key, tgt))
         out.append("")
-    # A-Z master
+
+    # ---- dictionary view: one A-Z master list (auto-sorted) ----------
+    az_head = "\U0001F524 Every lesson, A\u2013Z"
+    out.append(az_head)
+    out.append("-" * (len(az_head) + 2))
+    out.append("")
     out.append(".. dropdown:: \U0001F520 A\u2013Z index")
     out.append("   :class-container: term-az")
     out.append("")
@@ -397,18 +409,34 @@ def lesson_page(row: dict, num: int, stem: str, sec_rows: list[tuple],
         out.append("")
         out.append("   Full content for this lesson has not been written yet.")
         out.append("")
-    # see also (mindmap)
+
+    # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#admonitions-messages-and-warnings
+    # Note      → "Be aware of this clarification or detail."          # 📝 Neutral observations, assumptions, clarifications, conventions, or exceptions.
+    # See also  → "Explore these related topics and resources."        # 📚 Internal/external references, further reading, related topics, prerequisites.
+    # Hint      → "This may help you understand the concept."          # 💡 Intuition, conceptual connections, mind maps, learning aids.
+    # Tip       → "This may help you work more effectively."           # 💡 Best practices, shortcuts, recommendations, efficient/advice workflows.
+    # Info      → "Here's additional background or context."           # ℹ️ Background, implementation notes, **sources used by this page**, supplementary factual information where the information came from.
+    # Important → "Do not overlook this; it's essential."              # ⭐ Critical/Essential concepts, requirements, or limitations.
+
+    # lateral cross-links
     nbs = MINDMAP.get(title, [])
     if nbs:
-        out.append(".. seealso::")
+        out.append(".. hint::")
         out.append("")
         for nb in nbs:
             tgt = TITLE_TO_DOC.get(nb)
             if tgt:
                 out.append(f"   - :doc:`{nb} <{tgt}>`")
         out.append("")
-    out.append(f"`Source article <{row['url']}>`__")
+
+    # source (context/traceability)
+    out.append(".. seealso::")
     out.append("")
+    out.append(f"   **Source article** Adapted (context, re-expressed) in our own words from: `{row['url']} <{row['url']}>`__ "
+               f"(insightful-data-lab.com).")
+    out.append("")
+
+    # tags
     out.append(f".. tags:: data-analytics, {sec}, {st}")
     out.append("")
     return "\n".join(out) + "\n"

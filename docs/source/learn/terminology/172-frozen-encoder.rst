@@ -10,7 +10,7 @@
 
 .. _term-frozen-encoder:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Frozen Encoder</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Frozen Encoder</b></div>`
 
 ================
 Frozen Encoder
@@ -66,22 +66,24 @@ Where it's used
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Embedding <173-embedding>` · :doc:`Autoencoder <171-autoencoder>`
 
 ----
 
-**More in Representations & Embeddings**
+.. hint::
+   **More in Representations & Embeddings**
 
    :doc:`Autoencoder <171-autoencoder>` · :doc:`Embedding <173-embedding>` · :doc:`Embedding Similarity <320-embedding-similarity>`
 
-----
-
-*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Frozen Encoder <https://insightful-data-lab.com/2025/08/23/frozen-encoder/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Frozen Encoder <https://insightful-data-lab.com/2025/08/23/frozen-encoder/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

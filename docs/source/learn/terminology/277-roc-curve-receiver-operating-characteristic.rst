@@ -10,7 +10,7 @@
 
 .. _term-roc-curve-receiver-operating-characteristic:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>ROC Curve (Receiver Operating Characteristic)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>ROC Curve (Receiver Operating Characteristic)</b></div>`
 
 ===============================================
 ROC Curve (Receiver Operating Characteristic)
@@ -41,22 +41,24 @@ being locked to one cutoff. It dates to **radar** signal detection in the 1940s.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Classification & Averaging Metrics <term-theme-metrics>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`AUC (Area Under the Curve) <371-auc-area-under-the-curve>` · :doc:`Model Score <364-model-score>` · :doc:`ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <427-roc-auc-receiver-operating-characteristic-area-u>` · :doc:`Precision–Recall AUC (PR-AUC) <430-precisionrecall-auc-pr-auc>` · :doc:`Accuracy <323-accuracy>` · :doc:`Partial AUC (pAUC) <312-partial-auc-pauc>`
 
 ----
 
-**More in Classification & Averaging Metrics**
+.. hint::
+   **More in Classification & Averaging Metrics**
 
    :doc:`Accuracy <323-accuracy>` · :doc:`AUC (Area Under the Curve) <371-auc-area-under-the-curve>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`F1-score <363-f1-score>` · :doc:`Gini Coefficient <023-gini-coefficient>` · :doc:`Harmonic Mean <362-harmonic-mean>` · :doc:`Log Loss (also called Logarithmic Loss or Cross-Entropy Loss) <417-log-loss-also-called-logarithmic-loss-or-cross-e>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Macro AUROC (Macro-Averaged AUROC) <018-macro-auroc-macro-averaged-auroc>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Macro F1 <019-macro-f1>`
 
-----
-
-*Theme:* :ref:`Classification & Averaging Metrics <term-theme-metrics>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `ROC Curve (Receiver Operating Characteristic) <https://insightful-data-lab.com/2025/08/22/roc-curve-receiver-operating-characteristic/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `ROC Curve (Receiver Operating Characteristic) <https://insightful-data-lab.com/2025/08/22/roc-curve-receiver-operating-characteristic/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

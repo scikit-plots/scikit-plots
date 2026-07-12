@@ -6,7 +6,7 @@ Multinomial Model for Categorical Data
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 023 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`   ·   :doc:`Next · Multivariate Normal Model with Known Variance ▶ <024-multivariate-normal-model-with-known-variance>`
+:doc:`◀ Previous · Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`   ·   :doc:`Next · Multivariate Normal Model with Known Variance ▶ <024-multivariate-normal-model-with-known-variance>`   ·   :doc:`↑ Section <index>`
 
 
 Beyond two categories
@@ -62,10 +62,12 @@ the other categories and the binomial reappears. And the components are **negati
 construction: they must sum to one, so probability given to one category is taken from another. That
 constraint is exactly what makes the simplex the natural home for mixture weights in Stage 16.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`  ·  :doc:`Dirichlet process prior distributions <140-dirichlet-process-prior-distributions>`  ·  :doc:`Models for multivariate and multinomial responses <111-models-for-multivariate-and-multinomial-responses>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/ <https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/ <https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

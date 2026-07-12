@@ -10,7 +10,7 @@
 
 .. _term-embedding-similarity:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Embedding Similarity</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Embedding Similarity</b></div>`
 
 ======================
 Embedding Similarity
@@ -78,22 +78,24 @@ In practice
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Embedding <173-embedding>` · :doc:`Autoencoder <171-autoencoder>`
 
 ----
 
-**More in Representations & Embeddings**
+.. hint::
+   **More in Representations & Embeddings**
 
    :doc:`Autoencoder <171-autoencoder>` · :doc:`Embedding <173-embedding>` · :doc:`Frozen Encoder <172-frozen-encoder>`
 
-----
-
-*Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Embedding Similarity <https://insightful-data-lab.com/2025/08/20/embedding-similarity/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Embedding Similarity <https://insightful-data-lab.com/2025/08/20/embedding-similarity/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

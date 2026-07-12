@@ -6,7 +6,7 @@ Using Gibbs and Metropolis as building blocks
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 071 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`   ·   :doc:`Next · Inference and assessing convergence ▶ <072-inference-and-assessing-convergence>`
+:doc:`◀ Previous · Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`   ·   :doc:`Next · Inference and assessing convergence ▶ <072-inference-and-assessing-convergence>`   ·   :doc:`↑ Section <index>`
 
 
 Mix and match
@@ -65,10 +65,12 @@ what BUGS and JAGS do, they remain the right tool for discrete parameters (which
 touch), and their diagnostics are the subject of the next lesson. Their limitation is universal — all of
 them explore by **random walk**, and none escape its quadratic cost.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Gibbs sampler <069-gibbs-sampler>`  ·  :doc:`Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`  ·  :doc:`Eﬃcient Gibbs samplers <075-efficient-gibbs-samplers>`  ·  :doc:`Further extensions to Gibbs and Metropolis <077-further-extensions-to-gibbs-and-metropolis>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/12/using-gibbs-and-metropolis-as-building-blocks/ <https://insightful-data-lab.com/2025/11/12/using-gibbs-and-metropolis-as-building-blocks/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/12/using-gibbs-and-metropolis-as-building-blocks/ <https://insightful-data-lab.com/2025/11/12/using-gibbs-and-metropolis-as-building-blocks/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

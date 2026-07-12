@@ -6,7 +6,7 @@ Stratified Random Sampling
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 23 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Cross-Selling <22-cross-selling>`   ·   :doc:`Next · Linear Congruential Random Number Generator (LCG) ▶ <24-linear-congruential-random-number-generator-lcg>`
+:doc:`◀ Previous · Cross-Selling <22-cross-selling>`   ·   :doc:`Next · Linear Congruential Random Number Generator (LCG) ▶ <24-linear-congruential-random-number-generator-lcg>`   ·   :doc:`↑ Section <index>`
 
 
 Representative by design
@@ -44,10 +44,12 @@ leave too few positive cases in the test set. In scikit-learn it is one argument
 ``train_test_split(..., stratify=y)``, or ``StratifiedKFold`` for cross-validation. The next lessons
 need this discipline, because honest model evaluation depends on representative partitions.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`  ·  :doc:`Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`  ·  :doc:`Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/stratified-random-sampling/ <https://insightful-data-lab.com/2026/01/14/stratified-random-sampling/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/stratified-random-sampling/ <https://insightful-data-lab.com/2026/01/14/stratified-random-sampling/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

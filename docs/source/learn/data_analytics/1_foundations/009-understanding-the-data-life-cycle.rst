@@ -69,13 +69,15 @@ wrong, the life cycle is your checklist of where to look. And downstream, Archiv
 and Destroy explain the gaps: the missing 2019 data may not be lost — it may
 have been destroyed on schedule, which is an answer, not a dead end.
 
-.. seealso::
+.. hint::
 
    - :doc:`Understanding the Data Analysis Process and the Data Life Cycle <008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
    - :doc:`A Review of the Six Stages of the Data Life Cycle <010-a-review-of-the-six-stages-of-the-data-life-cycle>`
    - :doc:`Understanding the Data Ecosystem <007-understanding-the-data-ecosystem>`
    - :doc:`Data Privacy in Data Ethics <../3_data_preparation/014-data-privacy-in-data-ethics>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/understanding-the-data-life-cycle/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-life-cycle/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-life-cycle/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, process

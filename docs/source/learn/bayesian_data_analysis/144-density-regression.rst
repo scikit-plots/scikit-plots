@@ -6,7 +6,7 @@ Density regression
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 144 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Hierarchical dependence <143-hierarchical-dependence>`
+:doc:`◀ Previous · Hierarchical dependence <143-hierarchical-dependence>`   ·   :doc:`↑ Section <index>`
 
 
 The whole distribution as a function of x
@@ -67,10 +67,12 @@ with full posterior uncertainty over the entire family of conditional densities.
 single unknown to an infinite, covariate-indexed family of distributions — the arc of Bayesian data
 analysis, from its one idea to its fullest expression.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Dirichlet process mixtures <141-dirichlet-process-mixtures>`  ·  :doc:`Gaussian process regression <129-gaussian-process-regression>`  ·  :doc:`Hierarchical dependence <143-hierarchical-dependence>`  ·  :doc:`Mixture models for classification and regression <138-mixture-models-for-classification-and-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/13/density-regression/ <https://insightful-data-lab.com/2025/12/13/density-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/13/density-regression/ <https://insightful-data-lab.com/2025/12/13/density-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

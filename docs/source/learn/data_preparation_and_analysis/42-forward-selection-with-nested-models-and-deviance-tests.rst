@@ -6,7 +6,7 @@ Forward Selection with Nested Models and Deviance Tests
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 42 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression>`   ·   :doc:`Next · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention ▶ <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`
+:doc:`◀ Previous · Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression>`   ·   :doc:`Next · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention ▶ <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`   ·   :doc:`↑ Section <index>`
 
 
 Selecting features by deviance
@@ -52,10 +52,12 @@ improvement. It is the same greedy search as before, now driven by **deviance** 
 F-statistic — and with the same caution that data-driven selection inflates significance, so the final
 model earns its keep only on **held-out** data. The next lesson works a full example on real data.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`  ·  :doc:`Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`  ·  :doc:`Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`  ·  :doc:`Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/ <https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/ <https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

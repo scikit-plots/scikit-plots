@@ -63,6 +63,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **terminologies**
         ^^^
@@ -73,6 +74,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **data analytics**
         ^^^
@@ -83,6 +85,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **data analysis**
         ^^^
@@ -93,6 +96,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **bayesian data analysis**
         ^^^
@@ -103,6 +107,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **time series**
         ^^^
@@ -113,6 +118,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **deep learning**
         ^^^
@@ -123,6 +129,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **resources**
         ^^^
@@ -133,6 +140,7 @@ Learn
 
     .. grid-item-card::
         :padding: 3
+        :columns: 12 12 6 6
 
         **cheatsheets**
         ^^^

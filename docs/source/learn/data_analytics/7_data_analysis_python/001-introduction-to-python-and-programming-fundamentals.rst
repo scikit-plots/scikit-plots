@@ -22,6 +22,8 @@ Introduction to Python and Programming Fundamentals
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/introduction-to-python-and-programming-fundamentals/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/introduction-to-python-and-programming-fundamentals/ <https://insightful-data-lab.com/2023/12/06/introduction-to-python-and-programming-fundamentals/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, python, basics

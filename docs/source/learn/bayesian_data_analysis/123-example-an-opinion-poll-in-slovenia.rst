@@ -6,7 +6,7 @@ Example: an opinion poll in Slovenia
 
 **Part 4 · Stage 14 · 🛡️ Robustness & Missing Data**  ·  Lesson 123 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Missing values with counted data <122-missing-values-with-counted-data>`   ·   :doc:`Next · Example: serial dilution assay ▶ <124-example-serial-dilution-assay>`
+:doc:`◀ Previous · Missing values with counted data <122-missing-values-with-counted-data>`   ·   :doc:`Next · Example: serial dilution assay ▶ <124-example-serial-dilution-assay>`   ·   :doc:`↑ Section <index>`
 
 
 A referendum with missing answers
@@ -64,10 +64,12 @@ non-response *is* informative about the vote — the honest response is a **sens
 plausible mechanisms, reporting how much the conclusion moves. Real surveys are never complete; this is
 what taking their gaps seriously looks like.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multiple imputation <119-multiple-imputation>`  ·  :doc:`Notation <118-notation>`  ·  :doc:`Missing values with counted data <122-missing-values-with-counted-data>`  ·  :doc:`Sample surveys <052-sample-surveys>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/example-an-opinion-poll-in-slovenia/ <https://insightful-data-lab.com/2025/12/09/example-an-opinion-poll-in-slovenia/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/example-an-opinion-poll-in-slovenia/ <https://insightful-data-lab.com/2025/12/09/example-an-opinion-poll-in-slovenia/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

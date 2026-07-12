@@ -6,7 +6,7 @@ Hierarchical dependence
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 143 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Beyond density estimation <142-beyond-density-estimation>`   ·   :doc:`Next · Density regression ▶ <144-density-regression>`
+:doc:`◀ Previous · Beyond density estimation <142-beyond-density-estimation>`   ·   :doc:`Next · Density regression ▶ <144-density-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Sharing nonparametric structure across groups
@@ -53,10 +53,12 @@ topics inferred rather than set. The same structure serves grouped density estim
 clustering, and infinite hidden Markov models — anywhere related groups each need a flexible distribution
 but ought to share what they have in common.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Dirichlet process mixtures <141-dirichlet-process-mixtures>`  ·  :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Beyond density estimation <142-beyond-density-estimation>`  ·  :doc:`State-level opinons from national polls <110-state-level-opinons-from-national-polls>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/13/hierarchical-dependence/ <https://insightful-data-lab.com/2025/12/13/hierarchical-dependence/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/13/hierarchical-dependence/ <https://insightful-data-lab.com/2025/12/13/hierarchical-dependence/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

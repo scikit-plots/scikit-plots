@@ -6,7 +6,7 @@ Harald Cramér
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 14 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Karl Pearson <13-karl-pearson>`   ·   :doc:`Next · What Are Statistical Tests? ▶ <15-what-are-statistical-tests>`
+:doc:`◀ Previous · Karl Pearson <13-karl-pearson>`   ·   :doc:`Next · What Are Statistical Tests? ▶ <15-what-are-statistical-tests>`   ·   :doc:`↑ Section <index>`
 
 
 A Swedish statistician
@@ -47,10 +47,12 @@ was among the first to put statistics on a firm measure-theoretic basis, and it 
 of statisticians. Alongside the V and the bound, his broader work spanned probability, actuarial
 mathematics and number theory.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Karl Pearson <13-karl-pearson>`  ·  :doc:`What Are Statistical Tests? <15-what-are-statistical-tests>`  ·  :doc:`Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`  ·  :doc:`Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/harald-cramer/ <https://insightful-data-lab.com/2026/01/14/harald-cramer/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/harald-cramer/ <https://insightful-data-lab.com/2026/01/14/harald-cramer/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

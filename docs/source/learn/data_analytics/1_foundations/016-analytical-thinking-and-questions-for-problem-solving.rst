@@ -80,13 +80,15 @@ chain is a **hypothesis** about causation until data confirms each link —
 plausible chains that verify beautifully in the room and fail in the data are
 common. Ask the questions, then make the data answer them.
 
-.. seealso::
+.. hint::
 
    - :doc:`Analytical Thinking and Its Core Components <015-analytical-thinking-and-its-core-components>`
    - :doc:`Root Cause Analysis and Business Applications of the Five Whys <017-root-cause-analysis-and-business-applications-of-the-five-whys>`
    - :doc:`Why Asking the Right Questions Matters in Data Analytics <../2_data_driven_decisions/004-why-asking-the-right-questions-matters-in-data-analytics>`
    - :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making <019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-questions-for-problem-solving/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-questions-for-problem-solving/ <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-questions-for-problem-solving/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, thinking

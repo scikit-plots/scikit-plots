@@ -6,7 +6,7 @@ Large-Sample Theory
 
 **Part 1 · Stage 4 · 📏 Asymptotics & Frequentist Ties**  ·  Lesson 029 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`   ·   :doc:`Next · Counterexamples to large-sample (asymptotic) Bayesian theorems ▶ <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`
+:doc:`◀ Previous · Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`   ·   :doc:`Next · Counterexamples to large-sample (asymptotic) Bayesian theorems ▶ <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`   ·   :doc:`↑ Section <index>`
 
 
 What happens as data pile up
@@ -70,10 +70,12 @@ becomes normal around the best-fitting parameter, but its variance is **no longe
 information — so credible intervals lose their coverage guarantee. The next lesson collects the cases
 where these conditions break.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`  ·  :doc:`Counterexamples to large-sample (asymptotic) Bayesian theorems <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`  ·  :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`  ·  :doc:`Frequency Evaluations of Bayesian Inferences <031-frequency-evaluations-of-bayesian-inferences>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/large-sample-theory/ <https://insightful-data-lab.com/2025/11/09/large-sample-theory/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/large-sample-theory/ <https://insightful-data-lab.com/2025/11/09/large-sample-theory/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

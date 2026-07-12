@@ -6,7 +6,7 @@ Assessing Model Fit in Logistic Regression
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 40 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`   ·   :doc:`Next · Complete and Quasi-Complete Separation in Logistic Regression ▶ <41-complete-and-quasi-complete-separation-in-logistic-regression>`
+:doc:`◀ Previous · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`   ·   :doc:`Next · Complete and Quasi-Complete Separation in Logistic Regression ▶ <41-complete-and-quasi-complete-separation-in-logistic-regression>`   ·   :doc:`↑ Section <index>`
 
 
 No R² to lean on
@@ -52,10 +52,12 @@ against complexity across candidate models, **AIC** and **BIC** combine the log-
 penalty for the number of predictors — the same parsimony principle from the selection lessons. The
 next lesson turns this deviance-comparison idea into a tool for **choosing** features.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`  ·  :doc:`Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`  ·  :doc:`Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/ <https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/ <https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

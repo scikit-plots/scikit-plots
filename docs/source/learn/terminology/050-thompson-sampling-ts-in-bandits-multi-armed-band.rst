@@ -10,7 +10,7 @@
 
 .. _term-thompson-sampling-ts-in-bandits-multi-armed-bandit-problem-mab:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB))</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB))</b></div>`
 
 ======================================================================
 Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB))
@@ -112,22 +112,24 @@ rather than confidence bounds.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Bandit Algorithms <113-bandit-algorithms>` · :doc:`Bayesian Decision Theory (BDT) <051-bayesian-decision-theory-bdt>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Bayesian Sequential Testing <074-bayesian-sequential-testing>` · :doc:`Posterior <063-posterior>` · :doc:`Prior Belief (or Prior Probability) <064-prior-belief-or-prior-probability>`
 
 ----
 
-**More in Sequential Methods & Bandits**
+.. hint::
+   **More in Sequential Methods & Bandits**
 
    :doc:`Bandit Algorithms <113-bandit-algorithms>` · :doc:`O'Brien–Fleming (OBF) Method <078-o-brienfleming-obf-method>` · :doc:`Pocock Method <077-pocock-method>` · :doc:`Sequential Probability Ratio Test (SPRT) <076-sequential-probability-ratio-test-sprt>` · :doc:`Sequential Settings <058-sequential-settings>`
 
-----
-
-*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB)) <https://insightful-data-lab.com/2025/08/29/thompson-sampling-ts-in-bandits/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB)) <https://insightful-data-lab.com/2025/08/29/thompson-sampling-ts-in-bandits/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

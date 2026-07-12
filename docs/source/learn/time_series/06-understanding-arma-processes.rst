@@ -6,7 +6,7 @@ Understanding ARMA Processes
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 06 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Linear Processes <05-linear-processes>`   ·   :doc:`Next · Computing ACFs of Causal AR(2) Processes Using Difference Equations ▶ <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`
+:doc:`◀ Previous · Linear Processes <05-linear-processes>`   ·   :doc:`Next · Computing ACFs of Causal AR(2) Processes Using Difference Equations ▶ <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`   ·   :doc:`↑ Section <index>`
 
 
 The model
@@ -53,10 +53,12 @@ reduces the whole model to :math:`x_t = w_t`, plain white noise. Always **cancel
 before trusting a fit; ``statsmodels`` exposes the fitted ``.arroots`` and ``.maroots`` for exactly
 this check.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Linear Processes <05-linear-processes>`  ·  :doc:`Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`  ·  :doc:`Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`  ·  :doc:`Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`  ·  :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/understanding-arma-processes/ <https://insightful-data-lab.com/2026/01/17/understanding-arma-processes/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/understanding-arma-processes/ <https://insightful-data-lab.com/2026/01/17/understanding-arma-processes/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: intermediate

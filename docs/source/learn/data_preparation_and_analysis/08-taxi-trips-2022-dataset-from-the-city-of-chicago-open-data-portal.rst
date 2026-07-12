@@ -6,7 +6,7 @@ Taxi Trips – 2022 dataset from the City of Chicago open data portal
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 08 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`   ·   :doc:`Next · Objective Selection of the Bin Width for a Time Histogram ▶ <09-objective-selection-of-the-bin-width-for-a-time-histogram>`
+:doc:`◀ Previous · Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`   ·   :doc:`Next · Objective Selection of the Bin Width for a Time Histogram ▶ <09-objective-selection-of-the-bin-width-for-a-time-histogram>`   ·   :doc:`↑ Section <index>`
 
 
 An open, real dataset
@@ -42,10 +42,12 @@ and missing community areas for trips outside Chicago. Filtering these out is a 
 any association or model is trustworthy — a concrete instance of why data preparation dominates the
 workflow.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Trips (September 2022) <07-discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`  ·  :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal/ <https://insightful-data-lab.com/2026/01/14/taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal/ <https://insightful-data-lab.com/2026/01/14/taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

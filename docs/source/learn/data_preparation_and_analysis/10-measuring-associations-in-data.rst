@@ -6,7 +6,7 @@ Measuring Associations in Data
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 10 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram>`   ·   :doc:`Next · Measuring Associations Between Two Continuous Variables ▶ <11-measuring-associations-between-two-continuous-variables>`
+:doc:`◀ Previous · Objective Selection of the Bin Width for a Time Histogram <09-objective-selection-of-the-bin-width-for-a-time-histogram>`   ·   :doc:`Next · Measuring Associations Between Two Continuous Variables ▶ <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`↑ Section <index>`
 
 
 One idea, many measures
@@ -42,10 +42,12 @@ Two properties matter. **Strength** — how tightly the variables track, usually
 together or move oppositely, which only makes sense for **ordered** variables. A good measure reports
 strength on a comparable scale, so associations across different variable pairs can be ranked.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`  ·  :doc:`What Are Statistical Tests? <15-what-are-statistical-tests>`  ·  :doc:`Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/measuring-associations-in-data/ <https://insightful-data-lab.com/2026/01/14/measuring-associations-in-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/measuring-associations-in-data/ <https://insightful-data-lab.com/2026/01/14/measuring-associations-in-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

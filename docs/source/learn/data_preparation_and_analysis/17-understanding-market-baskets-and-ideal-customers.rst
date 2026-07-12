@@ -6,7 +6,7 @@ Understanding Market Baskets and Ideal Customers
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 17 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`   ·   :doc:`Next · What Can Association Rules Tell Us? ▶ <18-what-can-association-rules-tell-us>`
+:doc:`◀ Previous · Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`   ·   :doc:`Next · What Can Association Rules Tell Us? ▶ <18-what-can-association-rules-tell-us>`   ·   :doc:`↑ Section <index>`
 
 
 What's in the basket
@@ -41,10 +41,12 @@ To act on baskets at scale, the co-occurrence patterns are written as **associat
 that idea exact: what a rule is, how its strength is measured, and how the **Apriori** algorithm finds
 the good ones among astronomically many possibilities.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`  ·  :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`Cross-Selling <22-cross-selling>`  ·  :doc:`Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/understanding-market-baskets-and-ideal-customers/ <https://insightful-data-lab.com/2026/01/14/understanding-market-baskets-and-ideal-customers/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/understanding-market-baskets-and-ideal-customers/ <https://insightful-data-lab.com/2026/01/14/understanding-market-baskets-and-ideal-customers/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

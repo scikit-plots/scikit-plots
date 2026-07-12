@@ -6,7 +6,7 @@ Direct simulation and rejection sampling
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 064 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Distributional approximations <063-distributional-approximations>`   ·   :doc:`Next · Importance sampling ▶ <065-importance-sampling>`
+:doc:`◀ Previous · Distributional approximations <063-distributional-approximations>`   ·   :doc:`Next · Importance sampling ▶ <065-importance-sampling>`   ·   :doc:`↑ Section <index>`
 
 
 When you can draw directly
@@ -64,10 +64,12 @@ them at once. Rejection sampling survives as a component — for univariate draw
 distributions (reject anything outside the support) — but not as a general engine. That role belongs to
 **MCMC**, which abandons independent draws in exchange for scaling.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Numerical integration <062-numerical-integration>`  ·  :doc:`Importance sampling <065-importance-sampling>`  ·  :doc:`Distributional approximations <063-distributional-approximations>`  ·  :doc:`Gibbs sampler <069-gibbs-sampler>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/direct-simulation-and-rejection-sampling/ <https://insightful-data-lab.com/2025/11/11/direct-simulation-and-rejection-sampling/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/direct-simulation-and-rejection-sampling/ <https://insightful-data-lab.com/2025/11/11/direct-simulation-and-rejection-sampling/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

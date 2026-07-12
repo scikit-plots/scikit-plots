@@ -6,7 +6,7 @@ Observational studies
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 055 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Sensitivity and the role of randomization <054-sensitivity-and-the-role-of-randomization>`   ·   :doc:`Next · Censoring and truncation ▶ <056-censoring-and-truncation>`
+:doc:`◀ Previous · Sensitivity and the role of randomization <054-sensitivity-and-the-role-of-randomization>`   ·   :doc:`Next · Censoring and truncation ▶ <056-censoring-and-truncation>`   ·   :doc:`↑ Section <index>`
 
 
 When you cannot randomise
@@ -65,10 +65,12 @@ can create bias where none existed. Covariate choice requires **causal reasoning
 not a search over predictors — and the final report should say, plainly, how strong an unmeasured
 confounder would need to be to change the conclusion.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Sensitivity and the role of randomization <054-sensitivity-and-the-role-of-randomization>`  ·  :doc:`Designed experiments <053-designed-experiments>`  ·  :doc:`Regression for causal inference: incumbency and voting <093-regression-for-causal-inference-incumbency-and-voting>`  ·  :doc:`Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/observational-studies/ <https://insightful-data-lab.com/2025/11/11/observational-studies/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/observational-studies/ <https://insightful-data-lab.com/2025/11/11/observational-studies/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

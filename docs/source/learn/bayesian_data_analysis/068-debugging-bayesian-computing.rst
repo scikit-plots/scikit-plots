@@ -6,7 +6,7 @@ Debugging Bayesian computing
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 068 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Computing environments <067-computing-environments>`   ·   :doc:`Next · Gibbs sampler ▶ <069-gibbs-sampler>`
+:doc:`◀ Previous · Computing environments <067-computing-environments>`   ·   :doc:`Next · Gibbs sampler ▶ <069-gibbs-sampler>`   ·   :doc:`↑ Section <index>`
 
 
 Silence is the danger
@@ -61,10 +61,12 @@ before real; **check the priors** by simulating from them alone; **rescale** so 
 one; **reparameterise** (non-centred) when a hierarchy funnels; and only then blame the sampler. Each
 rung tells you something about the model, which is the point.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Computing environments <067-computing-environments>`  ·  :doc:`Do the Inferences from the Model Make Sense? <041-do-the-inferences-from-the-model-make-sense>`  ·  :doc:`Frequency Evaluations of Bayesian Inferences <031-frequency-evaluations-of-bayesian-inferences>`  ·  :doc:`Inference and assessing convergence <072-inference-and-assessing-convergence>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/debugging-bayesian-computing/ <https://insightful-data-lab.com/2025/11/11/debugging-bayesian-computing/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/debugging-bayesian-computing/ <https://insightful-data-lab.com/2025/11/11/debugging-bayesian-computing/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

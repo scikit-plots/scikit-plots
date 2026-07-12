@@ -78,13 +78,15 @@ spreadsheets, and half-archived, so the same record can sit at several stages at
 once. Treat the cycle as the intended governance path, and expect to do some
 detective work about where a given dataset really is on it.
 
-.. seealso::
+.. hint::
 
    - :doc:`The Six Phases of the Data Analysis Process <005-the-six-phases-of-the-data-analysis-process>`
    - :doc:`Understanding the Data Life Cycle <009-understanding-the-data-life-cycle>`
    - :doc:`A Review of the Six Stages of the Data Life Cycle <010-a-review-of-the-six-stages-of-the-data-life-cycle>`
    - :doc:`Why Asking the Right Questions Matters in Data Analytics <../2_data_driven_decisions/004-why-asking-the-right-questions-matters-in-data-analytics>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/understanding-the-data-analysis-process-and-the-data-life-cycle/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-analysis-process-and-the-data-life-cycle/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-analysis-process-and-the-data-life-cycle/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, process

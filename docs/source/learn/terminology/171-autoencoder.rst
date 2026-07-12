@@ -10,7 +10,7 @@
 
 .. _term-autoencoder:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Autoencoder</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Autoencoder</b></div>`
 
 =============
 Autoencoder
@@ -85,22 +85,24 @@ cluster, search or detect outliers in a fraction of the original space.
 
 ----
 
-**Mind map — connected ideas**
-
-   :doc:`Embedding <173-embedding>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Frozen Encoder <172-frozen-encoder>`
-
-----
-
-**More in Representations & Embeddings**
-
-   :doc:`Embedding <173-embedding>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Frozen Encoder <172-frozen-encoder>`
-
-----
-
 *Theme:* :ref:`Representations & Embeddings <term-theme-repr>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
+
+   :doc:`Embedding <173-embedding>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Frozen Encoder <172-frozen-encoder>`
+
+----
+
+.. hint::
+   **More in Representations & Embeddings**
+
+   :doc:`Embedding <173-embedding>` · :doc:`Embedding Similarity <320-embedding-similarity>` · :doc:`Frozen Encoder <172-frozen-encoder>`
 
 .. seealso::
 
-   Adapted in our own words from `Autoencoder <https://insightful-data-lab.com/2025/08/23/autoencoder/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Autoencoder <https://insightful-data-lab.com/2025/08/23/autoencoder/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

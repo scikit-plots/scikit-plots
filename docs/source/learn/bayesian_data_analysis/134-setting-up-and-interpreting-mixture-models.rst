@@ -6,7 +6,7 @@ Setting up and interpreting mixture models
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 134 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Density estimation and regression <133-density-estimation-and-regression>`   ·   :doc:`Next · Example: reaction times and schizophrenia ▶ <135-example-reaction-times-and-schizophrenia>`
+:doc:`◀ Previous · Density estimation and regression <133-density-estimation-and-regression>`   ·   :doc:`Next · Example: reaction times and schizophrenia ▶ <135-example-reaction-times-and-schizophrenia>`   ·   :doc:`↑ Section <index>`
 
 
 The latent-class formulation
@@ -66,10 +66,12 @@ the likelihood to infinity — the same boundary pathology met in hierarchical m
 with a prior that keeps variances off zero. The next lesson puts the setup to work; the one after
 confronts label switching head-on.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Density estimation and regression <133-density-estimation-and-regression>`  ·  :doc:`Example: reaction times and schizophrenia <135-example-reaction-times-and-schizophrenia>`  ·  :doc:`Label switching and posterior computation <136-label-switching-and-posterior-computation>`  ·  :doc:`Finding marginal posterior modes using EM <084-finding-marginal-posterior-modes-using-em>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/setting-up-and-interpreting-mixture-models/ <https://insightful-data-lab.com/2025/12/09/setting-up-and-interpreting-mixture-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/setting-up-and-interpreting-mixture-models/ <https://insightful-data-lab.com/2025/12/09/setting-up-and-interpreting-mixture-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

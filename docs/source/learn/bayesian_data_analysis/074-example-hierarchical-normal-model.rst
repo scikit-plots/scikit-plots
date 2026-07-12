@@ -6,7 +6,7 @@ Example: hierarchical normal model
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 074 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Eﬀective number of simulation draws <073-effective-number-of-simulation-draws>`   ·   :doc:`Next · Eﬃcient Gibbs samplers ▶ <075-efficient-gibbs-samplers>`
+:doc:`◀ Previous · Eﬀective number of simulation draws <073-effective-number-of-simulation-draws>`   ·   :doc:`Next · Eﬃcient Gibbs samplers ▶ <075-efficient-gibbs-samplers>`   ·   :doc:`↑ Section <index>`
 
 
 Gibbs, worked through
@@ -73,10 +73,12 @@ Closed-form conditionals guarantee **correctness in the limit**, not **efficienc
 diagnosis is posterior **correlation between levels**, and the two cures are the subject of the next
 lesson: reparameterise so the levels decouple, or update them jointly.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Gibbs sampler <069-gibbs-sampler>`  ·  :doc:`Eﬃcient Gibbs samplers <075-efficient-gibbs-samplers>`  ·  :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`  ·  :doc:`Example: hierarchical normal model (continued) <086-example-hierarchical-normal-model-continued>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/12/example-hierarchical-normal-model/ <https://insightful-data-lab.com/2025/11/12/example-hierarchical-normal-model/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/12/example-hierarchical-normal-model/ <https://insightful-data-lab.com/2025/11/12/example-hierarchical-normal-model/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

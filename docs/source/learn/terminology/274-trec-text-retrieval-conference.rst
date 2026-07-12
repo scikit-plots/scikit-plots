@@ -10,7 +10,7 @@
 
 .. _term-trec-text-retrieval-conference:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>TREC (Text REtrieval Conference)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>TREC (Text REtrieval Conference)</b></div>`
 
 ==================================
 TREC (Text REtrieval Conference)
@@ -41,22 +41,24 @@ information retrieval what shared benchmarks are to the rest of ML.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Ranking & Interleaving <term-theme-ranking>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Kaggle <273-kaggle>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Forecasting Competitions <251-forecasting-competitions>`
 
 ----
 
-**More in Ranking & Interleaving**
+.. hint::
+   **More in Ranking & Interleaving**
 
    :doc:`Balanced Interleaving <111-balanced-interleaving>` · :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Interleaving Tests <379-interleaving-tests>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>` · :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>` · :doc:`Probabilistic Interleaving <109-probabilistic-interleaving>` · :doc:`Ranking Algorithms <108-ranking-algorithms>` · :doc:`Team Draft Interleaving (TDI) <110-team-draft-interleaving-tdi>`
 
-----
-
-*Theme:* :ref:`Ranking & Interleaving <term-theme-ranking>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `TREC (Text REtrieval Conference) <https://insightful-data-lab.com/2025/08/22/trec-text-retrieval-conference/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `TREC (Text REtrieval Conference) <https://insightful-data-lab.com/2025/08/22/trec-text-retrieval-conference/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

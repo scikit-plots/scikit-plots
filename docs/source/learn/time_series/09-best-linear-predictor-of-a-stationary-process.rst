@@ -6,7 +6,7 @@ Best Linear Predictor of a Stationary Process
 
 **Stage 4 · 🎯 Prediction & the Sample ACF / PACF**  ·  Lesson 09 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`Next · Sample ACF and Sample PACF ▶ <10-sample-acf-and-sample-pacf>`
+:doc:`◀ Previous · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`Next · Sample ACF and Sample PACF ▶ <10-sample-acf-and-sample-pacf>`   ·   :doc:`↑ Section <index>`
 
 
 The prediction problem
@@ -50,10 +50,12 @@ between :math:`x_t` and :math:`x_{t-h}` **after removing** the linear influence 
 values. For an **AR(p)** these coefficients vanish for :math:`h > p`, so the **PACF cuts off at lag
 p** — the property that makes it the tool for reading autoregressive order.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`  ·  :doc:`Preliminary Estimation for AR Models and the Yule–Walker Equations <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/best-linear-predictor-of-a-stationary-process-forecasting-principles-and-the-pacf/ <https://insightful-data-lab.com/2026/01/17/best-linear-predictor-of-a-stationary-process-forecasting-principles-and-the-pacf/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/best-linear-predictor-of-a-stationary-process-forecasting-principles-and-the-pacf/ <https://insightful-data-lab.com/2026/01/17/best-linear-predictor-of-a-stationary-process-forecasting-principles-and-the-pacf/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: intermediate

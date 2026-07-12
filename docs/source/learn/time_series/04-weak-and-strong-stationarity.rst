@@ -6,7 +6,7 @@ Weak and Strong Stationarity
 
 **Stage 2 · 📐 Stationarity**  ·  Lesson 04 of 18  ·  *beginner*
 
-:doc:`◀ Previous · A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`   ·   :doc:`Next · Linear Processes ▶ <05-linear-processes>`
+:doc:`◀ Previous · A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`   ·   :doc:`Next · Linear Processes ▶ <05-linear-processes>`   ·   :doc:`↑ Section <index>`
 
 
 Two definitions
@@ -53,10 +53,12 @@ process is fully described by its mean and covariance, so **weak + Gaussian impl
 **White noise** — zero mean, constant variance, zero autocorrelation — is the canonical weakly
 stationary building block.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`  ·  :doc:`Linear Processes <05-linear-processes>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/weak-and-strong-stationarity/ <https://insightful-data-lab.com/2026/01/17/weak-and-strong-stationarity/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/weak-and-strong-stationarity/ <https://insightful-data-lab.com/2026/01/17/weak-and-strong-stationarity/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: beginner

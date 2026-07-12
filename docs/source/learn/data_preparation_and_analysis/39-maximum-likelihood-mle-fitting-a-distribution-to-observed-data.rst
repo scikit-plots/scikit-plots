@@ -6,7 +6,7 @@ Maximum Likelihood (MLE): Fitting a Distribution to Observed Data
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 39 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`   ·   :doc:`Next · Assessing Model Fit in Logistic Regression ▶ <40-assessing-model-fit-in-logistic-regression>`
+:doc:`◀ Previous · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`   ·   :doc:`Next · Assessing Model Fit in Logistic Regression ▶ <40-assessing-model-fit-in-logistic-regression>`   ·   :doc:`↑ Section <index>`
 
 
 What parameters best explain the data?
@@ -46,10 +46,12 @@ likelihood when the errors are **normally distributed**. And the precision of th
 governed by the **Cramér–Rao bound** from Stage 2, which sets the best variance any unbiased estimator
 can reach. The next lessons use likelihood again — to **assess** how well a fitted logistic model fits.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`  ·  :doc:`Least Squares Regression <31-least-squares-regression>`  ·  :doc:`Harald Cramér <14-harald-cramer>`  ·  :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/ <https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/ <https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

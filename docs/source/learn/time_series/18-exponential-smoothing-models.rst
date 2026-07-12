@@ -6,7 +6,7 @@ Exponential Smoothing Models
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 18 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions>`
+:doc:`◀ Previous · Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions>`   ·   :doc:`↑ Section <index>`
 
 
 The idea
@@ -48,10 +48,12 @@ is **empirical** — smoothing often shines on strongly trended, seasonal data, 
 mean-reverting data. In ``statsmodels`` these live in ``SimpleExpSmoothing``, ``Holt`` and
 ``ExponentialSmoothing`` (Holt–Winters).
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`  ·  :doc:`SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`  ·  :doc:`Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions>`  ·  :doc:`What Are Time Series, and How Are They Used? <01-what-are-time-series-and-how-are-they-used>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/exponential-smoothing-models/ <https://insightful-data-lab.com/2026/01/17/exponential-smoothing-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/exponential-smoothing-models/ <https://insightful-data-lab.com/2026/01/17/exponential-smoothing-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

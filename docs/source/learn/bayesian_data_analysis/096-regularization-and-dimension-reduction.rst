@@ -6,7 +6,7 @@ Regularization and dimension reduction
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 096 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`   ·   :doc:`Next · Unequal variances and correlations ▶ <097-unequal-variances-and-correlations>`
+:doc:`◀ Previous · Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`   ·   :doc:`Next · Unequal variances and correlations ▶ <097-unequal-variances-and-correlations>`   ·   :doc:`↑ Section <index>`
 
 
 When there are too many predictors
@@ -69,10 +69,12 @@ buying stability with interpretability. Whatever the route, one caution: **regul
 and a prior distorts causal estimands. Shrink the nuisance coefficients; leave the effect you came to
 measure weakly informative, so the data — not the penalty — determine it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian interpretations of other statistical methods <032-bayesian-interpretations-of-other-statistical-methods>`  ·  :doc:`Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`  ·  :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`  ·  :doc:`Basis selection and shrinkage of coeﬃcients <127-basis-selection-and-shrinkage-of-coefficients>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/regularization-and-dimension-reduction/ <https://insightful-data-lab.com/2025/11/23/regularization-and-dimension-reduction/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/regularization-and-dimension-reduction/ <https://insightful-data-lab.com/2025/11/23/regularization-and-dimension-reduction/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

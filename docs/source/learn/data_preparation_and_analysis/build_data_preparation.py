@@ -310,6 +310,7 @@ def main() -> int:
         if i < N_LESSONS:
             nx = inv[pos + 1][0]
             nav_parts.append(f":doc:`Next \u00b7 {nx} \u25b6 <{docname[nx]}>`")
+        nav_parts.append(":doc:`\u2191 Section <index>`")
         if nav_parts:
             a("   \u00b7   ".join(nav_parts))
             a("")
@@ -331,17 +332,30 @@ def main() -> int:
             a("   one-line summary above and follow the navigation to adjacent lessons.")
         a("")
 
+        # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#admonitions-messages-and-warnings
+        # Note      → "Be aware of this clarification or detail."          # 📝 Neutral observations, assumptions, clarifications, conventions, or exceptions.
+        # See also  → "Explore these related topics and resources."        # 📚 Internal/external references, further reading, related topics, prerequisites.
+        # Hint      → "This may help you understand the concept."          # 💡 Intuition, conceptual connections, mind maps, learning aids.
+        # Tip       → "This may help you work more effectively."           # 💡 Best practices, shortcuts, recommendations, efficient/advice workflows.
+        # Info      → "Here's additional background or context."           # ℹ️ Background, implementation notes, **sources used by this page**, supplementary factual information where the information came from.
+        # Important → "Do not overlook this; it's essential."              # ⭐ Critical/Essential concepts, requirements, or limitations.
+
         # lateral cross-links
         if MINDMAP.get(title):
-            a(".. seealso::")
+            a(".. hint::")
             a("")
             links = "  \u00b7  ".join(f":doc:`{n} <{docname[n]}>`" for n in MINDMAP[title])
             a(f"   **Related lessons:** {links}")
             a("")
 
         # source (context/traceability)
-        a(f"**Source** (context, re-expressed in our own words): `{url} <{url}>`__")
+        a(".. seealso::")
         a("")
+        a(f"   **Source article** Adapted (context, re-expressed) in our own words from: `{url} <{url}>`__ "
+          f"(insightful-data-lab.com).")
+        a("")
+
+        # tags
         a(f".. tags:: purpose: reference, topic: data preparation, level: {level}")
         a("")
 
@@ -410,8 +424,8 @@ def main() -> int:
     w('   <div style="text-align:center;margin:0.4rem 0 0.4rem">')
     w('   <input id="term-filter" type="search" autocomplete="off" spellcheck="false"')
     w(f'          placeholder="&#128269;&nbsp; Type to filter {n_items} lessons &mdash; by title or keyword&hellip;"')
-    w('          style="width:100%;max-width:680px;padding:0.55rem 1rem;font-size:1rem;')
-    w('                 border:1px solid rgba(128,128,128,0.45);border-radius:0.55rem;')
+    w('          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;')
+    w('                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;')  # 1px solid rgba(128,128,128,0.45)
     w('                 background:transparent;color:inherit"/>')
     w('   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;')
     w('        min-height:1.2em;margin-top:0.35rem"></div>')
@@ -435,7 +449,7 @@ def main() -> int:
     w("       dds.forEach(function(d){")
     w("         if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}")
     w("         else{d.style.display='';d.open=false;}});")
-    w("       if(cnt){cnt.textContent=(q&&az)?(n+' matching lesson'+(n===1?'':'s')):'';}")
+    w(f"       if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}")
     w("     });")
     w("   });")
     w("   </script>")

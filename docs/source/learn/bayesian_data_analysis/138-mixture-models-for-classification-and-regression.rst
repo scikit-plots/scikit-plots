@@ -6,7 +6,7 @@ Mixture models for classification and regression
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 138 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Unspecified number of mixture components <137-unspecified-number-of-mixture-components>`   ·   :doc:`Next · Bayesian histograms ▶ <139-bayesian-histograms>`
+:doc:`◀ Previous · Unspecified number of mixture components <137-unspecified-number-of-mixture-components>`   ·   :doc:`Next · Bayesian histograms ▶ <139-bayesian-histograms>`   ·   :doc:`↑ Section <index>`
 
 
 Mixtures for supervised learning
@@ -67,10 +67,12 @@ which component applies** flows into predictions: a point near a class boundary 
 an honestly wider predictive distribution. Mixtures thus extend supervised learning the same way they
 extended density estimation — flexibility assembled from simple, interpretable local pieces.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`  ·  :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Example: reaction times and schizophrenia <135-example-reaction-times-and-schizophrenia>`  ·  :doc:`Density regression <144-density-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/mixture-models-for-classification-and-regression/ <https://insightful-data-lab.com/2025/12/09/mixture-models-for-classification-and-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/mixture-models-for-classification-and-regression/ <https://insightful-data-lab.com/2025/12/09/mixture-models-for-classification-and-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

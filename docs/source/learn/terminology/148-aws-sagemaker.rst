@@ -10,7 +10,7 @@
 
 .. _term-aws-sagemaker:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>AWS SageMaker</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>AWS SageMaker</b></div>`
 
 ===============
 AWS SageMaker
@@ -55,22 +55,24 @@ faster to start but limited to the provider's models.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Vertex AI <149-vertex-ai>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>` · :doc:`Drift Detection <138-drift-detection>` · :doc:`Hyperparameter <142-hyperparameter>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>`
 
 ----
 
-**More in ML Platforms & Tools**
+.. hint::
+   **More in ML Platforms & Tools**
 
    :doc:`Google Experiments <100-google-experiments>` · :doc:`Kaggle <273-kaggle>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Vertex AI <149-vertex-ai>`
 
-----
-
-*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `AWS SageMaker <https://insightful-data-lab.com/2025/08/24/aws-sagemaker/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `AWS SageMaker <https://insightful-data-lab.com/2025/08/24/aws-sagemaker/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

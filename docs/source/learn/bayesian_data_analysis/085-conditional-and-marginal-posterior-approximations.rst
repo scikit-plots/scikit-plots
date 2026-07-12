@@ -6,7 +6,7 @@ Conditional and marginal posterior approximations
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 085 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Finding marginal posterior modes using EM <084-finding-marginal-posterior-modes-using-em>`   ·   :doc:`Next · Example: hierarchical normal model (continued) ▶ <086-example-hierarchical-normal-model-continued>`
+:doc:`◀ Previous · Finding marginal posterior modes using EM <084-finding-marginal-posterior-modes-using-em>`   ·   :doc:`Next · Example: hierarchical normal model (continued) ▶ <086-example-hierarchical-normal-model-continued>`   ·   :doc:`↑ Section <index>`
 
 
 Approximate in stages
@@ -64,10 +64,12 @@ family relationship among methods — EM maximises the marginal, empirical Bayes
 this approach **integrates** over it, and full MCMC samples the joint. They differ only in how honestly
 they treat :math:`p(\phi \mid y)`.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`  ·  :doc:`Finding marginal posterior modes using EM <084-finding-marginal-posterior-modes-using-em>`  ·  :doc:`Example: hierarchical normal model (continued) <086-example-hierarchical-normal-model-continued>`  ·  :doc:`Other approximations <089-other-approximations>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/conditional-and-marginal-posterior-approximations/ <https://insightful-data-lab.com/2025/11/22/conditional-and-marginal-posterior-approximations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/conditional-and-marginal-posterior-approximations/ <https://insightful-data-lab.com/2025/11/22/conditional-and-marginal-posterior-approximations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

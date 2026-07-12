@@ -6,7 +6,7 @@ Expectation propagation
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 088 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Variational inference <087-variational-inference>`   ·   :doc:`Next · Other approximations ▶ <089-other-approximations>`
+:doc:`◀ Previous · Variational inference <087-variational-inference>`   ·   :doc:`Next · Other approximations ▶ <089-other-approximations>`   ·   :doc:`↑ Section <index>`
 
 
 Approximate one factor at a time
@@ -64,10 +64,12 @@ Gaussian assumption. And, like all approximations in this stage, it is silent ab
 place of EP is alongside VI and Laplace: fast, sometimes excellent, always to be **checked against a
 sampler** on a case you can afford to sample.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Variational inference <087-variational-inference>`  ·  :doc:`Other approximations <089-other-approximations>`  ·  :doc:`Normal and related mixture approximations <083-normal-and-related-mixture-approximations>`  ·  :doc:`Gaussian process regression <129-gaussian-process-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/expectation-propagation/ <https://insightful-data-lab.com/2025/11/23/expectation-propagation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/expectation-propagation/ <https://insightful-data-lab.com/2025/11/23/expectation-propagation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

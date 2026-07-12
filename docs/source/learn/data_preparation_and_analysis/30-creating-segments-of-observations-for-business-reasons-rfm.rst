@@ -6,7 +6,7 @@ Creating Segments of Observations for Business Reasons (RFM)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 30 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · RFM Analysis <29-rfm-analysis>`   ·   :doc:`Next · Least Squares Regression ▶ <31-least-squares-regression>`
+:doc:`◀ Previous · RFM Analysis <29-rfm-analysis>`   ·   :doc:`Next · Least Squares Regression ▶ <31-least-squares-regression>`   ·   :doc:`↑ Section <index>`
 
 
 From codes to segments
@@ -48,10 +48,12 @@ the goal is the one this stage began with: turn a mass of observations into **me
 business can act on. With customers understood, the course turns next to **predicting** outcomes —
 starting with regression.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`  ·  :doc:`RFM Analysis <29-rfm-analysis>`  ·  :doc:`Clustering <27-clustering>`  ·  :doc:`Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/creating-segments-of-observations-for-business-reasons-rfm/ <https://insightful-data-lab.com/2026/01/14/creating-segments-of-observations-for-business-reasons-rfm/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/creating-segments-of-observations-for-business-reasons-rfm/ <https://insightful-data-lab.com/2026/01/14/creating-segments-of-observations-for-business-reasons-rfm/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

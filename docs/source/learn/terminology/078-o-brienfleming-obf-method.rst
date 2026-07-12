@@ -10,7 +10,7 @@
 
 .. _term-o-brienfleming-obf-method:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>O'Brien–Fleming (OBF) Method</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>O'Brien–Fleming (OBF) Method</b></div>`
 
 ==============================
 O'Brien–Fleming (OBF) Method
@@ -60,22 +60,24 @@ whereas Pocock fits exploratory or business A/B tests where stopping early saves
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Pocock Method <077-pocock-method>` · :doc:`Group Sequential Testing <079-group-sequential-testing>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Frequentist <059-frequentist>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>`
 
 ----
 
-**More in Sequential Methods & Bandits**
+.. hint::
+   **More in Sequential Methods & Bandits**
 
    :doc:`Bandit Algorithms <113-bandit-algorithms>` · :doc:`Pocock Method <077-pocock-method>` · :doc:`Sequential Probability Ratio Test (SPRT) <076-sequential-probability-ratio-test-sprt>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB)) <050-thompson-sampling-ts-in-bandits-multi-armed-band>`
 
-----
-
-*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `O'Brien–Fleming (OBF) Method <https://insightful-data-lab.com/2025/08/25/obrien-fleming-obf-method/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `O'Brien–Fleming (OBF) Method <https://insightful-data-lab.com/2025/08/25/obrien-fleming-obf-method/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

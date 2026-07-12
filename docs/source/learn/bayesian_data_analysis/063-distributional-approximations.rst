@@ -6,7 +6,7 @@ Distributional approximations
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 063 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Numerical integration <062-numerical-integration>`   ·   :doc:`Next · Direct simulation and rejection sampling ▶ <064-direct-simulation-and-rejection-sampling>`
+:doc:`◀ Previous · Numerical integration <062-numerical-integration>`   ·   :doc:`Next · Direct simulation and rejection sampling ▶ <064-direct-simulation-and-rejection-sampling>`   ·   :doc:`↑ Section <index>`
 
 
 Replace the posterior with something tractable
@@ -60,10 +60,12 @@ So use approximations for **starting values**, for **proposal distributions**, f
 look**, and for problems too large to sample — but check them against MCMC where you can, and report
 which you used.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`  ·  :doc:`Numerical integration <062-numerical-integration>`  ·  :doc:`Variational inference <087-variational-inference>`  ·  :doc:`Importance sampling <065-importance-sampling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/distributional-approximations/ <https://insightful-data-lab.com/2025/11/11/distributional-approximations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/distributional-approximations/ <https://insightful-data-lab.com/2025/11/11/distributional-approximations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

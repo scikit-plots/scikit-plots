@@ -10,7 +10,7 @@
 
 .. _term-cluster-based-undersampling:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧪&nbsp;&nbsp;<b>Cluster-based undersampling</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧪&nbsp;&nbsp;<b>Cluster-based undersampling</b></div>`
 
 =============================
 Cluster-based undersampling
@@ -69,22 +69,24 @@ still spans the majority distribution.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Imbalanced Learning & Resampling <term-theme-imbalance>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Random Undersampling <008-random-undersampling>` · :doc:`NearMiss (Distance-based Undersampling) <006-nearmiss-distance-based-undersampling>` · :doc:`Subsampling <001-subsampling>` · :doc:`Oversampling <004-oversampling>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>`
 
 ----
 
-**More in Imbalanced Learning & Resampling**
+.. hint::
+   **More in Imbalanced Learning & Resampling**
 
    :doc:`Class Weighting <002-class-weighting>` · :doc:`Downsampling <368-downsampling>` · :doc:`NearMiss (Distance-based Undersampling) <006-nearmiss-distance-based-undersampling>` · :doc:`Oversampling <004-oversampling>` · :doc:`Random Undersampling <008-random-undersampling>` · :doc:`SMOTE (Synthetic Minority Over-sampling Technique) <003-smote-synthetic-minority-over-sampling-technique>` · :doc:`Subsampling <001-subsampling>` · :doc:`Upsampling <367-upsampling>`
 
-----
-
-*Theme:* :ref:`Imbalanced Learning & Resampling <term-theme-imbalance>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Cluster-based undersampling <https://insightful-data-lab.com/2025/08/30/cluster-based-undersampling/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Cluster-based undersampling <https://insightful-data-lab.com/2025/08/30/cluster-based-undersampling/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

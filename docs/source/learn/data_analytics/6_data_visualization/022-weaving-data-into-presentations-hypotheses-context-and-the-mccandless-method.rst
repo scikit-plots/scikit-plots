@@ -22,6 +22,8 @@ Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method/ <https://insightful-data-lab.com/2023/11/26/weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

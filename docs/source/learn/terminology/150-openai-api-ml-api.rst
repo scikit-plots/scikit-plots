@@ -10,7 +10,7 @@
 
 .. _term-openai-api-ml-api:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>OpenAI API (ML API)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>OpenAI API (ML API)</b></div>`
 
 =====================
 OpenAI API (ML API)
@@ -61,22 +61,24 @@ questions — sensitive data must clear HIPAA/GDPR review before it leaves your 
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Vertex AI <149-vertex-ai>` · :doc:`AWS SageMaker Endpoints <151-aws-sagemaker-endpoints>` · :doc:`Embedding <173-embedding>` · :doc:`Cloud Inference with Big Payloads <152-cloud-inference-with-big-payloads>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>`
 
 ----
 
-**More in ML Platforms & Tools**
+.. hint::
+   **More in ML Platforms & Tools**
 
    :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Google Experiments <100-google-experiments>` · :doc:`Kaggle <273-kaggle>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Vertex AI <149-vertex-ai>`
 
-----
-
-*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `OpenAI API (ML API) <https://insightful-data-lab.com/2025/08/24/openai-api-ml-api/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `OpenAI API (ML API) <https://insightful-data-lab.com/2025/08/24/openai-api-ml-api/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

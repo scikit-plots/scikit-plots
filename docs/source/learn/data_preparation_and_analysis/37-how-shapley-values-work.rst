@@ -6,7 +6,7 @@ How Shapley Values Work
 
 **Stage 5 · 📈 Regression**  ·  Lesson 37 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`   ·   :doc:`Next · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds ▶ <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`
+:doc:`◀ Previous · Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`   ·   :doc:`Next · Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds ▶ <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`   ·   :doc:`↑ Section <index>`
 
 
 A fair division problem
@@ -53,10 +53,12 @@ feature contributions that **sum** to the output. The catch is cost: exact value
 :math:`2^n` coalitions, so in practice they are **approximated**. Unlike the greedy selection of
 earlier lessons, Shapley values weigh every feature **fairly against all others**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`  ·  :doc:`Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`  ·  :doc:`Multiple Linear Regression <32-multiple-linear-regression>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/how-shapley-values-work/ <https://insightful-data-lab.com/2026/01/16/how-shapley-values-work/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/how-shapley-values-work/ <https://insightful-data-lab.com/2026/01/16/how-shapley-values-work/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

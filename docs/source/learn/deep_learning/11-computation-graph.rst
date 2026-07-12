@@ -6,7 +6,7 @@ Computation Graph
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 11 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · More Derivative Examples <10-more-derivative-examples>`   ·   :doc:`Next · Derivatives with a Computation Graph ▶ <12-derivatives-with-a-computation-graph>`
+:doc:`◀ Previous · More Derivative Examples <10-more-derivative-examples>`   ·   :doc:`Next · Derivatives with a Computation Graph ▶ <12-derivatives-with-a-computation-graph>`   ·   :doc:`↑ Section <index>`
 
 
 Breaking it into steps
@@ -48,10 +48,12 @@ we can walk it **backward** and apply the chain rule step by step, computing
 :math:`\partial J / \partial a`, :math:`\partial J / \partial b`, :math:`\partial J / \partial c`
 without ever untangling the whole nested expression at once.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`  ·  :doc:`Derivatives <09-derivatives>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`  ·  :doc:`Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/computation-graph/ <https://insightful-data-lab.com/2025/04/07/computation-graph/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/computation-graph/ <https://insightful-data-lab.com/2025/04/07/computation-graph/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

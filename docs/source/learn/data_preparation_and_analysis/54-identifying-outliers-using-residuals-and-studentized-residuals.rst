@@ -6,7 +6,7 @@ Identifying Outliers Using Residuals and Studentized Residuals
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 54 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`   ·   :doc:`Next · AUC–ROC Curve: Evaluating Classification Model Performance ▶ <55-auc-roc-curve-evaluating-classification-model-performance>`
+:doc:`◀ Previous · Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`   ·   :doc:`Next · AUC–ROC Curve: Evaluating Classification Model Performance ▶ <55-auc-roc-curve-evaluating-classification-model-performance>`   ·   :doc:`↑ Section <index>`
 
 
 Evaluating regression fits
@@ -60,10 +60,12 @@ robust fit or report it as a notable exception. And when **many** points flag at
 usually not "bad data" but a **misspecified model** — a missing curve or interaction. Residual
 diagnostics evaluate the *model* as much as the points.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Least Squares Regression <31-least-squares-regression>`  ·  :doc:`Multiple Linear Regression <32-multiple-linear-regression>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/ <https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/ <https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

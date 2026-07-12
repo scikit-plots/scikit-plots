@@ -6,7 +6,7 @@ What Can Association Rules Tell Us?
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 18 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`   ·   :doc:`Next · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach ▶ <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`
+:doc:`◀ Previous · Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`   ·   :doc:`Next · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach ▶ <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`   ·   :doc:`↑ Section <index>`
 
 
 If this, then that
@@ -42,10 +42,12 @@ bread and butter travel with milk does not mean one **causes** the other — bot
 weekly grocery run. Rules are superb at spotting **what** goes together and useful for acting on it,
 but they do not, by themselves, explain **why**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`  ·  :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`  ·  :doc:`Cross-Selling <22-cross-selling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/what-can-association-rules-tell-us/ <https://insightful-data-lab.com/2026/01/14/what-can-association-rules-tell-us/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/what-can-association-rules-tell-us/ <https://insightful-data-lab.com/2026/01/14/what-can-association-rules-tell-us/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

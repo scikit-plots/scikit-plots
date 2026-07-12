@@ -6,7 +6,7 @@ Analysis of variance and the batching of coeﬃcients
 
 **Part 4 · Stage 12 · 🏗️ Hierarchical Regression**  ·  Lesson 104 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Computation: batching and transformation <103-computation-batching-and-transformation>`   ·   :doc:`Next · Hierarchical models for batches of variance components ▶ <105-hierarchical-models-for-batches-of-variance-components>`
+:doc:`◀ Previous · Computation: batching and transformation <103-computation-batching-and-transformation>`   ·   :doc:`Next · Hierarchical models for batches of variance components ▶ <105-hierarchical-models-for-batches-of-variance-components>`   ·   :doc:`↑ Section <index>`
 
 
 ANOVA, rebuilt as a hierarchy
@@ -72,10 +72,12 @@ uncertainty** rather than a reject/retain verdict on a null nobody believes exac
 really about testing; it was about **decomposing variation**, and the hierarchical model does that
 directly — the same batching that ran through this entire stage, applied to designed factors.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Regression coeﬃcients exchangeable in batches <099-regression-coefficients-exchangeable-in-batches>`  ·  :doc:`Varying intercepts and slopes <102-varying-intercepts-and-slopes>`  ·  :doc:`Hierarchical models for batches of variance components <105-hierarchical-models-for-batches-of-variance-components>`  ·  :doc:`Computation: batching and transformation <103-computation-batching-and-transformation>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/analysis-of-variance-and-the-batching-of-coe%ef%ac%83cients/ <https://insightful-data-lab.com/2025/12/06/analysis-of-variance-and-the-batching-of-coe%ef%ac%83cients/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/analysis-of-variance-and-the-batching-of-coe%ef%ac%83cients/ <https://insightful-data-lab.com/2025/12/06/analysis-of-variance-and-the-batching-of-coe%ef%ac%83cients/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

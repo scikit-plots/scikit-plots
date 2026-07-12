@@ -6,7 +6,7 @@ ARIMA Models: How Nonstationary Models Are Built from Stationary Ones
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 15 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Order Selection for Time Series Models <14-order-selection-for-time-series-models>`   ·   :doc:`Next · SARIMA Models: Seasonal ARIMA ▶ <16-sarima-models-seasonal-arima>`
+:doc:`◀ Previous · Order Selection for Time Series Models <14-order-selection-for-time-series-models>`   ·   :doc:`Next · SARIMA Models: Seasonal ARIMA ▶ <16-sarima-models-seasonal-arima>`   ·   :doc:`↑ Section <index>`
 
 
 The core idea
@@ -46,10 +46,12 @@ model **"integrates"** — cumulatively sums — its differenced-scale predictio
 of the raw series, carrying the forecast **uncertainty** with it. In ``statsmodels`` this is all
 handled by ``ARIMA(y, order=(p, d, q))``.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`  ·  :doc:`Order Selection for Time Series Models <14-order-selection-for-time-series-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/arima-models-how-nonstationary-models-are-built-from-stationary-ones/ <https://insightful-data-lab.com/2026/01/17/arima-models-how-nonstationary-models-are-built-from-stationary-ones/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/arima-models-how-nonstationary-models-are-built-from-stationary-ones/ <https://insightful-data-lab.com/2026/01/17/arima-models-how-nonstationary-models-are-built-from-stationary-ones/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

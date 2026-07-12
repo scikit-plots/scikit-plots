@@ -6,7 +6,7 @@ Eﬀective number of simulation draws
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 073 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Inference and assessing convergence <072-inference-and-assessing-convergence>`   ·   :doc:`Next · Example: hierarchical normal model ▶ <074-example-hierarchical-normal-model>`
+:doc:`◀ Previous · Inference and assessing convergence <072-inference-and-assessing-convergence>`   ·   :doc:`Next · Example: hierarchical normal model ▶ <074-example-hierarchical-normal-model>`   ·   :doc:`↑ Section <index>`
 
 
 Correlated draws carry less information
@@ -63,10 +63,12 @@ at best what the full chain already carried, and if the draws are anticorrelated
 **destroys** the advantage. The only legitimate reason to thin is **memory**. If ESS is too low, the
 answer is a better sampler, a reparameterisation, or a longer run — never a smaller one.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Inference and assessing convergence <072-inference-and-assessing-convergence>`  ·  :doc:`How many simulation draws are needed? <066-how-many-simulation-draws-are-needed>`  ·  :doc:`Eﬃcient Metropolis jumping rules <076-efficient-metropolis-jumping-rules>`  ·  :doc:`Hamiltonian Monte Carlo <078-hamiltonian-monte-carlo>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/12/e%ef%ac%80ective-number-of-simulation-draws/ <https://insightful-data-lab.com/2025/11/12/e%ef%ac%80ective-number-of-simulation-draws/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/12/e%ef%ac%80ective-number-of-simulation-draws/ <https://insightful-data-lab.com/2025/11/12/e%ef%ac%80ective-number-of-simulation-draws/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

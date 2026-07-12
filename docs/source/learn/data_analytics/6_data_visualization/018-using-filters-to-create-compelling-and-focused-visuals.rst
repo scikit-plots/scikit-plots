@@ -22,6 +22,8 @@ Using Filters to Create Compelling and Focused Visuals
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/using-filters-to-create-compelling-and-focused-visuals/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-filters-to-create-compelling-and-focused-visuals/ <https://insightful-data-lab.com/2023/11/26/using-filters-to-create-compelling-and-focused-visuals/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, story

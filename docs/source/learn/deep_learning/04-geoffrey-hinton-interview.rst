@@ -6,7 +6,7 @@ Geoffrey Hinton Interview
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 04 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`   ·   :doc:`Next · Binary Classification and Logistic Regression (Neural Network Basics) ▶ <05-binary-classification-and-logistic-regression-neural-network-basics>`
+:doc:`◀ Previous · Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`   ·   :doc:`Next · Binary Classification and Logistic Regression (Neural Network Basics) ▶ <05-binary-classification-and-logistic-regression-neural-network-basics>`   ·   :doc:`↑ Section <index>`
 
 
 Heroes of Deep Learning
@@ -48,10 +48,12 @@ advice to newcomers is quietly encouraging: **trust your intuitions**, read enou
 that you only reproduce others' thinking, **replicate results** to learn them deeply, and keep going
 on the problems that feel right.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What is a Neural Network? <01-what-is-a-neural-network>`  ·  :doc:`Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`  ·  :doc:`Computation Graph <11-computation-graph>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/geoffrey-hinton-interview/ <https://insightful-data-lab.com/2025/04/07/geoffrey-hinton-interview/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/geoffrey-hinton-interview/ <https://insightful-data-lab.com/2025/04/07/geoffrey-hinton-interview/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

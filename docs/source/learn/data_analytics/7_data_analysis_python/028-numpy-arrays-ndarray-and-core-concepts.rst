@@ -22,6 +22,8 @@ NumPy Arrays (ndarray) and Core Concepts
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/numpy-arrays-ndarray-and-core-concepts/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/numpy-arrays-ndarray-and-core-concepts/ <https://insightful-data-lab.com/2023/12/06/numpy-arrays-ndarray-and-core-concepts/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, python, libraries

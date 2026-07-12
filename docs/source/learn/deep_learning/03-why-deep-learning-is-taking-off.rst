@@ -6,7 +6,7 @@ Why Deep Learning is Taking Off
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 03 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`   ·   :doc:`Next · Geoffrey Hinton Interview ▶ <04-geoffrey-hinton-interview>`
+:doc:`◀ Previous · Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`   ·   :doc:`Next · Geoffrey Hinton Interview ▶ <04-geoffrey-hinton-interview>`   ·   :doc:`↑ Section <index>`
 
 
 An old idea, newly working
@@ -43,10 +43,12 @@ These drivers reinforce each other. Faster hardware and better algorithms shorte
 of why progress has felt so **fast** — and why the fundamentals in this course sit beneath so many
 modern systems.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What is a Neural Network? <01-what-is-a-neural-network>`  ·  :doc:`Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`  ·  :doc:`Geoffrey Hinton Interview <04-geoffrey-hinton-interview>`  ·  :doc:`Vectorizing Logistic Regression <17-vectorizing-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/why-deep-learning-is-taking-off/ <https://insightful-data-lab.com/2025/04/07/why-deep-learning-is-taking-off/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/why-deep-learning-is-taking-off/ <https://insightful-data-lab.com/2025/04/07/why-deep-learning-is-taking-off/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

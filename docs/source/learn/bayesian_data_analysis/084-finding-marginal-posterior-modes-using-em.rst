@@ -6,7 +6,7 @@ Finding marginal posterior modes using EM
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 084 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Normal and related mixture approximations <083-normal-and-related-mixture-approximations>`   ·   :doc:`Next · Conditional and marginal posterior approximations ▶ <085-conditional-and-marginal-posterior-approximations>`
+:doc:`◀ Previous · Normal and related mixture approximations <083-normal-and-related-mixture-approximations>`   ·   :doc:`Next · Conditional and marginal posterior approximations ▶ <085-conditional-and-marginal-posterior-approximations>`   ·   :doc:`↑ Section <index>`
 
 
 Modes of what, exactly?
@@ -70,10 +70,12 @@ approximate covariance, but the uncertainty in :math:`\phi` is not propagated in
 :math:`n` is large, the posterior is regular, and speed matters — and a **starting point** for full Bayes
 otherwise.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Finding posterior modes <081-finding-posterior-modes>`  ·  :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`  ·  :doc:`Conditional and marginal posterior approximations <085-conditional-and-marginal-posterior-approximations>`  ·  :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/finding-marginal-posterior-modes-using-em/ <https://insightful-data-lab.com/2025/11/22/finding-marginal-posterior-modes-using-em/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/finding-marginal-posterior-modes-using-em/ <https://insightful-data-lab.com/2025/11/22/finding-marginal-posterior-modes-using-em/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

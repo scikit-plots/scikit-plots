@@ -6,7 +6,7 @@ Least Squares Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 31 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`   ·   :doc:`Next · Multiple Linear Regression ▶ <32-multiple-linear-regression>`
+:doc:`◀ Previous · Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`   ·   :doc:`Next · Multiple Linear Regression ▶ <32-multiple-linear-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Fitting a line
@@ -61,10 +61,12 @@ and it coincides with **maximum likelihood** when the errors are normally distri
 is **sensitivity to outliers**: one extreme point can pull the line noticeably — a theme the
 evaluation stage revisits with residual diagnostics.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multiple Linear Regression <32-multiple-linear-regression>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`  ·  :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Identifying Outliers Using Residuals and Studentized Residuals <54-identifying-outliers-using-residuals-and-studentized-residuals>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/least-squares-regression/ <https://insightful-data-lab.com/2026/01/16/least-squares-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/least-squares-regression/ <https://insightful-data-lab.com/2026/01/16/least-squares-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

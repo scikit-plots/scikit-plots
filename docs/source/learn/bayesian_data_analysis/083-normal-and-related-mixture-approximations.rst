@@ -6,7 +6,7 @@ Normal and related mixture approximations
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 083 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Boundary-avoiding priors for modal summaries <082-boundary-avoiding-priors-for-modal-summaries>`   ·   :doc:`Next · Finding marginal posterior modes using EM ▶ <084-finding-marginal-posterior-modes-using-em>`
+:doc:`◀ Previous · Boundary-avoiding priors for modal summaries <082-boundary-avoiding-priors-for-modal-summaries>`   ·   :doc:`Next · Finding marginal posterior modes using EM ▶ <084-finding-marginal-posterior-modes-using-em>`   ·   :doc:`↑ Section <index>`
 
 
 One normal is rarely enough
@@ -65,10 +65,12 @@ Still, the construction is the conceptual bridge to what follows. Fitting the **
 family** to a posterior, by optimising a divergence rather than by curvature at a mode, is precisely
 **variational inference** — and it is the workhorse for models too large to sample.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Distributional approximations <063-distributional-approximations>`  ·  :doc:`Finding posterior modes <081-finding-posterior-modes>`  ·  :doc:`Variational inference <087-variational-inference>`  ·  :doc:`Importance sampling <065-importance-sampling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/ <https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/ <https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

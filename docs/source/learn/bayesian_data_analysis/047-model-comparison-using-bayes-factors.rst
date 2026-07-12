@@ -6,7 +6,7 @@ Model comparison using Bayes factors
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 047 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Model comparison based on predictive performance <046-model-comparison-based-on-predictive-performance>`   ·   :doc:`Next · Continuous model expansion ▶ <048-continuous-model-expansion>`
+:doc:`◀ Previous · Model comparison based on predictive performance <046-model-comparison-based-on-predictive-performance>`   ·   :doc:`Next · Continuous model expansion ▶ <048-continuous-model-expansion>`   ·   :doc:`↑ Section <index>`
 
 
 Betting on whole models
@@ -65,10 +65,12 @@ prediction on. That describes some scientific hypothesis tests and few applied m
 recommended route is to **bypass the choice**: check models predictively, compare them by elpd, and,
 where they disagree, **expand** rather than select — the subject of the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Measures of predictive accuracy <045-measures-of-predictive-accuracy>`  ·  :doc:`Model comparison based on predictive performance <046-model-comparison-based-on-predictive-performance>`  ·  :doc:`Noninformative Prior Distributions <018-noninformative-prior-distributions>`  ·  :doc:`Continuous model expansion <048-continuous-model-expansion>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/model-comparison-using-bayes-factors/ <https://insightful-data-lab.com/2025/11/10/model-comparison-using-bayes-factors/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/model-comparison-using-bayes-factors/ <https://insightful-data-lab.com/2025/11/10/model-comparison-using-bayes-factors/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

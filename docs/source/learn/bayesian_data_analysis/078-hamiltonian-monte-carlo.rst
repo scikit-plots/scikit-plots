@@ -6,7 +6,7 @@ Hamiltonian Monte Carlo
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 078 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Further extensions to Gibbs and Metropolis <077-further-extensions-to-gibbs-and-metropolis>`   ·   :doc:`Next · Hamiltonian Monte Carlo for a hierarchical model ▶ <079-hamiltonian-monte-carlo-for-a-hierarchical-model>`
+:doc:`◀ Previous · Further extensions to Gibbs and Metropolis <077-further-extensions-to-gibbs-and-metropolis>`   ·   :doc:`Next · Hamiltonian Monte Carlo for a hierarchical model ▶ <079-hamiltonian-monte-carlo-for-a-hierarchical-model>`   ·   :doc:`↑ Section <index>`
 
 
 Stop wandering; use the gradient
@@ -66,10 +66,12 @@ Non-negotiable: divergences must be **fixed**, not suppressed. Raise ``target_ac
 rescale parameters, or — usually the real answer — **reparameterise** the geometry that caused them. The
 next lesson is that story.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`  ·  :doc:`Hamiltonian Monte Carlo for a hierarchical model <079-hamiltonian-monte-carlo-for-a-hierarchical-model>`  ·  :doc:`Stan: developing a computing environment <080-stan-developing-a-computing-environment>`  ·  :doc:`Inference and assessing convergence <072-inference-and-assessing-convergence>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo/ <https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo/ <https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

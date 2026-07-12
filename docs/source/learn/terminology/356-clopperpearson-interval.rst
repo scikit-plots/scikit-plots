@@ -10,7 +10,7 @@
 
 .. _term-clopperpearson-interval:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Clopper–Pearson Interval</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Clopper–Pearson Interval</b></div>`
 
 ==========================
 Clopper–Pearson Interval
@@ -41,22 +41,24 @@ methods, best reserved for **very small samples** or when guaranteed coverage is
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Statistical Inference & Power <term-theme-inference>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Wilson Score Interval <357-wilson-score-interval>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Statistical Tests <328-statistical-tests>` · :doc:`Bootstrap Confidence Intervals (CIs) <024-bootstrap-confidence-intervals-cis>` · :doc:`Standard Error (SE) <084-standard-error-se>`
 
 ----
 
-**More in Statistical Inference & Power**
+.. hint::
+   **More in Statistical Inference & Power**
 
    :doc:`A Priori Power Analysis <095-a-priori-power-analysis>` · :doc:`Chi-square (χ²) Test <324-chi-square-2-test>` · :doc:`Compromise Power Analysis <093-compromise-power-analysis>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Minimum Detectable Lift (MDL) <101-minimum-detectable-lift-mdl>` · :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Post Hoc Power Analysis <094-post-hoc-power-analysis>` · :doc:`Power (1 – β) <104-power-1>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Sample size <103-sample-size>` · :doc:`Significance Level (α) <105-significance-level>`
 
-----
-
-*Theme:* :ref:`Statistical Inference & Power <term-theme-inference>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Clopper–Pearson Interval <https://insightful-data-lab.com/2025/08/20/clopper-pearson-interval/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Clopper–Pearson Interval <https://insightful-data-lab.com/2025/08/20/clopper-pearson-interval/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

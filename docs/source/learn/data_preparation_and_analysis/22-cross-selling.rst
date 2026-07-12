@@ -6,7 +6,7 @@ Cross-Selling
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 22 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`   ·   :doc:`Next · Stratified Random Sampling ▶ <23-stratified-random-sampling>`
+:doc:`◀ Previous · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`   ·   :doc:`Next · Stratified Random Sampling ▶ <23-stratified-random-sampling>`   ·   :doc:`↑ Section <index>`
 
 
 Selling the complement
@@ -42,10 +42,12 @@ into a larger, more useful basket — which is why recommendation engines built 
 everywhere in retail. It also sets up the next stage's question: not just *what* customers buy
 together, but *which customers* to treat differently.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`  ·  :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`  ·  :doc:`Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/cross-selling-2/ <https://insightful-data-lab.com/2026/01/14/cross-selling-2/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/cross-selling-2/ <https://insightful-data-lab.com/2026/01/14/cross-selling-2/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

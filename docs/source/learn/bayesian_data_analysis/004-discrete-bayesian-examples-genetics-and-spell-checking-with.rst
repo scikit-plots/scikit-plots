@@ -6,7 +6,7 @@ Discrete Bayesian Examples – Genetics and Spell Checking (with θ)
 
 **Part 1 · Stage 1 · 🎲 The Bayesian Idea**  ·  Lesson 004 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Bayesian Inference <003-bayesian-inference>`   ·   :doc:`Next · Probability as a Measure of Uncertainty ▶ <005-probability-as-a-measure-of-uncertainty>`
+:doc:`◀ Previous · Bayesian Inference <003-bayesian-inference>`   ·   :doc:`Next · Probability as a Measure of Uncertainty ▶ <005-probability-as-a-measure-of-uncertainty>`   ·   :doc:`↑ Section <index>`
 
 
 Bayes' rule on a discrete unknown
@@ -56,10 +56,12 @@ A rare word needs a *much* better typo-likelihood to win. Both examples make the
 supplies context, the likelihood supplies evidence, and the posterior is their **compromise** — the
 theme of the next stage.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian Inference <003-bayesian-inference>`  ·  :doc:`Probability as a Measure of Uncertainty <005-probability-as-a-measure-of-uncertainty>`  ·  :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`  ·  :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/08/discrete-bayesian-examples-genetics-and-spell-checking-with-%ce%b8/ <https://insightful-data-lab.com/2025/11/08/discrete-bayesian-examples-genetics-and-spell-checking-with-%ce%b8/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/08/discrete-bayesian-examples-genetics-and-spell-checking-with-%ce%b8/ <https://insightful-data-lab.com/2025/11/08/discrete-bayesian-examples-genetics-and-spell-checking-with-%ce%b8/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

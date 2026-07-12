@@ -6,7 +6,7 @@ Derivatives with a Computation Graph
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 12 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Computation Graph <11-computation-graph>`   ·   :doc:`Next · Logistic Regression Gradient Descent ▶ <13-logistic-regression-gradient-descent>`
+:doc:`◀ Previous · Computation Graph <11-computation-graph>`   ·   :doc:`Next · Logistic Regression Gradient Descent ▶ <13-logistic-regression-gradient-descent>`   ·   :doc:`↑ Section <index>`
 
 
 Walking backward
@@ -58,10 +58,12 @@ was reused for :math:`b` and :math:`c`. That reuse is why the backward pass is *
 node's derivative follows from the one just downstream, so the whole gradient costs about as much as
 the forward pass. Applying this to the logistic-regression neuron is the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Computation Graph <11-computation-graph>`  ·  :doc:`More Derivative Examples <10-more-derivative-examples>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`  ·  :doc:`Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/derivatives-with-a-computation-graph/ <https://insightful-data-lab.com/2025/04/07/derivatives-with-a-computation-graph/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/derivatives-with-a-computation-graph/ <https://insightful-data-lab.com/2025/04/07/derivatives-with-a-computation-graph/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

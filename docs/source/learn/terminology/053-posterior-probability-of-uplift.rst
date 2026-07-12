@@ -10,7 +10,7 @@
 
 .. _term-posterior-probability-of-uplift:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Posterior probability of uplift</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Posterior probability of uplift</b></div>`
 
 =================================
 Posterior probability of uplift
@@ -104,22 +104,24 @@ posteriors support **always-valid** monitoring without naive peeking penalties.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Bayesian Inference <term-theme-bayes>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`A/B Testing <380-a-b-testing>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Bayesian Sequential Testing <074-bayesian-sequential-testing>` · :doc:`Posterior <063-posterior>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Incremental Conversions <394-incremental-conversions>`
 
 ----
 
-**More in Bayesian Inference**
+.. hint::
+   **More in Bayesian Inference**
 
    :doc:`Bayes' Theorem <066-bayes-theorem>` · :doc:`Bayesian Correction <164-bayesian-correction>` · :doc:`Bayesian Decision Theory (BDT) <051-bayesian-decision-theory-bdt>` · :doc:`Bayesian Inference. <375-bayesian-inference>` · :doc:`Bayesian Neural Networks (BNNs) <055-bayesian-neural-networks-bnns>` · :doc:`Binomial Likelihood <060-binomial-likelihood>` · :doc:`Gaussian Processes (GPs) <054-gaussian-processes-gps>` · :doc:`Marginal Likelihood (also called The Model Evidence or Integrated Likelihood) <062-marginal-likelihood-also-called-the-model-eviden>` · :doc:`MCMC (Markov Chain Monte Carlo) <057-mcmc-markov-chain-monte-carlo>` · :doc:`Parameter(s) of Interest <065-parameter-s-of-interest>` · :doc:`Posterior <063-posterior>` · :doc:`Posterior belief <061-posterior-belief>` · :doc:`Posterior Probability <073-posterior-probability>` · :doc:`Prior Belief (or Prior Probability) <064-prior-belief-or-prior-probability>`
 
-----
-
-*Theme:* :ref:`Bayesian Inference <term-theme-bayes>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Posterior probability of uplift <https://insightful-data-lab.com/2025/08/29/posterior-probability-of-uplift/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Posterior probability of uplift <https://insightful-data-lab.com/2025/08/29/posterior-probability-of-uplift/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

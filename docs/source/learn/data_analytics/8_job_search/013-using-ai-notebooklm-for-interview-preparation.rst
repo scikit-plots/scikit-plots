@@ -22,6 +22,8 @@ Using AI (NotebookLM) for Interview Preparation
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/using-ai-notebooklm-for-interview-preparation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/using-ai-notebooklm-for-interview-preparation/ <https://insightful-data-lab.com/2023/12/06/using-ai-notebooklm-for-interview-preparation/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, jobsearch, interview

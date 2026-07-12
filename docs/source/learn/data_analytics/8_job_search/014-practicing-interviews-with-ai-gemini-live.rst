@@ -22,6 +22,8 @@ Practicing Interviews with AI (Gemini Live)
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/practicing-interviews-with-ai-gemini-live/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/practicing-interviews-with-ai-gemini-live/ <https://insightful-data-lab.com/2023/12/06/practicing-interviews-with-ai-gemini-live/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, jobsearch, interview

@@ -6,7 +6,7 @@ Interpreting and Assessing a Forward-Selection Logistic Regression Model for Col
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 43 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`   ·   :doc:`Next · Motivation of Decision Trees: An Incremental Model of Decision-Making ▶ <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`
+:doc:`◀ Previous · Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`   ·   :doc:`Next · Motivation of Decision Trees: An Incremental Model of Decision-Making ▶ <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`   ·   :doc:`↑ Section <index>`
 
 
 A real prediction problem
@@ -49,10 +49,12 @@ reach AUCs in the high 70s to high 80s. The result is a model that is both **int
 **validated** — the goal of this whole stage, and a natural bridge to the trees that follow, which
 pursue the same predictions with a very different, rule-based structure.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`  ·  :doc:`Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`  ·  :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`  ·  :doc:`AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention/ <https://insightful-data-lab.com/2026/01/16/interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention/ <https://insightful-data-lab.com/2026/01/16/interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

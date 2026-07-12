@@ -6,7 +6,7 @@ Density estimation and regression
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 133 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Functional data analysis <132-functional-data-analysis>`   ·   :doc:`Next · Setting up and interpreting mixture models ▶ <134-setting-up-and-interpreting-mixture-models>`
+:doc:`◀ Previous · Functional data analysis <132-functional-data-analysis>`   ·   :doc:`Next · Setting up and interpreting mixture models ▶ <134-setting-up-and-interpreting-mixture-models>`   ·   :doc:`↑ Section <index>`
 
 
 Flexibility from components, not curves
@@ -61,10 +61,12 @@ interpret the fit. The stage builds from finite mixtures (this lesson and the ne
 **unknown** number of components, and finally to **infinite** mixtures — the Dirichlet process — where the
 component count is itself learned. Flexibility, assembled from simple parts.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Functional data analysis <132-functional-data-analysis>`  ·  :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`  ·  :doc:`Bayesian histograms <139-bayesian-histograms>`  ·  :doc:`Dirichlet process prior distributions <140-dirichlet-process-prior-distributions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/density-estimation-and-regression/ <https://insightful-data-lab.com/2025/12/09/density-estimation-and-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/density-estimation-and-regression/ <https://insightful-data-lab.com/2025/12/09/density-estimation-and-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

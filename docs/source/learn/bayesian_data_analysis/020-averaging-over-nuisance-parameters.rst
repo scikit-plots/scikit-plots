@@ -6,7 +6,7 @@ Averaging Over Nuisance Parameters
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 020 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`   ·   :doc:`Next · Normal Data with a Noninformative Prior Distribution ▶ <021-normal-data-with-a-noninformative-prior-distribution>`
+:doc:`◀ Previous · Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`   ·   :doc:`Next · Normal Data with a Noninformative Prior Distribution ▶ <021-normal-data-with-a-noninformative-prior-distribution>`   ·   :doc:`↑ Section <index>`
 
 
 The parameters you don't want
@@ -65,10 +65,12 @@ Dropping a column *is* integration over that parameter. It is one of the quiet r
 simulation-based workflow scales to models where the integrals could never be done in closed form —
 starting with the normal model of the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Some Useful Results from Probability Theory <008-some-useful-results-from-probability-theory>`  ·  :doc:`Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`  ·  :doc:`Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`  ·  :doc:`Conditional and marginal posterior approximations <085-conditional-and-marginal-posterior-approximations>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/averaging-over-nuisance-parameters/ <https://insightful-data-lab.com/2025/11/09/averaging-over-nuisance-parameters/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/averaging-over-nuisance-parameters/ <https://insightful-data-lab.com/2025/11/09/averaging-over-nuisance-parameters/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

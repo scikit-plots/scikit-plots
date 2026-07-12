@@ -10,7 +10,7 @@
 
 .. _term-machine-learning-ml:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Machine Learning (ML)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Machine Learning (ML)</b></div>`
 
 =======================
 Machine Learning (ML)
@@ -60,22 +60,24 @@ scale and complexity beyond hand-coded rules.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`Embedding <173-embedding>` · :doc:`Regression Coefficient <090-regression-coefficient>` · :doc:`Medical AI <145-medical-ai>`
 
 ----
 
-**More in AI & ML Concepts**
+.. hint::
+   **More in AI & ML Concepts**
 
    :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Classification Models <294-classification-models>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Linear Models <341-linear-models>` · :doc:`LLMs (Large Language Models) <158-llms-large-language-models>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Medical AI <145-medical-ai>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Regression Models <309-regression-models>` · :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>` · :doc:`Target Variable <236-target-variable>`
 
-----
-
-*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Machine Learning (ML) <https://insightful-data-lab.com/2025/08/24/machine-learning-ml/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Machine Learning (ML) <https://insightful-data-lab.com/2025/08/24/machine-learning-ml/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

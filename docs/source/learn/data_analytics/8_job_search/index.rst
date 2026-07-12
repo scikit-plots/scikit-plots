@@ -1,5 +1,9 @@
 .. _da-jobsearch-index:
 
+:raw-html:`<div style="text-align:center"><strong>` 💼 Job Search
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
+
 ========================================================================
 💼 Job Search
 ========================================================================
@@ -12,10 +16,12 @@ From portfolio to offer: resumes, the analyst interview, case studies, and landi
 
 .. raw:: html
 
-   <input type="text" id="term-filter" placeholder="🔍 Filter this section by title or keyword…"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
           style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -80,6 +86,9 @@ From portfolio to offer: resumes, the analyst interview, case studies, and landi
          <div class="da-row" data-k="Using AI (NotebookLM) for Interview Preparation "><a href="013-using-ai-notebooklm-for-interview-preparation.html">013 · Using AI (NotebookLM) for Interview Preparation</a></div>
          <div class="da-row" data-k="Practicing Interviews with AI (Gemini Live) "><a href="014-practicing-interviews-with-ai-gemini-live.html">014 · Practicing Interviews with AI (Gemini Live)</a></div>
          <div class="da-row" data-k="Post-Interview Strategy "><a href="015-post-interview-strategy.html">015 · Post-Interview Strategy</a></div>
+
+🔤 Every lesson, A–Z
+---------------------
 
 .. dropdown:: 🔠 A–Z index
    :class-container: term-az

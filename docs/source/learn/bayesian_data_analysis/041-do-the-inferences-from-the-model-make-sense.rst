@@ -6,7 +6,7 @@ Do the Inferences from the Model Make Sense?
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 041 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · The Place of Model Checking in Applied Bayesian Statistics <040-the-place-of-model-checking-in-applied-bayesian-statistics>`   ·   :doc:`Next · Posterior predictive checking ▶ <042-posterior-predictive-checking>`
+:doc:`◀ Previous · The Place of Model Checking in Applied Bayesian Statistics <040-the-place-of-model-checking-in-applied-bayesian-statistics>`   ·   :doc:`Next · Posterior predictive checking ▶ <042-posterior-predictive-checking>`   ·   :doc:`↑ Section <index>`
 
 
 The cheapest check
@@ -61,10 +61,12 @@ units first, then simulate from the prior, then question the model. And keep the
 result that merely *surprises* you may be the finding. The check is against what is **impossible** or
 **incoherent**, not against what is merely unexpected.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The Place of Model Checking in Applied Bayesian Statistics <040-the-place-of-model-checking-in-applied-bayesian-statistics>`  ·  :doc:`Posterior predictive checking <042-posterior-predictive-checking>`  ·  :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`  ·  :doc:`Debugging Bayesian computing <068-debugging-bayesian-computing>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/ <https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/ <https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

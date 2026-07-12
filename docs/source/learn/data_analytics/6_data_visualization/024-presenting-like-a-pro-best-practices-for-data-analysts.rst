@@ -22,6 +22,8 @@ Presenting Like a Pro: Best Practices for Data Analysts
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/presenting-like-a-pro-best-practices-for-data-analysts/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/presenting-like-a-pro-best-practices-for-data-analysts/ <https://insightful-data-lab.com/2023/11/26/presenting-like-a-pro-best-practices-for-data-analysts/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

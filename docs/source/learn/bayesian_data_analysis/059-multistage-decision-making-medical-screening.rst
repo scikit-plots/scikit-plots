@@ -6,7 +6,7 @@ Multistage decision making: medical screening
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 059 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Using regression predictions: survey incentives <058-using-regression-predictions-survey-incentives>`   ·   :doc:`Next · Hierarchical decision analysis for home radon ▶ <060-hierarchical-decision-analysis-for-home-radon>`
+:doc:`◀ Previous · Using regression predictions: survey incentives <058-using-regression-predictions-survey-incentives>`   ·   :doc:`Next · Hierarchical decision analysis for home radon ▶ <060-hierarchical-decision-analysis-for-home-radon>`   ·   :doc:`↑ Section <index>`
 
 
 Decisions that buy information
@@ -63,10 +63,12 @@ backward induction. And the analysis assumes the model for test performance is r
 **miscalibrated** sensitivity propagates through every stage. Screening policy is where Bayesian
 decision theory is at its most useful and its most contested.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian decision theory in diﬀerent contexts <057-bayesian-decision-theory-in-different-contexts>`  ·  :doc:`Example — Calibration for Record Linkage <007-example-calibration-for-record-linkage>`  ·  :doc:`Hierarchical decision analysis for home radon <060-hierarchical-decision-analysis-for-home-radon>`  ·  :doc:`Personal vs. institutional decision analysis <061-personal-vs-institutional-decision-analysis>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/multistage-decision-making-medical-screening/ <https://insightful-data-lab.com/2025/11/11/multistage-decision-making-medical-screening/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/multistage-decision-making-medical-screening/ <https://insightful-data-lab.com/2025/11/11/multistage-decision-making-medical-screening/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

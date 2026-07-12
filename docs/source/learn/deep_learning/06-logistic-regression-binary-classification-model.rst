@@ -6,7 +6,7 @@ Logistic Regression (Binary Classification Model)
 
 **Stage 2 · 🔵 Logistic Regression as a Neuron**  ·  Lesson 06 of 17  ·  *beginner*
 
-:doc:`◀ Previous · Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics>`   ·   :doc:`Next · Logistic Regression – Loss Function and Cost Function ▶ <07-logistic-regression-loss-function-and-cost-function>`
+:doc:`◀ Previous · Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics>`   ·   :doc:`Next · Logistic Regression – Loss Function and Cost Function ▶ <07-logistic-regression-loss-function-and-cost-function>`   ·   :doc:`↑ Section <index>`
 
 
 From score to probability
@@ -45,10 +45,12 @@ inputs followed by a nonlinear activation — here the sigmoid. That is the exac
 Lesson 1, and stacking many such units is all a neural network is. The next lesson gives this neuron
 a **loss**, so it can learn :math:`\mathbf{w}` and :math:`b` from data.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics>`  ·  :doc:`Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`  ·  :doc:`What is a Neural Network? <01-what-is-a-neural-network>`  ·  :doc:`Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/logistic-regression-binary-classification-model/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-binary-classification-model/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/logistic-regression-binary-classification-model/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-binary-classification-model/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

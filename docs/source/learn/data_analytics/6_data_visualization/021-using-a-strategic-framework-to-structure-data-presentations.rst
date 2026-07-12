@@ -22,6 +22,8 @@ Using a Strategic Framework to Structure Data Presentations
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/using-a-strategic-framework-to-structure-data-presentations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-a-strategic-framework-to-structure-data-presentations/ <https://insightful-data-lab.com/2023/11/26/using-a-strategic-framework-to-structure-data-presentations/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

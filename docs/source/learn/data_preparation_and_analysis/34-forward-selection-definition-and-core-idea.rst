@@ -6,7 +6,7 @@ Forward Selection: Definition and Core Idea
 
 **Stage 5 · 📈 Regression**  ·  Lesson 34 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`   ·   :doc:`Next · Forward Selection and Model Interpretation in Linear Regression ▶ <35-forward-selection-and-model-interpretation-in-linear-regression>`
+:doc:`◀ Previous · Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`   ·   :doc:`Next · Forward Selection and Model Interpretation in Linear Regression ▶ <35-forward-selection-and-model-interpretation-in-linear-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Too many features
@@ -43,10 +43,12 @@ feature that shines only in combination with another might never be picked. Chec
 subset would be exact but explodes combinatorially (echoing the Apriori scale problem). Forward
 selection trades that guarantee for speed and simplicity; the next lessons apply and extend it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`  ·  :doc:`Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`  ·  :doc:`Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/ <https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/ <https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

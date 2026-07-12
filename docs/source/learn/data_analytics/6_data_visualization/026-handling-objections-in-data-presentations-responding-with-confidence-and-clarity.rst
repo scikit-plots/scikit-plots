@@ -22,6 +22,8 @@ Handling Objections in Data Presentations: Responding with Confidence and Clarit
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/handling-objections-in-data-presentations-responding-with-confidence-and-clarity/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/handling-objections-in-data-presentations-responding-with-confidence-and-clarity/ <https://insightful-data-lab.com/2023/11/26/handling-objections-in-data-presentations-responding-with-confidence-and-clarity/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

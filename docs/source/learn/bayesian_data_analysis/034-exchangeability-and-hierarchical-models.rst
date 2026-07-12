@@ -6,7 +6,7 @@ Exchangeability and hierarchical models
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 034 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Constructing a Parameterized Prior Distribution <033-constructing-a-parameterized-prior-distribution>`   ·   :doc:`Next · Bayesian analysis of conjugate hierarchical models ▶ <035-bayesian-analysis-of-conjugate-hierarchical-models>`
+:doc:`◀ Previous · Constructing a Parameterized Prior Distribution <033-constructing-a-parameterized-prior-distribution>`   ·   :doc:`Next · Bayesian analysis of conjugate hierarchical models ▶ <035-bayesian-analysis-of-conjugate-hierarchical-models>`   ·   :doc:`↑ Section <index>`
 
 
 The licence to pool
@@ -67,10 +67,12 @@ make the known structure explicit: model :math:`\theta_j` as depending on covari
 assume exchangeability of the **residuals**. This is **conditional exchangeability**, and it is the
 road from hierarchical models to hierarchical *regression* in Part IV.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Constructing a Parameterized Prior Distribution <033-constructing-a-parameterized-prior-distribution>`  ·  :doc:`General Notation for Statistical Inference <002-general-notation-for-statistical-inference>`  ·  :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`  ·  :doc:`Regression coeﬃcients exchangeable in batches <099-regression-coefficients-exchangeable-in-batches>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/ <https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/ <https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

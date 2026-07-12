@@ -6,7 +6,7 @@ Decision Trees as Piecewise Models and Their Predictive Structure
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 46 of 56  ·  *advanced*
 
-:doc:`◀ Previous · The CART Algorithm <45-the-cart-algorithm>`   ·   :doc:`Next · How CART Decision Trees Model Interactions ▶ <47-how-cart-decision-trees-model-interactions>`
+:doc:`◀ Previous · The CART Algorithm <45-the-cart-algorithm>`   ·   :doc:`Next · How CART Decision Trees Model Interactions ▶ <47-how-cart-decision-trees-model-interactions>`   ·   :doc:`↑ Section <index>`
 
 
 Boxes in feature space
@@ -46,10 +46,12 @@ power, and also its peril: enough boxes to fit any curve is also enough to fit t
 why the depth controls and pruning of the last lesson matter. The next lesson shows a subtler
 consequence of this box structure: **interactions**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The CART Algorithm <45-the-cart-algorithm>`  ·  :doc:`How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`  ·  :doc:`Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`  ·  :doc:`Multiple Linear Regression <32-multiple-linear-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/ <https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/ <https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

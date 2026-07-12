@@ -6,7 +6,7 @@ Beyond density estimation
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 142 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Dirichlet process mixtures <141-dirichlet-process-mixtures>`   ·   :doc:`Next · Hierarchical dependence ▶ <143-hierarchical-dependence>`
+:doc:`◀ Previous · Dirichlet process mixtures <141-dirichlet-process-mixtures>`   ·   :doc:`Next · Hierarchical dependence ▶ <143-hierarchical-dependence>`   ·   :doc:`↑ Section <index>`
 
 
 Nonparametrics for other functionals
@@ -60,10 +60,12 @@ unifying theme: put a prior on an **infinite-dimensional** object — a distribu
 matrix — and let the data determine its complexity, with every downstream quantity carrying honest
 posterior uncertainty.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Dirichlet process mixtures <141-dirichlet-process-mixtures>`  ·  :doc:`Hierarchical dependence <143-hierarchical-dependence>`  ·  :doc:`Bayesian histograms <139-bayesian-histograms>`  ·  :doc:`Mixture models for classification and regression <138-mixture-models-for-classification-and-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/13/beyond-density-estimation/ <https://insightful-data-lab.com/2025/12/13/beyond-density-estimation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/13/beyond-density-estimation/ <https://insightful-data-lab.com/2025/12/13/beyond-density-estimation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

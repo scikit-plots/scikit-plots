@@ -22,6 +22,8 @@ Data Storytelling: Giving Numbers a Clear and Convincing Voice
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/data-storytelling-giving-numbers-a-clear-and-convincing-voice/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/data-storytelling-giving-numbers-a-clear-and-convincing-voice/ <https://insightful-data-lab.com/2023/11/26/data-storytelling-giving-numbers-a-clear-and-convincing-voice/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, story

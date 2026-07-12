@@ -10,7 +10,7 @@
 
 .. _term-one-vs-rest-ovr-auroc:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>One-vs-Rest (OvR) AUROC</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>One-vs-Rest (OvR) AUROC</b></div>`
 
 =========================
 One-vs-Rest (OvR) AUROC
@@ -75,22 +75,24 @@ In code
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Classification & Averaging Metrics <term-theme-metrics>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Macro AUROC (Macro-Averaged AUROC) <018-macro-auroc-macro-averaged-auroc>` · :doc:`Micro AUROC <011-micro-auroc>` · :doc:`Macro F1 <019-macro-f1>` · :doc:`Single-label Classification <014-single-label-classification>`
 
 ----
 
-**More in Classification & Averaging Metrics**
+.. hint::
+   **More in Classification & Averaging Metrics**
 
    :doc:`Accuracy <323-accuracy>` · :doc:`AUC (Area Under the Curve) <371-auc-area-under-the-curve>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Binary Classification <293-binary-classification>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Discriminatory Power <185-discriminatory-power>` · :doc:`F1-score <363-f1-score>` · :doc:`Gini Coefficient <023-gini-coefficient>` · :doc:`Harmonic Mean <362-harmonic-mean>` · :doc:`Log Loss (also called Logarithmic Loss or Cross-Entropy Loss) <417-log-loss-also-called-logarithmic-loss-or-cross-e>` · :doc:`Macro AUC <314-macro-auc>` · :doc:`Macro AUROC (Macro-Averaged AUROC) <018-macro-auroc-macro-averaged-auroc>` · :doc:`Macro Averaging <370-macro-averaging>` · :doc:`Macro F1 <019-macro-f1>`
 
-----
-
-*Theme:* :ref:`Classification & Averaging Metrics <term-theme-metrics>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `One-vs-Rest (OvR) AUROC <https://insightful-data-lab.com/2025/08/30/one-vs-rest-ovr-auroc/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `One-vs-Rest (OvR) AUROC <https://insightful-data-lab.com/2025/08/30/one-vs-rest-ovr-auroc/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

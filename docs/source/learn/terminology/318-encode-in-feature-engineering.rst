@@ -10,7 +10,7 @@
 
 .. _term-encode-in-feature-engineering:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Encode (in Feature Engineering)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Encode (in Feature Engineering)</b></div>`
 
 =================================
 Encode (in Feature Engineering)
@@ -42,22 +42,24 @@ category is **ordered**, and to its **cardinality**.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Data Preparation & Features <term-theme-features>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Normalize (in Feature Engineering) <319-normalize-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>` · :doc:`Embedding <173-embedding>` · :doc:`Feature Values <188-feature-values>` · :doc:`Outlier <307-outlier>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 
-**More in Data Preparation & Features**
+.. hint::
+   **More in Data Preparation & Features**
 
    :doc:`Advanced Sorting in Spreadsheets <431-advanced-sorting-in-spreadsheets>` · :doc:`Normalize (in Feature Engineering) <319-normalize-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>`
 
-----
-
-*Theme:* :ref:`Data Preparation & Features <term-theme-features>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Encode (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/encode-in-feature-engineering/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Encode (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/encode-in-feature-engineering/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

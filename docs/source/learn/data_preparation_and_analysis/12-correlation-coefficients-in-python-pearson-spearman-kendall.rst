@@ -6,7 +6,7 @@ Correlation Coefficients in Python (Pearson, Spearman, Kendall)
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 12 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`Next · Karl Pearson ▶ <13-karl-pearson>`
+:doc:`◀ Previous · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`Next · Karl Pearson ▶ <13-karl-pearson>`   ·   :doc:`↑ Section <index>`
 
 
 Three coefficients
@@ -52,10 +52,12 @@ All three are one call away. A whole correlation matrix comes from ``df.corr(met
 ``spearmanr`` or ``kendalltau``. On the taxi data, fare against distance shows a strong positive
 correlation by any of the three.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`  ·  :doc:`Karl Pearson <13-karl-pearson>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/ <https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/ <https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

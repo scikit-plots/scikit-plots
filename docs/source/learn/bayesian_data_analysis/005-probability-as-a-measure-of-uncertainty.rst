@@ -6,7 +6,7 @@ Probability as a Measure of Uncertainty
 
 **Part 1 · Stage 1 · 🎲 The Bayesian Idea**  ·  Lesson 005 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Discrete Bayesian Examples – Genetics and Spell Checking (with θ) <004-discrete-bayesian-examples-genetics-and-spell-checking-with>`   ·   :doc:`Next · Example — Probabilities from Football Point Spreads ▶ <006-example-probabilities-from-football-point-spreads>`
+:doc:`◀ Previous · Discrete Bayesian Examples – Genetics and Spell Checking (with θ) <004-discrete-bayesian-examples-genetics-and-spell-checking-with>`   ·   :doc:`Next · Example — Probabilities from Football Point Spreads ▶ <006-example-probabilities-from-football-point-spreads>`   ·   :doc:`↑ Section <index>`
 
 
 Uncertainty, not just frequency
@@ -51,10 +51,12 @@ assign probability 0.7, about 70% should actually occur — an empirically check
 subject of the next two lessons. Bayesian analysis does not demand that priors match anyone's inner
 convictions; it demands that assumptions be **stated clearly** and their implications **checked**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian Inference <003-bayesian-inference>`  ·  :doc:`Example — Probabilities from Football Point Spreads <006-example-probabilities-from-football-point-spreads>`  ·  :doc:`Example — Calibration for Record Linkage <007-example-calibration-for-record-linkage>`  ·  :doc:`Noninformative Prior Distributions <018-noninformative-prior-distributions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/08/probability-as-a-measure-of-uncertainty/ <https://insightful-data-lab.com/2025/11/08/probability-as-a-measure-of-uncertainty/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/08/probability-as-a-measure-of-uncertainty/ <https://insightful-data-lab.com/2025/11/08/probability-as-a-measure-of-uncertainty/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

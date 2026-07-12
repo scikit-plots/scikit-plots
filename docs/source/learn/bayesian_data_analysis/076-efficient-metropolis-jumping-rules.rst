@@ -6,7 +6,7 @@ Eﬃcient Metropolis jumping rules
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 076 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Eﬃcient Gibbs samplers <075-efficient-gibbs-samplers>`   ·   :doc:`Next · Further extensions to Gibbs and Metropolis ▶ <077-further-extensions-to-gibbs-and-metropolis>`
+:doc:`◀ Previous · Eﬃcient Gibbs samplers <075-efficient-gibbs-samplers>`   ·   :doc:`Next · Further extensions to Gibbs and Metropolis ▶ <077-further-extensions-to-gibbs-and-metropolis>`   ·   :doc:`↑ Section <index>`
 
 
 The proposal is the algorithm
@@ -65,10 +65,12 @@ None of them changes the fundamental cost. A random walk needs :math:`\mathcal{O
 cross a distance :math:`L`, and :math:`c` must shrink like :math:`1/\sqrt{d}`. **Gradients** break this
 scaling by proposing *directed* moves, which is what the next lesson introduces.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Metropolis and Metropolis-Hastings algorithms <070-metropolis-and-metropolis-hastings-algorithms>`  ·  :doc:`Eﬀective number of simulation draws <073-effective-number-of-simulation-draws>`  ·  :doc:`Hamiltonian Monte Carlo <078-hamiltonian-monte-carlo>`  ·  :doc:`Further extensions to Gibbs and Metropolis <077-further-extensions-to-gibbs-and-metropolis>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/ <https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/ <https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

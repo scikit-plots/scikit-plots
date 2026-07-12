@@ -6,7 +6,7 @@ Computing environments
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 067 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · How many simulation draws are needed? <066-how-many-simulation-draws-are-needed>`   ·   :doc:`Next · Debugging Bayesian computing ▶ <068-debugging-bayesian-computing>`
+:doc:`◀ Previous · How many simulation draws are needed? <066-how-many-simulation-draws-are-needed>`   ·   :doc:`Next · Debugging Bayesian computing ▶ <068-debugging-bayesian-computing>`   ·   :doc:`↑ Section <index>`
 
 
 The tools, and what they hide
@@ -56,10 +56,12 @@ Simulation results are not deterministic unless you make them so. Set the **seed
 dispersed starting points — the last of which is not a courtesy but a prerequisite for the convergence
 diagnostics of the next stage. A result you cannot reproduce is a result you cannot debug.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Computation and Software <009-computation-and-software>`  ·  :doc:`Debugging Bayesian computing <068-debugging-bayesian-computing>`  ·  :doc:`Stan: developing a computing environment <080-stan-developing-a-computing-environment>`  ·  :doc:`Hamiltonian Monte Carlo <078-hamiltonian-monte-carlo>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/computing-environments/ <https://insightful-data-lab.com/2025/11/11/computing-environments/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/computing-environments/ <https://insightful-data-lab.com/2025/11/11/computing-environments/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

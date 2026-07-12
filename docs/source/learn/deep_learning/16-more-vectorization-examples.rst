@@ -6,7 +6,7 @@ More Vectorization Examples
 
 **Stage 4 · ⚙️ Backprop & Vectorization**  ·  Lesson 16 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Vectorization in Logistic Regression <15-vectorization-in-logistic-regression>`   ·   :doc:`Next · Vectorizing Logistic Regression ▶ <17-vectorizing-logistic-regression>`
+:doc:`◀ Previous · Vectorization in Logistic Regression <15-vectorization-in-logistic-regression>`   ·   :doc:`Next · Vectorizing Logistic Regression ▶ <17-vectorizing-logistic-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Element-wise functions
@@ -48,10 +48,12 @@ for-loops."** Reach first for a whole-array operation or a broadcast; fall back 
 when no vectorised form exists. With these tools the entire logistic-regression step vectorises, which
 the final lesson assembles.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Vectorization in Logistic Regression <15-vectorization-in-logistic-regression>`  ·  :doc:`Vectorizing Logistic Regression <17-vectorizing-logistic-regression>`  ·  :doc:`Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/more-vectorization-examples/ <https://insightful-data-lab.com/2025/04/07/more-vectorization-examples/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/more-vectorization-examples/ <https://insightful-data-lab.com/2025/04/07/more-vectorization-examples/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

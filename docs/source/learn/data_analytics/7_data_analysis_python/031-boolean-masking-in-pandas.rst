@@ -22,6 +22,8 @@ Boolean Masking in Pandas
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/boolean-masking-in-pandas/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/boolean-masking-in-pandas/ <https://insightful-data-lab.com/2023/12/06/boolean-masking-in-pandas/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, python, libraries

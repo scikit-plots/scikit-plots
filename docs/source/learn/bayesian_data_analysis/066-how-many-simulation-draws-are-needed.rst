@@ -6,7 +6,7 @@ How many simulation draws are needed?
 
 **Part 3 · Stage 8 · 🧰 Simulation Basics**  ·  Lesson 066 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Importance sampling <065-importance-sampling>`   ·   :doc:`Next · Computing environments ▶ <067-computing-environments>`
+:doc:`◀ Previous · Importance sampling <065-importance-sampling>`   ·   :doc:`Next · Computing environments ▶ <067-computing-environments>`   ·   :doc:`↑ Section <index>`
 
 
 Monte Carlo error is not posterior uncertainty
@@ -59,10 +59,12 @@ well in the middle can crawl in the tails. And remember what more draws cannot b
 Carlo error toward zero and leave posterior uncertainty exactly where it was. If the interval is too
 wide to act on, the remedy is more **data** or a better **model**, never a longer chain.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Importance sampling <065-importance-sampling>`  ·  :doc:`Numerical integration <062-numerical-integration>`  ·  :doc:`Eﬀective number of simulation draws <073-effective-number-of-simulation-draws>`  ·  :doc:`Inference and assessing convergence <072-inference-and-assessing-convergence>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/how-many-simulation-draws-are-needed/ <https://insightful-data-lab.com/2025/11/11/how-many-simulation-draws-are-needed/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/how-many-simulation-draws-are-needed/ <https://insightful-data-lab.com/2025/11/11/how-many-simulation-draws-are-needed/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

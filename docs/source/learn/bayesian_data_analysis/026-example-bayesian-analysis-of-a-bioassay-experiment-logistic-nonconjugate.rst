@@ -6,7 +6,7 @@ Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate)
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 026 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`   ·   :doc:`Next · Summary of Elementary Modeling and Computation ▶ <027-summary-of-elementary-modeling-and-computation>`
+:doc:`◀ Previous · Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`   ·   :doc:`Next · Summary of Elementary Modeling and Computation ▶ <027-summary-of-elementary-modeling-and-computation>`   ·   :doc:`↑ Section <index>`
 
 
 Where the closed forms end
@@ -71,10 +71,12 @@ Because any function of draws is itself a posterior draw, the **LD50** (the dose
 that a plug-in estimate would badly misrepresent. Grids work in two dimensions; beyond three or four
 they die of dimensionality — which is precisely why Part III exists.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Numerical integration <062-numerical-integration>`  ·  :doc:`Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`  ·  :doc:`Summary of Elementary Modeling and Computation <027-summary-of-elementary-modeling-and-computation>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate/ <https://insightful-data-lab.com/2025/11/09/example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate/ <https://insightful-data-lab.com/2025/11/09/example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

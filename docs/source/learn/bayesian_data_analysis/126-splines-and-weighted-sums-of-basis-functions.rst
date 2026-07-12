@@ -6,7 +6,7 @@ Splines and weighted sums of basis functions
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 126 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Example: population toxicokinetics <125-example-population-toxicokinetics>`   ·   :doc:`Next · Basis selection and shrinkage of coeﬃcients ▶ <127-basis-selection-and-shrinkage-of-coefficients>`
+:doc:`◀ Previous · Example: population toxicokinetics <125-example-population-toxicokinetics>`   ·   :doc:`Next · Basis selection and shrinkage of coeﬃcients ▶ <127-basis-selection-and-shrinkage-of-coefficients>`   ·   :doc:`↑ Section <index>`
 
 
 Flexibility from fixed pieces
@@ -60,10 +60,12 @@ directly to the batching stage — the spline coefficients are a **batch** of re
 a shared prior — and forward to Gaussian processes, which are the infinite-basis limit of this same idea.
 Flexible curves, built from fixed pieces and fit by ordinary means.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Basis selection and shrinkage of coeﬃcients <127-basis-selection-and-shrinkage-of-coefficients>`  ·  :doc:`Non-normal models and regression surfaces <128-non-normal-models-and-regression-surfaces>`  ·  :doc:`Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`  ·  :doc:`Gaussian process regression <129-gaussian-process-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/splines-and-weighted-sums-of-basis-functions/ <https://insightful-data-lab.com/2025/12/09/splines-and-weighted-sums-of-basis-functions/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/splines-and-weighted-sums-of-basis-functions/ <https://insightful-data-lab.com/2025/12/09/splines-and-weighted-sums-of-basis-functions/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

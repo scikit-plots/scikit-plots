@@ -6,7 +6,7 @@ Vectorizing Logistic Regression
 
 **Stage 4 · ⚙️ Backprop & Vectorization**  ·  Lesson 17 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · More Vectorization Examples <16-more-vectorization-examples>`
+:doc:`◀ Previous · More Vectorization Examples <16-more-vectorization-examples>`   ·   :doc:`↑ Section <index>`
 
 
 The whole step, no loops
@@ -52,10 +52,12 @@ the forward pass and backpropagation through each, and reuse exactly these ideas
 ReLU) activation, the cross-entropy cost, the computation graph, and vectorisation. With this stage
 complete, you have built every piece a neural network is made of.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Vectorization in Logistic Regression <15-vectorization-in-logistic-regression>`  ·  :doc:`More Vectorization Examples <16-more-vectorization-examples>`  ·  :doc:`Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`  ·  :doc:`What is a Neural Network? <01-what-is-a-neural-network>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/vectorizing-logistic-regression/ <https://insightful-data-lab.com/2025/04/07/vectorizing-logistic-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/vectorizing-logistic-regression/ <https://insightful-data-lab.com/2025/04/07/vectorizing-logistic-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

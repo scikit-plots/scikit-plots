@@ -10,7 +10,7 @@
 
 .. _term-customer-segmentation:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Customer Segmentation</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Customer Segmentation</b></div>`
 
 =======================
 Customer Segmentation
@@ -72,22 +72,24 @@ Pitfalls and best practices
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Business & Growth Analytics <term-theme-growth>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Cross-Selling <031-cross-selling>` · :doc:`Upselling <032-upselling>` · :doc:`LTV (Customer Lifetime Value) <373-ltv-customer-lifetime-value>` · :doc:`Churn <123-churn>` · :doc:`Cohort <183-cohort>`
 
 ----
 
-**More in Business & Growth Analytics**
+.. hint::
+   **More in Business & Growth Analytics**
 
    :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>` · :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>` · :doc:`Cannibalization <392-cannibalization>` · :doc:`Channel-Specific CAC (Customer Acquisition Cost) <047-channel-specific-cac-customer-acquisition-cost>` · :doc:`Churn <123-churn>` · :doc:`Cohort <183-cohort>` · :doc:`Cohort-Based LTV (Simple Version) <041-cohort-based-ltv-simple-version>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Cost-Per-Click (CPC) Models <300-cost-per-click-cpc-models>` · :doc:`Cross-Selling <031-cross-selling>` · :doc:`CTR (Click-Through Rate) <421-ctr-click-through-rate>` · :doc:`Customer Lifetime <042-customer-lifetime>` · :doc:`D2C (Direct-to-Consumer) <036-d2c-direct-to-consumer>` · :doc:`FTEs <147-ftes>`
 
-----
-
-*Theme:* :ref:`Business & Growth Analytics <term-theme-growth>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Customer Segmentation <https://insightful-data-lab.com/2025/08/29/customer-segmentation/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Customer Segmentation <https://insightful-data-lab.com/2025/08/29/customer-segmentation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

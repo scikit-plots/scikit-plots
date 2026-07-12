@@ -6,7 +6,7 @@ Assessing the Quality of Prediction Models
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 50 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`   ·   :doc:`Next · Binary Classification Models – Conceptual Framework and Evaluation Metrics ▶ <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`
+:doc:`◀ Previous · Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`   ·   :doc:`Next · Binary Classification Models – Conceptual Framework and Evaluation Metrics ▶ <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`↑ Section <index>`
 
 
 The essential question
@@ -47,10 +47,12 @@ avoiding false alarms, ranking well — and results should be judged against a s
 rather than in the abstract. The remaining lessons build the concrete tools: the confusion matrix and
 its metrics, ROC and lift curves, threshold tuning, and residual diagnostics.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`  ·  :doc:`Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`  ·  :doc:`AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`  ·  :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/assessing-the-quality-of-prediction-models/ <https://insightful-data-lab.com/2026/01/16/assessing-the-quality-of-prediction-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/assessing-the-quality-of-prediction-models/ <https://insightful-data-lab.com/2026/01/16/assessing-the-quality-of-prediction-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

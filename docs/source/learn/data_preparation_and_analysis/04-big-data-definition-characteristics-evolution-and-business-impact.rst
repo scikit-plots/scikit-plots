@@ -6,7 +6,7 @@ Big Data: Definition, Characteristics, Evolution, and Business Impact
 
 **Stage 1 · 📋 Foundations**  ·  Lesson 04 of 56  ·  *beginner*
 
-:doc:`◀ Previous · CRISP-DM for Data Science <03-crisp-dm-for-data-science>`   ·   :doc:`Next · The First Step in Knowing Your Data ▶ <05-the-first-step-in-knowing-your-data>`
+:doc:`◀ Previous · CRISP-DM for Data Science <03-crisp-dm-for-data-science>`   ·   :doc:`Next · The First Step in Knowing Your Data ▶ <05-the-first-step-in-knowing-your-data>`   ·   :doc:`↑ Section <index>`
 
 
 What makes data 'big'
@@ -44,10 +44,12 @@ methods appear precisely because volume, velocity and variety demand them. For a
 humility about **veracity**: more data is not automatically better data, and the preparation stage
 ahead exists to earn that trust.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Why Do We Analyze Data? <01-why-do-we-analyze-data>`  ·  :doc:`The First Step in Knowing Your Data <05-the-first-step-in-knowing-your-data>`  ·  :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`CRISP-DM for Data Science <03-crisp-dm-for-data-science>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/big-data-definition-characteristics-evolution-and-business-impact/ <https://insightful-data-lab.com/2026/01/14/big-data-definition-characteristics-evolution-and-business-impact/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/big-data-definition-characteristics-evolution-and-business-impact/ <https://insightful-data-lab.com/2026/01/14/big-data-definition-characteristics-evolution-and-business-impact/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

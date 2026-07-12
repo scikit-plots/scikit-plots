@@ -6,7 +6,7 @@ Partitioning Observations to Train Objective Models
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 25 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`   ·   :doc:`Next · Putting Similar Observations into Clusters ▶ <26-putting-similar-observations-into-clusters>`
+:doc:`◀ Previous · Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`   ·   :doc:`Next · Putting Similar Observations into Clusters ▶ <26-putting-similar-observations-into-clusters>`   ·   :doc:`↑ Section <index>`
 
 
 The temptation to cheat
@@ -43,10 +43,12 @@ In practice the split is one line — ``train_test_split`` in scikit-learn, idea
 course's standing warning: **report performance on the test set, never the training set**. Every
 evaluation metric in Stage 8 assumes the model is being judged on data it has never seen.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Stratified Random Sampling <23-stratified-random-sampling>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`  ·  :doc:`Linear Congruential Random Number Generator (LCG) <24-linear-congruential-random-number-generator-lcg>`  ·  :doc:`Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/ <https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/ <https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

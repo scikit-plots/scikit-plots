@@ -10,7 +10,7 @@
 
 .. _term-full-annotation:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Full Annotation</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Full Annotation</b></div>`
 
 =================
 Full Annotation
@@ -41,22 +41,24 @@ and **self-supervised** learning, which trade some label quality for far less hu
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Model Training & Optimization <term-theme-training>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Weak Supervision <346-weak-supervision>` · :doc:`Label Noise <354-label-noise>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Manual review minutes <384-manual-review-minutes>`
 
 ----
 
-**More in Model Training & Optimization**
+.. hint::
+   **More in Model Training & Optimization**
 
    :doc:`Active Learning <163-active-learning>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Deep Ensembles <335-deep-ensembles>` · :doc:`Early Stopping <140-early-stopping>` · :doc:`Ensemble <154-ensemble>` · :doc:`Epochs <141-epochs>` · :doc:`FLOPs <156-flops>` · :doc:`Hyperparameter <142-hyperparameter>` · :doc:`Label Noise <354-label-noise>` · :doc:`Log-Odds <295-log-odds>` · :doc:`Logit Space <291-logit-space>` · :doc:`Logits <420-logits>` · :doc:`Loss Functions <289-loss-functions>` · :doc:`Model Distillation (Knowledge Distillation) <139-model-distillation-knowledge-distillation>`
 
-----
-
-*Theme:* :ref:`Model Training & Optimization <term-theme-training>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Full Annotation <https://insightful-data-lab.com/2025/08/20/full-annotation/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Full Annotation <https://insightful-data-lab.com/2025/08/20/full-annotation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

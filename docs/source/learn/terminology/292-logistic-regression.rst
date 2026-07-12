@@ -10,7 +10,7 @@
 
 .. _term-logistic-regression:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Logistic Regression</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Logistic Regression</b></div>`
 
 =====================
 Logistic Regression
@@ -68,22 +68,24 @@ workhorse for spam, fraud and medical diagnosis.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Linear Models <341-linear-models>` · :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Discriminatory Power <185-discriminatory-power>`
 
 ----
 
-**More in AI & ML Concepts**
+.. hint::
+   **More in AI & ML Concepts**
 
    :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Classification Models <294-classification-models>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Linear Models <341-linear-models>` · :doc:`LLMs (Large Language Models) <158-llms-large-language-models>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Medical AI <145-medical-ai>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Regression Models <309-regression-models>` · :doc:`Support Vector Machines (SVMs) <282-support-vector-machines-svms>` · :doc:`Target Variable <236-target-variable>`
 
-----
-
-*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Logistic Regression <https://insightful-data-lab.com/2025/08/21/logistic-regression/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Logistic Regression <https://insightful-data-lab.com/2025/08/21/logistic-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

@@ -6,7 +6,7 @@ Some Useful Results from Probability Theory
 
 **Part 1 · Stage 1 · 🎲 The Bayesian Idea**  ·  Lesson 008 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Example — Calibration for Record Linkage <007-example-calibration-for-record-linkage>`   ·   :doc:`Next · Computation and Software ▶ <009-computation-and-software>`
+:doc:`◀ Previous · Example — Calibration for Record Linkage <007-example-calibration-for-record-linkage>`   ·   :doc:`Next · Computation and Software ▶ <009-computation-and-software>`   ·   :doc:`↑ Section <index>`
 
 
 The toolkit
@@ -70,10 +70,12 @@ That last property — that a function of posterior draws gives the posterior of
 Jacobian and no delta method — is one of the quiet advantages of the simulation-based workflow this
 course adopts.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`General Notation for Statistical Inference <002-general-notation-for-statistical-inference>`  ·  :doc:`Bayesian Inference <003-bayesian-inference>`  ·  :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`  ·  :doc:`Noninformative Prior Distributions <018-noninformative-prior-distributions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/08/some-useful-results-from-probability-theory/ <https://insightful-data-lab.com/2025/11/08/some-useful-results-from-probability-theory/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/08/some-useful-results-from-probability-theory/ <https://insightful-data-lab.com/2025/11/08/some-useful-results-from-probability-theory/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

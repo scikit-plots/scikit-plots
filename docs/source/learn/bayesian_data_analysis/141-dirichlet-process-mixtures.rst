@@ -6,7 +6,7 @@ Dirichlet process mixtures
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 141 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Dirichlet process prior distributions <140-dirichlet-process-prior-distributions>`   ·   :doc:`Next · Beyond density estimation ▶ <142-beyond-density-estimation>`
+:doc:`◀ Previous · Dirichlet process prior distributions <140-dirichlet-process-prior-distributions>`   ·   :doc:`Next · Beyond density estimation ▶ <142-beyond-density-estimation>`   ·   :doc:`↑ Section <index>`
 
 
 Putting a likelihood on the process
@@ -74,10 +74,12 @@ are and *which* points belong together. In practice a **truncated** stick-breaki
 extends outward: to functionals beyond the density, to shared clustering across groups, and to
 covariate-dependent distributions — the final three lessons.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Dirichlet process prior distributions <140-dirichlet-process-prior-distributions>`  ·  :doc:`Beyond density estimation <142-beyond-density-estimation>`  ·  :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`  ·  :doc:`Density regression <144-density-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/13/dirichlet-process-mixtures/ <https://insightful-data-lab.com/2025/12/13/dirichlet-process-mixtures/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/13/dirichlet-process-mixtures/ <https://insightful-data-lab.com/2025/12/13/dirichlet-process-mixtures/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

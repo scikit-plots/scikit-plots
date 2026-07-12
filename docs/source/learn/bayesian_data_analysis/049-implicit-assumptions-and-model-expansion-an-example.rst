@@ -6,7 +6,7 @@ Implicit assumptions and model expansion: an example
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 049 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Continuous model expansion <048-continuous-model-expansion>`   ·   :doc:`Next · Bayesian inference requires a model for data collection ▶ <050-bayesian-inference-requires-a-model-for-data-collection>`
+:doc:`◀ Previous · Continuous model expansion <048-continuous-model-expansion>`   ·   :doc:`Next · Bayesian inference requires a model for data collection ▶ <050-bayesian-inference-requires-a-model-for-data-collection>`   ·   :doc:`↑ Section <index>`
 
 
 The assumptions you forgot you made
@@ -74,10 +74,12 @@ with :math:`J = 8`, :math:`\nu` will be weakly determined, so the check reports 
 rather than "assumption verified". Model expansion widens what the data can speak to; it does not make
 them omniscient.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Continuous model expansion <048-continuous-model-expansion>`  ·  :doc:`Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`  ·  :doc:`Model checking for the educational testing example <044-model-checking-for-the-educational-testing-example>`  ·  :doc:`Robust inference for the eight schools <116-robust-inference-for-the-eight-schools>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/ <https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/ <https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

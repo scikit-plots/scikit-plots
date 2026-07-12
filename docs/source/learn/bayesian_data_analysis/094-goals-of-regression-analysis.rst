@@ -6,7 +6,7 @@ Goals of regression analysis
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 094 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Regression for causal inference: incumbency and voting <093-regression-for-causal-inference-incumbency-and-voting>`   ·   :doc:`Next · Assembling the matrix of explanatory variables ▶ <095-assembling-the-matrix-of-explanatory-variables>`
+:doc:`◀ Previous · Regression for causal inference: incumbency and voting <093-regression-for-causal-inference-incumbency-and-voting>`   ·   :doc:`Next · Assembling the matrix of explanatory variables ▶ <095-assembling-the-matrix-of-explanatory-variables>`   ·   :doc:`↑ Section <index>`
 
 
 Three questions, one equation
@@ -64,10 +64,12 @@ The purpose determines everything downstream:
 A model excellent for one goal can be worthless for another. The equation does not know which question
 you are asking; **you must**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Conditional modeling <091-conditional-modeling>`  ·  :doc:`Regression for causal inference: incumbency and voting <093-regression-for-causal-inference-incumbency-and-voting>`  ·  :doc:`Assembling the matrix of explanatory variables <095-assembling-the-matrix-of-explanatory-variables>`  ·  :doc:`Model comparison based on predictive performance <046-model-comparison-based-on-predictive-performance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/goals-of-regression-analysis/ <https://insightful-data-lab.com/2025/11/23/goals-of-regression-analysis/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/goals-of-regression-analysis/ <https://insightful-data-lab.com/2025/11/23/goals-of-regression-analysis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

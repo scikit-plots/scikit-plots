@@ -6,7 +6,7 @@ Motivation of Decision Trees: An Incremental Model of Decision-Making
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 44 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`   ·   :doc:`Next · The CART Algorithm ▶ <45-the-cart-algorithm>`
+:doc:`◀ Previous · Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`   ·   :doc:`Next · The CART Algorithm ▶ <45-the-cart-algorithm>`   ·   :doc:`↑ Section <index>`
 
 
 How people decide
@@ -47,10 +47,12 @@ favourite when a decision must be **justified**, not merely made — and it sets
 stage to **explain** the clusters of Stage 4. The next lesson gives the algorithm that actually builds
 a tree from data: **CART**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The CART Algorithm <45-the-cart-algorithm>`  ·  :doc:`Decision Trees as Piecewise Models and Their Predictive Structure <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`  ·  :doc:`How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`  ·  :doc:`Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/motivation-of-decision-trees-an-incremental-model-of-decision-making/ <https://insightful-data-lab.com/2026/01/16/motivation-of-decision-trees-an-incremental-model-of-decision-making/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/motivation-of-decision-trees-an-incremental-model-of-decision-making/ <https://insightful-data-lab.com/2026/01/16/motivation-of-decision-trees-an-incremental-model-of-decision-making/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

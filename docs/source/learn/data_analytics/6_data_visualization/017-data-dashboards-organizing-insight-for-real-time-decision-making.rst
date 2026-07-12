@@ -22,6 +22,8 @@ Data Dashboards: Organizing Insight for Real-Time Decision Making
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/data-dashboards-organizing-insight-for-real-time-decision-making/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/data-dashboards-organizing-insight-for-real-time-decision-making/ <https://insightful-data-lab.com/2023/11/26/data-dashboards-organizing-insight-for-real-time-decision-making/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, story

@@ -10,7 +10,7 @@
 
 .. _term-onnx-open-neural-network-exchange:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>ONNX (Open Neural Network Exchange)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>ONNX (Open Neural Network Exchange)</b></div>`
 
 =====================================
 ONNX (Open Neural Network Exchange)
@@ -71,22 +71,24 @@ and even the browser (ONNX Runtime Web on WebGL/WebAssembly). Its main limitatio
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Quantization <343-quantization>` · :doc:`Caching <342-caching>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Latency Guardrails <350-latency-guardrails>` · :doc:`Monitoring Pipelines <162-monitoring-pipelines>`
 
 ----
 
-**More in ML Platforms & Tools**
+.. hint::
+   **More in ML Platforms & Tools**
 
    :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Google Experiments <100-google-experiments>` · :doc:`Kaggle <273-kaggle>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Vertex AI <149-vertex-ai>`
 
-----
-
-*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `ONNX (Open Neural Network Exchange) <https://insightful-data-lab.com/2025/08/20/onnx-open-neural-network-exchange/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `ONNX (Open Neural Network Exchange) <https://insightful-data-lab.com/2025/08/20/onnx-open-neural-network-exchange/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

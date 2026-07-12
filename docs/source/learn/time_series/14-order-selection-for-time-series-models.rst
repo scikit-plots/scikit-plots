@@ -6,7 +6,7 @@ Order Selection for Time Series Models
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 14 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`   ·   :doc:`Next · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones ▶ <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`
+:doc:`◀ Previous · Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`   ·   :doc:`Next · ARIMA Models: How Nonstationary Models Are Built from Stationary Ones ▶ <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`   ·   :doc:`↑ Section <index>`
 
 
 The trade-off
@@ -45,10 +45,12 @@ the ACF / PACF, then **grid-search** nearby orders and keep the lowest-criterion
 passes diagnostics** — a lower AIC means nothing if the residuals are still autocorrelated. Tools
 like ``pmdarima.auto_arima`` automate the search; ``statsmodels`` exposes ``.aic`` and ``.bic``.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`  ·  :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/order-selection-for-time-series-models/ <https://insightful-data-lab.com/2026/01/17/order-selection-for-time-series-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/order-selection-for-time-series-models/ <https://insightful-data-lab.com/2026/01/17/order-selection-for-time-series-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

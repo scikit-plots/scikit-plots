@@ -10,7 +10,7 @@
 
 .. _term-selection-rate:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Selection Rate</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Selection Rate</b></div>`
 
 ================
 Selection Rate
@@ -41,22 +41,24 @@ gets the good outcome** without needing labels. But equal selection rates say **
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Fairness parity <372-fairness-parity>` · :doc:`Recall <423-recall>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>`
 
 ----
 
-**More in Fairness & Calibration**
+.. hint::
+   **More in Fairness & Calibration**
 
    :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Equal Opportunity (Fairness) <029-equal-opportunity-fairness>` · :doc:`Equalized Odds (Fairness) <028-equalized-odds-fairness>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Fairness parity <372-fairness-parity>` · :doc:`Four-Fifths (80%) Rule <189-four-fifths-80-rule>` · :doc:`Predictive Parity (Calibration) <027-predictive-parity-calibration>`
 
-----
-
-*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Selection Rate <https://insightful-data-lab.com/2025/08/19/selection-rate/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Selection Rate <https://insightful-data-lab.com/2025/08/19/selection-rate/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

@@ -10,7 +10,7 @@
 
 .. _term-basel-iii:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Basel III</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Basel III</b></div>`
 
 ===========
 Basel III
@@ -41,22 +41,24 @@ and validation, making Basel III a major reason financial ML must be **auditable
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Model Stability <187-model-stability>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>`
 
 ----
 
-**More in Explainability & Governance**
+.. hint::
+   **More in Explainability & Governance**
 
    :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>`
 
-----
-
-*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Basel III <https://insightful-data-lab.com/2025/08/20/basel-iii/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Basel III <https://insightful-data-lab.com/2025/08/20/basel-iii/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

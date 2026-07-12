@@ -6,7 +6,7 @@ Loglinear models for multivariate discrete data
 
 **Part 4 · Stage 13 · 🔗 Generalized Linear Models**  ·  Lesson 112 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Models for multivariate and multinomial responses <111-models-for-multivariate-and-multinomial-responses>`   ·   :doc:`Next · Aspects of robustness ▶ <113-aspects-of-robustness>`
+:doc:`◀ Previous · Models for multivariate and multinomial responses <111-models-for-multivariate-and-multinomial-responses>`   ·   :doc:`Next · Aspects of robustness ▶ <113-aspects-of-robustness>`   ·   :doc:`↑ Section <index>`
 
 
 Modelling a table of counts
@@ -66,10 +66,12 @@ data type on the list: whole tables of categorical counts. Part IV has taken the
 continuous responses through binary, count, ordered, multivariate and tabular data; Part V now abandons
 the linear predictor itself, for functions and infinite-dimensional models.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Models for multivariate and multinomial responses <111-models-for-multivariate-and-multinomial-responses>`  ·  :doc:`Overdispersed Poisson regression for police stops <109-overdispersed-poisson-regression-for-police-stops>`  ·  :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Working with generalized linear models <107-working-with-generalized-linear-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/loglinear-models-for-multivariate-discrete-data/ <https://insightful-data-lab.com/2025/12/06/loglinear-models-for-multivariate-discrete-data/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/loglinear-models-for-multivariate-discrete-data/ <https://insightful-data-lab.com/2025/12/06/loglinear-models-for-multivariate-discrete-data/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

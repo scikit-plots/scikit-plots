@@ -6,7 +6,7 @@ Basis selection and shrinkage of coeﬃcients
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 127 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`   ·   :doc:`Next · Non-normal models and regression surfaces ▶ <128-non-normal-models-and-regression-surfaces>`
+:doc:`◀ Previous · Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`   ·   :doc:`Next · Non-normal models and regression surfaces ▶ <128-non-normal-models-and-regression-surfaces>`   ·   :doc:`↑ Section <index>`
 
 
 How smooth should the curve be?
@@ -62,10 +62,12 @@ variance component, so the batching and regularisation stages apply directly. Th
 Gaussian processes, where the basis becomes infinite and the smoothing prior becomes a covariance
 function.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`  ·  :doc:`Regularization and dimension reduction <096-regularization-and-dimension-reduction>`  ·  :doc:`Regression coeﬃcients exchangeable in batches <099-regression-coefficients-exchangeable-in-batches>`  ·  :doc:`Non-normal models and regression surfaces <128-non-normal-models-and-regression-surfaces>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/basis-selection-and-shrinkage-of-coe%ef%ac%83cients/ <https://insightful-data-lab.com/2025/12/09/basis-selection-and-shrinkage-of-coe%ef%ac%83cients/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/basis-selection-and-shrinkage-of-coe%ef%ac%83cients/ <https://insightful-data-lab.com/2025/12/09/basis-selection-and-shrinkage-of-coe%ef%ac%83cients/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

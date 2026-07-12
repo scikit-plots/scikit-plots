@@ -10,7 +10,7 @@
 
 .. _term-smote-synthetic-minority-over-sampling-technique:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧪&nbsp;&nbsp;<b>SMOTE (Synthetic Minority Over-sampling Technique)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧪&nbsp;&nbsp;<b>SMOTE (Synthetic Minority Over-sampling Technique)</b></div>`
 
 ====================================================
 SMOTE (Synthetic Minority Over-sampling Technique)
@@ -91,22 +91,24 @@ minority points, giving a balanced 1,000 vs 1,000.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Imbalanced Learning & Resampling <term-theme-imbalance>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Oversampling <004-oversampling>` · :doc:`Random Undersampling <008-random-undersampling>` · :doc:`Class Weighting <002-class-weighting>` · :doc:`Subsampling <001-subsampling>` · :doc:`NearMiss (Distance-based Undersampling) <006-nearmiss-distance-based-undersampling>`
 
 ----
 
-**More in Imbalanced Learning & Resampling**
+.. hint::
+   **More in Imbalanced Learning & Resampling**
 
    :doc:`Class Weighting <002-class-weighting>` · :doc:`Cluster-based undersampling <007-cluster-based-undersampling>` · :doc:`Downsampling <368-downsampling>` · :doc:`NearMiss (Distance-based Undersampling) <006-nearmiss-distance-based-undersampling>` · :doc:`Oversampling <004-oversampling>` · :doc:`Random Undersampling <008-random-undersampling>` · :doc:`Subsampling <001-subsampling>` · :doc:`Upsampling <367-upsampling>`
 
-----
-
-*Theme:* :ref:`Imbalanced Learning & Resampling <term-theme-imbalance>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `SMOTE (Synthetic Minority Over-sampling Technique) <https://insightful-data-lab.com/2025/08/30/smote-synthetic-minority-over-sampling-technique/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `SMOTE (Synthetic Minority Over-sampling Technique) <https://insightful-data-lab.com/2025/08/30/smote-synthetic-minority-over-sampling-technique/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

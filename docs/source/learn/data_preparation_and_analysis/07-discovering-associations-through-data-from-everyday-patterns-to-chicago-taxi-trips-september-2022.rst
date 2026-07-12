@@ -6,7 +6,7 @@ Discovering Associations Through Data: From Everyday Patterns to Chicago Taxi Tr
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 07 of 56  ·  *beginner*
 
-:doc:`◀ Previous · IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard>`   ·   :doc:`Next · Taxi Trips – 2022 dataset from the City of Chicago open data portal ▶ <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`
+:doc:`◀ Previous · IEEE 754 Floating-Point Standard <06-ieee-754-floating-point-standard>`   ·   :doc:`Next · Taxi Trips – 2022 dataset from the City of Chicago open data portal ▶ <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`   ·   :doc:`↑ Section <index>`
 
 
 Things that move together
@@ -41,10 +41,12 @@ because one drives the other, because a third factor drives both, or by pure coi
 strong association tells you the variables are **related**, not **why** — a distinction that matters
 the moment anyone tries to act on the finding.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Taxi Trips – 2022 dataset from the City of Chicago open data portal <08-taxi-trips-2022-dataset-from-the-city-of-chicago-open-data-portal>`  ·  :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`  ·  :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`  ·  :doc:`Correlation Coefficients in Python (Pearson, Spearman, Kendall) <12-correlation-coefficients-in-python-pearson-spearman-kendall>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022/ <https://insightful-data-lab.com/2026/01/14/discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022/ <https://insightful-data-lab.com/2026/01/14/discovering-associations-through-data-from-everyday-patterns-to-chicago-taxi-trips-september-2022/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

@@ -6,7 +6,7 @@ Label switching and posterior computation
 
 **Part 5 · Stage 16 · ♾️ Mixtures & Nonparametric Bayes**  ·  Lesson 136 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Example: reaction times and schizophrenia <135-example-reaction-times-and-schizophrenia>`   ·   :doc:`Next · Unspecified number of mixture components ▶ <137-unspecified-number-of-mixture-components>`
+:doc:`◀ Previous · Example: reaction times and schizophrenia <135-example-reaction-times-and-schizophrenia>`   ·   :doc:`Next · Unspecified number of mixture components ▶ <137-unspecified-number-of-mixture-components>`   ·   :doc:`↑ Section <index>`
 
 
 The symmetry problem
@@ -59,10 +59,12 @@ group?" — which presupposes the components are real and distinguishable. So th
 label-switching problem is a signal to ask whether component-level inference is even meaningful for the
 question, or whether a label-invariant summary answers it directly.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Setting up and interpreting mixture models <134-setting-up-and-interpreting-mixture-models>`  ·  :doc:`Unspecified number of mixture components <137-unspecified-number-of-mixture-components>`  ·  :doc:`Example: reaction times and schizophrenia <135-example-reaction-times-and-schizophrenia>`  ·  :doc:`Density estimation and regression <133-density-estimation-and-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/label-switching-and-posterior-computation/ <https://insightful-data-lab.com/2025/12/09/label-switching-and-posterior-computation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/label-switching-and-posterior-computation/ <https://insightful-data-lab.com/2025/12/09/label-switching-and-posterior-computation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

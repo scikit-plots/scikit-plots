@@ -10,7 +10,7 @@
 
 .. _term-dcg-discounted-cumulative-gain:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>DCG (Discounted Cumulative Gain)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>DCG (Discounted Cumulative Gain)</b></div>`
 
 ==================================
 DCG (Discounted Cumulative Gain)
@@ -47,22 +47,24 @@ giving a **0-to-1** score where **1** is a perfect ranking. It is the standard o
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Ranking & Interleaving <term-theme-ranking>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Kaggle <273-kaggle>` · :doc:`TREC (Text REtrieval Conference) <274-trec-text-retrieval-conference>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Relevance in Recommender Systems <262-relevance-in-recommender-systems>` · :doc:`Intra-List Diversity (ILD) <266-intra-list-diversity-ild>` · :doc:`Cosine Similarity of Item Features <265-cosine-similarity-of-item-features>`
 
 ----
 
-**More in Ranking & Interleaving**
+.. hint::
+   **More in Ranking & Interleaving**
 
    :doc:`Balanced Interleaving <111-balanced-interleaving>` · :doc:`Interleaving Tests <379-interleaving-tests>` · :doc:`Mean Average Precision (MAP) <414-mean-average-precision-map>` · :doc:`NDCG (Normalized Discounted Cumulative Gain) <413-ndcg-normalized-discounted-cumulative-gain>` · :doc:`Probabilistic Interleaving <109-probabilistic-interleaving>` · :doc:`Ranking Algorithms <108-ranking-algorithms>` · :doc:`Team Draft Interleaving (TDI) <110-team-draft-interleaving-tdi>` · :doc:`TREC (Text REtrieval Conference) <274-trec-text-retrieval-conference>`
 
-----
-
-*Theme:* :ref:`Ranking & Interleaving <term-theme-ranking>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `DCG (Discounted Cumulative Gain) <https://insightful-data-lab.com/2025/08/22/dcg-discounted-cumulative-gain/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `DCG (Discounted Cumulative Gain) <https://insightful-data-lab.com/2025/08/22/dcg-discounted-cumulative-gain/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

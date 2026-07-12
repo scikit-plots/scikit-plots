@@ -6,7 +6,7 @@ Computation and Software
 
 **Part 1 · Stage 1 · 🎲 The Bayesian Idea**  ·  Lesson 009 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Some Useful Results from Probability Theory <008-some-useful-results-from-probability-theory>`   ·   :doc:`Next · Bayesian Inference in Applied Statistics ▶ <010-bayesian-inference-in-applied-statistics>`
+:doc:`◀ Previous · Some Useful Results from Probability Theory <008-some-useful-results-from-probability-theory>`   ·   :doc:`Next · Bayesian Inference in Applied Statistics ▶ <010-bayesian-inference-in-applied-statistics>`   ·   :doc:`↑ Section <index>`
 
 
 Why computation matters
@@ -62,10 +62,12 @@ that has not converged produces confident nonsense. This is why the computation 
 theorem" holds that computational trouble usually signals a problem with the **model**, not just the
 algorithm.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The three steps of Bayesian data analysis <001-the-three-steps-of-bayesian-data-analysis>`  ·  :doc:`Bayesian Inference in Applied Statistics <010-bayesian-inference-in-applied-statistics>`  ·  :doc:`Inference and assessing convergence <072-inference-and-assessing-convergence>`  ·  :doc:`Stan: developing a computing environment <080-stan-developing-a-computing-environment>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/computation-and-software/ <https://insightful-data-lab.com/2025/11/09/computation-and-software/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/computation-and-software/ <https://insightful-data-lab.com/2025/11/09/computation-and-software/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

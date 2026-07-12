@@ -6,7 +6,7 @@ Example: population toxicokinetics
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 125 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Example: serial dilution assay <124-example-serial-dilution-assay>`   ·   :doc:`Next · Splines and weighted sums of basis functions ▶ <126-splines-and-weighted-sums-of-basis-functions>`
+:doc:`◀ Previous · Example: serial dilution assay <124-example-serial-dilution-assay>`   ·   :doc:`Next · Splines and weighted sums of basis functions ▶ <126-splines-and-weighted-sums-of-basis-functions>`   ·   :doc:`↑ Section <index>`
 
 
 A mechanistic model, fit hierarchically
@@ -63,10 +63,12 @@ here is **scientific**, dictated by physiology, not a flexible curve — and Bay
 mechanistic model be fit with honest uncertainty. The lessons that follow relax that structure, replacing
 mechanism with flexible **basis functions** when the true form is unknown.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Example: serial dilution assay <124-example-serial-dilution-assay>`  ·  :doc:`Bayesian analysis of conjugate hierarchical models <035-bayesian-analysis-of-conjugate-hierarchical-models>`  ·  :doc:`Hierarchical decision analysis for home radon <060-hierarchical-decision-analysis-for-home-radon>`  ·  :doc:`Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/example-population-toxicokinetics/ <https://insightful-data-lab.com/2025/12/09/example-population-toxicokinetics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/example-population-toxicokinetics/ <https://insightful-data-lab.com/2025/12/09/example-population-toxicokinetics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

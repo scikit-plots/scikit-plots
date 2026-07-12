@@ -6,7 +6,7 @@ Eﬃcient Gibbs samplers
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 075 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Example: hierarchical normal model <074-example-hierarchical-normal-model>`   ·   :doc:`Next · Eﬃcient Metropolis jumping rules ▶ <076-efficient-metropolis-jumping-rules>`
+:doc:`◀ Previous · Example: hierarchical normal model <074-example-hierarchical-normal-model>`   ·   :doc:`Next · Eﬃcient Metropolis jumping rules ▶ <076-efficient-metropolis-jumping-rules>`   ·   :doc:`↑ Section <index>`
 
 
 Fixing what slows Gibbs down
@@ -64,10 +64,12 @@ Even a well-tuned Gibbs sampler explores by **random walk**, and its cost grows 
 distance it must travel. Reparameterising and blocking buy constants, sometimes large ones. Escaping the
 random walk itself requires **gradients**, which is Hamiltonian Monte Carlo.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Gibbs sampler <069-gibbs-sampler>`  ·  :doc:`Example: hierarchical normal model <074-example-hierarchical-normal-model>`  ·  :doc:`Using Gibbs and Metropolis as building blocks <071-using-gibbs-and-metropolis-as-building-blocks>`  ·  :doc:`Computation: batching and transformation <103-computation-batching-and-transformation>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-gibbs-samplers/ <https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-gibbs-samplers/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-gibbs-samplers/ <https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-gibbs-samplers/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

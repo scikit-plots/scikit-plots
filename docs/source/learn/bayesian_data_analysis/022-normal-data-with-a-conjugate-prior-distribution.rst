@@ -6,7 +6,7 @@ Normal Data with a Conjugate Prior Distribution
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 022 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`   ·   :doc:`Next · Multinomial Model for Categorical Data ▶ <023-multinomial-model-for-categorical-data>`
+:doc:`◀ Previous · Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`   ·   :doc:`Next · Multinomial Model for Categorical Data ▶ <023-multinomial-model-for-categorical-data>`   ·   :doc:`↑ Section <index>`
 
 
 Prior information on both
@@ -71,10 +71,12 @@ belief about the mean is expressed in units of the unknown variance. If that dep
 something you actually believe, the conjugate family is buying convenience at the price of realism, and
 a non-conjugate prior fitted by MCMC is the more honest route.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`  ·  :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/normal-data-with-a-conjugate-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-data-with-a-conjugate-prior-distribution/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/normal-data-with-a-conjugate-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-data-with-a-conjugate-prior-distribution/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

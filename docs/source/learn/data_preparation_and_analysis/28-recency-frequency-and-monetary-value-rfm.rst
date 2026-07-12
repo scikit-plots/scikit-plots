@@ -6,7 +6,7 @@ Recency, Frequency, and Monetary Value (RFM)
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 28 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Clustering <27-clustering>`   ·   :doc:`Next · RFM Analysis ▶ <29-rfm-analysis>`
+:doc:`◀ Previous · Clustering <27-clustering>`   ·   :doc:`Next · RFM Analysis ▶ <29-rfm-analysis>`   ·   :doc:`↑ Section <index>`
 
 
 Three questions about a customer
@@ -42,10 +42,12 @@ RFM's great virtue is **simplicity**. It needs only data every business already 
 century, and it endures because it works: it reliably surfaces the roughly 20% of customers who drive
 most of the revenue. The next lesson turns these three raw numbers into scores.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`RFM Analysis <29-rfm-analysis>`  ·  :doc:`Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`  ·  :doc:`Cross-Selling <22-cross-selling>`  ·  :doc:`Clustering <27-clustering>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/recency-frequency-and-monetary-value-rfm/ <https://insightful-data-lab.com/2026/01/14/recency-frequency-and-monetary-value-rfm/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/recency-frequency-and-monetary-value-rfm/ <https://insightful-data-lab.com/2026/01/14/recency-frequency-and-monetary-value-rfm/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

@@ -6,7 +6,7 @@ How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 19 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`   ·   :doc:`Next · Apriori: Frequent Itemsets via the Apriori Algorithm ▶ <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`
+:doc:`◀ Previous · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`   ·   :doc:`Next · Apriori: Frequent Itemsets via the Apriori Algorithm ▶ <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`↑ Section <index>`
 
 
 Three measures of a rule
@@ -63,10 +63,12 @@ vast regions of the search: once the pair **{milk, caviar}** is rare, nothing co
 common, so none of its extensions need be checked. The next lesson builds an algorithm around exactly
 this.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`  ·  :doc:`Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`  ·  :doc:`association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`  ·  :doc:`Cross-Selling <22-cross-selling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach/ <https://insightful-data-lab.com/2026/01/14/how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach/ <https://insightful-data-lab.com/2026/01/14/how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

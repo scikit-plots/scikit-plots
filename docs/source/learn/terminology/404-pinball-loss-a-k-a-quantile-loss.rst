@@ -10,7 +10,7 @@
 
 .. _term-pinball-loss-a-k-a-quantile-loss:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Pinball Loss (a.k.a. Quantile Loss)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Pinball Loss (a.k.a. Quantile Loss)</b></div>`
 
 =====================================
 Pinball Loss (a.k.a. Quantile Loss)
@@ -47,22 +47,24 @@ points, without assuming any distribution. A caveat: fitting several quantiles i
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Risk & Probabilistic Forecasting <term-theme-risk>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Continuous Ranked Probability Score (CRPS) <402-continuous-ranked-probability-score-crps>` · :doc:`Mean Absolute Error (MAE) <408-mean-absolute-error-mae>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Strictly Proper Scoring Rules <234-strictly-proper-scoring-rules>` · :doc:`Root Mean Squared Error (RMSE) <426-root-mean-squared-error-rmse>` · :doc:`MASE (Mean Absolute Scaled Error) <403-mase-mean-absolute-scaled-error>`
 
 ----
 
-**More in Risk & Probabilistic Forecasting**
+.. hint::
+   **More in Risk & Probabilistic Forecasting**
 
    :doc:`Continuous Probabilistic Forecasts <230-continuous-probabilistic-forecasts>` · :doc:`Continuous Ranked Probability Score (CRPS) <402-continuous-ranked-probability-score-crps>` · :doc:`Deterministic forecasts <242-deterministic-forecasts>` · :doc:`Full Distribution <229-full-distribution>` · :doc:`Point Forecasts <233-point-forecasts>` · :doc:`Predicting Percentiles <252-predicting-percentiles>` · :doc:`Prediction Intervals (PI) <253-prediction-intervals-pi>` · :doc:`Probabilistic Forecasts <241-probabilistic-forecasts>` · :doc:`Probabilistic Scoring <228-probabilistic-scoring>` · :doc:`Probability Forecasts <235-probability-forecasts>` · :doc:`Quantile Forecasts <232-quantile-forecasts>` · :doc:`Quantile Level <255-quantile-level>` · :doc:`Quantile Regression <254-quantile-regression>` · :doc:`Return Distribution <225-return-distribution>`
 
-----
-
-*Theme:* :ref:`Risk & Probabilistic Forecasting <term-theme-risk>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Pinball Loss (a.k.a. Quantile Loss) <https://insightful-data-lab.com/2025/08/19/pinball-loss-a-k-a-quantile-loss/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Pinball Loss (a.k.a. Quantile Loss) <https://insightful-data-lab.com/2025/08/19/pinball-loss-a-k-a-quantile-loss/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

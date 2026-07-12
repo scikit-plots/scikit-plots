@@ -1012,7 +1012,7 @@ html_theme_options = {
             # "icon": "fa-custom fa-pypi",
             # "icon": "fa-brands fa-python", "type": "fontawesome",
             # "icon": "_static/logos/python-logo.png", "type": "local",
-            "icon": "_static/logos/pypi-logo.png", "type": "local",
+            "icon": "_static/logos/pypi-logo.svg", "type": "local",
         },
         {
             # Label for this link

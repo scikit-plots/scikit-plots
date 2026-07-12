@@ -6,7 +6,7 @@ Latent Gaussian process models
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 131 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Example: birthdays and birthdates <130-example-birthdays-and-birthdates>`   ·   :doc:`Next · Functional data analysis ▶ <132-functional-data-analysis>`
+:doc:`◀ Previous · Example: birthdays and birthdates <130-example-birthdays-and-birthdates>`   ·   :doc:`Next · Functional data analysis ▶ <132-functional-data-analysis>`   ·   :doc:`↑ Section <index>`
 
 
 Gaussian processes for non-Gaussian data
@@ -63,10 +63,12 @@ They unify the threads of Part V — the GP supplies the flexible function, the 
 the data type, and the computation connects back to the approximation methods built earlier. Wherever a
 smooth latent surface drives non-normal observations, a latent Gaussian process is the model.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Gaussian process regression <129-gaussian-process-regression>`  ·  :doc:`Other approximations <089-other-approximations>`  ·  :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Functional data analysis <132-functional-data-analysis>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/ <https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/ <https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

@@ -6,7 +6,7 @@ Graphical posterior predictive checks
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 043 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Posterior predictive checking <042-posterior-predictive-checking>`   ·   :doc:`Next · Model checking for the educational testing example ▶ <044-model-checking-for-the-educational-testing-example>`
+:doc:`◀ Previous · Posterior predictive checking <042-posterior-predictive-checking>`   ·   :doc:`Next · Model checking for the educational testing example ▶ <044-model-checking-for-the-educational-testing-example>`   ·   :doc:`↑ Section <index>`
 
 
 Look before you compute
@@ -53,10 +53,12 @@ Replicated tails too thin: swap normal errors for :math:`t`. Replications too sm
 hierarchy is over-pooling. Each verdict points to a specific **model expansion** — which is the closing
 theme of this stage. Choose the plot that would embarrass the model if the model deserved it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Posterior predictive checking <042-posterior-predictive-checking>`  ·  :doc:`Model checking for the educational testing example <044-model-checking-for-the-educational-testing-example>`  ·  :doc:`Continuous model expansion <048-continuous-model-expansion>`  ·  :doc:`Measures of predictive accuracy <045-measures-of-predictive-accuracy>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/ <https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/ <https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

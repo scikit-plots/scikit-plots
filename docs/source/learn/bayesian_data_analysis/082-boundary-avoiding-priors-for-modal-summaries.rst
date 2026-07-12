@@ -6,7 +6,7 @@ Boundary-avoiding priors for modal summaries
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 082 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Finding posterior modes <081-finding-posterior-modes>`   ·   :doc:`Next · Normal and related mixture approximations ▶ <083-normal-and-related-mixture-approximations>`
+:doc:`◀ Previous · Finding posterior modes <081-finding-posterior-modes>`   ·   :doc:`Next · Normal and related mixture approximations ▶ <083-normal-and-related-mixture-approximations>`   ·   :doc:`↑ Section <index>`
 
 
 Zero variance, implausibly
@@ -67,10 +67,12 @@ The moral generalises. A prior chosen for **modal** estimation is not the prior 
 **sampling**: it must shape the density's *peak*, not merely its mass. Naming which summary you intend
 is part of specifying the model.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Finding posterior modes <081-finding-posterior-modes>`  ·  :doc:`Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`  ·  :doc:`Counterexamples to large-sample (asymptotic) Bayesian theorems <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/ <https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/ <https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

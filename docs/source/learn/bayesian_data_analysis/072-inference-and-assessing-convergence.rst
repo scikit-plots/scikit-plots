@@ -6,7 +6,7 @@ Inference and assessing convergence
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 072 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Using Gibbs and Metropolis as building blocks <071-using-gibbs-and-metropolis-as-building-blocks>`   ·   :doc:`Next · Eﬀective number of simulation draws ▶ <073-effective-number-of-simulation-draws>`
+:doc:`◀ Previous · Using Gibbs and Metropolis as building blocks <071-using-gibbs-and-metropolis-as-building-blocks>`   ·   :doc:`Next · Eﬀective number of simulation draws ▶ <073-effective-number-of-simulation-draws>`   ·   :doc:`↑ Section <index>`
 
 
 The two questions
@@ -68,10 +68,12 @@ sampler faithfully reproduces the posterior of a model that may be **wrong** —
 adequacy are separate questions, checked by separate tools. Convergence buys you the right posterior for
 the model you actually wrote.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Eﬀective number of simulation draws <073-effective-number-of-simulation-draws>`  ·  :doc:`Debugging Bayesian computing <068-debugging-bayesian-computing>`  ·  :doc:`How many simulation draws are needed? <066-how-many-simulation-draws-are-needed>`  ·  :doc:`Hamiltonian Monte Carlo <078-hamiltonian-monte-carlo>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/12/inference-and-assessing-convergence/ <https://insightful-data-lab.com/2025/11/12/inference-and-assessing-convergence/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/12/inference-and-assessing-convergence/ <https://insightful-data-lab.com/2025/11/12/inference-and-assessing-convergence/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

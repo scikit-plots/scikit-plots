@@ -1,5 +1,9 @@
 .. _da-viz-index:
 
+:raw-html:`<div style="text-align:center"><strong>` 🎨 Data Visualization
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
+
 ========================================================================
 🎨 Data Visualization
 ========================================================================
@@ -12,10 +16,12 @@ Turning results into visuals that inform: chart choice, design principles, and h
 
 .. raw:: html
 
-   <input type="text" id="term-filter" placeholder="🔍 Filter this section by title or keyword…"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
           style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -49,10 +55,10 @@ Turning results into visuals that inform: chart choice, design principles, and h
 
    .. raw:: html
 
-         <div class="da-row" data-k="Data Visualization "><a href="001-data-visualization.html">001 · Data Visualization</a></div>
-         <div class="da-row" data-k="Connecting Data and Images "><a href="002-connecting-data-and-images.html">002 · Connecting Data and Images</a></div>
-         <div class="da-row" data-k="Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose "><a href="003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose.html">003 · Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose</a></div>
-         <div class="da-row" data-k="Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity "><a href="004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity.html">004 · Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity</a></div>
+         <div class="da-row" data-k="Data Visualization representing data graphically so patterns and meaning become visible at a glance"><a href="001-data-visualization.html">001 · Data Visualization — representing data graphically so patterns and meaning become visible at a glance</a></div>
+         <div class="da-row" data-k="Connecting Data and Images how a visualization maps data values to visual properties — the encoding that carries meaning"><a href="002-connecting-data-and-images.html">002 · Connecting Data and Images — how a visualization maps data values to visual properties — the encoding that carries meaning</a></div>
+         <div class="da-row" data-k="Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose what makes a visualization effective — a clear focus, sound structure, and a purpose"><a href="003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose.html">003 · Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose — what makes a visualization effective — a clear focus, sound structure, and a purpose</a></div>
+         <div class="da-row" data-k="Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity fixed images versus interactive views — when each serves, and their trade-offs"><a href="004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity.html">004 · Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity — fixed images versus interactive views — when each serves, and their trade-offs</a></div>
          <div class="da-row" data-k="Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement "><a href="005-elements-of-art-in-data-visualization-line-shape-color-space-and-movement.html">005 · Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement</a></div>
          <div class="da-row" data-k="Choosing the Right Visualization: Audience-Centered Design and Chart Selection "><a href="006-choosing-the-right-visualization-audience-centered-design-and-chart-selection.html">006 · Choosing the Right Visualization: Audience-Centered Design and Chart Selection</a></div>
          <div class="da-row" data-k="Design Thinking in Data Visualization: A User-Centered Framework "><a href="007-design-thinking-in-data-visualization-a-user-centered-framework.html">007 · Design Thinking in Data Visualization: A User-Centered Framework</a></div>
@@ -100,6 +106,9 @@ Turning results into visuals that inform: chart choice, design principles, and h
          <div class="da-row" data-k="Preparing for Q&A: Anticipating and Responding to Stakeholder Questions "><a href="025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions.html">025 · Preparing for Q&A: Anticipating and Responding to Stakeholder Questions</a></div>
          <div class="da-row" data-k="Handling Objections in Data Presentations: Responding with Confidence and Clarity "><a href="026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity.html">026 · Handling Objections in Data Presentations: Responding with Confidence and Clarity</a></div>
          <div class="da-row" data-k="Q&A Best Practices: Answering Questions with Clarity and Confidence "><a href="027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence.html">027 · Q&A Best Practices: Answering Questions with Clarity and Confidence</a></div>
+
+🔤 Every lesson, A–Z
+---------------------
 
 .. dropdown:: 🔠 A–Z index
    :class-container: term-az

@@ -10,7 +10,7 @@
 
 .. _term-support-vector-machines-svms:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Support Vector Machines (SVMs)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Support Vector Machines (SVMs)</b></div>`
 
 ================================
 Support Vector Machines (SVMs)
@@ -69,22 +69,24 @@ guard against overfitting, but are **expensive on very large datasets** and sens
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Linear Models <341-linear-models>` · :doc:`Multiclass AUROC <022-multiclass-auroc>` · :doc:`Discriminatory Power <185-discriminatory-power>`
 
 ----
 
-**More in AI & ML Concepts**
+.. hint::
+   **More in AI & ML Concepts**
 
    :doc:`AI (Artificial Intelligence) <143-ai-artificial-intelligence>` · :doc:`Classification Models <294-classification-models>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Linear Models <341-linear-models>` · :doc:`LLMs (Large Language Models) <158-llms-large-language-models>` · :doc:`Logistic Regression <292-logistic-regression>` · :doc:`Machine Learning (ML) <144-machine-learning-ml>` · :doc:`Medical AI <145-medical-ai>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>` · :doc:`Neural Networks <287-neural-networks>` · :doc:`Regression Models <309-regression-models>` · :doc:`Target Variable <236-target-variable>`
 
-----
-
-*Theme:* :ref:`AI & ML Concepts <term-theme-concepts>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Support Vector Machines (SVMs) <https://insightful-data-lab.com/2025/08/21/support-vector-machines-svms/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Support Vector Machines (SVMs) <https://insightful-data-lab.com/2025/08/21/support-vector-machines-svms/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

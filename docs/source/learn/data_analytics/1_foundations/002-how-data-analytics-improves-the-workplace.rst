@@ -81,13 +81,15 @@ numbers that matter little. Part of the analyst's job — developed throughout
 this course — is choosing the *few* measures that genuinely track the goal, and
 being honest when the data cannot answer the question being asked.
 
-.. seealso::
+.. hint::
 
    - :doc:`Why Data Analytics Matters Today <001-why-data-analytics-matters-today>`
    - :doc:`Data-Driven Decision-Making <003-data-driven-decision-making>`
    - :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making <019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
    - :doc:`The Relationship Between Data and Decision-Making <../2_data_driven_decisions/005-the-relationship-between-data-and-decision-making>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/how-data-analytics-improves-the-workplace/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/how-data-analytics-improves-the-workplace/ <https://insightful-data-lab.com/2023/07/30/how-data-analytics-improves-the-workplace/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, why

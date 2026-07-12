@@ -6,7 +6,7 @@ Hierarchical models for batches of variance components
 
 **Part 4 · Stage 12 · 🏗️ Hierarchical Regression**  ·  Lesson 105 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Analysis of variance and the batching of coeﬃcients <104-analysis-of-variance-and-the-batching-of-coefficients>`   ·   :doc:`Next · Standard generalized linear model likelihoods ▶ <106-standard-generalized-linear-model-likelihoods>`
+:doc:`◀ Previous · Analysis of variance and the batching of coeﬃcients <104-analysis-of-variance-and-the-batching-of-coefficients>`   ·   :doc:`Next · Standard generalized linear model likelihoods ▶ <106-standard-generalized-linear-model-likelihoods>`   ·   :doc:`↑ Section <index>`
 
 
 When the variances themselves have structure
@@ -66,10 +66,12 @@ regression stage: the batching idea, applied first to coefficients and then to t
 tangle of factors into one coherent model whose every scale is estimated with appropriate pooling. Part
 IV now leaves the normal likelihood behind.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Analysis of variance and the batching of coeﬃcients <104-analysis-of-variance-and-the-batching-of-coefficients>`  ·  :doc:`Regression coeﬃcients exchangeable in batches <099-regression-coefficients-exchangeable-in-batches>`  ·  :doc:`Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`  ·  :doc:`Varying intercepts and slopes <102-varying-intercepts-and-slopes>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/hierarchical-models-for-batches-of-variance-components/ <https://insightful-data-lab.com/2025/12/06/hierarchical-models-for-batches-of-variance-components/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/hierarchical-models-for-batches-of-variance-components/ <https://insightful-data-lab.com/2025/12/06/hierarchical-models-for-batches-of-variance-components/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

@@ -10,7 +10,7 @@
 
 .. _term-prophet-time-series-forecasting-by-facebook-meta:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Prophet — Time Series Forecasting by Facebook (Meta)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Prophet — Time Series Forecasting by Facebook (Meta)</b></div>`
 
 ======================================================
 Prophet — Time Series Forecasting by Facebook (Meta)
@@ -66,22 +66,24 @@ In practice
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Signal Processing & Time Series <term-theme-signal>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Time Series <010-time-series>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Stockout Rate <221-stockout-rate>`
 
 ----
 
-**More in Signal Processing & Time Series**
+.. hint::
+   **More in Signal Processing & Time Series**
 
    :doc:`ARIMA (AutoRegressive Integrated Moving Average) <224-arima-autoregressive-integrated-moving-average>` · :doc:`Bayesian Time Series <052-bayesian-time-series>` · :doc:`Forecast Error <250-forecast-error>` · :doc:`Forecasting Benchmarks <245-forecasting-benchmarks>` · :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Log-Space <257-log-space>` · :doc:`Low-pass Filtering <005-low-pass-filtering>` · :doc:`LSTM — Long Short-Term Memory Networks <223-lstm-long-short-term-memory-networks>` · :doc:`M-Competitions (Makridakis Competitions) <244-m-competitions-makridakis-competitions>` · :doc:`Naïve Baseline Forecast <249-naive-baseline-forecast>` · :doc:`Seasonal Lag <247-seasonal-lag>` · :doc:`Seasonality <329-seasonality>` · :doc:`Signal Processing <009-signal-processing>` · :doc:`Simple Baseline Methods <248-simple-baseline-methods>`
 
-----
-
-*Theme:* :ref:`Signal Processing & Time Series <term-theme-signal>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Prophet — Time Series Forecasting by Facebook (Meta) <https://insightful-data-lab.com/2025/08/23/prophet-time-series-forecasting-by-facebook-meta/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Prophet — Time Series Forecasting by Facebook (Meta) <https://insightful-data-lab.com/2025/08/23/prophet-time-series-forecasting-by-facebook-meta/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

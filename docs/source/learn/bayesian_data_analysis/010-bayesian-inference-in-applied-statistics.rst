@@ -6,7 +6,7 @@ Bayesian Inference in Applied Statistics
 
 **Part 1 · Stage 1 · 🎲 The Bayesian Idea**  ·  Lesson 010 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Computation and Software <009-computation-and-software>`   ·   :doc:`Next · Estimating a Probability from Binomial Data ▶ <011-estimating-a-probability-from-binomial-data>`
+:doc:`◀ Previous · Computation and Software <009-computation-and-software>`   ·   :doc:`Next · Estimating a Probability from Binomial Data ▶ <011-estimating-a-probability-from-binomial-data>`   ·   :doc:`↑ Section <index>`
 
 
 Where the approach pays
@@ -52,10 +52,12 @@ any model, can be **wrong**: conditioning on a misspecified likelihood yields a 
 misleading posterior. This is precisely why the three-step process ends with **model checking**, and
 why Part II of this course is devoted to it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The three steps of Bayesian data analysis <001-the-three-steps-of-bayesian-data-analysis>`  ·  :doc:`Computation and Software <009-computation-and-software>`  ·  :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Bayesian decision theory in diﬀerent contexts <057-bayesian-decision-theory-in-different-contexts>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/ <https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/ <https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

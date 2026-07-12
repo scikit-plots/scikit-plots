@@ -6,7 +6,7 @@ Multivariate Normal with Unknown Mean and Variance
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 025 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Multivariate Normal Model with Known Variance <024-multivariate-normal-model-with-known-variance>`   ·   :doc:`Next · Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate) ▶ <026-example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate>`
+:doc:`◀ Previous · Multivariate Normal Model with Known Variance <024-multivariate-normal-model-with-known-variance>`   ·   :doc:`Next · Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate) ▶ <026-example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate>`   ·   :doc:`↑ Section <index>`
 
 
 The full multivariate model
@@ -73,10 +73,12 @@ deviations:
 Conjugacy bought tractability when computation was scarce. With HMC available, the honest prior wins —
 a theme that recurs whenever Part I's closed forms meet Part III's samplers.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multivariate Normal Model with Known Variance <024-multivariate-normal-model-with-known-variance>`  ·  :doc:`Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`  ·  :doc:`Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`  ·  :doc:`Hierarchical models for batches of variance components <105-hierarchical-models-for-batches-of-variance-components>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/multivariate-normal-with-unknown-mean-and-variance/ <https://insightful-data-lab.com/2025/11/09/multivariate-normal-with-unknown-mean-and-variance/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/multivariate-normal-with-unknown-mean-and-variance/ <https://insightful-data-lab.com/2025/11/09/multivariate-normal-with-unknown-mean-and-variance/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

@@ -6,7 +6,7 @@ What Are Time Series, and How Are They Used?
 
 **Stage 1 · 🧭 Orientation**  ·  Lesson 01 of 18  ·  *beginner*
 
-:doc:`Next · Getting Started with R ▶ <02-getting-started-with-r>`
+:doc:`Next · Getting Started with R ▶ <02-getting-started-with-r>`   ·   :doc:`↑ Section <index>`
 
 
 What it is
@@ -50,10 +50,12 @@ Two complementary goals recur across every domain:
 Typical applications include demand, price and capacity forecasting; monitoring and anomaly
 detection; economics and finance; weather and climate; and any sensor or telemetry stream.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`A Gentle Introduction to Stationarity <03-a-gentle-introduction-to-stationarity>`  ·  :doc:`Getting Started with R <02-getting-started-with-r>`  ·  :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`  ·  :doc:`Exponential Smoothing Models <18-exponential-smoothing-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/what-are-time-series-and-how-are-they-used/ <https://insightful-data-lab.com/2026/01/17/what-are-time-series-and-how-are-they-used/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/what-are-time-series-and-how-are-they-used/ <https://insightful-data-lab.com/2026/01/17/what-are-time-series-and-how-are-they-used/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: beginner

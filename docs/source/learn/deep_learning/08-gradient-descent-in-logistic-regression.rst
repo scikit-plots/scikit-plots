@@ -6,7 +6,7 @@ Gradient Descent in Logistic Regression
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 08 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`   ·   :doc:`Next · Derivatives ▶ <09-derivatives>`
+:doc:`◀ Previous · Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`   ·   :doc:`Next · Derivatives ▶ <09-derivatives>`   ·   :doc:`↑ Section <index>`
 
 
 The optimization problem
@@ -47,10 +47,12 @@ many iterations; too **large** and the steps overshoot the minimum and may **div
 :math:`\alpha` well — and computing those derivatives efficiently — is what the rest of this stage is
 about, starting with the calculus itself.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`  ·  :doc:`Derivatives <09-derivatives>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`  ·  :doc:`Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/gradient-descent-in-logistic-regression/ <https://insightful-data-lab.com/2025/04/07/gradient-descent-in-logistic-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/gradient-descent-in-logistic-regression/ <https://insightful-data-lab.com/2025/04/07/gradient-descent-in-logistic-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

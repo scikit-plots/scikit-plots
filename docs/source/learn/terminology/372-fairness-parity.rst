@@ -10,7 +10,7 @@
 
 .. _term-fairness-parity:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Fairness parity</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Fairness parity</b></div>`
 
 =================
 Fairness parity
@@ -43,22 +43,24 @@ prevent. The **four-fifths (80%) rule** is a common legal threshold.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Selection Rate <390-selection-rate>` · :doc:`Recall <423-recall>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Precision (a.k.a. Positive Predictive Value, PPV) <429-precision-a-k-a-positive-predictive-value-ppv>`
 
 ----
 
-**More in Fairness & Calibration**
+.. hint::
+   **More in Fairness & Calibration**
 
    :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Equal Opportunity (Fairness) <029-equal-opportunity-fairness>` · :doc:`Equalized Odds (Fairness) <028-equalized-odds-fairness>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Four-Fifths (80%) Rule <189-four-fifths-80-rule>` · :doc:`Predictive Parity (Calibration) <027-predictive-parity-calibration>` · :doc:`Selection Rate <390-selection-rate>`
 
-----
-
-*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Fairness parity <https://insightful-data-lab.com/2025/08/19/fairness-parity/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Fairness parity <https://insightful-data-lab.com/2025/08/19/fairness-parity/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

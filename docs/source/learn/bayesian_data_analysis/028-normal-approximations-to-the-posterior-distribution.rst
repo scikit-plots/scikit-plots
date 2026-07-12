@@ -6,7 +6,7 @@ Normal Approximations to the Posterior Distribution
 
 **Part 1 · Stage 4 · 📏 Asymptotics & Frequentist Ties**  ·  Lesson 028 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Summary of Elementary Modeling and Computation <027-summary-of-elementary-modeling-and-computation>`   ·   :doc:`Next · Large-Sample Theory ▶ <029-large-sample-theory>`
+:doc:`◀ Previous · Summary of Elementary Modeling and Computation <027-summary-of-elementary-modeling-and-computation>`   ·   :doc:`Next · Large-Sample Theory ▶ <029-large-sample-theory>`   ·   :doc:`↑ Section <index>`
 
 
 A quadratic on the log scale
@@ -72,10 +72,12 @@ look**, as a source of **starting values and proposal scales** for MCMC, and as 
 behind **variational** and **modal** methods in Part III. Its accuracy is exactly the subject of
 large-sample theory — and its failure modes are the subject of the counterexamples two lessons on.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Large-Sample Theory <029-large-sample-theory>`  ·  :doc:`Finding posterior modes <081-finding-posterior-modes>`  ·  :doc:`Counterexamples to large-sample (asymptotic) Bayesian theorems <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`  ·  :doc:`Summarizing Posterior Inference <013-summarizing-posterior-inference>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/normal-approximations-to-the-posterior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-approximations-to-the-posterior-distribution/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/normal-approximations-to-the-posterior-distribution/ <https://insightful-data-lab.com/2025/11/09/normal-approximations-to-the-posterior-distribution/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

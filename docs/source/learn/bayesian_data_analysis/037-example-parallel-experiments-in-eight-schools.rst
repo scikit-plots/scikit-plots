@@ -6,7 +6,7 @@ Example: parallel experiments in eight schools
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 037 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`   ·   :doc:`Next · Hierarchical modeling applied to a meta-analysis ▶ <038-hierarchical-modeling-applied-to-a-meta-analysis>`
+:doc:`◀ Previous · Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`   ·   :doc:`Next · Hierarchical modeling applied to a meta-analysis ▶ <038-hierarchical-modeling-applied-to-a-meta-analysis>`   ·   :doc:`↑ Section <index>`
 
 
 Eight coaching programs
@@ -101,10 +101,12 @@ decouples them and fixes it. Eight schools is a small dataset that teaches three
 shrinkage tames dramatic claims, :math:`\tau` is the parameter that matters, and **model geometry**
 determines whether your sampler tells the truth.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`  ·  :doc:`Hierarchical modeling applied to a meta-analysis <038-hierarchical-modeling-applied-to-a-meta-analysis>`  ·  :doc:`Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`  ·  :doc:`Model checking for the educational testing example <044-model-checking-for-the-educational-testing-example>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/example-parallel-experiments-in-eight-schools/ <https://insightful-data-lab.com/2025/11/09/example-parallel-experiments-in-eight-schools/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/example-parallel-experiments-in-eight-schools/ <https://insightful-data-lab.com/2025/11/09/example-parallel-experiments-in-eight-schools/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

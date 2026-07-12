@@ -71,13 +71,15 @@ exactly the discipline of defining before solving. The skill to build is
 knowing when the stakes justify the full apparatus and when a quick, honest
 look suffices; the next lesson sharpens the apparatus into concrete questions.
 
-.. seealso::
+.. hint::
 
    - :doc:`Analytical Skills and Their Core Components <013-analytical-skills-and-their-core-components>`
    - :doc:`Analytical Thinking and Questions for Problem Solving <016-analytical-thinking-and-questions-for-problem-solving>`
    - :doc:`Mathematical Thinking <../2_data_driven_decisions/010-mathematical-thinking>`
    - :doc:`Data-Driven Decision-Making <003-data-driven-decision-making>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-its-core-components/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-its-core-components/ <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-its-core-components/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, thinking

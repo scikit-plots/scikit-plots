@@ -22,6 +22,8 @@ Design Thinking in Data Visualization: A User-Centered Framework
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/design-thinking-in-data-visualization-a-user-centered-framework/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/design-thinking-in-data-visualization-a-user-centered-framework/ <https://insightful-data-lab.com/2023/11/26/design-thinking-in-data-visualization-a-user-centered-framework/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, principles

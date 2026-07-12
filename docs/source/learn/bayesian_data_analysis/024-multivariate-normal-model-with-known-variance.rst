@@ -6,7 +6,7 @@ Multivariate Normal Model with Known Variance
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 024 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Multinomial Model for Categorical Data <023-multinomial-model-for-categorical-data>`   ·   :doc:`Next · Multivariate Normal with Unknown Mean and Variance ▶ <025-multivariate-normal-with-unknown-mean-and-variance>`
+:doc:`◀ Previous · Multinomial Model for Categorical Data <023-multinomial-model-for-categorical-data>`   ·   :doc:`Next · Multivariate Normal with Unknown Mean and Variance ▶ <025-multivariate-normal-with-unknown-mean-and-variance>`   ·   :doc:`↑ Section <index>`
 
 
 Vectors instead of scalars
@@ -58,10 +58,12 @@ combination) has posterior :math:`\mathrm{N}(c^{\top}\mu_n,\ c^{\top}\Lambda_n c
 draws with a single dot product. Assuming :math:`\Sigma` known is of course a fiction, which the next
 lesson removes.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`  ·  :doc:`Averaging Over Nuisance Parameters <020-averaging-over-nuisance-parameters>`  ·  :doc:`Gaussian process regression <129-gaussian-process-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/multivariate-normal-model-with-known-variance/ <https://insightful-data-lab.com/2025/11/09/multivariate-normal-model-with-known-variance/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/multivariate-normal-model-with-known-variance/ <https://insightful-data-lab.com/2025/11/09/multivariate-normal-model-with-known-variance/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

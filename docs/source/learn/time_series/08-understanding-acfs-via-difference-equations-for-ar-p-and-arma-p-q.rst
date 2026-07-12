@@ -6,7 +6,7 @@ Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q)
 
 **Stage 3 · 🔗 Linear & ARMA Processes**  ·  Lesson 08 of 18  ·  *intermediate*
 
-:doc:`◀ Previous · Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`   ·   :doc:`Next · Best Linear Predictor of a Stationary Process ▶ <09-best-linear-predictor-of-a-stationary-process>`
+:doc:`◀ Previous · Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`   ·   :doc:`Next · Best Linear Predictor of a Stationary Process ▶ <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`↑ Section <index>`
 
 
 The general rule
@@ -47,10 +47,12 @@ This is the heart of **Box–Jenkins identification**: the **ACF cutting off** p
 order, while the **PACF cutting off** points to an **AR** order. AR and ARMA both leave the ACF
 tailing off, so the PACF (next lesson) is what pins down the autoregressive order.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Computing ACFs of Causal AR(2) Processes Using Difference Equations <07-computing-acfs-of-causal-ar-2-processes-using-difference-equations>`  ·  :doc:`Understanding ARMA Processes <06-understanding-arma-processes>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`  ·  :doc:`Order Selection for Time Series Models <14-order-selection-for-time-series-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/understanding-acfs-via-difference-equations-for-arp-and-armap-q/ <https://insightful-data-lab.com/2026/01/17/understanding-acfs-via-difference-equations-for-arp-and-armap-q/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/understanding-acfs-via-difference-equations-for-arp-and-armap-q/ <https://insightful-data-lab.com/2026/01/17/understanding-acfs-via-difference-equations-for-arp-and-armap-q/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: intermediate

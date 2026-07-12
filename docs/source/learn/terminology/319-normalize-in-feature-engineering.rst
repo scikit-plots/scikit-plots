@@ -10,7 +10,7 @@
 
 .. _term-normalize-in-feature-engineering:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Normalize (in Feature Engineering)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Normalize (in Feature Engineering)</b></div>`
 
 ====================================
 Normalize (in Feature Engineering)
@@ -47,22 +47,24 @@ their meaning), and fit the scaler on the **training set only** to avoid leakage
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Data Preparation & Features <term-theme-features>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Encode (in Feature Engineering) <318-encode-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>` · :doc:`Outlier <307-outlier>` · :doc:`Z-Score <097-z-score>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Neural Networks <287-neural-networks>`
 
 ----
 
-**More in Data Preparation & Features**
+.. hint::
+   **More in Data Preparation & Features**
 
    :doc:`Advanced Sorting in Spreadsheets <431-advanced-sorting-in-spreadsheets>` · :doc:`Encode (in Feature Engineering) <318-encode-in-feature-engineering>` · :doc:`Sensitivity in Feature Engineering <317-sensitivity-in-feature-engineering>`
 
-----
-
-*Theme:* :ref:`Data Preparation & Features <term-theme-features>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Normalize (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/normalize-in-feature-engineering/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Normalize (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/normalize-in-feature-engineering/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

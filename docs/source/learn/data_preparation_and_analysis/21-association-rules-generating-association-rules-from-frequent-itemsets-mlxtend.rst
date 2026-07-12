@@ -6,7 +6,7 @@ association_rules: Generating Association Rules from Frequent Itemsets (mlxtend)
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 21 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`Next · Cross-Selling ▶ <22-cross-selling>`
+:doc:`◀ Previous · Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`Next · Cross-Selling ▶ <22-cross-selling>`   ·   :doc:`↑ Section <index>`
 
 
 From itemsets to rules in code
@@ -56,10 +56,12 @@ The result is a tidy ``DataFrame``: each row a rule, with columns for **antecede
 the most surprising, actionable pairings — the rules a shop would actually act on. The final lesson of
 this stage puts them to use: **cross-selling**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Apriori: Frequent Itemsets via the Apriori Algorithm <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`  ·  :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`  ·  :doc:`Cross-Selling <22-cross-selling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/association_rules-generating-association-rules-from-frequent-itemsets-mlxtend/ <https://insightful-data-lab.com/2026/01/14/association_rules-generating-association-rules-from-frequent-itemsets-mlxtend/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/association_rules-generating-association-rules-from-frequent-itemsets-mlxtend/ <https://insightful-data-lab.com/2026/01/14/association_rules-generating-association-rules-from-frequent-itemsets-mlxtend/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

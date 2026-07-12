@@ -6,7 +6,7 @@ Diagnostics After Fitting a Time Series Model
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 13 of 18  ·  *advanced*
 
-:doc:`◀ Previous · Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`   ·   :doc:`Next · Order Selection for Time Series Models ▶ <14-order-selection-for-time-series-models>`
+:doc:`◀ Previous · Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`   ·   :doc:`Next · Order Selection for Time Series Models ▶ <14-order-selection-for-time-series-models>`   ·   :doc:`↑ Section <index>`
 
 
 The goal
@@ -52,10 +52,12 @@ the model is **missing structure** — add an **AR or MA** term, or, if the left
 **seasonal** lags, move to a **seasonal** model. Re-fit and re-check until the residuals look like
 noise.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Order Selection for Time Series Models <14-order-selection-for-time-series-models>`  ·  :doc:`Maximum Likelihood Estimation for ARMA Models (Gaussian MLE) <12-maximum-likelihood-estimation-for-arma-models-gaussian-mle>`  ·  :doc:`Sample ACF and Sample PACF <10-sample-acf-and-sample-pacf>`  ·  :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/diagnostics-after-fitting-a-time-series-model-standardized-residuals-normality-and-autocorrelation/ <https://insightful-data-lab.com/2026/01/17/diagnostics-after-fitting-a-time-series-model-standardized-residuals-normality-and-autocorrelation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/diagnostics-after-fitting-a-time-series-model-standardized-residuals-normality-and-autocorrelation/ <https://insightful-data-lab.com/2026/01/17/diagnostics-after-fitting-a-time-series-model-standardized-residuals-normality-and-autocorrelation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

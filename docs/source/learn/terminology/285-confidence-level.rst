@@ -10,7 +10,7 @@
 
 .. _term-confidence-level:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Confidence Level</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Confidence Level</b></div>`
 
 ==================
 Confidence Level
@@ -42,22 +42,24 @@ sense of confidence, distinct from a statistical **confidence interval**.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Probability & Statistics Foundations <term-theme-probstats>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Overconfident <284-overconfident>` · :doc:`Underconfident <283-underconfident>` · :doc:`Classification Probability <231-classification-probability>` · :doc:`Binary Cross-Entropy (BCE) <288-binary-cross-entropy-bce>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`Multiclass AUROC <022-multiclass-auroc>`
 
 ----
 
-**More in Probability & Statistics Foundations**
+.. hint::
+   **More in Probability & Statistics Foundations**
 
    :doc:`Beta Distribution <099-beta-distribution>` · :doc:`Correlation <305-correlation>` · :doc:`Critical Value <087-critical-value>` · :doc:`Cumulative Distribution Function (CDF) <243-cumulative-distribution-function-cdf>` · :doc:`Frequentist <059-frequentist>` · :doc:`IID (Independent and Identically Distributed) <126-iid-independent-and-identically-distributed>` · :doc:`Likelihood <304-likelihood>` · :doc:`Margin of Error (MoE) <086-margin-of-error-moe>` · :doc:`Mean <316-mean>` · :doc:`Median <315-median>` · :doc:`Normal Distribution <238-normal-distribution>` · :doc:`Outlier <307-outlier>` · :doc:`Population Proportion <199-population-proportion>` · :doc:`Probability <025-probability>`
 
-----
-
-*Theme:* :ref:`Probability & Statistics Foundations <term-theme-probstats>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Confidence Level <https://insightful-data-lab.com/2025/08/21/confidence-level/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Confidence Level <https://insightful-data-lab.com/2025/08/21/confidence-level/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

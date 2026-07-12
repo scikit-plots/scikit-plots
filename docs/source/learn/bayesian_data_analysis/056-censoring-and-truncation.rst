@@ -6,7 +6,7 @@ Censoring and truncation
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 056 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Observational studies <055-observational-studies>`   ·   :doc:`Next · Bayesian decision theory in diﬀerent contexts ▶ <057-bayesian-decision-theory-in-different-contexts>`
+:doc:`◀ Previous · Observational studies <055-observational-studies>`   ·   :doc:`Next · Bayesian decision theory in diﬀerent contexts ▶ <057-bayesian-decision-theory-in-different-contexts>`   ·   :doc:`↑ Section <index>`
 
 
 Two ways data go missing
@@ -69,10 +69,12 @@ patients withdrawing *because* they are deteriorating — the mechanism is **MNA
 must model why they left. That is not a computational difficulty but an **identification** one: the
 data are silent, and the answer will move with the assumption. Report the sensitivity.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian inference requires a model for data collection <050-bayesian-inference-requires-a-model-for-data-collection>`  ·  :doc:`Data-collection models and ignorability <051-data-collection-models-and-ignorability>`  ·  :doc:`Missing values with counted data <122-missing-values-with-counted-data>`  ·  :doc:`Multiple imputation <119-multiple-imputation>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/censoring-and-truncation/ <https://insightful-data-lab.com/2025/11/11/censoring-and-truncation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/censoring-and-truncation/ <https://insightful-data-lab.com/2025/11/11/censoring-and-truncation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

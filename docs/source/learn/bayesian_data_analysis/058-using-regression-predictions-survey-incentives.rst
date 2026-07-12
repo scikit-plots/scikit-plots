@@ -6,7 +6,7 @@ Using regression predictions: survey incentives
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 058 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Bayesian decision theory in diﬀerent contexts <057-bayesian-decision-theory-in-different-contexts>`   ·   :doc:`Next · Multistage decision making: medical screening ▶ <059-multistage-decision-making-medical-screening>`
+:doc:`◀ Previous · Bayesian decision theory in diﬀerent contexts <057-bayesian-decision-theory-in-different-contexts>`   ·   :doc:`Next · Multistage decision making: medical screening ▶ <059-multistage-decision-making-medical-screening>`   ·   :doc:`↑ Section <index>`
 
 
 Should you pay respondents?
@@ -68,10 +68,12 @@ falls. And the analysis is honest about what it optimises — small incentives t
 but the recommendation depends on the dollar value assigned to a completed interview, which is a
 **judgement**, stated openly rather than buried.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian decision theory in diﬀerent contexts <057-bayesian-decision-theory-in-different-contexts>`  ·  :doc:`Hierarchical modeling applied to a meta-analysis <038-hierarchical-modeling-applied-to-a-meta-analysis>`  ·  :doc:`Sample surveys <052-sample-surveys>`  ·  :doc:`Conditional modeling <091-conditional-modeling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/using-regression-predictions-survey-incentives/ <https://insightful-data-lab.com/2025/11/11/using-regression-predictions-survey-incentives/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/using-regression-predictions-survey-incentives/ <https://insightful-data-lab.com/2025/11/11/using-regression-predictions-survey-incentives/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

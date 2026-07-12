@@ -6,7 +6,7 @@ Gaussian process regression
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 129 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Non-normal models and regression surfaces <128-non-normal-models-and-regression-surfaces>`   ·   :doc:`Next · Example: birthdays and birthdates ▶ <130-example-birthdays-and-birthdates>`
+:doc:`◀ Previous · Non-normal models and regression surfaces <128-non-normal-models-and-regression-surfaces>`   ·   :doc:`Next · Example: birthdays and birthdates ▶ <130-example-birthdays-and-birthdates>`   ·   :doc:`↑ Section <index>`
 
 
 A prior over functions
@@ -70,10 +70,12 @@ approximations (the previous lesson, in reverse) are the standard escapes. What 
 nonparametric flexibility with calibrated uncertainty — a curve that adapts to the data and honestly
 reports where it cannot.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Non-normal models and regression surfaces <128-non-normal-models-and-regression-surfaces>`  ·  :doc:`Example: birthdays and birthdates <130-example-birthdays-and-birthdates>`  ·  :doc:`Latent Gaussian process models <131-latent-gaussian-process-models>`  ·  :doc:`Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/gaussian-process-regression/ <https://insightful-data-lab.com/2025/12/09/gaussian-process-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/gaussian-process-regression/ <https://insightful-data-lab.com/2025/12/09/gaussian-process-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

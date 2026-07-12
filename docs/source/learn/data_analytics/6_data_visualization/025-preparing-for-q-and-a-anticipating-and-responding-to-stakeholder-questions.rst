@@ -22,6 +22,8 @@ Preparing for Q&A: Anticipating and Responding to Stakeholder Questions
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/preparing-for-qa-anticipating-and-responding-to-stakeholder-questions/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/preparing-for-qa-anticipating-and-responding-to-stakeholder-questions/ <https://insightful-data-lab.com/2023/11/26/preparing-for-qa-anticipating-and-responding-to-stakeholder-questions/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

@@ -10,7 +10,7 @@
 
 .. _term-post-hoc-explainability:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Post-hoc Explainability</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Post-hoc Explainability</b></div>`
 
 =========================
 Post-hoc Explainability
@@ -53,22 +53,24 @@ substitute for fair training practices.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Decision Trees <340-decision-trees>` · :doc:`Feature Values <188-feature-values>` · :doc:`Discriminatory Power <185-discriminatory-power>`
 
 ----
 
-**More in Explainability & Governance**
+.. hint::
+   **More in Explainability & Governance**
 
    :doc:`Basel III <333-basel-iii>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`Fair Lending laws <332-fair-lending-laws>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>`
 
-----
-
-*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Post-hoc Explainability <https://insightful-data-lab.com/2025/08/20/post-hoc-explainability/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Post-hoc Explainability <https://insightful-data-lab.com/2025/08/20/post-hoc-explainability/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

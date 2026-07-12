@@ -73,13 +73,15 @@ data (Section 3), processing and cleaning (Section 4), analysing (Sections 5 and
 7), and sharing (Section 6). Keep the six-phase map in mind and every technique
 that follows has an obvious home.
 
-.. seealso::
+.. hint::
 
    - :doc:`Why Data Analytics Matters Today <001-why-data-analytics-matters-today>`
    - :doc:`Understanding the Data Analysis Process and the Data Life Cycle <008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
    - :doc:`The Stages of the Data Analysis Process and Their Roles <011-the-stages-of-the-data-analysis-process-and-their-roles>`
    - :doc:`Practical Application of the Data Analysis Process <012-practical-application-of-the-data-analysis-process>`
 
-`Source article <https://insightful-data-lab.com/2023/07/30/the-six-phases-of-the-data-analysis-process/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/the-six-phases-of-the-data-analysis-process/ <https://insightful-data-lab.com/2023/07/30/the-six-phases-of-the-data-analysis-process/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, foundations, process

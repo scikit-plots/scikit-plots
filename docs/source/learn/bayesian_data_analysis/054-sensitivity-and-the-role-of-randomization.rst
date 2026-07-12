@@ -6,7 +6,7 @@ Sensitivity and the role of randomization
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 054 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Designed experiments <053-designed-experiments>`   ·   :doc:`Next · Observational studies ▶ <055-observational-studies>`
+:doc:`◀ Previous · Designed experiments <053-designed-experiments>`   ·   :doc:`Next · Observational studies ▶ <055-observational-studies>`   ·   :doc:`↑ Section <index>`
 
 
 What randomisation actually does
@@ -60,10 +60,12 @@ a separate modelling problem. Randomisation is the cheapest way to buy ignorabil
 genuine and rare gift — but the phrase "randomised, therefore unbiased" quietly assumes that nothing
 else went wrong.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Designed experiments <053-designed-experiments>`  ·  :doc:`Observational studies <055-observational-studies>`  ·  :doc:`Data-collection models and ignorability <051-data-collection-models-and-ignorability>`  ·  :doc:`Aspects of robustness <113-aspects-of-robustness>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/sensitivity-and-the-role-of-randomization/ <https://insightful-data-lab.com/2025/11/11/sensitivity-and-the-role-of-randomization/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/sensitivity-and-the-role-of-randomization/ <https://insightful-data-lab.com/2025/11/11/sensitivity-and-the-role-of-randomization/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

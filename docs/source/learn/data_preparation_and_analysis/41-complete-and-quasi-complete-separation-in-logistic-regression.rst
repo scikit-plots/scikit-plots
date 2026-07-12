@@ -6,7 +6,7 @@ Complete and Quasi-Complete Separation in Logistic Regression
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 41 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`   ·   :doc:`Next · Forward Selection with Nested Models and Deviance Tests ▶ <42-forward-selection-with-nested-models-and-deviance-tests>`
+:doc:`◀ Previous · Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`   ·   :doc:`Next · Forward Selection with Nested Models and Deviance Tests ▶ <42-forward-selection-with-nested-models-and-deviance-tests>`   ·   :doc:`↑ Section <index>`
 
 
 When the fit blows up
@@ -48,10 +48,12 @@ zero — always yields **finite** coefficients, even under complete separation; 
 **combined or removed**, or a rare category merged. The lesson generalises: an estimate that runs to
 infinity is the data telling you the model, as posed, is **not identifiable**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds <38-logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds>`  ·  :doc:`Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`  ·  :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`  ·  :doc:`Interpreting and Assessing a Forward-Selection Logistic Regression Model for College Student Retention <43-interpreting-and-assessing-a-forward-selection-logistic-regression-model-for-college-student-retention>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/complete-and-quasi-complete-separation-in-logistic-regression/ <https://insightful-data-lab.com/2026/01/16/complete-and-quasi-complete-separation-in-logistic-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/complete-and-quasi-complete-separation-in-logistic-regression/ <https://insightful-data-lab.com/2026/01/16/complete-and-quasi-complete-separation-in-logistic-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

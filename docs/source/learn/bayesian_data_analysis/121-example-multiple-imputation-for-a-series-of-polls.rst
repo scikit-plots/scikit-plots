@@ -6,7 +6,7 @@ Example: multiple imputation for a series of polls
 
 **Part 4 · Stage 14 · 🛡️ Robustness & Missing Data**  ·  Lesson 121 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Missing data in the multivariate normal and t models <120-missing-data-in-the-multivariate-normal-and-t-models>`   ·   :doc:`Next · Missing values with counted data ▶ <122-missing-values-with-counted-data>`
+:doc:`◀ Previous · Missing data in the multivariate normal and t models <120-missing-data-in-the-multivariate-normal-and-t-models>`   ·   :doc:`Next · Missing values with counted data ▶ <122-missing-values-with-counted-data>`   ·   :doc:`↑ Section <index>`
 
 
 Missingness across many surveys
@@ -57,10 +57,12 @@ indicator means a poll that asked a question informs imputations for polls that 
 pretending they are identical. The same machinery underlies modern poll aggregation: incomplete,
 heterogeneous surveys combined into one coherent picture, with missingness modelled rather than deleted.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multiple imputation <119-multiple-imputation>`  ·  :doc:`Missing data in the multivariate normal and t models <120-missing-data-in-the-multivariate-normal-and-t-models>`  ·  :doc:`Missing values with counted data <122-missing-values-with-counted-data>`  ·  :doc:`State-level opinons from national polls <110-state-level-opinons-from-national-polls>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/ <https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/ <https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

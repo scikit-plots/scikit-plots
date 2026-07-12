@@ -10,7 +10,7 @@
 
 .. _term-online-experimentation-platforms:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Online Experimentation Platforms</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Online Experimentation Platforms</b></div>`
 
 ==================================
 Online Experimentation Platforms
@@ -72,22 +72,24 @@ continuous optimisation.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`A/B Testing & Experimentation <term-theme-abtest>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Optimizely <069-optimizely>` · :doc:`Google Experiments <100-google-experiments>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Bandit Algorithms <113-bandit-algorithms>`
 
 ----
 
-**More in A/B Testing & Experimentation**
+.. hint::
+   **More in A/B Testing & Experimentation**
 
    :doc:`A/B Testing <380-a-b-testing>` · :doc:`A/B/n Test <114-a-b-n-test>` · :doc:`Bayesian Sequential Testing <074-bayesian-sequential-testing>` · :doc:`Bayesian Stopping Rules <068-bayesian-stopping-rules>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Fixed-Horizon Testing <082-fixed-horizon-testing>` · :doc:`Group Sequential Testing <079-group-sequential-testing>` · :doc:`Multivariate Test (MVT) <115-multivariate-test-mvt>` · :doc:`Optimizely <069-optimizely>` · :doc:`Risk of Peeking <116-risk-of-peeking>` · :doc:`Sequential Testing (also called sequential analysis) <376-sequential-testing-also-called-sequential-analys>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Traditional A/B Test (Fixed-Horizon A/B Test) <081-traditional-a-b-test-fixed-horizon-a-b-test>` · :doc:`Treatment Effect <072-treatment-effect>`
 
-----
-
-*Theme:* :ref:`A/B Testing & Experimentation <term-theme-abtest>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Online Experimentation Platforms <https://insightful-data-lab.com/2025/08/25/online-experimentation-platforms/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Online Experimentation Platforms <https://insightful-data-lab.com/2025/08/25/online-experimentation-platforms/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

@@ -6,7 +6,7 @@ Logistic Regression Gradient Descent
 
 **Stage 4 · ⚙️ Backprop & Vectorization**  ·  Lesson 13 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`   ·   :doc:`Next · Gradient Descent on m Training Examples ▶ <14-gradient-descent-on-m-training-examples>`
+:doc:`◀ Previous · Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`   ·   :doc:`Next · Gradient Descent on m Training Examples ▶ <14-gradient-descent-on-m-training-examples>`   ·   :doc:`↑ Section <index>`
 
 
 The neuron's graph
@@ -65,10 +65,12 @@ With the gradients in hand, one gradient-descent step nudges each parameter down
 That is a full learning step — for a **single** example. Real training averages over many, which is
 the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`  ·  :doc:`Logistic Regression – Loss Function and Cost Function <07-logistic-regression-loss-function-and-cost-function>`  ·  :doc:`Gradient Descent on m Training Examples <14-gradient-descent-on-m-training-examples>`  ·  :doc:`Computation Graph <11-computation-graph>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/logistic-regression-gradient-descent/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-gradient-descent/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/logistic-regression-gradient-descent/ <https://insightful-data-lab.com/2025/04/07/logistic-regression-gradient-descent/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

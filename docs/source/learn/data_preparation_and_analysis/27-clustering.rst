@@ -6,7 +6,7 @@ Clustering
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 27 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters>`   ·   :doc:`Next · Recency, Frequency, and Monetary Value (RFM) ▶ <28-recency-frequency-and-monetary-value-rfm>`
+:doc:`◀ Previous · Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters>`   ·   :doc:`Next · Recency, Frequency, and Monetary Value (RFM) ▶ <28-recency-frequency-and-monetary-value-rfm>`   ·   :doc:`↑ Section <index>`
 
 
 Algorithms for groups
@@ -48,10 +48,12 @@ methods like **DBSCAN** grow clusters from dense regions, handling odd shapes an
 noise. Each embodies a different notion of what a cluster *is* — but all serve the same goal: similar
 together, different apart.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Putting Similar Observations into Clusters <26-putting-similar-observations-into-clusters>`  ·  :doc:`Recency, Frequency, and Monetary Value (RFM) <28-recency-frequency-and-monetary-value-rfm>`  ·  :doc:`RFM Analysis <29-rfm-analysis>`  ·  :doc:`Using Decision Trees to Explain Clustering Results <49-using-decision-trees-to-explain-clustering-results>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/clustering/ <https://insightful-data-lab.com/2026/01/14/clustering/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/clustering/ <https://insightful-data-lab.com/2026/01/14/clustering/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

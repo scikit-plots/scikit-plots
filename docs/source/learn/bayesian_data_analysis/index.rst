@@ -58,8 +58,8 @@ Read it at any depth:
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
    <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
           placeholder="&#128269;&nbsp; Type to filter 144 lessons &mdash; by title or keyword&hellip;"
-          style="width:100%;max-width:680px;padding:0.55rem 1rem;font-size:1rem;
-                 border:1px solid rgba(128,128,128,0.45);border-radius:0.55rem;
+          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;
+                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
                  background:transparent;color:inherit"/>
    <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;min-height:1.2em;margin-top:0.35rem"></div>
    </div>
@@ -82,12 +82,12 @@ Read it at any depth:
        dds.forEach(function(d){
          if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
          else{d.style.display='';d.open=false;}});
-       if(cnt){cnt.textContent=(q&&az)?(n+' matching lesson'+(n===1?'':'s')):'';}
+       if(cnt){cnt.textContent=(q&&az)?(n+' of 144 match'+(n===1?'':'s')):'';}
      });
    });
    </script>
 
-Part 1 — Fundamentals
+Fundamentals
 ------------------------------------------------------------------------
 
 .. _bda-stage-bayes_idea:
@@ -169,7 +169,7 @@ Part 1 — Fundamentals
    * :doc:`038 · Hierarchical modeling applied to a meta-analysis <038-hierarchical-modeling-applied-to-a-meta-analysis>` — Pooling effect estimates across studies hierarchically.
    * :doc:`039 · Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>` — Sensible priors for group-level variance in hierarchies.
 
-Part 2 — Checking & Deciding
+Checking & Deciding
 ------------------------------------------------------------------------
 
 .. _bda-stage-checking:
@@ -210,7 +210,7 @@ Part 2 — Checking & Deciding
    * :doc:`060 · Hierarchical decision analysis for home radon <060-hierarchical-decision-analysis-for-home-radon>` — A hierarchical decision model for radon remediation.
    * :doc:`061 · Personal vs. institutional decision analysis <061-personal-vs-institutional-decision-analysis>` — Whose utilities and information a decision should use.
 
-Part 3 — Computation
+Computation
 ------------------------------------------------------------------------
 
 .. _bda-stage-simulation:
@@ -266,7 +266,7 @@ Part 3 — Computation
    * :doc:`089 · Other approximations <089-other-approximations>` — Laplace, INLA and further approximate-inference methods.
    * :doc:`090 · Unknown normalizing factors <090-unknown-normalizing-factors>` — Inference when the likelihood's constant is intractable.
 
-Part 4 — Regression
+Regression
 ------------------------------------------------------------------------
 
 .. _bda-stage-regression:
@@ -334,7 +334,7 @@ Part 4 — Regression
    * :doc:`122 · Missing values with counted data <122-missing-values-with-counted-data>` — Handling missingness in count data.
    * :doc:`123 · Example: an opinion poll in Slovenia <123-example-an-opinion-poll-in-slovenia>` — A worked missing-data analysis of a plebiscite poll.
 
-Part 5 — Nonlinear & Nonparametric
+Nonlinear & Nonparametric
 ------------------------------------------------------------------------
 
 .. _bda-stage-gp_basis:

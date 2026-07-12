@@ -1,5 +1,9 @@
 .. _da-cleaning-index:
 
+:raw-html:`<div style="text-align:center"><strong>` 🧽 Data Cleaning & Preparation
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
+
 ========================================================================
 🧽 Data Cleaning & Preparation
 ========================================================================
@@ -12,10 +16,12 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
 
 .. raw:: html
 
-   <input type="text" id="term-filter" placeholder="🔍 Filter this section by title or keyword…"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
           style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -49,14 +55,14 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
 
    .. raw:: html
 
-         <div class="da-row" data-k="The Importance of Clean Data "><a href="001-the-importance-of-clean-data.html">001 · The Importance of Clean Data</a></div>
-         <div class="da-row" data-k="Data Integrity and Its Risks in Data Analysis "><a href="002-data-integrity-and-its-risks-in-data-analysis.html">002 · Data Integrity and Its Risks in Data Analysis</a></div>
-         <div class="da-row" data-k="Aligning Data with Business Objectives "><a href="003-aligning-data-with-business-objectives.html">003 · Aligning Data with Business Objectives</a></div>
-         <div class="da-row" data-k="Handling Insufficient Data in Data Analysis "><a href="004-handling-insufficient-data-in-data-analysis.html">004 · Handling Insufficient Data in Data Analysis</a></div>
-         <div class="da-row" data-k="Population, Sample Size, and Random Sampling "><a href="005-population-sample-size-and-random-sampling.html">005 · Population, Sample Size, and Random Sampling</a></div>
-         <div class="da-row" data-k="Statistical Power in Data Analysis "><a href="006-statistical-power-in-data-analysis.html">006 · Statistical Power in Data Analysis</a></div>
-         <div class="da-row" data-k="Sample Size and Data Integrity "><a href="007-sample-size-and-data-integrity.html">007 · Sample Size and Data Integrity</a></div>
-         <div class="da-row" data-k="Margin of Error "><a href="008-margin-of-error.html">008 · Margin of Error</a></div>
+         <div class="da-row" data-k="The Importance of Clean Data why clean data is the non-negotiable foundation every analysis stands on"><a href="001-the-importance-of-clean-data.html">001 · The Importance of Clean Data — why clean data is the non-negotiable foundation every analysis stands on</a></div>
+         <div class="da-row" data-k="Data Integrity and Its Risks in Data Analysis keeping data accurate and consistent through its life — and what threatens it"><a href="002-data-integrity-and-its-risks-in-data-analysis.html">002 · Data Integrity and Its Risks in Data Analysis — keeping data accurate and consistent through its life — and what threatens it</a></div>
+         <div class="da-row" data-k="Aligning Data with Business Objectives checking that the data you have actually fits the question you must answer"><a href="003-aligning-data-with-business-objectives.html">003 · Aligning Data with Business Objectives — checking that the data you have actually fits the question you must answer</a></div>
+         <div class="da-row" data-k="Handling Insufficient Data in Data Analysis recognising when there is not enough data, and the honest options when there isn't"><a href="004-handling-insufficient-data-in-data-analysis.html">004 · Handling Insufficient Data in Data Analysis — recognising when there is not enough data, and the honest options when there isn't</a></div>
+         <div class="da-row" data-k="Population, Sample Size, and Random Sampling the whole vs. the part: population, sample, and how to sample fairly"><a href="005-population-sample-size-and-random-sampling.html">005 · Population, Sample Size, and Random Sampling — the whole vs. the part: population, sample, and how to sample fairly</a></div>
+         <div class="da-row" data-k="Statistical Power in Data Analysis the chance of detecting a real effect when there is one — and why 0.8 is the norm"><a href="006-statistical-power-in-data-analysis.html">006 · Statistical Power in Data Analysis — the chance of detecting a real effect when there is one — and why 0.8 is the norm</a></div>
+         <div class="da-row" data-k="Sample Size and Data Integrity how much data is enough: confidence, precision, and the cost of too little"><a href="007-sample-size-and-data-integrity.html">007 · Sample Size and Data Integrity — how much data is enough: confidence, precision, and the cost of too little</a></div>
+         <div class="da-row" data-k="Margin of Error the plus-or-minus around a sample estimate, and how to read it honestly"><a href="008-margin-of-error.html">008 · Margin of Error — the plus-or-minus around a sample estimate, and how to read it honestly</a></div>
 
 .. dropdown:: 🧹 Dirty Data & Spreadsheet Cleaning
    :class-container: sd-dropdown
@@ -65,15 +71,15 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
 
    .. raw:: html
 
-         <div class="da-row" data-k="Dirty Data vs. Clean Data "><a href="009-dirty-data-vs-clean-data.html">009 · Dirty Data vs. Clean Data</a></div>
-         <div class="da-row" data-k="The Importance of Clean Data (revisited) "><a href="010-the-importance-of-clean-data-revisited.html">010 · The Importance of Clean Data (revisited)</a></div>
-         <div class="da-row" data-k="Common Issues in Dirty Data "><a href="011-common-issues-in-dirty-data.html">011 · Common Issues in Dirty Data</a></div>
-         <div class="da-row" data-k="Data Cleaning with Spreadsheets "><a href="012-data-cleaning-with-spreadsheets.html">012 · Data Cleaning with Spreadsheets</a></div>
-         <div class="da-row" data-k="Cleaning and Merging Multiple Datasets "><a href="013-cleaning-and-merging-multiple-datasets.html">013 · Cleaning and Merging Multiple Datasets</a></div>
-         <div class="da-row" data-k="Spreadsheet Tools for Data Cleaning "><a href="014-spreadsheet-tools-for-data-cleaning.html">014 · Spreadsheet Tools for Data Cleaning</a></div>
-         <div class="da-row" data-k="Using Spreadsheet Functions for Data Cleaning "><a href="015-using-spreadsheet-functions-for-data-cleaning.html">015 · Using Spreadsheet Functions for Data Cleaning</a></div>
-         <div class="da-row" data-k="Viewing Data Differently for More Effective Data Cleaning "><a href="016-viewing-data-differently-for-more-effective-data-cleaning.html">016 · Viewing Data Differently for More Effective Data Cleaning</a></div>
-         <div class="da-row" data-k="Data Mapping and the Big Picture of Clean Data "><a href="017-data-mapping-and-the-big-picture-of-clean-data.html">017 · Data Mapping and the Big Picture of Clean Data</a></div>
+         <div class="da-row" data-k="Dirty Data vs. Clean Data the concrete contrast: what makes data dirty, and what clean looks like beside it"><a href="009-dirty-data-vs-clean-data.html">009 · Dirty Data vs. Clean Data — the concrete contrast: what makes data dirty, and what clean looks like beside it</a></div>
+         <div class="da-row" data-k="The Importance of Clean Data (revisited) the business cost of dirty data — why cleaning is worth the time it takes"><a href="010-the-importance-of-clean-data-revisited.html">010 · The Importance of Clean Data (revisited) — the business cost of dirty data — why cleaning is worth the time it takes</a></div>
+         <div class="da-row" data-k="Common Issues in Dirty Data the recurring defects — duplicates, missing, inconsistent, wrong type, outliers"><a href="011-common-issues-in-dirty-data.html">011 · Common Issues in Dirty Data — the recurring defects — duplicates, missing, inconsistent, wrong type, outliers</a></div>
+         <div class="da-row" data-k="Data Cleaning with Spreadsheets the practical spreadsheet cleaning workflow, defect by defect"><a href="012-data-cleaning-with-spreadsheets.html">012 · Data Cleaning with Spreadsheets — the practical spreadsheet cleaning workflow, defect by defect</a></div>
+         <div class="da-row" data-k="Cleaning and Merging Multiple Datasets combining data from several sources cleanly — matching keys, reconciling formats"><a href="013-cleaning-and-merging-multiple-datasets.html">013 · Cleaning and Merging Multiple Datasets — combining data from several sources cleanly — matching keys, reconciling formats</a></div>
+         <div class="da-row" data-k="Spreadsheet Tools for Data Cleaning the built-in cleaning toolkit: dedupe, split, find/replace, validation, formatting"><a href="014-spreadsheet-tools-for-data-cleaning.html">014 · Spreadsheet Tools for Data Cleaning — the built-in cleaning toolkit: dedupe, split, find/replace, validation, formatting</a></div>
+         <div class="da-row" data-k="Using Spreadsheet Functions for Data Cleaning TRIM, CLEAN, UPPER, SUBSTITUTE, VALUE and friends — cleaning by formula"><a href="015-using-spreadsheet-functions-for-data-cleaning.html">015 · Using Spreadsheet Functions for Data Cleaning — TRIM, CLEAN, UPPER, SUBSTITUTE, VALUE and friends — cleaning by formula</a></div>
+         <div class="da-row" data-k="Viewing Data Differently for More Effective Data Cleaning sort, filter, pivot, conditional formatting as lenses that reveal hidden defects"><a href="016-viewing-data-differently-for-more-effective-data-cleaning.html">016 · Viewing Data Differently for More Effective Data Cleaning — sort, filter, pivot, conditional formatting as lenses that reveal hidden defects</a></div>
+         <div class="da-row" data-k="Data Mapping and the Big Picture of Clean Data matching fields between sources so merged data stays coherent — cleaning's big picture"><a href="017-data-mapping-and-the-big-picture-of-clean-data.html">017 · Data Mapping and the Big Picture of Clean Data — matching fields between sources so merged data stays coherent — cleaning's big picture</a></div>
 
 .. dropdown:: 🐬 Cleaning with SQL
    :class-container: sd-dropdown
@@ -82,13 +88,13 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
 
    .. raw:: html
 
-         <div class="da-row" data-k="Introduction to SQL "><a href="018-introduction-to-sql.html">018 · Introduction to SQL</a></div>
-         <div class="da-row" data-k="Spreadsheets vs. SQL "><a href="019-spreadsheets-vs-sql.html">019 · Spreadsheets vs. SQL</a></div>
-         <div class="da-row" data-k="Core SQL Queries for Data Cleaning and Analysis "><a href="020-core-sql-queries-for-data-cleaning-and-analysis.html">020 · Core SQL Queries for Data Cleaning and Analysis</a></div>
-         <div class="da-row" data-k="Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables "><a href="021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables.html">021 · Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables</a></div>
-         <div class="da-row" data-k="Using CAST to Clean and Format Data in SQL "><a href="022-using-cast-to-clean-and-format-data-in-sql.html">022 · Using CAST to Clean and Format Data in SQL</a></div>
-         <div class="da-row" data-k="Advanced SQL Functions for Data Cleaning "><a href="023-advanced-sql-functions-for-data-cleaning.html">023 · Advanced SQL Functions for Data Cleaning</a></div>
-         <div class="da-row" data-k="COALESCE "><a href="024-coalesce.html">024 · COALESCE</a></div>
+         <div class="da-row" data-k="Introduction to SQL why SQL matters for cleaning: transformations that scale and stay reproducible"><a href="018-introduction-to-sql.html">018 · Introduction to SQL — why SQL matters for cleaning: transformations that scale and stay reproducible</a></div>
+         <div class="da-row" data-k="Spreadsheets vs. SQL when to reach for a sheet and when for a query — strengths, limits, and the handoff"><a href="019-spreadsheets-vs-sql.html">019 · Spreadsheets vs. SQL — when to reach for a sheet and when for a query — strengths, limits, and the handoff</a></div>
+         <div class="da-row" data-k="Core SQL Queries for Data Cleaning and Analysis SELECT, WHERE, DISTINCT, GROUP BY — the query patterns that clean and summarise"><a href="020-core-sql-queries-for-data-cleaning-and-analysis.html">020 · Core SQL Queries for Data Cleaning and Analysis — SELECT, WHERE, DISTINCT, GROUP BY — the query patterns that clean and summarise</a></div>
+         <div class="da-row" data-k="Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables DISTINCT, GROUP BY, and string functions to dedupe and standardise text in SQL"><a href="021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables.html">021 · Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables — DISTINCT, GROUP BY, and string functions to dedupe and standardise text in SQL</a></div>
+         <div class="da-row" data-k="Using CAST to Clean and Format Data in SQL converting a value from one data type to another — SQL's type-fixing tool"><a href="022-using-cast-to-clean-and-format-data-in-sql.html">022 · Using CAST to Clean and Format Data in SQL — converting a value from one data type to another — SQL's type-fixing tool</a></div>
+         <div class="da-row" data-k="Advanced SQL Functions for Data Cleaning CASE, SUBSTR, TRIM, and pattern tools for the harder cleaning jobs"><a href="023-advanced-sql-functions-for-data-cleaning.html">023 · Advanced SQL Functions for Data Cleaning — CASE, SUBSTR, TRIM, and pattern tools for the harder cleaning jobs</a></div>
+         <div class="da-row" data-k="COALESCE returning the first non-null value — SQL's standard handler for missing data"><a href="024-coalesce.html">024 · COALESCE — returning the first non-null value — SQL's standard handler for missing data</a></div>
 
 .. dropdown:: ✅ Verification, Documentation & Next Steps
    :class-container: sd-dropdown
@@ -97,14 +103,17 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
 
    .. raw:: html
 
-         <div class="da-row" data-k="Verifying and Reporting Data Integrity "><a href="025-verifying-and-reporting-data-integrity.html">025 · Verifying and Reporting Data Integrity</a></div>
-         <div class="da-row" data-k="Verifying Data-Cleaning Efforts "><a href="026-verifying-data-cleaning-efforts.html">026 · Verifying Data-Cleaning Efforts</a></div>
-         <div class="da-row" data-k="Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors "><a href="027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors.html">027 · Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors</a></div>
-         <div class="da-row" data-k="Documenting Data-Cleaning Changes "><a href="028-documenting-data-cleaning-changes.html">028 · Documenting Data-Cleaning Changes</a></div>
-         <div class="da-row" data-k="Reporting Data-Cleaning Results "><a href="029-reporting-data-cleaning-results.html">029 · Reporting Data-Cleaning Results</a></div>
-         <div class="da-row" data-k="Using Feedback from Data Cleaning to Improve Data Quality "><a href="030-using-feedback-from-data-cleaning-to-improve-data-quality.html">030 · Using Feedback from Data Cleaning to Improve Data Quality</a></div>
-         <div class="da-row" data-k="Refining a Resume for Data Analytics Roles "><a href="031-refining-a-resume-for-data-analytics-roles.html">031 · Refining a Resume for Data Analytics Roles</a></div>
-         <div class="da-row" data-k="Exploring Data Analyst Job Opportunities "><a href="032-exploring-data-analyst-job-opportunities.html">032 · Exploring Data Analyst Job Opportunities</a></div>
+         <div class="da-row" data-k="Verifying and Reporting Data Integrity confirming data is sound after cleaning — and telling stakeholders it is"><a href="025-verifying-and-reporting-data-integrity.html">025 · Verifying and Reporting Data Integrity — confirming data is sound after cleaning — and telling stakeholders it is</a></div>
+         <div class="da-row" data-k="Verifying Data-Cleaning Efforts checking that each cleaning step did what it should, and nothing it shouldn't"><a href="026-verifying-data-cleaning-efforts.html">026 · Verifying Data-Cleaning Efforts — checking that each cleaning step did what it should, and nothing it shouldn't</a></div>
+         <div class="da-row" data-k="Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors concrete checks — counts, distinct values, ranges — that catch recurring defects"><a href="027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors.html">027 · Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors — concrete checks — counts, distinct values, ranges — that catch recurring defects</a></div>
+         <div class="da-row" data-k="Documenting Data-Cleaning Changes recording what was changed and why, so cleaning is reproducible and reviewable"><a href="028-documenting-data-cleaning-changes.html">028 · Documenting Data-Cleaning Changes — recording what was changed and why, so cleaning is reproducible and reviewable</a></div>
+         <div class="da-row" data-k="Reporting Data-Cleaning Results communicating what cleaning found and fixed, so stakeholders can trust the data"><a href="029-reporting-data-cleaning-results.html">029 · Reporting Data-Cleaning Results — communicating what cleaning found and fixed, so stakeholders can trust the data</a></div>
+         <div class="da-row" data-k="Using Feedback from Data Cleaning to Improve Data Quality closing the loop: feeding cleaning lessons back to fix problems at the source"><a href="030-using-feedback-from-data-cleaning-to-improve-data-quality.html">030 · Using Feedback from Data Cleaning to Improve Data Quality — closing the loop: feeding cleaning lessons back to fix problems at the source</a></div>
+         <div class="da-row" data-k="Refining a Resume for Data Analytics Roles shaping a resume to show analytical skill — cleaning your own professional data"><a href="031-refining-a-resume-for-data-analytics-roles.html">031 · Refining a Resume for Data Analytics Roles — shaping a resume to show analytical skill — cleaning your own professional data</a></div>
+         <div class="da-row" data-k="Exploring Data Analyst Job Opportunities where analyst roles are, and how to read them against your skills and goals"><a href="032-exploring-data-analyst-job-opportunities.html">032 · Exploring Data Analyst Job Opportunities — where analyst roles are, and how to read them against your skills and goals</a></div>
+
+🔤 Every lesson, A–Z
+---------------------
 
 .. dropdown:: 🔠 A–Z index
    :class-container: term-az

@@ -6,7 +6,7 @@ What is a Neural Network?
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 01 of 17  ·  *beginner*
 
-:doc:`Next · Supervised Learning and Neural Networks ▶ <02-supervised-learning-and-neural-networks>`
+:doc:`Next · Supervised Learning and Neural Networks ▶ <02-supervised-learning-and-neural-networks>`   ·   :doc:`↑ Section <index>`
 
 
 A single neuron
@@ -49,10 +49,12 @@ picture, but easily **oversold**. An artificial neuron is a small piece of arith
 sum and a nonlinearity), not a biological cell. It is more honest to picture a network as a
 **flexible, trainable function approximator**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Supervised Learning and Neural Networks <02-supervised-learning-and-neural-networks>`  ·  :doc:`Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`  ·  :doc:`Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`  ·  :doc:`Computation Graph <11-computation-graph>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/what-is-a-neural-network/ <https://insightful-data-lab.com/2025/04/07/what-is-a-neural-network/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/what-is-a-neural-network/ <https://insightful-data-lab.com/2025/04/07/what-is-a-neural-network/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

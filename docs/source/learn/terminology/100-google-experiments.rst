@@ -10,7 +10,7 @@
 
 .. _term-google-experiments:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>Google Experiments</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>Google Experiments</b></div>`
 
 ====================
 Google Experiments
@@ -61,22 +61,24 @@ full-site UX.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Optimizely <069-optimizely>` · :doc:`Online Experimentation Platforms <070-online-experimentation-platforms>` · :doc:`A/B Testing <380-a-b-testing>` · :doc:`Conversion Rate Uplift <067-conversion-rate-uplift>` · :doc:`Bayesian Stopping Rules <068-bayesian-stopping-rules>`
 
 ----
 
-**More in ML Platforms & Tools**
+.. hint::
+   **More in ML Platforms & Tools**
 
    :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Kaggle <273-kaggle>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Vertex AI <149-vertex-ai>`
 
-----
-
-*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Google Experiments <https://insightful-data-lab.com/2025/08/25/google-experiments/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Google Experiments <https://insightful-data-lab.com/2025/08/25/google-experiments/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

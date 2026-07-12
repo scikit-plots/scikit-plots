@@ -22,6 +22,8 @@ Choosing the Right Job Platforms
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/choosing-the-right-job-platforms/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/choosing-the-right-job-platforms/ <https://insightful-data-lab.com/2023/12/06/choosing-the-right-job-platforms/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, jobsearch, apply

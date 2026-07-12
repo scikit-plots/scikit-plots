@@ -10,7 +10,7 @@
 
 .. _term-predictive-parity-calibration:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Predictive Parity (Calibration)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Predictive Parity (Calibration)</b></div>`
 
 =================================
 Predictive Parity (Calibration)
@@ -79,22 +79,24 @@ In code
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Equalized Odds (Fairness) <028-equalized-odds-fairness>` · :doc:`Equal Opportunity (Fairness) <029-equal-opportunity-fairness>` · :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>`
 
 ----
 
-**More in Fairness & Calibration**
+.. hint::
+   **More in Fairness & Calibration**
 
    :doc:`Demographic Parity (Statistical Parity) <030-demographic-parity-statistical-parity>` · :doc:`Equal Opportunity (Fairness) <029-equal-opportunity-fairness>` · :doc:`Equalized Odds (Fairness) <028-equalized-odds-fairness>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Fairness parity <372-fairness-parity>` · :doc:`Four-Fifths (80%) Rule <189-four-fifths-80-rule>` · :doc:`Selection Rate <390-selection-rate>`
 
-----
-
-*Theme:* :ref:`Fairness & Calibration <term-theme-fairness>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Predictive Parity (Calibration) <https://insightful-data-lab.com/2025/08/29/predictive-parity-calibration/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Predictive Parity (Calibration) <https://insightful-data-lab.com/2025/08/29/predictive-parity-calibration/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

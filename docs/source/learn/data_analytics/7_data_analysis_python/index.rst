@@ -1,5 +1,9 @@
 .. _da-python-index:
 
+:raw-html:`<div style="text-align:center"><strong>` 🐍 Data Analysis Using Python
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
+
 ========================================================================
 🐍 Data Analysis Using Python
 ========================================================================
@@ -12,10 +16,12 @@ Doing the whole workflow in Python: NumPy, pandas, and plotting for real analyti
 
 .. raw:: html
 
-   <input type="text" id="term-filter" placeholder="🔍 Filter this section by title or keyword…"
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
           style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
    <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   </div>
    <script>
    (function(){
      var box=document.getElementById('term-filter');
@@ -106,6 +112,9 @@ Doing the whole workflow in Python: NumPy, pandas, and plotting for real analyti
          <div class="da-row" data-k="Boolean Masking in Pandas "><a href="031-boolean-masking-in-pandas.html">031 · Boolean Masking in Pandas</a></div>
          <div class="da-row" data-k="Grouping and Aggregation in Pandas (groupby, agg) "><a href="032-grouping-and-aggregation-in-pandas-groupby-agg.html">032 · Grouping and Aggregation in Pandas (groupby, agg)</a></div>
          <div class="da-row" data-k="Combining Data in Pandas (concat and merge) "><a href="033-combining-data-in-pandas-concat-and-merge.html">033 · Combining Data in Pandas (concat and merge)</a></div>
+
+🔤 Every lesson, A–Z
+---------------------
 
 .. dropdown:: 🔠 A–Z index
    :class-container: term-az

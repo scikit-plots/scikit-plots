@@ -6,7 +6,7 @@ Beyond One-Step Ahead Predictions
 
 **Stage 6 · 🏗️ Building & Forecasting Models**  ·  Lesson 17 of 18  ·  *advanced*
 
-:doc:`◀ Previous · SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`   ·   :doc:`Next · Exponential Smoothing Models ▶ <18-exponential-smoothing-models>`
+:doc:`◀ Previous · SARIMA Models: Seasonal ARIMA <16-sarima-models-seasonal-arima>`   ·   :doc:`Next · Exponential Smoothing Models ▶ <18-exponential-smoothing-models>`   ·   :doc:`↑ Section <index>`
 
 
 Forecasting further
@@ -42,10 +42,12 @@ current state. For an **ARIMA** with differencing, there is no mean to revert to
 **keep widening without bound**, random-walk style. Either way, small **parameter errors compound**
 over long horizons.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`  ·  :doc:`ARIMA Models: How Nonstationary Models Are Built from Stationary Ones <15-arima-models-how-nonstationary-models-are-built-from-stationary-ones>`  ·  :doc:`Exponential Smoothing Models <18-exponential-smoothing-models>`  ·  :doc:`Diagnostics After Fitting a Time Series Model <13-diagnostics-after-fitting-a-time-series-model>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/17/beyond-one-step-ahead-predictions/ <https://insightful-data-lab.com/2026/01/17/beyond-one-step-ahead-predictions/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/17/beyond-one-step-ahead-predictions/ <https://insightful-data-lab.com/2026/01/17/beyond-one-step-ahead-predictions/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: time series, level: advanced

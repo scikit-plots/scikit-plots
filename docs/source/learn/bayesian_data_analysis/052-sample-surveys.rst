@@ -6,7 +6,7 @@ Sample surveys
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 052 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Data-collection models and ignorability <051-data-collection-models-and-ignorability>`   ·   :doc:`Next · Designed experiments ▶ <053-designed-experiments>`
+:doc:`◀ Previous · Data-collection models and ignorability <051-data-collection-models-and-ignorability>`   ·   :doc:`Next · Designed experiments ▶ <053-designed-experiments>`   ·   :doc:`↑ Section <index>`
 
 
 Inference for a finite population
@@ -72,10 +72,12 @@ amount of poststratification fixes it. And poststratification needs **population
 constrains which variables you may adjust for. The honest summary: surveys are a missing-data problem,
 and their difficulty is exactly the difficulty of knowing why people did not answer.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Data-collection models and ignorability <051-data-collection-models-and-ignorability>`  ·  :doc:`Designed experiments <053-designed-experiments>`  ·  :doc:`State-level opinons from national polls <110-state-level-opinons-from-national-polls>`  ·  :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/sample-surveys/ <https://insightful-data-lab.com/2025/11/11/sample-surveys/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/sample-surveys/ <https://insightful-data-lab.com/2025/11/11/sample-surveys/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

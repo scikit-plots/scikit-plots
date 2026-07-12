@@ -679,8 +679,9 @@ def _bar(title: str) -> str:
 
 
 def _banner(emoji: str, title: str, big: bool = False) -> str:
+    # w(":raw-html:`<div style=\"text-align:center\"><strong>` 📖 Terminology")
     size = "1.55rem;font-weight:700" if big else "1.12rem"
-    return (f':raw-html:`<div align="center" style="font-size:{size};'
+    return (f':raw-html:`<div align="center" style="text-align:center;font-size:{size};'
             f'margin:0.45rem 0 0.2rem">{emoji}&nbsp;&nbsp;'
             f'{"" if big else "<b>"}{_h(title)}{"" if big else "</b>"}</div>`')
 
@@ -779,6 +780,7 @@ def main() -> int:
         a("")
         a(RAW_HTML)
         a("")
+
         a(f".. _{anchor[t]}:")
         a("")
         a(_banner(emoji, t))
@@ -788,6 +790,8 @@ def main() -> int:
         a("")
         a(f"*{gloss}*")
         a("")
+
+        # body: full content if written, else a working stub
         if body:
             n_rich += 1
             a(body.strip())
@@ -800,35 +804,51 @@ def main() -> int:
               f"related **{_h(disp)}** terms below.")
             a("")
 
-        mm = [s for s in MINDMAP.get(t, []) if s != t and s in docname]
-        if mm:
-            a("----")
-            a("")
-            a("**Mind map — connected ideas**")
-            a("")
-            a("   " + " · ".join(f":doc:`{s} <{docname[s]}>`" for s in mm))
-            a("")
-
-        sibs = [s for s in by_theme[key] if s != t]
-        if sibs:
-            a("----")
-            a("")
-            a(f"**More in {disp}**")
-            a("")
-            shown = sibs[:14]
-            a("   " + " · ".join(f":doc:`{s} <{docname[s]}>`" for s in shown))
-            a("")
-
         a("----")
         a("")
         a(f"*Theme:* :ref:`{disp} <term-theme-{key}>` :raw-html:`&nbsp;·&nbsp;` "
           f":doc:`All terminology <index>`")
         a("")
+
+        # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#admonitions-messages-and-warnings
+        # Note      → "Be aware of this clarification or detail."          # 📝 Neutral observations, assumptions, clarifications, conventions, or exceptions.
+        # See also  → "Explore these related topics and resources."        # 📚 Internal/external references, further reading, related topics, prerequisites.
+        # Hint      → "This may help you understand the concept."          # 💡 Intuition, conceptual connections, mind maps, learning aids.
+        # Tip       → "This may help you work more effectively."           # 💡 Best practices, shortcuts, recommendations, efficient/advice workflows.
+        # Info      → "Here's additional background or context."           # ℹ️ Background, implementation notes, **sources used by this page**, supplementary factual information where the information came from.
+        # Important → "Do not overlook this; it's essential."              # ⭐ Critical/Essential concepts, requirements, or limitations.
+
+        # lateral cross-links
+        mm = [s for s in MINDMAP.get(t, []) if s != t and s in docname]
+        if mm:
+            a("----")
+            a("")
+            a(".. hint::")
+            a("   " + "**Mind map — connected ideas**")
+            a("")
+            a("   " + " · ".join(f":doc:`{s} <{docname[s]}>`" for s in mm))
+            a("")
+
+        # lateral cross-links
+        sibs = [s for s in by_theme[key] if s != t]
+        if sibs:
+            a("----")
+            a("")
+            a(".. hint::")
+            a("   " + f"**More in {disp}**")
+            a("")
+            shown = sibs[:14]
+            a("   " + " · ".join(f":doc:`{s} <{docname[s]}>`" for s in shown))
+            a("")
+
+        # source (context/traceability)
         a(".. seealso::")
         a("")
-        a(f"   Adapted in our own words from `{t} <{url[t]}>`__ "
+        a(f"   **Source article** Adapted (context, re-expressed) in our own words from: `{t} <{url[t]}>`__ "
           f"(insightful-data-lab.com).")
         a("")
+
+        # tags
         a(f".. tags:: purpose: reference, level: {LEVEL_WORD[lvl]}")
         a("")
         (PAGES_DIR / f"{docname[t]}.rst").write_text("\n".join(L), encoding="utf-8")
@@ -846,9 +866,11 @@ def main() -> int:
     w("")
     w(".. _terminology-index:")
     w("")
-    w(_banner("📖", "Terminology", big=True))
-    w(':raw-html:`<div align="center" style="opacity:0.65;font-size:0.9rem">'
-      '|full_version|  ·  |today|</div>`')
+    # w(_banner("📖", "Terminology", big=True))  # ·
+    w(":raw-html:`<div align=\"center\" style=\"text-align:center\"><strong>` 📖 Terminology")
+    w("|br| Glossary of Artificial Intelligence and Machine Learning Terms")
+    w("|br| |full_version| - |today|")
+    w(":raw-html:`</strong></div>`")
     w("")
     title = "Terminology"
     w(_bar(title)); w(title); w(_bar(title))
@@ -870,8 +892,8 @@ def main() -> int:
     w('   <div style="text-align:center;margin:0.4rem 0 0.4rem">')
     w('   <input id="term-filter" type="search" autocomplete="off" spellcheck="false"')
     w(f'          placeholder="&#128269;&nbsp; Type to filter {n_terms} terms &mdash; by name or keyword&hellip;"')
-    w('          style="width:100%;max-width:680px;padding:0.55rem 1rem;font-size:1rem;')
-    w('                 border:1px solid rgba(128,128,128,0.45);border-radius:0.55rem;')
+    w('          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;')
+    w('                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;')  # 1px solid rgba(128,128,128,0.45)
     w('                 background:transparent;color:inherit"/>')
     w('   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;')
     w('        min-height:1.2em;margin-top:0.35rem"></div>')
@@ -895,7 +917,7 @@ def main() -> int:
     w("       dds.forEach(function(d){")
     w("         if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}")
     w("         else{d.style.display='';d.open=false;}});")
-    w("       if(cnt){cnt.textContent=(q&&az)?(n+' matching term'+(n===1?'':'s')):'';}")
+    w(f"       if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_terms} match'+(n===1?'':'s')):'';}}")
     w("     });")
     w("   });")
     w("   </script>")

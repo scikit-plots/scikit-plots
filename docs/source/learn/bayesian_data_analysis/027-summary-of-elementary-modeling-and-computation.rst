@@ -6,7 +6,7 @@ Summary of Elementary Modeling and Computation
 
 **Part 1 · Stage 3 · 🧮 Multiparameter Models**  ·  Lesson 027 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate) <026-example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate>`   ·   :doc:`Next · Normal Approximations to the Posterior Distribution ▶ <028-normal-approximations-to-the-posterior-distribution>`
+:doc:`◀ Previous · Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate) <026-example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate>`   ·   :doc:`Next · Normal Approximations to the Posterior Distribution ▶ <028-normal-approximations-to-the-posterior-distribution>`   ·   :doc:`↑ Section <index>`
 
 
 What Part I established
@@ -63,10 +63,12 @@ models with structure** — groups, predictors, nonlinearity? (hierarchies, regr
 Parts IV–V). The next stage begins the answer by asking what happens to a posterior as data
 accumulate.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The three steps of Bayesian data analysis <001-the-three-steps-of-bayesian-data-analysis>`  ·  :doc:`Example: Bayesian analysis of a bioassay experiment (logistic, nonconjugate) <026-example-bayesian-analysis-of-a-bioassay-experiment-logistic-nonconjugate>`  ·  :doc:`Posterior as a Compromise Between Data and Prior Information <012-posterior-as-a-compromise-between-data-and-prior-information>`  ·  :doc:`The Place of Model Checking in Applied Bayesian Statistics <040-the-place-of-model-checking-in-applied-bayesian-statistics>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/summary-of-elementary-modeling-and-computation/ <https://insightful-data-lab.com/2025/11/09/summary-of-elementary-modeling-and-computation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/summary-of-elementary-modeling-and-computation/ <https://insightful-data-lab.com/2025/11/09/summary-of-elementary-modeling-and-computation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

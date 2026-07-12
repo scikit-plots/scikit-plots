@@ -6,7 +6,7 @@ Derivatives
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 09 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`   ·   :doc:`Next · More Derivative Examples ▶ <10-more-derivative-examples>`
+:doc:`◀ Previous · Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`   ·   :doc:`Next · More Derivative Examples ▶ <10-more-derivative-examples>`   ·   :doc:`↑ Section <index>`
 
 
 Derivative means slope
@@ -39,10 +39,12 @@ just "**how fast the output moves when you wiggle the input**" is enough to foll
 and **backpropagation** ahead — the machinery that computes :math:`\partial J / \partial \mathbf{w}`
 and :math:`\partial J / \partial b` for a whole network.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`More Derivative Examples <10-more-derivative-examples>`  ·  :doc:`Computation Graph <11-computation-graph>`  ·  :doc:`Gradient Descent in Logistic Regression <08-gradient-descent-in-logistic-regression>`  ·  :doc:`Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/derivatives/ <https://insightful-data-lab.com/2025/04/07/derivatives/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/derivatives/ <https://insightful-data-lab.com/2025/04/07/derivatives/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

@@ -6,7 +6,7 @@ Hierarchical modeling applied to a meta-analysis
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 038 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`   ·   :doc:`Next · Weakly Informative Priors for Variance Parameters ▶ <039-weakly-informative-priors-for-variance-parameters>`
+:doc:`◀ Previous · Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`   ·   :doc:`Next · Weakly Informative Priors for Variance Parameters ▶ <039-weakly-informative-priors-for-variance-parameters>`   ·   :doc:`↑ Section <index>`
 
 
 The same model, a different name
@@ -68,10 +68,12 @@ differences as **covariates** (a hierarchical *meta-regression*) and assume exch
 remains. Publication bias is a harder problem still: it corrupts the likelihood itself, and no prior
 fixes a biased sample of studies.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`  ·  :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`  ·  :doc:`Robust inference for the eight schools <116-robust-inference-for-the-eight-schools>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/hierarchical-modeling-applied-to-a-meta-analysis/ <https://insightful-data-lab.com/2025/11/10/hierarchical-modeling-applied-to-a-meta-analysis/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/hierarchical-modeling-applied-to-a-meta-analysis/ <https://insightful-data-lab.com/2025/11/10/hierarchical-modeling-applied-to-a-meta-analysis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

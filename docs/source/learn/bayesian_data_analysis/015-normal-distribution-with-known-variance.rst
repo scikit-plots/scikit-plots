@@ -6,7 +6,7 @@ Normal Distribution with Known Variance
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 015 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Informative Prior Distributions <014-informative-prior-distributions>`   ·   :doc:`Next · Other Standard Single-Parameter Models ▶ <016-other-standard-single-parameter-models>`
+:doc:`◀ Previous · Informative Prior Distributions <014-informative-prior-distributions>`   ·   :doc:`Next · Other Standard Single-Parameter Models ▶ <016-other-standard-single-parameter-models>`   ·   :doc:`↑ Section <index>`
 
 
 The second workhorse
@@ -66,10 +66,12 @@ becomes negligible and :math:`\mu_n \to \bar{y}` — data win, as always. And a 
 the familiar sampling-theory result reappearing as a Bayesian posterior. That coincidence, and its
 limits, is the subject of Stage 4.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Normal Data with a Conjugate Prior Distribution <022-normal-data-with-a-conjugate-prior-distribution>`  ·  :doc:`Other Standard Single-Parameter Models <016-other-standard-single-parameter-models>`  ·  :doc:`Normal model with exchangeable parameters <036-normal-model-with-exchangeable-parameters>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/normal-distribution-with-known-variance/ <https://insightful-data-lab.com/2025/11/09/normal-distribution-with-known-variance/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/normal-distribution-with-known-variance/ <https://insightful-data-lab.com/2025/11/09/normal-distribution-with-known-variance/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

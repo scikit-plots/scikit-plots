@@ -22,6 +22,8 @@ Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/elements-of-art-in-data-visualization-line-shape-color-space-and-movement/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/elements-of-art-in-data-visualization-line-shape-color-space-and-movement/ <https://insightful-data-lab.com/2023/11/26/elements-of-art-in-data-visualization-line-shape-color-space-and-movement/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, principles

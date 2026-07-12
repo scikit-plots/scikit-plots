@@ -6,7 +6,7 @@ Assembling the matrix of explanatory variables
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 095 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Goals of regression analysis <094-goals-of-regression-analysis>`   ·   :doc:`Next · Regularization and dimension reduction ▶ <096-regularization-and-dimension-reduction>`
+:doc:`◀ Previous · Goals of regression analysis <094-goals-of-regression-analysis>`   ·   :doc:`Next · Regularization and dimension reduction ▶ <096-regularization-and-dimension-reduction>`   ·   :doc:`↑ Section <index>`
 
 
 The model is in the design matrix
@@ -63,10 +63,12 @@ invalidates every inference computed afterwards. And **check the implications**:
 predictive to see what data your coding and priors imply, before you look at the outcome. A design
 matrix that yields absurd prior predictions is a modelling error, not a detail.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Goals of regression analysis <094-goals-of-regression-analysis>`  ·  :doc:`Regularization and dimension reduction <096-regularization-and-dimension-reduction>`  ·  :doc:`Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`  ·  :doc:`Varying intercepts and slopes <102-varying-intercepts-and-slopes>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/assembling-the-matrix-of-explanatory-variables/ <https://insightful-data-lab.com/2025/11/23/assembling-the-matrix-of-explanatory-variables/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/assembling-the-matrix-of-explanatory-variables/ <https://insightful-data-lab.com/2025/11/23/assembling-the-matrix-of-explanatory-variables/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

@@ -6,7 +6,7 @@ State-level opinons from national polls
 
 **Part 4 · Stage 13 · 🔗 Generalized Linear Models**  ·  Lesson 110 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Overdispersed Poisson regression for police stops <109-overdispersed-poisson-regression-for-police-stops>`   ·   :doc:`Next · Models for multivariate and multinomial responses ▶ <111-models-for-multivariate-and-multinomial-responses>`
+:doc:`◀ Previous · Overdispersed Poisson regression for police stops <109-overdispersed-poisson-regression-for-police-stops>`   ·   :doc:`Next · Models for multivariate and multinomial responses ▶ <111-models-for-multivariate-and-multinomial-responses>`   ·   :doc:`↑ Section <index>`
 
 
 Small areas from big surveys
@@ -62,10 +62,12 @@ same machinery **adjusts for non-representative samples** generally, which is wh
 to modern survey inference and to forecasting from imperfect polls. It is the hierarchical logistic model
 of this stage, put to work on the small-area problem.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Working with generalized linear models <107-working-with-generalized-linear-models>`  ·  :doc:`Weakly informative priors for logistic regression <108-weakly-informative-priors-for-logistic-regression>`  ·  :doc:`Varying intercepts and slopes <102-varying-intercepts-and-slopes>`  ·  :doc:`Sample surveys <052-sample-surveys>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/state-level-opinons-from-national-polls/ <https://insightful-data-lab.com/2025/12/06/state-level-opinons-from-national-polls/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/state-level-opinons-from-national-polls/ <https://insightful-data-lab.com/2025/12/06/state-level-opinons-from-national-polls/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

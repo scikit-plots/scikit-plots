@@ -6,7 +6,7 @@ Unequal variances and correlations
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 097 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Regularization and dimension reduction <096-regularization-and-dimension-reduction>`   ·   :doc:`Next · Including numerical prior information ▶ <098-including-numerical-prior-information>`
+:doc:`◀ Previous · Regularization and dimension reduction <096-regularization-and-dimension-reduction>`   ·   :doc:`Next · Including numerical prior information ▶ <098-including-numerical-prior-information>`   ·   :doc:`↑ Section <index>`
 
 
 When the errors are not i.i.d.
@@ -80,10 +80,12 @@ worse: treating clustered or serially dependent observations as independent **ov
 sample size, producing intervals far too narrow. Modelling :math:`\Sigma` is what makes the uncertainty
 honest, and it is the doorway to the mixed models and Gaussian processes ahead.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian analysis of classical regression <092-bayesian-analysis-of-classical-regression>`  ·  :doc:`Including numerical prior information <098-including-numerical-prior-information>`  ·  :doc:`Models for multivariate and multinomial responses <111-models-for-multivariate-and-multinomial-responses>`  ·  :doc:`Gaussian process regression <129-gaussian-process-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/23/unequal-variances-and-correlations/ <https://insightful-data-lab.com/2025/11/23/unequal-variances-and-correlations/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/unequal-variances-and-correlations/ <https://insightful-data-lab.com/2025/11/23/unequal-variances-and-correlations/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

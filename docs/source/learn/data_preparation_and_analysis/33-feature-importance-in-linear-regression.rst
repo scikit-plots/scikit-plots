@@ -6,7 +6,7 @@ Feature Importance in Linear Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 33 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Multiple Linear Regression <32-multiple-linear-regression>`   ·   :doc:`Next · Forward Selection: Definition and Core Idea ▶ <34-forward-selection-definition-and-core-idea>`
+:doc:`◀ Previous · Multiple Linear Regression <32-multiple-linear-regression>`   ·   :doc:`Next · Forward Selection: Definition and Core Idea ▶ <34-forward-selection-definition-and-core-idea>`   ·   :doc:`↑ Section <index>`
 
 
 Which features matter?
@@ -48,10 +48,12 @@ unimportant. For a model-agnostic alternative, **permutation importance** measur
 performance drops when a feature is shuffled — an idea that generalises to the trees and other models
 ahead. The next lessons turn to choosing *which* features to include at all.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Multiple Linear Regression <32-multiple-linear-regression>`  ·  :doc:`Least Squares Regression <31-least-squares-regression>`  ·  :doc:`How Shapley Values Work <37-how-shapley-values-work>`  ·  :doc:`Understanding Forward and Backward Stepwise Regression <36-understanding-forward-and-backward-stepwise-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/feature-importance-in-linear-regression/ <https://insightful-data-lab.com/2026/01/16/feature-importance-in-linear-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/feature-importance-in-linear-regression/ <https://insightful-data-lab.com/2026/01/16/feature-importance-in-linear-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

@@ -6,7 +6,7 @@ Working with generalized linear models
 
 **Part 4 · Stage 13 · 🔗 Generalized Linear Models**  ·  Lesson 107 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`   ·   :doc:`Next · Weakly informative priors for logistic regression ▶ <108-weakly-informative-priors-for-logistic-regression>`
+:doc:`◀ Previous · Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`   ·   :doc:`Next · Weakly informative priors for logistic regression ▶ <108-weakly-informative-priors-for-logistic-regression>`   ·   :doc:`↑ Section <index>`
 
 
 Fitting is easy; interpreting is the work
@@ -66,10 +66,12 @@ narrow. The binomial makes an analogous assumption. Detecting this — variance 
 likelihood permits — and fixing it with a richer likelihood is the subject two lessons on. First,
 though, the priors that make even the basic logistic model behave.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Weakly informative priors for logistic regression <108-weakly-informative-priors-for-logistic-regression>`  ·  :doc:`Overdispersed Poisson regression for police stops <109-overdispersed-poisson-regression-for-police-stops>`  ·  :doc:`Do the Inferences from the Model Make Sense? <041-do-the-inferences-from-the-model-make-sense>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/working-with-generalized-linear-models/ <https://insightful-data-lab.com/2025/12/06/working-with-generalized-linear-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/working-with-generalized-linear-models/ <https://insightful-data-lab.com/2025/12/06/working-with-generalized-linear-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

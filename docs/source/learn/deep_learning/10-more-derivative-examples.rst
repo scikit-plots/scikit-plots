@@ -6,7 +6,7 @@ More Derivative Examples
 
 **Stage 3 · 📉 Derivatives & the Computation Graph**  ·  Lesson 10 of 17  ·  *intermediate*
 
-:doc:`◀ Previous · Derivatives <09-derivatives>`   ·   :doc:`Next · Computation Graph ▶ <11-computation-graph>`
+:doc:`◀ Previous · Derivatives <09-derivatives>`   ·   :doc:`Next · Computation Graph ▶ <11-computation-graph>`   ·   :doc:`↑ Section <index>`
 
 
 When the slope changes
@@ -46,10 +46,12 @@ For a **curve**, "the derivative" always means the slope **at a particular point
 multi-step computation so these per-point slopes can be combined **mechanically**, through a
 **computation graph**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Derivatives <09-derivatives>`  ·  :doc:`Computation Graph <11-computation-graph>`  ·  :doc:`Derivatives with a Computation Graph <12-derivatives-with-a-computation-graph>`  ·  :doc:`Logistic Regression Gradient Descent <13-logistic-regression-gradient-descent>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/more-derivative-examples/ <https://insightful-data-lab.com/2025/04/07/more-derivative-examples/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/more-derivative-examples/ <https://insightful-data-lab.com/2025/04/07/more-derivative-examples/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: intermediate

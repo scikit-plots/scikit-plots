@@ -6,7 +6,7 @@ The Place of Model Checking in Applied Bayesian Statistics
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 040 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`   ·   :doc:`Next · Do the Inferences from the Model Make Sense? ▶ <041-do-the-inferences-from-the-model-make-sense>`
+:doc:`◀ Previous · Weakly Informative Priors for Variance Parameters <039-weakly-informative-priors-for-variance-parameters>`   ·   :doc:`Next · Do the Inferences from the Model Make Sense? ▶ <041-do-the-inferences-from-the-model-make-sense>`   ·   :doc:`↑ Section <index>`
 
 
 The third step, at last
@@ -62,10 +62,12 @@ A final distinction. Checking is not a significance test that accepts or rejects
 :math:`p`-value that looks extreme tells you *where* the model misses, not whether to "reject" it at
 5%. The aim is not a verdict but **understanding** — and, ultimately, a better model.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`The three steps of Bayesian data analysis <001-the-three-steps-of-bayesian-data-analysis>`  ·  :doc:`Do the Inferences from the Model Make Sense? <041-do-the-inferences-from-the-model-make-sense>`  ·  :doc:`Posterior predictive checking <042-posterior-predictive-checking>`  ·  :doc:`Continuous model expansion <048-continuous-model-expansion>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/ <https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/ <https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

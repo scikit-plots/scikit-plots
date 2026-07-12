@@ -6,7 +6,7 @@ Finding posterior modes
 
 **Part 3 · Stage 10 · 🎛️ Modal & Variational Approximation**  ·  Lesson 081 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Stan: developing a computing environment <080-stan-developing-a-computing-environment>`   ·   :doc:`Next · Boundary-avoiding priors for modal summaries ▶ <082-boundary-avoiding-priors-for-modal-summaries>`
+:doc:`◀ Previous · Stan: developing a computing environment <080-stan-developing-a-computing-environment>`   ·   :doc:`Next · Boundary-avoiding priors for modal summaries ▶ <082-boundary-avoiding-priors-for-modal-summaries>`   ·   :doc:`↑ Section <index>`
 
 
 Optimisation instead of sampling
@@ -59,10 +59,12 @@ that connects Bayesian analysis to **penalised likelihood** (Stage 4): ridge, la
 point-estimation software are all computing posterior modes. What the mode never provides is
 **uncertainty**; the curvature around it is an approximation whose adequacy must itself be checked.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Approximations to the Posterior Distribution <028-normal-approximations-to-the-posterior-distribution>`  ·  :doc:`Boundary-avoiding priors for modal summaries <082-boundary-avoiding-priors-for-modal-summaries>`  ·  :doc:`Finding marginal posterior modes using EM <084-finding-marginal-posterior-modes-using-em>`  ·  :doc:`Bayesian interpretations of other statistical methods <032-bayesian-interpretations-of-other-statistical-methods>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/finding-posterior-modes/ <https://insightful-data-lab.com/2025/11/22/finding-posterior-modes/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/finding-posterior-modes/ <https://insightful-data-lab.com/2025/11/22/finding-posterior-modes/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

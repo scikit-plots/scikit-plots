@@ -8,8 +8,10 @@
 
 .. _terminology-index:
 
-:raw-html:`<div align="center" style="font-size:1.55rem;font-weight:700;margin:0.45rem 0 0.2rem">📖&nbsp;&nbsp;Terminology</div>`
-:raw-html:`<div align="center" style="opacity:0.65;font-size:0.9rem">|full_version|  ·  |today|</div>`
+:raw-html:`<div align="center" style="text-align:center"><strong>` 📖 Terminology
+|br| Glossary of Artificial Intelligence and Machine Learning Terms
+|br| |full_version| - |today|
+:raw-html:`</strong></div>`
 
 =============
 Terminology
@@ -22,8 +24,8 @@ A working glossary of **431 terms** spanning statistics, machine learning, forec
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
    <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
           placeholder="&#128269;&nbsp; Type to filter 431 terms &mdash; by name or keyword&hellip;"
-          style="width:100%;max-width:680px;padding:0.55rem 1rem;font-size:1rem;
-                 border:1px solid rgba(128,128,128,0.45);border-radius:0.55rem;
+          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;
+                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
                  background:transparent;color:inherit"/>
    <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;
         min-height:1.2em;margin-top:0.35rem"></div>
@@ -47,7 +49,7 @@ A working glossary of **431 terms** spanning statistics, machine learning, forec
        dds.forEach(function(d){
          if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
          else{d.style.display='';d.open=false;}});
-       if(cnt){cnt.textContent=(q&&az)?(n+' matching term'+(n===1?'':'s')):'';}
+       if(cnt){cnt.textContent=(q&&az)?(n+' of 431 match'+(n===1?'':'s')):'';}
      });
    });
    </script>

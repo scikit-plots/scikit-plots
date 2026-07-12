@@ -6,7 +6,7 @@ Posterior inference and computation
 
 **Part 4 · Stage 14 · 🛡️ Robustness & Missing Data**  ·  Lesson 115 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Overdispersed versions of standard models <114-overdispersed-versions-of-standard-models>`   ·   :doc:`Next · Robust inference for the eight schools ▶ <116-robust-inference-for-the-eight-schools>`
+:doc:`◀ Previous · Overdispersed versions of standard models <114-overdispersed-versions-of-standard-models>`   ·   :doc:`Next · Robust inference for the eight schools ▶ <116-robust-inference-for-the-eight-schools>`   ·   :doc:`↑ Section <index>`
 
 
 Fitting robust models
@@ -68,10 +68,12 @@ lurch** when one point is extreme, and an explicit account — through the weigh
 posterior of :math:`\nu` — of *how much* robustness the data actually demanded. The next lesson puts the
 whole apparatus to work on a familiar dataset.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Overdispersed versions of standard models <114-overdispersed-versions-of-standard-models>`  ·  :doc:`Robust regression using t-distributed errors <117-robust-regression-using-t-distributed-errors>`  ·  :doc:`Gibbs sampler <069-gibbs-sampler>`  ·  :doc:`Robust inference for the eight schools <116-robust-inference-for-the-eight-schools>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/ <https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/ <https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

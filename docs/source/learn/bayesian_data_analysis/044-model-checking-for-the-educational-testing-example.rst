@@ -6,7 +6,7 @@ Model checking for the educational testing example
 
 **Part 2 · Stage 6 · 🔍 Model Checking & Comparison**  ·  Lesson 044 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Graphical posterior predictive checks <043-graphical-posterior-predictive-checks>`   ·   :doc:`Next · Measures of predictive accuracy ▶ <045-measures-of-predictive-accuracy>`
+:doc:`◀ Previous · Graphical posterior predictive checks <043-graphical-posterior-predictive-checks>`   ·   :doc:`Next · Measures of predictive accuracy ▶ <045-measures-of-predictive-accuracy>`   ·   :doc:`↑ Section <index>`
 
 
 Checking eight schools
@@ -62,10 +62,12 @@ the assumptions the data cannot see. The honest next step is **sensitivity analy
 :math:`t` population distribution, or a different prior on :math:`\tau`, and see whether any conclusion
 you would act on moves.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`  ·  :doc:`Posterior predictive checking <042-posterior-predictive-checking>`  ·  :doc:`Graphical posterior predictive checks <043-graphical-posterior-predictive-checks>`  ·  :doc:`Robust inference for the eight schools <116-robust-inference-for-the-eight-schools>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/model-checking-for-the-educational-testing-example/ <https://insightful-data-lab.com/2025/11/10/model-checking-for-the-educational-testing-example/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/model-checking-for-the-educational-testing-example/ <https://insightful-data-lab.com/2025/11/10/model-checking-for-the-educational-testing-example/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

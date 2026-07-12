@@ -6,7 +6,7 @@ Apriori: Frequent Itemsets via the Apriori Algorithm
 
 **Stage 3 · 🛒 Market Basket & Association Rules**  ·  Lesson 20 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`   ·   :doc:`Next · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) ▶ <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`
+:doc:`◀ Previous · How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`   ·   :doc:`Next · association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) ▶ <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`   ·   :doc:`↑ Section <index>`
 
 
 Prior knowledge
@@ -47,10 +47,12 @@ frequent itemset, split it into an antecedent and consequent every way possible 
 whose **confidence** (or **lift**) clears a threshold. Because both sides come from a frequent itemset,
 the rule's support is already known — which is exactly what the next lesson automates in Python.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori Approach <19-how-association-rules-are-discovered-concepts-scale-measures-and-the-apriori-approach>`  ·  :doc:`association_rules: Generating Association Rules from Frequent Itemsets (mlxtend) <21-association-rules-generating-association-rules-from-frequent-itemsets-mlxtend>`  ·  :doc:`Understanding Market Baskets and Ideal Customers <17-understanding-market-baskets-and-ideal-customers>`  ·  :doc:`Cross-Selling <22-cross-selling>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/ <https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/ <https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

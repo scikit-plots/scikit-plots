@@ -6,7 +6,7 @@ Regression coeﬃcients exchangeable in batches
 
 **Part 4 · Stage 12 · 🏗️ Hierarchical Regression**  ·  Lesson 099 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Including numerical prior information <098-including-numerical-prior-information>`   ·   :doc:`Next · Example: forecasting U.S. presidential elections ▶ <100-example-forecasting-u-s-presidential-elections>`
+:doc:`◀ Previous · Including numerical prior information <098-including-numerical-prior-information>`   ·   :doc:`Next · Example: forecasting U.S. presidential elections ▶ <100-example-forecasting-u-s-presidential-elections>`   ·   :doc:`↑ Section <index>`
 
 
 Structure among the coefficients
@@ -64,10 +64,12 @@ groups. Treating each such set as an exchangeable batch with its own variance is
 this stage — and the varying-intercept, varying-slope, and ANOVA lessons that follow are all special
 cases of it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Exchangeability and hierarchical models <034-exchangeability-and-hierarchical-models>`  ·  :doc:`Example: forecasting U.S. presidential elections <100-example-forecasting-u-s-presidential-elections>`  ·  :doc:`Varying intercepts and slopes <102-varying-intercepts-and-slopes>`  ·  :doc:`Analysis of variance and the batching of coeﬃcients <104-analysis-of-variance-and-the-batching-of-coefficients>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/24/regression-coe%ef%ac%83cients-exchangeable-in-batches/ <https://insightful-data-lab.com/2025/11/24/regression-coe%ef%ac%83cients-exchangeable-in-batches/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/24/regression-coe%ef%ac%83cients-exchangeable-in-batches/ <https://insightful-data-lab.com/2025/11/24/regression-coe%ef%ac%83cients-exchangeable-in-batches/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

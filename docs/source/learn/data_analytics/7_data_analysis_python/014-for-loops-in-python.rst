@@ -22,6 +22,8 @@ For Loops in Python
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/12/06/for-loops-in-python/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/12/06/for-loops-in-python/ <https://insightful-data-lab.com/2023/12/06/for-loops-in-python/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, python, control

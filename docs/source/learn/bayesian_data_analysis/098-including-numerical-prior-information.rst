@@ -6,7 +6,7 @@ Including numerical prior information
 
 **Part 4 · Stage 11 · 📈 Regression Foundations**  ·  Lesson 098 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Unequal variances and correlations <097-unequal-variances-and-correlations>`   ·   :doc:`Next · Regression coeﬃcients exchangeable in batches ▶ <099-regression-coefficients-exchangeable-in-batches>`
+:doc:`◀ Previous · Unequal variances and correlations <097-unequal-variances-and-correlations>`   ·   :doc:`Next · Regression coeﬃcients exchangeable in batches ▶ <099-regression-coefficients-exchangeable-in-batches>`   ·   :doc:`↑ Section <index>`
 
 
 Quantitative prior knowledge
@@ -62,10 +62,12 @@ with the data in proportion to their precisions, exactly as combining two datase
 has an exact and illuminating algebraic form — a normal prior behaves like a set of extra data points —
 which the next lesson makes precise.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Bayesian analysis of classical regression <092-bayesian-analysis-of-classical-regression>`  ·  :doc:`Interpreting a normal prior distribution as extra data <101-interpreting-a-normal-prior-distribution-as-extra-data>`  ·  :doc:`Regularization and dimension reduction <096-regularization-and-dimension-reduction>`  ·  :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/ <https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/ <https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

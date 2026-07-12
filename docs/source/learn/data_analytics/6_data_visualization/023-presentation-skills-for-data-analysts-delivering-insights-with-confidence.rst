@@ -22,6 +22,8 @@ Presentation Skills for Data Analysts: Delivering Insights with Confidence
 
    Full content for this lesson has not been written yet.
 
-`Source article <https://insightful-data-lab.com/2023/11/26/presentation-skills-for-data-analysts-delivering-insights-with-confidence/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/presentation-skills-for-data-analysts-delivering-insights-with-confidence/ <https://insightful-data-lab.com/2023/11/26/presentation-skills-for-data-analysts-delivering-insights-with-confidence/>`__ (insightful-data-lab.com).
 
 .. tags:: data-analytics, viz, present

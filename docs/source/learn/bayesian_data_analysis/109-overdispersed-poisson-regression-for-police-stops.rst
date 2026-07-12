@@ -6,7 +6,7 @@ Overdispersed Poisson regression for police stops
 
 **Part 4 · Stage 13 · 🔗 Generalized Linear Models**  ·  Lesson 109 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Weakly informative priors for logistic regression <108-weakly-informative-priors-for-logistic-regression>`   ·   :doc:`Next · State-level opinons from national polls ▶ <110-state-level-opinons-from-national-polls>`
+:doc:`◀ Previous · Weakly informative priors for logistic regression <108-weakly-informative-priors-for-logistic-regression>`   ·   :doc:`Next · State-level opinons from national polls ▶ <110-state-level-opinons-from-national-polls>`   ·   :doc:`↑ Section <index>`
 
 
 Counts with too much variance
@@ -68,10 +68,12 @@ estimates on a question where precision claims have real consequences. Diagnosin
 the mean, and modelling it, is not optional refinement; it is the difference between a defensible finding
 and an artefact.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Working with generalized linear models <107-working-with-generalized-linear-models>`  ·  :doc:`Overdispersed versions of standard models <114-overdispersed-versions-of-standard-models>`  ·  :doc:`Hierarchical models for batches of variance components <105-hierarchical-models-for-batches-of-variance-components>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/overdispersed-poisson-regression-for-police-stops/ <https://insightful-data-lab.com/2025/12/06/overdispersed-poisson-regression-for-police-stops/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/overdispersed-poisson-regression-for-police-stops/ <https://insightful-data-lab.com/2025/12/06/overdispersed-poisson-regression-for-police-stops/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

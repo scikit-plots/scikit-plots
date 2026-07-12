@@ -6,7 +6,7 @@ Models for multivariate and multinomial responses
 
 **Part 4 · Stage 13 · 🔗 Generalized Linear Models**  ·  Lesson 111 of 144  ·  *advanced*
 
-:doc:`◀ Previous · State-level opinons from national polls <110-state-level-opinons-from-national-polls>`   ·   :doc:`Next · Loglinear models for multivariate discrete data ▶ <112-loglinear-models-for-multivariate-discrete-data>`
+:doc:`◀ Previous · State-level opinons from national polls <110-state-level-opinons-from-national-polls>`   ·   :doc:`Next · Loglinear models for multivariate discrete data ▶ <112-loglinear-models-for-multivariate-discrete-data>`   ·   :doc:`↑ Section <index>`
 
 
 When the outcome is not a single number
@@ -66,10 +66,12 @@ background, the covariance of symptoms — a quantity separate univariate models
 Categorical and multivariate responses complete the GLM's reach: with them, the framework covers binary,
 count, ordered, unordered and vector-valued outcomes under one set of tools.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`  ·  :doc:`Loglinear models for multivariate discrete data <112-loglinear-models-for-multivariate-discrete-data>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`  ·  :doc:`Working with generalized linear models <107-working-with-generalized-linear-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/06/models-for-multivariate-and-multinomial-responses/ <https://insightful-data-lab.com/2025/12/06/models-for-multivariate-and-multinomial-responses/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/models-for-multivariate-and-multinomial-responses/ <https://insightful-data-lab.com/2025/12/06/models-for-multivariate-and-multinomial-responses/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

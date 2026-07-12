@@ -6,7 +6,7 @@ Multiple Linear Regression
 
 **Stage 5 · 📈 Regression**  ·  Lesson 32 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Least Squares Regression <31-least-squares-regression>`   ·   :doc:`Next · Feature Importance in Linear Regression ▶ <33-feature-importance-in-linear-regression>`
+:doc:`◀ Previous · Least Squares Regression <31-least-squares-regression>`   ·   :doc:`Next · Feature Importance in Linear Regression ▶ <33-feature-importance-in-linear-regression>`   ·   :doc:`↑ Section <index>`
 
 
 More than one predictor
@@ -55,10 +55,12 @@ In practice you never invert the matrix by hand. **scikit-learn** fits the model
 adds a full statistical summary with standard errors and p-values for each coefficient. The next
 lesson uses those coefficients to ask which features matter **most**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Least Squares Regression <31-least-squares-regression>`  ·  :doc:`Feature Importance in Linear Regression <33-feature-importance-in-linear-regression>`  ·  :doc:`Forward Selection and Model Interpretation in Linear Regression <35-forward-selection-and-model-interpretation-in-linear-regression>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/multiple-linear-regression/ <https://insightful-data-lab.com/2026/01/16/multiple-linear-regression/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/multiple-linear-regression/ <https://insightful-data-lab.com/2026/01/16/multiple-linear-regression/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

@@ -1191,12 +1191,12 @@ and [LICENSES](https://github.com/scikit-plots/scikit-plots/tree/main/LICENSES) 
 <!--
 --------------------------------
 https://emojidb.org/
-ﷲ ☯ 🏛️ 🕋 ⛪ 🕇 ♰ 🗺
+ﷲ ☯ 🏛️ 🕋 ⛪ 🕇 ♰ 🗺 ·
 --------------------------------
 🔻 To force text-style (monochrome) rendering where possible, you can append the Variation Selector-15 (U+FE0E):
 ←→ ✔︎ 🗖🗗 / 🗗🗖 🗍 🗐 🗌  ⧉🗗 / 🗗⧉  🗕🗖🗗🗔  ⧉⟷⧉ ⧉⇄⧉  🗗 (U+1F5D7) UTF-8: F0 9F 97 97
 
-֎🇦🇮 ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥
+֎🇦🇮 · ⚠︎ ⏻ ∞ ♾️ 🚨 🎯 🧩 🧪 📤📥
 
 🗐 ⧉ 🗌 🗍 🗐 🗐 🗎 🗏 🗑 🗒 🗓 🗔 🗕 🗖 🗗 🗘 🗙 🗚 🗛 🗜 ⧉⇄⧉ ⧉⟷⧉ □▢ ⊞ ⊟ ⊠ ⊡ ⧈ 📋 📄 📃 📑 ▢▢ □□
 

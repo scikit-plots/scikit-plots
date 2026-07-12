@@ -6,7 +6,7 @@ Functional data analysis
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 132 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Latent Gaussian process models <131-latent-gaussian-process-models>`   ·   :doc:`Next · Density estimation and regression ▶ <133-density-estimation-and-regression>`
+:doc:`◀ Previous · Latent Gaussian process models <131-latent-gaussian-process-models>`   ·   :doc:`Next · Density estimation and regression ▶ <133-density-estimation-and-regression>`   ·   :doc:`↑ Section <index>`
 
 
 When each observation is a curve
@@ -66,10 +66,12 @@ splines and Gaussian processes to whole-function data — and hands off to the f
 flexibility comes not from smooth functions but from **mixtures** and infinite-dimensional
 **nonparametric** priors.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Gaussian process regression <129-gaussian-process-regression>`  ·  :doc:`Basis selection and shrinkage of coeﬃcients <127-basis-selection-and-shrinkage-of-coefficients>`  ·  :doc:`Hierarchical models for batches of variance components <105-hierarchical-models-for-batches-of-variance-components>`  ·  :doc:`Latent Gaussian process models <131-latent-gaussian-process-models>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/functional-data-analysis/ <https://insightful-data-lab.com/2025/12/09/functional-data-analysis/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/functional-data-analysis/ <https://insightful-data-lab.com/2025/12/09/functional-data-analysis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

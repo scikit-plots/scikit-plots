@@ -6,7 +6,7 @@ Other Standard Single-Parameter Models
 
 **Part 1 · Stage 2 · 📍 Single-Parameter Models & Priors**  ·  Lesson 016 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`   ·   :doc:`Next · Informative Prior Distribution for Cancer Rates ▶ <017-informative-prior-distribution-for-cancer-rates>`
+:doc:`◀ Previous · Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`   ·   :doc:`Next · Informative Prior Distribution for Cancer Rates ▶ <017-informative-prior-distribution-for-cancer-rates>`   ·   :doc:`↑ Section <index>`
 
 
 The same pattern, different data
@@ -60,10 +60,12 @@ exist for **algebraic convenience**, not because they encode anyone's real prior
 useful models have no conjugate form at all. Modern practice keeps the intuition — priors as pseudo-data,
 posteriors as compromises — and reaches for **MCMC** whenever the model demands it.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Normal Distribution with Known Variance <015-normal-distribution-with-known-variance>`  ·  :doc:`Estimating a Probability from Binomial Data <011-estimating-a-probability-from-binomial-data>`  ·  :doc:`Informative Prior Distributions <014-informative-prior-distributions>`  ·  :doc:`Standard generalized linear model likelihoods <106-standard-generalized-linear-model-likelihoods>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/other-standard-single-parameter-models/ <https://insightful-data-lab.com/2025/11/09/other-standard-single-parameter-models/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/other-standard-single-parameter-models/ <https://insightful-data-lab.com/2025/11/09/other-standard-single-parameter-models/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

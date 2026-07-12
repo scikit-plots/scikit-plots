@@ -6,7 +6,7 @@ Supervised Learning and Neural Networks
 
 **Stage 1 · 🧠 Introduction to Deep Learning**  ·  Lesson 02 of 17  ·  *beginner*
 
-:doc:`◀ Previous · What is a Neural Network? <01-what-is-a-neural-network>`   ·   :doc:`Next · Why Deep Learning is Taking Off ▶ <03-why-deep-learning-is-taking-off>`
+:doc:`◀ Previous · What is a Neural Network? <01-what-is-a-neural-network>`   ·   :doc:`Next · Why Deep Learning is Taking Off ▶ <03-why-deep-learning-is-taking-off>`   ·   :doc:`↑ Section <index>`
 
 
 Learning a mapping
@@ -42,10 +42,12 @@ unstructured data** — speech, vision, language — unlocking applications that
 decade ago. Much of the economic value, meanwhile, still comes from **structured** data inside
 companies, where accurate predictions on large databases translate directly into money.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`What is a Neural Network? <01-what-is-a-neural-network>`  ·  :doc:`Binary Classification and Logistic Regression (Neural Network Basics) <05-binary-classification-and-logistic-regression-neural-network-basics>`  ·  :doc:`Why Deep Learning is Taking Off <03-why-deep-learning-is-taking-off>`  ·  :doc:`Logistic Regression (Binary Classification Model) <06-logistic-regression-binary-classification-model>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/04/07/supervised-learning-and-neural-networks/ <https://insightful-data-lab.com/2025/04/07/supervised-learning-and-neural-networks/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/04/07/supervised-learning-and-neural-networks/ <https://insightful-data-lab.com/2025/04/07/supervised-learning-and-neural-networks/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: deep learning, level: beginner

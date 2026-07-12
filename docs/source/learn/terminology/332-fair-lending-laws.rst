@@ -10,7 +10,7 @@
 
 .. _term-fair-lending-laws:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Fair Lending laws</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Fair Lending laws</b></div>`
 
 ===================
 Fair Lending laws
@@ -43,22 +43,24 @@ demands **fairness testing**, sensitivity analysis, and ongoing **monitoring**. 
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`Basel III <333-basel-iii>` · :doc:`Fairness Guardrails <351-fairness-guardrails>` · :doc:`Risk-Based Decisions <286-risk-based-decisions>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>`
 
 ----
 
-**More in Explainability & Governance**
+.. hint::
+   **More in Explainability & Governance**
 
    :doc:`Basel III <333-basel-iii>` · :doc:`Counterfactual Explanations <336-counterfactual-explanations>` · :doc:`High-Stakes Domains <334-high-stakes-domains>` · :doc:`LIME (Local Interpretable Model-agnostic Explanations) <337-lime-local-interpretable-model-agnostic-explanat>` · :doc:`Post-hoc Explainability <339-post-hoc-explainability>` · :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>`
 
-----
-
-*Theme:* :ref:`Explainability & Governance <term-theme-xai>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Fair Lending laws <https://insightful-data-lab.com/2025/08/20/fair-lending-laws/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Fair Lending laws <https://insightful-data-lab.com/2025/08/20/fair-lending-laws/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced

@@ -6,7 +6,7 @@ Weakly Informative Priors for Variance Parameters
 
 **Part 1 · Stage 5 · 🏛️ Hierarchical Models**  ·  Lesson 039 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Hierarchical modeling applied to a meta-analysis <038-hierarchical-modeling-applied-to-a-meta-analysis>`   ·   :doc:`Next · The Place of Model Checking in Applied Bayesian Statistics ▶ <040-the-place-of-model-checking-in-applied-bayesian-statistics>`
+:doc:`◀ Previous · Hierarchical modeling applied to a meta-analysis <038-hierarchical-modeling-applied-to-a-meta-analysis>`   ·   :doc:`Next · The Place of Model Checking in Applied Bayesian Statistics ▶ <040-the-place-of-model-checking-in-applied-bayesian-statistics>`   ·   :doc:`↑ Section <index>`
 
 
 The parameter that decides everything
@@ -61,10 +61,12 @@ complete pooling is right — but it creates the funnel geometry that demands th
 parameterisation. And with very small :math:`J` (say :math:`J \le 5`), no prior is truly weak: report
 the sensitivity, because the prior is doing visible work.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Weakly Informative Prior Distributions <019-weakly-informative-prior-distributions>`  ·  :doc:`Example: parallel experiments in eight schools <037-example-parallel-experiments-in-eight-schools>`  ·  :doc:`Multivariate Normal with Unknown Mean and Variance <025-multivariate-normal-with-unknown-mean-and-variance>`  ·  :doc:`Hierarchical models for batches of variance components <105-hierarchical-models-for-batches-of-variance-components>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/10/weakly-informative-priors-for-variance-parameters/ <https://insightful-data-lab.com/2025/11/10/weakly-informative-priors-for-variance-parameters/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/weakly-informative-priors-for-variance-parameters/ <https://insightful-data-lab.com/2025/11/10/weakly-informative-priors-for-variance-parameters/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

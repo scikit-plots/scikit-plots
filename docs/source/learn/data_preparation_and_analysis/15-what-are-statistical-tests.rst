@@ -6,7 +6,7 @@ What Are Statistical Tests?
 
 **Stage 2 · 🔗 Associations & Correlation**  ·  Lesson 15 of 56  ·  *beginner*
 
-:doc:`◀ Previous · Harald Cramér <14-harald-cramer>`   ·   :doc:`Next · Eta Squared (η²): Effect Size in ANOVA ▶ <16-eta-squared-2-effect-size-in-anova>`
+:doc:`◀ Previous · Harald Cramér <14-harald-cramer>`   ·   :doc:`Next · Eta Squared (η²): Effect Size in ANOVA ▶ <16-eta-squared-2-effect-size-in-anova>`   ·   :doc:`↑ Section <index>`
 
 
 Is it real or chance?
@@ -42,10 +42,12 @@ And **significance is not importance** — with enough data a trivially small ef
 "significant", which is why the next lesson pairs tests with a measure of **effect size**. The
 chi-square, t-test and ANOVA F-test are all instances of this one logic.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Measuring Associations in Data <10-measuring-associations-in-data>`  ·  :doc:`Eta Squared (η²): Effect Size in ANOVA <16-eta-squared-2-effect-size-in-anova>`  ·  :doc:`Karl Pearson <13-karl-pearson>`  ·  :doc:`Forward Selection with Nested Models and Deviance Tests <42-forward-selection-with-nested-models-and-deviance-tests>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/what-are-statistical-tests/ <https://insightful-data-lab.com/2026/01/14/what-are-statistical-tests/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/what-are-statistical-tests/ <https://insightful-data-lab.com/2026/01/14/what-are-statistical-tests/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: beginner

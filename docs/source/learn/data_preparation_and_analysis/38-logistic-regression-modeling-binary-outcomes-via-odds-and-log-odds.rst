@@ -6,7 +6,7 @@ Logistic Regression: Modeling Binary Outcomes via Odds and Log-Odds
 
 **Stage 6 · 🎯 Classification & Logistic Regression**  ·  Lesson 38 of 56  ·  *advanced*
 
-:doc:`◀ Previous · How Shapley Values Work <37-how-shapley-values-work>`   ·   :doc:`Next · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data ▶ <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`
+:doc:`◀ Previous · How Shapley Values Work <37-how-shapley-values-work>`   ·   :doc:`Next · Maximum Likelihood (MLE): Fitting a Distribution to Observed Data ▶ <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`   ·   :doc:`↑ Section <index>`
 
 
 When the outcome is yes or no
@@ -57,10 +57,12 @@ Python it is ``LogisticRegression`` in scikit-learn, or ``Logit`` in statsmodels
 coefficient table. Unlike least squares, its coefficients have **no closed form** — they are found by
 **maximum likelihood**, the subject of the next lesson.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Maximum Likelihood (MLE): Fitting a Distribution to Observed Data <39-maximum-likelihood-mle-fitting-a-distribution-to-observed-data>`  ·  :doc:`Assessing Model Fit in Logistic Regression <40-assessing-model-fit-in-logistic-regression>`  ·  :doc:`Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`  ·  :doc:`Complete and Quasi-Complete Separation in Logistic Regression <41-complete-and-quasi-complete-separation-in-logistic-regression>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds/ <https://insightful-data-lab.com/2026/01/16/logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds/ <https://insightful-data-lab.com/2026/01/16/logistic-regression-modeling-binary-outcomes-via-odds-and-log-odds/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

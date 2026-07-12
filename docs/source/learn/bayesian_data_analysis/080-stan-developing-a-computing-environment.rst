@@ -6,7 +6,7 @@ Stan: developing a computing environment
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 080 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Hamiltonian Monte Carlo for a hierarchical model <079-hamiltonian-monte-carlo-for-a-hierarchical-model>`   ·   :doc:`Next · Finding posterior modes ▶ <081-finding-posterior-modes>`
+:doc:`◀ Previous · Hamiltonian Monte Carlo for a hierarchical model <079-hamiltonian-monte-carlo-for-a-hierarchical-model>`   ·   :doc:`Next · Finding posterior modes ▶ <081-finding-posterior-modes>`   ·   :doc:`↑ Section <index>`
 
 
 A language for models
@@ -76,10 +76,12 @@ reported without asking, which made unchecked sampling embarrassing rather than 
 rather than as an algorithm. PyMC, NumPyro and BlackJAX offer the same bargain in Python. The remaining
 craft is the modelling — which is where Parts IV and V go.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Hamiltonian Monte Carlo <078-hamiltonian-monte-carlo>`  ·  :doc:`Computing environments <067-computing-environments>`  ·  :doc:`Computation and Software <009-computation-and-software>`  ·  :doc:`Debugging Bayesian computing <068-debugging-bayesian-computing>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/22/stan-developing-a-computing-environment/ <https://insightful-data-lab.com/2025/11/22/stan-developing-a-computing-environment/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/stan-developing-a-computing-environment/ <https://insightful-data-lab.com/2025/11/22/stan-developing-a-computing-environment/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

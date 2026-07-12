@@ -10,7 +10,7 @@
 
 .. _term-predictive-ltv-pltv:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Predictive LTV (pLTV)</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Predictive LTV (pLTV)</b></div>`
 
 =======================
 Predictive LTV (pLTV)
@@ -74,22 +74,24 @@ Pitfalls and edge cases
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Business & Growth Analytics <term-theme-growth>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Cohort-Based LTV (Simple Version) <041-cohort-based-ltv-simple-version>` · :doc:`LTV (Customer Lifetime Value) <373-ltv-customer-lifetime-value>` · :doc:`Customer Lifetime <042-customer-lifetime>` · :doc:`Churn <123-churn>` · :doc:`Gross LTV (Customer Lifetime Value) <039-gross-ltv-customer-lifetime-value>`
 
 ----
 
-**More in Business & Growth Analytics**
+.. hint::
+   **More in Business & Growth Analytics**
 
    :doc:`Blended CAC (Customer Acquisition Cost) <048-blended-cac-customer-acquisition-cost>` · :doc:`CAC (Customer Acquisition Cost) <374-cac-customer-acquisition-cost>` · :doc:`Cannibalization <392-cannibalization>` · :doc:`Channel-Specific CAC (Customer Acquisition Cost) <047-channel-specific-cac-customer-acquisition-cost>` · :doc:`Churn <123-churn>` · :doc:`Cohort <183-cohort>` · :doc:`Cohort-Based LTV (Simple Version) <041-cohort-based-ltv-simple-version>` · :doc:`Conversion Rate (CR) <299-conversion-rate-cr>` · :doc:`Cost-Per-Click (CPC) Models <300-cost-per-click-cpc-models>` · :doc:`Cross-Selling <031-cross-selling>` · :doc:`CTR (Click-Through Rate) <421-ctr-click-through-rate>` · :doc:`Customer Lifetime <042-customer-lifetime>` · :doc:`Customer Segmentation <033-customer-segmentation>` · :doc:`D2C (Direct-to-Consumer) <036-d2c-direct-to-consumer>`
 
-----
-
-*Theme:* :ref:`Business & Growth Analytics <term-theme-growth>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Predictive LTV (pLTV) <https://insightful-data-lab.com/2025/08/29/predictive-ltv-pltv/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Predictive LTV (pLTV) <https://insightful-data-lab.com/2025/08/29/predictive-ltv-pltv/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

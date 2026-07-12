@@ -6,7 +6,7 @@ Frequency Evaluations of Bayesian Inferences
 
 **Part 1 · Stage 4 · 📏 Asymptotics & Frequentist Ties**  ·  Lesson 031 of 144  ·  *beginner*
 
-:doc:`◀ Previous · Counterexamples to large-sample (asymptotic) Bayesian theorems <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`   ·   :doc:`Next · Bayesian interpretations of other statistical methods ▶ <032-bayesian-interpretations-of-other-statistical-methods>`
+:doc:`◀ Previous · Counterexamples to large-sample (asymptotic) Bayesian theorems <030-counterexamples-to-large-sample-asymptotic-bayesian-theorems>`   ·   :doc:`Next · Bayesian interpretations of other statistical methods ▶ <032-bayesian-interpretations-of-other-statistical-methods>`   ·   :doc:`↑ Section <index>`
 
 
 A different question
@@ -57,10 +57,12 @@ over the **prior**, so it certifies the procedure only if that prior is the one 
 amount of frequency checking rescues a **misspecified likelihood**. Coverage is a necessary condition
 for trust, not a sufficient one.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Large-Sample Theory <029-large-sample-theory>`  ·  :doc:`Bayesian interpretations of other statistical methods <032-bayesian-interpretations-of-other-statistical-methods>`  ·  :doc:`Informative Prior Distribution for Cancer Rates <017-informative-prior-distribution-for-cancer-rates>`  ·  :doc:`Posterior predictive checking <042-posterior-predictive-checking>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/ <https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/ <https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: beginner

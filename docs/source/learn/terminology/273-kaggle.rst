@@ -10,7 +10,7 @@
 
 .. _term-kaggle:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>Kaggle</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>Kaggle</b></div>`
 
 ========
 Kaggle
@@ -41,22 +41,24 @@ models, so they don't always translate to **production**, where latency and main
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`TREC (Text REtrieval Conference) <274-trec-text-retrieval-conference>` · :doc:`DCG (Discounted Cumulative Gain) <272-dcg-discounted-cumulative-gain>` · :doc:`Forecasting Competitions <251-forecasting-competitions>` · :doc:`Computer Vision (CV) <321-computer-vision-cv>` · :doc:`Average Precision (AP) <366-average-precision-ap>` · :doc:`Natural Language Processing (NLP) <322-natural-language-processing-nlp>`
 
 ----
 
-**More in ML Platforms & Tools**
+.. hint::
+   **More in ML Platforms & Tools**
 
    :doc:`AWS SageMaker <148-aws-sagemaker>` · :doc:`Google Experiments <100-google-experiments>` · :doc:`ONNX (Open Neural Network Exchange) <344-onnx-open-neural-network-exchange>` · :doc:`OpenAI API (ML API) <150-openai-api-ml-api>` · :doc:`TPU Clusters <347-tpu-clusters>` · :doc:`Vertex AI <149-vertex-ai>`
 
-----
-
-*Theme:* :ref:`ML Platforms & Tools <term-theme-platforms>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Kaggle <https://insightful-data-lab.com/2025/08/22/kaggle/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Kaggle <https://insightful-data-lab.com/2025/08/22/kaggle/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: intermediate

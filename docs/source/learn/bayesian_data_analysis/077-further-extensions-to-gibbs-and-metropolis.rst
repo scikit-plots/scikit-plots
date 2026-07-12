@@ -6,7 +6,7 @@ Further extensions to Gibbs and Metropolis
 
 **Part 3 · Stage 9 · ⛓️ MCMC: Gibbs, Metropolis & HMC**  ·  Lesson 077 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Eﬃcient Metropolis jumping rules <076-efficient-metropolis-jumping-rules>`   ·   :doc:`Next · Hamiltonian Monte Carlo ▶ <078-hamiltonian-monte-carlo>`
+:doc:`◀ Previous · Eﬃcient Metropolis jumping rules <076-efficient-metropolis-jumping-rules>`   ·   :doc:`Next · Hamiltonian Monte Carlo ▶ <078-hamiltonian-monte-carlo>`   ·   :doc:`↑ Section <index>`
 
 
 Beyond the two basics
@@ -71,10 +71,12 @@ posteriors (where tempering still helps), and univariate conditionals inside com
 practice **marginalises** discrete parameters analytically where possible, and reaches for these tools
 where it is not.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Using Gibbs and Metropolis as building blocks <071-using-gibbs-and-metropolis-as-building-blocks>`  ·  :doc:`Gibbs sampler <069-gibbs-sampler>`  ·  :doc:`Unspecified number of mixture components <137-unspecified-number-of-mixture-components>`  ·  :doc:`Continuous model expansion <048-continuous-model-expansion>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/21/further-extensions-to-gibbs-and-metropolis/ <https://insightful-data-lab.com/2025/11/21/further-extensions-to-gibbs-and-metropolis/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/21/further-extensions-to-gibbs-and-metropolis/ <https://insightful-data-lab.com/2025/11/21/further-extensions-to-gibbs-and-metropolis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

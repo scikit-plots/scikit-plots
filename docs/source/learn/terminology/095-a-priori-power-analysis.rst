@@ -10,7 +10,7 @@
 
 .. _term-a-priori-power-analysis:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>A Priori Power Analysis</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>A Priori Power Analysis</b></div>`
 
 =========================
 A Priori Power Analysis
@@ -66,22 +66,24 @@ power = 0.80.
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Statistical Inference & Power <term-theme-inference>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`Post Hoc Power Analysis <094-post-hoc-power-analysis>` · :doc:`Compromise Power Analysis <093-compromise-power-analysis>` · :doc:`Statistical Power <348-statistical-power>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Type I Error <080-type-i-error>` · :doc:`Fixed-Horizon Testing <082-fixed-horizon-testing>`
 
 ----
 
-**More in Statistical Inference & Power**
+.. hint::
+   **More in Statistical Inference & Power**
 
    :doc:`Chi-square (χ²) Test <324-chi-square-2-test>` · :doc:`Clopper–Pearson Interval <356-clopperpearson-interval>` · :doc:`Compromise Power Analysis <093-compromise-power-analysis>` · :doc:`Confidence Intervals (CIs) <377-confidence-intervals-cis>` · :doc:`Effect Size (δ) <106-effect-size>` · :doc:`Hypothesis Testing <107-hypothesis-testing>` · :doc:`Kolmogorov–Smirnov (KS) Test <325-kolmogorovsmirnov-ks-test>` · :doc:`Minimum Detectable Lift (MDL) <101-minimum-detectable-lift-mdl>` · :doc:`P-Value (probability value) <118-p-value-probability-value>` · :doc:`Post Hoc Power Analysis <094-post-hoc-power-analysis>` · :doc:`Power (1 – β) <104-power-1>` · :doc:`Power Analysis <378-power-analysis>` · :doc:`Sample size <103-sample-size>` · :doc:`Significance Level (α) <105-significance-level>`
 
-----
-
-*Theme:* :ref:`Statistical Inference & Power <term-theme-inference>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `A Priori Power Analysis <https://insightful-data-lab.com/2025/08/24/a-priori-power-analysis/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `A Priori Power Analysis <https://insightful-data-lab.com/2025/08/24/a-priori-power-analysis/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: beginner

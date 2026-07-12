@@ -6,7 +6,7 @@ Putting Similar Observations into Clusters
 
 **Stage 4 · 🧩 Sampling, Partitioning & Segmentation**  ·  Lesson 26 of 56  ·  *intermediate*
 
-:doc:`◀ Previous · Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`   ·   :doc:`Next · Clustering ▶ <27-clustering>`
+:doc:`◀ Previous · Partitioning Observations to Train Objective Models <25-partitioning-observations-to-train-objective-models>`   ·   :doc:`Next · Clustering ▶ <27-clustering>`   ·   :doc:`↑ Section <index>`
 
 
 Grouping without labels
@@ -44,10 +44,12 @@ frequent buyers and another of occasional bargain-hunters, then tailor its appro
 lesson turns this idea into concrete algorithms; the RFM lessons that follow apply it to real customer
 data.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Clustering <27-clustering>`  ·  :doc:`Creating Segments of Observations for Business Reasons (RFM) <30-creating-segments-of-observations-for-business-reasons-rfm>`  ·  :doc:`Cluster Profiling Using Decision Trees <48-cluster-profiling-using-decision-trees>`  ·  :doc:`Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/14/putting-similar-observations-into-clusters/ <https://insightful-data-lab.com/2026/01/14/putting-similar-observations-into-clusters/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/putting-similar-observations-into-clusters/ <https://insightful-data-lab.com/2026/01/14/putting-similar-observations-into-clusters/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: intermediate

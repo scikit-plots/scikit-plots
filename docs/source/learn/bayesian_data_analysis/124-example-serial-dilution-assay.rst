@@ -6,7 +6,7 @@ Example: serial dilution assay
 
 **Part 5 · Stage 15 · 🌊 Basis Functions & Gaussian Processes**  ·  Lesson 124 of 144  ·  *advanced*
 
-:doc:`◀ Previous · Example: an opinion poll in Slovenia <123-example-an-opinion-poll-in-slovenia>`   ·   :doc:`Next · Example: population toxicokinetics ▶ <125-example-population-toxicokinetics>`
+:doc:`◀ Previous · Example: an opinion poll in Slovenia <123-example-an-opinion-poll-in-slovenia>`   ·   :doc:`Next · Example: population toxicokinetics ▶ <125-example-population-toxicokinetics>`   ·   :doc:`↑ Section <index>`
 
 
 Nonlinear calibration, done properly
@@ -67,10 +67,12 @@ concentrations together, with uncertainty flowing between them — beats a two-s
 calibration as fixed. Part V builds on all three, moving from this parametric nonlinearity toward
 splines, Gaussian processes and models with no fixed functional form at all.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Splines and weighted sums of basis functions <126-splines-and-weighted-sums-of-basis-functions>`  ·  :doc:`Example: population toxicokinetics <125-example-population-toxicokinetics>`  ·  :doc:`Bayesian analysis of classical regression <092-bayesian-analysis-of-classical-regression>`  ·  :doc:`Unequal variances and correlations <097-unequal-variances-and-correlations>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/ <https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/ <https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: advanced

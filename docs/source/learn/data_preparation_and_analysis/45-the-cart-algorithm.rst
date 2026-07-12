@@ -6,7 +6,7 @@ The CART Algorithm
 
 **Stage 7 · 🌳 Decision Trees**  ·  Lesson 45 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`   ·   :doc:`Next · Decision Trees as Piecewise Models and Their Predictive Structure ▶ <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`
+:doc:`◀ Previous · Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`   ·   :doc:`Next · Decision Trees as Piecewise Models and Their Predictive Structure ▶ <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`   ·   :doc:`↑ Section <index>`
 
 
 Growing a tree from data
@@ -47,10 +47,12 @@ value, using **cost-complexity pruning** to trade size against accuracy. In scik
 ``DecisionTreeClassifier`` and ``DecisionTreeRegressor`` implement CART with both controls. The next
 lessons read what a fitted tree **means**.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Motivation of Decision Trees: An Incremental Model of Decision-Making <44-motivation-of-decision-trees-an-incremental-model-of-decision-making>`  ·  :doc:`Decision Trees as Piecewise Models and Their Predictive Structure <46-decision-trees-as-piecewise-models-and-their-predictive-structure>`  ·  :doc:`How CART Decision Trees Model Interactions <47-how-cart-decision-trees-model-interactions>`  ·  :doc:`Clustering <27-clustering>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/the-cart-algorithm/ <https://insightful-data-lab.com/2026/01/16/the-cart-algorithm/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/the-cart-algorithm/ <https://insightful-data-lab.com/2026/01/16/the-cart-algorithm/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

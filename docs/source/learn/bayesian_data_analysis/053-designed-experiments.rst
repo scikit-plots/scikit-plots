@@ -6,7 +6,7 @@ Designed experiments
 
 **Part 2 · Stage 7 · 🗳️ Data Collection & Decisions**  ·  Lesson 053 of 144  ·  *intermediate*
 
-:doc:`◀ Previous · Sample surveys <052-sample-surveys>`   ·   :doc:`Next · Sensitivity and the role of randomization ▶ <054-sensitivity-and-the-role-of-randomization>`
+:doc:`◀ Previous · Sample surveys <052-sample-surveys>`   ·   :doc:`Next · Sensitivity and the role of randomization ▶ <054-sensitivity-and-the-role-of-randomization>`   ·   :doc:`↑ Section <index>`
 
 
 Choosing the mechanism yourself
@@ -60,10 +60,12 @@ mis-state uncertainty. And randomisation buys **ignorability, not precision** �
 randomised experiment gives an unbiased answer with an interval too wide to act on. The next lesson
 asks exactly what randomisation does and does not protect against.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Data-collection models and ignorability <051-data-collection-models-and-ignorability>`  ·  :doc:`Sensitivity and the role of randomization <054-sensitivity-and-the-role-of-randomization>`  ·  :doc:`Observational studies <055-observational-studies>`  ·  :doc:`Regression for causal inference: incumbency and voting <093-regression-for-causal-inference-incumbency-and-voting>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2025/11/11/designed-experiments/ <https://insightful-data-lab.com/2025/11/11/designed-experiments/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/designed-experiments/ <https://insightful-data-lab.com/2025/11/11/designed-experiments/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, domain: bayesian, level: intermediate

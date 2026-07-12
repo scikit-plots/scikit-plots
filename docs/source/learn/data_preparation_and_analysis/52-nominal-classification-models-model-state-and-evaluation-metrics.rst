@@ -6,7 +6,7 @@ Nominal Classification Models: Model State and Evaluation Metrics
 
 **Stage 8 · 📊 Model Evaluation**  ·  Lesson 52 of 56  ·  *advanced*
 
-:doc:`◀ Previous · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`Next · Binary Classification Model Evaluation and Threshold Optimization ▶ <53-binary-classification-model-evaluation-and-threshold-optimization>`
+:doc:`◀ Previous · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`Next · Binary Classification Model Evaluation and Threshold Optimization ▶ <53-binary-classification-model-evaluation-and-threshold-optimization>`   ·   :doc:`↑ Section <index>`
 
 
 Beyond two classes
@@ -50,10 +50,12 @@ On **imbalanced** data the choice matters: a model useless on a rare class can s
 weighted or micro score, while its **macro** score collapses — so pick the average that matches whether
 classes or instances are what the business weighs equally.
 
-.. seealso::
+.. hint::
 
    **Related lessons:** :doc:`Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`  ·  :doc:`Assessing the Quality of Prediction Models <50-assessing-the-quality-of-prediction-models>`  ·  :doc:`Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`  ·  :doc:`AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>`
 
-**Source** (context, re-expressed in our own words): `https://insightful-data-lab.com/2026/01/16/nominal-classification-models-model-state-and-evaluation-metrics/ <https://insightful-data-lab.com/2026/01/16/nominal-classification-models-model-state-and-evaluation-metrics/>`__
+.. seealso::
+
+   **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/nominal-classification-models-model-state-and-evaluation-metrics/ <https://insightful-data-lab.com/2026/01/16/nominal-classification-models-model-state-and-evaluation-metrics/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, topic: data preparation, level: advanced

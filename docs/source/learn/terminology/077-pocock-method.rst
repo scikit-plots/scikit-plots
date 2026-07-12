@@ -10,7 +10,7 @@
 
 .. _term-pocock-method:
 
-:raw-html:`<div align="center" style="font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Pocock Method</b></div>`
+:raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Pocock Method</b></div>`
 
 ===============
 Pocock Method
@@ -56,22 +56,24 @@ end** (safety-critical medicine).
 
 ----
 
-**Mind map — connected ideas**
+*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
+
+----
+
+.. hint::
+   **Mind map — connected ideas**
 
    :doc:`O'Brien–Fleming (OBF) Method <078-o-brienfleming-obf-method>` · :doc:`Group Sequential Testing <079-group-sequential-testing>` · :doc:`Stopping Rules <071-stopping-rules>` · :doc:`Frequentist <059-frequentist>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Sequential Probability Ratio Test (SPRT) <076-sequential-probability-ratio-test-sprt>`
 
 ----
 
-**More in Sequential Methods & Bandits**
+.. hint::
+   **More in Sequential Methods & Bandits**
 
    :doc:`Bandit Algorithms <113-bandit-algorithms>` · :doc:`O'Brien–Fleming (OBF) Method <078-o-brienfleming-obf-method>` · :doc:`Sequential Probability Ratio Test (SPRT) <076-sequential-probability-ratio-test-sprt>` · :doc:`Sequential Settings <058-sequential-settings>` · :doc:`Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB)) <050-thompson-sampling-ts-in-bandits-multi-armed-band>`
 
-----
-
-*Theme:* :ref:`Sequential Methods & Bandits <term-theme-bandits>` :raw-html:`&nbsp;·&nbsp;` :doc:`All terminology <index>`
-
 .. seealso::
 
-   Adapted in our own words from `Pocock Method <https://insightful-data-lab.com/2025/08/25/pocock-method/>`__ (insightful-data-lab.com).
+   **Source article** Adapted (context, re-expressed) in our own words from: `Pocock Method <https://insightful-data-lab.com/2025/08/25/pocock-method/>`__ (insightful-data-lab.com).
 
 .. tags:: purpose: reference, level: advanced
