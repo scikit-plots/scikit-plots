@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-020:
 .. _data-analytics-foundations-020:
 .. _da-foundations-foundations-020:
@@ -89,4 +98,4 @@ tools, and calmly toward tomorrow's.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/overview-of-core-tools-used-by-data-analysts/ <https://insightful-data-lab.com/2023/07/30/overview-of-core-tools-used-by-data-analysts/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, tools
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: tools

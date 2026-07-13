@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-balanced-interleaving:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>Balanced Interleaving</b></div>`
@@ -78,4 +82,4 @@ interleaving** were developed to address exactly these weaknesses.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Balanced Interleaving <https://insightful-data-lab.com/2025/08/24/balanced-interleaving/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

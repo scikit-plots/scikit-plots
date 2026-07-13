@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-a-b-n-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>A/B/n Test</b></div>`
@@ -77,4 +81,4 @@ weeks A converts 5%, B 6%, **C 7.5%** and D 5.2%. C is the significant winner an
 
    **Source article** Adapted (context, re-expressed) in our own words from: `A/B/n Test <https://insightful-data-lab.com/2025/08/24/a-b-n-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

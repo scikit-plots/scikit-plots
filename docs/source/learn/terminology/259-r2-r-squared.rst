@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-r2-r-squared:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>R² (R-squared)</b></div>`
@@ -66,4 +70,4 @@ implies **neither causation nor good out-of-sample** performance.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `R² (R-squared) <https://insightful-data-lab.com/2025/08/22/r%c2%b2-r-squared/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

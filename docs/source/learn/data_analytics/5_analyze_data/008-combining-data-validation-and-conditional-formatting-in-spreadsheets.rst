@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-008:
 .. _data-analytics-analyze-008:
 .. _da-foundations-analyze-008:
@@ -97,4 +106,4 @@ transforming text and data with functions and SQL.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/combining-data-validation-and-conditional-formatting-in-spreadsheets/ <https://insightful-data-lab.com/2023/11/26/combining-data-validation-and-conditional-formatting-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

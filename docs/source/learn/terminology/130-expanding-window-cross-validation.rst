@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-expanding-window-cross-validation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Expanding Window Cross-Validation</b></div>`
@@ -71,4 +75,4 @@ question of whether the process is stationary.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Expanding Window Cross-Validation <https://insightful-data-lab.com/2025/08/24/expanding-window-cross-validation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

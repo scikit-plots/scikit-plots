@@ -54,4 +54,4 @@ consequence of this box structure: **interactions**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/ <https://insightful-data-lab.com/2026/01/16/interactions-in-cart-decision-trees/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

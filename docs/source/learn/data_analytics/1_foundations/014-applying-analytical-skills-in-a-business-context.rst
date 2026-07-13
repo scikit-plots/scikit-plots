@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-014:
 .. _data-analytics-foundations-014:
 .. _da-foundations-foundations-014:
@@ -87,4 +96,4 @@ uncertainty far longer than ones who overclaim.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/applying-analytical-skills-in-a-business-context/ <https://insightful-data-lab.com/2023/07/30/applying-analytical-skills-in-a-business-context/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

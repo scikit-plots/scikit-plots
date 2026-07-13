@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-net-ltv-sometimes-called-contribution-ltv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Net LTV (sometimes called Contribution LTV)</b></div>`
@@ -86,4 +90,4 @@ estimates over a flat :math:`1/\text{churn}` when the data allows.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Net LTV (sometimes called Contribution LTV) <https://insightful-data-lab.com/2025/08/29/net-ltv-sometimes-called-contribution-ltv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

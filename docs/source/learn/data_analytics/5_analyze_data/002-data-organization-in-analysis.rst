@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-002:
 .. _data-analytics-analyze-002:
 .. _da-foundations-analyze-002:
@@ -90,4 +99,4 @@ filtering — concrete.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/02/data-organization-in-analysis/ <https://insightful-data-lab.com/2023/11/02/data-organization-in-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

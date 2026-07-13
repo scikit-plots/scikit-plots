@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-ctr-click-through-rate:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>CTR (Click-Through Rate)</b></div>`
@@ -66,4 +70,4 @@ that doesn't pay back. CTR must be read **with conversion rate**: high CTR + low
 
    **Source article** Adapted (context, re-expressed) in our own words from: `CTR (Click-Through Rate) <https://insightful-data-lab.com/2025/08/17/ctr-click-through-rate/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

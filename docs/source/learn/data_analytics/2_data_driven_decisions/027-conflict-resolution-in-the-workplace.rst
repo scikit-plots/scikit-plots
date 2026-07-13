@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-027:
 .. _data-analytics-ddd-027:
 .. _da-foundations-ddd-027:
@@ -99,4 +108,4 @@ it depends on: where data comes from, and how to prepare it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/conflict-resolution-in-the-workplace/ <https://insightful-data-lab.com/2023/08/31/conflict-resolution-in-the-workplace/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

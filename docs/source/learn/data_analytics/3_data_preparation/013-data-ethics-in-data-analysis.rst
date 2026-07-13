@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-013:
 .. _data-analytics-prep-013:
 .. _da-foundations-prep-013:
@@ -93,4 +102,4 @@ lessons develop two central aspects — privacy and openness — in more depth.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/data-ethics-in-data-analysis/ <https://insightful-data-lab.com/2023/09/04/data-ethics-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, bias_ethics
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: bias_ethics

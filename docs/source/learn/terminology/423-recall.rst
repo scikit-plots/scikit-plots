@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-recall:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Recall</b></div>`
@@ -67,4 +71,4 @@ means the model **misses** true positives more often for one group, a common and
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Recall <https://insightful-data-lab.com/2025/08/17/recall/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

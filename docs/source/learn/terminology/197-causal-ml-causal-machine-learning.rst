@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-causal-ml-causal-machine-learning:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Causal ML (Causal Machine Learning)</b></div>`
@@ -85,4 +89,4 @@ confounding** in observational data, and is harder to explain and validate than 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Causal ML (Causal Machine Learning) <https://insightful-data-lab.com/2025/08/23/causal-ml-causal-machine-learning/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

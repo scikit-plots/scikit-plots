@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-iid-independent-and-identically-distributed:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>IID (Independent and Identically Distributed)</b></div>`
@@ -81,4 +85,4 @@ adaptation** exist to cope.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `IID (Independent and Identically Distributed) <https://insightful-data-lab.com/2025/08/24/iid-independent-and-identically-distributed/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

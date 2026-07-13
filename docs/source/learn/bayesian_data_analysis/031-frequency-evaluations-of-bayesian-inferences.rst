@@ -65,4 +65,4 @@ for trust, not a sufficient one.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/ <https://insightful-data-lab.com/2025/11/09/frequency-evaluations-of-bayesian-inferences/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

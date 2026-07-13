@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-posterior-probability-of-uplift:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Posterior probability of uplift</b></div>`
@@ -124,4 +128,4 @@ posteriors support **always-valid** monitoring without naive peeking penalties.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Posterior probability of uplift <https://insightful-data-lab.com/2025/08/29/posterior-probability-of-uplift/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

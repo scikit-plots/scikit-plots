@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-type-i-error:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Type I Error</b></div>`
@@ -89,4 +93,4 @@ an α-spending design if you must look early; and **replicate** to confirm.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Type I Error <https://insightful-data-lab.com/2025/08/25/type-i-error/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

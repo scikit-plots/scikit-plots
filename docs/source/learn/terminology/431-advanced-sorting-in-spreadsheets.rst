@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-advanced-sorting-in-spreadsheets:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Advanced Sorting in Spreadsheets</b></div>`
@@ -62,4 +66,4 @@ columns**, or you'll shuffle one field out of alignment with the rest and silent
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Advanced Sorting in Spreadsheets <https://insightful-data-lab.com/2023/11/26/advanced-sorting-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

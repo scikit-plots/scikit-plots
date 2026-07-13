@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-roi-return-on-investment:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>ROI (Return on Investment)</b></div>`
@@ -74,4 +78,4 @@ from sure things and lost causes.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `ROI (Return on Investment) <https://insightful-data-lab.com/2025/08/23/roi-return-on-investment/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

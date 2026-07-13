@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-005:
 .. _data-analytics-analyze-005:
 .. _da-foundations-analyze-005:
@@ -121,4 +130,4 @@ and subsetting to getting the data's *format* analysis-ready.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/sorting-and-filtering-data-in-sql-using-order-by-and-where/ <https://insightful-data-lab.com/2023/11/26/sorting-and-filtering-data-in-sql-using-order-by-and-where/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

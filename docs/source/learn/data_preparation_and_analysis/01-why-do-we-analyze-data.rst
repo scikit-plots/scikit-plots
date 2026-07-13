@@ -45,4 +45,4 @@ trustworthy** before anyone relies on it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/ <https://insightful-data-lab.com/2026/01/14/why-do-we-analyze-data/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: beginner
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: beginner

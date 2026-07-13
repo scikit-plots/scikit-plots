@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-online-experimentation-platforms:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Online Experimentation Platforms</b></div>`
@@ -92,4 +96,4 @@ continuous optimisation.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Online Experimentation Platforms <https://insightful-data-lab.com/2025/08/25/online-experimentation-platforms/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

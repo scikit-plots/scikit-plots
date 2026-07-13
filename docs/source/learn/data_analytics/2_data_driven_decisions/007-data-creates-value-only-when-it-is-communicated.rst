@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-007:
 .. _data-analytics-ddd-007:
 .. _da-foundations-ddd-007:
@@ -86,4 +95,4 @@ disclaimer.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/data-creates-value-only-when-it-is-communicated/ <https://insightful-data-lab.com/2023/08/31/data-creates-value-only-when-it-is-communicated/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, framing
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: framing

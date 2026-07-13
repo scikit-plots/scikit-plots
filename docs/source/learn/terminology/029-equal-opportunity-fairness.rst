@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-equal-opportunity-fairness:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Equal Opportunity (Fairness)</b></div>`
@@ -92,4 +96,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Equal Opportunity (Fairness) <https://insightful-data-lab.com/2025/08/29/equal-opportunity-fairness/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

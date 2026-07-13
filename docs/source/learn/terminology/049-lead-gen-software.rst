@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-lead-gen-software:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Lead-Gen Software</b></div>`
@@ -85,4 +89,4 @@ directly to **conversion rate** and feeds the **CAC** calculation downstream.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Lead-Gen Software <https://insightful-data-lab.com/2025/08/29/lead-gen-software/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-006:
 .. _data-analytics-ddd-006:
 .. _da-foundations-ddd-006:
@@ -87,4 +96,4 @@ resisting the pull to treat what is easily counted as all that counts.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/quantitative-and-qualitative-data-in-decision-making/ <https://insightful-data-lab.com/2023/08/31/quantitative-and-qualitative-data-in-decision-making/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, framing
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: framing

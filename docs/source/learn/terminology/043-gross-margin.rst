@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-gross-margin:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Gross Margin</b></div>`
@@ -91,4 +95,4 @@ into the profit number you actually compare against CAC.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Gross Margin <https://insightful-data-lab.com/2025/08/29/gross-margin/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

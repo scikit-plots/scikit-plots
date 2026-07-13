@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-mannwhitney-u-test-also-called-the-wilcoxon-rank-sum-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Mann–Whitney U Test (also called the Wilcoxon rank-sum test)</b></div>`
@@ -114,4 +118,4 @@ Pitfalls and edge cases
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Mann–Whitney U Test (also called the Wilcoxon rank-sum test) <https://insightful-data-lab.com/2025/08/30/mann-whitney-u-test-also-called-the-wilcoxon-rank-sum-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

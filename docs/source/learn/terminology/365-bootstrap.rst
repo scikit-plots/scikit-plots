@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-bootstrap:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Bootstrap</b></div>`
@@ -61,4 +65,4 @@ struggle with very small samples or extreme statistics.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Bootstrap <https://insightful-data-lab.com/2025/08/20/bootstrap/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

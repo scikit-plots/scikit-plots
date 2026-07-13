@@ -11208,3 +11208,6015 @@ MINDMAP.update({
         "Data Visualization",
     ],
 })
+
+
+# ======================================================================
+# Section 6 — Data Visualization / principles (close)  (viz 005-008)
+# ======================================================================
+
+GLOSS.update({
+    "Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement":
+        "the visual building blocks — line, shape, colour, space, movement — applied to charts",
+    "Choosing the Right Visualization: Audience-Centered Design and Chart Selection":
+        "matching chart type to the data, the message, and the audience",
+    "Design Thinking in Data Visualization: A User-Centered Framework":
+        "designing visualizations around the viewer's needs — a user-centered process",
+    "Accessibility in Data Visualization: Designing for Everyone":
+        "making charts readable by everyone, including people with visual differences",
+})
+
+CONTENT["Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement"] = r"""
+The visual building blocks
+----------------------------
+
+Data visualization borrows from visual art, and the **elements of art** — line,
+shape, colour, space, and movement — are the building blocks from which every chart
+is composed. Understanding them as *tools* gives an analyst deliberate control over
+how a visualization looks and reads, rather than accepting a charting tool's
+defaults. This lesson applies the artist's vocabulary to the analyst's charts.
+
+The elements and their roles
+------------------------------
+
+- **Line** — connects, directs, and shows continuity. In charts, lines carry trends
+  (a line chart's path over time), define axes and gridlines, and guide the eye.
+  Line weight and style signal importance — a bold line draws attention, a light
+  gridline recedes.
+- **Shape** — distinguishes and encodes. Different marker shapes separate
+  categories; a chart's overall shape (bars, a curve, a scatter cloud) is itself
+  meaningful. Shape is a channel for encoding a categorical dimension.
+- **Colour** — the most powerful and most abused element. Colour distinguishes
+  categories (distinct hues), encodes magnitude (intensity, as in a heat map), and
+  directs attention (one highlighted colour against muted others). Used well it
+  clarifies; used carelessly it confuses or misleads.
+- **Space** — the arrangement and the emptiness. How elements are positioned, and the
+  *white space* around them, shapes readability. Crowded charts overwhelm; generous
+  space focuses. Space also encodes — position is the eye's most precise channel.
+- **Movement** — how the eye travels through the visualization, and, in dynamic
+  charts, literal animation. Good design directs the eye deliberately — to the key
+  point first, then through the supporting detail.
+
+Using the elements deliberately
+----------------------------------
+
+The elements are levers for the *focus* the earlier lesson demanded. To emphasise one
+data series, give it a bold **line** or a saturated **colour** while muting the
+rest; to separate categories, use distinct **shapes** or **hues**; to reduce clutter,
+add **space** and remove non-data ink; to guide the reader, arrange for **movement**
+toward the key insight. Effective visualization is the deliberate use of these
+elements to make the important thing stand out and the structure read clearly.
+
+Colour, the element to handle with care
+-----------------------------------------
+
+Colour deserves special caution because it is so easily misused. Too many colours
+fragment a chart into confusion; colour used decoratively (a rainbow of bars that all
+mean the same thing) adds noise without meaning; and colour that implies an order the
+data lacks misleads. The discipline is to use colour *purposefully* — to encode a real
+distinction or to direct attention — and sparingly, with a limited, intentional
+palette. The accessibility lesson adds a further constraint: colour choices must work
+for viewers who perceive colour differently.
+
+The caveat
+------------
+
+The elements of art can beautify a chart without improving it — or while actively
+harming it. Decoration that adds no information (gradients, 3D effects, background
+images, superfluous colour) is "chartjunk": it competes with the data for attention
+and often distorts perception (3D bars misrepresent their values). The principle,
+inherited from the clarity-over-cleverness thread, is that every visual element should
+*serve the data* — encode information or aid comprehension — and anything that merely
+decorates should be removed. The elements are tools for clarity, not ornamentation;
+a beautiful chart that obscures its data has failed. The next lesson turns to choosing
+the right chart type.
+"""
+
+CONTENT["Choosing the Right Visualization: Audience-Centered Design and Chart Selection"] = r"""
+Matching chart to message
+---------------------------
+
+With the principles and elements established, a concrete question recurs constantly:
+*which chart type* for this data and this message? **Choosing the right
+visualization** is the skill of matching chart type to what the data is and what you
+want to say — and doing so with the *audience* in mind. The wrong chart type can
+obscure a clear finding; the right one makes it obvious.
+
+Chart types and what they show
+--------------------------------
+
+Common chart types each suit particular data and messages:
+
+- **Bar chart** — comparing quantities across categories. The eye reads bar lengths
+  accurately, making bars the reliable default for "compare these amounts" (sales by
+  region, counts by type).
+- **Line chart** — showing change over time or a continuous trend. Position along a
+  path reads clearly, so lines are the standard for time series.
+- **Pie chart** — showing parts of a whole, *sparingly*. Because the eye reads angles
+  and areas poorly, pie charts work only for a few slices where proportions are
+  roughly comparable; a bar chart is usually clearer.
+- **Scatter plot** — showing the relationship between two numeric variables.
+  Position (the most precise channel) reveals correlation, clusters, and outliers.
+- **Histogram** — showing the distribution of one numeric variable — its shape,
+  centre, and spread.
+- **Heat map** — showing magnitude across two dimensions via colour intensity, for a
+  grid of values.
+
+The rule: **let the data and the message choose the chart.** A comparison wants bars;
+a trend wants a line; a relationship wants a scatter plot; a distribution wants a
+histogram. Forcing data into the wrong chart type (a pie chart for a comparison, a
+line for unrelated categories) fights the reader.
+
+Audience-centered selection
+-----------------------------
+
+Chart choice also depends on the *audience*. A technical audience reads a scatter plot
+or box plot fluently; a general audience may need a simpler bar or line chart. A
+familiar chart type communicates faster than a sophisticated one the audience must
+decode — the best chart is not the most advanced but the one *this* audience reads
+most easily. Matching the chart to the audience's visual literacy is as important as
+matching it to the data.
+
+Selection as a decision
+-------------------------
+
+Choosing a chart is a *deliberate decision*, not a default. The process: identify what
+the data *is* (categories, a time series, two numeric variables, a distribution),
+identify the *message* (a comparison, a trend, a relationship, a shape), consider the
+*audience* (what they read easily), and pick the chart type that fits all three. This
+turns chart selection from habit ("always a bar chart") into a reasoned choice that
+serves the specific data, message, and reader.
+
+The caveat
+------------
+
+There is rarely a single "correct" chart — often several would work, and the choice
+involves judgement and trade-offs (a stacked bar versus grouped bars, a line versus a
+bar for few time points). The failure to avoid is not picking the *theoretically
+optimal* chart but picking an *actively wrong* one — a pie chart with fifteen slices,
+a 3D chart that distorts, a chart type that mismatches the data. Aim for a chart that
+clearly and honestly conveys the message to the audience; among the several that do,
+the differences are refinements. The next lesson brings a structured design process
+to these choices.
+"""
+
+CONTENT["Design Thinking in Data Visualization: A User-Centered Framework"] = r"""
+Designing for the viewer
+--------------------------
+
+Effective visualization is a *design* problem, and design has methods. **Design
+thinking** — a structured, user-centered approach to design — applies directly to
+data visualization, shifting the focus from "what do I want to show" to "what does my
+*viewer* need to understand." This lesson brings a deliberate design process to the
+visualization choices the section has been building.
+
+What design thinking means here
+---------------------------------
+
+Design thinking centres the *user* — here, the viewer of the visualization — and
+proceeds through understanding their needs before designing. Applied to
+visualization, its phases look like:
+
+- **Empathise** — understand the viewer: who they are, what they know, what question
+  they bring, what decision they must make. A visualization for executives differs
+  from one for analysts because their needs differ.
+- **Define** — state precisely what the visualization must accomplish: the specific
+  insight it should convey to this viewer for this purpose. This is the *purpose* the
+  earlier lesson demanded, made explicit.
+- **Ideate** — consider multiple ways to visualize it: different chart types,
+  emphases, and layouts, rather than settling on the first idea.
+- **Prototype** — build a draft visualization.
+- **Test** — check it against the viewer's needs: does it convey the insight clearly?
+  Can the intended viewer read it? Refine based on what you learn.
+
+The process is *iterative* — testing reveals problems that send you back to redesign,
+just as refining an analysis loops.
+
+Why user-centered design matters
+----------------------------------
+
+The core shift is from *maker-centered* to *user-centered* — from "here is the data I
+have" to "here is what my viewer needs to understand." A maker-centered chart shows
+what was easy or what the maker finds interesting; a user-centered one shows what the
+viewer needs, in the form they can read. This is the same audience-adaptation
+principle from the communication lessons, applied as a design discipline: the
+visualization exists to serve its viewer's understanding, and every choice should be
+judged by that standard.
+
+Design thinking and the earlier principles
+--------------------------------------------
+
+Design thinking ties the section's principles into a process. *Empathise* and
+*define* establish the **purpose** and **audience**; *ideate* explores **chart types**
+and **elements**; *prototype* and *test* apply **focus** and **structure** and check
+them against a real viewer. Rather than a checklist of principles, design thinking
+gives a *workflow* for arriving at a visualization that embodies them — a repeatable
+way to design for the viewer.
+
+The caveat
+------------
+
+Design thinking is a framework, not a formula, and it can be over-applied — a simple
+chart for a clear message does not need a five-phase design process, and treating
+every visualization as a major design project wastes effort. The value scales with
+the stakes: a throwaway exploratory chart needs none of this, while an important
+visualization for a key decision or a broad audience rewards the full process. And
+"user-centered" does not mean giving viewers whatever they *want* — sometimes the
+honest, clear visualization is not the flattering one they would prefer, and serving
+their genuine *understanding* takes priority over pleasing them. Match the process to
+the stakes, and keep honesty above appeal. The next lesson addresses designing for
+*all* viewers: accessibility.
+"""
+
+CONTENT["Accessibility in Data Visualization: Designing for Everyone"] = r"""
+Visualizations for everyone
+-----------------------------
+
+A visualization only communicates to those who can *perceive* it — and a meaningful
+fraction of any audience perceives colour, contrast, or detail differently.
+**Accessibility** in data visualization means designing charts that everyone can read,
+including people with colour vision deficiency, low vision, or other differences.
+Closing the principles stage, this lesson makes clear that accessible design is not a
+niche concern but part of communicating to your *whole* audience.
+
+Why accessibility matters
+---------------------------
+
+Roughly one in twelve men and one in two hundred women has some form of colour vision
+deficiency, and many viewers have low vision or read charts on small or poor screens.
+A visualization that relies on distinctions these viewers cannot perceive simply fails
+for them — the insight does not land. Since the purpose of an explanatory
+visualization is to communicate to an audience, a chart that excludes part of that
+audience has partially failed at its one job. Accessibility is effectiveness for
+everyone.
+
+Practices for accessible visualization
+-----------------------------------------
+
+Concrete practices make charts widely readable:
+
+- **Do not rely on colour alone.** Because colour vision varies, never encode
+  meaning *only* in colour — add a second cue: labels, patterns, shapes, or direct
+  text. If red-versus-green is the only difference between two lines, colour-blind
+  viewers cannot tell them apart; adding labels or distinct markers fixes it.
+- **Use colour-blind-friendly palettes.** Certain colour combinations (notably
+  red/green) are problematic; palettes designed for colour vision deficiency (and
+  distinguishable by brightness, not just hue) work for far more viewers.
+- **Ensure sufficient contrast.** Text and marks must contrast enough with the
+  background to be readable, especially for low-vision viewers and poor displays.
+- **Label directly and clearly.** Direct labels on data (rather than a legend the
+  viewer must cross-reference) and legible text sizes help everyone, and are
+  essential for some.
+- **Provide text alternatives.** A caption or description conveying the chart's key
+  insight in words serves viewers using screen readers and reinforces the message for
+  all.
+
+Accessibility as good design
+------------------------------
+
+Accessible design generally *improves* a visualization for everyone, not only for
+those who need it. Not relying on colour alone, ensuring contrast, and labelling
+directly make a chart clearer for *all* viewers — the same practices that serve
+colour-blind or low-vision readers reduce ambiguity and effort for everyone. Designing
+for accessibility is, in large part, simply designing *well*: the constraints push
+toward the clarity that good visualization aims at regardless.
+
+The caveat
+------------
+
+Accessibility is a spectrum, not a checkbox — no single design serves every possible
+need perfectly, and there are trade-offs (a palette optimised for one form of colour
+vision deficiency may not be ideal for another). The goal is *reasonable* inclusion:
+apply the well-established practices (not colour alone, adequate contrast, clear
+labels, text alternatives) that serve the large majority, rather than either ignoring
+accessibility or being paralysed by the impossibility of perfection. Some
+accessibility is vastly better than none, and the core practices are low-cost and
+broadly beneficial. This completes the principles of visualization; the next lessons
+turn to a specific tool for building them — Tableau.
+"""
+
+
+MINDMAP.update({
+    "Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement": [
+        "Connecting Data and Images",
+        "Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose",
+        "Choosing the Right Visualization: Audience-Centered Design and Chart Selection",
+        "Accessibility in Data Visualization: Designing for Everyone",
+    ],
+    "Choosing the Right Visualization: Audience-Centered Design and Chart Selection": [
+        "Connecting Data and Images",
+        "Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement",
+        "Design Thinking in Data Visualization: A User-Centered Framework",
+        "Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose",
+    ],
+    "Design Thinking in Data Visualization: A User-Centered Framework": [
+        "Choosing the Right Visualization: Audience-Centered Design and Chart Selection",
+        "Accessibility in Data Visualization: Designing for Everyone",
+        "Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+    "Accessibility in Data Visualization: Designing for Everyone": [
+        "Design Thinking in Data Visualization: A User-Centered Framework",
+        "Choosing the Right Visualization: Audience-Centered Design and Chart Selection",
+        "Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement",
+        "Introduction to Tableau",
+    ],
+})
+
+
+# ======================================================================
+# Section 6 — Data Visualization / Stage: tableau  (viz 009-012)
+# NOTE: viz 011 title contains subscript-2 (U+2082 ₂) — key written literally
+# ======================================================================
+
+GLOSS.update({
+    "Introduction to Tableau":
+        "what Tableau is and why analysts use it — visual analytics without heavy coding",
+    "Getting Started with Tableau Public":
+        "the free version: connecting data, building a first view, publishing to the web",
+    "Creating a CO\u2082 Emissions Visualization in Tableau Public":
+        "a worked Tableau example — turning an emissions dataset into a clear visualization",
+    "Effective vs. Ineffective Data Visualizations in Tableau":
+        "the difference in practice — what makes a Tableau chart clear versus confusing",
+})
+
+CONTENT["Introduction to Tableau"] = r"""
+A tool built for visualization
+--------------------------------
+
+While spreadsheets can chart and SQL can query, **Tableau** is a tool built
+specifically for *visual analytics* — creating interactive visualizations and
+dashboards from data, with little or no code. Opening the Tableau stage, this lesson
+introduces what Tableau is, what it does, and why it is one of the most widely used
+visualization tools in data analytics.
+
+What Tableau is
+----------------
+
+Tableau is a visual-analytics platform that connects to data sources and lets you
+build visualizations by *dragging and dropping* fields rather than writing code. Its
+core idea is *direct manipulation*: you place a field on an axis, a colour, or a
+filter, and Tableau draws the chart, letting you explore and refine visually. This
+makes sophisticated, interactive visualization accessible to analysts who are not
+programmers, which is much of its appeal.
+
+What Tableau does well
+------------------------
+
+Tableau's strengths align with the visualization principles the section established:
+
+- **Interactive visualizations** — the dynamic charts and dashboards from the
+  static-versus-dynamic lesson, letting viewers filter, hover, and drill down.
+- **Rapid exploration** — drag-and-drop makes trying different views fast, supporting
+  the exploratory purpose of finding patterns.
+- **Connecting to many data sources** — spreadsheets, databases (via SQL), and files,
+  bringing data in without manual export where possible.
+- **Dashboards** — combining multiple visualizations into a single interactive view
+  for monitoring and self-service (a later lesson's subject).
+- **Polished, shareable output** — professional visualizations suitable for
+  communicating findings to stakeholders.
+
+Where Tableau fits
+--------------------
+
+Tableau occupies the *visualization and dashboard* niche in the analyst's toolkit,
+downstream of the data preparation and analysis the earlier sections covered.
+Typically, data is prepared and analysed (in spreadsheets, SQL, or code), then Tableau
+visualizes the results — it is a presentation-and-exploration layer, not primarily a
+cleaning or heavy-computation tool. It complements rather than replaces the other
+tools: SQL or a spreadsheet shapes the data, Tableau makes it visible and interactive.
+
+The caveat
+------------
+
+Tableau is powerful but is one option among several, and it is not always the right
+one. It is a specialised (and, in its full version, commercial) tool with its own
+learning curve, and for a simple static chart a spreadsheet may be faster and more
+universally accessible. Tableau also does not remove the need for the *principles* —
+its ease of making charts makes it just as easy to make *bad* charts (the wrong type,
+misleading scales, chartjunk), so the design judgement from the principles stage
+matters as much in Tableau as anywhere. The tool accelerates visualization; it does
+not substitute for knowing what makes a visualization good. The next lesson gets hands
+on with the free version, Tableau Public.
+"""
+
+CONTENT["Getting Started with Tableau Public"] = r"""
+The free way in
+----------------
+
+**Tableau Public** is a free version of Tableau that lets anyone build and publish
+interactive visualizations — the practical entry point for learning the tool. This
+lesson covers getting started with it: what it is, how the workflow goes from data to
+published visualization, and what to know before diving in.
+
+What Tableau Public is
+------------------------
+
+Tableau Public is a no-cost version of Tableau with one defining characteristic: the
+visualizations you create are *published publicly* to the web, to your Tableau Public
+profile, where anyone can view them. This is its central trade-off — free and capable,
+but not private, so it suits learning, portfolios, and public data storytelling, and
+is *not* suitable for confidential or proprietary data.
+
+The basic workflow
+--------------------
+
+Building a visualization in Tableau Public follows a consistent flow:
+
+- **Connect to data** — load a data source: commonly a spreadsheet or CSV file for
+  Tableau Public. Tableau reads the fields and classifies them as *dimensions*
+  (categorical: region, date, product) and *measures* (numeric values to aggregate:
+  sales, counts).
+- **Build a view** — drag fields onto the *rows* and *columns* shelves to define the
+  chart's structure, and onto *marks* (colour, size, label) to encode more. Tableau
+  draws the chart and re-draws as you adjust — the direct-manipulation exploration.
+- **Choose and refine the chart** — pick or adjust the chart type, add filters, format
+  the visualization applying the design principles (clear focus, right encoding,
+  accessible colour).
+- **Publish** — save to your Tableau Public profile, producing a shareable,
+  interactive visualization on the web.
+
+Dimensions and measures
+-------------------------
+
+A key Tableau concept is the *dimension* versus *measure* distinction. **Dimensions**
+are categorical fields you group or break data down by (the ``GROUP BY`` categories
+from SQL); **measures** are numeric fields Tableau aggregates (sum, average — the
+aggregates from the analysis section). Placing a dimension and a measure together —
+region (dimension) and sales (measure) — produces an aggregated visualization, sales
+by region, exactly the grouped aggregation the analysis section covered, now drawn
+automatically. Understanding this mapping connects Tableau to the analytical concepts
+already learned.
+
+The caveat
+------------
+
+Tableau Public's defining limitation bears repeating because getting it wrong is
+serious: **everything published is public.** Uploading confidential, proprietary, or
+personal data to Tableau Public exposes it to the world — a data-privacy failure of
+exactly the kind the ethics and PII lessons warned against. Tableau Public is for
+public or non-sensitive data only; confidential work requires the paid Tableau
+versions with private hosting. Beyond privacy, the free version has some feature and
+data-size limits versus the commercial product. Use Tableau Public for learning,
+portfolios, and public data — never for anything that must stay private. The next
+lesson works through a concrete example.
+"""
+
+CONTENT["Creating a CO\u2082 Emissions Visualization in Tableau Public"] = r"""
+A worked example
+-----------------
+
+Principles and workflow come together in a concrete build. This lesson walks through
+creating a visualization of **CO\u2082 emissions** data in Tableau Public — a
+real-world environmental dataset — showing how the abstract steps become an actual
+chart, and how the design principles guide the choices along the way.
+
+The data and the question
+---------------------------
+
+An emissions dataset typically holds, per row, a place and time and an emissions
+figure — for example country, year, and CO\u2082 emissions (in tonnes or per capita).
+Before building, the *question* comes first (the purpose principle): are we showing
+emissions *over time* (a trend), *across countries* (a comparison), or *by region on a
+map* (a geographic pattern)? The question determines everything downstream — the chart
+type, the fields used, the emphasis. Suppose the question is how emissions have changed
+over time for a set of countries: a *trend comparison*.
+
+Building the visualization
+----------------------------
+
+With the question set, the Tableau workflow builds the answer:
+
+- **Connect** the emissions dataset (a CSV). Tableau classifies ``country`` and
+  ``year`` as dimensions and ``emissions`` as a measure.
+- **Build the view** — for an over-time trend, place ``year`` on columns and
+  ``emissions`` on rows, producing a line; place ``country`` on colour to draw one line
+  per country, enabling comparison. This is a multi-series line chart — the right
+  structure for a trend comparison (position over time, the precisely-read encoding).
+- **Refine** — apply the principles: a clear title stating the message, a limited and
+  accessible colour palette (not colour alone — label the lines directly where
+  possible), appropriate axis scaling that does not distort, and removal of chartjunk.
+  Focus the chart on its one message: how these countries' emissions have diverged or
+  converged over time.
+- **Publish** to Tableau Public as an interactive chart viewers can hover and filter.
+
+Principles in the concrete
+----------------------------
+
+The example makes the abstract principles tangible. The **purpose** (the emissions
+question) drove the **chart choice** (a line for a trend); the **encoding** used the
+eye's precise channel (position over time); **colour** distinguished countries but was
+kept accessible and paired with labels; and **focus** kept the chart to its single
+message. A CO\u2082 visualization built this way communicates a real environmental
+insight clearly — the whole section's principles applied to one concrete, meaningful
+dataset.
+
+The caveat
+------------
+
+Emissions data — like much real-world data — carries interpretation hazards the
+visualization must respect. *Total* versus *per-capita* emissions tell very different
+stories (a populous country leads on total but may be low per person), and choosing
+which to show is a framing decision with real consequences for what the chart implies;
+showing one while implying the other misleads. Time ranges, the set of countries
+included, and absolute-versus-relative framing similarly shape the message. The
+honest-visualization obligation is acute for consequential public data like emissions:
+the chart should represent what the data genuinely says, with its framing made clear,
+not shade a complex picture toward a preferred narrative. The next lesson contrasts
+effective and ineffective visualizations directly.
+"""
+
+CONTENT["Effective vs. Ineffective Data Visualizations in Tableau"] = r"""
+The difference in practice
+----------------------------
+
+Tableau makes it easy to build visualizations — and just as easy to build *bad* ones.
+Closing the practical Tableau lessons, this one contrasts **effective and ineffective
+visualizations** directly, making concrete the difference between a chart that
+communicates and one that confuses, and showing the principles as a practical checklist.
+
+What makes a visualization ineffective
+-----------------------------------------
+
+Ineffective visualizations share recognisable faults, most of them violations of the
+principles:
+
+- **Wrong chart type** — a pie chart for a comparison across many categories, a line
+  chart for unrelated categories, a chart type that mismatches the data (the
+  chart-selection lesson).
+- **Cluttered and unfocused** — too much on one chart, no clear message, competing
+  elements so nothing stands out (a failure of focus).
+- **Chartjunk** — 3D effects, unnecessary colours, decorative elements that distort or
+  distract (the elements-of-art caveat).
+- **Misleading scales** — a truncated axis exaggerating differences, an inconsistent
+  scale, a distorted encoding (a structure-and-honesty failure).
+- **Poor colour and accessibility** — too many colours, colour-only encoding,
+  low contrast (the accessibility lesson).
+- **Missing context** — no clear title, unlabelled axes, no indication of what the
+  viewer is looking at.
+
+What makes a visualization effective
+--------------------------------------
+
+Effective visualizations are, correspondingly, the principles realised:
+
+- **Right chart type** for the data and message.
+- **Clear focus** — one message, emphasised, distractions removed.
+- **Honest structure** — undistorted scales, faithful encodings.
+- **Purposeful, accessible colour** — limited palette, not colour alone, good contrast.
+- **Clear context** — a title stating the message, labelled axes, legible text.
+- **Appropriate simplicity** — as simple as the message allows, no more.
+
+The contrast is not about sophistication — an effective chart is often *simpler* than
+an ineffective one, because it has removed everything that does not serve the message.
+
+Effective as a checklist
+--------------------------
+
+The effective-versus-ineffective contrast turns the section's principles into a
+practical review checklist for any visualization, in Tableau or elsewhere: *Is the
+chart type right? Is there one clear focus? Are the scales honest? Is the colour
+purposeful and accessible? Is there enough context? Is it as simple as it can be?* A
+visualization that passes these communicates; one that fails them confuses. Running this
+check before publishing catches the common faults while they are easy to fix.
+
+The caveat
+------------
+
+"Effective" is judged against a *purpose and audience*, not in the abstract — a chart
+effective for analysts may be ineffective for executives, and vice versa, so the
+checklist is applied *relative to whom the chart is for*. And effectiveness is not
+binary but a spectrum; most real charts are neither perfect nor terrible but improvable,
+and the goal is a chart good enough to communicate its message clearly and honestly to
+its audience, not an unattainable ideal. Use the contrast to *improve* visualizations
+toward clarity and honesty, judged by their actual purpose and readers. This closes the
+Tableau lessons; the next stage turns to data storytelling — weaving visualizations into
+a narrative.
+"""
+
+
+MINDMAP.update({
+    "Introduction to Tableau": [
+        "Data Visualization",
+        "Getting Started with Tableau Public",
+        "Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity",
+        "Effective vs. Ineffective Data Visualizations in Tableau",
+    ],
+    "Getting Started with Tableau Public": [
+        "Introduction to Tableau",
+        "Creating a CO\u2082 Emissions Visualization in Tableau Public",
+        "Effective vs. Ineffective Data Visualizations in Tableau",
+        "Choosing the Right Visualization: Audience-Centered Design and Chart Selection",
+    ],
+    "Creating a CO\u2082 Emissions Visualization in Tableau Public": [
+        "Getting Started with Tableau Public",
+        "Introduction to Tableau",
+        "Effective vs. Ineffective Data Visualizations in Tableau",
+        "Choosing the Right Visualization: Audience-Centered Design and Chart Selection",
+    ],
+    "Effective vs. Ineffective Data Visualizations in Tableau": [
+        "Creating a CO\u2082 Emissions Visualization in Tableau Public",
+        "Connecting Data and Images",
+        "Accessibility in Data Visualization: Designing for Everyone",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+})
+
+
+# ======================================================================
+# Section 6 — Data Visualization / tableau (close) + story (open)  (viz 013-016)
+# ======================================================================
+
+GLOSS.update({
+    "Using Creativity in Tableau":
+        "going beyond default charts — custom, expressive visualizations that still communicate",
+    "Linking Multiple Datasets in Tableau Public":
+        "combining data sources inside Tableau — joins and relationships for richer views",
+    "Data Storytelling: Giving Numbers a Clear and Convincing Voice":
+        "wrapping data in narrative so it informs, persuades, and is remembered",
+    "Engaging Your Audience in Data Storytelling: Identifying the Key Message":
+        "finding the one message that matters and building the story around it",
+})
+
+CONTENT["Using Creativity in Tableau"] = r"""
+Beyond the defaults
+---------------------
+
+Tableau's default charts communicate well, but the tool also supports *creative*,
+custom visualizations that go beyond bars and lines — and used judiciously, creativity
+can make a visualization more engaging and memorable. This lesson covers using
+Tableau's flexibility expressively, while keeping creativity in service of clarity
+rather than at its expense.
+
+Where creativity fits
+-----------------------
+
+Tableau enables visualizations beyond the standard types:
+
+- **Custom chart types** — combining marks, dual axes, and calculated fields to build
+  visualizations the default menu does not offer directly.
+- **Custom formatting and layout** — fonts, colours, annotations, and arrangements
+  that give a visualization a distinct, polished, on-brand look.
+- **Maps and geographic views** — Tableau's built-in geographic capabilities turn
+  location data into maps, a naturally engaging format for spatial data.
+- **Annotations and storytelling elements** — text, reference lines, and highlights
+  that guide the viewer and add narrative (connecting to the storytelling stage).
+
+Creativity here means using the tool's expressive range to make a visualization
+clearer and more compelling — not decorating for its own sake.
+
+Creativity in service of communication
+----------------------------------------
+
+The guiding principle is that creativity must *serve the message*, not compete with
+it. A creative visualization that communicates its insight more clearly or memorably
+than a standard chart is a success; one that is novel but harder to read is a failure,
+however impressive. The test is always the same: does the creative choice help the
+viewer understand faster, or does it make them work harder? Effective creativity
+lowers the barrier to understanding; ineffective creativity raises it in the name of
+originality.
+
+Balancing engagement and clarity
+----------------------------------
+
+Creativity trades against the clarity and convention that aid quick reading. A
+familiar chart type is instantly readable *because* it is familiar; an inventive one
+asks the viewer to learn how to read it. Sometimes the engagement is worth that cost —
+a memorable, distinctive visualization that draws attention to an important message —
+and sometimes it is not. The judgement is whether the creative element's benefit
+(engagement, memorability, a genuinely better fit) outweighs its cost (unfamiliarity,
+reading effort), for this message and audience.
+
+The caveat
+------------
+
+Creativity is where visualization most easily goes wrong, because the impulse to be
+novel or impressive can override the goal of communicating. The infamous failures —
+unreadable custom charts, gratuitous complexity, form over function — come from
+creativity unmoored from purpose. The discipline, once more, is clarity over
+cleverness: reach for a creative or custom visualization when it *communicates
+better*, and default to the clear, conventional chart when it does not. A creative
+visualization that people admire but cannot read has failed at the one thing
+visualization is for. The next lesson covers combining data sources in Tableau.
+"""
+
+CONTENT["Linking Multiple Datasets in Tableau Public"] = r"""
+Combining sources for richer views
+------------------------------------
+
+Real analysis often draws on several datasets, and Tableau can *combine* them —
+linking multiple data sources so a single visualization draws on more than one table.
+This lesson covers linking datasets in Tableau Public, applying the data-combining
+concepts from the analysis section within the visualization tool.
+
+How Tableau links data
+------------------------
+
+Tableau offers a few ways to combine data sources, mirroring the combining techniques
+already learned:
+
+- **Joins** — combining tables on a matching key, exactly the SQL JOIN from the
+  analysis section, configured visually in Tableau. Tables are joined on a shared
+  field (a key), producing a combined dataset with the join-type choices (inner, left,
+  right, full) the JOIN lesson covered.
+- **Relationships** — Tableau's flexible way to relate tables without a rigid
+  up-front join, letting Tableau determine how to combine them per visualization.
+- **Blending** — combining data from *different sources* (say a spreadsheet and a
+  database) at the visualization level, aggregating each and linking on a common
+  field.
+- **Unions** — stacking tables with the same structure (appending rows), for
+  combining like datasets (this month's and last month's data).
+
+The concepts are the ones from the analysis section — joining on keys, combining
+sources — now performed inside Tableau to feed richer visualizations.
+
+Why link datasets
+-------------------
+
+Linking data lets a visualization draw on information spread across tables — sales
+data joined to product details joined to regional information, visualized together.
+Just as the analysis section combined tables to answer richer questions, linking
+datasets in Tableau enables richer *visualizations*, showing relationships across data
+that no single table holds. It brings the relational-combine power into the
+visualization layer.
+
+The caveat
+------------
+
+Combining data in Tableau carries exactly the hazards the analysis section flagged for
+joins, now one step removed and thus easier to get wrong unnoticed. Joining on a
+**non-unique key** multiplies rows and inflates the aggregates Tableau computes — the
+fan-out problem, now hidden inside a chart where the wrong numbers look authoritative.
+**Mismatched keys** silently drop data; **blending** aggregates before combining,
+which can produce subtly different results than a join. The discipline is the same:
+understand the relationship between the tables (one-to-one, one-to-many), verify that
+combined visualizations show the row counts and totals you expect, and treat a chart
+built on linked data with the same row-count skepticism as a SQL join. A visualization
+of wrongly-combined data misleads with a confident, polished face. The next lessons
+turn from building charts to telling stories with them.
+"""
+
+CONTENT["Data Storytelling: Giving Numbers a Clear and Convincing Voice"] = r"""
+From charts to story
+----------------------
+
+A visualization shows data; a *story* gives it meaning, direction, and persuasive
+force. **Data storytelling** is the practice of wrapping data and visualizations in a
+narrative — combining the numbers, their visual representation, and a clear message
+into something that informs, convinces, and is remembered. Opening the storytelling
+stage, this lesson establishes why narrative matters and what data storytelling
+involves.
+
+Why storytelling matters
+--------------------------
+
+Data alone rarely moves people to act. A chart shows *what* is true; a story explains
+*why it matters* and *what to do about it*, and it does so in a form the human mind is
+built to receive — humans remember and are persuaded by stories far more than by
+isolated facts. The "data creates value only when communicated" principle reaches its
+fullest form here: the most rigorous analysis changes nothing if its findings do not
+land, and storytelling is how findings land — turning a correct result into an
+understood, believed, and acted-upon one.
+
+The elements of data storytelling
+-----------------------------------
+
+Data storytelling weaves three things together:
+
+- **The data** — the sound analysis and evidence underneath. Storytelling does not
+  replace rigour; it *communicates* it, and a story on weak data is mere persuasion.
+- **The visualizations** — the charts that make the data visible and the message
+  clear, built with the principles the section established.
+- **The narrative** — the structure and words that give the data meaning: the context
+  (why this matters), the insight (what the data shows), and the implication (what it
+  means and what to do). The narrative connects the visualizations into a coherent arc
+  rather than a pile of charts.
+
+Together, these turn numbers into a message with a clear and convincing voice.
+
+The narrative arc
+-------------------
+
+A data story has structure, often resembling a classic narrative: a *setup* (the
+context and question — why we are looking at this), a *development* (what the data
+reveals, shown through visualizations), and a *resolution* (the insight and its
+implications — what it means and what should happen). This arc gives the audience a
+path through the data, building from why-they-should-care to what-they-should-do,
+rather than dropping them into disconnected findings. Structuring findings as a
+journey is what makes them followable and memorable.
+
+The caveat
+------------
+
+Data storytelling sits on an ethical knife-edge, because the same narrative power that
+clarifies can *manipulate*. A compelling story can make weak evidence persuasive,
+smooth over inconvenient data, or lead an audience to a conclusion the data does not
+support — persuasion untethered from truth. The obligation, running through the whole
+course, is that the story must serve the *data's actual message*: storytelling should
+make a *true* insight clear and compelling, never make a preferred conclusion
+persuasive regardless of the evidence. The narrative illuminates the data; it must not
+override it. This is the honest-communication principle at its most important, because
+storytelling is where distortion is easiest and most effective. The next lesson finds
+the key message a story is built around.
+"""
+
+CONTENT["Engaging Your Audience in Data Storytelling: Identifying the Key Message"] = r"""
+The one thing they should remember
+------------------------------------
+
+A data story that tries to say everything says nothing memorable. The heart of
+engaging storytelling is **identifying the key message** — the single most important
+thing the audience should take away — and building the story around it. This lesson is
+about finding that message and using it to focus everything else.
+
+Why one key message
+---------------------
+
+Audiences remember little from any presentation — often just one thing, if that. If
+you do not decide what that one thing should be, the audience will pick their own (or
+nothing), and your most important insight may be lost among lesser ones. Identifying
+*the* key message means choosing, deliberately, the single takeaway that matters most,
+so the story can drive it home. This is the *focus* principle from visualization
+raised to the level of the whole narrative: one clear message, emphasised, distractions
+subordinated.
+
+Finding the key message
+-------------------------
+
+The key message emerges from asking what the analysis most importantly *means for the
+audience*:
+
+- **What is the most important insight?** Among everything the analysis found, which
+  finding matters most for the decision at hand?
+- **What does it mean for this audience?** The key message is framed around what the
+  *audience* cares about and must decide — not the most technically interesting
+  finding, but the most *decision-relevant* one.
+- **What should they do or think differently?** The strongest key messages point
+  toward an action or a changed understanding, giving the audience something to do
+  with the insight.
+
+The key message is usually stateable in one sentence — "our newest region is
+outgrowing all others and deserves more investment" — and if it cannot be, it is not
+yet focused enough.
+
+Building the story around the message
+---------------------------------------
+
+Once identified, the key message becomes the *organising principle* of the whole
+story. Every visualization is chosen to support it; every piece of context sets it up;
+everything that does not serve it is cut. The supporting details become supporting —
+subordinate to the one message rather than competing with it. This is what makes a
+story *engaging*: the audience is carried toward a single clear point, not scattered
+across many, and they leave knowing exactly what they were meant to understand.
+
+Engaging the audience
+-----------------------
+
+Engagement also comes from connecting the message to what the audience *cares about* —
+framing it in terms of their goals, their decisions, their concerns. A message about
+what matters to *them* engages; a technically impressive finding disconnected from
+their needs does not. This is the audience-centered thread — from the communication and
+design-thinking lessons — applied to storytelling: the key message must be not only
+important but important *to this audience*, or it will not land however well told.
+
+The caveat
+------------
+
+Focusing on one key message risks *oversimplification* — reducing a nuanced analysis
+to a single point can omit important caveats, alternative interpretations, or the
+uncertainty around the finding. The resolution is not to abandon focus but to lead
+with the key message *and* honestly acknowledge its limits — a clear main point, with
+its caveats stated rather than hidden. The goal is a message that is both focused *and*
+honest: the audience leaves with the one thing that matters, and an accurate sense of
+how much to trust it. A focused message that is misleadingly certain fails the honesty
+obligation; a focused message with its limits noted informs. The next lessons turn to
+dashboards and focused visuals that carry the story.
+"""
+
+
+MINDMAP.update({
+    "Using Creativity in Tableau": [
+        "Effective vs. Ineffective Data Visualizations in Tableau",
+        "Linking Multiple Datasets in Tableau Public",
+        "Creating a CO\u2082 Emissions Visualization in Tableau Public",
+        "Introduction to Tableau",
+    ],
+    "Linking Multiple Datasets in Tableau Public": [
+        "Using Creativity in Tableau",
+        "Getting Started with Tableau Public",
+        "Effective vs. Ineffective Data Visualizations in Tableau",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+    "Data Storytelling: Giving Numbers a Clear and Convincing Voice": [
+        "Engaging Your Audience in Data Storytelling: Identifying the Key Message",
+        "Data Creates Value Only When It Is Communicated",
+        "Data Dashboards: Organizing Insight for Real-Time Decision Making",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+    ],
+    "Engaging Your Audience in Data Storytelling: Identifying the Key Message": [
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+        "Data Dashboards: Organizing Insight for Real-Time Decision Making",
+        "Using Filters to Create Compelling and Focused Visuals",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+    ],
+})
+
+
+# ======================================================================
+# Section 6 — Data Visualization / story (close) + present (open)  (viz 017-020)
+# ======================================================================
+
+GLOSS.update({
+    "Data Dashboards: Organizing Insight for Real-Time Decision Making":
+        "combining key visualizations into one monitored view for ongoing decisions",
+    "Using Filters to Create Compelling and Focused Visuals":
+        "filtering to sharpen a visualization's message and enable exploration",
+    "Structuring a Persuasive Data Presentation: Turning Insights into Story":
+        "arranging findings into a presentation that carries an audience to a conclusion",
+    "Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact":
+        "slide design that supports the message — clear, visual, uncluttered, professional",
+})
+
+CONTENT["Data Dashboards: Organizing Insight for Real-Time Decision Making"] = r"""
+Many views, one screen
+------------------------
+
+Some questions are not answered once but *monitored continuously*, and for these the
+right form is a **dashboard** — a single view combining several key visualizations to
+give an at-a-glance picture that supports ongoing, real-time decisions. This lesson,
+within the storytelling stage, covers what dashboards are, when they fit, and how to
+design them well.
+
+What a dashboard is
+--------------------
+
+A dashboard is a curated collection of visualizations and key metrics arranged
+together on one screen, updated as data changes, so a viewer can see the state of what
+matters without running an analysis. Where a single chart answers one question and a
+data story walks through a finding, a dashboard provides *continuous situational
+awareness* — the key numbers and trends for an ongoing concern (sales performance,
+operational health, project status), monitored over time.
+
+When dashboards fit
+---------------------
+
+Dashboards suit a specific purpose distinct from one-off charts and stories:
+
+- **Ongoing monitoring** — tracking key metrics continuously rather than answering a
+  question once. A dashboard is for the questions you ask *repeatedly*.
+- **Real-time or regularly-updated decisions** — where decisions depend on current
+  data, and the dashboard keeps that data in view.
+- **Self-service** — letting viewers check the metrics they need without asking an
+  analyst each time, often with interactivity to explore (the dynamic-visualization
+  purpose).
+
+If a question is asked once, a chart or story answers it; if it is asked continuously,
+a dashboard serves it. Matching the form to the frequency of the question is the key
+judgement.
+
+Designing effective dashboards
+--------------------------------
+
+Good dashboard design applies the section's principles to a *collection*:
+
+- **Focus on what matters** — include the *key* metrics for the decision, not every
+  available number. A cluttered dashboard of everything is as useless as a cluttered
+  chart; a dashboard is an exercise in choosing what to leave out.
+- **Organise logically** — arrange visualizations so the most important are prominent
+  and related ones are grouped, guiding the eye through the information (the
+  most-important-first structure).
+- **Keep each visualization clear** — every chart on the dashboard follows the
+  effective-visualization principles; a dashboard is only as good as its component
+  charts.
+- **Enable appropriate interactivity** — filters and drill-downs where viewers need to
+  explore, without overwhelming.
+
+Why dashboards matter
+-----------------------
+
+Dashboards operationalise data — turning analysis from an occasional report into a
+*continuous* input to decisions. A well-designed dashboard means the right people see
+the right metrics at the right time, so decisions are informed by current data as a
+matter of routine rather than special request. It is the "data creates value when
+communicated" principle made *ongoing*: the value is delivered continuously, whenever
+the dashboard is consulted.
+
+The caveat
+------------
+
+Dashboards fail in characteristic ways. The commonest is **cramming too much in** —
+the impulse to include every metric produces a wall of charts where nothing stands
+out and the key signals drown, exactly the focus failure warned against, multiplied
+across a screen. Dashboards can also mislead through *stale data* (a dashboard assumed
+live but not refreshing), through metrics shown without the context to interpret them
+(a number with no baseline or target), and through *vanity metrics* that look
+impressive but do not inform decisions. A dashboard is a design problem demanding
+restraint: show the few metrics that drive decisions, keep them current and in
+context, and resist the pull toward comprehensiveness. The next lesson covers filtering
+to focus visuals.
+"""
+
+CONTENT["Using Filters to Create Compelling and Focused Visuals"] = r"""
+Filtering for focus
+----------------------
+
+A visualization showing *all* the data is often less compelling than one showing the
+*relevant* data — and **filters** are the tool for that focus. Filtering a
+visualization to the subset that matters sharpens its message and, in interactive
+form, lets viewers explore their own questions. This lesson covers using filters to
+make visuals both focused and engaging, closing the storytelling stage.
+
+How filters sharpen a visualization
+--------------------------------------
+
+Filtering restricts a visualization to a chosen subset, which serves focus directly:
+
+- **Removing noise** — filtering out irrelevant categories, periods, or outliers so
+  the chart shows only what bears on the message. A trend across a decade may be
+  clearer filtered to the relevant few years.
+- **Isolating the story** — filtering to the segment the message concerns (the one
+  region, product, or period the insight is about), so the visualization makes exactly
+  its point without distraction.
+- **Enabling comparison** — filtering to one subset, then another, to show a
+  contrast that the full data would obscure.
+
+A focused, filtered visualization communicates its message more forcefully than a
+cluttered complete one — the focus principle, achieved by subtraction.
+
+Interactive filters for exploration
+-------------------------------------
+
+In dynamic visualizations and dashboards, filters become *interactive controls* that
+let viewers choose the subset they see:
+
+- **Viewer-driven focus** — viewers filter to *their* region, *their* period, *their*
+  segment, getting a visualization focused on what they care about.
+- **Self-service exploration** — one filtered visualization serves many viewers with
+  different questions, each filtering to their own view (the dynamic-visualization
+  strength).
+- **Guided exploration** — filters can be designed to steer viewers through the data
+  in a useful sequence, combining interactivity with narrative.
+
+Interactive filtering turns a single visualization into a flexible tool that adapts to
+each viewer's question.
+
+Filters in storytelling
+-------------------------
+
+Filters connect focus to narrative. A data story can use filtering to *reveal* —
+showing the whole, then filtering to the segment that carries the insight, walking the
+audience from context to point. And in a dashboard, filters let each viewer focus the
+shared view on their concern. Filtering is thus both a *design* tool (sharpening a
+static visual's message) and an *interaction* tool (enabling exploration) — two ways of
+using the same operation to serve focus.
+
+The caveat
+------------
+
+Filtering is powerful and, precisely because it shapes what the viewer sees, a
+frequent source of *distortion* — the honest-visualization concern in sharp form.
+Filtering to only the data that supports a conclusion (excluding the inconvenient
+period, the contradicting segment) manufactures a misleading picture while looking like
+mere focus. The line between *focusing* on the relevant and *cherry-picking* the
+favourable is exactly the line between honest and dishonest filtering: focus removes
+what is *irrelevant to the message*; cherry-picking removes what is *inconvenient to the
+conclusion*. The discipline is to filter for relevance in service of the data's true
+message, to be transparent about what a visualization excludes, and to be especially
+wary when a filter happens to strengthen a preferred narrative. This closes the
+storytelling stage; the next lessons turn to presenting the story.
+"""
+
+CONTENT["Structuring a Persuasive Data Presentation: Turning Insights into Story"] = r"""
+From findings to presentation
+-------------------------------
+
+Analysis often culminates in a *presentation* — standing before an audience to convey
+what the data shows and what should be done. **Structuring a persuasive data
+presentation** is the craft of arranging findings into a presentation that carries an
+audience from context to conclusion. Opening the final stage of the section, this
+lesson covers how to structure a data presentation as a story.
+
+The presentation as a story
+------------------------------
+
+A persuasive presentation is not a data dump but a *narrative* — the storytelling
+principles from the previous stage applied to the presentation format. It has an arc:
+it establishes *why the audience should care*, develops *what the data shows*, and
+arrives at *what it means and what to do*. This structure carries the audience along a
+path rather than presenting disconnected findings, and it is what makes a presentation
+persuasive: the audience is led to the conclusion, understanding each step, rather than
+handed a result to accept.
+
+A structure for data presentations
+------------------------------------
+
+A common, effective structure:
+
+- **Open with the context and question** — why this matters, what question the
+  analysis addressed. This earns the audience's attention and frames everything after.
+- **Present the key message early** — often the strongest presentations state the main
+  takeaway near the start, then support it, rather than building suspense (business
+  audiences usually want the conclusion first). The key message from the storytelling
+  lesson leads.
+- **Develop with supporting evidence** — the visualizations and findings that support
+  the message, each building the case, in a logical order.
+- **Address implications and recommendations** — what the insight means for the
+  audience and what they should do — the payoff that makes the analysis actionable.
+- **Close with the key message and next steps** — reinforce the takeaway and make the
+  call to action clear.
+
+This arc turns findings into a persuasive journey with a clear destination.
+
+Structuring around the audience
+---------------------------------
+
+The structure serves the *audience* and the *decision*. The context is framed around
+what they care about; the key message is what matters to them; the depth of evidence
+matches their needs (executives want the conclusion and confidence; analysts want the
+method); the recommendations address their decision. The audience-centered thread —
+from communication, design thinking, and storytelling — governs the presentation's
+structure: it is built to bring *this* audience to *this* decision.
+
+The caveat
+------------
+
+"Persuasive" carries the same ethical weight as "storytelling," intensified by the
+presentation's directness and authority. A well-structured presentation can persuade an
+audience of a conclusion the data does not support — through selective evidence, a
+structure that hides caveats, or confident delivery outrunning the actual findings. The
+obligation is that persuasion must serve the *truth*: the presentation should bring the
+audience to the conclusion the *data genuinely supports*, with its uncertainties and
+limitations honestly included, not engineer agreement regardless of the evidence.
+Persuasive structure is for making a *true and important* message land, not for winning
+assent to a predetermined position. A presentation that persuades past the evidence
+betrays the analyst's core obligation to truth. The next lesson covers the slides that
+carry the presentation.
+"""
+
+CONTENT["Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact"] = r"""
+Slides that serve the message
+-------------------------------
+
+Most data presentations are carried by *slides*, and slide design can strengthen a
+presentation or sabotage it. **Designing effective data presentation slides** is about
+making slides that support the spoken message clearly and professionally — visual,
+uncluttered, and focused. This lesson covers the principles of good slide design for
+data.
+
+The purpose of a slide
+------------------------
+
+A slide *supports* the presenter; it is not the presentation itself. Its job is to
+show what is better *seen* than *said* — a visualization, a key number, a short list —
+while the presenter provides the narrative. The commonest slide failure is treating the
+slide as the script: dense paragraphs the presenter reads aloud, which bores the
+audience and splits their attention between reading and listening. A good slide shows;
+the presenter tells.
+
+Principles of effective data slides
+-------------------------------------
+
+Effective slides follow clear principles, most echoing the visualization thread:
+
+- **One point per slide** — each slide makes a single clear point, as each
+  visualization has one focus. A slide trying to make several points makes none
+  memorably.
+- **Visual over textual** — show a chart, a number, an image rather than text
+  wherever possible; the visualization communicates faster than a paragraph.
+- **Minimal text** — a few words, a short title stating the point, not sentences to
+  read. Text on a slide is for labels and the key message, not narration.
+- **Clean and uncluttered** — generous space, no unnecessary elements, the audience's
+  eye drawn to the one thing that matters (the chartjunk principle, applied to slides).
+- **Consistent and professional** — consistent fonts, colours, and layout across
+  slides give a polished, credible impression; inconsistency and sloppiness undermine
+  trust in the content.
+
+The visualization on the slide
+--------------------------------
+
+Because data slides are built around visualizations, every principle from the section
+applies to the chart *on* the slide: the right chart type, a clear focus, honest
+scales, accessible colour, a title stating the point. A slide's visualization must also
+be *readable in the room* — large enough, simple enough, and high-contrast enough to be
+seen from the back, which often means simplifying a chart further for a slide than for a
+report. The slide is the visualization's most demanding venue.
+
+The caveat
+------------
+
+Slide design can consume effort disproportionate to its value, and polish can substitute
+for substance. Elaborate animations, lavish design, and hours of formatting do not
+improve a presentation whose *analysis* or *message* is weak — and can distract from it,
+or signal that style is compensating for lack of content. The principle is that slides
+serve the message: invest in making them clear, readable, and professional, but not in
+decoration that adds no understanding, and never let slide-making crowd out getting the
+analysis and narrative right. A beautiful deck presenting a weak insight is still a weak
+presentation. The next lessons cover the frameworks and delivery that complete the
+presentation craft.
+"""
+
+
+MINDMAP.update({
+    "Data Dashboards: Organizing Insight for Real-Time Decision Making": [
+        "Dashboards",
+        "Using Filters to Create Compelling and Focused Visuals",
+        "Engaging Your Audience in Data Storytelling: Identifying the Key Message",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+    "Using Filters to Create Compelling and Focused Visuals": [
+        "Data Dashboards: Organizing Insight for Real-Time Decision Making",
+        "Engaging Your Audience in Data Storytelling: Identifying the Key Message",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+    ],
+    "Structuring a Persuasive Data Presentation: Turning Insights into Story": [
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+        "Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact",
+        "Using a Strategic Framework to Structure Data Presentations",
+        "Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method",
+    ],
+    "Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact": [
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+        "Using a Strategic Framework to Structure Data Presentations",
+        "Presentation Skills for Data Analysts: Delivering Insights with Confidence",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+})
+
+
+# ======================================================================
+# Section 6 — Data Visualization / present (cont.)  (viz 021-024)
+# ======================================================================
+
+GLOSS.update({
+    "Using a Strategic Framework to Structure Data Presentations":
+        "reusable structures that reliably organize a presentation toward its goal",
+    "Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method":
+        "integrating data with narrative — hypothesis, context, and a four-element method",
+    "Presentation Skills for Data Analysts: Delivering Insights with Confidence":
+        "the delivery half of presenting — voice, pace, presence, and handling nerves",
+    "Presenting Like a Pro: Best Practices for Data Analysts":
+        "the practices that mark a polished, credible data presenter",
+})
+
+CONTENT["Using a Strategic Framework to Structure Data Presentations"] = r"""
+Frameworks for reliable structure
+-----------------------------------
+
+Rather than structuring every presentation from scratch, experienced presenters lean
+on **strategic frameworks** — reusable structures that reliably organise findings
+toward a goal. A framework provides a proven skeleton, so the presenter can focus on
+the content rather than reinventing the shape. This lesson covers using frameworks to
+structure data presentations effectively.
+
+Why use a framework
+---------------------
+
+A strategic framework offers several advantages over improvising structure:
+
+- **Proven effectiveness** — frameworks encode what reliably works, sparing you the
+  risk of an untested structure that loses the audience.
+- **Efficiency** — a framework gives a starting structure immediately, so effort goes
+  into the content and message rather than the arrangement.
+- **Completeness** — a good framework prompts you to include what matters (context,
+  evidence, implications, action), so nothing essential is forgotten.
+- **Audience familiarity** — audiences unconsciously recognise well-structured
+  presentations and follow them more easily.
+
+The framework is scaffolding: it holds the presentation's shape so the presenter can
+concentrate on filling it well.
+
+Common presentation frameworks
+--------------------------------
+
+Several frameworks suit data presentations, each a structured path:
+
+- **Situation–Complication–Resolution** — establish the *situation* (the context),
+  introduce the *complication* (the problem or question the data addresses), and
+  present the *resolution* (the insight and recommendation). A classic, versatile
+  structure that mirrors narrative.
+- **Question–Answer** — pose the key question the analysis addresses, then answer it
+  with the evidence — direct and clear for decision-focused audiences.
+- **What / So What / Now What** — state *what* the data shows, *so what* it means, and
+  *now what* should be done. A compact structure that moves from finding to
+  implication to action.
+- **Pyramid structure** — lead with the main conclusion, then support it with grouped
+  evidence beneath — the conclusion-first approach business audiences prefer.
+
+Each provides a reliable path from opening to call-to-action; the choice depends on the
+audience and the message.
+
+Choosing and applying a framework
+-----------------------------------
+
+The framework is a *guide*, not a cage. Choose one that fits the presentation's purpose
+and audience — a decision-focused executive audience suits a conclusion-first pyramid or
+What/So What/Now What; a problem-solving context suits Situation–Complication–Resolution
+— then adapt it to the specific content. The framework ensures the presentation has a
+sound structure; the presenter's judgement fills and adjusts it for the actual message
+and audience.
+
+The caveat
+------------
+
+Frameworks aid structure but can become *formulaic* if applied mechanically — forcing
+every presentation into a rigid template regardless of fit produces generic,
+going-through-the-motions presentations that do not serve their specific content. The
+framework should serve the message, not the message the framework: use it as a starting
+structure and adapt it, rather than contorting the content to fit the template. And no
+framework substitutes for a *sound message* — a well-structured presentation of a weak
+or dishonest insight is still weak or dishonest. Frameworks organise a good message
+effectively; they cannot rescue a bad one. The next lesson covers weaving the data
+itself into the narrative.
+"""
+
+CONTENT["Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method"] = r"""
+Integrating data and narrative
+--------------------------------
+
+A data presentation must *weave* the data into the story — neither burying the audience
+in numbers nor making claims the data does not back. This lesson covers integrating data
+with narrative through hypotheses and context, and a specific structured approach known
+as the **McCandless Method**, giving a concrete technique for presenting a data-driven
+point.
+
+Hypotheses and context
+------------------------
+
+Two elements make data land in a presentation:
+
+- **A hypothesis** — framing a finding as a claim the data tests and supports gives the
+  audience something definite to grasp. "We believe the newest region is our growth
+  engine — here is the data" is more compelling than an unframed pile of regional
+  numbers. The hypothesis gives the data a *point*.
+- **Context** — data means nothing without a frame of reference. A number needs a
+  comparison (versus last year, versus target, versus other segments) to be
+  interpretable; a trend needs its baseline; a result needs the circumstances that make
+  it meaningful. Providing context is what turns a bare figure into an insight the
+  audience can judge.
+
+Together, a hypothesis (what we claim) and context (against what it means) make data
+communicative rather than merely present.
+
+The McCandless Method
+----------------------
+
+The McCandless Method, associated with data journalist David McCandless, is a structured
+way to present a single data visualization or point, working through four elements in
+order:
+
+- **Introduce the visualization by name** — give the chart a clear, descriptive title
+  that states what it shows, so the audience knows what they are looking at before
+  interpreting it.
+- **Anticipate the audience's questions** — address the questions the visualization
+  naturally raises ("what am I looking at? what do these axes mean?") before they become
+  confusion.
+- **State the insight** — say clearly what the visualization *shows* — the pattern, the
+  finding, the point. Do not make the audience infer it; state it.
+- **Call out the supporting evidence, and tell the audience why it matters** — direct
+  attention to the specific parts of the chart that support the insight, and connect it
+  to what the audience cares about.
+
+The method ensures a visualization is *presented*, not merely *displayed* — introduced,
+clarified, interpreted, and connected to the audience's concerns.
+
+Why this integration matters
+------------------------------
+
+Weaving data into narrative this way avoids the two failure modes of data presentation:
+the *data dump* (showing numbers and charts without interpretation, leaving the audience
+to make sense of them) and the *unsupported claim* (asserting conclusions without showing
+the data that backs them). A hypothesis frames the point, context makes it interpretable,
+and a method like McCandless's presents each visualization so the audience *understands*
+it. The result is a presentation where data and narrative reinforce each other — the
+story guides, and the data substantiates.
+
+The caveat
+------------
+
+Framing data with a hypothesis is powerful and therefore hazardous: a hypothesis stated
+too strongly can lead the audience to *see* support the data does not really provide, and
+selectively presenting the context that flatters the hypothesis (while omitting context
+that complicates it) is a subtle dishonesty. The discipline is to frame a hypothesis the
+data *genuinely supports*, present the context *fairly* (including what complicates the
+picture), and let the visualization show what it actually shows — using these techniques
+to make a *true* point clear, not to make a shaky point persuasive. The honest-analysis
+obligation governs how data is woven, not just whether it is present. The next lesson
+turns to delivering the presentation.
+"""
+
+CONTENT["Presentation Skills for Data Analysts: Delivering Insights with Confidence"] = r"""
+The delivery half
+-------------------
+
+A well-structured presentation with clear slides can still fall flat in the *delivery* —
+and a confident, clear delivery can make even modest content land. **Presentation
+skills** are the delivery half of presenting: voice, pace, presence, and composure. This
+lesson covers delivering data insights with confidence, the human skills that carry the
+prepared content.
+
+The core delivery skills
+--------------------------
+
+Effective delivery rests on a handful of skills:
+
+- **Clarity of speech** — speaking clearly and at a measured pace, so the audience can
+  follow. Nervous presenters rush; deliberate pacing aids comprehension and projects
+  composure.
+- **Voice and emphasis** — varying tone and stressing key points, so the important
+  things stand out audibly, as visual emphasis makes them stand out on a slide.
+- **Presence and eye contact** — engaging the audience by looking at them (not at
+  slides or notes), which builds connection and conveys confidence.
+- **Managing the visualizations** — guiding the audience through each chart (as the
+  McCandless Method structures), directing their attention rather than assuming they
+  follow.
+- **Composure** — staying calm and measured, especially when nervous or challenged (the
+  Q&A lessons ahead).
+
+These skills turn prepared content into a delivery that connects with the audience.
+
+Confidence and how it is built
+--------------------------------
+
+Confidence in presenting comes less from personality than from *preparation and
+practice*. Knowing your material deeply, having rehearsed the presentation, and
+anticipating questions all produce genuine confidence — you are confident because you
+are prepared, not despite nerves. The most reliable route to confident delivery is
+thorough preparation: rehearse the presentation, know the data cold, and anticipate what
+the audience will ask. Confidence is largely preparation made visible.
+
+Managing nervousness
+----------------------
+
+Nervousness is normal, even for experienced presenters, and the goal is to *manage* it,
+not eliminate it. Preparation reduces it; so do practical techniques — a measured pace
+(slowing down counters the nervous rush), focusing on the message rather than on
+yourself, and treating the presentation as helping the audience understand rather than as
+a performance to be judged. Reframing from "I am being evaluated" to "I am helping them
+understand" shifts the focus outward and eases the nerves.
+
+The caveat
+------------
+
+Confident delivery is a tool that can be *misused* — a polished, confident presenter can
+make a weak or wrong analysis sound authoritative, and confidence that outruns the actual
+evidence misleads an audience into over-trusting the conclusion. Delivery skill must not
+substitute for substance or overstate certainty: the confident presentation of an
+uncertain finding should still convey that uncertainty, honestly. Confidence should
+reflect genuine command of *sound* material, not paper over weak material with poise. The
+analyst's obligation to truth applies to *how* findings are delivered as much as to the
+findings themselves — deliver a well-founded message with earned confidence, and an
+uncertain one with honest calibration. The next lesson collects the best practices of
+polished presenting.
+"""
+
+CONTENT["Presenting Like a Pro: Best Practices for Data Analysts"] = r"""
+The marks of a polished presenter
+-----------------------------------
+
+Beyond structure, slides, and delivery basics, a set of **best practices** distinguishes
+a polished, professional data presenter. This lesson collects them — the habits that
+mark someone who presents data credibly and effectively, consolidating the presentation
+craft before the Q&A lessons.
+
+The best practices
+-------------------
+
+Professional data presenters consistently do the following:
+
+- **Know the audience** — tailor content, depth, and framing to who is in the room and
+  what they need to decide (the audience-centered thread throughout).
+- **Lead with the message** — state the key takeaway early and clearly, then support it,
+  rather than making the audience wait for the point.
+- **Tell a story** — structure the presentation as a narrative with an arc, not a list of
+  disconnected findings (the storytelling stage).
+- **Show, don't tell** — use visualizations to convey what is better seen, keeping slides
+  visual and uncluttered (the slide-design lesson).
+- **Practice thoroughly** — rehearse until the delivery is smooth and the timing is
+  right; preparation is the foundation of both polish and confidence.
+- **Anticipate questions** — prepare for what the audience will ask, so Q&A strengthens
+  rather than undermines the presentation (the next lessons).
+- **Be honest about limitations** — state the data's caveats and uncertainties, which
+  *builds* credibility rather than weakening it.
+- **Respect time** — keep to the allotted time and the audience's attention, cutting
+  what does not serve the message.
+
+Together these are what "presenting like a pro" means in practice — not flashiness, but
+disciplined clarity, preparation, and honesty.
+
+Why honesty is a best practice
+--------------------------------
+
+It is worth emphasising that *honesty about limitations* is a professional best practice,
+not a weakness. A presenter who acknowledges what the data does *not* show, where the
+uncertainty lies, and what the analysis could not address comes across as more
+trustworthy, not less — because a claim of certainty invites skepticism while honest
+calibration invites trust. Audiences, especially sophisticated ones, trust the analyst who
+volunteers the caveats over the one who oversells. Honesty is thus not only ethical but
+*effective* — it is how credibility is earned and kept, which is why it appears on every
+professional's list.
+
+The professional mindset
+--------------------------
+
+Underlying the practices is a mindset: the presentation exists to help the *audience*
+understand and decide, and the presenter's job is to serve that as clearly and honestly
+as possible. This outward focus — on the audience's understanding rather than the
+presenter's performance — is what animates all the best practices, from tailoring to
+honesty to respecting time. The professional presents *for the audience*, not *at* them.
+
+The caveat
+------------
+
+Best practices are guidelines, not guarantees, and they can be over-applied or misapplied
+— rigidly following every practice regardless of context, or polishing delivery while
+neglecting the analysis underneath. The practices serve a sound, honest message delivered
+to a specific audience; they do not substitute for having one, and they are adapted to the
+situation rather than applied by rote. A technically flawless presentation of a weak or
+dishonest analysis has missed the point entirely. The practices make a *good* presentation
+excellent; the goodness — sound analysis, honest message, genuine service to the audience
+— must be there first. The next lessons cover the part many presenters fear most: the Q&A.
+"""
+
+
+MINDMAP.update({
+    "Using a Strategic Framework to Structure Data Presentations": [
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+        "Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method",
+        "Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact",
+        "Presenting Like a Pro: Best Practices for Data Analysts",
+    ],
+    "Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method": [
+        "Using a Strategic Framework to Structure Data Presentations",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+        "Presentation Skills for Data Analysts: Delivering Insights with Confidence",
+        "Data Storytelling: Giving Numbers a Clear and Convincing Voice",
+    ],
+    "Presentation Skills for Data Analysts: Delivering Insights with Confidence": [
+        "Presenting Like a Pro: Best Practices for Data Analysts",
+        "Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method",
+        "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+    ],
+    "Presenting Like a Pro: Best Practices for Data Analysts": [
+        "Presentation Skills for Data Analysts: Delivering Insights with Confidence",
+        "Using a Strategic Framework to Structure Data Presentations",
+        "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions",
+        "Handling Objections in Data Presentations: Responding with Confidence and Clarity",
+    ],
+})
+
+
+# ======================================================================
+# Section 6 — Data Visualization / present (close)  (viz 025-027)  -- SECTION 6 COMPLETE
+# ======================================================================
+
+GLOSS.update({
+    "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions":
+        "readying for the questions a presentation will draw — anticipation as preparation",
+    "Handling Objections in Data Presentations: Responding with Confidence and Clarity":
+        "responding to challenges and pushback without defensiveness, honestly and calmly",
+    "Q&A Best Practices: Answering Questions with Clarity and Confidence":
+        "the habits of fielding questions well — listen, answer directly, stay honest",
+})
+
+CONTENT["Preparing for Q&A: Anticipating and Responding to Stakeholder Questions"] = r"""
+The part you cannot script
+----------------------------
+
+A presentation's prepared portion ends; then comes the **question-and-answer**, the
+part many presenters fear most because it cannot be fully scripted. Yet Q&A can be
+prepared for, and doing so turns it from a threat into an opportunity to reinforce the
+message. This lesson, closing the visualization section, covers anticipating and
+responding to stakeholder questions.
+
+Why Q&A matters
+----------------
+
+Q&A is not an afterthought — it is often where the *real* engagement happens. It is
+where stakeholders test the analysis, surface their genuine concerns, and decide
+whether to trust and act on the findings. Handled well, Q&A *strengthens* a
+presentation: it demonstrates the depth behind the conclusions, addresses doubts
+directly, and builds the confidence that leads to action. Handled poorly, it can
+unravel an otherwise strong presentation. Because so much rides on it, preparing for
+Q&A is as important as preparing the presentation itself.
+
+Anticipating questions
+-----------------------
+
+The core of Q&A preparation is *anticipation* — predicting what will be asked and
+readying answers:
+
+- **Question the analysis yourself** — what are its weak points, assumptions, and
+  limitations? Stakeholders will probe exactly these, so identify them first and
+  prepare honest responses.
+- **Consider the audience's concerns** — what does *this* audience care about, and what
+  will they want to know? Their questions follow their interests and decisions.
+- **Prepare for the obvious questions** — "how confident are you?", "what about this
+  other factor?", "what do you recommend?", "where did this data come from?" — the
+  predictable questions deserve prepared, solid answers.
+- **Ready supporting detail** — have the backup data, the methodology, and the details
+  ready (often in appendix slides) for questions that go deeper than the main
+  presentation.
+
+Anticipation converts most of Q&A from improvisation into *recall* of prepared
+material — you have already thought through the likely questions.
+
+Responding well
+----------------
+
+Beyond anticipation, responding well has a method: *listen* to the whole question
+before answering, *answer directly* (address what was actually asked, concisely),
+*support* the answer with evidence where useful, and *stay honest* — if you do not know,
+say so rather than bluffing. A direct, honest, evidence-backed answer builds trust; a
+evasive or padded one erodes it. The next lessons develop responding to objections and
+the finer points of answering.
+
+The caveat
+------------
+
+Preparation cannot anticipate *every* question, and the goal is not to script Q&A
+completely but to be ready for the *likely* questions and composed enough to handle the
+unexpected ones. Over-preparing rigid answers can even backfire — sounding rehearsed or
+failing to actually address a question that differs from the one you prepared for. The
+balance is thorough anticipation of the probable, plus the composure and honesty to
+handle the rest genuinely: think through the weak points and obvious questions in
+advance, and meet the unforeseen ones with the same directness and honesty rather than
+panic. Readiness is having thought it through, not having memorised a script. The next
+lesson addresses the hardest questions: objections.
+"""
+
+CONTENT["Handling Objections in Data Presentations: Responding with Confidence and Clarity"] = r"""
+When the audience pushes back
+-------------------------------
+
+Some questions are not requests for information but *objections* — challenges to the
+analysis, disagreements with the conclusions, or pushback on the recommendations.
+**Handling objections** with confidence and clarity, rather than defensiveness, is a
+distinct and crucial skill. This lesson covers responding to challenges in a data
+presentation.
+
+Understanding objections
+--------------------------
+
+Objections come in recognisable forms, and reading which one you face guides the
+response:
+
+- **Challenges to the data or method** — "how do you know the data is reliable?", "did
+  you account for X?". These question the analysis's soundness, and the response is
+  evidence: explain the method, the data quality, the checks performed (the
+  verification and integrity work from earlier sections).
+- **Disagreement with the conclusion** — the stakeholder reads the findings
+  differently, or their experience conflicts with the data. This calls for engaging the
+  substance, not dismissing their view.
+- **Concerns about the recommendation** — accepting the analysis but questioning the
+  proposed action, often for reasons (cost, feasibility, politics) outside the data.
+- **Objections rooted elsewhere** — sometimes an objection reflects a concern the
+  stakeholder has not stated directly; understanding the real concern behind the
+  question is often the key to addressing it.
+
+Identifying what an objection *really* challenges is the first step to responding well.
+
+Responding to objections
+--------------------------
+
+Effective objection-handling follows principles that keep the exchange constructive:
+
+- **Stay calm and non-defensive** — an objection is not an attack, and treating it as
+  one (becoming defensive or dismissive) escalates and undermines credibility. Composure
+  signals confidence in the work.
+- **Listen and acknowledge** — hear the full objection and acknowledge its validity
+  where it has some; dismissing a fair point loses the room. "That's a fair concern"
+  before responding shows you take it seriously.
+- **Respond with evidence and reason** — address the substance with the data, method, or
+  reasoning that speaks to it, rather than mere assertion.
+- **Concede what is true** — if an objection identifies a genuine limitation or a point
+  you had not considered, acknowledge it honestly. Conceding a valid point *strengthens*
+  credibility; defending the indefensible destroys it.
+- **Find common ground** — where you disagree, identify what you *do* agree on, and
+  reason from there.
+
+The goal is a constructive exchange that addresses the concern honestly, not a debate to
+be "won."
+
+Confidence without defensiveness
+----------------------------------
+
+The balance the lesson's title names — *confidence and clarity* — is the key. Confidence
+means standing behind sound work and responding substantively, not caving at the first
+challenge; clarity means addressing the actual objection directly and understandably.
+But confidence must not become *defensiveness* (treating every objection as an attack) or
+*stubbornness* (refusing to concede valid points). The confident, clear response engages
+the objection on its merits, concedes what is true, and defends what is sound — all
+calmly. This is what maintains credibility under challenge.
+
+The caveat
+------------
+
+The deepest risk in handling objections is letting the *desire to defend your conclusion*
+override *honesty* — arguing away a valid objection, overstating your certainty to rebuff
+a challenge, or "winning" the exchange at the cost of the truth. When an objection is
+right, the honest and ultimately more credible response is to concede it, even at the
+cost of your conclusion — because an analyst's lasting credibility rests on being
+trustworthy, not on being never wrong. Handling objections well is not about deflecting
+all challenges but about engaging them honestly, conceding the valid ones, and defending
+only what the evidence genuinely supports. Defending a wrong conclusion skilfully is a
+failure, not a success. The final lesson consolidates Q&A best practices.
+"""
+
+CONTENT["Q&A Best Practices: Answering Questions with Clarity and Confidence"] = r"""
+Fielding questions well
+-------------------------
+
+Closing the visualization and communication section, this lesson consolidates the
+**best practices for Q&A** — the habits that let an analyst field questions with clarity
+and confidence, turning the unscripted exchange into a strength. It gathers the threads
+of the previous lessons into a practical set of principles.
+
+The Q&A best practices
+------------------------
+
+Analysts who handle Q&A well consistently do the following:
+
+- **Listen fully** — hear the entire question before formulating an answer; answering a
+  question the person did not ask (because you jumped ahead) frustrates and misses the
+  point. Pause to understand first.
+- **Clarify if needed** — if a question is unclear or ambiguous, ask what the person
+  means rather than guessing; answering the wrong interpretation wastes the exchange.
+- **Answer directly and concisely** — address what was actually asked, get to the point,
+  and avoid rambling. A direct answer respects the audience and projects command.
+- **Support with evidence** — back the answer with the data, method, or reasoning when
+  useful, connecting to the analysis.
+- **Be honest about what you don't know** — "I don't know, but I can find out" is a
+  strong, credible answer; bluffing is transparent and destroys trust. Honesty about the
+  limits of your knowledge is a best practice, not a weakness.
+- **Stay composed and gracious** — remain calm, respectful, and non-defensive, even with
+  hostile or difficult questions. Composure under pressure signals confidence in the
+  work.
+- **Bridge back to the message** — where appropriate, connect an answer back to the key
+  message, using questions as opportunities to reinforce the main point.
+
+Together these turn Q&A from a feared unknown into a controlled, credibility-building
+part of the presentation.
+
+Honesty as the throughline
+----------------------------
+
+The recurring theme across Q&A — and across the whole communication section — is
+*honesty*. Answering truthfully, admitting what you do not know, conceding valid
+objections, and not overstating certainty are the practices that build the trust on
+which an analyst's influence depends. It is tempting, under the pressure of a question,
+to bluff, overstate, or defend past the evidence — and it is exactly then that honesty
+matters most, because the audience is testing not just the analysis but the analyst's
+trustworthiness. The analyst who is honest under questioning earns credibility that a
+slick but evasive one never does.
+
+Q&A as opportunity
+-------------------
+
+Reframing Q&A from threat to *opportunity* is the lesson's final point. Questions reveal
+what the audience cares about and did not fully grasp, giving you the chance to address
+their real concerns, reinforce the message, and demonstrate the depth behind the work.
+Approached this way — as a chance to engage rather than a gauntlet to survive — Q&A
+becomes where a good presentation earns trust and turns findings into decisions. The
+prepared, honest, composed presenter welcomes it.
+
+The caveat
+------------
+
+Q&A best practices are principles, not a script, and real Q&A is unpredictable — the
+practices guide behaviour but must be applied with judgement in the moment (when to be
+brief versus thorough, when to bridge versus simply answer, how to read a difficult
+questioner). And the practices serve honest communication of sound work; they are not
+techniques for managing an audience past a weak analysis or an inconvenient truth. Fielded
+with genuine honesty and command of solid material, Q&A strengthens a presentation;
+deployed to deflect and spin, the same techniques become the manipulation the whole
+course warns against. The practices are for communicating truth clearly under questioning,
+not for surviving scrutiny of the indefensible.
+
+This completes the Data Visualization section — and with it, the arc from raw data to
+communicated insight. You have moved through visualization principles, building charts in
+Tableau, telling data stories, and presenting and defending findings. The data is now not
+only prepared, cleaned, and analysed but *communicated* — turned into understanding that
+drives decisions. The next section turns to the tool that ties the whole workflow together
+and automates it: the Python programming language.
+"""
+
+
+MINDMAP.update({
+    "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions": [
+        "Presenting Like a Pro: Best Practices for Data Analysts",
+        "Handling Objections in Data Presentations: Responding with Confidence and Clarity",
+        "Q&A Best Practices: Answering Questions with Clarity and Confidence",
+        "Presentation Skills for Data Analysts: Delivering Insights with Confidence",
+    ],
+    "Handling Objections in Data Presentations: Responding with Confidence and Clarity": [
+        "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions",
+        "Q&A Best Practices: Answering Questions with Clarity and Confidence",
+        "Presenting Like a Pro: Best Practices for Data Analysts",
+        "Structuring a Persuasive Data Presentation: Turning Insights into Story",
+    ],
+    "Q&A Best Practices: Answering Questions with Clarity and Confidence": [
+        "Preparing for Q&A: Anticipating and Responding to Stakeholder Questions",
+        "Handling Objections in Data Presentations: Responding with Confidence and Clarity",
+        "Data Creates Value Only When It Is Communicated",
+        "Presenting Like a Pro: Best Practices for Data Analysts",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / Stage: basics  (python 001-004)
+# ======================================================================
+
+GLOSS.update({
+    "Introduction to Python and Programming Fundamentals":
+        "why analysts learn Python, and the programming ideas underneath it",
+    "Python Fundamentals":
+        "the core building blocks of Python — values, expressions, statements, and flow",
+    "Jupyter Notebook and Coding Environments":
+        "where analysts write and run Python — notebooks, IDEs, and the interactive workflow",
+    "Object-Oriented Programming (OOP) in Python":
+        "the objects-and-methods model that shapes Python, including pandas and numpy",
+})
+
+CONTENT["Introduction to Python and Programming Fundamentals"] = r"""
+Why Python
+-----------
+
+Spreadsheets and SQL take an analyst far, but a *programming language* takes them
+further — automating work, handling any data size, and expressing analyses too complex
+for a query. **Python** is the language most data analysts learn, and this section
+builds the skill of using it for data analysis. Opening the Python section, this lesson
+introduces why Python matters and the programming fundamentals underneath it.
+
+Why Python for data analysis
+------------------------------
+
+Python has become the dominant language in data analysis for concrete reasons:
+
+- **Readable and approachable** — Python's syntax is clean and close to plain English,
+  making it one of the easier languages to learn, which matters for analysts who are not
+  primarily programmers.
+- **Powerful data libraries** — Python's ecosystem includes purpose-built data tools:
+  ``pandas`` for tabular data, ``numpy`` for numerical computing, ``matplotlib`` and
+  others for visualization (the later lessons). These do the heavy lifting.
+- **Automation and reproducibility** — a Python script runs the same analysis
+  identically every time and can be automated, the reproducibility that manual
+  spreadsheet work lacks (a theme since the cleaning section).
+- **Scale and flexibility** — Python handles data sizes and analytical complexity
+  beyond spreadsheets, and can do anything the other tools can plus much they cannot.
+
+Python is where the analyst's workflow is *automated and scaled* — the tool that ties
+preparation, analysis, and visualization into repeatable pipelines.
+
+Programming fundamentals
+--------------------------
+
+Beneath Python lie ideas common to all programming, worth naming before the syntax:
+
+- **A program is a sequence of instructions** — code tells the computer precisely what
+  to do, step by step, executed in order.
+- **Data and operations** — programs hold *data* (values: numbers, text) and perform
+  *operations* on it (calculations, transformations, comparisons).
+- **Variables** — named places to store data for reuse (the next lessons).
+- **Control flow** — deciding *which* instructions run and *how many times* (conditions
+  and loops, the control stage).
+- **Functions** — named, reusable blocks of instructions (a later lesson) — the
+  abstraction-and-reuse principle from the foundations, in code.
+
+These concepts underlie every language; Python is one readable way to express them.
+
+Python in the analyst's toolkit
+----------------------------------
+
+Python does not replace spreadsheets and SQL so much as *complete* the toolkit. The
+tool-choice lessons apply: spreadsheets for quick visual work, SQL for querying
+databases, and Python for automation, complex transformation, and anything that must
+run repeatably at scale. In practice Python often *orchestrates* the others — pulling
+data via SQL, transforming it, and producing visualizations — making it the glue of a
+mature analytical workflow. It is the most powerful and most general of the analyst's
+tools, and correspondingly the most involved to learn.
+
+The caveat
+------------
+
+Python's power comes with a steeper learning curve than spreadsheets, and it is not the
+right tool for *every* task — a quick look at a small dataset is faster in a spreadsheet
+than in code, and forcing simple work into Python is over-engineering. Learning Python
+is a genuine investment, and its payoff is in automation, scale, and complexity, not in
+one-off simple tasks. The judgement from the tool-choice lessons holds: reach for
+Python when its strengths (reproducibility, scale, complex logic, automation) are worth
+the effort, and use the simpler tools when they suffice. Python expands what you *can*
+do; it does not make itself the right choice for everything. The next lesson begins with
+Python's fundamentals.
+"""
+
+CONTENT["Python Fundamentals"] = r"""
+The building blocks
+--------------------
+
+With the motivation established, this lesson covers the **fundamentals of Python** — the
+core building blocks from which every program is made. These basics (values,
+expressions, statements, and how code runs) are the vocabulary the rest of the section
+builds on, introduced here in Python's clean syntax.
+
+Values and expressions
+------------------------
+
+Python works with *values* — the data a program manipulates:
+
+.. code-block:: python
+
+   42              # an integer
+   3.14            # a float (decimal number)
+   "hello"         # a string (text)
+   True            # a boolean (True or False)
+
+Values combine into *expressions* that Python evaluates to a result:
+
+.. code-block:: python
+
+   2 + 3           # evaluates to 5
+   "data" + "!"    # evaluates to "data!" (string concatenation)
+   10 > 5          # evaluates to True
+
+An expression is anything Python can compute a value from — the basic unit of doing
+something with data.
+
+Statements and printing
+-------------------------
+
+A *statement* is an instruction Python executes. The ``print`` function displays a
+value, the standard way to see a program's output:
+
+.. code-block:: python
+
+   print("Hello, data analysis!")
+   print(2 + 3)                       # displays 5
+
+Programs are sequences of statements executed top to bottom, in order — the "sequence of
+instructions" from the previous lesson made concrete.
+
+Variables: naming values
+--------------------------
+
+A *variable* stores a value under a name, so it can be reused and changed (a dedicated
+lesson follows):
+
+.. code-block:: python
+
+   sales = 1000
+   tax_rate = 0.08
+   total = sales + sales * tax_rate
+   print(total)                       # displays 1080.0
+
+Assigning with ``=`` binds a name to a value; the name then stands for the value
+wherever used. Variables are what let a program hold and manipulate data through
+meaningful names rather than raw values.
+
+Python's readability
+----------------------
+
+A defining feature of Python is *indentation as structure* — Python uses indentation
+(spaces at the start of a line) to group code into blocks, where other languages use
+braces. This enforces the visual clarity that makes Python readable, and it means
+consistent indentation is not optional style but *required syntax*. This readability —
+clean syntax, English-like keywords, meaningful indentation — is much of why Python
+suits analysts, and why code written in it is comparatively easy to read and maintain.
+
+The caveat
+------------
+
+Python's fundamentals are simple individually but combine into subtle behaviour, and a
+few basics trip up beginners. Python is *case-sensitive* (``Sales`` and ``sales`` are
+different names); indentation errors (inconsistent spaces) are a common frustration
+precisely because indentation is meaningful; and the distinction between *values* and
+the *variables* naming them matters as programs grow. These are learned by writing and
+running code, not by reading about it — which is why the environment for doing so, the
+next lesson's subject, matters. The fundamentals reward practice: type the examples, run
+them, and change them to see what happens. The next lesson covers where to do that.
+"""
+
+CONTENT["Jupyter Notebook and Coding Environments"] = r"""
+Where analysts write Python
+-----------------------------
+
+Code needs somewhere to be written and run, and the *environment* an analyst uses shapes
+how they work. For data analysis, the **Jupyter Notebook** is the most common
+environment, alongside other coding tools. This lesson covers where and how analysts
+write Python, and why the notebook in particular suits data work.
+
+What a coding environment provides
+------------------------------------
+
+An environment for writing and running code offers, at minimum, a place to write code,
+a way to run it, and a way to see the results. The main options for data analysts:
+
+- **Jupyter Notebook** — an interactive, cell-based environment (below), dominant in
+  data analysis.
+- **IDEs (Integrated Development Environments)** — full-featured tools like VS Code or
+  PyCharm, better for larger programs and software development.
+- **The interactive interpreter / scripts** — running Python directly or as ``.py``
+  script files, for automation and production code.
+
+Each suits different work; for exploratory data analysis, the notebook is usually the
+starting point.
+
+The Jupyter Notebook
+---------------------
+
+Jupyter Notebook is an interactive environment that organises code into **cells** —
+blocks of code you run individually, seeing each cell's output immediately below it:
+
+- **Cells run independently** — write code in a cell, run it, see the result, then write
+  the next cell building on it. This *interactive, incremental* workflow suits
+  exploration: try something, see what happens, adjust.
+- **Output appears inline** — results, tables, and (crucially) *visualizations* display
+  right below the cell that produced them, keeping code and results together.
+- **Mixes code and narrative** — notebooks combine code cells with text (Markdown)
+  cells, so an analysis can be documented alongside the code that produces it — code,
+  results, and explanation in one document.
+
+This cell-based, inline-output, documented style is why Jupyter dominates data
+analysis: it matches how analysis is actually done — exploring incrementally, seeing
+results immediately, and documenting the reasoning.
+
+Why the environment matters for analysis
+------------------------------------------
+
+The notebook's fit for analysis is not incidental. Exploratory analysis is iterative
+(the analysis-process theme) — you try a transformation, examine the result, try
+another — and the notebook's run-a-cell-see-the-result loop matches that rhythm exactly.
+Inline visualizations mean charts appear where you make them; mixed narrative means the
+analysis is self-documenting (the documentation discipline). The environment shapes the
+work, and Jupyter shapes it toward the interactive, visual, documented style good
+analysis wants.
+
+The caveat
+------------
+
+The notebook's strengths carry matching weaknesses. Because cells can be run in *any
+order*, a notebook can reach a state that is not reproducible from top to bottom — you
+ran cells out of sequence, and re-running fresh gives different results, a subtle
+reproducibility trap exactly opposite to the reproducibility Python promises. Notebooks
+also suit exploration better than production: automated, scheduled, or large software is
+usually better as ``.py`` scripts. The disciplines that address this — periodically
+restarting and running the notebook top to bottom to confirm it reproduces, and moving
+mature code into scripts — matter because the notebook's flexibility can quietly
+undermine the reproducibility that is Python's point. Use the notebook for its
+interactive strengths, but guard the reproducibility it can erode. The next lesson turns
+to a model underlying Python itself: objects.
+"""
+
+CONTENT["Object-Oriented Programming (OOP) in Python"] = r"""
+Everything is an object
+-------------------------
+
+Python is built on a model called **object-oriented programming**, and although an
+analyst need not write elaborate object-oriented code, understanding the model *matters*
+— because everything in Python is an object, including the data structures and library
+objects analysis relies on. This lesson introduces OOP as the model that shapes how
+Python (and pandas, and numpy) work.
+
+Objects and methods
+---------------------
+
+In Python, a value is not just data — it is an **object** that bundles data together
+with *methods* (functions that belong to it and act on it). You call a method with dot
+notation:
+
+.. code-block:: python
+
+   name = "data analysis"
+   name.upper()            # "DATA ANALYSIS" — upper() is a string method
+   name.title()            # "Data Analysis"
+
+   numbers = [3, 1, 2]
+   numbers.sort()          # sorts the list in place — sort() is a list method
+   numbers.append(4)       # adds to the list
+
+``name.upper()`` calls the ``upper`` method *on* the string object ``name``. This
+dot-notation — object, then method — is pervasive in Python, and recognising it as "call
+this object's method" is key to reading Python code.
+
+Classes: the blueprint
+------------------------
+
+Objects are created from **classes** — blueprints defining what data an object holds and
+what methods it has. A string is an object of the ``str`` class; a list, of the ``list``
+class; and the ``DataFrame`` you will use for data is an object of the ``DataFrame``
+class from pandas. The class defines the type; each object is an *instance* of its class.
+Analysts mostly *use* objects of existing classes (strings, lists, DataFrames) rather
+than writing their own, but knowing that an object's available methods come from its
+class explains why a DataFrame has different methods than a string.
+
+Why OOP matters for analysis
+------------------------------
+
+The payoff is practical: the data tools of this section *are* objects, and using them is
+calling their methods. A pandas ``DataFrame`` is an object with methods like
+``.head()``, ``.groupby()``, and ``.mean()``:
+
+.. code-block:: python
+
+   import pandas as pd
+   df = pd.DataFrame({"region": ["N", "S"], "sales": [100, 200]})
+   df.head()               # a DataFrame method — shows the first rows
+   df["sales"].mean()      # method on the column — computes the mean
+
+Understanding OOP means this syntax reads naturally: ``df.groupby(...)`` is "call the
+DataFrame's groupby method," exactly the object-dot-method pattern. The whole of pandas
+and numpy usage is calling methods on objects, so the OOP model is the grammar of Python
+data analysis.
+
+The caveat
+------------
+
+For analysts, the risk is the *opposite* of neglect — over-investing in OOP theory that
+data analysis rarely requires. Writing custom classes, inheritance hierarchies, and
+elaborate object-oriented designs is software-engineering work most analysts seldom
+need; the analyst's use of OOP is mostly *understanding* it well enough to use library
+objects fluently, not *building* object-oriented systems. Learn the model to the depth
+that makes ``df.groupby(...).mean()`` legible and the library methods sensible — the
+objects-and-methods grammar — and leave the deeper OOP design to when a genuine need
+arises. The next lessons return to the hands-on basics: variables, naming, and types.
+"""
+
+
+MINDMAP.update({
+    "Introduction to Python and Programming Fundamentals": [
+        "Choosing the Right Tool in Data Analysis",
+        "Python Fundamentals",
+        "Jupyter Notebook and Coding Environments",
+        "Spreadsheets vs. SQL",
+    ],
+    "Python Fundamentals": [
+        "Introduction to Python and Programming Fundamentals",
+        "Variables in Python",
+        "Data Types and Type Conversion in Python",
+        "Jupyter Notebook and Coding Environments",
+    ],
+    "Jupyter Notebook and Coding Environments": [
+        "Python Fundamentals",
+        "Introduction to Python and Programming Fundamentals",
+        "Object-Oriented Programming (OOP) in Python",
+        "Comments, Algorithms, and Docstrings in Python",
+    ],
+    "Object-Oriented Programming (OOP) in Python": [
+        "Python Fundamentals",
+        "Functions in Python",
+        "Variables in Python",
+        "Introduction to Python and Programming Fundamentals",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / basics (cont.)  (python 005-008)
+# ======================================================================
+
+GLOSS.update({
+    "Variables in Python":
+        "named containers for values — assigning, reassigning, and using them",
+    "Naming Conventions and Restrictions in Python":
+        "the rules for valid names and the conventions for good ones (PEP 8)",
+    "Data Types and Type Conversion in Python":
+        "the kinds of values Python holds, and converting between them safely",
+    "Functions in Python":
+        "named, reusable blocks of code — defining, calling, arguments, and returns",
+})
+
+CONTENT["Variables in Python"] = r"""
+Naming values for reuse
+-------------------------
+
+A program that could not *remember* values would be useless; **variables** are how
+Python remembers. A variable is a named container for a value, letting you store data,
+refer to it by name, and change it as the program runs. This lesson covers variables in
+Python — assigning, reassigning, and using them — the foundation of holding data in code.
+
+Assignment
+-----------
+
+A variable is created by *assigning* a value to a name with ``=``:
+
+.. code-block:: python
+
+   sales = 1000
+   region = "North"
+   tax_rate = 0.08
+
+The name on the left is bound to the value on the right; afterwards, the name stands for
+the value:
+
+.. code-block:: python
+
+   total = sales + sales * tax_rate
+   print(total)              # 1080.0
+   print(region)             # North
+
+The ``=`` here is *assignment*, not mathematical equality — it means "let this name
+refer to this value," a distinction worth keeping clear.
+
+Reassignment
+-------------
+
+A variable's value can *change* — reassigning binds the name to a new value:
+
+.. code-block:: python
+
+   count = 5
+   count = count + 1         # count is now 6
+   count += 1                # shorthand for count = count + 1; now 7
+
+The last form, ``+=``, is an *augmented assignment* — a common shorthand for updating a
+variable based on its current value (``-=``, ``*=``, ``/=`` work similarly). Reassignment
+is what lets a variable track a changing value as a program runs.
+
+Why variables matter
+----------------------
+
+Variables serve the same purposes as naming anything: *reuse* (compute a value once,
+use it many times), *clarity* (a well-named variable documents what a value means —
+``tax_rate`` is clearer than ``0.08`` scattered through code), and *changeability*
+(update a value in one place and everything using it updates). This is the
+abstraction-and-naming principle from the foundations, in code: meaningful names for
+values make programs readable and maintainable, exactly as meaningful column names make
+data readable.
+
+The caveat
+------------
+
+Variables have subtleties that catch beginners. A variable must be *assigned before it
+is used* — referencing a name Python has not seen raises an error. Reassignment means a
+variable's value depends on *when* you look (its value is whatever was last assigned),
+which matters especially in notebooks where cells run out of order — a variable can hold
+a surprising value if cells ran in an unexpected sequence. And Python variables are
+*case-sensitive* (``Sales`` ≠ ``sales``), a frequent source of "undefined name" errors.
+These are learned by writing code and reading the errors, which say precisely what went
+wrong. The next lesson covers naming variables well.
+"""
+
+CONTENT["Naming Conventions and Restrictions in Python"] = r"""
+Naming well and legally
+-------------------------
+
+Variable names are subject to *rules* (what Python allows) and *conventions* (what good
+practice recommends), and both matter — the rules because breaking them is an error, the
+conventions because they make code readable. This lesson covers Python's naming
+**restrictions** and **conventions**, applying the "good names" principle to code.
+
+The restrictions (what Python requires)
+-----------------------------------------
+
+Python enforces rules for valid names:
+
+- **Allowed characters** — names may contain letters, digits, and underscores
+  (``_``), and must *start* with a letter or underscore, not a digit. ``sales_2024`` is
+  valid; ``2024_sales`` is not.
+- **No spaces** — names cannot contain spaces (use underscores: ``tax_rate``, not
+  ``tax rate``).
+- **Case-sensitive** — ``sales``, ``Sales``, and ``SALES`` are three different names.
+- **No reserved keywords** — Python's keywords (``if``, ``for``, ``class``, ``def``,
+  ``True``, and so on) cannot be used as names, since they have special meaning.
+
+Breaking these rules is a *syntax error* — the code will not run — so the restrictions
+are non-negotiable.
+
+The conventions (what good practice recommends)
+-------------------------------------------------
+
+Beyond legality, Python has widely-followed conventions (codified in the style guide
+**PEP 8**) that make code readable:
+
+- **snake_case for variables and functions** — lowercase words joined by underscores:
+  ``total_sales``, ``tax_rate``, ``customer_count``. This is the standard Python style.
+- **Descriptive names** — ``total_sales`` over ``ts`` or ``x``; a name should say what
+  the value *is*. Clarity over brevity (the foundations' principle).
+- **UPPER_CASE for constants** — values meant not to change (``TAX_RATE = 0.08``) by
+  convention use all caps.
+- **Avoid confusing names** — not single letters like ``l`` (looks like ``1``), not
+  names that shadow built-ins (``list``, ``sum``, ``type``), which causes subtle bugs.
+
+Conventions are not enforced by Python — code violating them still runs — but following
+them makes code readable to yourself and others, which is why they are near-universal.
+
+Why naming matters
+-------------------
+
+Good names are documentation that cannot go out of date. ``monthly_revenue`` needs no
+comment to explain it; ``mr`` or ``x`` does. As programs grow, the difference between
+well-named and cryptically-named code is the difference between maintainable and
+baffling — the exact parallel to well-named versus cryptic data columns. Naming is a
+small, constant discipline with a large cumulative payoff in readability, which is why it
+is worth doing deliberately from the start.
+
+The caveat
+------------
+
+The two failure modes are opposite. *Under-naming* — cryptic abbreviations, single
+letters, meaningless names — makes code unreadable. But *over-naming* — names so long
+they clutter (``the_total_amount_of_sales_for_the_northern_region_this_year``) — harms
+readability too, and can tempt breaking the no-spaces rule. The balance is names
+*descriptive enough to be clear, concise enough to read* — the same judgement as naming
+anything. And a name that shadows a built-in (``sum = 5`` overwriting the ``sum``
+function) is legal but causes confusing bugs, so convention rightly warns against it.
+Name for the reader, within the rules. The next lesson covers the types of values names
+can hold.
+"""
+
+CONTENT["Data Types and Type Conversion in Python"] = r"""
+The kinds of values
+--------------------
+
+Every value in Python has a **type** — the kind of data it is — and the type determines
+what can be done with the value. Understanding Python's core **data types** and how to
+**convert** between them is essential, because type mismatches are among the most common
+sources of errors, and type conversion is a routine part of preparing data (echoing the
+``CAST`` work from SQL).
+
+The core data types
+---------------------
+
+Python's fundamental types for analysis:
+
+- ``int`` — whole numbers: ``42``, ``-7``, ``1000``.
+- ``float`` — decimal numbers: ``3.14``, ``0.08``, ``-2.5``.
+- ``str`` — text (strings): ``"North"``, ``"data"``.
+- ``bool`` — boolean truth values: ``True``, ``False``.
+- ``list`` — an ordered collection: ``[1, 2, 3]`` (the structures stage covers these).
+- ``dict`` — key-value pairs: ``{"region": "North"}`` (also the structures stage).
+
+The ``type()`` function reports a value's type:
+
+.. code-block:: python
+
+   type(42)          # <class 'int'>
+   type(3.14)        # <class 'float'>
+   type("North")     # <class 'str'>
+
+Knowing a value's type explains what operations it supports — you can add ``int`` s, and
+you can concatenate ``str`` s, but adding an ``int`` to a ``str`` is an error.
+
+Type conversion
+----------------
+
+Converting a value from one type to another uses the type's conversion function — the
+Python counterpart of SQL's ``CAST``:
+
+.. code-block:: python
+
+   int("42")         # 42     — string to integer
+   float("3.14")     # 3.14   — string to float
+   str(1000)         # "1000" — number to string
+   int(3.9)          # 3      — float to int (truncates, does not round)
+
+This matters constantly in data work: data read from files often arrives as *strings*
+(the import type-trap, familiar from earlier sections), and must be converted to numbers
+before arithmetic — exactly the text-to-number cleaning done with ``VALUE`` in
+spreadsheets and ``CAST`` in SQL, now in Python.
+
+Why types matter
+-----------------
+
+Type errors are pervasive and often puzzling until understood. ``"5" + "3"`` gives
+``"53"`` (string concatenation), not ``8``, because the values are strings, not numbers;
+``"5" + 3`` raises an error (cannot add string and int). Understanding types explains
+these behaviours and the fixes (convert the strings to numbers first). Since data
+frequently arrives with the wrong types, type awareness and conversion are a routine,
+essential part of Python data analysis — the same "get the types right before computing"
+discipline that ran through cleaning and analysis.
+
+The caveat
+------------
+
+Type conversion can *fail* or behave surprisingly, exactly as ``CAST`` did. Converting a
+non-numeric string to a number (``int("hello")``) raises an error, and a single bad
+value can break a conversion over a whole column — which, as in SQL, usefully *forces*
+you to confront the non-conforming data. ``int()`` on a float *truncates* rather than
+rounds (``int(3.9)`` is ``3``, not ``4``), a common surprise. And converting can lose
+information (float to int drops the decimal). As always, understand what a conversion
+does to the data, verify the result, and handle the values that will not convert. The
+next lesson turns to functions — reusable blocks of code.
+"""
+
+CONTENT["Functions in Python"] = r"""
+Reusable blocks of code
+-------------------------
+
+As programs grow, the same operations recur — and copying code to repeat them is the
+duplication the foundations warned against. **Functions** are Python's tool for reuse: a
+named, reusable block of code that performs a task, defined once and called wherever
+needed. This lesson covers defining and calling functions — the core of writing clean,
+non-repetitive Python.
+
+Defining and calling a function
+---------------------------------
+
+A function is defined with ``def``, given a name, parameters, and a body, and *called*
+by name:
+
+.. code-block:: python
+
+   def add_tax(amount, rate):
+       total = amount + amount * rate
+       return total
+
+   result = add_tax(1000, 0.08)      # call it; result is 1080.0
+   print(add_tax(50, 0.10))          # 55.0
+
+``def add_tax(amount, rate):`` defines a function taking two *parameters*; the indented
+body is what it does; ``return`` gives back a result. Calling ``add_tax(1000, 0.08)``
+runs the body with those *arguments* and evaluates to the returned value. The same
+function serves any amount and rate — written once, used many times.
+
+Parameters, arguments, and return
+-----------------------------------
+
+The pieces of a function:
+
+- **Parameters** — the named inputs in the definition (``amount``, ``rate``) — the
+  "parameterized function" idea, letting one function handle many inputs.
+- **Arguments** — the actual values passed in a call (``1000``, ``0.08``).
+- **Return value** — what the function gives back via ``return``, usable by the caller. A
+  function without ``return`` gives back ``None``.
+- **Default arguments** — parameters can have defaults used when an argument is omitted:
+
+  .. code-block:: python
+
+     def add_tax(amount, rate=0.08):    # rate defaults to 0.08
+         return amount + amount * rate
+
+     add_tax(1000)                      # uses default rate: 1080.0
+     add_tax(1000, 0.10)               # overrides: 1100.0
+
+Defaults are the "explicit defaults" principle from the foundations, in code.
+
+Why functions matter
+----------------------
+
+Functions are the primary tool for the foundations' *reuse and abstraction* principles.
+They eliminate duplication (write the logic once, call it many times), improve
+readability (a well-named function like ``add_tax`` documents what a block of code does),
+enable testing (a function can be verified in isolation), and localise change (fix the
+logic in one place). A program built from well-named functions is modular, readable, and
+maintainable — the same virtues good structure gives anything, achieved in code through
+functions.
+
+The caveat
+------------
+
+Functions can be misused in opposite directions. *Too little* use — repeating code
+instead of writing a function — produces the duplication that makes programs
+unmaintainable (change the logic and you must find every copy). *Too much or wrong*
+abstraction — functions that do too many things, or are split so finely that following
+the logic means jumping among many tiny functions — harms readability in the other
+direction. The balance is the single-responsibility idea: a function should do *one
+well-defined thing*, be named for it, and be neither a sprawling catch-all nor a
+needless fragment. And functions should ideally be *pure* where practical — depending
+only on their inputs and returning a result, without hidden side effects — which makes
+them predictable and testable, the controlled-side-effects principle in code. The next
+lessons cover writing clean, well-documented Python.
+"""
+
+
+MINDMAP.update({
+    "Variables in Python": [
+        "Python Fundamentals",
+        "Naming Conventions and Restrictions in Python",
+        "Data Types and Type Conversion in Python",
+        "Object-Oriented Programming (OOP) in Python",
+    ],
+    "Naming Conventions and Restrictions in Python": [
+        "Variables in Python",
+        "Data Types and Type Conversion in Python",
+        "Code Reusability, Modularity, and Clean Code in Python",
+        "Python Fundamentals",
+    ],
+    "Data Types and Type Conversion in Python": [
+        "Variables in Python",
+        "Understanding Data Types and Data Formats",
+        "Using CAST to Clean and Format Data in SQL",
+        "Functions in Python",
+    ],
+    "Functions in Python": [
+        "Variables in Python",
+        "Code Reusability, Modularity, and Clean Code in Python",
+        "Comments, Algorithms, and Docstrings in Python",
+        "Object-Oriented Programming (OOP) in Python",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / basics (close) + control (open)  (python 009-012)
+# NOTE: docstrings lesson uses r'''...''' delimiter — its code block contains """ docstrings
+# ======================================================================
+
+GLOSS.update({
+    "Code Reusability, Modularity, and Clean Code in Python":
+        "writing Python that is reusable, modular, and clean — the engineering virtues in code",
+    "Comments, Algorithms, and Docstrings in Python":
+        "documenting code — comments, docstrings, and thinking in algorithms",
+    "Boolean Data, Comparators, and Logical Operators in Python":
+        "True/False values and the comparisons and logic that produce them",
+    "Branching and Conditional Statements in Python":
+        "making code decide — if, elif, and else direct which code runs",
+})
+
+CONTENT["Code Reusability, Modularity, and Clean Code in Python"] = r"""
+Writing code that lasts
+-------------------------
+
+Code that merely *works* is not enough; code that is **reusable, modular, and clean**
+lasts — it can be understood, maintained, and built upon. These qualities, drawn straight
+from the foundations' engineering principles, apply directly to Python, and this lesson
+covers writing code that embodies them, closing the basics stage.
+
+Reusability
+------------
+
+**Reusable** code is written once and used many times, rather than copied. Functions
+(the previous lesson) are the primary tool: a well-designed function captures a piece of
+logic that any part of a program can call. The test of reusability is the
+duplication-elimination principle — if you find yourself copying code, that code should
+become a function. Reusable code means a change to the logic happens in *one* place,
+which is both less work and less error-prone than editing many copies.
+
+Modularity
+-----------
+
+**Modular** code is organised into distinct, self-contained pieces — functions, and (as
+programs grow) *modules* (separate files) — each responsible for one thing. The
+single-responsibility principle from the foundations applies: each function or module
+does one well-defined job, and the pieces combine into the whole. Modularity makes code
+easier to understand (each piece is small and focused), test (verify pieces
+independently), and change (modify one piece without disturbing others) — the
+break-into-components principle, in code.
+
+Clean code
+-----------
+
+**Clean** code is readable and clear — code written for humans to understand, not just
+for the computer to run. Its marks are the ones this course has stressed throughout:
+
+- **Meaningful names** — variables and functions named for what they are and do (the
+  naming lesson).
+- **Small, focused functions** — each doing one thing, named for it.
+- **Consistent style** — following conventions (PEP 8) so code looks familiar.
+- **Clarity over cleverness** — a straightforward solution over a clever, cryptic one
+  (the foundations' principle, stated for code).
+- **Appropriate documentation** — comments and docstrings where they aid understanding
+  (the next lesson).
+
+Clean code is a discipline of writing for the *next reader* — often your future self.
+
+Why these matter
+-----------------
+
+Reusability, modularity, and cleanliness are what separate code that can *evolve* from
+code that becomes a liability. Analysis code is rarely written once and discarded — it is
+rerun, adapted, and extended, often by someone other than its author. Code with these
+qualities supports that; code without them (duplicated, tangled, cryptic) resists it,
+accumulating the technical debt the foundations warned against. The small disciplines —
+factor out duplication, keep pieces focused, name and structure for clarity — compound
+into code that remains workable as it grows.
+
+The caveat
+------------
+
+These principles can be *over*-applied, the over-engineering the foundations cautioned
+against. Factoring every two-line snippet into a function, splitting a simple script into
+many modules, or adding abstraction for flexibility never needed makes code *harder* to
+follow, not easier — the indirection costs more than the duplication it removes. The
+judgement is proportionate: apply reusability and modularity where they genuinely aid a
+program of real size and complexity, and keep a simple script simple. Clean code is not
+maximally abstracted code; it is code that is as clear and simple as the problem allows,
+which for a small analysis may be a single straightforward script. Match the engineering
+to the scale. The next lesson covers documenting code.
+"""
+
+CONTENT["Comments, Algorithms, and Docstrings in Python"] = r'''
+Documenting code
+-----------------
+
+Code expresses *what* it does; documentation explains *why* and *how*, and thinking in
+**algorithms** shapes code before it is written. This lesson covers **comments**,
+**docstrings**, and algorithmic thinking — the practices that make Python code
+understandable and well-planned, completing the basics stage.
+
+Comments
+---------
+
+A **comment** is text in code that Python ignores, written for human readers. In Python,
+comments start with ``#``:
+
+.. code-block:: python
+
+   # Convert the raw price strings to numbers before summing
+   prices = [float(p) for p in raw_prices]
+   total = sum(prices)              # sum() adds all elements
+
+Good comments explain *why* — the reasoning, the intent, the non-obvious — not *what* the
+code plainly does. ``x = x + 1  # add one to x`` is a useless comment (the code says
+that); ``# compensate for the zero-based index`` is a useful one (it explains the reason).
+The documentation principle from the foundations — explain why, not just what — applies
+directly.
+
+Docstrings
+-----------
+
+A **docstring** is a string at the start of a function (or module or class) that
+documents it, accessible programmatically and by tools. Python data work commonly uses
+the **NumPy documentation style**, which structures a docstring into sections:
+
+.. code-block:: python
+
+   def add_tax(amount, rate=0.08):
+       """Return the amount with tax added.
+
+       Parameters
+       ----------
+       amount : float
+           The pre-tax amount.
+       rate : float, optional
+           The tax rate as a decimal (default 0.08).
+
+       Returns
+       -------
+       float
+           The amount including tax.
+       """
+       return amount + amount * rate
+
+The docstring states what the function does, its **Parameters**, and what it
+**Returns** — so a reader (or a documentation generator) understands the function without
+reading its body. For reusable functions, a docstring is the interface's documentation,
+and the NumPyDoc section order (Parameters, Returns, and, as needed, Raises, Notes,
+Examples) is a widely-followed convention in the data ecosystem.
+
+Thinking in algorithms
+-----------------------
+
+An **algorithm** is a step-by-step procedure for solving a problem — and thinking
+algorithmically means *planning the steps before writing code*. Before coding, an analyst
+works out the logic: what steps, in what order, transform the input into the desired
+output. Writing the algorithm first (even as plain-language steps or "pseudocode") clarifies
+the approach before the syntax, catching logic problems early — the big-picture-first
+discipline from the foundations, applied to code. Code is the *expression* of an algorithm;
+getting the algorithm right first makes the code straightforward.
+
+Why documentation matters
+---------------------------
+
+Documentation is what makes code understandable to its future readers — including its
+author months later. A comment explaining a non-obvious choice, a docstring describing a
+function's interface, and code that follows a clear algorithm together mean the *reasoning*
+survives, not just the instructions. This is the reproducibility-and-maintainability
+theme in code: undocumented code works until it must be understood or changed, at which
+point its opacity becomes costly. Documentation is the small investment that keeps code
+workable over time.
+
+The caveat
+------------
+
+Documentation has the same failure modes as any: too little leaves code opaque, but too
+much — comments restating obvious code, docstrings on trivial one-line functions,
+narration of every step — clutters and, worse, *drifts out of sync* with the code, so a
+comment says one thing while the code does another, which misleads more than no comment.
+The discipline is documentation that is *accurate, useful, and maintained*: comment the
+*why* and the non-obvious, docstring the *interfaces* that will be reused, keep it truthful
+to the code, and skip narrating what the code plainly says. Accurate, purposeful
+documentation helps; stale or redundant documentation harms. This completes the Python
+basics; the next stage turns to control flow — making code decide and repeat.
+'''
+
+CONTENT["Boolean Data, Comparators, and Logical Operators in Python"] = r"""
+True, false, and decisions
+----------------------------
+
+Programs make *decisions*, and every decision rests on a question with a true-or-false
+answer. **Boolean** values (``True`` and ``False``), the **comparators** that produce
+them, and the **logical operators** that combine them are the foundation of all control
+flow. Opening the control stage, this lesson covers the boolean logic that the branching
+and looping lessons build on.
+
+Boolean values
+---------------
+
+A **boolean** is one of exactly two values, ``True`` or ``False`` — the ``bool`` type
+from the types lesson. Booleans represent the answer to a yes/no question, and they are
+what decisions are made from:
+
+.. code-block:: python
+
+   is_valid = True
+   has_errors = False
+
+Comparators
+-----------
+
+**Comparison operators** compare two values and produce a boolean:
+
+.. code-block:: python
+
+   5 > 3           # True   (greater than)
+   5 < 3           # False  (less than)
+   5 == 5          # True   (equal to — note double equals)
+   5 != 3          # True   (not equal to)
+   5 >= 5          # True   (greater than or equal)
+   3 <= 5          # True   (less than or equal)
+
+The critical one to note is ``==`` (equality comparison), *two* equals signs — distinct
+from ``=`` (assignment), *one* equals sign. Confusing them is a classic error: ``=``
+assigns a value, ``==`` asks whether two values are equal. Comparators are how a program
+turns data into the true/false answers decisions need.
+
+Logical operators
+------------------
+
+**Logical operators** combine booleans into compound conditions:
+
+.. code-block:: python
+
+   (age >= 18) and (age < 65)      # True only if BOTH are true
+   (region == "N") or (region == "S")   # True if EITHER is true
+   not is_valid                    # inverts: True becomes False
+
+- ``and`` — true only if *both* operands are true.
+- ``or`` — true if *at least one* operand is true.
+- ``not`` — inverts a boolean.
+
+These are the same logical combinations as SQL's ``AND``/``OR``/``NOT`` in ``WHERE``
+clauses (the analysis section) — the identical logic, now in Python. Compound conditions
+let a program ask complex questions ("is the customer an adult *and* in an eligible
+region?") as a single boolean.
+
+Why boolean logic matters
+---------------------------
+
+Boolean logic is the foundation of *control flow* — every branch and loop the next
+lessons cover is directed by a boolean condition. It is also the basis of *filtering*
+data (the pandas lessons will filter rows by boolean conditions, exactly as SQL's
+``WHERE`` and spreadsheet filters did). Mastering comparators and logical operators is
+therefore mastering the mechanism behind decisions, loops, and data filtering alike — a
+small piece of logic that underlies a large share of programming.
+
+The caveat
+------------
+
+Boolean logic has precise rules that produce surprises when misread. The ``=`` versus
+``==`` confusion is the commonest (and Python catches many but not all such mistakes);
+operator precedence means compound conditions sometimes need *parentheses* to group them
+as intended (``a and b or c`` may not mean what you expect — parenthesise for clarity);
+and comparisons involving different types or ``None`` can behave unexpectedly. Writing
+compound conditions with explicit parentheses, and testing that a condition is true
+exactly when it should be, guards against logic that looks right but is not — the
+check-your-logic discipline applied to booleans. The next lesson uses these conditions to
+make code branch.
+"""
+
+CONTENT["Branching and Conditional Statements in Python"] = r"""
+Making code decide
+--------------------
+
+With boolean conditions in hand, a program can **branch** — run different code depending
+on whether a condition is true. **Conditional statements** (``if``, ``elif``, ``else``)
+are how Python decides, directing which instructions execute. This lesson covers
+branching, the first form of control flow.
+
+The if statement
+-----------------
+
+An ``if`` statement runs a block of code *only if* a condition is true:
+
+.. code-block:: python
+
+   if sales > 1000:
+       print("High sales")
+
+The condition (``sales > 1000``) is a boolean; if it is ``True``, the indented block
+runs; if ``False``, it is skipped. The indentation defines the block — the code that
+belongs to the ``if`` — which is why Python's meaningful indentation matters here
+especially.
+
+else and elif
+--------------
+
+``else`` provides an alternative when the condition is false, and ``elif`` (else-if)
+checks further conditions:
+
+.. code-block:: python
+
+   if sales > 1000:
+       category = "High"
+   elif sales > 500:
+       category = "Medium"
+   else:
+       category = "Low"
+
+Python checks each condition in order: if ``sales > 1000``, category is "High" and the
+rest is skipped; otherwise if ``sales > 500``, "Medium"; otherwise "Low". Only the *first*
+matching branch runs. This ``if``/``elif``/``else`` chain is the direct counterpart of
+SQL's ``CASE`` expression (the analysis section) — the same "different result for
+different conditions" logic, now controlling which code executes.
+
+Branching on compound conditions
+----------------------------------
+
+Branches use the full boolean logic from the previous lesson:
+
+.. code-block:: python
+
+   if (age >= 18) and (region in ("N", "S")):
+       status = "eligible"
+   else:
+       status = "ineligible"
+
+Compound conditions let a branch depend on several factors at once — the logical operators
+combining into a single decision. This is how programs express real decision rules, which
+usually involve multiple criteria.
+
+Why branching matters
+-----------------------
+
+Branching is what makes a program *responsive* rather than fixed — it does different
+things in different situations, which is essential to any non-trivial logic. In data work,
+branching drives categorisation (bucketing values, exactly the ``CASE`` work), validation
+(handling valid versus invalid data differently), and conditional processing throughout.
+It is one of the two pillars of control flow (with loops, next), and the foundation of
+code that adapts to its data.
+
+The caveat
+------------
+
+Branching logic is precise and can be subtly wrong. The order of ``elif`` conditions
+*matters* — since only the first match runs, mis-ordered conditions can make a branch
+unreachable (checking ``sales > 500`` before ``sales > 1000`` would catch high sales in
+the wrong branch); conditions must be *exhaustive* where every case should be handled (an
+``else`` catching what the explicit conditions miss); and deeply *nested* branches (ifs
+within ifs within ifs) grow hard to follow and are often better restructured. Test that
+each branch runs exactly when intended, especially the boundaries between conditions — the
+same edge-case discipline from the foundations, applied to decisions. The next lessons
+cover the other pillar of control flow: loops.
+"""
+
+
+MINDMAP.update({
+    "Code Reusability, Modularity, and Clean Code in Python": [
+        "Functions in Python",
+        "Comments, Algorithms, and Docstrings in Python",
+        "Naming Conventions and Restrictions in Python",
+        "Data Types and Type Conversion in Python",
+    ],
+    "Comments, Algorithms, and Docstrings in Python": [
+        "Code Reusability, Modularity, and Clean Code in Python",
+        "Functions in Python",
+        "Branching and Conditional Statements in Python",
+        "Naming Conventions and Restrictions in Python",
+    ],
+    "Boolean Data, Comparators, and Logical Operators in Python": [
+        "Branching and Conditional Statements in Python",
+        "Data Types and Type Conversion in Python",
+        "Data Validation in Spreadsheets",
+        "While Loops and Iteration in Python",
+    ],
+    "Branching and Conditional Statements in Python": [
+        "Boolean Data, Comparators, and Logical Operators in Python",
+        "While Loops and Iteration in Python",
+        "For Loops in Python",
+        "Functions in Python",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / control (close) + structures (open)  (python 013-016)
+# NOTE: python 013 key is the exact frozen typo "...in Python" (missing final n, in title AND slug) fixed manually
+# ======================================================================
+
+GLOSS.update({
+    "While Loops and Iteration in Python":
+        "repeating code while a condition holds — the while loop and iteration basics",
+    "For Loops in Python":
+        "repeating code over the items of a collection — the for loop",
+    "range() Function and Loop Control in Python":
+        "generating number sequences and controlling loops with break and continue",
+    "Strings in Python":
+        "working with text — the string type, its operations, and its immutability",
+})
+
+CONTENT["While Loops and Iteration in Python"] = r"""
+Repeating while a condition holds
+-----------------------------------
+
+The second pillar of control flow (after branching) is **iteration** — repeating code —
+and the **while loop** is its most basic form: run a block *repeatedly as long as a
+condition remains true*. Opening the discussion of loops, this lesson covers the while
+loop and the idea of iteration that the for-loop and data-processing lessons build on.
+
+The while loop
+--------------
+
+A ``while`` loop repeats its block while its condition is true:
+
+.. code-block:: python
+
+   count = 1
+   while count <= 5:
+       print(count)
+       count += 1          # crucial: move toward ending the loop
+
+Python checks the condition (``count <= 5``); if true, it runs the block, then checks
+again — repeating until the condition becomes false. Here it prints 1 through 5, then
+stops when ``count`` reaches 6. The condition uses the boolean logic from the earlier
+lesson, and the loop continues until that condition fails.
+
+The crucial detail: making progress
+--------------------------------------
+
+The single most important thing about a while loop is that *something in the loop must
+eventually make the condition false* — otherwise it runs forever. In the example,
+``count += 1`` is what moves toward termination; without it, ``count`` stays 1, the
+condition stays true, and the loop never ends (an **infinite loop**). Every while loop
+must contain something that progresses toward its exit condition, and forgetting this is
+the classic while-loop bug.
+
+Iteration as a concept
+------------------------
+
+**Iteration** — doing something repeatedly — is fundamental to programming and
+especially to data work, where the same operation applies to many items (every row, every
+value, every file). The while loop expresses iteration in its most general form: repeat
+until a condition says stop. This general form suits situations where you do not know in
+advance how many repetitions are needed — keep going until something changes (until the
+data runs out, until a target is reached, until input stops). For iterating a *known*
+collection, the for loop (next lesson) is usually cleaner, but the while loop handles the
+open-ended cases.
+
+The caveat
+------------
+
+The while loop's power to repeat is exactly its danger: the **infinite loop**. A
+condition that never becomes false — because the loop forgets to make progress, or the
+progress never reaches the exit — hangs the program indefinitely. This is the signature
+while-loop failure, and guarding against it means ensuring every while loop has a clear
+path to its exit condition and that something in the body advances toward it. When you do
+know how many times to repeat, or you are iterating a collection, the for loop is safer
+because it *cannot* loop infinitely over a finite collection. Reach for while only when
+the open-ended condition genuinely calls for it, and always verify the loop can end. The
+next lesson covers the for loop.
+"""
+
+CONTENT["For Loops in Python"] = r"""
+Repeating over a collection
+-----------------------------
+
+When you need to do something *for each item* in a collection, the **for loop** is the
+natural tool — it iterates over the items of a sequence, running its block once per item.
+This is the loop analysts use most, because data work is largely "do this to every row,
+value, or record." This lesson covers the for loop, the workhorse of iteration.
+
+The for loop
+------------
+
+A ``for`` loop iterates over the items of a collection, binding each to a variable in
+turn:
+
+.. code-block:: python
+
+   regions = ["North", "South", "East", "West"]
+   for region in regions:
+       print(region)
+
+Python takes each item of ``regions`` in order, assigns it to ``region``, and runs the
+block — printing all four region names. The loop variable (``region``) holds the current
+item on each pass. Unlike the while loop, the for loop *automatically* stops when the
+collection is exhausted — no manual progress-tracking, and no risk of an infinite loop
+over a finite collection.
+
+Iterating and accumulating
+----------------------------
+
+A common pattern combines a for loop with a variable that *accumulates* a result across
+iterations:
+
+.. code-block:: python
+
+   sales = [100, 250, 175, 300]
+   total = 0
+   for amount in sales:
+       total += amount        # accumulate
+   print(total)               # 825
+
+The ``total`` starts at zero and grows by each amount as the loop visits it — computing a
+sum by iteration. This accumulate-across-a-loop pattern (summing, counting, collecting,
+building) is one of the most useful in programming, and it is how manual aggregation is
+expressed in code (though pandas, later, does it far more concisely).
+
+For loops over different collections
+--------------------------------------
+
+For loops iterate any *iterable* — lists, strings (character by character), dictionaries
+(the structures stage), and more:
+
+.. code-block:: python
+
+   for char in "data":        # iterates characters: d, a, t, a
+       print(char)
+
+This generality makes the for loop the standard way to process collections of any kind —
+whatever the data, "for each item, do something" is a for loop.
+
+The caveat
+------------
+
+For loops are safer than while loops (they cannot loop infinitely over a finite
+collection), but they have their own pitfalls. Modifying a collection *while* iterating
+over it causes subtle bugs (the collection changes underfoot) and should be avoided —
+build a new collection instead. And a deeper point looms for data work: explicit Python
+for loops over large datasets are *slow* compared to the vectorised operations of
+``numpy`` and ``pandas`` (the libraries stage), which do the same work far faster without
+an explicit loop. Loops are essential to understand and correct for general programming,
+but for large-scale data the idiom shifts to vectorised operations — a for loop over a
+million-row dataset is usually the wrong tool. Learn loops thoroughly, and later learn
+when *not* to loop. The next lesson covers generating sequences and controlling loops.
+"""
+
+CONTENT["range() Function and Loop Control in Python"] = r"""
+Sequences and finer loop control
+----------------------------------
+
+Two tools refine looping: the **range()** function, which generates sequences of numbers
+to loop over, and **loop control** statements (``break`` and ``continue``), which give
+finer control over how a loop proceeds. This lesson covers both, completing the control
+stage's treatment of iteration.
+
+The range() function
+---------------------
+
+``range()`` generates a sequence of numbers, most often used to repeat something a set
+number of times or to loop over numeric indices:
+
+.. code-block:: python
+
+   for i in range(5):         # 0, 1, 2, 3, 4
+       print(i)
+
+   for i in range(1, 6):      # 1, 2, 3, 4, 5 (start, stop)
+       print(i)
+
+   for i in range(0, 10, 2):  # 0, 2, 4, 6, 8 (start, stop, step)
+       print(i)
+
+``range(n)`` produces 0 up to (but *not including*) ``n``; ``range(start, stop)`` starts
+elsewhere; ``range(start, stop, step)`` steps by an interval. The *exclusive* upper bound
+— ``range(5)`` stops at 4, not 5 — is the detail to remember, echoing zero-based indexing.
+``range()`` is how a for loop repeats a fixed number of times or walks a numeric sequence.
+
+Loop control: break and continue
+----------------------------------
+
+Two statements alter a loop's normal flow:
+
+.. code-block:: python
+
+   for amount in sales:
+       if amount < 0:
+           continue           # skip this iteration, go to the next
+       if amount > 10000:
+           break              # exit the loop entirely
+       process(amount)
+
+- ``break`` — *exits* the loop immediately, skipping any remaining iterations. Useful for
+  stopping once a condition is met (found what you sought, hit a limit).
+- ``continue`` — *skips the rest of the current iteration* and moves to the next. Useful
+  for skipping items that should not be processed (invalid values, ones to ignore).
+
+These give a loop finer control than "process every item to the end" — stop early, or skip
+selectively.
+
+Why these matter
+-----------------
+
+``range()`` and loop control complete the looping toolkit. ``range()`` handles
+count-based and index-based repetition (repeat *n* times, iterate positions), complementing
+the for loop's collection iteration. ``break`` and ``continue`` let a loop respond to
+conditions — stopping when done, skipping what should be skipped — making loops precise
+rather than all-or-nothing. Together with the while and for loops, they cover the iteration
+patterns programming requires.
+
+The caveat
+------------
+
+Each tool has a trap. ``range()``'s *exclusive upper bound* is a persistent
+off-by-one source — ``range(1, 5)`` gives 1,2,3,4, not 1–5 — so getting the bounds right
+requires care (the edge-case discipline). ``break`` and ``continue`` used heavily can make
+a loop's flow *hard to follow* — a loop with several breaks and continues scattered through
+it can be as tangled as deeply nested branches, so use them where they clarify (a clean
+early exit) rather than as a substitute for well-structured loop logic. And the earlier
+caution stands: for large data, ``range()``-driven index loops are usually slower and less
+clear than the vectorised operations of pandas/numpy. Clear, correct loops first; know
+their limits for scale. The next stage turns to Python's data structures, starting with
+strings.
+"""
+
+CONTENT["Strings in Python"] = r"""
+Working with text
+------------------
+
+Data is full of text — names, categories, codes, addresses — and Python's **string** type
+is how text is represented and manipulated. Opening the data-structures stage, this lesson
+covers strings in Python: creating them, their operations, and the crucial property of
+immutability. It extends the string work from the spreadsheet and SQL sections into
+Python.
+
+Creating and combining strings
+--------------------------------
+
+A **string** is text, written in single or double quotes:
+
+.. code-block:: python
+
+   name = "North Region"
+   code = 'NR-001'
+
+Strings combine and repeat with operators:
+
+.. code-block:: python
+
+   greeting = "Hello, " + name       # concatenation: "Hello, North Region"
+   line = "-" * 20                    # repetition: 20 dashes
+
+The ``+`` concatenates strings (as in the spreadsheet's ``&`` and SQL's ``CONCAT``), and
+``*`` repeats a string — the basic ways to build text.
+
+String methods
+--------------
+
+Strings are objects (the OOP lesson) with many useful methods, mirroring the string
+functions from earlier sections:
+
+.. code-block:: python
+
+   text = "  North Region  "
+   text.strip()              # "North Region" — remove surrounding whitespace (like TRIM)
+   text.upper()              # "  NORTH REGION  " — uppercase
+   text.lower()              # lowercase
+   text.replace("North", "South")   # substitute (like SUBSTITUTE / REPLACE)
+   "NR-001".split("-")       # ["NR", "001"] — split on a delimiter
+   len("North")              # 5 — length (like LEN)
+
+These are the same cleaning and manipulation operations from the spreadsheet (``TRIM``,
+``UPPER``, ``SUBSTITUTE``) and SQL (``TRIM``, ``UPPER``, ``REPLACE``, ``SUBSTR``) — now as
+Python string methods, called with dot notation on the string object.
+
+String immutability
+--------------------
+
+A crucial property: strings in Python are **immutable** — once created, a string cannot be
+changed in place. String methods do not modify the original; they *return a new string*:
+
+.. code-block:: python
+
+   text = "north"
+   text.upper()              # returns "NORTH", but...
+   print(text)               # still "north" — unchanged!
+   text = text.upper()       # to keep the result, reassign
+   print(text)               # now "NORTH"
+
+This catches many beginners: calling ``text.upper()`` does not change ``text``; you must
+*assign* the result back. Immutability means string operations produce new strings, and
+using the result requires capturing it — a fundamental and frequently-forgotten point.
+
+Why strings matter
+------------------
+
+Text manipulation is constant in data work — cleaning categories, parsing codes, extracting
+parts, formatting output — and Python's string methods are the tools for all of it, more
+flexible than their spreadsheet and SQL counterparts. Because so much real data is text
+(or arrives as text needing conversion, the type lesson), fluency with strings is
+essential to Python data analysis. The following lessons go deeper into indexing,
+slicing, and formatting strings.
+
+The caveat
+------------
+
+String immutability is the pitfall to internalise: the single commonest string mistake is
+calling a method and expecting the original to change — ``text.strip()`` on its own does
+nothing lasting; you must write ``text = text.strip()``. Every string "modification" is
+really "create a new string and (usually) reassign." Beyond that, strings carry the
+encoding and special-character subtleties of all text (the Unicode considerations), and
+splitting or extracting assumes a structure that real text may not consistently have (the
+defensive-extraction point from the spreadsheet strings lesson applies). Capture method
+results, and handle text's irregularity. The next lesson covers reaching into strings by
+position: indexing and slicing.
+"""
+
+
+MINDMAP.update({
+    "While Loops and Iteration in Python": [
+        "Branching and Conditional Statements in Python",
+        "For Loops in Python",
+        "range() Function and Loop Control in Python",
+        "Boolean Data, Comparators, and Logical Operators in Python",
+    ],
+    "For Loops in Python": [
+        "While Loops and Iteration in Python",
+        "range() Function and Loop Control in Python",
+        "Data Types vs Data Structures & Introduction to Lists",
+        "Branching and Conditional Statements in Python",
+    ],
+    "range() Function and Loop Control in Python": [
+        "For Loops in Python",
+        "While Loops and Iteration in Python",
+        "Advanced Use of Loops, Lists, Tuples & List Comprehension",
+        "Strings in Python",
+    ],
+    "Strings in Python": [
+        "String Indexing and Slicing in Python",
+        "String Formatting with .format() in Python",
+        "Data Types and Type Conversion in Python",
+        "Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND)",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / structures (cont.)  (python 017-020)
+# ======================================================================
+
+GLOSS.update({
+    "String Indexing and Slicing in Python":
+        "reaching into strings by position — single characters and substrings",
+    "String Formatting with .format() in Python":
+        "building strings from values cleanly — the .format() method and f-strings",
+    "Data Types vs Data Structures & Introduction to Lists":
+        "the difference between a value's type and a structure that holds many, and the list",
+    "Modifying Lists in Python":
+        "changing lists in place — adding, removing, and updating elements",
+})
+
+CONTENT["String Indexing and Slicing in Python"] = r"""
+Reaching into strings by position
+-----------------------------------
+
+A string is a *sequence* of characters, and Python lets you reach into it by position —
+**indexing** to get a single character, **slicing** to get a substring. These are the
+Python counterparts of the spreadsheet's ``LEFT``/``RIGHT``/``MID`` and SQL's ``SUBSTR``,
+and they are essential for parsing and extracting from text. This lesson covers indexing
+and slicing.
+
+Indexing: single characters
+-----------------------------
+
+Each character in a string has an **index** — its position, counting from **zero**:
+
+.. code-block:: python
+
+   text = "North"
+   #       01234
+   text[0]           # "N" — first character (index 0)
+   text[1]           # "o" — second character
+   text[-1]          # "h" — last character (negative counts from the end)
+   text[-2]          # "t" — second to last
+
+The first character is at index ``0`` (not 1) — **zero-based indexing**, a fundamental and
+frequently-tripped-over convention. Negative indices count from the end (``-1`` is the
+last), a convenient Python feature for reaching the end without knowing the length.
+
+Slicing: substrings
+---------------------
+
+**Slicing** extracts a range of characters with ``[start:stop]``:
+
+.. code-block:: python
+
+   text = "North Region"
+   text[0:5]         # "North" — characters 0 through 4
+   text[6:]          # "Region" — from index 6 to the end
+   text[:5]          # "North" — from the start to index 4
+   text[-6:]         # "Region" — the last six characters
+
+The slice ``[start:stop]`` includes ``start`` but *excludes* ``stop`` — ``text[0:5]`` is
+characters 0,1,2,3,4, not 5 — the same exclusive-upper-bound convention as ``range()``.
+Omitting ``start`` means "from the beginning"; omitting ``stop`` means "to the end." Slicing
+is how you extract a substring by position — the flexible text-extraction tool.
+
+Indexing/slicing versus the earlier tools
+-------------------------------------------
+
+These operations mirror the string extraction from earlier sections exactly: ``text[0:5]``
+is the spreadsheet's ``LEFT(text, 5)`` and SQL's ``SUBSTR(text, 1, 5)``; ``text[-3:]`` is
+``RIGHT(text, 3)``. The concept — extract characters by position — is identical; Python's
+``[start:stop]`` syntax is simply another expression of it, and one that generalises to all
+sequences (lists too, as the list lessons show).
+
+The caveat
+------------
+
+Two traps recur. **Zero-based indexing** — the first character is index 0 — means positions
+are always one less than the "counting" number, a persistent source of off-by-one errors;
+and the **exclusive stop** in slicing (``[0:5]`` stops at 4) compounds this. Getting an
+index or slice boundary wrong extracts the wrong characters, often silently. The other trap
+is indexing *past the end* of a string (``text[100]`` on a short string), which raises an
+error — though slicing past the end is forgiving (it just stops at the end). As with all
+position-based extraction, the discipline is care with the boundaries and awareness that
+positions count from zero. The next lesson covers building strings from values.
+"""
+
+CONTENT["String Formatting with .format() in Python"] = r"""
+Building strings from values
+------------------------------
+
+Analysts constantly build strings that *incorporate values* — a label with a number, a
+message with a name, a formatted report line. Python's **string formatting** does this
+cleanly, and this lesson covers the ``.format()`` method and the modern **f-string**, the
+tools for inserting values into text without clumsy concatenation.
+
+Why not just concatenate
+--------------------------
+
+You *can* build strings with ``+``, but it gets awkward, especially with non-string values:
+
+.. code-block:: python
+
+   region = "North"
+   sales = 1000
+   # clumsy: requires converting the number, easy to mangle spacing
+   msg = "Region " + region + " had " + str(sales) + " in sales"
+
+The conversions (``str(sales)``) and spacing make this error-prone and hard to read.
+Formatting solves it.
+
+The .format() method
+---------------------
+
+``.format()`` inserts values into *placeholders* (``{}``) in a template string:
+
+.. code-block:: python
+
+   msg = "Region {} had {} in sales".format(region, sales)
+   # "Region North had 1000 in sales"
+
+   # placeholders can be numbered or named for clarity:
+   msg = "Region {0} had {1} in sales".format(region, sales)
+   msg = "Region {r} had {s} in sales".format(r=region, s=sales)
+
+Each ``{}`` is filled, in order, by the arguments to ``.format()`` — which handles the
+type conversion automatically (the number becomes text without an explicit ``str()``). This
+is cleaner and clearer than concatenation.
+
+f-strings: the modern way
+--------------------------
+
+Modern Python offers **f-strings** — the most concise formatting, marking the string with
+``f`` and putting expressions directly in the braces:
+
+.. code-block:: python
+
+   msg = f"Region {region} had {sales} in sales"
+   # "Region North had 1000 in sales"
+
+   total = 1234.5678
+   msg = f"Total: {total:.2f}"     # "Total: 1234.57" — formatted to 2 decimals
+
+The f-string embeds the variable (or any expression) right in the braces — the most
+readable option, now the common Python idiom. It also supports *format specifiers*
+(``:.2f`` for two decimal places), which control how numbers display — decimal places,
+thousands separators, percentages — the presentation formatting from earlier sections,
+in code.
+
+Why formatting matters
+-----------------------
+
+Producing readable, correctly-formatted text output is constant in data work — labels for
+charts, messages, report lines, formatted numbers. Formatting (especially f-strings) makes
+this clean and reliable, handling conversions and controlling number display without the
+fragility of manual concatenation. It is a small skill used constantly, and f-strings in
+particular are worth adopting as the default.
+
+The caveat
+------------
+
+Formatting is straightforward but has minor pitfalls. Forgetting the ``f`` prefix on an
+f-string leaves the braces as *literal text* (``"{region}"`` appears verbatim rather than
+the value) — a common confusion. Format specifiers (``:.2f`` and the like) have their own
+small syntax to learn, and misapplying one can misformat output. And formatting controls
+*display*, not the underlying value — ``f"{total:.2f}"`` shows two decimals but does not
+round the stored ``total`` (the display-versus-value distinction from the spreadsheet
+formatting lesson). Use formatting for clean output, remembering it shapes appearance, not
+data. The next lesson turns to the first structure for holding many values: the list.
+"""
+
+CONTENT["Data Types vs Data Structures & Introduction to Lists"] = r"""
+From single values to collections
+-----------------------------------
+
+So far, most values have been *single* — one number, one string. But data is usually
+*many* values together, and holding collections requires **data structures**. This lesson
+draws the distinction between a **data type** (the kind of a single value) and a **data
+structure** (an organised collection of values), and introduces the most fundamental
+structure: the **list**.
+
+Data types versus data structures
+------------------------------------
+
+The distinction is foundational:
+
+- A **data type** describes a *single* value's kind — ``int``, ``float``, ``str``,
+  ``bool`` (the types lesson). It answers "what kind of value is this?"
+- A **data structure** *organises multiple* values into a collection with a particular
+  arrangement and behaviour — lists, tuples, dictionaries, sets (this stage). It answers
+  "how are these many values held together?"
+
+A single sales figure is a value of type ``float``; a *collection* of sales figures is a
+data structure (a list). Types classify individual values; structures organise many. Both
+matter: you choose a type for each value and a structure for how values are grouped.
+
+The list
+---------
+
+A **list** is an ordered, changeable collection of values, written in square brackets:
+
+.. code-block:: python
+
+   sales = [100, 250, 175, 300]
+   regions = ["North", "South", "East", "West"]
+   mixed = [1, "two", 3.0, True]        # lists can hold mixed types
+
+A list holds items *in order*, each accessible by index (the same zero-based indexing and
+slicing as strings):
+
+.. code-block:: python
+
+   sales[0]          # 100 — first item
+   sales[-1]         # 300 — last item
+   sales[1:3]        # [250, 175] — a slice (a sub-list)
+   len(sales)        # 4 — number of items
+
+Lists are the workhorse structure for holding sequences of data — a column of values, a
+series of records, any ordered collection.
+
+Why lists matter
+----------------
+
+Lists are the most-used Python data structure, and the foundation for much data work. They
+hold the collections that loops iterate over (the for-loop lesson), the sequences that get
+transformed and aggregated, and conceptually they underlie the columns and series of
+``pandas`` (the libraries stage — a DataFrame column is list-like). Understanding lists —
+ordered, indexed, changeable collections — is understanding the basic shape of "many
+values together" that all of data analysis works with.
+
+The caveat
+------------
+
+Lists' flexibility invites a few missteps. They can hold *mixed types*, which is
+occasionally useful but often a sign of disorganised data — a list meant to hold sales
+figures should hold numbers, not a stray string, or later operations break. The zero-based
+indexing and exclusive-stop slicing carry over from strings, with the same off-by-one
+hazards. And a subtle point the next lessons develop: lists are **mutable** (changeable in
+place), which is powerful but means a list can be modified unexpectedly if shared — the
+opposite of strings' immutability, and a source of surprising bugs. Keep lists
+type-consistent, mind the indexing, and be aware that lists change in place. The next lesson
+covers modifying them.
+"""
+
+CONTENT["Modifying Lists in Python"] = r"""
+Changing lists in place
+-------------------------
+
+Unlike strings, lists are **mutable** — they can be *changed in place* after creation:
+items added, removed, or updated. This mutability makes lists the flexible, dynamic
+structure they are, and this lesson covers the operations that modify them — the everyday
+tools for building and updating collections.
+
+Adding elements
+---------------
+
+Several methods add to a list:
+
+.. code-block:: python
+
+   sales = [100, 250]
+   sales.append(300)         # add one item to the end: [100, 250, 300]
+   sales.insert(0, 50)       # insert at a position: [50, 100, 250, 300]
+   sales.extend([400, 500])  # add multiple items: [50, 100, 250, 300, 400, 500]
+
+``append`` adds a single item to the end (the most common); ``insert`` places an item at a
+given index; ``extend`` appends all items of another list. These grow a list as data
+arrives — the accumulate pattern from the for-loop lesson often uses ``append``.
+
+Removing elements
+-----------------
+
+Methods remove items:
+
+.. code-block:: python
+
+   sales.remove(50)          # remove the first matching value
+   popped = sales.pop()      # remove and return the last item
+   popped = sales.pop(0)     # remove and return the item at an index
+   del sales[0]              # delete the item at an index
+
+``remove`` deletes by *value* (the first match); ``pop`` deletes by *position* and returns
+the removed item; ``del`` deletes by position. These shrink a list as items are consumed
+or filtered.
+
+Updating and other operations
+-------------------------------
+
+Items are updated by assigning to an index, and lists have further useful methods:
+
+.. code-block:: python
+
+   sales[0] = 999            # update the item at index 0
+   sales.sort()              # sort the list in place (ascending)
+   sales.reverse()           # reverse the order in place
+   count = sales.count(250)  # count occurrences of a value
+
+Assigning to ``sales[0]`` changes that element; ``sort`` and ``reverse`` reorder the list
+*in place* (modifying the original, not returning a new list). These operations make lists
+dynamic — reorderable, updatable collections.
+
+Mutability: the key property
+------------------------------
+
+The defining feature is that these operations change the list *in place* — unlike string
+methods, which return new strings. ``sales.append(300)`` modifies ``sales`` directly (no
+reassignment needed); ``sales.sort()`` reorders ``sales`` itself. This in-place mutability
+is what makes lists efficient for building and updating collections, and it is the direct
+contrast to strings' immutability from the earlier lesson — a distinction worth holding
+clearly, because it changes how you use each.
+
+The caveat
+------------
+
+Mutability is powerful and *hazardous*, in ways that catch even experienced programmers.
+Because a list is changed in place, if two variables refer to the *same* list (``b = a``
+makes ``b`` another name for ``a``'s list, not a copy), modifying one changes the other —
+the "shared reference" surprise, a classic source of baffling bugs. To get an independent
+copy, you must explicitly copy the list (``b = a.copy()``). Also, in-place methods like
+``sort()`` return ``None``, not the sorted list, so ``sales = sales.sort()`` mistakenly sets
+``sales`` to ``None`` — the opposite mistake to strings (where you *must* reassign). The
+disciplines: copy a list when you need an independent one, and remember in-place methods
+modify rather than return. The next lessons cover tuples and further structures.
+"""
+
+
+MINDMAP.update({
+    "String Indexing and Slicing in Python": [
+        "Strings in Python",
+        "String Formatting with .format() in Python",
+        "Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND)",
+        "Data Types vs Data Structures & Introduction to Lists",
+    ],
+    "String Formatting with .format() in Python": [
+        "String Indexing and Slicing in Python",
+        "Strings in Python",
+        "Data Types and Type Conversion in Python",
+        "Data Types vs Data Structures & Introduction to Lists",
+    ],
+    "Data Types vs Data Structures & Introduction to Lists": [
+        "Modifying Lists in Python",
+        "Tuples in Python",
+        "Data Types and Type Conversion in Python",
+        "For Loops in Python",
+    ],
+    "Modifying Lists in Python": [
+        "Data Types vs Data Structures & Introduction to Lists",
+        "Advanced Use of Loops, Lists, Tuples & List Comprehension",
+        "Tuples in Python",
+        "Strings in Python",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / structures (cont.)  (python 021-024)
+# ======================================================================
+
+GLOSS.update({
+    "Tuples in Python":
+        "ordered, immutable collections — like lists that cannot change",
+    "Advanced Use of Loops, Lists, Tuples & List Comprehension":
+        "combining loops and structures, and the concise list comprehension idiom",
+    "Dictionaries in Python":
+        "key-value collections — looking values up by a meaningful key",
+    "Advanced Dictionary Usage in Python":
+        "iterating, nesting, and safely accessing dictionaries for real data",
+})
+
+CONTENT["Tuples in Python"] = r"""
+Ordered and unchangeable
+--------------------------
+
+A **tuple** is like a list — an ordered collection of values — but with one crucial
+difference: it is **immutable**, unchangeable after creation. Tuples serve where a
+collection should be fixed, and understanding them (and why immutability is sometimes
+wanted) rounds out the sequence structures. This lesson covers tuples.
+
+Creating and using tuples
+---------------------------
+
+A tuple is written with parentheses (or just commas):
+
+.. code-block:: python
+
+   point = (3, 5)
+   rgb = (255, 128, 0)
+   record = ("North", 1000, 2024)     # a mixed tuple
+
+Tuples are accessed exactly like lists — by index, with slicing:
+
+.. code-block:: python
+
+   point[0]          # 3
+   record[1]         # 1000
+   record[-1]        # 2024
+   len(record)       # 3
+
+Everything about *reading* a tuple mirrors a list; the difference is entirely in
+*changing* it.
+
+Immutability
+------------
+
+A tuple *cannot be changed* after creation — no adding, removing, or updating elements:
+
+.. code-block:: python
+
+   point = (3, 5)
+   point[0] = 10     # ERROR — tuples do not support item assignment
+
+This immutability is the tuple's defining property, and it is the same immutability strings
+have. Where a list is a *changeable* ordered collection, a tuple is a *fixed* one — the two
+are otherwise similar.
+
+Why use a tuple
+----------------
+
+If tuples are just unchangeable lists, why use them? Immutability is a *feature* in the
+right situations:
+
+- **Fixed data that should not change** — coordinates, RGB colours, a fixed record — where
+  accidental modification would be a bug. The immutability *protects* the data.
+- **Meaning and intent** — using a tuple signals "this collection is fixed," documenting
+  intent to readers.
+- **Dictionary keys** — tuples can serve as dictionary keys (the next lessons) where lists
+  cannot, precisely because they are immutable and stable.
+- **Multiple return values** — functions often return several values as a tuple
+  (``return x, y``), a common Python idiom.
+
+The choice between list and tuple is the choice between *changeable* and *fixed*: use a
+list when the collection will change, a tuple when it should not.
+
+The caveat
+------------
+
+The tuple-versus-list choice is easy to get wrong in either direction: using a tuple for
+data that *does* need to change forces awkward workarounds (you cannot modify it), while
+using a list for data that should be *fixed* forgoes the protection immutability gives. The
+guidance is intent-based — will this collection change during its life? Changeable → list;
+fixed → tuple. And a subtle trap: a tuple's *immutability is shallow* — a tuple cannot be
+reassigned, but if it *contains* a mutable object (a list inside a tuple), that inner object
+can still change. For the flat collections of typical data work this rarely bites, but it is
+worth knowing that immutability applies to the tuple's own structure, not necessarily to
+everything within it. The next lesson combines the structures with loops and introduces list
+comprehension.
+"""
+
+CONTENT["Advanced Use of Loops, Lists, Tuples & List Comprehension"] = r"""
+Combining structures and loops, concisely
+-------------------------------------------
+
+With lists, tuples, and loops in hand, this lesson covers using them *together* more
+powerfully — iterating structures in richer ways — and introduces **list comprehension**, a
+concise Python idiom for building lists that experienced Python programmers use constantly.
+It marks the transition from basic structure use to fluent, idiomatic Python.
+
+Richer iteration
+----------------
+
+Python offers cleaner ways to iterate structures than a bare index loop:
+
+.. code-block:: python
+
+   sales = [100, 250, 175]
+
+   for i, amount in enumerate(sales):     # index AND value together
+       print(i, amount)
+
+   regions = ["N", "S", "E"]
+   for region, amount in zip(regions, sales):   # iterate two lists in parallel
+       print(region, amount)
+
+``enumerate`` gives both the index and the item (cleaner than tracking an index manually);
+``zip`` iterates several collections in lockstep (pairing regions with sales). These make
+common iteration patterns readable — and ``zip`` pairs naturally with tuple unpacking
+(``for region, amount in ...`` unpacks each pair).
+
+List comprehension
+------------------
+
+**List comprehension** builds a list concisely in a single expression, replacing a
+build-with-a-loop pattern:
+
+.. code-block:: python
+
+   # the loop way:
+   doubled = []
+   for x in sales:
+       doubled.append(x * 2)
+
+   # the comprehension way — same result, one line:
+   doubled = [x * 2 for x in sales]           # [200, 500, 350]
+
+The comprehension ``[expression for item in collection]`` reads as "the expression, for
+each item" — building a new list by transforming each element. It can include a *condition*
+to filter:
+
+.. code-block:: python
+
+   large = [x for x in sales if x > 150]      # [250, 175] — only items over 150
+
+``[x for x in sales if x > 150]`` keeps only items meeting the condition — transformation
+and filtering in one concise expression.
+
+Why comprehensions matter
+---------------------------
+
+List comprehensions are idiomatic Python — the natural, readable way to build a list by
+transforming or filtering another, replacing the more verbose loop-and-append. They express
+"make a new list from this one" in a single clear line, and recognising and using them is a
+mark of Python fluency. The pattern also connects forward: it is conceptually the same
+element-wise transformation and boolean filtering that ``numpy`` and ``pandas`` do
+*vectorised* (the libraries stage), so comprehensions bridge explicit loops and the
+vectorised idioms ahead.
+
+The caveat
+------------
+
+List comprehensions are powerful and can be *overused*. A simple transformation or filter
+is clearer as a comprehension than a loop; but a comprehension with multiple conditions,
+nested loops, or complex logic crammed into one line becomes *harder* to read than the
+equivalent loop — the clarity-over-cleverness principle warns against the dense,
+show-off comprehension. The guidance: use a comprehension when it is *more* readable (a
+single clear transformation or filter), and fall back to an explicit loop when the logic is
+complex enough that a comprehension would obscure it. Concise is good only when it is also
+clear. The next lesson turns to a different structure: the dictionary.
+"""
+
+CONTENT["Dictionaries in Python"] = r"""
+Looking values up by key
+--------------------------
+
+Lists and tuples hold values in *order*, accessed by position. But often you want to look a
+value up by a *meaningful key* — a customer's name, a product code, a field label — rather
+than a numeric position. The **dictionary** is Python's key-value structure, and it is one
+of the most important for data work. This lesson covers dictionaries.
+
+What a dictionary is
+---------------------
+
+A **dictionary** stores **key-value pairs** — each value is associated with a key that
+identifies it, written with curly braces:
+
+.. code-block:: python
+
+   customer = {
+       "name": "Jane Smith",
+       "region": "North",
+       "sales": 1000,
+   }
+
+Values are looked up *by key*, not position:
+
+.. code-block:: python
+
+   customer["name"]          # "Jane Smith"
+   customer["sales"]         # 1000
+
+Where a list answers "what is at position 2?", a dictionary answers "what is the value for
+'name'?" — access by meaningful key rather than numeric index. This makes dictionaries ideal
+for representing *records* with named fields.
+
+Modifying dictionaries
+-----------------------
+
+Dictionaries are mutable — pairs can be added, changed, and removed:
+
+.. code-block:: python
+
+   customer["email"] = "jane@example.com"    # add a new key-value pair
+   customer["sales"] = 1200                    # update an existing value
+   del customer["region"]                      # remove a pair
+
+Assigning to a key either adds it (if new) or updates it (if it exists); ``del`` removes a
+pair. Dictionaries grow and change like lists, but keyed rather than ordered.
+
+Why dictionaries matter
+------------------------
+
+Dictionaries are fundamental to data work for several reasons. They represent *records*
+naturally — a row of data as field-name-to-value pairs (``{"name": ..., "sales": ...}``),
+which is exactly how structured data is often held. They enable *fast lookup* by key (far
+faster than searching a list). And they are the structure behind much of Python's data
+ecosystem — JSON data is dictionaries, pandas DataFrames can be built from them, and
+configuration and mappings are dictionaries. Understanding key-value access is understanding
+a core pattern of representing and retrieving structured data.
+
+The caveat
+------------
+
+Dictionaries have specific rules and pitfalls. **Keys must be unique** — assigning to an
+existing key *overwrites* its value rather than adding a second, so duplicate keys silently
+lose data. **Keys must be immutable** — strings, numbers, and tuples can be keys, but lists
+cannot (their mutability would break the dictionary's lookup), which is one reason tuples
+exist. And the classic error: **accessing a key that does not exist** (``customer["phone"]``
+when there is no phone) raises a ``KeyError`` and stops the program — a frequent bug when
+data may be missing a field. The next lesson covers handling this and other advanced
+dictionary usage safely. Keys unique and immutable, and access defensively.
+"""
+
+CONTENT["Advanced Dictionary Usage in Python"] = r"""
+Dictionaries for real data
+----------------------------
+
+Basic dictionaries store and retrieve by key; *real* data work needs more — iterating over a
+dictionary's contents, handling missing keys safely, and nesting dictionaries for structured
+data. This lesson covers advanced dictionary usage, the techniques that make dictionaries
+practical for actual data, closing the core structures.
+
+Iterating dictionaries
+-----------------------
+
+Dictionaries are iterated by keys, values, or both:
+
+.. code-block:: python
+
+   customer = {"name": "Jane", "region": "North", "sales": 1000}
+
+   for key in customer:                 # iterate keys
+       print(key)
+
+   for key, value in customer.items():  # iterate key-value pairs
+       print(key, value)
+
+   customer.keys()          # the keys
+   customer.values()        # the values
+   customer.items()         # the key-value pairs
+
+``.items()`` is the common way to loop over a dictionary's contents — each iteration
+unpacking a key and its value (tuple unpacking again). This is how you process every field of
+a record, or every entry of a mapping.
+
+Safe access with .get()
+-------------------------
+
+The ``KeyError`` from accessing a missing key is avoided with ``.get()``, which returns a
+default instead of erroring:
+
+.. code-block:: python
+
+   customer["phone"]              # KeyError if 'phone' is missing — stops the program
+   customer.get("phone")          # returns None if missing — safe
+   customer.get("phone", "N/A")   # returns "N/A" if missing — safe with a default
+
+``.get(key, default)`` is the *safe* way to read a dictionary when a key might be absent —
+exactly the missing-data handling that ``COALESCE`` provided in SQL, in dictionary form.
+Using ``.get()`` where fields may be missing prevents the crash that direct access would
+cause.
+
+Nested dictionaries
+-------------------
+
+Dictionaries can contain dictionaries (and lists), representing *structured*, hierarchical
+data:
+
+.. code-block:: python
+
+   data = {
+       "north": {"sales": 1000, "customers": 50},
+       "south": {"sales": 800,  "customers": 40},
+   }
+   data["north"]["sales"]         # 1000 — access nested by chaining keys
+
+Nesting represents data with structure — regions each holding their own metrics — and is
+exactly the shape of JSON and much real-world data. Accessing nested data chains the keys
+(``data["north"]["sales"]``), reaching down through the levels.
+
+Why advanced usage matters
+----------------------------
+
+These techniques are what make dictionaries usable for *real* data rather than toy examples.
+Iterating processes records field by field; ``.get()`` handles the missing fields real data
+always has; nesting represents the hierarchical structure real data often takes (especially
+data from web APIs and JSON). Together they turn the dictionary from a simple lookup into a
+practical tool for structured data — a bridge toward the DataFrames of pandas, which
+generalise these key-value, record-oriented ideas to full tables.
+
+The caveat
+------------
+
+Advanced dictionary use concentrates the earlier pitfalls plus new ones. Nested access
+*multiplies* the ``KeyError`` risk — ``data["west"]["sales"]`` fails if *either* "west" or
+"sales" is missing, so deep access into possibly-incomplete data needs ``.get()`` at each
+level (or careful checking), lest a single missing key crash the program. Deeply nested
+dictionaries also grow *hard to navigate* — many levels of keys become as tangled as deeply
+nested anything, and at that point a more structured representation (or a DataFrame) is often
+better. Use ``.get()`` for anything that might be missing, keep nesting to what the data
+genuinely requires, and reach for pandas when dictionary-of-dictionaries starts to strain.
+The next lesson covers the last core structure, the set.
+"""
+
+
+MINDMAP.update({
+    "Tuples in Python": [
+        "Modifying Lists in Python",
+        "Data Types vs Data Structures & Introduction to Lists",
+        "Advanced Use of Loops, Lists, Tuples & List Comprehension",
+        "Strings in Python",
+    ],
+    "Advanced Use of Loops, Lists, Tuples & List Comprehension": [
+        "Tuples in Python",
+        "Modifying Lists in Python",
+        "For Loops in Python",
+        "Dictionaries in Python",
+    ],
+    "Dictionaries in Python": [
+        "Advanced Dictionary Usage in Python",
+        "Data Types vs Data Structures & Introduction to Lists",
+        "Tuples in Python",
+        "Sets in Python",
+    ],
+    "Advanced Dictionary Usage in Python": [
+        "Dictionaries in Python",
+        "Sets in Python",
+        "Libraries, Packages, and Modules in Python",
+        "For Loops in Python",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / structures (close) + libraries (open)  (python 025-028)
+# ======================================================================
+
+GLOSS.update({
+    "Sets in Python":
+        "unordered collections of unique values — membership and set operations",
+    "Libraries, Packages, and Modules in Python":
+        "reusing others' code — importing modules, packages, and the library ecosystem",
+    "Introduction to NumPy and Vectorization":
+        "the numerical library and vectorization — fast array operations without loops",
+    "NumPy Arrays (ndarray) and Core Concepts":
+        "the ndarray, NumPy's core structure, and how it differs from a list",
+})
+
+CONTENT["Sets in Python"] = r"""
+Unordered collections of unique values
+----------------------------------------
+
+The last core data structure is the **set** — an unordered collection of *unique* values.
+Sets excel at membership testing, removing duplicates, and set operations (union,
+intersection), and understanding them completes Python's built-in structures. This lesson
+covers sets, closing the structures stage.
+
+What a set is
+-------------
+
+A **set** is a collection with two defining properties: its values are **unique** (no
+duplicates) and **unordered** (no positional index). Written with curly braces (like a
+dictionary, but values not pairs):
+
+.. code-block:: python
+
+   regions = {"North", "South", "East", "North"}   # duplicate ignored
+   print(regions)            # {"North", "South", "East"} — 3 unique values
+
+Adding a duplicate has no effect (the value is already present), and there is no
+``set[0]`` — sets are not indexed. Their purpose is *membership* and *uniqueness*, not
+order.
+
+Set operations
+--------------
+
+Sets support fast membership testing and mathematical set operations:
+
+.. code-block:: python
+
+   "North" in regions       # True — fast membership test
+
+   a = {1, 2, 3}
+   b = {2, 3, 4}
+   a | b                     # {1, 2, 3, 4} — union (in either)
+   a & b                     # {2, 3} — intersection (in both)
+   a - b                     # {1} — difference (in a but not b)
+
+Membership testing (``in``) is *very fast* on a set — faster than searching a list — and the
+operations (union ``|``, intersection ``&``, difference ``-``) answer "in either / both /
+one but not the other" directly. These are exactly the set operations of mathematics, and of
+SQL's ``UNION``/``INTERSECT``/``EXCEPT``.
+
+Why sets matter
+---------------
+
+Sets serve specific, common needs:
+
+- **Removing duplicates** — converting a list to a set drops duplicates instantly
+  (``set(my_list)``), the fastest deduplication in Python.
+- **Fast membership testing** — checking whether a value is in a large collection is far
+  faster with a set than a list, which matters at scale.
+- **Comparing collections** — the set operations answer "what is common / different between
+  these two collections?" directly (which customers are in both lists? which are only in
+  one?).
+
+For these tasks — uniqueness, membership, comparison — the set is the right tool, cleaner and
+faster than working around a list.
+
+The caveat
+------------
+
+Sets' properties are also their limitations. Being *unordered*, a set cannot be indexed or
+sliced, and does not preserve insertion order — if order matters, a set is the wrong
+structure (use a list). Being *unique*, a set cannot hold duplicates — which is the point
+for deduplication, but means a set cannot represent data where repetition is meaningful (a
+set of sales figures would collapse identical amounts into one, losing information). And set
+elements must be *immutable* (like dictionary keys), so a set cannot contain lists. Use a set
+precisely when uniqueness and membership are what you want, and a list when order or
+repetition matters. This completes Python's core data structures; the next lessons open the
+final stage — the libraries that make Python a data-analysis powerhouse.
+"""
+
+CONTENT["Libraries, Packages, and Modules in Python"] = r"""
+Standing on others' code
+--------------------------
+
+Python's true power for data analysis comes not from the language alone but from its vast
+ecosystem of **libraries** — reusable code others have written, imported and used rather
+than reinvented. Opening the final stage, this lesson covers libraries, packages, and
+modules: what they are, how to import them, and why they make Python the dominant data tool.
+
+Modules, packages, libraries
+------------------------------
+
+The terms nest:
+
+- A **module** is a single file of Python code (functions, classes, values) that can be
+  imported and used elsewhere.
+- A **package** is a collection of modules organised together (a directory of related
+  modules).
+- A **library** is, loosely, a body of reusable code — a package or set of packages —
+  providing functionality for some purpose (numerical computing, data analysis,
+  visualization).
+
+The distinctions are technical; in practice "library" is used broadly for importable code
+you use rather than write. The point is *reuse at scale* — leveraging code the community has
+built, tested, and maintained.
+
+Importing
+---------
+
+Code from a library is brought in with ``import``:
+
+.. code-block:: python
+
+   import math                     # import a module
+   math.sqrt(16)                   # use it with the module name: 4.0
+
+   import numpy as np              # import with an alias (convention)
+   np.array([1, 2, 3])             # use via the alias
+
+   from statistics import mean     # import a specific name
+   mean([1, 2, 3])                 # use it directly: 2
+
+``import numpy as np`` brings in the NumPy library under the short alias ``np`` (a universal
+convention); ``from ... import ...`` brings a specific name into direct use. These import
+forms are how every library in the coming lessons is accessed — ``import numpy as np``,
+``import pandas as pd`` are the standard incantations.
+
+The data ecosystem
+-------------------
+
+Python's data-analysis dominance rests on its libraries, the key ones being:
+
+- **NumPy** — fast numerical computing on arrays (the next lessons).
+- **pandas** — tabular data analysis, the DataFrame (the lessons after).
+- **matplotlib** / others — visualization.
+- and a vast constellation for statistics, machine learning, and more.
+
+These libraries do the heavy lifting — decades of optimised, tested code — so an analyst
+composes existing powerful tools rather than building from scratch. This is the reuse
+principle at the ecosystem scale: the reason Python is *the* data language is largely this
+library ecosystem.
+
+The caveat
+------------
+
+Libraries are indispensable but bring their own considerations. **Dependencies** — the
+libraries your code relies on — must be installed and, importantly, *versioned*: code
+written for one version of a library may behave differently or break on another, so managing
+which versions are used matters for reproducibility (the reproducibility theme, at the
+dependency level). Importing many libraries also has a cost, and reaching for a heavy library
+for a task the standard tools handle is its own over-engineering. The disciplines: use
+well-established, maintained libraries; be aware of version compatibility; and import what the
+task genuinely needs. The ecosystem is Python's great strength, used deliberately. The next
+lessons dive into the first essential library: NumPy.
+"""
+
+CONTENT["Introduction to NumPy and Vectorization"] = r"""
+Fast numbers without loops
+----------------------------
+
+The first essential data library is **NumPy** — the foundation of numerical computing in
+Python, and the base that pandas itself is built on. Its central idea is **vectorization**:
+performing operations on entire arrays at once, without explicit loops, far faster than
+looping. This lesson introduces NumPy and vectorization, the shift from loop-based to
+array-based thinking.
+
+What NumPy provides
+--------------------
+
+NumPy provides the **array** — a fast, homogeneous collection of numbers — and a vast set of
+operations on arrays. Imported conventionally as ``np``:
+
+.. code-block:: python
+
+   import numpy as np
+
+   arr = np.array([1, 2, 3, 4, 5])     # a NumPy array
+   arr * 2                             # array([2, 4, 6, 8, 10]) — whole array at once
+   arr + 10                            # array([11, 12, 13, 14, 15])
+   arr.sum()                           # 15
+   arr.mean()                          # 3.0
+
+The striking thing: ``arr * 2`` multiplies *every* element by 2 in one operation — no loop.
+This is vectorization.
+
+Vectorization
+-------------
+
+**Vectorization** means applying an operation to a whole array at once, rather than looping
+over elements. Compare:
+
+.. code-block:: python
+
+   # loop way (slow, verbose):
+   result = []
+   for x in [1, 2, 3, 4, 5]:
+       result.append(x * 2)
+
+   # vectorized way (fast, concise):
+   arr = np.array([1, 2, 3, 4, 5])
+   result = arr * 2
+
+Both double each element, but the vectorized version is *dramatically faster* on large data
+(NumPy runs the operation in optimised low-level code, not a Python loop) and *more concise*
+(one expression, no loop). This is the payoff the for-loop lesson foreshadowed — for numeric
+data at scale, vectorized array operations replace explicit loops.
+
+Why vectorization matters
+--------------------------
+
+Vectorization is the core idiom of numerical data work in Python, for two reasons. **Speed**
+— vectorized NumPy operations are orders of magnitude faster than Python loops on large
+arrays, which is what makes Python viable for real data sizes. **Clarity** — ``arr * 2`` or
+``arr1 + arr2`` expresses an operation on all the data in one readable line, closer to the
+mathematical intent than a loop. This array-and-vectorization thinking underlies pandas too
+(a DataFrame column is array-like and vectorized), so learning it here is learning the idiom
+of all Python data analysis.
+
+The caveat
+------------
+
+Vectorization requires a *mental shift* that trips up those coming from loop-based
+programming: you stop thinking "for each element, do X" and start thinking "do X to the whole
+array." Reaching for a Python loop over a NumPy array *defeats the purpose* — it is both
+slower and less clear than the vectorized operation, yet it is the instinctive move for
+loop-trained programmers. The discipline is to express operations on whole arrays, using
+NumPy's vectorized operations and functions rather than looping. There are genuine cases
+where a loop is unavoidable, but for element-wise arithmetic and aggregation, vectorization
+is the right and expected approach. Think in arrays, not elements. The next lesson covers the
+array structure itself in depth.
+"""
+
+CONTENT["NumPy Arrays (ndarray) and Core Concepts"] = r"""
+The array in depth
+--------------------
+
+NumPy's central structure is the **ndarray** (n-dimensional array), and understanding it —
+how it differs from a list, its key properties, and its core operations — is essential to
+using NumPy and pandas well. This lesson covers the ndarray and NumPy's core concepts,
+deepening the array foundation.
+
+The ndarray versus a list
+---------------------------
+
+A NumPy array (``ndarray``) looks list-like but differs crucially:
+
+.. code-block:: python
+
+   import numpy as np
+   arr = np.array([1, 2, 3, 4, 5])
+
+- **Homogeneous** — all elements are the *same type* (all integers, all floats), unlike a
+  list's mixed types. This uniformity is what enables NumPy's speed.
+- **Fixed size** — an array has a set size; you do not append to it as you do a list (you
+  create new arrays instead).
+- **Vectorized** — operations apply to the whole array (the previous lesson), which lists do
+  not support (``[1,2,3] * 2`` repeats the list rather than doubling elements).
+- **Fast and compact** — arrays store data efficiently and operate on it in optimised code,
+  far outperforming lists for numeric work.
+
+The array trades the list's flexibility (mixed types, easy resizing) for *speed and
+vectorization* on uniform numeric data — the right trade for numerical analysis.
+
+Core array properties and creation
+------------------------------------
+
+Arrays have properties describing their structure, and several creation functions:
+
+.. code-block:: python
+
+   arr = np.array([[1, 2, 3], [4, 5, 6]])   # a 2D array (from nested lists)
+   arr.shape                 # (2, 3) — 2 rows, 3 columns
+   arr.ndim                  # 2 — number of dimensions
+   arr.size                  # 6 — total elements
+   arr.dtype                 # the element data type (e.g. int64)
+
+   np.zeros(5)               # array of five 0.0s
+   np.arange(0, 10, 2)       # array([0, 2, 4, 6, 8]) — like range()
+   np.linspace(0, 1, 5)      # 5 evenly spaced values from 0 to 1
+
+The **shape** (dimensions) is central — arrays can be 1D (a vector), 2D (a matrix, like a
+table), or more, and the shape describes that structure. NumPy's creation functions build
+common arrays without manual listing.
+
+Indexing, slicing, and operations
+------------------------------------
+
+Arrays are indexed and sliced like lists (zero-based, exclusive stop), extended to multiple
+dimensions, and support rich vectorized operations:
+
+.. code-block:: python
+
+   arr = np.array([10, 20, 30, 40, 50])
+   arr[0]                    # 10
+   arr[1:3]                  # array([20, 30])
+   arr[arr > 25]             # array([30, 40, 50]) — boolean indexing!
+
+   arr.sum(); arr.mean(); arr.max(); arr.std()   # aggregate functions
+
+The last — ``arr[arr > 25]`` — is **boolean indexing**: selecting elements by a condition,
+which returns only the matching elements. This is exactly the filtering idea from SQL
+``WHERE`` and spreadsheet filters, vectorized — and it is the foundation of the boolean
+masking that pandas uses to filter data (an upcoming lesson).
+
+Why the ndarray matters
+------------------------
+
+The ndarray is the foundation of numerical Python — NumPy's own operations, and *pandas*
+(whose columns are essentially arrays), all rest on it. Understanding arrays — homogeneous,
+vectorized, shaped, boolean-indexable — is understanding the substrate of all Python data
+analysis. The concepts here (vectorization, boolean indexing, aggregation) reappear directly
+in pandas, so the array is where the idioms of data analysis in Python are first and most
+clearly learned.
+
+The caveat
+------------
+
+The ndarray's constraints are real and occasionally surprising. Its **homogeneity** means
+mixing types coerces them (putting a float in an int array converts, and mixing numbers and
+strings makes everything strings), which can silently change data — the array assumes uniform
+type. Its **fixed size** means "growing" an array actually creates a new one, so
+list-style appending in a loop is both wrong-idiom and slow (build the data as a list then
+convert, or use vectorized construction). And array operations require *compatible shapes* —
+operating on mismatched shapes errors or triggers broadcasting rules that surprise the
+unwary. For the flat, uniform numeric data of typical analysis these rarely bite, but the
+array is a stricter, more structured thing than a list — which is exactly what makes it fast.
+The next lessons build on the array to reach pandas, the analyst's primary Python tool.
+"""
+
+
+MINDMAP.update({
+    "Sets in Python": [
+        "Dictionaries in Python",
+        "Data Types vs Data Structures & Introduction to Lists",
+        "Advanced Use of Loops, Lists, Tuples & List Comprehension",
+        "Libraries, Packages, and Modules in Python",
+    ],
+    "Libraries, Packages, and Modules in Python": [
+        "Introduction to NumPy and Vectorization",
+        "Object-Oriented Programming (OOP) in Python",
+        "Introduction to Pandas (Data Analysis Library)",
+        "Advanced Dictionary Usage in Python",
+    ],
+    "Introduction to NumPy and Vectorization": [
+        "Libraries, Packages, and Modules in Python",
+        "NumPy Arrays (ndarray) and Core Concepts",
+        "Introduction to Pandas (Data Analysis Library)",
+        "Advanced Use of Loops, Lists, Tuples & List Comprehension",
+    ],
+    "NumPy Arrays (ndarray) and Core Concepts": [
+        "Introduction to NumPy and Vectorization",
+        "Introduction to Pandas (Data Analysis Library)",
+        "Pandas DataFrame & Series",
+        "Libraries, Packages, and Modules in Python",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / libraries (pandas core)  (python 029-032)
+# ======================================================================
+
+GLOSS.update({
+    "Introduction to Pandas (Data Analysis Library)":
+        "the DataFrame library that brings spreadsheet/SQL-style tables to Python",
+    "Pandas DataFrame & Series":
+        "the two core pandas structures — the table (DataFrame) and the column (Series)",
+    "Boolean Masking in Pandas":
+        "filtering rows by a condition — the pandas equivalent of WHERE and spreadsheet filters",
+    "Grouping and Aggregation in Pandas (groupby, agg)":
+        "grouping rows and computing per-group aggregates — pandas' GROUP BY",
+})
+
+CONTENT["Introduction to Pandas (Data Analysis Library)"] = r"""
+Tables in Python
+-----------------
+
+If NumPy is the foundation, **pandas** is the tool an analyst uses most — the library that
+brings *tabular data* to Python, with the row-and-column tables familiar from spreadsheets
+and SQL. Built on NumPy, pandas is the primary Python tool for data analysis, and this lesson
+introduces it: what it is, and why it ties the whole course together.
+
+What pandas provides
+--------------------
+
+Pandas provides labelled, tabular data structures and a vast toolkit for working with them.
+Imported conventionally as ``pd``:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame({
+       "region": ["North", "South", "East"],
+       "sales":  [1000, 800, 1200],
+   })
+
+This creates a **DataFrame** — a table with named columns and indexed rows, exactly the
+tabular structure the whole course has worked with. Pandas can read data from files
+(``pd.read_csv("data.csv")``), databases, and more, turning external data into a DataFrame to
+analyse.
+
+Pandas as the culmination
+---------------------------
+
+Pandas is where the course's threads converge, because it does *in Python* what the earlier
+tools did separately:
+
+- **The tabular structure** from the data-preparation section — rows and columns, tidy data —
+  is the DataFrame.
+- **The cleaning** from Section 4 — handling duplicates, missing values, types — pandas does
+  with methods (``drop_duplicates()``, ``fillna()``, ``astype()``).
+- **The analysis** from Section 5 — sorting, filtering, grouping, aggregating, joining —
+  pandas does with methods (``sort_values()``, boolean masks, ``groupby()``, ``merge()``).
+- **The visualization** from Section 6 — pandas integrates with plotting libraries to chart
+  directly.
+
+Everything done in spreadsheets and SQL, pandas can do in Python — automated, reproducible,
+and at scale. It is the single tool that spans the whole analytical workflow.
+
+Why pandas matters
+------------------
+
+Pandas matters because it unifies the analyst's work in one powerful, programmable tool. The
+spreadsheet's visibility and the SQL query's power, combined with Python's automation and
+scale, come together in the DataFrame — clean it, transform it, analyse it, and visualize it,
+all in reproducible code. For serious Python data analysis, pandas is *the* tool, which is why
+this section builds toward it, and why the concepts from every prior section reappear here in
+DataFrame form.
+
+The caveat
+------------
+
+Pandas is powerful and correspondingly large, with a steep learning curve and many ways to do
+each thing — some efficient, some not. Two cautions matter early. First, pandas rewards the
+*vectorized* thinking from NumPy: iterating over a DataFrame's rows with a Python loop is slow
+and un-idiomatic, where a vectorized operation or built-in method does the same far faster —
+the "don't loop" lesson applies doubly to DataFrames. Second, pandas' size means there is
+usually a clean built-in method for what you want, so reaching for a convoluted manual
+approach often means missing the tool that does it in one call. Learn the idiomatic,
+vectorized pandas — the methods and masks — rather than writing loops against it. The next
+lessons cover its structures and operations. The whole course's analytical vocabulary is
+about to reappear, in Python.
+"""
+
+CONTENT["Pandas DataFrame & Series"] = r"""
+The two core structures
+------------------------
+
+Pandas is built on two structures: the **Series** (a single column) and the **DataFrame** (a
+table of columns). Understanding them — how they relate, and how to access their data — is the
+foundation of all pandas work. This lesson covers the DataFrame and Series in depth.
+
+The Series: a column
+---------------------
+
+A **Series** is a one-dimensional labelled array — essentially a single column of data with an
+index:
+
+.. code-block:: python
+
+   import pandas as pd
+   sales = pd.Series([1000, 800, 1200], index=["North", "South", "East"])
+   sales["North"]            # 1000 — access by label
+   sales.mean()              # 1000.0 — vectorized aggregate
+
+A Series is like a NumPy array (vectorized, homogeneous-ish) but with *labels* (an index) and
+pandas' richer methods. Each column of a DataFrame is a Series.
+
+The DataFrame: a table
+-----------------------
+
+A **DataFrame** is a two-dimensional labelled table — rows and named columns — the central
+pandas structure:
+
+.. code-block:: python
+
+   df = pd.DataFrame({
+       "region": ["North", "South", "East"],
+       "sales":  [1000, 800, 1200],
+       "customers": [50, 40, 60],
+   })
+
+   df["sales"]               # a column (a Series)
+   df[["region", "sales"]]   # multiple columns (a DataFrame)
+   df.head()                 # first rows
+   df.shape                  # (3, 3) — rows, columns
+   df.info()                 # summary of columns and types
+   df.describe()             # summary statistics of numeric columns
+
+A DataFrame is a collection of Series (columns) sharing an index (rows) — exactly the tabular,
+one-column-per-variable structure from the data-preparation section, now a Python object with
+methods.
+
+Accessing rows and columns
+----------------------------
+
+Pandas accesses data by label or position:
+
+.. code-block:: python
+
+   df["sales"]               # a column by name
+   df.loc[0]                 # a row by label (index)
+   df.iloc[0]                # a row by position
+   df.loc[0, "sales"]        # a specific cell by label
+   df.iloc[0, 1]             # a specific cell by position
+
+``loc`` accesses by *label*, ``iloc`` by *integer position* — the distinction to keep clear.
+Columns are accessed by name (``df["sales"]``), rows by ``loc``/``iloc``. These are how you
+reach any part of the table.
+
+Why these structures matter
+----------------------------
+
+The DataFrame and Series are the objects *all* pandas analysis operates on, and they directly
+embody the course's data concepts: the DataFrame is the tidy table, each column a Series (a
+variable), each row an observation. Every operation ahead — filtering, grouping, aggregating,
+joining — is a method on these structures, and the aggregates (``mean``, ``sum``) are
+vectorized over the Series. Understanding that a DataFrame is a labelled table of Series
+columns is the mental model that makes all of pandas coherent.
+
+The caveat
+------------
+
+The DataFrame's flexibility hides subtleties that cause classic pandas confusion. The
+``loc`` versus ``iloc`` distinction (label versus position) trips up beginners constantly —
+they look similar but differ, and using the wrong one selects the wrong data. Pandas also has a
+famous **SettingWithCopyWarning** arising from the difference between a *view* and a *copy* of
+data — modifying what you think is the DataFrame but is actually a temporary slice, so the
+change does not stick (or warns). And the index — pandas' row labels — behaves in ways that
+surprise those expecting simple row numbers. These are learned through use and by reading
+pandas' (generally helpful) warnings; the key early discipline is knowing ``loc`` from
+``iloc`` and being deliberate about whether you are viewing or copying. The next lesson covers
+filtering rows: boolean masking.
+"""
+
+CONTENT["Boolean Masking in Pandas"] = r"""
+Filtering rows by condition
+-----------------------------
+
+The most common data operation — selecting the rows that meet a condition — pandas does with
+**boolean masking**: a condition produces an array of True/False, and the DataFrame keeps the
+True rows. This is the pandas equivalent of SQL's ``WHERE`` and the spreadsheet filter, and it
+is fundamental. This lesson covers boolean masking.
+
+How masking works
+-----------------
+
+A comparison on a DataFrame column produces a **boolean Series** (a mask), which then selects
+rows:
+
+.. code-block:: python
+
+   import pandas as pd
+   df = pd.DataFrame({"region": ["N","S","E"], "sales": [1000, 800, 1200]})
+
+   df["sales"] > 900         # a boolean Series: [True, False, True]
+   df[df["sales"] > 900]     # keeps rows where the mask is True
+
+``df["sales"] > 900`` computes the condition for *every* row at once (vectorized, the NumPy
+boolean-indexing idea), producing True/False per row; ``df[ ... ]`` with that mask returns only
+the rows where it is True. This is filtering — "the rows where sales exceed 900" — in one
+readable expression.
+
+Combining conditions
+--------------------
+
+Multiple conditions combine with ``&`` (and), ``|`` (or), and ``~`` (not), each condition
+parenthesised:
+
+.. code-block:: python
+
+   df[(df["sales"] > 900) & (df["region"] == "N")]   # both conditions
+   df[(df["region"] == "N") | (df["region"] == "S")] # either
+   df[~(df["sales"] > 900)]                            # not
+
+The parentheses around each condition are *required* (pandas' operator precedence demands
+them), and ``&``/``|`` are used, not the words ``and``/``or`` — a pandas-specific rule.
+Compound masks express multi-condition filters, exactly the ``WHERE ... AND ...`` of SQL.
+
+Masking versus the earlier filters
+------------------------------------
+
+Boolean masking is precisely the *filtering* concept from every prior section, in pandas form.
+``df[df["sales"] > 900]`` is SQL's ``SELECT * FROM df WHERE sales > 900`` and the spreadsheet's
+filter-to-sales-over-900 — the identical operation, vectorized in Python. Recognising this
+makes masking intuitive: it is the familiar "show only the rows meeting this condition,"
+expressed as a boolean Series selecting from a DataFrame. It is also used for *modifying*
+subsets (``df.loc[df["sales"] > 900, "flag"] = True`` sets a value on matching rows).
+
+Why masking matters
+-------------------
+
+Boolean masking is one of the most-used pandas operations, because filtering to relevant rows
+is constant in analysis — isolating a segment, removing outliers, selecting valid data,
+finding records meeting criteria. It is vectorized (fast on large data) and expressive (complex
+conditions in one line), and it underlies much of data cleaning and analysis in pandas. Master
+masking and a large fraction of practical pandas filtering follows.
+
+The caveat
+------------
+
+Masking has pandas-specific traps that catch beginners predictably. The operators are ``&``,
+``|``, ``~`` — *not* ``and``, ``or``, ``not`` (using the words raises an error on Series); and
+each condition *must* be parenthesised (``df[df["a"]>1 & df["b"]<2]`` is wrong — precedence
+mis-groups it — while ``df[(df["a"]>1) & (df["b"]<2)]`` is right). Masks involving *missing
+values* (NaN) behave carefully — a comparison with NaN is False, so masking silently excludes
+missing-value rows (the null-handling theme, in pandas). And modifying a masked subset invites
+the view-versus-copy ``SettingWithCopyWarning``, so use ``df.loc[mask, col] = ...`` for
+assignment. Parenthesise conditions, use the symbol operators, and mind NaN and assignment. The
+next lesson covers grouping and aggregation.
+"""
+
+CONTENT["Grouping and Aggregation in Pandas (groupby, agg)"] = r"""
+Grouping and summarising
+--------------------------
+
+The analytical workhorse — grouping rows by a category and computing an aggregate per group —
+pandas does with **groupby** and aggregation. This is the direct equivalent of SQL's
+``GROUP BY`` and the spreadsheet's pivot table, and it is where pandas becomes a serious
+analytical tool. This lesson covers grouping and aggregation.
+
+The groupby operation
+---------------------
+
+``groupby`` splits a DataFrame into groups by a column, then an aggregate is computed for each
+group:
+
+.. code-block:: python
+
+   import pandas as pd
+   df = pd.DataFrame({
+       "region": ["N", "S", "N", "S", "E"],
+       "sales":  [100, 200, 150, 250, 300],
+   })
+
+   df.groupby("region")["sales"].sum()
+   # region
+   # E    300
+   # N    250
+   # S    450
+
+``df.groupby("region")["sales"].sum()`` groups rows by region, then sums sales within each
+group — producing the per-region total. This is exactly SQL's
+``SELECT region, SUM(sales) FROM df GROUP BY region`` and a pivot table of sales by region, in
+pandas.
+
+Aggregation functions and agg
+-------------------------------
+
+Any aggregate can be applied per group, and ``agg`` computes several at once:
+
+.. code-block:: python
+
+   df.groupby("region")["sales"].mean()     # average per region
+   df.groupby("region")["sales"].count()    # count per region
+
+   df.groupby("region")["sales"].agg(["sum", "mean", "count"])
+   # multiple aggregates per group, as a table
+
+   df.groupby("region").agg(
+       total_sales=("sales", "sum"),
+       avg_sales=("sales", "mean"),
+   )                                          # named aggregates
+
+The aggregate functions are the familiar ones (``sum``, ``mean``, ``count``, ``min``, ``max``,
+``std``); ``agg`` applies several, optionally with names — the pandas way to build a
+multi-metric summary per group, like a richer pivot table or a ``GROUP BY`` with several
+aggregates.
+
+Grouping versus the earlier tools
+-----------------------------------
+
+Groupby is the *grouped aggregation* from every prior section, in pandas. It is SQL's
+``GROUP BY`` with aggregate functions (Section 5), the spreadsheet's pivot table (Section 5),
+and the conditional-aggregation ideas — all expressed as ``df.groupby(col).agg(...)``. The
+"split-apply-combine" it performs (split into groups, apply an aggregate, combine into a
+result) is the same operation, and recognising it as the familiar pivot/GROUP BY makes it
+immediately meaningful. It is the analytical core of pandas, as GROUP BY was of SQL.
+
+The caveat
+------------
+
+Groupby is powerful and carries the aggregation subtleties seen throughout, plus pandas
+specifics. Aggregates handle *missing values* by skipping them (``mean`` ignores NaN, changing
+the denominator — the null-in-aggregate theme); grouping on a column with inconsistent values
+fragments groups (the "NY" versus "New York" problem, so *clean before grouping*, exactly as in
+SQL); and the *result* of a groupby has the grouping column as its index, which sometimes
+surprises (``reset_index()`` turns it back into a column). As always, the operation computes
+precisely what you specify — verify the groups are what you intend and the aggregates handle
+missing data as you want. This nearly completes the section; the final lesson covers combining
+DataFrames — the pandas equivalent of the JOIN.
+"""
+
+
+MINDMAP.update({
+    "Introduction to Pandas (Data Analysis Library)": [
+        "NumPy Arrays (ndarray) and Core Concepts",
+        "Pandas DataFrame & Series",
+        "Libraries, Packages, and Modules in Python",
+        "Introduction to NumPy and Vectorization",
+    ],
+    "Pandas DataFrame & Series": [
+        "Introduction to Pandas (Data Analysis Library)",
+        "Boolean Masking in Pandas",
+        "Grouping and Aggregation in Pandas (groupby, agg)",
+        "NumPy Arrays (ndarray) and Core Concepts",
+    ],
+    "Boolean Masking in Pandas": [
+        "Pandas DataFrame & Series",
+        "Sorting and Filtering Data in SQL Using ORDER BY and WHERE",
+        "Grouping and Aggregation in Pandas (groupby, agg)",
+        "Introduction to Pandas (Data Analysis Library)",
+    ],
+    "Grouping and Aggregation in Pandas (groupby, agg)": [
+        "Boolean Masking in Pandas",
+        "Using GROUP BY and ORDER BY for Aggregated Calculations in SQL",
+        "Combining Data in Pandas (concat and merge)",
+        "Pandas DataFrame & Series",
+    ],
+})
+
+
+# ======================================================================
+# Section 7 — Data Analysis with Python / libraries (close)  (python 033)  -- SECTION 7 COMPLETE
+# ======================================================================
+
+GLOSS.update({
+    "Combining Data in Pandas (concat and merge)":
+        "bringing DataFrames together — stacking with concat, joining on keys with merge",
+})
+
+CONTENT["Combining Data in Pandas (concat and merge)"] = r"""
+Bringing DataFrames together
+------------------------------
+
+Data rarely lives in one table, and the final pandas skill — and the last lesson of the
+Python section — is **combining DataFrames**: stacking them with ``concat`` and joining them
+on keys with ``merge``. These are the pandas equivalents of the SQL ``JOIN`` and ``UNION``,
+completing the analyst's ability to do in Python everything the earlier tools did. This lesson
+covers combining data in pandas.
+
+Stacking with concat
+---------------------
+
+``pd.concat`` stacks DataFrames together — vertically (more rows) or horizontally (more
+columns):
+
+.. code-block:: python
+
+   import pandas as pd
+   jan = pd.DataFrame({"region": ["N", "S"], "sales": [100, 200]})
+   feb = pd.DataFrame({"region": ["N", "S"], "sales": [150, 250]})
+
+   pd.concat([jan, feb])                 # stack vertically: 4 rows
+   pd.concat([jan, feb], ignore_index=True)   # renumber the index
+
+Vertical ``concat`` appends rows — combining data of the *same columns* from different sources
+(January and February sales, files from different periods), exactly SQL's ``UNION``. This is
+how you assemble one dataset from multiple like-structured pieces.
+
+Joining with merge
+------------------
+
+``pd.merge`` combines DataFrames by *matching keys* — the pandas ``JOIN``:
+
+.. code-block:: python
+
+   sales = pd.DataFrame({"region": ["N", "S", "E"], "sales": [100, 200, 300]})
+   info  = pd.DataFrame({"region": ["N", "S", "E"], "manager": ["Amy", "Bo", "Cy"]})
+
+   pd.merge(sales, info, on="region")    # join on the shared 'region' key
+
+   # join types mirror SQL exactly:
+   pd.merge(sales, info, on="region", how="inner")   # only matching keys (default)
+   pd.merge(sales, info, on="region", how="left")    # all left rows, matched where possible
+   pd.merge(sales, info, on="region", how="outer")   # all rows from both
+
+``merge`` matches rows on a key column (``on="region"``) and combines their columns — and its
+``how`` parameter (``inner``, ``left``, ``right``, ``outer``) is *exactly* the SQL join types
+from the analysis section. Everything learned about JOINs — matching keys, the join types, what
+each keeps — applies directly; ``pd.merge`` is the SQL JOIN in pandas.
+
+Combining versus the earlier tools
+------------------------------------
+
+These operations complete the mapping of the whole analytical workflow into pandas.
+``pd.concat`` (vertical) is ``UNION`` — stacking like-structured data; ``pd.merge`` is
+``JOIN`` — combining related tables on keys, with the same inner/left/right/outer semantics.
+The relational-combination concepts from Section 5 (the SQL section) carry over one-to-one, so
+an analyst who understands JOINs already understands ``merge`` — only the syntax differs. With
+combining in hand, pandas covers the entire span: import, clean, transform, filter, group,
+aggregate, and join — the whole workflow, in reproducible Python.
+
+The caveat
+------------
+
+Combining data concentrates the hazards flagged throughout the JOIN and integration lessons.
+``merge`` on a key with *duplicates* can multiply rows unexpectedly (a many-to-many match
+produces the cross-product, the row-explosion warned about with JOINs); a ``merge`` on keys
+that do not cleanly correspond (inconsistent formatting, "N" versus "North") silently *fails to
+match*, dropping rows in an inner join or producing NaN in an outer — the key-integrity
+discipline from the cleaning section, now in pandas. ``concat`` assumes the pieces share
+structure; stacking DataFrames with mismatched columns produces misaligned data or unexpected
+NaN. As always: know your keys, verify the row count after a merge is what you expect (a sharp
+change signals a join problem), and ensure concatenated pieces truly align. Combine
+deliberately, checking the result.
+
+This completes the Data Analysis with Python section — and with it, the analyst's core
+technical toolkit. Across this section you have moved from Python's fundamentals through its
+data structures to the libraries that make it a data powerhouse: NumPy's fast vectorized
+arrays, and pandas' DataFrames, on which you can clean, transform, filter, group, aggregate,
+and join data — everything the spreadsheet and SQL sections taught, now automated and
+reproducible in code. Python does not replace the earlier tools so much as unify and scale
+them: the concepts are the same, expressed in one programmable environment. With data skills
+from foundations through Python now in place, the final section turns from *doing* the work to
+*getting the role* — the job search: presenting your skills, finding opportunities, and
+succeeding in interviews as a data analyst.
+"""
+
+
+MINDMAP.update({
+    "Combining Data in Pandas (concat and merge)": [
+        "Grouping and Aggregation in Pandas (groupby, agg)",
+        "Using JOIN in SQL to Combine Tables",
+        "Pandas DataFrame & Series",
+        "Introduction to Pandas (Data Analysis Library)",
+    ],
+})
+
+
+# ======================================================================
+# Section 8 — Job Search / Stage: identity  (jobsearch 001-004)  -- SECTION 8 OPENS
+# Career Dreamer facts grounded via web_search (Grow with Google / Google Labs, US-only,
+# Lightcast + BLS labor data, produces Career Identity Statement, Explore Paths, Gemini handoff,
+# does NOT show live listings). Written in original prose.
+# ======================================================================
+
+GLOSS.update({
+    "Transferable Skills":
+        "abilities that carry across roles and industries — the foundation of a career pivot",
+    "Career Identity Statement":
+        "a concise statement of the unique value you bring to the workforce",
+    "Career Dreamer (AI Tool for Career Exploration)":
+        "an experimental Grow with Google AI tool that maps your experience to career paths",
+    "Job Search Plan (Using AI Tools)":
+        "a structured, deliberate plan for the job search, assisted by AI tools",
+})
+
+CONTENT["Transferable Skills"] = r"""
+Skills that travel
+--------------------
+
+Having built the technical toolkit of a data analyst, the final section turns to *getting
+the role* — and it begins with a reframing that makes the whole job search possible:
+**transferable skills**. These are abilities that carry across roles, industries, and career
+changes, and recognising them is what lets someone move into data analysis from wherever they
+started. Opening the job-search section, this lesson covers transferable skills and why they
+matter.
+
+What transferable skills are
+------------------------------
+
+**Transferable skills** are capabilities that are not tied to one specific job but apply
+across many — communication, problem-solving, analytical thinking, attention to detail,
+organisation, collaboration, and the like. They contrast with *role-specific* technical skills
+(a particular software, a specific procedure) that apply narrowly. The insight is that much of
+what makes someone effective is transferable: a teacher's communication and organisation, a
+retail worker's customer insight and problem-solving, a scientist's analytical rigour — these
+carry directly into a data-analysis role, even from an unrelated background.
+
+Why they matter for a career in data
+--------------------------------------
+
+Transferable skills are the bridge into data analysis for career-changers and new entrants —
+which describes many aspiring analysts. Data analysis rewards exactly the transferable
+abilities many people already have: analytical thinking (the whole course's deductive
+reasoning), attention to detail (the data-quality discipline), communication (the storytelling
+and presentation section), and problem-solving (the analysis process). A career pivot into data
+is rarely starting from zero; it is *repackaging* skills you already possess alongside the new
+technical ones, and recognising that continuity is what makes the move feel possible rather
+than impossible.
+
+Identifying your transferable skills
+--------------------------------------
+
+The practical task is to *recognise* the transferable skills in your own background — which is
+harder than it sounds, because people systematically undervalue skills that come naturally to
+them. Reflecting on past roles (work, education, volunteering, side projects) and asking what
+capabilities they built — how you solved problems, communicated, organised, analysed, worked
+with others — surfaces the transferable skills you can carry forward. Framing these
+effectively, in the language of the target role, is the next step (the career identity and
+resume lessons), but it begins with *seeing* that your experience is full of relevant skills.
+
+Why this reframing matters
+----------------------------
+
+This reframing is the psychological and practical foundation of a career change. It turns "I
+have no experience in data" into "I have analytical, communication, and problem-solving skills
+from my background, plus the technical data skills I am now building" — a far stronger and truer
+position. Employers increasingly value demonstrated transferable skills alongside formal
+credentials, precisely because capabilities like analytical thinking and communication
+transfer across contexts and are hard to teach. Recognising and articulating your transferable
+skills is thus both a confidence-builder and a genuine job-search advantage.
+
+The caveat
+------------
+
+Transferable skills are powerful but must be claimed *honestly and specifically*. Vaguely
+asserting "strong communication skills" or "great problem-solver" without evidence is empty —
+the claim carries weight only when backed by concrete examples of *using* the skill (the
+behavioural-interview and resume lessons develop this). And transferable skills complement
+rather than replace the *specific technical skills* a data role requires: the analytical
+thinking transfers, but you still need the actual data competencies this course teaches. The
+honest position is transferable skills *plus* demonstrated technical ability, each supported by
+evidence — not transferable skills asserted vaguely as a substitute for either specifics or
+substance. The next lesson turns your skills into a concise statement of professional identity.
+"""
+
+CONTENT["Career Identity Statement"] = r"""
+Your professional identity, in a sentence
+-------------------------------------------
+
+Once you recognise your transferable and technical skills, you need to *articulate* them — and
+a **Career Identity Statement** does exactly that: a concise statement of the unique value you
+bring to the workforce, shaped by your strengths, experience, and interests. It is a reusable
+piece of professional self-definition, and this lesson covers what it is and how to craft one.
+
+What a Career Identity Statement is
+-------------------------------------
+
+A **Career Identity Statement** is a short, focused statement of your professional identity —
+who you are as a professional, what value you offer, and what you are aiming toward. Your
+*career identity* is the unique value you bring, informed by your life and work experience and
+shaped by your strengths, motivations, and interests. The statement captures that in a form you
+can reuse: on a resume summary, a professional profile such as LinkedIn, or as talking points
+in an interview. It answers, compactly, "what do I bring, and where am I headed?"
+
+Crafting the statement
+-----------------------
+
+An effective Career Identity Statement weaves together several elements:
+
+- **Who you help and what outcome you deliver** — the value you provide, framed around the
+  problems you solve for an employer or audience.
+- **Your key strengths** — the transferable and technical skills that define your
+  contribution (the previous lesson's skills, articulated).
+- **Your relevant experience** — the background that evidences those strengths, including a
+  non-traditional path framed as a source of distinctive skills.
+- **Your direction** — what you are now focused on or moving toward (a data-analysis role).
+
+A common shape reads roughly: "I help [who] achieve [outcome] using [strengths], drawing on
+experience across [evidence], and I am now focused on [direction]." The statement is concise —
+a few sentences — and centred on *value*, not a mere list of duties.
+
+The Career Identity Statement in the job search
+-------------------------------------------------
+
+The statement is reusable *infrastructure* for the whole search. It becomes the summary at the
+top of a resume, the "about" section of a professional profile, an opener that answers "tell me
+about yourself" in an interview, and the through-line that keeps your application materials
+consistent. Crafting it once, well, gives you a coherent professional narrative to deploy
+everywhere — which is why defining career identity is treated as a foundational step before
+resumes, profiles, and interviews, each of which draws on it.
+
+Why it matters
+---------------
+
+A clear Career Identity Statement gives a job search *focus and coherence*. Without one,
+applications can read as scattered — a list of unconnected experiences with no clear
+professional identity; with one, every piece of the search tells a consistent story about who
+you are and the value you offer. It is especially valuable for career-changers, for whom a
+non-linear path most needs a cohesive narrative to make sense to employers. The statement turns
+a varied background into a deliberate professional identity, which is what employers respond to.
+
+The caveat
+------------
+
+A Career Identity Statement must be *authentic and substantiated*, not aspirational fiction.
+Claiming an identity or value you cannot back with real strengths and experience produces a
+statement that collapses under the first probing interview question — the honesty principle
+from the presentation section, applied to self-presentation. The statement should reflect who
+you genuinely are and what you can genuinely do, framed at its best but not falsified.
+Aspirational framing of real strengths is legitimate; inventing an identity is not, and it is
+also self-defeating, because the gap shows. Craft a statement that is your true professional
+identity stated compellingly — and note that AI tools can help draft one, the subject of the
+next lesson. The next lesson covers an AI tool built to help with exactly this.
+"""
+
+CONTENT["Career Dreamer (AI Tool for Career Exploration)"] = r"""
+An AI tool for career exploration
+------------------------------------
+
+Defining your skills, identity, and direction is hard to do alone — and AI tools now exist to
+help. **Career Dreamer** is one such tool: an experimental, AI-powered career-exploration tool
+from Grow with Google that connects your experience, skills, and interests to possible career
+paths. This lesson covers what Career Dreamer is and how it fits a data-analyst job search,
+grounding the section's AI-assisted approach in a concrete example.
+
+What Career Dreamer is
+-----------------------
+
+Career Dreamer is an early-stage experiment from Grow with Google (Google's skills initiative)
+that uses AI to make career exploration easier and more personalised. You provide information
+about your background — current and previous roles, skills, education, and interests — and the
+tool uses AI, grounded in labour-market data (drawn from sources such as Lightcast and the U.S.
+Bureau of Labor Statistics), to find patterns and connect your experience to potential careers.
+It is designed especially for people whose paths are non-linear — recent graduates, career
+changers, adult learners, and members of the military community — for whom framing varied
+experience into a coherent direction is hardest. At the time of writing it is available as a
+US-only experiment.
+
+What it helps you do
+---------------------
+
+Career Dreamer supports several of the tasks this section covers:
+
+- **Craft a Career Identity Statement** — from the roles, tasks, and skills you enter, the tool
+  (working with Google's Gemini assistant) drafts a Career Identity Statement capturing the
+  value you bring, which you can reuse on a resume, profile, or in interviews (the previous
+  lesson).
+- **Explore career paths** — an "Explore Paths" view surfaces a range of careers that align
+  with your background as a visual web of possibilities, which you can delve into to learn what
+  each entails.
+- **Take next steps with Gemini** — you can collaborate with Gemini to draft a cover letter,
+  refine a resume, or spark further ideas — the handoff from exploration to concrete materials.
+
+The emphasis is on *surfacing transferable skills you might undervalue* and helping you
+articulate them — exactly the reframing the section opened with.
+
+Fitting it into a data-analyst search
+----------------------------------------
+
+For someone moving into data analysis, a tool like Career Dreamer can help translate a prior
+background into the language of the target role, surface the transferable skills that connect
+past experience to data work, and produce a first-draft career identity to refine. Used
+iteratively — first to explore broadly, then to narrow toward data roles, then to shape the
+narrative — it can save hours of unfocused searching and self-doubt, giving a structured
+starting point for the more concrete work (resumes, applications, interviews) that follows.
+
+The caveat
+------------
+
+Career Dreamer, like any AI tool, is an *assistant, not an oracle* — a point its own creators
+stress by calling it an experiment and its outputs a starting point rather than a prescription.
+Its suggestions are drafts to validate, not truths to accept: the careers it surfaces should be
+checked against real job postings and your own judgement, and the identity statement it drafts
+needs your editing to be authentic and accurate. Notably, it helps you *explore and articulate*
+but does not show live job listings — you still search real openings on job platforms yourself.
+And as with any AI tool, avoid entering sensitive or proprietary information. Treat Career
+Dreamer as a way to reflect, explore, and draft — accelerating the human work of the job search,
+not replacing your own discernment. The AI-tool theme continues through the section, applied to
+resumes and interview preparation. The next lesson builds a structured plan for the search
+itself.
+"""
+
+CONTENT["Job Search Plan (Using AI Tools)"] = r"""
+Searching with a plan
+-----------------------
+
+A job search pursued reactively — applying to whatever appears, with no structure — is
+exhausting and ineffective. A **job search plan** brings the same deliberateness to finding a
+role that the course brought to analysis: clear goals, a structured process, and (increasingly)
+AI tools to assist. Closing the identity stage, this lesson covers planning a job search and
+using AI tools within it.
+
+Why plan a job search
+----------------------
+
+A job search is a *project*, and like any project it benefits from a plan. Without one, the
+search drifts — scattershot applications, no sense of progress, effort spent inefficiently, and
+the discouragement that comes from randomness. A plan gives the search structure: what roles you
+are targeting, where you will look, how you will track progress, and what steps move you toward
+the goal. This turns an overwhelming, open-ended undertaking into a manageable process with
+direction — the big-picture-first discipline from the foundations, applied to the job hunt.
+
+Elements of a job search plan
+-------------------------------
+
+A useful plan addresses several dimensions:
+
+- **Target roles and criteria** — what kind of role you are seeking (data analyst, and what
+  variations), and your criteria (industry, location, level), grounded in your career identity.
+- **Where to search** — the platforms and channels you will use (the job-platforms and
+  networking lessons ahead), rather than relying on one source.
+- **Materials** — the resume, profile, and career identity statement you will tailor and deploy
+  (the application-stage lessons).
+- **Tracking** — a system for recording applications, their status, and follow-ups (a dedicated
+  lesson), so nothing is lost and progress is visible.
+- **A routine** — a sustainable rhythm of searching, applying, and following up, so the search
+  is consistent rather than sporadic.
+
+Together these make the search organised, trackable, and sustainable.
+
+Using AI tools in the search
+------------------------------
+
+AI tools can assist at many points in the plan, and using them well is increasingly part of an
+effective search:
+
+- **Exploration and identity** — tools like Career Dreamer (the previous lesson) to explore
+  directions and draft a career identity.
+- **Materials** — AI assistants (such as Gemini) to help draft and tailor resumes, cover
+  letters, and profiles (the resume lessons ahead).
+- **Preparation** — AI tools to help prepare for interviews (the interview-stage lessons).
+- **Organisation** — AI alongside spreadsheets to help track and manage applications (the
+  tracking lesson).
+
+Used well, AI accelerates the laborious parts of the search — drafting, tailoring, organising —
+freeing your effort for the parts that need human judgement (targeting, relationship-building,
+genuine self-presentation).
+
+Why this matters
+----------------
+
+A structured, AI-assisted job search is more effective and less demoralising than a reactive
+one. Structure provides direction and a sense of progress; AI tools handle drudgery and provide
+starting points; together they make the search efficient and sustainable over the weeks or
+months it may take. Approaching the job hunt as a planned project — as this course approached
+analysis — is what turns it from an anxious scramble into a manageable, navigable process.
+
+The caveat
+------------
+
+A plan and its tools serve the search; they are not the search itself, and two cautions apply.
+A plan can become *procrastination* — endlessly refining the plan or tinkering with tools
+instead of actually applying and reaching out; at some point the plan must translate into the
+real, sometimes uncomfortable actions (applying, networking, interviewing) that produce
+results. And AI tools *assist* but do not *replace* the human core of a job search: the genuine
+self-presentation, the real relationships, and the actual interviews are yours to do, and
+over-relying on AI to generate generic materials produces exactly the impersonal applications
+that fail. Plan enough to give the search direction, use AI to accelerate the drudgery, and then
+do the real human work the plan is meant to enable. This completes the identity stage; the next
+stage turns to applying — resumes, profiles, platforms, and networking.
+"""
+
+
+MINDMAP.update({
+    "Transferable Skills": [
+        "Career Identity Statement",
+        "Career Dreamer (AI Tool for Career Exploration)",
+        "Tailoring Your Resume",
+        "Job Search Plan (Using AI Tools)",
+    ],
+    "Career Identity Statement": [
+        "Transferable Skills",
+        "Career Dreamer (AI Tool for Career Exploration)",
+        "Building a Professional Online Presence (Personal Brand)",
+        "Tailoring Your Resume",
+    ],
+    "Career Dreamer (AI Tool for Career Exploration)": [
+        "Career Identity Statement",
+        "Transferable Skills",
+        "Job Search Plan (Using AI Tools)",
+        "Using AI to Improve and Tailor Your Resume",
+    ],
+    "Job Search Plan (Using AI Tools)": [
+        "Career Dreamer (AI Tool for Career Exploration)",
+        "Choosing the Right Job Platforms",
+        "Networking for Job Search",
+        "Career Identity Statement",
+    ],
+})
+
+
+# ======================================================================
+# Section 8 — Job Search / Stage: apply  (jobsearch 005-008)
+# ======================================================================
+
+GLOSS.update({
+    "Tailoring Your Resume":
+        "adapting a resume to each specific role rather than sending one generic version",
+    "Using AI to Improve and Tailor Your Resume":
+        "using AI assistants to draft, refine, and tailor a resume — with human judgement",
+    "Building a Professional Online Presence (Personal Brand)":
+        "shaping how you appear online — profile, presence, and personal brand",
+    "Choosing the Right Job Platforms":
+        "selecting the job platforms and channels that fit your target roles",
+})
+
+CONTENT["Tailoring Your Resume"] = r"""
+One resume per role
+--------------------
+
+The single most impactful resume habit is also the most neglected: **tailoring** it to each
+role, rather than sending one generic version everywhere. Opening the application stage, this
+lesson covers why tailoring matters and how to do it — the practice that turns a resume from a
+static document into a targeted argument for a specific job.
+
+Why tailoring matters
+----------------------
+
+A generic resume makes a generic impression, and a tailored one makes a targeted case. Two
+forces make tailoring essential. First, a hiring manager scanning a resume is asking "does this
+person fit *this* role?" — and a resume aimed at the specific role answers that far more
+convincingly than a one-size-fits-all document. Second, many applications pass through
+*applicant tracking systems* that screen for relevance to the posting, so a resume echoing the
+role's actual language is more likely to reach a human at all. Tailoring addresses both: it
+speaks to the specific role for both the machine and the person.
+
+How to tailor a resume
+-----------------------
+
+Tailoring is systematic, not guesswork:
+
+- **Read the job posting closely** — identify the skills, tools, and qualifications it
+  emphasises, and the language it uses. The posting is a specification of what they want.
+- **Match your relevant experience to it** — foreground the experiences, skills, and
+  accomplishments that align with the posting, and de-emphasise the irrelevant. The same
+  background can be presented to highlight different aspects for different roles.
+- **Mirror the key language** — use the posting's terms for skills and tools where they
+  genuinely apply (if it says "data visualization," and you do that, use that phrase), which
+  helps both tracking systems and human readers see the match.
+- **Lead with your strongest fit** — your career identity statement (from the previous stage),
+  tuned toward this role, and the most relevant qualifications, prominent.
+
+The result is a resume that reads as *written for this role* — because it was.
+
+Tailoring and your career identity
+------------------------------------
+
+Tailoring builds on the career identity work. Your Career Identity Statement provides the core
+narrative; tailoring *tunes* that narrative toward each specific role — same underlying identity
+and truthful history, emphasised differently to fit each opportunity. This is not creating a new
+person for each application but presenting your genuine self in the light most relevant to each
+role, which is exactly what effective tailoring is.
+
+Why this matters
+-----------------
+
+Tailoring dramatically improves a resume's effectiveness for modest effort. A generic resume
+competes poorly because it makes the reader work to see the fit; a tailored one makes the fit
+obvious, clearing both the automated screen and the human scan. Given that a strong application
+can hinge on this, tailoring is among the highest-return job-search habits — and the next lesson
+shows how AI tools can make it faster.
+
+The caveat
+------------
+
+Tailoring must stay *honest*, and it has a labour cost to manage. The line is firm:
+emphasising and framing your genuine experience to fit a role is legitimate tailoring;
+*fabricating* skills or experience you do not have to match a posting is lying, which fails at
+the interview and is disqualifying if discovered — the honesty principle, at the application
+stage. Tailor by *reframing truth*, never by inventing it. And tailoring every application by
+hand is time-consuming, which tempts people back to generic resumes; the resolution is partly
+efficiency (AI assistance, the next lesson) and partly focus (tailor thoroughly for the roles
+you most want, rather than mass-applying generically). Honest tailoring, done efficiently for
+the roles that matter — that is the balance. The next lesson covers using AI to tailor.
+"""
+
+CONTENT["Using AI to Improve and Tailor Your Resume"] = r"""
+AI as a resume assistant
+--------------------------
+
+Tailoring a resume well takes effort, and AI tools can make it faster and often better —
+drafting, refining, and adapting resume content, with your judgement steering. This lesson
+covers using AI to improve and tailor a resume, applying the section's AI-assisted approach to
+the central application document, while keeping the human firmly in control.
+
+How AI can help with a resume
+-------------------------------
+
+AI assistants (such as Google's Gemini, among others) can support resume work at several points:
+
+- **Drafting and phrasing** — turning a plain description of what you did into clear,
+  accomplishment-focused resume language, and suggesting stronger action verbs and phrasing.
+- **Tailoring to a posting** — given a job posting and your resume, an AI can suggest how to
+  align the resume with the role's emphasised skills and language (the tailoring from the
+  previous lesson, accelerated).
+- **Highlighting accomplishments** — helping reframe responsibilities as quantified
+  achievements ("increased X by Y") rather than mere duties, which resumes reward.
+- **Catching errors** — spotting typos, awkward phrasing, and inconsistencies a tired writer
+  misses.
+
+Used this way, AI is a fast, tireless drafting-and-editing partner that raises the quality and
+speed of resume work.
+
+Keeping the human in control
+------------------------------
+
+The crucial principle is that AI *assists* the resume; it does not *author* your career. The
+resume must remain *truthful* — describing your real experience and skills, not fabrications an
+AI might generate to fit a posting — and it must remain *authentically yours*, in your voice and
+reflecting your genuine background, not a generic AI-produced document indistinguishable from
+everyone else's. You direct the AI, supply the true content, and judge and edit its output; it
+speeds and sharpens the work, but the resume is yours and must be accurate. AI is the assistant;
+you are the author and the source of truth.
+
+Why this matters
+-----------------
+
+Used well, AI removes much of the friction that makes tailoring tedious — the drafting,
+rephrasing, and adapting that discouraged people from tailoring at all — making thorough,
+per-role tailoring practical. This directly improves applications: more roles get a genuinely
+tailored resume, phrased well, in less time. For the specific, repetitive work of adapting
+resume language to postings, AI is a genuine efficiency gain, which is why using it competently
+is increasingly part of an effective search.
+
+The caveat
+------------
+
+The dangers here are acute and worth stating plainly. AI will readily generate *plausible
+falsehoods* — skills, achievements, or experience you do not have — if prompted to match a
+posting, and including these is lying on your resume, exposed at interview and disqualifying if
+found; the human must ensure every claim is *true*. AI also produces *generic, homogenised*
+output if used lazily — resumes that read like every other AI-written resume, losing the
+specific, authentic detail that makes a candidate distinct; the human must keep the resume in
+their own voice with their real specifics. And pasting sensitive personal information into AI
+tools carries privacy considerations. The discipline: use AI to *phrase and adapt your true
+experience efficiently*, review every word for accuracy and authenticity, and never let it
+invent or homogenise. AI sharpens an honest resume; it must not manufacture a false or faceless
+one. The next lesson turns from the resume to your broader online presence.
+"""
+
+CONTENT["Building a Professional Online Presence (Personal Brand)"] = r"""
+How you appear online
+----------------------
+
+A resume is no longer the only thing employers see — they look you up, and your **online
+presence** shapes their impression before or after any interview. Deliberately building a
+professional online presence, a **personal brand**, is now part of a serious job search. This
+lesson covers shaping how you appear online as a professional.
+
+What a professional online presence is
+----------------------------------------
+
+Your **online presence** is the picture of you that emerges from what is publicly visible —
+professional profiles (such as LinkedIn), any portfolio or work you have shared, contributions
+and posts, and search results for your name. Your **personal brand** is the deliberate shaping
+of that picture: the consistent professional identity you present, reflecting your skills,
+interests, and the value you offer. It is the online extension of your career identity — the
+same professional self, expressed across your public profiles and presence.
+
+Building it deliberately
+-------------------------
+
+A strong professional presence is built, not left to chance:
+
+- **A complete, professional profile** — a well-crafted profile on the platform that matters
+  for your field (LinkedIn for most professional roles), with your career identity, experience,
+  and skills clearly presented.
+- **Demonstrated work** — where relevant, a portfolio or shared examples of your work (for a
+  data analyst, sample analyses, visualizations, or projects) that *show* rather than merely
+  claim your skills.
+- **Consistency** — a coherent professional identity across your profiles, aligned with your
+  resume and career identity, so the picture is unified rather than contradictory.
+- **Appropriate activity** — thoughtful engagement in your field (sharing, commenting,
+  connecting) that signals genuine interest and involvement.
+
+Together these present you, to anyone who looks, as a credible professional in your target
+field.
+
+Managing what is already there
+--------------------------------
+
+Building a presence also means *auditing* what already exists. Since employers may search your
+name, it is worth reviewing what is publicly visible and ensuring nothing there undermines your
+professional image — adjusting privacy on personal content, and removing or addressing anything
+that conflicts with the professional identity you want to present. The goal is that what an
+employer finds *supports* your candidacy, or at least does not detract from it.
+
+Why this matters
+-----------------
+
+A professional online presence increasingly *complements the resume* — it is where employers
+verify and expand their impression, where a portfolio can *demonstrate* the skills a resume
+claims, and where being findable and credible can create opportunities (recruiters search for
+candidates). For a data analyst especially, a portfolio of real work is powerful evidence that a
+resume alone cannot provide. Neglecting online presence forgoes this, and can let an unmanaged
+or inconsistent picture work against you; building it deliberately turns it into an asset.
+
+The caveat
+------------
+
+A personal brand must be *authentic and proportionate*. Manufacturing a polished but false
+professional persona — claimed expertise you lack, a portfolio misrepresenting your role in work
+— is the same dishonesty as a fabricated resume, and equally exposed on contact; the presence
+should reflect your genuine skills and identity. And building a presence can become *performative
+over-investment* — endless profile-polishing and content-posting that substitutes for the actual
+work of applying, networking, and building real skills. The presence supports a job search
+grounded in genuine ability; it is not a substitute for that ability, nor should its cultivation
+crowd out the substantive work. An authentic, credible presence that accurately showcases real
+skills — that is the aim. The next lesson covers where to actually search for roles: job
+platforms.
+"""
+
+CONTENT["Choosing the Right Job Platforms"] = r"""
+Where to look
+--------------
+
+Job openings are scattered across many platforms and channels, and *where* you search shapes
+what you find. **Choosing the right job platforms** — the sites and channels that fit your
+target roles — makes a search more efficient and effective. This lesson covers selecting job
+platforms wisely, closing much of the application stage's groundwork.
+
+The landscape of job platforms
+--------------------------------
+
+Roles are advertised across several kinds of channel, each with strengths:
+
+- **General job boards** — large, broad platforms listing roles across industries, useful for
+  breadth and volume.
+- **Professional networking platforms** — sites (such as LinkedIn) that combine job listings
+  with professional networking and profiles, where being present and connected matters.
+- **Company career pages** — employers' own sites, where roles are posted first or exclusively;
+  applying directly to a target company often goes here.
+- **Niche and specialised boards** — platforms focused on a field, industry, or role type,
+  which can surface relevant roles a general board buries.
+- **Networking and referrals** — not a platform but a channel (the next lesson), often the most
+  effective route of all.
+
+No single channel covers everything, so the question is which mix fits *your* search.
+
+Choosing wisely for your search
+---------------------------------
+
+The right platforms depend on your target roles and situation:
+
+- **Match the platform to the role** — for professional data-analyst roles, a professional
+  networking platform and relevant boards typically fit better than the broadest general boards
+  alone.
+- **Go where your target employers post** — if specific companies interest you, their career
+  pages are essential.
+- **Use a focused set, well** — a few well-chosen platforms used thoroughly (with a good
+  profile, saved searches, and alerts) beats a shallow presence spread across many.
+- **Do not neglect networking** — the referral channel (next lesson) often outperforms any job
+  board, so it belongs in the mix.
+
+Choosing deliberately concentrates effort where the relevant roles actually are.
+
+Why this matters
+-----------------
+
+Searching the *right* platforms makes the whole search more efficient — you see more relevant
+roles and waste less effort on channels that do not surface them. Different platforms genuinely
+carry different opportunities (some roles appear only on company pages, some only through
+networks), so the choice of where to look directly determines what you can find and apply to.
+Matching platforms to your target roles is thus a simple but consequential decision.
+
+The caveat
+------------
+
+Two opposite mistakes await. *Spreading too thin* — maintaining a shallow presence on many
+platforms, checking none properly — dilutes effort and misses roles; a focused set used well is
+better. But *over-narrowing* — relying on a single platform — misses the roles that appear only
+elsewhere, especially those found through company pages and networking rather than job boards.
+And a deeper caution: job platforms show only the *advertised* market, while many roles are
+filled through networks and referrals before or without public posting, so a platform-only
+search misses a large hidden portion of opportunities. The balance is a focused set of
+well-matched platforms *plus* active networking — which the next lesson addresses directly. This
+advances the application stage; the next lesson covers the powerful channel of networking.
+"""
+
+
+MINDMAP.update({
+    "Tailoring Your Resume": [
+        "Using AI to Improve and Tailor Your Resume",
+        "Career Identity Statement",
+        "Building a Professional Online Presence (Personal Brand)",
+        "Transferable Skills",
+    ],
+    "Using AI to Improve and Tailor Your Resume": [
+        "Tailoring Your Resume",
+        "Career Dreamer (AI Tool for Career Exploration)",
+        "Building a Professional Online Presence (Personal Brand)",
+        "Career Identity Statement",
+    ],
+    "Building a Professional Online Presence (Personal Brand)": [
+        "Tailoring Your Resume",
+        "Choosing the Right Job Platforms",
+        "Networking for Job Search",
+        "Career Identity Statement",
+    ],
+    "Choosing the Right Job Platforms": [
+        "Networking for Job Search",
+        "Building a Professional Online Presence (Personal Brand)",
+        "Job Application Tracking (Using AI + Spreadsheets)",
+        "Job Search Plan (Using AI Tools)",
+    ],
+})
+
+
+# ======================================================================
+# Section 8 — Job Search / apply (close) + interview (open)  (jobsearch 009-011)
+# ======================================================================
+
+GLOSS.update({
+    "Job Application Tracking (Using AI + Spreadsheets)":
+        "systematically recording applications and their status, with AI and spreadsheets",
+    "Networking for Job Search":
+        "building and using professional relationships to find and reach opportunities",
+    "Interview Preparation":
+        "readying for interviews — research, practice, and knowing your material",
+})
+
+CONTENT["Job Application Tracking (Using AI + Spreadsheets)"] = r"""
+Keeping track of the search
+-----------------------------
+
+A real job search means many applications over weeks or months, and without a system they
+become impossible to manage — deadlines missed, follow-ups forgotten, duplicates sent.
+**Application tracking** — systematically recording applications and their status, using
+spreadsheets and AI — keeps the search organised. This lesson covers tracking, a practical
+discipline that brings order to the search.
+
+Why track applications
+-----------------------
+
+The volume of a serious search overwhelms memory. Applying to dozens of roles, each with its
+own status, contacts, deadlines, and follow-ups, is far more than anyone can track in their
+head — and the cost of not tracking is real: missed follow-up windows, forgotten deadlines,
+embarrassing duplicate applications, and no sense of what is working. A tracking system solves
+this, giving a clear picture of every application's state and what needs attention — the same
+"make the invisible visible" logic that dashboards brought to data, applied to the job search.
+
+Tracking with a spreadsheet
+----------------------------
+
+The natural tool is a **spreadsheet** — fittingly, given the course — with one row per
+application and columns for the key information:
+
+- **Company and role** — what and where you applied.
+- **Date applied** and **status** — when, and where it stands (applied, interviewing,
+  rejected, offer).
+- **Contacts** — recruiter or connection names, for follow-up.
+- **Deadlines and follow-up dates** — what needs action and when.
+- **Notes** — anything relevant (referral source, interview details, impressions).
+
+This is a direct application of the spreadsheet skills from earlier sections — a simple table
+that turns a chaotic search into an organised, filterable, sortable record. You can filter to
+"awaiting response," sort by follow-up date, and see the whole search at a glance.
+
+Adding AI assistance
+---------------------
+
+AI tools can complement the spreadsheet: helping set up and structure the tracker, drafting
+follow-up messages, summarising a role or your notes, and prompting next actions. The spreadsheet
+holds the structured record; AI can assist with the surrounding work (drafting, summarising,
+organising), combining a reliable data structure with AI's help on the language and prompts — the
+section's "AI plus your own tools and judgement" pattern, applied to staying organised.
+
+Why this matters
+-----------------
+
+Tracking is unglamorous but decisive for a sustained search. It ensures nothing is dropped
+(every follow-up happens, every deadline is met), prevents errors (no duplicate applications),
+and provides visibility (what is in progress, what is working) that both improves the search and
+sustains morale through a long process. It also embodies the professionalism the whole course
+teaches — the same organisation and attention to detail that defines good analytical work,
+turned on the search itself.
+
+The caveat
+------------
+
+Tracking serves the search and can be *over-built* — an elaborate system with dozens of fields
+and automations that consumes more time to maintain than it saves, or becomes a way to feel
+productive without actually applying. The tracker should be as simple as it can be while doing
+its job: capture what you genuinely need to stay organised, and no more. And tracking is a
+*support* for the search, not the search itself — time spent perfecting the tracker is not time
+spent applying, networking, or preparing, which are what actually produce results. A simple,
+maintained tracker that keeps the real work on course — that is the aim, not a monument to
+organisation. The next lesson covers the channel that often matters most: networking.
+"""
+
+CONTENT["Networking for Job Search"] = r"""
+The most powerful channel
+---------------------------
+
+Many roles are filled through *people* — relationships, referrals, and connections — rather
+than through applications to public postings. **Networking**, building and using professional
+relationships, is often the single most effective job-search channel, and this lesson covers it:
+what it is, how to do it, and why it matters so much. It closes the application stage on its most
+important note.
+
+Why networking matters so much
+--------------------------------
+
+A large share of roles are filled through networks — referrals, introductions, and connections
+— often before or without any public posting, in what is sometimes called the *hidden job
+market*. A referral from someone inside a company carries weight a cold application cannot, and
+being known to the right people can surface opportunities that never reach a job board. This is
+why networking so often outperforms applying to postings: it reaches the roles and the influence
+that the public application channel misses. For a job seeker, relationships are frequently the
+highest-return investment of effort.
+
+What networking actually is
+-----------------------------
+
+Networking is widely misunderstood as something transactional or distasteful; it is better
+understood as *building genuine professional relationships*:
+
+- **Connecting with people in your field** — professionals, peers, people at target companies —
+  through professional platforms, events, communities, and mutual contacts.
+- **Building real relationships** — genuine, mutual professional connections, not extracting
+  favours from strangers. The relationship comes first.
+- **Informational conversations** — learning from people about their work, their company, and
+  the field, which builds relationships and knowledge (and sometimes surfaces opportunities).
+- **Staying connected and offering value** — maintaining relationships over time and helping
+  others, so the network is mutual rather than one-directional.
+
+Done this way, networking is professional relationship-building, not the awkward
+self-promotion people dread.
+
+Networking in practice
+-----------------------
+
+Practically, networking for a job search means: cultivating a professional presence and
+connections (building on the online-presence lesson), reaching out thoughtfully to people in
+your field or target companies, having genuine conversations that build relationships and
+understanding, and letting people know — appropriately — that you are exploring opportunities, so
+they can think of you. It also means *helping others*, which both is right and makes a network
+reciprocal. The referrals and opportunities that networking produces flow from genuine
+relationships, so the relationship-building is the substance.
+
+Why this matters
+-----------------
+
+Networking reaches the large portion of opportunities that public applications miss, carries the
+weight of personal referral that applications lack, and builds relationships that benefit a whole
+career, not just one search. For all the effort spent on resumes and applications, relationships
+often matter more to landing a role — which is why networking, despite being less comfortable for
+many than submitting applications, deserves real investment in a serious search.
+
+The caveat
+------------
+
+Networking must be *genuine and reciprocal*, not transactional or exploitative. Approaching
+people purely to extract favours, contacting strangers only when you need something, or treating
+relationships as mere means is both off-putting and ineffective — people sense it, and it fails.
+Real networking is built on genuine professional relationships and mutual value, cultivated over
+time, not switched on only when job-hunting; it also means *giving*, not only taking. And
+networking complements rather than replaces a sound application effort and genuine skills — a
+referral opens a door, but you must still be able to do the job. Authentic relationship-building
+that reaches opportunities and carries referrals, grounded in real ability — that is networking
+done right. This completes the application stage; the next stage turns to the interview.
+"""
+
+CONTENT["Interview Preparation"] = r"""
+Readying for the interview
+----------------------------
+
+An interview is where applications become offers, and *preparation* is what most separates a
+strong interview from a weak one — far more than raw talent or charisma. **Interview
+preparation** — researching, practising, and knowing your material — is the subject that opens
+the final stage. This lesson covers how to prepare for an interview so you can perform with
+genuine confidence.
+
+Why preparation is decisive
+-----------------------------
+
+Interview success comes far more from preparation than from natural ability. The candidate who
+has researched the company, anticipated the questions, prepared examples, and practised their
+delivery consistently outperforms the more talented but unprepared one — because preparation
+produces the concrete, relevant, confident answers interviews reward, and the genuine confidence
+that comes from being ready. This is the same insight as the presentation section: confidence
+and quality come from preparation, not from personality, and nowhere is it truer than in the
+interview.
+
+What to prepare
+---------------
+
+Thorough interview preparation covers several fronts:
+
+- **Research the company and role** — understand what the organisation does, its context, and
+  what the role involves, so you can speak to *why this role* and tailor your answers to their
+  needs. This also signals genuine interest.
+- **Anticipate the questions** — prepare for the common ones ("tell me about yourself," "why
+  this role," "your strengths and weaknesses") and the role-specific technical ones a data
+  analyst will face (about your skills, tools, and approach).
+- **Prepare your examples** — ready concrete stories of your experience and accomplishments,
+  structured to answer behavioural questions (the STAR method, next lesson) — the evidence that
+  makes your claims credible.
+- **Know your own material** — your resume, your career identity, and your projects cold, since
+  the interview will probe them; you must be able to discuss anything you have claimed.
+- **Prepare questions to ask** — thoughtful questions for the interviewer, which show engagement
+  and help you evaluate the role.
+
+And, as the presentation section stressed, *practising* the delivery — rehearsing answers aloud,
+ideally in a mock interview — converts preparation into fluent performance.
+
+Why this matters
+-----------------
+
+Preparation transforms the interview from an anxious improvisation into a confident conversation
+you are ready for. It produces better answers (concrete, relevant, well-structured), the
+composure that comes from readiness, and the genuine engagement that researching the role
+enables — all of which interviewers respond to. Given that the interview often decides the
+outcome, and that preparation is the largest controllable factor in it, preparing thoroughly is
+the highest-return interview investment there is.
+
+The caveat
+------------
+
+Preparation should make you *ready*, not *rigid* or *robotic*. Over-preparing to the point of
+memorising scripted answers backfires — it sounds canned, and it leaves you thrown when a
+question differs from the one you rehearsed; the goal is to know your material and examples well
+enough to respond *genuinely and flexibly*, not to recite. Real interviews are conversations,
+and preparation should enable a natural, responsive one, not a performance of memorised lines.
+And preparation cannot substitute for genuine ability and honesty — it helps you present real
+skills well, not fake skills you lack, which the interview is designed to test. Prepared enough
+to be confident and fluent, genuine enough to be conversational and honest — that is the balance.
+The next lessons cover a specific interview technique and AI-assisted preparation.
+"""
+
+
+MINDMAP.update({
+    "Job Application Tracking (Using AI + Spreadsheets)": [
+        "Choosing the Right Job Platforms",
+        "Networking for Job Search",
+        "Job Search Plan (Using AI Tools)",
+        "Tailoring Your Resume",
+    ],
+    "Networking for Job Search": [
+        "Choosing the Right Job Platforms",
+        "Building a Professional Online Presence (Personal Brand)",
+        "Job Application Tracking (Using AI + Spreadsheets)",
+        "Interview Preparation",
+    ],
+    "Interview Preparation": [
+        "STAR Method (Behavioral Interview)",
+        "Using AI (NotebookLM) for Interview Preparation",
+        "Networking for Job Search",
+        "Career Identity Statement",
+    ],
+})
+
+
+# ======================================================================
+# Section 8 — Job Search / interview (close)  (jobsearch 012-015)  -- SECTION 8 & COURSE COMPLETE
+# NotebookLM + Gemini Live facts grounded via web_search (both Google; NotebookLM source-grounded
+# research assistant with Studio artifacts / Audio Overviews; Gemini Live real-time voice mode,
+# interruptible, positioned for rehearsing important moments). Written in original prose.
+# ======================================================================
+
+GLOSS.update({
+    "STAR Method (Behavioral Interview)":
+        "a structure for behavioural answers — Situation, Task, Action, Result",
+    "Using AI (NotebookLM) for Interview Preparation":
+        "using a source-grounded AI research tool to prepare from role and company material",
+    "Practicing Interviews with AI (Gemini Live)":
+        "rehearsing interviews aloud in real-time voice conversation with an AI",
+    "Post-Interview Strategy":
+        "what to do after an interview — follow up, reflect, and handle the outcome",
+})
+
+CONTENT["STAR Method (Behavioral Interview)"] = r"""
+Structuring the behavioural answer
+------------------------------------
+
+Interviews increasingly use **behavioural questions** — "tell me about a time when…" — that
+ask for specific past examples, on the theory that past behaviour predicts future behaviour.
+The **STAR method** is a structure for answering these clearly and completely, and this lesson
+covers it — a simple, powerful framework for the behavioural interview.
+
+What behavioural questions are
+--------------------------------
+
+Behavioural questions ask you to describe a *specific situation* from your experience: "tell me
+about a time you solved a difficult problem," "describe a situation where you handled
+conflicting priorities," "give an example of when you used data to make a decision." They seek
+concrete evidence of how you have actually behaved, rather than hypothetical or general claims —
+which is why prepared, specific examples (from the preparation lesson) matter so much. The
+challenge is answering them in a way that is complete and clear rather than rambling or vague,
+and that is what STAR provides.
+
+The STAR structure
+------------------
+
+**STAR** is an acronym for the four parts of a strong behavioural answer:
+
+- **Situation** — briefly set the context: what was the situation, where and when. Enough
+  background for the example to make sense.
+- **Task** — what was *your* responsibility or the challenge you faced in that situation. What
+  needed to be done, and your role in it.
+- **Action** — what *you* specifically did — the steps you took to address the task. This is
+  the heart of the answer, and it should focus on *your* actions (not "we"), showing what you
+  contributed.
+- **Result** — the outcome of your actions — what happened, ideally quantified ("reduced errors
+  by 30%," "delivered on time"), and what you learned.
+
+Walking through Situation, Task, Action, Result gives a complete, structured answer: the context,
+your responsibility, what you did, and how it turned out — everything the interviewer needs, in a
+logical order.
+
+Why STAR works
+--------------
+
+STAR works because it ensures the answer is *complete and focused*. Without a structure,
+behavioural answers tend to wander, omit the outcome, or blur what *you* did versus what the team
+did; STAR prevents this by prompting each essential element in turn. It keeps the answer concise
+and relevant (the interviewer follows the arc), foregrounds *your* specific contribution (the
+Action), and includes the result that shows impact — which is exactly what interviewers are
+assessing. For a data analyst, STAR is ideal for the "tell me about an analysis you did" questions:
+the situation, your analytical task, the actions you took, and the result it drove.
+
+The caveat
+------------
+
+STAR structures an answer but cannot supply its *substance* — you still need genuine, relevant
+examples to structure, which is why preparing real STAR stories in advance (from the preparation
+lesson) matters. Applied mechanically, STAR can also sound *formulaic* — a rigid recitation of
+labels — so the structure should guide a natural answer, not turn it into an obvious template.
+And the examples must be *honest*: STAR is for presenting real experiences clearly, not for
+fabricating impressive-sounding stories, which probing follow-up questions ("what exactly did you
+do?") tend to expose. Prepare genuine examples, structure them with STAR so they land, and
+deliver them naturally and truthfully. The next lessons cover AI tools that help prepare and
+practise exactly these answers.
+"""
+
+CONTENT["Using AI (NotebookLM) for Interview Preparation"] = r"""
+Preparing with a source-grounded AI
+-------------------------------------
+
+Interview preparation means absorbing a lot of material — the job posting, the company, your own
+background — and an AI tool can help organise and study it. **NotebookLM**, Google's
+source-grounded research assistant, is well suited to this, because it works from *your* uploaded
+material rather than general knowledge. This lesson covers using NotebookLM to prepare for
+interviews, applying the section's AI-assisted approach to interview readiness.
+
+What NotebookLM is
+------------------
+
+NotebookLM is an AI-powered research assistant from Google that is **source-grounded** — you
+upload documents (the sources), and it answers questions and generates material based only on
+*those* sources, with citations back to them, rather than drawing on general training data. This
+grounding is its defining feature: it becomes, in effect, an expert on the specific material you
+give it, which reduces the risk of it inventing information and keeps its output tied to your
+actual sources. You organise material into "notebooks," and a studio panel can generate study
+aids from your sources — summaries, briefing documents, study guides, and even audio "deep dive"
+discussions between AI hosts that you can listen to.
+
+Using it for interview preparation
+------------------------------------
+
+For interview preparation, NotebookLM's source-grounding fits naturally. You can gather the
+relevant material — the job posting, information about the company, the role description, and your
+own resume and notes — as sources, and then use the tool to prepare:
+
+- **Understand the role and company** — ask questions grounded in the posting and company
+  material to build the understanding the preparation lesson called for.
+- **Generate study aids** — have it produce a briefing document or study guide from the sources,
+  consolidating what you need to know.
+- **Anticipate questions** — use it to think through what the role emphasises and what you might
+  be asked, grounded in the actual posting.
+- **Listen and review** — generate an audio overview of the material to review your preparation
+  while away from the desk.
+
+Because its answers are tied to the sources you provide, the preparation stays grounded in the
+*actual* role and company rather than generic advice.
+
+Why this helps
+--------------
+
+NotebookLM helps by *organising and synthesising* the specific material an interview requires —
+turning a pile of documents about the role, company, and your background into queryable,
+studyable form, grounded in those real sources. This suits interview preparation especially well
+because that preparation is fundamentally about absorbing *specific* material (this role, this
+company), which is exactly what a source-grounded tool is built for. It makes preparation more
+organised and thorough for less effort.
+
+The caveat
+------------
+
+NotebookLM's grounding reduces but does not eliminate the need for *your own judgement and
+verification*. It works from the sources you give it, so the quality of your preparation depends
+on the quality and completeness of those sources — and while grounding reduces fabrication, AI
+can still misinterpret or miss nuance, so its output is a study aid to verify, not gospel. It
+organises and synthesises material; it does not do the actual *preparing* — the understanding,
+the practising, the internalising — which remain yours. And, as with any AI tool, be mindful of
+what personal information you upload. Use NotebookLM to organise and study the real material
+efficiently, while doing the genuine preparation yourself. The next lesson covers practising the
+interview aloud with a different AI tool.
+"""
+
+CONTENT["Practicing Interviews with AI (Gemini Live)"] = r"""
+Rehearsing out loud
+--------------------
+
+Knowing your answers is not the same as *delivering* them well — and the presentation section's
+lesson holds, that fluent delivery comes from practice. **Gemini Live**, Google's real-time voice
+conversation mode, lets you rehearse interviews *aloud*, in natural back-and-forth conversation,
+which is the closest an AI tool comes to a mock interview. This lesson covers practising interviews
+with Gemini Live, the practice half of interview readiness.
+
+What Gemini Live is
+-------------------
+
+Gemini Live is a real-time, spoken conversation mode in Google's Gemini app: instead of typing
+prompts and reading replies, you *talk* to the AI and it responds in a synthesized voice, in a
+natural back-and-forth. Its defining quality is conversational flow — you can interrupt it,
+change direction, and follow up mid-response, and it adapts, which makes the exchange feel more
+like talking with a person than querying an assistant. It runs on the mobile app, and Google
+explicitly positions it for things like rehearsing for important moments — which is exactly the
+interview-practice use case.
+
+Using it to practise interviews
+---------------------------------
+
+Gemini Live's spoken, interactive nature makes it a practice partner for the *delivery* of
+interview answers:
+
+- **Mock interview practice** — ask it to act as an interviewer for a data-analyst role and pose
+  questions, then answer *aloud*, practising the actual speaking that a real interview requires.
+- **Practising STAR answers** — rehearse your behavioural answers (from the STAR lesson) out
+  loud, hearing how they sound and tightening them.
+- **Rehearsing the common questions** — practise "tell me about yourself," "why this role," and
+  the technical questions verbally, building fluency and reducing the nerves the preparation
+  lesson addressed.
+- **Iterating** — because it is conversational, you can practise, adjust, and practise again in a
+  natural flow.
+
+The value is *speaking practice* — converting prepared answers into fluent spoken delivery, which
+only rehearsal aloud can build.
+
+Why this helps
+--------------
+
+Gemini Live helps because it lets you practise the *spoken performance* of an interview, not just
+the content — and delivery, as the presentation section stressed, comes from practice. Rehearsing
+answers aloud in a conversational back-and-forth builds the fluency and composure that reading
+answers silently cannot, and it is available any time, without needing another person to run a
+mock interview. For the practice that turns preparation into confident delivery, a real-time voice
+AI is a genuinely useful rehearsal partner.
+
+The caveat
+------------
+
+Practising with an AI is useful rehearsal but not a full substitute for the real thing or for
+human feedback. An AI interviewer approximates the experience but does not perfectly replicate a
+real interviewer's judgement, follow-ups, and dynamics, and it cannot give the nuanced human
+feedback a mentor or peer mock interview can — so AI practice is best complemented by practising
+with real people where possible. It also cannot supply genuine preparation or real ability: it
+helps you *rehearse* answers you have prepared, not manufacture competence you lack. And the usual
+caution about what you share with AI tools applies. Use Gemini Live to build fluency through spoken
+rehearsal, alongside human practice and genuine preparation. The final lesson covers what happens
+after the interview.
+"""
+
+CONTENT["Post-Interview Strategy"] = r"""
+After the interview
+--------------------
+
+The interview is not the end of the process — what you do *afterward* can affect the outcome and,
+regardless of result, your longer job search. **Post-interview strategy** covers following up,
+reflecting, and handling the outcome well. As the final lesson of the job-search section and of
+the course, it closes the arc from learning data skills to landing the role.
+
+Following up
+------------
+
+The immediate post-interview action is a *thank-you* and follow-up:
+
+- **Send a thank-you** — a prompt, genuine thank-you message to your interviewer(s) expresses
+  appreciation, reaffirms your interest, and keeps you memorable. It is a small courtesy that is
+  often noticed, and its absence sometimes noticed too.
+- **Reinforce your fit, briefly** — a good follow-up can briefly reiterate why you are a strong
+  fit or add a point you wish you had made, turning the note into a light final argument.
+- **Be timely and professional** — send it soon after the interview, keep it concise and
+  professional, and personalise it to the conversation.
+
+This simple step reflects the professionalism and communication the course has emphasised, applied
+to the interview's aftermath.
+
+Reflecting and improving
+--------------------------
+
+Beyond the note, reflect on the interview to *improve*:
+
+- **What went well and what did not** — which questions you handled strongly, which you
+  struggled with, so you can prepare better next time. Each interview is practice for the next.
+- **Questions you were unprepared for** — note them and prepare answers, strengthening your
+  readiness (the self-improvement discipline, applied to interviewing).
+- **Your own read** — how the role and company felt to you, since an interview is also *your*
+  chance to evaluate *them*.
+
+Treating each interview as a source of learning steadily improves your interviewing across a
+search.
+
+Handling the outcome
+--------------------
+
+However it turns out, handle the result constructively. An offer calls for careful, professional
+evaluation and negotiation; a rejection, for *not* taking it as a verdict on your worth —
+rejections are a normal, frequent part of any job search, often reflecting fit or factors beyond
+your control rather than a personal failing. The constructive response to rejection is to seek any
+feedback offered, apply the lessons, and continue — persistence through the inevitable rejections
+is part of nearly every successful search. Maintaining professionalism and resilience through
+both outcomes serves your search and your reputation.
+
+Why this matters
+-----------------
+
+Post-interview actions matter because the process continues past the interview: a thoughtful
+follow-up can influence a decision, reflection improves your next interview, and resilience
+sustains you through a search that will include rejections before its success. Handling the
+aftermath well — professionally, reflectively, and resiliently — is the final piece of an
+effective job search, turning each interview, whatever its result, into progress toward the role.
+
+The caveat
+------------
+
+Post-interview strategy has its own balance to strike. Follow-up should be *professional, not
+pestering* — a thank-you and appropriate, patient follow-up help; repeated or pushy messaging
+harms, and after reasonable follow-up you must let the process take its course. Reflection should
+*inform improvement, not feed rumination* — learning from an interview is constructive, but
+replaying it anxiously or treating a rejection as a personal indictment is neither accurate nor
+healthy, and resilience means moving forward. The aim is constructive follow-through and genuine
+learning, held with the equanimity that a long search requires.
+
+Concluding the course
+----------------------
+
+This lesson closes not only the job-search section but the entire Data Analytics course. You have
+travelled a long arc: from the foundations of data-driven thinking, through preparing and cleaning
+data, analysing it with spreadsheets and SQL, visualizing and communicating it, and automating the
+whole workflow with Python — and finally, to presenting your skills and landing the role. The
+throughline has been a set of principles as much as techniques: reason from evidence, respect the
+integrity of data, communicate honestly, and pursue the work with care and rigour. These are what
+make a data analyst, more than any single tool. With the technical skills built and the job-search
+craft in hand, you are equipped not just to *do* data analysis but to build a career in it — and,
+more importantly, to keep learning, since the field will keep changing and the capacity to learn is
+the most durable skill of all. The tools will evolve; the disciplines endure.
+"""
+
+
+MINDMAP.update({
+    "STAR Method (Behavioral Interview)": [
+        "Interview Preparation",
+        "Using AI (NotebookLM) for Interview Preparation",
+        "Practicing Interviews with AI (Gemini Live)",
+        "Career Identity Statement",
+    ],
+    "Using AI (NotebookLM) for Interview Preparation": [
+        "Interview Preparation",
+        "STAR Method (Behavioral Interview)",
+        "Practicing Interviews with AI (Gemini Live)",
+        "Career Dreamer (AI Tool for Career Exploration)",
+    ],
+    "Practicing Interviews with AI (Gemini Live)": [
+        "Using AI (NotebookLM) for Interview Preparation",
+        "STAR Method (Behavioral Interview)",
+        "Interview Preparation",
+        "Post-Interview Strategy",
+    ],
+    "Post-Interview Strategy": [
+        "Practicing Interviews with AI (Gemini Live)",
+        "Interview Preparation",
+        "Networking for Job Search",
+        "STAR Method (Behavioral Interview)",
+    ],
+})

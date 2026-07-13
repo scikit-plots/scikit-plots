@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cross-selling:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Cross-Selling</b></div>`
@@ -82,4 +86,4 @@ are most likely to accept a given offer. Best practice is to keep suggestions
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Cross-Selling <https://insightful-data-lab.com/2025/08/29/cross-selling/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

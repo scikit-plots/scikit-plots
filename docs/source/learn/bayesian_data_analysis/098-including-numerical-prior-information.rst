@@ -70,4 +70,4 @@ which the next lesson makes precise.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/ <https://insightful-data-lab.com/2025/11/24/including-numerical-prior-information/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

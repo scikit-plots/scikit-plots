@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-arima-autoregressive-integrated-moving-average:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>ARIMA (AutoRegressive Integrated Moving Average)</b></div>`
@@ -83,4 +87,4 @@ do better. For periodic data, the **SARIMA** extension adds seasonal terms, writ
 
    **Source article** Adapted (context, re-expressed) in our own words from: `ARIMA (AutoRegressive Integrated Moving Average) <https://insightful-data-lab.com/2025/08/23/arima-autoregressive-integrated-moving-average/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

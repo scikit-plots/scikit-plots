@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-binary-cross-entropy-bce:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Binary Cross-Entropy (BCE)</b></div>`
@@ -67,4 +71,4 @@ multi-class analogue is **categorical cross-entropy** with **softmax**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Binary Cross-Entropy (BCE) <https://insightful-data-lab.com/2025/08/21/binary-cross-entropy-bce/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

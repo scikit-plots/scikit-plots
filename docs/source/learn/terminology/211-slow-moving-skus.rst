@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-slow-moving-skus:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Slow-Moving SKUs</b></div>`
@@ -61,4 +65,4 @@ purchase orders for them. In warehouse layout, they move to **less-accessible** 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Slow-Moving SKUs <https://insightful-data-lab.com/2025/08/23/slow-moving-skus/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

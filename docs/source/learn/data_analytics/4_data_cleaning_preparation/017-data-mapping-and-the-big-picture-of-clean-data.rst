@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-017:
 .. _data-analytics-cleaning-017:
 .. _da-foundations-cleaning-017:
@@ -94,4 +103,4 @@ large for a sheet.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/data-mapping-and-the-big-picture-of-clean-data/ <https://insightful-data-lab.com/2023/11/01/data-mapping-and-the-big-picture-of-clean-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

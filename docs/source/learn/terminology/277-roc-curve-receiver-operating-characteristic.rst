@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-roc-curve-receiver-operating-characteristic:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>ROC Curve (Receiver Operating Characteristic)</b></div>`
@@ -61,4 +65,4 @@ being locked to one cutoff. It dates to **radar** signal detection in the 1940s.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `ROC Curve (Receiver Operating Characteristic) <https://insightful-data-lab.com/2025/08/22/roc-curve-receiver-operating-characteristic/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

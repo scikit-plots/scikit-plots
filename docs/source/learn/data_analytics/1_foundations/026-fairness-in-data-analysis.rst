@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-026:
 .. _data-analytics-foundations-026:
 .. _da-foundations-foundations-026:
@@ -96,4 +105,4 @@ looking.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/fairness-in-data-analysis/ <https://insightful-data-lab.com/2023/07/30/fairness-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, tools
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: tools

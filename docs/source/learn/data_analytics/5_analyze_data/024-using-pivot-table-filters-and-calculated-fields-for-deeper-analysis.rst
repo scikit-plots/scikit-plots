@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-024:
 .. _data-analytics-analyze-024:
 .. _da-foundations-analyze-024:
@@ -94,4 +103,4 @@ to compare spreadsheet and SQL calculation directly.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-pivot-table-filters-and-calculated-fields-for-deeper-analysis/ <https://insightful-data-lab.com/2023/11/26/using-pivot-table-filters-and-calculated-fields-for-deeper-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

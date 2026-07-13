@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-evaluation-set:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Evaluation Set</b></div>`
@@ -60,4 +64,4 @@ set into training — the classic **data leakage** that makes scores look better
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Evaluation Set <https://insightful-data-lab.com/2025/08/20/evaluation-set/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

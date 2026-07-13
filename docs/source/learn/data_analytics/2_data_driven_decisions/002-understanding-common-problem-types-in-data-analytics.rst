@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-002:
 .. _data-analytics-ddd-002:
 .. _da-foundations-ddd-002:
@@ -81,4 +90,4 @@ scenarios.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/01/understanding-common-problem-types-in-data-analytics/ <https://insightful-data-lab.com/2023/08/01/understanding-common-problem-types-in-data-analytics/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, framing
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: framing

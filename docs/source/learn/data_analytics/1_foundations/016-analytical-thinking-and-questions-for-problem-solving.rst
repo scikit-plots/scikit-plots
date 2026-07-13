@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-016:
 .. _data-analytics-foundations-016:
 .. _da-foundations-foundations-016:
@@ -91,4 +100,4 @@ common. Ask the questions, then make the data answer them.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-questions-for-problem-solving/ <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-questions-for-problem-solving/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

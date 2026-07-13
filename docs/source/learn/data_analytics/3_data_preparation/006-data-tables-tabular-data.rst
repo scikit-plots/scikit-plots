@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-006:
 .. _data-analytics-prep-006:
 .. _da-foundations-prep-006:
@@ -87,4 +96,4 @@ each is the right one.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/data-tables-tabular-data/ <https://insightful-data-lab.com/2023/09/04/data-tables-tabular-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

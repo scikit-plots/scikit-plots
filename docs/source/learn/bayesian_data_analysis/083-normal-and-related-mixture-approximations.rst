@@ -73,4 +73,4 @@ family** to a posterior, by optimising a divergence rather than by curvature at 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/ <https://insightful-data-lab.com/2025/11/22/normal-and-related-mixture-approximations/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

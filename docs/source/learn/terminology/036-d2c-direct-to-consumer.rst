@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-d2c-direct-to-consumer:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>D2C (Direct-to-Consumer)</b></div>`
@@ -95,4 +99,4 @@ under control.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `D2C (Direct-to-Consumer) <https://insightful-data-lab.com/2025/08/29/d2c-direct-to-consumer/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

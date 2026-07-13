@@ -51,4 +51,4 @@ evaluation metric in Stage 8 assumes the model is being judged on data it has ne
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/ <https://insightful-data-lab.com/2026/01/14/partitioning-observations-to-train-objective-models/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: intermediate

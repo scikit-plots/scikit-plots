@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-fully-loaded-cac-customer-acquisition-cost:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Fully Loaded CAC (Customer Acquisition Cost)</b></div>`
@@ -93,4 +97,4 @@ Limitations
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Fully Loaded CAC (Customer Acquisition Cost) <https://insightful-data-lab.com/2025/08/29/fully-loaded-cac-customer-acquisition-cost/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

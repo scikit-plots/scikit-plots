@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-mean-average-precision-map:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>Mean Average Precision (MAP)</b></div>`
@@ -67,4 +71,4 @@ cutoff (MAP@K), it is a standard top-N metric for search and recommendation.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Mean Average Precision (MAP) <https://insightful-data-lab.com/2025/08/19/mean-average-precision-map/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-026:
 .. _data-analytics-ddd-026:
 .. _da-foundations-ddd-026:
@@ -80,4 +89,4 @@ share this section has emphasised throughout.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/effective-meetings/ <https://insightful-data-lab.com/2023/08/31/effective-meetings/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

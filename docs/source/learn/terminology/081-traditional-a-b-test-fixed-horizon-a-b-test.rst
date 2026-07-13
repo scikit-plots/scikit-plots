@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-traditional-a-b-test-fixed-horizon-a-b-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Traditional A/B Test (Fixed-Horizon A/B Test)</b></div>`
@@ -78,4 +82,4 @@ peek freely), and **multi-armed bandits** (shift traffic to the winner as you le
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Traditional A/B Test (Fixed-Horizon A/B Test) <https://insightful-data-lab.com/2025/08/25/traditional-a-b-test-fixed-horizon-a-b-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

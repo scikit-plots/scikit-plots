@@ -55,4 +55,4 @@ the rule's support is already known — which is exactly what the next lesson au
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/ <https://insightful-data-lab.com/2026/01/14/apriori-frequent-itemsets-via-the-apriori-algorithm/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: intermediate

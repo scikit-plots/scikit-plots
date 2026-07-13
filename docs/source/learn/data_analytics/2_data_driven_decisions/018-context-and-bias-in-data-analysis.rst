@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-018:
 .. _data-analytics-ddd-018:
 .. _da-foundations-ddd-018:
@@ -96,4 +105,4 @@ from the foundations, operating at the project level.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/context-and-bias-in-data-analysis/ <https://insightful-data-lab.com/2023/08/31/context-and-bias-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

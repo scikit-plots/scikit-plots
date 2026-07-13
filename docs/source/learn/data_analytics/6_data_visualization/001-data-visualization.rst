@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-viz-001:
 .. _data-analytics-viz-001:
 .. _da-foundations-viz-001:
@@ -88,4 +97,4 @@ becomes an image at all.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/data-visualization/ <https://insightful-data-lab.com/2023/11/26/data-visualization/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, viz, principles
+.. tags:: purpose: reference, topic: data analytics, topic: viz, topic: principles

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-011:
 .. _data-analytics-cleaning-011:
 .. _da-foundations-cleaning-011:
@@ -90,4 +99,4 @@ begins that hands-on work in the spreadsheet.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/common-issues-in-dirty-data/ <https://insightful-data-lab.com/2023/11/01/common-issues-in-dirty-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

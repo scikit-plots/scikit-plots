@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-001:
 .. _data-analytics-analyze-001:
 .. _da-foundations-analyze-001:
@@ -94,4 +103,4 @@ step: organising data for analysis.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/02/understanding-data-analysis/ <https://insightful-data-lab.com/2023/11/02/understanding-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

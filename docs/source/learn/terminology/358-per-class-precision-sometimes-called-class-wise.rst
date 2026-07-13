@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-per-class-precision-sometimes-called-class-wise-precision:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Per-class Precision (sometimes called class-wise precision)</b></div>`
@@ -65,4 +69,4 @@ collapse into one score. Best practice is to report the **per-class** values **a
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Per-class Precision (sometimes called class-wise precision) <https://insightful-data-lab.com/2025/08/20/per-class-precision-sometimes-called-class-wise-precision/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-viz-002:
 .. _data-analytics-viz-002:
 .. _da-foundations-viz-002:
@@ -93,4 +102,4 @@ makes a visualization genuinely powerful.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/connecting-data-and-images/ <https://insightful-data-lab.com/2023/11/26/connecting-data-and-images/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, viz, principles
+.. tags:: purpose: reference, topic: data analytics, topic: viz, topic: principles

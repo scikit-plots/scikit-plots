@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sequential-settings:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Sequential Settings</b></div>`
@@ -87,4 +91,4 @@ actually receive data — provided the right method preserves statistical validi
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sequential Settings <https://insightful-data-lab.com/2025/08/28/sequential-settings/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-012:
 .. _data-analytics-ddd-012:
 .. _da-foundations-ddd-012:
@@ -90,4 +99,4 @@ built from it, and never let the presentation copy become the working data.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/building-and-organizing-a-spreadsheet/ <https://insightful-data-lab.com/2023/08/31/building-and-organizing-a-spreadsheet/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, spreadsheets
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: spreadsheets

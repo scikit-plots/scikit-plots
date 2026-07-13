@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-019:
 .. _data-analytics-foundations-019:
 .. _da-foundations-foundations-019:
@@ -94,4 +103,4 @@ as promises of guaranteed results.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making/ <https://insightful-data-lab.com/2023/07/30/case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

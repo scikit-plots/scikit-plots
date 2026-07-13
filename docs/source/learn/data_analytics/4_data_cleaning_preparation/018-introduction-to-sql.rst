@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-018:
 .. _data-analytics-cleaning-018:
 .. _da-foundations-cleaning-018:
@@ -96,4 +105,4 @@ directly when to reach for SQL versus a spreadsheet.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/introduction-to-sql/ <https://insightful-data-lab.com/2023/11/01/introduction-to-sql/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

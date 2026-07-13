@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-kolmogorovsmirnov-ks-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Kolmogorov–Smirnov (KS) Test</b></div>`
@@ -66,4 +70,4 @@ underlies the **KS statistic** used as a drift metric.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Kolmogorov–Smirnov (KS) Test <https://insightful-data-lab.com/2025/08/20/kolmogorov-smirnov-ks-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

@@ -75,4 +75,4 @@ not a complaint about the algorithm; it is information about the model.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo-for-a-hierarchical-model/ <https://insightful-data-lab.com/2025/11/22/hamiltonian-monte-carlo-for-a-hierarchical-model/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

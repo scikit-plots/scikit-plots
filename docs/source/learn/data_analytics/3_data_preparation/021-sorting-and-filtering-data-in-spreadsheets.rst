@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-021:
 .. _data-analytics-prep-021:
 .. _da-foundations-prep-021:
@@ -93,4 +102,4 @@ querying data at database scale.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/sorting-and-filtering-data-in-spreadsheets/ <https://insightful-data-lab.com/2023/09/04/sorting-and-filtering-data-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

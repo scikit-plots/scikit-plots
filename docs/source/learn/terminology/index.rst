@@ -6,6 +6,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _terminology-index:
 
 :raw-html:`<div align="center" style="text-align:center"><strong>` 📖 Terminology
@@ -1668,3 +1672,5 @@ A working glossary of **431 terms** spanning statistics, machine learning, forec
    337-lime-local-interpretable-model-agnostic-explanat
    339-post-hoc-explainability
    338-shap-shapley-additive-explanations
+
+.. tags:: purpose: reference, topic: terminology

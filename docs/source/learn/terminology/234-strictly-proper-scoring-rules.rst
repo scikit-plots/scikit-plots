@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-strictly-proper-scoring-rules:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Strictly Proper Scoring Rules</b></div>`
@@ -72,4 +76,4 @@ full distributions and quantiles.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Strictly Proper Scoring Rules <https://insightful-data-lab.com/2025/08/22/strictly-proper-scoring-rules/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

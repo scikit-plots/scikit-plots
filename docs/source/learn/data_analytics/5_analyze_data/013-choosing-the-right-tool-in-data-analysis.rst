@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-013:
 .. _data-analytics-analyze-013:
 .. _da-foundations-analyze-013:
@@ -92,4 +101,4 @@ lessons dig into the spreadsheet's core data-combining tool: VLOOKUP.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/choosing-the-right-tool-in-data-analysis/ <https://insightful-data-lab.com/2023/11/26/choosing-the-right-tool-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, combine
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: combine

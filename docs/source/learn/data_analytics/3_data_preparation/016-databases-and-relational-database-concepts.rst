@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-016:
 .. _data-analytics-prep-016:
 .. _da-foundations-prep-016:
@@ -97,4 +106,4 @@ what is in these databases and the governance that manages it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/databases-and-relational-database-concepts/ <https://insightful-data-lab.com/2023/09/04/databases-and-relational-database-concepts/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, sources
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: sources

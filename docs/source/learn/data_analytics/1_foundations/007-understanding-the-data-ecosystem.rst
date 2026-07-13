@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-007:
 .. _data-analytics-foundations-007:
 .. _da-foundations-foundations-007:
@@ -86,4 +95,4 @@ diagram claims.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-ecosystem/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-ecosystem/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

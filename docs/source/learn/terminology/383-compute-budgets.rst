@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-compute-budgets:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Compute budgets</b></div>`
@@ -67,4 +71,4 @@ oversized experiments — routinely add **20–40%** over the planned figure.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Compute budgets <https://insightful-data-lab.com/2025/08/19/compute-budgets/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

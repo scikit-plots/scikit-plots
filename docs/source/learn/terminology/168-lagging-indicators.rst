@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-lagging-indicators:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Lagging Indicators</b></div>`
@@ -70,4 +74,4 @@ indicator is AUC sliding from 0.87 to 0.72 — proof the model is now underperfo
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Lagging Indicators <https://insightful-data-lab.com/2025/08/23/lagging-indicators/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

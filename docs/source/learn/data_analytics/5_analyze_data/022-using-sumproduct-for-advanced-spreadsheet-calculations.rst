@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-022:
 .. _data-analytics-analyze-022:
 .. _da-foundations-analyze-022:
@@ -99,4 +108,4 @@ turns to the most powerful summarising tool of all: the pivot table.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-sumproduct-for-advanced-spreadsheet-calculations/ <https://insightful-data-lab.com/2023/11/26/using-sumproduct-for-advanced-spreadsheet-calculations/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-bandit-algorithms:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Bandit Algorithms</b></div>`
@@ -85,4 +89,4 @@ environment is **stable**; rapidly shifting preferences or delayed rewards weake
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Bandit Algorithms <https://insightful-data-lab.com/2025/08/24/bandit-algorithms/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

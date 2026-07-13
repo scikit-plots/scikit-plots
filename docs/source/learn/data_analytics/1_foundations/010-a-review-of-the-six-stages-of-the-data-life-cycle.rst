@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-010:
 .. _data-analytics-foundations-010:
 .. _da-foundations-foundations-010:
@@ -78,4 +87,4 @@ life-cycle thinking routinely saves days of confused analysis.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/a-review-of-the-six-stages-of-the-data-life-cycle/ <https://insightful-data-lab.com/2023/07/30/a-review-of-the-six-stages-of-the-data-life-cycle/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

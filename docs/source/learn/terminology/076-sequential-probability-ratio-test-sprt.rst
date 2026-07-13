@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sequential-probability-ratio-test-sprt:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Sequential Probability Ratio Test (SPRT)</b></div>`
@@ -101,4 +105,4 @@ SPRT is genuinely **continuous**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sequential Probability Ratio Test (SPRT) <https://insightful-data-lab.com/2025/08/25/sequential-probability-ratio-test-sprt/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

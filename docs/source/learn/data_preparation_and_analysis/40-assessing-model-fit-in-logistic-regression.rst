@@ -60,4 +60,4 @@ next lesson turns this deviance-comparison idea into a tool for **choosing** fea
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/ <https://insightful-data-lab.com/2026/01/16/assessing-model-fit-in-logistic-regression-predictive-power-and-r2-measures/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

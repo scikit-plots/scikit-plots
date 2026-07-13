@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-representation-shift:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Representation Shift</b></div>`
@@ -73,4 +77,4 @@ topic model that relied on the old representation.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Representation Shift <https://insightful-data-lab.com/2025/08/23/representation-shift/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

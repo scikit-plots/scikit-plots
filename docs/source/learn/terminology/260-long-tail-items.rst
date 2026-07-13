@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-long-tail-items:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Long-Tail Items</b></div>`
@@ -62,4 +66,4 @@ and **diversity** metrics on top of accuracy.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Long-Tail Items <https://insightful-data-lab.com/2025/08/22/long-tail-items/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

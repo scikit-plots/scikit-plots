@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-wmape-weighted-mean-absolute-percentage-error:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>WMAPE (Weighted Mean Absolute Percentage Error)</b></div>`
@@ -66,4 +70,4 @@ score well while badly missing many low-volume SKUs. It is closely related to **
 
    **Source article** Adapted (context, re-expressed) in our own words from: `WMAPE (Weighted Mean Absolute Percentage Error) <https://insightful-data-lab.com/2025/08/19/wmape-weighted-mean-absolute-percentage-error/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

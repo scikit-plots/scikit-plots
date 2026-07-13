@@ -75,4 +75,4 @@ road from hierarchical models to hierarchical *regression* in Part IV.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/ <https://insightful-data-lab.com/2025/11/09/exchangeability-and-hierarchical-models/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

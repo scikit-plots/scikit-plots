@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-025:
 .. _data-analytics-analyze-025:
 .. _da-foundations-analyze-025:
@@ -95,4 +104,4 @@ calculation.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/comparing-calculations-in-spreadsheets-and-sql/ <https://insightful-data-lab.com/2023/11/26/comparing-calculations-in-spreadsheets-and-sql/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

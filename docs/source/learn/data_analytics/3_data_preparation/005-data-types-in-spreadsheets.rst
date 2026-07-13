@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-005:
 .. _data-analytics-prep-005:
 .. _da-foundations-prep-005:
@@ -89,4 +98,4 @@ cells to the table they form.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/data-types-in-spreadsheets/ <https://insightful-data-lab.com/2023/09/04/data-types-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

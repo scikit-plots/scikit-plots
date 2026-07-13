@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-mean-squared-error-mse:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Mean Squared Error (MSE)</b></div>`
@@ -66,4 +70,4 @@ less, **MAE** is preferred.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Mean Squared Error (MSE) <https://insightful-data-lab.com/2025/08/21/mean-squared-error-mse/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

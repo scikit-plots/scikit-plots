@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-precision-a-k-a-positive-predictive-value-ppv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Precision (a.k.a. Positive Predictive Value, PPV)</b></div>`
@@ -66,4 +70,4 @@ alarms.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Precision (a.k.a. Positive Predictive Value, PPV) <https://insightful-data-lab.com/2025/08/17/precision-a-k-a-positive-predictive-value-ppv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

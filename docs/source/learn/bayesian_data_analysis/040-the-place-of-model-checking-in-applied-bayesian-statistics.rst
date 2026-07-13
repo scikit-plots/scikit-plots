@@ -70,4 +70,4 @@ A final distinction. Checking is not a significance test that accepts or rejects
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/ <https://insightful-data-lab.com/2025/11/10/the-place-of-model-checking-in-applied-bayesian-statistics/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-024:
 .. _data-analytics-ddd-024:
 .. _da-foundations-ddd-024:
@@ -90,4 +99,4 @@ human situations analysts navigate — sharing impact, meetings, and conflict.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/balancing-speed-and-accuracy-in-data-analysis/ <https://insightful-data-lab.com/2023/08/31/balancing-speed-and-accuracy-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

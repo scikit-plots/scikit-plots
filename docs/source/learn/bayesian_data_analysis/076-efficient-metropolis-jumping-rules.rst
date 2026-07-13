@@ -73,4 +73,4 @@ scaling by proposing *directed* moves, which is what the next lesson introduces.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/ <https://insightful-data-lab.com/2025/11/21/e%ef%ac%83cient-metropolis-jumping-rules/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

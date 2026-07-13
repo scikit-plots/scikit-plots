@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-001:
 .. _data-analytics-foundations-001:
 .. _da-foundations-foundations-001:
@@ -86,4 +95,4 @@ disciplines the decision* — not that a spreadsheet makes it for you.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/why-data-analytics-matters-today/ <https://insightful-data-lab.com/2023/07/30/why-data-analytics-matters-today/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, why
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: why

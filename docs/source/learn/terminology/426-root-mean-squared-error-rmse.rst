@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-root-mean-squared-error-rmse:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Root Mean Squared Error (RMSE)</b></div>`
@@ -65,4 +69,4 @@ it with **R²** for a scale-free complement. Like R², it also **falls** as you 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Root Mean Squared Error (RMSE) <https://insightful-data-lab.com/2025/08/17/root-mean-squared-error-rmse/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

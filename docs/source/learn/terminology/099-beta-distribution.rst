@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-beta-distribution:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Beta Distribution</b></div>`
@@ -107,4 +111,4 @@ sampling and quantiles.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Beta Distribution <https://insightful-data-lab.com/2025/08/28/beta-distribution/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-006:
 .. _data-analytics-foundations-006:
 .. _da-foundations-foundations-006:
@@ -81,4 +90,4 @@ of this course builds.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/the-origins-of-data-analysis-and-the-many-ways-to-structure-it/ <https://insightful-data-lab.com/2023/07/30/the-origins-of-data-analysis-and-the-many-ways-to-structure-it/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

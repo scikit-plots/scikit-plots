@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-003:
 .. _data-analytics-cleaning-003:
 .. _da-foundations-cleaning-003:
@@ -91,4 +100,4 @@ is not that data is misaligned, but that there is simply not enough of it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/aligning-data-with-business-objectives/ <https://insightful-data-lab.com/2023/10/31/aligning-data-with-business-objectives/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

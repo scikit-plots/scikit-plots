@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-hit-rate-hr:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Hit Rate (HR)</b></div>`
@@ -65,4 +69,4 @@ mechanically with **K**, so always report the cutoff (Hit@5 vs Hit@10) and pair 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Hit Rate (HR) <https://insightful-data-lab.com/2025/08/19/hit-rate-hr/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

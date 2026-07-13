@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-average-precision-ap:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Average Precision (AP)</b></div>`
@@ -65,4 +69,4 @@ AP is the standard score for **ranking** and **detection**; averaging it over cl
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Average Precision (AP) <https://insightful-data-lab.com/2025/08/20/average-precision-ap/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

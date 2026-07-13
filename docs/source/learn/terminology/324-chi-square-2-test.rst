@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-chi-square-2-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Chi-square (χ²) Test</b></div>`
@@ -67,4 +71,4 @@ power** on small samples — a non-significant result is weak evidence, not conf
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Chi-square (χ²) Test <https://insightful-data-lab.com/2025/08/20/chi-square-%cf%87%c2%b2-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

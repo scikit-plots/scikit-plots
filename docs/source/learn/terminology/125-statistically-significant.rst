@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-statistically-significant:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Statistically Significant</b></div>`
@@ -72,4 +76,4 @@ point for judgement, read alongside effect size and context, not a verdict on it
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Statistically Significant <https://insightful-data-lab.com/2025/08/24/statistically-significant/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

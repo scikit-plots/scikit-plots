@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-psi-population-stability-index:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>PSI (Population Stability Index)</b></div>`
@@ -67,4 +71,4 @@ clipped), and PSI tends to **rise with sample size**, so thresholds may need tun
 
    **Source article** Adapted (context, re-expressed) in our own words from: `PSI (Population Stability Index) <https://insightful-data-lab.com/2025/08/19/psi-population-stability-index/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-stratified-group-k-fold:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Stratified Group K-Fold</b></div>`
@@ -79,4 +83,4 @@ k-fold** is the only one with both.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Stratified Group K-Fold <https://insightful-data-lab.com/2025/08/24/stratified-group-k-fold/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

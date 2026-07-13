@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-021:
 .. _data-analytics-cleaning-021:
 .. _da-foundations-cleaning-021:
@@ -109,4 +118,4 @@ cleaning that ``CAST`` handles.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables/ <https://insightful-data-lab.com/2023/11/01/cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-a-priori-power-analysis:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>A Priori Power Analysis</b></div>`
@@ -86,4 +90,4 @@ power = 0.80.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `A Priori Power Analysis <https://insightful-data-lab.com/2025/08/24/a-priori-power-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

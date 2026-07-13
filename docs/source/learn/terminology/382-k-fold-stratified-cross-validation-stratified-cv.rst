@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-k-fold-stratified-cross-validation-stratified-cv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>k-fold Stratified Cross-Validation (Stratified CV)</b></div>`
@@ -61,4 +65,4 @@ avoid **leakage**, and don't use it on **time-series** data, where **time-based*
 
    **Source article** Adapted (context, re-expressed) in our own words from: `k-fold Stratified Cross-Validation (Stratified CV) <https://insightful-data-lab.com/2025/08/19/stratified-cross-validation-stratified-cv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

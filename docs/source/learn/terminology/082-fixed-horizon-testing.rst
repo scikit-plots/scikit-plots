@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-fixed-horizon-testing:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Fixed-Horizon Testing</b></div>`
@@ -80,4 +84,4 @@ stop early.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Fixed-Horizon Testing <https://insightful-data-lab.com/2025/08/25/fixed-horizon-testing/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

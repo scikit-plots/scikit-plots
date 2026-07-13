@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-model-weights:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Model Weights</b></div>`
@@ -73,4 +77,4 @@ the last layers. Concretely, a spam classifier might learn a weight of **+2.5** 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Model Weights <https://insightful-data-lab.com/2025/08/24/model-weights/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

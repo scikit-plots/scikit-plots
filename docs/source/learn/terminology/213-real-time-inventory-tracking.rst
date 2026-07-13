@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-real-time-inventory-tracking:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Real-Time Inventory Tracking</b></div>`
@@ -61,4 +65,4 @@ It prevents **overselling** and **stockouts**, keeps multi-channel stock consist
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Real-Time Inventory Tracking <https://insightful-data-lab.com/2025/08/23/real-time-inventory-tracking/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

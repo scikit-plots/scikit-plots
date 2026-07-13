@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-004:
 .. _data-analytics-foundations-004:
 .. _da-foundations-foundations-004:
@@ -79,4 +88,4 @@ service of that discipline.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/detectives-and-data-analysts/ <https://insightful-data-lab.com/2023/07/30/detectives-and-data-analysts/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, why
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: why

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-010:
 .. _data-analytics-cleaning-010:
 .. _da-foundations-cleaning-010:
@@ -97,4 +106,4 @@ next lessons get specific about the defects worth finding.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/the-importance-of-clean-data-2/ <https://insightful-data-lab.com/2023/11/01/the-importance-of-clean-data-2/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

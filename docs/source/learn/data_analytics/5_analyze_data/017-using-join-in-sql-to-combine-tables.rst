@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-017:
 .. _data-analytics-analyze-017:
 .. _da-foundations-analyze-017:
@@ -104,4 +113,4 @@ queries — subqueries.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-join-in-sql-to-combine-tables/ <https://insightful-data-lab.com/2023/11/26/using-join-in-sql-to-combine-tables/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, combine
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: combine

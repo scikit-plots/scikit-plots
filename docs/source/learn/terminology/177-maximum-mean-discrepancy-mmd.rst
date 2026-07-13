@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-maximum-mean-discrepancy-mmd:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Maximum Mean Discrepancy (MMD)</b></div>`
@@ -83,4 +87,4 @@ drift and likely need to retrain.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Maximum Mean Discrepancy (MMD) <https://insightful-data-lab.com/2025/08/23/maximum-mean-discrepancy-mmd/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

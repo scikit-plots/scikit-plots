@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-024:
 .. _data-analytics-cleaning-024:
 .. _da-foundations-cleaning-024:
@@ -95,4 +104,4 @@ of the section turns to verifying, documenting, and reporting the cleaning work.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/coalesce/ <https://insightful-data-lab.com/2023/11/01/coalesce/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

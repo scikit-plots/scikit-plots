@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-022:
 .. _data-analytics-foundations-022:
 .. _da-foundations-foundations-022:
@@ -92,4 +101,4 @@ full treatment in the cleaning and analysis sections.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/the-concept-and-basic-use-of-sql-query-language/ <https://insightful-data-lab.com/2023/07/30/the-concept-and-basic-use-of-sql-query-language/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, tools
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: tools

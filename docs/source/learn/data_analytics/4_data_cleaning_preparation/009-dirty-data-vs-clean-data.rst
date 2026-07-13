@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-009:
 .. _data-analytics-cleaning-009:
 .. _da-foundations-cleaning-009:
@@ -86,4 +95,4 @@ revisits *why* this painstaking work is worth doing.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/dirty-data-vs-clean-data/ <https://insightful-data-lab.com/2023/11/01/dirty-data-vs-clean-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

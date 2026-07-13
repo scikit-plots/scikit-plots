@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-quantile-level:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Quantile Level</b></div>`
@@ -65,4 +69,4 @@ one's, that is **quantile crossing**, an error to constrain away.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Quantile Level <https://insightful-data-lab.com/2025/08/22/quantile-level/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

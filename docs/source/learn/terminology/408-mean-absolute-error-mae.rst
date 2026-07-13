@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-mean-absolute-error-mae:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Mean Absolute Error (MAE)</b></div>`
@@ -65,4 +69,4 @@ across series — use **MASE** for that) and, being **point-only**, it can't sco
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Mean Absolute Error (MAE) <https://insightful-data-lab.com/2025/08/19/mean-absolute-error-mae/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

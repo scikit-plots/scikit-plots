@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-ops-health-dashboard:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Ops Health Dashboard</b></div>`
@@ -74,4 +78,4 @@ Power BI, Looker, Qlik), ops platforms (ServiceNow, Splunk, Datadog), built-in E
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Ops Health Dashboard <https://insightful-data-lab.com/2025/08/23/ops-health-dashboard/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

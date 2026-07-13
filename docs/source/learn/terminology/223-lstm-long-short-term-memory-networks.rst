@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-lstm-long-short-term-memory-networks:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>LSTM — Long Short-Term Memory Networks</b></div>`
@@ -76,4 +80,4 @@ across **50-100+ steps**, but they are **computationally heavy**, slower than GR
 
    **Source article** Adapted (context, re-expressed) in our own words from: `LSTM — Long Short-Term Memory Networks <https://insightful-data-lab.com/2025/08/23/lstm-long-short-term-memory-networks/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

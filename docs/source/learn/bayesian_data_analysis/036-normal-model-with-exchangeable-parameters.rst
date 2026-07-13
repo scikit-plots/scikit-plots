@@ -76,4 +76,4 @@ eight-schools example that follows.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/normal-model-with-exchangeable-parameters/ <https://insightful-data-lab.com/2025/11/09/normal-model-with-exchangeable-parameters/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

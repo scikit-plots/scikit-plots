@@ -82,4 +82,4 @@ posterior is diffuse or improper — and the remedy is a **prior**, which is exa
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/ <https://insightful-data-lab.com/2025/11/23/bayesian-analysis-of-classical-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

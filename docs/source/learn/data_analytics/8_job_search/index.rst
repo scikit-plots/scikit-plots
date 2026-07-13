@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-jobsearch-index:
 
 :raw-html:`<div style="text-align:center"><strong>` 💼 Job Search
@@ -17,96 +26,119 @@ From portfolio to offer: resumes, the analyst interview, case studies, and landi
 .. raw:: html
 
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
-   <input type="text" id="term-filter" placeholder="🔍 Type to filter this section &mdash; by title or keyword…"
-          style="width:100%;padding:.6em .8em;margin:.4em 0 1em;font-size:1em;
-                 border:1px solid var(--pst-color-border,#ccc);border-radius:6px;box-sizing:border-box;">
-   <div id="term-filter-count" style="margin:-.6em 0 1em;font-size:.85em;opacity:.7;"></div>
+   <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
+           placeholder="&#128269;&nbsp; Type to filter this section lessons &mdash; by title or keyword&hellip;"
+          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;
+                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
+                 background:transparent;color:inherit"/>
+   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;
+        min-height:1.2em;margin-top:0.35rem"></div>
    </div>
    <script>
-   (function(){
-     var box=document.getElementById('term-filter');
-     if(!box)return;
-     var count=document.getElementById('term-filter-count');
-     function norm(s){return (s||'').toLowerCase();}
-     function run(){
-       var q=norm(box.value), shown=0, total=0;
-       document.querySelectorAll('.da-row').forEach(function(row){
-         total++;
-         var hit=q===''||norm(row.getAttribute('data-k')).indexOf(q)>=0;
-         row.style.display=hit?'':'none';
-         if(hit)shown++;
-       });
-       document.querySelectorAll('details.sd-dropdown, details.term-az').forEach(function(d){
-         var any=d.querySelectorAll('.da-row:not([style*="none"])').length>0;
-         d.style.display=any?'':'none';
-         if(q!==''&&any)d.setAttribute('open','');
-       });
-       count.textContent=q===''?'':(shown+' of '+total+' match');
-     }
-     box.addEventListener('input',run);
-   })();
+   document.addEventListener('DOMContentLoaded',function(){
+     var inp=document.getElementById('term-filter');if(!inp){return;}
+     var dds=[].slice.call(document.querySelectorAll('details.sd-dropdown'));
+     var az=document.querySelector('details.term-az');
+     var items=[];
+     dds.forEach(function(d){[].slice.call(d.querySelectorAll('li')).forEach(
+       function(li){items.push({li:li,d:d,t:li.textContent.toLowerCase()});});});
+     var cnt=document.getElementById('term-filter-count');
+     inp.addEventListener('input',function(){
+       var q=inp.value.trim().toLowerCase();var n=0;
+       dds.forEach(function(d){d.tHits=0;});
+       items.forEach(function(it){
+         var hit=!q||it.t.indexOf(q)!==-1;
+         it.li.style.display=hit?'':'none';
+         if(hit){it.d.tHits+=1;if(az&&it.d===az){n+=1;}}});
+       dds.forEach(function(d){
+         if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
+         else{d.style.display='';d.open=false;}});
+        if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}
+     });
+   });
    </script>
 
 
 .. dropdown:: 🧭 Career Identity & Planning
+   :animate: fade-in-slide-down
    :class-container: sd-dropdown
 
    Transferable skills, a career identity statement, and an AI-assisted search plan.
 
-   .. raw:: html
-
-         <div class="da-row" data-k="Transferable Skills "><a href="001-transferable-skills.html">001 · Transferable Skills</a></div>
-         <div class="da-row" data-k="Career Identity Statement "><a href="002-career-identity-statement.html">002 · Career Identity Statement</a></div>
-         <div class="da-row" data-k="Career Dreamer (AI Tool for Career Exploration) "><a href="003-career-dreamer-ai-tool-for-career-exploration.html">003 · Career Dreamer (AI Tool for Career Exploration)</a></div>
-         <div class="da-row" data-k="Job Search Plan (Using AI Tools) "><a href="004-job-search-plan-using-ai-tools.html">004 · Job Search Plan (Using AI Tools)</a></div>
+   * :doc:`001 · Transferable Skills — abilities that carry across roles and industries — the foundation of a career pivot <001-transferable-skills>`
+   * :doc:`002 · Career Identity Statement — a concise statement of the unique value you bring to the workforce <002-career-identity-statement>`
+   * :doc:`003 · Career Dreamer (AI Tool for Career Exploration) — an experimental Grow with Google AI tool that maps your experience to career paths <003-career-dreamer-ai-tool-for-career-exploration>`
+   * :doc:`004 · Job Search Plan (Using AI Tools) — a structured, deliberate plan for the job search, assisted by AI tools <004-job-search-plan-using-ai-tools>`
 
 .. dropdown:: 📄 Resume, Brand & Applications
+   :animate: fade-in-slide-down
    :class-container: sd-dropdown
 
    Tailoring resumes, building an online presence, platforms, tracking, networking.
 
-   .. raw:: html
-
-         <div class="da-row" data-k="Tailoring Your Resume "><a href="005-tailoring-your-resume.html">005 · Tailoring Your Resume</a></div>
-         <div class="da-row" data-k="Using AI to Improve and Tailor Your Resume "><a href="006-using-ai-to-improve-and-tailor-your-resume.html">006 · Using AI to Improve and Tailor Your Resume</a></div>
-         <div class="da-row" data-k="Building a Professional Online Presence (Personal Brand) "><a href="007-building-a-professional-online-presence-personal-brand.html">007 · Building a Professional Online Presence (Personal Brand)</a></div>
-         <div class="da-row" data-k="Choosing the Right Job Platforms "><a href="008-choosing-the-right-job-platforms.html">008 · Choosing the Right Job Platforms</a></div>
-         <div class="da-row" data-k="Job Application Tracking (Using AI + Spreadsheets) "><a href="009-job-application-tracking-using-ai-spreadsheets.html">009 · Job Application Tracking (Using AI + Spreadsheets)</a></div>
-         <div class="da-row" data-k="Networking for Job Search "><a href="010-networking-for-job-search.html">010 · Networking for Job Search</a></div>
+   * :doc:`005 · Tailoring Your Resume — adapting a resume to each specific role rather than sending one generic version <005-tailoring-your-resume>`
+   * :doc:`006 · Using AI to Improve and Tailor Your Resume — using AI assistants to draft, refine, and tailor a resume — with human judgement <006-using-ai-to-improve-and-tailor-your-resume>`
+   * :doc:`007 · Building a Professional Online Presence (Personal Brand) — shaping how you appear online — profile, presence, and personal brand <007-building-a-professional-online-presence-personal-brand>`
+   * :doc:`008 · Choosing the Right Job Platforms — selecting the job platforms and channels that fit your target roles <008-choosing-the-right-job-platforms>`
+   * :doc:`009 · Job Application Tracking (Using AI + Spreadsheets) — systematically recording applications and their status, with AI and spreadsheets <009-job-application-tracking-using-ai-spreadsheets>`
+   * :doc:`010 · Networking for Job Search — building and using professional relationships to find and reach opportunities <010-networking-for-job-search>`
 
 .. dropdown:: 🎯 Interviews & Follow-Up
+   :animate: fade-in-slide-down
    :class-container: sd-dropdown
 
    Interview prep, the STAR method, AI practice tools, and post-interview strategy.
 
-   .. raw:: html
-
-         <div class="da-row" data-k="Interview Preparation "><a href="011-interview-preparation.html">011 · Interview Preparation</a></div>
-         <div class="da-row" data-k="STAR Method (Behavioral Interview) "><a href="012-star-method-behavioral-interview.html">012 · STAR Method (Behavioral Interview)</a></div>
-         <div class="da-row" data-k="Using AI (NotebookLM) for Interview Preparation "><a href="013-using-ai-notebooklm-for-interview-preparation.html">013 · Using AI (NotebookLM) for Interview Preparation</a></div>
-         <div class="da-row" data-k="Practicing Interviews with AI (Gemini Live) "><a href="014-practicing-interviews-with-ai-gemini-live.html">014 · Practicing Interviews with AI (Gemini Live)</a></div>
-         <div class="da-row" data-k="Post-Interview Strategy "><a href="015-post-interview-strategy.html">015 · Post-Interview Strategy</a></div>
+   * :doc:`011 · Interview Preparation — readying for interviews — research, practice, and knowing your material <011-interview-preparation>`
+   * :doc:`012 · STAR Method (Behavioral Interview) — a structure for behavioural answers — Situation, Task, Action, Result <012-star-method-behavioral-interview>`
+   * :doc:`013 · Using AI (NotebookLM) for Interview Preparation — using a source-grounded AI research tool to prepare from role and company material <013-using-ai-notebooklm-for-interview-preparation>`
+   * :doc:`014 · Practicing Interviews with AI (Gemini Live) — rehearsing interviews aloud in real-time voice conversation with an AI <014-practicing-interviews-with-ai-gemini-live>`
+   * :doc:`015 · Post-Interview Strategy — what to do after an interview — follow up, reflect, and handle the outcome <015-post-interview-strategy>`
 
 🔤 Every lesson, A–Z
 ---------------------
 
 .. dropdown:: 🔠 A–Z index
+   :animate: fade-in-slide-down
    :class-container: term-az
 
-   .. raw:: html
+   .. hlist::
+      :columns: 2
 
-         <div class="da-row" data-k="Building a Professional Online Presence (Personal Brand)"><a href="007-building-a-professional-online-presence-personal-brand.html">Building a Professional Online Presence (Personal Brand)</a></div>
-         <div class="da-row" data-k="Career Dreamer (AI Tool for Career Exploration)"><a href="003-career-dreamer-ai-tool-for-career-exploration.html">Career Dreamer (AI Tool for Career Exploration)</a></div>
-         <div class="da-row" data-k="Career Identity Statement"><a href="002-career-identity-statement.html">Career Identity Statement</a></div>
-         <div class="da-row" data-k="Choosing the Right Job Platforms"><a href="008-choosing-the-right-job-platforms.html">Choosing the Right Job Platforms</a></div>
-         <div class="da-row" data-k="Interview Preparation"><a href="011-interview-preparation.html">Interview Preparation</a></div>
-         <div class="da-row" data-k="Job Application Tracking (Using AI + Spreadsheets)"><a href="009-job-application-tracking-using-ai-spreadsheets.html">Job Application Tracking (Using AI + Spreadsheets)</a></div>
-         <div class="da-row" data-k="Job Search Plan (Using AI Tools)"><a href="004-job-search-plan-using-ai-tools.html">Job Search Plan (Using AI Tools)</a></div>
-         <div class="da-row" data-k="Networking for Job Search"><a href="010-networking-for-job-search.html">Networking for Job Search</a></div>
-         <div class="da-row" data-k="Post-Interview Strategy"><a href="015-post-interview-strategy.html">Post-Interview Strategy</a></div>
-         <div class="da-row" data-k="Practicing Interviews with AI (Gemini Live)"><a href="014-practicing-interviews-with-ai-gemini-live.html">Practicing Interviews with AI (Gemini Live)</a></div>
-         <div class="da-row" data-k="STAR Method (Behavioral Interview)"><a href="012-star-method-behavioral-interview.html">STAR Method (Behavioral Interview)</a></div>
-         <div class="da-row" data-k="Tailoring Your Resume"><a href="005-tailoring-your-resume.html">Tailoring Your Resume</a></div>
-         <div class="da-row" data-k="Transferable Skills"><a href="001-transferable-skills.html">Transferable Skills</a></div>
-         <div class="da-row" data-k="Using AI (NotebookLM) for Interview Preparation"><a href="013-using-ai-notebooklm-for-interview-preparation.html">Using AI (NotebookLM) for Interview Preparation</a></div>
-         <div class="da-row" data-k="Using AI to Improve and Tailor Your Resume"><a href="006-using-ai-to-improve-and-tailor-your-resume.html">Using AI to Improve and Tailor Your Resume</a></div>
+   * :doc:`Building a Professional Online Presence (Personal Brand) <007-building-a-professional-online-presence-personal-brand>`
+   * :doc:`Career Dreamer (AI Tool for Career Exploration) <003-career-dreamer-ai-tool-for-career-exploration>`
+   * :doc:`Career Identity Statement <002-career-identity-statement>`
+   * :doc:`Choosing the Right Job Platforms <008-choosing-the-right-job-platforms>`
+   * :doc:`Interview Preparation <011-interview-preparation>`
+   * :doc:`Job Application Tracking (Using AI + Spreadsheets) <009-job-application-tracking-using-ai-spreadsheets>`
+   * :doc:`Job Search Plan (Using AI Tools) <004-job-search-plan-using-ai-tools>`
+   * :doc:`Networking for Job Search <010-networking-for-job-search>`
+   * :doc:`Post-Interview Strategy <015-post-interview-strategy>`
+   * :doc:`Practicing Interviews with AI (Gemini Live) <014-practicing-interviews-with-ai-gemini-live>`
+   * :doc:`STAR Method (Behavioral Interview) <012-star-method-behavioral-interview>`
+   * :doc:`Tailoring Your Resume <005-tailoring-your-resume>`
+   * :doc:`Transferable Skills <001-transferable-skills>`
+   * :doc:`Using AI (NotebookLM) for Interview Preparation <013-using-ai-notebooklm-for-interview-preparation>`
+   * :doc:`Using AI to Improve and Tailor Your Resume <006-using-ai-to-improve-and-tailor-your-resume>`
+
+.. toctree::
+   :hidden:
+   :maxdepth: 1
+
+   001-transferable-skills
+   002-career-identity-statement
+   003-career-dreamer-ai-tool-for-career-exploration
+   004-job-search-plan-using-ai-tools
+   005-tailoring-your-resume
+   006-using-ai-to-improve-and-tailor-your-resume
+   007-building-a-professional-online-presence-personal-brand
+   008-choosing-the-right-job-platforms
+   009-job-application-tracking-using-ai-spreadsheets
+   010-networking-for-job-search
+   011-interview-preparation
+   012-star-method-behavioral-interview
+   013-using-ai-notebooklm-for-interview-preparation
+   014-practicing-interviews-with-ai-gemini-live
+   015-post-interview-strategy
+
+.. tags:: purpose: reference, topic: data analytics

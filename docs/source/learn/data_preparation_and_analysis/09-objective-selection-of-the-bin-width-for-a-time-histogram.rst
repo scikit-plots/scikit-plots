@@ -57,4 +57,4 @@ the rest of this course holds its methods to.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/ <https://insightful-data-lab.com/2026/01/14/objective-selection-of-the-bin-width-for-a-time-histogram/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: beginner
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: beginner

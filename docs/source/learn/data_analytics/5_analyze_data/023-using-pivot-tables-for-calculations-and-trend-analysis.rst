@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-023:
 .. _data-analytics-analyze-023:
 .. _da-foundations-analyze-023:
@@ -92,4 +101,4 @@ with filters and calculated fields for deeper analysis.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-pivot-tables-for-calculations-and-trend-analysis/ <https://insightful-data-lab.com/2023/11/26/using-pivot-tables-for-calculations-and-trend-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

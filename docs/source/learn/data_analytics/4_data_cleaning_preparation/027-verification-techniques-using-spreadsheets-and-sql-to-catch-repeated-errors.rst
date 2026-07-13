@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-027:
 .. _data-analytics-cleaning-027:
 .. _da-foundations-cleaning-027:
@@ -96,4 +105,4 @@ The final lesson of the stage covers documenting all of this.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors/ <https://insightful-data-lab.com/2023/11/01/verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

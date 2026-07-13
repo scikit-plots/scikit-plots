@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-023:
 .. _data-analytics-ddd-023:
 .. _da-foundations-ddd-023:
@@ -93,4 +102,4 @@ trade-off of all: speed against accuracy.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/managing-stakeholder-expectations-and-project-constraints/ <https://insightful-data-lab.com/2023/08/31/managing-stakeholder-expectations-and-project-constraints/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

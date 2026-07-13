@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-030:
 .. _data-analytics-cleaning-030:
 .. _da-foundations-cleaning-030:
@@ -102,4 +111,4 @@ data's quality to the analyst's own career.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/using-feedback-from-data-cleaning-to-improve-data-quality/ <https://insightful-data-lab.com/2023/11/01/using-feedback-from-data-cleaning-to-improve-data-quality/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

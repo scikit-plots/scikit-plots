@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-021:
 .. _data-analytics-ddd-021:
 .. _da-foundations-ddd-021:
@@ -91,4 +100,4 @@ matching them to different audiences.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/clear-communication-with-stakeholders-and-teams/ <https://insightful-data-lab.com/2023/08/31/clear-communication-with-stakeholders-and-teams/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

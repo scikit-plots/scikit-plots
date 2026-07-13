@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-010:
 .. _data-analytics-analyze-010:
 .. _da-foundations-analyze-010:
@@ -103,4 +112,4 @@ combine stage opens.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/working-with-strings-in-spreadsheets-len-left-right-find/ <https://insightful-data-lab.com/2023/11/26/working-with-strings-in-spreadsheets-len-left-right-find/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

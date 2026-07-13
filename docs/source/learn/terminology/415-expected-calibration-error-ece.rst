@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-expected-calibration-error-ece:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Expected Calibration Error (ECE)</b></div>`
@@ -67,4 +71,4 @@ trivial model can score low — so it is read with **reliability curves** and **
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Expected Calibration Error (ECE) <https://insightful-data-lab.com/2025/08/19/expected-calibration-error-ece/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

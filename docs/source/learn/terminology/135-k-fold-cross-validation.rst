@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-k-fold-cross-validation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>k-fold cross-validation</b></div>`
@@ -84,4 +88,4 @@ is **wrong for time series**, where time-aware CV is required instead.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `k-fold cross-validation <https://insightful-data-lab.com/2025/08/24/k-fold-cross-validation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

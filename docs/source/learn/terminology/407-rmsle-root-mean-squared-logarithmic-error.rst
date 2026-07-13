@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-rmsle-root-mean-squared-logarithmic-error:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>RMSLE (Root Mean Squared Logarithmic Error)</b></div>`
@@ -66,4 +70,4 @@ values, and its log scaling makes the raw number **less intuitive** than RMSE.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `RMSLE (Root Mean Squared Logarithmic Error) <https://insightful-data-lab.com/2025/08/19/rmsle-root-mean-squared-logarithmic-error/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

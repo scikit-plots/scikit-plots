@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sample-standard-deviation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Sample Standard Deviation</b></div>`
@@ -82,4 +86,4 @@ Where it shows up
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sample Standard Deviation <https://insightful-data-lab.com/2025/08/25/sample-standard-deviation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

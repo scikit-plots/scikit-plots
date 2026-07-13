@@ -82,4 +82,4 @@ them omniscient.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/ <https://insightful-data-lab.com/2025/11/10/implicit-assumptions-and-model-expansion-an-example/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-neural-networks:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Neural Networks</b></div>`
@@ -87,4 +91,4 @@ like **PyTorch**, **TensorFlow** and **Keras** implement backpropagation automat
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Neural Networks <https://insightful-data-lab.com/2025/08/21/neural-networks/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

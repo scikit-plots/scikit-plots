@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-interleaving-tests:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔎&nbsp;&nbsp;<b>Interleaving Tests</b></div>`
@@ -61,4 +65,4 @@ quality differences are subtle and A/B tests would need huge traffic to detect t
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Interleaving Tests <https://insightful-data-lab.com/2025/08/19/interleaving-tests/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

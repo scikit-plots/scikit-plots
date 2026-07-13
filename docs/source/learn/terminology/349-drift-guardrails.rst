@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-drift-guardrails:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Drift Guardrails</b></div>`
@@ -61,4 +65,4 @@ through a **registry** that re-evaluates it against production before it sees tr
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Drift Guardrails <https://insightful-data-lab.com/2025/08/20/drift-guardrails/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

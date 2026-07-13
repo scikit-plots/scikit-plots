@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-frozen-encoder:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Frozen Encoder</b></div>`
@@ -86,4 +90,4 @@ Where it's used
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Frozen Encoder <https://insightful-data-lab.com/2025/08/23/frozen-encoder/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

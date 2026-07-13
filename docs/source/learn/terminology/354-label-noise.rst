@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-label-noise:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Label Noise</b></div>`
@@ -71,4 +75,4 @@ always keep a **clean gold-standard evaluation set** with robust metrics like AU
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Label Noise <https://insightful-data-lab.com/2025/08/20/label-noise/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

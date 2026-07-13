@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-roc-auc-receiver-operating-characteristic-area-under-curve-auroc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC)</b></div>`
@@ -61,4 +65,4 @@ flooding a rare positive class with false alarms. There, **PR-AUC** is more hone
 
    **Source article** Adapted (context, re-expressed) in our own words from: `ROC-AUC (Receiver Operating Characteristic – Area Under Curve, = AUROC) <https://insightful-data-lab.com/2025/08/17/roc-auc-receiver-operating-characteristic-area-under-curve/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

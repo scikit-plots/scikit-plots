@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-017:
 .. _data-analytics-foundations-017:
 .. _da-foundations-foundations-017:
@@ -84,4 +93,4 @@ cheapest good idea in problem-solving; used as a ritual, it decorates guesses.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/root-cause-analysis-and-business-applications-of-the-five-whys/ <https://insightful-data-lab.com/2023/07/30/root-cause-analysis-and-business-applications-of-the-five-whys/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

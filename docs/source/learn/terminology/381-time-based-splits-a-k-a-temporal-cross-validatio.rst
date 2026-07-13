@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-time-based-splits-a-k-a-temporal-cross-validation-rolling-window-validation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation)</b></div>`
@@ -61,4 +65,4 @@ on. Look-ahead **features** must be avoided too.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Time-based splits (a.k.a. Temporal Cross-Validation, Rolling Window Validation) <https://insightful-data-lab.com/2025/08/19/time-based-splits-a-k-a-temporal-cross-validation-rolling-window-validation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

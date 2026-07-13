@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-001:
 .. _data-analytics-cleaning-001:
 .. _da-foundations-cleaning-001:
@@ -92,4 +101,4 @@ principle that keeps data clean over time: integrity.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/the-importance-of-clean-data/ <https://insightful-data-lab.com/2023/10/31/the-importance-of-clean-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

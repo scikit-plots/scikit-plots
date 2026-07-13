@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-viz-004:
 .. _data-analytics-viz-004:
 .. _da-foundations-viz-004:
@@ -95,4 +104,4 @@ adds real value. The next lessons turn to the visual design elements themselves.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity/ <https://insightful-data-lab.com/2023/11/26/static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, viz, principles
+.. tags:: purpose: reference, topic: data analytics, topic: viz, topic: principles

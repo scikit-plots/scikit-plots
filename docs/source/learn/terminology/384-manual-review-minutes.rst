@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-manual-review-minutes:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Manual review minutes</b></div>`
@@ -61,4 +65,4 @@ Fewer needless escalations means fewer review minutes, so **precision** and a we
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Manual review minutes <https://insightful-data-lab.com/2025/08/19/manual-review-minutes/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

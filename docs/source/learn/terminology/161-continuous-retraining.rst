@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-continuous-retraining:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Continuous Retraining</b></div>`
@@ -73,4 +77,4 @@ labels, no retraining), and guarding against **catastrophic forgetting** when ol
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Continuous Retraining <https://insightful-data-lab.com/2025/08/23/continuous-retraining/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

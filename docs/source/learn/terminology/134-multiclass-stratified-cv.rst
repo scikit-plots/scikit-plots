@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-multiclass-stratified-cv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Multiclass stratified CV</b></div>`
@@ -69,4 +73,4 @@ class-C performance). Stratification makes the evaluation **fair and stable**. I
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Multiclass stratified CV <https://insightful-data-lab.com/2025/08/24/multiclass-stratified-cv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

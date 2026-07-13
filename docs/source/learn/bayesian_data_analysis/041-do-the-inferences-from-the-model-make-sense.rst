@@ -69,4 +69,4 @@ result that merely *surprises* you may be the finding. The check is against what
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/ <https://insightful-data-lab.com/2025/11/10/do-the-inferences-from-the-model-make-sense/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

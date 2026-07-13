@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-pocock-method:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Pocock Method</b></div>`
@@ -76,4 +80,4 @@ end** (safety-critical medicine).
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Pocock Method <https://insightful-data-lab.com/2025/08/25/pocock-method/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

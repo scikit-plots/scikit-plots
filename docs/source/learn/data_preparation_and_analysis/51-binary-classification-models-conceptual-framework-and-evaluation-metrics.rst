@@ -60,4 +60,4 @@ exist. The choice of which count to minimise is where evaluation meets the **bus
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/ <https://insightful-data-lab.com/2026/01/16/binary-classification-models-conceptual-framework-and-evaluation-metrics/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

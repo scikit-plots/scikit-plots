@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-014:
 .. _data-analytics-prep-014:
 .. _da-foundations-prep-014:
@@ -95,4 +104,4 @@ lesson turns to the opposite impulse: data that *should* be open.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/data-privacy-in-data-ethics/ <https://insightful-data-lab.com/2023/09/04/data-privacy-in-data-ethics/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, bias_ethics
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: bias_ethics

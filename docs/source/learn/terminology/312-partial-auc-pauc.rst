@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-partial-auc-pauc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Partial AUC (pAUC)</b></div>`
@@ -63,4 +67,4 @@ use case.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Partial AUC (pAUC) <https://insightful-data-lab.com/2025/08/21/partial-auc-pauc/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

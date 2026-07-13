@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-viz-003:
 .. _data-analytics-viz-003:
 .. _da-foundations-viz-003:
@@ -93,4 +102,4 @@ static versus dynamic visualizations.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/creating-powerful-data-visualizations-focus-structure-and-analytical-purpose/ <https://insightful-data-lab.com/2023/11/26/creating-powerful-data-visualizations-focus-structure-and-analytical-purpose/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, viz, principles
+.. tags:: purpose: reference, topic: data analytics, topic: viz, topic: principles

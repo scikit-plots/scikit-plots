@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-gaussian-processes-gps:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Gaussian Processes (GPs)</b></div>`
@@ -103,4 +107,4 @@ with random weights *converges to a Gaussian process*.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Gaussian Processes (GPs) <https://insightful-data-lab.com/2025/08/29/gaussian-processes-gps/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

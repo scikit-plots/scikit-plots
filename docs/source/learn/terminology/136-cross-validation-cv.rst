@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cross-validation-cv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Cross-Validation (CV)</b></div>`
@@ -72,4 +76,4 @@ never shuffling a time series.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Cross-Validation (CV) <https://insightful-data-lab.com/2025/08/24/cross-validation-cv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

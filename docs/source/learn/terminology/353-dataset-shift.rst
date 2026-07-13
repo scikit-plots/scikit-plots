@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-dataset-shift:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Dataset Shift</b></div>`
@@ -71,4 +75,4 @@ diverse patients loses accuracy on another's younger, more diverse population.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Dataset Shift <https://insightful-data-lab.com/2025/08/20/dataset-shift/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

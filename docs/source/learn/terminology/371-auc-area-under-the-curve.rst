@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-auc-area-under-the-curve:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>AUC (Area Under the Curve)</b></div>`
@@ -61,4 +65,4 @@ imbalanced** data the **PR-AUC** often tells a more honest story, since ROC-AUC 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `AUC (Area Under the Curve) <https://insightful-data-lab.com/2025/08/20/auc-area-under-the-curve/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

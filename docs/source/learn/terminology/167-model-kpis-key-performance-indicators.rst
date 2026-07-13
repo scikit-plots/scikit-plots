@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-model-kpis-key-performance-indicators:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Model KPIs (Key Performance Indicators)</b></div>`
@@ -71,4 +75,4 @@ after the fact. A healthy dashboard watches both.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Model KPIs (Key Performance Indicators) <https://insightful-data-lab.com/2025/08/23/model-kpis-key-performance-indicators/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

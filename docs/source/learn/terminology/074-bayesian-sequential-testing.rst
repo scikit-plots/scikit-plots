@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-bayesian-sequential-testing:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Bayesian Sequential Testing</b></div>`
@@ -87,4 +91,4 @@ testing speaks in posteriors and Bayes factors and treats multiple looks as a no
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Bayesian Sequential Testing <https://insightful-data-lab.com/2025/08/25/bayesian-sequential-testing/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -61,7 +61,8 @@ Read it at any depth:
           style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
                  background:transparent;color:inherit"/>
-   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;min-height:1.2em;margin-top:0.35rem"></div>
+   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;
+        min-height:1.2em;margin-top:0.35rem"></div>
    </div>
    <script>
    document.addEventListener('DOMContentLoaded',function(){
@@ -703,4 +704,4 @@ Nonlinear & Nonparametric
    143-hierarchical-dependence
    144-density-regression
 
-.. tags:: purpose: reference, domain: bayesian
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian

@@ -75,4 +75,4 @@ is part of specifying the model.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/ <https://insightful-data-lab.com/2025/11/22/boundary-avoiding-priors-for-modal-summaries/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

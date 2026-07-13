@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-classifier-two-sample-tests-c2sts:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Classifier Two-Sample Tests (C2STs)</b></div>`
@@ -74,4 +78,4 @@ distinguishable — strong drift.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Classifier Two-Sample Tests (C2STs) <https://insightful-data-lab.com/2025/08/23/classifier-two-sample-tests-c2sts/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

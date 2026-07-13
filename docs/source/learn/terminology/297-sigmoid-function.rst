@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sigmoid-function:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Sigmoid Function</b></div>`
@@ -67,4 +71,4 @@ large :math:`|z|`), so ReLU-family activations are preferred there; sigmoid is k
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sigmoid Function <https://insightful-data-lab.com/2025/08/21/sigmoid-function/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-subsampling:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧪&nbsp;&nbsp;<b>Subsampling</b></div>`
@@ -131,4 +135,4 @@ How it relates to nearby terms
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Subsampling <https://insightful-data-lab.com/2025/08/30/subsampling/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

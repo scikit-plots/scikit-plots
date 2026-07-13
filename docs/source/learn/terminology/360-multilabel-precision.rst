@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-multilabel-precision:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">üìè&nbsp;&nbsp;<b>Multilabel Precision</b></div>`
@@ -61,4 +65,4 @@ be **partly** right (some labels correct, others missed). The averaging choice ‚
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Multilabel Precision <https://insightful-data-lab.com/2025/08/20/multilabel-precision/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

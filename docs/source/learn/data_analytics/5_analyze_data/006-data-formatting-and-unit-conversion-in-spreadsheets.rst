@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-006:
 .. _data-analytics-analyze-006:
 .. _da-foundations-analyze-006:
@@ -98,4 +107,4 @@ relabelled. The next lessons turn to *validating* data against rules.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/data-formatting-and-unit-conversion-in-spreadsheets/ <https://insightful-data-lab.com/2023/11/26/data-formatting-and-unit-conversion-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

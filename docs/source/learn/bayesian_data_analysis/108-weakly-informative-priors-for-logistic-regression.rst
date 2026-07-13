@@ -73,4 +73,4 @@ often exactly enough to turn an ill-posed problem into a well-behaved one.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/06/weakly-informative-priors-for-logistic-regression/ <https://insightful-data-lab.com/2025/12/06/weakly-informative-priors-for-logistic-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

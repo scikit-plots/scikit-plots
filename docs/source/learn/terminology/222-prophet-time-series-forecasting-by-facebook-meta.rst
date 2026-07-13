@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-prophet-time-series-forecasting-by-facebook-meta:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Prophet — Time Series Forecasting by Facebook (Meta)</b></div>`
@@ -86,4 +90,4 @@ In practice
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Prophet — Time Series Forecasting by Facebook (Meta) <https://insightful-data-lab.com/2025/08/23/prophet-time-series-forecasting-by-facebook-meta/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

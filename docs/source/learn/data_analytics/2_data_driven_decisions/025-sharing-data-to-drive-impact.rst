@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-025:
 .. _data-analytics-ddd-025:
 .. _da-foundations-ddd-025:
@@ -88,4 +97,4 @@ the evidence arrived. Impact in service of truth; never truth bent for impact.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/sharing-data-to-drive-impact/ <https://insightful-data-lab.com/2023/08/31/sharing-data-to-drive-impact/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

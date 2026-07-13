@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sample-mean:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Sample Mean</b></div>`
@@ -81,4 +85,4 @@ The sample mean is everywhere: **descriptive** summaries, **estimating** :math:`
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sample Mean <https://insightful-data-lab.com/2025/08/25/sample-mean/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

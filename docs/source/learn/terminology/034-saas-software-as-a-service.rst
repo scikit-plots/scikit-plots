@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-saas-software-as-a-service:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>SaaS (Software as a Service)</b></div>`
@@ -94,4 +98,4 @@ data rich and the modelling continuous.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `SaaS (Software as a Service) <https://insightful-data-lab.com/2025/08/29/saas-software-as-a-service/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

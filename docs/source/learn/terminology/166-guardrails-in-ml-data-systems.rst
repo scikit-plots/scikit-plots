@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-guardrails-in-ml-data-systems:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Guardrails (in ML &amp; Data Systems)</b></div>`
@@ -72,4 +76,4 @@ fast you go.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Guardrails (in ML & Data Systems) <https://insightful-data-lab.com/2025/08/23/guardrails-in-ml-data-systems/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-time-series:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Time Series</b></div>`
@@ -139,4 +143,4 @@ Worked example — decompose, then split by time
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Time Series <https://insightful-data-lab.com/2025/08/30/time-series/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

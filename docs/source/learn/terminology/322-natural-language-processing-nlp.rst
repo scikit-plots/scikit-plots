@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-natural-language-processing-nlp:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Natural Language Processing (NLP)</b></div>`
@@ -60,4 +64,4 @@ recipe reset the field and now underlies search, chatbots, and translation.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Natural Language Processing (NLP) <https://insightful-data-lab.com/2025/08/20/natural-language-processing-nlp/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-lime-local-interpretable-model-agnostic-explanations:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>LIME (Local Interpretable Model-agnostic Explanations)</b></div>`
@@ -93,4 +97,4 @@ In practice
 
    **Source article** Adapted (context, re-expressed) in our own words from: `LIME (Local Interpretable Model-agnostic Explanations) <https://insightful-data-lab.com/2025/08/20/lime-local-interpretable-model-agnostic-explanations/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

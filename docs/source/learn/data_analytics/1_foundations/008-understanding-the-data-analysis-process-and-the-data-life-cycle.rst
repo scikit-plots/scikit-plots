@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-008:
 .. _data-analytics-foundations-008:
 .. _da-foundations-foundations-008:
@@ -89,4 +98,4 @@ detective work about where a given dataset really is on it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-analysis-process-and-the-data-life-cycle/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-analysis-process-and-the-data-life-cycle/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

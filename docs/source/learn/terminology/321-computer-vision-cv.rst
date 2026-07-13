@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-computer-vision-cv:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Computer Vision (CV)</b></div>`
@@ -62,4 +66,4 @@ semi-supervised alternatives. It powers medical imaging, autonomous driving, and
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Computer Vision (CV) <https://insightful-data-lab.com/2025/08/20/computer-vision-cv/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

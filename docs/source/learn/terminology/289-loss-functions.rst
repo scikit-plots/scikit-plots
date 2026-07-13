@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-loss-functions:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Loss Functions</b></div>`
@@ -61,4 +65,4 @@ and aligns with the real objective.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Loss Functions <https://insightful-data-lab.com/2025/08/21/loss-functions/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

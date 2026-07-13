@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-recalibrate-thresholds:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Recalibrate Thresholds</b></div>`
@@ -73,4 +77,4 @@ that adapt automatically to recent performance.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Recalibrate Thresholds <https://insightful-data-lab.com/2025/08/23/recalibrate-thresholds/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

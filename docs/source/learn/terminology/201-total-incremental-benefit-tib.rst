@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-total-incremental-benefit-tib:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Total Incremental Benefit (TIB)</b></div>`
@@ -78,4 +82,4 @@ it reflects the true added impact rather than gross outcomes.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Total Incremental Benefit (TIB) <https://insightful-data-lab.com/2025/08/23/total-incremental-benefit-tib/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

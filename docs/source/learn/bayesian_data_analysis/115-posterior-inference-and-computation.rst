@@ -76,4 +76,4 @@ whole apparatus to work on a familiar dataset.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/ <https://insightful-data-lab.com/2025/12/07/posterior-inference-and-computation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

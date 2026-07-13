@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-002:
 .. _data-analytics-cleaning-002:
 .. _da-foundations-cleaning-002:
@@ -98,4 +107,4 @@ enough of it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/data-integrity-and-its-risks-in-data-analysis/ <https://insightful-data-lab.com/2023/10/31/data-integrity-and-its-risks-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-clopperpearson-interval:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Clopper–Pearson Interval</b></div>`
@@ -61,4 +65,4 @@ methods, best reserved for **very small samples** or when guaranteed coverage is
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Clopper–Pearson Interval <https://insightful-data-lab.com/2025/08/20/clopper-pearson-interval/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

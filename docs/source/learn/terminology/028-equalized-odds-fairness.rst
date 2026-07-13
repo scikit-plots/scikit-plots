@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-equalized-odds-fairness:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Equalized Odds (Fairness)</b></div>`
@@ -92,4 +96,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Equalized Odds (Fairness) <https://insightful-data-lab.com/2025/08/29/equalized-odds-fairness/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

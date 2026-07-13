@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-dominating-in-recommender-systems:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Dominating in Recommender Systems</b></div>`
@@ -66,4 +70,4 @@ everyone's lists, crowding out the long tail and harming exposure fairness.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Dominating in Recommender Systems <https://insightful-data-lab.com/2025/08/22/dominating-in-recommender-systems/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

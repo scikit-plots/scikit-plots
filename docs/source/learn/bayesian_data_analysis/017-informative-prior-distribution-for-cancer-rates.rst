@@ -69,4 +69,4 @@ prior rate :math:`\alpha/\beta` should really be **estimated from the counties t
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/ <https://insightful-data-lab.com/2025/11/09/informative-prior-distribution-for-cancer-rates/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

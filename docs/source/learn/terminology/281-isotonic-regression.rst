@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-isotonic-regression:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Isotonic Regression</b></div>`
@@ -61,4 +65,4 @@ accuracy is preserved.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Isotonic Regression <https://insightful-data-lab.com/2025/08/21/isotonic-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

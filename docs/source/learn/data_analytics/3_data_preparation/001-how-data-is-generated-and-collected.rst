@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-001:
 .. _data-analytics-prep-001:
 .. _da-foundations-prep-001:
@@ -96,4 +105,4 @@ a question actually needs.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/how-data-is-generated-and-collected/ <https://insightful-data-lab.com/2023/09/04/how-data-is-generated-and-collected/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

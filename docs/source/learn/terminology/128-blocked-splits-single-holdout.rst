@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-blocked-splits-single-holdout:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Blocked Splits (Single Holdout)</b></div>`
@@ -71,4 +75,4 @@ estimate.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Blocked Splits (Single Holdout) <https://insightful-data-lab.com/2025/08/24/blocked-splits-single-holdout/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

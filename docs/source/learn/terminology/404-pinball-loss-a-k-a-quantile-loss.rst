@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-pinball-loss-a-k-a-quantile-loss:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Pinball Loss (a.k.a. Quantile Loss)</b></div>`
@@ -67,4 +71,4 @@ points, without assuming any distribution. A caveat: fitting several quantiles i
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Pinball Loss (a.k.a. Quantile Loss) <https://insightful-data-lab.com/2025/08/19/pinball-loss-a-k-a-quantile-loss/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

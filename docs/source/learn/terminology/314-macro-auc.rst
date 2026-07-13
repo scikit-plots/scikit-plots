@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-macro-auc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Macro AUC</b></div>`
@@ -60,4 +64,4 @@ performance to show), while **micro** (or a **weighted** macro) better reflects 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Macro AUC <https://insightful-data-lab.com/2025/08/21/macro-auc/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

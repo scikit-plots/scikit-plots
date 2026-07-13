@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-probabilistic-forecasts:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Probabilistic Forecasts</b></div>`
@@ -62,4 +66,4 @@ spreads flag where more flexibility or hedging is needed. A point estimate alone
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Probabilistic Forecasts <https://insightful-data-lab.com/2025/08/22/probabilistic-forecasts/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

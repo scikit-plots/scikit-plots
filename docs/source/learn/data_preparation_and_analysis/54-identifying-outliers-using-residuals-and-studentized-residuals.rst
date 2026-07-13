@@ -68,4 +68,4 @@ diagnostics evaluate the *model* as much as the points.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/ <https://insightful-data-lab.com/2026/01/16/identifying-outliers-using-residuals-and-studentized-residuals/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

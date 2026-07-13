@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-thompson-sampling-ts-in-bandits-multi-armed-bandit-problem-mab:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB))</b></div>`
@@ -132,4 +136,4 @@ rather than confidence bounds.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Thompson Sampling (TS) in Bandits (Multi-Armed Bandit Problem (MAB)) <https://insightful-data-lab.com/2025/08/29/thompson-sampling-ts-in-bandits/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

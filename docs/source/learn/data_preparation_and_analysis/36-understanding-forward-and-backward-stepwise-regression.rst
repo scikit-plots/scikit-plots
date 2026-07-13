@@ -55,4 +55,4 @@ of these pitfalls.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/ <https://insightful-data-lab.com/2026/01/16/understanding-forward-and-backward-stepwise-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: intermediate

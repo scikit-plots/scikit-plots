@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-critical-value:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Critical Value</b></div>`
@@ -87,4 +91,4 @@ At :math:`\alpha = 0.05` two-tailed the critical value is :math:`\pm 1.96`; sinc
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Critical Value <https://insightful-data-lab.com/2025/08/25/critical-value/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

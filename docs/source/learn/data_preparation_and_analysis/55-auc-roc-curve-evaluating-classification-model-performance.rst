@@ -58,4 +58,4 @@ will ever be acted on, use the **lift** analysis of the final lesson.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/auc-roc-curve-evaluating-classification-model-performance/ <https://insightful-data-lab.com/2026/01/16/auc-roc-curve-evaluating-classification-model-performance/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

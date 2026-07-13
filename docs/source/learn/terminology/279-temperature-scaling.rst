@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-temperature-scaling:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Temperature Scaling</b></div>`
@@ -67,4 +71,4 @@ never changes the **argmax**, so the decision boundary and accuracy are untouche
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Temperature Scaling <https://insightful-data-lab.com/2025/08/21/temperature-scaling/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

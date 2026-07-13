@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-017:
 .. _data-analytics-ddd-017:
 .. _da-foundations-ddd-017:
@@ -91,4 +100,4 @@ people around it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/defining-the-problem-domain/ <https://insightful-data-lab.com/2023/08/31/defining-the-problem-domain/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

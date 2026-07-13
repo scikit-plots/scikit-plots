@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-kyc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>KYC</b></div>`
@@ -72,4 +76,4 @@ fraud-detection machinery used across finance.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `KYC <https://insightful-data-lab.com/2025/08/24/kyc/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

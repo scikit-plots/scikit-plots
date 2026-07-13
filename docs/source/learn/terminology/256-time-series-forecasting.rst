@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-time-series-forecasting:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Time Series Forecasting</b></div>`
@@ -63,4 +67,4 @@ publishing **intervals**, not just points.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Time Series Forecasting <https://insightful-data-lab.com/2025/08/22/time-series-forecasting/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

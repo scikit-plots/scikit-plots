@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-crew-overtime:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Crew Overtime</b></div>`
@@ -61,4 +65,4 @@ scheduling shrink it — a direct link between prediction quality and operating 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Crew Overtime <https://insightful-data-lab.com/2025/08/19/crew-overtime/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

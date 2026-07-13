@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-009:
 .. _data-analytics-analyze-009:
 .. _da-foundations-analyze-009:
@@ -97,4 +106,4 @@ toolkit in spreadsheets.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-concat-in-sql-to-combine-text-from-multiple-columns/ <https://insightful-data-lab.com/2023/11/26/using-concat-in-sql-to-combine-text-from-multiple-columns/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

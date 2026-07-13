@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-008:
 .. _data-analytics-ddd-008:
 .. _da-foundations-ddd-008:
@@ -84,4 +93,4 @@ one moves strangely. The next lesson is about exactly that dashboard.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/the-difference-between-data-and-metrics-and-the-role-of-metrics/ <https://insightful-data-lab.com/2023/08/31/the-difference-between-data-and-metrics-and-the-role-of-metrics/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, metrics
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: metrics

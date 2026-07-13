@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-025:
 .. _data-analytics-prep-025:
 .. _da-foundations-prep-025:
@@ -99,4 +108,4 @@ and the next section confronts the reality that it is almost never clean.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/15236/ <https://insightful-data-lab.com/2023/09/04/15236/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

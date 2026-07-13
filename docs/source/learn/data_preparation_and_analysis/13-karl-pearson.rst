@@ -51,4 +51,4 @@ was built to serve was harmful. The tools outlived the purpose.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/karl-pearson/ <https://insightful-data-lab.com/2026/01/14/karl-pearson/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: beginner
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: beginner

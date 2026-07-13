@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-long-lead-times:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Long Lead Times</b></div>`
@@ -67,4 +71,4 @@ disruptions.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Long Lead Times <https://insightful-data-lab.com/2025/08/23/long-lead-times/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

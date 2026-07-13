@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-006:
 .. _data-analytics-cleaning-006:
 .. _da-foundations-cleaning-006:
@@ -95,4 +104,4 @@ sample size directly to data integrity.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/statistical-power-in-data-analysis/ <https://insightful-data-lab.com/2023/10/31/statistical-power-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

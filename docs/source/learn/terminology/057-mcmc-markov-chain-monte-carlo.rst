@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-mcmc-markov-chain-monte-carlo:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>MCMC (Markov Chain Monte Carlo)</b></div>`
@@ -109,4 +113,4 @@ exact but slower; VI is faster but approximate.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `MCMC (Markov Chain Monte Carlo) <https://insightful-data-lab.com/2025/08/28/mcmc-markov-chain-monte-carlo/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

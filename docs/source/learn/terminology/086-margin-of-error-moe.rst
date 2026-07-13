@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-margin-of-error-moe:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Margin of Error (MoE)</b></div>`
@@ -87,4 +91,4 @@ declare a difference; if it **includes** the null, uncertainty swamps the effect
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Margin of Error (MoE) <https://insightful-data-lab.com/2025/08/25/margin-of-error-moe/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

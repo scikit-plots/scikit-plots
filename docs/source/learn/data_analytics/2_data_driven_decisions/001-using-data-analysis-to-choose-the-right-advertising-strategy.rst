@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-001:
 .. _data-analytics-ddd-001:
 .. _da-foundations-ddd-001:
@@ -77,4 +86,4 @@ that unlock them.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/01/using-data-analysis-to-choose-the-right-advertising-strategy/ <https://insightful-data-lab.com/2023/08/01/using-data-analysis-to-choose-the-right-advertising-strategy/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, framing
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: framing

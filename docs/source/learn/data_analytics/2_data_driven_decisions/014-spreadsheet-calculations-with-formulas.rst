@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-014:
 .. _data-analytics-ddd-014:
 .. _da-foundations-ddd-014:
@@ -89,4 +98,4 @@ wrong, and why.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/spreadsheet-calculations-with-formulas/ <https://insightful-data-lab.com/2023/08/31/spreadsheet-calculations-with-formulas/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, spreadsheets
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: spreadsheets

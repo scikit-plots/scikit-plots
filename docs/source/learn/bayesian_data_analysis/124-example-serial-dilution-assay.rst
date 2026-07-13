@@ -75,4 +75,4 @@ splines, Gaussian processes and models with no fixed functional form at all.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/ <https://insightful-data-lab.com/2025/12/09/example-serial-dilution-assay/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

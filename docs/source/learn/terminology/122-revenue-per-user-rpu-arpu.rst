@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-revenue-per-user-rpu-arpu:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Revenue per User (RPU / ARPU)</b></div>`
@@ -83,4 +87,4 @@ CLV** to judge whether the business is actually healthy.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Revenue per User (RPU / ARPU) <https://insightful-data-lab.com/2025/08/24/revenue-per-user-rpu-arpu/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

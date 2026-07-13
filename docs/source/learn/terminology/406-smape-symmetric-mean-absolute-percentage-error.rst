@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-smape-symmetric-mean-absolute-percentage-error:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>sMAPE (Symmetric Mean Absolute Percentage Error)</b></div>`
@@ -66,4 +70,4 @@ but avoid it on **intermittent** or zero-heavy demand, where **MASE** is the saf
 
    **Source article** Adapted (context, re-expressed) in our own words from: `sMAPE (Symmetric Mean Absolute Percentage Error) <https://insightful-data-lab.com/2025/08/19/smape-symmetric-mean-absolute-percentage-error/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

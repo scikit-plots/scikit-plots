@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cohort-based-ltv-simple-version:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Cohort-Based LTV (Simple Version)</b></div>`
@@ -92,4 +96,4 @@ whether **retention is improving or worsening** over time.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Cohort-Based LTV (Simple Version) <https://insightful-data-lab.com/2025/08/29/cohort-based-ltv-simple-version/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

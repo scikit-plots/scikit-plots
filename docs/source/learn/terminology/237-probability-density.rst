@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-probability-density:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Probability Density</b></div>`
@@ -68,4 +72,4 @@ so equivalently :math:`F` is the running integral of :math:`f`.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Probability Density <https://insightful-data-lab.com/2025/08/22/probability-density/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

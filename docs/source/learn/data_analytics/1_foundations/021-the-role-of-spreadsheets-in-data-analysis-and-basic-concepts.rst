@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-021:
 .. _data-analytics-foundations-021:
 .. _da-foundations-foundations-021:
@@ -83,4 +92,4 @@ this reason. The scaling limit is what SQL, next, exists to remove.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/the-role-of-spreadsheets-in-data-analysis-and-basic-concepts/ <https://insightful-data-lab.com/2023/07/30/the-role-of-spreadsheets-in-data-analysis-and-basic-concepts/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, tools
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: tools

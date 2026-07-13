@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sli-service-level-indicator:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>SLI (Service Level Indicator)</b></div>`
@@ -70,4 +74,4 @@ improve**, and form the measurable **foundation** of every SLO and SLA.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `SLI (Service Level Indicator) <https://insightful-data-lab.com/2025/08/23/sli-service-level-indicator/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

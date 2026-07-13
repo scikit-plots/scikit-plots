@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-macro-auroc-macro-averaged-auroc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Macro AUROC (Macro-Averaged AUROC)</b></div>`
@@ -99,4 +103,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Macro AUROC (Macro-Averaged AUROC) <https://insightful-data-lab.com/2025/08/30/macro-auroc/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

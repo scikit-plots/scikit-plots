@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-011:
 .. _data-analytics-prep-011:
 .. _da-foundations-prep-011:
@@ -94,4 +103,4 @@ reverse, to recognise the sources you should *not* trust.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/identifying-good-data-sources-roccc-framework/ <https://insightful-data-lab.com/2023/09/04/identifying-good-data-sources-roccc-framework/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, bias_ethics
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: bias_ethics

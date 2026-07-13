@@ -75,4 +75,4 @@ nothing but a known probability, guaranteeing ignorability **by design** rather 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/ <https://insightful-data-lab.com/2025/11/11/data-collection-models-and-ignorability/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

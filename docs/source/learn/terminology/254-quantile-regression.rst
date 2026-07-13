@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-quantile-regression:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Quantile Regression</b></div>`
@@ -81,4 +85,4 @@ models, and quantile random forests.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Quantile Regression <https://insightful-data-lab.com/2025/08/22/quantile-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

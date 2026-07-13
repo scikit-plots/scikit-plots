@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-probability-distribution:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Probability Distribution</b></div>`
@@ -64,4 +68,4 @@ include the **normal**, **Bernoulli / binomial**, **Poisson** and **exponential*
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Probability Distribution <https://insightful-data-lab.com/2025/08/22/probability-distributions/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

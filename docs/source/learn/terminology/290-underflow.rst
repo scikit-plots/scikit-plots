@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-underflow:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Underflow</b></div>`
@@ -62,4 +66,4 @@ the **LogSumExp** trick, and why scikit-learn's Naive Bayes works with logs inte
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Underflow <https://insightful-data-lab.com/2025/08/21/underflow/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-feature-values:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Feature Values</b></div>`
@@ -75,4 +79,4 @@ everything downstream, **data quality**, **scaling** (so no variable dominates),
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Feature Values <https://insightful-data-lab.com/2025/08/23/feature-values/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

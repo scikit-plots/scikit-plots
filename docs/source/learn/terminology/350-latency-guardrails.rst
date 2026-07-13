@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-latency-guardrails:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Latency Guardrails</b></div>`
@@ -61,4 +65,4 @@ scoring, more for heavier recommendations — and the system is **designed and s
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Latency Guardrails <https://insightful-data-lab.com/2025/08/20/latency-guardrails/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

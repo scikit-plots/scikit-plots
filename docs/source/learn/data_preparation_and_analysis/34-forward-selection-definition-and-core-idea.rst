@@ -51,4 +51,4 @@ selection trades that guarantee for speed and simplicity; the next lessons apply
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/ <https://insightful-data-lab.com/2026/01/16/forward-selection-definition-and-core-idea/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: intermediate

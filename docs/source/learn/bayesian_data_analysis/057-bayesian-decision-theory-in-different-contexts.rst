@@ -68,4 +68,4 @@ all — **whose** utility, the individual's or the institution's, since the two 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/11/bayesian-decision-theory-in-di%ef%ac%80erent-contexts/ <https://insightful-data-lab.com/2025/11/11/bayesian-decision-theory-in-di%ef%ac%80erent-contexts/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

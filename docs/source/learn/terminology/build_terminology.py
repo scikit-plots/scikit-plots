@@ -666,6 +666,7 @@ def load_inventory() -> list[tuple[str, str]]:
 # ----------------------------------------------------------------------
 PAGES_DIR = HERE                        # NNN-*.rst pages are siblings of this script
 RAW_HTML = ".. role:: raw-html(raw)\n   :format: html"
+BR_HTML = ".. |br| raw:: html\n\n   <br/>"
 LEVEL_WORD = {"foundations": "beginner", "applied": "intermediate", "advanced": "advanced"}
 
 
@@ -780,6 +781,8 @@ def main() -> int:
         a("")
         a(RAW_HTML)
         a("")
+        a(BR_HTML)
+        a("")
 
         a(f".. _{anchor[t]}:")
         a("")
@@ -849,7 +852,7 @@ def main() -> int:
         a("")
 
         # tags
-        a(f".. tags:: purpose: reference, level: {LEVEL_WORD[lvl]}")
+        a(f".. tags:: purpose: reference, topic: terminology, level: {LEVEL_WORD[lvl]}")
         a("")
         (PAGES_DIR / f"{docname[t]}.rst").write_text("\n".join(L), encoding="utf-8")
 
@@ -863,6 +866,8 @@ def main() -> int:
     w("   GENERATED FILE - do not edit by hand. Regenerate: python build_terminology.py")
     w("")
     w(RAW_HTML)
+    w("")
+    w(BR_HTML)
     w("")
     w(".. _terminology-index:")
     w("")
@@ -886,6 +891,8 @@ def main() -> int:
     # ---- live filter: type-to-search across every term (progressive JS) ----
     # Static, dependency-free, deterministic. Without JS the page degrades
     # gracefully to plain collapsible dropdowns.
+    # ---- v2 hub: live filter + collapsed stage dropdowns + A-Z --------
+    # Same pattern/classes as learn/terminology (details.sd-dropdown, .term-az)
     n_terms = len(inv_titles)
     w(".. raw:: html")
     w("")
@@ -977,6 +984,8 @@ def main() -> int:
     for k in THEME_ORDER:
         for s in by_theme[k]:
             w(f"   {docname[s]}")
+    w("")
+    w(".. tags:: purpose: reference, topic: terminology")
     w("")
     OUT.write_text("\n".join(I), encoding="utf-8")
 

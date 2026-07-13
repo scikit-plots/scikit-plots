@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-031:
 .. _data-analytics-cleaning-031:
 .. _da-foundations-cleaning-031:
@@ -94,4 +103,4 @@ resumes are sent.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/refining-a-resume-for-data-analytics-roles/ <https://insightful-data-lab.com/2023/11/01/refining-a-resume-for-data-analytics-roles/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-aws-sagemaker-endpoints:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>AWS SageMaker Endpoints</b></div>`
@@ -81,4 +85,4 @@ critical.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `AWS SageMaker Endpoints <https://insightful-data-lab.com/2025/08/24/aws-sagemaker-endpoints/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

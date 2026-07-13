@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-prediction-intervals-pi:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Prediction Intervals (PI)</b></div>`
@@ -66,4 +70,4 @@ Calibrating them
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Prediction Intervals (PI) <https://insightful-data-lab.com/2025/08/22/prediction-intervals-pi/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

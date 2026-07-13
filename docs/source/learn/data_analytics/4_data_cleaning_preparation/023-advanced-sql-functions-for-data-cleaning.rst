@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-023:
 .. _data-analytics-cleaning-023:
 .. _da-foundations-cleaning-023:
@@ -110,4 +119,4 @@ for missing values: ``COALESCE``.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/advanced-sql-functions-for-data-cleaning/ <https://insightful-data-lab.com/2023/11/01/advanced-sql-functions-for-data-cleaning/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

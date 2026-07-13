@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-020:
 .. _data-analytics-analyze-020:
 .. _da-foundations-analyze-020:
@@ -97,4 +106,4 @@ artefact. The next lessons add conditional aggregation to the calculation toolki
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-spreadsheet-formulas-for-sales-trend-analysis/ <https://insightful-data-lab.com/2023/11/26/using-spreadsheet-formulas-for-sales-trend-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-018:
 .. _data-analytics-prep-018:
 .. _da-foundations-prep-018:
@@ -97,4 +106,4 @@ bringing it into the tools where analysis happens.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/metadata-repositories-and-data-governance/ <https://insightful-data-lab.com/2023/09/04/metadata-repositories-and-data-governance/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, sources
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: sources

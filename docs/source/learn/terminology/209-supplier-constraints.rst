@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-supplier-constraints:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Supplier Constraints</b></div>`
@@ -61,4 +65,4 @@ Diversification and buffers absorb the rest.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Supplier Constraints <https://insightful-data-lab.com/2025/08/23/supplier-constraints/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

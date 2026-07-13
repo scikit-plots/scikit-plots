@@ -356,7 +356,7 @@ def main() -> int:
         a("")
 
         # tags
-        a(f".. tags:: purpose: reference, topic: data preparation, level: {level}")
+        a(f".. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: {level}")
         a("")
 
         (PAGES_DIR / f"{docname[title]}.rst").write_text("\n".join(L), encoding="utf-8")
@@ -416,6 +416,9 @@ def main() -> int:
     w(SUB.replace("-", "="))   # a visual transition rule (== line, blank-separated)
     w("")
 
+    # ---- live filter: type-to-search across every term (progressive JS) ----
+    # Static, dependency-free, deterministic. Without JS the page degrades
+    # gracefully to plain collapsible dropdowns.
     # ---- v2 hub: live filter + collapsed stage dropdowns + A-Z --------
     # Same pattern/classes as learn/terminology (details.sd-dropdown, .term-az)
     n_items = len(titles)
@@ -494,7 +497,7 @@ def main() -> int:
     for t in titles:
         w(f"   {docname[t]}")
     w("")
-    w(".. tags:: purpose: reference, topic: data preparation")
+    w(".. tags:: purpose: reference, topic: data analysis, topic: data preparation")
     w("")
 
     OUT.write_text("\n".join(I), encoding="utf-8")

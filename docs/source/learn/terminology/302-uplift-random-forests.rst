@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-uplift-random-forests:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Uplift Random Forests</b></div>`
@@ -76,4 +80,4 @@ probability caused by the email — separating loyal always-signers (low uplift)
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Uplift Random Forests <https://insightful-data-lab.com/2025/08/21/uplift-random-forests/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-012:
 .. _data-analytics-foundations-012:
 .. _da-foundations-foundations-012:
@@ -89,4 +98,4 @@ attached**, which is what makes the loop a loop.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/practical-application-of-the-data-analysis-process/ <https://insightful-data-lab.com/2023/07/30/practical-application-of-the-data-analysis-process/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

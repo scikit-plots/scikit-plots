@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-quantization:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Quantization</b></div>`
@@ -62,4 +66,4 @@ weights to reach near-FP16 quality at INT4 speeds.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Quantization <https://insightful-data-lab.com/2025/08/20/quantization/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

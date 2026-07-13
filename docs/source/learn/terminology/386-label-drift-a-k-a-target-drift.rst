@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-label-drift-a-k-a-target-drift:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Label Drift (a.k.a. Target Drift)</b></div>`
@@ -63,4 +67,4 @@ resampling to the current mix, and **retraining** on recent labels.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Label Drift (a.k.a. Target Drift) <https://insightful-data-lab.com/2025/08/19/label-drift-a-k-a-target-drift/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

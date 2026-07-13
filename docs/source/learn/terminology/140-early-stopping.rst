@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-early-stopping:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Early Stopping</b></div>`
@@ -71,4 +75,4 @@ it too soon — which is exactly what **patience** is there to absorb.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Early Stopping <https://insightful-data-lab.com/2025/08/24/early-stopping/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

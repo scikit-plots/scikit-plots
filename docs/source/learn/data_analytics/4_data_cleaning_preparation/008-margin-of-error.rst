@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-008:
 .. _data-analytics-cleaning-008:
 .. _da-foundations-cleaning-008:
@@ -97,4 +106,4 @@ and how to clean it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/margin-of-error/ <https://insightful-data-lab.com/2023/10/31/margin-of-error/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

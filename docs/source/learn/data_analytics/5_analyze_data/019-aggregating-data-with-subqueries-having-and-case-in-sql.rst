@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-019:
 .. _data-analytics-analyze-019:
 .. _da-foundations-analyze-019:
@@ -120,4 +129,4 @@ trend analysis, in spreadsheets and SQL.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/aggregating-data-with-subqueries-having-and-case-in-sql/ <https://insightful-data-lab.com/2023/11/26/aggregating-data-with-subqueries-having-and-case-in-sql/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, combine
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: combine

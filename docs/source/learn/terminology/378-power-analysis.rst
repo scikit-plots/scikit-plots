@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-power-analysis:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Power Analysis</b></div>`
@@ -61,4 +65,4 @@ realistically have detected — and warns against over-reading a **non-significa
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Power Analysis <https://insightful-data-lab.com/2025/08/19/power-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

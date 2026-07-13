@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-005:
 .. _data-analytics-foundations-005:
 .. _da-foundations-foundations-005:
@@ -84,4 +93,4 @@ that follows has an obvious home.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/the-six-phases-of-the-data-analysis-process/ <https://insightful-data-lab.com/2023/07/30/the-six-phases-of-the-data-analysis-process/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

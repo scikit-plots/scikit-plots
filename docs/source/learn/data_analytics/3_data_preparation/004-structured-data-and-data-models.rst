@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-004:
 .. _data-analytics-prep-004:
 .. _da-foundations-prep-004:
@@ -94,4 +103,4 @@ broad kinds down to the concrete shapes data takes in spreadsheets and tables.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/structured-data-and-data-models/ <https://insightful-data-lab.com/2023/09/04/structured-data-and-data-models/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

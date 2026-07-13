@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sliding-window-rolling-window-cross-validation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Sliding Window (Rolling Window) Cross-Validation</b></div>`
@@ -76,4 +80,4 @@ never grows without limit). The cost: it can **forget useful long-run history**,
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sliding Window (Rolling Window) Cross-Validation <https://insightful-data-lab.com/2025/08/24/sliding-window-rolling-window-cross-validation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

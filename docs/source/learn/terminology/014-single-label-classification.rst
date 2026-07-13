@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-single-label-classification:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Single-label Classification</b></div>`
@@ -94,4 +98,4 @@ Pitfalls and edge cases
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Single-label Classification <https://insightful-data-lab.com/2025/08/30/single-label-classification/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

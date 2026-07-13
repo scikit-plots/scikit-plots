@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-005:
 .. _data-analytics-cleaning-005:
 .. _da-foundations-cleaning-005:
@@ -93,4 +102,4 @@ power to detect a real effect.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/population-sample-size-and-random-sampling/ <https://insightful-data-lab.com/2023/10/31/population-sample-size-and-random-sampling/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

@@ -65,4 +65,4 @@ heterogeneous surveys combined into one coherent picture, with missingness model
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/ <https://insightful-data-lab.com/2025/12/07/example-multiple-imputation-for-a-series-of-polls/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

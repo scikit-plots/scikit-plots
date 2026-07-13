@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-003:
 .. _data-analytics-foundations-003:
 .. _da-foundations-foundations-003:
@@ -92,4 +101,4 @@ not the only one.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/data-driven-decision-making/ <https://insightful-data-lab.com/2023/07/30/data-driven-decision-making/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, why
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: why

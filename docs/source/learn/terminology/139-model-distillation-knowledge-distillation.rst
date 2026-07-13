@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-model-distillation-knowledge-distillation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Model Distillation (Knowledge Distillation)</b></div>`
@@ -76,4 +80,4 @@ similar accuracy. The catches: the student **cannot capture everything**, :math:
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Model Distillation (Knowledge Distillation) <https://insightful-data-lab.com/2025/08/24/model-distillation-knowledge-distillation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

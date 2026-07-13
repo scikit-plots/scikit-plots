@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-demographic-parity-statistical-parity:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Demographic Parity (Statistical Parity)</b></div>`
@@ -104,4 +108,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Demographic Parity (Statistical Parity) <https://insightful-data-lab.com/2025/08/29/demographic-parity-statistical-parity/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

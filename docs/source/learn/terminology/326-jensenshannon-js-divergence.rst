@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-jensenshannon-js-divergence:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Jensen–Shannon (JS) Divergence</b></div>`
@@ -66,4 +70,4 @@ symmetric, bounded score is wanted.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Jensen–Shannon (JS) Divergence <https://insightful-data-lab.com/2025/08/20/jensen-shannon-js-divergence/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -133,6 +133,7 @@ Read it at any depth:
 ---------------------
 
 .. dropdown:: Open the full alphabetical index
+   :animate: fade-in-slide-down
    :class-container: term-az
 
    .. hlist::

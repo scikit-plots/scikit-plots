@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-021:
 .. _data-analytics-analyze-021:
 .. _da-foundations-analyze-021:
@@ -100,4 +109,4 @@ error. The next lesson covers a more advanced calculation function: SUMPRODUCT.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets/ <https://insightful-data-lab.com/2023/11/26/using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, calc
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: calc

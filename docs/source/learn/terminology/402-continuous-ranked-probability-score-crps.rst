@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-continuous-ranked-probability-score-crps:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Continuous Ranked Probability Score (CRPS)</b></div>`
@@ -67,4 +71,4 @@ MAE**. So CRPS is literally MAE **generalized** to distributions — the natural
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Continuous Ranked Probability Score (CRPS) <https://insightful-data-lab.com/2025/08/19/continuous-ranked-probability-score-crps/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

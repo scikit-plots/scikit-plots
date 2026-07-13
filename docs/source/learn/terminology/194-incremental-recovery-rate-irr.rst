@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-incremental-recovery-rate-irr:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Incremental Recovery Rate (IRR)</b></div>`
@@ -65,4 +69,4 @@ with the **highest** incremental recovery, not the highest raw recovery, since s
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Incremental Recovery Rate (IRR) <https://insightful-data-lab.com/2025/08/23/incremental-recovery-rate-irr/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

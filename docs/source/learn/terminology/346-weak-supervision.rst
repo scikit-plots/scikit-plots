@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-weak-supervision:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Weak Supervision</b></div>`
@@ -63,4 +67,4 @@ the cost of **noisier** labels than full annotation. Best practice keeps a small
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Weak Supervision <https://insightful-data-lab.com/2025/08/20/weak-supervision/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

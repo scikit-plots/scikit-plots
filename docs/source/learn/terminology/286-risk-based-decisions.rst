@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-risk-based-decisions:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Risk-Based Decisions</b></div>`
@@ -66,4 +70,4 @@ probability forecasts.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Risk-Based Decisions <https://insightful-data-lab.com/2025/08/21/risk-based-decisions/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-002:
 .. _data-analytics-prep-002:
 .. _da-foundations-prep-002:
@@ -90,4 +99,4 @@ on the conclusion.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/choosing-the-right-data-to-collect/ <https://insightful-data-lab.com/2023/09/04/choosing-the-right-data-to-collect/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

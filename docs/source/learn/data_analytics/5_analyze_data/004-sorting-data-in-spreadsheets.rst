@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-004:
 .. _data-analytics-analyze-004:
 .. _da-foundations-analyze-004:
@@ -94,4 +103,4 @@ automatically a finding. The next lesson brings sorting, and filtering, into SQL
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/sorting-data-in-spreadsheets/ <https://insightful-data-lab.com/2023/11/26/sorting-data-in-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, organize
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: organize

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-underconfident:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Underconfident</b></div>`
@@ -61,4 +65,4 @@ overconfidence, it is fixed by **recalibration**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Underconfident <https://insightful-data-lab.com/2025/08/21/underconfident/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

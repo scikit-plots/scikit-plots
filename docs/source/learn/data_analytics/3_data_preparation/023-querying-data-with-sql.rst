@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-023:
 .. _data-analytics-prep-023:
 .. _da-foundations-prep-023:
@@ -112,4 +121,4 @@ section; this is the foundation they extend.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/15229/ <https://insightful-data-lab.com/2023/09/04/15229/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

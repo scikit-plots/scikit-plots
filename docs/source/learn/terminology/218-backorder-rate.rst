@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-backorder-rate:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Backorder Rate</b></div>`
@@ -74,4 +78,4 @@ rate 5%, the stockout rate 3%, and those 30 cancellations become **lost sales va
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Backorder Rate <https://insightful-data-lab.com/2025/08/23/backorder-rate/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

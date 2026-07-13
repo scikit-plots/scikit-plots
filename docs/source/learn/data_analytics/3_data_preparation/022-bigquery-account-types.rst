@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-022:
 .. _data-analytics-prep-022:
 .. _da-foundations-prep-022:
@@ -94,4 +103,4 @@ lesson puts the environment to use with actual queries.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/bigquery-account-types/ <https://insightful-data-lab.com/2023/09/04/bigquery-account-types/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

@@ -260,10 +260,32 @@ def validate(rows: list[dict]) -> None:
         raise SystemExit(1)
 
 
+def render(template, style="format", **kwargs):
+    """
+    FORMAT = "Hello {name}"
+    PERCENT = "Hello %(name)s"
+    TEMPLATE = "Hello $name"
+
+    print(render(FORMAT, style="format", name="Alice"))
+    print(render(PERCENT, style="percent", name="Alice"))
+    print(render(TEMPLATE, style="template", name="Alice"))
+    """
+    if style == "format":
+        return template.format(**kwargs)
+    if style == "percent":
+        return template % kwargs
+    if style == "template":
+        from string import Template
+        return Template(template).substitute(**kwargs)
+    raise ValueError(f"Unknown style: {style}")
+
+
 # ------------------------------------------------------------------------------
 # the shared v2 browser (used by BOTH the hub and every section index)
 # ------------------------------------------------------------------------------
-FILTER_JS = """.. raw:: html
+FILTER_JS_BASE = "doc"  # div class
+
+FILTER_JS_DIV_CLASS = """.. raw:: html
 
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
    <input type="text" id="term-filter" placeholder="\U0001F50D Type to filter %(scope)s &mdash; by title or keyword\u2026"
@@ -297,6 +319,46 @@ FILTER_JS = """.. raw:: html
    </script>
 """
 
+# ---- live filter: type-to-search across every term (progressive JS) ----
+# Static, dependency-free, deterministic. Without JS the page degrades
+# gracefully to plain collapsible dropdowns.
+# Same pattern/classes as learn/terminology (details.sd-dropdown, .term-az)
+FILTER_JS_DOC = """.. raw:: html
+
+   <div style="text-align:center;margin:0.4rem 0 0.4rem">
+   <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
+           placeholder="&#128269;&nbsp; Type to filter %(scope)s lessons &mdash; by title or keyword&hellip;"
+          style="width:100%%;max-width:100%%;padding:0.55rem 1rem;font-size:1rem;
+                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
+                 background:transparent;color:inherit"/>
+   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;
+        min-height:1.2em;margin-top:0.35rem"></div>
+   </div>
+   <script>
+   document.addEventListener('DOMContentLoaded',function(){
+     var inp=document.getElementById('term-filter');if(!inp){return;}
+     var dds=[].slice.call(document.querySelectorAll('details.sd-dropdown'));
+     var az=document.querySelector('details.term-az');
+     var items=[];
+     dds.forEach(function(d){[].slice.call(d.querySelectorAll('li')).forEach(
+       function(li){items.push({li:li,d:d,t:li.textContent.toLowerCase()});});});
+     var cnt=document.getElementById('term-filter-count');
+     inp.addEventListener('input',function(){
+       var q=inp.value.trim().toLowerCase();var n=0;
+       dds.forEach(function(d){d.tHits=0;});
+       items.forEach(function(it){
+         var hit=!q||it.t.indexOf(q)!==-1;
+         it.li.style.display=hit?'':'none';
+         if(hit){it.d.tHits+=1;if(az&&it.d===az){n+=1;}}});
+       dds.forEach(function(d){
+         if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
+         else{d.style.display='';d.open=false;}});
+        if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}
+     });
+   });
+   </script>
+"""
+
 
 def browser_row(label: str, key: str, doc_target: str) -> str:
     """One clickable line inside a dropdown, tagged for the filter."""
@@ -314,50 +376,93 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
                  where each row is (label, filter_key, doc_target).
     ``az_entries`` : (label, filter_key, doc_target) for the A-Z master dropdown.
     """
-    out: list[str] = []
-    out.append(f".. _{page_anchor}:")
-    out.append("")
-    out.append(f":raw-html:`<div style=\"text-align:center\"><strong>` {h1}")
-    out.append("|br| |full_version| - |today|")
-    out.append(":raw-html:`</strong></div>`")
-    out.append("")
-    out.append(bar(h1, "="))
-    out.append(h1)
-    out.append(bar(h1, "="))
-    out.append("")
-    out.extend(intro_lines)
-    out.append("")
-    out.append(FILTER_JS % {"scope": scope_word})
-    out.append("")
+    I: list[str] = []
+    w = I.append
+    w(":html_theme.sidebar_secondary.remove:")
+    w("")
+    w(".. role:: raw-html(raw)")
+    w("   :format: html")
+    w("")
+    w(".. |br| raw:: html")
+    w("")
+    w("   <br/>")
+    w("")
+    w(f".. _{page_anchor}:")
+    w("")
+    w(f":raw-html:`<div style=\"text-align:center\"><strong>` {h1}")
+    w("|br| |full_version| - |today|")
+    w(":raw-html:`</strong></div>`")
+    w("")
+    w(bar(h1, "="))
+    w(h1)
+    w(bar(h1, "="))
+    w("")
+    I.extend(intro_lines)
+    w("")
+    if FILTER_JS_BASE == "doc":
+        w(FILTER_JS_DOC % {"scope": scope_word})
+    else:
+        w(FILTER_JS_DIV_CLASS % {"scope": scope_word})
+    w("")
 
     for g in groups:
         head = f"{g['emoji']} {g['title']}"
-        out.append(f".. dropdown:: {head}")
-        out.append("   :class-container: sd-dropdown")
-        out.append("")
+        w(f".. dropdown:: {head}")
+        w("   :animate: fade-in-slide-down")
+        w("   :class-container: sd-dropdown")
+        w("")
         if g.get("blurb"):
-            out.append(f"   {g['blurb']}")
-            out.append("")
-        out.append("   .. raw:: html")
-        out.append("")
-        for label, key, tgt in g["rows"]:
-            out.append("      " + browser_row(label, key, tgt))
-        out.append("")
+            w(f"   {g['blurb']}")
+            w("")
+
+        if FILTER_JS_BASE == "doc":
+            for label, _key, tgt in g["rows"]:
+                w(f"   * :doc:`{label} <{tgt}>`")
+            w("")
+        else:
+            w("   .. raw:: html")
+            w("")
+            for label, key, tgt in g["rows"]:
+                w("      " + browser_row(label, key, tgt))
+            w("")
 
     # ---- dictionary view: one A-Z master list (auto-sorted) ----------
     az_head = "\U0001F524 Every lesson, A\u2013Z"
-    out.append(az_head)
-    out.append("-" * (len(az_head) + 2))
-    out.append("")
-    out.append(".. dropdown:: \U0001F520 A\u2013Z index")
-    out.append("   :class-container: term-az")
-    out.append("")
-    out.append("   .. raw:: html")
-    out.append("")
-    for label, key, tgt in sorted(az_entries, key=lambda e: e[1].lower()):
-        out.append("      " + browser_row(label, key, tgt))
-    out.append("")
-    return "\n".join(out) + "\n"
+    w(az_head)
+    w("-" * (len(az_head) + 2))
+    w("")
+    w(".. dropdown:: \U0001F520 A\u2013Z index")
+    w("   :animate: fade-in-slide-down")
+    w("   :class-container: term-az")
+    w("")
+
+    if FILTER_JS_BASE == "doc":
+        w("   .. hlist::")
+        w("      :columns: 2")
+        w("")
+        # for g in sorted(groups, key=lambda r: str.casefold(r["title"])):
+        #     for label, _key, tgt in sorted(g["rows"], key=lambda r: str.casefold(r[0].split(' · ')[1])):
+        for label, _key, tgt in sorted(az_entries, key=lambda e: e[1].lower()):
+            w(f"   * :doc:`{label} <{tgt}>`")
+        w("")
+    else:
+        w("   .. raw:: html")
+        w("")
+        for label, key, tgt in sorted(az_entries, key=lambda e: e[1].lower()):
+            w("      " + browser_row(label, key, tgt))
+        w("")
+
+    # hidden ordered toctree so Sphinx builds the sequence + sidebar nav
+    w(".. toctree::")
+    w("   :hidden:")
+    w("   :maxdepth: 1")
+    w("")
+    for _label, _key, tgt in sorted(az_entries, key=lambda e: e[2].lower()):
+        w(f"   {tgt}")
+    w("")
+    w(".. tags:: purpose: reference, topic: data analytics")
+    w("")
+    return "\n".join(I) + "\n"
 
 
 # ------------------------------------------------------------------------------
@@ -370,19 +475,29 @@ def lesson_page(row: dict, num: int, stem: str, sec_rows: list[tuple],
     st_emoji, st_title, _ = STAGES[(sec, st)]
     anchor = f"{ANCHOR_PREFIX}-{sec}-{num:03d}"
 
-    out: list[str] = []
-    out.append(f".. _{anchor}:")
+    I: list[str] = []
+    w = I.append
+    w(":html_theme.sidebar_secondary.remove:")
+    w("")
+    w(".. role:: raw-html(raw)")
+    w("   :format: html")
+    w("")
+    w(".. |br| raw:: html")
+    w("")
+    w("   <br/>")
+    w("")
+    w(f".. _{anchor}:")
     for legacy in COMPAT_ANCHORS:
-        out.append(f".. _{legacy}-{sec}-{num:03d}:")
-    out.append("")
-    out.append(bar(title, "="))
-    out.append(title)
-    out.append(bar(title, "="))
-    out.append("")
-    out.append(f":bdg-primary:`{s_emoji} {s_title}` "
-               f":bdg-secondary:`{st_emoji} {st_title}` "
-               f":bdg-info:`Lesson {num:03d}`")
-    out.append("")
+        w(f".. _{legacy}-{sec}-{num:03d}:")
+    w("")
+    w(bar(title, "="))
+    w(title)
+    w(bar(title, "="))
+    w("")
+    w(f":bdg-primary:`{s_emoji} {s_title}` "
+      f":bdg-secondary:`{st_emoji} {st_title}` "
+      f":bdg-info:`Lesson {num:03d}`")
+    w("")
     # prev / next within the section
     nav: list[str] = []
     if idx_in_sec > 0:
@@ -393,22 +508,22 @@ def lesson_page(row: dict, num: int, stem: str, sec_rows: list[tuple],
         nav.append(f":doc:`Next <{nstem}>` \u25B6")
     nav.append(":doc:`\u2191 Section <index>`")
     nav.append(":doc:`\u2191 Hub <../index>`")
-    out.append(" \u00b7 ".join(nav))
-    out.append("")
+    w(" \u00b7 ".join(nav))
+    w("")
     body = CONTENT.get(title)
     if body is not None:
-        out.append(body.rstrip("\n"))
-        out.append("")
+        w(body.rstrip("\n"))
+        w("")
     else:
         g = GLOSS.get(title, "")
         if g:
-            out.append(g)
-            out.append("")
-        out.append(".. admonition:: Lesson in progress")
-        out.append("   :class: note")
-        out.append("")
-        out.append("   Full content for this lesson has not been written yet.")
-        out.append("")
+            w(g)
+            w("")
+        w(".. admonition:: Lesson in progress")
+        w("   :class: note")
+        w("")
+        w("   Full content for this lesson has not been written yet.")
+        w("")
 
     # https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#admonitions-messages-and-warnings
     # Note      → "Be aware of this clarification or detail."          # 📝 Neutral observations, assumptions, clarifications, conventions, or exceptions.
@@ -421,25 +536,25 @@ def lesson_page(row: dict, num: int, stem: str, sec_rows: list[tuple],
     # lateral cross-links
     nbs = MINDMAP.get(title, [])
     if nbs:
-        out.append(".. hint::")
-        out.append("")
+        w(".. hint::")
+        w("")
         for nb in nbs:
             tgt = TITLE_TO_DOC.get(nb)
             if tgt:
-                out.append(f"   - :doc:`{nb} <{tgt}>`")
-        out.append("")
+                w(f"   - :doc:`{nb} <{tgt}>`")
+        w("")
 
     # source (context/traceability)
-    out.append(".. seealso::")
-    out.append("")
-    out.append(f"   **Source article** Adapted (context, re-expressed) in our own words from: `{row['url']} <{row['url']}>`__ "
+    w(".. seealso::")
+    w("")
+    w(f"   **Source article** Adapted (context, re-expressed) in our own words from: `{row['url']} <{row['url']}>`__ "
                f"(insightful-data-lab.com).")
-    out.append("")
+    w("")
 
     # tags
-    out.append(f".. tags:: data-analytics, {sec}, {st}")
-    out.append("")
-    return "\n".join(out) + "\n"
+    w(f".. tags:: purpose: reference, topic: data analytics, topic: {sec}, topic: {st}")
+    w("")
+    return "\n".join(I) + "\n"
 
 
 # ------------------------------------------------------------------------------
@@ -579,7 +694,7 @@ def build() -> None:
         "below is its own browsable mini-course; use the filter to search every "
         "lesson at once.",
     ]
-    hub_rst = render_browser(f"{ANCHOR_PREFIX.replace('da','data-analytics')}-index"
+    hub_rst = render_browser(f"{ANCHOR_PREFIX.replace('da', 'data-analytics')}-index"
                              if False else "data-analytics-index",
                              hub_h1, hub_intro, "all lessons", hub_groups, hub_az)
     (HERE / "index.rst").write_text(hub_rst, encoding="utf-8")

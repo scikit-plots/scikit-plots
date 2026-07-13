@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-004:
 .. _data-analytics-cleaning-004:
 .. _da-foundations-cleaning-004:
@@ -105,4 +114,4 @@ data is enough.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/10/31/handling-insufficient-data-in-data-analysis/ <https://insightful-data-lab.com/2023/10/31/handling-insufficient-data-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, integrity
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: integrity

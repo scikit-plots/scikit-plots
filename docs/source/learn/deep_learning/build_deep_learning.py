@@ -319,6 +319,9 @@ def main() -> int:
     w(SUB.replace("-", "="))   # a visual transition rule (== line, blank-separated)
     w("")
 
+    # ---- live filter: type-to-search across every term (progressive JS) ----
+    # Static, dependency-free, deterministic. Without JS the page degrades
+    # gracefully to plain collapsible dropdowns.
     # ---- v2 hub: live filter + collapsed stage dropdowns + A-Z --------
     # Same pattern/classes as learn/terminology (details.sd-dropdown, .term-az)
     n_items = len(titles)
@@ -380,6 +383,7 @@ def main() -> int:
     w("-" * (len(az_head) + 2))
     w("")
     w(".. dropdown:: Open the full alphabetical index")
+    w("   :animate: fade-in-slide-down")
     w("   :class-container: term-az")
     w("")
     w("   .. hlist::")

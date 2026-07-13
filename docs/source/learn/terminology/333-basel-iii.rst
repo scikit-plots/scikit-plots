@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-basel-iii:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>Basel III</b></div>`
@@ -61,4 +65,4 @@ and validation, making Basel III a major reason financial ML must be **auditable
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Basel III <https://insightful-data-lab.com/2025/08/20/basel-iii/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

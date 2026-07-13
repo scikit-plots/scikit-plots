@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cosine-similarity-of-item-features:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Cosine Similarity of Item Features</b></div>`
@@ -63,4 +67,4 @@ liked), and it is the usual kernel for computing **intra-list similarity / diver
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Cosine Similarity of Item Features <https://insightful-data-lab.com/2025/08/22/cosine-similarity-of-item-features/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

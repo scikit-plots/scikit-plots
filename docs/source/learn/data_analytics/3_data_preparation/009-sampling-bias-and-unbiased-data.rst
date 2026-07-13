@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-009:
 .. _data-analytics-prep-009:
 .. _da-foundations-prep-009:
@@ -93,4 +102,4 @@ one that assumes representativeness it never checked.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/sampling-bias-and-unbiased-data/ <https://insightful-data-lab.com/2023/09/04/sampling-bias-and-unbiased-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, bias_ethics
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: bias_ethics

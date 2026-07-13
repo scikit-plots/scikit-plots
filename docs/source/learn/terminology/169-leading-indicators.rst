@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-leading-indicators:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Leading Indicators</b></div>`
@@ -70,4 +74,4 @@ drop by a week, buying time to respond.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Leading Indicators <https://insightful-data-lab.com/2025/08/23/leading-indicators/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

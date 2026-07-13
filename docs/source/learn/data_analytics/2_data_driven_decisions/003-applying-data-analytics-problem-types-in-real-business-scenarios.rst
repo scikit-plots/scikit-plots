@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-003:
 .. _data-analytics-ddd-003:
 .. _da-foundations-ddd-003:
@@ -82,4 +91,4 @@ next lesson teaches you to ask.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/applying-data-analytics-problem-types-in-real-business-scenarios/ <https://insightful-data-lab.com/2023/08/31/applying-data-analytics-problem-types-in-real-business-scenarios/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, framing
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: framing

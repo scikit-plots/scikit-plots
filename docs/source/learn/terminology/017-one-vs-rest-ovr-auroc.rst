@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-one-vs-rest-ovr-auroc:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>One-vs-Rest (OvR) AUROC</b></div>`
@@ -95,4 +99,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `One-vs-Rest (OvR) AUROC <https://insightful-data-lab.com/2025/08/30/one-vs-rest-ovr-auroc/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

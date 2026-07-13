@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-embedding:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧬&nbsp;&nbsp;<b>Embedding</b></div>`
@@ -92,4 +96,4 @@ Where it's used
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Embedding <https://insightful-data-lab.com/2025/08/23/embedding/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-gross-ltv-customer-lifetime-value:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>Gross LTV (Customer Lifetime Value)</b></div>`
@@ -89,4 +93,4 @@ companies that lack detailed cost data. Two caveats matter:
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Gross LTV (Customer Lifetime Value) <https://insightful-data-lab.com/2025/08/29/gross-ltv-customer-lifetime-value/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

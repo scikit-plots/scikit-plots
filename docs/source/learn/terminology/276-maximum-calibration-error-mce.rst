@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-maximum-calibration-error-mce:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Maximum Calibration Error (MCE)</b></div>`
@@ -66,4 +70,4 @@ scoring rule** — a model can achieve low calibration error with **trivial** pr
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Maximum Calibration Error (MCE) <https://insightful-data-lab.com/2025/08/22/maximum-calibration-error-mce/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

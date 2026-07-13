@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-017:
 .. _data-analytics-prep-017:
 .. _da-foundations-prep-017:
@@ -93,4 +102,4 @@ organisation-wide, and the governance around it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/metadata-in-databases/ <https://insightful-data-lab.com/2023/09/04/metadata-in-databases/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, sources
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: sources

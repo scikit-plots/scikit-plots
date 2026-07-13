@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-019:
 .. _data-analytics-prep-019:
 .. _da-foundations-prep-019:
@@ -98,4 +107,4 @@ analyst's most common tool: the spreadsheet.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/accessing-data-internal-and-external-sources/ <https://insightful-data-lab.com/2023/09/04/accessing-data-internal-and-external-sources/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, sources
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: sources

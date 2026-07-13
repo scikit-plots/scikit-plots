@@ -71,4 +71,4 @@ smooth latent surface drives non-normal observations, a latent Gaussian process 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/ <https://insightful-data-lab.com/2025/12/09/latent-gaussian-process-models/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

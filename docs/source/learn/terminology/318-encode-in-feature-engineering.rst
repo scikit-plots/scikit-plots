@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-encode-in-feature-engineering:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Encode (in Feature Engineering)</b></div>`
@@ -62,4 +66,4 @@ category is **ordered**, and to its **cardinality**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Encode (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/encode-in-feature-engineering/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

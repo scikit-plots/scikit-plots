@@ -68,4 +68,4 @@ Where models are many and similar, **averaging** them (stacking) usually beats p
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/model-comparison-based-on-predictive-performance/ <https://insightful-data-lab.com/2025/11/10/model-comparison-based-on-predictive-performance/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

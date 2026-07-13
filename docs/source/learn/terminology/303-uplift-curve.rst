@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-uplift-curve:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Uplift Curve</b></div>`
@@ -74,4 +78,4 @@ targeting everyone simply wastes resources.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Uplift Curve <https://insightful-data-lab.com/2025/08/21/uplift-curve/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

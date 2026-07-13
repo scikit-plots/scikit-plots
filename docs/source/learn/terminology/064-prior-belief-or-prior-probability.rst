@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-prior-belief-or-prior-probability:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Prior Belief (or Prior Probability)</b></div>`
@@ -92,4 +96,4 @@ structure to regularise, not so much that it overrides the evidence.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Prior Belief (or Prior Probability) <https://insightful-data-lab.com/2025/08/28/prior-belief-or-prior-probability/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

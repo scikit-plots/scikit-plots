@@ -60,4 +60,4 @@ model earns its keep only on **held-out** data. The next lesson works a full exa
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/ <https://insightful-data-lab.com/2026/01/16/forward-selection-with-nested-models-and-deviance-tests/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

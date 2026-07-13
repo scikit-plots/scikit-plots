@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-delong-s-test:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>DeLong's Test</b></div>`
@@ -91,4 +95,4 @@ distribution), the older, less accurate **Hanley-McNeil** approximation, and **p
 
    **Source article** Adapted (context, re-expressed) in our own words from: `DeLong's Test <https://insightful-data-lab.com/2025/08/20/delongs-test/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

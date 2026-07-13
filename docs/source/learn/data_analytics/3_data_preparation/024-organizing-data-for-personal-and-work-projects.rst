@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-024:
 .. _data-analytics-prep-024:
 .. _da-foundations-prep-024:
@@ -85,4 +94,4 @@ more project-level concern: keeping shared data secure.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/organizing-data-for-personal-and-work-projects/ <https://insightful-data-lab.com/2023/09/04/organizing-data-for-personal-and-work-projects/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

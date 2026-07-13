@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-022:
 .. _data-analytics-ddd-022:
 .. _da-foundations-ddd-022:
@@ -84,4 +93,4 @@ varied in packaging, identical in substance.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/adapting-to-communication-expectations-at-work/ <https://insightful-data-lab.com/2023/08/31/adapting-to-communication-expectations-at-work/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

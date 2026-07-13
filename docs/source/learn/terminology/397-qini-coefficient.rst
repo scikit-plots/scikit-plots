@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-qini-coefficient:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Qini Coefficient</b></div>`
@@ -72,4 +76,4 @@ ROC-AUC is to classification what the Qini coefficient is to uplift.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Qini Coefficient <https://insightful-data-lab.com/2025/08/19/qini-coefficient/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

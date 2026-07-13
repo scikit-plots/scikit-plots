@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sequential-testing-also-called-sequential-analysis:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧫&nbsp;&nbsp;<b>Sequential Testing (also called sequential analysis)</b></div>`
@@ -62,4 +66,4 @@ slightly more conservative thresholds to preserve error control.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sequential Testing (also called sequential analysis) <https://insightful-data-lab.com/2025/08/19/sequential-testing-also-called-sequential-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

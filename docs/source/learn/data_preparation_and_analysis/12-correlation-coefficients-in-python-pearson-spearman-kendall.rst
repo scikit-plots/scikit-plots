@@ -60,4 +60,4 @@ correlation by any of the three.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/ <https://insightful-data-lab.com/2026/01/14/correlation-coefficients-in-python-pearson-spearman-kendall/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: beginner
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: beginner

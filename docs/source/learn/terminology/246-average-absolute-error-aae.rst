@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-average-absolute-error-aae:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Average Absolute Error (AAE)</b></div>`
@@ -65,4 +69,4 @@ for house prices, huge for temperatures). For that, switch to a **percentage** o
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Average Absolute Error (AAE) <https://insightful-data-lab.com/2025/08/22/average-absolute-error-aae/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

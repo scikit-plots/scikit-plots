@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-029:
 .. _data-analytics-cleaning-029:
 .. _da-foundations-cleaning-029:
@@ -92,4 +101,4 @@ into lasting improvement.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/reporting-data-cleaning-results/ <https://insightful-data-lab.com/2023/11/01/reporting-data-cleaning-results/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

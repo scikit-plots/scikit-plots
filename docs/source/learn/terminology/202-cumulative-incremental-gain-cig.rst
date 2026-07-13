@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cumulative-incremental-gain-cig:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Cumulative Incremental Gain (CIG)</b></div>`
@@ -79,4 +83,4 @@ where gain stops rising — and lets you **compare models** by how much incremen
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Cumulative Incremental Gain (CIG) <https://insightful-data-lab.com/2025/08/23/cumulative-incremental-gain-cig/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

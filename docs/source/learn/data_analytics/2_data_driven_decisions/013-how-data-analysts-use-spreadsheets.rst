@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-013:
 .. _data-analytics-ddd-013:
 .. _da-foundations-ddd-013:
@@ -84,4 +93,4 @@ the sheet it runs on — which is why layout came first.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/how-data-analysts-use-spreadsheets/ <https://insightful-data-lab.com/2023/08/31/how-data-analysts-use-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, spreadsheets
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: spreadsheets

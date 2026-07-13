@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-020:
 .. _data-analytics-prep-020:
 .. _da-foundations-prep-020:
@@ -93,4 +102,4 @@ sorting and filtering.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/importing-data-into-spreadsheets/ <https://insightful-data-lab.com/2023/09/04/importing-data-into-spreadsheets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, spreadsheets_sql
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: spreadsheets_sql

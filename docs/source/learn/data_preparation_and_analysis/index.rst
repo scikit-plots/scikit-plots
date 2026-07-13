@@ -327,4 +327,4 @@ Read it at any depth:
    55-auc-roc-curve-evaluating-classification-model-performance
    56-lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value
 
-.. tags:: purpose: reference, topic: data preparation
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation

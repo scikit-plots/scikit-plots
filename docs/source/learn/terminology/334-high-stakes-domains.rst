@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-high-stakes-domains:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔍&nbsp;&nbsp;<b>High-Stakes Domains</b></div>`
@@ -62,4 +66,4 @@ where an error is trivial.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `High-Stakes Domains <https://insightful-data-lab.com/2025/08/20/high-stakes-domains/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-model-score:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Model Score</b></div>`
@@ -61,4 +65,4 @@ for **ranking**, the calibrated one for **decisions** that need real probabiliti
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Model Score <https://insightful-data-lab.com/2025/08/20/model-score/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-030:
 .. _data-analytics-analyze-030:
 .. _da-foundations-analyze-030:
@@ -114,4 +123,4 @@ the final step of making those findings land: visualising and communicating them
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices/ <https://insightful-data-lab.com/2023/11/26/creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, advanced
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: advanced

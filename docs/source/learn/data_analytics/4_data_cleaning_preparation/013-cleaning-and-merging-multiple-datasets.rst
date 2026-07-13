@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-013:
 .. _data-analytics-cleaning-013:
 .. _da-foundations-cleaning-013:
@@ -95,4 +104,4 @@ in SQL — get full treatment in the analysis section; here the point is that
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/cleaning-and-merging-multiple-datasets/ <https://insightful-data-lab.com/2023/11/01/cleaning-and-merging-multiple-datasets/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

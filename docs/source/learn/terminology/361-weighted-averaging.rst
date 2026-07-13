@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-weighted-averaging:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Weighted Averaging</b></div>`
@@ -61,4 +65,4 @@ classes must be weighted **equally** regardless of frequency.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Weighted Averaging <https://insightful-data-lab.com/2025/08/20/weighted-averaging/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

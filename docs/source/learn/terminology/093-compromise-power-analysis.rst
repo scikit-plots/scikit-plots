@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-compromise-power-analysis:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Compromise Power Analysis</b></div>`
@@ -87,4 +91,4 @@ fixed :math:`\alpha = 0.05` and depends on an assumed effect size.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Compromise Power Analysis <https://insightful-data-lab.com/2025/08/24/compromise-power-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

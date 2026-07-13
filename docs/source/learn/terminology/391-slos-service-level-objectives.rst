@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-slos-service-level-objectives:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>SLOs (Service Level Objectives)</b></div>`
@@ -71,4 +75,4 @@ is measured uptime over the last 30 days. If uptime slips to **99.6%**, the SLA 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `SLOs (Service Level Objectives) <https://insightful-data-lab.com/2025/08/19/slos-service-level-objectives/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

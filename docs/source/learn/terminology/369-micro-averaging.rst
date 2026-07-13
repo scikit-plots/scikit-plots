@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-micro-averaging:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Micro Averaging</b></div>`
@@ -61,4 +65,4 @@ classes are being hidden.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Micro Averaging <https://insightful-data-lab.com/2025/08/20/micro-averaging/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

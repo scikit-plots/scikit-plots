@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-onnx-open-neural-network-exchange:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧰&nbsp;&nbsp;<b>ONNX (Open Neural Network Exchange)</b></div>`
@@ -91,4 +95,4 @@ and even the browser (ONNX Runtime Web on WebGL/WebAssembly). Its main limitatio
 
    **Source article** Adapted (context, re-expressed) in our own words from: `ONNX (Open Neural Network Exchange) <https://insightful-data-lab.com/2025/08/20/onnx-open-neural-network-exchange/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

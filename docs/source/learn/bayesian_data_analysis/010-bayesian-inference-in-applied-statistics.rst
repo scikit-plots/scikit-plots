@@ -60,4 +60,4 @@ why Part II of this course is devoted to it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/ <https://insightful-data-lab.com/2025/11/09/bayesian-inference-in-applied-statistics/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-auuc-area-under-the-uplift-curve:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>AUUC (Area Under the Uplift Curve)</b></div>`
@@ -80,4 +84,4 @@ core metrics for evaluating uplift models.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `AUUC (Area Under the Uplift Curve) <https://insightful-data-lab.com/2025/08/19/auuc-area-under-the-uplift-curve/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

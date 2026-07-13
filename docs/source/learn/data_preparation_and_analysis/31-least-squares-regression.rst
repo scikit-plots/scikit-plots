@@ -69,4 +69,4 @@ evaluation stage revisits with residual diagnostics.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/least-squares-regression/ <https://insightful-data-lab.com/2026/01/16/least-squares-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: intermediate

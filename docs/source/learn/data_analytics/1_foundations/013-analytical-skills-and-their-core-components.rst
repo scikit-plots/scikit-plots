@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-013:
 .. _data-analytics-foundations-013:
 .. _da-foundations-foundations-013:
@@ -82,4 +91,4 @@ an interview.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/analytical-skills-and-their-core-components/ <https://insightful-data-lab.com/2023/07/30/analytical-skills-and-their-core-components/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

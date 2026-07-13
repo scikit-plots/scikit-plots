@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-lost-sales-value:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📦&nbsp;&nbsp;<b>Lost Sales Value</b></div>`
@@ -73,4 +77,4 @@ high-margin ones). Alongside its percentage cousins — stockout rate (how *ofte
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Lost Sales Value <https://insightful-data-lab.com/2025/08/23/lost-sales-value/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

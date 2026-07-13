@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-logistic-regression:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Logistic Regression</b></div>`
@@ -88,4 +92,4 @@ workhorse for spam, fraud and medical diagnosis.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Logistic Regression <https://insightful-data-lab.com/2025/08/21/logistic-regression/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

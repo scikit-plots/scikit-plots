@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-032:
 .. _data-analytics-cleaning-032:
 .. _da-foundations-cleaning-032:
@@ -97,4 +106,4 @@ turns to the heart of the craft: analysing it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/exploring-data-analyst-job-opportunities/ <https://insightful-data-lab.com/2023/11/01/exploring-data-analyst-job-opportunities/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

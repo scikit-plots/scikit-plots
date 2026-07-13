@@ -56,4 +56,4 @@ surface throughout ``pandas``.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/ <https://insightful-data-lab.com/2026/01/14/ieee-754-floating-point-standard/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: beginner
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: beginner

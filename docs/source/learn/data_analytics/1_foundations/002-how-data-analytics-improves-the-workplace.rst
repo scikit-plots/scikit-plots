@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-002:
 .. _data-analytics-foundations-002:
 .. _da-foundations-foundations-002:
@@ -92,4 +101,4 @@ being honest when the data cannot answer the question being asked.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/how-data-analytics-improves-the-workplace/ <https://insightful-data-lab.com/2023/07/30/how-data-analytics-improves-the-workplace/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, why
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: why

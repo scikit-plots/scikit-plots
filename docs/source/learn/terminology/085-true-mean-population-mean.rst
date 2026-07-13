@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-true-mean-population-mean:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>True Mean (Population Mean)</b></div>`
@@ -81,4 +85,4 @@ rate** :math:`p` estimated by :math:`\hat{p}` — :math:`\mu \leftrightarrow p`,
 
    **Source article** Adapted (context, re-expressed) in our own words from: `True Mean (Population Mean) <https://insightful-data-lab.com/2025/08/25/true-mean-population-mean/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

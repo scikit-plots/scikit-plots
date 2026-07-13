@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-support-vector-machines-svms:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Support Vector Machines (SVMs)</b></div>`
@@ -89,4 +93,4 @@ guard against overfitting, but are **expensive on very large datasets** and sens
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Support Vector Machines (SVMs) <https://insightful-data-lab.com/2025/08/21/support-vector-machines-svms/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

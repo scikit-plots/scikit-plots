@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-stratified-shuffle-split:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧷&nbsp;&nbsp;<b>Stratified Shuffle Split</b></div>`
@@ -78,4 +82,4 @@ randomizes but does *not* preserve class balance.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Stratified Shuffle Split <https://insightful-data-lab.com/2025/08/24/stratified-shuffle-split/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

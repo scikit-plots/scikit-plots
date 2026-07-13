@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-predictive-parity-calibration:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Predictive Parity (Calibration)</b></div>`
@@ -99,4 +103,4 @@ In code
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Predictive Parity (Calibration) <https://insightful-data-lab.com/2025/08/29/predictive-parity-calibration/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

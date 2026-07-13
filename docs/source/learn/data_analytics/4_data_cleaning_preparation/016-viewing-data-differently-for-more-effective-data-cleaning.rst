@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-016:
 .. _data-analytics-cleaning-016:
 .. _da-foundations-cleaning-016:
@@ -96,4 +105,4 @@ to the big picture of clean data and the transition to cleaning with SQL.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/viewing-data-differently-for-more-effective-data-cleaning/ <https://insightful-data-lab.com/2023/11/01/viewing-data-differently-for-more-effective-data-cleaning/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

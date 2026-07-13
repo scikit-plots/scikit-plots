@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-normalize-in-feature-engineering:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Normalize (in Feature Engineering)</b></div>`
@@ -67,4 +71,4 @@ their meaning), and fit the scaler on the **training set only** to avoid leakage
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Normalize (in Feature Engineering) <https://insightful-data-lab.com/2025/08/20/normalize-in-feature-engineering/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-one-vs-rest-ovr:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>One-vs-Rest (OvR)</b></div>`
@@ -62,4 +66,4 @@ alternative, **One-vs-One**, compares class **pairs** and is less imbalance-pron
 
    **Source article** Adapted (context, re-expressed) in our own words from: `One-vs-Rest (OvR) <https://insightful-data-lab.com/2025/08/21/one-vs-rest-ovr/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

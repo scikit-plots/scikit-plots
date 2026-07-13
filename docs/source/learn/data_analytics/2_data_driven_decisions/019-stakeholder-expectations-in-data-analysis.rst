@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-019:
 .. _data-analytics-ddd-019:
 .. _da-foundations-ddd-019:
@@ -94,4 +103,4 @@ staying focused on the objective, and communicating clearly.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/stakeholder-expectations-in-data-analysis/ <https://insightful-data-lab.com/2023/08/31/stakeholder-expectations-in-data-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

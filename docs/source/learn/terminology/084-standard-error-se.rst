@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-standard-error-se:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Standard Error (SE)</b></div>`
@@ -95,4 +99,4 @@ t-tests), and **A/B comparisons** of conversion rates all run on it.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Standard Error (SE) <https://insightful-data-lab.com/2025/08/25/standard-error-se/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

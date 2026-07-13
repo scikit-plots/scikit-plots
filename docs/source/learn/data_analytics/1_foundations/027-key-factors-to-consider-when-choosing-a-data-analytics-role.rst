@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-027:
 .. _data-analytics-foundations-027:
 .. _da-foundations-foundations-027:
@@ -82,4 +91,4 @@ touched: turning business situations into the right questions.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/key-factors-to-consider-when-choosing-a-data-analytics-role/ <https://insightful-data-lab.com/2023/07/30/key-factors-to-consider-when-choosing-a-data-analytics-role/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, tools
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: tools

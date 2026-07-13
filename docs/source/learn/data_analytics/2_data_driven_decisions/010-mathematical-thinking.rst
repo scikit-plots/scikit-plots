@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-010:
 .. _data-analytics-ddd-010:
 .. _da-foundations-ddd-010:
@@ -80,4 +89,4 @@ in which most of this thinking first happens: the spreadsheet.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/mathematical-thinking/ <https://insightful-data-lab.com/2023/08/31/mathematical-thinking/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, metrics
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: metrics

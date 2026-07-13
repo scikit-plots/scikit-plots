@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-sensitivity-in-feature-engineering:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Sensitivity in Feature Engineering</b></div>`
@@ -64,4 +68,4 @@ features the model actually **relies on**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Sensitivity in Feature Engineering <https://insightful-data-lab.com/2025/08/20/sensitivity-in-feature-engineering/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-return-distribution:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Return Distribution</b></div>`
@@ -66,4 +70,4 @@ heavy-tailed (**Student-t**) or **location-scale** models fit better.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Return Distribution <https://insightful-data-lab.com/2025/08/23/return-distribution/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

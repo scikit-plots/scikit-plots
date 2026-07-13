@@ -74,4 +74,4 @@ propagates into every group's interval. But the construction needs a justificati
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/ <https://insightful-data-lab.com/2025/11/09/constructing-a-parameterized-prior-distribution/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

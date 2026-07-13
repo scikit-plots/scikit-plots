@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-cac-customer-acquisition-cost:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>CAC (Customer Acquisition Cost)</b></div>`
@@ -61,4 +65,4 @@ every customer, and **above ~5:1** can signal you're **under-investing** in grow
 
    **Source article** Adapted (context, re-expressed) in our own words from: `CAC (Customer Acquisition Cost) <https://insightful-data-lab.com/2025/08/19/cac-customer-acquisition-cost/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

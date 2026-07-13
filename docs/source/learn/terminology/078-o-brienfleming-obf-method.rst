@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-o-brienfleming-obf-method:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎰&nbsp;&nbsp;<b>O'Brien–Fleming (OBF) Method</b></div>`
@@ -80,4 +84,4 @@ whereas Pocock fits exploratory or business A/B tests where stopping early saves
 
    **Source article** Adapted (context, re-expressed) in our own words from: `O'Brien–Fleming (OBF) Method <https://insightful-data-lab.com/2025/08/25/obrien-fleming-obf-method/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-likelihood-ratio-lr:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>Likelihood Ratio (LR)</b></div>`
@@ -90,4 +94,4 @@ odds of disease from a test result.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Likelihood Ratio (LR) <https://insightful-data-lab.com/2025/08/25/likelihood-ratio-lr/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

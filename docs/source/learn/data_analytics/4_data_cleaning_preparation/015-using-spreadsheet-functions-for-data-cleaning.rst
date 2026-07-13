@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-015:
 .. _data-analytics-cleaning-015:
 .. _da-foundations-cleaning-015:
@@ -99,4 +108,4 @@ it differently, so defects reveal themselves in the first place.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/using-spreadsheet-functions-for-data-cleaning/ <https://insightful-data-lab.com/2023/11/01/using-spreadsheet-functions-for-data-cleaning/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, dirty
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: dirty

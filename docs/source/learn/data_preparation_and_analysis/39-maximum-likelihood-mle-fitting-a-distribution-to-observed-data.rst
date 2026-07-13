@@ -54,4 +54,4 @@ can reach. The next lessons use likelihood again — to **assess** how well a fi
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/ <https://insightful-data-lab.com/2026/01/16/maximum-likelihood-mle-fitting-a-distribution-to-observed-data/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, topic: data preparation, level: advanced
+.. tags:: purpose: reference, topic: data analysis, topic: data preparation, level: advanced

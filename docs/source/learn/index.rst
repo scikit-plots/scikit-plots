@@ -6,7 +6,7 @@
 .. Welcome to Scikit-plots 101 |br| |release| - |today|
 
 ..
-    substitutions don’t work in .. raw:: html
+    ✨ substitutions don’t work in .. raw:: html
     .. raw:: html
 
     <div style="text-align: center"><strong>

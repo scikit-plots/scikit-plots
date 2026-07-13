@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-adaptive-ece-expected-calibration-error-with-adaptive-binning:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Adaptive ECE (Expected Calibration Error with Adaptive Binning)</b></div>`
@@ -67,4 +71,4 @@ bins**, and neither is a **proper scoring rule**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Adaptive ECE (Expected Calibration Error with Adaptive Binning) <https://insightful-data-lab.com/2025/08/22/adaptive-ece-expected-calibration-error-with-adaptive-binning/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

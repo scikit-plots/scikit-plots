@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-probability-mass:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎲&nbsp;&nbsp;<b>Probability Mass</b></div>`
@@ -67,4 +71,4 @@ continuous variable, where any *exact* point has probability **zero** (there, de
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Probability Mass <https://insightful-data-lab.com/2025/08/22/probability-mass/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

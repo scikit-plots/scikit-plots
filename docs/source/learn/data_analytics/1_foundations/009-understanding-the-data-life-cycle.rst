@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-009:
 .. _data-analytics-foundations-009:
 .. _da-foundations-foundations-009:
@@ -80,4 +89,4 @@ have been destroyed on schedule, which is an answer, not a dead end.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/understanding-the-data-life-cycle/ <https://insightful-data-lab.com/2023/07/30/understanding-the-data-life-cycle/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, process
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: process

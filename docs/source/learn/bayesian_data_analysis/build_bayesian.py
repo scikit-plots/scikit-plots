@@ -387,15 +387,23 @@ def main() -> int:
         a("")
 
         # tags
-        a(f".. tags:: purpose: reference, domain: bayesian, level: {level}"); a("")
+        a(f".. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: {level}"); a("")
         (PAGES_DIR / f"{docname[title]}.rst").write_text("\n".join(L), encoding="utf-8")
 
     # ---- v2 browser index ------------------------------------------
-    I: list[str] = []; w = I.append
-    w(":html_theme.sidebar_secondary.remove:"); w("")
-    w(".. role:: raw-html(raw)"); w("   :format: html"); w("")
-    w(".. |br| raw:: html"); w(""); w("   <br/>"); w("")
-    w(".. _bayesian-data-analysis-index:"); w("")
+    I: list[str] = []
+    w = I.append
+    w(":html_theme.sidebar_secondary.remove:")
+    w("")
+    w(".. role:: raw-html(raw)")
+    w("   :format: html")
+    w("")
+    w(".. |br| raw:: html")
+    w("")
+    w("   <br/>")
+    w("")
+    w(".. _bayesian-data-analysis-index:")
+    w("")
     for lbl in COMPAT_ANCHORS:   # legacy anchors preserved (resolve to page top)
         w(f".. _{lbl}:")
     w("")
@@ -424,15 +432,22 @@ def main() -> int:
     w("   :ref:`Terminology reference <terminology-index>` (probability and distributions).")
     w("")
 
-    # live filter (shared v2 JS; matches terminology classes)
-    w(".. raw:: html"); w("")
+    # ---- live filter: type-to-search across every term (progressive JS) ----
+    # Static, dependency-free, deterministic. Without JS the page degrades
+    # gracefully to plain collapsible dropdowns.
+    # ---- v2 hub: live filter + collapsed stage dropdowns + A-Z --------
+    # Same pattern/classes as learn/terminology (details.sd-dropdown, .term-az)
+    n_items = len(titles)
+    w(".. raw:: html")
+    w("")
     w('   <div style="text-align:center;margin:0.4rem 0 0.4rem">')
     w('   <input id="term-filter" type="search" autocomplete="off" spellcheck="false"')
-    w(f'          placeholder="&#128269;&nbsp; Type to filter {len(titles)} lessons &mdash; by title or keyword&hellip;"')
+    w(f'          placeholder="&#128269;&nbsp; Type to filter {n_items} lessons &mdash; by title or keyword&hellip;"')
     w('          style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;')
     w('                 border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;')  # 1px solid rgba(128,128,128,0.45)
     w('                 background:transparent;color:inherit"/>')
-    w('   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;min-height:1.2em;margin-top:0.35rem"></div>')
+    w('   <div id="term-filter-count" style="opacity:0.65;font-size:0.85rem;')
+    w('        min-height:1.2em;margin-top:0.35rem"></div>')
     w("   </div>")
     w("   <script>")
     w("   document.addEventListener('DOMContentLoaded',function(){")
@@ -453,14 +468,17 @@ def main() -> int:
     w("       dds.forEach(function(d){")
     w("         if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}")
     w("         else{d.style.display='';d.open=false;}});")
-    w(f"       if(cnt){{cnt.textContent=(q&&az)?(n+' of {len(titles)} match'+(n===1?'':'s')):'';}}")
+    w(f"       if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}")
     w("     });")
     w("   });")
-    w("   </script>"); w("")
+    w("   </script>")
+    w("")
 
     for part in PART_ORDER:
         ph = f"{PARTS[part]}"  # Part {part} \u2014 {PARTS[part]} Part 1 — Fundamentals
-        w(ph); w("-" * max(72, len(ph) + 2)); w("")
+        w(ph)
+        w("-" * max(72, len(ph) + 2))
+        w("")
         for stage in [s for s in STAGE_ORDER if STAGES[s][2] == part]:
             emoji, st_title, _p, blurb = STAGES[stage]
             sn = STAGE_ORDER.index(stage) + 1
@@ -509,7 +527,7 @@ def main() -> int:
     for t in titles:
         w(f"   {docname[t]}")
     w("")
-    w(".. tags:: purpose: reference, domain: bayesian"); w("")
+    w(".. tags:: purpose: reference, topic: data analysis, domain: bayesian"); w("")
 
     OUT.write_text("\n".join(I), encoding="utf-8")
     print(f"Wrote index.rst + {N_LESSONS} lesson pages "

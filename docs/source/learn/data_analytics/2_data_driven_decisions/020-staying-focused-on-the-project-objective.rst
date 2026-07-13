@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-020:
 .. _data-analytics-ddd-020:
 .. _da-foundations-ddd-020:
@@ -91,4 +100,4 @@ focus, honest limits — actually land with the people who must act.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/staying-focused-on-the-project-objective/ <https://insightful-data-lab.com/2023/08/31/staying-focused-on-the-project-objective/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, execution
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: execution

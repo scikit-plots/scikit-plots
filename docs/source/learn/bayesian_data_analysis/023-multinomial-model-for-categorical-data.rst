@@ -70,4 +70,4 @@ constraint is exactly what makes the simplex the natural home for mixture weight
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/ <https://insightful-data-lab.com/2025/11/09/multinomial-model-for-categorical-data/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: beginner
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: beginner

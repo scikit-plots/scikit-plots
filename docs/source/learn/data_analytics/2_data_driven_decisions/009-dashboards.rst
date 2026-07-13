@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-009:
 .. _data-analytics-ddd-009:
 .. _da-foundations-ddd-009:
@@ -82,4 +91,4 @@ they look.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/dashboards/ <https://insightful-data-lab.com/2023/08/31/dashboards/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, metrics
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: metrics

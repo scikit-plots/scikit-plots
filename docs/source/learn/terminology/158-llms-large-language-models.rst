@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-llms-large-language-models:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>LLMs (Large Language Models)</b></div>`
@@ -73,4 +77,4 @@ reasoning-like behaviour.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `LLMs (Large Language Models) <https://insightful-data-lab.com/2025/08/24/llms-large-language-models/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

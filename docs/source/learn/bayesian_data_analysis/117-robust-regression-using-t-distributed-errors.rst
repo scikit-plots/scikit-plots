@@ -63,4 +63,4 @@ before least squares on real data — but it guards against one failure mode, no
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/12/07/robust-regression-using-t-distributed-errors/ <https://insightful-data-lab.com/2025/12/07/robust-regression-using-t-distributed-errors/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

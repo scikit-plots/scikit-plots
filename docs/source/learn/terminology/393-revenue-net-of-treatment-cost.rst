@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-revenue-net-of-treatment-cost:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Revenue net of treatment cost</b></div>`
@@ -72,4 +76,4 @@ treatments with equal uplift are not equal if one costs far less to run.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Revenue net of treatment cost <https://insightful-data-lab.com/2025/08/19/revenue-net-of-treatment-cost/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

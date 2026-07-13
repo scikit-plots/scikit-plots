@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-marginal-likelihood-also-called-the-model-evidence-or-integrated-likelihood:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔁&nbsp;&nbsp;<b>Marginal Likelihood (also called The Model Evidence or Integrated Likelihood)</b></div>`
@@ -92,4 +96,4 @@ exist to approximate the evidence for posterior computation and model selection.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Marginal Likelihood (also called The Model Evidence or Integrated Likelihood) <https://insightful-data-lab.com/2025/08/28/marginal-likelihood-also-called-the-model-evidence-or-integrated-likelihood/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

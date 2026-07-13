@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-analyze-029:
 .. _data-analytics-analyze-029:
 .. _da-foundations-analyze-029:
@@ -104,4 +113,4 @@ used once or many times. The next lesson details creating temporary tables.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/26/temporary-tables-and-the-with-clause-in-sql/ <https://insightful-data-lab.com/2023/11/26/temporary-tables-and-the-with-clause-in-sql/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, analyze, advanced
+.. tags:: purpose: reference, topic: data analytics, topic: analyze, topic: advanced

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-019:
 .. _data-analytics-cleaning-019:
 .. _da-foundations-cleaning-019:
@@ -96,4 +105,4 @@ SQL cleaning operations themselves.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/spreadsheets-vs-sql/ <https://insightful-data-lab.com/2023/11/01/spreadsheets-vs-sql/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

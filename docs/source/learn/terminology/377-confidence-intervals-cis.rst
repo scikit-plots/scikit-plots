@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-confidence-intervals-cis:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🧮&nbsp;&nbsp;<b>Confidence Intervals (CIs)</b></div>`
@@ -62,4 +66,4 @@ tricky quantities like a **binomial proportion** there are several methods — *
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Confidence Intervals (CIs) <https://insightful-data-lab.com/2025/08/19/confidence-intervals-cis/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

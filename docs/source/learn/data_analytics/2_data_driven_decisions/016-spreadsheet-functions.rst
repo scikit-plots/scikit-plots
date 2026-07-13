@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-016:
 .. _data-analytics-ddd-016:
 .. _da-foundations-ddd-016:
@@ -97,4 +106,4 @@ matter how simple it looks.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/spreadsheet-functions/ <https://insightful-data-lab.com/2023/08/31/spreadsheet-functions/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, spreadsheets
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: spreadsheets

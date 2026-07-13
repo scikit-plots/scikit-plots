@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-jaccard-index:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Jaccard index</b></div>`
@@ -63,4 +67,4 @@ matter — only which elements are shared. Contrast with **cosine**, which works
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Jaccard index <https://insightful-data-lab.com/2025/08/22/jaccard-index/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

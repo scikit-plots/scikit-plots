@@ -76,4 +76,4 @@ intercepts and slopes typically **covary**, and modelling that correlation is wh
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/24/varying-intercepts-and-slopes/ <https://insightful-data-lab.com/2025/11/24/varying-intercepts-and-slopes/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: advanced
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-qini-curve:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Qini Curve</b></div>`
@@ -70,4 +74,4 @@ random. The area between the model curve and the diagonal is the **Qini coeffici
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Qini Curve <https://insightful-data-lab.com/2025/08/23/qini-curve/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

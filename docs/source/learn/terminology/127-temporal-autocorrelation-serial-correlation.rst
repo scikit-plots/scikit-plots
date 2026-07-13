@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-temporal-autocorrelation-serial-correlation:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📈&nbsp;&nbsp;<b>Temporal autocorrelation (Serial Correlation)</b></div>`
@@ -77,4 +81,4 @@ means high tends to follow low (**mean-reversion**). On an ACF plot, strong spik
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Temporal autocorrelation (Serial Correlation) <https://insightful-data-lab.com/2025/08/24/temporal-autocorrelation-serial-correlation/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

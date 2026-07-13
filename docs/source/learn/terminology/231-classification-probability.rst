@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-classification-probability:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📏&nbsp;&nbsp;<b>Classification Probability</b></div>`
@@ -61,4 +65,4 @@ decision**, so probabilities are validated with calibration curves, not just acc
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Classification Probability <https://insightful-data-lab.com/2025/08/23/classification-probability/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-020:
 .. _data-analytics-cleaning-020:
 .. _da-foundations-cleaning-020:
@@ -116,4 +125,4 @@ duplicates, cleaning strings, and converting types.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/core-sql-queries-for-data-cleaning-and-analysis/ <https://insightful-data-lab.com/2023/11/01/core-sql-queries-for-data-cleaning-and-analysis/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, sql
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: sql

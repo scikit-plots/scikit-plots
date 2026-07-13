@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-prep-007:
 .. _data-analytics-prep-007:
 .. _da-foundations-prep-007:
@@ -107,4 +116,4 @@ data, beginning with the bias that unexamined data carries.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/09/04/wide-data-vs-long-data/ <https://insightful-data-lab.com/2023/09/04/wide-data-vs-long-data/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, prep, types
+.. tags:: purpose: reference, topic: data analytics, topic: prep, topic: types

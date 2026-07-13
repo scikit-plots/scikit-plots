@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-foundations-015:
 .. _data-analytics-foundations-015:
 .. _da-foundations-foundations-015:
@@ -82,4 +91,4 @@ look suffices; the next lesson sharpens the apparatus into concrete questions.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-its-core-components/ <https://insightful-data-lab.com/2023/07/30/analytical-thinking-and-its-core-components/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, foundations, thinking
+.. tags:: purpose: reference, topic: data analytics, topic: foundations, topic: thinking

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-four-fifths-80-rule:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚖️&nbsp;&nbsp;<b>Four-Fifths (80%) Rule</b></div>`
@@ -86,4 +90,4 @@ positive-outcome rates across groups.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Four-Fifths (80%) Rule <https://insightful-data-lab.com/2025/08/23/four-fifths-80-rule/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

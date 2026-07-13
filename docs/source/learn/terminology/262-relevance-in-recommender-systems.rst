@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-relevance-in-recommender-systems:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Relevance in Recommender Systems</b></div>`
@@ -61,4 +65,4 @@ credited for surfacing surprising-but-useless items. The aim is **relevant *and*
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Relevance in Recommender Systems <https://insightful-data-lab.com/2025/08/22/relevance-in-recommender-systems/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

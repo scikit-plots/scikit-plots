@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-hyperparameter:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🏋️&nbsp;&nbsp;<b>Hyperparameter</b></div>`
@@ -73,4 +77,4 @@ performance hinges on those chosen hyperparameters.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Hyperparameter <https://insightful-data-lab.com/2025/08/24/hyperparameter/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

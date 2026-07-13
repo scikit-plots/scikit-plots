@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-causal-effect:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔗&nbsp;&nbsp;<b>Causal Effect</b></div>`
@@ -72,4 +76,4 @@ works, and measures the real business impact of **marketing, pricing and product
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Causal Effect <https://insightful-data-lab.com/2025/08/21/causal-effect/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

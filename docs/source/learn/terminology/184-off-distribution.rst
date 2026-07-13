@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-off-distribution:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🌊&nbsp;&nbsp;<b>Off-Distribution</b></div>`
@@ -73,4 +77,4 @@ production. Off-distribution is the abrupt cousin of gradual **data** and **conc
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Off-Distribution <https://insightful-data-lab.com/2025/08/23/off-distribution/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

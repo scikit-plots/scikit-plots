@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-brier-score:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎯&nbsp;&nbsp;<b>Brier Score</b></div>`
@@ -66,4 +70,4 @@ sharp-but-miscalibrated model and a calibrated-but-vague one can score similarly
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Brier Score <https://insightful-data-lab.com/2025/08/19/brier-score/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

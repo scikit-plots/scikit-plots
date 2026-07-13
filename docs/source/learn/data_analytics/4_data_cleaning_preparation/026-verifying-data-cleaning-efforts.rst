@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-cleaning-026:
 .. _data-analytics-cleaning-026:
 .. _da-foundations-cleaning-026:
@@ -100,4 +109,4 @@ against memory. The next lesson gives the concrete spreadsheet and SQL technique
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/11/01/verifying-data-cleaning-efforts/ <https://insightful-data-lab.com/2023/11/01/verifying-data-cleaning-efforts/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, cleaning, verify
+.. tags:: purpose: reference, topic: data analytics, topic: cleaning, topic: verify

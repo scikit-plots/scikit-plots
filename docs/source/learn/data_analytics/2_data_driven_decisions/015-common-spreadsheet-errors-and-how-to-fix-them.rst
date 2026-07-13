@@ -1,3 +1,12 @@
+:html_theme.sidebar_secondary.remove:
+
+.. role:: raw-html(raw)
+   :format: html
+
+.. |br| raw:: html
+
+   <br/>
+
 .. _da-ddd-015:
 .. _data-analytics-ddd-015:
 .. _da-foundations-ddd-015:
@@ -96,4 +105,4 @@ uncoded ones.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2023/08/31/common-spreadsheet-errors-and-how-to-fix-them/ <https://insightful-data-lab.com/2023/08/31/common-spreadsheet-errors-and-how-to-fix-them/>`__ (insightful-data-lab.com).
 
-.. tags:: data-analytics, ddd, spreadsheets
+.. tags:: purpose: reference, topic: data analytics, topic: ddd, topic: spreadsheets

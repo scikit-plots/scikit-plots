@@ -61,4 +61,4 @@ theme of this stage. Choose the plot that would embarrass the model if the model
 
    **Source article** Adapted (context, re-expressed) in our own words from: `https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/ <https://insightful-data-lab.com/2025/11/10/graphical-posterior-predictive-checks/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, domain: bayesian, level: intermediate
+.. tags:: purpose: reference, topic: data analysis, domain: bayesian, level: intermediate

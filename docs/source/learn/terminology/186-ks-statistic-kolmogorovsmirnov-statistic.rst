@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-ks-statistic-kolmogorovsmirnov-statistic:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🔬&nbsp;&nbsp;<b>KS Statistic (Kolmogorov–Smirnov Statistic)</b></div>`
@@ -78,4 +82,4 @@ reports only the **single maximum point of separation**.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `KS Statistic (Kolmogorov–Smirnov Statistic) <https://insightful-data-lab.com/2025/08/23/ks-statistic-kolmogorov-smirnov-statistic/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

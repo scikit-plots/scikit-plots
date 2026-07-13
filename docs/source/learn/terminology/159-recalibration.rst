@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-recalibration:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">⚙️&nbsp;&nbsp;<b>Recalibration</b></div>`
@@ -76,4 +80,4 @@ needs a reliable calibration set and may leave ranking metrics like AUC unchange
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Recalibration <https://insightful-data-lab.com/2025/08/23/recalibration/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

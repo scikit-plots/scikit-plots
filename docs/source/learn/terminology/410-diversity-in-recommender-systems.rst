@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-diversity-in-recommender-systems:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">🎁&nbsp;&nbsp;<b>Diversity (in Recommender Systems)</b></div>`
@@ -61,4 +65,4 @@ interesting — but there's an **accuracy-diversity** trade-off, since the most 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Diversity (in Recommender Systems) <https://insightful-data-lab.com/2025/08/19/diversity-in-recommender-systems/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced

@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-regression-models:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💡&nbsp;&nbsp;<b>Regression Models</b></div>`
@@ -61,4 +65,4 @@ trained to minimize a distance-based **loss**. Because those errors use magnitud
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Regression Models <https://insightful-data-lab.com/2025/08/21/regression-models/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: beginner
+.. tags:: purpose: reference, topic: terminology, level: beginner

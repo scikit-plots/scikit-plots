@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-ltv-cac-ratio:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">💼&nbsp;&nbsp;<b>LTV:CAC Ratio</b></div>`
@@ -88,4 +92,4 @@ great ratio still hurts cash flow if CAC takes too long to recover.
 
    **Source article** Adapted (context, re-expressed) in our own words from: `LTV:CAC Ratio <https://insightful-data-lab.com/2025/08/29/ltvcac-ratio/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: intermediate
+.. tags:: purpose: reference, topic: terminology, level: intermediate

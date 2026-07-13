@@ -8,6 +8,10 @@
 .. role:: raw-html(raw)
    :format: html
 
+.. |br| raw:: html
+
+   <br/>
+
 .. _term-value-at-risk-var:
 
 :raw-html:`<div align="center" style="text-align:center;font-size:1.12rem;margin:0.45rem 0 0.2rem">📉&nbsp;&nbsp;<b>Value-at-Risk (VaR)</b></div>`
@@ -69,4 +73,4 @@ Shortfall** (CVaR) — the *average* loss **given** VaR is breached — repairs 
 
    **Source article** Adapted (context, re-expressed) in our own words from: `Value-at-Risk (VaR) <https://insightful-data-lab.com/2025/08/23/value-at-risk-var/>`__ (insightful-data-lab.com).
 
-.. tags:: purpose: reference, level: advanced
+.. tags:: purpose: reference, topic: terminology, level: advanced
