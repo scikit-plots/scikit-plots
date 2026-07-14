@@ -124,36 +124,37 @@ The case for data, the analysis process and data life cycle, analytical thinking
    .. hlist::
       :columns: 2
 
-   * :doc:`A Review of the Six Stages of the Data Life Cycle <010-a-review-of-the-six-stages-of-the-data-life-cycle>`
-   * :doc:`Analytical Skills and Their Core Components <013-analytical-skills-and-their-core-components>`
-   * :doc:`Analytical Thinking and Its Core Components <015-analytical-thinking-and-its-core-components>`
-   * :doc:`Analytical Thinking and Questions for Problem Solving <016-analytical-thinking-and-questions-for-problem-solving>`
-   * :doc:`Applying Analytical Skills in a Business Context <014-applying-analytical-skills-in-a-business-context>`
-   * :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making <019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
-   * :doc:`Data-Driven Decision-Making <003-data-driven-decision-making>`
-   * :doc:`Data-Driven Decision-Making and the Role of Analytical Skills <018-data-driven-decision-making-and-the-role-of-analytical-skills>`
-   * :doc:`Detectives and Data Analysts <004-detectives-and-data-analysts>`
-   * :doc:`Fairness in Data Analysis <026-fairness-in-data-analysis>`
-   * :doc:`How Data Analytics Improves the Workplace <002-how-data-analytics-improves-the-workplace>`
-   * :doc:`Industries Where Data Analysts Work and How Data Is Used <024-industries-where-data-analysts-work-and-how-data-is-used>`
-   * :doc:`Key Factors to Consider When Choosing a Data Analytics Role <027-key-factors-to-consider-when-choosing-a-data-analytics-role>`
-   * :doc:`Overview of Core Tools Used by Data Analysts <020-overview-of-core-tools-used-by-data-analysts>`
-   * :doc:`Practical Application of the Data Analysis Process <012-practical-application-of-the-data-analysis-process>`
-   * :doc:`Root Cause Analysis and Business Applications of the Five Whys <017-root-cause-analysis-and-business-applications-of-the-five-whys>`
-   * :doc:`The Concept and Basic Use of SQL (Query Language) <022-the-concept-and-basic-use-of-sql-query-language>`
-   * :doc:`The Origins of Data Analysis and the Many Ways to Structure It <006-the-origins-of-data-analysis-and-the-many-ways-to-structure-it>`
-   * :doc:`The Role and Importance of Data Visualization <023-the-role-and-importance-of-data-visualization>`
-   * :doc:`The Role of Business Tasks in Data Analysis <025-the-role-of-business-tasks-in-data-analysis>`
-   * :doc:`The Role of Spreadsheets in Data Analysis and Basic Concepts <021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts>`
-   * :doc:`The Six Phases of the Data Analysis Process <005-the-six-phases-of-the-data-analysis-process>`
-   * :doc:`The Stages of the Data Analysis Process and Their Roles <011-the-stages-of-the-data-analysis-process-and-their-roles>`
-   * :doc:`Understanding the Data Analysis Process and the Data Life Cycle <008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
-   * :doc:`Understanding the Data Ecosystem <007-understanding-the-data-ecosystem>`
-   * :doc:`Understanding the Data Life Cycle <009-understanding-the-data-life-cycle>`
-   * :doc:`Why Data Analytics Matters Today <001-why-data-analytics-matters-today>`
+      * :doc:`A Review of the Six Stages of the Data Life Cycle <010-a-review-of-the-six-stages-of-the-data-life-cycle>`
+      * :doc:`Analytical Skills and Their Core Components <013-analytical-skills-and-their-core-components>`
+      * :doc:`Analytical Thinking and Its Core Components <015-analytical-thinking-and-its-core-components>`
+      * :doc:`Analytical Thinking and Questions for Problem Solving <016-analytical-thinking-and-questions-for-problem-solving>`
+      * :doc:`Applying Analytical Skills in a Business Context <014-applying-analytical-skills-in-a-business-context>`
+      * :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making <019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
+      * :doc:`Data-Driven Decision-Making <003-data-driven-decision-making>`
+      * :doc:`Data-Driven Decision-Making and the Role of Analytical Skills <018-data-driven-decision-making-and-the-role-of-analytical-skills>`
+      * :doc:`Detectives and Data Analysts <004-detectives-and-data-analysts>`
+      * :doc:`Fairness in Data Analysis <026-fairness-in-data-analysis>`
+      * :doc:`How Data Analytics Improves the Workplace <002-how-data-analytics-improves-the-workplace>`
+      * :doc:`Industries Where Data Analysts Work and How Data Is Used <024-industries-where-data-analysts-work-and-how-data-is-used>`
+      * :doc:`Key Factors to Consider When Choosing a Data Analytics Role <027-key-factors-to-consider-when-choosing-a-data-analytics-role>`
+      * :doc:`Overview of Core Tools Used by Data Analysts <020-overview-of-core-tools-used-by-data-analysts>`
+      * :doc:`Practical Application of the Data Analysis Process <012-practical-application-of-the-data-analysis-process>`
+      * :doc:`Root Cause Analysis and Business Applications of the Five Whys <017-root-cause-analysis-and-business-applications-of-the-five-whys>`
+      * :doc:`The Concept and Basic Use of SQL (Query Language) <022-the-concept-and-basic-use-of-sql-query-language>`
+      * :doc:`The Origins of Data Analysis and the Many Ways to Structure It <006-the-origins-of-data-analysis-and-the-many-ways-to-structure-it>`
+      * :doc:`The Role and Importance of Data Visualization <023-the-role-and-importance-of-data-visualization>`
+      * :doc:`The Role of Business Tasks in Data Analysis <025-the-role-of-business-tasks-in-data-analysis>`
+      * :doc:`The Role of Spreadsheets in Data Analysis and Basic Concepts <021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts>`
+      * :doc:`The Six Phases of the Data Analysis Process <005-the-six-phases-of-the-data-analysis-process>`
+      * :doc:`The Stages of the Data Analysis Process and Their Roles <011-the-stages-of-the-data-analysis-process-and-their-roles>`
+      * :doc:`Understanding the Data Analysis Process and the Data Life Cycle <008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
+      * :doc:`Understanding the Data Ecosystem <007-understanding-the-data-ecosystem>`
+      * :doc:`Understanding the Data Life Cycle <009-understanding-the-data-life-cycle>`
+      * :doc:`Why Data Analytics Matters Today <001-why-data-analytics-matters-today>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-why-data-analytics-matters-today

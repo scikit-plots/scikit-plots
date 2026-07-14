@@ -105,24 +105,25 @@ From portfolio to offer: resumes, the analyst interview, case studies, and landi
    .. hlist::
       :columns: 2
 
-   * :doc:`Building a Professional Online Presence (Personal Brand) <007-building-a-professional-online-presence-personal-brand>`
-   * :doc:`Career Dreamer (AI Tool for Career Exploration) <003-career-dreamer-ai-tool-for-career-exploration>`
-   * :doc:`Career Identity Statement <002-career-identity-statement>`
-   * :doc:`Choosing the Right Job Platforms <008-choosing-the-right-job-platforms>`
-   * :doc:`Interview Preparation <011-interview-preparation>`
-   * :doc:`Job Application Tracking (Using AI + Spreadsheets) <009-job-application-tracking-using-ai-spreadsheets>`
-   * :doc:`Job Search Plan (Using AI Tools) <004-job-search-plan-using-ai-tools>`
-   * :doc:`Networking for Job Search <010-networking-for-job-search>`
-   * :doc:`Post-Interview Strategy <015-post-interview-strategy>`
-   * :doc:`Practicing Interviews with AI (Gemini Live) <014-practicing-interviews-with-ai-gemini-live>`
-   * :doc:`STAR Method (Behavioral Interview) <012-star-method-behavioral-interview>`
-   * :doc:`Tailoring Your Resume <005-tailoring-your-resume>`
-   * :doc:`Transferable Skills <001-transferable-skills>`
-   * :doc:`Using AI (NotebookLM) for Interview Preparation <013-using-ai-notebooklm-for-interview-preparation>`
-   * :doc:`Using AI to Improve and Tailor Your Resume <006-using-ai-to-improve-and-tailor-your-resume>`
+      * :doc:`Building a Professional Online Presence (Personal Brand) <007-building-a-professional-online-presence-personal-brand>`
+      * :doc:`Career Dreamer (AI Tool for Career Exploration) <003-career-dreamer-ai-tool-for-career-exploration>`
+      * :doc:`Career Identity Statement <002-career-identity-statement>`
+      * :doc:`Choosing the Right Job Platforms <008-choosing-the-right-job-platforms>`
+      * :doc:`Interview Preparation <011-interview-preparation>`
+      * :doc:`Job Application Tracking (Using AI + Spreadsheets) <009-job-application-tracking-using-ai-spreadsheets>`
+      * :doc:`Job Search Plan (Using AI Tools) <004-job-search-plan-using-ai-tools>`
+      * :doc:`Networking for Job Search <010-networking-for-job-search>`
+      * :doc:`Post-Interview Strategy <015-post-interview-strategy>`
+      * :doc:`Practicing Interviews with AI (Gemini Live) <014-practicing-interviews-with-ai-gemini-live>`
+      * :doc:`STAR Method (Behavioral Interview) <012-star-method-behavioral-interview>`
+      * :doc:`Tailoring Your Resume <005-tailoring-your-resume>`
+      * :doc:`Transferable Skills <001-transferable-skills>`
+      * :doc:`Using AI (NotebookLM) for Interview Preparation <013-using-ai-notebooklm-for-interview-preparation>`
+      * :doc:`Using AI to Improve and Tailor Your Resume <006-using-ai-to-improve-and-tailor-your-resume>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-transferable-skills

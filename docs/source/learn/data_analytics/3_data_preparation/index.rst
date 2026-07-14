@@ -122,34 +122,35 @@ Sourcing, structuring, and organising data before analysis: types, formats, data
    .. hlist::
       :columns: 2
 
-   * :doc:`Accessing Data: Internal and External Sources <019-accessing-data-internal-and-external-sources>`
-   * :doc:`BigQuery Account Types <022-bigquery-account-types>`
-   * :doc:`Choosing the Right Data to Collect <002-choosing-the-right-data-to-collect>`
-   * :doc:`Common Types of Data Bias <010-common-types-of-data-bias>`
-   * :doc:`Data Ethics in Data Analysis <013-data-ethics-in-data-analysis>`
-   * :doc:`Data Privacy in Data Ethics <014-data-privacy-in-data-ethics>`
-   * :doc:`Data Security in Spreadsheets <025-data-security-in-spreadsheets>`
-   * :doc:`Data Tables (Tabular Data) <006-data-tables-tabular-data>`
-   * :doc:`Data Types in Spreadsheets <005-data-types-in-spreadsheets>`
-   * :doc:`Databases and Relational Database Concepts <016-databases-and-relational-database-concepts>`
-   * :doc:`How Data Is Generated and Collected <001-how-data-is-generated-and-collected>`
-   * :doc:`Identifying Bad Data Sources (When Data Does Not ROCCC) <012-identifying-bad-data-sources-when-data-does-not-roccc>`
-   * :doc:`Identifying Good Data Sources (ROCCC Framework) <011-identifying-good-data-sources-roccc-framework>`
-   * :doc:`Importing Data into Spreadsheets <020-importing-data-into-spreadsheets>`
-   * :doc:`Metadata in Databases <017-metadata-in-databases>`
-   * :doc:`Metadata Repositories and Data Governance <018-metadata-repositories-and-data-governance>`
-   * :doc:`Open Data and Openness in Data Ethics <015-open-data-and-openness-in-data-ethics>`
-   * :doc:`Organizing Data for Personal and Work Projects <024-organizing-data-for-personal-and-work-projects>`
-   * :doc:`Querying Data with SQL <023-querying-data-with-sql>`
-   * :doc:`Sampling Bias and Unbiased Data <009-sampling-bias-and-unbiased-data>`
-   * :doc:`Sorting and Filtering Data in Spreadsheets <021-sorting-and-filtering-data-in-spreadsheets>`
-   * :doc:`Structured Data and Data Models <004-structured-data-and-data-models>`
-   * :doc:`Understanding Bias in Data Analysis <008-understanding-bias-in-data-analysis>`
-   * :doc:`Understanding Data Types and Data Formats <003-understanding-data-types-and-data-formats>`
-   * :doc:`Wide Data vs. Long Data <007-wide-data-vs-long-data>`
+      * :doc:`Accessing Data: Internal and External Sources <019-accessing-data-internal-and-external-sources>`
+      * :doc:`BigQuery Account Types <022-bigquery-account-types>`
+      * :doc:`Choosing the Right Data to Collect <002-choosing-the-right-data-to-collect>`
+      * :doc:`Common Types of Data Bias <010-common-types-of-data-bias>`
+      * :doc:`Data Ethics in Data Analysis <013-data-ethics-in-data-analysis>`
+      * :doc:`Data Privacy in Data Ethics <014-data-privacy-in-data-ethics>`
+      * :doc:`Data Security in Spreadsheets <025-data-security-in-spreadsheets>`
+      * :doc:`Data Tables (Tabular Data) <006-data-tables-tabular-data>`
+      * :doc:`Data Types in Spreadsheets <005-data-types-in-spreadsheets>`
+      * :doc:`Databases and Relational Database Concepts <016-databases-and-relational-database-concepts>`
+      * :doc:`How Data Is Generated and Collected <001-how-data-is-generated-and-collected>`
+      * :doc:`Identifying Bad Data Sources (When Data Does Not ROCCC) <012-identifying-bad-data-sources-when-data-does-not-roccc>`
+      * :doc:`Identifying Good Data Sources (ROCCC Framework) <011-identifying-good-data-sources-roccc-framework>`
+      * :doc:`Importing Data into Spreadsheets <020-importing-data-into-spreadsheets>`
+      * :doc:`Metadata in Databases <017-metadata-in-databases>`
+      * :doc:`Metadata Repositories and Data Governance <018-metadata-repositories-and-data-governance>`
+      * :doc:`Open Data and Openness in Data Ethics <015-open-data-and-openness-in-data-ethics>`
+      * :doc:`Organizing Data for Personal and Work Projects <024-organizing-data-for-personal-and-work-projects>`
+      * :doc:`Querying Data with SQL <023-querying-data-with-sql>`
+      * :doc:`Sampling Bias and Unbiased Data <009-sampling-bias-and-unbiased-data>`
+      * :doc:`Sorting and Filtering Data in Spreadsheets <021-sorting-and-filtering-data-in-spreadsheets>`
+      * :doc:`Structured Data and Data Models <004-structured-data-and-data-models>`
+      * :doc:`Understanding Bias in Data Analysis <008-understanding-bias-in-data-analysis>`
+      * :doc:`Understanding Data Types and Data Formats <003-understanding-data-types-and-data-formats>`
+      * :doc:`Wide Data vs. Long Data <007-wide-data-vs-long-data>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-how-data-is-generated-and-collected

@@ -443,7 +443,7 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
         # for g in sorted(groups, key=lambda r: str.casefold(r["title"])):
         #     for label, _key, tgt in sorted(g["rows"], key=lambda r: str.casefold(r[0].split(' · ')[1])):
         for label, _key, tgt in sorted(az_entries, key=lambda e: e[1].lower()):
-            w(f"   * :doc:`{label} <{tgt}>`")
+            w(f"      * :doc:`{label} <{tgt}>`")
         w("")
     else:
         w("   .. raw:: html")
@@ -454,8 +454,9 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
 
     # hidden ordered toctree so Sphinx builds the sequence + sidebar nav
     w(".. toctree::")
-    w("   :hidden:")
-    w("   :maxdepth: 1")
+    w("   :hidden:")  # → Do not render this toctree in the page body.
+    w("   :includehidden:")  # → Include descendant toctrees that are themselves marked :hidden: when building the overall hierarchy.
+    w("   :maxdepth: 1")  # → Control how many levels of the hierarchy are exposed to navigation.
     w("")
     for _label, _key, tgt in sorted(az_entries, key=lambda e: e[2].lower()):
         w(f"   {tgt}")

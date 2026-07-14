@@ -129,41 +129,42 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
    .. hlist::
       :columns: 2
 
-   * :doc:`Advanced SQL Functions for Data Cleaning <023-advanced-sql-functions-for-data-cleaning>`
-   * :doc:`Aligning Data with Business Objectives <003-aligning-data-with-business-objectives>`
-   * :doc:`Cleaning and Merging Multiple Datasets <013-cleaning-and-merging-multiple-datasets>`
-   * :doc:`Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables <021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables>`
-   * :doc:`COALESCE <024-coalesce>`
-   * :doc:`Common Issues in Dirty Data <011-common-issues-in-dirty-data>`
-   * :doc:`Core SQL Queries for Data Cleaning and Analysis <020-core-sql-queries-for-data-cleaning-and-analysis>`
-   * :doc:`Data Cleaning with Spreadsheets <012-data-cleaning-with-spreadsheets>`
-   * :doc:`Data Integrity and Its Risks in Data Analysis <002-data-integrity-and-its-risks-in-data-analysis>`
-   * :doc:`Data Mapping and the Big Picture of Clean Data <017-data-mapping-and-the-big-picture-of-clean-data>`
-   * :doc:`Dirty Data vs. Clean Data <009-dirty-data-vs-clean-data>`
-   * :doc:`Documenting Data-Cleaning Changes <028-documenting-data-cleaning-changes>`
-   * :doc:`Exploring Data Analyst Job Opportunities <032-exploring-data-analyst-job-opportunities>`
-   * :doc:`Handling Insufficient Data in Data Analysis <004-handling-insufficient-data-in-data-analysis>`
-   * :doc:`Introduction to SQL <018-introduction-to-sql>`
-   * :doc:`Margin of Error <008-margin-of-error>`
-   * :doc:`Population, Sample Size, and Random Sampling <005-population-sample-size-and-random-sampling>`
-   * :doc:`Refining a Resume for Data Analytics Roles <031-refining-a-resume-for-data-analytics-roles>`
-   * :doc:`Reporting Data-Cleaning Results <029-reporting-data-cleaning-results>`
-   * :doc:`Sample Size and Data Integrity <007-sample-size-and-data-integrity>`
-   * :doc:`Spreadsheet Tools for Data Cleaning <014-spreadsheet-tools-for-data-cleaning>`
-   * :doc:`Spreadsheets vs. SQL <019-spreadsheets-vs-sql>`
-   * :doc:`Statistical Power in Data Analysis <006-statistical-power-in-data-analysis>`
-   * :doc:`The Importance of Clean Data <001-the-importance-of-clean-data>`
-   * :doc:`The Importance of Clean Data (revisited) <010-the-importance-of-clean-data-revisited>`
-   * :doc:`Using CAST to Clean and Format Data in SQL <022-using-cast-to-clean-and-format-data-in-sql>`
-   * :doc:`Using Feedback from Data Cleaning to Improve Data Quality <030-using-feedback-from-data-cleaning-to-improve-data-quality>`
-   * :doc:`Using Spreadsheet Functions for Data Cleaning <015-using-spreadsheet-functions-for-data-cleaning>`
-   * :doc:`Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors <027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors>`
-   * :doc:`Verifying and Reporting Data Integrity <025-verifying-and-reporting-data-integrity>`
-   * :doc:`Verifying Data-Cleaning Efforts <026-verifying-data-cleaning-efforts>`
-   * :doc:`Viewing Data Differently for More Effective Data Cleaning <016-viewing-data-differently-for-more-effective-data-cleaning>`
+      * :doc:`Advanced SQL Functions for Data Cleaning <023-advanced-sql-functions-for-data-cleaning>`
+      * :doc:`Aligning Data with Business Objectives <003-aligning-data-with-business-objectives>`
+      * :doc:`Cleaning and Merging Multiple Datasets <013-cleaning-and-merging-multiple-datasets>`
+      * :doc:`Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables <021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables>`
+      * :doc:`COALESCE <024-coalesce>`
+      * :doc:`Common Issues in Dirty Data <011-common-issues-in-dirty-data>`
+      * :doc:`Core SQL Queries for Data Cleaning and Analysis <020-core-sql-queries-for-data-cleaning-and-analysis>`
+      * :doc:`Data Cleaning with Spreadsheets <012-data-cleaning-with-spreadsheets>`
+      * :doc:`Data Integrity and Its Risks in Data Analysis <002-data-integrity-and-its-risks-in-data-analysis>`
+      * :doc:`Data Mapping and the Big Picture of Clean Data <017-data-mapping-and-the-big-picture-of-clean-data>`
+      * :doc:`Dirty Data vs. Clean Data <009-dirty-data-vs-clean-data>`
+      * :doc:`Documenting Data-Cleaning Changes <028-documenting-data-cleaning-changes>`
+      * :doc:`Exploring Data Analyst Job Opportunities <032-exploring-data-analyst-job-opportunities>`
+      * :doc:`Handling Insufficient Data in Data Analysis <004-handling-insufficient-data-in-data-analysis>`
+      * :doc:`Introduction to SQL <018-introduction-to-sql>`
+      * :doc:`Margin of Error <008-margin-of-error>`
+      * :doc:`Population, Sample Size, and Random Sampling <005-population-sample-size-and-random-sampling>`
+      * :doc:`Refining a Resume for Data Analytics Roles <031-refining-a-resume-for-data-analytics-roles>`
+      * :doc:`Reporting Data-Cleaning Results <029-reporting-data-cleaning-results>`
+      * :doc:`Sample Size and Data Integrity <007-sample-size-and-data-integrity>`
+      * :doc:`Spreadsheet Tools for Data Cleaning <014-spreadsheet-tools-for-data-cleaning>`
+      * :doc:`Spreadsheets vs. SQL <019-spreadsheets-vs-sql>`
+      * :doc:`Statistical Power in Data Analysis <006-statistical-power-in-data-analysis>`
+      * :doc:`The Importance of Clean Data <001-the-importance-of-clean-data>`
+      * :doc:`The Importance of Clean Data (revisited) <010-the-importance-of-clean-data-revisited>`
+      * :doc:`Using CAST to Clean and Format Data in SQL <022-using-cast-to-clean-and-format-data-in-sql>`
+      * :doc:`Using Feedback from Data Cleaning to Improve Data Quality <030-using-feedback-from-data-cleaning-to-improve-data-quality>`
+      * :doc:`Using Spreadsheet Functions for Data Cleaning <015-using-spreadsheet-functions-for-data-cleaning>`
+      * :doc:`Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors <027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors>`
+      * :doc:`Verifying and Reporting Data Integrity <025-verifying-and-reporting-data-integrity>`
+      * :doc:`Verifying Data-Cleaning Efforts <026-verifying-data-cleaning-efforts>`
+      * :doc:`Viewing Data Differently for More Effective Data Cleaning <016-viewing-data-differently-for-more-effective-data-cleaning>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-the-importance-of-clean-data

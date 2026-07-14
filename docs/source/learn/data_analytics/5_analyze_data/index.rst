@@ -127,39 +127,40 @@ Organising, formatting, aggregating, and computing on data to surface patterns a
    .. hlist::
       :columns: 2
 
-   * :doc:`Aggregating Data with Subqueries, HAVING, and CASE in SQL <019-aggregating-data-with-subqueries-having-and-case-in-sql>`
-   * :doc:`Choosing the Right Tool in Data Analysis <013-choosing-the-right-tool-in-data-analysis>`
-   * :doc:`Combining Data Validation and Conditional Formatting in Spreadsheets <008-combining-data-validation-and-conditional-formatting-in-spreadsheets>`
-   * :doc:`Comparing Calculations in Spreadsheets and SQL <025-comparing-calculations-in-spreadsheets-and-sql>`
-   * :doc:`Creating Temporary Tables in SQL — Methods, Trade-offs, and Best Practices <030-creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices>`
-   * :doc:`Data Formatting and Unit Conversion in Spreadsheets <006-data-formatting-and-unit-conversion-in-spreadsheets>`
-   * :doc:`Data Organization in Analysis <002-data-organization-in-analysis>`
-   * :doc:`Data Validation as an Ongoing Analytical Process <028-data-validation-as-an-ongoing-analytical-process>`
-   * :doc:`Data Validation in Spreadsheets <007-data-validation-in-spreadsheets>`
-   * :doc:`Embedding Calculations in SQL Queries <026-embedding-calculations-in-sql-queries>`
-   * :doc:`How to Effectively Search for Solutions Online as a Data Analyst <012-how-to-effectively-search-for-solutions-online-as-a-data-analyst>`
-   * :doc:`Preparing Data for VLOOKUP in Spreadsheets <014-preparing-data-for-vlookup-in-spreadsheets>`
-   * :doc:`Problem-Solving and Seeking Help in Data Analysis <011-problem-solving-and-seeking-help-in-data-analysis>`
-   * :doc:`Sorting and Filtering Data in SQL Using ORDER BY and WHERE <005-sorting-and-filtering-data-in-sql-using-order-by-and-where>`
-   * :doc:`Sorting and Filtering in Data Analysis <003-sorting-and-filtering-in-data-analysis>`
-   * :doc:`Sorting Data in Spreadsheets <004-sorting-data-in-spreadsheets>`
-   * :doc:`Subqueries in SQL <018-subqueries-in-sql>`
-   * :doc:`Temporary Tables and the WITH Clause in SQL <029-temporary-tables-and-the-with-clause-in-sql>`
-   * :doc:`Troubleshooting VLOOKUP and Building a Problem-Solving Framework <016-troubleshooting-vlookup-and-building-a-problem-solving-framework>`
-   * :doc:`Understanding Data Analysis <001-understanding-data-analysis>`
-   * :doc:`Using CONCAT in SQL to Combine Text from Multiple Columns <009-using-concat-in-sql-to-combine-text-from-multiple-columns>`
-   * :doc:`Using COUNTIF and SUMIF for Conditional Aggregation in Spreadsheets <021-using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets>`
-   * :doc:`Using GROUP BY and ORDER BY for Aggregated Calculations in SQL <027-using-group-by-and-order-by-for-aggregated-calculations-in-sql>`
-   * :doc:`Using JOIN in SQL to Combine Tables <017-using-join-in-sql-to-combine-tables>`
-   * :doc:`Using Pivot Table Filters and Calculated Fields for Deeper Analysis <024-using-pivot-table-filters-and-calculated-fields-for-deeper-analysis>`
-   * :doc:`Using Pivot Tables for Calculations and Trend Analysis <023-using-pivot-tables-for-calculations-and-trend-analysis>`
-   * :doc:`Using Spreadsheet Formulas for Sales Trend Analysis <020-using-spreadsheet-formulas-for-sales-trend-analysis>`
-   * :doc:`Using SUMPRODUCT for Advanced Spreadsheet Calculations <022-using-sumproduct-for-advanced-spreadsheet-calculations>`
-   * :doc:`Using VLOOKUP to Combine Data Across Spreadsheets <015-using-vlookup-to-combine-data-across-spreadsheets>`
-   * :doc:`Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND) <010-working-with-strings-in-spreadsheets-len-left-right-find>`
+      * :doc:`Aggregating Data with Subqueries, HAVING, and CASE in SQL <019-aggregating-data-with-subqueries-having-and-case-in-sql>`
+      * :doc:`Choosing the Right Tool in Data Analysis <013-choosing-the-right-tool-in-data-analysis>`
+      * :doc:`Combining Data Validation and Conditional Formatting in Spreadsheets <008-combining-data-validation-and-conditional-formatting-in-spreadsheets>`
+      * :doc:`Comparing Calculations in Spreadsheets and SQL <025-comparing-calculations-in-spreadsheets-and-sql>`
+      * :doc:`Creating Temporary Tables in SQL — Methods, Trade-offs, and Best Practices <030-creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices>`
+      * :doc:`Data Formatting and Unit Conversion in Spreadsheets <006-data-formatting-and-unit-conversion-in-spreadsheets>`
+      * :doc:`Data Organization in Analysis <002-data-organization-in-analysis>`
+      * :doc:`Data Validation as an Ongoing Analytical Process <028-data-validation-as-an-ongoing-analytical-process>`
+      * :doc:`Data Validation in Spreadsheets <007-data-validation-in-spreadsheets>`
+      * :doc:`Embedding Calculations in SQL Queries <026-embedding-calculations-in-sql-queries>`
+      * :doc:`How to Effectively Search for Solutions Online as a Data Analyst <012-how-to-effectively-search-for-solutions-online-as-a-data-analyst>`
+      * :doc:`Preparing Data for VLOOKUP in Spreadsheets <014-preparing-data-for-vlookup-in-spreadsheets>`
+      * :doc:`Problem-Solving and Seeking Help in Data Analysis <011-problem-solving-and-seeking-help-in-data-analysis>`
+      * :doc:`Sorting and Filtering Data in SQL Using ORDER BY and WHERE <005-sorting-and-filtering-data-in-sql-using-order-by-and-where>`
+      * :doc:`Sorting and Filtering in Data Analysis <003-sorting-and-filtering-in-data-analysis>`
+      * :doc:`Sorting Data in Spreadsheets <004-sorting-data-in-spreadsheets>`
+      * :doc:`Subqueries in SQL <018-subqueries-in-sql>`
+      * :doc:`Temporary Tables and the WITH Clause in SQL <029-temporary-tables-and-the-with-clause-in-sql>`
+      * :doc:`Troubleshooting VLOOKUP and Building a Problem-Solving Framework <016-troubleshooting-vlookup-and-building-a-problem-solving-framework>`
+      * :doc:`Understanding Data Analysis <001-understanding-data-analysis>`
+      * :doc:`Using CONCAT in SQL to Combine Text from Multiple Columns <009-using-concat-in-sql-to-combine-text-from-multiple-columns>`
+      * :doc:`Using COUNTIF and SUMIF for Conditional Aggregation in Spreadsheets <021-using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets>`
+      * :doc:`Using GROUP BY and ORDER BY for Aggregated Calculations in SQL <027-using-group-by-and-order-by-for-aggregated-calculations-in-sql>`
+      * :doc:`Using JOIN in SQL to Combine Tables <017-using-join-in-sql-to-combine-tables>`
+      * :doc:`Using Pivot Table Filters and Calculated Fields for Deeper Analysis <024-using-pivot-table-filters-and-calculated-fields-for-deeper-analysis>`
+      * :doc:`Using Pivot Tables for Calculations and Trend Analysis <023-using-pivot-tables-for-calculations-and-trend-analysis>`
+      * :doc:`Using Spreadsheet Formulas for Sales Trend Analysis <020-using-spreadsheet-formulas-for-sales-trend-analysis>`
+      * :doc:`Using SUMPRODUCT for Advanced Spreadsheet Calculations <022-using-sumproduct-for-advanced-spreadsheet-calculations>`
+      * :doc:`Using VLOOKUP to Combine Data Across Spreadsheets <015-using-vlookup-to-combine-data-across-spreadsheets>`
+      * :doc:`Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND) <010-working-with-strings-in-spreadsheets-len-left-right-find>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-understanding-data-analysis

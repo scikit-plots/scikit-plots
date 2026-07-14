@@ -130,42 +130,43 @@ Doing the whole workflow in Python: NumPy, pandas, and plotting for real analyti
    .. hlist::
       :columns: 2
 
-   * :doc:`Advanced Dictionary Usage in Python <024-advanced-dictionary-usage-in-python>`
-   * :doc:`Advanced Use of Loops, Lists, Tuples & List Comprehension <022-advanced-use-of-loops-lists-tuples-and-list-comprehension>`
-   * :doc:`Boolean Data, Comparators, and Logical Operators in Python <011-boolean-data-comparators-and-logical-operators-in-python>`
-   * :doc:`Boolean Masking in Pandas <031-boolean-masking-in-pandas>`
-   * :doc:`Branching and Conditional Statements in Python <012-branching-and-conditional-statements-in-python>`
-   * :doc:`Code Reusability, Modularity, and Clean Code in Python <009-code-reusability-modularity-and-clean-code-in-python>`
-   * :doc:`Combining Data in Pandas (concat and merge) <033-combining-data-in-pandas-concat-and-merge>`
-   * :doc:`Comments, Algorithms, and Docstrings in Python <010-comments-algorithms-and-docstrings-in-python>`
-   * :doc:`Data Types and Type Conversion in Python <007-data-types-and-type-conversion-in-python>`
-   * :doc:`Data Types vs Data Structures & Introduction to Lists <019-data-types-vs-data-structures-and-introduction-to-lists>`
-   * :doc:`Dictionaries in Python <023-dictionaries-in-python>`
-   * :doc:`For Loops in Python <014-for-loops-in-python>`
-   * :doc:`Functions in Python <008-functions-in-python>`
-   * :doc:`Grouping and Aggregation in Pandas (groupby, agg) <032-grouping-and-aggregation-in-pandas-groupby-agg>`
-   * :doc:`Introduction to NumPy and Vectorization <027-introduction-to-numpy-and-vectorization>`
-   * :doc:`Introduction to Pandas (Data Analysis Library) <029-introduction-to-pandas-data-analysis-library>`
-   * :doc:`Introduction to Python and Programming Fundamentals <001-introduction-to-python-and-programming-fundamentals>`
-   * :doc:`Jupyter Notebook and Coding Environments <003-jupyter-notebook-and-coding-environments>`
-   * :doc:`Libraries, Packages, and Modules in Python <026-libraries-packages-and-modules-in-python>`
-   * :doc:`Modifying Lists in Python <020-modifying-lists-in-python>`
-   * :doc:`Naming Conventions and Restrictions in Python <006-naming-conventions-and-restrictions-in-python>`
-   * :doc:`NumPy Arrays (ndarray) and Core Concepts <028-numpy-arrays-ndarray-and-core-concepts>`
-   * :doc:`Object-Oriented Programming (OOP) in Python <004-object-oriented-programming-oop-in-python>`
-   * :doc:`Pandas DataFrame & Series <030-pandas-dataframe-and-series>`
-   * :doc:`Python Fundamentals <002-python-fundamentals>`
-   * :doc:`range() Function and Loop Control in Python <015-range-function-and-loop-control-in-python>`
-   * :doc:`Sets in Python <025-sets-in-python>`
-   * :doc:`String Formatting with .format() in Python <018-string-formatting-with-format-in-python>`
-   * :doc:`String Indexing and Slicing in Python <017-string-indexing-and-slicing-in-python>`
-   * :doc:`Strings in Python <016-strings-in-python>`
-   * :doc:`Tuples in Python <021-tuples-in-python>`
-   * :doc:`Variables in Python <005-variables-in-python>`
-   * :doc:`While Loops and Iteration in Python <013-while-loops-and-iteration-in-python>`
+      * :doc:`Advanced Dictionary Usage in Python <024-advanced-dictionary-usage-in-python>`
+      * :doc:`Advanced Use of Loops, Lists, Tuples & List Comprehension <022-advanced-use-of-loops-lists-tuples-and-list-comprehension>`
+      * :doc:`Boolean Data, Comparators, and Logical Operators in Python <011-boolean-data-comparators-and-logical-operators-in-python>`
+      * :doc:`Boolean Masking in Pandas <031-boolean-masking-in-pandas>`
+      * :doc:`Branching and Conditional Statements in Python <012-branching-and-conditional-statements-in-python>`
+      * :doc:`Code Reusability, Modularity, and Clean Code in Python <009-code-reusability-modularity-and-clean-code-in-python>`
+      * :doc:`Combining Data in Pandas (concat and merge) <033-combining-data-in-pandas-concat-and-merge>`
+      * :doc:`Comments, Algorithms, and Docstrings in Python <010-comments-algorithms-and-docstrings-in-python>`
+      * :doc:`Data Types and Type Conversion in Python <007-data-types-and-type-conversion-in-python>`
+      * :doc:`Data Types vs Data Structures & Introduction to Lists <019-data-types-vs-data-structures-and-introduction-to-lists>`
+      * :doc:`Dictionaries in Python <023-dictionaries-in-python>`
+      * :doc:`For Loops in Python <014-for-loops-in-python>`
+      * :doc:`Functions in Python <008-functions-in-python>`
+      * :doc:`Grouping and Aggregation in Pandas (groupby, agg) <032-grouping-and-aggregation-in-pandas-groupby-agg>`
+      * :doc:`Introduction to NumPy and Vectorization <027-introduction-to-numpy-and-vectorization>`
+      * :doc:`Introduction to Pandas (Data Analysis Library) <029-introduction-to-pandas-data-analysis-library>`
+      * :doc:`Introduction to Python and Programming Fundamentals <001-introduction-to-python-and-programming-fundamentals>`
+      * :doc:`Jupyter Notebook and Coding Environments <003-jupyter-notebook-and-coding-environments>`
+      * :doc:`Libraries, Packages, and Modules in Python <026-libraries-packages-and-modules-in-python>`
+      * :doc:`Modifying Lists in Python <020-modifying-lists-in-python>`
+      * :doc:`Naming Conventions and Restrictions in Python <006-naming-conventions-and-restrictions-in-python>`
+      * :doc:`NumPy Arrays (ndarray) and Core Concepts <028-numpy-arrays-ndarray-and-core-concepts>`
+      * :doc:`Object-Oriented Programming (OOP) in Python <004-object-oriented-programming-oop-in-python>`
+      * :doc:`Pandas DataFrame & Series <030-pandas-dataframe-and-series>`
+      * :doc:`Python Fundamentals <002-python-fundamentals>`
+      * :doc:`range() Function and Loop Control in Python <015-range-function-and-loop-control-in-python>`
+      * :doc:`Sets in Python <025-sets-in-python>`
+      * :doc:`String Formatting with .format() in Python <018-string-formatting-with-format-in-python>`
+      * :doc:`String Indexing and Slicing in Python <017-string-indexing-and-slicing-in-python>`
+      * :doc:`Strings in Python <016-strings-in-python>`
+      * :doc:`Tuples in Python <021-tuples-in-python>`
+      * :doc:`Variables in Python <005-variables-in-python>`
+      * :doc:`While Loops and Iteration in Python <013-while-loops-and-iteration-in-python>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-introduction-to-python-and-programming-fundamentals

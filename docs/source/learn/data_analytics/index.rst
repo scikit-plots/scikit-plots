@@ -339,225 +339,226 @@ A hands-on data-analytics curriculum in eight sections, from first principles to
    .. hlist::
       :columns: 2
 
-   * :doc:`A Review of the Six Stages of the Data Life Cycle  (Foundations) <1_foundations/010-a-review-of-the-six-stages-of-the-data-life-cycle>`
-   * :doc:`Accessibility in Data Visualization: Designing for Everyone  (Data Visualization) <6_data_visualization/008-accessibility-in-data-visualization-designing-for-everyone>`
-   * :doc:`Accessing Data: Internal and External Sources  (Data Preparation) <3_data_preparation/019-accessing-data-internal-and-external-sources>`
-   * :doc:`Adapting to Communication Expectations at Work  (Data-Driven Decisions) <2_data_driven_decisions/022-adapting-to-communication-expectations-at-work>`
-   * :doc:`Advanced Dictionary Usage in Python  (Data Analysis Using Python) <7_data_analysis_python/024-advanced-dictionary-usage-in-python>`
-   * :doc:`Advanced SQL Functions for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/023-advanced-sql-functions-for-data-cleaning>`
-   * :doc:`Advanced Use of Loops, Lists, Tuples & List Comprehension  (Data Analysis Using Python) <7_data_analysis_python/022-advanced-use-of-loops-lists-tuples-and-list-comprehension>`
-   * :doc:`Aggregating Data with Subqueries, HAVING, and CASE in SQL  (Analyze Data) <5_analyze_data/019-aggregating-data-with-subqueries-having-and-case-in-sql>`
-   * :doc:`Aligning Data with Business Objectives  (Data Cleaning & Preparation) <4_data_cleaning_preparation/003-aligning-data-with-business-objectives>`
-   * :doc:`Analytical Skills and Their Core Components  (Foundations) <1_foundations/013-analytical-skills-and-their-core-components>`
-   * :doc:`Analytical Thinking and Its Core Components  (Foundations) <1_foundations/015-analytical-thinking-and-its-core-components>`
-   * :doc:`Analytical Thinking and Questions for Problem Solving  (Foundations) <1_foundations/016-analytical-thinking-and-questions-for-problem-solving>`
-   * :doc:`Applying Analytical Skills in a Business Context  (Foundations) <1_foundations/014-applying-analytical-skills-in-a-business-context>`
-   * :doc:`Applying Data Analytics Problem Types in Real Business Scenarios  (Data-Driven Decisions) <2_data_driven_decisions/003-applying-data-analytics-problem-types-in-real-business-scenarios>`
-   * :doc:`Balancing Speed and Accuracy in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/024-balancing-speed-and-accuracy-in-data-analysis>`
-   * :doc:`BigQuery Account Types  (Data Preparation) <3_data_preparation/022-bigquery-account-types>`
-   * :doc:`Boolean Data, Comparators, and Logical Operators in Python  (Data Analysis Using Python) <7_data_analysis_python/011-boolean-data-comparators-and-logical-operators-in-python>`
-   * :doc:`Boolean Masking in Pandas  (Data Analysis Using Python) <7_data_analysis_python/031-boolean-masking-in-pandas>`
-   * :doc:`Branching and Conditional Statements in Python  (Data Analysis Using Python) <7_data_analysis_python/012-branching-and-conditional-statements-in-python>`
-   * :doc:`Building a Professional Online Presence (Personal Brand)  (Job Search) <8_job_search/007-building-a-professional-online-presence-personal-brand>`
-   * :doc:`Building and Organizing a Spreadsheet  (Data-Driven Decisions) <2_data_driven_decisions/012-building-and-organizing-a-spreadsheet>`
-   * :doc:`Career Dreamer (AI Tool for Career Exploration)  (Job Search) <8_job_search/003-career-dreamer-ai-tool-for-career-exploration>`
-   * :doc:`Career Identity Statement  (Job Search) <8_job_search/002-career-identity-statement>`
-   * :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making  (Foundations) <1_foundations/019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
-   * :doc:`Choosing the Right Data to Collect  (Data Preparation) <3_data_preparation/002-choosing-the-right-data-to-collect>`
-   * :doc:`Choosing the Right Job Platforms  (Job Search) <8_job_search/008-choosing-the-right-job-platforms>`
-   * :doc:`Choosing the Right Tool in Data Analysis  (Analyze Data) <5_analyze_data/013-choosing-the-right-tool-in-data-analysis>`
-   * :doc:`Choosing the Right Visualization: Audience-Centered Design and Chart Selection  (Data Visualization) <6_data_visualization/006-choosing-the-right-visualization-audience-centered-design-and-chart-selection>`
-   * :doc:`Cleaning and Merging Multiple Datasets  (Data Cleaning & Preparation) <4_data_cleaning_preparation/013-cleaning-and-merging-multiple-datasets>`
-   * :doc:`Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables  (Data Cleaning & Preparation) <4_data_cleaning_preparation/021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables>`
-   * :doc:`Clear Communication with Stakeholders and Teams  (Data-Driven Decisions) <2_data_driven_decisions/021-clear-communication-with-stakeholders-and-teams>`
-   * :doc:`COALESCE  (Data Cleaning & Preparation) <4_data_cleaning_preparation/024-coalesce>`
-   * :doc:`Code Reusability, Modularity, and Clean Code in Python  (Data Analysis Using Python) <7_data_analysis_python/009-code-reusability-modularity-and-clean-code-in-python>`
-   * :doc:`Combining Data in Pandas (concat and merge)  (Data Analysis Using Python) <7_data_analysis_python/033-combining-data-in-pandas-concat-and-merge>`
-   * :doc:`Combining Data Validation and Conditional Formatting in Spreadsheets  (Analyze Data) <5_analyze_data/008-combining-data-validation-and-conditional-formatting-in-spreadsheets>`
-   * :doc:`Comments, Algorithms, and Docstrings in Python  (Data Analysis Using Python) <7_data_analysis_python/010-comments-algorithms-and-docstrings-in-python>`
-   * :doc:`Common Issues in Dirty Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/011-common-issues-in-dirty-data>`
-   * :doc:`Common Spreadsheet Errors and How to Fix Them  (Data-Driven Decisions) <2_data_driven_decisions/015-common-spreadsheet-errors-and-how-to-fix-them>`
-   * :doc:`Common Types of Data Bias  (Data Preparation) <3_data_preparation/010-common-types-of-data-bias>`
-   * :doc:`Comparing Calculations in Spreadsheets and SQL  (Analyze Data) <5_analyze_data/025-comparing-calculations-in-spreadsheets-and-sql>`
-   * :doc:`Conflict Resolution in the Workplace  (Data-Driven Decisions) <2_data_driven_decisions/027-conflict-resolution-in-the-workplace>`
-   * :doc:`Connecting Data and Images  (Data Visualization) <6_data_visualization/002-connecting-data-and-images>`
-   * :doc:`Context and Bias in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/018-context-and-bias-in-data-analysis>`
-   * :doc:`Core SQL Queries for Data Cleaning and Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/020-core-sql-queries-for-data-cleaning-and-analysis>`
-   * :doc:`Creating a CO₂ Emissions Visualization in Tableau Public  (Data Visualization) <6_data_visualization/011-creating-a-co-emissions-visualization-in-tableau-public>`
-   * :doc:`Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose  (Data Visualization) <6_data_visualization/003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose>`
-   * :doc:`Creating Temporary Tables in SQL — Methods, Trade-offs, and Best Practices  (Analyze Data) <5_analyze_data/030-creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices>`
-   * :doc:`Dashboards  (Data-Driven Decisions) <2_data_driven_decisions/009-dashboards>`
-   * :doc:`Data Cleaning with Spreadsheets  (Data Cleaning & Preparation) <4_data_cleaning_preparation/012-data-cleaning-with-spreadsheets>`
-   * :doc:`Data Creates Value Only When It Is Communicated  (Data-Driven Decisions) <2_data_driven_decisions/007-data-creates-value-only-when-it-is-communicated>`
-   * :doc:`Data Dashboards: Organizing Insight for Real-Time Decision Making  (Data Visualization) <6_data_visualization/017-data-dashboards-organizing-insight-for-real-time-decision-making>`
-   * :doc:`Data Ethics in Data Analysis  (Data Preparation) <3_data_preparation/013-data-ethics-in-data-analysis>`
-   * :doc:`Data Formatting and Unit Conversion in Spreadsheets  (Analyze Data) <5_analyze_data/006-data-formatting-and-unit-conversion-in-spreadsheets>`
-   * :doc:`Data Integrity and Its Risks in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/002-data-integrity-and-its-risks-in-data-analysis>`
-   * :doc:`Data Mapping and the Big Picture of Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/017-data-mapping-and-the-big-picture-of-clean-data>`
-   * :doc:`Data Organization in Analysis  (Analyze Data) <5_analyze_data/002-data-organization-in-analysis>`
-   * :doc:`Data Privacy in Data Ethics  (Data Preparation) <3_data_preparation/014-data-privacy-in-data-ethics>`
-   * :doc:`Data Security in Spreadsheets  (Data Preparation) <3_data_preparation/025-data-security-in-spreadsheets>`
-   * :doc:`Data Storytelling: Giving Numbers a Clear and Convincing Voice  (Data Visualization) <6_data_visualization/015-data-storytelling-giving-numbers-a-clear-and-convincing-voice>`
-   * :doc:`Data Tables (Tabular Data)  (Data Preparation) <3_data_preparation/006-data-tables-tabular-data>`
-   * :doc:`Data Types and Type Conversion in Python  (Data Analysis Using Python) <7_data_analysis_python/007-data-types-and-type-conversion-in-python>`
-   * :doc:`Data Types in Spreadsheets  (Data Preparation) <3_data_preparation/005-data-types-in-spreadsheets>`
-   * :doc:`Data Types vs Data Structures & Introduction to Lists  (Data Analysis Using Python) <7_data_analysis_python/019-data-types-vs-data-structures-and-introduction-to-lists>`
-   * :doc:`Data Validation as an Ongoing Analytical Process  (Analyze Data) <5_analyze_data/028-data-validation-as-an-ongoing-analytical-process>`
-   * :doc:`Data Validation in Spreadsheets  (Analyze Data) <5_analyze_data/007-data-validation-in-spreadsheets>`
-   * :doc:`Data Visualization  (Data Visualization) <6_data_visualization/001-data-visualization>`
-   * :doc:`Data-Driven Decision-Making  (Foundations) <1_foundations/003-data-driven-decision-making>`
-   * :doc:`Data-Driven Decision-Making and the Role of Analytical Skills  (Foundations) <1_foundations/018-data-driven-decision-making-and-the-role-of-analytical-skills>`
-   * :doc:`Databases and Relational Database Concepts  (Data Preparation) <3_data_preparation/016-databases-and-relational-database-concepts>`
-   * :doc:`Defining the Problem Domain  (Data-Driven Decisions) <2_data_driven_decisions/017-defining-the-problem-domain>`
-   * :doc:`Design Thinking in Data Visualization: A User-Centered Framework  (Data Visualization) <6_data_visualization/007-design-thinking-in-data-visualization-a-user-centered-framework>`
-   * :doc:`Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact  (Data Visualization) <6_data_visualization/020-designing-effective-data-presentation-slides-structure-visuals-and-professional-impact>`
-   * :doc:`Detectives and Data Analysts  (Foundations) <1_foundations/004-detectives-and-data-analysts>`
-   * :doc:`Dictionaries in Python  (Data Analysis Using Python) <7_data_analysis_python/023-dictionaries-in-python>`
-   * :doc:`Dirty Data vs. Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/009-dirty-data-vs-clean-data>`
-   * :doc:`Documenting Data-Cleaning Changes  (Data Cleaning & Preparation) <4_data_cleaning_preparation/028-documenting-data-cleaning-changes>`
-   * :doc:`Effective Meetings  (Data-Driven Decisions) <2_data_driven_decisions/026-effective-meetings>`
-   * :doc:`Effective vs. Ineffective Data Visualizations in Tableau  (Data Visualization) <6_data_visualization/012-effective-vs-ineffective-data-visualizations-in-tableau>`
-   * :doc:`Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement  (Data Visualization) <6_data_visualization/005-elements-of-art-in-data-visualization-line-shape-color-space-and-movement>`
-   * :doc:`Embedding Calculations in SQL Queries  (Analyze Data) <5_analyze_data/026-embedding-calculations-in-sql-queries>`
-   * :doc:`Engaging Your Audience in Data Storytelling: Identifying the Key Message  (Data Visualization) <6_data_visualization/016-engaging-your-audience-in-data-storytelling-identifying-the-key-message>`
-   * :doc:`Exploring Data Analyst Job Opportunities  (Data Cleaning & Preparation) <4_data_cleaning_preparation/032-exploring-data-analyst-job-opportunities>`
-   * :doc:`Fairness in Data Analysis  (Foundations) <1_foundations/026-fairness-in-data-analysis>`
-   * :doc:`For Loops in Python  (Data Analysis Using Python) <7_data_analysis_python/014-for-loops-in-python>`
-   * :doc:`Functions in Python  (Data Analysis Using Python) <7_data_analysis_python/008-functions-in-python>`
-   * :doc:`Getting Started with Tableau Public  (Data Visualization) <6_data_visualization/010-getting-started-with-tableau-public>`
-   * :doc:`Grouping and Aggregation in Pandas (groupby, agg)  (Data Analysis Using Python) <7_data_analysis_python/032-grouping-and-aggregation-in-pandas-groupby-agg>`
-   * :doc:`Handling Insufficient Data in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/004-handling-insufficient-data-in-data-analysis>`
-   * :doc:`Handling Objections in Data Presentations: Responding with Confidence and Clarity  (Data Visualization) <6_data_visualization/026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity>`
-   * :doc:`How Data Analysts Use Spreadsheets  (Data-Driven Decisions) <2_data_driven_decisions/013-how-data-analysts-use-spreadsheets>`
-   * :doc:`How Data Analytics Improves the Workplace  (Foundations) <1_foundations/002-how-data-analytics-improves-the-workplace>`
-   * :doc:`How Data Is Generated and Collected  (Data Preparation) <3_data_preparation/001-how-data-is-generated-and-collected>`
-   * :doc:`How to Effectively Search for Solutions Online as a Data Analyst  (Analyze Data) <5_analyze_data/012-how-to-effectively-search-for-solutions-online-as-a-data-analyst>`
-   * :doc:`Identifying Bad Data Sources (When Data Does Not ROCCC)  (Data Preparation) <3_data_preparation/012-identifying-bad-data-sources-when-data-does-not-roccc>`
-   * :doc:`Identifying Good Data Sources (ROCCC Framework)  (Data Preparation) <3_data_preparation/011-identifying-good-data-sources-roccc-framework>`
-   * :doc:`Importing Data into Spreadsheets  (Data Preparation) <3_data_preparation/020-importing-data-into-spreadsheets>`
-   * :doc:`Industries Where Data Analysts Work and How Data Is Used  (Foundations) <1_foundations/024-industries-where-data-analysts-work-and-how-data-is-used>`
-   * :doc:`Interview Preparation  (Job Search) <8_job_search/011-interview-preparation>`
-   * :doc:`Introduction to NumPy and Vectorization  (Data Analysis Using Python) <7_data_analysis_python/027-introduction-to-numpy-and-vectorization>`
-   * :doc:`Introduction to Pandas (Data Analysis Library)  (Data Analysis Using Python) <7_data_analysis_python/029-introduction-to-pandas-data-analysis-library>`
-   * :doc:`Introduction to Python and Programming Fundamentals  (Data Analysis Using Python) <7_data_analysis_python/001-introduction-to-python-and-programming-fundamentals>`
-   * :doc:`Introduction to SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/018-introduction-to-sql>`
-   * :doc:`Introduction to Tableau  (Data Visualization) <6_data_visualization/009-introduction-to-tableau>`
-   * :doc:`Job Application Tracking (Using AI + Spreadsheets)  (Job Search) <8_job_search/009-job-application-tracking-using-ai-spreadsheets>`
-   * :doc:`Job Search Plan (Using AI Tools)  (Job Search) <8_job_search/004-job-search-plan-using-ai-tools>`
-   * :doc:`Jupyter Notebook and Coding Environments  (Data Analysis Using Python) <7_data_analysis_python/003-jupyter-notebook-and-coding-environments>`
-   * :doc:`Key Factors to Consider When Choosing a Data Analytics Role  (Foundations) <1_foundations/027-key-factors-to-consider-when-choosing-a-data-analytics-role>`
-   * :doc:`Libraries, Packages, and Modules in Python  (Data Analysis Using Python) <7_data_analysis_python/026-libraries-packages-and-modules-in-python>`
-   * :doc:`Linking Multiple Datasets in Tableau Public  (Data Visualization) <6_data_visualization/014-linking-multiple-datasets-in-tableau-public>`
-   * :doc:`Managing Stakeholder Expectations and Project Constraints  (Data-Driven Decisions) <2_data_driven_decisions/023-managing-stakeholder-expectations-and-project-constraints>`
-   * :doc:`Margin of Error  (Data Cleaning & Preparation) <4_data_cleaning_preparation/008-margin-of-error>`
-   * :doc:`Mathematical Thinking  (Data-Driven Decisions) <2_data_driven_decisions/010-mathematical-thinking>`
-   * :doc:`Metadata in Databases  (Data Preparation) <3_data_preparation/017-metadata-in-databases>`
-   * :doc:`Metadata Repositories and Data Governance  (Data Preparation) <3_data_preparation/018-metadata-repositories-and-data-governance>`
-   * :doc:`Modifying Lists in Python  (Data Analysis Using Python) <7_data_analysis_python/020-modifying-lists-in-python>`
-   * :doc:`Naming Conventions and Restrictions in Python  (Data Analysis Using Python) <7_data_analysis_python/006-naming-conventions-and-restrictions-in-python>`
-   * :doc:`Networking for Job Search  (Job Search) <8_job_search/010-networking-for-job-search>`
-   * :doc:`NumPy Arrays (ndarray) and Core Concepts  (Data Analysis Using Python) <7_data_analysis_python/028-numpy-arrays-ndarray-and-core-concepts>`
-   * :doc:`Object-Oriented Programming (OOP) in Python  (Data Analysis Using Python) <7_data_analysis_python/004-object-oriented-programming-oop-in-python>`
-   * :doc:`Open Data and Openness in Data Ethics  (Data Preparation) <3_data_preparation/015-open-data-and-openness-in-data-ethics>`
-   * :doc:`Organizing Data for Personal and Work Projects  (Data Preparation) <3_data_preparation/024-organizing-data-for-personal-and-work-projects>`
-   * :doc:`Overview of Core Tools Used by Data Analysts  (Foundations) <1_foundations/020-overview-of-core-tools-used-by-data-analysts>`
-   * :doc:`Pandas DataFrame & Series  (Data Analysis Using Python) <7_data_analysis_python/030-pandas-dataframe-and-series>`
-   * :doc:`Population, Sample Size, and Random Sampling  (Data Cleaning & Preparation) <4_data_cleaning_preparation/005-population-sample-size-and-random-sampling>`
-   * :doc:`Post-Interview Strategy  (Job Search) <8_job_search/015-post-interview-strategy>`
-   * :doc:`Practical Application of the Data Analysis Process  (Foundations) <1_foundations/012-practical-application-of-the-data-analysis-process>`
-   * :doc:`Practicing Interviews with AI (Gemini Live)  (Job Search) <8_job_search/014-practicing-interviews-with-ai-gemini-live>`
-   * :doc:`Preparing Data for VLOOKUP in Spreadsheets  (Analyze Data) <5_analyze_data/014-preparing-data-for-vlookup-in-spreadsheets>`
-   * :doc:`Preparing for Q&A: Anticipating and Responding to Stakeholder Questions  (Data Visualization) <6_data_visualization/025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions>`
-   * :doc:`Presentation Skills for Data Analysts: Delivering Insights with Confidence  (Data Visualization) <6_data_visualization/023-presentation-skills-for-data-analysts-delivering-insights-with-confidence>`
-   * :doc:`Presenting Like a Pro: Best Practices for Data Analysts  (Data Visualization) <6_data_visualization/024-presenting-like-a-pro-best-practices-for-data-analysts>`
-   * :doc:`Problem-Solving and Seeking Help in Data Analysis  (Analyze Data) <5_analyze_data/011-problem-solving-and-seeking-help-in-data-analysis>`
-   * :doc:`Python Fundamentals  (Data Analysis Using Python) <7_data_analysis_python/002-python-fundamentals>`
-   * :doc:`Q&A Best Practices: Answering Questions with Clarity and Confidence  (Data Visualization) <6_data_visualization/027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>`
-   * :doc:`Quantitative and Qualitative Data in Decision-Making  (Data-Driven Decisions) <2_data_driven_decisions/006-quantitative-and-qualitative-data-in-decision-making>`
-   * :doc:`Querying Data with SQL  (Data Preparation) <3_data_preparation/023-querying-data-with-sql>`
-   * :doc:`range() Function and Loop Control in Python  (Data Analysis Using Python) <7_data_analysis_python/015-range-function-and-loop-control-in-python>`
-   * :doc:`Refining a Resume for Data Analytics Roles  (Data Cleaning & Preparation) <4_data_cleaning_preparation/031-refining-a-resume-for-data-analytics-roles>`
-   * :doc:`Reporting Data-Cleaning Results  (Data Cleaning & Preparation) <4_data_cleaning_preparation/029-reporting-data-cleaning-results>`
-   * :doc:`Root Cause Analysis and Business Applications of the Five Whys  (Foundations) <1_foundations/017-root-cause-analysis-and-business-applications-of-the-five-whys>`
-   * :doc:`Sample Size and Data Integrity  (Data Cleaning & Preparation) <4_data_cleaning_preparation/007-sample-size-and-data-integrity>`
-   * :doc:`Sampling Bias and Unbiased Data  (Data Preparation) <3_data_preparation/009-sampling-bias-and-unbiased-data>`
-   * :doc:`Sets in Python  (Data Analysis Using Python) <7_data_analysis_python/025-sets-in-python>`
-   * :doc:`Sharing Data to Drive Impact  (Data-Driven Decisions) <2_data_driven_decisions/025-sharing-data-to-drive-impact>`
-   * :doc:`Sorting and Filtering Data in Spreadsheets  (Data Preparation) <3_data_preparation/021-sorting-and-filtering-data-in-spreadsheets>`
-   * :doc:`Sorting and Filtering Data in SQL Using ORDER BY and WHERE  (Analyze Data) <5_analyze_data/005-sorting-and-filtering-data-in-sql-using-order-by-and-where>`
-   * :doc:`Sorting and Filtering in Data Analysis  (Analyze Data) <5_analyze_data/003-sorting-and-filtering-in-data-analysis>`
-   * :doc:`Sorting Data in Spreadsheets  (Analyze Data) <5_analyze_data/004-sorting-data-in-spreadsheets>`
-   * :doc:`Spreadsheet Calculations with Formulas  (Data-Driven Decisions) <2_data_driven_decisions/014-spreadsheet-calculations-with-formulas>`
-   * :doc:`Spreadsheet Functions  (Data-Driven Decisions) <2_data_driven_decisions/016-spreadsheet-functions>`
-   * :doc:`Spreadsheet Tools for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/014-spreadsheet-tools-for-data-cleaning>`
-   * :doc:`Spreadsheets in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/011-spreadsheets-in-data-analysis>`
-   * :doc:`Spreadsheets vs. SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/019-spreadsheets-vs-sql>`
-   * :doc:`Stakeholder Expectations in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/019-stakeholder-expectations-in-data-analysis>`
-   * :doc:`STAR Method (Behavioral Interview)  (Job Search) <8_job_search/012-star-method-behavioral-interview>`
-   * :doc:`Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity  (Data Visualization) <6_data_visualization/004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity>`
-   * :doc:`Statistical Power in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/006-statistical-power-in-data-analysis>`
-   * :doc:`Staying Focused on the Project Objective  (Data-Driven Decisions) <2_data_driven_decisions/020-staying-focused-on-the-project-objective>`
-   * :doc:`String Formatting with .format() in Python  (Data Analysis Using Python) <7_data_analysis_python/018-string-formatting-with-format-in-python>`
-   * :doc:`String Indexing and Slicing in Python  (Data Analysis Using Python) <7_data_analysis_python/017-string-indexing-and-slicing-in-python>`
-   * :doc:`Strings in Python  (Data Analysis Using Python) <7_data_analysis_python/016-strings-in-python>`
-   * :doc:`Structured Data and Data Models  (Data Preparation) <3_data_preparation/004-structured-data-and-data-models>`
-   * :doc:`Structuring a Persuasive Data Presentation: Turning Insights into Story  (Data Visualization) <6_data_visualization/019-structuring-a-persuasive-data-presentation-turning-insights-into-story>`
-   * :doc:`Subqueries in SQL  (Analyze Data) <5_analyze_data/018-subqueries-in-sql>`
-   * :doc:`Tailoring Your Resume  (Job Search) <8_job_search/005-tailoring-your-resume>`
-   * :doc:`Temporary Tables and the WITH Clause in SQL  (Analyze Data) <5_analyze_data/029-temporary-tables-and-the-with-clause-in-sql>`
-   * :doc:`The Concept and Basic Use of SQL (Query Language)  (Foundations) <1_foundations/022-the-concept-and-basic-use-of-sql-query-language>`
-   * :doc:`The Difference Between Data and Metrics, and the Role of Metrics  (Data-Driven Decisions) <2_data_driven_decisions/008-the-difference-between-data-and-metrics-and-the-role-of-metrics>`
-   * :doc:`The Importance of Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/001-the-importance-of-clean-data>`
-   * :doc:`The Importance of Clean Data (revisited)  (Data Cleaning & Preparation) <4_data_cleaning_preparation/010-the-importance-of-clean-data-revisited>`
-   * :doc:`The Origins of Data Analysis and the Many Ways to Structure It  (Foundations) <1_foundations/006-the-origins-of-data-analysis-and-the-many-ways-to-structure-it>`
-   * :doc:`The Relationship Between Data and Decision-Making  (Data-Driven Decisions) <2_data_driven_decisions/005-the-relationship-between-data-and-decision-making>`
-   * :doc:`The Role and Importance of Data Visualization  (Foundations) <1_foundations/023-the-role-and-importance-of-data-visualization>`
-   * :doc:`The Role of Business Tasks in Data Analysis  (Foundations) <1_foundations/025-the-role-of-business-tasks-in-data-analysis>`
-   * :doc:`The Role of Spreadsheets in Data Analysis and Basic Concepts  (Foundations) <1_foundations/021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts>`
-   * :doc:`The Six Phases of the Data Analysis Process  (Foundations) <1_foundations/005-the-six-phases-of-the-data-analysis-process>`
-   * :doc:`The Stages of the Data Analysis Process and Their Roles  (Foundations) <1_foundations/011-the-stages-of-the-data-analysis-process-and-their-roles>`
-   * :doc:`Transferable Skills  (Job Search) <8_job_search/001-transferable-skills>`
-   * :doc:`Troubleshooting VLOOKUP and Building a Problem-Solving Framework  (Analyze Data) <5_analyze_data/016-troubleshooting-vlookup-and-building-a-problem-solving-framework>`
-   * :doc:`Tuples in Python  (Data Analysis Using Python) <7_data_analysis_python/021-tuples-in-python>`
-   * :doc:`Understanding Bias in Data Analysis  (Data Preparation) <3_data_preparation/008-understanding-bias-in-data-analysis>`
-   * :doc:`Understanding Common Problem Types in Data Analytics  (Data-Driven Decisions) <2_data_driven_decisions/002-understanding-common-problem-types-in-data-analytics>`
-   * :doc:`Understanding Data Analysis  (Analyze Data) <5_analyze_data/001-understanding-data-analysis>`
-   * :doc:`Understanding Data Types and Data Formats  (Data Preparation) <3_data_preparation/003-understanding-data-types-and-data-formats>`
-   * :doc:`Understanding the Data Analysis Process and the Data Life Cycle  (Foundations) <1_foundations/008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
-   * :doc:`Understanding the Data Ecosystem  (Foundations) <1_foundations/007-understanding-the-data-ecosystem>`
-   * :doc:`Understanding the Data Life Cycle  (Foundations) <1_foundations/009-understanding-the-data-life-cycle>`
-   * :doc:`Using a Strategic Framework to Structure Data Presentations  (Data Visualization) <6_data_visualization/021-using-a-strategic-framework-to-structure-data-presentations>`
-   * :doc:`Using AI (NotebookLM) for Interview Preparation  (Job Search) <8_job_search/013-using-ai-notebooklm-for-interview-preparation>`
-   * :doc:`Using AI to Improve and Tailor Your Resume  (Job Search) <8_job_search/006-using-ai-to-improve-and-tailor-your-resume>`
-   * :doc:`Using CAST to Clean and Format Data in SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/022-using-cast-to-clean-and-format-data-in-sql>`
-   * :doc:`Using CONCAT in SQL to Combine Text from Multiple Columns  (Analyze Data) <5_analyze_data/009-using-concat-in-sql-to-combine-text-from-multiple-columns>`
-   * :doc:`Using COUNTIF and SUMIF for Conditional Aggregation in Spreadsheets  (Analyze Data) <5_analyze_data/021-using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets>`
-   * :doc:`Using Creativity in Tableau  (Data Visualization) <6_data_visualization/013-using-creativity-in-tableau>`
-   * :doc:`Using Data Analysis to Choose the Right Advertising Strategy  (Data-Driven Decisions) <2_data_driven_decisions/001-using-data-analysis-to-choose-the-right-advertising-strategy>`
-   * :doc:`Using Feedback from Data Cleaning to Improve Data Quality  (Data Cleaning & Preparation) <4_data_cleaning_preparation/030-using-feedback-from-data-cleaning-to-improve-data-quality>`
-   * :doc:`Using Filters to Create Compelling and Focused Visuals  (Data Visualization) <6_data_visualization/018-using-filters-to-create-compelling-and-focused-visuals>`
-   * :doc:`Using GROUP BY and ORDER BY for Aggregated Calculations in SQL  (Analyze Data) <5_analyze_data/027-using-group-by-and-order-by-for-aggregated-calculations-in-sql>`
-   * :doc:`Using JOIN in SQL to Combine Tables  (Analyze Data) <5_analyze_data/017-using-join-in-sql-to-combine-tables>`
-   * :doc:`Using Pivot Table Filters and Calculated Fields for Deeper Analysis  (Analyze Data) <5_analyze_data/024-using-pivot-table-filters-and-calculated-fields-for-deeper-analysis>`
-   * :doc:`Using Pivot Tables for Calculations and Trend Analysis  (Analyze Data) <5_analyze_data/023-using-pivot-tables-for-calculations-and-trend-analysis>`
-   * :doc:`Using Spreadsheet Formulas for Sales Trend Analysis  (Analyze Data) <5_analyze_data/020-using-spreadsheet-formulas-for-sales-trend-analysis>`
-   * :doc:`Using Spreadsheet Functions for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/015-using-spreadsheet-functions-for-data-cleaning>`
-   * :doc:`Using SUMPRODUCT for Advanced Spreadsheet Calculations  (Analyze Data) <5_analyze_data/022-using-sumproduct-for-advanced-spreadsheet-calculations>`
-   * :doc:`Using VLOOKUP to Combine Data Across Spreadsheets  (Analyze Data) <5_analyze_data/015-using-vlookup-to-combine-data-across-spreadsheets>`
-   * :doc:`Variables in Python  (Data Analysis Using Python) <7_data_analysis_python/005-variables-in-python>`
-   * :doc:`Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors  (Data Cleaning & Preparation) <4_data_cleaning_preparation/027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors>`
-   * :doc:`Verifying and Reporting Data Integrity  (Data Cleaning & Preparation) <4_data_cleaning_preparation/025-verifying-and-reporting-data-integrity>`
-   * :doc:`Verifying Data-Cleaning Efforts  (Data Cleaning & Preparation) <4_data_cleaning_preparation/026-verifying-data-cleaning-efforts>`
-   * :doc:`Viewing Data Differently for More Effective Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/016-viewing-data-differently-for-more-effective-data-cleaning>`
-   * :doc:`Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method  (Data Visualization) <6_data_visualization/022-weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method>`
-   * :doc:`While Loops and Iteration in Python  (Data Analysis Using Python) <7_data_analysis_python/013-while-loops-and-iteration-in-python>`
-   * :doc:`Why Asking the Right Questions Matters in Data Analytics  (Data-Driven Decisions) <2_data_driven_decisions/004-why-asking-the-right-questions-matters-in-data-analytics>`
-   * :doc:`Why Data Analytics Matters Today  (Foundations) <1_foundations/001-why-data-analytics-matters-today>`
-   * :doc:`Wide Data vs. Long Data  (Data Preparation) <3_data_preparation/007-wide-data-vs-long-data>`
-   * :doc:`Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND)  (Analyze Data) <5_analyze_data/010-working-with-strings-in-spreadsheets-len-left-right-find>`
+      * :doc:`A Review of the Six Stages of the Data Life Cycle  (Foundations) <1_foundations/010-a-review-of-the-six-stages-of-the-data-life-cycle>`
+      * :doc:`Accessibility in Data Visualization: Designing for Everyone  (Data Visualization) <6_data_visualization/008-accessibility-in-data-visualization-designing-for-everyone>`
+      * :doc:`Accessing Data: Internal and External Sources  (Data Preparation) <3_data_preparation/019-accessing-data-internal-and-external-sources>`
+      * :doc:`Adapting to Communication Expectations at Work  (Data-Driven Decisions) <2_data_driven_decisions/022-adapting-to-communication-expectations-at-work>`
+      * :doc:`Advanced Dictionary Usage in Python  (Data Analysis Using Python) <7_data_analysis_python/024-advanced-dictionary-usage-in-python>`
+      * :doc:`Advanced SQL Functions for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/023-advanced-sql-functions-for-data-cleaning>`
+      * :doc:`Advanced Use of Loops, Lists, Tuples & List Comprehension  (Data Analysis Using Python) <7_data_analysis_python/022-advanced-use-of-loops-lists-tuples-and-list-comprehension>`
+      * :doc:`Aggregating Data with Subqueries, HAVING, and CASE in SQL  (Analyze Data) <5_analyze_data/019-aggregating-data-with-subqueries-having-and-case-in-sql>`
+      * :doc:`Aligning Data with Business Objectives  (Data Cleaning & Preparation) <4_data_cleaning_preparation/003-aligning-data-with-business-objectives>`
+      * :doc:`Analytical Skills and Their Core Components  (Foundations) <1_foundations/013-analytical-skills-and-their-core-components>`
+      * :doc:`Analytical Thinking and Its Core Components  (Foundations) <1_foundations/015-analytical-thinking-and-its-core-components>`
+      * :doc:`Analytical Thinking and Questions for Problem Solving  (Foundations) <1_foundations/016-analytical-thinking-and-questions-for-problem-solving>`
+      * :doc:`Applying Analytical Skills in a Business Context  (Foundations) <1_foundations/014-applying-analytical-skills-in-a-business-context>`
+      * :doc:`Applying Data Analytics Problem Types in Real Business Scenarios  (Data-Driven Decisions) <2_data_driven_decisions/003-applying-data-analytics-problem-types-in-real-business-scenarios>`
+      * :doc:`Balancing Speed and Accuracy in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/024-balancing-speed-and-accuracy-in-data-analysis>`
+      * :doc:`BigQuery Account Types  (Data Preparation) <3_data_preparation/022-bigquery-account-types>`
+      * :doc:`Boolean Data, Comparators, and Logical Operators in Python  (Data Analysis Using Python) <7_data_analysis_python/011-boolean-data-comparators-and-logical-operators-in-python>`
+      * :doc:`Boolean Masking in Pandas  (Data Analysis Using Python) <7_data_analysis_python/031-boolean-masking-in-pandas>`
+      * :doc:`Branching and Conditional Statements in Python  (Data Analysis Using Python) <7_data_analysis_python/012-branching-and-conditional-statements-in-python>`
+      * :doc:`Building a Professional Online Presence (Personal Brand)  (Job Search) <8_job_search/007-building-a-professional-online-presence-personal-brand>`
+      * :doc:`Building and Organizing a Spreadsheet  (Data-Driven Decisions) <2_data_driven_decisions/012-building-and-organizing-a-spreadsheet>`
+      * :doc:`Career Dreamer (AI Tool for Career Exploration)  (Job Search) <8_job_search/003-career-dreamer-ai-tool-for-career-exploration>`
+      * :doc:`Career Identity Statement  (Job Search) <8_job_search/002-career-identity-statement>`
+      * :doc:`Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making  (Foundations) <1_foundations/019-case-studies-in-data-analysis-and-the-practical-impact-of-data-driven-decision-making>`
+      * :doc:`Choosing the Right Data to Collect  (Data Preparation) <3_data_preparation/002-choosing-the-right-data-to-collect>`
+      * :doc:`Choosing the Right Job Platforms  (Job Search) <8_job_search/008-choosing-the-right-job-platforms>`
+      * :doc:`Choosing the Right Tool in Data Analysis  (Analyze Data) <5_analyze_data/013-choosing-the-right-tool-in-data-analysis>`
+      * :doc:`Choosing the Right Visualization: Audience-Centered Design and Chart Selection  (Data Visualization) <6_data_visualization/006-choosing-the-right-visualization-audience-centered-design-and-chart-selection>`
+      * :doc:`Cleaning and Merging Multiple Datasets  (Data Cleaning & Preparation) <4_data_cleaning_preparation/013-cleaning-and-merging-multiple-datasets>`
+      * :doc:`Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables  (Data Cleaning & Preparation) <4_data_cleaning_preparation/021-cleaning-data-with-sql-removing-duplicates-and-cleaning-string-variables>`
+      * :doc:`Clear Communication with Stakeholders and Teams  (Data-Driven Decisions) <2_data_driven_decisions/021-clear-communication-with-stakeholders-and-teams>`
+      * :doc:`COALESCE  (Data Cleaning & Preparation) <4_data_cleaning_preparation/024-coalesce>`
+      * :doc:`Code Reusability, Modularity, and Clean Code in Python  (Data Analysis Using Python) <7_data_analysis_python/009-code-reusability-modularity-and-clean-code-in-python>`
+      * :doc:`Combining Data in Pandas (concat and merge)  (Data Analysis Using Python) <7_data_analysis_python/033-combining-data-in-pandas-concat-and-merge>`
+      * :doc:`Combining Data Validation and Conditional Formatting in Spreadsheets  (Analyze Data) <5_analyze_data/008-combining-data-validation-and-conditional-formatting-in-spreadsheets>`
+      * :doc:`Comments, Algorithms, and Docstrings in Python  (Data Analysis Using Python) <7_data_analysis_python/010-comments-algorithms-and-docstrings-in-python>`
+      * :doc:`Common Issues in Dirty Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/011-common-issues-in-dirty-data>`
+      * :doc:`Common Spreadsheet Errors and How to Fix Them  (Data-Driven Decisions) <2_data_driven_decisions/015-common-spreadsheet-errors-and-how-to-fix-them>`
+      * :doc:`Common Types of Data Bias  (Data Preparation) <3_data_preparation/010-common-types-of-data-bias>`
+      * :doc:`Comparing Calculations in Spreadsheets and SQL  (Analyze Data) <5_analyze_data/025-comparing-calculations-in-spreadsheets-and-sql>`
+      * :doc:`Conflict Resolution in the Workplace  (Data-Driven Decisions) <2_data_driven_decisions/027-conflict-resolution-in-the-workplace>`
+      * :doc:`Connecting Data and Images  (Data Visualization) <6_data_visualization/002-connecting-data-and-images>`
+      * :doc:`Context and Bias in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/018-context-and-bias-in-data-analysis>`
+      * :doc:`Core SQL Queries for Data Cleaning and Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/020-core-sql-queries-for-data-cleaning-and-analysis>`
+      * :doc:`Creating a CO₂ Emissions Visualization in Tableau Public  (Data Visualization) <6_data_visualization/011-creating-a-co-emissions-visualization-in-tableau-public>`
+      * :doc:`Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose  (Data Visualization) <6_data_visualization/003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose>`
+      * :doc:`Creating Temporary Tables in SQL — Methods, Trade-offs, and Best Practices  (Analyze Data) <5_analyze_data/030-creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices>`
+      * :doc:`Dashboards  (Data-Driven Decisions) <2_data_driven_decisions/009-dashboards>`
+      * :doc:`Data Cleaning with Spreadsheets  (Data Cleaning & Preparation) <4_data_cleaning_preparation/012-data-cleaning-with-spreadsheets>`
+      * :doc:`Data Creates Value Only When It Is Communicated  (Data-Driven Decisions) <2_data_driven_decisions/007-data-creates-value-only-when-it-is-communicated>`
+      * :doc:`Data Dashboards: Organizing Insight for Real-Time Decision Making  (Data Visualization) <6_data_visualization/017-data-dashboards-organizing-insight-for-real-time-decision-making>`
+      * :doc:`Data Ethics in Data Analysis  (Data Preparation) <3_data_preparation/013-data-ethics-in-data-analysis>`
+      * :doc:`Data Formatting and Unit Conversion in Spreadsheets  (Analyze Data) <5_analyze_data/006-data-formatting-and-unit-conversion-in-spreadsheets>`
+      * :doc:`Data Integrity and Its Risks in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/002-data-integrity-and-its-risks-in-data-analysis>`
+      * :doc:`Data Mapping and the Big Picture of Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/017-data-mapping-and-the-big-picture-of-clean-data>`
+      * :doc:`Data Organization in Analysis  (Analyze Data) <5_analyze_data/002-data-organization-in-analysis>`
+      * :doc:`Data Privacy in Data Ethics  (Data Preparation) <3_data_preparation/014-data-privacy-in-data-ethics>`
+      * :doc:`Data Security in Spreadsheets  (Data Preparation) <3_data_preparation/025-data-security-in-spreadsheets>`
+      * :doc:`Data Storytelling: Giving Numbers a Clear and Convincing Voice  (Data Visualization) <6_data_visualization/015-data-storytelling-giving-numbers-a-clear-and-convincing-voice>`
+      * :doc:`Data Tables (Tabular Data)  (Data Preparation) <3_data_preparation/006-data-tables-tabular-data>`
+      * :doc:`Data Types and Type Conversion in Python  (Data Analysis Using Python) <7_data_analysis_python/007-data-types-and-type-conversion-in-python>`
+      * :doc:`Data Types in Spreadsheets  (Data Preparation) <3_data_preparation/005-data-types-in-spreadsheets>`
+      * :doc:`Data Types vs Data Structures & Introduction to Lists  (Data Analysis Using Python) <7_data_analysis_python/019-data-types-vs-data-structures-and-introduction-to-lists>`
+      * :doc:`Data Validation as an Ongoing Analytical Process  (Analyze Data) <5_analyze_data/028-data-validation-as-an-ongoing-analytical-process>`
+      * :doc:`Data Validation in Spreadsheets  (Analyze Data) <5_analyze_data/007-data-validation-in-spreadsheets>`
+      * :doc:`Data Visualization  (Data Visualization) <6_data_visualization/001-data-visualization>`
+      * :doc:`Data-Driven Decision-Making  (Foundations) <1_foundations/003-data-driven-decision-making>`
+      * :doc:`Data-Driven Decision-Making and the Role of Analytical Skills  (Foundations) <1_foundations/018-data-driven-decision-making-and-the-role-of-analytical-skills>`
+      * :doc:`Databases and Relational Database Concepts  (Data Preparation) <3_data_preparation/016-databases-and-relational-database-concepts>`
+      * :doc:`Defining the Problem Domain  (Data-Driven Decisions) <2_data_driven_decisions/017-defining-the-problem-domain>`
+      * :doc:`Design Thinking in Data Visualization: A User-Centered Framework  (Data Visualization) <6_data_visualization/007-design-thinking-in-data-visualization-a-user-centered-framework>`
+      * :doc:`Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact  (Data Visualization) <6_data_visualization/020-designing-effective-data-presentation-slides-structure-visuals-and-professional-impact>`
+      * :doc:`Detectives and Data Analysts  (Foundations) <1_foundations/004-detectives-and-data-analysts>`
+      * :doc:`Dictionaries in Python  (Data Analysis Using Python) <7_data_analysis_python/023-dictionaries-in-python>`
+      * :doc:`Dirty Data vs. Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/009-dirty-data-vs-clean-data>`
+      * :doc:`Documenting Data-Cleaning Changes  (Data Cleaning & Preparation) <4_data_cleaning_preparation/028-documenting-data-cleaning-changes>`
+      * :doc:`Effective Meetings  (Data-Driven Decisions) <2_data_driven_decisions/026-effective-meetings>`
+      * :doc:`Effective vs. Ineffective Data Visualizations in Tableau  (Data Visualization) <6_data_visualization/012-effective-vs-ineffective-data-visualizations-in-tableau>`
+      * :doc:`Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement  (Data Visualization) <6_data_visualization/005-elements-of-art-in-data-visualization-line-shape-color-space-and-movement>`
+      * :doc:`Embedding Calculations in SQL Queries  (Analyze Data) <5_analyze_data/026-embedding-calculations-in-sql-queries>`
+      * :doc:`Engaging Your Audience in Data Storytelling: Identifying the Key Message  (Data Visualization) <6_data_visualization/016-engaging-your-audience-in-data-storytelling-identifying-the-key-message>`
+      * :doc:`Exploring Data Analyst Job Opportunities  (Data Cleaning & Preparation) <4_data_cleaning_preparation/032-exploring-data-analyst-job-opportunities>`
+      * :doc:`Fairness in Data Analysis  (Foundations) <1_foundations/026-fairness-in-data-analysis>`
+      * :doc:`For Loops in Python  (Data Analysis Using Python) <7_data_analysis_python/014-for-loops-in-python>`
+      * :doc:`Functions in Python  (Data Analysis Using Python) <7_data_analysis_python/008-functions-in-python>`
+      * :doc:`Getting Started with Tableau Public  (Data Visualization) <6_data_visualization/010-getting-started-with-tableau-public>`
+      * :doc:`Grouping and Aggregation in Pandas (groupby, agg)  (Data Analysis Using Python) <7_data_analysis_python/032-grouping-and-aggregation-in-pandas-groupby-agg>`
+      * :doc:`Handling Insufficient Data in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/004-handling-insufficient-data-in-data-analysis>`
+      * :doc:`Handling Objections in Data Presentations: Responding with Confidence and Clarity  (Data Visualization) <6_data_visualization/026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity>`
+      * :doc:`How Data Analysts Use Spreadsheets  (Data-Driven Decisions) <2_data_driven_decisions/013-how-data-analysts-use-spreadsheets>`
+      * :doc:`How Data Analytics Improves the Workplace  (Foundations) <1_foundations/002-how-data-analytics-improves-the-workplace>`
+      * :doc:`How Data Is Generated and Collected  (Data Preparation) <3_data_preparation/001-how-data-is-generated-and-collected>`
+      * :doc:`How to Effectively Search for Solutions Online as a Data Analyst  (Analyze Data) <5_analyze_data/012-how-to-effectively-search-for-solutions-online-as-a-data-analyst>`
+      * :doc:`Identifying Bad Data Sources (When Data Does Not ROCCC)  (Data Preparation) <3_data_preparation/012-identifying-bad-data-sources-when-data-does-not-roccc>`
+      * :doc:`Identifying Good Data Sources (ROCCC Framework)  (Data Preparation) <3_data_preparation/011-identifying-good-data-sources-roccc-framework>`
+      * :doc:`Importing Data into Spreadsheets  (Data Preparation) <3_data_preparation/020-importing-data-into-spreadsheets>`
+      * :doc:`Industries Where Data Analysts Work and How Data Is Used  (Foundations) <1_foundations/024-industries-where-data-analysts-work-and-how-data-is-used>`
+      * :doc:`Interview Preparation  (Job Search) <8_job_search/011-interview-preparation>`
+      * :doc:`Introduction to NumPy and Vectorization  (Data Analysis Using Python) <7_data_analysis_python/027-introduction-to-numpy-and-vectorization>`
+      * :doc:`Introduction to Pandas (Data Analysis Library)  (Data Analysis Using Python) <7_data_analysis_python/029-introduction-to-pandas-data-analysis-library>`
+      * :doc:`Introduction to Python and Programming Fundamentals  (Data Analysis Using Python) <7_data_analysis_python/001-introduction-to-python-and-programming-fundamentals>`
+      * :doc:`Introduction to SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/018-introduction-to-sql>`
+      * :doc:`Introduction to Tableau  (Data Visualization) <6_data_visualization/009-introduction-to-tableau>`
+      * :doc:`Job Application Tracking (Using AI + Spreadsheets)  (Job Search) <8_job_search/009-job-application-tracking-using-ai-spreadsheets>`
+      * :doc:`Job Search Plan (Using AI Tools)  (Job Search) <8_job_search/004-job-search-plan-using-ai-tools>`
+      * :doc:`Jupyter Notebook and Coding Environments  (Data Analysis Using Python) <7_data_analysis_python/003-jupyter-notebook-and-coding-environments>`
+      * :doc:`Key Factors to Consider When Choosing a Data Analytics Role  (Foundations) <1_foundations/027-key-factors-to-consider-when-choosing-a-data-analytics-role>`
+      * :doc:`Libraries, Packages, and Modules in Python  (Data Analysis Using Python) <7_data_analysis_python/026-libraries-packages-and-modules-in-python>`
+      * :doc:`Linking Multiple Datasets in Tableau Public  (Data Visualization) <6_data_visualization/014-linking-multiple-datasets-in-tableau-public>`
+      * :doc:`Managing Stakeholder Expectations and Project Constraints  (Data-Driven Decisions) <2_data_driven_decisions/023-managing-stakeholder-expectations-and-project-constraints>`
+      * :doc:`Margin of Error  (Data Cleaning & Preparation) <4_data_cleaning_preparation/008-margin-of-error>`
+      * :doc:`Mathematical Thinking  (Data-Driven Decisions) <2_data_driven_decisions/010-mathematical-thinking>`
+      * :doc:`Metadata in Databases  (Data Preparation) <3_data_preparation/017-metadata-in-databases>`
+      * :doc:`Metadata Repositories and Data Governance  (Data Preparation) <3_data_preparation/018-metadata-repositories-and-data-governance>`
+      * :doc:`Modifying Lists in Python  (Data Analysis Using Python) <7_data_analysis_python/020-modifying-lists-in-python>`
+      * :doc:`Naming Conventions and Restrictions in Python  (Data Analysis Using Python) <7_data_analysis_python/006-naming-conventions-and-restrictions-in-python>`
+      * :doc:`Networking for Job Search  (Job Search) <8_job_search/010-networking-for-job-search>`
+      * :doc:`NumPy Arrays (ndarray) and Core Concepts  (Data Analysis Using Python) <7_data_analysis_python/028-numpy-arrays-ndarray-and-core-concepts>`
+      * :doc:`Object-Oriented Programming (OOP) in Python  (Data Analysis Using Python) <7_data_analysis_python/004-object-oriented-programming-oop-in-python>`
+      * :doc:`Open Data and Openness in Data Ethics  (Data Preparation) <3_data_preparation/015-open-data-and-openness-in-data-ethics>`
+      * :doc:`Organizing Data for Personal and Work Projects  (Data Preparation) <3_data_preparation/024-organizing-data-for-personal-and-work-projects>`
+      * :doc:`Overview of Core Tools Used by Data Analysts  (Foundations) <1_foundations/020-overview-of-core-tools-used-by-data-analysts>`
+      * :doc:`Pandas DataFrame & Series  (Data Analysis Using Python) <7_data_analysis_python/030-pandas-dataframe-and-series>`
+      * :doc:`Population, Sample Size, and Random Sampling  (Data Cleaning & Preparation) <4_data_cleaning_preparation/005-population-sample-size-and-random-sampling>`
+      * :doc:`Post-Interview Strategy  (Job Search) <8_job_search/015-post-interview-strategy>`
+      * :doc:`Practical Application of the Data Analysis Process  (Foundations) <1_foundations/012-practical-application-of-the-data-analysis-process>`
+      * :doc:`Practicing Interviews with AI (Gemini Live)  (Job Search) <8_job_search/014-practicing-interviews-with-ai-gemini-live>`
+      * :doc:`Preparing Data for VLOOKUP in Spreadsheets  (Analyze Data) <5_analyze_data/014-preparing-data-for-vlookup-in-spreadsheets>`
+      * :doc:`Preparing for Q&A: Anticipating and Responding to Stakeholder Questions  (Data Visualization) <6_data_visualization/025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions>`
+      * :doc:`Presentation Skills for Data Analysts: Delivering Insights with Confidence  (Data Visualization) <6_data_visualization/023-presentation-skills-for-data-analysts-delivering-insights-with-confidence>`
+      * :doc:`Presenting Like a Pro: Best Practices for Data Analysts  (Data Visualization) <6_data_visualization/024-presenting-like-a-pro-best-practices-for-data-analysts>`
+      * :doc:`Problem-Solving and Seeking Help in Data Analysis  (Analyze Data) <5_analyze_data/011-problem-solving-and-seeking-help-in-data-analysis>`
+      * :doc:`Python Fundamentals  (Data Analysis Using Python) <7_data_analysis_python/002-python-fundamentals>`
+      * :doc:`Q&A Best Practices: Answering Questions with Clarity and Confidence  (Data Visualization) <6_data_visualization/027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>`
+      * :doc:`Quantitative and Qualitative Data in Decision-Making  (Data-Driven Decisions) <2_data_driven_decisions/006-quantitative-and-qualitative-data-in-decision-making>`
+      * :doc:`Querying Data with SQL  (Data Preparation) <3_data_preparation/023-querying-data-with-sql>`
+      * :doc:`range() Function and Loop Control in Python  (Data Analysis Using Python) <7_data_analysis_python/015-range-function-and-loop-control-in-python>`
+      * :doc:`Refining a Resume for Data Analytics Roles  (Data Cleaning & Preparation) <4_data_cleaning_preparation/031-refining-a-resume-for-data-analytics-roles>`
+      * :doc:`Reporting Data-Cleaning Results  (Data Cleaning & Preparation) <4_data_cleaning_preparation/029-reporting-data-cleaning-results>`
+      * :doc:`Root Cause Analysis and Business Applications of the Five Whys  (Foundations) <1_foundations/017-root-cause-analysis-and-business-applications-of-the-five-whys>`
+      * :doc:`Sample Size and Data Integrity  (Data Cleaning & Preparation) <4_data_cleaning_preparation/007-sample-size-and-data-integrity>`
+      * :doc:`Sampling Bias and Unbiased Data  (Data Preparation) <3_data_preparation/009-sampling-bias-and-unbiased-data>`
+      * :doc:`Sets in Python  (Data Analysis Using Python) <7_data_analysis_python/025-sets-in-python>`
+      * :doc:`Sharing Data to Drive Impact  (Data-Driven Decisions) <2_data_driven_decisions/025-sharing-data-to-drive-impact>`
+      * :doc:`Sorting and Filtering Data in Spreadsheets  (Data Preparation) <3_data_preparation/021-sorting-and-filtering-data-in-spreadsheets>`
+      * :doc:`Sorting and Filtering Data in SQL Using ORDER BY and WHERE  (Analyze Data) <5_analyze_data/005-sorting-and-filtering-data-in-sql-using-order-by-and-where>`
+      * :doc:`Sorting and Filtering in Data Analysis  (Analyze Data) <5_analyze_data/003-sorting-and-filtering-in-data-analysis>`
+      * :doc:`Sorting Data in Spreadsheets  (Analyze Data) <5_analyze_data/004-sorting-data-in-spreadsheets>`
+      * :doc:`Spreadsheet Calculations with Formulas  (Data-Driven Decisions) <2_data_driven_decisions/014-spreadsheet-calculations-with-formulas>`
+      * :doc:`Spreadsheet Functions  (Data-Driven Decisions) <2_data_driven_decisions/016-spreadsheet-functions>`
+      * :doc:`Spreadsheet Tools for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/014-spreadsheet-tools-for-data-cleaning>`
+      * :doc:`Spreadsheets in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/011-spreadsheets-in-data-analysis>`
+      * :doc:`Spreadsheets vs. SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/019-spreadsheets-vs-sql>`
+      * :doc:`Stakeholder Expectations in Data Analysis  (Data-Driven Decisions) <2_data_driven_decisions/019-stakeholder-expectations-in-data-analysis>`
+      * :doc:`STAR Method (Behavioral Interview)  (Job Search) <8_job_search/012-star-method-behavioral-interview>`
+      * :doc:`Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity  (Data Visualization) <6_data_visualization/004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity>`
+      * :doc:`Statistical Power in Data Analysis  (Data Cleaning & Preparation) <4_data_cleaning_preparation/006-statistical-power-in-data-analysis>`
+      * :doc:`Staying Focused on the Project Objective  (Data-Driven Decisions) <2_data_driven_decisions/020-staying-focused-on-the-project-objective>`
+      * :doc:`String Formatting with .format() in Python  (Data Analysis Using Python) <7_data_analysis_python/018-string-formatting-with-format-in-python>`
+      * :doc:`String Indexing and Slicing in Python  (Data Analysis Using Python) <7_data_analysis_python/017-string-indexing-and-slicing-in-python>`
+      * :doc:`Strings in Python  (Data Analysis Using Python) <7_data_analysis_python/016-strings-in-python>`
+      * :doc:`Structured Data and Data Models  (Data Preparation) <3_data_preparation/004-structured-data-and-data-models>`
+      * :doc:`Structuring a Persuasive Data Presentation: Turning Insights into Story  (Data Visualization) <6_data_visualization/019-structuring-a-persuasive-data-presentation-turning-insights-into-story>`
+      * :doc:`Subqueries in SQL  (Analyze Data) <5_analyze_data/018-subqueries-in-sql>`
+      * :doc:`Tailoring Your Resume  (Job Search) <8_job_search/005-tailoring-your-resume>`
+      * :doc:`Temporary Tables and the WITH Clause in SQL  (Analyze Data) <5_analyze_data/029-temporary-tables-and-the-with-clause-in-sql>`
+      * :doc:`The Concept and Basic Use of SQL (Query Language)  (Foundations) <1_foundations/022-the-concept-and-basic-use-of-sql-query-language>`
+      * :doc:`The Difference Between Data and Metrics, and the Role of Metrics  (Data-Driven Decisions) <2_data_driven_decisions/008-the-difference-between-data-and-metrics-and-the-role-of-metrics>`
+      * :doc:`The Importance of Clean Data  (Data Cleaning & Preparation) <4_data_cleaning_preparation/001-the-importance-of-clean-data>`
+      * :doc:`The Importance of Clean Data (revisited)  (Data Cleaning & Preparation) <4_data_cleaning_preparation/010-the-importance-of-clean-data-revisited>`
+      * :doc:`The Origins of Data Analysis and the Many Ways to Structure It  (Foundations) <1_foundations/006-the-origins-of-data-analysis-and-the-many-ways-to-structure-it>`
+      * :doc:`The Relationship Between Data and Decision-Making  (Data-Driven Decisions) <2_data_driven_decisions/005-the-relationship-between-data-and-decision-making>`
+      * :doc:`The Role and Importance of Data Visualization  (Foundations) <1_foundations/023-the-role-and-importance-of-data-visualization>`
+      * :doc:`The Role of Business Tasks in Data Analysis  (Foundations) <1_foundations/025-the-role-of-business-tasks-in-data-analysis>`
+      * :doc:`The Role of Spreadsheets in Data Analysis and Basic Concepts  (Foundations) <1_foundations/021-the-role-of-spreadsheets-in-data-analysis-and-basic-concepts>`
+      * :doc:`The Six Phases of the Data Analysis Process  (Foundations) <1_foundations/005-the-six-phases-of-the-data-analysis-process>`
+      * :doc:`The Stages of the Data Analysis Process and Their Roles  (Foundations) <1_foundations/011-the-stages-of-the-data-analysis-process-and-their-roles>`
+      * :doc:`Transferable Skills  (Job Search) <8_job_search/001-transferable-skills>`
+      * :doc:`Troubleshooting VLOOKUP and Building a Problem-Solving Framework  (Analyze Data) <5_analyze_data/016-troubleshooting-vlookup-and-building-a-problem-solving-framework>`
+      * :doc:`Tuples in Python  (Data Analysis Using Python) <7_data_analysis_python/021-tuples-in-python>`
+      * :doc:`Understanding Bias in Data Analysis  (Data Preparation) <3_data_preparation/008-understanding-bias-in-data-analysis>`
+      * :doc:`Understanding Common Problem Types in Data Analytics  (Data-Driven Decisions) <2_data_driven_decisions/002-understanding-common-problem-types-in-data-analytics>`
+      * :doc:`Understanding Data Analysis  (Analyze Data) <5_analyze_data/001-understanding-data-analysis>`
+      * :doc:`Understanding Data Types and Data Formats  (Data Preparation) <3_data_preparation/003-understanding-data-types-and-data-formats>`
+      * :doc:`Understanding the Data Analysis Process and the Data Life Cycle  (Foundations) <1_foundations/008-understanding-the-data-analysis-process-and-the-data-life-cycle>`
+      * :doc:`Understanding the Data Ecosystem  (Foundations) <1_foundations/007-understanding-the-data-ecosystem>`
+      * :doc:`Understanding the Data Life Cycle  (Foundations) <1_foundations/009-understanding-the-data-life-cycle>`
+      * :doc:`Using a Strategic Framework to Structure Data Presentations  (Data Visualization) <6_data_visualization/021-using-a-strategic-framework-to-structure-data-presentations>`
+      * :doc:`Using AI (NotebookLM) for Interview Preparation  (Job Search) <8_job_search/013-using-ai-notebooklm-for-interview-preparation>`
+      * :doc:`Using AI to Improve and Tailor Your Resume  (Job Search) <8_job_search/006-using-ai-to-improve-and-tailor-your-resume>`
+      * :doc:`Using CAST to Clean and Format Data in SQL  (Data Cleaning & Preparation) <4_data_cleaning_preparation/022-using-cast-to-clean-and-format-data-in-sql>`
+      * :doc:`Using CONCAT in SQL to Combine Text from Multiple Columns  (Analyze Data) <5_analyze_data/009-using-concat-in-sql-to-combine-text-from-multiple-columns>`
+      * :doc:`Using COUNTIF and SUMIF for Conditional Aggregation in Spreadsheets  (Analyze Data) <5_analyze_data/021-using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets>`
+      * :doc:`Using Creativity in Tableau  (Data Visualization) <6_data_visualization/013-using-creativity-in-tableau>`
+      * :doc:`Using Data Analysis to Choose the Right Advertising Strategy  (Data-Driven Decisions) <2_data_driven_decisions/001-using-data-analysis-to-choose-the-right-advertising-strategy>`
+      * :doc:`Using Feedback from Data Cleaning to Improve Data Quality  (Data Cleaning & Preparation) <4_data_cleaning_preparation/030-using-feedback-from-data-cleaning-to-improve-data-quality>`
+      * :doc:`Using Filters to Create Compelling and Focused Visuals  (Data Visualization) <6_data_visualization/018-using-filters-to-create-compelling-and-focused-visuals>`
+      * :doc:`Using GROUP BY and ORDER BY for Aggregated Calculations in SQL  (Analyze Data) <5_analyze_data/027-using-group-by-and-order-by-for-aggregated-calculations-in-sql>`
+      * :doc:`Using JOIN in SQL to Combine Tables  (Analyze Data) <5_analyze_data/017-using-join-in-sql-to-combine-tables>`
+      * :doc:`Using Pivot Table Filters and Calculated Fields for Deeper Analysis  (Analyze Data) <5_analyze_data/024-using-pivot-table-filters-and-calculated-fields-for-deeper-analysis>`
+      * :doc:`Using Pivot Tables for Calculations and Trend Analysis  (Analyze Data) <5_analyze_data/023-using-pivot-tables-for-calculations-and-trend-analysis>`
+      * :doc:`Using Spreadsheet Formulas for Sales Trend Analysis  (Analyze Data) <5_analyze_data/020-using-spreadsheet-formulas-for-sales-trend-analysis>`
+      * :doc:`Using Spreadsheet Functions for Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/015-using-spreadsheet-functions-for-data-cleaning>`
+      * :doc:`Using SUMPRODUCT for Advanced Spreadsheet Calculations  (Analyze Data) <5_analyze_data/022-using-sumproduct-for-advanced-spreadsheet-calculations>`
+      * :doc:`Using VLOOKUP to Combine Data Across Spreadsheets  (Analyze Data) <5_analyze_data/015-using-vlookup-to-combine-data-across-spreadsheets>`
+      * :doc:`Variables in Python  (Data Analysis Using Python) <7_data_analysis_python/005-variables-in-python>`
+      * :doc:`Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors  (Data Cleaning & Preparation) <4_data_cleaning_preparation/027-verification-techniques-using-spreadsheets-and-sql-to-catch-repeated-errors>`
+      * :doc:`Verifying and Reporting Data Integrity  (Data Cleaning & Preparation) <4_data_cleaning_preparation/025-verifying-and-reporting-data-integrity>`
+      * :doc:`Verifying Data-Cleaning Efforts  (Data Cleaning & Preparation) <4_data_cleaning_preparation/026-verifying-data-cleaning-efforts>`
+      * :doc:`Viewing Data Differently for More Effective Data Cleaning  (Data Cleaning & Preparation) <4_data_cleaning_preparation/016-viewing-data-differently-for-more-effective-data-cleaning>`
+      * :doc:`Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method  (Data Visualization) <6_data_visualization/022-weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method>`
+      * :doc:`While Loops and Iteration in Python  (Data Analysis Using Python) <7_data_analysis_python/013-while-loops-and-iteration-in-python>`
+      * :doc:`Why Asking the Right Questions Matters in Data Analytics  (Data-Driven Decisions) <2_data_driven_decisions/004-why-asking-the-right-questions-matters-in-data-analytics>`
+      * :doc:`Why Data Analytics Matters Today  (Foundations) <1_foundations/001-why-data-analytics-matters-today>`
+      * :doc:`Wide Data vs. Long Data  (Data Preparation) <3_data_preparation/007-wide-data-vs-long-data>`
+      * :doc:`Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND)  (Analyze Data) <5_analyze_data/010-working-with-strings-in-spreadsheets-len-left-right-find>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    1_foundations/001-why-data-analytics-matters-today

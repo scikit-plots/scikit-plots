@@ -124,36 +124,37 @@ Turning results into visuals that inform: chart choice, design principles, and h
    .. hlist::
       :columns: 2
 
-   * :doc:`Accessibility in Data Visualization: Designing for Everyone <008-accessibility-in-data-visualization-designing-for-everyone>`
-   * :doc:`Choosing the Right Visualization: Audience-Centered Design and Chart Selection <006-choosing-the-right-visualization-audience-centered-design-and-chart-selection>`
-   * :doc:`Connecting Data and Images <002-connecting-data-and-images>`
-   * :doc:`Creating a CO₂ Emissions Visualization in Tableau Public <011-creating-a-co-emissions-visualization-in-tableau-public>`
-   * :doc:`Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose <003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose>`
-   * :doc:`Data Dashboards: Organizing Insight for Real-Time Decision Making <017-data-dashboards-organizing-insight-for-real-time-decision-making>`
-   * :doc:`Data Storytelling: Giving Numbers a Clear and Convincing Voice <015-data-storytelling-giving-numbers-a-clear-and-convincing-voice>`
-   * :doc:`Data Visualization <001-data-visualization>`
-   * :doc:`Design Thinking in Data Visualization: A User-Centered Framework <007-design-thinking-in-data-visualization-a-user-centered-framework>`
-   * :doc:`Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact <020-designing-effective-data-presentation-slides-structure-visuals-and-professional-impact>`
-   * :doc:`Effective vs. Ineffective Data Visualizations in Tableau <012-effective-vs-ineffective-data-visualizations-in-tableau>`
-   * :doc:`Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement <005-elements-of-art-in-data-visualization-line-shape-color-space-and-movement>`
-   * :doc:`Engaging Your Audience in Data Storytelling: Identifying the Key Message <016-engaging-your-audience-in-data-storytelling-identifying-the-key-message>`
-   * :doc:`Getting Started with Tableau Public <010-getting-started-with-tableau-public>`
-   * :doc:`Handling Objections in Data Presentations: Responding with Confidence and Clarity <026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity>`
-   * :doc:`Introduction to Tableau <009-introduction-to-tableau>`
-   * :doc:`Linking Multiple Datasets in Tableau Public <014-linking-multiple-datasets-in-tableau-public>`
-   * :doc:`Preparing for Q&A: Anticipating and Responding to Stakeholder Questions <025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions>`
-   * :doc:`Presentation Skills for Data Analysts: Delivering Insights with Confidence <023-presentation-skills-for-data-analysts-delivering-insights-with-confidence>`
-   * :doc:`Presenting Like a Pro: Best Practices for Data Analysts <024-presenting-like-a-pro-best-practices-for-data-analysts>`
-   * :doc:`Q&A Best Practices: Answering Questions with Clarity and Confidence <027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>`
-   * :doc:`Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity <004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity>`
-   * :doc:`Structuring a Persuasive Data Presentation: Turning Insights into Story <019-structuring-a-persuasive-data-presentation-turning-insights-into-story>`
-   * :doc:`Using a Strategic Framework to Structure Data Presentations <021-using-a-strategic-framework-to-structure-data-presentations>`
-   * :doc:`Using Creativity in Tableau <013-using-creativity-in-tableau>`
-   * :doc:`Using Filters to Create Compelling and Focused Visuals <018-using-filters-to-create-compelling-and-focused-visuals>`
-   * :doc:`Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method <022-weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method>`
+      * :doc:`Accessibility in Data Visualization: Designing for Everyone <008-accessibility-in-data-visualization-designing-for-everyone>`
+      * :doc:`Choosing the Right Visualization: Audience-Centered Design and Chart Selection <006-choosing-the-right-visualization-audience-centered-design-and-chart-selection>`
+      * :doc:`Connecting Data and Images <002-connecting-data-and-images>`
+      * :doc:`Creating a CO₂ Emissions Visualization in Tableau Public <011-creating-a-co-emissions-visualization-in-tableau-public>`
+      * :doc:`Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose <003-creating-powerful-data-visualizations-focus-structure-and-analytical-purpose>`
+      * :doc:`Data Dashboards: Organizing Insight for Real-Time Decision Making <017-data-dashboards-organizing-insight-for-real-time-decision-making>`
+      * :doc:`Data Storytelling: Giving Numbers a Clear and Convincing Voice <015-data-storytelling-giving-numbers-a-clear-and-convincing-voice>`
+      * :doc:`Data Visualization <001-data-visualization>`
+      * :doc:`Design Thinking in Data Visualization: A User-Centered Framework <007-design-thinking-in-data-visualization-a-user-centered-framework>`
+      * :doc:`Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact <020-designing-effective-data-presentation-slides-structure-visuals-and-professional-impact>`
+      * :doc:`Effective vs. Ineffective Data Visualizations in Tableau <012-effective-vs-ineffective-data-visualizations-in-tableau>`
+      * :doc:`Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement <005-elements-of-art-in-data-visualization-line-shape-color-space-and-movement>`
+      * :doc:`Engaging Your Audience in Data Storytelling: Identifying the Key Message <016-engaging-your-audience-in-data-storytelling-identifying-the-key-message>`
+      * :doc:`Getting Started with Tableau Public <010-getting-started-with-tableau-public>`
+      * :doc:`Handling Objections in Data Presentations: Responding with Confidence and Clarity <026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity>`
+      * :doc:`Introduction to Tableau <009-introduction-to-tableau>`
+      * :doc:`Linking Multiple Datasets in Tableau Public <014-linking-multiple-datasets-in-tableau-public>`
+      * :doc:`Preparing for Q&A: Anticipating and Responding to Stakeholder Questions <025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions>`
+      * :doc:`Presentation Skills for Data Analysts: Delivering Insights with Confidence <023-presentation-skills-for-data-analysts-delivering-insights-with-confidence>`
+      * :doc:`Presenting Like a Pro: Best Practices for Data Analysts <024-presenting-like-a-pro-best-practices-for-data-analysts>`
+      * :doc:`Q&A Best Practices: Answering Questions with Clarity and Confidence <027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>`
+      * :doc:`Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity <004-static-vs-dynamic-data-visualizations-design-tradeoffs-control-and-interactivity>`
+      * :doc:`Structuring a Persuasive Data Presentation: Turning Insights into Story <019-structuring-a-persuasive-data-presentation-turning-insights-into-story>`
+      * :doc:`Using a Strategic Framework to Structure Data Presentations <021-using-a-strategic-framework-to-structure-data-presentations>`
+      * :doc:`Using Creativity in Tableau <013-using-creativity-in-tableau>`
+      * :doc:`Using Filters to Create Compelling and Focused Visuals <018-using-filters-to-create-compelling-and-focused-visuals>`
+      * :doc:`Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method <022-weaving-data-into-presentations-hypotheses-context-and-the-mccandless-method>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-data-visualization

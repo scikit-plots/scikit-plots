@@ -124,36 +124,37 @@ Turning questions into decisions: stakeholders, metrics, and communicating resul
    .. hlist::
       :columns: 2
 
-   * :doc:`Adapting to Communication Expectations at Work <022-adapting-to-communication-expectations-at-work>`
-   * :doc:`Applying Data Analytics Problem Types in Real Business Scenarios <003-applying-data-analytics-problem-types-in-real-business-scenarios>`
-   * :doc:`Balancing Speed and Accuracy in Data Analysis <024-balancing-speed-and-accuracy-in-data-analysis>`
-   * :doc:`Building and Organizing a Spreadsheet <012-building-and-organizing-a-spreadsheet>`
-   * :doc:`Clear Communication with Stakeholders and Teams <021-clear-communication-with-stakeholders-and-teams>`
-   * :doc:`Common Spreadsheet Errors and How to Fix Them <015-common-spreadsheet-errors-and-how-to-fix-them>`
-   * :doc:`Conflict Resolution in the Workplace <027-conflict-resolution-in-the-workplace>`
-   * :doc:`Context and Bias in Data Analysis <018-context-and-bias-in-data-analysis>`
-   * :doc:`Dashboards <009-dashboards>`
-   * :doc:`Data Creates Value Only When It Is Communicated <007-data-creates-value-only-when-it-is-communicated>`
-   * :doc:`Defining the Problem Domain <017-defining-the-problem-domain>`
-   * :doc:`Effective Meetings <026-effective-meetings>`
-   * :doc:`How Data Analysts Use Spreadsheets <013-how-data-analysts-use-spreadsheets>`
-   * :doc:`Managing Stakeholder Expectations and Project Constraints <023-managing-stakeholder-expectations-and-project-constraints>`
-   * :doc:`Mathematical Thinking <010-mathematical-thinking>`
-   * :doc:`Quantitative and Qualitative Data in Decision-Making <006-quantitative-and-qualitative-data-in-decision-making>`
-   * :doc:`Sharing Data to Drive Impact <025-sharing-data-to-drive-impact>`
-   * :doc:`Spreadsheet Calculations with Formulas <014-spreadsheet-calculations-with-formulas>`
-   * :doc:`Spreadsheet Functions <016-spreadsheet-functions>`
-   * :doc:`Spreadsheets in Data Analysis <011-spreadsheets-in-data-analysis>`
-   * :doc:`Stakeholder Expectations in Data Analysis <019-stakeholder-expectations-in-data-analysis>`
-   * :doc:`Staying Focused on the Project Objective <020-staying-focused-on-the-project-objective>`
-   * :doc:`The Difference Between Data and Metrics, and the Role of Metrics <008-the-difference-between-data-and-metrics-and-the-role-of-metrics>`
-   * :doc:`The Relationship Between Data and Decision-Making <005-the-relationship-between-data-and-decision-making>`
-   * :doc:`Understanding Common Problem Types in Data Analytics <002-understanding-common-problem-types-in-data-analytics>`
-   * :doc:`Using Data Analysis to Choose the Right Advertising Strategy <001-using-data-analysis-to-choose-the-right-advertising-strategy>`
-   * :doc:`Why Asking the Right Questions Matters in Data Analytics <004-why-asking-the-right-questions-matters-in-data-analytics>`
+      * :doc:`Adapting to Communication Expectations at Work <022-adapting-to-communication-expectations-at-work>`
+      * :doc:`Applying Data Analytics Problem Types in Real Business Scenarios <003-applying-data-analytics-problem-types-in-real-business-scenarios>`
+      * :doc:`Balancing Speed and Accuracy in Data Analysis <024-balancing-speed-and-accuracy-in-data-analysis>`
+      * :doc:`Building and Organizing a Spreadsheet <012-building-and-organizing-a-spreadsheet>`
+      * :doc:`Clear Communication with Stakeholders and Teams <021-clear-communication-with-stakeholders-and-teams>`
+      * :doc:`Common Spreadsheet Errors and How to Fix Them <015-common-spreadsheet-errors-and-how-to-fix-them>`
+      * :doc:`Conflict Resolution in the Workplace <027-conflict-resolution-in-the-workplace>`
+      * :doc:`Context and Bias in Data Analysis <018-context-and-bias-in-data-analysis>`
+      * :doc:`Dashboards <009-dashboards>`
+      * :doc:`Data Creates Value Only When It Is Communicated <007-data-creates-value-only-when-it-is-communicated>`
+      * :doc:`Defining the Problem Domain <017-defining-the-problem-domain>`
+      * :doc:`Effective Meetings <026-effective-meetings>`
+      * :doc:`How Data Analysts Use Spreadsheets <013-how-data-analysts-use-spreadsheets>`
+      * :doc:`Managing Stakeholder Expectations and Project Constraints <023-managing-stakeholder-expectations-and-project-constraints>`
+      * :doc:`Mathematical Thinking <010-mathematical-thinking>`
+      * :doc:`Quantitative and Qualitative Data in Decision-Making <006-quantitative-and-qualitative-data-in-decision-making>`
+      * :doc:`Sharing Data to Drive Impact <025-sharing-data-to-drive-impact>`
+      * :doc:`Spreadsheet Calculations with Formulas <014-spreadsheet-calculations-with-formulas>`
+      * :doc:`Spreadsheet Functions <016-spreadsheet-functions>`
+      * :doc:`Spreadsheets in Data Analysis <011-spreadsheets-in-data-analysis>`
+      * :doc:`Stakeholder Expectations in Data Analysis <019-stakeholder-expectations-in-data-analysis>`
+      * :doc:`Staying Focused on the Project Objective <020-staying-focused-on-the-project-objective>`
+      * :doc:`The Difference Between Data and Metrics, and the Role of Metrics <008-the-difference-between-data-and-metrics-and-the-role-of-metrics>`
+      * :doc:`The Relationship Between Data and Decision-Making <005-the-relationship-between-data-and-decision-making>`
+      * :doc:`Understanding Common Problem Types in Data Analytics <002-understanding-common-problem-types-in-data-analytics>`
+      * :doc:`Using Data Analysis to Choose the Right Advertising Strategy <001-using-data-analysis-to-choose-the-right-advertising-strategy>`
+      * :doc:`Why Asking the Right Questions Matters in Data Analytics <004-why-asking-the-right-questions-matters-in-data-analytics>`
 
 .. toctree::
    :hidden:
+   :includehidden:
    :maxdepth: 1
 
    001-using-data-analysis-to-choose-the-right-advertising-strategy
