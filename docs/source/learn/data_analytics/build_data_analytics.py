@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import csv
 import re
+import os
 import sys
 from pathlib import Path
 
@@ -456,10 +457,16 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
     w(".. toctree::")
     w("   :hidden:")  # → Do not render this toctree in the page body.
     w("   :includehidden:")  # → Include descendant toctrees that are themselves marked :hidden: when building the overall hierarchy.
-    w("   :maxdepth: 1")  # → Control how many levels of the hierarchy are exposed to navigation.
+    w(f"   :maxdepth: {(2 if any(os.sep in i[2] for i in az_entries) else 1)}")  # → Control how many levels of the hierarchy are exposed to navigation.
     w("")
+    _index = set()
     for _label, _key, tgt in sorted(az_entries, key=lambda e: e[2].lower()):
-        w(f"   {tgt}")
+        i = tgt.split(os.sep)[0]
+        if os.sep in tgt and i not in _index:
+            _index.add(i)
+            w(f"   {i}/index")
+        if os.sep not in tgt:
+            w(f"   {tgt}")
     w("")
     w(".. tags:: purpose: reference, topic: data analytics")
     w("")
