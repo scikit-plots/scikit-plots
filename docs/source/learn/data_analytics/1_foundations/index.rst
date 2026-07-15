@@ -114,10 +114,10 @@ The case for data, the analysis process and data life cycle, analytical thinking
    * :doc:`026 · Fairness in Data Analysis — analysis that does not create or reinforce bias — and a famous failure to learn from <026-fairness-in-data-analysis>`
    * :doc:`027 · Key Factors to Consider When Choosing a Data Analytics Role — industry, company size, specialisation, growth: weighing where to start <027-key-factors-to-consider-when-choosing-a-data-analytics-role>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

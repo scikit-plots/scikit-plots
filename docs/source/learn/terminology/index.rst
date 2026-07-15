@@ -796,10 +796,10 @@ A working glossary of **431 terms** spanning statistics, machine learning, forec
       * :doc:`Post-hoc Explainability <339-post-hoc-explainability>`
       * :doc:`SHAP (SHapley Additive exPlanations) <338-shap-shapley-additive-explanations>`
 
-🔤 Every term, A–Z
--------------------
+🔤 Every term, A–Z index
+-------------------------
 
-.. dropdown:: Open the full alphabetical index
+.. dropdown:: 🔠 Open the full alphabetical index
    :class-container: term-az
 
    .. hlist::

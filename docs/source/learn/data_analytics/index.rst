@@ -329,10 +329,10 @@ A hands-on data-analytics curriculum in eight sections, from first principles to
    * :doc:`014 · Practicing Interviews with AI (Gemini Live) — rehearsing interviews aloud in real-time voice conversation with an AI <8_job_search/014-practicing-interviews-with-ai-gemini-live>`
    * :doc:`015 · Post-Interview Strategy — what to do after an interview — follow up, reflect, and handle the outcome <8_job_search/015-post-interview-strategy>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

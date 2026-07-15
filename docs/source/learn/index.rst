@@ -62,99 +62,99 @@ Learn
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **terminologies**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Terminology <./terminology/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
+        :columns: 12 12 6 6
+
+        **external resources**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            External Resources <./resources/index.rst>
+
+    .. grid-item-card::
+        :padding: 2
         :columns: 12 12 6 6
 
         **data analytics**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Data Analytics <./data_analytics/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **data analysis**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Data Preparation & Analysis <./data_preparation_and_analysis/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **bayesian data analysis**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Bayesian Data Analysis <./bayesian_data_analysis/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **time series**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Time Series <./time_series/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **deep learning**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Deep Learning <./deep_learning/index.rst>
 
     .. grid-item-card::
-        :padding: 3
-        :columns: 12 12 6 6
-
-        **resources**
-        ^^^
-        .. toctree::
-            :maxdepth: 3
-
-            Resources <resources/index.rst>
-
-    .. grid-item-card::
-        :padding: 3
+        :padding: 2
         :columns: 12 12 6 6
 
         **cheatsheets**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Cheatsheet <./cheatsheet/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
 
         **glossaries**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
             Glossary <glossary/index.rst>

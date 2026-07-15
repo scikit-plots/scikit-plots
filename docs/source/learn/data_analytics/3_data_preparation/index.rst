@@ -112,10 +112,10 @@ Sourcing, structuring, and organising data before analysis: types, formats, data
    * :doc:`024 · Organizing Data for Personal and Work Projects — folder, file, and naming conventions that keep a data project findable and safe <024-organizing-data-for-personal-and-work-projects>`
    * :doc:`025 · Data Security in Spreadsheets — protecting a shared sheet: access control, protected ranges, and safe sharing <025-data-security-in-spreadsheets>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

@@ -410,6 +410,7 @@ manage, or release manage, these guidelines describe how our current process wor
          guide_document_write
          guide_document_style
          guide_document_tag
+         guide_document_internationalization
 
    .. grid-item-card::
       :shadow: none

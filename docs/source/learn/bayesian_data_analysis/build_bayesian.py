@@ -491,9 +491,9 @@ def main() -> int:
                 w(f"   * :doc:`{idx[t]:03d} \u00b7 {t} <{docname[t]}>` \u2014 {GLOSS[t]}")
             w("")
 
-    az = "\U0001F524 Every lesson, A\u2013Z"
+    az = "\U0001F524 Every lesson, A\u2013Z index"
     w(az); w("-" * (len(az) + 2)); w("")
-    w(".. dropdown:: Open the full alphabetical index")
+    w(".. dropdown:: \U0001F520 Open the full alphabetical index")
     w("   :class-container: term-az"); w("")
     w("   .. hlist::"); w("      :columns: 2"); w("")
     for t in sorted(titles, key=str.casefold):

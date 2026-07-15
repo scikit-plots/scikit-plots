@@ -200,10 +200,10 @@ Read it at any depth:
    * :doc:`55 · AUC–ROC Curve: Evaluating Classification Model Performance <55-auc-roc-curve-evaluating-classification-model-performance>` — The ROC curve and the area under it as threshold-free performance measures.
    * :doc:`56 · Lift Analysis for Direct Mail Campaigns: Concept, Process, and Business Value <56-lift-analysis-for-direct-mail-campaigns-concept-process-and-business-value>` — Ranking prospects by model score to target a campaign efficiently.
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: Open the full alphabetical index
+.. dropdown:: 🔠 Open the full alphabetical index
    :class-container: term-az
 
    .. hlist::

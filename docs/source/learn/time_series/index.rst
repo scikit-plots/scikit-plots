@@ -144,10 +144,10 @@ Read it at any depth:
    * :doc:`17 · Beyond One-Step Ahead Predictions <17-beyond-one-step-ahead-predictions>` — Multi-step forecasting, how uncertainty compounds with horizon, and forecast intervals.
    * :doc:`18 · Exponential Smoothing Models <18-exponential-smoothing-models>` — Weighted-average forecasting (simple, Holt, Holt–Winters) as a practical complement to ARIMA.
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: Open the full alphabetical index
+.. dropdown:: 🔠 Open the full alphabetical index
    :class-container: term-az
 
    .. hlist::

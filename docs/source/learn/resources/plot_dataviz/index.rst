@@ -16,15 +16,40 @@
   # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
   # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _external_resources:
+.. _resources-plot_dataviz-index:
 
-******************
-External Resources
-******************
+====================================
+Plot DataViz (Data to Viz) Resources
+====================================
 
-============================
+---------
+Galleries
+---------
+
+* `The Python Graph Gallery <https://www.python-graph-gallery.com>`_
+  by Yan Holtz
+
+* `Past winners for JDH plotting contest <https://jhepc.github.io/gallery.html>`_
+  by Nelle Varoquaux
+
+---------
+Tutorials
+---------
+
+* `Matplotlib Tutorial <https://www.labri.fr/perso/nrougier/teaching/matplotlib/>`_
+  by Nicolas P. Rougier
+
+* `Anatomy of Matplotlib - IPython Notebooks
+  <https://github.com/WeatherGod/AnatomyOfMatplotlib>`_
+  by Benjamin Root
+
+* `Beyond the Basics: Data Visualization in Python
+  <https://github.com/stefmolin/python-data-viz-workshop>`_
+  by Stefanie Molin
+
+----------------------------
 Books, chapters and articles
-============================
+----------------------------
 
 * `Scientific Visualization: Python + Matplotlib (2021)
   <https://hal.inria.fr/hal-03427242/>`_
@@ -58,9 +83,9 @@ Books, chapters and articles
   <https://www.packtpub.com/product/hands-on-data-analysis-with-pandas-second-edition/9781800563452>`_
   by Stefanie Molin
 
-======
+------
 Videos
-======
+------
 
 * `Anatomy of Matplotlib
   <https://conference.scipy.org/scipy2013/tutorial_detail.php?id=103>`_
@@ -96,28 +121,3 @@ Videos
   by Derek Banas
 
 ..  youtube:: wB9C0Mz9gSo
-
-=========
-Tutorials
-=========
-
-* `Matplotlib tutorial <https://www.labri.fr/perso/nrougier/teaching/matplotlib/>`_
-  by Nicolas P. Rougier
-
-* `Anatomy of Matplotlib - IPython Notebooks
-  <https://github.com/WeatherGod/AnatomyOfMatplotlib>`_
-  by Benjamin Root
-
-* `Beyond the Basics: Data Visualization in Python
-  <https://github.com/stefmolin/python-data-viz-workshop>`_
-  by Stefanie Molin
-
-=========
-Galleries
-=========
-
-* `Past winners for JDH plotting contest <https://jhepc.github.io/gallery.html>`_
-  by Nelle Varoquaux
-
-* `The Python Graph Gallery <https://www.python-graph-gallery.com>`_
-  by Yan Holtz

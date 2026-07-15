@@ -52,50 +52,65 @@
   # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
   # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _resources-index:
+.. _external-learning-resources-index:
 
 ======================================================================
-Resources
+External Learning Resources
 ======================================================================
 
 .. grid:: 1 1 1 1
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
+        :columns: 12 12 6 6
 
-        **data**
+        **data resources**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
-            Data Resources <./data_resources.rst>
+            Data Resources <./data/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
+        :columns: 12 12 6 6
 
-        **model**
+        **plot dataviz resources**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
-            Model Examples <./examples.rst>
+            Plot Resources <./plot_dataviz/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
+        :columns: 12 12 6 6
 
-        **external**
+        **model resources**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
-            External Resources <./external_resources.rst>
+            Model Resources <./model/index.rst>
 
     .. grid-item-card::
-        :padding: 3
+        :padding: 2
+        :columns: 12 12 6 6
 
-        **youtu.be**
+        **research resources**
         ^^^
         .. toctree::
-            :maxdepth: 3
+            :maxdepth: 2
 
-            Youtube <./youtube.rst>
+            Research Resources <./research/index.rst>
+
+    .. grid-item-card::
+        :padding: 2
+        :columns: 12 12 6 6
+
+        **youtu.be resources**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Youtube Resources <./youtube/index.rst>

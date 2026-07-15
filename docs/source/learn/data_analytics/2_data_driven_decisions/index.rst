@@ -114,10 +114,10 @@ Turning questions into decisions: stakeholders, metrics, and communicating resul
    * :doc:`026 · Effective Meetings — purpose, preparation, and follow-up: making the time analysts spend together count <026-effective-meetings>`
    * :doc:`027 · Conflict Resolution in the Workplace — when the data disagrees with a person: disagreeing productively and separating issue from ego <027-conflict-resolution-in-the-workplace>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

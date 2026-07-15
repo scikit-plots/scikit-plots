@@ -119,10 +119,10 @@ Finding and fixing dirty data: missing values, duplicates, outliers, and validat
    * :doc:`031 · Refining a Resume for Data Analytics Roles — shaping a resume to show analytical skill — cleaning your own professional data <031-refining-a-resume-for-data-analytics-roles>`
    * :doc:`032 · Exploring Data Analyst Job Opportunities — where analyst roles are, and how to read them against your skills and goals <032-exploring-data-analyst-job-opportunities>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

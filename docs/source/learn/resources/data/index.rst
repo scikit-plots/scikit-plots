@@ -16,7 +16,7 @@
   # attention, caution, danger, error, hint, important, note, tip, warning, admonition, seealso
   # versionadded, versionchanged, deprecated, versionremoved, rubric, centered, hlist
 
-.. _data_resources:
+.. _resources-data-index:
 
 ============================
 Data Resources

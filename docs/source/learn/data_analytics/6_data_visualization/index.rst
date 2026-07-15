@@ -114,10 +114,10 @@ Turning results into visuals that inform: chart choice, design principles, and h
    * :doc:`026 · Handling Objections in Data Presentations: Responding with Confidence and Clarity — responding to challenges and pushback without defensiveness, honestly and calmly <026-handling-objections-in-data-presentations-responding-with-confidence-and-clarity>`
    * :doc:`027 · Q&A Best Practices: Answering Questions with Clarity and Confidence — the habits of fielding questions well — listen, answer directly, stay honest <027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

@@ -129,10 +129,10 @@ Read it at any depth:
    * :doc:`16 · More Vectorization Examples <16-more-vectorization-examples>` — Further numpy patterns — broadcasting and whole-array functions — that remove Python loops.
    * :doc:`17 · Vectorizing Logistic Regression <17-vectorizing-logistic-regression>` — A fully vectorised forward and backward pass over all examples — the gateway to deep networks.
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: Open the full alphabetical index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

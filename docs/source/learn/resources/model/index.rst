@@ -1,14 +1,15 @@
-.. _model_examples:
 
-==================
-Model Examples
-==================
+.. _resources-model-index:
+
+==========================
+Model Resources
+==========================
 
 .. _catboost_examples:
 
------------------
-Catboost Examples
------------------
+-----------------------------
+Catboost Examples & Tutorials
+-----------------------------
 
 * `Catboost Examples
   <https://catboost.ai/docs/en/concepts/python-usages-examples>`_
@@ -16,9 +17,9 @@ Catboost Examples
 
 .. _xgboost_examples:
 
-----------------
-XGBoost Examples
-----------------
+-----------------------------
+XGBoost Examples & Tutorials
+-----------------------------
 
 * `XGBoost Examples
   <https://xgboosting.com/examples>`_
@@ -26,9 +27,9 @@ XGBoost Examples
 
 .. _lightgbm_examples:
 
------------------
-LightGBM Examples
------------------
+-----------------------------
+LightGBM Examples & Tutorials
+-----------------------------
 
 * `LightGBM Examples
   <https://github.com/lightgbm-org/LightGBM/tree/master/examples>`_

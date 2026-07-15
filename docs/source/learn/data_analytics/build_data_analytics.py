@@ -428,11 +428,11 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
             w("")
 
     # ---- dictionary view: one A-Z master list (auto-sorted) ----------
-    az_head = "\U0001F524 Every lesson, A\u2013Z"
+    az_head = "\U0001F524 Every lesson, A\u2013Z index"
     w(az_head)
     w("-" * (len(az_head) + 2))
     w("")
-    w(".. dropdown:: \U0001F520 A\u2013Z index")
+    w(".. dropdown:: \U0001F520 Open the full alphabetical index")
     w("   :animate: fade-in-slide-down")
     w("   :class-container: term-az")
     w("")

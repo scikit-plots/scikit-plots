@@ -375,10 +375,10 @@ Nonlinear & Nonparametric
    * :doc:`143 · Hierarchical dependence <143-hierarchical-dependence>` — Dependent nonparametric priors across groups.
    * :doc:`144 · Density regression <144-density-regression>` — Letting an entire density vary with predictors.
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: Open the full alphabetical index
+.. dropdown:: 🔠 Open the full alphabetical index
    :class-container: term-az
 
    .. hlist::

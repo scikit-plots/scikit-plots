@@ -117,10 +117,10 @@ Organising, formatting, aggregating, and computing on data to surface patterns a
    * :doc:`029 · Temporary Tables and the WITH Clause in SQL — holding intermediate results — CTEs and temp tables that structure complex queries <029-temporary-tables-and-the-with-clause-in-sql>`
    * :doc:`030 · Creating Temporary Tables in SQL — Methods, Trade-offs, and Best Practices — the ways to make a temp table, when each fits, and how to use them well <030-creating-temporary-tables-in-sql-methods-trade-offs-and-best-practices>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 

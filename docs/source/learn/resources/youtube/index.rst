@@ -23,16 +23,23 @@
 
             Help us improve the library.
 
+.. _resources-youtube-index:
+
 ==================
-YouTube
+YouTube Resources
 ==================
+
 
 ------------------
 Channels
 ------------------
 
-* `Statistics Globe
+* `Channel: Statistics Globe
   <https://www.youtube.com/@StatisticsGlobe>`_
+  by Joachim Schork
+
+* `Tutorials at Statistics Globe
+  <https://statisticsglobe.com/tutorials>`_
   by Joachim Schork
 
 

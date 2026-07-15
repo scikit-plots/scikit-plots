@@ -120,10 +120,10 @@ Doing the whole workflow in Python: NumPy, pandas, and plotting for real analyti
    * :doc:`032 · Grouping and Aggregation in Pandas (groupby, agg) — grouping rows and computing per-group aggregates — pandas' GROUP BY <032-grouping-and-aggregation-in-pandas-groupby-agg>`
    * :doc:`033 · Combining Data in Pandas (concat and merge) — bringing DataFrames together — stacking with concat, joining on keys with merge <033-combining-data-in-pandas-concat-and-merge>`
 
-🔤 Every lesson, A–Z
----------------------
+🔤 Every lesson, A–Z index
+---------------------------
 
-.. dropdown:: 🔠 A–Z index
+.. dropdown:: 🔠 Open the full alphabetical index
    :animate: fade-in-slide-down
    :class-container: term-az
 
