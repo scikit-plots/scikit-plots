@@ -27,7 +27,7 @@ Turning questions into decisions: stakeholders, metrics, and communicating resul
 
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
    <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
-           placeholder="&#128269;&nbsp; Type to filter this section lessons &mdash; by title or keyword&hellip;"
+           placeholder="&#128269;&nbsp; Type to filter this section 27 lessons &mdash; by title or keyword&hellip;"
           style="width:100%;max-width:100%;padding:0.55rem 1rem;font-size:1rem;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
                  background:transparent;color:inherit"/>
@@ -53,7 +53,7 @@ Turning questions into decisions: stakeholders, metrics, and communicating resul
        dds.forEach(function(d){
          if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
          else{d.style.display='';d.open=false;}});
-        if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}
+        if(cnt){{cnt.textContent=(q&&az)?(n+' of 27 match'+(n===1?'':'s')):'';}}
      });
    });
    </script>

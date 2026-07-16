@@ -346,7 +346,7 @@ class NormalizerType(str, Enum):
 # ===========================================================================
 
 
-@dataclass(frozen=True)  # frozen=True → makes dataclass hashable
+@dataclass(eq=True, frozen=True)  # frozen=True → makes dataclass hashable
 class Chunk:
     """A single unit of text produced by a chunker.
 
@@ -385,9 +385,22 @@ class Chunk:
             self, "metadata", types.MappingProxyType(dict(self.metadata))
         )
 
-    def __hash__(self) -> int:
-        # Explicit, deterministic, stable
-        return hash((self.text, self.start_char, self.end_char))
+    # def __hash__(self) -> int:
+    #     # Explicit, deterministic, stable
+    #     return hash((self.text, self.start_char, self.end_char))
+
+    # def __eq__(self, other: object) -> bool:
+    #     if not isinstance(other, Chunk):
+    #         return NotImplemented
+    #     return (
+    #         self.text,
+    #         self.start_char,
+    #         self.end_char,
+    #     ) == (
+    #         other.text,
+    #         other.start_char,
+    #         other.end_char,
+    #     )
 
     def char_length(self) -> int:
         """Return the character span length of this chunk.

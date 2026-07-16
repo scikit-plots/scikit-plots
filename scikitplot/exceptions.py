@@ -582,18 +582,25 @@ class ScikitplotTraceDataException(ScikitplotTracingException):
         # Fix 2 & 3: compare against the string sentinels that the
         # subclasses actually pass, not against integer literals.
         if error_code == "NOT_FOUND":
-            super().__init__(
-                f"Trace data not found for {self.ctx}", error_code=error_code
-            )
+            message = f"Trace data not found for {self.ctx}"
+            # super().__init__(
+            #     f"Trace data not found for {self.ctx}", error_code=error_code
+            # )
         elif error_code == "INVALID_STATE":
-            super().__init__(
-                f"Trace data is corrupted for {self.ctx}", error_code=error_code
-            )
+            message = f"Trace data is corrupted for {self.ctx}"
+            # super().__init__(
+            #     f"Trace data is corrupted for {self.ctx}", error_code=error_code
+            # )
         else:
-            super().__init__(
-                f"Trace data error ({error_code!r}) for {self.ctx}",
-                error_code=error_code,
+            message = (
+                f"Trace data error ({error_code!r}) for {self.ctx}"
             )
+            # super().__init__(
+            #     f"Trace data error ({error_code!r}) for {self.ctx}",
+            #     error_code=error_code,
+            # )
+
+        super().__init__(message, error_code=error_code)
 
 
 class ScikitplotTraceDataNotFound(ScikitplotTraceDataException):

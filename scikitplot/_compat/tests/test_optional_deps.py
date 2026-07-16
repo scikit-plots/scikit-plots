@@ -305,7 +305,8 @@ class TestGetSourcePath(unittest.TestCase):
         """A stdlib module must return a non-empty string path."""
         result = _get_source_path(os)
         self.assertIsInstance(result, str)
-        self.assertTrue(len(result) > 0)
+        # self.assertTrue(len(result) > 0)
+        self.assertGreater(len(result), 0)
 
     def test_stdlib_module_path_ends_py_or_so(self):
         """A stdlib module path must end with .py or a known extension."""
@@ -333,7 +334,9 @@ class TestGetSourcePath(unittest.TestCase):
 
         result = _get_source_path(my_fn)
         self.assertIsInstance(result, str)
-        self.assertTrue(len(result) > 0)
+        # CodeQL: cannot provide an informative message. Using assertGreater(a, b) instead will give more informative messages.
+        # self.assertTrue(len(result) > 0)
+        self.assertGreater(len(result), 0)
 
     def test_python_lambda_returns_string(self):
         """A lambda must return a non-empty path."""

@@ -1994,13 +1994,16 @@ async def chat_completions(  # noqa: PLR0911
     try:
         raw_body = await _read_bounded_body(request)
     except ValueError as exc:
+        # Client → generic message
+        # Server logs → full exception details
         logger.warning(
             "Body size exceeded | request_id=%s | error=%s",
             request_id,
             exc,
+            exc_info=exc,
         )
         return _error_response(
-            message=str(exc),
+            message="Request body too large.",  # str(exc),
             error_type="invalid_request_error",
             code="request_too_large",
             status_code=413,
@@ -2011,13 +2014,16 @@ async def chat_completions(  # noqa: PLR0911
     try:
         payload = _parse_request_body(raw_body)
     except ValueError as exc:
+        # Client → generic message
+        # Server logs → full exception details
         logger.warning(
             "JSON parse error | request_id=%s | error=%s",
             request_id,
             exc,
+            exc_info=exc,
         )
         return _error_response(
-            message=str(exc),
+            message="invalid_request_error",  # str(exc),
             error_type="invalid_request_error",
             code="invalid_json",
             status_code=400,
@@ -2050,13 +2056,16 @@ async def chat_completions(  # noqa: PLR0911
         temperature = _validate_temperature(temperature_raw)
         top_p = _validate_top_p(top_p_raw)
     except ValueError as exc:
+        # Client → generic message
+        # Server logs → full exception details
         logger.warning(
             "Validation error | request_id=%s | error=%s",
             request_id,
             exc,
+            exc_info=exc,
         )
         return _error_response(
-            message=str(exc),
+            message="Invalid request parameters.",  # str(exc),
             error_type="invalid_request_error",
             code="invalid_value",
             status_code=400,
@@ -2113,13 +2122,16 @@ async def chat_completions(  # noqa: PLR0911
         )
 
     except ValueError as exc:
+        # Client → generic message
+        # Server logs → full exception details
         logger.warning(
             "Inference validation error | request_id=%s | error=%s",
             request_id,
             exc,
+            exc_info=exc,
         )
         return _error_response(
-            message=str(exc),
+            message="Invalid inference request.",  # str(exc),
             error_type="invalid_request_error",
             code="invalid_value",
             status_code=400,

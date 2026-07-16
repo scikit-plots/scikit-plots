@@ -143,7 +143,7 @@ _CSV_IDENTITY_ORDER: list[str] = [
 def export_documents(
     documents: list[CorpusDocument],
     output_path: pathlib.Path,
-    fmt: ExportFormat,
+    format: ExportFormat,
     *,
     include_embedding: bool = True,
     json_indent: int | None = _JSON_INDENT,
@@ -163,7 +163,7 @@ def export_documents(
           Parquet, Polars): path to the output file.
         - Directory formats (HuggingFace, MLflow): path to the root
           directory / artifact path.
-    fmt : ExportFormat
+    format : ExportFormat
         Target export format.
     include_embedding : bool, optional
         When ``True`` (default), embedding vectors are included in the
@@ -186,7 +186,7 @@ def export_documents(
     Raises
     ------
     ValueError
-        If ``fmt`` is :attr:`ExportFormat.NUMPY` and no documents have
+        If ``format`` is :attr:`ExportFormat.NUMPY` and no documents have
         embeddings, or if the embedding dimensions are inconsistent.
     ImportError
         If the required optional library for the format is not installed.
@@ -246,10 +246,10 @@ def export_documents(
         ExportFormat.MLFLOW: _export_mlflow,
     }
 
-    exporter = dispatch.get(fmt)
+    exporter = dispatch.get(format)
     if exporter is None:
         raise ValueError(
-            f"export_documents: unknown ExportFormat {fmt!r}."
+            f"export_documents: unknown ExportFormat {format!r}."
             f" Supported: {[f.value for f in ExportFormat]}."
         )
 
@@ -257,11 +257,11 @@ def export_documents(
         "export_documents: writing %d docs to %s (format=%s).",
         len(documents),
         output_path,
-        fmt.value,
+        format.value,
     )
 
     # Ensure parent directory exists for all file-based formats
-    if fmt not in (ExportFormat.HUGGINGFACE, ExportFormat.MLFLOW):
+    if format not in (ExportFormat.HUGGINGFACE, ExportFormat.MLFLOW):
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
     exporter(
@@ -911,12 +911,12 @@ def _export_mlflow(  # noqa: D417
 # ---------------------------------------------------------------------------
 
 
-def _pickle_safety_guard(fmt_value, trusted):
+def _pickle_safety_guard(format_value, trusted):
     """Insert this check before pickle.load() and joblib.load() calls.
 
     Parameters
     ----------
-    fmt_value : str
+    format_value : str
         The format value string (e.g., "pickle", "joblib").
     trusted : bool
         Whether the user has explicitly opted in to unsafe loading.
@@ -926,10 +926,10 @@ def _pickle_safety_guard(fmt_value, trusted):
     ValueError
         If trusted is False and format is pickle or joblib.
     """
-    if fmt_value in ("pickle", "joblib") and not trusted:
+    if format_value in ("pickle", "joblib") and not trusted:
         raise ValueError(
-            f"Loading {fmt_value} files is disabled by default due to "
-            f"arbitrary code execution risk. A malicious {fmt_value} file "
+            f"Loading {format_value} files is disabled by default due to "
+            f"arbitrary code execution risk. A malicious {format_value} file "
             f"can execute arbitrary Python code on your system.\n"
             f"Pass trusted=True to load_documents() ONLY if you trust "
             f"the source of this file.\n"
@@ -939,7 +939,7 @@ def _pickle_safety_guard(fmt_value, trusted):
 
 def load_documents(
     path: pathlib.Path | str,
-    fmt: ExportFormat | None = None,
+    format: ExportFormat | None = None,
     *,
     trusted: bool = False,
 ) -> list[CorpusDocument]:
@@ -956,7 +956,7 @@ def load_documents(
     ----------
     path : pathlib.Path
         Path to the exported file.
-    fmt : ExportFormat or None, optional
+    format : ExportFormat or None, optional
         Format hint. When ``None``, the format is inferred from the
         file extension (``.pkl`` → PICKLE, ``.joblib`` → JOBLIB).
     trusted : bool
@@ -981,19 +981,19 @@ def load_documents(
     """  # noqa: D205
     path = pathlib.Path(path)
 
-    if fmt is None:
+    if format is None:
         ext = path.suffix.lower()
-        fmt = {
+        format = {
             ".pkl": ExportFormat.PICKLE,
             ".joblib": ExportFormat.JOBLIB,
         }.get(ext)
-    _pickle_safety_guard(fmt.value if fmt else "", trusted)
+    _pickle_safety_guard(format.value if format else "", trusted)
 
-    if fmt == ExportFormat.PICKLE:
+    if format == ExportFormat.PICKLE:
         with path.open("rb") as fh:
             return pickle.load(fh)  # noqa: S301
 
-    if fmt == ExportFormat.JOBLIB:
+    if format == ExportFormat.JOBLIB:
         try:
             import joblib  # noqa: PLC0415
         except ImportError as exc:
@@ -1007,6 +1007,6 @@ def load_documents(
     logger.warning(
         "load_documents: format %r does not support CorpusDocument"
         " deserialization. Returning empty list.",
-        fmt,
+        format,
     )
     return []

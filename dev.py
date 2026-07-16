@@ -668,7 +668,7 @@ class Build(Task):
         print("Installation OK")
 
     @classmethod
-    def configure_scipy_openblas(self, blas_variant="32"):
+    def configure_scipy_openblas(cls, blas_variant="32"):
         """Create scipy-openblas.pc and scipy/_distributor_init_local.py
 
         Requires a pre-installed scipy-openblas32 wheel from PyPI.
@@ -918,7 +918,7 @@ class Test(Task):
                         f"  C: {c}\n  C++: {cpp}\n  Fortran: {fortran}\n"
                         "Therefore, exiting without running tests."
                     )
-                    exit(1)  # Exit because tests will give missing symbol error
+                    sys.exit(1)  # Exit because tests will give missing symbol error
             result = runner(  # scipy._lib._testutils:PytestTester
                 args.mode,
                 verbose=verbose,

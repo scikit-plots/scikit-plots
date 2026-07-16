@@ -338,7 +338,9 @@ class TestModuleLevelRegistryHelpers:
 
 class TestScriptType:
     def test_all_values_are_strings(self) -> None:
-        for member in ScriptType:
+        # tuple(ScriptType) ScriptType.__members__.values()
+        for name, member in ScriptType.__members__.items():
+            assert isinstance(name, str)
             assert isinstance(member.value, str)
 
     @pytest.mark.xfail(

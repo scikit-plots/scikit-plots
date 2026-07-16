@@ -136,8 +136,15 @@ class MatrixItem(BaseModel, extra="forbid"):
     class Config:
         arbitrary_types_allowed = True
 
+    def __eq__(self, other):
+        if not isinstance(other, MatrixItem):
+            return NotImplemented
+        return dict(self) == dict(other)
+
     def __hash__(self):
-        return hash(frozenset(dict(self)))
+        # return hash(frozenset(dict(self)))
+        # return hash(tuple(sorted(dict(self).items())))
+        return hash(self.model_dump_json())
 
 
 def read_yaml(location, if_error=None):

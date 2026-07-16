@@ -146,7 +146,8 @@ def parse_toml(config):
         ref = importlib.resources.files("towncrier") / resource_name
         template = file_manager.enter_context(importlib.resources.as_file(ref))
     else:
-        template = template
+        # template = template
+        pass
 
     return {
         "package": config.get("package", ""),

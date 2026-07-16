@@ -3,6 +3,7 @@
 # This script fails if there are not comments to be posted.
 
 import os
+import sys
 
 import requests
 
@@ -313,7 +314,8 @@ if __name__ == "__main__":
         comment = find_lint_bot_comments(repo, token, pr_number)
     except RuntimeError:
         print("Comment not found in the first 30 comments. Skipping!")
-        exit(0)
+        # exit(0)
+        sys.exit(0)
 
     try:
         message = get_message(

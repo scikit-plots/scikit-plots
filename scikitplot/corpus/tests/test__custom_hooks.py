@@ -662,7 +662,7 @@ class TestFactoryCorpusBuilder:
 
     def test_chunker_factory_override(self, tmp_txt: pathlib.Path) -> None:
         factories = BuilderFactories(
-            chunker_factory=lambda: FixedWindowChunker()
+            chunker_factory=lambda: FixedWindowChunker(config=None)
         )
         builder = FactoryCorpusBuilder(factories=factories)
         result = builder.build(tmp_txt)

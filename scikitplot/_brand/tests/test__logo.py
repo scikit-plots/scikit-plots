@@ -155,12 +155,24 @@ def _patch_signature(p):
     """
     name = p.__class__.__name__
 
+    # Canonical schema for all patch signatures:
+    # (
+    #   "patch", name,
+    #   center, x, y, width, height, radius, theta1, theta2,
+    #   facecolor, edgecolor, linewidth
+    # )
     if isinstance(p, Circle):
         return (
             "patch",
             name,
             _round_tuple(p.center),
+            None,
+            None,
+            None,
+            None,
             round(float(p.radius), 6),
+            None,
+            None,
             _round_tuple(p.get_facecolor()),
             _round_tuple(p.get_edgecolor()),
             round(float(p.get_linewidth() or 0.0), 6),

@@ -1575,7 +1575,7 @@ class DummyCodeEncoder(_BaseEncoder):
             normal_vals_sorted = sorted(normal_vals)
         except TypeError:
             # Mixed types → fallback to string comparison
-            normal_vals_sorted = sorted(normal_vals, key=lambda x: str(x))
+            normal_vals_sorted = sorted(normal_vals, key=str)
 
         # Put None and NaN at end
         return (

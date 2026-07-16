@@ -548,7 +548,7 @@ class SimpleEstimatorCustomLogic(BaseEstimator):
     "array_namespace, converter",
     [
         ("torch", lambda array: array.cpu().numpy()),
-        ("array_api_strict", lambda array: numpy.asarray(array)),
+        ("array_api_strict", numpy.asarray),
         ("cupy", lambda array: array.get()),
     ],
 )

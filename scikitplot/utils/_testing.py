@@ -686,11 +686,11 @@ def _get_diff_msg(docstrings_grouped):
         # Add header
         msg_diff += "".join((diff[:3]))
         # Group consecutive 'diff' words to shorten error message
-        for start, group in groupby(diff[3:], key=_diff_key):
+        for start, word_group in groupby(diff[3:], key=_diff_key):
             if start is None:
-                msg_diff += "\n" + "\n".join(group)
+                msg_diff += "\n" + "\n".join(word_group)
             else:
-                msg_diff += "\n" + start + " ".join(word[2:] for word in group)
+                msg_diff += "\n" + start + " ".join(word[2:] for word in word_group)
         # Add new lines at end of diff, to separate comparisons
         msg_diff += "\n\n"
     return msg_diff

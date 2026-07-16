@@ -328,7 +328,7 @@ FILTER_JS_DOC = """.. raw:: html
 
    <div style="text-align:center;margin:0.4rem 0 0.4rem">
    <input id="term-filter" type="search" autocomplete="off" spellcheck="false"
-           placeholder="&#128269;&nbsp; Type to filter %(scope)s lessons &mdash; by title or keyword&hellip;"
+           placeholder="&#128269;&nbsp; Type to filter %(scope)s %(n_items)s lessons &mdash; by title or keyword&hellip;"
           style="width:100%%;max-width:100%%;padding:0.55rem 1rem;font-size:1rem;
                  border:1px solid var(--pst-color-border,#ccc);border-radius:0.55rem;box-sizing:border-box;
                  background:transparent;color:inherit"/>
@@ -354,7 +354,7 @@ FILTER_JS_DOC = """.. raw:: html
        dds.forEach(function(d){
          if(q){d.style.display=d.tHits?'':'none';d.open=d.tHits>0;}
          else{d.style.display='';d.open=false;}});
-        if(cnt){{cnt.textContent=(q&&az)?(n+' of {n_items} match'+(n===1?'':'s')):'';}}
+        if(cnt){{cnt.textContent=(q&&az)?(n+' of %(n_items)s match'+(n===1?'':'s')):'';}}
      });
    });
    </script>
@@ -401,7 +401,7 @@ def render_browser(page_anchor: str, h1: str, intro_lines: list[str],
     I.extend(intro_lines)
     w("")
     if FILTER_JS_BASE == "doc":
-        w(FILTER_JS_DOC % {"scope": scope_word})
+        w(FILTER_JS_DOC % {"scope": scope_word, "n_items": len(az_entries)})
     else:
         w(FILTER_JS_DIV_CLASS % {"scope": scope_word})
     w("")
@@ -694,17 +694,17 @@ def build() -> None:
     n_built = sum(len(section_stems[s]) for s in SECTION_ORDER)
     hub_h1 = "\U0001F4C8 Data Analytics"
     hub_intro = [
-        "A hands-on data-analytics curriculum in eight sections, from first "
-        "principles to the job hunt \u2014 rewritten and cross-linked for scikit-plots.",
+        ("A hands-on data-analytics curriculum in eight sections, from first "
+         "principles to the job hunt \u2014 rewritten and cross-linked for scikit-plots."),
         "",
-        f"*{n_built} of {N_LESSONS_TOTAL} lessons written across "
-        f"{len(built_sections)} of {len(SECTION_ORDER)} sections.* Each section "
-        "below is its own browsable mini-course; use the filter to search every "
-        "lesson at once.",
+        (f"*{n_built} of {N_LESSONS_TOTAL} lessons written across "
+         f"{len(built_sections)} of {len(SECTION_ORDER)} sections.* Each section "
+         "below is its own browsable mini-course; use the filter to search every "
+         "lesson at once."),
     ]
     hub_rst = render_browser(f"{ANCHOR_PREFIX.replace('da', 'data-analytics')}-index"
                              if False else "data-analytics-index",
-                             hub_h1, hub_intro, "all lessons", hub_groups, hub_az)
+                             hub_h1, hub_intro, "all sections", hub_groups, hub_az)
     (HERE / "index.rst").write_text(hub_rst, encoding="utf-8")
 
     print(f"Wrote hub index + {len(built_sections)} section(s): "

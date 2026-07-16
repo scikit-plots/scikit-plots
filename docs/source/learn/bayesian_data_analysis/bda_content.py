@@ -6440,10 +6440,11 @@ much its coefficients are **pooled** toward the batch mean.
    with pm.Model():
        # fixed effects: their own weak priors
        gamma = pm.Normal("gamma", 0, 5, shape=n_fixed)
-       # a batch of exchangeable coefficients: shared, inferred scale
+       # a batch of exchangeable coefficients: shared, inferred mean and scale
+       mu_b = pm.Normal("mu_b", 0, 5)
        tau = pm.HalfNormal("tau", 1)
        z = pm.Normal("z", 0, 1, shape=n_batch)              # non-centred
-       beta = pm.Deterministic("beta", tau * z)             # pooled toward 0
+       beta = pm.Deterministic("beta", mu_b + tau * z)      # pooled toward mu_b
        mu = Xf @ gamma + Xb @ beta
        pm.Normal("y", mu, pm.HalfNormal("s", 1), observed=y)
 

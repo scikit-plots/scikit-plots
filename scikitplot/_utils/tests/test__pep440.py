@@ -243,19 +243,23 @@ class TestVersionComparison(unittest.TestCase):
 
     def test_less_than_true(self):
         """1.0.0 < 1.0.1 must be True."""
-        self.assertTrue(self.v1 < self.v2)
+        # self.assertTrue(self.v1 < self.v2)
+        self.assertLess(self.v1, self.v2)
 
     def test_less_than_false(self):
         """1.0.1 < 1.0.0 must be False."""
-        self.assertFalse(self.v2 < self.v1)
+        # self.assertFalse(self.v2 < self.v1)
+        self.assertGreaterEqual(self.v2, self.v1)
 
     def test_less_than_or_equal_equal(self):
         """1.0.0 <= 1.0.0 must be True."""
-        self.assertTrue(self.v1 <= self.v3)
+        # self.assertTrue(self.v1 <= self.v3)
+        self.assertLessEqual(self.v1, self.v3)
 
     def test_less_than_or_equal_less(self):
         """1.0.0 <= 1.0.1 must be True."""
-        self.assertTrue(self.v1 <= self.v2)
+        # self.assertTrue(self.v1 <= self.v2)
+        self.assertLessEqual(self.v1, self.v2)
 
     def test_equal_same_version(self):
         """Two Version objects with the same string must be equal."""
@@ -267,15 +271,18 @@ class TestVersionComparison(unittest.TestCase):
 
     def test_greater_than_true(self):
         """1.0.1 > 1.0.0 must be True."""
-        self.assertTrue(self.v2 > self.v1)
+        # self.assertTrue(self.v2 > self.v1)
+        self.assertGreater(self.v2, self.v1)
 
     def test_greater_than_false(self):
         """1.0.0 > 1.0.1 must be False."""
-        self.assertFalse(self.v1 > self.v2)
+        # self.assertFalse(self.v1 > self.v2)
+        self.assertLessEqual(self.v1, self.v2)
 
     def test_greater_than_or_equal(self):
         """1.0.0 >= 1.0.0 must be True."""
-        self.assertTrue(self.v1 >= self.v3)
+        # self.assertTrue(self.v1 >= self.v3)
+        self.assertGreaterEqual(self.v1, self.v3)
 
     def test_cross_type_comparison_returns_not_implemented(self):
         """Comparing Version with a non-Version must not raise but return NotImplemented."""

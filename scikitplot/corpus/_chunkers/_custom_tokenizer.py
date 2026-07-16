@@ -500,15 +500,28 @@ class FunctionLemmatizer:
             )
         self._fn = fn
         self._name = name
-        # Detect whether the callable accepts a second (pos) argument.
+        # Detect whether the callable can be invoked with (word, pos)
+        # and/or with only (word), using signature binding.
         import inspect  # noqa: PLC0415
 
+        self._can_call_with_pos = False
+        self._can_call_word_only = True
         try:
             sig = inspect.signature(fn)
-            params = list(sig.parameters.values())
-            self._accepts_pos = len(params) >= 2  # noqa: PLR2004
+            try:
+                sig.bind("word", "pos")
+                self._can_call_with_pos = True
+            except TypeError:
+                self._can_call_with_pos = False
+            try:
+                sig.bind("word")
+                self._can_call_word_only = True
+            except TypeError:
+                self._can_call_word_only = False
         except (ValueError, TypeError):
-            self._accepts_pos = False
+            # If signature is unavailable, keep conservative defaults.
+            self._can_call_with_pos = False
+            self._can_call_word_only = True
 
     def lemmatize(self, word: str, pos: str | None = None) -> str:
         """Lemmatize *word* with optional POS hint.
@@ -525,9 +538,13 @@ class FunctionLemmatizer:
         str
             Lemma form.
         """
-        if self._accepts_pos:
+        if pos is not None and self._can_call_with_pos:
             return self._fn(word, pos)
-        return self._fn(word)
+        if self._can_call_word_only:
+            return self._fn(word)
+        # Fallback for callables that require a second argument even when
+        # not detectable via signature introspection.
+        return self._fn(word, pos)
 
     def __repr__(self) -> str:
         return f"FunctionLemmatizer(name={self._name!r})"
