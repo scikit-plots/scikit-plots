@@ -271,7 +271,6 @@ class ScikitPlotMagic(Magics):
     def _execute(self, command, params, local_ns=None):
         # Toolbar button
         if command == "toolbar":
-            from scikitplot._magic import add_toolbar_button
             add_toolbar_button()
             return
 
