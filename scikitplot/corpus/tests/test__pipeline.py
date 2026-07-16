@@ -17,7 +17,7 @@ Coverage
   ``run_batch()`` with multiple files; ``run_batch()`` stop_on_error
   behaviour; ``run_batch()`` with mixed success/failure;
   ``run_batch()`` TypeError on non-str-or-Path element; progress_callback
-  invoked during batch; elapsed_seconds > 0; export_format override per call.
+  invoked during batch; elapsed_seconds > 0; format override per call.
 * :func:`create_corpus` — end-to-end with tmp files, CSV output produced.
 
 All external readers and exporters are exercised with real ``TextReader``
@@ -61,13 +61,13 @@ def _make_result(
     n_embedded: int = 0,
     elapsed: float = 0.12,
     output_path: pathlib.Path | None = None,
-    export_format: ExportFormat | None = None,
+    format: ExportFormat | None = None,
 ) -> PipelineResult:
     docs = [CorpusDocument.create(f"{source}", i, f"Sentence {i}.") for i in range(n_docs)]
     return PipelineResult(
         input_path=source,
         output_path=output_path,
-        export_format=export_format,
+        format=format,
         documents=docs,
         n_read=n_read,
         n_omitted=n_omitted,
@@ -120,13 +120,13 @@ class TestPipelineResult:
         r = _make_result(n_docs=7)
         assert "7" in repr(r)
 
-    def test_export_format_none_allowed(self) -> None:
-        r = _make_result(export_format=None)
-        assert r.export_format is None
+    def test_format_none_allowed(self) -> None:
+        r = _make_result(format=None)
+        assert r.format is None
 
-    def test_export_format_stored(self) -> None:
-        r = _make_result(export_format=ExportFormat.CSV)
-        assert r.export_format is ExportFormat.CSV
+    def test_format_stored(self) -> None:
+        r = _make_result(format=ExportFormat.CSV)
+        assert r.format is ExportFormat.CSV
 
     def test_frozen_dataclass_raises_on_mutation(self) -> None:
         r = _make_result()
@@ -137,7 +137,7 @@ class TestPipelineResult:
         r = PipelineResult(
             input_path="empty.txt",
             output_path=None,
-            export_format=None,
+            format=None,
             documents=[],
             n_read=0,
             n_omitted=0,
@@ -179,11 +179,11 @@ class TestCorpusPipelineConstruction:
     def test_custom_params_stored(self) -> None:
         p = CorpusPipeline(
             output_path=pathlib.Path("/tmp"),
-            export_format=ExportFormat.JSONL,
+            format=ExportFormat.JSONL,
             default_language="en",
         )
         assert p.output_path == pathlib.Path("/tmp")
-        assert p.export_format is ExportFormat.JSONL
+        assert p.format is ExportFormat.JSONL
         assert p.default_language == "en"
 
 
@@ -228,7 +228,7 @@ class TestCorpusPipelineRun:
         f = _write_txt(tmp_path, "doc.txt", "Hello world content.")
         out_dir = tmp_path / "output"
         out_dir.mkdir()
-        pipeline = CorpusPipeline(output_path=out_dir, export_format=ExportFormat.CSV)
+        pipeline = CorpusPipeline(output_path=out_dir, format=ExportFormat.CSV)
         result = pipeline.run(f)
         if result.output_path is not None:
             assert result.output_path.exists()
@@ -237,7 +237,7 @@ class TestCorpusPipelineRun:
         f = _write_txt(tmp_path, "doc.txt", "Hello world content here.")
         out_path = tmp_path / "out.csv"
         pipeline = CorpusPipeline()
-        result = pipeline.run(f, output_path=out_path, export_format=ExportFormat.CSV)
+        result = pipeline.run(f, output_path=out_path, format=ExportFormat.CSV)
         assert result.output_path == out_path
         assert out_path.exists()
 
@@ -263,12 +263,12 @@ class TestCorpusPipelineRun:
         result = pipeline.run(f, filename_override="custom_label.txt")
         assert "custom_label" in result.input_path or result.n_documents >= 0
 
-    def test_run_export_format_override(self, tmp_path: pathlib.Path) -> None:
+    def test_run_format_override(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Enough content to export here.")
         out = tmp_path / "out.jsonl"
         pipeline = CorpusPipeline()
-        result = pipeline.run(f, output_path=out, export_format=ExportFormat.JSONL)
-        assert result.export_format is ExportFormat.JSONL
+        result = pipeline.run(f, output_path=out, format=ExportFormat.JSONL)
+        assert result.format is ExportFormat.JSONL
 
     def test_run_n_read_ge_n_documents(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Text to chunk and filter.")
@@ -346,13 +346,13 @@ class TestCorpusPipelineRunBatch:
         with pytest.raises(Exception):
             pipeline.run_batch([bad], stop_on_error=True)
 
-    def test_run_batch_export_format_override(self, tmp_path: pathlib.Path) -> None:
+    def test_run_batch_format_override(self, tmp_path: pathlib.Path) -> None:
         files = [_write_txt(tmp_path, f"d{i}.txt", f"Content {i}.") for i in range(2)]
         pipeline = CorpusPipeline()
-        results = pipeline.run_batch(files, export_format=ExportFormat.JSONL)
+        results = pipeline.run_batch(files, format=ExportFormat.JSONL)
         for r in results:
-            if r.export_format is not None:
-                assert r.export_format is ExportFormat.JSONL
+            if r.format is not None:
+                assert r.format is ExportFormat.JSONL
 
     def test_run_batch_results_in_order(self, tmp_path: pathlib.Path) -> None:
         files = [_write_txt(tmp_path, f"file{i}.txt", f"Content {i}.") for i in range(3)]
@@ -412,17 +412,17 @@ class TestCreateCorpus:
         result = create_corpus(input_path=str(f), output_path=str(out))
         assert isinstance(result, PipelineResult)
 
-    def test_default_export_format_is_csv(self, tmp_path: pathlib.Path) -> None:
+    def test_default_format_is_csv(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Content.")
         out = tmp_path / "out.csv"
         result = create_corpus(input_path=f, output_path=out)
-        assert result.export_format in (ExportFormat.CSV, None)
+        assert result.format in (ExportFormat.CSV, None)
 
-    def test_custom_export_format_jsonl(self, tmp_path: pathlib.Path) -> None:
+    def test_custom_format_jsonl(self, tmp_path: pathlib.Path) -> None:
         f = _write_txt(tmp_path, "doc.txt", "Sufficient content for JSONL export test.")
         out = tmp_path / "out.jsonl"
         result = create_corpus(
-            input_path=f, output_path=out, export_format=ExportFormat.JSONL
+            input_path=f, output_path=out, format=ExportFormat.JSONL
         )
         if result.n_documents > 0:
             assert out.exists()

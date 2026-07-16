@@ -341,7 +341,7 @@ def _find_subtitle(video_path: Path) -> tuple[Path, str] | None:
     return None
 
 
-def _parse_subtitle(path: Path, fmt: str, frame_rate: float) -> list[dict[str, Any]]:
+def _parse_subtitle(path: Path, format: str, frame_rate: float) -> list[dict[str, Any]]:
     """
     Parse a subtitle file and return a list of cue dicts.
 
@@ -349,7 +349,7 @@ def _parse_subtitle(path: Path, fmt: str, frame_rate: float) -> list[dict[str, A
     ----------
     path : Path
         Path to the subtitle file.
-    fmt : str
+    format : str
         Format identifier: ``"srt"``, ``"vtt"``, ``"sbv"``, or ``"sub"``.
     frame_rate : float
         Frames per second (only used for SUB format).
@@ -370,7 +370,7 @@ def _parse_subtitle(path: Path, fmt: str, frame_rate: float) -> list[dict[str, A
         "sbv": _parse_sbv,
         "sub": lambda c: _parse_sub(c, frame_rate),
     }
-    parser = dispatch.get(fmt, _parse_srt)
+    parser = dispatch.get(format, _parse_srt)
     return parser(content)
 
 

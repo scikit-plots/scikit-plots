@@ -44,7 +44,7 @@ from scikitplot.corpus import (
 pipeline = CorpusPipeline(
     chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
     output_path=Path("output/"),
-    export_format=ExportFormat.CSV,
+    format=ExportFormat.CSV,
     reader_kwargs={
         "transcribe": True,
         "whisper_model": "base",  # "tiny" | "base" | "small" | "medium" | "large"

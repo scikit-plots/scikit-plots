@@ -40,7 +40,7 @@ Batch processing with sentence chunking:
 ...     # chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
 ...     chunker=SentenceChunker("en_core_web_sm"),  # default backend spacy
 ...     output_path=Path("output/"),
-...     export_format=ExportFormat.PARQUET,
+...     format=ExportFormat.PARQUET,
 ... )
 >>> results = pipeline.run_batch(list(Path("corpus/").glob("*.txt")))
 

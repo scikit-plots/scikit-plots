@@ -61,7 +61,7 @@ from scikitplot.corpus import (
 pipeline_zip = CorpusPipeline(
     chunker=SentenceChunker(SentenceChunkerConfig(backend=SentenceBackend.NLTK)),
     output_path=Path("output/"),
-    export_format=ExportFormat.CSV,
+    format=ExportFormat.CSV,
     reader_kwargs={
         "reader_kwargs": {
             ".mp3": {"transcribe": True, "whisper_model": "small"},

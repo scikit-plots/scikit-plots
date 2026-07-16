@@ -1323,7 +1323,7 @@ class TestCorpusPipelineRunBatch:
             from scikitplot.corpus._pipeline import PipelineResult  # noqa: PLC0415
             from scikitplot.corpus._schema import ExportFormat  # noqa: PLC0415
             return PipelineResult(
-                input_path=str(source), output_path=None, export_format=None,
+                input_path=str(source), output_path=None, format=None,
                 documents=[], n_read=0, n_omitted=0, n_embedded=0,
                 elapsed_seconds=0.0,
             )
@@ -1351,7 +1351,7 @@ class TestCorpusPipelineRunBatch:
         def fake_run_source(source, **kw):
             call_sources.append(source)
             return PipelineResult(
-                input_path=str(source), output_path=None, export_format=None,
+                input_path=str(source), output_path=None, format=None,
                 documents=[], n_read=0, n_omitted=0, n_embedded=0,
                 elapsed_seconds=0.0,
             )
@@ -1393,7 +1393,7 @@ class TestCorpusPipelineRunBatch:
 
         pipeline = CorpusPipeline()
         ok_result = PipelineResult(
-            input_path="https://ok.com", output_path=None, export_format=None,
+            input_path="https://ok.com", output_path=None, format=None,
             documents=[], n_read=0, n_omitted=0, n_embedded=0,
             elapsed_seconds=0.0,
         )

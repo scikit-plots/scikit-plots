@@ -92,7 +92,7 @@ def _run(chunker: object, label: str) -> object:
     pipeline = CorpusPipeline(
         chunker=chunker,
         output_path=_OUTPUT_DIR,
-        export_format=ExportFormat.CSV,
+        format=ExportFormat.CSV,
     )
     result = pipeline.run(_IMAGE_PATH)
 

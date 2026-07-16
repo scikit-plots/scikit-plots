@@ -551,7 +551,7 @@ def _parse_txt_companion(
 
 def _parse_companion(
     companion_path: Path,
-    fmt: str,
+    format: str,
     txt_as_single_chunk: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """
@@ -561,7 +561,7 @@ def _parse_companion(
     ----------
     companion_path : pathlib.Path
         Path to the companion file.
-    fmt : str
+    format : str
         Format identifier: ``"lrc"``, ``"srt"``, ``"vtt"``, or ``"txt"``.
     txt_as_single_chunk : bool, optional
         Passed through to ``_parse_txt_companion``. Default: ``False``.
@@ -577,21 +577,21 @@ def _parse_companion(
     Raises
     ------
     ValueError
-        If ``fmt`` is not a supported format.
+        If ``format`` is not a supported format.
     """
-    if fmt == "lrc":
+    if format == "lrc":
         return _parse_lrc(companion_path)
-    if fmt == "srt":
+    if format == "srt":
         return _parse_srt(companion_path), {}
-    if fmt == "vtt":
+    if format == "vtt":
         return _parse_vtt(companion_path), {}
-    if fmt == "txt":
+    if format == "txt":
         return (
             _parse_txt_companion(companion_path, as_single_chunk=txt_as_single_chunk),
             {},
         )
     raise ValueError(
-        f"AudioReader: unsupported companion format {fmt!r}."
+        f"AudioReader: unsupported companion format {format!r}."
         f" Supported: lrc, srt, vtt, txt."
     )
 

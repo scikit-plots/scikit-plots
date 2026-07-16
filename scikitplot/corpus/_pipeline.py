@@ -108,7 +108,7 @@ class PipelineResult:
         is disabled).
     elapsed_seconds : float
         Wall-clock time for the entire run, in seconds.
-    export_format : ExportFormat or None
+    format : ExportFormat or None
         Format used for export, or ``None`` when no export was done.
 
     Notes
@@ -128,7 +128,7 @@ class PipelineResult:
 
     input_path: str
     output_path: pathlib.Path | None
-    export_format: ExportFormat | None
+    format: ExportFormat | None
     documents: tuple[CorpusDocument, ...]
     """All documents produced by the pipeline run.
 
@@ -151,7 +151,7 @@ class PipelineResult:
             f"PipelineResult("
             f"input_path={self.input_path!r},"
             f" output_path={self.output_path},"
-            f" export_format={self.export_format},"
+            f" format={self.format},"
             f" n_documents={self.n_documents},"
             f" n_read={self.n_read},"
             f" n_omitted={self.n_omitted},"
@@ -193,7 +193,7 @@ class CorpusPipeline:
         Directory where exported files are written. When ``None``,
         export is skipped unless ``output_path`` is supplied explicitly
         in a :meth:`run` call. Default: ``None``.
-    export_format : ExportFormat or None, optional
+    format : ExportFormat or None, optional
         Default export format. Individual :meth:`run` calls can override.
         Default: :attr:`~scikitplot.corpus._schema.ExportFormat.CSV`.
     progress_callback : callable or None, optional
@@ -270,7 +270,7 @@ class CorpusPipeline:
     filter_ : FilterBase or None
     embedding_engine : EmbeddingEngine or None
     output_path : pathlib.Path or None
-    export_format : ExportFormat or None
+    format : ExportFormat or None
     default_language : str or None
 
     See Also
@@ -310,7 +310,7 @@ class CorpusPipeline:
     ...     chunker=SentenceChunker("en_core_web_sm"),
     ...     embedding_engine=engine,
     ...     output_path=Path("output/"),
-    ...     export_format=ExportFormat.PARQUET,
+    ...     format=ExportFormat.PARQUET,
     ... )
     >>> results = pipeline.run_batch(list(Path("corpus/").glob("*.txt")))
 
@@ -349,7 +349,7 @@ class CorpusPipeline:
         filter_: FilterBase | None = None,
         embedding_engine: EmbeddingEngine | None = None,
         output_path: pathlib.Path | None = None,
-        export_format: ExportFormat | None = ExportFormat.CSV,
+        format: ExportFormat | None = ExportFormat.CSV,
         normalizer: TextNormalizer | None = None,
         enricher: NLPEnricher | None = None,
         default_language: str | list[str] | None = None,
@@ -370,7 +370,7 @@ class CorpusPipeline:
         self.output_path = (
             pathlib.Path(output_path) if output_path is not None else None
         )
-        self.export_format = export_format
+        self.format = format
         self.normalizer = normalizer
         self.enricher = enricher
         self.default_language = default_language
@@ -455,7 +455,7 @@ class CorpusPipeline:
         input_path: str | pathlib.Path,
         *,
         output_path: pathlib.Path | None = None,
-        export_format: ExportFormat | None = None,
+        format: ExportFormat | None = None,
         filename_override: str | None = None,
     ) -> PipelineResult:
         """
@@ -479,8 +479,8 @@ class CorpusPipeline:
             Explicit output file path.  When ``None``, the path is
             derived from ``output_path`` and the input stem.  If both
             are ``None``, export is skipped.
-        export_format : ExportFormat or None, optional
-            Override the pipeline-level ``export_format`` for this call.
+        format : ExportFormat or None, optional
+            Override the pipeline-level ``format`` for this call.
         filename_override : str or None, optional
             Override the ``input_path`` label in generated documents.
             Ignored for URL sources.
@@ -528,7 +528,7 @@ class CorpusPipeline:
         return self._run_source(
             input_path,
             output_path=output_path,
-            export_format=export_format,
+            format=format,
             filename_override=filename_override,
         )
 
@@ -541,7 +541,7 @@ class CorpusPipeline:
         input_path: pathlib.Path | str,
         *,
         output_path: pathlib.Path | None = None,
-        export_format: ExportFormat | None = None,
+        format: ExportFormat | None = None,
         filename_override: str | None = None,
     ) -> PipelineResult:
         """
@@ -561,8 +561,8 @@ class CorpusPipeline:
             A local file path or an ``http(s)://`` URL string.
         output_path : pathlib.Path or None, optional
             Explicit output file path override.
-        export_format : ExportFormat or None, optional
-            Override the pipeline-level ``export_format``.
+        format : ExportFormat or None, optional
+            Override the pipeline-level ``format``.
         filename_override : str or None, optional
             Override the ``input_path`` label.  Silently ignored for
             URL sources (URLs have no meaningful stable local filename).
@@ -660,7 +660,7 @@ class CorpusPipeline:
         else:
             stem = pathlib.Path(input_path).stem
 
-        fmt = export_format if export_format is not None else self.export_format
+        fmt = format if format is not None else self.format
         resolved_output = self._resolve_output_path(stem, output_path, fmt)
         if resolved_output is not None and fmt is not None:
             self._export(documents, resolved_output, fmt)
@@ -677,7 +677,7 @@ class CorpusPipeline:
         return PipelineResult(
             input_path=source_label,
             output_path=resolved_output,
-            export_format=fmt,
+            format=fmt,
             documents=tuple(documents),
             n_read=n_read,
             n_omitted=n_omitted,
@@ -690,7 +690,7 @@ class CorpusPipeline:
         url: str | list[str],
         *,
         output_path: pathlib.Path | None = None,
-        export_format: ExportFormat | None = None,
+        format: ExportFormat | None = None,
         stop_on_error: bool = False,
     ) -> PipelineResult | list[PipelineResult]:
         """
@@ -721,8 +721,8 @@ class CorpusPipeline:
         output_path : pathlib.Path or None, optional
             Explicit output file path.  Ignored when *url* is a list
             (each result derives its own path from the URL).
-        export_format : ExportFormat or None, optional
-            Override the pipeline-level ``export_format`` for this call.
+        format : ExportFormat or None, optional
+            Override the pipeline-level ``format`` for this call.
         stop_on_error : bool, optional
             When ``True`` and *url* is a list, re-raise the first
             exception encountered instead of continuing.  Has no effect
@@ -777,7 +777,7 @@ class CorpusPipeline:
                         self.run_url(  # type: ignore[arg-type]
                             u,
                             output_path=None,
-                            export_format=export_format,
+                            format=format,
                             stop_on_error=stop_on_error,
                         )
                     )
@@ -818,7 +818,7 @@ class CorpusPipeline:
         if self.embedding_engine is not None and documents:
             documents, n_embedded = self._embed_documents(documents, input_path=None)
 
-        fmt = export_format if export_format is not None else self.export_format
+        fmt = format if format is not None else self.format
         # Derive a filename from URL if no explicit path
         stem = re.sub(r"[^\w.-]", "_", url)[:60]
         resolved_output = self._resolve_output_path(stem, output_path, fmt)
@@ -836,7 +836,7 @@ class CorpusPipeline:
         return PipelineResult(
             input_path=url,
             output_path=resolved_output,
-            export_format=fmt,
+            format=fmt,
             documents=tuple(documents),
             n_read=n_read,
             n_omitted=n_omitted,
@@ -853,7 +853,7 @@ class CorpusPipeline:
         input_files: list[pathlib.Path | str],
         *,
         stop_on_error: bool = False,
-        export_format: ExportFormat | None = None,
+        format: ExportFormat | None = None,
     ) -> list[PipelineResult]:
         """
         Process multiple sources sequentially.
@@ -878,8 +878,8 @@ class CorpusPipeline:
             When ``False`` (default), errors on individual sources are
             logged as warnings and processing continues.  When ``True``,
             the first error is re-raised immediately.
-        export_format : ExportFormat or None, optional
-            Override the pipeline-level ``export_format`` for all sources
+        format : ExportFormat or None, optional
+            Override the pipeline-level ``format`` for all sources
             in this batch.
 
         Returns
@@ -941,7 +941,7 @@ class CorpusPipeline:
                 log_label,
             )
             try:
-                result = self._run_source(i_path, export_format=export_format)
+                result = self._run_source(i_path, format=format)
                 results.append(result)
             except Exception as exc:  # noqa: BLE001
                 if stop_on_error:
@@ -1068,7 +1068,7 @@ class CorpusPipeline:
         self,
         stem: str,
         explicit_path: pathlib.Path | None,
-        fmt: ExportFormat | None,
+        format: ExportFormat | None,
     ) -> pathlib.Path | None:
         """
         Determine the output file path.
@@ -1081,7 +1081,7 @@ class CorpusPipeline:
         stem : str
             Base name (no extension) derived from the input file.
         explicit_path : pathlib.Path or None
-        fmt : ExportFormat or None
+        format : ExportFormat or None
 
         Returns
         -------
@@ -1089,8 +1089,8 @@ class CorpusPipeline:
         """
         if explicit_path is not None:
             return explicit_path
-        if self.output_path is not None and fmt is not None:
-            suffix = _FORMAT_SUFFIX.get(fmt, ".csv")
+        if self.output_path is not None and format is not None:
+            suffix = _FORMAT_SUFFIX.get(format, ".csv")
             return self.output_path / f"{stem}{suffix}"
         return None
 
@@ -1098,7 +1098,7 @@ class CorpusPipeline:
         self,
         documents: list[CorpusDocument],
         output_path: pathlib.Path,
-        fmt: ExportFormat,
+        format: ExportFormat,
     ) -> None:
         """
         Export documents to ``output_path`` in the given format.
@@ -1107,17 +1107,17 @@ class CorpusPipeline:
         ----------
         documents : list of CorpusDocument
         output_path : pathlib.Path
-        fmt : ExportFormat
+        format : ExportFormat
         """
         from ._export import export_documents  # noqa: PLC0415
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        export_documents(documents, output_path=output_path, fmt=fmt)
+        export_documents(documents, output_path=output_path, format=format)
         logger.info(
             "CorpusPipeline: exported %d docs to %s (%s).",
             len(documents),
             output_path,
-            fmt.value,
+            format.value,
         )
 
 
@@ -1154,7 +1154,7 @@ def create_corpus(
     normalizer: TextNormalizer | None = None,
     enricher: NLPEnricher | None = None,
     filename_override: str | None = None,
-    export_format: ExportFormat = ExportFormat.CSV,
+    format: ExportFormat = ExportFormat.CSV,
     default_language: str | list | None = None,
 ) -> PipelineResult:
     """Create and export a corpus from a single source file.
@@ -1185,7 +1185,7 @@ def create_corpus(
         Default: ``None`` (skip).
     filename_override : str or None, optional
         Override the ``input_path`` label in generated documents.
-    export_format : ExportFormat, optional
+    format : ExportFormat, optional
         Output format.  Default: :attr:`~._schema.ExportFormat.CSV`.
     default_language : str or list[str] or None, optional
         ISO 639-1 code(s) or NLTK language name(s) applied when the reader
@@ -1246,6 +1246,6 @@ def create_corpus(
     return pipeline.run(
         input_path=pathlib.Path(input_path),
         output_path=pathlib.Path(output_path),
-        export_format=export_format,
+        format=format,
         filename_override=filename_override,
     )

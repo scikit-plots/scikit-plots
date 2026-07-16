@@ -997,7 +997,7 @@ class HookableCorpusPipeline:
         Embedding backend.
     output_path : pathlib.Path or None, optional
         Output directory for exports.
-    export_format : ExportFormat or None, optional
+    format : ExportFormat or None, optional
         Default export format.
     default_language : str or None, optional
         ISO 639-1 language code.
@@ -1046,7 +1046,7 @@ class HookableCorpusPipeline:
         filter_: Any | None = None,
         embedding_engine: Any | None = None,
         output_path: Any | None = None,
-        export_format: Any | None = None,
+        format: Any | None = None,
         default_language: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
         reader_kwargs: dict[str, Any] | None = None,
@@ -1066,8 +1066,8 @@ class HookableCorpusPipeline:
             embedding_engine.
         output_path : Any or None, optional
             output_path.
-        export_format : Any or None, optional
-            export_format.
+        format : Any or None, optional
+            export format.
         default_language : str or None, optional
             default_language.
         progress_callback : Callable or None, optional
@@ -1090,7 +1090,7 @@ class HookableCorpusPipeline:
                 hook=self.hooks.post_filter_hook,
             )
 
-        fmt = export_format
+        fmt = format
         if fmt is None:
             fmt = ExportFormat.CSV
 
@@ -1099,7 +1099,7 @@ class HookableCorpusPipeline:
             filter_=effective_filter,
             embedding_engine=embedding_engine,
             output_path=pathlib.Path(output_path) if output_path else None,
-            export_format=fmt,
+            format=fmt,
             default_language=default_language,
             progress_callback=progress_callback,
             reader_kwargs=reader_kwargs,
@@ -1109,7 +1109,7 @@ class HookableCorpusPipeline:
         self.filter_ = effective_filter
         self.embedding_engine = self._pipeline.embedding_engine
         self.output_path = self._pipeline.output_path
-        self.export_format = self._pipeline.export_format
+        self.format = self._pipeline.format
         self.default_language = default_language
         self.reader_kwargs = self._pipeline.reader_kwargs
 
@@ -1122,7 +1122,7 @@ class HookableCorpusPipeline:
         input_path: str | pathlib.Path,
         *,
         output_path: Any | None = None,
-        export_format: Any | None = None,
+        format: Any | None = None,
         filename_override: str | None = None,
     ) -> Any:
         """
@@ -1134,8 +1134,8 @@ class HookableCorpusPipeline:
             Path or URL.
         output_path : pathlib.Path or None, optional
             output_path.
-        export_format : ExportFormat or None, optional
-            export_format.
+        format : ExportFormat or None, optional
+            export format.
         filename_override : str or None, optional
             filename_override.
 
@@ -1151,7 +1151,7 @@ class HookableCorpusPipeline:
         result = self._pipeline.run(
             input_path,
             output_path=output_path,
-            export_format=export_format,
+            format=format,
             filename_override=filename_override,
         )
 
@@ -1168,7 +1168,7 @@ class HookableCorpusPipeline:
         input_files: list[Any],
         *,
         stop_on_error: bool = False,
-        export_format: Any | None = None,
+        format: Any | None = None,
     ) -> list[Any]:
         """
         Process multiple sources with hooks applied to each.
@@ -1179,8 +1179,8 @@ class HookableCorpusPipeline:
             input_files.
         stop_on_error : bool, optional
             stop_on_error.
-        export_format : ExportFormat or None, optional
-            export_format.
+        format : ExportFormat or None, optional
+            export format.
 
         Returns
         -------
@@ -1189,7 +1189,7 @@ class HookableCorpusPipeline:
         results = []
         for src in input_files:
             try:
-                results.append(self.run(src, export_format=export_format))
+                results.append(self.run(src, format=format))
             except Exception as exc:  # noqa: BLE001
                 if stop_on_error:
                     raise
@@ -1205,7 +1205,7 @@ class HookableCorpusPipeline:
         url: Any,
         *,
         output_path: Any | None = None,
-        export_format: Any | None = None,
+        format: Any | None = None,
         stop_on_error: bool = False,
     ) -> Any:
         """
@@ -1217,8 +1217,8 @@ class HookableCorpusPipeline:
             url.
         output_path : pathlib.Path or None, optional
             output_path.
-        export_format : ExportFormat or None, optional
-            export_format.
+        format : ExportFormat or None, optional
+            export format.
         stop_on_error : bool, optional
             stop_on_error.
 
@@ -1228,15 +1228,12 @@ class HookableCorpusPipeline:
         """
         if isinstance(url, list):
             return [
-                self.run_url(
-                    u, export_format=export_format, stop_on_error=stop_on_error
-                )
-                for u in url
+                self.run_url(u, format=format, stop_on_error=stop_on_error) for u in url
             ]
         return self.run(
             url,
             output_path=output_path,
-            export_format=export_format,
+            format=format,
         )
 
     # ------------------------------------------------------------------
@@ -1316,7 +1313,7 @@ def _replace_result_docs(result: Any, docs: list[Any]) -> Any:
     return PipelineResult(
         input_path=result.input_path,
         output_path=result.output_path,
-        export_format=result.export_format,
+        format=result.format,
         documents=list(docs),
         n_read=result.n_read,
         n_omitted=result.n_omitted,

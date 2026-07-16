@@ -8,7 +8,7 @@ import sys
 import requests
 
 
-def get_versions(versions_file):
+def get_versions(versions_file="versions.txt"):
     """Get the versions of the packages used in the linter job.
 
     Parameters
@@ -21,7 +21,7 @@ def get_versions(versions_file):
     versions : dict
         A dictionary with the versions of the packages.
     """
-    with open("versions.txt", "r") as f:
+    with open(versions_file, "r") as f:
         return dict(line.strip().split("=") for line in f)
 
 
@@ -302,13 +302,22 @@ if __name__ == "__main__":
     run_id = os.environ["RUN_ID"]
     versions_file = os.environ["VERSIONS_FILE"]
 
-    versions = get_versions(versions_file)
-
-    if not repo or not token or not pr_number or not log_file or not run_id:
+    if (
+        not repo
+        or not token
+        or not pr_number
+        or not sha
+        or not log_file
+        or not run_id
+        or not versions_file
+    ):
         raise ValueError(
             "One of the following environment variables is not set: "
-            "GITHUB_REPOSITORY, GITHUB_TOKEN, PR_NUMBER, LOG_FILE, RUN_ID"
+            "GITHUB_REPOSITORY, GITHUB_TOKEN, PR_NUMBER, BRANCH_SHA, "
+            "LOG_FILE, RUN_ID, VERSIONS_FILE"
         )
+
+    versions = get_versions(versions_file)
 
     try:
         comment = find_lint_bot_comments(repo, token, pr_number)

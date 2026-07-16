@@ -461,9 +461,9 @@ class ScikitplotException(Exception):  # noqa: N818
         Returns
         -------
         ScikitplotException
-            A new instance with ``error_code=0``.
+            A new instance with ``error_code="INVALID_PARAMETER_VALUE"``.
         """
-        return cls(message, error_code=0, **kwargs)
+        return cls(message, error_code="INVALID_PARAMETER_VALUE", **kwargs)
 
 
 class CommandError(ScikitplotException):

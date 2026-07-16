@@ -72,6 +72,7 @@ Examples
 """
 
 import argparse
+import ast
 import difflib
 import os
 import re
@@ -346,7 +347,7 @@ class ScikitPlotMagic(Magics):
         for k, v in params.items():
             if k in MAGIC_CONFIG:
                 try:
-                    MAGIC_CONFIG[k] = eval(v)
+                    MAGIC_CONFIG[k] = ast.literal_eval(v)  # eval(v)
                 except:
                     MAGIC_CONFIG[k] = v
         print("Updated config:", MAGIC_CONFIG)

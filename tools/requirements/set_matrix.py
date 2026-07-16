@@ -233,7 +233,7 @@ def filter_versions(
     ), f"Minimum version {min_ver} is not in the list of versions for {flavor}"
     assert (
         max_ver in versions or allow_unreleased_max_version
-    ), f"Minimum version {max_ver} is not in the list of versions for {flavor}"
+    ), f"Maximum version {max_ver} is not in the list of versions for {flavor}"
 
     def _is_supported(v):
         for specified_set in unsupported:
