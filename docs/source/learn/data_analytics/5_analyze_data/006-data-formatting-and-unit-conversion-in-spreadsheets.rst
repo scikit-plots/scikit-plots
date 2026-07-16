@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-006:
-.. _data-analytics-analyze-006:
-.. _da-foundations-analyze-006:
-.. _da-decisions-analyze-006:
-.. _da-prep-analyze-006:
-.. _da-cleaning-analyze-006:
-.. _da-analyze-analyze-006:
-.. _da-viz-analyze-006:
-.. _da-python-analyze-006:
-.. _da-jobsearch-analyze-006:
+.. _da-5-analyze-analyze-006:
 
 ========================================================================
 Data Formatting and Unit Conversion in Spreadsheets

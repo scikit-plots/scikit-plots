@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-004:
-.. _data-analytics-foundations-004:
-.. _da-foundations-foundations-004:
-.. _da-decisions-foundations-004:
-.. _da-prep-foundations-004:
-.. _da-cleaning-foundations-004:
-.. _da-analyze-foundations-004:
-.. _da-viz-foundations-004:
-.. _da-python-foundations-004:
-.. _da-jobsearch-foundations-004:
+.. _da-1-foundations-foundations-004:
 
 ========================================================================
 Detectives and Data Analysts

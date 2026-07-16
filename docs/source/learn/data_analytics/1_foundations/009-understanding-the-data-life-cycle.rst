@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-009:
-.. _data-analytics-foundations-009:
-.. _da-foundations-foundations-009:
-.. _da-decisions-foundations-009:
-.. _da-prep-foundations-009:
-.. _da-cleaning-foundations-009:
-.. _da-analyze-foundations-009:
-.. _da-viz-foundations-009:
-.. _da-python-foundations-009:
-.. _da-jobsearch-foundations-009:
+.. _da-1-foundations-foundations-009:
 
 ========================================================================
 Understanding the Data Life Cycle

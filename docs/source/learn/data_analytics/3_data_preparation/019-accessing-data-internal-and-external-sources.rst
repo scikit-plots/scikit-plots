@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-019:
-.. _data-analytics-prep-019:
-.. _da-foundations-prep-019:
-.. _da-decisions-prep-019:
-.. _da-prep-prep-019:
-.. _da-cleaning-prep-019:
-.. _da-analyze-prep-019:
-.. _da-viz-prep-019:
-.. _da-python-prep-019:
-.. _da-jobsearch-prep-019:
+.. _da-3-prep-prep-019:
 
 ========================================================================
 Accessing Data: Internal and External Sources

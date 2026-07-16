@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-017:
-.. _data-analytics-ddd-017:
-.. _da-foundations-ddd-017:
-.. _da-decisions-ddd-017:
-.. _da-prep-ddd-017:
-.. _da-cleaning-ddd-017:
-.. _da-analyze-ddd-017:
-.. _da-viz-ddd-017:
-.. _da-python-ddd-017:
-.. _da-jobsearch-ddd-017:
 
 ========================================================================
 Defining the Problem Domain

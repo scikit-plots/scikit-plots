@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-005:
-.. _data-analytics-analyze-005:
-.. _da-foundations-analyze-005:
-.. _da-decisions-analyze-005:
-.. _da-prep-analyze-005:
-.. _da-cleaning-analyze-005:
-.. _da-analyze-analyze-005:
-.. _da-viz-analyze-005:
-.. _da-python-analyze-005:
-.. _da-jobsearch-analyze-005:
+.. _da-5-analyze-analyze-005:
 
 ========================================================================
 Sorting and Filtering Data in SQL Using ORDER BY and WHERE

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-018:
-.. _data-analytics-foundations-018:
-.. _da-foundations-foundations-018:
-.. _da-decisions-foundations-018:
-.. _da-prep-foundations-018:
-.. _da-cleaning-foundations-018:
-.. _da-analyze-foundations-018:
-.. _da-viz-foundations-018:
-.. _da-python-foundations-018:
-.. _da-jobsearch-foundations-018:
+.. _da-1-foundations-foundations-018:
 
 ========================================================================
 Data-Driven Decision-Making and the Role of Analytical Skills

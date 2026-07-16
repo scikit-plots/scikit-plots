@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-010:
-.. _data-analytics-python-010:
-.. _da-foundations-python-010:
-.. _da-decisions-python-010:
-.. _da-prep-python-010:
-.. _da-cleaning-python-010:
-.. _da-analyze-python-010:
-.. _da-viz-python-010:
-.. _da-python-python-010:
-.. _da-jobsearch-python-010:
+.. _da-7-python-python-010:
 
 ========================================================================
 Comments, Algorithms, and Docstrings in Python

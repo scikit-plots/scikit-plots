@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-005:
-.. _data-analytics-jobsearch-005:
-.. _da-foundations-jobsearch-005:
-.. _da-decisions-jobsearch-005:
-.. _da-prep-jobsearch-005:
-.. _da-cleaning-jobsearch-005:
-.. _da-analyze-jobsearch-005:
-.. _da-viz-jobsearch-005:
-.. _da-python-jobsearch-005:
-.. _da-jobsearch-jobsearch-005:
+.. _da-8-jobsearch-jobsearch-005:
 
 ========================================================================
 Tailoring Your Resume

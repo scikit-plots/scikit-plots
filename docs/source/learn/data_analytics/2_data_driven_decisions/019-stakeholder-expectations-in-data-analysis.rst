@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-019:
-.. _data-analytics-ddd-019:
-.. _da-foundations-ddd-019:
-.. _da-decisions-ddd-019:
-.. _da-prep-ddd-019:
-.. _da-cleaning-ddd-019:
-.. _da-analyze-ddd-019:
-.. _da-viz-ddd-019:
-.. _da-python-ddd-019:
-.. _da-jobsearch-ddd-019:
 
 ========================================================================
 Stakeholder Expectations in Data Analysis

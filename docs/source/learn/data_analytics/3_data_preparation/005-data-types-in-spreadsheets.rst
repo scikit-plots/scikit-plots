@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-005:
-.. _data-analytics-prep-005:
-.. _da-foundations-prep-005:
-.. _da-decisions-prep-005:
-.. _da-prep-prep-005:
-.. _da-cleaning-prep-005:
-.. _da-analyze-prep-005:
-.. _da-viz-prep-005:
-.. _da-python-prep-005:
-.. _da-jobsearch-prep-005:
+.. _da-3-prep-prep-005:
 
 ========================================================================
 Data Types in Spreadsheets

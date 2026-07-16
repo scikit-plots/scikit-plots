@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-018:
-.. _data-analytics-python-018:
-.. _da-foundations-python-018:
-.. _da-decisions-python-018:
-.. _da-prep-python-018:
-.. _da-cleaning-python-018:
-.. _da-analyze-python-018:
-.. _da-viz-python-018:
-.. _da-python-python-018:
-.. _da-jobsearch-python-018:
+.. _da-7-python-python-018:
 
 ========================================================================
 String Formatting with .format() in Python

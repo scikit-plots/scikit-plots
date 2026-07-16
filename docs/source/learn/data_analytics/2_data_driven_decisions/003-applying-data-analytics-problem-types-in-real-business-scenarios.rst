@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-003:
-.. _data-analytics-ddd-003:
-.. _da-foundations-ddd-003:
-.. _da-decisions-ddd-003:
-.. _da-prep-ddd-003:
-.. _da-cleaning-ddd-003:
-.. _da-analyze-ddd-003:
-.. _da-viz-ddd-003:
-.. _da-python-ddd-003:
-.. _da-jobsearch-ddd-003:
 
 ========================================================================
 Applying Data Analytics Problem Types in Real Business Scenarios

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-017:
-.. _data-analytics-prep-017:
-.. _da-foundations-prep-017:
-.. _da-decisions-prep-017:
-.. _da-prep-prep-017:
-.. _da-cleaning-prep-017:
-.. _da-analyze-prep-017:
-.. _da-viz-prep-017:
-.. _da-python-prep-017:
-.. _da-jobsearch-prep-017:
+.. _da-3-prep-prep-017:
 
 ========================================================================
 Metadata in Databases

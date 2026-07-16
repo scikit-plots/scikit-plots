@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-031:
-.. _data-analytics-cleaning-031:
-.. _da-foundations-cleaning-031:
-.. _da-decisions-cleaning-031:
-.. _da-prep-cleaning-031:
-.. _da-cleaning-cleaning-031:
-.. _da-analyze-cleaning-031:
-.. _da-viz-cleaning-031:
-.. _da-python-cleaning-031:
-.. _da-jobsearch-cleaning-031:
+.. _da-4-cleaning-cleaning-031:
 
 ========================================================================
 Refining a Resume for Data Analytics Roles

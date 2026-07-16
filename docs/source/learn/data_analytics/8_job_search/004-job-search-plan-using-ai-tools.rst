@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-004:
-.. _data-analytics-jobsearch-004:
-.. _da-foundations-jobsearch-004:
-.. _da-decisions-jobsearch-004:
-.. _da-prep-jobsearch-004:
-.. _da-cleaning-jobsearch-004:
-.. _da-analyze-jobsearch-004:
-.. _da-viz-jobsearch-004:
-.. _da-python-jobsearch-004:
-.. _da-jobsearch-jobsearch-004:
+.. _da-8-jobsearch-jobsearch-004:
 
 ========================================================================
 Job Search Plan (Using AI Tools)

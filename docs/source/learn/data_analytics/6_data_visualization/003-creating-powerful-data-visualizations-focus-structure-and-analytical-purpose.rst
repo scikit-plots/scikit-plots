@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-003:
-.. _data-analytics-viz-003:
-.. _da-foundations-viz-003:
-.. _da-decisions-viz-003:
-.. _da-prep-viz-003:
-.. _da-cleaning-viz-003:
-.. _da-analyze-viz-003:
-.. _da-viz-viz-003:
-.. _da-python-viz-003:
-.. _da-jobsearch-viz-003:
+.. _da-6-viz-viz-003:
 
 =================================================================================
 Creating Powerful Data Visualizations: Focus, Structure, and Analytical Purpose

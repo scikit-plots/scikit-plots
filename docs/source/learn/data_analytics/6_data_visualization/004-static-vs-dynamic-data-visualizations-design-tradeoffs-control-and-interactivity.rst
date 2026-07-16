@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-004:
-.. _data-analytics-viz-004:
-.. _da-foundations-viz-004:
-.. _da-decisions-viz-004:
-.. _da-prep-viz-004:
-.. _da-cleaning-viz-004:
-.. _da-analyze-viz-004:
-.. _da-viz-viz-004:
-.. _da-python-viz-004:
-.. _da-jobsearch-viz-004:
+.. _da-6-viz-viz-004:
 
 ======================================================================================
 Static vs. Dynamic Data Visualizations: Design Tradeoffs, Control, and Interactivity

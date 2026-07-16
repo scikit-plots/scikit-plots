@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-007:
-.. _data-analytics-prep-007:
-.. _da-foundations-prep-007:
-.. _da-decisions-prep-007:
-.. _da-prep-prep-007:
-.. _da-cleaning-prep-007:
-.. _da-analyze-prep-007:
-.. _da-viz-prep-007:
-.. _da-python-prep-007:
-.. _da-jobsearch-prep-007:
+.. _da-3-prep-prep-007:
 
 ========================================================================
 Wide Data vs. Long Data

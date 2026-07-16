@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-008:
-.. _data-analytics-viz-008:
-.. _da-foundations-viz-008:
-.. _da-decisions-viz-008:
-.. _da-prep-viz-008:
-.. _da-cleaning-viz-008:
-.. _da-analyze-viz-008:
-.. _da-viz-viz-008:
-.. _da-python-viz-008:
-.. _da-jobsearch-viz-008:
+.. _da-6-viz-viz-008:
 
 ========================================================================
 Accessibility in Data Visualization: Designing for Everyone

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-008:
-.. _data-analytics-cleaning-008:
-.. _da-foundations-cleaning-008:
-.. _da-decisions-cleaning-008:
-.. _da-prep-cleaning-008:
-.. _da-cleaning-cleaning-008:
-.. _da-analyze-cleaning-008:
-.. _da-viz-cleaning-008:
-.. _da-python-cleaning-008:
-.. _da-jobsearch-cleaning-008:
+.. _da-4-cleaning-cleaning-008:
 
 ========================================================================
 Margin of Error

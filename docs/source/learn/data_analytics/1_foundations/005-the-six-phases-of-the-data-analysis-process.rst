@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-005:
-.. _data-analytics-foundations-005:
-.. _da-foundations-foundations-005:
-.. _da-decisions-foundations-005:
-.. _da-prep-foundations-005:
-.. _da-cleaning-foundations-005:
-.. _da-analyze-foundations-005:
-.. _da-viz-foundations-005:
-.. _da-python-foundations-005:
-.. _da-jobsearch-foundations-005:
+.. _da-1-foundations-foundations-005:
 
 ========================================================================
 The Six Phases of the Data Analysis Process

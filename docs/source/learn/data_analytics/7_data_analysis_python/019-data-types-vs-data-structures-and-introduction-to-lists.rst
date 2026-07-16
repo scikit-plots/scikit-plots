@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-019:
-.. _data-analytics-python-019:
-.. _da-foundations-python-019:
-.. _da-decisions-python-019:
-.. _da-prep-python-019:
-.. _da-cleaning-python-019:
-.. _da-analyze-python-019:
-.. _da-viz-python-019:
-.. _da-python-python-019:
-.. _da-jobsearch-python-019:
+.. _da-7-python-python-019:
 
 ========================================================================
 Data Types vs Data Structures & Introduction to Lists

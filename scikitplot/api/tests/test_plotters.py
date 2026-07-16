@@ -67,11 +67,11 @@ class TestPlotPCA2DProjection(unittest.TestCase):
         assert ax is out_ax
 
     def test_cmap(self):
-        fig, ax = plt.subplots(1, 1)
-        ax = sp.api.plotters.plot_pca_2d_projection(
+        _fig, _ax = plt.subplots(1, 1)
+        _ax = sp.api.plotters.plot_pca_2d_projection(
             self.clf, self.X, self.y, cmap="Spectral"
         )
-        ax = sp.api.plotters.plot_pca_2d_projection(
+        _ax = sp.api.plotters.plot_pca_2d_projection(
             self.clf, self.X, self.y, cmap=plt.cm.Spectral
         )
 

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-023:
-.. _data-analytics-cleaning-023:
-.. _da-foundations-cleaning-023:
-.. _da-decisions-cleaning-023:
-.. _da-prep-cleaning-023:
-.. _da-cleaning-cleaning-023:
-.. _da-analyze-cleaning-023:
-.. _da-viz-cleaning-023:
-.. _da-python-cleaning-023:
-.. _da-jobsearch-cleaning-023:
+.. _da-4-cleaning-cleaning-023:
 
 ========================================================================
 Advanced SQL Functions for Data Cleaning

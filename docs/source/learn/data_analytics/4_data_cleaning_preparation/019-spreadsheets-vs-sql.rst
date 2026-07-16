@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-019:
-.. _data-analytics-cleaning-019:
-.. _da-foundations-cleaning-019:
-.. _da-decisions-cleaning-019:
-.. _da-prep-cleaning-019:
-.. _da-cleaning-cleaning-019:
-.. _da-analyze-cleaning-019:
-.. _da-viz-cleaning-019:
-.. _da-python-cleaning-019:
-.. _da-jobsearch-cleaning-019:
+.. _da-4-cleaning-cleaning-019:
 
 ========================================================================
 Spreadsheets vs. SQL

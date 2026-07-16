@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-023:
-.. _data-analytics-prep-023:
-.. _da-foundations-prep-023:
-.. _da-decisions-prep-023:
-.. _da-prep-prep-023:
-.. _da-cleaning-prep-023:
-.. _da-analyze-prep-023:
-.. _da-viz-prep-023:
-.. _da-python-prep-023:
-.. _da-jobsearch-prep-023:
+.. _da-3-prep-prep-023:
 
 ========================================================================
 Querying Data with SQL

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-006:
-.. _data-analytics-python-006:
-.. _da-foundations-python-006:
-.. _da-decisions-python-006:
-.. _da-prep-python-006:
-.. _da-cleaning-python-006:
-.. _da-analyze-python-006:
-.. _da-viz-python-006:
-.. _da-python-python-006:
-.. _da-jobsearch-python-006:
+.. _da-7-python-python-006:
 
 ========================================================================
 Naming Conventions and Restrictions in Python

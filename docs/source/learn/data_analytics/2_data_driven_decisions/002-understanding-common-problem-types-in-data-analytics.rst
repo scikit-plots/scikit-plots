@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-002:
-.. _data-analytics-ddd-002:
-.. _da-foundations-ddd-002:
-.. _da-decisions-ddd-002:
-.. _da-prep-ddd-002:
-.. _da-cleaning-ddd-002:
-.. _da-analyze-ddd-002:
-.. _da-viz-ddd-002:
-.. _da-python-ddd-002:
-.. _da-jobsearch-ddd-002:
 
 ========================================================================
 Understanding Common Problem Types in Data Analytics

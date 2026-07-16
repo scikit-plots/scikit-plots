@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-016:
-.. _data-analytics-python-016:
-.. _da-foundations-python-016:
-.. _da-decisions-python-016:
-.. _da-prep-python-016:
-.. _da-cleaning-python-016:
-.. _da-analyze-python-016:
-.. _da-viz-python-016:
-.. _da-python-python-016:
-.. _da-jobsearch-python-016:
+.. _da-7-python-python-016:
 
 ========================================================================
 Strings in Python

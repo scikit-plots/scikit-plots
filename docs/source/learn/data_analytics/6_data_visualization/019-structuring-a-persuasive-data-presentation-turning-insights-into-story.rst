@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-019:
-.. _data-analytics-viz-019:
-.. _da-foundations-viz-019:
-.. _da-decisions-viz-019:
-.. _da-prep-viz-019:
-.. _da-cleaning-viz-019:
-.. _da-analyze-viz-019:
-.. _da-viz-viz-019:
-.. _da-python-viz-019:
-.. _da-jobsearch-viz-019:
+.. _da-6-viz-viz-019:
 
 =========================================================================
 Structuring a Persuasive Data Presentation: Turning Insights into Story

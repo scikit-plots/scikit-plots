@@ -129,18 +129,21 @@ class TestRunWithTimeoutPosix(unittest.TestCase):
 
     def test_alarm_cleared_after_exception_inside_block(self):
         """Even when the block raises an unrelated exception, alarm must be cleared."""
-        with self.assertRaises(ValueError):
+        try:
             with run_with_timeout(10):
                 raise ValueError("unrelated error")
+            self.fail("Expected ValueError was not raised")
+        except ValueError as exc:
+            self.assertIn("unrelated error", str(exc))
         remaining = signal.alarm(0)
         self.assertEqual(remaining, 0)
 
     def test_non_timeout_exception_propagates(self):
         """An exception raised inside the block must propagate unchanged."""
-        with self.assertRaises(RuntimeError) as ctx:
+        with self.assertRaisesRegex(RuntimeError, "inner error"):
             with run_with_timeout(10):
                 raise RuntimeError("inner error")
-        self.assertIn("inner error", str(ctx.exception))
+        # self.assertIn("inner error", str(ctx.exception))
 
     # -- mocked _is_windows to force the POSIX path even on any platform --
 

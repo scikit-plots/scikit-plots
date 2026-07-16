@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-027:
-.. _data-analytics-analyze-027:
-.. _da-foundations-analyze-027:
-.. _da-decisions-analyze-027:
-.. _da-prep-analyze-027:
-.. _da-cleaning-analyze-027:
-.. _da-analyze-analyze-027:
-.. _da-viz-analyze-027:
-.. _da-python-analyze-027:
-.. _da-jobsearch-analyze-027:
+.. _da-5-analyze-analyze-027:
 
 ========================================================================
 Using GROUP BY and ORDER BY for Aggregated Calculations in SQL

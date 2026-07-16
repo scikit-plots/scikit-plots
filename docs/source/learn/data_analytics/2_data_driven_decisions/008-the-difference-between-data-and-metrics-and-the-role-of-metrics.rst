@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-008:
-.. _data-analytics-ddd-008:
-.. _da-foundations-ddd-008:
-.. _da-decisions-ddd-008:
-.. _da-prep-ddd-008:
-.. _da-cleaning-ddd-008:
-.. _da-analyze-ddd-008:
-.. _da-viz-ddd-008:
-.. _da-python-ddd-008:
-.. _da-jobsearch-ddd-008:
 
 ========================================================================
 The Difference Between Data and Metrics, and the Role of Metrics

@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-023:
-.. _data-analytics-ddd-023:
-.. _da-foundations-ddd-023:
-.. _da-decisions-ddd-023:
-.. _da-prep-ddd-023:
-.. _da-cleaning-ddd-023:
-.. _da-analyze-ddd-023:
-.. _da-viz-ddd-023:
-.. _da-python-ddd-023:
-.. _da-jobsearch-ddd-023:
 
 ========================================================================
 Managing Stakeholder Expectations and Project Constraints

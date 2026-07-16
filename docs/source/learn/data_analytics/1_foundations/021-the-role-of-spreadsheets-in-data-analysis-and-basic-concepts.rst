@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-021:
-.. _data-analytics-foundations-021:
-.. _da-foundations-foundations-021:
-.. _da-decisions-foundations-021:
-.. _da-prep-foundations-021:
-.. _da-cleaning-foundations-021:
-.. _da-analyze-foundations-021:
-.. _da-viz-foundations-021:
-.. _da-python-foundations-021:
-.. _da-jobsearch-foundations-021:
+.. _da-1-foundations-foundations-021:
 
 ========================================================================
 The Role of Spreadsheets in Data Analysis and Basic Concepts

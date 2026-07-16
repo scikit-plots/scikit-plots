@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-002:
-.. _data-analytics-foundations-002:
-.. _da-foundations-foundations-002:
-.. _da-decisions-foundations-002:
-.. _da-prep-foundations-002:
-.. _da-cleaning-foundations-002:
-.. _da-analyze-foundations-002:
-.. _da-viz-foundations-002:
-.. _da-python-foundations-002:
-.. _da-jobsearch-foundations-002:
+.. _da-1-foundations-foundations-002:
 
 ========================================================================
 How Data Analytics Improves the Workplace

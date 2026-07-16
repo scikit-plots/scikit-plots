@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-024:
-.. _data-analytics-ddd-024:
-.. _da-foundations-ddd-024:
-.. _da-decisions-ddd-024:
-.. _da-prep-ddd-024:
-.. _da-cleaning-ddd-024:
-.. _da-analyze-ddd-024:
-.. _da-viz-ddd-024:
-.. _da-python-ddd-024:
-.. _da-jobsearch-ddd-024:
 
 ========================================================================
 Balancing Speed and Accuracy in Data Analysis

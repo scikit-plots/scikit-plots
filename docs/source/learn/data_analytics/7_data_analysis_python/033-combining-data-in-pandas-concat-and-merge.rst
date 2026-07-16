@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-033:
-.. _data-analytics-python-033:
-.. _da-foundations-python-033:
-.. _da-decisions-python-033:
-.. _da-prep-python-033:
-.. _da-cleaning-python-033:
-.. _da-analyze-python-033:
-.. _da-viz-python-033:
-.. _da-python-python-033:
-.. _da-jobsearch-python-033:
+.. _da-7-python-python-033:
 
 ========================================================================
 Combining Data in Pandas (concat and merge)

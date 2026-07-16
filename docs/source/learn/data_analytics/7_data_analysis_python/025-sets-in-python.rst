@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-025:
-.. _data-analytics-python-025:
-.. _da-foundations-python-025:
-.. _da-decisions-python-025:
-.. _da-prep-python-025:
-.. _da-cleaning-python-025:
-.. _da-analyze-python-025:
-.. _da-viz-python-025:
-.. _da-python-python-025:
-.. _da-jobsearch-python-025:
+.. _da-7-python-python-025:
 
 ========================================================================
 Sets in Python

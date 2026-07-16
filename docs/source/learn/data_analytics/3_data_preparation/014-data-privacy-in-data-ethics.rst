@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-014:
-.. _data-analytics-prep-014:
-.. _da-foundations-prep-014:
-.. _da-decisions-prep-014:
-.. _da-prep-prep-014:
-.. _da-cleaning-prep-014:
-.. _da-analyze-prep-014:
-.. _da-viz-prep-014:
-.. _da-python-prep-014:
-.. _da-jobsearch-prep-014:
+.. _da-3-prep-prep-014:
 
 ========================================================================
 Data Privacy in Data Ethics

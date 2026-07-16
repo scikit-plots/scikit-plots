@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-015:
-.. _data-analytics-analyze-015:
-.. _da-foundations-analyze-015:
-.. _da-decisions-analyze-015:
-.. _da-prep-analyze-015:
-.. _da-cleaning-analyze-015:
-.. _da-analyze-analyze-015:
-.. _da-viz-analyze-015:
-.. _da-python-analyze-015:
-.. _da-jobsearch-analyze-015:
+.. _da-5-analyze-analyze-015:
 
 ========================================================================
 Using VLOOKUP to Combine Data Across Spreadsheets

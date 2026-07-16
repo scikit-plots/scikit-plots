@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-031:
-.. _data-analytics-python-031:
-.. _da-foundations-python-031:
-.. _da-decisions-python-031:
-.. _da-prep-python-031:
-.. _da-cleaning-python-031:
-.. _da-analyze-python-031:
-.. _da-viz-python-031:
-.. _da-python-python-031:
-.. _da-jobsearch-python-031:
+.. _da-7-python-python-031:
 
 ========================================================================
 Boolean Masking in Pandas

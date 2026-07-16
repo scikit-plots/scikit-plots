@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-012:
-.. _data-analytics-foundations-012:
-.. _da-foundations-foundations-012:
-.. _da-decisions-foundations-012:
-.. _da-prep-foundations-012:
-.. _da-cleaning-foundations-012:
-.. _da-analyze-foundations-012:
-.. _da-viz-foundations-012:
-.. _da-python-foundations-012:
-.. _da-jobsearch-foundations-012:
+.. _da-1-foundations-foundations-012:
 
 ========================================================================
 Practical Application of the Data Analysis Process

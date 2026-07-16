@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-022:
-.. _data-analytics-ddd-022:
-.. _da-foundations-ddd-022:
-.. _da-decisions-ddd-022:
-.. _da-prep-ddd-022:
-.. _da-cleaning-ddd-022:
-.. _da-analyze-ddd-022:
-.. _da-viz-ddd-022:
-.. _da-python-ddd-022:
-.. _da-jobsearch-ddd-022:
 
 ========================================================================
 Adapting to Communication Expectations at Work

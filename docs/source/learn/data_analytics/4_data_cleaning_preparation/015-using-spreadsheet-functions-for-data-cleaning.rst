@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-015:
-.. _data-analytics-cleaning-015:
-.. _da-foundations-cleaning-015:
-.. _da-decisions-cleaning-015:
-.. _da-prep-cleaning-015:
-.. _da-cleaning-cleaning-015:
-.. _da-analyze-cleaning-015:
-.. _da-viz-cleaning-015:
-.. _da-python-cleaning-015:
-.. _da-jobsearch-cleaning-015:
+.. _da-4-cleaning-cleaning-015:
 
 ========================================================================
 Using Spreadsheet Functions for Data Cleaning

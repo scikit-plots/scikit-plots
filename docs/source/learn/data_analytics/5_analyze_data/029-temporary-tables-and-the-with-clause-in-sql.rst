@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-029:
-.. _data-analytics-analyze-029:
-.. _da-foundations-analyze-029:
-.. _da-decisions-analyze-029:
-.. _da-prep-analyze-029:
-.. _da-cleaning-analyze-029:
-.. _da-analyze-analyze-029:
-.. _da-viz-analyze-029:
-.. _da-python-analyze-029:
-.. _da-jobsearch-analyze-029:
+.. _da-5-analyze-analyze-029:
 
 ========================================================================
 Temporary Tables and the WITH Clause in SQL

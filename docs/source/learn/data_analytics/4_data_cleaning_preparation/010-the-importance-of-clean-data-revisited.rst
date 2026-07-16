@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-010:
-.. _data-analytics-cleaning-010:
-.. _da-foundations-cleaning-010:
-.. _da-decisions-cleaning-010:
-.. _da-prep-cleaning-010:
-.. _da-cleaning-cleaning-010:
-.. _da-analyze-cleaning-010:
-.. _da-viz-cleaning-010:
-.. _da-python-cleaning-010:
-.. _da-jobsearch-cleaning-010:
+.. _da-4-cleaning-cleaning-010:
 
 ========================================================================
 The Importance of Clean Data (revisited)

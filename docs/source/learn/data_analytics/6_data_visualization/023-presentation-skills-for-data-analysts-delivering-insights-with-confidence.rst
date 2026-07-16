@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-023:
-.. _data-analytics-viz-023:
-.. _da-foundations-viz-023:
-.. _da-decisions-viz-023:
-.. _da-prep-viz-023:
-.. _da-cleaning-viz-023:
-.. _da-analyze-viz-023:
-.. _da-viz-viz-023:
-.. _da-python-viz-023:
-.. _da-jobsearch-viz-023:
+.. _da-6-viz-viz-023:
 
 ============================================================================
 Presentation Skills for Data Analysts: Delivering Insights with Confidence

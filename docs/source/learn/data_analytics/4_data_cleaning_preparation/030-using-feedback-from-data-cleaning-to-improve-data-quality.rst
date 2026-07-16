@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-030:
-.. _data-analytics-cleaning-030:
-.. _da-foundations-cleaning-030:
-.. _da-decisions-cleaning-030:
-.. _da-prep-cleaning-030:
-.. _da-cleaning-cleaning-030:
-.. _da-analyze-cleaning-030:
-.. _da-viz-cleaning-030:
-.. _da-python-cleaning-030:
-.. _da-jobsearch-cleaning-030:
+.. _da-4-cleaning-cleaning-030:
 
 ========================================================================
 Using Feedback from Data Cleaning to Improve Data Quality

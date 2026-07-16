@@ -9,8 +9,11 @@ __all__ = [
     "__commit_id__",
     "commit_id",
 ]
+try:
+    from typing import TYPE_CHECKING
+except Exception:
+    TYPE_CHECKING = False
 
-TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Tuple
     from typing import Union

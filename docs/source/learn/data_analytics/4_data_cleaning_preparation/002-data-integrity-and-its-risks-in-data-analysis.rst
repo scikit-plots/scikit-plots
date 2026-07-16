@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-002:
-.. _data-analytics-cleaning-002:
-.. _da-foundations-cleaning-002:
-.. _da-decisions-cleaning-002:
-.. _da-prep-cleaning-002:
-.. _da-cleaning-cleaning-002:
-.. _da-analyze-cleaning-002:
-.. _da-viz-cleaning-002:
-.. _da-python-cleaning-002:
-.. _da-jobsearch-cleaning-002:
+.. _da-4-cleaning-cleaning-002:
 
 ========================================================================
 Data Integrity and Its Risks in Data Analysis

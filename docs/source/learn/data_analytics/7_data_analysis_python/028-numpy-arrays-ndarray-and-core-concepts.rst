@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-028:
-.. _data-analytics-python-028:
-.. _da-foundations-python-028:
-.. _da-decisions-python-028:
-.. _da-prep-python-028:
-.. _da-cleaning-python-028:
-.. _da-analyze-python-028:
-.. _da-viz-python-028:
-.. _da-python-python-028:
-.. _da-jobsearch-python-028:
+.. _da-7-python-python-028:
 
 ========================================================================
 NumPy Arrays (ndarray) and Core Concepts

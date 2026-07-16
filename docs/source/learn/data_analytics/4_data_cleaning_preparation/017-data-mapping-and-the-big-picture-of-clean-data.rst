@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-017:
-.. _data-analytics-cleaning-017:
-.. _da-foundations-cleaning-017:
-.. _da-decisions-cleaning-017:
-.. _da-prep-cleaning-017:
-.. _da-cleaning-cleaning-017:
-.. _da-analyze-cleaning-017:
-.. _da-viz-cleaning-017:
-.. _da-python-cleaning-017:
-.. _da-jobsearch-cleaning-017:
+.. _da-4-cleaning-cleaning-017:
 
 ========================================================================
 Data Mapping and the Big Picture of Clean Data

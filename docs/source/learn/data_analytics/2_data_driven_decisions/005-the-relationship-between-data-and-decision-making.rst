@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-005:
-.. _data-analytics-ddd-005:
-.. _da-foundations-ddd-005:
-.. _da-decisions-ddd-005:
-.. _da-prep-ddd-005:
-.. _da-cleaning-ddd-005:
-.. _da-analyze-ddd-005:
-.. _da-viz-ddd-005:
-.. _da-python-ddd-005:
-.. _da-jobsearch-ddd-005:
 
 ========================================================================
 The Relationship Between Data and Decision-Making

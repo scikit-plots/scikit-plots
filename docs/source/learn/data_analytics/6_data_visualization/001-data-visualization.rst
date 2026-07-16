@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-001:
-.. _data-analytics-viz-001:
-.. _da-foundations-viz-001:
-.. _da-decisions-viz-001:
-.. _da-prep-viz-001:
-.. _da-cleaning-viz-001:
-.. _da-analyze-viz-001:
-.. _da-viz-viz-001:
-.. _da-python-viz-001:
-.. _da-jobsearch-viz-001:
+.. _da-6-viz-viz-001:
 
 ========================================================================
 Data Visualization

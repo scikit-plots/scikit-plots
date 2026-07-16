@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-026:
-.. _data-analytics-viz-026:
-.. _da-foundations-viz-026:
-.. _da-decisions-viz-026:
-.. _da-prep-viz-026:
-.. _da-cleaning-viz-026:
-.. _da-analyze-viz-026:
-.. _da-viz-viz-026:
-.. _da-python-viz-026:
-.. _da-jobsearch-viz-026:
+.. _da-6-viz-viz-026:
 
 ===================================================================================
 Handling Objections in Data Presentations: Responding with Confidence and Clarity

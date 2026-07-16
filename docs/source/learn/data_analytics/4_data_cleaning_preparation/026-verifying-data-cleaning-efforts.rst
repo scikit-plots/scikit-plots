@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-026:
-.. _data-analytics-cleaning-026:
-.. _da-foundations-cleaning-026:
-.. _da-decisions-cleaning-026:
-.. _da-prep-cleaning-026:
-.. _da-cleaning-cleaning-026:
-.. _da-analyze-cleaning-026:
-.. _da-viz-cleaning-026:
-.. _da-python-cleaning-026:
-.. _da-jobsearch-cleaning-026:
+.. _da-4-cleaning-cleaning-026:
 
 ========================================================================
 Verifying Data-Cleaning Efforts

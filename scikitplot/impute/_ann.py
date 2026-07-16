@@ -931,7 +931,8 @@ class ANNImputer(OutsourcedIndexMixin, _BaseImputer):
                     build_path = external_path
                 else:
                     # public/private mode: create a temporary backing file
-                    build_path = make_temp_path(prefix="ANNImputer-", ext=".annoy")
+                    temp_build_path = make_temp_path(prefix="ANNImputer-", ext=".annoy")
+                    build_path = temp_build_path
 
             # Temporarily fill NaNs (mean/median/etc.) before index build
             X = self._apply_fill_vector(X)

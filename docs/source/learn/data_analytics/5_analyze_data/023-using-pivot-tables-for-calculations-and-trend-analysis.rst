@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-023:
-.. _data-analytics-analyze-023:
-.. _da-foundations-analyze-023:
-.. _da-decisions-analyze-023:
-.. _da-prep-analyze-023:
-.. _da-cleaning-analyze-023:
-.. _da-analyze-analyze-023:
-.. _da-viz-analyze-023:
-.. _da-python-analyze-023:
-.. _da-jobsearch-analyze-023:
+.. _da-5-analyze-analyze-023:
 
 ========================================================================
 Using Pivot Tables for Calculations and Trend Analysis

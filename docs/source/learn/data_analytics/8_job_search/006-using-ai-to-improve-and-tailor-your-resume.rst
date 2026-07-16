@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-006:
-.. _data-analytics-jobsearch-006:
-.. _da-foundations-jobsearch-006:
-.. _da-decisions-jobsearch-006:
-.. _da-prep-jobsearch-006:
-.. _da-cleaning-jobsearch-006:
-.. _da-analyze-jobsearch-006:
-.. _da-viz-jobsearch-006:
-.. _da-python-jobsearch-006:
-.. _da-jobsearch-jobsearch-006:
+.. _da-8-jobsearch-jobsearch-006:
 
 ========================================================================
 Using AI to Improve and Tailor Your Resume

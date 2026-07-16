@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-007:
-.. _data-analytics-viz-007:
-.. _da-foundations-viz-007:
-.. _da-decisions-viz-007:
-.. _da-prep-viz-007:
-.. _da-cleaning-viz-007:
-.. _da-analyze-viz-007:
-.. _da-viz-viz-007:
-.. _da-python-viz-007:
-.. _da-jobsearch-viz-007:
+.. _da-6-viz-viz-007:
 
 ========================================================================
 Design Thinking in Data Visualization: A User-Centered Framework

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-009:
-.. _data-analytics-jobsearch-009:
-.. _da-foundations-jobsearch-009:
-.. _da-decisions-jobsearch-009:
-.. _da-prep-jobsearch-009:
-.. _da-cleaning-jobsearch-009:
-.. _da-analyze-jobsearch-009:
-.. _da-viz-jobsearch-009:
-.. _da-python-jobsearch-009:
-.. _da-jobsearch-jobsearch-009:
+.. _da-8-jobsearch-jobsearch-009:
 
 ========================================================================
 Job Application Tracking (Using AI + Spreadsheets)

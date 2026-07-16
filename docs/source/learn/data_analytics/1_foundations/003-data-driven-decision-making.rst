@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-003:
-.. _data-analytics-foundations-003:
-.. _da-foundations-foundations-003:
-.. _da-decisions-foundations-003:
-.. _da-prep-foundations-003:
-.. _da-cleaning-foundations-003:
-.. _da-analyze-foundations-003:
-.. _da-viz-foundations-003:
-.. _da-python-foundations-003:
-.. _da-jobsearch-foundations-003:
+.. _da-1-foundations-foundations-003:
 
 ========================================================================
 Data-Driven Decision-Making

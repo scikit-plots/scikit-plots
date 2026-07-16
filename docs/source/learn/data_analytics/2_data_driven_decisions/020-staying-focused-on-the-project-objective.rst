@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-020:
-.. _data-analytics-ddd-020:
-.. _da-foundations-ddd-020:
-.. _da-decisions-ddd-020:
-.. _da-prep-ddd-020:
-.. _da-cleaning-ddd-020:
-.. _da-analyze-ddd-020:
-.. _da-viz-ddd-020:
-.. _da-python-ddd-020:
-.. _da-jobsearch-ddd-020:
 
 ========================================================================
 Staying Focused on the Project Objective

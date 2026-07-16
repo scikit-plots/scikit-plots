@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-015:
-.. _data-analytics-foundations-015:
-.. _da-foundations-foundations-015:
-.. _da-decisions-foundations-015:
-.. _da-prep-foundations-015:
-.. _da-cleaning-foundations-015:
-.. _da-analyze-foundations-015:
-.. _da-viz-foundations-015:
-.. _da-python-foundations-015:
-.. _da-jobsearch-foundations-015:
+.. _da-1-foundations-foundations-015:
 
 ========================================================================
 Analytical Thinking and Its Core Components

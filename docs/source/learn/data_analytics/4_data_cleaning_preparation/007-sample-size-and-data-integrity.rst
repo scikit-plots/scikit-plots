@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-007:
-.. _data-analytics-cleaning-007:
-.. _da-foundations-cleaning-007:
-.. _da-decisions-cleaning-007:
-.. _da-prep-cleaning-007:
-.. _da-cleaning-cleaning-007:
-.. _da-analyze-cleaning-007:
-.. _da-viz-cleaning-007:
-.. _da-python-cleaning-007:
-.. _da-jobsearch-cleaning-007:
+.. _da-4-cleaning-cleaning-007:
 
 ========================================================================
 Sample Size and Data Integrity

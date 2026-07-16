@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-027:
-.. _data-analytics-cleaning-027:
-.. _da-foundations-cleaning-027:
-.. _da-decisions-cleaning-027:
-.. _da-prep-cleaning-027:
-.. _da-cleaning-cleaning-027:
-.. _da-analyze-cleaning-027:
-.. _da-viz-cleaning-027:
-.. _da-python-cleaning-027:
-.. _da-jobsearch-cleaning-027:
+.. _da-4-cleaning-cleaning-027:
 
 ==============================================================================
 Verification Techniques: Using Spreadsheets and SQL to Catch Repeated Errors

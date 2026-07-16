@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-024:
-.. _data-analytics-python-024:
-.. _da-foundations-python-024:
-.. _da-decisions-python-024:
-.. _da-prep-python-024:
-.. _da-cleaning-python-024:
-.. _da-analyze-python-024:
-.. _da-viz-python-024:
-.. _da-python-python-024:
-.. _da-jobsearch-python-024:
+.. _da-7-python-python-024:
 
 ========================================================================
 Advanced Dictionary Usage in Python

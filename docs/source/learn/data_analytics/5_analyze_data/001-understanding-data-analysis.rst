@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-001:
-.. _data-analytics-analyze-001:
-.. _da-foundations-analyze-001:
-.. _da-decisions-analyze-001:
-.. _da-prep-analyze-001:
-.. _da-cleaning-analyze-001:
-.. _da-analyze-analyze-001:
-.. _da-viz-analyze-001:
-.. _da-python-analyze-001:
-.. _da-jobsearch-analyze-001:
+.. _da-5-analyze-analyze-001:
 
 ========================================================================
 Understanding Data Analysis

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-011:
-.. _data-analytics-foundations-011:
-.. _da-foundations-foundations-011:
-.. _da-decisions-foundations-011:
-.. _da-prep-foundations-011:
-.. _da-cleaning-foundations-011:
-.. _da-analyze-foundations-011:
-.. _da-viz-foundations-011:
-.. _da-python-foundations-011:
-.. _da-jobsearch-foundations-011:
+.. _da-1-foundations-foundations-011:
 
 ========================================================================
 The Stages of the Data Analysis Process and Their Roles

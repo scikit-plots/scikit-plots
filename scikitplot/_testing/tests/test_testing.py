@@ -165,10 +165,12 @@ class TestIgnoreWarningsContextManager:
 
     def test_restores_filters_after_exception(self) -> None:
         original = warnings.filters[:]
-        with pytest.raises(RuntimeError):
-            with _IgnoreWarnings():
-                raise RuntimeError("boom")
-        assert warnings.filters == original
+        with pytest.raises(RuntimeError, match="boom"):
+            try:
+                with _IgnoreWarnings():
+                    raise RuntimeError("boom")
+            finally:
+                assert warnings.filters == original
 
     def test_exception_inside_block_propagates(self) -> None:
         with pytest.raises(ValueError, match="oops"):

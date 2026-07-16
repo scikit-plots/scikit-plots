@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-013:
-.. _data-analytics-python-013:
-.. _da-foundations-python-013:
-.. _da-decisions-python-013:
-.. _da-prep-python-013:
-.. _da-cleaning-python-013:
-.. _da-analyze-python-013:
-.. _da-viz-python-013:
-.. _da-python-python-013:
-.. _da-jobsearch-python-013:
+.. _da-7-python-python-013:
 
 ========================================================================
 While Loops and Iteration in Python

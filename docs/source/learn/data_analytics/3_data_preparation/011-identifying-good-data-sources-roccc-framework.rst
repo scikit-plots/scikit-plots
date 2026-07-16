@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-011:
-.. _data-analytics-prep-011:
-.. _da-foundations-prep-011:
-.. _da-decisions-prep-011:
-.. _da-prep-prep-011:
-.. _da-cleaning-prep-011:
-.. _da-analyze-prep-011:
-.. _da-viz-prep-011:
-.. _da-python-prep-011:
-.. _da-jobsearch-prep-011:
+.. _da-3-prep-prep-011:
 
 ========================================================================
 Identifying Good Data Sources (ROCCC Framework)

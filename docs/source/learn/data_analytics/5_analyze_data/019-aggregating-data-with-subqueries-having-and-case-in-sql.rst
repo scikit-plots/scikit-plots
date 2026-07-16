@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-019:
-.. _data-analytics-analyze-019:
-.. _da-foundations-analyze-019:
-.. _da-decisions-analyze-019:
-.. _da-prep-analyze-019:
-.. _da-cleaning-analyze-019:
-.. _da-analyze-analyze-019:
-.. _da-viz-analyze-019:
-.. _da-python-analyze-019:
-.. _da-jobsearch-analyze-019:
+.. _da-5-analyze-analyze-019:
 
 ========================================================================
 Aggregating Data with Subqueries, HAVING, and CASE in SQL

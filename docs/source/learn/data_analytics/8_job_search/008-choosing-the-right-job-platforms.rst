@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-008:
-.. _data-analytics-jobsearch-008:
-.. _da-foundations-jobsearch-008:
-.. _da-decisions-jobsearch-008:
-.. _da-prep-jobsearch-008:
-.. _da-cleaning-jobsearch-008:
-.. _da-analyze-jobsearch-008:
-.. _da-viz-jobsearch-008:
-.. _da-python-jobsearch-008:
-.. _da-jobsearch-jobsearch-008:
+.. _da-8-jobsearch-jobsearch-008:
 
 ========================================================================
 Choosing the Right Job Platforms

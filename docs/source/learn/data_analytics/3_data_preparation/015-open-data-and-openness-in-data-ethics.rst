@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-015:
-.. _data-analytics-prep-015:
-.. _da-foundations-prep-015:
-.. _da-decisions-prep-015:
-.. _da-prep-prep-015:
-.. _da-cleaning-prep-015:
-.. _da-analyze-prep-015:
-.. _da-viz-prep-015:
-.. _da-python-prep-015:
-.. _da-jobsearch-prep-015:
+.. _da-3-prep-prep-015:
 
 ========================================================================
 Open Data and Openness in Data Ethics

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-010:
-.. _data-analytics-foundations-010:
-.. _da-foundations-foundations-010:
-.. _da-decisions-foundations-010:
-.. _da-prep-foundations-010:
-.. _da-cleaning-foundations-010:
-.. _da-analyze-foundations-010:
-.. _da-viz-foundations-010:
-.. _da-python-foundations-010:
-.. _da-jobsearch-foundations-010:
+.. _da-1-foundations-foundations-010:
 
 ========================================================================
 A Review of the Six Stages of the Data Life Cycle

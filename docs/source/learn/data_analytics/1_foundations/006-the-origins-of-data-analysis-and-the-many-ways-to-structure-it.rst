@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-006:
-.. _data-analytics-foundations-006:
-.. _da-foundations-foundations-006:
-.. _da-decisions-foundations-006:
-.. _da-prep-foundations-006:
-.. _da-cleaning-foundations-006:
-.. _da-analyze-foundations-006:
-.. _da-viz-foundations-006:
-.. _da-python-foundations-006:
-.. _da-jobsearch-foundations-006:
+.. _da-1-foundations-foundations-006:
 
 ========================================================================
 The Origins of Data Analysis and the Many Ways to Structure It

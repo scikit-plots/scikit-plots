@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-004:
-.. _data-analytics-ddd-004:
-.. _da-foundations-ddd-004:
-.. _da-decisions-ddd-004:
-.. _da-prep-ddd-004:
-.. _da-cleaning-ddd-004:
-.. _da-analyze-ddd-004:
-.. _da-viz-ddd-004:
-.. _da-python-ddd-004:
-.. _da-jobsearch-ddd-004:
 
 ========================================================================
 Why Asking the Right Questions Matters in Data Analytics

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-013:
-.. _data-analytics-foundations-013:
-.. _da-foundations-foundations-013:
-.. _da-decisions-foundations-013:
-.. _da-prep-foundations-013:
-.. _da-cleaning-foundations-013:
-.. _da-analyze-foundations-013:
-.. _da-viz-foundations-013:
-.. _da-python-foundations-013:
-.. _da-jobsearch-foundations-013:
+.. _da-1-foundations-foundations-013:
 
 ========================================================================
 Analytical Skills and Their Core Components

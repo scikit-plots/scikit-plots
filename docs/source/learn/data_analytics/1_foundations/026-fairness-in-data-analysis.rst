@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-026:
-.. _data-analytics-foundations-026:
-.. _da-foundations-foundations-026:
-.. _da-decisions-foundations-026:
-.. _da-prep-foundations-026:
-.. _da-cleaning-foundations-026:
-.. _da-analyze-foundations-026:
-.. _da-viz-foundations-026:
-.. _da-python-foundations-026:
-.. _da-jobsearch-foundations-026:
+.. _da-1-foundations-foundations-026:
 
 ========================================================================
 Fairness in Data Analysis

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-006:
-.. _data-analytics-prep-006:
-.. _da-foundations-prep-006:
-.. _da-decisions-prep-006:
-.. _da-prep-prep-006:
-.. _da-cleaning-prep-006:
-.. _da-analyze-prep-006:
-.. _da-viz-prep-006:
-.. _da-python-prep-006:
-.. _da-jobsearch-prep-006:
+.. _da-3-prep-prep-006:
 
 ========================================================================
 Data Tables (Tabular Data)

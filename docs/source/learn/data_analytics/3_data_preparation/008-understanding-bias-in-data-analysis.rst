@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-008:
-.. _data-analytics-prep-008:
-.. _da-foundations-prep-008:
-.. _da-decisions-prep-008:
-.. _da-prep-prep-008:
-.. _da-cleaning-prep-008:
-.. _da-analyze-prep-008:
-.. _da-viz-prep-008:
-.. _da-python-prep-008:
-.. _da-jobsearch-prep-008:
+.. _da-3-prep-prep-008:
 
 ========================================================================
 Understanding Bias in Data Analysis

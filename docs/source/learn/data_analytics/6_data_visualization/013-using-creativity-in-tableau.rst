@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-013:
-.. _data-analytics-viz-013:
-.. _da-foundations-viz-013:
-.. _da-decisions-viz-013:
-.. _da-prep-viz-013:
-.. _da-cleaning-viz-013:
-.. _da-analyze-viz-013:
-.. _da-viz-viz-013:
-.. _da-python-viz-013:
-.. _da-jobsearch-viz-013:
+.. _da-6-viz-viz-013:
 
 ========================================================================
 Using Creativity in Tableau

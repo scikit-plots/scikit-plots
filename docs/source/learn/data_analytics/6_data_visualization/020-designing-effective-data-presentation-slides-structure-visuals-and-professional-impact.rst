@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-020:
-.. _data-analytics-viz-020:
-.. _da-foundations-viz-020:
-.. _da-decisions-viz-020:
-.. _da-prep-viz-020:
-.. _da-cleaning-viz-020:
-.. _da-analyze-viz-020:
-.. _da-viz-viz-020:
-.. _da-python-viz-020:
-.. _da-jobsearch-viz-020:
+.. _da-6-viz-viz-020:
 
 ===========================================================================================
 Designing Effective Data Presentation Slides: Structure, Visuals, and Professional Impact

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-007:
-.. _data-analytics-jobsearch-007:
-.. _da-foundations-jobsearch-007:
-.. _da-decisions-jobsearch-007:
-.. _da-prep-jobsearch-007:
-.. _da-cleaning-jobsearch-007:
-.. _da-analyze-jobsearch-007:
-.. _da-viz-jobsearch-007:
-.. _da-python-jobsearch-007:
-.. _da-jobsearch-jobsearch-007:
+.. _da-8-jobsearch-jobsearch-007:
 
 ========================================================================
 Building a Professional Online Presence (Personal Brand)

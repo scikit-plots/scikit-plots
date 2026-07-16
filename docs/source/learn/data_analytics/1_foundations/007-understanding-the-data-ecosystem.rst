@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-007:
-.. _data-analytics-foundations-007:
-.. _da-foundations-foundations-007:
-.. _da-decisions-foundations-007:
-.. _da-prep-foundations-007:
-.. _da-cleaning-foundations-007:
-.. _da-analyze-foundations-007:
-.. _da-viz-foundations-007:
-.. _da-python-foundations-007:
-.. _da-jobsearch-foundations-007:
+.. _da-1-foundations-foundations-007:
 
 ========================================================================
 Understanding the Data Ecosystem

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-020:
-.. _data-analytics-cleaning-020:
-.. _da-foundations-cleaning-020:
-.. _da-decisions-cleaning-020:
-.. _da-prep-cleaning-020:
-.. _da-cleaning-cleaning-020:
-.. _da-analyze-cleaning-020:
-.. _da-viz-cleaning-020:
-.. _da-python-cleaning-020:
-.. _da-jobsearch-cleaning-020:
+.. _da-4-cleaning-cleaning-020:
 
 ========================================================================
 Core SQL Queries for Data Cleaning and Analysis

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-020:
-.. _data-analytics-prep-020:
-.. _da-foundations-prep-020:
-.. _da-decisions-prep-020:
-.. _da-prep-prep-020:
-.. _da-cleaning-prep-020:
-.. _da-analyze-prep-020:
-.. _da-viz-prep-020:
-.. _da-python-prep-020:
-.. _da-jobsearch-prep-020:
+.. _da-3-prep-prep-020:
 
 ========================================================================
 Importing Data into Spreadsheets

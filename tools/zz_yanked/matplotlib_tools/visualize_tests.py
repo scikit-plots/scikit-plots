@@ -87,12 +87,12 @@ def run(show_browser=True):
                 for ext in NON_PNG_EXTENSIONS:
                     if fn.endswith(f"_{ext}"):
                         display_extension = f"_{ext}"
-                        extension = ext
+                        # extension = ext
                         fn = fn[: -len(display_extension)]
                         break
                 else:
                     display_extension = ""
-                    extension = "png"
+                    # extension = "png"
                 file_type = "expected"
                 test_name = fn[: -len("-expected")] + display_extension
             else:

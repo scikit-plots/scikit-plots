@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-001:
-.. _data-analytics-prep-001:
-.. _da-foundations-prep-001:
-.. _da-decisions-prep-001:
-.. _da-prep-prep-001:
-.. _da-cleaning-prep-001:
-.. _da-analyze-prep-001:
-.. _da-viz-prep-001:
-.. _da-python-prep-001:
-.. _da-jobsearch-prep-001:
+.. _da-3-prep-prep-001:
 
 ========================================================================
 How Data Is Generated and Collected

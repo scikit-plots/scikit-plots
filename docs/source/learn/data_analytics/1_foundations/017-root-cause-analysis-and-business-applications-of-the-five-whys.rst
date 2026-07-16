@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-017:
-.. _data-analytics-foundations-017:
-.. _da-foundations-foundations-017:
-.. _da-decisions-foundations-017:
-.. _da-prep-foundations-017:
-.. _da-cleaning-foundations-017:
-.. _da-analyze-foundations-017:
-.. _da-viz-foundations-017:
-.. _da-python-foundations-017:
-.. _da-jobsearch-foundations-017:
+.. _da-1-foundations-foundations-017:
 
 ========================================================================
 Root Cause Analysis and Business Applications of the Five Whys

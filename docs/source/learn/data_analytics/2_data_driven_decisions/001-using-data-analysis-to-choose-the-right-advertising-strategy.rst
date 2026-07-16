@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-001:
-.. _data-analytics-ddd-001:
-.. _da-foundations-ddd-001:
-.. _da-decisions-ddd-001:
-.. _da-prep-ddd-001:
-.. _da-cleaning-ddd-001:
-.. _da-analyze-ddd-001:
-.. _da-viz-ddd-001:
-.. _da-python-ddd-001:
-.. _da-jobsearch-ddd-001:
 
 ========================================================================
 Using Data Analysis to Choose the Right Advertising Strategy

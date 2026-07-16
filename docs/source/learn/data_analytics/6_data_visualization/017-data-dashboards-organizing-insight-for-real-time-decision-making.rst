@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-017:
-.. _data-analytics-viz-017:
-.. _da-foundations-viz-017:
-.. _da-decisions-viz-017:
-.. _da-prep-viz-017:
-.. _da-cleaning-viz-017:
-.. _da-analyze-viz-017:
-.. _da-viz-viz-017:
-.. _da-python-viz-017:
-.. _da-jobsearch-viz-017:
+.. _da-6-viz-viz-017:
 
 ========================================================================
 Data Dashboards: Organizing Insight for Real-Time Decision Making

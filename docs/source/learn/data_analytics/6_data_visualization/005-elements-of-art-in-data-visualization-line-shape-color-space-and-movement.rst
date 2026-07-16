@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-005:
-.. _data-analytics-viz-005:
-.. _da-foundations-viz-005:
-.. _da-decisions-viz-005:
-.. _da-prep-viz-005:
-.. _da-cleaning-viz-005:
-.. _da-analyze-viz-005:
-.. _da-viz-viz-005:
-.. _da-python-viz-005:
-.. _da-jobsearch-viz-005:
+.. _da-6-viz-viz-005:
 
 ================================================================================
 Elements of Art in Data Visualization: Line, Shape, Color, Space, and Movement

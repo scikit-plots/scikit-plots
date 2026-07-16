@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-026:
-.. _data-analytics-analyze-026:
-.. _da-foundations-analyze-026:
-.. _da-decisions-analyze-026:
-.. _da-prep-analyze-026:
-.. _da-cleaning-analyze-026:
-.. _da-analyze-analyze-026:
-.. _da-viz-analyze-026:
-.. _da-python-analyze-026:
-.. _da-jobsearch-analyze-026:
+.. _da-5-analyze-analyze-026:
 
 ========================================================================
 Embedding Calculations in SQL Queries

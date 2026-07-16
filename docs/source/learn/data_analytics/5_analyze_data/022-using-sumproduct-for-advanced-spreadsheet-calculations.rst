@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-022:
-.. _data-analytics-analyze-022:
-.. _da-foundations-analyze-022:
-.. _da-decisions-analyze-022:
-.. _da-prep-analyze-022:
-.. _da-cleaning-analyze-022:
-.. _da-analyze-analyze-022:
-.. _da-viz-analyze-022:
-.. _da-python-analyze-022:
-.. _da-jobsearch-analyze-022:
+.. _da-5-analyze-analyze-022:
 
 ========================================================================
 Using SUMPRODUCT for Advanced Spreadsheet Calculations

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-004:
-.. _data-analytics-analyze-004:
-.. _da-foundations-analyze-004:
-.. _da-decisions-analyze-004:
-.. _da-prep-analyze-004:
-.. _da-cleaning-analyze-004:
-.. _da-analyze-analyze-004:
-.. _da-viz-analyze-004:
-.. _da-python-analyze-004:
-.. _da-jobsearch-analyze-004:
+.. _da-5-analyze-analyze-004:
 
 ========================================================================
 Sorting Data in Spreadsheets

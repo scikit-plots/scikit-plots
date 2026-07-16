@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-007:
-.. _data-analytics-python-007:
-.. _da-foundations-python-007:
-.. _da-decisions-python-007:
-.. _da-prep-python-007:
-.. _da-cleaning-python-007:
-.. _da-analyze-python-007:
-.. _da-viz-python-007:
-.. _da-python-python-007:
-.. _da-jobsearch-python-007:
+.. _da-7-python-python-007:
 
 ========================================================================
 Data Types and Type Conversion in Python

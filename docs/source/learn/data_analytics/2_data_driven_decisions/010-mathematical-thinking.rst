@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-010:
-.. _data-analytics-ddd-010:
-.. _da-foundations-ddd-010:
-.. _da-decisions-ddd-010:
-.. _da-prep-ddd-010:
-.. _da-cleaning-ddd-010:
-.. _da-analyze-ddd-010:
-.. _da-viz-ddd-010:
-.. _da-python-ddd-010:
-.. _da-jobsearch-ddd-010:
 
 ========================================================================
 Mathematical Thinking

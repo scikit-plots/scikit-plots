@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-014:
-.. _data-analytics-viz-014:
-.. _da-foundations-viz-014:
-.. _da-decisions-viz-014:
-.. _da-prep-viz-014:
-.. _da-cleaning-viz-014:
-.. _da-analyze-viz-014:
-.. _da-viz-viz-014:
-.. _da-python-viz-014:
-.. _da-jobsearch-viz-014:
+.. _da-6-viz-viz-014:
 
 ========================================================================
 Linking Multiple Datasets in Tableau Public

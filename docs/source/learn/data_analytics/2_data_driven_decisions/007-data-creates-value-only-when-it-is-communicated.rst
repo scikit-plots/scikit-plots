@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-007:
-.. _data-analytics-ddd-007:
-.. _da-foundations-ddd-007:
-.. _da-decisions-ddd-007:
-.. _da-prep-ddd-007:
-.. _da-cleaning-ddd-007:
-.. _da-analyze-ddd-007:
-.. _da-viz-ddd-007:
-.. _da-python-ddd-007:
-.. _da-jobsearch-ddd-007:
 
 ========================================================================
 Data Creates Value Only When It Is Communicated

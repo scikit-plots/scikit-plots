@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-022:
-.. _data-analytics-cleaning-022:
-.. _da-foundations-cleaning-022:
-.. _da-decisions-cleaning-022:
-.. _da-prep-cleaning-022:
-.. _da-cleaning-cleaning-022:
-.. _da-analyze-cleaning-022:
-.. _da-viz-cleaning-022:
-.. _da-python-cleaning-022:
-.. _da-jobsearch-cleaning-022:
+.. _da-4-cleaning-cleaning-022:
 
 ========================================================================
 Using CAST to Clean and Format Data in SQL

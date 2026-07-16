@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-001:
-.. _data-analytics-foundations-001:
-.. _da-foundations-foundations-001:
-.. _da-decisions-foundations-001:
-.. _da-prep-foundations-001:
-.. _da-cleaning-foundations-001:
-.. _da-analyze-foundations-001:
-.. _da-viz-foundations-001:
-.. _da-python-foundations-001:
-.. _da-jobsearch-foundations-001:
+.. _da-1-foundations-foundations-001:
 
 ========================================================================
 Why Data Analytics Matters Today

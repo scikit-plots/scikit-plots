@@ -7359,12 +7359,11 @@ MINDMAP.update({
     ],
     "Models for multivariate and multinomial responses": [
         "Standard generalized linear model likelihoods", "Loglinear models for multivariate discrete data",
-        "Modeling the group-level covariance" if False else "Multivariate Normal with Unknown Mean and Variance",
-        "Working with generalized linear models",
+        "Multivariate Normal with Unknown Mean and Variance", "Working with generalized linear models",
     ],
     "Loglinear models for multivariate discrete data": [
         "Models for multivariate and multinomial responses", "Overdispersed Poisson regression for police stops",
-        "Standard generalized linear model likelihoods", "Loglinear Models for Multivariate Discrete Data" if False else "Working with generalized linear models",
+        "Standard generalized linear model likelihoods", "Working with generalized linear models",
     ],
 })
 

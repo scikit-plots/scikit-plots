@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-025:
-.. _data-analytics-prep-025:
-.. _da-foundations-prep-025:
-.. _da-decisions-prep-025:
-.. _da-prep-prep-025:
-.. _da-cleaning-prep-025:
-.. _da-analyze-prep-025:
-.. _da-viz-prep-025:
-.. _da-python-prep-025:
-.. _da-jobsearch-prep-025:
+.. _da-3-prep-prep-025:
 
 ========================================================================
 Data Security in Spreadsheets

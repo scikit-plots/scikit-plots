@@ -137,7 +137,7 @@ class TestCopyMode:
         assert bool(glb._CopyMode.NEVER) is False
 
     def test_bool_if_needed_raises_value_error(self):
-        with pytest.raises(ValueError, match="neither True nor False"):
+        with pytest.raises(TypeError, match="neither True nor False"):
             bool(glb._CopyMode.IF_NEEDED)
 
     def test_bool_always_usable_in_if_statement(self):
@@ -149,7 +149,7 @@ class TestCopyMode:
         assert result == "no"
 
     def test_bool_if_needed_raises_in_if_statement(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             if glb._CopyMode.IF_NEEDED:
                 pass
 

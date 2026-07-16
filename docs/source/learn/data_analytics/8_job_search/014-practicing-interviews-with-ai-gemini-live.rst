@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-014:
-.. _data-analytics-jobsearch-014:
-.. _da-foundations-jobsearch-014:
-.. _da-decisions-jobsearch-014:
-.. _da-prep-jobsearch-014:
-.. _da-cleaning-jobsearch-014:
-.. _da-analyze-jobsearch-014:
-.. _da-viz-jobsearch-014:
-.. _da-python-jobsearch-014:
-.. _da-jobsearch-jobsearch-014:
+.. _da-8-jobsearch-jobsearch-014:
 
 ========================================================================
 Practicing Interviews with AI (Gemini Live)

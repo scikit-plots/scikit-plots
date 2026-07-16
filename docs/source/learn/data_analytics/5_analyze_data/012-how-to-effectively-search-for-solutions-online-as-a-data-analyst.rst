@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-012:
-.. _data-analytics-analyze-012:
-.. _da-foundations-analyze-012:
-.. _da-decisions-analyze-012:
-.. _da-prep-analyze-012:
-.. _da-cleaning-analyze-012:
-.. _da-analyze-analyze-012:
-.. _da-viz-analyze-012:
-.. _da-python-analyze-012:
-.. _da-jobsearch-analyze-012:
+.. _da-5-analyze-analyze-012:
 
 ========================================================================
 How to Effectively Search for Solutions Online as a Data Analyst

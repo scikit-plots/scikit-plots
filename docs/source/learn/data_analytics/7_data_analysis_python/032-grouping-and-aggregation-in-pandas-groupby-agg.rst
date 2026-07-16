@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-032:
-.. _data-analytics-python-032:
-.. _da-foundations-python-032:
-.. _da-decisions-python-032:
-.. _da-prep-python-032:
-.. _da-cleaning-python-032:
-.. _da-analyze-python-032:
-.. _da-viz-python-032:
-.. _da-python-python-032:
-.. _da-jobsearch-python-032:
+.. _da-7-python-python-032:
 
 ========================================================================
 Grouping and Aggregation in Pandas (groupby, agg)

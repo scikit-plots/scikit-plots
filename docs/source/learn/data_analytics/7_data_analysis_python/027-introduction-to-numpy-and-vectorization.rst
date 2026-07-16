@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-027:
-.. _data-analytics-python-027:
-.. _da-foundations-python-027:
-.. _da-decisions-python-027:
-.. _da-prep-python-027:
-.. _da-cleaning-python-027:
-.. _da-analyze-python-027:
-.. _da-viz-python-027:
-.. _da-python-python-027:
-.. _da-jobsearch-python-027:
+.. _da-7-python-python-027:
 
 ========================================================================
 Introduction to NumPy and Vectorization

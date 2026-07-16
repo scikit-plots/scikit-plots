@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-010:
-.. _data-analytics-viz-010:
-.. _da-foundations-viz-010:
-.. _da-decisions-viz-010:
-.. _da-prep-viz-010:
-.. _da-cleaning-viz-010:
-.. _da-analyze-viz-010:
-.. _da-viz-viz-010:
-.. _da-python-viz-010:
-.. _da-jobsearch-viz-010:
+.. _da-6-viz-viz-010:
 
 ========================================================================
 Getting Started with Tableau Public

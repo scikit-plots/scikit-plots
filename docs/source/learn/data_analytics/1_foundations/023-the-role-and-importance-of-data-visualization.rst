@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-023:
-.. _data-analytics-foundations-023:
-.. _da-foundations-foundations-023:
-.. _da-decisions-foundations-023:
-.. _da-prep-foundations-023:
-.. _da-cleaning-foundations-023:
-.. _da-analyze-foundations-023:
-.. _da-viz-foundations-023:
-.. _da-python-foundations-023:
-.. _da-jobsearch-foundations-023:
+.. _da-1-foundations-foundations-023:
 
 ========================================================================
 The Role and Importance of Data Visualization

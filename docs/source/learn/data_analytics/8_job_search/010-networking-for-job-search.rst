@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-010:
-.. _data-analytics-jobsearch-010:
-.. _da-foundations-jobsearch-010:
-.. _da-decisions-jobsearch-010:
-.. _da-prep-jobsearch-010:
-.. _da-cleaning-jobsearch-010:
-.. _da-analyze-jobsearch-010:
-.. _da-viz-jobsearch-010:
-.. _da-python-jobsearch-010:
-.. _da-jobsearch-jobsearch-010:
+.. _da-8-jobsearch-jobsearch-010:
 
 ========================================================================
 Networking for Job Search

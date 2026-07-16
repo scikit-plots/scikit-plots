@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-009:
-.. _data-analytics-analyze-009:
-.. _da-foundations-analyze-009:
-.. _da-decisions-analyze-009:
-.. _da-prep-analyze-009:
-.. _da-cleaning-analyze-009:
-.. _da-analyze-analyze-009:
-.. _da-viz-analyze-009:
-.. _da-python-analyze-009:
-.. _da-jobsearch-analyze-009:
+.. _da-5-analyze-analyze-009:
 
 ========================================================================
 Using CONCAT in SQL to Combine Text from Multiple Columns

@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-025:
-.. _data-analytics-ddd-025:
-.. _da-foundations-ddd-025:
-.. _da-decisions-ddd-025:
-.. _da-prep-ddd-025:
-.. _da-cleaning-ddd-025:
-.. _da-analyze-ddd-025:
-.. _da-viz-ddd-025:
-.. _da-python-ddd-025:
-.. _da-jobsearch-ddd-025:
 
 ========================================================================
 Sharing Data to Drive Impact

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-012:
-.. _data-analytics-python-012:
-.. _da-foundations-python-012:
-.. _da-decisions-python-012:
-.. _da-prep-python-012:
-.. _da-cleaning-python-012:
-.. _da-analyze-python-012:
-.. _da-viz-python-012:
-.. _da-python-python-012:
-.. _da-jobsearch-python-012:
+.. _da-7-python-python-012:
 
 ========================================================================
 Branching and Conditional Statements in Python

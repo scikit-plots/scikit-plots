@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-012:
-.. _data-analytics-prep-012:
-.. _da-foundations-prep-012:
-.. _da-decisions-prep-012:
-.. _da-prep-prep-012:
-.. _da-cleaning-prep-012:
-.. _da-analyze-prep-012:
-.. _da-viz-prep-012:
-.. _da-python-prep-012:
-.. _da-jobsearch-prep-012:
+.. _da-3-prep-prep-012:
 
 ========================================================================
 Identifying Bad Data Sources (When Data Does Not ROCCC)

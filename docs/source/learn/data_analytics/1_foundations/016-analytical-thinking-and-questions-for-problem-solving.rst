@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-016:
-.. _data-analytics-foundations-016:
-.. _da-foundations-foundations-016:
-.. _da-decisions-foundations-016:
-.. _da-prep-foundations-016:
-.. _da-cleaning-foundations-016:
-.. _da-analyze-foundations-016:
-.. _da-viz-foundations-016:
-.. _da-python-foundations-016:
-.. _da-jobsearch-foundations-016:
+.. _da-1-foundations-foundations-016:
 
 ========================================================================
 Analytical Thinking and Questions for Problem Solving

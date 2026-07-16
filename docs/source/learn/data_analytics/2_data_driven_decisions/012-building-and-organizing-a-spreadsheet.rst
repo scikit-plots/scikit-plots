@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-012:
-.. _data-analytics-ddd-012:
-.. _da-foundations-ddd-012:
-.. _da-decisions-ddd-012:
-.. _da-prep-ddd-012:
-.. _da-cleaning-ddd-012:
-.. _da-analyze-ddd-012:
-.. _da-viz-ddd-012:
-.. _da-python-ddd-012:
-.. _da-jobsearch-ddd-012:
 
 ========================================================================
 Building and Organizing a Spreadsheet

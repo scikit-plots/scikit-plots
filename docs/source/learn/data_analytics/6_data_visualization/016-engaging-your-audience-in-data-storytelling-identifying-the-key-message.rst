@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-016:
-.. _data-analytics-viz-016:
-.. _da-foundations-viz-016:
-.. _da-decisions-viz-016:
-.. _da-prep-viz-016:
-.. _da-cleaning-viz-016:
-.. _da-analyze-viz-016:
-.. _da-viz-viz-016:
-.. _da-python-viz-016:
-.. _da-jobsearch-viz-016:
+.. _da-6-viz-viz-016:
 
 ==========================================================================
 Engaging Your Audience in Data Storytelling: Identifying the Key Message

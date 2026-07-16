@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-018:
-.. _data-analytics-viz-018:
-.. _da-foundations-viz-018:
-.. _da-decisions-viz-018:
-.. _da-prep-viz-018:
-.. _da-cleaning-viz-018:
-.. _da-analyze-viz-018:
-.. _da-viz-viz-018:
-.. _da-python-viz-018:
-.. _da-jobsearch-viz-018:
+.. _da-6-viz-viz-018:
 
 ========================================================================
 Using Filters to Create Compelling and Focused Visuals

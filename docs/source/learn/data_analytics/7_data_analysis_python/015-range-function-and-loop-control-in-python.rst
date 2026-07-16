@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-015:
-.. _data-analytics-python-015:
-.. _da-foundations-python-015:
-.. _da-decisions-python-015:
-.. _da-prep-python-015:
-.. _da-cleaning-python-015:
-.. _da-analyze-python-015:
-.. _da-viz-python-015:
-.. _da-python-python-015:
-.. _da-jobsearch-python-015:
+.. _da-7-python-python-015:
 
 ========================================================================
 range() Function and Loop Control in Python

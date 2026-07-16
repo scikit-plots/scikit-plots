@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-018:
-.. _data-analytics-cleaning-018:
-.. _da-foundations-cleaning-018:
-.. _da-decisions-cleaning-018:
-.. _da-prep-cleaning-018:
-.. _da-cleaning-cleaning-018:
-.. _da-analyze-cleaning-018:
-.. _da-viz-cleaning-018:
-.. _da-python-cleaning-018:
-.. _da-jobsearch-cleaning-018:
+.. _da-4-cleaning-cleaning-018:
 
 ========================================================================
 Introduction to SQL

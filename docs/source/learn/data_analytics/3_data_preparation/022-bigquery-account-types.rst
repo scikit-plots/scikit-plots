@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-022:
-.. _data-analytics-prep-022:
-.. _da-foundations-prep-022:
-.. _da-decisions-prep-022:
-.. _da-prep-prep-022:
-.. _da-cleaning-prep-022:
-.. _da-analyze-prep-022:
-.. _da-viz-prep-022:
-.. _da-python-prep-022:
-.. _da-jobsearch-prep-022:
+.. _da-3-prep-prep-022:
 
 ========================================================================
 BigQuery Account Types

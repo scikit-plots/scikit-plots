@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-014:
-.. _data-analytics-foundations-014:
-.. _da-foundations-foundations-014:
-.. _da-decisions-foundations-014:
-.. _da-prep-foundations-014:
-.. _da-cleaning-foundations-014:
-.. _da-analyze-foundations-014:
-.. _da-viz-foundations-014:
-.. _da-python-foundations-014:
-.. _da-jobsearch-foundations-014:
+.. _da-1-foundations-foundations-014:
 
 ========================================================================
 Applying Analytical Skills in a Business Context

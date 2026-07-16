@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-027:
-.. _data-analytics-foundations-027:
-.. _da-foundations-foundations-027:
-.. _da-decisions-foundations-027:
-.. _da-prep-foundations-027:
-.. _da-cleaning-foundations-027:
-.. _da-analyze-foundations-027:
-.. _da-viz-foundations-027:
-.. _da-python-foundations-027:
-.. _da-jobsearch-foundations-027:
+.. _da-1-foundations-foundations-027:
 
 ========================================================================
 Key Factors to Consider When Choosing a Data Analytics Role

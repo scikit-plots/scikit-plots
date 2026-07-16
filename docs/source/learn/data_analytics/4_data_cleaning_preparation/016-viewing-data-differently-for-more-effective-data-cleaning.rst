@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-016:
-.. _data-analytics-cleaning-016:
-.. _da-foundations-cleaning-016:
-.. _da-decisions-cleaning-016:
-.. _da-prep-cleaning-016:
-.. _da-cleaning-cleaning-016:
-.. _da-analyze-cleaning-016:
-.. _da-viz-cleaning-016:
-.. _da-python-cleaning-016:
-.. _da-jobsearch-cleaning-016:
+.. _da-4-cleaning-cleaning-016:
 
 ========================================================================
 Viewing Data Differently for More Effective Data Cleaning

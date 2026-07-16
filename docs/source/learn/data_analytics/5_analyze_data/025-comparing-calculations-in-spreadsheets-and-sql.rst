@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-025:
-.. _data-analytics-analyze-025:
-.. _da-foundations-analyze-025:
-.. _da-decisions-analyze-025:
-.. _da-prep-analyze-025:
-.. _da-cleaning-analyze-025:
-.. _da-analyze-analyze-025:
-.. _da-viz-analyze-025:
-.. _da-python-analyze-025:
-.. _da-jobsearch-analyze-025:
+.. _da-5-analyze-analyze-025:
 
 ========================================================================
 Comparing Calculations in Spreadsheets and SQL

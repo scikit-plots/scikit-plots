@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-009:
-.. _data-analytics-prep-009:
-.. _da-foundations-prep-009:
-.. _da-decisions-prep-009:
-.. _da-prep-prep-009:
-.. _da-cleaning-prep-009:
-.. _da-analyze-prep-009:
-.. _da-viz-prep-009:
-.. _da-python-prep-009:
-.. _da-jobsearch-prep-009:
+.. _da-3-prep-prep-009:
 
 ========================================================================
 Sampling Bias and Unbiased Data

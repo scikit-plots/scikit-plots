@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-017:
-.. _data-analytics-analyze-017:
-.. _da-foundations-analyze-017:
-.. _da-decisions-analyze-017:
-.. _da-prep-analyze-017:
-.. _da-cleaning-analyze-017:
-.. _da-analyze-analyze-017:
-.. _da-viz-analyze-017:
-.. _da-python-analyze-017:
-.. _da-jobsearch-analyze-017:
+.. _da-5-analyze-analyze-017:
 
 ========================================================================
 Using JOIN in SQL to Combine Tables

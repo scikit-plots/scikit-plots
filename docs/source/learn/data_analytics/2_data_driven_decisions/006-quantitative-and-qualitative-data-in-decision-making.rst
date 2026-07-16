@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-006:
-.. _data-analytics-ddd-006:
-.. _da-foundations-ddd-006:
-.. _da-decisions-ddd-006:
-.. _da-prep-ddd-006:
-.. _da-cleaning-ddd-006:
-.. _da-analyze-ddd-006:
-.. _da-viz-ddd-006:
-.. _da-python-ddd-006:
-.. _da-jobsearch-ddd-006:
 
 ========================================================================
 Quantitative and Qualitative Data in Decision-Making

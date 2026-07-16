@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-005:
-.. _data-analytics-cleaning-005:
-.. _da-foundations-cleaning-005:
-.. _da-decisions-cleaning-005:
-.. _da-prep-cleaning-005:
-.. _da-cleaning-cleaning-005:
-.. _da-analyze-cleaning-005:
-.. _da-viz-cleaning-005:
-.. _da-python-cleaning-005:
-.. _da-jobsearch-cleaning-005:
+.. _da-4-cleaning-cleaning-005:
 
 ========================================================================
 Population, Sample Size, and Random Sampling

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-008:
-.. _data-analytics-analyze-008:
-.. _da-foundations-analyze-008:
-.. _da-decisions-analyze-008:
-.. _da-prep-analyze-008:
-.. _da-cleaning-analyze-008:
-.. _da-analyze-analyze-008:
-.. _da-viz-analyze-008:
-.. _da-python-analyze-008:
-.. _da-jobsearch-analyze-008:
+.. _da-5-analyze-analyze-008:
 
 ========================================================================
 Combining Data Validation and Conditional Formatting in Spreadsheets

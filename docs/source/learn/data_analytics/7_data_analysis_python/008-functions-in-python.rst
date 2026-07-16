@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-008:
-.. _data-analytics-python-008:
-.. _da-foundations-python-008:
-.. _da-decisions-python-008:
-.. _da-prep-python-008:
-.. _da-cleaning-python-008:
-.. _da-analyze-python-008:
-.. _da-viz-python-008:
-.. _da-python-python-008:
-.. _da-jobsearch-python-008:
+.. _da-7-python-python-008:
 
 ========================================================================
 Functions in Python

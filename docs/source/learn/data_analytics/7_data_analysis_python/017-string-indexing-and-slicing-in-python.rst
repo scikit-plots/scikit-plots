@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-017:
-.. _data-analytics-python-017:
-.. _da-foundations-python-017:
-.. _da-decisions-python-017:
-.. _da-prep-python-017:
-.. _da-cleaning-python-017:
-.. _da-analyze-python-017:
-.. _da-viz-python-017:
-.. _da-python-python-017:
-.. _da-jobsearch-python-017:
+.. _da-7-python-python-017:
 
 ========================================================================
 String Indexing and Slicing in Python

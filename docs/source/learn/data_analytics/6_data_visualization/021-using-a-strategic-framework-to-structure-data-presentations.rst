@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-021:
-.. _data-analytics-viz-021:
-.. _da-foundations-viz-021:
-.. _da-decisions-viz-021:
-.. _da-prep-viz-021:
-.. _da-cleaning-viz-021:
-.. _da-analyze-viz-021:
-.. _da-viz-viz-021:
-.. _da-python-viz-021:
-.. _da-jobsearch-viz-021:
+.. _da-6-viz-viz-021:
 
 ========================================================================
 Using a Strategic Framework to Structure Data Presentations

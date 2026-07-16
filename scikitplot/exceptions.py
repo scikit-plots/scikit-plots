@@ -99,6 +99,12 @@ if '_is_loaded' in globals():
     raise RuntimeError('Reloading scikitplot.exceptions is not allowed')
 _is_loaded = True
 
+from enum import IntEnum
+
+class ErrorCode(IntEnum):
+    INVALID_PARAMETER_VALUE = 0
+    INTERNAL_ERROR = 1
+
 
 ######################################################################
 ## Numpy exceptions
@@ -447,7 +453,8 @@ class ScikitplotException(Exception):  # noqa: N818
 
     @classmethod
     def invalid_parameter_value(cls, message, **kwargs):
-        """Construct a :class:`ScikitplotException` with the ``INVALID_PARAMETER_VALUE`` code.
+        """
+        Construct a :class:`ScikitplotException` with the ``ErrorCode.INVALID_PARAMETER_VALUE`` code.
 
         Parameters
         ----------
@@ -461,9 +468,13 @@ class ScikitplotException(Exception):  # noqa: N818
         Returns
         -------
         ScikitplotException
-            A new instance with ``error_code="INVALID_PARAMETER_VALUE"``.
+            A new instance with ``error_code=ErrorCode.INVALID_PARAMETER_VALUE``.
         """
-        return cls(message, error_code="INVALID_PARAMETER_VALUE", **kwargs)
+        return cls(
+            message,
+            error_code=ErrorCode.INVALID_PARAMETER_VALUE,
+            **kwargs,
+        )
 
 
 class CommandError(ScikitplotException):

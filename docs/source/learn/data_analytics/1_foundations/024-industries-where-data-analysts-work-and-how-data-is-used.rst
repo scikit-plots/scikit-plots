@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-024:
-.. _data-analytics-foundations-024:
-.. _da-foundations-foundations-024:
-.. _da-decisions-foundations-024:
-.. _da-prep-foundations-024:
-.. _da-cleaning-foundations-024:
-.. _da-analyze-foundations-024:
-.. _da-viz-foundations-024:
-.. _da-python-foundations-024:
-.. _da-jobsearch-foundations-024:
+.. _da-1-foundations-foundations-024:
 
 ========================================================================
 Industries Where Data Analysts Work and How Data Is Used

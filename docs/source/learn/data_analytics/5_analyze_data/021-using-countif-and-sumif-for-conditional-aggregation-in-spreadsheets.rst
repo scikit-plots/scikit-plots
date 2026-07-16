@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-021:
-.. _data-analytics-analyze-021:
-.. _da-foundations-analyze-021:
-.. _da-decisions-analyze-021:
-.. _da-prep-analyze-021:
-.. _da-cleaning-analyze-021:
-.. _da-analyze-analyze-021:
-.. _da-viz-analyze-021:
-.. _da-python-analyze-021:
-.. _da-jobsearch-analyze-021:
+.. _da-5-analyze-analyze-021:
 
 ========================================================================
 Using COUNTIF and SUMIF for Conditional Aggregation in Spreadsheets

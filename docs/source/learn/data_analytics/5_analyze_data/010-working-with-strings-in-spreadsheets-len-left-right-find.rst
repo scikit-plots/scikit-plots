@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-010:
-.. _data-analytics-analyze-010:
-.. _da-foundations-analyze-010:
-.. _da-decisions-analyze-010:
-.. _da-prep-analyze-010:
-.. _da-cleaning-analyze-010:
-.. _da-analyze-analyze-010:
-.. _da-viz-analyze-010:
-.. _da-python-analyze-010:
-.. _da-jobsearch-analyze-010:
+.. _da-5-analyze-analyze-010:
 
 ========================================================================
 Working with Strings in Spreadsheets (LEN, LEFT, RIGHT, FIND)

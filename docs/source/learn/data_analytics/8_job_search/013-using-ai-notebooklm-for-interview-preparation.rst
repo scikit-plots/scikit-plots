@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-013:
-.. _data-analytics-jobsearch-013:
-.. _da-foundations-jobsearch-013:
-.. _da-decisions-jobsearch-013:
-.. _da-prep-jobsearch-013:
-.. _da-cleaning-jobsearch-013:
-.. _da-analyze-jobsearch-013:
-.. _da-viz-jobsearch-013:
-.. _da-python-jobsearch-013:
-.. _da-jobsearch-jobsearch-013:
+.. _da-8-jobsearch-jobsearch-013:
 
 ========================================================================
 Using AI (NotebookLM) for Interview Preparation

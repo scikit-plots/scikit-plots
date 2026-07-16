@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-018:
-.. _data-analytics-prep-018:
-.. _da-foundations-prep-018:
-.. _da-decisions-prep-018:
-.. _da-prep-prep-018:
-.. _da-cleaning-prep-018:
-.. _da-analyze-prep-018:
-.. _da-viz-prep-018:
-.. _da-python-prep-018:
-.. _da-jobsearch-prep-018:
+.. _da-3-prep-prep-018:
 
 ========================================================================
 Metadata Repositories and Data Governance

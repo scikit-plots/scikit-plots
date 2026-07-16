@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-025:
-.. _data-analytics-viz-025:
-.. _da-foundations-viz-025:
-.. _da-decisions-viz-025:
-.. _da-prep-viz-025:
-.. _da-cleaning-viz-025:
-.. _da-analyze-viz-025:
-.. _da-viz-viz-025:
-.. _da-python-viz-025:
-.. _da-jobsearch-viz-025:
+.. _da-6-viz-viz-025:
 
 =========================================================================
 Preparing for Q&A: Anticipating and Responding to Stakeholder Questions

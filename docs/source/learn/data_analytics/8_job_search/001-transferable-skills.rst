@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-001:
-.. _data-analytics-jobsearch-001:
-.. _da-foundations-jobsearch-001:
-.. _da-decisions-jobsearch-001:
-.. _da-prep-jobsearch-001:
-.. _da-cleaning-jobsearch-001:
-.. _da-analyze-jobsearch-001:
-.. _da-viz-jobsearch-001:
-.. _da-python-jobsearch-001:
-.. _da-jobsearch-jobsearch-001:
+.. _da-8-jobsearch-jobsearch-001:
 
 ========================================================================
 Transferable Skills

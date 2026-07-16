@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-012:
-.. _data-analytics-jobsearch-012:
-.. _da-foundations-jobsearch-012:
-.. _da-decisions-jobsearch-012:
-.. _da-prep-jobsearch-012:
-.. _da-cleaning-jobsearch-012:
-.. _da-analyze-jobsearch-012:
-.. _da-viz-jobsearch-012:
-.. _da-python-jobsearch-012:
-.. _da-jobsearch-jobsearch-012:
+.. _da-8-jobsearch-jobsearch-012:
 
 ========================================================================
 STAR Method (Behavioral Interview)

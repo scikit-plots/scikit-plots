@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-021:
-.. _data-analytics-ddd-021:
-.. _da-foundations-ddd-021:
-.. _da-decisions-ddd-021:
-.. _da-prep-ddd-021:
-.. _da-cleaning-ddd-021:
-.. _da-analyze-ddd-021:
-.. _da-viz-ddd-021:
-.. _da-python-ddd-021:
-.. _da-jobsearch-ddd-021:
 
 ========================================================================
 Clear Communication with Stakeholders and Teams

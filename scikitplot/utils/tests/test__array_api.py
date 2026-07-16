@@ -362,8 +362,9 @@ def test_device_inspection():
         def __eq__(self, device):
             return self.name == device.name
 
-        def __hash__(self):
-            raise TypeError("Device object is not hashable")
+        # def __hash__(self):
+        #     raise TypeError("Device object is not hashable")
+        __hash__ = None
 
         def __str__(self):
             return self.name

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-003:
-.. _data-analytics-python-003:
-.. _da-foundations-python-003:
-.. _da-decisions-python-003:
-.. _da-prep-python-003:
-.. _da-cleaning-python-003:
-.. _da-analyze-python-003:
-.. _da-viz-python-003:
-.. _da-python-python-003:
-.. _da-jobsearch-python-003:
+.. _da-7-python-python-003:
 
 ========================================================================
 Jupyter Notebook and Coding Environments

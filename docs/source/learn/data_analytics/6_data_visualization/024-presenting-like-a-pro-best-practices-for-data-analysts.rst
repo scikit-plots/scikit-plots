@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-024:
-.. _data-analytics-viz-024:
-.. _da-foundations-viz-024:
-.. _da-decisions-viz-024:
-.. _da-prep-viz-024:
-.. _da-cleaning-viz-024:
-.. _da-analyze-viz-024:
-.. _da-viz-viz-024:
-.. _da-python-viz-024:
-.. _da-jobsearch-viz-024:
+.. _da-6-viz-viz-024:
 
 ========================================================================
 Presenting Like a Pro: Best Practices for Data Analysts

@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-018:
-.. _data-analytics-ddd-018:
-.. _da-foundations-ddd-018:
-.. _da-decisions-ddd-018:
-.. _da-prep-ddd-018:
-.. _da-cleaning-ddd-018:
-.. _da-analyze-ddd-018:
-.. _da-viz-ddd-018:
-.. _da-python-ddd-018:
-.. _da-jobsearch-ddd-018:
 
 ========================================================================
 Context and Bias in Data Analysis

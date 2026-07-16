@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-011:
-.. _data-analytics-jobsearch-011:
-.. _da-foundations-jobsearch-011:
-.. _da-decisions-jobsearch-011:
-.. _da-prep-jobsearch-011:
-.. _da-cleaning-jobsearch-011:
-.. _da-analyze-jobsearch-011:
-.. _da-viz-jobsearch-011:
-.. _da-python-jobsearch-011:
-.. _da-jobsearch-jobsearch-011:
+.. _da-8-jobsearch-jobsearch-011:
 
 ========================================================================
 Interview Preparation

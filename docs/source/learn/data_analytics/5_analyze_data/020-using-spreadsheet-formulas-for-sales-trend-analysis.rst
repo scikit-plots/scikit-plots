@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-020:
-.. _data-analytics-analyze-020:
-.. _da-foundations-analyze-020:
-.. _da-decisions-analyze-020:
-.. _da-prep-analyze-020:
-.. _da-cleaning-analyze-020:
-.. _da-analyze-analyze-020:
-.. _da-viz-analyze-020:
-.. _da-python-analyze-020:
-.. _da-jobsearch-analyze-020:
+.. _da-5-analyze-analyze-020:
 
 ========================================================================
 Using Spreadsheet Formulas for Sales Trend Analysis

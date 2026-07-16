@@ -127,7 +127,7 @@ class LowLevelCallable(tuple):
         return _ccallback_c.get_capsule_signature(tuple.__getitem__(self, 0))
 
     def __getitem__(self, idx):
-        raise ValueError()
+        raise IndexError("LowLevelCallable does not support indexing")
 
     @classmethod
     def from_cython(cls, module, name, user_data=None, signature=None):

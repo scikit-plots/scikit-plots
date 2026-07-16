@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-003:
-.. _data-analytics-analyze-003:
-.. _da-foundations-analyze-003:
-.. _da-decisions-analyze-003:
-.. _da-prep-analyze-003:
-.. _da-cleaning-analyze-003:
-.. _da-analyze-analyze-003:
-.. _da-viz-analyze-003:
-.. _da-python-analyze-003:
-.. _da-jobsearch-analyze-003:
+.. _da-5-analyze-analyze-003:
 
 ========================================================================
 Sorting and Filtering in Data Analysis

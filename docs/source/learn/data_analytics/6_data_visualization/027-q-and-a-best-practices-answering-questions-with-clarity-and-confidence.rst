@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-027:
-.. _data-analytics-viz-027:
-.. _da-foundations-viz-027:
-.. _da-decisions-viz-027:
-.. _da-prep-viz-027:
-.. _da-cleaning-viz-027:
-.. _da-analyze-viz-027:
-.. _da-viz-viz-027:
-.. _da-python-viz-027:
-.. _da-jobsearch-viz-027:
+.. _da-6-viz-viz-027:
 
 ========================================================================
 Q&A Best Practices: Answering Questions with Clarity and Confidence

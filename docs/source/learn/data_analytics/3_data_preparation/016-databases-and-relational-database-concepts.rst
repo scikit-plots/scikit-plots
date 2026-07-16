@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-016:
-.. _data-analytics-prep-016:
-.. _da-foundations-prep-016:
-.. _da-decisions-prep-016:
-.. _da-prep-prep-016:
-.. _da-cleaning-prep-016:
-.. _da-analyze-prep-016:
-.. _da-viz-prep-016:
-.. _da-python-prep-016:
-.. _da-jobsearch-prep-016:
+.. _da-3-prep-prep-016:
 
 ========================================================================
 Databases and Relational Database Concepts

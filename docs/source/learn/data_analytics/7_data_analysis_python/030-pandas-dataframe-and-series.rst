@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-030:
-.. _data-analytics-python-030:
-.. _da-foundations-python-030:
-.. _da-decisions-python-030:
-.. _da-prep-python-030:
-.. _da-cleaning-python-030:
-.. _da-analyze-python-030:
-.. _da-viz-python-030:
-.. _da-python-python-030:
-.. _da-jobsearch-python-030:
+.. _da-7-python-python-030:
 
 ========================================================================
 Pandas DataFrame & Series

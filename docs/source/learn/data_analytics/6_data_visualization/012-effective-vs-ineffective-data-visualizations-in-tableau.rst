@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-012:
-.. _data-analytics-viz-012:
-.. _da-foundations-viz-012:
-.. _da-decisions-viz-012:
-.. _da-prep-viz-012:
-.. _da-cleaning-viz-012:
-.. _da-analyze-viz-012:
-.. _da-viz-viz-012:
-.. _da-python-viz-012:
-.. _da-jobsearch-viz-012:
+.. _da-6-viz-viz-012:
 
 ========================================================================
 Effective vs. Ineffective Data Visualizations in Tableau

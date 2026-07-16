@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-010:
-.. _data-analytics-prep-010:
-.. _da-foundations-prep-010:
-.. _da-decisions-prep-010:
-.. _da-prep-prep-010:
-.. _da-cleaning-prep-010:
-.. _da-analyze-prep-010:
-.. _da-viz-prep-010:
-.. _da-python-prep-010:
-.. _da-jobsearch-prep-010:
+.. _da-3-prep-prep-010:
 
 ========================================================================
 Common Types of Data Bias

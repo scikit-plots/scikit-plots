@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-020:
-.. _data-analytics-python-020:
-.. _da-foundations-python-020:
-.. _da-decisions-python-020:
-.. _da-prep-python-020:
-.. _da-cleaning-python-020:
-.. _da-analyze-python-020:
-.. _da-viz-python-020:
-.. _da-python-python-020:
-.. _da-jobsearch-python-020:
+.. _da-7-python-python-020:
 
 ========================================================================
 Modifying Lists in Python

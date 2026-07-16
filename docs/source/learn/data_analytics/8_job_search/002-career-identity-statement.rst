@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-002:
-.. _data-analytics-jobsearch-002:
-.. _da-foundations-jobsearch-002:
-.. _da-decisions-jobsearch-002:
-.. _da-prep-jobsearch-002:
-.. _da-cleaning-jobsearch-002:
-.. _da-analyze-jobsearch-002:
-.. _da-viz-jobsearch-002:
-.. _da-python-jobsearch-002:
-.. _da-jobsearch-jobsearch-002:
+.. _da-8-jobsearch-jobsearch-002:
 
 ========================================================================
 Career Identity Statement

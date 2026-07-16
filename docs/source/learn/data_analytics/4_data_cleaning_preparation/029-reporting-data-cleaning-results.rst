@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-029:
-.. _data-analytics-cleaning-029:
-.. _da-foundations-cleaning-029:
-.. _da-decisions-cleaning-029:
-.. _da-prep-cleaning-029:
-.. _da-cleaning-cleaning-029:
-.. _da-analyze-cleaning-029:
-.. _da-viz-cleaning-029:
-.. _da-python-cleaning-029:
-.. _da-jobsearch-cleaning-029:
+.. _da-4-cleaning-cleaning-029:
 
 ========================================================================
 Reporting Data-Cleaning Results

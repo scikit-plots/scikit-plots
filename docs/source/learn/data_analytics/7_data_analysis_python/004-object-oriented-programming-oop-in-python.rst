@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-004:
-.. _data-analytics-python-004:
-.. _da-foundations-python-004:
-.. _da-decisions-python-004:
-.. _da-prep-python-004:
-.. _da-cleaning-python-004:
-.. _da-analyze-python-004:
-.. _da-viz-python-004:
-.. _da-python-python-004:
-.. _da-jobsearch-python-004:
+.. _da-7-python-python-004:
 
 ========================================================================
 Object-Oriented Programming (OOP) in Python

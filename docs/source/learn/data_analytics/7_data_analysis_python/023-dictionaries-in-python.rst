@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-023:
-.. _data-analytics-python-023:
-.. _da-foundations-python-023:
-.. _da-decisions-python-023:
-.. _da-prep-python-023:
-.. _da-cleaning-python-023:
-.. _da-analyze-python-023:
-.. _da-viz-python-023:
-.. _da-python-python-023:
-.. _da-jobsearch-python-023:
+.. _da-7-python-python-023:
 
 ========================================================================
 Dictionaries in Python

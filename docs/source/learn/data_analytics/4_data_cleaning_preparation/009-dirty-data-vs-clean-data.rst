@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-009:
-.. _data-analytics-cleaning-009:
-.. _da-foundations-cleaning-009:
-.. _da-decisions-cleaning-009:
-.. _da-prep-cleaning-009:
-.. _da-cleaning-cleaning-009:
-.. _da-analyze-cleaning-009:
-.. _da-viz-cleaning-009:
-.. _da-python-cleaning-009:
-.. _da-jobsearch-cleaning-009:
+.. _da-4-cleaning-cleaning-009:
 
 ========================================================================
 Dirty Data vs. Clean Data

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-032:
-.. _data-analytics-cleaning-032:
-.. _da-foundations-cleaning-032:
-.. _da-decisions-cleaning-032:
-.. _da-prep-cleaning-032:
-.. _da-cleaning-cleaning-032:
-.. _da-analyze-cleaning-032:
-.. _da-viz-cleaning-032:
-.. _da-python-cleaning-032:
-.. _da-jobsearch-cleaning-032:
+.. _da-4-cleaning-cleaning-032:
 
 ========================================================================
 Exploring Data Analyst Job Opportunities

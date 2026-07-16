@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-025:
-.. _data-analytics-cleaning-025:
-.. _da-foundations-cleaning-025:
-.. _da-decisions-cleaning-025:
-.. _da-prep-cleaning-025:
-.. _da-cleaning-cleaning-025:
-.. _da-analyze-cleaning-025:
-.. _da-viz-cleaning-025:
-.. _da-python-cleaning-025:
-.. _da-jobsearch-cleaning-025:
+.. _da-4-cleaning-cleaning-025:
 
 ========================================================================
 Verifying and Reporting Data Integrity

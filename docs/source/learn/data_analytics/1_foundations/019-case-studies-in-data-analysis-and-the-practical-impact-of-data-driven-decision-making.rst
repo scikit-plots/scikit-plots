@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-019:
-.. _data-analytics-foundations-019:
-.. _da-foundations-foundations-019:
-.. _da-decisions-foundations-019:
-.. _da-prep-foundations-019:
-.. _da-cleaning-foundations-019:
-.. _da-analyze-foundations-019:
-.. _da-viz-foundations-019:
-.. _da-python-foundations-019:
-.. _da-jobsearch-foundations-019:
+.. _da-1-foundations-foundations-019:
 
 =======================================================================================
 Case Studies in Data Analysis and the Practical Impact of Data-Driven Decision-Making

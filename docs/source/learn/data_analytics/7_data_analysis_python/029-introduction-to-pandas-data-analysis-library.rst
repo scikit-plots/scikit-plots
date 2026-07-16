@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-029:
-.. _data-analytics-python-029:
-.. _da-foundations-python-029:
-.. _da-decisions-python-029:
-.. _da-prep-python-029:
-.. _da-cleaning-python-029:
-.. _da-analyze-python-029:
-.. _da-viz-python-029:
-.. _da-python-python-029:
-.. _da-jobsearch-python-029:
+.. _da-7-python-python-029:
 
 ========================================================================
 Introduction to Pandas (Data Analysis Library)

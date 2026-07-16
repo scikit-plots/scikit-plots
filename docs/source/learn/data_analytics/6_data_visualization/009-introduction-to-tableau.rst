@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-009:
-.. _data-analytics-viz-009:
-.. _da-foundations-viz-009:
-.. _da-decisions-viz-009:
-.. _da-prep-viz-009:
-.. _da-cleaning-viz-009:
-.. _da-analyze-viz-009:
-.. _da-viz-viz-009:
-.. _da-python-viz-009:
-.. _da-jobsearch-viz-009:
+.. _da-6-viz-viz-009:
 
 ========================================================================
 Introduction to Tableau

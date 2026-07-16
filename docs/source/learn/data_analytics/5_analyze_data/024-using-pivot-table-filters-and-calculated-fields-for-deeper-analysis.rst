@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-024:
-.. _data-analytics-analyze-024:
-.. _da-foundations-analyze-024:
-.. _da-decisions-analyze-024:
-.. _da-prep-analyze-024:
-.. _da-cleaning-analyze-024:
-.. _da-analyze-analyze-024:
-.. _da-viz-analyze-024:
-.. _da-python-analyze-024:
-.. _da-jobsearch-analyze-024:
+.. _da-5-analyze-analyze-024:
 
 ========================================================================
 Using Pivot Table Filters and Calculated Fields for Deeper Analysis

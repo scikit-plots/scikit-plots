@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-016:
-.. _data-analytics-analyze-016:
-.. _da-foundations-analyze-016:
-.. _da-decisions-analyze-016:
-.. _da-prep-analyze-016:
-.. _da-cleaning-analyze-016:
-.. _da-analyze-analyze-016:
-.. _da-viz-analyze-016:
-.. _da-python-analyze-016:
-.. _da-jobsearch-analyze-016:
+.. _da-5-analyze-analyze-016:
 
 ========================================================================
 Troubleshooting VLOOKUP and Building a Problem-Solving Framework

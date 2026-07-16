@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-026:
-.. _data-analytics-python-026:
-.. _da-foundations-python-026:
-.. _da-decisions-python-026:
-.. _da-prep-python-026:
-.. _da-cleaning-python-026:
-.. _da-analyze-python-026:
-.. _da-viz-python-026:
-.. _da-python-python-026:
-.. _da-jobsearch-python-026:
+.. _da-7-python-python-026:
 
 ========================================================================
 Libraries, Packages, and Modules in Python

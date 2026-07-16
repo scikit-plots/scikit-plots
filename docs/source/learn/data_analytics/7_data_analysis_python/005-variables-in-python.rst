@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-005:
-.. _data-analytics-python-005:
-.. _da-foundations-python-005:
-.. _da-decisions-python-005:
-.. _da-prep-python-005:
-.. _da-cleaning-python-005:
-.. _da-analyze-python-005:
-.. _da-viz-python-005:
-.. _da-python-python-005:
-.. _da-jobsearch-python-005:
+.. _da-7-python-python-005:
 
 ========================================================================
 Variables in Python

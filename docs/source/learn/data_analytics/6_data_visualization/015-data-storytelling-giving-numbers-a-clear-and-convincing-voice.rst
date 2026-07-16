@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-015:
-.. _data-analytics-viz-015:
-.. _da-foundations-viz-015:
-.. _da-decisions-viz-015:
-.. _da-prep-viz-015:
-.. _da-cleaning-viz-015:
-.. _da-analyze-viz-015:
-.. _da-viz-viz-015:
-.. _da-python-viz-015:
-.. _da-jobsearch-viz-015:
+.. _da-6-viz-viz-015:
 
 ========================================================================
 Data Storytelling: Giving Numbers a Clear and Convincing Voice

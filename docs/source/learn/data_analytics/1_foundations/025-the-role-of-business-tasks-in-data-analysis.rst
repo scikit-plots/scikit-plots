@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-025:
-.. _data-analytics-foundations-025:
-.. _da-foundations-foundations-025:
-.. _da-decisions-foundations-025:
-.. _da-prep-foundations-025:
-.. _da-cleaning-foundations-025:
-.. _da-analyze-foundations-025:
-.. _da-viz-foundations-025:
-.. _da-python-foundations-025:
-.. _da-jobsearch-foundations-025:
+.. _da-1-foundations-foundations-025:
 
 ========================================================================
 The Role of Business Tasks in Data Analysis

@@ -197,8 +197,8 @@ STAGE_ORDER: dict[str, list[str]] = {
 
 # Legacy anchors from the pre-existing hand hub, emitted on every page -> hub top.
 COMPAT_ANCHORS = [
-    "data-analytics", "da-foundations", "da-decisions", "da-prep",
-    "da-cleaning", "da-analyze", "da-viz", "da-python", "da-jobsearch",
+    "data-analytics", "da-1-foundations", "da-2-decisions", "da-3-prep",
+    "da-4-cleaning", "da-5-analyze", "da-6-viz", "da-7-python", "da-8-jobsearch",
 ]
 
 
@@ -496,7 +496,8 @@ def lesson_page(row: dict, num: int, stem: str, sec_rows: list[tuple],
     w("")
     w(f".. _{anchor}:")
     for legacy in COMPAT_ANCHORS:
-        w(f".. _{legacy}-{sec}-{num:03d}:")
+        if sec in legacy:
+            w(f".. _{legacy}-{sec}-{num:03d}:")
     w("")
     w(bar(title, "="))
     w(title)
@@ -702,9 +703,8 @@ def build() -> None:
          "below is its own browsable mini-course; use the filter to search every "
          "lesson at once."),
     ]
-    hub_rst = render_browser(f"{ANCHOR_PREFIX.replace('da', 'data-analytics')}-index"
-                             if False else "data-analytics-index",
-                             hub_h1, hub_intro, "all sections", hub_groups, hub_az)
+    hub_rst = render_browser("data-analytics-index", hub_h1, hub_intro,
+                             "all sections", hub_groups, hub_az)
     (HERE / "index.rst").write_text(hub_rst, encoding="utf-8")
 
     print(f"Wrote hub index + {len(built_sections)} section(s): "

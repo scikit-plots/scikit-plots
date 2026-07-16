@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-004:
-.. _data-analytics-cleaning-004:
-.. _da-foundations-cleaning-004:
-.. _da-decisions-cleaning-004:
-.. _da-prep-cleaning-004:
-.. _da-cleaning-cleaning-004:
-.. _da-analyze-cleaning-004:
-.. _da-viz-cleaning-004:
-.. _da-python-cleaning-004:
-.. _da-jobsearch-cleaning-004:
+.. _da-4-cleaning-cleaning-004:
 
 ========================================================================
 Handling Insufficient Data in Data Analysis

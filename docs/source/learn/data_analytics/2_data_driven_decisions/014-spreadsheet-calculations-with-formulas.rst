@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-014:
-.. _data-analytics-ddd-014:
-.. _da-foundations-ddd-014:
-.. _da-decisions-ddd-014:
-.. _da-prep-ddd-014:
-.. _da-cleaning-ddd-014:
-.. _da-analyze-ddd-014:
-.. _da-viz-ddd-014:
-.. _da-python-ddd-014:
-.. _da-jobsearch-ddd-014:
 
 ========================================================================
 Spreadsheet Calculations with Formulas

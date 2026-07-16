@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-015:
-.. _data-analytics-ddd-015:
-.. _da-foundations-ddd-015:
-.. _da-decisions-ddd-015:
-.. _da-prep-ddd-015:
-.. _da-cleaning-ddd-015:
-.. _da-analyze-ddd-015:
-.. _da-viz-ddd-015:
-.. _da-python-ddd-015:
-.. _da-jobsearch-ddd-015:
 
 ========================================================================
 Common Spreadsheet Errors and How to Fix Them

@@ -42,9 +42,9 @@ Notes
   in Python 3 when ``__init__`` is not customised, and doing so would also
   silently accept nonsensical arguments without error.
 
-* ``_CopyMode.__bool__`` deliberately raises :exc:`ValueError` for
-  ``IF_NEEDED`` to preserve backwards-compatible behaviour inherited from
-  NumPy.
+* ``_CopyMode.__bool__`` raises :exc:`TypeError` for ``IF_NEEDED`` because
+  special methods should use standard protocol exceptions for unsupported
+  operations.
 """
 
 from __future__ import annotations
@@ -106,20 +106,20 @@ class _CopyMode(enum.Enum):
 
         Raises
         ------
-        ValueError
+        TypeError
             If the mode is ``IF_NEEDED``, which has no unambiguous boolean
             interpretation.
 
         Notes
         -----
-        The ``IF_NEEDED`` branch raises :exc:`ValueError` intentionally for
-        backwards compatibility with NumPy.
+        The ``IF_NEEDED`` branch raises :exc:`TypeError` to follow Python's
+        special-method protocol for unsupported truth-value testing.
         """
         if self == _CopyMode.ALWAYS:
             return True
         if self == _CopyMode.NEVER:
             return False
-        raise ValueError(f"{self} is neither True nor False.")
+        raise TypeError(f"{self} is neither True nor False.")
 
 
 ######################################################################

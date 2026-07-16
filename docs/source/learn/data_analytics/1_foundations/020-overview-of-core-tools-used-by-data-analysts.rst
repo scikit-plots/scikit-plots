@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-foundations-020:
-.. _data-analytics-foundations-020:
-.. _da-foundations-foundations-020:
-.. _da-decisions-foundations-020:
-.. _da-prep-foundations-020:
-.. _da-cleaning-foundations-020:
-.. _da-analyze-foundations-020:
-.. _da-viz-foundations-020:
-.. _da-python-foundations-020:
-.. _da-jobsearch-foundations-020:
+.. _da-1-foundations-foundations-020:
 
 ========================================================================
 Overview of Core Tools Used by Data Analysts

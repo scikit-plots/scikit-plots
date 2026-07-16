@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-021:
-.. _data-analytics-cleaning-021:
-.. _da-foundations-cleaning-021:
-.. _da-decisions-cleaning-021:
-.. _da-prep-cleaning-021:
-.. _da-cleaning-cleaning-021:
-.. _da-analyze-cleaning-021:
-.. _da-viz-cleaning-021:
-.. _da-python-cleaning-021:
-.. _da-jobsearch-cleaning-021:
+.. _da-4-cleaning-cleaning-021:
 
 ===========================================================================
 Cleaning Data with SQL: Removing Duplicates and Cleaning String Variables

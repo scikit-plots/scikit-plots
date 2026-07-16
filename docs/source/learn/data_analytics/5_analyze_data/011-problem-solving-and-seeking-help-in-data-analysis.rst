@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-011:
-.. _data-analytics-analyze-011:
-.. _da-foundations-analyze-011:
-.. _da-decisions-analyze-011:
-.. _da-prep-analyze-011:
-.. _da-cleaning-analyze-011:
-.. _da-analyze-analyze-011:
-.. _da-viz-analyze-011:
-.. _da-python-analyze-011:
-.. _da-jobsearch-analyze-011:
+.. _da-5-analyze-analyze-011:
 
 ========================================================================
 Problem-Solving and Seeking Help in Data Analysis

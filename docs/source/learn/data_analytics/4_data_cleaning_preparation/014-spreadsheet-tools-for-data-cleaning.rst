@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-014:
-.. _data-analytics-cleaning-014:
-.. _da-foundations-cleaning-014:
-.. _da-decisions-cleaning-014:
-.. _da-prep-cleaning-014:
-.. _da-cleaning-cleaning-014:
-.. _da-analyze-cleaning-014:
-.. _da-viz-cleaning-014:
-.. _da-python-cleaning-014:
-.. _da-jobsearch-cleaning-014:
+.. _da-4-cleaning-cleaning-014:
 
 ========================================================================
 Spreadsheet Tools for Data Cleaning

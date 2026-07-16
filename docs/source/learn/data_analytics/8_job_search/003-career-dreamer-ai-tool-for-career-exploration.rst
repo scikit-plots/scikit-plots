@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-003:
-.. _data-analytics-jobsearch-003:
-.. _da-foundations-jobsearch-003:
-.. _da-decisions-jobsearch-003:
-.. _da-prep-jobsearch-003:
-.. _da-cleaning-jobsearch-003:
-.. _da-analyze-jobsearch-003:
-.. _da-viz-jobsearch-003:
-.. _da-python-jobsearch-003:
-.. _da-jobsearch-jobsearch-003:
+.. _da-8-jobsearch-jobsearch-003:
 
 ========================================================================
 Career Dreamer (AI Tool for Career Exploration)

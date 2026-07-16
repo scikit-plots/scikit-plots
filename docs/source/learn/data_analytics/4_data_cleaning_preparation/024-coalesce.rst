@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-024:
-.. _data-analytics-cleaning-024:
-.. _da-foundations-cleaning-024:
-.. _da-decisions-cleaning-024:
-.. _da-prep-cleaning-024:
-.. _da-cleaning-cleaning-024:
-.. _da-analyze-cleaning-024:
-.. _da-viz-cleaning-024:
-.. _da-python-cleaning-024:
-.. _da-jobsearch-cleaning-024:
+.. _da-4-cleaning-cleaning-024:
 
 ========================================================================
 COALESCE

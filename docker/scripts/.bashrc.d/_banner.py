@@ -306,7 +306,7 @@ def figlet(text: str, font: str, kerning: bool = False) -> str:
     if kerning:
         argv.append("-k")
     argv.extend(["-f", font, text])
-    argv.append("") if False else None
+    # argv.append("") if False else None
 
     try:
         result = subprocess.run(  # noqa: S603 - fixed argv, no shell=True

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-014:
-.. _data-analytics-python-014:
-.. _da-foundations-python-014:
-.. _da-decisions-python-014:
-.. _da-prep-python-014:
-.. _da-cleaning-python-014:
-.. _da-analyze-python-014:
-.. _da-viz-python-014:
-.. _da-python-python-014:
-.. _da-jobsearch-python-014:
+.. _da-7-python-python-014:
 
 ========================================================================
 For Loops in Python

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-022:
-.. _data-analytics-python-022:
-.. _da-foundations-python-022:
-.. _da-decisions-python-022:
-.. _da-prep-python-022:
-.. _da-cleaning-python-022:
-.. _da-analyze-python-022:
-.. _da-viz-python-022:
-.. _da-python-python-022:
-.. _da-jobsearch-python-022:
+.. _da-7-python-python-022:
 
 ========================================================================
 Advanced Use of Loops, Lists, Tuples & List Comprehension

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-021:
-.. _data-analytics-python-021:
-.. _da-foundations-python-021:
-.. _da-decisions-python-021:
-.. _da-prep-python-021:
-.. _da-cleaning-python-021:
-.. _da-analyze-python-021:
-.. _da-viz-python-021:
-.. _da-python-python-021:
-.. _da-jobsearch-python-021:
+.. _da-7-python-python-021:
 
 ========================================================================
 Tuples in Python

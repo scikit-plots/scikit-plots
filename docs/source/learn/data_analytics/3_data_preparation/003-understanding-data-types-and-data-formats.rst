@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-003:
-.. _data-analytics-prep-003:
-.. _da-foundations-prep-003:
-.. _da-decisions-prep-003:
-.. _da-prep-prep-003:
-.. _da-cleaning-prep-003:
-.. _da-analyze-prep-003:
-.. _da-viz-prep-003:
-.. _da-python-prep-003:
-.. _da-jobsearch-prep-003:
+.. _da-3-prep-prep-003:
 
 ========================================================================
 Understanding Data Types and Data Formats

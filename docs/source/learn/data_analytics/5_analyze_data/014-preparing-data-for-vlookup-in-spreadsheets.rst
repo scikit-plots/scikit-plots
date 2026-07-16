@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-014:
-.. _data-analytics-analyze-014:
-.. _da-foundations-analyze-014:
-.. _da-decisions-analyze-014:
-.. _da-prep-analyze-014:
-.. _da-cleaning-analyze-014:
-.. _da-analyze-analyze-014:
-.. _da-viz-analyze-014:
-.. _da-python-analyze-014:
-.. _da-jobsearch-analyze-014:
+.. _da-5-analyze-analyze-014:
 
 ========================================================================
 Preparing Data for VLOOKUP in Spreadsheets

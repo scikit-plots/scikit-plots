@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-011:
-.. _data-analytics-python-011:
-.. _da-foundations-python-011:
-.. _da-decisions-python-011:
-.. _da-prep-python-011:
-.. _da-cleaning-python-011:
-.. _da-analyze-python-011:
-.. _da-viz-python-011:
-.. _da-python-python-011:
-.. _da-jobsearch-python-011:
+.. _da-7-python-python-011:
 
 ========================================================================
 Boolean Data, Comparators, and Logical Operators in Python

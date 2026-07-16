@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-018:
-.. _data-analytics-analyze-018:
-.. _da-foundations-analyze-018:
-.. _da-decisions-analyze-018:
-.. _da-prep-analyze-018:
-.. _da-cleaning-analyze-018:
-.. _da-analyze-analyze-018:
-.. _da-viz-analyze-018:
-.. _da-python-analyze-018:
-.. _da-jobsearch-analyze-018:
+.. _da-5-analyze-analyze-018:
 
 ========================================================================
 Subqueries in SQL

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-011:
-.. _data-analytics-cleaning-011:
-.. _da-foundations-cleaning-011:
-.. _da-decisions-cleaning-011:
-.. _da-prep-cleaning-011:
-.. _da-cleaning-cleaning-011:
-.. _da-analyze-cleaning-011:
-.. _da-viz-cleaning-011:
-.. _da-python-cleaning-011:
-.. _da-jobsearch-cleaning-011:
+.. _da-4-cleaning-cleaning-011:
 
 ========================================================================
 Common Issues in Dirty Data

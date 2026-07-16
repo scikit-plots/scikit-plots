@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-021:
-.. _data-analytics-prep-021:
-.. _da-foundations-prep-021:
-.. _da-decisions-prep-021:
-.. _da-prep-prep-021:
-.. _da-cleaning-prep-021:
-.. _da-analyze-prep-021:
-.. _da-viz-prep-021:
-.. _da-python-prep-021:
-.. _da-jobsearch-prep-021:
+.. _da-3-prep-prep-021:
 
 ========================================================================
 Sorting and Filtering Data in Spreadsheets

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-cleaning-003:
-.. _data-analytics-cleaning-003:
-.. _da-foundations-cleaning-003:
-.. _da-decisions-cleaning-003:
-.. _da-prep-cleaning-003:
-.. _da-cleaning-cleaning-003:
-.. _da-analyze-cleaning-003:
-.. _da-viz-cleaning-003:
-.. _da-python-cleaning-003:
-.. _da-jobsearch-cleaning-003:
+.. _da-4-cleaning-cleaning-003:
 
 ========================================================================
 Aligning Data with Business Objectives

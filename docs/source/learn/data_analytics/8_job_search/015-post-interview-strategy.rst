@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-jobsearch-015:
-.. _data-analytics-jobsearch-015:
-.. _da-foundations-jobsearch-015:
-.. _da-decisions-jobsearch-015:
-.. _da-prep-jobsearch-015:
-.. _da-cleaning-jobsearch-015:
-.. _da-analyze-jobsearch-015:
-.. _da-viz-jobsearch-015:
-.. _da-python-jobsearch-015:
-.. _da-jobsearch-jobsearch-015:
+.. _da-8-jobsearch-jobsearch-015:
 
 ========================================================================
 Post-Interview Strategy

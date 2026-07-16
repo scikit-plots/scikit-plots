@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-011:
-.. _data-analytics-ddd-011:
-.. _da-foundations-ddd-011:
-.. _da-decisions-ddd-011:
-.. _da-prep-ddd-011:
-.. _da-cleaning-ddd-011:
-.. _da-analyze-ddd-011:
-.. _da-viz-ddd-011:
-.. _da-python-ddd-011:
-.. _da-jobsearch-ddd-011:
 
 ========================================================================
 Spreadsheets in Data Analysis

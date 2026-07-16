@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-011:
-.. _data-analytics-viz-011:
-.. _da-foundations-viz-011:
-.. _da-decisions-viz-011:
-.. _da-prep-viz-011:
-.. _da-cleaning-viz-011:
-.. _da-analyze-viz-011:
-.. _da-viz-viz-011:
-.. _da-python-viz-011:
-.. _da-jobsearch-viz-011:
+.. _da-6-viz-viz-011:
 
 ========================================================================
 Creating a CO₂ Emissions Visualization in Tableau Public

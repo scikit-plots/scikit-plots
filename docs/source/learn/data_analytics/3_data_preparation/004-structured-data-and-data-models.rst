@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-004:
-.. _data-analytics-prep-004:
-.. _da-foundations-prep-004:
-.. _da-decisions-prep-004:
-.. _da-prep-prep-004:
-.. _da-cleaning-prep-004:
-.. _da-analyze-prep-004:
-.. _da-viz-prep-004:
-.. _da-python-prep-004:
-.. _da-jobsearch-prep-004:
+.. _da-3-prep-prep-004:
 
 ========================================================================
 Structured Data and Data Models

@@ -963,9 +963,9 @@ def test_probplot_pp_bestfit_probax_y(plot_data):
 @pytest.mark.skipif(stats is None, reason="no scipy")
 def test_probplot_beta_dist_best_fit_y(plot_data):
     plt.close("all")
-    fig, (ax1, ax2) = plt.subplots(ncols=2)
+    _fig, (ax1, ax2) = plt.subplots(ncols=2)
     dist = stats.beta(3, 3)
-    fig = viz.probplot(
+    _fig = viz.probplot(
         plot_data,
         dist=dist,
         ax=ax1,
@@ -997,9 +997,9 @@ def test_probplot_beta_dist_best_fit_y(plot_data):
 @pytest.mark.skipif(stats is None, reason="no scipy")
 def test_probplot_beta_dist_best_fit_x(plot_data):
     plt.close("all")
-    fig, (ax1, ax2) = plt.subplots(nrows=2)
+    _fig, (ax1, ax2) = plt.subplots(nrows=2)
     dist = stats.beta(3, 3)
-    fig = viz.probplot(
+    _fig = viz.probplot(
         plot_data,
         dist=dist,
         ax=ax1,

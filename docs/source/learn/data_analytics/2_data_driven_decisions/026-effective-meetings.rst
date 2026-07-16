@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-026:
-.. _data-analytics-ddd-026:
-.. _da-foundations-ddd-026:
-.. _da-decisions-ddd-026:
-.. _da-prep-ddd-026:
-.. _da-cleaning-ddd-026:
-.. _da-analyze-ddd-026:
-.. _da-viz-ddd-026:
-.. _da-python-ddd-026:
-.. _da-jobsearch-ddd-026:
 
 ========================================================================
 Effective Meetings

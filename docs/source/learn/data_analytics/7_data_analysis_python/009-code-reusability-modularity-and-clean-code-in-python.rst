@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-009:
-.. _data-analytics-python-009:
-.. _da-foundations-python-009:
-.. _da-decisions-python-009:
-.. _da-prep-python-009:
-.. _da-cleaning-python-009:
-.. _da-analyze-python-009:
-.. _da-viz-python-009:
-.. _da-python-python-009:
-.. _da-jobsearch-python-009:
+.. _da-7-python-python-009:
 
 ========================================================================
 Code Reusability, Modularity, and Clean Code in Python

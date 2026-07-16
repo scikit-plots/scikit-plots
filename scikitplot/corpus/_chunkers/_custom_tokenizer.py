@@ -539,12 +539,23 @@ class FunctionLemmatizer:
             Lemma form.
         """
         if pos is not None and self._can_call_with_pos:
-            return self._fn(word, pos)
+            try:
+                return self._fn(word, pos)
+            except TypeError:
+                # Some wrapped/mocked callables may not faithfully expose
+                # arity via introspection; fall back to word-only.
+                if self._can_call_word_only:
+                    return self._fn(word)
+                raise
         if self._can_call_word_only:
             return self._fn(word)
-        # Fallback for callables that require a second argument even when
-        # not detectable via signature introspection.
-        return self._fn(word, pos)
+        # Fallback for callables with unreliable signature introspection:
+        # prefer single-arg call first to avoid passing too many arguments
+        # to one-argument callables, then retry with POS if needed.
+        try:
+            return self._fn(word)
+        except TypeError:
+            return self._fn(word, pos)
 
     def __repr__(self) -> str:
         return f"FunctionLemmatizer(name={self._name!r})"

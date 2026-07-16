@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-viz-022:
-.. _data-analytics-viz-022:
-.. _da-foundations-viz-022:
-.. _da-decisions-viz-022:
-.. _da-prep-viz-022:
-.. _da-cleaning-viz-022:
-.. _da-analyze-viz-022:
-.. _da-viz-viz-022:
-.. _da-python-viz-022:
-.. _da-jobsearch-viz-022:
+.. _da-6-viz-viz-022:
 
 =================================================================================
 Weaving Data into Presentations: Hypotheses, Context, and the McCandless Method

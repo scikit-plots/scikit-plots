@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-007:
-.. _data-analytics-analyze-007:
-.. _da-foundations-analyze-007:
-.. _da-decisions-analyze-007:
-.. _da-prep-analyze-007:
-.. _da-cleaning-analyze-007:
-.. _da-analyze-analyze-007:
-.. _da-viz-analyze-007:
-.. _da-python-analyze-007:
-.. _da-jobsearch-analyze-007:
+.. _da-5-analyze-analyze-007:
 
 ========================================================================
 Data Validation in Spreadsheets

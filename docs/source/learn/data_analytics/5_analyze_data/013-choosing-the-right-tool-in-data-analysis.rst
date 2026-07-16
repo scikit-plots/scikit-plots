@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-analyze-013:
-.. _data-analytics-analyze-013:
-.. _da-foundations-analyze-013:
-.. _da-decisions-analyze-013:
-.. _da-prep-analyze-013:
-.. _da-cleaning-analyze-013:
-.. _da-analyze-analyze-013:
-.. _da-viz-analyze-013:
-.. _da-python-analyze-013:
-.. _da-jobsearch-analyze-013:
+.. _da-5-analyze-analyze-013:
 
 ========================================================================
 Choosing the Right Tool in Data Analysis

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-prep-024:
-.. _data-analytics-prep-024:
-.. _da-foundations-prep-024:
-.. _da-decisions-prep-024:
-.. _da-prep-prep-024:
-.. _da-cleaning-prep-024:
-.. _da-analyze-prep-024:
-.. _da-viz-prep-024:
-.. _da-python-prep-024:
-.. _da-jobsearch-prep-024:
+.. _da-3-prep-prep-024:
 
 ========================================================================
 Organizing Data for Personal and Work Projects

@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-027:
-.. _data-analytics-ddd-027:
-.. _da-foundations-ddd-027:
-.. _da-decisions-ddd-027:
-.. _da-prep-ddd-027:
-.. _da-cleaning-ddd-027:
-.. _da-analyze-ddd-027:
-.. _da-viz-ddd-027:
-.. _da-python-ddd-027:
-.. _da-jobsearch-ddd-027:
 
 ========================================================================
 Conflict Resolution in the Workplace

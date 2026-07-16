@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-009:
-.. _data-analytics-ddd-009:
-.. _da-foundations-ddd-009:
-.. _da-decisions-ddd-009:
-.. _da-prep-ddd-009:
-.. _da-cleaning-ddd-009:
-.. _da-analyze-ddd-009:
-.. _da-viz-ddd-009:
-.. _da-python-ddd-009:
-.. _da-jobsearch-ddd-009:
 
 ========================================================================
 Dashboards

@@ -8,15 +8,7 @@
    <br/>
 
 .. _da-python-001:
-.. _data-analytics-python-001:
-.. _da-foundations-python-001:
-.. _da-decisions-python-001:
-.. _da-prep-python-001:
-.. _da-cleaning-python-001:
-.. _da-analyze-python-001:
-.. _da-viz-python-001:
-.. _da-python-python-001:
-.. _da-jobsearch-python-001:
+.. _da-7-python-python-001:
 
 ========================================================================
 Introduction to Python and Programming Fundamentals

@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-016:
-.. _data-analytics-ddd-016:
-.. _da-foundations-ddd-016:
-.. _da-decisions-ddd-016:
-.. _da-prep-ddd-016:
-.. _da-cleaning-ddd-016:
-.. _da-analyze-ddd-016:
-.. _da-viz-ddd-016:
-.. _da-python-ddd-016:
-.. _da-jobsearch-ddd-016:
 
 ========================================================================
 Spreadsheet Functions

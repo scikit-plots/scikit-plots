@@ -8,15 +8,6 @@
    <br/>
 
 .. _da-ddd-013:
-.. _data-analytics-ddd-013:
-.. _da-foundations-ddd-013:
-.. _da-decisions-ddd-013:
-.. _da-prep-ddd-013:
-.. _da-cleaning-ddd-013:
-.. _da-analyze-ddd-013:
-.. _da-viz-ddd-013:
-.. _da-python-ddd-013:
-.. _da-jobsearch-ddd-013:
 
 ========================================================================
 How Data Analysts Use Spreadsheets

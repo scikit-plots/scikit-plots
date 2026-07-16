@@ -1202,7 +1202,7 @@ def to_torch_dataloader(
             if embedding_feature:
                 emb = getattr(doc, "embedding", None)
                 if emb is None:
-                    raise ValueError(
+                    raise IndexError(
                         f"embedding_feature=True but doc {idx} has embedding=None."
                     )
                 item["embedding"] = torch.tensor(np.array(emb), dtype=torch.float32)
