@@ -18,6 +18,17 @@ For Loops in Python
 
 ◀ :doc:`Previous <013-while-loops-and-iteration-in-python>` · :doc:`Next <015-range-function-and-loop-control-in-python>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 Repeating over a collection
 -----------------------------

@@ -1,0 +1,141 @@
+.. _Step 6.2:
+
+*******************************************************************
+Step 2: Setup the ``docker-compose`` environment
+*******************************************************************
+
+.. include:: urls.rst
+
+**The goal for Step 2**: Create a ``docker-compose.yml`` file with a defined
+volume for your Flask Quotes application.
+
+.. Note:: We'll use port **20854** for the reverse proxy.
+
+.. contents:: Table of Contents
+
+2.1. Create the ``docker-compose.yml`` file and add support files
+------------------------------------------------------------------
+
+#. Create a folder for your Flask Quotes application
+   called  ``flask-quotes`` and create an empty ``docker-compose.yml``
+   file.
+
+   .. code-block:: bash
+
+       cd ~
+       mkdir flask-quotes
+       cd flask-quotes
+       touch docker-compose.yml
+
+#. Verify the information in the ``Dockerfile``.
+
+   Before you create your ``docker-compose.yml`` file, you will need
+   information from your ``Dockerfile``. Open it to verify that nothing has
+   changed.
+
+   ::
+
+      WORKDIR /app    ----> For the volume   (where code files are)
+      EXPOSE 5000     ----> For port mapping (the port that that the Python web server is running on)
+
+#. Write the ``docker-compose.yml`` file to use ``python/flask:dev`` and
+   with defined a volume called ``quotes-app`` or something similar
+   Here is your template (fill in the data from your ``Dockerfile``):
+
+   Destination volume
+       The working directory (``WORKDIR``) defined in the image
+
+   Destination port
+       The port (``EXPOSE``) that the Python web server runs on
+
+       .. Tip:: ``EXPOSE`` is a best-practice marker only. The actual port
+           is defined in the ``index.py`` file
+
+           .. code-block:: python
+
+               app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+   .. code-block:: yaml
+       :caption: ``docker-compose.yml`` template
+
+       version: '3'
+
+       services:
+          flask:
+            image: python/flask:dev
+            volumes:
+              - ./quotes-app:/_____
+            ports:
+              - 20854:____
+            restart: always
+
+#. Now, can create the ``volume`` with the ``index.py`` to create a basic
+   ``hello world`` Flask app, as a first-step for all new projects. 🧑‍💻🙂
+
+   .. code-block:: bash
+
+       # All code files will go here
+       mkdir quotes-app
+
+       # copy the index.py file that you put inside of python/flask:dev
+       cp ~/flask-dev-image/index.py quotes-app/
+
+       # Your directory should look like this:
+       sysadmin@test2:~/flask-quotes$ tree
+       .
+       ├── docker-compose.yml
+       └── quotes-app
+           └── index.py
+
+       1 directory, 2 files
+
+#. Verify the config, start the container, and verify that it returns the expected result:
+
+   .. code-block:: bash
+       :emphasize-lines: 2,13,17
+
+       sysadmin@test2:~/flask-quotes$
+       sysadmin@test2:~/flask-quotes$ docker-compose config
+       services:
+         flask:
+           image: python/flask:dev
+           ports:
+           - 20854:5000/tcp
+           restart: always
+           volumes:
+           - /home/sysadmin/flask-working/flask-quotes/app:/app:rw
+       version: '3.0'
+
+       sysadmin@test2:~/flask-quotes$ docker-compose up -d
+       Starting flaskquotes_html_1 ...
+       Starting flaskquotes_html_1 ... done
+       sysadmin@test2:~/flask-quotes$
+       sysadmin@test2:~/flask-quotes$ curl localhost:20854
+       Hello World! Привет, мир! Сәлем Әлем! ¡Hola Mundo! नमस्ते दुनिया! 안녕하세요! Hallo Welt! 你好，世界!
+       sysadmin@test2:~/flask-quotes$
+
+2.2. Create the reverse proxy
+------------------------------------------------------------------
+
+#. Create sub-domain **pandoc.example.com**
+#. Create your :ref:`nginx-reverse-proxy` using these settings
+
+   * ``server_name quotes.example.com;``
+   * ``proxy_pass http://localhost:20854;``
+
+#. Enable the Nginx Site
+#. Restart Nginx
+#. Verify using curl or using the web browser.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/6/6.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

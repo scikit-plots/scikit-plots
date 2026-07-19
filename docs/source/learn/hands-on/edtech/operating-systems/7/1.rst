@@ -1,0 +1,126 @@
+7.1. Terminating a Process Forcefully
+=====================================
+
+.. include:: ../../includes/prolog.inc
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+Terminating a process in Windows using ``TerminateProcess()`` requires
+the process handle, which can be acquired using the process ID. The
+procedure uses these three functions:
+
+|OpenProcess|
+    Use the PID to acquire the process handle from an existing process
+
+    .. code-block:: c
+
+        HANDLE OpenProcess(
+            DWORD dwDesiredAccess,  // Flags to control access to the process object.
+            BOOL  bInheritHandle,   // Inherit handle
+            DWORD dwProcessId       // Process ID to access
+        );
+
+|TerminateProcess|
+    Terminates the process and all of its threads using the process handle
+
+    .. code-block:: c
+
+        BOOL TerminateProcess(
+            HANDLE hProcess,    // A handle to the process to be terminated.
+            UINT   uExitCode    // The exit code that the process will return
+        );
+
+|CloseHandle|
+    Release the process handle
+
+    .. code-block:: c
+
+        BOOL CloseHandle(
+            HANDLE hObject
+        );
+
+.. caution::
+    * Using function ``TerminateProcess()`` terminates the process
+      immediately.
+    * It does not do it gracefully.
+    * It is equivalent to unplugging the power from your computer
+      instead of using the shutdown procedure.
+
+TerminateProcess() Template Code
+--------------------------------
+
+**Required Include Files**
+
+    .. code-block:: c
+
+        #include <windows.h>
+
+**Basic Usage**
+
+    .. code-block:: c
+
+        DWORD pid;
+        HANDLE process_handle;
+
+        pid = 99999;
+
+        process_handle = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE, TRUE, pid);
+        TerminateProcess(process_handle, 0);
+
+        CloseHandle(process_handle);
+
+7.1.1. Task: Error Handling
+---------------------------
+
+Please create a file called ``lab7.1.c`` from
+the :ref:`template C file <basic-c-template>` for this assignment.
+
+Your first task is to test the error handling.
+
+#. Add error handling to ``TerminateProcess()`` and ``CloseHandle()``
+#. Execute the code using a PID of `99999`. It should be an invalid PID.
+#. Verify that your program prints an error message with the PID.
+
+**Expected Output**
+
+::
+
+    Error terminating PID 99999.
+
+7.1.2. Task: Terminate Process
+------------------------------
+
+Next, terminate a process using a valid process ID
+
+#. Start notepad.exe and add some text.
+
+   a. Press the X button to close the windows and verify that the *Save
+      Dialog* window displays. Press Cancel to close the dialog |br|
+      |image0|
+
+#. Open the *Task Manager* and locate the PID.
+#. Use your code to terminate the process using the PID.
+#. Verify that notepad closes without prompting the user to save the
+   file
+
+You can see that using ``TerminateProcess()`` closes an application in a
+way that is not safe. There are better shutdown methods that wait for the
+application to perform any cleanup code or to send a shutdown signal so
+the process can exit gracefully.
+
+.. |image0| image:: images/notepad-save-as.png
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/operating-systems/7/1.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

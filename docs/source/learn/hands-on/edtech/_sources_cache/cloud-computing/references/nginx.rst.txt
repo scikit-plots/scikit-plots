@@ -1,0 +1,155 @@
+.. _nginx-commands:
+
+**********************
+Nginx Quick References
+**********************
+
+.. contents:: Table of Contents
+
+This page shows how to create an Nginx site.
+
+
+1. Choose an Nginx template.
+=============================
+.. _nginx-html-site:
+
+HTML/PHP Site
+-------------
+To **host local files** create the directories to for site
+``example.com`` and ``www.example.com`` using these commands.
+
+  Create directory
+      .. code-block:: bash
+
+          mkdir -p /var/www/example.com/html
+
+  Create ``index.html`` file
+      .. code-block:: bash
+
+          echo "<h1>Hello world</h1>" > /var/www/example.com/html/index.html
+
+  Create a ``phpinfo`` page
+      .. code-block:: bash
+
+          echo "<?php phpinfo(); ?>" > /var/www/example.com/html/7yLJSaumNw.php
+
+Then, create the Nginx .conf file.
+
+  .. code-block:: bash
+
+      nano /etc/nginx/sites-available/sub.example.com
+
+  .. code-block:: Nginx
+      :caption: HTML/PHP Nginx Template file
+
+      server {
+          listen 80;
+          listen [::]:80;
+
+          root /var/www/example.com/html;
+          index index.html index.htm index.nginx-debian.html index.php;
+
+          server_name example.com www.example.com;
+
+          location / {
+                  try_files $uri $uri/ =404;
+          }
+
+          # pass PHP scripts to FastCGI server
+          #
+          location ~ \.php$ {
+              include snippets/fastcgi-php.conf;
+              fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+          }
+      }
+
+.. _nginx-reverse-proxy:
+
+Reverse Proxy
+-------------
+
+Create a new site called ``sub.example.com`` that is a reverse proxy
+for a hosted application
+
+* Replace the port number in ``proxy_pass http://localhost:8888;``
+
+.. code-block:: bash
+
+    nano /etc/nginx/sites-available/sub.example.com
+
+
+
+.. code-block:: Nginx
+    :caption: Reverse Proxy Nginx Template file
+
+    server {
+        listen 80;
+
+        server_name sub.example.com;
+
+        location / {
+            proxy_pass http://localhost:8888;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+
+2. Enable or Disable an Nginx site
+===================================
+
+Enable an Nginx site
+---------------------
+
+* Use ``ln -s`` to create a symbolic link to ``sites-enabled``
+
+.. code-block:: bash
+
+    ln -s /etc/nginx/sites-available/sub.example.com /etc/nginx/sites-enabled/
+
+
+Disable an Nginx site
+---------------------
+
+* You can remove or delete the symbolic link to disable a site or remove an
+  invalid configuration.
+
+.. code-block:: bash
+
+    rm /etc/nginx/sites-enabled/sub-to-disable.example.com
+
+Verify if site is enabled
+-------------------------
+
+* Perform a directory listing of ``sites-enabled`` to determine if it contains
+  a link to a config
+
+.. code-block:: bash
+
+    ls -lh /etc/nginx/sites-enabled/
+
+3. Verify and Apply Configuration
+==================================
+
+Check for configuration issues
+------------------------------
+
+.. code-block:: bash
+
+    nginx -t
+
+Apply Config Changes
+--------------------
+
+* Restart Nginx to apply config changes using ``systemctl``
+
+.. code-block:: bash
+
+    systemctl restart nginx
+
+* Check the status of Nginx using ``systemctl``
+
+.. code-block:: bash
+
+    systemctl status nginx

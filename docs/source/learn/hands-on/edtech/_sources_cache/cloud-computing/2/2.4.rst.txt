@@ -1,0 +1,517 @@
+******************************
+Step 4: Using Docker Compose
+******************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+We saw how easy it was to load a complex application using ``snap`` and
+``docker -run``. But, both of these methods have limitations.
+
+  #. First, both applications ran as a single unit. However, we know very
+     little about the services, such as where do they store the data?
+  #. Next, how do we make configuration changes?
+
+     + Rocket.Chat did not provide a straight-forward way to configure
+       the service, such as changing the port.
+     + ``docker -run`` provides parameter for configurations. However,
+       using parameters in that format get complicated.
+
+Docker implemented a tool called **Docker Compose** to make running
+multiple containers for the same project easier. Their
+|Overview of Docker Compose| articles states that
+
+    Compose is a tool for defining and running multi-container Docker
+    applications. With Compose, you use a YAML file to configure your
+    application’s services. Then, with a single command, you create
+    and start all the services from your configuration.
+
+Simply put, Docker Compose is a tool that makes it easy to configure
+and run multi-container projects. Read
+|A Practical Introduction to Docker Compose| for an overview and example.
+
+**Resources**
+
+* |Overview of Docker Compose|
+* |A Practical Introduction to Docker Compose|
+* |docker-compose cheatsheet|
+* |Quickstart: Compose and Wordpress|
+
+Reverse Proxies with SSL
+==========================
+
+Modern browsers are becoming more secure. They will not load content
+from a web server that does not meet specific criteria. For example,
+Chrome might not load HTTP (non-secure data) that is requested from
+an SSL connection. This issue is a problem when using a reverse proxy.
+
+  #. The data from the internet to Nginx uses SSL
+  #. The data from Nginx to the internal services use HTTP.
+  #. The service might default to referencing HTTP data for internal
+     links loading images.
+
+Web browsers label data as |mixed content| when the HTML page loads
+using HTTPS but some of the material tries to load using HTTP, such
+as an image or style sheet. This issue is a problem for Wordpress
+because the application uses the fully qualified domain name for the
+internal links. Installing Wordpress using HTTP results in loading the
+data using HTTP because the URL is in the settings file as
+``http://blog.example.com``. Requesting the data using HTTPS still
+results in Wordpress serving the data using insecure HTTP. Here is what
+happens:
+
+  #. Someone requests data from a Wordpress site at
+     ``https://blog.example.com``.
+  #. The web browser and Nginx establish a secure connection.
+  #. Nginx proxy passes the request to the internal Wordpress site using
+     ``http://localhost:8000``.
+  #. The local service responds to the request and sends the HTTP back
+     to Nginx.
+  #. Nginx sends this HTML data to the web browser **using HTTPS**.
+
+     So far, so good! Everything worked as expected. But, the process starts
+     to break down because of how Wordpress operates.
+
+  6. The HTML from Wordpress contains links to data using HTTP because
+     Wordpress was not configured for HTTPS.
+  #. The web browser tries to load images, style sheets, and JavaScript
+     files using HTTP because of how they are linked in the HTML.
+  #. Chrome will **not** load the |mixed content| data because it is
+     not secure.
+
+The solution is to configure Wordpress to use HTTPS inside of the server.
+Alternatively, we can use Wordpress without any encryption.
+
+The Wordpress docker image that we are using today is not configured for
+SSL. We will implement this feature in the next lab.
+
+.. |mixed content| raw:: html
+
+   <a href="https://developers.google.com/web/fundamentals/security/prevent-mixed-content/fixing-mixed-content"
+   target="_blank">mixed content</a>
+
+Create the Nginx WP Site
+===========================
+
+  #. Create a new sub-domain name for our service called ``blog.example.com``.
+  #. Configure :ref:`nginx-reverse-proxy` using these settings:
+
+     * ``server_name blog.example.com;``
+     * ``proxy_pass http://localhost:20851;``
+
+   .. Attention:: Do not configure Wordpress to work with SSL for this lab.
+       You will break it. :))
+
+   .. _simple-wp-in-using-docker-compose:
+
+Installing Wordpress on Docker
+===============================
+
+Docker Compose uses a ``docker-compose.yml`` file to hold the settings,
+which is simpler than trying to put them a single line to use
+``docker -run``. We will install Wordpress in a multi-container
+environment and follow the |Quickstart: Compose and Wordpress| guide.
+These containers and settings are defined as:
+
+  **Wordpress**
+       This container has the web server and the files required
+       for the Wordpress application.
+
+  **Database**
+      This container runs the database and stores that data.
+
+#. First of all, we need to create our project environment.
+
+#. cd to your home directory
+
+   * ``~`` is the shortcut character for your home directory in Linux
+
+#. Make a new directory for the docker files
+#. cd to the directory
+#. Create the ``docker-compose.yml`` file
+
+   .. code-block:: bash
+
+       cd ~
+       mkdir wordpress-docker
+       cd wordpress-docker
+       nano docker-compose.yml
+
+#. Copy and paste the **File contents** listed below.
+
+   .. warning:: Be sure to change the password data.
+
+   Here is some information about parts of the file:
+
+   ``services``
+       Describe the different images the application depends on.
+
+          + This `docker-compose.yml` file has 2 services: ``db``
+            and ``wordpress``
+          + Each service has its own Docker container
+
+   ``ports``
+       These come in pairs: ``20851:80``
+
+          + The left value (20851) are the external ports.
+            This is how you access the service.
+          + Docker will bind to this external port. No other service
+            can use it, just like with port 80.
+          + The right value (80) is the internal port in the docker container.
+
+   ``environment``
+       Contains environmental variables, such as passwords or
+       connection information.
+
+   ``volumes``
+       Indicates where the data is stored.
+
+      + A powerful feature of Docker is that the data can be stored
+        on the host machine.
+      + A Docker container can be added and removed without destroying
+        the data.
+
+   See |docker-compose cheatsheet| for a list of common settings
+   and docker-compose commands
+
+   .. code-block:: bash
+       :caption: File Contents of ``docker-compose.yml``
+       :linenos:
+
+       version: '3'
+
+       services:
+          db:
+            image: mysql:5.7
+            volumes:
+              - db_data:/var/lib/mysql
+            restart: always
+            environment:
+              MYSQL_ROOT_PASSWORD: somewordpress
+              MYSQL_DATABASE: wordpress
+              MYSQL_USER: wordpress
+              MYSQL_PASSWORD: wordpress
+
+          wordpress:
+            depends_on:
+              - db
+            image: wordpress:latest
+            ports:
+              - "20851:80"
+            restart: always
+            environment:
+              WORDPRESS_DB_HOST: db:3306
+              WORDPRESS_DB_USER: wordpress
+              WORDPRESS_DB_PASSWORD: wordpress
+              WORDPRESS_DB_NAME: wordpress
+
+       volumes:
+           db_data: {}
+
+#. Before we can use this file, we need to install ``docker-compose``
+
+   + Use ``apt`` to install ``docker-compose``
+
+   .. code-block:: bash
+
+        apt install -y docker-compose
+
+   .. code-block:: bash
+       :caption: File Contents of docker-compose.yml
+       :linenos:
+       :emphasize-lines: 4
+
+       root@vps298933:~# apt install -y docker-compose
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+         golang-docker-credential-helpers libsecret-1-0 libsecret-common python-asn1crypto python-backports.ssl-match-hostname
+         python-cached-property python-certifi python-cffi-backend python-chardet python-cryptography python-docker python-dockerpty
+         python-dockerpycreds python-docopt python-enum34 python-funcsigs python-functools32 python-idna python-ipaddress python-jsonschema
+         python-mock python-openssl python-pbr python-pkg-resources python-requests python-six python-texttable python-urllib3
+         python-websocket python-yaml
+       Suggested packages:
+         python-cryptography-doc python-cryptography-vectors python-enum34-doc python-funcsigs-doc python-mock-doc python-openssl-doc
+         python-openssl-dbg python-setuptools python-socks python-ntlm
+       The following NEW packages will be installed:
+         docker-compose golang-docker-credential-helpers libsecret-1-0 libsecret-common python-asn1crypto python-backports.ssl-match-hostname
+         python-cached-property python-certifi python-cffi-backend python-chardet python-cryptography python-docker python-dockerpty
+         python-dockerpycreds python-docopt python-enum34 python-funcsigs python-functools32 python-idna python-ipaddress python-jsonschema
+         python-mock python-openssl python-pbr python-pkg-resources python-requests python-six python-texttable python-urllib3
+         python-websocket python-yaml
+       0 upgraded, 31 newly installed, 0 to remove and 7 not upgraded.
+       Need to get 2,045 kB of archives.
+       After this operation, 9,735 kB of additional disk space will be used.
+       Get:1 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/universe amd64 python-backports.ssl-match-hostname all 3.5.0.1-1 [7,024 B]
+       Get:2 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/main amd64 python-pkg-resources all 39.0.1-2 [128 kB]
+
+       .
+       .
+       .
+
+.. _docker-compose-config:
+
+#. Let's use ``docker-compose`` to check our config for syntax errors.
+
+   Docker Compose lacks tools to tell us if something is wrong. Most likely,
+   the build process will fail. Then, we have to look at error logs and
+   double-check the config file to find the problem. But, there is one
+   command that we can use. The ``config`` command will display the parsed
+   config.
+
+   .. code-block:: bash
+
+    docker-compose config
+
+   .. code-block:: bash
+       :caption: Expected Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose config
+       services:
+         db:
+           environment:
+             MYSQL_DATABASE: wordpress
+             MYSQL_PASSWORD: wordpress
+             MYSQL_ROOT_PASSWORD: somewordpress
+             MYSQL_USER: wordpress
+           image: mysql:5.7
+           restart: always
+           volumes:
+           - db_data:/var/lib/mysql:rw
+         wordpress:
+           depends_on:
+           - db
+           environment:
+             WORDPRESS_DB_HOST: db:3306
+             WORDPRESS_DB_NAME: wordpress
+             WORDPRESS_DB_PASSWORD: wordpress
+             WORDPRESS_DB_USER: wordpress
+           image: wordpress:latest
+           ports:
+           - published: 20851
+             target: 80
+           restart: always
+       version: '3.3'
+       volumes:
+         db_data: {}
+
+
+   .. code-block:: bash
+       :caption: Output with an error
+       :emphasize-lines: 3,5
+
+       root@vps298933:~/wordpress-docker# docker-compose config
+       ERROR: yaml.scanner.ScannerError: while scanning a quoted scalar
+         in "./docker-compose.yml", line 20, column 10
+       found unexpected end of stream
+         in "./docker-compose.yml", line 29, column 1
+
+#. Now, we can use it to bring up our Wordpress container in Docker
+   using a single command.
+
+   #. First, it will pull the images
+   #. Then, it will configure them
+   #. Lastly, it will start everything
+
+   ``docker-compose up -d``
+       Brings up the docker project in daemon mode,
+       which runs as a background process.
+
+   .. code-block:: bash
+
+       docker-compose up -d
+
+.. code-block:: bash
+       :caption: Expected Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating volume "wordpressdocker_db_data" with default driver
+       Pulling db (mysql:5.7)...
+       5.7: Pulling from library/mysql
+       f7e2b70d04ae: Already exists
+       df7f6307ff0a: Pull complete
+       e29ed02b1013: Pull complete
+       9cb929db392c: Pull complete
+       42cc77b24286: Pull complete
+       a6d57750cc73: Pull complete
+       79510826e343: Pull complete
+       07e462ad61e2: Pull complete
+       fa594cb5b94d: Pull complete
+       1b44278270ad: Pull complete
+       3edb3c323f55: Pull complete
+       Digest: sha256:de482b2b0fdbe5bb142462c07c5650a74e0daa31e501bc52448a2be10f384e6d
+       Status: Downloaded newer image for mysql:5.7
+       Pulling wordpress (wordpress:latest)...
+       latest: Pulling from library/wordpress
+       f7e2b70d04ae: Already exists
+       744aedb7995c: Already exists
+       07afe22f8a58: Already exists
+       c7bf4f31c4a4: Already exists
+       b528e75732cc: Already exists
+       27e7d214ded2: Already exists
+       894549c23c16: Already exists
+       9aa6d55932b2: Already exists
+       1b27fd7479e6: Already exists
+       eacdac7d65c9: Already exists
+       66f1bd2ad7cf: Already exists
+       ee6444380c18: Already exists
+       1500f6dd9b69: Already exists
+       1f46aeaf0e2e: Pull complete
+       d4b6b88c01e5: Pull complete
+       eb7cc6472e9b: Pull complete
+       26c88820e55b: Pull complete
+       4fd212eb4216: Pull complete
+       23aad935a8b7: Pull complete
+       Digest: sha256:3878c152a64c4cfe022d12c64e8de67e503b1d61148d51f59a8d54d7283945a2
+       Status: Downloaded newer image for wordpress:latest
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+
+#. Let's verify that the application is running in Docker
+
+   As you can see, two containers are running. One is for
+   Wordpress and the other is the MySQL.
+
+   .. code-block:: bash
+
+       docker ps
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                               NAMES
+       73c6e26ca580        wordpress:latest     "docker-entrypoint.s…"   28 seconds ago      Up 26 seconds       0.0.0.0:20851->80/tcp               wordpressdocker_wordpress_1
+       c86eea615046        mysql:5.7            "docker-entrypoint.s…"   31 seconds ago      Up 27 seconds       3306/tcp, 33060/tcp                 wordpressdocker_db_1
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   18 hours ago        Up About a minute   0.0.0.0:20850->80/tcp               condescending_agnesi
+
+
+#. You can look at the install log using ``docker-compose logs``
+   to debug errors.
+
+   .. code-block:: bash
+
+       docker-compose logs
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose logs
+       Attaching to wordpressdocker_wordpress_1, wordpressdocker_db_1
+       wordpress_1  | WordPress not found in /var/www/html - copying now...
+       wordpress_1  | Complete! WordPress has been successfully copied to /var/www/html
+       wordpress_1  | [23-Mar-2019 10:32:47 UTC] PHP Warning:  mysqli::__construct(): (HY000/2002): Connection refused in Standard input code on line 22
+       wordpress_1  |
+       wordpress_1  | MySQL Connection Error: (2002) Connection refused
+       wordpress_1  |
+       wordpress_1  | MySQL Connection Error: (2002) Connection refused
+       wordpress_1  |
+       wordpress_1  | MySQL Connection Error: (2002) Connection refused
+       wordpress_1  | AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 172.18.0.3. Set the 'ServerName' directive globally to suppress this message
+       wordpress_1  | AH00558: apache2: Could not reliably determine the server's fully qualified domain name, using 172.18.0.3. Set the 'ServerName' directive globally to suppress this message
+       wordpress_1  | [Sat Mar 23 10:32:56.926860 2019] [mpm_prefork:notice] [pid 1] AH00163: Apache/2.4.25 (Debian) PHP/7.2.16 configured -- resuming normal operations
+       wordpress_1  | [Sat Mar 23 10:32:56.931533 2019] [core:notice] [pid 1] AH00094: Command line: 'apache2 -D FOREGROUND'
+       db_1         | Initializing database
+       db_1         | 2019-03-23T10:32:45.590996Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+       db_1         | 2019-03-23T10:32:46.528905Z 0 [Warning] InnoDB: New log files created, LSN=45790
+       db_1         | 2019-03-23T10:32:46.730625Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+       db_1         | 2019-03-23T10:32:46.809037Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: fff20d79-4d56-11e9-a63c-0242ac120002.
+       db_1         | 2019-03-23T10:32:46.816986Z 0 [Warning] Gtid table is not ready to be used. Table 'mysql.gtid_executed' cannot be opened.
+       db_1         | 2019-03-23T10:32:46.818083Z 1 [Warning] root@localhost is created with an empty password ! Please consider switching off the --initialize-insecure option.
+       db_1         | 2019-03-23T10:32:48.122955Z 1 [Warning] 'user' entry 'root@localhost' ignored in --skip-name-resolve mode.
+       db_1         | 2019-03-23T10:32:48.123258Z 1 [Warning] 'user' entry 'mysql.session@localhost' ignored in --skip-name-resolve mode.
+       .
+       .
+       .
+
+
+#. If you have an error or the project won't run, correct the problem,
+   and then try again
+
+   .. note::
+       ``docker-compose down -v`` stops and **removes** the containers
+       and **volume data**.
+
+   .. code-block:: bash
+
+       docker-compose down -v
+       nano docker-compose.yml
+       docker-compose up -d
+
+    .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker#     docker-compose down -v
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_db_1        ... done
+       Removing wordpressdocker_wordpress_1 ... done
+       Removing wordpressdocker_db_1        ... done
+       Removing network wordpressdocker_default
+       Removing volume wordpressdocker_db_data
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# nano docker-compose.yml
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating volume "wordpressdocker_db_data" with default driver
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                               NAMES
+       c4f82fd25533        wordpress:latest     "docker-entrypoint.s…"   20 minutes ago      Up 20 minutes       0.0.0.0:20851->80/tcp               wordpressdocker_wordpress_1
+       41ad2e5fc7e6        mysql:5.7            "docker-entrypoint.s…"   20 minutes ago      Up 20 minutes       3306/tcp, 33060/tcp                 wordpressdocker_db_1
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   18 hours ago        Up 39 minutes       0.0.0.0:20850->80/tcp               condescending_agnesi
+
+#. We can test the `wordpressdocker_wordpress_1` container to verify
+   that it returns a valid HTTP code
+
+   .. code-block:: bash
+
+       curl --head http://localhost:20851
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# curl --head http://localhost:20851
+       HTTP/1.1 302 Found
+       Date: Sat, 23 Mar 2019 11:45:14 GMT
+       Server: Apache/2.4.25 (Debian)
+       X-Powered-By: PHP/7.2.16
+       Expires: Wed, 11 Jan 1984 05:00:00 GMT
+       Cache-Control: no-cache, must-revalidate, max-age=0
+       X-Redirect-By: WordPress
+       Location: http://localhost:20851/wp-admin/install.php
+       Content-Type: text/html; charset=UTF-8
+
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# curl --head http://blog.example.com
+       HTTP/1.1 302 Found
+       Server: nginx/1.14.0 (Ubuntu)
+       Date: Sat, 23 Mar 2019 11:45:35 GMT
+       Content-Type: text/html; charset=UTF-8
+       Connection: keep-alive
+       X-Powered-By: PHP/7.2.16
+       Expires: Wed, 11 Jan 1984 05:00:00 GMT
+       Cache-Control: no-cache, must-revalidate, max-age=0
+       X-Redirect-By: WordPress
+       Location: http://blog.example.com/wp-admin/install.php
+
+#. Our Wordpress instance should be live and accessible using the URL.
+
+   .. Attention:: Do not configure Wordpress to work with SSL for this lab.
+       You will break it. :))

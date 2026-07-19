@@ -1,0 +1,102 @@
+*******************
+Templates
+*******************
+
+These pages contain quick reference guides to NASM.
+
+.. toctree::
+   :maxdepth: 3
+
+.. _nasm_template:
+
+NASM Template
+================
+
+.. note::
+    Please see :ref:`posix_env_setup` to install the required packages
+    and libraries.
+
+.. code-block:: text
+
+    ; include directives
+    global asm_main
+    %include "../lib/asm_io.inc"
+
+    segment .data
+        ; DX directives (read only, static data)
+
+    segment .bss
+        ; RESX directives (writable data)
+
+    segment .text
+    asm_main:                    ; entry point (called from driver.c)
+        ; instructions
+
+        enter 0,0                ; Initialize register EBP
+        pusha                    ; Push register contents to the stack
+        ;
+        ; Your program here
+        ;
+        popa                     ; Restore register data from the stack
+        mov eax, 0               ; flush EAX of data
+        leave                    ; restore the stack
+        ret                      ; Return from main back into C library wrapper
+
+Makefile 32-bit Template
+===========================
+
+.. note::
+    - A Makefile requires the use of tabs (ASCII symbol ``HT``,
+      code ``0x09``) instead of blank spaces.
+    - HTML does not display a tab or HT. You will need to copy/paste
+      a HT from notepad if your text editor does not support tabs.
+    - Here is the error code that you will receive if you do not use
+      a tab on line number 2.
+
+      .. code-block:: bash
+
+          Makefile:2: *** missing separator.  Stop.
+
+.. code-block:: make
+
+    # compiles the project files (project_name.asm)
+    # Compiles dependencies if they are not up to date
+    project_name: asm_io.o driver.o project_name.o
+        @echo "Building project_name.asm"
+        @gcc -m32 driver.o project_name.o asm_io.o -o project_name
+        @rm project_name.o		# Remove project_name.o to force a recompile each time
+        ./project_name
+
+    # Build project_name.asm
+    project_name.o:
+        @nasm -f elf project_name.asm -o project_name.o
+
+    # Build asm_io.asm
+    asm_io.o:
+        @nasm -f elf -d ELF_TYPE ../lib/asm_io.asm -o asm_io.o
+
+    # Build driver.c
+    driver.o:
+        @gcc -m32 -c ../lib/driver.c -o driver.o
+
+    # Clean up and then rebuild all (asm_io.asm, driver.c, and project_name.asm)
+    all: clean project_name
+
+    # Removes all .o and temporary files
+    clean:
+        @echo "Cleaning up..."
+        @rm -f *.o
+        @rm -f project_name
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/nasm/resources/templates.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

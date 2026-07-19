@@ -9,6 +9,17 @@ Best Linear Predictor of a Stationary Process
 :doc:`◀ Previous · Understanding ACFs via Difference Equations for AR(p) and ARMA(p, q) <08-understanding-acfs-via-difference-equations-for-ar-p-and-arma-p-q>`   ·   :doc:`Next · Sample ACF and Sample PACF ▶ <10-sample-acf-and-sample-pacf>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 The prediction problem
 ------------------------
 

@@ -9,6 +9,17 @@ Notation
 :doc:`◀ Previous · Robust regression using t-distributed errors <117-robust-regression-using-t-distributed-errors>`   ·   :doc:`Next · Multiple imputation ▶ <119-multiple-imputation>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 A language for missingness
 ----------------------------
 

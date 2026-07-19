@@ -1,0 +1,85 @@
+Step 5: Create another User
+===========================
+
+.. include:: urls.rst
+
+.. include:: ../../includes/prolog.inc
+
+.. contents:: Table of Contents
+
+Another method of logging in without the root password is to create a user
+with restricted rights.
+
+  * The user could be a part of SUDO group
+  * Or, you can ``su root`` when you need root access
+
+Create Non-privileged User
+--------------------------
+You can do most of your work without logging in as root. At times
+you will still need to use root privileges.
+
+This text is from OVH's |Securing a VPS| guide.
+
+#. Creating a user with restricted rights, and intervening in the system
+   with root rights.
+
+   * You can create a new user with the following command: |br|
+
+   .. code-block:: bash
+
+       adduser CustomUserName
+
+#. Then fill in the information requested by the system (password, name, etc.).
+   This user will be allowed to log in to your system via SSH, with the
+   password specified when the account was created.
+
+#. Once you are logged in to your system with these credentials, if you want
+   to perform operations that require root rights, simply type the following
+   command:
+
+   .. code-block:: bash
+
+       su root
+
+#. You must then enter the password associated with the root user to validate
+   the operation.
+
+Add a Limited User account
+--------------------------
+
+Another option is to |add a limited user account|.
+
+The process is simple for Ubuntu.
+
+#. Add a user
+
+   .. code-block:: bash
+
+       adduser CustomUserName
+
+#. Then, add the user to the ``sudo`` group.
+
+   * |Linux 101: Introduction to sudo| explains about sudo |br|
+
+   .. code-block:: bash
+
+       adduser CustomUserName sudo
+
+#. This user can use elevated privileges by prefixing every command with
+   ``sudo``. The user will have to enter their password during the sessions.
+
+.. note:: It is recommended that you use a password-less login for all users.
+    Instead, create SSH keys for the logins.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/8/8.5.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

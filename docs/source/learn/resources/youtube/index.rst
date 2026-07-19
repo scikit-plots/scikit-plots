@@ -34,13 +34,13 @@ YouTube Resources
 Channels
 ------------------
 
-* `Channel: Statistics Globe
+* `Statistics Globe
   <https://www.youtube.com/@StatisticsGlobe>`_
   by Joachim Schork
 
-* `Tutorials at Statistics Globe
-  <https://statisticsglobe.com/tutorials>`_
-  by Joachim Schork
+  * `Tutorials at Statistics Globe
+    <https://statisticsglobe.com/tutorials>`_
+    by Joachim Schork
 
 
 ------------------

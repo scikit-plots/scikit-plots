@@ -1,0 +1,135 @@
+.. _paas-tools:
+
+**********************
+PaaS Tools
+**********************
+
+.. contents:: Table of Contents
+
+Installing a PaaS tool requires configuring a VPS differently than we do in
+these labs. PaaS platforms need to act as the gateway. By default, they do
+not operate in a reverse-proxy system. This section describes three PaaS tools
+that you can explore later.
+
+**Why use a** |PaaS| **tool?**
+
+  Using a platform allows you to automate what you have you been doing manually
+  using Docker and Nginx. These tools create an execution environment for you.
+  They remove the maintenance element.
+
+.. |PaaS| raw:: html
+
+   <a href="https://www.cloudflare.com/learning/serverless/glossary/platform-as-a-service-paas/" target="_blank">PaaS</a>
+
+
+CapRover
+--------
+|CapRover| advertises their product as "an extremely easy to use app/database
+deployment & web server manager for your NodeJS, Python, PHP, ASP.NET, Ruby,
+MySQL, MongoDB, Postgres, WordPress (and etc...) applications!" You can view
+their demo site.
+
+Here are some resources to help you if you want to explore CapRover.
+
+* |CapRover - Getting Started|
+* |How I built a replacement for Heroku and cut my platform costs by 4X|
+
+.. |CapRover| raw:: html
+
+   <a href="https://caprover.com/" target="_blank">CapRover</a>
+
+.. |CapRover - Getting Started| raw:: html
+
+   <a href="https://caprover.com/docs/get-started.html/" target="_blank">CapRover - Getting Started</a>
+
+.. |How I built a replacement for Heroku and cut my platform costs by 4X| raw:: html
+
+   <a href="https://medium.freecodecamp.org/how-i-cut-my-heroku-cost-by-400-5b9d0220ce13" target="_blank">How I built a replacement for Heroku and cut my platform costs by 4X</a>
+
+Dokku
+-----
+|Dokku| is a Docker-powered PaaS implementation that is a mini-version of
+|Heroku|. They advertise the service as *The smallest PaaS implementation
+you've ever seen*.
+
+Here some resources to explore.
+
+* |Dokku (GitHub)|
+* |Getting Started with Dokku (GitHub)|
+* |How to Deploy and Use Dokku on Ubuntu 18.04|
+
+.. |Dokku| raw:: html
+
+   <a href="http://dokku.viewdocs.io/dokku/" target="_blank">Dokku</a>
+
+.. |Heroku| raw:: html
+
+   <a href="https://www.heroku.com/" target="_blank">Heroku</a>
+
+.. |Dokku (GitHub)| raw:: html
+
+   <a href="https://github.com/dokku/dokku" target="_blank">Dokku (GitHub)</a>
+
+.. |Getting Started with Dokku (GitHub)| raw:: html
+
+   <a href="https://github.com/dokku/dokku/blob/master/docs/getting-started/installation.md" target="_blank">Getting Started with Dokku (GitHub)</a>
+
+.. |How to Deploy and Use Dokku on Ubuntu 18.04| raw:: html
+
+   <a href="https://computingforgeeks.com/how-to-deploy-dokku-on-ubuntu-18-04/" target="_blank">How to Deploy and Use Dokku on Ubuntu 18.04</a>
+
+
+
+OpenShift Origin (OKD)
+----------------------
+|OpenShift| is a family of containerization software developed by Red Hat built
+around Docker containers orchestrated and managed by Kubernetes.
+|OpenShift Origin| or OKD (Origin Community Distribution) is the open source
+versions OpenShift Enterprise. It is Kubernetes for Developers that provides
+an open source application container platform.
+
+
+Here are some resources if your want to explore OpenShift Origin (OKD)
+
+* |OpenShift (Wikipedia)|
+* |OpenShift (GitHub)|
+* |Install OpenShift Origin on Ubuntu 18.04|
+* |10 most important differences between OpenShift and Kubernetes|
+
+
+.. |OpenShift| raw:: html
+
+   <a href="https://openshift.com/" target="_blank">OpenShift</a>
+
+.. |OpenShift Origin| raw:: html
+
+   <a href="https://www.okd.io/" target="_blank">OpenShift Origin</a>
+
+.. |OpenShift (Wikipedia)| raw:: html
+
+   <a href="https://en.wikipedia.org/wiki/OpenShift" target="_blank">OpenShift Origin (Wikipedia)</a>
+
+.. |OpenShift (GitHub)| raw:: html
+
+   <a href="https://github.com/openshift/origin/" target="_blank">OpenShift (GitHub)</a>
+
+.. |Install OpenShift Origin on Ubuntu 18.04| raw:: html
+
+   <a href="https://medium.com/@maheshacharya_44641/install-openshift-origin-on-ubuntu-18-04-7b98773c2ee6" target="_blank">Install OpenShift Origin on Ubuntu 18.04</a>
+
+.. |10 most important differences between OpenShift and Kubernetes| raw:: html
+
+   <a href="https://cloudowski.com/articles/10-differences-between-openshift-and-kubernetes/|" target="_blank">10 most important differences between OpenShift and Kubernetes</a>
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/references/paas.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

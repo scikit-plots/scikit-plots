@@ -1,0 +1,318 @@
+**************************
+Lab 4: Fibonacci Sequence
+**************************
+
+.. include:: /includes/prolog.inc
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+Overview
+==========
+You will write a program to calculate the Fibonacci Sequence of a number
+using pointers.
+
+
+Fibonacci Sequence
+--------------------------
+The Fibonacci Sequence is a pattern that is |found in the real world|.
+|Search Google Images for more pictures!|
+
+The |Fibonacci number| sequence starts with
+
+  .. code-block:: text
+
+      0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, ...
+
+You can calculate the next number in sequence by adding the
+two previous numbers, starting with 0 and 1
+
+  .. code-block:: text
+
+              0
+              1
+      1 + 1 = 2
+      1 + 2 = 3
+      2 + 3 = 5
+      3 + 5 = 8
+      5 + 8 = 13
+      . . .
+
+  .. csv-table:: Fibonacci Sequence
+
+      n = , 0,1,2,3,4,5,6,7,8,9,10,11
+      x :sub:`n` = ,0,1,1,2,3,5,8,13,21,34,55,89
+
+
+Resources
+
+  - http://www.maths.surrey.ac.uk/hosted-sites/R.Knott/Fibonacci/fibnat.html
+  - https://www.mathsisfun.com/numbers/fibonacci-sequence.html
+  - https://en.wikipedia.org/wiki/Fibonacci_number
+
+Pointers in C
+---------------------
+C uses pointers to pass the address of a location in memory. Directly
+modifying the contents of memory has some benefits.
+
+Modifying Values by Reference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C passes values to functions by default, not a pointer. These values
+are assigned a new a location in memory.
+
+  .. code-block:: c
+      :caption: run this code on https://ide.judge0.com/
+
+      #include <stdio.h>
+
+      int my_func(int, int);
+
+      int main(void) {
+
+          int x = 5;
+          int y = 6;
+
+          int result = my_func(x, y);
+
+          // These values are still x = 5 and y =6.
+          printf("x = %d; y = %d\n", x, y);
+          printf("result = %d \n", result);
+
+          return 0;
+      }
+
+      int my_func(int x, int y)
+      {
+         // int x and int y are values limited to this function only
+          x = 9;
+          y = 11;
+
+          return x + y;
+      }
+
+  .. code-block:: text
+      :caption: Output
+
+      x = 5; y = 6
+      result = 20
+
+However, you can pass the pointer to a function to change the value
+of the original memory location.
+
+  .. code-block:: c
+      :caption: run this code on https://ide.judge0.com/
+
+      int my_func(int *, int *);
+
+      int main(void) {
+
+          int x = 5;
+          int y = 6;
+
+          int result = my_func(&x, &y);
+
+          // These values have changed! x = 9 and y = 11.
+          printf("x = %d; y = %d\n", x, y);
+          printf("result = %d \n", result);
+
+          return 0;
+      }
+
+      int my_func(int *x, int *y)
+      {
+          // int x and int y are pointers to memory locations.
+          // Modifying x and y change the values of the caller
+          *x = 9;
+          *y = 11;
+
+          return *x + *y;
+      }
+
+  .. code-block:: text
+      :caption: Output
+
+      x = 9; y = 11
+      result = 20
+
+Passing arguments by reference allows you to return multiple variables
+from a function by modifying the contents of the original pointer.
+
+Arrays
+^^^^^^^
+
+Another use of pointers is for arrays and strings because C does not an
+array or string type. Instead, the variable declaration is the
+address of the first value in the array. The ``[]`` syntax is
+just another way to work with arrays. Consider these three
+examples.
+
+.. code-block:: c
+    :caption: run this code on https://ide.judge0.com/
+
+    // These three declarations are the same
+    char string1[10]="Some text";
+    char string2[10]={'S','o','m','e',' ','t','e','x','t','\0'};
+    char *string3 = "Some text";
+
+    // Print the char arrays directly
+    printf("%s \n", string1);
+    printf("%s \n", string2);
+    printf("%s \n", string3);
+    printf("\n");
+
+    // Print each char of each array using [] syntax
+    for (int i = 0; i < 10; i++)
+    {
+        printf("%d   \t", string1[i]);
+        printf("%d   \t", string2[i]);
+        printf("%d   \n", string3[i]);
+    }
+
+    printf("\n");
+
+    // Print each char of each array using the memory offset
+    for (int i = 0; i < 10; i++)
+    {
+        char char1 = *(string1 + i);
+        char char2 = *(string2 + i);
+        char char3 = *(string3 + i);
+        printf("%d   \t", char1);
+        printf("%d   \t", char2);
+        printf("%d   \n", char3);
+    }
+
+.. code-block:: text
+    :caption: Output
+
+    Some text
+    Some text
+    Some text
+
+    83     83     83
+    111    111    111
+    109    109    109
+    101    101    101
+    32     32     32
+    116    116    116
+    101    101    101
+    120    120    120
+    116    116    116
+    0      0      0
+
+    83     83     83
+    111    111    111
+    109    109    109
+    101    101    101
+    32     32     32
+    116    116    116
+    101    101    101
+    120    120    120
+    116    116    116
+    0      0      0
+
+Resource:
+
+  - https://en.wikibooks.org/wiki/C_Programming/Pointers_and_arrays
+  - https://www.codingunit.com/c-tutorial-how-to-use-pointers
+  - https://www.codingunit.com/c-tutorial-more-on-pointers
+  - http://duramecho.com/ComputerInformation/WhyCPointers.html
+  - https://www.geeksforgeeks.org/applications-of-pointers-in-c-cpp/
+
+
+Task 1: Calculate the Fibonacci Sequence
+==========================================
+
+#. Open up |ide.judge0.com| VSC and GCC. Use the
+   :ref:`complete-c-template`.
+#. Calculate the |Fibonacci number| up to the 10th sequence.
+
+   .. csv-table:: Fibonacci Sequence
+
+       n = , 0,1,2,3,4,5,6,7,8,9,10,11
+       x :sub:`n` = ,0,1,1,2,3,5,8,13,21,34,55,89
+
+
+.. _fibonacci-task2:
+
+Task 2: Create a Function with Pointers
+==========================================
+You saw that your algorithm has three variables:
+``previous``, ``next``, and ``swap``
+
+Now, **you will do all of the work** in a function called
+``calc_fibonacci()``. Here is the program flow:
+
+  a. In ``main()``, you will call function ``calc_fibonacci()`` and pass
+     variables ``previous`` and ``next``, starting with 0 and 1.
+  #. You will perform the calculation in ``calc_fibonacci()``.
+  #. ``calc_fibonacci()`` will return the next number in the Fibonacci
+     sequence.
+  #. You will print that number in ``main()``.
+  #. Repeat ``n`` times.
+
+You might wonder how you can keep track of the previous number if
+``calc_fibonacci()`` only returns ``next``. The answer is to use
+a pointer! The function returns the next value in the sequence and
+updates the previous value in memory.
+
+
+#. Create a function using this prototype
+
+   .. code-block:: C
+
+       /**
+         * Calculates the next Fibonacci number
+         * unsigned int next:        The next number in the Fibonacci sequence
+         * unsigned int *previous:   The pointer to the previous number in the Fibonacci sequence
+         * return value:             The next number in the Fibonacci sequence (next + previous)
+         */
+       unsigned int calc_fibonacci(unsigned int, unsigned int*);
+
+#. Start with this code in ``main()``.
+
+   .. code-block:: C
+
+       int count = 10;
+
+       unsigned int previous = 0;
+       unsigned int next = 1;
+
+       printf("%u ", previous);
+
+       for (int i = 0; i < count; i++)
+       {
+           printf("%u ", next);
+
+           // Only modify the following line
+           // call function with prototype: unsigned int calc_fibonacci(unsigned int, unsigned int *)
+       }
+
+#. Calculate the value in ``calc_fibonacci()``
+#. Print the value in ``main()``.
+#. Continue n times.
+
+
+Task 3: Implement Command line Args
+==========================================
+#. Pass a user provided value into ``fibonacci.exe`` using command line args.
+#. Print this message if there are no args:
+
+   .. code-block:: text
+
+       Usage: fibonacci [integer]
+
+#. Determine the largest input number for your |C data type|
+   (int, long, long long, etc.)
+#. Print an error message if the user tries to input too big of a number.
+
+
+Solution File
+==============================
+
+See the the solution file if need help.
+
+.. toctree::
+   :caption: Lab 4 Solution
+
+   fibonacci-solution

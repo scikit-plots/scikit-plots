@@ -1,0 +1,51 @@
+.. _C Programming Resources:
+
+************************
+C Programming Resources
+************************
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+This page contains a list of resources for programming in C. These
+resources are ranked in order of value or most helpful.
+
+Guides or Tutorials
+====================
+
+#. |C Tutorials| - CodingUnit
+
+   - A professional and insightful introduction to C
+#. |C Programming Language Tutorial| - javaTpoint
+
+   - The site contains a valuable C Programming Index list.
+#. |C Programming| - WikiBooks
+
+   - Essential topics for the for C programmer
+#. |C Tutorial| - tutorialspoint.com
+
+   - The site is well organized and easy to follow. It is a guide
+     to start programming in C quickly.
+#. |C Programming Tutorial (BeginnersBook)| - BeginnersBook
+
+   - The sites contains code samples for each type of operation.
+#. |Learn C Programming| - Programiz
+
+   - The sites contains a lot of code examples for each type of operation.
+#. |Learn-C.org|
+
+   - Presents some of the material differently to improve
+     understanding.
+
+Library References
+===================
+
+#. |C Run-Time Library Reference| - Microsoft run-time library
+#. |C Standard Library Reference Tutorial| - tutorialspoint.com
+
+Android
+=======
+
+#. |C Programming - Learn Code, Theory & Discuss| (Free)
+#. |Learn C Programming| - Android App

@@ -1,0 +1,52 @@
+*********************************
+Step 1: Install a Code Editor
+*********************************
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Install a powerful text editor to assist us in writing
+code in C.
+
+|Visual Studio Code| is a powerful open-source code editor. It contains
+extensions that will aid us in writing C and ASM code, which we will use
+later. We can also create macros that will automatically compile and then
+execute our files as we save them.
+
+.. note:: VSC is not required, but it the recommended code editor for
+    this course.
+
+Install Visual Studio Code
+===============================
+
+#. Download the installer from the |Visual Studio Code| home page.
+
+   - View the |getting started| page to help you install it or browse
+     for extensions.
+#. Complete the installer and then open Visual Studio Code.
+
+Install Essential Extensions
+===============================
+
+Initially, we'll install three important C and ASM extensions to help us.
+
+#. Select the `Extensions` icon on the left side of the Visual Studio Code
+   window (5th icon from the top).
+#. Search for and install extension |C/C++|.
+#. Search for and and install extension |x86 and x86_64 Assembly|.
+#. Search for and install extension |Code Runner| to execute C and ASM
+   files in VSC directly.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/c/windows-install/1.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

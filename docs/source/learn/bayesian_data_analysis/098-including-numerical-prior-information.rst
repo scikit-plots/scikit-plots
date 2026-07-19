@@ -9,6 +9,17 @@ Including numerical prior information
 :doc:`◀ Previous · Unequal variances and correlations <097-unequal-variances-and-correlations>`   ·   :doc:`Next · Regression coeﬃcients exchangeable in batches ▶ <099-regression-coefficients-exchangeable-in-batches>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Quantitative prior knowledge
 ------------------------------
 

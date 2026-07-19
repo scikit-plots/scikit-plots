@@ -9,6 +9,17 @@ Nominal Classification Models: Model State and Evaluation Metrics
 :doc:`◀ Previous · Binary Classification Models – Conceptual Framework and Evaluation Metrics <51-binary-classification-models-conceptual-framework-and-evaluation-metrics>`   ·   :doc:`Next · Binary Classification Model Evaluation and Threshold Optimization ▶ <53-binary-classification-model-evaluation-and-threshold-optimization>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Beyond two classes
 --------------------
 

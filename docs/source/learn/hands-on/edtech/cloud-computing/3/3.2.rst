@@ -1,0 +1,414 @@
+***************************
+Step 2: Configure Volumes
+***************************
+
+.. contents:: Table of Contents
+
+**Objective**: Create volumes that move the data from the container
+to the host machine. That data is a shared space that both can access,
+but it resides on the host and not in the container.
+
+
+.. |https://hub.docker.com/_/mariadb/| raw:: html
+
+   <a href="https://hub.docker.com/_/mariadb/" target="_blank">https://hub.docker.com/_/mariadb/</a>
+
+
+Modify ``docker-compose.yml`` Configuring File
+==================================================
+Now, let's look at how we can further separate components using Docker. We'll
+start with our
+:ref:`WordPress project from lab 2 <simple-wp-in-using-docker-compose>`
+and then modify it.
+
+To start, cd (change directory) to the project directory and create a new
+``docker-compose.yml`` file.
+
+.. code-block:: bash
+
+    cd ~                        # Change to your home directory
+    cd wordpress-docker         # Change to the project directory
+    nano docker-compose.yml     # Edit the yml file
+
+We'll start with last week's project and modify it to include volumes.
+
+.. Note:: YAML syntax is particular about indentations. Verify the number of
+   spaces before the property if you are getting an error.
+
+#. First, let's change from ``mysql:5.7`` to ``mariadb``.
+
+   MariaDB is a fork of MySQL that is released under the GNU GPL. MySQL
+   is owned by Oracle. The SQL structure of the databases is the same.
+   So, we can simply change the name of the image to use MariaDB instead
+   of MySQL. Pretty cool!
+
+   a. Change ``image: mysql:5.7`` to ``image: mariadb``
+   #. Docker will then pull the image from hub.docker.com with tag ``mariadb``,
+      which is this container |https://hub.docker.com/_/mariadb/|.
+
+#. Next, let's modify the **volume** for our database.
+
+   Volumes allow us to keep the data outside of the docker container. The
+   container uses them and has access to the volume data, but
+   **the data stay on the host machine**. There are some benefits.
+
+   a. First, you have easy access to the data. You can back it up easily.
+   #. Then, the containers become disposable. The containers can stop and even
+      be deleted without erasing the data.
+
+      - Starting the project will create new containers and use the same data.
+        By default, Docker stores the volume data within the var folder unless
+        you specify a path.
+      - The line ``- db_data:/var/lib/mysql`` says the MySQL folder
+        ``/var/lib/mysql`` in the container is stored in the folder
+        ``db-data`` someplace on the host machine. We want to store this
+        data in our project folder, so let's modify the path.
+      - **Change** ``db_data:/var/lib/mysql`` to ``./db_data:/var/lib/mysql``
+
+     The ``./`` in the path tells Docker to use the current directory store
+     ``db_data``, which is our project folder. The project folder always
+     contains the `docker-compose.yml` file.
+
+#. Then, we want to configure **named volumes**.
+
+   A named volume allows for volume-specific configurations. We won't be using
+   them, but we'll still define them.
+
+#. Next, let's create volumes for our **Wordpress data**.
+
+   The Wordpress container stores the HTML data in ``/var/www/html``.
+   We will store this data in a directory called ``wordpress`` on the
+   host machine so we can separate it from the container. It also
+   allows us to edit it the Wordpress configuration files easily.
+
+   a. In the ``wordpress`` section, create a property called ``volumes:``
+      directly below ``images``.
+   #. Create a volume that links ``wordpress`` to ``/var/www/html``
+   #. Add this line: ``- ./wordpress:/var/www/html``
+   #. Add the named value to the volumes section ``wordpress: {}``
+
+   The **wordpress** section should look like this:
+
+    .. code-block:: bash
+        :emphasize-lines: 5,6
+
+        wordpress:
+          depends_on:
+            - db
+          image: wordpress:latest
+          volumes:
+            - ./wordpress:/var/www/html
+
+#. Exit and save the file.
+
+   Your file should look like this:
+
+   .. code-block:: bash
+       :caption: docker-compose.yml
+       :linenos:
+       :emphasize-lines: 5,7,19-20,31,32
+
+       version: '3.3'
+
+       services:
+          db:
+            image: mariadb:latest
+            volumes:
+              - ./db_data:/var/lib/mysql
+            restart: always
+            environment:
+              MYSQL_ROOT_PASSWORD: somewordpress
+              MYSQL_DATABASE: wordpress
+              MYSQL_USER: wordpress
+              MYSQL_PASSWORD: wordpress
+
+          wordpress:
+            depends_on:
+              - db
+            image: wordpress:latest
+            volumes:
+              - ./wordpress:/var/www/html
+            ports:
+              - "20851:80"
+            restart: always
+            environment:
+              WORDPRESS_DB_HOST: db:3306
+              WORDPRESS_DB_USER: wordpress
+              WORDPRESS_DB_PASSWORD: wordpress
+              WORDPRESS_DB_NAME: wordpress
+
+       volumes:
+           db_data: {}
+           wordpress: {}
+
+   .. note::
+       On some systems, you need to use a special command for the database to
+       connect. Add the following ``command`` below the ``image:mariabb``
+       directive.
+
+       ``command: --default-authentication-plugin=mysql_native_password``
+
+       .. code-block:: docker
+           :emphasize-lines: 4
+
+           services:
+              db:
+                image: mariadb:latest
+                command: --default-authentication-plugin=mysql_native_password
+                volumes:
+                  - ./db_data:/var/lib/mysql
+
+#. Let's use ``docker-compose config`` to check our config for syntax errors.
+   Refer to :ref:`the previous lab <docker-compose-config>`.
+
+   .. code-block:: bash
+       :caption: Expected Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose config
+       services:
+         db:
+           environment:
+             MYSQL_DATABASE: wordpress
+             MYSQL_PASSWORD: wordpress
+             MYSQL_ROOT_PASSWORD: somewordpress
+             MYSQL_USER: wordpress
+           image: mariadb
+           restart: always
+           volumes:
+           - /root/wordpress-docker/db_data:/var/lib/mysql:rw
+         wordpress:
+           depends_on:
+           - db
+           environment:
+             WORDPRESS_DB_HOST: db:3306
+             WORDPRESS_DB_NAME: wordpress
+             WORDPRESS_DB_PASSWORD: wordpress
+             WORDPRESS_DB_USER: wordpress
+           image: wordpress:latest
+           ports:
+           - published: 20851
+             target: 80
+           restart: always
+           volumes:
+           - /root/wordpress-docker/wordpress:/var/www/html:rw
+       version: '3.3'
+       volumes:
+         db_data: {}
+         wordpress: {}
+
+
+Start the Project
+==================
+#. Now, start the project. Verify that you do not have any errors.
+
+   .. code-block:: bash
+
+       docker-compose up -d
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating volume "wordpressdocker_db-data" with default driver
+       Creating volume "wordpressdocker_apache" with default driver
+       Creating volume "wordpressdocker_wordpress" with default driver
+       Pulling db (mariadb:latest)...
+       latest: Pulling from library/mariadb
+       898c46f3b1a1: Pull complete
+       63366dfa0a50: Pull complete
+       041d4cd74a92: Pull complete
+       6e1bee0f8701: Pull complete
+       0fa9bfc0c84b: Pull complete
+       8e9b088fe106: Pull complete
+       af96bccda5c4: Pull complete
+       0655ee57b408: Pull complete
+       58e50a9049b1: Pull complete
+       57cd7839e491: Pull complete
+       067ff7ef6a22: Pull complete
+       895af18c21d0: Pull complete
+       1ab4788d5ff4: Pull complete
+       a068a53bcb17: Pull complete
+       Digest: sha256:06dd6d6234977e9231567cc00b9a994f467417e0419efd61f356a0018064d3a0
+       Status: Downloaded newer image for mariadb:latest
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpress-docker_wordpress_1 ... error
+
+       ERROR: for wordpress-docker_wordpress_1  Cannot start service wordpress: driver failed programming external connectivity on endpoint wordpress-docker_wordpress_1 (c2ba3b97faa86bdbdac01342dcb848bea84ea1439be9b1bd378a400bafdbe0c9): Bind for 0.0.0.0:80 failed: port is already allocated
+
+       ERROR: for wordpress  Cannot start service wordpress: driver failed programming external connectivity on endpoint wordpress-docker_wordpress_1 (c2ba3b97faa86bdbdac01342dcb848bea84ea1439be9b1bd378a400bafdbe0c9): Bind for 0.0.0.0:80 failed: port is already allocated
+       ERROR: Encountered errors while bringing up the project.
+
+
+#. You can fix the errors and try again. First, stop the project.
+   Then, make the changes and then try again!
+
+   .. code-block:: bash
+
+       docker-compose down        #Stops the project and removes the containers.
+       nano docker-compose.yml    # Edit the file
+       docker-compose up -d       #Creates and starts the Docker project in daemon mode.
+
+
+   That's better!
+
+   .. code-block:: bash
+
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating volume "wordpressdocker_db_data" with default driver
+       Creating volume "wordpressdocker_wordpress" with default driver
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+
+
+#. Look in the directory. You should see the directories that contain the
+   volume data.
+
+   .. code-block:: bash
+
+       ls -lh              #Lists the files and folders in the 'current' directory
+       ls -lh wordpress    #Lists the files and folders in the 'wordpress' directory
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,7
+
+       root@vps298933:~/wordpress-docker# ls -lh
+       total 12K
+       drwxr-xr-x 5      999 root     4.0K Mar 30 10:10 db_data
+       -rw-r--r-- 1 root     root      660 Mar 30 10:10 docker-compose.yml
+       drwxr-xr-x 5 www-data www-data 4.0K Mar 30 10:10 wordpress
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# ls -lh wordpress/
+       total 204K
+       -rw-r--r--  1 www-data www-data  420 Dec  1  2017 index.php
+       -rw-r--r--  1 www-data www-data  20K Jan  2 02:37 license.txt
+       -rw-r--r--  1 www-data www-data 7.3K Jan  9 08:56 readme.html
+       -rw-r--r--  1 www-data www-data 6.8K Jan 12 12:41 wp-activate.php
+       drwxr-xr-x  9 www-data www-data 4.0K Mar 13 06:18 wp-admin
+       -rw-r--r--  1 www-data www-data  369 Dec  1  2017 wp-blog-header.php
+       -rw-r--r--  1 www-data www-data 2.3K Jan 21 07:34 wp-comments-post.php
+       -rw-r--r--  1 www-data www-data 3.1K Mar 29 23:10 wp-config.php
+       -rw-r--r--  1 www-data www-data 2.8K Mar 29 23:10 wp-config-sample.php
+       drwxr-xr-x  4 www-data www-data 4.0K Mar 13 06:18 wp-content
+       -rw-r--r--  1 www-data www-data 3.8K Jan  9 14:37 wp-cron.php
+       drwxr-xr-x 19 www-data www-data  12K Mar 13 06:18 wp-includes
+       -rw-r--r--  1 www-data www-data 2.5K Jan 16 11:29 wp-links-opml.php
+       -rw-r--r--  1 www-data www-data 3.3K Dec  1  2017 wp-load.php
+       -rw-r--r--  1 www-data www-data  38K Jan 12 12:41 wp-login.php
+       -rw-r--r--  1 www-data www-data 8.3K Dec  1  2017 wp-mail.php
+       -rw-r--r--  1 www-data www-data  18K Jan 30 17:01 wp-settings.php
+       -rw-r--r--  1 www-data www-data  31K Jan 16 22:51 wp-signup.php
+       -rw-r--r--  1 www-data www-data 4.7K Dec  1  2017 wp-trackback.php
+       -rw-r--r--  1 www-data www-data 3.0K Aug 17  2018 xmlrpc.php
+       root@vps298933:~/wordpress-docker#
+
+
+#. Verify that the Wordpress containers is responding to requests
+
+   .. code-block:: bash
+
+       curl --head http://localhost:20851
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,2
+
+       root@vps298933:~/wordpress-docker# curl --head http://localhost:20851
+       HTTP/1.1 302 Found
+       Date: Sat, 30 Mar 2019 03:57:16 GMT
+       Server: Apache/2.4.25 (Debian)
+       X-Powered-By: PHP/7.2.16
+       Expires: Wed, 11 Jan 1984 05:00:00 GMT
+       Cache-Control: no-cache, must-revalidate, max-age=0
+       X-Redirect-By: WordPress
+       Location: http://localhost:20851/wp-admin/install.php
+       Content-Type: text/html; charset=UTF-8
+
+       root@vps298933:~/wordpress-docker#
+
+#. Configure Wordpress using the web installer
+
+   a. Open your page in a browser: ``http://blog.example.com``
+   #. Proceed through the installer
+   #. Finally, log in using the username and password that you just created.
+
+Reset Wordpress Data
+======================
+
+.. caution:: These instructions will reset the Wordpress database and remove
+    any data in the Wordpress directory.
+
+What do you do if your username or password doesn't work? Destroy the
+containers and volume data, then run the installer again. :))
+
+#. Stop the project and remove all volume data
+
+   .. code-block:: bash
+
+       docker-compose down -v   #Stops the project and removes the containers and the volume.
+       docker-compose up -d     #Creates and starts the Docker project in daemon mode.
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose down -v
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_db_1        ... done
+       Removing wordpressdocker_wordpress_1 ... done
+       Removing wordpressdocker_db_1        ... done
+       Removing network wordpressdocker_default
+       Removing volume wordpressdocker_db_data
+       Removing volume wordpressdocker_wordpress
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker ps -a
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                     NAMES
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days           0.0.0.0:20850->80/tcp     condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating volume "wordpressdocker_db_data" with default driver
+       Creating volume "wordpressdocker_wordpress" with default driver
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                     NAMES
+       28822cf1444c        wordpress:latest     "docker-entrypoint.s…"   20 seconds ago      Up 19 seconds       0.0.0.0:20851->80/tcp     wordpressdocker_wordpress_1
+       cdc959eb5014        mariadb              "docker-entrypoint.s…"   21 seconds ago      Up 20 seconds       3306/tcp                  wordpressdocker_db_1
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days           0.0.0.0:20850->80/tcp     condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+
+
+#. You might have to remove the folders manually if docker-compose does not
+   clear the volume data. If so, use this command
+
+   .. code-block:: bash
+
+       rm -r db-data && rm -r wordpress  # removes the db-data and wordpress folders
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/3/3.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

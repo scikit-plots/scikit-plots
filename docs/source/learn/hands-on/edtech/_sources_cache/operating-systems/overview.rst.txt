@@ -1,0 +1,22 @@
+************************
+C System Calls: Overview
+************************
+
+#. The first set of labs use to make system calls in a Windows environment.
+#. The second set focus on essential components of Linux.
+
+System Calls or Function Covered
+=================================
+
+ - ``printf()``: Writes data to the screen or terminal
+ - ``scanf()``: Reads user input from a terminal
+ - ``open()``:Opens a file for reading or create a file for writing.
+ - ``read()``: Reads data from a file.
+ - ``write()``: Writes data to a file.
+ - ``close()``: Closes a file after reading or writing.
+ - ``unlink()``: Deletes a file.
+ - ``remove()``: Deletes a file.
+ - ``CreateProcess()``: Creates a new process.
+ - ``OpenProcess()``: Gets the handle of a running process.
+ - ``TerminateProcess()``: Terminates a process forcefully.
+ - ``GetExitCodeProcess()`` Retrieves the exit code of a process.

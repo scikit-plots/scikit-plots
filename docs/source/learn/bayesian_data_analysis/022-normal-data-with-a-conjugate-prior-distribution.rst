@@ -9,6 +9,17 @@ Normal Data with a Conjugate Prior Distribution
 :doc:`◀ Previous · Normal Data with a Noninformative Prior Distribution <021-normal-data-with-a-noninformative-prior-distribution>`   ·   :doc:`Next · Multinomial Model for Categorical Data ▶ <023-multinomial-model-for-categorical-data>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Prior information on both
 ---------------------------
 

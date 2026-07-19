@@ -1,0 +1,26 @@
+Welcome to BilimEdtech Labs!
+============================
+
+This site contains laboratory assignments for our online or
+blended-learning courses.
+
+.. toctree::
+   :caption: Labs:
+   :maxdepth: 1
+
+   cloud-computing/index
+   nasm/index
+   c/index
+   operating-systems/index
+
+.. toctree::
+   :caption: Workshops:
+   :maxdepth: 1
+
+   workshops/index
+
+
+Search
+==================
+
+* :ref:`search`

@@ -31,6 +31,22 @@ import sys
 import unicodedata
 from pathlib import Path
 
+# --- AI-generated-content notice (emitted at the top of every lesson body) ------
+AI_NOTICE = (
+    ".. important::\n"
+    "\n"
+    "   **AI-generated content.** This page was written with the assistance of an\n"
+    "   AI language model and is provided as a learning aid. Despite careful\n"
+    "   review, it may still contain mistakes, omissions, or out-of-date\n"
+    "   information. Whether you are new to the topic, a team lead, or a senior\n"
+    "   practitioner, treat it as a starting point rather than an authoritative\n"
+    "   reference: read it critically and independently verify anything you act on\n"
+    "   (code, commands, figures, and factual claims) against official\n"
+    "   documentation and primary sources before relying on it."
+)
+
+
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))          # make dpa_content importable regardless of CWD
 INVENTORY = HERE / "dpa_inventory.tsv"
@@ -316,6 +332,8 @@ def main() -> int:
             a("")
 
         a("")
+
+        a(AI_NOTICE); a("")
 
         # body: full content if written, else a working stub
         if title in CONTENT:

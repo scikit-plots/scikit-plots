@@ -9,6 +9,17 @@ Identifying Outliers Using Residuals and Studentized Residuals
 :doc:`◀ Previous · Binary Classification Model Evaluation and Threshold Optimization <53-binary-classification-model-evaluation-and-threshold-optimization>`   ·   :doc:`Next · AUC–ROC Curve: Evaluating Classification Model Performance ▶ <55-auc-roc-curve-evaluating-classification-model-performance>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Evaluating regression fits
 ----------------------------
 

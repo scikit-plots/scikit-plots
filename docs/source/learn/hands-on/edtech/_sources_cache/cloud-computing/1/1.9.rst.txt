@@ -1,0 +1,202 @@
+**********************************
+Step 9: Install a Web Admin panel
+**********************************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+Web-based administration panels
+===============================
+
+At times, it is helpful to have a GUI for some configurations.
+Web administration panels come with risk because you are opening
+another way entry point into your VPS. One solution is to install
+them for convenience, but start it only when I need to use it.
+
+.. Note:: Using a web administration panel is optional. You can configure
+     everything using the command line.
+
+Webmin
+========
+A favorite web admin panel of users is Webmin. We will install the Debian
+package because Ubuntu builds on the Debian architecture. See additional
+instructions at |http://www.webmin.com/deb.html|
+
+
+#. Download the Webmin ``deb`` package using ``wget``
+
+   * ``wget`` is a command-line tool that downloads a file using common
+     internet protocols. It is similar to ``curl``, but ``wget`` will
+     download the file by default instead of displaying the contents.
+     Also, ``wget`` can download directories recursively, which allows
+     you to download an entire website.
+   * Debian packages are standard Unix archives that include two tar archives.
+     One archive holds the control information and another contains the
+     installable data.
+
+     * |Deb file format|
+     * |What is a Debian package|
+
+   .. code-block:: bash
+
+       wget http://prdownloads.sourceforge.net/webadmin/webmin_1.960_all.deb
+
+   .. code-block:: bash
+       :caption: Example output
+       :linenos:
+       :emphasize-lines: 1
+
+       user@vps:~$ wget http://prdownloads.sourceforge.net/webadmin/webmin_1.960_all.deb
+       --2020-10-21 15:30:38--  http://prdownloads.sourceforge.net/webadmin/webmin_1.960_all.deb
+       Resolving prdownloads.sourceforge.net (prdownloads.sourceforge.net)... 216.105.38.13
+       Connecting to prdownloads.sourceforge.net (prdownloads.sourceforge.net)|216.105.38.13|:80... connected.
+       HTTP request sent, awaiting response... 301 Moved Permanently
+       Location: http://downloads.sourceforge.net/project/webadmin/webmin/1.960/webmin_1.960_all.deb [following]
+       --2020-10-21 15:30:38--  http://downloads.sourceforge.net/project/webadmin/webmin/1.960/webmin_1.960_all.deb
+       Resolving downloads.sourceforge.net (downloads.sourceforge.net)... 216.105.38.13
+       Reusing existing connection to prdownloads.sourceforge.net:80.
+       HTTP request sent, awaiting response... 302 Found
+       Location: https://netcologne.dl.sourceforge.net/project/webadmin/webmin/1.960/webmin_1.960_all.deb [following]
+       --2020-10-21 15:30:38--  https://netcologne.dl.sourceforge.net/project/webadmin/webmin/1.960/webmin_1.960_all.deb
+       Resolving netcologne.dl.sourceforge.net (netcologne.dl.sourceforge.net)... 78.35.24.46, 2001:4dd0:1234:6::5f
+       Connecting to netcologne.dl.sourceforge.net (netcologne.dl.sourceforge.net)|78.35.24.46|:443... connected.
+       HTTP request sent, awaiting response... 200 OK
+       Length: 17026386 (16M) [application/octet-stream]
+       Saving to: ‘webmin_1.960_all.deb’
+
+       webmin_1.960_all.deb                100%[================================================================>]  16.24M  42.4MB/s    in 0.4s
+
+       2020-10-21 15:30:39 (42.4 MB/s) - ‘webmin_1.960_all.deb’ saved [17026386/17026386]
+       user@vps:~$
+
+#. Install dependencies required for Webmin
+
+   * ``webmin_1.960_all.deb`` might not install if the system is missing
+     a dependency.
+   * ``apt install`` automatically installs all package dependencies.
+     However, we are not using ``apt`` to install Webmin. We are using
+     the native package installer, such as running ``setup.msi`` on a
+     Windows computer.
+
+   .. code-block:: bash
+
+       sudo apt-get install -y perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python unzip
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1
+
+       user@vps:~$ sudo apt-get install -y perl perl libnet-ssleay-perl openssl libauthen-pam-perl libpam-runtime libio-pty-perl apt-show-versions python unzip
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       libpam-runtime is already the newest version (1.1.8-3.6ubuntu2).
+       python is already the newest version (2.7.15~rc1-1).
+       python set to manually installed.
+       perl is already the newest version (5.26.1-6ubuntu0.3).
+       The following additional packages will be installed:
+         libapt-pkg-perl perl-openssl-defaults
+       The following NEW packages will be installed:
+         apt-show-versions libapt-pkg-perl libauthen-pam-perl libio-pty-perl libnet-ssleay-perl perl-openssl-defaults
+       The following packages will be upgraded:
+         openssl
+       1 upgraded, 6 newly installed, 0 to remove and 5 not upgraded.
+       Need to get 1,261 kB of archives.
+       After this operation, 1,981 kB of additional disk space will be used.
+       .
+       .
+       .
+
+
+#. Install the package using the ``dpkg``
+
+   * ``dpkg`` is used to install, remove, and provide information about
+     ``.deb`` packages. ``dpkg`` (Debian Package) itself is a low-level tool.
+
+   .. code-block:: bash
+
+        sudo dpkg --install webmin_1.960_all.deb
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1
+
+        user@vps:~$ sudo dpkg --install webmin_1.960_all.deb
+        (Reading database ... 188574 files and directories currently installed.)
+        Preparing to unpack webmin_1.960_all.deb ...
+        Unpacking webmin (1.960) over (1.960) ...
+        Setting up webmin (1.960) ...
+        Webmin install complete. You can now login to https://vps:10000/
+        as root with your root password, or as any user who can use sudo
+        to run commands as root.
+        Processing triggers for systemd (237-3ubuntu10.33) ...
+        Processing triggers for ureadahead (0.100.0-21) ...
+        user@vps:~$
+
+#. You can configure Webmin to start automatically if you will use
+   it frequently.
+
+   * Otherwise, run ``systemctl start webmin`` when you need it and the
+     ``systemctl stop webmin`` when you are finished
+
+   .. code-block:: bash
+
+       sudo systemctl enable webmin
+
+#. Configure Webmin to run on a non-standard port so others do not
+   automatically know if you running Webmin.
+
+   a. We need to edit the Webmin configuration file
+      (``/etc/webmin/miniserv.conf``) and then open the firewall
+
+      i. Change the default Webmin port from 10000
+      #. Choose a random port (ie. 38873), higher numbers are better.
+         You can safely use most ports in the range of 1024 to 49151.
+
+   .. code-block:: bash
+
+       sudo nano /etc/webmin/miniserv.conf
+
+   .. code-block:: bash
+       :caption: /etc/webmin/miniserv.conf
+       :linenos:
+       :emphasize-lines: 1,2
+
+       #port=10000
+       port=38873
+       root=/usr/share/webmin
+       mimetypes=/usr/share/webmin/mime.types
+       addtype_cgi=internal/cgi
+       .
+       .
+       .
+
+
+#. Update firewall to allow access to the service
+
+    .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1,5
+
+         user@vps:~# sudo ufw allow 38873
+         Rule added
+         Rule added (v6)
+         user@vps:~#
+         user@vps:~# ufw enable
+         Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
+         Firewall is active and enabled on system startup
+
+
+#. Restart Webmin for the changes to take effect
+
+   .. code-block:: bash
+
+       sudo systemctl restart webmin
+
+#. Browse to the URL and Port use SSL (HTTPS).
+
+   * Login with root and the password
+   * https://www.example.com:38873
+
+#. That's it! You are all set.

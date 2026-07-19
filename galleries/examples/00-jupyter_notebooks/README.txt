@@ -20,9 +20,42 @@ Jupyter Notebooks
 
 .. seealso::
 
-  .. rubric:: scikit-plots lab pyodide with Notebooks
+  .. rubric:: 🚀 Try Scikit-Plots in Your Browser with Notebooks
 
-  * https://scikit-plots.github.io/dev/lite/lab/index.html
+  No installation required. Launch one of the interactive environments below.
+
+  ..
+    * Lab   : https://scikit-plots.github.io/dev/lite/lab/index.html
+    * Retro : https://scikit-plots.github.io/dev/lite/tree/index.html
+    * Repl  : https://scikit-plots.github.io/dev/lite/repl/index.html?kernel=python&code=import%20this
+
+    * - `Open Lab <https://scikit-plots.github.io/dev/lite/lab/index.html>`__
+    * - `Open Retro <https://scikit-plots.github.io/dev/lite/tree/index.html>`__
+    * - `Open REPL <https://scikit-plots.github.io/dev/lite/repl/index.html?kernel=python&code=import%20this>`__
+
+    +----------+----------------------------------------------------------------------+
+    | Interface| URL                                                                  |
+    +==========+======================================================================+
+    | Lab      | https://scikit-plots.github.io/dev/lite/lab/index.html               |
+    +----------+----------------------------------------------------------------------+
+    | Retro    | https://scikit-plots.github.io/dev/lite/tree/index.html              |
+    +----------+----------------------------------------------------------------------+
+    | REPL     | https://scikit-plots.github.io/dev/lite/repl/index.html?kernel=python|
+    |          | &code=import%20this                                                  |
+    +----------+----------------------------------------------------------------------+
+
+  .. list-table:: 🚀 Launch Interactive Environments
+    :header-rows: 1
+    :widths: 20 80
+
+    * - Interface
+      - URL
+    * - Lab
+      - https://scikit-plots.github.io/dev/lite/lab/index.html
+    * - Retro
+      - https://scikit-plots.github.io/dev/lite/tree/index.html
+    * - REPL
+      - https://scikit-plots.github.io/dev/lite/repl/index.html?kernel=python&code=import%20this
 
 
 .. admonition:: jupyterlite (pyodide, xeus-python, c, c++)

@@ -1,0 +1,460 @@
+*********************************
+Step 1: Create a Basic Dockerfile
+*********************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Write a basic Dockerfile to build a simple image
+to print the date.
+
+Please view the references in
+:ref:`Dockerfile Elements <dockerfile-elements-lab5>`
+at the beginning of the lab when needed.
+
+5.1.1. Create a test image
+=============================
+Our first task is to create a test image. Writing a Dockerfile is just like
+running commands in the terminal on your VPS, except there is no user
+interaction.
+
+We need to decide on the OS that our Docker image will use. Let's use
+|Alpine Linux| because it is |small and lightweight|. Also, it works well
+for Python projects.
+
+
+#. To get started, we need to do is create our project environment.
+
+   * We'll create our project directory in our home folder and then
+     create an empty file using ``touch``.
+
+   .. code-block:: bash
+
+       mkdir ~/alpine-demo
+       cd ~/alpine-demo
+       touch Dockerfile
+
+
+#. Add contents to ``Dockerfile``.
+
+   + The first line is a comment that describes the file: ``# A simple
+     Dockerfile using Alpine``
+   + The second line defines the image, which uses the latest Alpine
+     image: ``FROM alpine:latest``
+   + The next command updates the list of packages (application) and
+     then installs some essential tools.
+
+      + We can connect commands using ``&&``.
+      + Using ``\`` continues the command on the next line.
+      + When assembled, it becomes:
+        ``RUN apk update && apk add nano && apk add curl``
+
+
+   .. code-block:: bash
+       :caption: File contents of ``Dockerfile``
+       :linenos:
+
+       # A simple Dockerfile using Alpine
+
+       FROM alpine:latest
+
+       RUN apk update && \
+           apk add nano curl
+
+#. Let's build an image to verify that there are no errors.
+
+   We'll use ``docker build`` to execute command
+   ``docker build -t alpine-demo:test .``
+
+   ``docker build``
+       The build command.
+
+   ``-t``
+       Specify an image name. Otherwise, the image has the label of
+       ``<none>``.
+
+   ``alpine-demo:test``
+       Name (``alpine-demo``) and tag (``test``) pair.
+
+   ``.``
+       Use the Dockerfile in the current directory.
+
+   .. code-block:: bash
+       :caption: Docker build command
+
+        docker build -t alpine-demo:test .
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,29,30
+
+       root@vps298933:~/alpine-demo# docker build -t alpine-demo:test .
+       Sending build context to Docker daemon  2.048kB
+       Step 1/2 : FROM alpine:latest
+        ---> 5cb3aa00f899
+       Step 2/2 : RUN apk update &&     apk add nano &&     apk add curl
+        ---> Running in 0c19b05d0899
+       fetch http://dl-cdn.alpinelinux.org/alpine/v3.9/main/x86_64/APKINDEX.tar.gz
+       fetch http://dl-cdn.alpinelinux.org/alpine/v3.9/community/x86_64/APKINDEX.tar.gz
+       v3.9.3-11-g3703250ef2 [http://dl-cdn.alpinelinux.org/alpine/v3.9/main]
+       v3.9.3-10-g9333b6b69d [http://dl-cdn.alpinelinux.org/alpine/v3.9/community]
+       OK: 9758 distinct packages available
+       (1/5) Installing libmagic (5.35-r0)
+       (2/5) Installing ncurses-terminfo-base (6.1_p20190105-r0)
+       (3/5) Installing ncurses-terminfo (6.1_p20190105-r0)
+       (4/5) Installing ncurses-libs (6.1_p20190105-r0)
+       (5/5) Installing nano (3.2-r0)
+       Executing busybox-1.29.3-r10.trigger
+       OK: 19 MiB in 19 packages
+       (1/5) Installing ca-certificates (20190108-r0)
+       (2/5) Installing nghttp2-libs (1.35.1-r0)
+       (3/5) Installing libssh2 (1.8.2-r0)
+       (4/5) Installing libcurl (7.64.0-r1)
+       (5/5) Installing curl (7.64.0-r1)
+       Executing busybox-1.29.3-r10.trigger
+       Executing ca-certificates-20190108-r0.trigger
+       OK: 20 MiB in 24 packages
+       Removing intermediate container 0c19b05d0899
+        ---> bffd4113050a
+       Successfully built bffd4113050a
+       Successfully tagged alpine-demo:test
+       root@vps298933:~/alpine-demo#
+
+
+#. Let's verify that the image exists by evaluating the images loaded on
+   our VPS.
+
+   .. code-block:: bash
+
+       docker images
+
+   **Successful Build**
+
+     You should see the image called ``alpine-demo`` with tag ``test``.
+
+     .. code-block:: bash
+         :caption: Successful Build
+         :emphasize-lines: 3
+
+         root@vps298933:~/alpine-demo# docker images
+         REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+         alpine-demo         test                363f32a58198        5 seconds ago       16.8MB
+
+   **Failed Build**
+
+     If something went wrong, just remove the broken or unnamed image. You
+     must specify the ID of the image. ``docker rmi IMAGE_ID``
+
+     .. code-block:: bash
+         :caption: Successful Build
+         :emphasize-lines: 3
+
+         root@vps298933:~/alpine-demo# docker images
+         REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+         <none>              <none>              2f5e973de625        6 seconds ago       16.8MB
+
+     .. code-block:: bash
+         :caption: Remove an image by ID
+
+         docker rmi 2f5e973de625
+
+     .. Note::
+         You cannot remove an image if there is an active container.
+         You must first remove the running container.
+
+     .. code-block:: bash
+         :caption: Remove stopped container first
+         :emphasize-lines: 3,5,9
+
+         root@vps298933:~/alpine-demo# docker images
+         REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+         <none>              <none>              2f5e973de625        6 seconds ago       16.8MB
+         alpine              latest              caf27325b298        2 weeks ago         5.53MB
+         root@vps298933:~/alpine-demo# docker rmi 2f5e973de625
+         Error response from daemon: conflict: unable to delete 2f5e973de625 (must be forced) - image is being used by stopped container a584c86d7633
+         root@vps298933:~/alpine-demo# docker rm a584c86d7633
+         a584c86d7633
+         root@vps298933:~/alpine-demo# docker rmi 2f5e973de625
+         Deleted: sha256:2f5e973de62572bd6bf30b754e8587946cf04a6b8a0b018072394f657ac13b41
+         Deleted: sha256:8e3ff38af03f215e84c6db1bc05c9a12166a01367e7fac59251a41f8c183dd53
+         root@vps298933:~/alpine-demo# docker images
+         REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+         alpine              latest              caf27325b298        2 weeks ago         5.53MB
+         nextcloud           latest              7f69ccc610f0        3 weeks ago         569MB
+         root@vps298933:~/alpine-demo#
+
+5.1.2. Adding Functionality
+=============================
+So far, you built an image using `Alpine` Linux. You then added two
+packages using the ``apk`` command. Now, let's make the image do
+something!
+
+Our image will print the date when it runs as a container!
+
+#. Adding functionality to the image.
+
+   a. Edit the Dockerfile
+   #. Then, add a command that displays the date: ``CMD ["date"]``
+   #. Rebuild the image: ``docker build -t alpine-demo:test .``
+   #. Verify the image is the list using the name and tag: ``docker images``
+
+   .. code-block:: bash
+       :caption: File contents of ``Dockerfile``
+       :linenos:
+       :emphasize-lines: 8-9
+
+       # A simple Dockerfile using Alpine
+
+       FROM alpine
+
+       RUN apk update && \
+           apk add nano curl
+
+       # Print the date
+       CMD ["date"]
+
+
+#. Now, let's create a container to run the image and see what date it
+   displays!
+
+   The command uses this format: ``docker run <image>:<tag>``
+
+
+   + ``docker run`` creates a new container and runs a command.
+   + ``alpine-demo:test``: The specific image used to create a container
+
+   .. code-block:: bash
+
+       docker run alpine-demo:test
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/alpine-demo# docker run alpine-demo:test
+       Thu Feb 14 12:31:15 UTC 2019
+
+
+   Docker created a new container from image ``alpine-demo:test``, ran the ``date``
+   command, and then stopped the container. The container still exists,
+   but it not active.
+
+   .. code-block:: bash
+
+       docker ps -a
+
+   .. code-block:: bash
+       :caption: Output
+
+       CONTAINER ID        IMAGE               COMMAND       CREATED             STATUS                         PORTS       NAMES
+       deeccc847527        alpine-demo:test    "date"        About an hour ago   Exited (0) About an hour ago               suspicious_lamarr
+
+#. Let's run it again but with terminal access using the ``sh`` terminal
+   program.
+
+   We'll also use the ``--rm`` flag to remove the container once it stops.
+
+   + ``-i`` flag runs the container in interactive mode that can accept
+     user input.
+   + ``-t`` flag creates a terminal inside of the container.
+   + ``--rm`` flag automatically removes the container when the process exits.
+   + ``/bin/sh`` starts the container running the ``sh`` terminal.
+
+   .. tip:: You can combine flags!
+
+       .. code-block:: bash
+
+           docker run -i -t --rm alpine-demo:test /bin/sh
+
+      Is the same as:
+
+       .. code-block:: bash
+
+           docker run -it --rm alpine-demo:test /bin/sh
+
+
+   .. code-block:: bash
+       :caption: A shell prompt in the container
+
+       root@vps298933:~/alpine-demo# docker run -it alpine-demo:test /bin/sh
+       / #
+
+
+#. We've entered the container and we have a command prompt as root.
+   Let's run a few commands.
+
+   .. code-block:: bash
+       :caption: Commands
+
+       whoami               # Displays the logged in use
+       date                 # Displays the current date and time
+       cat /etc/*-release   # Displays information about the OS
+       ifconfig             # Displays the IP address
+       exit                 # exits the container shell
+
+   .. code-block:: bash
+       :caption: Entering a container shell
+       :emphasize-lines: 1
+
+       root@vps298933:~/alpine-demo# docker run -it alpine-demo:test /bin/sh
+       / # whoami
+       root
+       / # date
+       Thu Feb 14 13:39:40 UTC 2019
+       / # ifconfig
+       eth0      Link encap:Ethernet  HWaddr 02:42:AC:11:00:02
+                 inet addr:172.17.0.2  Bcast:172.17.255.255  Mask:255.255.0.0
+                 UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                 RX packets:11 errors:0 dropped:0 overruns:0 frame:0
+                 TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+                 collisions:0 txqueuelen:0
+                 RX bytes:866 (866.0 B)  TX bytes:0 (0.0 B)
+
+       lo        Link encap:Local Loopback
+                 inet addr:127.0.0.1  Mask:255.0.0.0
+                 UP LOOPBACK RUNNING  MTU:65536  Metric:1
+                 RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+                 TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+                 collisions:0 txqueuelen:1000
+                 RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+       / # exit
+       root@vps298933:~/alpine-demo#
+
+
+#. Run ``docker ps -a`` again.
+
+   You might have a containers that have sopped. We do not need them running.
+   So let's use ``docker rm <CONTAINER ID>`` to remove any unused container.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,4,6
+
+       root@vps298933:~/alpine-demo# docker ps -a
+       CONTAINER ID        IMAGE               COMMAND        CREATED             STATUS                         PORTS       NAMES
+       deeccc847527        alpine-demo:test    "date"         About an hour ago   Exited (0) About an hour ago               suspicious_lamarr
+       root@vps298933:~/alpine-demo# docker rm deeccc847527
+       deeccc847527
+       root@vps298933:~/alpine-demo# docker ps -a
+       CONTAINER ID        IMAGE               COMMAND        CREATED             STATUS              PORTS                  NAMES
+       root@vps298933:~/alpine-demo#
+
+.. tip::
+    Use ``docker system prune`` to clean up Docker easily by removing
+    stopped containers and data from failed builds.
+
+    .. code-block:: bash
+       :caption: docker system prune
+       :emphasize-lines: 1,4,8
+
+        root@test2:~/alpine-demo# docker system prune
+        WARNING! This will remove:
+          - all stopped containers
+          - all networks not used by at least one container
+          - all dangling images
+          - all dangling build cache
+
+        Are you sure you want to continue? [y/N] y
+        Deleted Containers:
+        8a0a3e102c2830cf8aed8e7afd9b75d425ff90ce5e61f8f2e6c96fab1b67a5e7
+        6f1770ac684ae179c5f5453df53c8723967658722cbf790173cdf436c744f2eb
+
+        Total reclaimed space: 0B
+        root@test2:~/alpine-demo#
+
+
+5.1.4. Container Names
+=========================
+
+Docker assigns a random ID and name to each container for uniqueness.
+We can use the ``container ID`` or ``container name`` for most operations.
+Names are easier to work with. We can use the ``--name`` flag to assign
+a name.
+
+#. Start the container using the ``--name`` flag.
+
+   .. code-block:: bash
+
+       docker run --name alpine-demo alpine-demo:test
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker run --name alpine-demo alpine-demo:test
+       Fri Feb 15 02:42:29 UTC 2019
+       root@vps298933:~#
+       root@vps298933:~# docker ps -a
+       CONTAINER ID        IMAGE               COMMAND         CREATED             STATUS                     PORTS            NAMES
+       13a9b40001c4        alpine-demo:test    "date"          5 seconds ago       Exited (0) 5 seconds ago                    alpine-demo
+
+
+#. Because container names are IDs are unique, Docker will not create another
+   container using the same name. But, let's try!
+
+   * Press the up arrow ↑ to display the previous command.
+
+   .. code-block:: bash
+
+       docker run --name alpine-demo -it alpine-demo:test
+
+   .. code-block:: bash
+       :caption: Output with an error message
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker run --name alpine-demo -it alpine-demo:test
+       docker: Error response from daemon: Conflict. The container name "/alpine-demo" is already in use by container "13a9b40001c4d7ee2bf4e4439a5763e4721e978bca143709677b3c4d81772ec3". You have to remove (or rename) that container to be able to reuse that name.
+       See 'docker run --help'.
+
+#. We can remove the container easily by name.
+
+   * Also, the ``Tab`` key works to auto-complete the name of the container
+
+   .. code-block:: bash
+
+        docker rm alpine-demo
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker rm alpine-demo
+       alpine-demo
+       root@vps298933:~# docker ps -a
+       CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+
+
+5.1.5. Wrap-up
+================
+
+We demonstrated how to create a Docker image, create a container to run an
+instance of the image, and then remove the stopped container.
+
+
+#. We learned how to create a docker image from commands in a ``Dockerfile``
+   using the ``docker build`` command: ``docker build -t name:tag .``
+
+   + ``-t`` flag specifies an image name. Otherwise, the image has the
+     label of `<none>`
+   + ``name:tag`` specifies the name and tag of the image.
+   + ``.`` use the Dockerfile in the current directory.
+
+#. We learned more about the ``docker run`` command: ``docker run --name
+   some_name -i -t --rm image:tag [COMMAND]``
+
+   + ``--name [container-name]`` flag assigns that name to the container.
+   + ``-i`` flag runs the container in interactive mode that can accept
+     user input.
+   + ``-t`` flag creates a terminal inside of the container.
+   + ``--rm`` flag automatically removes the container when the process
+     exits.
+   + ``image:tag`` is the specific image used to create a container.
+   + ``/bin/sh`` command starts the container running the `sh` terminal.
+
+
+Next, we'll learn how to keep an image running in daemon mode, which means
+that the processes run in the background and do not exit when the task
+completes.

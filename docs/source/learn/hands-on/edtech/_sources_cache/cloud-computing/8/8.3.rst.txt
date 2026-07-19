@@ -1,0 +1,35 @@
+Step 3: Change the root Password
+================================
+
+.. include:: urls.rst
+
+The default root password often comes in an email or is displayed in the
+configuration settings of your VPS provider. In other words, neither option
+is secure. Changing a password is simple!
+
+.. warning:: Record your new password someplace safe. Losing your root
+    password requires you to reset it using your VPS login panel.
+
+#. Choose a new password.
+
+   * My favorite method is to choose a *Fort Knox Password*
+     or *CodeIgniter Encryption Key* from |RandomKeygen|.
+
+#. Use command ``passwd [user]``.
+
+   * Or, use ``passwd`` to change the password of the logged in user.
+
+  .. code-block:: bash
+
+      root@vps298933:~# passwd
+      Enter new UNIX password:
+      Retype new UNIX password:
+      passwd: password updated successfully
+      root@vps298933:~#
+
+.. danger:: Do not use a common password, such as:
+    ``password``, ``root``, ``123456``, ``qwerty``, ``letmein``
+
+    Yes, one my students used one of these passwords and the VPS
+    was hacked. 😆 The VPS hosting company banned the VPS for abuse
+    because the hacker was using it for illegal activity.

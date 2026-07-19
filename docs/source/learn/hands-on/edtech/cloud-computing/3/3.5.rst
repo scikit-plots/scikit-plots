@@ -1,0 +1,252 @@
+******************************************
+Step 5: Configure Wordpress to use Redis
+******************************************
+
+.. contents:: Table of Contents
+
+.. |Redis plugin help document page| raw:: html
+
+   <a href="https://wordpress.org/plugins/redis-cache/" target="_blank">Redis plugin help document page</a>
+
+We know that our Redis Docker container is working. Now, let's configure
+Wordpress to use our new service.
+
+
+#. Log into Wordpress at ``http://blog.example.com/wp-admin``
+#. Add the ``Redis Object Cache`` plugin
+
+   a. Plugins -> Add New -> Search for `Redis Object Cache`
+   #. Install and then activate it
+
+#. Go to the plugin configuration panel
+
+   a. Settings -> Redis
+
+#. Click ``Enable Object Cache``
+#. Click ``Show Diagnostics``
+
+
+You will notice that the status reads ``Not Connected``. Clicking
+``Show Diagnostics`` will show additional details. You will also notice that
+the host is ``127.0.0.1``. However, our Redis server is running on a different
+host, not on the localhost (127.0.0.1). From the perspective of Wordpress,
+`localhost` is container `wordpressdocker_wordpress_1`. Redis is running on
+container `wordpressdocker_redis_1`.
+
+Docker knows about this container because we included it in the ``depends_on``
+property. So, we only need to set the server address to ``redis``. Docker will
+take care of the rest of the work.
+
+Connect WP to Redis
+=====================
+The |Redis plugin help document page| provides the information on variables
+that we can use to configure Redis to work without Docker container.
+
+  + ``WP_REDIS_HOST``: Defines a host other than 127.0.0.1
+  + ``WP_CACHE_KEY_SALT``: Separates the cache keys of Wordpress from other
+    services that might use the same Redis instance. It guarantees uniqueness.
+
+
+#. Add these two variables to your ``wp-config.php`` file. You can
+   change the ``WP_CACHE_KEY_SALT`` to something unique.
+
+   .. code-block:: php
+
+       define('WP_REDIS_HOST', 'redis');
+       define('WP_CACHE_KEY_SALT', 'wp-docker-5DknvYepdjyJMo8gDqrLhrpAJUQ');
+
+   We can modify ``wp-config.php`` easily because it is part of the Wordpress
+   volume data. Nifty!
+
+   .. code-block:: bash
+
+       nano wordpress/wp-config.php
+
+   .. code-block:: php
+       :caption: File contents of ``wp-config.php``
+
+       define('WP_REDIS_HOST', 'redis');
+       define('WP_CACHE_KEY_SALT', 'wp-docker-5DknvYepdjyJMo8gDqrLhrpAJUQ');
+
+       // ** MySQL settings - You can get this info from your web host ** //
+       /** The name of the database for WordPress */
+       define('DB_NAME', 'wordpress');
+       .
+       .
+       .
+
+#. Refresh the webpage. The status should have updated.
+
+   .. code-block:: bash
+       :caption: Overview **Output**
+       :emphasize-lines: 1
+
+       Status:    Connected
+       Client:    Predis (v1.1.1)
+       Key Prefix:    wp-docker-5DknvYepdjyJMo8gDqrLhrpAJUQ
+
+#. You can see the cached information in the Diagnostics frame.
+
+   .. code-block:: bash
+       :caption: Diagnostics **Output**
+       :emphasize-lines: 1
+
+       Status: Connected
+       Client: Predis (v1.1.1)
+       Drop-in: Valid
+       Ping: PONG
+       Redis Extension: Not Found
+       Predis Client: 1.1.1
+       PHP Version: 7.2.16
+       Multisite: No
+       Global Prefix: "wp_"
+       Blog Prefix: "wp_"
+       WP_REDIS_HOST: "redis"
+       WP_CACHE_KEY_SALT: "wp-docker-5DknvYepdjyJMo8gDqrLhrpAJUQ"
+       Global Groups: {"0":"blog-details","1":"blog-id-cache","2":"blog-lookup","3":"global-posts","4":"networks","5":"rss","6":"sites","7":"site-details","8":"site-lookup","9":"site-options","10":"site-transient","11":"users","12":"useremail","13":"userlogins","14":"usermeta","15":"user_meta","16":"userslugs","33":"blog_meta"}
+       Ignored Groups: ["counts","plugins","themes"]
+       Dropins:
+        - Redis Object Cache Drop-In v1.4.1 by Till Krüss
+       Plugins:
+        - Akismet Anti-Spam v4.1.1 by Automattic (Inactive)
+        - Hello Dolly v1.7.1 by Matt Mullenweg (Inactive)
+        - Redis Object Cache v1.4.1 by Till Krüss (Active)
+
+
+Troubleshooting
+=================
+
+#. Do you need to troubleshoot this further? Open a shell connection to the
+   Wordpress docker container.
+
+   .. code-block:: bash
+
+       docker exec -it wordpressdocker_wordpress_1 /bin/sh
+
+#. Add some essential tools
+
+   .. code-block:: bash
+
+       apt update && apt install -y redis-tools iputils-ping
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,2
+
+       root@vps298933:~/wordpress-docker# docker exec -it wordpressdocker_wordpress_1 /bin/sh
+       # apt update && apt install -y redis-tools iputils-ping
+       Get:1 http://security-cdn.debian.org/debian-security stretch/updates InRelease [94.3 kB]
+       Get:2 http://security-cdn.debian.org/debian-security buster/updates InRelease [38.3 kB]
+       Get:4 http://security-cdn.debian.org/debian-security stretch/updates/main amd64 Packages [481 kB]
+       Ign:3 http://cdn-fastly.deb.debian.org/debian stretch InRelease
+       Get:5 http://cdn-fastly.deb.debian.org/debian stretch-updates InRelease [91.0 kB]
+       Get:6 http://cdn-fastly.deb.debian.org/debian buster InRelease [158 kB]
+       Get:7 http://cdn-fastly.deb.debian.org/debian buster-updates InRelease [46.8 kB]
+       Get:8 http://cdn-fastly.deb.debian.org/debian stretch-updates/main amd64 Packages [11.1 kB]
+       Get:9 http://cdn-fastly.deb.debian.org/debian stretch Release [118 kB]
+       Get:10 http://cdn-fastly.deb.debian.org/debian buster/main amd64 Packages [7887 kB]
+       Get:11 http://cdn-fastly.deb.debian.org/debian stretch Release.gpg [2434 B]
+       Get:12 http://cdn-fastly.deb.debian.org/debian stretch/main amd64 Packages [7084 kB]
+       Fetched 16.0 MB in 5s (3165 kB/s)
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       All packages are up to date.
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+         libcap2 libcap2-bin libjemalloc1 libpam-cap
+       Suggested packages:
+         ruby-redis
+       The following NEW packages will be installed:
+         iputils-ping libcap2 libcap2-bin libjemalloc1 libpam-cap redis-tools
+       0 upgraded, 6 newly installed, 0 to remove and 0 not upgraded.
+       Need to get 667 kB of archives.
+       After this operation, 1863 kB of additional disk space will be used.
+       .
+       .
+       .
+
+#. Test the connection to the Redis server.
+
+   .. note::
+       We have to specify the host using the ``-h`` switch because Redis
+       is running on a different host called ``redis``.
+
+   #. Ping the redis server using ``ping`` to test the network connection.
+   #. Ping redis using ``redis-cli`` to test the server functionality
+   #. View server info using ``redis-cli``
+
+   .. code-block:: bash
+       :caption: Commands
+
+       ping redis                       #Checks the network connection
+       redis-cli -h redis ping          #Checks server response
+       redis-cli -h redis info server   #View the server info
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,10,13
+
+       # ping redis
+       PING redis (192.168.192.2) 56(84) bytes of data.
+       64 bytes from wordpressdocker_redis_1.wordpressdocker_default (192.168.192.2): icmp_seq=1 ttl=64 time=0.211 ms
+       64 bytes from wordpressdocker_redis_1.wordpressdocker_default (192.168.192.2): icmp_seq=2 ttl=64 time=0.100 ms
+       ^C
+       --- redis ping statistics ---
+       2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+       rtt min/avg/max/mdev = 0.100/0.155/0.211/0.056 ms
+       #
+       # redis-cli -h redis ping
+       PONG
+       #
+       # redis-cli -h redis info server
+       # Server
+       redis_version:5.0.4
+       redis_git_sha1:00000000
+       redis_git_dirty:0
+       redis_build_id:c6d7e1572d62bb79
+       redis_mode:standalone
+       os:Linux 4.15.0-46-generic x86_64
+       arch_bits:64
+       multiplexing_api:epoll
+       atomicvar_api:atomic-builtin
+       gcc_version:6.3.0
+       process_id:1
+       run_id:21c1137b7c733b539977f3a7f6646a0b95a15654
+       tcp_port:6379
+       uptime_in_seconds:2510
+       uptime_in_days:0
+       hz:10
+       configured_hz:10
+       lru_clock:10425442
+       executable:/data/redis-server
+       config_file:
+       #
+       .
+       .
+       .
+
+#. If these commands are successful, then the problem is in Wordpress.
+#. Type ``exit`` to leave the SSH session.
+
+   .. code-block:: bash
+
+       exit
+
+#. Check the ``wp-config.php`` file.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/3/3.5.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

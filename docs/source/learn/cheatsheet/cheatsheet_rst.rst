@@ -7,6 +7,9 @@ reStructuredText Cheat Sheet
 :Info:    A practical, copy/paste-friendly reStructuredText (reST) cheat sheet.
 :Sources: John-CD cheatsheet + Docutils quickref/cheatsheet (see links below).
 
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/directives.html#table-of-contents
+
 .. contents:: Table of contents
    :depth: 3
    :local:

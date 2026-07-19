@@ -18,6 +18,17 @@ Handling Objections in Data Presentations: Responding with Confidence and Clarit
 
 ◀ :doc:`Previous <025-preparing-for-q-and-a-anticipating-and-responding-to-stakeholder-questions>` · :doc:`Next <027-q-and-a-best-practices-answering-questions-with-clarity-and-confidence>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 When the audience pushes back
 -------------------------------

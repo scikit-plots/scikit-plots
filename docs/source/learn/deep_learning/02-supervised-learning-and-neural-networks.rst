@@ -9,6 +9,17 @@ Supervised Learning and Neural Networks
 :doc:`◀ Previous · What is a Neural Network? <01-what-is-a-neural-network>`   ·   :doc:`Next · Why Deep Learning is Taking Off ▶ <03-why-deep-learning-is-taking-off>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Learning a mapping
 --------------------
 

@@ -1,0 +1,226 @@
+***********************************
+Step 2: Modifying a Docker Image
+***********************************
+
+.. include:: 4-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Modify a docker to include updated packages.
+
+One problem with projects on GitHub is that they get stale.
+A developer built the project for their current need but then
+didn't maintain it.
+
+.. tip:: We should modify Docker projects with up-to-date packages.
+
+4.2.1 Updating old Code
+=============================
+The version of Node in the |pandoc-as-a-service| Dockerfile has a
+long list of published |security vulnerabilities|. We will replace
+Node 6.10 with the |latest version of Node| (v 15.2) in DockerHub.
+
+#. Edit the pandoc-as-a-service ``Dockerfile`` and replace the
+   version of Node.
+
+   .. code-block:: bash
+       :emphasize-lines: 1
+
+       FROM node:latest
+
+       # Create app directory
+       COPY . /usr/src/pandoc-as-a-service
+       WORKDIR /usr/src/pandoc-as-a-service
+       . . .
+
+#. Let's try to rebuild. It will fail because we need to make
+   additional changes, but we'll do them one at a time.
+
+   We will give our updated version a new tag (``latest``).
+
+   .. code-block:: bash
+
+       docker build -t pandoc:latest .
+
+#. ``npm audit`` found a problem!
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1,4
+
+       7 vulnerabilities (3 low, 2 high, 2 critical)
+
+       To address all issues (including breaking changes), run:
+         npm audit fix --force
+
+#. The fix is simple. We need to append ``npm audit fix --force``
+   to the ``RUN`` command.
+
+   .. code-block:: bash
+       :emphasize-lines: 6,7
+
+       # Install packages
+       RUN apt-get update --fix-missing \
+         && apt-get install -y pandoc \
+         && apt-get clean \
+         && rm -rf /var/lib/apt/lists/* \
+         && npm install \
+         && npm audit fix --force
+
+#. Save the file and then rerun the same build command to fix the issues.
+
+   .. code-block:: bash
+      :emphasize-lines: 20
+
+       7 vulnerabilities (3 low, 2 high, 2 critical)
+
+       To address all issues (including breaking changes), run:
+         npm audit fix --force
+
+       Run `npm audit` for details.
+       npm notice
+       npm notice New patch version of npm available! 7.0.8 -> 7.0.10
+       npm notice Changelog: <https://github.com/npm/cli/releases/tag/v7.0.10>
+       npm notice Run `npm install -g npm@7.0.10` to update!
+       npm notice
+       npm WARN using --force Recommended protections disabled.
+       npm WARN audit Updating mocha to 8.2.1,which is a SemVer major change.
+
+       added 90 packages, removed 9 packages, changed 9 packages, and audited 194 packages in 4s
+
+       15 packages are looking for funding
+         run `npm fund` for details
+
+       found 0 vulnerabilities
+       Removing intermediate container 6c3ea353ed6f
+
+#. We can also update the HTML by modifying ``views/index.ejs``.
+   For example, we updated the URLs in the code on our
+   |pandoc.bilimedtech.com| site.
+
+4.2.2. Cleanup Failed Builds
+==============================
+Docker will tag an image as ``<none>`` anytime the build fails.
+
+.. code-block:: bash
+    :caption: Failed Builds
+    :emphasize-lines: 4,5
+
+    root@vps298933:~/pandoc-as-a-service# docker images
+    REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+    pandoc              latest              79ad25bc9c62        11 seconds ago      1.03GB
+    <none>              <none>              5847e41654f3        14 minutes ago      1.03GB
+    <none>              <none>              deec2993cbc8        22 minutes ago      1.02GB
+    pandoc              default             7eb0798f4080        6 hours ago         720MB
+    node                latest              f1974cfde44f        36 hours ago        935MB
+    mariadb             latest              2ab9d091310d        39 hours ago        414MB
+    nextcloud           latest              3ed6ea445002        7 days ago          811MB
+    wordpress           latest              6edecd0f5c75        7 days ago          546MB
+    redis               latest              62f1d3402b78        2 weeks ago         104MB
+    node                6.10                3f3928767182        3 years ago         661MB
+
+.. tip::
+    Remove the unused images using the command: ``docker rmi IMAGE_ID``
+
+For example, we can remove the two images above using:
+
+  .. code-block:: bash
+
+      docker rmi 5847e41654f3
+      docker rmi deec2993cbc8
+
+  .. code-block:: bash
+      :caption: Output
+      :emphasize-lines: 1,10,22
+
+      root@vps298933:~/pandoc-as-a-service# docker rmi 5847e41654f3
+      Deleted: sha256:5847e41654f3cf0a46c27e945e405b3489d1d18a9c879b8a5efbfac5d9ec9067
+      Deleted: sha256:d0fb7d96057e7a465b59ed72d085f0eead2b8a4dda69700098a1ad26c78b50da
+      Deleted: sha256:f9c88be69a1f5c321eac2630990f13bfc3a86aa06f7a8e4d16c276e73ba397f7
+      Deleted: sha256:1d64eef5852b108a449afbac6c6c052f1d18737ee4d682beb3cd2e3dcb0347d5
+      Deleted: sha256:ef049b742654a3f283b81b6316c3bff4e64c9ab8393fed77cda150f31679b1ae
+      Deleted: sha256:3ad253af23d8e51634b39eea4f7616e7b035ba3e3f04c1dbc5e1bd0b8897adf3
+      Deleted: sha256:bdc818d89e59373738c425951cb5d392a34284530539b9584ab358a9df239748
+      root@vps298933:~/pandoc-as-a-service#
+      root@vps298933:~/pandoc-as-a-service# docker rmi deec2993cbc8
+      Deleted: sha256:deec2993cbc88b7002e3bd9ece516b0694e93961cb0cfe7668a1bd1f8738ece0
+      Deleted: sha256:922ce00047ef1ab341768c4ad1a2a1991d4c7b0d4825b0014126a363a53d88a2
+      Deleted: sha256:674e57717b3b0ff7d0bc05ec8ffa81d7354266139e7272ff12343ce211ba84eb
+      Deleted: sha256:3afad23927db55d4cf44f576df7682f19c85d93959d4c939cd2bf81003a08f8b
+      Deleted: sha256:9ff091f132f82f82843fa1f75954077ad9276f10845df88843ed464a29a0fe11
+      Deleted: sha256:4c464b8d162e93c6391a11b7d48e0531c3a489571817522202715d871a486a49
+      Deleted: sha256:b6831928fccd0c0c6b961024846544dec21fcf540dea22a41006903fae01f0c4
+      Deleted: sha256:dc62fb20fb9ead1ab565487b3c44ec6fb970a124272070c8726643d292373b6c
+      Deleted: sha256:5bbec8dd291ea1213ac73bd5079000a2c89deaa10aedd070ea12fb090160b589
+      Deleted: sha256:4242bfc2cb701c295cf7fdcc72011e5fde65530610f0d5cd2b3549cffb1da2f8
+      root@vps298933:~/pandoc-as-a-service#
+      root@vps298933:~/pandoc-as-a-service# docker images
+      REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+      pandoc              latest              79ad25bc9c62        6 minutes ago       1.03GB
+      pandoc              default             7eb0798f4080        6 hours ago         720MB
+      node                latest              f1974cfde44f        36 hours ago        935MB
+      mariadb             latest              2ab9d091310d        40 hours ago        414MB
+      nextcloud           latest              3ed6ea445002        7 days ago          811MB
+      wordpress           latest              6edecd0f5c75        7 days ago          546MB
+      redis               latest              62f1d3402b78        2 weeks ago         104MB
+      node                6.10                3f3928767182        3 years ago         661MB
+      root@vps298933:~/pandoc-as-a-service#
+
+4.2.3 Relaunch with the updated Images
+==============================================
+
+The final step is to update the ``docker-compose.yml`` file with
+the new tag. Also, let's add a volume for the source code so that
+we can change it without rebuilding the image.
+
+#. Change to the project directory, update the image name, and then restart
+
+   .. code-block:: bash
+
+       cd ~/pandoc-docker
+       nano docker-compose.yml
+       docker-compose down && docker-compose up -d
+
+   .. code-block:: bash
+      :caption: docker-compose.yml
+      :emphasize-lines: 5
+
+       version: "3.3"
+
+       services:
+         pandoc:
+           image: pandoc:latest
+           ports:
+             - 20852:8080
+           restart: always
+
+#. Verify that the new image is in use.
+
+   .. code-block:: bash
+      :emphasize-lines: 3
+
+       root@vps298933:~/pandoc-docker# docker ps
+       CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                     NAMES
+       9aaf93a4aa5b        pandoc:latest       "docker-entrypoint.s…"   38 seconds ago      Up 35 seconds       0.0.0.0:20852->8080/tcp   pandocdocker_pandoc_1
+       1a13f235f757        nextcloud           "/entrypoint.sh apac…"   10 hours ago        Up 10 hours         0.0.0.0:20850->80/tcp     nextclouddocker_app_1
+       74b008e6fc1a        redis:latest        "docker-entrypoint.s…"   10 hours ago        Up 10 hours         6379/tcp                  nextclouddocker_redis_1
+       de86f8cd7ca1        mariadb:latest      "docker-entrypoint.s…"   10 hours ago        Up 10 hours         3306/tcp                  nextclouddocker_db_1
+       cd832a14a92c        wordpress:latest    "docker-entrypoint.s…"   23 hours ago        Up 23 hours         0.0.0.0:20851->80/tcp     wordpressdocker_wordpress_1
+       b61ce1aedf86        redis               "docker-entrypoint.s…"   23 hours ago        Up 23 hours         6379/tcp                  wordpressdocker_redis_1
+       651734395eb0        mariadb:latest      "docker-entrypoint.s…"   23 hours ago        Up 23 hours         3306/tcp                  wordpressdocker_db_1
+       root@vps298933:~/pandoc-docker#
+
+#. Open the URL in the browser that it works.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/4/4.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

@@ -1,0 +1,51 @@
+Lab 6: Overview
+===============
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+You know how Docker images, containers, and volumes work. Now, you get
+to practice what you learned by creating a Python app using the Flask
+micro-framework! 😃
+
+**Your Task**: You will use the Dockerfile from Lab 5 to create a Flask
+application that runs inside of your docker container. Here are examples
+of what your application will do:
+
+* |hello|
+* |hello-world|
+* |hello-latin|
+* |hello-cyrilic|
+* |hello-chinese| <---Chen 🇨🇳
+
+Goals for Lab 6
+-----------------------
+
+The goal for this lab is to create a Python application using the Flask
+micro-framework.
+
+During this lab, you will learn how to:
+
+#. **create** a simple Python development environment using Docker
+#. **use** docker-compose to define a volume for your development files
+#. **develop** a Flask web app to demonstrate the entire development process
+
+Further studies
+-----------------------
+
+I recommend the |Flask Tutorial| from Pallets Projects if you
+want to study this topic further.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/6/overview.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

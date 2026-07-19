@@ -17,6 +17,17 @@ Clear Communication with Stakeholders and Teams
 
 ◀ :doc:`Previous <020-staying-focused-on-the-project-objective>` · :doc:`Next <022-adapting-to-communication-expectations-at-work>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 Clarity is a skill, not a gift
 --------------------------------

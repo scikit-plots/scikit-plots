@@ -1,0 +1,236 @@
+*********************************
+Step 4: Configure the firewall
+*********************************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+Firewall Overview
+====================
+Securing your VPS is very important. Configuring a firewall
+is an easy way to provide a lot of security.
+
+* A firewall allows you to control incoming and outgoing traffic.
+
+Initially, we will allow outside traffic to enter the VPS using
+ports 80 (HTTP), 443 (HTTPS), and 22 (SSH). We won't restrict outgoing
+traffic to keep the procedure simple. Ultimately, we want to restrict
+outgoing traffic, as well.
+
+* We will use Ubuntu's |Uncomplicated Firewall| because it is not
+  complicated and easy to use. :)).
+* This guide was modified using instructions from DigitalOcean's guide on
+  |how to set up a firewall|.
+
+Using ``nano``
+===================
+
+We will use a text editor called ``nano`` to edit most of the files.
+
+Mouse operations do not work well in a terminal editor. So, we must
+enter commands using the keyboard.
+
+.. tip:: **Copy and pasting** in Nano
+
+    * Clicking **right** in the text editor **will paste** the contents
+      in the Windows clipboard directly to the terminal.
+    * **Selecting** the text in the editor **will copy** the selection
+      to the Windows clipboard.
+
+.. tip:: **Saving** a document in Nano
+
+    * Press ``Ctrl+S`` to **save** a file
+    * Press ``Ctrl+X`` to **exit** Nano
+    * If the document is not saved:
+
+      i. Press **y** to save or press **n** to exit without saving.
+      #. Press **Enter** to confirm the file name if saving and overwriting.
+
+Optionally, we can use **MobaXterm** to edit the files using their
+built-in text editor. Watch this video on |how to use MobaXterm|.
+
+.. caution:: The MobaXerm text editor uses 8-bit |ASCII|. Non-ASCII chars
+    outside of 0x0 to 07F hex range will not render correctly.
+
+
+Configuring the Firewall
+==========================
+
+Let's practice straight away using ``nano``!
+
+Verify that IPv6 is enabled
+----------------------------
+Most VPSs provide an IPv6 address. Furthermore, it should be enabled by
+default on UFW. But, let's verify.
+
+To open the file using ``nano``, we must supply the full path or
+just the file name. The file that we want to open is
+``/etc/default/ufw``.
+
+    * ``/etc/default`` is the path to the file.
+    * ``ufw`` is the name of the file.
+
+.. code-block:: bash
+
+    sudo nano /etc/default/ufw
+
+* Shell scripts or bash use ``#`` for comments.
+* Using your arrow, keys, navigate to a line that has the configuration
+  of ``IPV6=yes``.
+
+    * If you see ``#`` character in front of it, delete it.
+
+* Save and exit the file using ``Ctrl+S Ctrl+X``
+
+.. code-block:: bash
+    :caption: /etc/default/ufw
+    :linenos:
+    :emphasize-lines: 1,9
+
+    nano /etc/default/ufw
+
+    # /etc/default/ufw
+    #
+
+    # Set to yes to apply rules to support IPv6 (no means only IPv6 on loopback
+    # accepted). You will need to 'disable' and then 'enable' the firewall for
+    # the changes to take affect.
+    IPV6=yes
+
+    # Set the default input policy to ACCEPT, DROP, or REJECT. Please note that if
+    . . .
+
+Configure UFW
+--------------
+#. Set the firewall to ``deny all`` incoming connection
+
+   .. code-block:: bash
+
+       sudo ufw default deny incoming
+
+2. Set the firewall to ``allow all`` outgoing connections
+
+   .. code-block:: bash
+
+       sudo ufw default allow outgoing
+
+3. We will restrict the firewall to allow SSH (port 22), HTTP (80), and
+   HTTPS (443) through the firewall. All other ports will be blocked.
+
+   .. code-block:: bash
+
+       sudo ufw allow ssh
+       sudo ufw allow http
+       sudo ufw allow https
+
+4. Enable the firewall rules now and also on system restart
+
+   .. code-block:: bash
+
+       sudo ufw enable
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 2,5,12,15,18,22,23
+
+       root@vps298933:~#
+       root@vps298933:~# sudo ufw status verbose
+       Status: inactive
+       root@vps298933:~#
+       root@vps298933:~# sudo ufw default deny incoming
+       Default incoming policy changed to 'deny'
+       (be sure to update your rules accordingly)
+       root@vps298933:~#
+       root@vps298933:~# sudo ufw default allow outgoing
+       Default outgoing policy changed to 'allow'
+       (be sure to update your rules accordingly)
+       root@vps298933:~# sudo ufw allow ssh
+       Rules updated
+       Rules updated (v6)
+       root@vps298933:~# sudo ufw allow http
+       Rules updated
+       Rules updated (v6)
+       root@vps298933:~# sudo ufw allow https
+       Rules updated
+       Rules updated (v6)
+       root@vps298933:~#
+       root@vps298933:~# sudo ufw enable
+       Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
+       Firewall is active and enabled on system startup
+       root@vps298933:~#
+
+5. Verify the firewall state
+
+   * In particular, verify that your SSH port (22) is open.
+   * Otherwise, you might not be able to log back into your VPS
+
+   .. code-block:: bash
+
+       sudo ufw status verbose
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# sudo ufw status verbose
+       Status: active
+       Logging: on (low)
+       Default: deny (incoming), allow (outgoing), disabled (routed)
+       New profiles: skip
+
+       To                         Action      From
+       --                         ------      ----
+       22/tcp                     ALLOW IN    Anywhere
+       80/tcp                     ALLOW IN    Anywhere
+       443/tcp                    ALLOW IN    Anywhere
+       22/tcp (v6)                ALLOW IN    Anywhere (v6)
+       80/tcp (v6)                ALLOW IN    Anywhere (v6)
+       443/tcp (v6)               ALLOW IN    Anywhere (v6)
+
+       root@vps298933:~#
+
+Reboot and Verify
+-------------------
+On some systems, UFW does not automatically enable on reboot.
+We should test it.
+
+.. code-block:: bash
+
+    sudo reboot -n
+
+    # after logging back in, verify:
+    sudo ufw status verbose
+
+If the firewall is disabled, you need to enable it using
+``systemctl`` (system control)
+
+.. code-block:: bash
+
+    sudo systemctl enable ufw
+
+.. code-block:: bash
+    :linenos:
+    :emphasize-lines: 1, 6
+
+    root@vps298933:~# sudo systemctl enable ufw
+    Synchronizing state of ufw.service with SysV service script with /lib/systemd/systemd-sysv-install.
+    Executing: /lib/systemd/systemd-sysv-install enable ufw
+    root@vps298933:~#
+    root@vps298933:~#
+    root@vps298933:~# ufw status verbose
+    Status: active
+    Logging: on (low)
+    Default: deny (incoming), allow (outgoing), disabled (routed)
+    New profiles: skip
+
+    To                         Action      From
+    --                         ------      ----
+    22/tcp                     ALLOW IN    Anywhere
+    80/tcp                     ALLOW IN    Anywhere
+    443/tcp                    ALLOW IN    Anywhere
+    22/tcp (v6)                ALLOW IN    Anywhere (v6)
+    80/tcp (v6)                ALLOW IN    Anywhere (v6)
+    443/tcp (v6)               ALLOW IN    Anywhere (v6)
+
+    root@vps298933:~#

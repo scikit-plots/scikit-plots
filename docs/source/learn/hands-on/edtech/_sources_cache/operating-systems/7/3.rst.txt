@@ -1,0 +1,235 @@
+7.3. Waiting for the Process to Exit
+====================================
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+We have seen how to terminate a process and receive the exit code
+forcefully. Let’s wait for a process to exit normally instead of
+terminating it. We will use a command-line application for this
+instead of dealing with threads in a GUI.
+
+7.3.1. Create a Command-Line Child Process
+------------------------------------------
+
+Copy file ``lab7.2.c``  to ``lab7.3.c`` for this exercise.
+
+#. Create a function after ``main()`` to create a process and return
+   the process ID. Put the function prototype after the include
+   statements.
+
+   .. code-block:: c
+
+       // Function prototype
+       int create_process();
+
+       int main()
+       {
+          . . .
+       }
+
+       /*
+       * Create a new windows process and returns the process ID
+       */
+       int create_process()
+       {
+           // create process
+           // return process ID
+       }
+
+#. Paste the :ref:`CreateProcess template code`
+   in the function body and return the process id.
+#. Put a ``Sleep`` statement of 1500ms in the function to give the process
+   time to start.
+#. Call ``create_process()`` in your code to start notepad and returns the
+   PID
+
+#. Verify that notepad starts and then exits.
+
+   a. You might need to increase the sleep value if you don’t see the
+      notepad window
+
+   ::
+
+       Sent exit code '35' to PID 18356.
+
+       PID 18356 returned exit code '35'.
+
+#. Save this code to ``child_process.c``, compile, and verify that it
+   executes correctly.
+
+   .. code-block:: c
+
+       #include <stdio.h>
+       #include <windows.h>
+
+       int main()
+       {
+           printf("\n\tChild process running...");
+
+           for (int i = 0; i < 10; i++)
+           {
+               Sleep(500);
+               printf("%d ", i);
+           }
+
+           printf("\n\tExiting child process normally.\n\n");
+
+           return 0;
+       }
+
+   **Expected Output**
+
+   ::
+
+       Child process running...0 1 2 3 4 5 6 7 8 9
+       Exiting child process normally.
+
+#. Replace the exe path to notepad in your code with ``child_process.exe``.
+#. Verify that your output is similar to this.
+
+   a. You can see that child_process was terminated before it completed
+      counting. It didn't reach the ``return 0`` statement. Instead, it
+      ended with an exit code of 35 that we sent in ``TerminateProcess()``.
+
+   **Expected Output**
+
+   ::
+
+       Created PID '16412' from 'child_process.exe'.
+
+           Child process running...0 1
+
+       Sent exit code '35' to PID 16412.
+       PID 16412 returned exit code '35'.
+
+#. Comment out the ``TerminateProcess()`` line to allow the child
+   process time to finish its work. You will see something like:
+
+   **Expected Output**
+
+   ::
+
+       Created PID '14568' from 'child_process.exe'.
+
+           Child process running...0 1
+       PID 14568 returned exit code '259'.
+       PS C:\Users\Tobis\source\c\lab7> 2 3 4 5 6 7 8 9
+           Exiting child process normally.
+
+#. The parent created the child process and then exited. The child
+   process continued to run.
+
+   a. Notice the exit code of ``259``, which is the |GetExitCodeProcess| code
+      for ``STILL_ACTIVE``.
+   b. We can evaluate this code to determine if a process is still working.
+
+7.3.2. Wait for the Process to Exit
+-----------------------------------------
+
+In a previous lab, we saw how to wait for a process to exit using
+
+.. code-block:: c
+
+    WaitForSingleObject(process_info.hProcess, INFINITE);
+
+Let’s do something similar by evaluating the exit code before exiting.
+
+#. Create a ``do while`` loop to evaluate the exit code every 1000ms.
+   The loop should finish when the exit code is not equal to
+   ``STILL_ACTIVE`` or ``259``.
+
+   .. note:: You must get the exit code during every loop iteration.
+
+#. Print the exit code for visual feedback.
+
+   **Expected Output**
+
+   ::
+
+       Created PID '19468' from 'child_process.exe'.
+
+           Child process running...0 1
+       PID 19468 returned exit code '259'.
+       2 3 PID 19468 returned exit code '259'.
+       4 5 PID 19468 returned exit code '259'.
+       6 7 PID 19468 returned exit code '259'.
+       8 9
+           Exiting child process normally.
+
+       PID 19468 returned exit code '0'.
+
+7.3.3. Send Termination Signal Ctrl C
+-------------------------------------
+
+Sometimes we don't want to wait for a process to complete its task.
+Additionally, we don't want to terminate it immediately. We can send
+a termination request to the process to start the exit procedure. We can
+then wait for a specified amount of time for the process to exit before
+calling ``TerminateProcess``.
+
+This is an in-depth and complex topic that we don't have time to
+explore during this lab. You can read more about |Terminating a Process|
+in Windows on your own.
+
+A simple solution for command-line applications is to send Ctrl+C, which
+then tries to terminate the application. The
+|GenerateConsoleCtrlEvent function| provides that functionality.
+
+    .. code-block:: c
+
+        BOOL WINAPI GenerateConsoleCtrlEvent(
+          _In_ DWORD dwCtrlEvent,
+          _In_ DWORD dwProcessGroupId
+        );
+
+    Here is a working solution from
+    |Can I send a ctrl-C (SIGINT) to an application on Windows?|
+
+    .. code-block:: c
+
+        /*
+        * Sends Ctrl+C to a console process
+        */
+        void send_control_c(int pid)
+        {
+            AttachConsole(pid);                        // attach to process console
+            SetConsoleCtrlHandler(NULL, TRUE);         // disable Control+C handling for our app
+            GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0); // generate Control+C event
+        }
+
+    You must first define ``_WIN32_WINNT`` as ``0x0501`` or later to use the
+    |AttachConsole function| utilized in this example.
+
+    .. note:: The define statement must go above the ``#include <windows.h>``
+        derivative.
+
+**Let's give it a try!**
+
+#. Add ``#define _WIN32_WINNT 0x0501`` above the include directives.
+#. Add the ``send_control_c(int)`` function to your code.
+#. Call the function to send Ctrl+C to the child process before your
+   ``do while`` loop.
+
+   - Your loop will continue until the child process exits.
+#. The child process should exit with an ``unsigned int`` value of
+   ``-1073741510`` or a ``hex`` value of ``c000013a``, which is the
+   |Ctrl+C exit code|.
+#. Change the ``%d`` to ``%x`` in your ``printf`` statement to see
+   the hex value.
+
+   .. code-block:: c
+
+       printf("PID %d returned exit code '%d' (int) / '%x' (hex)'.\n",
+          pid, returned_exit_code, returned_exit_code);
+
+   **Expected Output**
+
+   ::
+
+       Created PID '10776' from 'child_process.exe'.
+
+           Child process running...0 1
+       Sending Ctrl+C to PID 10776.
+       PID 10776 returned exit code '-1073741510' (int) / 'c000013a' (hex)'.

@@ -1,0 +1,73 @@
+Step 1: Enable Automatic Updates
+================================
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+A security best practice is to run the latest version of the software package.
+The OVH |Securing a VPS| guides lists updating your system as the first
+security recommendation. There are several methods that you can use to
+configure automatic package upgrades.
+
+You should configure one of these two methods:
+
+#. Add ``apt-get`` as a cronjob
+#. Install Ubuntu ``Unattended Upgrade`` Package
+
+Using a cronjob
+---------------
+Any command that you run on the VPS that does not require user input
+can be run as an unintended cronjob. An easy way to perform regular and
+automatic updates is to create a cronjob.
+
+.. caution:: This method of automatically updating your system is riskier
+     than other methods because there are:
+
+     #. no configuration options
+     #. no safeguards if something goes wrong during an upgrade.
+
+You've previously used the APT package manage to refresh, update, and
+install packages. Let's review these commands.
+
+apt-get update
+  Retrieves a new lists of packages from the defined sources in
+  ``/etc/apt/sources.list``
+
+apt-get upgrade
+  * Performs an upgrade on packages that have a newer version.
+  * ``-y`` flag automatically answers *yes* to all prompts and runs
+    non-interactively.
+
+We can run manually update the VPS using ``apt-get update`` and
+``apt-get upgrade``.
+
+Previously, we combined these commands to run non-interactively in a single
+line.
+
+.. code-block:: bash
+
+    apt-get update && apt-get upgrade -y
+
+We can modify this line and then add it to a cronjob directly. We have to
+specify the full path of apt-get.
+
+This command will run apt-get to update and upgrade the system on the first
+and third day of the week at 05:55. It then writes the upgrade status to
+the file specified.
+
+.. code-block:: bash
+
+    55 5 * * 0,3 /usr/bin/apt-get update && /usr/bin/apt-get upgrade -y >> /var/log/apt/auto-updates.log
+
+Using ``unattended-upgrades`` package
+-------------------------------------
+The ``unattended-upgrades`` package is a safer approach.
+
+Post |Setup Automatic Security Updates On Ubuntu 18.04 LTS Server| offers
+simple instructions on how to set up the package.
+
+Here are the Ubuntu Server Guides:
+
+* |Automatic Updates-en| (English site)
+* |Automatic Updates-ru| (Russian site)

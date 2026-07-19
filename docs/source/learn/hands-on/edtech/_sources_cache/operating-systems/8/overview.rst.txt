@@ -1,0 +1,22 @@
+Lab 8: Overview
+===============
+
+.. include:: ../c-urls.rst
+
+This lab shows methods of deleting (unlinking) a file or
+erasing data in an existing file.
+
+Lab 8 Resources
+---------------
+
+- |unlink (Microsoft)| function (Microsoft)
+- |remove (Microsoft)| function (Microsoft)
+- |open (Microsoft)| function (Microsoft)
+- |open (code wiki)| function (Code Wiki)
+
+Goals for Lab 8
+---------------
+During this lab, you will learn how to use:
+
+ #. ``unlink()`` to delete a file.
+ #. ``remove()`` to delete a file.

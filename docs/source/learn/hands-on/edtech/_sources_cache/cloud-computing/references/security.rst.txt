@@ -1,0 +1,23 @@
+*************************
+Security Quick References
+*************************
+
+.. contents:: Table of Contents
+
+This page contains templates or common code for Nginx
+
+.. _security:
+
+SSL
+===
+
+.. _lets-encrypt:
+
+Let's Encrypt
+-------------
+
+* Use ``certbot`` to generate an SSL cert for an Nginx site
+
+.. code-block:: bash
+
+    certbot --nginx

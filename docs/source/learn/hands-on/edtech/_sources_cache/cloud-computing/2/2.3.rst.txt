@@ -1,0 +1,168 @@
+**************************************
+Step 3: Load a Simple Docker Project
+**************************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+Snap applications are easy to install because they take care
+of all of the dependencies and run them in a semi-isolated environment.
+
+* One drawback is that the application is tightly integrated.
+  Configuring it or modifying it to use a different component is hard to do.
+* It's not practical to use ``snaps`` to run part of the application on
+  one box and then have the database on another server. Or, you might not
+  be able to use MariaDB instead of the pre-configured MySQL instance.
+
+Docker containers address these problems. Like snaps, Docker containers
+run in isolation, meaning they will not conflict with services running
+on the host machine.
+
+   a. For this step, we will run the Docker-based application in a
+      similar fashion to how snaps operate.
+   #. We still have the problem of one application per box, but this
+      moves us closer to distributed computing because Docker lets
+      developers spread or distribute the components across different
+      containers.
+
+This Docker project works in isolation. It is a single container that
+contains the webserver, database, and all of the data.
+
+Installing NextCloud on Docker
+===============================
+|Nextcloud| is an open-source tool for cloud storage. It has web,
+desktop, and mobile applications.
+
+   * This installation is for demonstration purposes only.
+   * We will do a production-ready install later so you can use to
+     store your data in the cloud
+
+We'll use the instruction from |https://github.com/nextcloud/docker|
+to run NextCloud in Docker.
+
+#. Run the Docker container
+
+   * The command has these arguments:
+
+     ``run -d``
+         Runs the container in daemon mode, which means running it in
+         the background
+
+     ``-p 20850:80``
+         The port pairs.
+
+         * The first port (20850) is the external port, which is
+           accessible to the VPS.
+         * The second port (80) is internal to the Docker container.
+
+     ``nextcloud``
+         Name of the container to run. This container is pulled from
+         |Docker Hub|.
+
+   .. code-block:: bash
+
+       docker run -d -p 20850:80 nextcloud
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker run -d -p 20850:80 nextcloud
+       Unable to find image 'nextcloud:latest' locally
+       latest: Pulling from library/nextcloud
+       f7e2b70d04ae: Pull complete
+       744aedb7995c: Pull complete
+       07afe22f8a58: Pull complete
+       c7bf4f31c4a4: Pull complete
+       b528e75732cc: Pull complete
+       27e7d214ded2: Pull complete
+       894549c23c16: Pull complete
+       9aa6d55932b2: Pull complete
+       1b27fd7479e6: Pull complete
+       eacdac7d65c9: Pull complete
+       66f1bd2ad7cf: Pull complete
+       ee6444380c18: Pull complete
+       1500f6dd9b69: Pull complete
+       18560f19c8c4: Pull complete
+       bddc5d1da8e7: Pull complete
+       6e33450d197c: Pull complete
+       6f195f51537c: Pull complete
+       a8c28fabf19a: Pull complete
+       ad044e6f6c56: Pull complete
+       20144f3a754f: Pull complete
+       Digest: sha256:4c3a690b1771ba414c0a347514baae52dae3ec34feb747d5db0c4188d8462562
+       Status: Downloaded newer image for nextcloud:latest
+       0b3091ea59c416ce8c2dc1fbdbce960ce3c1164e53d2c6fc440222c059abc10a
+       root@vps298933:~#
+
+
+#. Let's verify that it is running using ``docker ps``
+
+   ``docker ps``
+       List all **running** containers
+
+   ``docker ps -a``
+       List all **running** and **stopped** containers
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker ps
+       CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+       f09da32f5217        nextcloud           "/entrypoint.sh apac…"   9 minutes ago       Up 9 minutes        0.0.0.0:20850->80/tcp   hardcore_bhaskara
+       root@vps298933:~#
+
+
+   If you do not see it, then run ``docker ps -a`` to see if it tried to
+   start, but then failed. If it did not start correctly, then stop and
+   remove it.
+
+   * Steps to stopping and removing a running container:
+
+     #. ``docker stop <Container ID>``
+     #. ``docker rm <Container ID>``
+
+#. Let's verify that the application will respond to a web request
+   using ``curl``.
+
+   .. code-block:: bash
+
+       curl http://localhost:20850
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# curl http://localhost:20850
+       <!DOCTYPE html>
+       <html class="ng-csp" data-placeholder-focus="false" lang="en" data-locale="en" >
+               <head data-requesttoken="utvzF1Gkzv92ZJIBFqsjSLd3adMzlGsTqkDz1IHAs2c=:y5GmUDz1/ok0CaBDW8wIcY4lC6Bf5iNg8g6crbeu9VI=">
+                       <meta charset="utf-8">
+                       <title>
+                       Nextcloud               </title>
+                       <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                       <meta name="referrer" content="no-referrer">
+                       <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+                       <meta name="apple-itunes-app" content="app-id=1125420102">
+                       <meta name="theme-color" content="#0082c9">
+                       <link rel="icon" href="/core/img/favicon.ico">
+                       <link rel="apple-touch-icon-precomposed" href="/core/img/favicon-touch.png">
+                       <link rel="mask-icon" sizes="any" href="/core/img/favicon-mask.svg" color="#0082c9">
+       .
+       .
+       .
+
+Create a Reverse Proxy for NextCloud
+====================================
+Repeat the steps that you used for Rocket.Chat to create reverse proxy.
+
+#. Create sub-domain **cloud.example.com**
+#. Create your :ref:`nginx-reverse-proxy` using these settings
+
+   * ``server_name cloud.example.com;``
+   * ``proxy_pass http://localhost:20850;``
+
+#. Enable the Nginx Site
+#. Restart Nginx

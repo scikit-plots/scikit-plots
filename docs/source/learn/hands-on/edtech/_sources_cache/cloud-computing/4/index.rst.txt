@@ -1,0 +1,16 @@
+.. _lab4:
+
+*****************************
+Lab 4: Modifying a Dockerfile
+*****************************
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   docker-terms
+   4.1
+   4.2
+   4.3
+..   4.4

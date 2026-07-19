@@ -9,6 +9,17 @@ CRISP-DM for Data Science
 :doc:`◀ Previous · The Process of Data Analysis <02-the-process-of-data-analysis>`   ·   :doc:`Next · Big Data: Definition, Characteristics, Evolution, and Business Impact ▶ <04-big-data-definition-characteristics-evolution-and-business-impact>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 A shared blueprint
 --------------------
 

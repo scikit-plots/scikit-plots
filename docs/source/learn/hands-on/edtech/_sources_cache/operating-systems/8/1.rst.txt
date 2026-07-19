@@ -1,0 +1,116 @@
+8.1. Unlink a File
+==================
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+There are several standard terms for deleting a file, which are
+`unlink`, `delete`, `remove` and `erase`. The system call to delete
+a file is ``unlink()`` because that term accurately describes what
+happens. Deleting a file |removes the pointer to the file|, but the
+file remains unchanged. Similarly, removing an address on a map
+doesn't affect the actual building. Other APIs or GUIs use terms
+to describe what the sees user, such as `remove` or `erase`, instead
+of what the code does.
+
+  * Both Windows and POSIX use functions ``unlink`` and ``remove`` to
+    delete a file.
+  * The |POSIX function remove()| is at a higher level because it calls
+    ``unlink()`` to remove a file and ``rmdir()`` to remove a directory.
+    You can see the additional functionality in the
+    |POSIX remove source code|.
+  * The Windows functions of ``unlink`` and ``remove`` functions have the
+    same prototype and presumably do the same thing (not verified).
+
+|unlink (Microsoft)|
+    Deletes a file
+
+    .. code-block:: c
+
+        // returns 0 if successful; Otherwise returns -1;
+        int unlink(
+            const char *filename    // Name of file to delete.
+        );
+
+|remove (Microsoft)|
+    Deletes a file
+
+    .. code-block:: c
+
+        // returns 0 if successful; Otherwise returns -1;
+        int remove(
+            const char *filename    // Name of file to delete.
+        );
+
+.. Note:: The file handle must be closed to the file others ``unlink``
+    will return an error.
+
+Template Code
+--------------------------------
+
+**Required Include Files**
+
+    .. code-block:: c
+
+        #include <stdio.h>
+
+**Basic Usage**
+
+    .. code-block:: c
+
+        char *filename = "delete-me.txt";
+
+        // unlink() or remove()
+        int unlink_status = unlink(filename);
+
+        // Check for errors
+        // 0 if the file deleted successfully
+        // -1 if an error occurred
+
+
+Task: Delete a File
+--------------------------
+Create a file called ``lab8.1.c`` for this task.
+
+First, use ``unlink`` and then test your code using ``remove``.
+
+#. Add error handling to ``unlink()`` by evaluating the return value.
+#. Execute the code using an invalid file.
+#. Verify that your program prints an error message with the PID.
+
+    **Expected Output**
+
+    ::
+
+        Unable to delete file 'delete-me.txt'
+
+#. Next, create the file.
+#. Execute the code again.
+#. Verify that the file deletes and ``unlink_status`` has a value of ``0``
+
+   **Expected Output**
+
+   ::
+
+       Successfully deleted file 'delete-me.txt'
+
+#. Replace ``unlink`` with ``remove`` and verify that both functions
+   operate identically.
+
+.. hint::
+    *This method is a hack, so don't use it for anything besides testing or
+    as a developer tool.*
+
+    #. You can create a file using ``echo`` in the command line
+
+        .. code-block:: c
+
+            echo "some text" > filename.txt
+
+    #. You can wrap the command in function ``system()`` to run a command
+       from your code.
+
+        .. code-block:: c
+
+            system("echo \"some text\" > filename.txt");

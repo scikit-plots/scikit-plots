@@ -1,0 +1,177 @@
+***********************
+Step 6: Install Nginx
+***********************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+Nginx
+=========
+We'll use Nginx to serve local files and as a reverse proxy for Docker.
+See the guide on Digital Ocean on |how to install Nginx| for more details.
+We will talk more about how to use a reverse proxy in a later lab.
+
+#. Update the repository and then install Nginx
+
+   .. code-block:: bash
+
+       sudo apt update
+       sudo apt install -y nginx
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1
+
+       root@vps298933:~# sudo apt install nginx
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+       fontconfig-config fonts-dejavu-core libfontconfig1 libgd3 libjbig0 libjpeg-turbo8 libjpeg8 libnginx-mod-http-geoip libnginx-mod-http-image-filter
+       libnginx-mod-http-xslt-filter libnginx-mod-mail libnginx-mod-stream libtiff5 libwebp6 libxpm4 nginx-common nginx-core
+       Suggested packages:
+       libgd-tools fcgiwrap nginx-doc ssl-cert
+       The following NEW packages will be installed:
+       fontconfig-config fonts-dejavu-core libfontconfig1 libgd3 libjbig0 libjpeg-turbo8 libjpeg8 libnginx-mod-http-geoip libnginx-mod-http-image-filter
+       libnginx-mod-http-xslt-filter libnginx-mod-mail libnginx-mod-stream libtiff5 libwebp6 libxpm4 nginx nginx-common nginx-core
+       0 upgraded, 18 newly installed, 0 to remove and 0 not upgraded.
+       Need to get 2,460 kB of archives.
+       After this operation, 8,194 kB of additional disk space will be used.
+       Do you want to continue? [Y/n] y
+       .
+       .
+       .
+
+#. Verify that Nginx is running.
+
+   * **Running correctly**: You should see a line that says:
+     ``Active: active (running)``
+   * **Problem**: An inactive command means that it did not
+     start: ``Active: inactive (dead)``
+
+   .. code-block:: bash
+
+       sudo systemctl status nginx
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1,4
+
+       root@vps298933:~# sudo systemctl status nginx
+       ● nginx.service - A high performance web server and a reverse proxy server
+       Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)
+           **Active: active (running)** since Sun 2019-01-20 15:06:30 +06; 34s ago
+           Docs: man:nginx(8)
+       Process: 12544 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+       Process: 12531 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+       Main PID: 12548 (nginx)
+           Tasks: 2 (limit: 4588)
+       CGroup: /system.slice/nginx.service
+               +-12548 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+               +-12550 nginx: worker process
+
+       Jan 20 15:06:30 vps298933 systemd[1]: Starting A high performance web server and a reverse proxy server...
+       Jan 20 15:06:30 vps298933 systemd[1]: nginx.service: Failed to parse PID from file /run/nginx.pid: Invalid argument
+       Jan 20 15:06:30 vps298933 systemd[1]: Started A high performance web server and a reverse proxy server.
+       root@vps298933:~#
+
+
+#. Now, we need to get our server IP address if we don't know it.
+   We can look at the terminal configuration settings or use ifconfig.
+#. Use ``ifconfig`` to find the address (look for the real address,
+   not a private address)
+
+   * Private addresses use these address ranges:
+
+       * 192.168.0.0 - 192.168.255.255
+       * 172.16.0.0 - 172.31.255.255
+       * 10.0.0.0 - 10.255.255.255
+
+   * Here is an example that shows the real address in interface ``ens3``
+
+   .. code-block:: bash
+
+       ifconfig
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1,11,12
+
+       root@vps298933:~# ifconfig
+       docker0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+               inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+               inet6 fe80::42:5cff:fec9:f7b6  prefixlen 64  scopeid 0x20<link>
+               ether 02:42:5c:c9:f7:b6  txqueuelen 0  (Ethernet)
+               RX packets 0  bytes 0 (0.0 B)
+               RX errors 0  dropped 0  overruns 0  frame 0
+               TX packets 3  bytes 266 (266.0 B)
+               TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+       ens3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+               inet 46.105.29.128  netmask 255.255.255.255  broadcast 0.0.0.0
+               inet6 fe80::f816:3eff:fe66:6755  prefixlen 64  scopeid 0x20<link>
+               ether fa:16:3e:66:67:55  txqueuelen 1000  (Ethernet)
+               RX packets 111212  bytes 51808541 (51.8 MB)
+               RX errors 0  dropped 0  overruns 0  frame 0
+               TX packets 137277  bytes 13619148 (13.6 MB)
+               TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+       lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536
+               inet 127.0.0.1  netmask 255.0.0.0
+               inet6 ::1  prefixlen 128  scopeid 0x10<host>
+               loop  txqueuelen 1000  (Local Loopback)
+               RX packets 219  bytes 21354 (21.3 KB)
+               RX errors 0  dropped 0  overruns 0  frame 0
+               TX packets 219  bytes 21354 (21.3 KB)
+               TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+#. Verify that Nginx will serve a web page to determine if it is working.
+   You should see similar output.
+
+   * ``curl`` is a command-line tool and library for transferring data
+     with URL syntax, supporting HTTP, HTTPS, FTP, FTPS, GOPHER, TFTP,
+     SCP, SFTP, SMB, TELNET, DICT,  LDAPS, FILE, IMAP, SMTP, POP3, RTSP and RTMP.
+   * We will use ``curl`` to test our application.
+
+   .. code-block:: bash
+
+       curl your-ip-address
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# curl 192.168.1.8
+       <!DOCTYPE html>
+       <html>
+       <head>
+       <title>Welcome to nginx!</title>
+       <style>
+           body {
+               width: 35em;
+               margin: 0 auto;
+               font-family: Tahoma, Verdana, Arial, sans-serif;
+           }
+       </style>
+       </head>
+       <body>
+       <h1>Welcome to nginx!</h1>
+       <p>If you see this page, the nginx web server is successfully installed and
+       working. Further configuration is required.</p>
+
+       <p>For online documentation and support please refer to
+       <a href="http://nginx.org/">nginx.org</a>.<br/>
+       Commercial support is available at
+       <a href="http://nginx.com/">nginx.com</a>.</p>
+
+       <p><em>Thank you for using nginx.</em></p>
+       </body>
+       </html>
+
+
+#. Now, access the webpage from your browser. You should see the
+   default Nginx page. Here is the expected result.
+
+   .. image:: images/welcome-to-nginx.png

@@ -1,0 +1,28 @@
+System Calls Resources
+======================
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+This page contains a list of resources for programming in C. These
+resources are ranked in order of value or most helpful.
+
+See :ref:`C Programming Resources <C Programming Resources>`
+for information related to programming in C.
+
+Library References
+------------------
+
+#. |C Run-Time Library Reference| - Microsoft run-time library
+#. |C Standard Library Reference Tutorial| - tutorialspoint.com
+
+FileIO
+------
+
+#. |File and Device I/O using System Calls| - lectures notes from usna.edu
+#. |Input-output system calls in C: Create, Open, Close, Read, Write|
+   - GeeksforGeeks
+#. |File I/O system calls| - lecture notes from www.cs.columbia.edu/~jae/
+#. |Code Wiki C|
+#. |A Handy Guide To Handling Handles|

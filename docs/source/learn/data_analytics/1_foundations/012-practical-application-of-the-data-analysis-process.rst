@@ -18,6 +18,17 @@ Practical Application of the Data Analysis Process
 
 ◀ :doc:`Previous <011-the-stages-of-the-data-analysis-process-and-their-roles>` · :doc:`Next <013-analytical-skills-and-their-core-components>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 The process, end to end
 -------------------------

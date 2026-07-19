@@ -1,0 +1,50 @@
+.. _Step 6.1:
+
+*******************************************************************
+Step 1: Create a Python Flask image for your development projects
+*******************************************************************
+
+.. include:: urls.rst
+
+**The goal for Step 1**: Create a Python Flask image for your
+development projects.
+
+We'll continue where you left off from :ref:`Step 5.3. Building a hello world python image <Step 5.3>` by
+using the same Dockerfile.
+
+#. Copy your ``hello-world-python`` folder (that contains
+   the ``Dockerfile``) to folder ``flask-dev-image``.
+
+   .. Note:: You will use this image for labs 6 and 7
+
+   .. code-block:: bash
+
+       cd ~
+       cp -r hello-world-python flask-dev-image
+
+#. Navigate to flask-dev-image and build a new image for your Flask
+   projects called ``python/flask:dev``.
+
+   .. Note:: Make changes to the Dockerfile in this folder for all Flask
+       projects
+
+   .. code-block:: bash
+
+       cd ~/flask-dev-image
+       docker build -t python/flask:dev .
+
+#. Verify that image was built successfully.
+
+   .. code-block:: bash
+       :emphasize-lines: 6,8
+
+       Step 7/7 : CMD python ./index.py
+        ---> Running in 755548d69592
+       Removing intermediate container 755548d69592
+        ---> df7d7ef24f24
+       Successfully built df7d7ef24f24
+       Successfully tagged python/flask:dev
+       sysadmin@test2:~/flask-dev-image$
+       sysadmin@test2:~/flask-dev-image$ docker images
+       REPOSITORY            TAG       IMAGE ID       CREATED              SIZE
+       python/flask          dev       df7d7ef24f24   About a minute ago   63MB

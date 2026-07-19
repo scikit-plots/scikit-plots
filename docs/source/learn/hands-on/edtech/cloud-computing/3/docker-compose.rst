@@ -1,0 +1,104 @@
+****************
+Docker Compose
+****************
+
+.. contents:: Table of Contents
+
+
+Docker Compose is a Docker tool that allows us to configure a
+Docker project. The tool takes care of starting and stopping
+the project. It builds and dynamically links the various
+containers defined in the configuration files. We need to
+understand the configuration parameters and know the commands to run.
+
+.. code-block:: bash
+
+    docker-compose up -d     # Creates and starts the Docker project in daemon mode.
+    docker-compose start     # Starts images that were running but are now stopped.
+
+    docker-compose stop      # Stops the project but keeps the containers.
+
+    docker-compose down      # Stops the project and removes the containers.
+    docker-compose down -v   # Stops the project, removes the containers, and remove the volume data.
+
+Now, let's look at the
+:ref:`WordPress project from lab 2 <simple-wp-in-using-docker-compose>`.
+
+1. We will configure ``docker-compose.yml`` to include a volume that
+   will persist the web data on the VPS.
+2. We will add components to the ``docker-compose.yml`` file, which
+   become containers. Specifically, we will add a memory caching
+   service called `Redis`.
+
+.. _default-wp-docker-compose:
+
+**File contents of 'docker-compose.yml'**
+
+.. code-block:: bash
+
+    version: '3.3'
+
+    services:
+       db:
+         image: mysql:5.7
+         volumes:
+           - db_data:/var/lib/mysql
+         restart: always
+         environment:
+           MYSQL_ROOT_PASSWORD: somewordpress
+           MYSQL_DATABASE: wordpress
+           MYSQL_USER: wordpress
+           MYSQL_PASSWORD: wordpress
+
+       wordpress:
+         depends_on:
+           - db
+         image: wordpress:latest
+         ports:
+           - "20851:80"
+         restart: always
+         environment:
+           WORDPRESS_DB_HOST: db:3306
+           WORDPRESS_DB_USER: wordpress
+           WORDPRESS_DB_PASSWORD: wordpress
+           WORDPRESS_DB_NAME: wordpress
+
+    volumes:
+        db_data: {}
+
+
+Here is some information about parts of the file:
+
+1. **services**: Describe the different images the application depends on
+
+   - This project has 2 services: ``db`` and ``wordpress``
+   - Each service has its own Docker container.
+
+#. **ports**: These come in pairs. ``20851:80``
+
+   - The left value (20851) is the external port. This is how
+     you access the service.
+   - Docker will bind to this external port. No other service can use it,
+     just like with port 80.
+   - The right value (80) is the internal port to the docker container.
+
+#. **environment**: Contains environmental variables, such as passwords
+   or connection information
+#. **volumes**: Indicates where the data is stored.
+
+   - A powerful feature of Docker is that the data can be stored on
+     the host machine.
+   - A Docker container can be added and removed without destroying the data.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/3/docker-compose.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

@@ -1,0 +1,8 @@
+3. C Fundamentals
+=================
+
+See the instructions for |Lab 3 in Google Docs|.
+
+.. |Lab 3 in Google Docs| raw:: html
+
+   <a href="https://drive.google.com/open?id=1oP7utSB6BV2EfyctEsfVGMQdcvzJv7Mj75ugdyFCOoY" target="_blank">Lab 3 in Google Docs</a>

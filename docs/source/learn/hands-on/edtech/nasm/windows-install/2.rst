@@ -1,0 +1,212 @@
+*******************************************
+Step 2: Install a Compiler and Assembler
+*******************************************
+
+.. include:: ../../includes/prolog.inc
+
+.. include:: ../asm-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Install |MinGW| and |NASM| to compile an ``.asm`` file
+and then create an ``.exe`` executable.
+
+2.1: Install a GCC compiler
+========================================
+
+We will use |MinGW| to compile our assembly projects
+
+#. Find the installer on |MinGW|'s site or download it from this site directly.
+
+     :download:`mingw-get-setup-2017-09-06.exe
+     <../downloads/mingw-get-setup-2017-09-06.exe>`
+
+#. Note the default the installation directory and then press `Continue`.
+
+   .. caution::
+
+       * MinGW might not work correctly if you install it in another directory
+         other than the default.
+       * So, we recommend using the default installation directory.
+
+   |image1|
+
+#. The installer will download and install MinGW.
+#. Verify that the installer downloaded and installed all selected items.
+
+   |image2|
+
+#. Select ``mingw32-base-bin`` and apply changes.
+
+   - From the menu: ``Installation ➜ Apply Changes``
+   - The installer might take a while depending on your internet connection.
+
+   |image3|
+
+   |image4|
+
+#. Press the `Close` button when the packages finish downloading.
+
+   |image5|
+
+#. Verify that ``ming32-base-bin`` installed.
+
+   |image6|
+
+#. You can now close the installer window.
+
+2.2: Download Netwide Assembler (NASM)
+========================================
+
+We will use the |Netwide Assembler (NASM)| for this class. You can read
+more information about NSAM from |https://en.wikipedia.org/wiki/Netwide_Assembler|.
+
+#. Find the installer on |NASM|'s site or download the Windows 10 x64
+   version from this site directly.
+
+     :download:`nasm-2.14.03rc2-installer-x64.exe
+     <../downloads/nasm-2.14.03rc2-installer-x64.exe>`
+
+#. Execute the installer as an administrator
+
+   .. note::
+
+       You will need to execute the installer as *Administrator*
+       if your logged in user cannot write to ``C:\MinGW\bin``.
+
+   |image7|
+
+#. Install to ``C:\MinGW\bin``
+
+   .. note::
+
+       It is easiest to set up if you install it to the same directory
+       as the GCC compiler. Otherwise, you have to add the systems paths
+       for both applications.
+
+   |image8|
+
+Part 3: Set the path to the assembler
+========================================
+
+Windows needs to know where to find gcc.exe and nasm.exe, which it will
+do by setting the ``path=C:\MinGW\bin;%path%``
+
+First, we'll verify that Windows recognizes ``gcc`` and ``nasm`` using the
+command line. Then, we'll set the path as part of the system path.
+
+Verify the programs execute in CMD
+-----------------------------------
+
+   .. note::
+
+       This path is set **ONLY for this CMD instance**. You have to run
+       the command again when you close the CMD window. Or, you can
+       specify the absolute path to the file.
+
+       You can add it permanently the System Environment Variables.
+
+#. Open up Command Prompt (CMD)
+#. Set the temporary path by executing: ``path=C:\MinGW\bin;%path%``
+#. Verify the path set correctly
+#. Type: ``echo %path%``
+   |image9|
+#. Type: ``gcc --version``
+   Verify that it displays the file version.
+   |image10|
+#. Type: ``nasm --version``
+   Verify that it displays the file version.
+   |image11|
+
+
+Errors
+------------
+If you get a ``not recognized`` error, then the path is not set correctly
+or you installed MinGW or NASM in a different directory.
+
+|image12|
+
+#. Try executing it using the full path: ``C:\MinGW\bin\gcc --version``
+#. Verify the installation path: ``dir C:\MinGW\bin``
+
+.. _Set Path to ASM:
+
+Set path in Windows System
+---------------------------
+
+.. tip::
+    * Set the path to your assembler and compiler in the Windows path so
+      that all applications can find it.
+    * Otherwise, you have to specify the full path to the applications.
+
+#. Open the ``Advanced System Properties`` in Windows. There are several
+   ways:
+
+   a. Copy and paste one of these commands to `Windows Explorer` or
+      `Start Menu`
+
+      * ``Advanced System Settings``
+        |br| -OR-
+      * ``C:\Windows\System32\SystemPropertiesAdvanced.exe``
+
+   #. Navigate from the control panel:
+      ``Control Panel > System and Security > System``
+
+      |image21|
+
+#. Click on the **Environment Variables** button
+
+      |image22|
+
+#. Select ``Path`` under **User variables** and then click on the
+   **Edit** button
+
+      |image23|
+
+#. Click on **New** and then add a variable for the **bin** folder of
+   NASM and GCC: ``C:\MinGW\bin``
+
+   .. note:: You must add both paths if you installed NASM in a different
+             folder.
+
+   |image24|
+
+#. Press OK on all windows
+#. **Close and reopen** the CMD windows to get a new prompt.
+#. Verify that the NASM and GCC display the versions correctly
+   before continuing.
+
+   |image25|
+
+
+
+.. |image1| image:: images/image1.png
+.. |image2| image:: images/image2.png
+.. |image3| image:: images/image3.png
+.. |image4| image:: images/image4.png
+.. |image5| image:: images/image5.png
+.. |image6| image:: images/image6.png
+.. |image7| image:: images/image7.png
+.. |image8| image:: images/image8.png
+.. |image9| image:: images/image9.png
+.. |image10| image:: images/image10.png
+.. |image11| image:: images/image11.png
+.. |image12| image:: images/image12.png
+.. |image21| image:: images/image21.png
+.. |image22| image:: images/image22.png
+.. |image23| image:: images/image23.png
+.. |image24| image:: images/image24.png
+.. |image25| image:: images/image25.png
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/nasm/windows-install/2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

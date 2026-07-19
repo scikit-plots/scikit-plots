@@ -1,0 +1,51 @@
+Step 4: Restrict root Login
+============================
+
+.. include:: urls.rst
+
+Allowing root login with a password using SSH is risky. The password could be
+exposed, or a hacker could use brute force to guess the login. Or, you can lose
+it.
+
+One method of securing the root log in is to login using SSH keys.
+
+Linode's article on how to use |Use Public Key Authentication with SSH|
+provides an overview of how SSH-based authentication works.
+
+Login Using SSH Keys
+--------------------
+Using a public and private key is highly advised. Using a private key
+to login doesn't require typing in the root password.
+
+#. First, you |create the keys using PuTTY|.
+#. Then, copy the public key to the server and disable logging in using root
+   with a password.
+
+   * See post |How to Set Up SSH for your Ubuntu 18.04 VPS or Dedicated Server|
+     to help you.
+   * It is recommended to use a passphrase to protect your private key
+     **for the root account** in case your key is leaked or compromised.
+
+If successful, you will see the warning message that the host key changed.
+Then, you will be prompted to enter the passphrase if you added one to the key.
+
+.. figure:: images/ssh-key1.png
+
+    PuTTY security alert to a changers host key
+
+.. figure:: images/ssh-key2.png
+
+    Login prompt using a key
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/8/8.4.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

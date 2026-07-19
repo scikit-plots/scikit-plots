@@ -1,0 +1,424 @@
+********************************
+Step 4: Add additional Services
+********************************
+
+.. include:: 3-urls.rst
+
+.. contents:: Table of Contents
+
+
+Let's add another service to our project. Wordpress stores most of its
+data in the database, which can slow the system down if the database
+is hit frequently. We will improve performance by using memory caching.
+The first time a request is made, the data is pulled from the database
+and stored in memory. If the same data is accessed again, the caching
+service uses the copy in memory.
+
+|Redis| and |Memcached| are both in-memory data storage systems.
+Memcached is a high-performance distributed memory cache service,
+and Redis is an open-source key-value store. Similar to Memcached,
+Redis stores most of the data in memory. These services keep data in
+memory because it is faster than reading it from the database.
+We'll add |Redis from Docker Hub|.
+
+Install Redis Server
+======================
+
+.. tip::
+    Students often times have mistakes in their YAML file because of
+    incorrect spaces. You can validate your `docker-compose.yml` file
+    using website |YAML Lint|.
+
+#. Add the Redis service to our Wordpress ``docker-compose.yml`` file.
+
+   a. Edit file ``docker-compose.yml``.
+   #. Add a new section called ``redis`` between sections ``db``
+      and ``wordpress``.
+
+   .. code-block:: bash
+
+       redis:
+         image: redis
+         restart: always
+
+
+#. We need to link it to Wordpress so it can make use it.
+
+   a. Add the reference to ``redis`` under the ``depends_on`` property.
+
+   .. code-block:: bash
+
+       wordpress:
+         depends_on:
+           - db
+           - redis
+
+
+#. Let's restart the project and configure Redis.
+
+   + We can do this in a one-line command
+   + Use ``&&`` is to separate the commands
+
+   .. code-block:: bash
+
+       docker-compose down && docker-compose up -d
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,8
+
+       root@vps298933:~/wordpress-docker# docker-compose down && docker-compose up -d
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_db_1        ... done
+       Removing wordpressdocker_wordpress_1 ... done
+       Removing wordpressdocker_db_1        ... done
+       Removing network wordpressdocker_default
+       Creating network "wordpressdocker_default" with the default driver
+       Pulling redis (redis:latest)...
+       latest: Pulling from library/redis
+       27833a3ba0a5: Already exists
+       cde8019a4b43: Pull complete
+       97a473b37fb2: Pull complete
+       c6fe0dfbb7e3: Pull complete
+       39c8f5ba1240: Pull complete
+       cfbdd870cf75: Pull complete
+       Digest: sha256:000339fb57e0ddf2d48d72f3341e47a8ca3b1beae9bdcb25a96323095b72a79b
+       Status: Downloaded newer image for redis:latest
+       Creating wordpressdocker_redis_1 ...
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_redis_1
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+
+
+   + As you can see, Docker Compose downloaded image ``redis:latest``
+     and then created a new container called ``wordpressdocker_redis_1``.
+   + We can't test Redis easily because we did not configure an outside port.
+     You can see that it is running on an internal port only.
+     Other Docker containers can access it, but we can't.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,5
+
+       root@vps298933:~/wordpress-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                     NAMES
+       61dc491c1749        wordpress:latest     "docker-entrypoint.s…"   12 seconds ago      Up 10 seconds       0.0.0.0:20851->80/tcp      wordpressdocker_wordpress_1
+       6f5367faa44c        mariadb              "docker-entrypoint.s…"   13 seconds ago      Up 12 seconds       3306/tcp                   wordpressdocker_db_1
+       aa6c82e67ffc        redis                "docker-entrypoint.s…"   13 seconds ago      Up 12 seconds       6379/tcp                   wordpressdocker_redis_1
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days           0.0.0.0:20850->80/tcp      condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+
+
+.. _access-redis-container:
+
+Testing Redis on Docker
+================================
+You can explore this more on your own, but you can test the Redis server
+running on container `wordpressdocker_redis_1` if you know the IP address
+of the specific container.
+
+The specific commands are:
+
+.. code-block:: bash
+
+    redis-cli -h <IPAddress> ping
+    redis-cli -h <IPAddress> info
+
+#. Locate the IP address of the container using
+   **docker inspect**:
+
+   .. code-block:: bash
+
+       docker inspect wordpressdocker_redis_1
+
+   .. note:: Your IP address will be different. The IPAddress key value
+       pair in the example below i:
+
+       .. code-block:: javascript
+
+           "IPAddress": "192.168.208.2",
+
+
+   .. code-block:: bash
+       :caption: IP Address of Container
+       :emphasize-lines: 1,19,51
+
+       root@vps298933:~/wordpress-docker# docker inspect wordpressdocker_redis_1
+       [
+           {
+               "Id": "913ff74dd94c5a00f9d54b7c2e7a00ad8700322ccc02c5b84339102d1915ba9b",
+               "Created": "2019-03-30T07:12:32.603181563Z",
+               "Path": "docker-entrypoint.sh",
+               "Args": [
+                   "redis-server"
+               ],
+               "State": {
+                   "Status": "running",
+                   "Running": true,
+       .
+       .
+       .
+                           "NetworkID": "9ed37a99240fdadb14fbcce1be2ca1f469f286daa8fff87826c26932756493b8",
+                           "EndpointID": "f80cc3e39ef2f73f6c5ecdfa4690d2b2ce3691586a2c0a3a2ee9cf9cddea3908",
+                           "Gateway": "192.168.208.1",
+                           "IPAddress": "192.168.208.2",
+                           "IPPrefixLen": 20,
+                           "IPv6Gateway": "",
+                           "GlobalIPv6Address": "",
+                           "GlobalIPv6PrefixLen": 0,
+                           "MacAddress": "02:42:c0:a8:d0:02",
+                           "DriverOpts": null
+                       }
+                   }
+               }
+           }
+       ]
+
+       root@vps298933:~/wordpress-docker# ping 192.168.208.1
+       PING 192.168.208.1 (192.168.208.1) 56(84) bytes of data.
+       64 bytes from 192.168.208.1: icmp_seq=1 ttl=64 time=0.063 ms
+       64 bytes from 192.168.208.1: icmp_seq=2 ttl=64 time=0.073 ms
+       ^C
+       --- 192.168.208.1 ping statistics ---
+       2 packets transmitted, 2 received, 0% packet loss, time 1023ms
+       rtt min/avg/max/mdev = 0.063/0.068/0.073/0.005 ms
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# redis-cli -h 192.168.208.1 ping
+       Could not connect to Redis at 192.168.208.1:6379: Connection refused
+       root@vps298933:~/wordpress-docker# ping 192.168.208.2
+       PING 192.168.208.2 (192.168.208.2) 56(84) bytes of data.
+       64 bytes from 192.168.208.2: icmp_seq=1 ttl=64 time=0.181 ms
+       64 bytes from 192.168.208.2: icmp_seq=2 ttl=64 time=0.091 ms
+       ^C
+       --- 192.168.208.2 ping statistics ---
+       2 packets transmitted, 2 received, 0% packet loss, time 1030ms
+       rtt min/avg/max/mdev = 0.091/0.136/0.181/0.045 ms
+       root@vps298933:~/wordpress-docker# redis-cli -h 192.168.208.2 ping
+       PONG
+       root@vps298933:~/wordpress-docker# redis-cli -h 192.168.208.2 info clients
+       # Clients
+       connected_clients:1
+       client_recent_max_input_buffer:32774
+       client_recent_max_output_buffer:0
+       blocked_clients:0
+       root@vps298933:~/wordpress-docker#
+
+
+#. Now we can test Redis using ``redis-cli`` because Redis is
+   available on port 6379. But, we need to install the package first.
+
+   .. code-block:: bash
+
+       apt install -y redis-tools
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,5
+
+       root@vps298933:~/wordpress-docker# redis-cli ping
+
+       Command 'redis-cli' not found, but can be installed with:
+
+       apt install redis-tools
+
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# apt install redis-tools -y
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+         libjemalloc1
+       Suggested packages:
+         ruby-redis
+       The following NEW packages will be installed:
+         libjemalloc1 redis-tools
+       0 upgraded, 2 newly installed, 0 to remove and 0 not upgraded.
+       Need to get 599 kB of archives.
+       After this operation, 2,835 kB of additional disk space will be used.
+       Get:1 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/universe amd64 libjemalloc1 amd64 3.6.0-11 [82.4 kB]
+       Get:2 http://nova.clouds.archive.ubuntu.com/ubuntu bionic-updates/universe amd64 redis-tools amd64 5:4.0.9-1ubuntu0.1 [516 kB]
+       Fetched 599 kB in 0s (2,740 kB/s)
+       Selecting previously unselected package libjemalloc1.
+       (Reading database ... 132723 files and directories currently installed.)
+       Preparing to unpack .../libjemalloc1_3.6.0-11_amd64.deb ...
+       Unpacking libjemalloc1 (3.6.0-11) ...
+       Selecting previously unselected package redis-tools.
+       Preparing to unpack .../redis-tools_5%3a4.0.9-1ubuntu0.1_amd64.deb ...
+       Unpacking redis-tools (5:4.0.9-1ubuntu0.1) ...
+       Setting up libjemalloc1 (3.6.0-11) ...
+       Processing triggers for libc-bin (2.27-3ubuntu1) ...
+       Processing triggers for man-db (2.8.3-2ubuntu0.1) ...
+       Setting up redis-tools (5:4.0.9-1ubuntu0.1) ...
+       root@vps298933:~/wordpress-docker#
+
+
+#. First of all, let's test the connection using ``ping``.
+   The expected output is ``pong``.
+
+   .. code-block:: bash
+
+       redis-cli -h IPAddress info
+
+   .. code-block:: bash
+       :caption: Expected Output
+       :emphasize-lines: 2
+
+       root@vps298933:~/wordpress-docker# redis-cli -h 172.22.0.3 ping
+       PONG
+       root@vps298933:~/wordpress-docker#
+
+   .. error::
+
+       + You will get a ``Connection refused`` message if something
+         is misconfigured or if you have the wrong IP address,
+         such as trying to use localhost.
+
+       .. code-block:: bash
+           :caption: Output
+           :emphasize-lines: 2
+
+           root@vps298933:~/wordpress-docker# redis-cli ping
+           Could not connect to Redis at 127.0.0.1:6379: Connection refused
+
+
+#. We can use the redis-cli tool to look at all of the information available.
+
+   .. code-block:: bash
+
+       redis-cli -h IPAddress info
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# redis-cli -h 172.22.0.3 info
+       # Server
+       redis_version:5.0.4
+       redis_git_sha1:00000000
+       redis_git_dirty:0
+       redis_build_id:c6d7e1572d62bb79
+       redis_mode:standalone
+       os:Linux 4.15.0-46-generic x86_64
+       arch_bits:64
+       multiplexing_api:epoll
+       atomicvar_api:atomic-builtin
+       gcc_version:6.3.0
+       process_id:1
+       run_id:21c1137b7c733b539977f3a7f6646a0b95a15654
+       tcp_port:6379
+       uptime_in_seconds:60
+       uptime_in_days:0
+       hz:10
+       configured_hz:10
+       lru_clock:10422992
+       executable:/data/redis-server
+       config_file:
+
+       # Clients
+       connected_clients:1
+       client_recent_max_input_buffer:0
+       client_recent_max_output_buffer:0
+       blocked_clients:0
+
+       # Memory
+       used_memory:853896
+       used_memory_human:833.88K
+       .
+       .
+       .
+
+
+   - We can look at individual sections of the info that are separated
+     by the **#** symbol, such as ``server`` or ``memory``.
+
+
+   .. code-block:: bash
+
+       redis-cli -h IPAddress info server
+       redis-cli -h IPAddress info memory
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 2,25
+
+       root@vps298933:~/wordpress-docker# redis-cli -h 172.22.0.3 info server
+       # Server
+       redis_version:5.0.4
+       redis_git_sha1:00000000
+       redis_git_dirty:0
+       redis_build_id:c6d7e1572d62bb79
+       redis_mode:standalone
+       os:Linux 4.15.0-46-generic x86_64
+       arch_bits:64
+       multiplexing_api:epoll
+       atomicvar_api:atomic-builtin
+       gcc_version:6.3.0
+       process_id:1
+       run_id:21c1137b7c733b539977f3a7f6646a0b95a15654
+       tcp_port:6379
+       uptime_in_seconds:72
+       uptime_in_days:0
+       hz:10
+       configured_hz:10
+       lru_clock:10423004
+       executable:/data/redis-server
+       config_file:
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# redis-cli -h 172.22.0.3 info memory
+       # Memory
+       used_memory:852920
+       used_memory_human:832.93K
+       used_memory_rss:4444160
+       used_memory_rss_human:4.24M
+       used_memory_peak:853896
+       used_memory_peak_human:833.88K
+       used_memory_peak_perc:99.89%
+       used_memory_overhead:840694
+       used_memory_startup:791000
+       used_memory_dataset:12226
+       used_memory_dataset_perc:19.74%
+       allocator_allocated:1027896
+       allocator_active:1220608
+       allocator_resident:3497984
+       total_system_memory:4035948544
+       total_system_memory_human:3.76G
+       used_memory_lua:37888
+       used_memory_lua_human:37.00K
+       used_memory_scripts:0
+       used_memory_scripts_human:0B
+       number_of_cached_scripts:0
+       maxmemory:0
+       maxmemory_human:0B
+       maxmemory_policy:noeviction
+       allocator_frag_ratio:1.19
+       allocator_frag_bytes:192712
+       allocator_rss_ratio:2.87
+       allocator_rss_bytes:2277376
+       rss_overhead_ratio:1.27
+       rss_overhead_bytes:946176
+       mem_fragmentation_ratio:5.62
+       mem_fragmentation_bytes:3653144
+       mem_not_counted_for_evict:0
+       mem_replication_backlog:0
+       mem_clients_slaves:0
+       mem_clients_normal:49694
+       mem_aof_buffer:0
+       mem_allocator:jemalloc-5.1.0
+       active_defrag_running:0
+       lazyfree_pending_objects:0
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/3/3.4.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

@@ -1,0 +1,445 @@
+.. _Step 5.3:
+
+***************************************************
+Step 3: Building a ``Hello World`` Python Image
+***************************************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+
+**Objective**: Write a Dockerfile to serve a python script through HTTP.
+
+  + For this lab, we will create |Dockerize version| of a |Flask| application.
+  + Please references in :ref:`Dockerfile Elements <dockerfile-elements>`
+    when needed.
+
+.. note:: We will use port **20853** for this project.
+
+    * You will need to create a reverse proxy to our ``hello world`` app.
+    * For example, our site is |hello.y.jj8i.com|.
+
+5.3.1. A Basic Python Image
+============================
+
+#. Let's start by setting up our environment, which includes creating the
+   Dockerfile and Python project files.
+
+   These commands create the directory and empty files required for
+   the project:
+
+   ``hello-world-python``
+      The name of our project.
+
+   ``Dockerfile``
+      Contains the commands used to build our image.
+
+   ``index.py``
+      * The entry point into the application.
+      * It contains ``main``
+
+   ``echo "flask" > requirements.txt``
+      * Writes "flask" to file "requirements.txt".
+      * This project uses the |Flask| microframework.
+
+   ``requirements.txt``
+      * A text file that contain the Python packages required for the project.
+      * ``python pip`` will install all of these required packages.
+      * It more convenient to list them in an external file instead of
+        adding them to the Dockerfile directly.
+
+   .. code-block:: bash
+
+       mkdir ~/hello-world-python
+       cd ~/hello-world-python
+       touch Dockerfile
+       touch index.py
+       echo "flask" > requirements.txt
+
+
+#. Let's create our Python ``hello-world`` script
+
+   .. code-block:: bash
+       :caption: File contents of ``index.py``
+       :linenos:
+
+       # hello-world-python/index.py
+
+       from flask import Flask
+       app = Flask(__name__)
+
+       @app.route("/")
+       def hello_world():
+
+           hello = "Hello World! Привет, мир! Сәлем Әлем!\n"
+           return hello
+
+       if __name__ == "__main__":
+           app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+
+#. Next, we'll create the Dockerfile that we'll use to build the image.
+
+   You can understand most of the commands. If not, go back to the previous
+   labs to review.
+
+   ``FROM python:alpine``
+      Specifies the base OS for our image (the latest Alpine image).
+
+      This image is already configured with Python and contains the required
+      development and runtime package. There are other Python images that
+      you can use from `Docker Hub <https://hub.docker.com/_/python>`_.
+
+   ``COPY . /app``
+      Copies the contents of our project directory to the `/app` folder
+      in our image.
+
+   ``WORKDIR /app``
+      * Sets the working directory of the image.
+      * This is the default directory of the user when they enter a
+        container using a shell.
+
+   ``EXPOSE 5000``
+      Allows outside connections to the container on this port.
+
+   ``CMD python ./index.py``
+      Executes `index.py` using python
+
+   .. code-block:: bash
+       :caption: File contents of ``Dockerfile``
+       :linenos:
+
+       # Builds a 'hello world' Python image
+
+       FROM python:alpine
+
+       RUN apk update && \
+           apk add nano curl wget
+
+       COPY . /app
+       WORKDIR /app
+
+       RUN pip install -r requirements.txt
+
+       EXPOSE 5000
+
+       CMD python ./index.py
+
+
+#. Now, we'll build an image from the Dockerfile
+
+   - Name the image ``hello-world`` with tag ``python``
+
+   .. code-block:: bash
+
+        docker build -t hello-world:python .
+
+   .. code-block:: bash
+       :caption: Example Output using python:alpine3.11
+       :emphasize-lines: 1,11,36,69,71,73
+
+       root@vps298933:~/hello-world-python$ docker build -t hello-world:python .
+       Sending build context to Docker daemon  4.096kB
+       Step 1/7 : FROM python:alpine3.11
+       alpine3.11: Pulling from library/python
+       c9b1b535fdd9: Pull complete
+       2cc5ad85d9ab: Pull complete
+       61614c1a5710: Pull complete
+       0522d30cde10: Pull complete
+       938854eeb444: Pull complete
+       Digest: sha256:50c60fffe5451e18af2c53d75b6864b5a0fcb458e239302cc218064ce4946ce7
+       Status: Downloaded newer image for python:alpine3.11
+        ---> a1cd5654cf3c
+       Step 2/7 : RUN apk update &&     apk add nano curl wget
+        ---> Running in dcfeb5a46533
+       fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/main/x86_64/APKINDEX.tar.gz
+       fetch http://dl-cdn.alpinelinux.org/alpine/v3.11/community/x86_64/APKINDEX.tar.gz
+       v3.11.3-75-gbcab687d4f [http://dl-cdn.alpinelinux.org/alpine/v3.11/main]
+       v3.11.3-79-gcdba3c9b8f [http://dl-cdn.alpinelinux.org/alpine/v3.11/community]
+       OK: 11268 distinct packages available
+       (1/6) Installing nghttp2-libs (1.40.0-r0)
+       (2/6) Installing libcurl (7.67.0-r0)
+       (3/6) Installing curl (7.67.0-r0)
+       (4/6) Installing libmagic (5.37-r1)
+       (5/6) Installing nano (4.6-r0)
+       (6/6) Installing wget (1.20.3-r0)
+       Executing busybox-1.31.1-r9.trigger
+       OK: 25 MiB in 41 packages
+       Removing intermediate container dcfeb5a46533
+        ---> 40c9154986cc
+       Step 3/7 : COPY . /app
+        ---> 808372ed1035
+       Step 4/7 : WORKDIR /app
+        ---> Running in ed1292f0232d
+       Removing intermediate container ed1292f0232d
+        ---> 97650e8d17c9
+       Step 5/7 : RUN pip install -r requirements.txt
+        ---> Running in 9cd8ea6ff985
+       Collecting flask
+         Downloading Flask-1.1.1-py2.py3-none-any.whl (94 kB)
+       Collecting click>=5.1
+         Downloading Click-7.0-py2.py3-none-any.whl (81 kB)
+       Collecting itsdangerous>=0.24
+         Downloading itsdangerous-1.1.0-py2.py3-none-any.whl (16 kB)
+       Collecting Jinja2>=2.10.1
+         Downloading Jinja2-2.11.1-py2.py3-none-any.whl (126 kB)
+       Collecting Werkzeug>=0.15
+         Downloading Werkzeug-1.0.0-py2.py3-none-any.whl (298 kB)
+       Collecting MarkupSafe>=0.23
+         Downloading MarkupSafe-1.1.1.tar.gz (19 kB)
+       Building wheels for collected packages: MarkupSafe
+         Building wheel for MarkupSafe (setup.py): started
+         Building wheel for MarkupSafe (setup.py): finished with status 'done'
+         Created wheel for MarkupSafe: filename=MarkupSafe-1.1.1-py3-none-any.whl size=12629 sha256=23579f4ba4a47cba6cace39a50c4219965aabe87d09c68fb9a2a0e48829db524
+         Stored in directory: /root/.cache/pip/wheels/0c/61/d6/4db4f4c28254856e82305fdb1f752ed7f8482e54c384d8cb0e
+       Successfully built MarkupSafe
+       Installing collected packages: click, itsdangerous, MarkupSafe, Jinja2, Werkzeug, flask
+       Successfully installed Jinja2-2.11.1 MarkupSafe-1.1.1 Werkzeug-1.0.0 click-7.0 flask-1.1.1 itsdangerous-1.1.0
+       Removing intermediate container 9cd8ea6ff985
+        ---> 5d090d22154a
+       Step 6/7 : EXPOSE 5000
+        ---> Running in d0cbf2c857ae
+       Removing intermediate container d0cbf2c857ae
+        ---> 7d22dfe8c2bc
+       Step 7/7 : CMD python ./index.py
+        ---> Running in f87e2caaadc2
+       Removing intermediate container f87e2caaadc2
+        ---> c1cbde34bf35
+       Successfully built c1cbde34bf35
+       Successfully tagged hello-world:python
+       root@vps298933:~/hello-world-python$
+       root@vps298933:~/hello-world-python# docker images
+       REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
+       hello-world         python              c1cbde34bf35        About a minute ago   129MB
+       python              alpine3.11          a1cd5654cf3c        2 weeks ago          109MB
+       alpine-demo         test                5b250f17b87a        5 hours ago          16.8MB
+       alpine              latest              5cb3aa00f899        5 weeks ago          5.53MB
+       root@vps298933:~/hello-world-python#
+
+
+#. Create your :ref:`nginx-reverse-proxy` to port ``20853`` before continuing.
+
+#. Create a temporary container of our Python app and then verify that
+   it started correctly.
+
+   .. note::
+       We won't use the daemon (background) process just yet. We'll
+       watch how Docker process live requests.
+
+   Let's review the flags args that we will use for ``docker run``
+
+   ``--rm``
+      Automatically removes the container once it stops
+
+   ``name hello-world-python``
+      Names our container `hello-world-python`
+
+   ``-p 20853:5000``
+      * Specifies the port pairs, which are the external (``20853``)
+        and internal ports (``5000``).
+
+        * Port ``5000`` is the port that the Python process uses inside of
+          the container.
+        * Port ``20853`` is the port that the Docker is listening on.
+
+   ``hello-world:python``
+      Specifies the image that the container will use
+
+   .. code-block:: bash
+
+        docker run --rm --name hello-world-python -p 20853:5000 hello-world:python
+
+   .. Note:: The process starts and then seems to hang, but it is still running.
+       You are viewing the live docker container. The docker container displays
+       the output on the screen instead of writing it to a log file. The
+       application will exit when you press `Ctrl C`.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/hello-world-python# docker run --name hello-world-python --rm -p 20853:5000 hello-world:python
+        * Serving Flask app "index" (lazy loading)
+        * Environment: production
+          WARNING: Do not use the development server in a production environment.
+          Use a production WSGI server instead.
+        * Debug mode: on
+        * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+        * Restarting with stat
+        * Debugger is active!
+        * Debugger PIN: 605-515-736
+
+   + Open up a web browser and view your page. Watch the activity from the docker
+     container. Notice the two lines that appeared.
+
+      #. ``HTTP/1.0" 200`` is the response for root ``/``
+      #. ``HTTP/1.0" 404`` is a resource not found error because the `favico.ico`
+         file does not exist.
+      #. Try it again. You'll see another ``HTTP/1.0" 200`` response.
+      #. Type in an invalid file name to generate a 404 error.
+
+   .. Tip:: Open up another SSH instance and view the running containers if you are
+       unsure if your reverse proxy is working correctly. Then you can test
+       the hello world app using ``curl http://localhost:20853``.
+
+   Press `Ctrl C` to exit the container and return to your prompt. The
+   container will remove itself because we started it with flag ``--rm``.
+
+   .. code-block:: bash
+      :caption: Output
+
+      172.17.0.1 - - [16/Feb/2019 15:12:08] "GET / HTTP/1.0" 200 -
+      172.17.0.1 - - [16/Feb/2019 15:12:10] "GET /favicon.ico HTTP/1.0" 404 -
+      172.17.0.1 - - [16/Feb/2019 15:14:59] "GET / HTTP/1.0" 200 -
+      172.17.0.1 - - [16/Feb/2019 15:16:34] "GET /secret-file.py HTTP/1.0" 404 -
+
+#. Start the container in daemon mode with flag ``-d``.
+
+   We saw that our hello world application ran in the foreground.
+   But, we want our project to run in the background.
+
+   Start the container with flag ``d`` and verify that the container is
+   serving HTTP requests using the browser window or curl.
+
+   .. code-block:: bash
+
+        docker run  -d --rm --name hello-world-python -p 20853:5000 hello-world:python
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1, 10
+
+       root@vps298933:~/hello-world-python# docker run --name hello-world-python -d -p 20853:5000 hello-world:python
+       122104b14f70b6c96af5007c49553386dfbbe64a9bc250fcb604100370be4cf4
+       root@vps298933:~/hello-world-python# docker ps
+       CONTAINER ID        IMAGE                 COMMAND                  CREATED             STATUS              PORTS                      NAMES
+       122104b14f70        hello-world:python    "/bin/sh -c 'python …"   4 seconds ago       Up 2 seconds        0.0.0.0:20853->5000/tcp    hello-world-python
+       1cd0b2b19e16        alpine-demo:daemon    "/entrypoint.sh date"    2 hours ago         Up 2 hours                                     alpine-demod
+       e0abd9624ce5        alpine-demo:test      "/bin/sh -c 'while t…"   5 hours ago         Up 5 hours                                     alpine-demo
+       root@vps298933:~/hello-world-python#
+       root@vps298933:~/hello-world-python# curl http://localhost:20853
+       Hello World! Привет, мир! Сәлем Әлем!
+       root@vps298933:~/hello-world-python#
+
+
+5.3.2. Modify the Container Code
+=================================
+The image contains a basic Python script that displays some text. We
+don't want to rebuild our image each time we make a change to the
+code.
+
+We can make temporary changes to the running container by entering it
+through a shell or by modifying the files in the current directory.
+
+#. First, let's enter through a terminal so that we can edit the inside
+   of the container.
+
+   .. code-block:: bash
+
+       docker exec -it hello-world-python /bin/sh
+
+   Notice that the path in our terminal is ``/app`` because we specified that
+   value as our working directory. Also, we copied all files from the project
+   directory. We can see those files and modify the copies running in
+   the container. We haven't specified any volumes. So, these changes are
+   confined to this container.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/hello-world-python# docker exec -it hello-world-python /bin/sh
+       /app # ls -lh
+       total 12
+       -rw-r--r--    1 root     root         203 Feb 17 04:10 Dockerfile
+       -rw-r--r--    1 root     root         238 Feb 16 15:27 index.py
+       -rw-r--r--    1 root     root           6 Feb 15 16:11 requirements.txt
+       /app #
+
+#. Now, we can edit the file using ``nano`` because we included that package
+   in our image.
+
+   .. code-block:: bash
+
+        nano index.py
+
+   a. Modify the `Hello World` text.
+
+      For example, add more languages to our app! Notice the ``\n``
+      characters at the end of the text. That character specifies
+      a newline, such as pressing the Enter key.
+
+      .. code-block:: bash
+
+          hello = "Hello World! Привет, мир! Сәлем Әлем! ¡Hola Mundo! नमस्ते दुनिया! 안녕하세요! Hallo Welt! 你好，世界!\n"
+          return hello
+
+#. Save the file and test the new code using your web browser.
+
+   Or, exit the terminal using the ``exit`` command and then test
+   using ``curl``.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+        root@vps298933:~/hello-world-python# docker exec -it python /bin/sh
+        /app # nano index.py
+        /app #
+        /app # exit
+        root@vps298933:~/hello-world-python# curl http://localhost:20853
+        Hello World! Привет, мир! Сәлем Әлем! ¡Hola Mundo! नमस्ते दुनिया! 안녕하세요! Hallo Welt! 你好，世界!
+        root@vps298933:~/hello-world-python#
+
+5.3.3. Mounting a Volume
+=================================
+Modifying the code inside of the container does not save the data
+without a mount point. You should create a volume so that you can
+update or save your app data without rebuilding an image.
+
+#. Stop and remove the container.
+#. Start the container with a mounted volume
+
+   a. Restart it with a **volume** mounted to the current directory.
+   #. Set the **restart flag** so that the app will automatically restart
+
+      + **Volume**:        ``-v ~/hello-world-python:/app``
+      + **Restart flag**:  ``--restart always``
+
+   .. code-block:: bash
+
+       docker run -d -v ~/hello-world-python:/app --restart always --name hello-world-python -p 20853:5000 hello-world:python
+
+.. tip::
+    Now, you can modify ``index.py`` or other code files in your app
+    directory from the host machine or container without losing the
+    data when the container is removed.
+
+    .. code-block:: bash
+
+        nano ~/hello-world-python/index.py
+
+5.3.4. Wrap-up
+================
+
+We learned how to use Docker to create and then deploy a simple
+`Hello World` Python application.
+
+You know how to
+
+#. **write a Dockerfile** for a custom project.
+#. **use docker run** to create a container.
+#. **create a docker-compose.yml** file.
+#. **create volumes** to separate that dynamic data from the process.
+
+You now have the **knowledge and skill required** to package your Python app
+in a Docker image for quick deployment.
+
+This lab is just the beginning. Python was the example that we used here.
+You can repeat the process using other languages.
+
+5.3.5. Docker Compose (optional)
+===================================
+Using ``docker run`` requires you to save a long command. It would be
+easier if we built a docker-compose.yml file.

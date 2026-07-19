@@ -1,0 +1,90 @@
+Step 2: Change the Default SSH Port
+===================================
+
+.. include:: urls.rst
+
+The next item listed by the OVH |Securing a VPS| guide is to change the
+default SSH port from 22 to something obscure. Hackers frequently probe
+this port and to log in using common root passwords or brute force.
+
+#. Choose a new port to use (higher ports are preferred).
+#. **Open** the firewall and **verify** that the port is open
+
+   .. warning:: Don't forget this step
+
+   .. code-block:: bash
+
+       ufw allow [port]
+       ufw enable
+       ufw status
+
+#. Edit the ``sshd_config`` file.
+#. Add your new port below ``#Port 22``
+
+   .. code-block:: bash
+
+       nano /etc/ssh/sshd_config
+
+   .. image:: images/sshd_config.png
+
+#. Verify that the config file does not contain errors.
+
+   .. note:: No output from ``sshd -t`` indicates that the configuration
+       is correct.
+
+   .. code-block:: bash
+       :caption: No Errors
+
+       root@vps298933:~# sshd -t
+       root@vps298933:~#
+
+   .. code-block:: bash
+       :caption: Configuration Errors
+       :emphasize-lines: 2,3
+
+       root@vps298933:~# sshd -t
+       /etc/ssh/sshd_config: line 15: Bad configuration option: Listen
+       /etc/ssh/sshd_config: terminating, 1 bad configuration options
+       root@vps298933:~#
+
+#. Restart sshd
+#. Verify that the SSH service is running on your new port
+
+   .. code-block:: bash
+
+       systemctl restart sshd
+       netstat -tlpn | grep ssh
+
+   .. code-block:: bash
+       :emphasize-lines: 2
+
+       root@vps298933:~# netstat -tlpn| grep ssh
+       tcp        0      0 0.0.0.0:22222           0.0.0.0:*               LISTEN      915/sshd
+       tcp        0      0 127.0.0.1:6010          0.0.0.0:*               LISTEN      3211/sshd: root@pts
+       tcp6       0      0 :::22                   :::*                    LISTEN      915/sshd
+       tcp6       0      0 ::1:6010                :::*                    LISTEN      3211/sshd: root@pts
+       root@vps298933:~#
+
+   .. note:: At this point, you can no longer login using port 22
+
+#. Open a new terminal instance and verify that you can log in using the
+   updated port.
+
+   .. note:: You must change the port setting in your terminal program after
+       updating the port in your VPS.
+
+#. Don't exit your current terminal session until you verify that you can
+   log in using the new port.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/8/8.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

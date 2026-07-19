@@ -11,6 +11,12 @@ Research Resources
 AI/ML Research Resources
 -----------------------------
 
-* `github.com/HenryNdubuaku/maths-cs-ai-compendium
-  <https://github.com/HenryNdubuaku/maths-cs-ai-compendium>`_
+* `Maths, CS & AI Compendium
+  <https://henryndubuaku.github.io/maths-cs-ai-compendium>`_
   by Henry Ndubuaku
+
+  * `henryndubuaku.github.io/maths-cs-ai-compendium
+    <https://henryndubuaku.github.io/maths-cs-ai-compendium>`_
+
+  * `github.com/HenryNdubuaku/maths-cs-ai-compendium
+    <https://github.com/HenryNdubuaku/maths-cs-ai-compendium>`_

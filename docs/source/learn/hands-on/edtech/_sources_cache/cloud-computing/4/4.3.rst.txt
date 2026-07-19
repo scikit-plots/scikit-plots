@@ -1,0 +1,360 @@
+********************************
+Step 3: Extending a Docker Image
+********************************
+
+.. include:: 4-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Create an SSL version of WordPress
+
+Migrating WordPress to an SSL version requires two steps in the correct
+sequence. Making the changes in the wrong order could require database
+modifications to regain access to the site.
+
+4.3.1. Change the WordPress URL to HTTPS
+==========================================
+
+Let's do this first so that you do not lock yourself out of your site.
+
+#. Open the admin panel of your WordPress site.
+
+   Did you forget your password? You can reset it using
+   :ref:`wp_reset_password`.
+
+#. Go to ``Settings -> General Settings``
+#. Change the values to read ``https``
+
+   .. image:: images/updatewpurls.png
+
+   .. image:: images/updatewpurls_ru.png
+
+At this point, you cannot access your site until you configure
+an SSL transport layer.
+
+4.3.2. Build the new WordPress Image
+==========================================
+
+Extending an existing image is simple. We don't have to rebuild
+the entire project. We could clone the WordPress code from GitHub and
+manually build the project using the base |WordPress Dockerfile|
+for Apache, but we will let someone else maintain that Dockerfile.
+We only need to base our image on |an official WordPress image|
+of our choice. For this lab, we will use the latest Apache version
+(``wordpress:apache``).
+
+To enable SSL in an image, we need to:
+
+#. Base our project from an existing image (``wordpress:apache``)
+#. Enable the Apache modules required for SSL
+#. Copy self-signed certificates
+#. Build our custom image
+
+We'll start by creating our project directory and files.
+
+#. Create the directory for our image and other files.
+
+   .. code-block:: bash
+
+       cd ~
+       mkdir wordpress-docker-image
+       cd wordpress-docker-image
+       touch Dockerfile
+
+#. The image needs self-signed SSL certificates to work. We will create
+   them using package ``make-ssl-cert``.
+
+   .. code-block:: bash
+
+       apt-get -y install ssl-cert
+       make-ssl-cert generate-default-snakeoil
+
+       # Verify the new SSL certificates exist.
+       ls -l /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/private/ssl-cert-snakeoil.key
+
+   Then, we need to copy the files to our current directory.
+
+   .. code-block:: bash
+
+       cp -p /etc/ssl/certs/ssl-cert-snakeoil.pem .
+       cp -p /etc/ssl/private/ssl-cert-snakeoil.key .
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 1,21-26,28,30-32
+
+       root@vps298933:~/wordpress-docker-image# apt-get -y install ssl-cert
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       Suggested packages:
+         openssl-blacklist
+       The following NEW packages will be installed:
+         ssl-cert
+       0 upgraded, 1 newly installed, 0 to remove and 4 not upgraded.
+       Need to get 17.0 kB of archives.
+       After this operation, 64.5 kB of additional disk space will be used.
+       Get:1 http://fr.archive.ubuntu.com/ubuntu bionic/main amd64 ssl-cert all 1.0.39 [17.0 kB]
+       Fetched 17.0 kB in 0s (442 kB/s)
+       Preconfiguring packages ...
+       Selecting previously unselected package ssl-cert.
+       (Reading database ... 128224 files and directories currently installed.)
+       Preparing to unpack .../ssl-cert_1.0.39_all.deb ...
+       Unpacking ssl-cert (1.0.39) ...
+       Setting up ssl-cert (1.0.39) ...
+       Processing triggers for man-db (2.8.3-2ubuntu0.1) ...
+       root@vps298933:~/wordpress-docker-image# make-ssl-cert generate-default-snakeoil
+       root@vps298933:~/wordpress-docker-image#  ls -l /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/private/ssl-cert-snakeoil.key
+       -rw-r--r-- 1 root root     1034 Nov 13 22:21 /etc/ssl/certs/ssl-cert-snakeoil.pem
+       -rw-r----- 1 root ssl-cert 1708 Nov 13 22:21 /etc/ssl/private/ssl-cert-snakeoil.key
+       root@vps298933:~/wordpress-docker-image# cp -p /etc/ssl/certs/ssl-cert-snakeoil.pem .
+       root@vps298933:~/wordpress-docker-image# cp -p /etc/ssl/private/ssl-cert-snakeoil.key .
+       root@vps298933:~/wordpress-docker-image#
+       root@vps298933:~/wordpress-docker-image# ls -lh
+       total 8.0K
+       -rw-r--r-- 1 root root        0 Nov 13 22:21 Dockerfile
+       -rw-r----- 1 root ssl-cert 1.7K Nov 13 22:21 ssl-cert-snakeoil.key
+       -rw-r--r-- 1 root root     1.1K Nov 13 22:21 ssl-cert-snakeoil.pem
+       root@vps298933:~/wordpress-docker-image#
+
+
+#. We can now create our Dockerfile.
+
+   .. code-block:: dockerfile
+       :caption: Dockerfile
+       :linenos:
+
+       # The base image
+       FROM wordpress:apache
+
+       # Enabling the SSL module
+       RUN a2enmod ssl
+
+       # Copy the SSL certs to the image
+       RUN mkdir /etc/apache2/certs
+       COPY ssl-cert-snakeoil.pem /etc/apache2/certs/ssl-cert.pem
+       COPY ssl-cert-snakeoil.key /etc/apache2/certs/ssl-cert.key
+
+#. Lastly, build and the new image. You can give any name, but this
+   example uses ``ssl-wordpress``.
+
+   .. code-block:: bash
+
+       docker build -t ssl-wordpress:latest .
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 3,8,16,22,26,28,31
+
+       root@vps298933:~/wordpress-docker-image# docker build -t ssl-wordpress:latest .
+       Sending build context to Docker daemon  6.656kB
+       Step 1/5 : FROM wordpress:apache
+       apache: Pulling from library/wordpress
+       Digest: sha256:20bffad04c9c3e696b3c6fbc48d769c5948718b57af8c9457d9a0f28b5066b4b
+       Status: Downloaded newer image for wordpress:apache
+        ---> 6edecd0f5c75
+       Step 2/5 : RUN a2enmod ssl
+        ---> Running in cfa4595ed571
+       Considering dependency setenvif for ssl:
+       Module setenvif already enabled
+       Considering dependency mime for ssl:
+       Module mime already enabled
+       Considering dependency socache_shmcb for ssl:
+       Enabling module socache_shmcb.
+       Enabling module ssl.
+       See /usr/share/doc/apache2/README.Debian.gz on how to configure SSL and create self-signed certificates.
+       To activate the new configuration, you need to run:
+         service apache2 restart
+       Removing intermediate container cfa4595ed571
+        ---> 028793b3215f
+       Step 3/5 : RUN mkdir /etc/apache2/certs
+        ---> Running in 66bf5da33f60
+       Removing intermediate container 66bf5da33f60
+        ---> 8123001e5c7a
+       Step 4/5 : COPY ssl-cert-snakeoil.pem /etc/apache2/certs/ssl-cert.pem
+        ---> 872b8b06ddc4
+       Step 5/5 : COPY ssl-cert-snakeoil.key /etc/apache2/certs/ssl-cert.key
+        ---> 61532a6d1302
+       Successfully built 61532a6d1302
+       Successfully tagged ssl-wordpress:latest
+       root@vps298933:~/wordpress-docker-image#
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 3
+
+       root@vps298933:~/wordpress-docker-image# docker images
+       REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+       ssl-wordpress       latest              61532a6d1302        23 minutes ago      546MB
+       pandoc              latest              79ad25bc9c62        4 hours ago         1.03GB
+       pandoc              default             7eb0798f4080        10 hours ago        720MB
+       node                latest              f1974cfde44f        40 hours ago        935MB
+       mariadb             latest              2ab9d091310d        44 hours ago        414MB
+       nextcloud           latest              3ed6ea445002        7 days ago          811MB
+       wordpress           apache              6edecd0f5c75        7 days ago          546MB
+       wordpress           latest              6edecd0f5c75        7 days ago          546MB
+       redis               latest              62f1d3402b78        2 weeks ago         104MB
+       node                6.10                3f3928767182        3 years ago         661MB
+       root@vps298933:~/wordpress-docker-image#
+
+4.4.3. Add SSL Configuration
+==============================
+The Apache webserver running in the new image called ``ssl-wordpress``
+supports both HTTP and HTTPS. We need to add a configuration
+file for the WordPress site to use SSL. We do the same thing when
+we create an Nginx site.
+
+#. First, we need to create an Apache SSL configuration for
+   WordPress to listen on port 433 (SSL). We will store these
+   files in a volume directory called ``apache``.
+
+   .. code-block:: bash
+
+       # Create the volume directory and file
+       cd ~/wordpress-docker
+       mkdir apache
+       touch apache/site.conf
+
+   Add this information to ``apache/site.conf``.
+
+   .. code-block:: bash
+       :caption: apache/site.conf
+       :linenos:
+       :emphasize-lines: 9
+
+       <VirtualHost *:80>
+           #ServerName www.example.com
+           DocumentRoot /var/www/html
+
+           ErrorLog ${APACHE_LOG_DIR}/error.log
+           CustomLog ${APACHE_LOG_DIR}/access.log combined
+       </VirtualHost>
+       <IfModule mod_ssl.c>
+           <VirtualHost _default_:443>
+              #ServerName www.example.com
+               DocumentRoot /var/www/html
+
+               ErrorLog ${APACHE_LOG_DIR}/error.log
+               CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+               SSLEngine on
+               SSLCertificateFile      /etc/apache2/certs/ssl-cert.pem
+               SSLCertificateKeyFile   /etc/apache2/certs/ssl-cert.key
+
+               <FilesMatch "\.(cgi|shtml|phtml|php)$">
+                   SSLOptions +StdEnvVars
+               </FilesMatch>
+               <Directory /usr/lib/cgi-bin>
+                   SSLOptions +StdEnvVars
+               </Directory>
+           </VirtualHost>
+       </IfModule>
+
+#. Next, we need to modify the ``docker-compose.yml`` so that the
+   running container can use SSL.
+
+   a. Change the image to ``ssl-wordpress:latest``
+   #. Create a volume for our custom ``site.conf`` file.
+   #. Tell the container to listen on port 443 by adding a new port
+      map (20843:443).
+
+      .. tip:: We can the numbers 8 and 4 to differentiate between
+          HTTP and HTTPS maps.
+
+          * HTTP sites use port 80 or 8080. We use 208xx
+          * HTTPS sites use port 443 or 4443. We use 204xx
+
+   .. code-block:: bash
+       :caption: docker-compose.yml
+       :emphasize-lines: 6,9,12
+
+       . . .
+       wordpress:
+         depends_on:
+           - db
+           - redis
+         image: ssl-wordpress:latest
+         volumes:
+           - ./wordpress:/var/www/html
+           - ./apache/site.conf:/etc/apache2/sites-enabled/000-default.conf
+         ports:
+           - "20851:80"
+           - "20435:443"
+         restart: always
+       . . .
+
+#. Restart and verify that the container responds to HTTPS requests.
+
+   .. code-block:: bash
+
+      docker-compose down && docker-compose up -d
+      curl -k --head https://localhost:20435
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,16,19
+
+       root@vps298933:~/wordpress-docker# docker-compose down && docker-compose up -d
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_redis_1     ... done
+       Stopping wordpressdocker_db_1        ... done
+       Removing wordpressdocker_wordpress_1 ... done
+       Removing wordpressdocker_redis_1     ... done
+       Removing wordpressdocker_db_1        ... done
+       Removing network wordpressdocker_default
+       Creating network "wordpressdocker_default" with the default driver
+       Creating wordpressdocker_redis_1 ...
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_redis_1
+       Creating wordpressdocker_redis_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker# curl -k --head https://localhost:20435
+       HTTP/1.1 301 Moved Permanently
+       Date: Fri, 13 Nov 2020 17:41:38 GMT
+       Server: Apache/2.4.38 (Debian)
+       X-Powered-By: PHP/7.4.12
+       X-Redirect-By: WordPress
+       Location: https://localhost/
+       Content-Type: text/html; charset=UTF-8
+
+       root@vps298933:~/wordpress-docker#
+
+#. The last step is to configure Nginx to operate on SSL.
+   Change ``proxy_pass`` to HTTPS.
+
+   Edit your blog Nginx site:
+   ``nano /etc/nginx/sites-available/blog.example.com``
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 7,8
+
+       server {
+           listen 80;
+
+           server_name blog.y.jj8i.com;
+
+           location / {
+               #proxy_pass http://localhost:20851;
+               proxy_pass https://localhost:20435;
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           }
+       }
+
+   Restart Nginx and obtain an SSL certificate.
+
+   .. code-block:: bash
+
+       nginx -t
+       systemctl restart nginx
+       certbot --nginx
+
+View the page in your browser to verify that WordPress has SSL.

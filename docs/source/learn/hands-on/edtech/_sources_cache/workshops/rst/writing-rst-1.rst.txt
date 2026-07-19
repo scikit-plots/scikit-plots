@@ -1,0 +1,129 @@
+.. _Writing in RST - Task 1:
+
+**********************
+Task 1: Page Structure
+**********************
+
+.. contents:: Table of Contents
+
+
+RST Headings
+============
+
+Heading tags provide the structural element of a page. Unlike traditional
+markdown, RST uses over and underlines.
+
+RST has no official consensus on headings. `This site
+<https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html>`_ states that
+
+    Normally, there are no heading levels assigned to certain characters
+    as the structure is determined from the succession of headings.
+    However, it is better to stick to the same convention throughout a
+    project. For instance:
+
+    - ``#`` with overline, for parts
+    - ``*`` with overline, for chapters
+    - ``=`` for sections
+    - ``-`` for subsections
+    - ``^`` for subsubsections
+    - ``"`` for paragraphs
+
+`The RST Docutils <https://docutils.sourceforge.io/docs/user/rst/quickstart.html#sections>`_
+site breaks down headings between document titles/subtitles and sections.
+`TYPO3 Documentation <https://docs.typo3.org/m/typo3/docs-how-to-document/master/en-us/WritingReST/CheatSheet.html>`_
+states that "in reST, you can use different styles in any order you want".
+
+A common consensus is to use and over and underline for the document header,
+and then underlines for the other headers. The key is consistency in your
+documentation set.
+
+Read the docs theme is popular among RST users. Therefore, this workshop
+will use the following headings used by `sphinx_rtd_theme
+<https://sphinx-rtd-theme.readthedocs.io/en/stable/demo/structure.html#>`_,
+which are:
+
+.. code-block:: rst
+
+    ******************
+    Document title
+    ******************
+
+    Introduction text.
+
+
+    Header 1 (Document Section)
+    ===========================
+
+    Header 1.1 (Document Subsection)
+    -----------------------------
+
+    Header 1.1.1 (Document Subsubsection)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. important::
+    #. The over or underlines can be longer than the header
+       text, but not shorter.
+    #. The over and underlines must be the same length
+
+
+
+References
+----------
+
+- https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html#headings
+- https://docutils.sourceforge.io/docs/user/rst/quickstart.html#sections
+
+----
+
+
+Task
+=====
+
+**Task 1**: Create the page structure using appropriate heading tags
+
+
+#. Create a file with extension ``.rst``.
+#. Give the document a title similar to, *Setting up Sphinx*
+#. Give the page some structure creating *the first four headings*
+   using the appropriate heading tags
+#. Fix the build warning (``WARNING: document isn't included in any toctree``)
+   by adding the page to the TOC in ``index.rst``
+
+   a. Add the name of the file (without the extension) under the
+      ``toctree`` directive in ``index.rst``.
+
+      .. code-block:: text
+
+          .. toctree::
+            :maxdepth: 2
+            :caption: Contents:
+
+            getting-sphinx-running
+
+#. You can read more about the ``toctree`` directive in
+   :ref:`Writing in RST - Task 7`
+
+----
+
+
+Text to add
+===========
+
+    Setting up Sphinx
+
+        - Overview
+        - Installing Sphinx
+
+          - Spin up a VPS with your favorite Linux distro
+          - Install Sphinx using the package manager
+
+        - Configure Sphinx using sphinx-quickstart
+        - Rendering to HTML
+        - Adding Content
+
+          - Default index.html
+          - Create Folders
+
+        - Install a Different Theme
+
+          - Install Read the Docs Theme

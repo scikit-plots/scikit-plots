@@ -9,6 +9,17 @@ Aspects of robustness
 :doc:`◀ Previous · Loglinear models for multivariate discrete data <112-loglinear-models-for-multivariate-discrete-data>`   ·   :doc:`Next · Overdispersed versions of standard models ▶ <114-overdispersed-versions-of-standard-models>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 When the model is wrong in a particular way
 ---------------------------------------------
 

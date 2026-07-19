@@ -1,0 +1,126 @@
+.. _Writing in RST - Task 3:
+
+********************
+Task 3: Note Boxes
+********************
+
+.. contents:: Table of Contents
+
+RST Colored Boxes
+==================
+
+`Colored boxes <https://sphinx-rtd-theme.readthedocs.io/en/stable/demo/demo.html#admonitions>`_
+provide a way to emphasize blocks of text using blue, green, orange/yellow,
+or red using the directive ``.. box-type::``.
+
+They all use the same syntax using a different keyword:
+
+.. list-table:: Colored Box Types
+   :header-rows: 1
+   :widths: 25 15 65
+
+   * - Type/Keyword
+     - Color/Note
+     - Example
+   * - danger, error
+     - red
+     - ``.. danger:: Watch out!``
+   * - attention, caution, warning
+     - orange
+     - ``.. Caution:: Subroutine is not cross-platform.``
+   * - hint, important, tip
+     - blue
+     - ``.. Note:: A generic blue box``
+   * - admonition
+     - blue
+     -
+       .. code-block:: rst
+
+           .. admonition:: Custom label
+
+               The contents of the blue box.
+
+.. tip::
+
+    * Colored boxes act as text blocks because anything indented
+      four spaces stay in the text box.
+    * For example, this list!
+
+.. note:: RST lines should be 80 characters long
+
+.. admonition:: As a final thought
+
+    You don't have to use the *note* title for a blue box. Instead, use
+    your own text!
+
+.. code-block:: rst
+    :caption: RST for the above boxes
+
+    .. tip::
+
+        * Colored boxes act as paragraphs because anything indented
+          four spaces stay in the text box.
+        * For example, this list!
+
+    .. note:: RST lines should be 80 characters long
+
+    .. admonition:: As a final thought
+
+        You don't have to use *note* for a blue box. Instead, use
+        your own title!
+
+
+References
+----------
+
+- https://sublime-and-sphinx-guide.readthedocs.io/en/latest/references.html
+- https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html#colored-boxes-note-seealso-todo-and-warnings
+- https://sphinx-rtd-theme.readthedocs.io/en/stable/demo/demo.html#admonitions
+
+----
+
+Task
+=============
+
+**Task 3**: Add text to *Installing Sphinx*  to learn how to use a
+``note`` box.
+
+* Use inline styles and hyperlinks appropriately.
+* Add a ``note`` about using other distributions
+
+  .. note:: A default note has this style.
+      There are other default boxes,
+      such as `hint and warning <https://sphinx-rtd-theme.readthedocs.io/en/stable/demo/demo.html#admonitions>`_.
+
+----
+
+Text to add
+=============
+
+    .. code-block:: text
+
+        The Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/installation.html>
+        provides instructions for Debian/Ubuntu (apt), RHEL/CentOS (yum),
+        and MacOS (homebrew). This guide will uses the ``apt`` package manager.
+
+        Unfortunately, the apt package manager for Debian has an old version of
+        Sphinx (Sphinx 1.8.4). It works, but PyPI has the latest version of
+        Sphinx <https://pypi.org/project/Sphinx/>. Therefore, this guide
+        shows to install Sphinx using both ``apt`` and ``pip3``.
+
+        Note: Other distributions are supported using pip, such as Alpine Linux.
+        However, additional knowledge is required to install prerequisites for
+        specific Python packages.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/workshops/rst/writing-rst-3.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

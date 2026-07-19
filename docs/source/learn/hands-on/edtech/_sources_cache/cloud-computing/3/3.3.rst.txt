@@ -1,0 +1,148 @@
+************************************
+Step 3: Persist Data Using Volumes
+************************************
+
+.. contents:: Table of Contents
+
+**Objective**: Demonstrate the separation of volumes and containers.
+
+A challenge in working with Docker containers is how to back up container
+data. Or, what happens if you accidentally remove a container! Any data on
+the inside of the container gets destroyed if the container is stopped and
+removed. Docker makes it easy to remove containers, which increases the level
+of risk when using containers. Mounting volumes keeps the data outside of the
+container. Our containers become disposable when we use volumes to mount the
+container data in our VPS.
+
+   + We can stop and delete the containers in the project because the data
+     remains on the VPS.
+   + We can destroy a container and pull in an updated version without
+     worrying about data loss.
+   + We can migrate the data to a new machine and launch new containers.
+
+Let's look at how volumes work through trial and error using Docker Compose.
+
+Verifying Volume Data
+=======================
+
+#. Let's take another look at Docker Compose commands that we have used.
+
+   .. code-block:: bash
+
+       docker-compose up -d     # Creates and starts the Docker project in daemon mode.
+       docker-compose start     # Starts images that were running but are now stopped.
+       docker-compose stop      # Stops the project but keeps the containers.
+       docker-compose down      # Stops the project and removes the containers.
+       docker-compose down -v   # 1) Stops the project,
+                                # 2) removes the containers,
+                                # 3) and remove the volume data.
+
+  There are two commands that stop a running project (``stop`` and ``down``).
+  However, one also removes the containers. Let's do both!
+
+#. Stop the running containers using ``stop``, but don't remove them.
+
+   .. code-block:: bash
+
+       docker-compose stop
+
+#. Try to access the webpage. You will get a `502 Bad Gateway` error.
+
+   + The project is stopped but the containers still exist. View the stopped
+     containers through command ``docker ps -a``. They have the status
+     of `Exited`.
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,4,6,7
+
+       root@vps298933:~/wordpress-docker# docker-compose stop
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_db_1        ... done
+       root@vps298933:~/wordpress-docker# docker ps -a
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS                      PORTS                     NAMES
+       28822cf1444c        wordpress:latest     "docker-entrypoint.s…"   About an hour ago   Exited (0) 16 seconds ago                             wordpressdocker_wordpress_1
+       cdc959eb5014        mariadb              "docker-entrypoint.s…"   About an hour ago   Exited (0) 15 seconds ago                             wordpressdocker_db_1
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days                   0.0.0.0:20850->80/tcp     condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+
+
+#. Start the project and then refresh the webpage. It will be back where you
+   left it.
+
+   .. code-block:: bash
+
+       docker-compose start
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose start
+       Starting db        ... done
+       Starting wordpress ... done
+       root@vps298933:~/wordpress-docker#
+
+#. Now, let's remove the containers entirely!
+
+   .. Note:: Running this command without having volumes will remove the contain
+      and all data.
+
+   .. code-block:: bash
+
+       docker-compose down
+
+#. View the stopped containers through command ``docker ps -a``.
+   You will see that the containers are gone. However, our data is still there.
+   You can verify that the volume data still exists using ``ls -lh`` to view
+   the directory contents.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,8,12
+
+       root@vps298933:~/wordpress-docker# docker-compose down
+       Stopping wordpressdocker_wordpress_1 ... done
+       Stopping wordpressdocker_db_1        ... done
+       Removing wordpressdocker_wordpress_1 ... done
+       Removing wordpressdocker_db_1        ... done
+       Removing network wordpressdocker_default
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker ps -a
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                          NAMES
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days           0.0.0.0:20850->80/tcp          condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# ls -lh
+       total 12K
+       drwxr-xr-x 5      999 root     4.0K Mar 30 11:27 db_data
+       -rw-r--r-- 1 root     root      660 Mar 30 10:10 docker-compose.yml
+       drwxr-xr-x 5 www-data www-data 4.0K Mar 30 11:27 wordpress
+       root@vps298933:~/wordpress-docker#
+
+
+#. Now, rebuild the project using ``docker-compose up -d``
+
+   .. code-block:: bash
+
+       docker-compose up -d
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~/wordpress-docker# docker-compose up -d
+       Creating network "wordpressdocker_default" with the default driver
+       Creating wordpressdocker_db_1 ...
+       Creating wordpressdocker_db_1 ... done
+       Creating wordpressdocker_wordpress_1 ...
+       Creating wordpressdocker_wordpress_1 ... done
+       root@vps298933:~/wordpress-docker#
+
+
+#. Refresh the webpage.
+
+   It should be back where you left it because the data and the applications
+   are separated. Creating backups of the project data is simple. You need to
+   save the project directory only. The container data are disposable.

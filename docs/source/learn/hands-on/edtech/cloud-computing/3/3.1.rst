@@ -1,0 +1,69 @@
+*******************
+Step 1: Clean Up
+*******************
+
+.. contents:: Table of Contents
+
+Remove Previous Wordpress Containers
+======================================
+
+We need to stop the Wordpress project and remove the containers before
+we rebuild the project. As you will learn, Docker containers are
+disposable when using volumes because the data and configurations reside
+outside of the containers. The containers load that data so users can
+interact with it.
+
+#. Change to the Wordpress folder using ``cd ~/wordpress-docker``
+#. Stop the project using the command ``docker-compose down -v``
+
+   + Using the ``-v`` flag removes the data associated with the container.
+
+#. Remove any stopped containers or containers that you no longer want running.
+
+   + View stopped containers: ``docker ps -a``
+   + Remove a stopped container using the CONTAINER ID:
+     ``docker rm 1234567890``
+
+   .. image:: images/container-id.png
+
+   .. code-block:: bash
+
+       root@vps298933:~/wordpress-docker# docker ps -a
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS                     PORTS                          NAMES
+       925b57e101a5        hello-world          "/hello"                 5 minutes ago       Exited (0) 4 minutes ago                                  pensive_sammet
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days                  0.0.0.0:20850->80/tcp          condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker rm 925b57e101a5
+       925b57e101a5
+       root@vps298933:~/wordpress-docker#
+       root@vps298933:~/wordpress-docker# docker ps -a
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                                 NAMES
+       2175f0a86466        nextcloud            "/entrypoint.sh apac…"   7 days ago          Up 6 days           0.0.0.0:20850->80/tcp                 condescending_agnesi
+       root@vps298933:~/wordpress-docker#
+
+
+#. Clean up any dangling volumes using
+   ``docker volume prune``
+#. Physically remove any data stored in the volume directory or
+   `db_data` using command ``rm -r db_data``
+#. The `wordpress-docker` directory should contain `docker-compose.yml` only.
+
+   .. code-block:: bash
+
+       root@vps298933:~/wordpress-docker# ls -lh
+       total 4.0K
+       -rw-r--r-- 1 root root 593 Mar 23 17:43 docker-compose.yml
+       root@vps298933:~/wordpress-docker#
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/3/3.1.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

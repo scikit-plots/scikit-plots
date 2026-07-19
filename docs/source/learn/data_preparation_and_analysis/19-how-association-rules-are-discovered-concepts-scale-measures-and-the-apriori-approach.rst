@@ -9,6 +9,17 @@ How Association Rules Are Discovered: Concepts, Scale, Measures, and the Apriori
 :doc:`◀ Previous · What Can Association Rules Tell Us? <18-what-can-association-rules-tell-us>`   ·   :doc:`Next · Apriori: Frequent Itemsets via the Apriori Algorithm ▶ <20-apriori-frequent-itemsets-via-the-apriori-algorithm>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Three measures of a rule
 --------------------------
 

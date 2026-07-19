@@ -888,6 +888,12 @@ exclude_patterns = [  # glob-style
     ".DS_Store",  # Ignore .DS_Store (used by macOS Finder)
     "venv",  # Ignore virtual environment directory (if applicable)
     "env",  # Ignore virtual environment directory (if applicable)
+
+    # "learn/hands-on/edtech/_sources_cache/**",   # raw source cache — never a doc
+    # "learn/hands-on/edtech/**/urls.rst",
+    # "learn/hands-on/edtech/**/*-urls.rst",
+    # "learn/hands-on/edtech/**/*-content.rst",
+    # "learn/hands-on/edtech/**/includes/*.inc",
 ]
 
 # The master toctree document.

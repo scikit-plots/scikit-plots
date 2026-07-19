@@ -9,6 +9,17 @@ Correlation Coefficients in Python (Pearson, Spearman, Kendall)
 :doc:`◀ Previous · Measuring Associations Between Two Continuous Variables <11-measuring-associations-between-two-continuous-variables>`   ·   :doc:`Next · Karl Pearson ▶ <13-karl-pearson>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Three coefficients
 --------------------
 

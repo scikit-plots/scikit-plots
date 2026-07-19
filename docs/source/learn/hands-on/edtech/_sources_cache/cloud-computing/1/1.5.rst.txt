@@ -1,0 +1,409 @@
+************************
+Step 5: Install Docker
+************************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+Docker Overview
+=================
+Docker is a tool designed to make it easier to create, deploy,
+and run applications by using containers. Containers allow a developer
+to package up an application with all of the parts it needs, such as
+libraries and other dependencies, and ship it all out as one package.
+By doing so, thanks to the container, the developer can rest assured
+that the application will run on any other Linux machine regardless of
+any customized settings that machine might have that could differ
+from the machine used for writing and testing the code.
+
+In a way, Docker is a bit like a virtual machine. But unlike a virtual
+machine, rather than creating a whole virtual operating system, Docker
+allows applications to use the same Linux kernel as the system that
+they're running on and only requires applications to be shipped with
+things not already running on the host computer. This gives a
+significant performance boost and reduces the size of the application.
+Read more on opensource.com's |What is Docker?| article.
+
+View these pages to learn more about Docker
+
+* |What is Docker?| from opensource.com
+* |A Beginner-Friendly Introduction to Containers, VMs and Docker|
+  from freecodecamp.org
+
+
+Install Docker
+===============
+Docker is not installed by default. So, we must install it and then
+verify that it works properly.
+
+There are several versions of docker. We will use docker.io because is
+easier to set up.
+
+#. We should refresh the ``apt`` packages to ensure that we are
+   installing the latest version.
+#. Then, we will install ``docker.io`` using flag ``-y`` to
+   install docker and any required packages automatically.
+
+   .. code-block:: bash
+
+       sudo apt update
+       sudo apt install -y docker.io
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# sudo apt install docker.io
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+       bridge-utils cgroupfs-mount libltdl7 pigz ubuntu-fan
+       Suggested packages:
+       ifupdown aufs-tools debootstrap docker-doc rinse zfs-fuse | zfsutils
+       The following NEW packages will be installed:
+       bridge-utils cgroupfs-mount docker.io libltdl7 pigz ubuntu-fan
+       0 upgraded, 6 newly installed, 0 to remove and 0 not upgraded.
+       Need to get 40.3 MB of archives.
+       After this operation, 198 MB of additional disk space will be used.
+       Do you want to continue? [Y/n] y
+       Get:1 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/universe amd64 pigz amd64 2.4-1 [57.4 kB]
+       Get:2 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/main amd64 bridge-utils amd64 1.5-15ubuntu1 [30.1 kB]
+       Get:3 http://nova.clouds.archive.ubuntu.com/ubuntu bionic/universe amd64 cgroupfs-mount all 1.4 [6,320 B]
+       .
+       .
+       .
+       Setting up docker.io (18.06.1-0ubuntu1~18.04.1) ...
+       Adding group 'docker' (GID 115) ...
+       Done.
+       Created symlink /etc/systemd/system/sockets.target.wants/docker.socket ? /lib/systemd/system/docker.socket.
+       Processing triggers for ureadahead (0.100.0-20) ...
+       Processing triggers for libc-bin (2.27-3ubuntu1) ...
+       Processing triggers for systemd (237-3ubuntu10.11) ...
+       root@vps298933:~#
+
+
+#. Enable Docker so it will start on reboot
+
+   .. code-block:: bash
+
+       sudo systemctl enable docker
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# sudo systemctl enable docker
+       Synchronizing state of docker.service with SysV service script with /lib/systemd/systemd-sysv-install.
+       Executing: /lib/systemd/systemd-sysv-install enable docker
+
+#. View the status of the application. You should see this line:
+   ``Active: active (running)``
+
+   .. code-block:: bash
+
+       sudo systemctl status docker
+
+   .. code-block:: bash
+     :linenos:
+     :emphasize-lines: 2,5
+
+       root@vps298933:~/sphinx-server#
+       root@vps298933:~/sphinx-server# systemctl status docker
+       ● docker.service - Docker Application Container Engine
+       Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+       Active: active (running) since Sat 2019-03-16 11:18:56 +06; 3h 21min ago
+           Docs: https://docs.docker.com
+       Main PID: 900 (dockerd)
+           Tasks: 15
+       CGroup: /system.slice/docker.service
+               +-  900 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+               +-10992 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 8000 -container-ip 172.17.0.2 -container-p
+
+       Mar 16 11:18:55 vps298933 dockerd[900]: time="2019-03-16T11:18:55.564648939+06:00" level=info msg="Default bridge (docker0
+       Mar 16 11:18:55 vps298933 dockerd[900]: time="2019-03-16T11:18:55.652024810+06:00" level=info msg="Loading containers: don
+       Mar 16 11:18:56 vps298933 dockerd[900]: time="2019-03-16T11:18:56.070100870+06:00" level=info msg="Docker daemon" commit=7
+       Mar 16 11:18:56 vps298933 dockerd[900]: time="2019-03-16T11:18:56.087081485+06:00" level=info msg="Daemon has completed in
+       Mar 16 11:18:56 vps298933 systemd[1]: Started Docker Application Container Engine.
+       Mar 16 11:18:56 vps298933 dockerd[900]: time="2019-03-16T11:18:56.126780847+06:00" level=info msg="API listen on /var/run/
+       Mar 16 12:35:13 vps298933 dockerd[900]: time="2019-03-16T12:35:13.895938839+06:00" level=error msg="stream copy error: rea
+       Mar 16 12:35:13 vps298933 dockerd[900]: time="2019-03-16T12:35:13.968707954+06:00" level=error msg="Error running exec 01d
+       Mar 16 12:35:21 vps298933 dockerd[900]: time="2019-03-16T12:35:21.967738507+06:00" level=error msg="stream copy error: rea
+       Mar 16 12:35:22 vps298933 dockerd[900]: time="2019-03-16T12:35:22.035983646+06:00" level=error msg="Error running exec 804
+
+   .. note:: You might need to press ``Ctrl+C`` or ``:q`` to end the
+       status command  if it did not return you back to your prompt.
+
+
+Verify Docker Install
+----------------------
+
+#. View the version of Docker. You should see a similar version.
+
+   .. code-block:: bash
+
+       docker --version
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# docker --version
+       Docker version 19.03.5, build 633a0ea838
+
+#. View the available options using the ``--help`` command
+
+   .. code-block:: bash
+
+       docker --help
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# docker --help
+
+       Usage:  docker [OPTIONS] COMMAND
+
+       A self-sufficient runtime for containers
+
+       Options:
+           --config string      Location of client config files (default "/root/.docker")
+       -D, --debug              Enable debug mode
+       -H, --host list          Daemon socket(s) to connect to
+       -l, --log-level string   Set the logging level ("debug"|"info"|"warn"|"error"|"fatal") (default "info")
+           --tls                Use TLS; implied by --tlsverify
+           --tlscacert string   Trust certs signed only by this CA (default "/root/.docker/ca.pem")
+           --tlscert string     Path to TLS certificate file (default "/root/.docker/cert.pem")
+           --tlskey string      Path to TLS key file (default "/root/.docker/key.pem")
+           --tlsverify          Use TLS and verify the remote
+       -v, --version            Print version information and quit
+
+       Management Commands:
+       config      Manage Docker configs
+       container   Manage containers
+       image       Manage images
+       network     Manage networks
+       node        Manage Swarm nodes
+       plugin      Manage plugins
+       secret      Manage Docker secrets
+       service     Manage services
+       stack       Manage Docker stacks
+       swarm       Manage Swarm
+       system      Manage Docker
+       trust       Manage trust on Docker images
+       volume      Manage volumes
+
+       Commands:
+
+       attach      Attach local standard input, output, and error streams to a running container
+       build       Build an image from a Dockerfile
+       commit      Create a new image from a container’s changes
+       cp          Copy files/folders between a container and the local filesystem
+       create      Create a new container
+       diff        Inspect changes to files or directories on a container’s filesystem
+       events      Get real time events from the server
+       exec        Run a command in a running container
+       export      Export a container’s filesystem as a tar archive
+       history     Show the history of an image
+       images      List images
+       import      Import the contents from a tarball to create a filesystem image
+       info        Display system-wide information
+       inspect     Return low-level information on Docker objects
+       kill        Kill one or more running containers
+       load        Load an image from a tar archive or STDIN
+       login       Log in to a Docker registry
+       logout      Log out from a Docker registry
+       logs        Fetch the logs of a container
+       pause       Pause all processes within one or more containers
+       port        List port mappings or a specific mapping for the container
+       ps          List containers
+       pull        Pull an image or a repository from a registry
+       push        Push an image or a repository to a registry
+       rename      Rename a container
+       restart     Restart one or more containers
+       rm          Remove one or more containers
+       rmi         Remove one or more images
+       run         Run a command in a new container
+       save        Save one or more images to a tar archive (streamed to STDOUT by default)
+       search      Search the Docker Hub for images
+       start       Start one or more stopped containers
+       stats       Display a live stream of container(s) resource usage statistics
+       stop        Stop one or more running containers
+       tag         Create a tag TARGET_IMAGE that refers to SOURCE_IMAGE
+       top         Display the running processes of a container
+       unpause     Unpause all processes within one or more containers
+       update      Update configuration of one or more containers
+       version     Show the Docker version information
+       wait        Block until one or more containers stop, then print their exit codes
+
+
+#. View the docker system information
+
+   .. code-block:: bash
+
+       sudo docker info
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# docker info
+       Containers: 0
+       Running: 0
+       Paused: 0
+       Stopped: 0
+       Images: 0
+       Server Version: 18.06.1-ce
+       Storage Driver: overlay2
+       Backing Filesystem: extfs
+       Supports d_type: true
+       Native Overlay Diff: true
+       Logging Driver: json-file
+       Cgroup Driver: cgroupfs
+       Plugins:
+       Volume: local
+       Network: bridge host macvlan null overlay
+       Log: awslogs fluentd gcplogs gelf journald json-file logentries splunk syslog
+       Swarm: inactive
+       Runtimes: runc
+       Default Runtime: runc
+       Init Binary: docker-init
+       containerd version:  (expected: 468a545b9edcd5932818eb9de8e72413e616e86e)
+       runc version: N/A (expected: 69663f0bd4b60df09991c08812a60108003fa340)
+       init version: v0.18.0 (expected: fec3683b971d9c3ef73f284f176672c44b448662)
+       Security Options:
+       apparmor
+       seccomp
+       Profile: default
+       Kernel Version: 4.15.0-43-generic
+       Operating System: Ubuntu 18.04.1 LTS
+       OSType: linux
+       Architecture: x86_64
+       CPUs: 1
+       Total Memory: 3.759GiB
+       Name: vps298933
+       ID: H2AG:BHBS:OKEZ:UJZ7:S2JB:MXP5:WYKU:42BD:SEOK:VDBS:2VTH:MTTA
+       Docker Root Dir: /var/lib/docker
+       Debug Mode (client): false
+       Debug Mode (server): false
+       Registry: https://index.docker.io/v1/
+       Labels:
+       Experimental: false
+       Insecure Registries:
+       127.0.0.0/8
+       Live Restore Enabled: false
+
+       WARNING: No swap limit support
+
+#. Verify the ``hello-world`` container runs
+
+   .. code-block:: bash
+
+       sudo docker run hello-world
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1,4,8-9
+
+       root@vps298933:~# docker run hello-world
+       Unable to find image 'hello-world:latest' locally
+       latest: Pulling from library/hello-world
+       1b930d010525: Pull complete
+       Digest: sha256:2557e3c07ed1e38f26e389462d03ed943586f744621577a99efb77324b0fe535
+       Status: Downloaded newer image for hello-world:latest
+
+       Hello from Docker!
+       This message shows that your installation appears to be working correctly.
+
+       To generate this message, Docker took the following steps:
+       1. The Docker client contacted the Docker daemon.
+       2. The Docker daemon pulled the "hello-world" image from the Docker Hub. (amd64)
+       3. The Docker daemon created a new container from that image which runs the executable that produces the output you are currently reading.
+       4. The Docker daemon streamed that output to the Docker client, which sent it to your terminal.
+
+       To try something more ambitious, you can run an Ubuntu container with:
+       $ docker run -it ubuntu bash
+
+       Share images, automate workflows, and more with a free Docker ID:
+       https://hub.docker.com/
+
+       For more examples and ideas, visit:
+       https://docs.docker.com/get-started/
+
+
+#. View the docker images. You should see the ``hello-world``
+   image under the REPOSITORY column.
+
+   .. code-block:: bash
+
+       sudo docker images
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# sudo docker images
+       REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+       hello-world         latest              fce289e99eb9        2 weeks ago         1.84kB
+
+
+#. View the active containers (stopped or running)
+
+   * ``docker ps`` shows the active containers
+   * ``docker ps -a`` shows the active (running) and inactive (stopped)
+     containers
+
+   .. note:: Some containers stay running in the background (daemon mode).
+       Others operate as a process. They start, process some data,
+       and then exit.
+
+   .. code-block:: bash
+
+       sudo docker ps
+
+   **Notice** that there are no running containers.
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1
+
+       root@vps298933:~# docker ps
+       CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+
+   .. code-block:: bash
+
+       sudo docker ps -a
+
+   **Notice** that the container has exited.
+
+   .. code-block:: bash
+      :linenos:
+      :emphasize-lines: 1,3
+
+       root@vps298933:~# sudo docker ps -a
+       CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                  PORTS               NAMES
+       67a9ee91dbfc        hello-world         "/hello"            6 days ago          Exited (0) 6 days ago                       nervous_dijkstra
+       root@vps298933:~#
+
+Running Docker as non-root
+---------------------------
+
+If your VPS does not have a ``root`` login or you prefer to use
+a ``user`` account, you can configure Docker to run without out using
+``sudo``.
+
+#. Find your username using ``whoami``
+
+   .. code-block:: bash
+
+       whoami
+
+#. Add your user to ``docker`` group.
+
+   .. code-block:: bash
+
+       sudo groupadd docker
+       sudo usermod -aG docker username
+       sudo newgrp docker

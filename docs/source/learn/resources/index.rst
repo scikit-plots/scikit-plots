@@ -75,6 +75,17 @@ External Learning Resources
         :padding: 2
         :columns: 12 12 6 6
 
+        **doc resources**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Documentation Resources <./doc/index.rst>
+
+    .. grid-item-card::
+        :padding: 2
+        :columns: 12 12 6 6
+
         **plot dataviz resources**
         ^^^
         .. toctree::

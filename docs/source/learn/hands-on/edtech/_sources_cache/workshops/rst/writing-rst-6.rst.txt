@@ -1,0 +1,229 @@
+.. _Writing in RST - Task 6:
+
+**********************
+Task 6: Embed Images
+**********************
+
+.. contents:: Table of Contents
+
+
+Embedding Images
+========================
+
+Images
+------
+
+RST has directives for images and figures. Figures extend the capabilities
+of images. If you need a caption, use a figure.
+
+You can `embed images <https://sublime-and-sphinx-guide.readthedocs.io/en/latest/images.html>`_
+(a) inline or (b) using a substitution.
+
+The inline directive uses similar syntax to the ``code block`` that `includes
+optional parameters <https://docutils.sourceforge.io/docs/ref/rst/directives.html#images>`_.
+
+    .. code-block:: rst
+        :caption: Essential **Inline** ``.. image::`` directives
+
+        .. image:: path/filename.png
+
+    .. code-block:: rst
+        :caption: **Inline** ``.. image::`` directives with parameters
+
+        .. image:: picture.jpeg
+            :height: 100px
+            :width: 200 px
+            :scale: 50 %
+            :alt: alternate text
+            :align: right
+
+        .. image:: images/the_great_sphinx_david_roberts.jpg
+            :width: 350
+            :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+            :align: center
+
+
+    .. image:: images/the_great_sphinx_david_roberts.jpg
+        :width: 350
+        :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+        :align: center
+
+`A substitution <https://sublime-and-sphinx-guide.readthedocs.io/en/latest/reuse.html>`_
+is an element definition that lets you *reuse that element*. Some of
+the parameters apply to the substitution as to the inline directives.
+
+    #. Define the image in a substitution
+    #. The image displays where ever the substitution is
+
+    .. code-block:: rst
+        :caption: **substitution** ``.. image::`` directives
+
+        .. |substitution-name| image:: path/filename.png
+
+        .. |David Roberts: The Great Sphinx| image:: images/the_great_sphinx_david_roberts.jpg
+            :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+            :width: 200
+
+
+    .. code-block:: rst
+        :caption: Using a substitution
+
+        Below is the famous The Great Sphinx and Pyramids of Gizeh (Giza),
+        17 July 1839, by David Roberts (Public domain Wikimedia Commons).
+
+        |David Roberts: The Great Sphinx|
+
+
+    Below is the famous The Great Sphinx and Pyramids of Gizeh (Giza),
+    17 July 1839, by David Roberts (Public domain Wikimedia Commons).
+
+    |David Roberts: The Great Sphinx|
+
+
+
+Figures
+-------
+
+A figure is an image with a caption, legend, or other data. Use the
+``.. figure:: filename.png`` directly without creating a substitution.
+
+
+    .. code-block:: rst
+        :caption: ``.. figure::`` directive
+
+        .. figure:: path/filename.png
+
+        .. figure:: images/the_great_sphinx_david_roberts.jpg
+            :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+            :width: 300
+            :align: center
+
+            The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+            Public domain from https://commons.wikimedia.org/
+
+
+    .. figure:: images/the_great_sphinx_david_roberts.jpg
+        :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+        :width: 300
+        :align: center
+
+        The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+        Public domain from https://commons.wikimedia.org/
+
+
+References
+----------
+
+- https://sublime-and-sphinx-guide.readthedocs.io/en/latest/images.html
+- https://sphinx-rtd-theme.readthedocs.io/en/stable/demo/demo.html#figures
+- https://docutils.sourceforge.io/docs/ref/rst/directives.html#figure
+- https://thomas-cokelaer.info/tutorials/sphinx/rest_syntax.html#what-are-directives
+
+----
+
+
+Task
+============
+
+**Task 6**: Add images and code block nested in a list.
+
+#. Download and save this image to a sub folder to the .rst file.
+
+    .. image:: images/default-sphinx-page.png
+        :width: 200 px
+
+#. Add the code blocks indented or nested in the list.
+#. Add the code block *nested* in point 1. Highlight HTML
+#. Create a named substitution, such as ``|default-theme|``
+#. Add the image *nested* in point 2.
+
+
+----
+
+
+Text to Add
+============
+
+    .. code-block:: text
+
+        We can configure Sphinx to *auto-build* the output when it detects
+        a change, or we can initiate a manual build.
+
+        The command to generate output is ``make <output>``. Sphinx can convert RST
+        to various formats. You can run the ``make command`` without any args to
+        view the possible output types.
+
+    .. code-block:: bash
+        :emphasize-lines: 4
+
+        root@26f88a20b58c:/opt/sphinx# make
+        Sphinx v2.3.1
+        Please use `make target` where target is one of
+        html        to make standalone HTML files
+        dirhtml     to make HTML files named index.html in directories
+        singlehtml  to make a single large HTML file
+        pickle      to make pickle files
+        json        to make JSON files
+        htmlhelp    to make HTML files and an HTML help project
+        qthelp      to make HTML files and a qthelp project
+        devhelp     to make HTML files and a Devhelp project
+        epub        to make an epub
+        latex       to make LaTeX files, you can set PAPER=a4 or PAPER=letter
+        latexpdf    to make LaTeX and PDF files (default pdflatex)
+        latexpdfja  to make LaTeX files and run them through platex/dvipdfmx
+        text        to make text files
+        man         to make manual pages
+        texinfo     to make Texinfo files
+        info        to make Texinfo files and run them through makeinfo
+        gettext     to make PO message catalogs
+        changes     to make an overview of all changed/added/deprecated items
+        xml         to make Docutils-native XML files
+        pseudoxml   to make pseudoxml-XML files for display purposes
+        linkcheck   to check all external links for integrity
+        doctest     to run all doctests embedded in the documentation (if enabled)
+        coverage    to run coverage check of the documentation (if enabled)
+
+    .. code-block:: text
+
+        Our desired output is HTML.
+
+        1. Build the HTML by executing command ``make html``
+
+    .. code-block:: bash
+
+        root@1a40c1841674:/opt/sphinx# make html
+        Running Sphinx v2.3.1
+        making output directory... done
+        building [mo]: targets for 0 po files that are out of date
+        building [html]: targets for 1 source files that are out of date
+        updating environment: [new config] 1 added, 0 changed, 0 removed
+        reading sources... [100%] index
+        looking for now-outdated files... none found
+        pickling environment... done
+        checking consistency... done
+        preparing documents... done
+        writing output... [100%] index
+        generating indices...  genindexdone
+        writing additional pages...  searchdone
+        copying static files... ... done
+        copying extra files... done
+        dumping search index in English (code: en)... done
+        dumping object inventory... done
+        build succeeded.
+
+    .. code-block:: text
+
+        2. Navigate to the URL of the Sphinx instance to view rendered HTML.
+
+        |image-substitution|
+
+
+.. Image substitutions
+
+.. |default-sphinx| image:: images/default-sphinx-page.png
+
+.. https://commons.wikimedia.org/wiki/File:The_Great_Sphinx,_Pyramids_of_Gizeh-1839)_by_David_Roberts,_RA.jpg
+
+.. |David Roberts: The Great Sphinx| image:: images/the_great_sphinx_david_roberts.jpg
+    :alt: The Great Sphinx and Pyramids of Gizeh (Giza) by David Roberts
+    :width: 200

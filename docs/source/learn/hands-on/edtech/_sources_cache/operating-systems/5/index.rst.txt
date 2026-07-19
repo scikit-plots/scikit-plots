@@ -1,0 +1,10 @@
+.. _Writing to a file:
+
+5. Writing to a File using System Calls
+=======================================
+
+See the instructions for |Lab 5 in Google Docs|.
+
+.. |Lab 5 in Google Docs| raw:: html
+
+   <a href="https://drive.google.com/open?id=11DjreG7oKlgl7GCD-c1QLn_ETxNu-iN54MPkXt7WFOs" target="_blank">Lab 5 in Google Docs</a>

@@ -1,0 +1,208 @@
+****************************************
+Step 1: Install a ``snap`` Application
+****************************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+Snaps
+=======
+A ``.snap`` package for the Ubuntu Core system contains all its dependencies.
+The packages ensure that the app will always have the proper dependencies and
+software versions.
+
+    * Importantly, ``snaps`` ensure that a system update to an underlying
+      process, such as a Python update, won't break the application.
+
+Read more:
+
+    * |Complete Guide for Using Snap Packages In Ubuntu and Other
+      Linux Distributions|
+    * |Basic tutorial by Ubuntu|
+    * |Snapcraft: The app store for Linux|
+
+We will install |Rocket.Chat|, which is an open-source team
+communication tool. Tools like this are great because you are
+in control of your own data, not some big company that makes
+money by selling your information to the highest bidder or
+restrict your data due to their policy.
+
+The |manual install instructions for Rocket.Chat| requires the
+user to install MongoDB, Node.js, and other dependencies. Then, the
+user has to configure the service with specific settings. The
+commands aren't complicated, but they aren't guaranteed to work
+if a different version of a dependency. The |snap version of Rocket.Chat|
+installs using a single command. We do not need to be concerned
+with any dependencies or misconfiguration of the application.
+
+Snaps Introduction
+====================
+``snap`` is automatically installed on Ubuntu 16.04 and later.
+You can verify that the service running. You might need to press
+``Ctrl+C`` to exit the status.
+
+.. code-block:: bash
+
+    sudo systemctl status snapd
+
+.. code-block:: bash
+    :caption: Output
+    :emphasize-lines: 1,4
+
+    root@vps298933:~# sudo systemctl status snapd
+    ● snapd.service - Snappy daemon
+       Loaded: loaded (/lib/systemd/system/snapd.service; enabled; vendor preset: enabled)
+       Active: active (running) since Thu 2019-03-21 15:47:46 +06; 1h 1min ago
+     Main PID: 6978 (snapd)
+        Tasks: 11 (limit: 4588)
+       CGroup: /system.slice/snapd.service
+               └─6978 /usr/lib/snapd/snapd
+
+    Mar 21 15:47:46 vps298933 snapd[6978]: helpers.go:691: cannot retrieve info for snap "rocketchat-server": cannot find installed
+    Mar 21 15:47:46 vps298933 snapd[6978]: daemon.go:379: started snapd/2.37.4+18.04 (series 16; classic) ubuntu/18.04 (amd64) linux
+    Mar 21 15:47:46 vps298933 systemd[1]: Started Snappy daemon.
+    Mar 21 16:26:43 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/radix_tree_no
+    Mar 21 16:26:43 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/dentry(2728:s
+    Mar 21 16:26:43 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/flip(2728:sna
+    Mar 21 16:26:43 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/inode_cache(2
+    Mar 21 16:31:56 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/dentry(2610:p
+    Mar 21 16:31:56 vps298933 snapd[6978]: udevmon.go:190: udev monitor observed remove event for unknown device "/sys/proc_inode_ca
+    Mar 21 16:37:20 vps298933 snapd[6978]: api.go:1077: Installing snap "hello-world" revision unset
+
+    root@vps298933:~#
+
+Here are some basic snap commands. The |Basic tutorial by Ubuntu| has
+more information. These commands use ``hello-world`` for the sample snap.
+
+View the snap commands using ``snap help --all``
+
+Basics (basic snap management)
+-------------------------------
+
+#. ``snap find hello`` searches the snap repository for anything containing
+   the text ``hello``
+#. ``snap install hello-world`` installs the ``hello-world`` snap
+#. ``snap list`` displays the snaps installed on the system
+#. ``snap remove hello-world`` removes the ``hello-world`` snap from the system
+#. ``snap info hello-world`` displays information about the ``hello-world``
+   snap package
+#. ``snap refresh hello-world`` manually checks for updates about to the
+   ``hello-world`` snap
+#. ``snap enable hello-world`` enables the ``hello-world`` snap.
+#. ``snap disable hello-world`` disables the ``hello-world`` snap.
+
+Daemons (manage services):
+----------------------------
+
+#. ``snap services`` displays the status of services
+#. ``snap start hello-world`` start the ``hello-world`` snap.
+#. ``snap stop hello-world`` stop the ``hello-world`` snap.
+#. ``snap restart hello-world`` restart the ``hello-world`` snap.
+#. ``snap logs hello-world`` retrieve the logs for the ``hello-world`` snap.
+
+
+Rocket.Chat
+============
+We will follow the installation instructions for the
+|snap version of Rocket.Chat|.
+
+#. Install Rocket.Chat using ``snap``
+
+   .. code-block:: bash
+
+       sudo snap install rocketchat-server
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# sudo snap install rocketchat-server
+       rocketchat-server 0.74.2 from Rocket.Chat (rocketchat✓) installed
+       root@vps298933:~#
+
+#. Let's view information about the service.
+
+   * We might need to wait a minute until the service finishes
+     initializing in the background.
+
+   .. code-block:: bash
+
+       snap services
+
+   .. code-block:: bash
+
+       root@vps298933:~# snap services
+       Service                              Startup  Current   Notes
+       rocketchat-server.rocketchat-caddy   enabled  inactive  -
+       rocketchat-server.rocketchat-mongo   enabled  active    -
+       rocketchat-server.rocketchat-server  enabled  active    -
+
+#. We can see detailed information about the ``rocketchat-server`` service.
+
+   .. code-block:: bash
+
+       snap info rocketchat-server
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# snap info rocketchat-server
+       name:      rocketchat-server
+       summary:   Group chat server for 100s,  installed in seconds.
+       publisher: Rocket.Chat (rocketchat✓)
+       contact:   https://open.rocket.chat/channel/ubuntu-snap
+       license:   unset
+       description: |
+         Slack-like online chat server for your office, group or family.   Up and running in seconds.
+         Supports file sharing, video conference, geolocation, and much more.   Web and mobile client.
+         MIT licensed Open Source project.   List of features at  https://rocket.chat/ ,  MIT licensed
+         source code at https://github.com/RocketChat/Rocket.Chat , 24 x 7 community support and community
+         server at https://open.rocket.chat/
+       commands:
+         - rocketchat-server.backupdb
+         - rocketchat-server.initcaddy
+         - rocketchat-server.mongo
+         - rocketchat-server.restoredb
+       services:
+         rocketchat-server.rocketchat-caddy: simple, enabled, inactive
+         rocketchat-server.rocketchat-mongo: simple, enabled, active
+         rocketchat-server:                  simple, enabled, active
+       snap-id:      wdBUbiEuMNHmAHLBCXQXOcXaOCvbWS1e
+       tracking:     stable
+       refresh-date: today at 16:58 +06
+       channels:
+         stable:    0.74.2       2019-02-07 (1364) 234MB -
+         candidate: 0.74.3       2019-03-20 (1367) 235MB -
+         beta:      1.0.0-beta.1 2019-03-13 (1365) 241MB -
+         edge:      0.72.3       2018-12-12 (1355) 224MB -
+       installed:   0.74.2                  (1364) 234MB -
+       root@vps298933:~#
+
+#. We know from the documentation that the |snap version of Rocket.Chat|
+   runs on port ``3000``.
+
+   * We can verify that the service is running using ``curl``.
+     The file contains a lot of text, so we'll examine the header only.
+     This will tell us if Rocket.Chat is working because we look at HTTP
+     status code.
+
+   .. code-block:: bash
+
+       curl --head http://localhost:3000
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# curl --head http://localhost:3000
+       HTTP/1.1 200 OK
+       X-Instance-ID: i2mMgZgKces4Bbnay
+       X-Powered-By: Express
+       Access-Control-Allow-Origin: *
+       Content-Type: text/html; charset=utf-8
+       set-cookie: connect.sid=s%3Ao6c8Ki4-FvdcP0EmRD3Wpj1mFEy4SrAm.jDq5XhNRkLCqDjxjjnp%2B%2Bmg1gfL5yETMryENsCOmuig; Path=/; HttpOnly
+       Vary: Accept-Encoding
+       Date: Thu, 21 Mar 2019 11:10:16 GMT
+       Connection: keep-alive

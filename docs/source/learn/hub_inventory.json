@@ -1,0 +1,97 @@
+{
+  "_note": "Single source of truth for the learn/ hub. The 'roadmap' block is HAND-AUTHORED (edit it as the plan evolves); 'actual', 'gaps', 'diff' and 'generated' are overwritten by hub_inventory.py on each scan. Section 'kind': flat = lessons at course root; sectioned = per-section folders/tsv keys; mirror = tracked via _discovered.json. A section with neither 'tsv'/'dir' nor 'whole_course' is roadmap-only (expected but not yet built) and surfaces as a gap.",
+  "roadmap": {
+    "bayesian_data_analysis": {
+      "title": "Bayesian Data Analysis",
+      "kind": "flat"
+    },
+    "data_analytics": {
+      "title": "Data Analytics",
+      "kind": "sectioned",
+      "sections": [
+        {
+          "name": "1. Foundations",
+          "tsv": "foundations",
+          "dir": "1_foundations"
+        },
+        {
+          "name": "2. Data-Driven Decisions",
+          "tsv": "ddd",
+          "dir": "2_data_driven_decisions"
+        },
+        {
+          "name": "3. Data Preparation",
+          "tsv": "prep",
+          "dir": "3_data_preparation"
+        },
+        {
+          "name": "4. Data cleaning & preparation",
+          "tsv": "cleaning",
+          "dir": "4_data_cleaning_preparation"
+        },
+        {
+          "name": "5. Analyze Data",
+          "tsv": "analyze",
+          "dir": "5_analyze_data"
+        },
+        {
+          "name": "6. Data visualization",
+          "tsv": "viz",
+          "dir": "6_data_visualization"
+        },
+        {
+          "name": "7. Data Analysis Using Python",
+          "tsv": "python",
+          "dir": "7_data_analysis_python"
+        },
+        {
+          "name": "8. Job Search",
+          "tsv": "jobsearch",
+          "dir": "8_job_search"
+        }
+      ]
+    },
+    "data_preparation_and_analysis": {
+      "title": "Data Preparation and Analysis",
+      "kind": "flat"
+    },
+    "deep_learning": {
+      "title": "Deep Learning",
+      "kind": "sectioned",
+      "sections": [
+        {
+          "name": "1. Neural Networks and Deep Learning",
+          "whole_course": true
+        },
+        {
+          "name": "2. Improving Deep Neural Networks"
+        },
+        {
+          "name": "3. Structuring Machine Learning Projects"
+        },
+        {
+          "name": "4. Convolutional Neural Networks"
+        },
+        {
+          "name": "5. Sequence Models"
+        }
+      ]
+    },
+    "time_series": {
+      "title": "Introduction to Time Series",
+      "kind": "flat"
+    },
+    "terminology": {
+      "title": "Terminology",
+      "kind": "flat"
+    },
+    "hands-on/edtech": {
+      "title": "BilimEdtech Labs (CC BY 4.0 mirror)",
+      "kind": "mirror"
+    }
+  },
+  "actual": {},
+  "gaps": [],
+  "diff": {},
+  "generated": null
+}

@@ -1,0 +1,8 @@
+Dockerfile
+==========
+
+.. contents:: Table of Contents
+
+.. _dockerfile-elements-lab5:
+
+.. include:: ../references/dockerfile-content.rst

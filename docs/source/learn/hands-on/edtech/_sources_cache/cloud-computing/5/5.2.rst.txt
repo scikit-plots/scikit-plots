@@ -1,0 +1,426 @@
+************************
+Step 2: Daemonize Docker
+************************
+
+.. include:: urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Daemonize a Docker image so that it can run in the background.
+
+By default, Docker runs containers in the foreground. The container will exit
+once it has executed the current command. Recall our image that displayed the
+date. It started, displayed the date, and then exited. We have to run the
+containers in the background if we want them to act like a server, not as a
+client application that we started when we need to use it.
+
+In multitasking computer operating systems, a daemon is a computer
+program that runs as a background process, rather than being under the
+direct control of an interactive user. The letter 'd' or flag '-d'
+indicates that process a daemon. For example, syslogd is the daemon
+that implements the system logging facility, and sshd is a daemon that
+serves incoming SSH connections. |Source: Wikipedia|.
+
+
+5.2.1. Docker Daemon Mode
+===========================
+
+``docker run`` uses the flag ``-d`` to indicate the container should
+run in the background. However, the container will still exit once the
+task is completed.
+
+Let's see how this works in practice.
+
+#. Start the container using these commands to name the container and
+   run it in the background.
+
+   + ``--name`` flag assigns that name to the container.
+   + ``-d`` flag runs the process in the background.
+
+   .. code-block:: bash
+
+       docker run --name alpine-demo -d alpine-demo:test
+
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,6
+
+       root@vps298933:~# docker run --name alpine-demo -d alpine-demo:test
+       bd90885a90ed24bc575e48f17fd01f27a551c9d7c47af586014a44ed73a329d2
+       root@vps298933:~#
+       root@vps298933:~# docker ps -a
+       CONTAINER ID        IMAGE               COMMAND     CREATED             STATUS                     PORTS       NAMES
+       bd90885a90ed        alpine-demo:test    "date"      4 seconds ago       Exited (0) 3 seconds ago               alpine-demo
+       root@vps298933:~#
+
+   We see that the container ran and then exited. However, it displayed a
+   long line of text (the long identifier of the container) instead of
+   our expected output. We can still get the output of container from the
+   logs.
+
+#. View the logs from the `alpine-demo` container.
+
+   We can use command ``docker logs [NAME or ID]`` to get the logs for a
+   specific container. In our case, we'll use our container name of
+   `alpine-demo`.
+
+   .. code-block:: bash
+
+        docker logs alpine-demo
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker logs alpine-demo
+       Fri Feb 15 08:41:00 UTC 2019
+       root@vps298933:~# docker logs bd90885a90ed
+       Fri Feb 15 08:41:00 UTC 2019
+       root@vps298933:~#
+
+#. Create a process that does not exit.
+
+   Docker requires an active process to keep the container alive.
+   Usually, the process is tied to a web process, such as Apache or
+   Nginx. We can use a simple script that never exits to keep the
+   container running. Our script will use a while loop that pauses for a
+   few seconds and then restarts.
+
+   .. code-block:: bash
+       :caption: Script logic
+
+        while true; do
+            sleep 1s
+        done
+
+   a. Run the container using a command that puts it in an infinite
+      loop using a one second delay.
+
+      .. code-block:: bash
+
+           docker run --name alpine-demo -d alpine-demo:test /bin/sh -c "while true; do sleep 1s; done"
+
+      .. code-block:: bash
+          :caption: Output
+          :emphasize-lines: 1,6,10
+
+          root@vps298933:~# docker run --name alpine-demo -d alpine-demo:test /bin/sh -c "while true; do sleep 1s; done"
+          cca96a2845b301d625ede07b4fcfdef180b95e092c19737d42634493214f59c4
+          root@vps298933:~#
+          root@vps298933:~# docker ps
+          CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS           PORTS        NAMES
+          cca96a2845b3        alpine-demo:test    "/bin/sh -c 'while t…"   4 seconds ago       Up 3 seconds                  alpine-demo
+          root@vps298933:~#
+          root@vps298933:~# docker ps
+          CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS           PORTS        NAMES
+          cca96a2845b3        alpine-demo:test    "/bin/sh -c 'while t…"   2 minutes ago       Up 2 minutes                  alpine-demo
+          root@vps298933:~#
+
+   Our container continues to run the background. It will run until the VP is
+   restarted or we stop the process. We can now enter the container using a shell.
+
+#. Enter the container using the ``sh`` shell.
+
+   .. note:: We have to use the full path, which is ``/bin/sh``.
+
+   Now that the container is running in the background, we can enter the
+   container to get a terminal prompt using the ``docker exec`` command to
+   execute the shell program in interactive mode using flags
+   ``-it`` (or ``-i -t``).
+
+   .. code-block:: bash
+
+        docker exec -it alpine-demo /bin/sh
+
+   a. Evaluate the running processes using command ``ps`` (process status).
+
+      + Notice that our script has PID 1, which is the first process that is started at boot time.
+      + PID 1 has a special status.
+      + The container will `stop` when the process with PID 1 stops.
+      + The container will not stop automatically because the script never ends.
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1
+
+       root@vps298933:~# docker exec -it alpine-demo /bin/sh
+       / # ps
+       PID   USER     TIME  COMMAND
+           1 root      0:00 /bin/sh -c while true; do sleep 1s; done
+           9 root      0:00 /bin/sh
+          15 root      0:00 sleep 1s
+          16 root      0:00 ps
+       / # cat /etc/*-release
+       3.9.0
+       NAME="Alpine Linux"
+       ID=alpine
+       VERSION_ID=3.9.0
+       PRETTY_NAME="Alpine Linux v3.9"
+       HOME_URL="https://alpinelinux.org/"
+       BUG_REPORT_URL="https://bugs.alpinelinux.org/"
+       / # exit
+       root@vps298933:~#
+
+
+#. Let's modify our Dockerfile so that it uses an actual script so that
+   it will always start in daemon mode.
+
+   We will introduce two new commands:
+
+   + ``COPY`` copies a file from the host computer to the image when
+     it is built.
+   + ``ENTRYPOINT file-path`` specifies the file that the container will
+     run once it starts.
+
+   a. Edit ``Dockerfile`` and add the new commands
+
+   .. code-block:: bash
+       :caption: File contents of ``Dockerfile``
+       :linenos:
+       :emphasize-lines: 11-16
+
+       # A simple Dockerfile using Alpine
+
+       FROM alpine
+
+       RUN apk update && \
+           apk add nano curl
+
+       # Print the date
+       CMD ["date"]
+
+       # Copy the file, set the execute flag
+       COPY entrypoint.sh /entrypoint.sh
+       RUN chmod +x /entrypoint.sh
+
+       # This script runs when a container is created
+       ENTRYPOINT ["/entrypoint.sh"]
+
+#. Create file ``entrypoint.sh``.
+
+   We will create a simple shell script that runs when the Docker
+   container starts. It is the *entrypoint* into the container.
+   Typically, a shell script has the file extension of ``.sh``.
+
+   .. code-block:: bash
+       :caption: File contents of ``entrypoint.sh``
+
+       #!/bin/sh
+
+       # Keeps the container alive
+       while true; do sleep 1s; done
+
+
+#. Build the container and then run it.
+
+   Let's give it a new tag. Notice the new steps in the output.
+   Step 4 copies the file into the image and then step 5 sets
+   the entry point. We will add the letter 'd' to our container
+   name so we know that it is a daemonized process.
+
+   .. code-block:: bash
+
+       docker build -t alpine-demo:daemon .
+       docker images
+       docker run --name alpine-demod -d alpine-demo:daemon
+
+   We can now enter the running container and view the process on
+   PID 1. You will see that it is our process, the endless loop.
+
+   .. code-block:: bash
+
+       docker exec -it alpine-demod /bin/sh
+       ps
+
+   .. code-block:: bash
+       :caption: Output
+       :emphasize-lines: 1,12,14,18,29,36,40
+
+       root@vps298933:~/alpine-demo-alpine#
+       root@vps298933:~/alpine-demo-alpine# docker build -t alpine-demo:daemon .
+       Sending build context to Docker daemon  3.072kB
+       Step 1/6 : FROM alpine:latest
+        ---> 5cb3aa00f899
+       Step 2/6 : RUN apk update &&     apk add nano &&     apk add curl
+        ---> Using cache
+        ---> bffd4113050a
+       Step 3/6 : CMD ["date"]
+        ---> Using cache
+        ---> 5b250f17b87a
+       Step 4/6 : COPY entrypoint.sh /entrypoint.sh
+        ---> 565e02e06c07
+       Step 5/6 : RUN chmod +x /entrypoint.sh
+        ---> Running in eaa78413a547
+       Removing intermediate container eaa78413a547
+        ---> 77dfe19816fd
+       Step 6/6 : ENTRYPOINT ["/entrypoint.sh"]
+        ---> Running in 3404f1544c7e
+       Removing intermediate container 3404f1544c7e
+        ---> ce272b995894
+       Successfully built ce272b995894
+       Successfully tagged alpine-demo:daemon
+       root@vps298933:~/alpine-demo# docker images
+       REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+       alpine-demo         daemon              ce272b995894        5 seconds ago       16.8MB
+       alpine-demo         test                5b250f17b87a        4 hours ago         16.8MB
+       alpine              latest              5cb3aa00f899        5 weeks ago         5.53MB
+       root@vps298933:~/alpine-demo# docker run --name alpine-demod -d alpine-demo:daemon
+       1cd0b2b19e16ed6e51e5586026510896b7e3a5d84c55f6cafb00b8a35292d12e
+       root@vps298933:~/alpine-demo# docker ps
+       CONTAINER ID        IMAGE                 COMMAND                  CREATED              STATUS              PORTS        NAMES
+       1cd0b2b19e16        alpine-demo:daemon    "/entrypoint.sh date"    About a minute ago   Up About a minute                alpine-demod
+       e0abd9624ce5        alpine-demo:test      "/bin/sh -c 'while t…"   3 hours ago          Up 3 hours                       alpine-demo
+       root@vps298933:~/alpine-demo#
+       root@vps298933:~/alpine-demo# docker exec -it alpine-demod /bin/sh
+       / #
+       / # ps
+       PID   USER     TIME  COMMAND
+           1 root      0:00 {entrypoint.sh} /bin/sh /entrypoint.sh date
+        1185 root      0:00 /bin/sh
+        1192 root      0:00 sleep 1s
+        1193 root      0:00 ps
+       / # exit
+       root@vps298933:~/alpine-demo#
+
+
+5.2.2. Debugging
+==================
+
+``docker build`` builds images by parts. An incorrect command, missing
+file, or something that is not correct might stop the build process.
+``docker build`` does not stop on all errors. It could proceed and
+report a `Successfully built` message that leaves behinds *unnamed
+builds*. For example, you build an image and then try to run the
+container. ``docker run`` created a container, but it would not run.
+Inspecting the images indicates that the image did not build properly.
+
+.. code-block:: bash
+    :caption: Output
+    :emphasize-lines: 1,27,28
+
+    root@vps298933:~/alpine-demo-alpine# docker build -t alpine-demo:daemon .
+    Sending build context to Docker daemon  3.072kB
+    Step 1/6 : FROM alpine
+     ---> caf27325b298
+    Step 2/6 : RUN apk update &&     apk add nano curl
+     ---> Using cache
+     ---> 6a5ee9cd840c
+    Step 3/6 : CMD ["date"]
+     ---> Using cache
+     ---> f81cfdbe1e26
+    Step 4/6 : COPY entrypoint.sh /entrypoint.sh
+     ---> Using cache
+     ---> 6b686904f2ab
+    Step 5/6 : RUN chmod +x /entrypoint.sh
+     ---> Running in 7f2dfb77bb67
+    Removing intermediate container 7f2dfb77bb67
+     ---> 16241fe9e9b6
+    Step 6/6 : ENTRYPOINT ["/entrypoint.sh"]
+     ---> Running in f951f26f4b33
+    Removing intermediate container f951f26f4b33
+     ---> 02bf62b546b4
+    Successfully built 02bf62b546b4
+    Successfully tagged alpine-demo:daemon
+    root@vps298933:~/alpine-demo-alpine#
+    root@vps298933:~/alpine-demo-alpine# docker run --name alpine-demod -d alpine-demo:daemon
+    11d5dd7125c76697633acfe43b4b694a86fd3bad77a541a7add9f4c03b425943
+    docker: Error response from daemon: OCI runtime create failed: container_linux.go:348: starting container process caused
+    "exec: \"/bin/sh -c /entrypoint.sh\": stat /bin/sh -c /entrypoint.sh: no such file or directory": unknown.
+    root@vps298933:~/alpine-demo-alpine# docker ps -a
+    CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS          PORTS      NAMES
+    85cbdde72e8a        alpine-demo:daemon  "/entrypoint.sh date"    7 minutes ago       Created                    alpine-demod
+    f087d867c18e        alpine-demo:test    "/bin/sh -c 'while t…"   18 minutes ago      Up 18 minutes              alpine-demo
+    root@vps298933:~/alpine-demo-alpine# docker rm alpine-demod
+
+
+Inspecting the images using ``docker images`` shows three unnamed images,
+which are three failed builds.
+
+.. code-block:: bash
+    :caption: Output
+    :emphasize-lines: 1,4-6
+
+    root@vps298933:~/alpine-demo-alpine# docker images
+    REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+    alpine-demo         daemon              34931c7cb89b        7 minutes ago       16.8MB
+    <none>              <none>              4a5247bf507f        10 minutes ago      16.8MB
+    <none>              <none>              02bf62b546b4        17 minutes ago      16.8MB
+    <none>              <none>              2d4f3357a4c6        About an hour ago   16.8MB
+    alpine-demo         test                f81cfdbe1e26        25 hours ago        16.8MB
+    alpine              latest              caf27325b298        2 weeks ago         5.53MB
+
+
+We can evaluate the failed build. Docker calls these **dangling images**.
+
+.. code-block:: bash
+
+     docker images -f "dangling=true" -q
+
+
+We can cleanup ``dangling images`` quickly using a single command.
+
+.. code-block:: bash
+
+     docker rmi $(docker images -f "dangling=true" -q)
+
+.. code-block:: bash
+    :caption: Output
+    :emphasize-lines: 1,11
+
+    root@vps298933:~/alpine-demo-alpine#
+    root@vps298933:~/alpine-demo-alpine# docker images
+    REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+    alpine-demo         daemon              34931c7cb89b        22 minutes ago      16.8MB
+    <none>              <none>              4a5247bf507f        25 minutes ago      16.8MB
+    <none>              <none>              02bf62b546b4        32 minutes ago      16.8MB
+    <none>              <none>              2d4f3357a4c6        2 hours ago         16.8MB
+    alpine-demo         test                f81cfdbe1e26        25 hours ago        16.8MB
+    alpine              latest              caf27325b298        2 weeks ago         5.53MB
+    root@vps298933:~/alpine-demo-alpine#
+    root@vps298933:~/alpine-demo-alpine# docker rmi $(docker images -f "dangling=true" -q)
+    Deleted: sha256:4a5247bf507f8e706a488f32ac3553b11d6d6581d2ba1358daf81d7bac6c481b
+    Deleted: sha256:02bf62b546b489fa6956692f8fd3c542e4bdbac322072311bf1417d2f1394c2a
+    Deleted: sha256:16241fe9e9b6fac70c742e4d25be41dcdf61d457d569855371ae254482dc54ba
+    Deleted: sha256:4811c004c04495e046bebfed53f13e4981f2f3b150bc9dff05d79882acb7d98a
+    Deleted: sha256:2d4f3357a4c613d5c539410dea851910dcc855e5f094b548f41b88fc9f0915ce
+    Deleted: sha256:6b686904f2abbb350a8eeff4c1c481ea412a065957e5e69bccc04479033db5b7
+    Deleted: sha256:a4fa6ef5ebd3cb02c7f8fd82ee4e8554139aa8e48b55d0f3a3b7860c51a11c9c
+    root@vps298933:~/alpine-demo-alpine# docker images
+    REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+    alpine-demo         daemon              34931c7cb89b        22 minutes ago      16.8MB
+    alpine-demo         test                f81cfdbe1e26        25 hours ago        16.8MB
+    alpine              latest              caf27325b298        2 weeks ago         5.53MB
+    root@vps298933:~/alpine-demo-alpine#
+
+You can also use the command ``Docker system prune`` to remove
+dangling images and stopped containers.
+
+    .. code-block:: bash
+
+        docker system prune
+
+5.2.3. Wrap-up
+======================
+We learned how to create a daemonized container or one that runs in
+the background.
+
+
+#. We can start a container that runs in the background using ``docker
+   run -d image:tag /bin/sh -c "while true; do sleep 1s; done"``
+
+   + ``-d`` flag directs the container to run in the background.
+   + ``/bin/sh -c "while true; do sleep 1s; done"`` starts a script that
+     runs without stopping.
+
+#. We can build a container that will start in daemon mode using the
+   ``ENTRYPOINT`` command in the ``Dockerfile``.
+
+   + ``COPY source destination`` command copies a file to the image.
+   + ``RUN chmod +x /filename`` set the executable flag on the file.
+   + ``ENTRYPOINT ["/path/filename"]`` specifies a file to run when a
+     container is created from the image.
+
+
+Next, we'll build an image that includes a webserver and a Python
+script.

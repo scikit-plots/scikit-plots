@@ -1,0 +1,12 @@
+.. _Writing in RST - Task 9:
+
+*************************
+Task 9: Autodoc
+*************************
+
+Some users have Python code that they want to document. You can use the
+``Autodoc`` extension to automatically generate documentation using
+Sphinx.
+
+A guide from https://sphinx-rtd-tutorial.readthedocs.io/ provides
+instructions on how to use Sphinx to auto-document Python code.

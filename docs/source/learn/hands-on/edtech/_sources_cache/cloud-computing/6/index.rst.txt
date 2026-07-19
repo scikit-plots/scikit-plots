@@ -1,0 +1,15 @@
+.. _lab6:
+
+***********************
+Lab 6: Flask Python App
+***********************
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   6.1
+   6.2
+   6.3
+   6.4

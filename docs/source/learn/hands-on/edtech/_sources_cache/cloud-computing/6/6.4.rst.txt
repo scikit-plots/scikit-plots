@@ -1,0 +1,395 @@
+.. _Step 6.4:
+
+*******************************************************************
+Step 4: Developing Your Flask App
+*******************************************************************
+
+.. include:: urls.rst
+
+**The goal for Step 4**: To develop a completed *Quote of the Day* Python Flask app
+
+.. contents:: Table of Contents
+
+This activity was derived from these two sites
+
+* |lec26-flask|
+* |flask-web-app-with-python|
+
+4.1. Creating Routes
+------------------------------------------------------------------
+Flask does not have a filesystem directory to locate and serve files. Instead,
+it uses a technique called |named routing| to map a route name to a function.
+
+Your hello-world ``index.py`` page already has the default or index route ``/``.
+Opening the web browser to the index page will display the contents of
+function ``hello_world``.
+
+.. code-block:: python
+   :emphasize-lines: 1
+
+    @app.route("/")
+    def hello_world():
+
+        hello = "Welcome to the quote of the day!\n"
+        return hello
+
+Let's create a named route to greet a person by name using
+*flask route params*.
+
+#. First, let's rename ``hello_world()`` function to ``index()``
+
+   .. code-block:: python
+
+       @app.route('/')
+       def index():
+           hello = "Welcome to the quote of the day!\n"
+           return hello
+
+#. Create a new route called ``/hello`` in your ``index.py`` file
+
+   .. code-block:: python
+
+       @app.route('/hello')
+       def hello():
+           return "Hey there! Add add you name to the URL for a personalized quote"
+
+
+   Here is how your file should look:
+
+   .. code-block:: python
+       :caption: With added ``hello`` route
+
+       from flask import Flask
+       app = Flask(__name__)
+
+       # Default route
+       @app.route("/")
+       def index():
+
+           hello = "Welcome to the quote of the day!\n"
+           return hello
+
+       # /hello route
+       @app.route('/hello')
+       def hello():
+          return "Hey there! Add add you name to the URL for a personalized quote"
+
+       # Flask app server
+       if __name__ == "__main__":
+           app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+
+#. Open the page in your browser to verify that it works as expected.
+
+   .. image:: images/2022-05-19_flask-hello.png
+
+#. Add a new route with a string parameter called ``name`` and then
+   verify the route works.
+
+   .. code-block:: python
+
+       @app.route('/hello/<name>/')
+       def hello_visitor(name):
+           return "Hey there " + str(name) + "! Here is your quote:"
+
+   .. image:: images/2022-05-19_flask-hello-jimmy.png
+
+   Here is how your ``index.py`` file should look:
+
+   .. code-block:: python
+       :caption: With added ``/hello/name`` route
+
+       from flask import Flask
+       app = Flask(__name__)
+
+       # Default route
+       @app.route("/")
+       def index():
+
+           hello = "Welcome to the quote of the day!\n"
+           return hello
+
+       # /hello route
+       @app.route('/hello')
+       def hello():
+          return "Hey there! Add add you name to the URL for a personalized quote"
+
+       # /hello route with a 'name' parameter
+       @app.route('/hello/<name>/')
+       def hello_visitor(name):
+           return "Hey there " + str(name) + "! Here is your quote:"
+
+       # Flask app server
+       if __name__ == "__main__":
+           app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+4.2. Templates
+------------------------------------------------------------------
+Flask uses |Jinja2| as its template engine to provide code functionality
+inside the HTML files.
+
+We will separate code and user interface using a technique called templates.
+We make two directories to contain non-Python code files:
+
+``templates``
+   The ``templates`` folder contains the HTML files
+
+``static``
+   The ``static`` folder contains other files, such as images, CSS, and JS.
+
+#. Create the two directories in your ``quotes-app`` folder with the files we will need
+
+   .. code-block:: bash
+
+       # Verify your directory
+       # Expected directory: ~/flask-quotes/quotes-app
+       echo $PWD
+
+       # Create the directories
+       mkdir templates
+       mkdir static
+
+       # Create empty files
+       touch templates/quotes.html
+       touch static/quotes.css
+
+   Your folder structure should look like this:
+
+   .. code-block:: bash
+
+       sysadmin@test2:~/flask-quotes/quotes-app$ tree
+       .
+       ├── index.py
+       ├── static
+       │   └── quotes.css
+       └── templates
+           └── quotes.html
+
+       2 directories, 3 files
+       sysadmin@test2:~/flask-quotes/quotes-app$
+
+#. Edit ``quotes.html`` to include ``name`` variable.
+
+   |Jinja2| provides the logic and will render the ``{{name}}`` variable.
+
+   .. code-block:: python
+       :caption: quotes.html
+
+       <h1>Hello {{name}}</h1>
+
+#. Edit ``index.py`` to render a template instead of returning HTML code
+   for route ``/hello/<name>/``. Also, we have to import the libraries.
+
+   .. code-block:: python
+       :caption: python.py
+       :emphasize-lines: 1, 22
+
+       from flask import Flask, flash, redirect, render_template, request, session, abort
+
+       app = Flask(__name__)
+
+       # Default route
+       @app.route("/")
+       def index():
+
+           hello = "Welcome to the quote of the day!\n"
+           return hello
+
+       # /hello route
+       @app.route('/hello')
+       def hello():
+          return "Hey there! Add add you name to the URL for a personalized quote"
+
+       # /hello route with a 'name' parameter
+       @app.route('/hello/<name>/')
+       def hello_visitor(name):
+
+           # The template can access the variable using this format: {{variable}}
+           return render_template('quotes.html', name=name)
+           # return "Hey there " + str(name) + "! Here is your quote:"
+
+       # Flask app server
+       if __name__ == "__main__":
+           app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+#. Now, we can finish developing the HTML in ``quotes.html``.
+
+   .. code-block:: html
+
+       <!DOCTYPE html>
+       <html>
+           <head>
+               <title>Quote of the Day</title>
+               <link rel="stylesheet" href="{{ url_for('static', filename='quotes.css') }}" type="text/css" />
+           </head>
+           <body>
+               <section id="container">
+                   <h1>Hello {{name}}!</h1>
+                   <h2>Here is an interesting quote for you:</h2>
+                   <blockquote>
+                       <p id="quote">{{quote}}</p>
+                       <p id="author">-- {{author}}</p>
+                   </blockquote>
+               <img src="{{url_for('static',filename = 'smilingpython.gif')}}" >
+               </section>
+           </body>
+       </html>
+
+We'll beautify the HTML file later by adding a CSS file and image.
+
+4.3. Adding the Quotes
+------------------------------------------------------------------
+At this point, the HTML contains the essential structure to display the
+quote.
+
+Complements of UW, we have prepared the ``quotes.txt`` file for you.
+
+#. Copy the ``quotes.txt`` to your project folder
+
+   * **Option 1:** Download :download:`quotes.txt <downloads/quotes.txt>`
+     and upload to your VPS.
+   * **Option 2:** Copy the path above and use ``wget url-to-quotes.txt``.
+
+#. Add the code to read a random quote.
+
+   The template is expecting the variables ``quote`` and ``author``.
+   We'll read the ``quotes.txt`` file and get a random quote.
+
+   .. code-block:: python
+       :caption: python.py
+       :emphasize-lines: 2,24,27,30
+
+       from flask import Flask, flash, redirect, render_template, request, session, abort
+       from random import randrange
+
+       app = Flask(__name__)
+
+       # Default route
+       @app.route("/")
+       def index():
+
+           hello = "Welcome to the quote of the day!\n"
+           return hello
+
+       # /hello route
+       @app.route('/hello')
+       def hello():
+          return "Hey there! Add add you name to the URL for a personalized quote"
+
+       # /hello route with a 'name' parameter
+       @app.route('/hello/<name>/')
+       def hello_visitor(name):
+
+           # Gets a list: [quote, author]
+           # quote=quote[0]; author=quote[1]
+           quote = get_quote()
+
+           # The template can access the variable using this format: {{variable}}
+           return render_template('quotes.html', name=name, quote=quote[0], author=quote[1])
+           # return "Hey there " + str(name) + "! Here is your quote:"
+
+       def get_quote():
+
+           # Read in the file and get a random quote
+           # [quote, author, quote, author, etc...]
+           file = open("quotes.txt", "r")
+           quotes = file.read().replace('\r', ' ').replace(
+               '\n', ' ').replace('  ', '--').split("--")
+
+           # Get a random odd number (1, 3, 5, etc.)
+           randomNumber = randrange(0,len(quotes)-1, 2)
+
+           quote = quotes[randomNumber]
+           author = quotes[randomNumber + 1]
+
+           return [quote, author]
+
+       # Flask app server
+       if __name__ == "__main__":
+           app.run(host="0.0.0.0", port=int("5000"), debug=True)
+
+#. Refresh your quotes page, correct any errors, and verify that it displays
+   a random quote each time you refresh the page.
+
+   .. image:: images/2022-05-19_flask-quote.png
+
+4.4. Adding Static Files
+------------------------------------------------------------------
+Your project works functionality, but we need to beautify it. We'll add:
+
+* A CSS file called ``quotes.css``
+* An image called ``smilingpython.gif``
+
+|Jinja2| has a function called ``url_for`` that automatically builds the
+URL or path for files or other routes. Notice that our ``quotes.html``
+file contains these two lines to get the links to the CSS and image files.
+
+.. code-block:: html
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='quotes.css') }}" type="text/css" />
+    <img src="{{url_for('static',filename = 'smilingpython.gif')}}" >
+
+#. Add the CSS to file ``static/quotes.css`` and then refresh the page.
+
+   .. code-block:: css
+       :caption: quotes.css
+
+       #container {
+           text-align: center;
+       }
+
+       p {
+           font-size: 16pt;
+       }
+
+       h1 {
+           font-family: 'Amatic SC', cursive;
+           font-weight: normal;
+           color: #8ac640;
+           font-size: 2.5em;
+       }
+
+       #author {
+           font-size: 12pt;
+       }
+
+   Expected output:
+
+   .. image:: images/2022-05-19_flask-quote-css.png
+
+#. Next, we'll upload the ``smilingpython.gif`` smilingpython.gif to the
+   ``static`` directory.
+
+   * **Option 1:** Download :download:`smilingpython.gif <downloads/smilingpython.gif>`
+     and upload to your VPS to folder ``quotes-app/static/``.
+   * **Option 2:** Use ``wget``
+
+     .. code-block:: bash
+
+         # Change to the static directory and download using wget
+         cd static
+         wget http://www.naturalprogramming.com/images/smilingpython.gif
+
+
+That's it! You're done!! 🙌🎉
+
+.. image:: images/2022-05-19_flask-quote-css-image.png
+
+
+Your final directory structure should look like this:
+
+.. code-block:: bash
+
+    sysadmin@test2:~/flask-quotes$ tree
+    .
+    ├── docker-compose.yml
+    └── quotes-app
+        ├── index.py
+        ├── quotes.txt
+        ├── static
+        │   ├── quotes.css
+        │   └── smilingpython.gif
+        └── templates
+            └── quotes.html
+
+    3 directories, 6 files

@@ -9,6 +9,17 @@ Sample ACF and Sample PACF
 :doc:`◀ Previous · Best Linear Predictor of a Stationary Process <09-best-linear-predictor-of-a-stationary-process>`   ·   :doc:`Next · Preliminary Estimation for AR Models and the Yule–Walker Equations ▶ <11-preliminary-estimation-for-ar-models-and-the-yule-walker-equations>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 From process to sample
 ------------------------
 

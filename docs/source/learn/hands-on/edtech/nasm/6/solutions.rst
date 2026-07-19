@@ -1,0 +1,239 @@
+*********************
+Lab 6: Solutions
+*********************
+
+.. code-block:: c
+    :caption: sum.c
+    :linenos:
+    :emphasize-lines: 16,17,35,56
+
+    /**
+     * sum.c
+     *
+     * Demonstrates how to send an int array and a double array
+     * to asm files to process.
+     *
+     * Return the summation of the values in the array
+     *     double sum_double(double[] array, int length)
+     *     int sum_int(int[] array, int length)
+     *
+     */
+
+    #include <stdio.h>
+
+    // Prototypes
+    int sum_int(int *, int);
+    double sum_double(double *, int);
+
+    int main()
+    {
+        // result = 210; array_size = 16
+        int array_int[] = {11, 22, 33, 44, 55, 35, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+        // Determine size of the int array
+        int size_array_int = sizeof(array_int) / sizeof(int);
+
+        printf(" int values: ");
+
+        // print array values
+        for (int i = 0; i < size_array_int; i++)
+        {
+            printf(" %d,", array_int[i]);
+        }
+
+        int sum_i = sum_int(array_int, size_array_int);
+        printf("\n size: %d; sum: %i", size_array_int, sum_i);
+        printf("\n");
+
+        //-------------------------------------
+        // Double sum
+
+        // result = 23.331000; array_size = 6
+        double array_double[] = {1.111, 2.222, 3.333, 4.444, 5.555, 6.666};
+
+        // Determine size of the double array
+        int size_array_double = sizeof(array_double) / sizeof(double);
+
+        printf(" double values: ");
+
+        // print array values
+        for (int i = 0; i < size_array_double; i++)
+        {
+            printf(" %lf,", array_double[i]);
+        }
+
+        double sum_d = sum_double(array_double, size_array_double);
+        printf("\n size: %d; sum: %lf", size_array_double, sum_d);
+        printf("\n");
+
+        return 0;
+    }
+
+
+.. code-block:: text
+    :caption: sum_int.asm
+
+    ; ----------------------------------------------------------------------------
+    ; sum_int.asm
+    ;
+    ; NASM implementation of a function that returns the sum of all the elements
+    ; in an int array.  The function has prototype:
+    ;
+    ;   int sum_int(int[], int length)
+    ;
+    ; arg1: A pointer to an array of integers
+    ; arg2: A integer value containing the the length of the array.
+    ; ----------------------------------------------------------------------------
+
+    global  sum_int
+
+    segment .data
+
+    segment .bss
+        returnvalue     resd     1   ; place in memory for the return value
+
+    segment .text
+    sum_int:
+
+        ; 1. Initialize stack pointers
+        push    ebp             ; save caller's EBP value
+        mov     ebp, esp        ; set EBP to current pointer
+        ; sub   esp, N          ; reserve X=4*N bytes for N local vars
+        pusha                   ; save all (including new EBP)
+
+        ; 2. Get arg data
+        mov     edx, [ebp+8]    ; address of argument (array)
+        mov     ecx, [ebp+12]   ; length of array
+
+        ; 3. Do the work!
+        mov     eax, 0          ; initialize the sum and return value
+        cmp     ecx, 0          ; guard against non-positive lengths
+        jle     done            ; exit if length <= 0
+    next:
+        add     eax, [edx]      ; [edx] contains the current value in the array add to eax
+        add     edx, 4          ; move to next array element
+                                ; 4 == sizeof(int); int data type has a size of 4.
+
+        dec     ecx             ; count down
+        jnz     next            ; if not done counting, continue
+    done:
+
+        ; 4. Clean up and then exit
+
+        mov     [returnvalue], eax      ; save return value in memory
+        popa                            ; restore all (including new EBP)
+        mov     eax, [returnvalue]      ; retrieve the saves return value
+
+        mov     esp, ebp        ; remove space for local vars
+        pop     ebp;            ; Return caller's EBP value
+
+        ret                     ; return eax (aex contains the value of the stack pointer)
+
+.. code-block:: text
+    :caption: sum_double.asm. Double summation changes are highlighted
+    :linenos:
+    :emphasize-lines: 18, 34,38,39,48,50
+
+    ; ----------------------------------------------------------------------------
+    ; sum_double.asm
+    ;
+    ; NASM implementation of a function that returns the sum of all the elements
+    ; in a floating-point array.  The function has prototype:
+    ;
+    ;   double sum_double(double[], int length)
+    ;
+    ; arg1: A pointer to an array of floating points
+    ; arg2: A integer value containing the the length of the array.
+    ; ----------------------------------------------------------------------------
+
+    global  sum_double
+
+    segment .data
+
+    segment .bss
+       ; returnvalue     resd     1   ; (not needed for storing the double total)
+
+    segment .text
+    sum_double:
+
+        ; 1. Initialize stack pointers
+        push    ebp             ; save caller's EBP value
+        mov     ebp, esp        ; set EBP to current pointer
+        ; sub   esp, N          ; reserve X=4*N bytes for N local vars
+        pusha                   ; save all (including new EBP)
+
+        ; 2. Get arg data
+        mov     edx, [ebp+8]    ; address of argument (array)
+        mov     ecx, [ebp+12]   ; length of array
+
+        ; 3. Do the work!
+        fldz                    ; initialize ST0 to 0.0
+        cmp     ecx, 0          ; guard against non-positive lengths
+        jle     done            ; exit if length <= 0
+    next:
+        fadd    qword [edx]     ; ST0 += [edx]
+        add     edx, 8          ; move to next array element
+                                ; 8 == sizeof(double); double data type has a size of 8.
+
+        dec     ecx             ; count down
+        jnz     next            ; if not done counting, continue
+    done:
+
+        ; 4. Clean up and then exit
+
+      ; mov     [returnvalue], eax      ; (not needed for storing the double total)
+        popa                            ; restore all (including new EBP)
+      ; mov     eax, [returnvalue]      ; (not needed for storing the double total)
+        mov     esp, ebp        ; remove space for local vars
+        pop     ebp;            ; Return caller's EBP value
+
+        ret                     ; return value already in st0
+
+.. code-block:: make
+    :caption: Makefile for summation project
+
+    # compiles the project files (sum.asm)
+    # Compiles dependencies if they are not up to date
+    sum: sum_int.o sum_double.o sum.o
+        @echo "Building sum"
+        @gcc -m32 sum.o sum_int.o sum_double.o -o sum
+        ./sum
+
+    # Build sum_int.asm
+    sum_int.o:
+        @nasm -f elf -d ELF_TYPE sum_int.asm -o sum_int.o
+
+    # Build sum_double.asm
+    sum_double.o:
+        @nasm -f elf -d ELF_TYPE sum_double.asm -o sum_double.o
+
+    # Build sum.c
+    sum.o:
+        @gcc -m32 -c sum.c -o sum.o
+
+    # Clean up and then rebuild all
+    all: clean sum
+
+    # Removes all .o and temporary files
+    clean:
+        @echo "Cleaning up..."
+        @rm -f *.o
+        @rm -f sum
+
+
+References:
+
+ - https://cs.lmu.edu/~ray/notes/nasmtutorial/
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/nasm/6/solutions.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

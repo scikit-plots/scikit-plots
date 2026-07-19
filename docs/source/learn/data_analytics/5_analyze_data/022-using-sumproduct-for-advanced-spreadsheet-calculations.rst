@@ -18,6 +18,17 @@ Using SUMPRODUCT for Advanced Spreadsheet Calculations
 
 ◀ :doc:`Previous <021-using-countif-and-sumif-for-conditional-aggregation-in-spreadsheets>` · :doc:`Next <023-using-pivot-tables-for-calculations-and-trend-analysis>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 Multiplying and summing at once
 ---------------------------------

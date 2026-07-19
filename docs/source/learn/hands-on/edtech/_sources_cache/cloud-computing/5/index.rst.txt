@@ -1,0 +1,15 @@
+.. _lab5:
+
+******************************
+Lab 5: Building a Docker Image
+******************************
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   dockerfile
+   5.1
+   5.2
+   5.3

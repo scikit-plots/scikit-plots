@@ -9,6 +9,17 @@ Example: serial dilution assay
 :doc:`◀ Previous · Example: an opinion poll in Slovenia <123-example-an-opinion-poll-in-slovenia>`   ·   :doc:`Next · Example: population toxicokinetics ▶ <125-example-population-toxicokinetics>`   ·   :doc:`↑ Section <index>`
 
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 Nonlinear calibration, done properly
 --------------------------------------
 

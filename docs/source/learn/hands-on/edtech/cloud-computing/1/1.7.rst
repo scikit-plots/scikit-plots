@@ -1,0 +1,307 @@
+*********************
+Step 7: Install PHP
+*********************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+PHP
+======
+PHP allows you to run PHP scripts or apps on our VPS directly.
+Sometimes we will use Docker to host applications, but other times we
+might want to host it natively on the VPS. PHP is a popular web-scripting
+language because of its simplicity and extensive support. We can run a
+PHP app on our VPS easily. Other languages are complicated to set up and
+run due to version conflicts, such as Python and Ruby. We will use Docker
+to host these types of applications!
+
+We will install PHP 7.4-FPM, which is |the latest PHP version|, and a few
+commonly used modules. See more details from on
+|how to install PHP 7.4 on Ubuntu 18.04|. from Computing for Geeks.
+
+.. note::
+
+    * PHP 7.4 is for Apache
+    * PHP 7.4-FPM is for Nginx
+
+#. First, let's refresh our ``apt`` directory (unless you have done
+   so recently) and then install PHP 7.4 for Nginx using the fpm package.
+
+   .. code-block:: bash
+
+       sudo apt update
+       sudo apt install -y php7.4-fpm php7.4-mysql
+
+   * **Note**: You might get this error: `E: Unable to locate package php7.4-fpm`.
+
+      * If so, you need to add the PHP repository before trying again.
+
+   .. code-block:: bash
+
+       sudo add-apt-repository ppa:ondrej/php
+       sudo apt install -y php7.4-fpm php7.4-mysql
+
+   **Output** with missing repository
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1,5,13,35
+
+       root@vps298933:~# sudo apt install -y php7.4-fpm php7.4-mysql
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       E: Unable to locate package php7.4-fpm
+       E: Couldn't find any package by glob 'php7.4-fpm'
+       E: Couldn't find any package by regex 'php7.4-fpm'
+       E: Unable to locate package php7.4-mysql
+       E: Couldn't find any package by glob 'php7.4-mysql'
+       E: Couldn't find any package by regex 'php7.4-mysql'
+
+       root@vps298933:~#
+       root@vps298933:~# sudo add-apt-repository ppa:ondrej/php
+        Co-installable PHP versions: PHP 5.6, PHP 7.x and most requested extensions are included. Only Supported Versions of PHP (http://php.net/supported-versions.php) for Supported Ubuntu Releases (https://wiki.ubuntu.com/Releases) are provided. Don't ask for end-of-life PHP versions or Ubuntu release, they won't be provided.
+
+       Debian oldstable and stable packages are provided as well: https://deb.sury.org/#debian-dpa
+
+       You can get more information about the packages at https://deb.sury.org
+
+       BUGS: This PPA now has a issue tracker:
+       https://deb.sury.org/#bug-reporting
+
+       CAVEATS:
+       1. If you are using php-gearman, you need to add ppa:ondrej/pkg-gearman
+       2. If you are using apache2, you are advised to add ppa:ondrej/apache2
+       3. If you are using nginx, you are advise to add ppa:ondrej/nginx-mainline or ppa:ondrej/nginx
+
+       PLEASE READ: If you like my work and want to give me a little motivation, please consider donating regularly: https://donate.sury.org/
+
+       WARNING: add-apt-repository is broken with non-UTF-8 locales, see
+       https://github.com/oerdnj/deb.sury.org/issues/56 for workaround:
+
+       # LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+        More info: https://launchpad.net/~ondrej/+archive/ubuntu/php
+       Press [ENTER] to continue or Ctrl-c to cancel adding it.
+
+       Hit:1 http://ppa.launchpad.net/ondrej/nginx/ubuntu bionic InRelease
+       Get:2 http://ppa.launchpad.net/ondrej/php/ubuntu bionic InRelease [20.8 kB]
+       Hit:3 http://security.ubuntu.com/ubuntu bionic-security InRelease
+       Hit:4 http://nova.clouds.archive.ubuntu.com/ubuntu bionic InRelease
+       Get:5 http://nova.clouds.archive.ubuntu.com/ubuntu bionic-updates InRelease [88.7 kB]
+       Get:6 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 Packages [43.9 kB]
+       Get:7 http://nova.clouds.archive.ubuntu.com/ubuntu bionic-backports InRelease [74.6 kB]
+       Get:8 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main Translation-en [21.8 kB]
+       Fetched 250 kB in 1s (432 kB/s)
+       Reading package lists... Done
+       root@vps298933:~#
+
+   **Output** for a successful PHP install
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1,9
+
+       root@vps298933:~# sudo apt install -y php7.4-fpm php7.4-mysql
+       Reading package lists... Done
+       Building dependency tree
+       Reading state information... Done
+       The following additional packages will be installed:
+       libpcre2-8-0 libsodium23 php-common php7.4-cli php7.4-common php7.4-json php7.4-opcache php7.4-readline psmisc tzdata
+       Suggested packages:
+       php-pear
+       The following NEW packages will be installed:
+       libpcre2-8-0 libsodium23 php-common php7.4-cli php7.4-common php7.4-fpm php7.4-json php7.4-mysql php7.4-opcache php7.4-readline
+       psmisc tzdata
+       0 upgraded, 12 newly installed, 0 to remove and 5 not upgraded.
+       Need to get 4712 kB of archives.
+       After this operation, 22.5 MB of additional disk space will be used.
+       Get:1 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 libpcre2-8-0 amd64 10.33-1+ubuntu18.04.1+deb.sury.org+1 [191 kB]
+       Get:2 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 tzdata all 2019c-0ubuntu0.18.04 [190 kB]
+       Get:3 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 psmisc amd64 23.1-1ubuntu0.1 [52.5 kB]
+       Get:4 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 libsodium23 amd64 1.0.18-1+ubuntu18.04.1+deb.sury.org+1 [150 kB]
+       Get:5 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php-common all 2:70+ubuntu18.04.1+deb.sury.org+6 [15.2 kB]
+       Get:6 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-common amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [976 kB]
+       Get:7 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-json amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [18.6 kB]
+       Get:8 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-opcache amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [195 kB]
+       Get:9 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-readline amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [12.2 kB]
+       Get:10 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-cli amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [1392 kB]
+       Get:11 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-fpm amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [1403 kB]
+       Get:12 http://ppa.launchpad.net/ondrej/php/ubuntu bionic/main amd64 php7.4-mysql amd64 7.4.0-1+ubuntu18.04.1+deb.sury.org+1 [117 kB]
+       Fetched 4712 kB in 2s (2088 kB/s)
+       debconf: delaying package configuration, since apt-utils is not installed
+       Selecting previously unselected package tzdata.
+       (Reading database ... 11793 files and directories currently installed.)
+       . . .
+
+#. Verify the version of PHP to determine if it installed correctly.
+   You should see a version similar to the output.
+
+   .. code-block:: bash
+
+       php --version
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1,2
+
+       root@vps298933:~# php --version
+       PHP 7.4.0 (cli) (built: Nov 28 2019 07:27:06) ( NTS )
+       Copyright (c) The PHP Group
+       Zend Engine v3.4.0, Copyright (c) Zend Technologies
+           with Zend OPcache v7.4.0, Copyright (c), by Zend Technologies
+
+PHP and Nginx
+==============
+
+Now, we will create a ``phpinfo`` page to verify that Nginx and PHP work
+together. The first step is to tell Nginx to serve PHP pages.
+Next, is to test the configuration using a ``phpinfo`` file
+
+#. Edit the Nginx config file for the default site or directory using ``nano``
+
+   .. code-block:: bash
+
+        sudo nano /etc/nginx/sites-available/default
+
+#. Add ``index.php`` to the index file list on line 4.
+#. Uncomment the PHP lines so your file looks the same as the file below.
+#. change the PHP version in ``fastcgi_pass`` to ``php7.4-fpm.sock;``
+
+   .. code-block:: nginx
+      :caption: /etc/nginx/sites-available/default
+      :linenos:
+      :emphasize-lines: 4,16,17,20,23
+
+       #
+       root /var/www/html;
+
+       index index.html index.htm index.nginx-debian.html index.php;
+
+       server_name _;
+
+       location / {
+           # First attempt to serve request as file, then
+           # as directory, then fall back to displaying a 404.
+           try_files $uri $uri/ =404;
+       }
+
+       # pass PHP scripts to FastCGI server
+       #
+       location ~ \.php$ {
+           include snippets/fastcgi-php.conf;
+
+           # With php-fpm (or other unix sockets):
+           fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+           # With php-cgi (or other tcp sockets):
+           # fastcgi_pass 127.0.0.1:9000;
+       }
+
+       # deny access to .htaccess files, if Apache's document root
+       # concurs with nginx's one
+       #
+       location ~ /\.ht {
+              deny all;
+       }
+
+
+#. Verify that there are no configuration issues
+
+   .. code-block:: bash
+
+        sudo nginx -t
+
+   .. attention:: Take note of the file name and line number of the error.
+       It tells you exactly what and where the problem is.
+
+       .. code-block:: bash
+           :linenos:
+           :emphasize-lines: 2
+
+           root@vps298933:~# sudo nginx -t
+           nginx: [emerg] "fastcgi_pass" directive is duplicate in /etc/nginx/sites-enabled/default:62
+           nginx: configuration file /etc/nginx/nginx.conf test failed
+
+   **Success**
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 3
+
+       root@vps298933:~# sudo nginx -t
+       nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+       nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+
+#. Fix, retest, then restart using ``systemctl``
+
+    .. code-block:: bash
+
+        sudo nginx -t
+        sudo systemctl restart nginx
+
+Create a ``phpinfo`` page
+---------------------------
+
+Now, we should test the configuration by creating a ``phpinfo`` page.
+
+#. Go to the site |randomkeygen.com| and grab a random alphanumeric password
+   for the PHP info file. We don't want to expose the system information.
+#. Next, we need to verify the location of our default web directory.
+
+   * The default web dir for Nginx is ``/var/www/html/``.
+   * But, let's verify!
+
+#. Edit the default config file to verify the dir of the root folder.
+
+   * ``sudo nano /etc/nginx/sites-available/default``
+   * It should be: ``root /var/www/html;``
+
+   .. code-block:: nginx
+      :caption: /etc/nginx/sites-available/default
+      :linenos:
+      :emphasize-lines: 2
+
+       #
+       root /var/www/html;
+
+       index index.html index.htm index.nginx-debian.html index.php;
+
+       server_name _;
+
+       location / {
+
+#. Use ``nano`` to create a new file. Substitute the random code
+   to the command below.
+
+   **Command**
+
+   .. code-block:: bash
+
+       sudo nano /var/www/html/HSd3uR9yFZ.php
+
+   .. code-block:: php
+       :caption: HSd3uR9yFZ.php
+
+       <?php phpinfo(); ?>
+
+
+#. Navigate to that page in the web browser using your IP address
+   or domain name
+
+   * ``http://example.com/HSd3uR9yFZ.php``
+
+#. Verify that the page loads and that the PHP version is correct
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/1/1.7.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

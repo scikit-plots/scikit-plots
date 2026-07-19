@@ -1,0 +1,351 @@
+*******************************
+Step 1: Building a Docker Image
+*******************************
+
+.. include:: 4-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Build a Docker image from an existing project.
+
+There are many projects in GitHub that you can host yourself! A user
+has created a list called |awesome-selfhosted|. Some of the projects
+have a Docker image, but others don't. We built a Docker image to
+host our |help desk| site. This site runs Sphinx in Docker using
+:ref:`a customer Dockerfile<Sphinx Docker Environment>` built from
+the ``nginx:alpine`` image.
+
+Let's start with an existing project that includes a Dockerfile called
+|pandoc-as-a-service|. |Pandoc| is a library that converts files many
+types of files. We have our version running on site |pandoc.bilimedtech.com|.
+
+4.1.1 Cloning a project
+=============================
+
+#. First, we will clone the |pandoc-as-a-service| project.
+
+   Cloning a GitHub project using Ubuntu 18.04 is easy! You use the
+   command ``git clone`` with the site to clone as the argument.
+
+   a. **Go to** the |pandoc-as-a-service| project page
+   #. **Copy** the project `clone URL`
+   #. **Clone** the project using ``git clone <project-url.git>``
+
+      + Change to the root directory using ``cd ~`` or change to the directory
+        of your choice before cloning the project.
+
+   #. ``git clone`` will create a folder called ``pandoc-as-a-service``.
+
+   .. image:: images/git-sphinx-clone.png
+
+   .. code-block:: bash
+
+       cd ~
+       git clone https://github.com/mrded/pandoc-as-a-service.git
+       cd pandoc-as-a-service
+
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 2,9,10
+
+       root@vps298933:~# cd ~
+       root@vps298933:~# git clone https://github.com/mrded/pandoc-as-a-service.git
+       Cloning into 'pandoc-as-a-service'...
+       remote: Enumerating objects: 171, done.
+       remote: Total 171 (delta 0), reused 0 (delta 0), pack-reused 171
+       Receiving objects: 100% (171/171), 32.36 KiB | 571.00 KiB/s, done.
+       Resolving deltas: 100% (77/77), done.
+       root@vps298933:~#
+       root@vps298933:~# cd pandoc-as-a-service/
+       root@vps298933:~/pandoc-as-a-service# ls -lh
+       total 60K
+       -rw-r--r-- 1 root root  486 Nov 13 11:27 Dockerfile
+       -rw-r--r-- 1 root root  18K Nov 13 11:27 LICENSE
+       -rw-r--r-- 1 root root   17 Nov 13 11:27 Procfile
+       -rw-r--r-- 1 root root  538 Nov 13 11:27 README.md
+       -rw-r--r-- 1 root root  212 Nov 13 11:27 helpers.js
+       -rw-r--r-- 1 root root   75 Nov 13 11:27 index.js
+       -rw-r--r-- 1 root root  872 Nov 13 11:27 package.json
+       drwxr-xr-x 3 root root 4.0K Nov 13 11:27 public
+       -rw-r--r-- 1 root root  887 Nov 13 11:27 server.js
+       drwxr-xr-x 2 root root 4.0K Nov 13 11:27 tests
+       drwxr-xr-x 2 root root 4.0K Nov 13 11:27 views
+       root@vps298933:~/pandoc-as-a-service#
+
+
+4.1.2 The Docker Build Process
+================================
+.. Tip:: The overview of the :ref:`Dockerfile Elements <dockerfile-elements>`
+   is in lab 5 and in the references section.
+
+The ``Dockerfile`` contains the specific instructions to build the image. You
+can view the |pandoc-as-a-service Dockerfile| on their GitHub page.
+The file is in our project directory because we cloned the
+project. You can view the contents using on the local VPS using
+``nano Dockerfile``.
+
+The Docker build process will execute each command as if the user types
+them into the bash terminal.
+
+.. code-block:: bash
+    :caption: Dockerfile Contents
+    :linenos:
+
+     FROM node:6.10
+
+     # Create app directory
+     COPY . /usr/src/pandoc-as-a-service
+     WORKDIR /usr/src/pandoc-as-a-service
+
+     # Install packages
+     RUN apt-get update --fix-missing \
+       && apt-get install -y pandoc \
+       && apt-get clean \
+       && rm -rf /var/lib/apt/lists/* \
+       && npm install
+
+     EXPOSE 8080
+
+     CMD ["npm", "start"]
+
+.. note:: This project is several years old and it might not build without modifications.
+
+----
+
+1. First, we build the image without modifications to verify that the build
+   process succeeds.
+
+   We'll use ``docker build`` to execute the build. Here is a look at the
+   command and the arguments:
+
+   .. code-block:: bash
+
+       docker build -t pandoc:default .
+
+   ``docker build``
+       The build command
+
+   ``-t pandoc:default``
+       Specifies an image name.
+
+       + ``pandoc:default`` is a name:tag pair.
+       + ``name`` defines the name of the project.
+       + ``tag`` defines a specific build, such as a product or test version.
+       + We will call ours ``default`` because it is the default image without any modifications.
+
+   ``.``
+       Instructs the build process to look in the current directory for the Dockerfile
+
+   .. Note::
+       You might get the error ``free(): invalid pointer``.
+       If so, just ignore it.
+
+       a. You will notice that there is a step for each command in the `Dockerfile`.
+
+   .. code-block:: bash
+       :caption: Output
+       :linenos:
+       :emphasize-lines: 1,2,4,17,19,23,100,104,108,109
+
+       root@vps298933:~# cd ~/pandoc-as-a-service/
+       root@vps298933:~/pandoc-as-a-service# docker build -t pandoc:default .
+       Sending build context to Docker daemon    148kB
+       Step 1/9 : FROM node:6.10
+       6.10: Pulling from library/node
+       10a267c67f42: Pull complete
+       fb5937da9414: Pull complete
+       9021b2326a1e: Pull complete
+       dbed9b09434e: Pull complete
+       74bb2fc384c6: Pull complete
+       9b0a326fab3b: Pull complete
+       8089dfd0519a: Pull complete
+       f2be1898eb92: Pull complete
+       Digest: sha256:39c92a576b42e5bee1b46bd283c7b260f8c364d8826ee07738f77ba74cc5d355
+       Status: Downloaded newer image for node:6.10
+        ---> 3f3928767182
+       Step 2/9 : COPY . /usr/src/pandoc-as-a-service
+        ---> 23dad85d5658
+       Step 3/9 : WORKDIR /usr/src/pandoc-as-a-service
+        ---> Running in 4f5cc68ad59f
+       Removing intermediate container 4f5cc68ad59f
+        ---> 47e79eda57ab
+       Step 4/9 : RUN apt-get update --fix-missing   && apt-get install -y pandoc   && apt-get clean   && rm -rf /var/lib/apt/lists/*   && npm install
+        ---> Running in 7b54baf06e47
+       Get:1 http://security.debian.org jessie/updates InRelease [44.9 kB]
+       Ign http://deb.debian.org jessie InRelease
+       Get:2 http://deb.debian.org jessie-updates InRelease [16.3 kB]
+       Get:3 http://deb.debian.org jessie Release.gpg [1652 B]
+       Get:4 http://deb.debian.org jessie Release [77.3 kB]
+       Get:5 http://security.debian.org jessie/updates/main amd64 Packages [992 kB]
+       Get:6 http://deb.debian.org jessie-updates/main amd64 Packages [20 B]
+       Get:7 http://deb.debian.org jessie/main amd64 Packages [9098 kB]
+       Fetched 10.2 MB in 5s (1847 kB/s)
+       Reading package lists...
+       W: There is no public key available for the following key IDs:
+       AA8E81B4331F7F50
+       Reading package lists...
+       Building dependency tree...
+       Reading state information...
+       The following extra packages will be installed:
+         liblua5.1-0 pandoc-data
+       Suggested packages:
+         texlive-latex-recommended texlive-xetex texlive-luatex pandoc-citeproc
+         etoolbox
+       The following NEW packages will be installed:
+         liblua5.1-0 pandoc pandoc-data
+       0 upgraded, 3 newly installed, 0 to remove and 183 not upgraded.
+       Need to get 4764 kB of archives.
+       After this operation, 38.9 MB of additional disk space will be used.
+       Get:1 http://deb.debian.org/debian/ jessie/main liblua5.1-0 amd64 5.1.5-7.1 [108 kB]
+       Get:2 http://deb.debian.org/debian/ jessie/main pandoc-data all 1.12.4.2~dfsg-1 [202 kB]
+       Get:3 http://deb.debian.org/debian/ jessie/main pandoc amd64 1.12.4.2~dfsg-1+b14 [4453 kB]
+       debconf: delaying package configuration, since apt-utils is not installed
+       Fetched 4764 kB in 0s (26.8 MB/s)
+       Selecting previously unselected package liblua5.1-0:amd64.
+       (Reading database ... 21217 files and directories currently installed.)
+       Preparing to unpack .../liblua5.1-0_5.1.5-7.1_amd64.deb ...
+       Unpacking liblua5.1-0:amd64 (5.1.5-7.1) ...
+       Selecting previously unselected package pandoc-data.
+       Preparing to unpack .../pandoc-data_1.12.4.2~dfsg-1_all.deb ...
+       Unpacking pandoc-data (1.12.4.2~dfsg-1) ...
+       Selecting previously unselected package pandoc.
+       Preparing to unpack .../pandoc_1.12.4.2~dfsg-1+b14_amd64.deb ...
+       Unpacking pandoc (1.12.4.2~dfsg-1+b14) ...
+       Setting up liblua5.1-0:amd64 (5.1.5-7.1) ...
+       Setting up pandoc-data (1.12.4.2~dfsg-1) ...
+       Setting up pandoc (1.12.4.2~dfsg-1+b14) ...
+       Processing triggers for libc-bin (2.19-18+deb8u9) ...
+       npm info it worked if it ends with ok
+       npm info using npm@3.10.10
+       npm info using node@v6.10.3
+       . . .
+       npm info lifecycle http-signature@1.2.0~postinstall: http-signature@1.2.0
+       npm info lifecycle ejs@2.7.4~postinstall: ejs@2.7.4
+
+       > ejs@2.7.4 postinstall /usr/src/pandoc-as-a-service/node_modules/ejs
+       > node ./postinstall.js
+
+       Thank you for installing EJS: built with the Jake JavaScript build tool (https://jakejs.com/)
+
+       npm info lifecycle express@4.17.1~postinstall: express@4.17.1
+       npm info lifecycle mocha@2.5.3~postinstall: mocha@2.5.3
+       npm info lifecycle pdc@0.2.3~postinstall: pdc@0.2.3
+       npm info lifecycle request@2.88.2~postinstall: request@2.88.2
+       npm info linkStuff pandoc-as-a-service@1.0.0
+       npm info lifecycle pandoc-as-a-service@1.0.0~install: pandoc-as-a-service@1.0.0
+       npm info lifecycle pandoc-as-a-service@1.0.0~postinstall: pandoc-as-a-service@1.0.0
+       npm info lifecycle pandoc-as-a-service@1.0.0~prepublish: pandoc-as-a-service@1.0.0
+       pandoc-as-a-service@1.0.0 /usr/src/pandoc-as-a-service
+       +-- ejs@2.7.4
+       +-- express@4.17.1
+       | +-- accepts@1.3.7
+       | | -- negotiator@0.6.2
+       . . .
+       | -- to-iso-string@0.0.2
+       +-- pdc@0.2.3
+       npm info ok
+       Removing intermediate container 7b54baf06e47
+        ---> c9695d3f8147
+       Step 5/9 : EXPOSE 8080
+        ---> Running in 3c9812aad9f4
+       Removing intermediate container 3c9812aad9f4
+        ---> b18246a14903
+       Step 6/9 : CMD ["npm", "start"]
+        ---> Running in 207441ad6c54
+       Removing intermediate container 207441ad6c54
+        ---> 83ecfb330e4c
+       Successfully built bfb93547ba62
+       Successfully tagged pandoc:default
+       root@vps298933:~/pandoc-as-a-service#
+
+#. We should verify that the image build successfully.
+
+  a. Use command ``docker images`` to view the list of images on the VPS
+  #. You should see an image called ``pandoc-`` with tag ``default``
+  #. The ``pandoc`` image was built from a base image called
+     ``node:6.10`` in step 1. Notice that this is version is three years old!
+     We need to rebuild using an updated version that contains security
+     updates.
+
+     .. code-block:: bash
+         :caption: Output
+         :emphasize-lines: 1,3,10
+
+         root@vps298933:~/pandoc-as-a-service# docker images
+         REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+         pandoc              default             bfb93547ba62        10 minutes ago      720MB
+         mariadb             latest              2ab9d091310d        32 hours ago        414MB
+         nextcloud           latest              3ed6ea445002        7 days ago          811MB
+         wordpress           latest              6edecd0f5c75        7 days ago          546MB
+         redis               latest              62f1d3402b78        2 weeks ago         104MB
+         mysql               5.7                 1b12f2e9257b        3 weeks ago         448MB
+         hello-world         latest              bf756fb1ae65        10 months ago       13.3kB
+         node                6.10                3f3928767182        3 years ago         661MB
+         root@vps298933:~/pandoc-as-a-service#
+
+4.1.3 Create the docker-compose file
+======================================
+The ``docker-compose.yml`` file is simple. We will use port ``20852``
+for our Pandoc service. The pandoc service in the docker container
+listens on port ``8080``. We need to create the correct port map in
+the docker-complete.yml file.
+
+#. Create a new directory for your project
+
+   .. code-block:: bash
+
+       cd ~
+       mkdir pandoc-docker
+       cd pandoc-docker
+
+#. Create a ``docker-compose.yml`` file and add this text:
+
+   .. code-block:: bash
+       :caption: docker-compose.yml
+       :linenos:
+
+       version: "3.3"
+
+       services:
+         pandoc:
+           image: pandoc:default
+           ports:
+             - 20852:8080
+           restart: always
+
+#. Start the service and verify connectivity
+
+   .. code-block:: bash
+
+       docker-compose up -d
+       curl --head http://localhost:20852
+       curl http://localhost:20852
+
+4.1.4 Create a Reverse Proxy for Pandoc
+=============================================
+Lastly, we need to create a reverse proxy. Here is my site, for example:
+`pandoc.y.jj8i.com <https://pandoc.y.jj8i.com>`_.
+
+#. Create sub-domain **pandoc.example.com**
+#. Create your :ref:`nginx-reverse-proxy` using these settings
+
+   * ``server_name pandoc.example.com;``
+   * ``proxy_pass http://localhost:20852;``
+
+#. Enable the Nginx Site
+#. Restart Nginx
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/4/4.1.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

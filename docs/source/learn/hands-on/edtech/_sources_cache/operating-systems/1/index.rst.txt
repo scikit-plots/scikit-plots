@@ -1,0 +1,8 @@
+1. Computer Boot Sequence
+=========================
+
+See the instructions for |Lab 1 in Google Docs|.
+
+.. |Lab 1 in Google Docs| raw:: html
+
+   <a href="https://drive.google.com/open?id=1oBvhawOY7E2wFeqWS-x4ccc5xMQX73np3pg0IGU7ZB0" target="_blank">Lab 1 in Google Docs</a>

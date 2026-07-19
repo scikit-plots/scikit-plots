@@ -1,0 +1,74 @@
+*********************************************
+Step 4: Modify the hello world application
+*********************************************
+
+.. include:: ../../includes/prolog.inc
+
+.. include:: ../asm-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Modify the text of the hello world application to display
+your in the ASCII representation.
+
+To review, assembling and compiling an ``.asm`` code file is a
+two-part process:
+
+#. ``nasm -f win32 file.asm``
+
+   - ``nasm`` is the assembler program
+   - ``-f`` specifies the format, which is win32
+   - ``file.asm`` is the file to parse and then create the ``.obj`` file
+
+#. ``gcc file.obj -o file.exe``
+
+   - ``gcc`` is the compiler
+   - ``file.obj`` is the assembled file used to create the executable
+   - ``-o file.exe`` specifies the output file in the form of an executable
+
+Display your name in ASCII
+========================================
+Your task is to modify the hello world application to display a
+custom message. The output from the executable should display
+`your name` and the `integer representation` of your name based
+on the ASCII characters. You'll learn how to convert ASCII to
+integers using assembly code in a future lab. :) For now, use
+the |ASCII codes| as a your reference.
+
+.. hint::
+    For example: Aziz - 065 122 108 122
+
+    * A = 065
+    * z = 122
+    * i = 108
+    * z = 122
+
+#. Create a new ``.asm`` file called ``lab1-YourName.asm``
+#. Change the output to display your name and the ASCII representation.
+
+   - Examples of output:
+
+     - Sarah - 083 097 114 097 104
+     - Sanjar - 083 097 110 106 097 114
+     - Stephen - 083 116 101 112 104 101 110
+
+#. Upload the ``.asm`` and ``.obj`` files to the LMS.
+
+.. note:: Modify the code header to include the:
+
+    * Name of the file
+    * A short description of what the file does
+    * Your name and date
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/nasm/windows-install/4.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

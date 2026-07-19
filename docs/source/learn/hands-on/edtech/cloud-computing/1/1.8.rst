@@ -1,0 +1,382 @@
+************************************
+Step 8: Create a Name-based Site
+************************************
+
+.. include:: 1-urls.rst
+
+.. contents:: Table of Contents
+
+The goal of this part is to create a site that is accessible using a
+domain name it. It is different from the default site at
+``/var/www/html``.
+
+Domain Names
+=============
+There are reasons that you will use a domain name.
+
+First, the web standard uses domain names to access web sites
+instead of using an IP address.
+
+Next, you can access different services on your VPS using
+different domain names. Using the IP address to access a web
+service lets you access a single site. You will learn how to
+create sub-domain names for your projects and web apps.
+
+Using a domain name gives you access to free SSL technology that is
+easy to use. Otherwise, you'll have to use a self-signed certificate
+if you want to use SSL to protect web traffic on your box.
+
+There are many domain name registrars. We recommend purchasing one so that
+you don't lose access to it. However, you can use a free one for temporary
+use or testing.
+
+Namecheap
+----------
+We used |Namecheap| to register ``jj8i.com``. They offer a solid service
+have competitive prices.
+
+You should be able to access your site using the base domain
+(example.com) and the www subdomain (www.example.com).
+
+See the |knowledgebase article from Namecheap| for additional
+information.
+
+#. Log into your domain name registrar
+#. Set the redirect domain to your IP address
+
+   * Domain List -> Manage -> Domain Tab -> REDIRECT DOMAIN ->
+     Source URL -> ``http://IP-ADDRESS``
+
+#. Go to the domain manage page and click on "Advanced DNS"
+#. Add a new record for the *base domain*
+
+   - **Type**: ``A`` Record
+   - **Host**: ``@``
+   - **Address**: <your IP address>
+   - **TTL**: Automatic (default value)
+
+#. Add a new record for the *www* subdomain
+
+   - **Type**: ``A`` Record
+   - **Host**: ``www``
+   - **Address**: <your IP address>
+   - **TTL**: Automatic (default value)
+
+#. Click the green checkmark or press the *Save all changes* button
+#. Wait several minutes before trying to ping the new sub-domain name.
+
+   - You might have to wait several hours if you're unlucky
+
+.. image:: images/namecheap1.png
+
+Freenom
+---------
+|Freenom.com| is a source for free domains names from TLDs
+.tk, .ml, ga, .cf, and .gq.
+
+#. Navigate to |Freenom.com|.
+#. Search for a domain name, select it, then checkout
+#. Select the number of free months that you want (1-12)
+#. Click **Use DNS** and enter the IP address of your VPS
+#. Verify your email address and then fill in your account information
+
+.. image:: images/freenom3.png
+
+Create a new Nginx Site
+=====================================
+
+#. Log into your domain name registrar and point the *root domain* name
+   (example.com) and the *www subdomain name* (www.domain.com)
+   to the IP address of your VPS
+
+   - Wait 2-3 minutes for the changes to take effect.
+   - Don’t try it immediately.
+
+#. Ping the domain name from a terminal (MobaXterm or Window's CMD)
+   to verify if it is active. Sometimes, it takes many hours for
+   DNS entries to update.
+
+   .. code-block:: bat
+
+       C:\Users\user>ping example.com
+
+       Pinging example.com [46.105.29.128] with 32 bytes of data:
+       Reply from 46.105.29.128: bytes=32 time=133ms TTL=48
+       Reply from 46.105.29.128: bytes=32 time=137ms TTL=48
+       Reply from 46.105.29.128: bytes=32 time=134ms TTL=48
+       Reply from 46.105.29.128: bytes=32 time=134ms TTL=48
+
+       Ping statistics for 46.105.29.128:
+           Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+       Approximate round trip times in milli-seconds:
+           Minimum = 133ms, Maximum = 137ms, Average = 134ms
+
+       C:\Users\user>
+
+#. Now, we need to create the directory for the web files and the
+   Nginx virtual host for our domain name
+
+   * We should verify the config after we modify to detect errors.
+
+#. First, we need to create a directory for the web files and
+   create a basic HTML page.
+
+   ``mkdir -p``
+       Creates the directory structure.
+
+   Flag ``-p``
+       Informs the system to create deep directories (html) if the
+       shallow ones do not exist (example.com).
+
+   ``chown -R``
+       Changes the directory owner from ``root`` to ``www-data``.
+       This is important for (1) security and (2) Nginx might not be
+       able to access the files if they are owned by root.
+
+   .. code-block:: bash
+
+       sudo mkdir -p /var/www/example.com/html
+       sudo chown -R www-data:www-data /var/www/example.com/html
+       sudo nano /var/www/example.com/html/index.html
+
+#. Add some simple HTML to the ``index.html`` file.
+
+   .. code-block:: html
+       :caption: index.html
+
+       <html>
+           <head>
+               <title>Welcome!</title>
+           </head>
+           <body>
+               <h1>Hello world!</h1>
+           </body>
+       </html>
+
+#. Create the Nginx vhost file for the **base domain**
+   and the **www** subdomain
+
+   + The ``server_name`` directive in the Nginx site should have
+     references to both, which identifies ``example.com`` and
+     ``www.example.com`` as the same.
+   + ``server_name example.com www.example.com;``
+
+   .. code-block:: bash
+
+       sudo nano /etc/nginx/sites-available/example.com
+
+   .. code-block:: nginx
+       :caption: /etc/nginx/sites-available/example.com
+       :linenos:
+       :emphasize-lines: 8
+
+       server {
+           listen 80;
+           listen [::]:80;
+
+           root /var/www/example.com/html;
+           index index.html index.htm index.nginx-debian.html index.php;
+
+           server_name example.com www.example.com;
+
+           location / {
+                   try_files $uri $uri/ =404;
+           }
+
+           # pass PHP scripts to FastCGI server
+           #
+           location ~ \.php$ {
+               include snippets/fastcgi-php.conf;
+               fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+           }
+       }
+
+#. Verify the config using ``nginx -t``
+
+   * We should verify the config after we modify to detect errors.
+   * If we don't, then Nginx will not restart.
+
+   .. code-block:: bash
+
+       sudo nginx -t
+
+#. Next, we need to enable the config, which tells Nginx to load the
+   configuration file
+
+   * To do, so, we'll use the ``ln`` command to create a symbolic link
+     from the file to the directory that contains all of the active configs
+
+   .. code-block:: bash
+
+       sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 6
+
+       root@vps298933:~# sudo nano /etc/nginx/sites-available/example.com
+       root@vps298933:~# sudo nginx -t
+       nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+       nginx: configuration file /etc/nginx/nginx.conf test is successful
+       root@vps298933:~#
+       root@vps298933:~# sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+
+#. Then, verify the link by viewing the contents of the
+   ``/etc/nginx/sites-enabled/``
+
+   * ``ls`` lists the files and folders in the specified directory.
+   * Flag ``-lh`` provides the files in a detailed list with
+     human-readable file sizes.
+   * You can use whichever format you find easiest to read.
+
+   .. code-block:: bash
+
+       ls -lh /etc/nginx/sites-enabled/
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 1
+
+       root@vps298933:~# ls -lh /etc/nginx/sites-enabled/
+       total 0
+       lrwxrwxrwx 1 root root 44 Mar 14 23:13 example.com -> /etc/nginx/sites-available/example.com
+
+#. Next, restart Nginx and verify it is running
+
+   * ``sudo systemctl restart nginx``
+   * ``sudo systemctl status nginx``
+
+#. Test your web page
+
+   * Using curl: ``curl example.com``
+   * Using your web browser: http://example.com
+   * If it works, you should see your ``hello world`` page.
+     Now, you are ready to install an SSL cert!
+
+Add an SSL Cert to your site
+=====================================
+
+#. Install Certbot to create SSL certs using Let's Encrypt
+
+   Certbot is a third-party application |maintained by EFF|
+   (Electronic Frontier Foundation) to provide free SSL certificates.
+   EFF releases Certbot as a snap application on Ubuntu to simplify
+   using the tool. You will learn more about snaps during the next lab.
+   These steps are taken from EFF’s |Certbot installation instructions| page.
+
+   * Install snapd and update
+
+     .. code-block:: bash
+
+         sudo snap install core; sudo snap refresh core
+
+   * Install Certbot
+
+     .. code-block:: bash
+
+         sudo snap install --classic certbot
+
+   * Prepare the Certbot command to execute outside of the snap folder
+
+     .. code-block:: bash
+
+         sudo ln -s /snap/bin/certbot /usr/bin/certbot
+
+
+#. Now, we can use Certbot to encrypt HTTP traffic on our ``domain name``
+   and the ``www`` subdomain name.
+
+   * Run the ``certbot`` command and select the site to encrypt
+
+   .. code-block:: bash
+
+       sudo certbot --nginx
+
+   .. code-block:: text
+       :linenos:
+       :emphasize-lines: 1,5,13,22,30,43
+
+        root@vps298933:~# certbot --nginx
+        Saving debug log to /var/log/letsencrypt/letsencrypt.log
+        Plugins selected: Authenticator nginx, Installer nginx
+        Enter email address (used for urgent renewal and security notices)
+         (Enter 'c' to cancel): user@example.com
+
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        Please read the Terms of Service at
+        https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf. You must
+        agree in order to register with the ACME server at
+        https://acme-v02.api.letsencrypt.org/directory
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        (A)gree/(C)ancel: a
+
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        Would you be willing, once your first certificate is successfully issued, to
+        share your email address with the Electronic Frontier Foundation, a founding
+        partner of the Let's Encrypt project and the non-profit organization that
+        develops Certbot? We'd like to send you email about our work encrypting the web,
+        EFF news, campaigns, and ways to support digital freedom.
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        (Y)es/(N)o: y
+
+        Which names would you like to activate HTTPS for?
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        1: y.jj8i.com
+        2: www.y.jj8i.com
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        Select the appropriate numbers separated by commas and/or spaces, or leave input
+        blank to select all options shown (Enter 'c' to cancel): 1,2
+        Obtaining a new certificate
+        Performing the following challenges:
+        http-01 challenge for www.y.jj8i.com
+        http-01 challenge for y.jj8i.com
+        Waiting for verification...
+        Cleaning up challenges
+        Deploying Certificate to VirtualHost /etc/nginx/sites-enabled/y.jj8i.com
+        Deploying Certificate to VirtualHost /etc/nginx/sites-enabled/y.jj8i.com
+        Redirecting all traffic on port 80 to ssl in /etc/nginx/sites-enabled/y.jj8i.com
+        Redirecting all traffic on port 80 to ssl in /etc/nginx/sites-enabled/y.jj8i.com
+
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        Congratulations! You have successfully enabled https://y.jj8i.com and
+        https://www.y.jj8i.com
+        - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        Subscribe to the EFF mailing list (email: tony.hetrick@live.com).
+
+        IMPORTANT NOTES:
+         - Congratulations! Your certificate and chain have been saved at:
+           /etc/letsencrypt/live/y.jj8i.com/fullchain.pem
+           Your key file has been saved at:
+           /etc/letsencrypt/live/y.jj8i.com/privkey.pem
+           Your cert will expire on 2021-02-09. To obtain a new or tweaked
+           version of this certificate in the future, simply run certbot again
+           with the "certonly" option. To non-interactively renew *all* of
+           your certificates, run "certbot renew"
+         - Your account credentials have been saved in your Certbot
+           configuration directory at /etc/letsencrypt. You should make a
+           secure backup of this folder now. This configuration directory will
+           also contain certificates and private keys obtained by Certbot so
+           making regular backups of this folder is ideal.
+         - If you like Certbot, please consider supporting our work by:
+
+           Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+           Donating to EFF:                    https://eff.org/donate-le
+
+        root@vps298933:~#
+
+
+#. Finally, refresh your page by pressing Ctrl+F5.
+   You should see your new cert.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/1/1.8.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

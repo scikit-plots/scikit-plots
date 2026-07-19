@@ -1,0 +1,134 @@
+***************************
+Step 2: Update and reboot
+***************************
+
+.. contents:: Table of Contents
+
+Updating Software Packages
+===========================
+.. warning::
+    Are you starting with a fresh install using ``Ubuntu 18.04 Server``?
+
+    If not, please log in to your service provider and reinstall your OS
+    to remove old projects, incorrect configuration, or errors that might
+    exist from broken packages.
+
+A VPS with a default install needs updating to install the latest
+version of the packages.
+
+* The first thing we should do update all of the software on the VPS.
+  This process is very easy because Linux uses automated commands.
+* We will use ``apt`` to install and update packages (applications).
+  Apt is a packaging manager used by Ubuntu.
+
+Enter these commands one at a time into the terminal window.
+
+``apt update``
+    Tells the OS to check for any updates.
+
+``apt -y upgrade``
+    Installs any *application updates* that resulted from ``apt update``.
+
+``apt -y dist-upgrade``
+    Installs any *distribution updates*, which are major OS updates.
+
+``apt -y autoremove``
+    removes any packages that are no longer needed. Instead of leaving
+    unused packages on your system, ``apt`` can remove them.
+
+``-y`` flag
+    Informs ``apt`` to perform the action without asking for a user prompt.
+    Otherwise, the system prompts the user to enter *y* or *n* to continue.
+
+.. code-block:: bash
+
+    sudo apt update
+    sudo apt -y upgrade
+    sudo apt -y dist-upgrade
+    sudo apt -y autoremove
+
+----
+
+.. note:: A note about ``sudo``. Some commands require an elevated prompt, or root.
+
+    * Many default VPSs come configured with the ``root`` user only.
+      These VPSs do not require an elevated prompt unless you choose to
+      install a standard user.
+    * Other VPSs come with a standard user that is part of the super user
+      (sudo) group. For these users, you must prefix each command that
+      requires an elevated prompt with ``sudo``. Or, just switch to the
+      root user using ``sudo su``.
+
+Rebooting Linux
+================
+Linux rarely needs to reboot. However, it is easier to have the OS
+install system-level packages during the reboot process instead of
+installing them manually.
+
+Reboot for system updates to take effect. Wait a minute or so to give
+the system a chance to reboot before trying to log back into the VPS.
+
+* ``-r`` flag tells the system to reboot now, and not wait for a set time.
+
+.. code-block:: bash
+
+    sudo reboot -n
+
+You can use the equivalent ``shutdown`` command to specify a reason.
+This is helpful in a multi-user system. Don't forget the ``-r`` flag
+that tells the system to restart after the shutdown.
+
+.. code-block:: bash
+
+    sudo shutdown -r now 'Kernel upgrade requires reboot'
+
+You can see from this output that ``apt`` is installing a boot loader,
+which is system firmware.
+
+.. code-block:: bash
+    :linenos:
+    :emphasize-lines: 1,21
+
+    root@vps298933:~# apt upgrade
+    Reading package lists... Done
+    Building dependency tree
+    Reading state information... Done
+    Calculating upgrade... Done
+    The following packages will be upgraded:
+          apport certbot libnss-systemd libpam-systemd libseccomp2 libsystemd0 libudev1
+          libxcb1 python-certbot-nginx python3-acme python3-apport python3-certbot
+          python3-certbot-nginx python3-problem-report snapd systemd systemd-sysv udev
+    18 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+    Need to get 19.8 MB of archives.
+    After this operation, 75.8 kB of additional disk space will be used.
+    Do you want to continue? [Y/n] y
+
+    . . .
+
+    Processing triggers for initramfs-tools (0.130ubuntu3.7) ...
+    update-initramfs: Generating /boot/initrd.img-4.15.0-46-generic
+    Processing triggers for libc-bin (2.27-3ubuntu1) ...
+    root@vps298933:~#
+    root@vps298933:~# shutdown -r now
+
+    ----------------------------------------------------------------------------------------------
+
+    Session stopped
+        - Press <return> to exit tab
+        - Press R to restart session
+        - Press S to save terminal output to file
+
+    Server unexpectedly closed network connection
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/1/1.2.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

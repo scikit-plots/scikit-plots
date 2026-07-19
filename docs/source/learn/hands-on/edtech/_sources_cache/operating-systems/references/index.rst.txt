@@ -1,0 +1,10 @@
+Reference Guides
+================
+
+These pages contain quick reference guides to programming in C.
+
+.. toctree::
+   :maxdepth: 3
+
+   system-calls-resources
+   misc

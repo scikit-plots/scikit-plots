@@ -61,6 +61,9 @@ References:
 	^ Fourth-level heading.
 	" Fifth-level heading.
 
+..
+  # https://docutils.sourceforge.io/docs/ref/rst/directives.html#table-of-contents
+
 .. raw:: html
 
 	<div style="text-align: center"><strong>

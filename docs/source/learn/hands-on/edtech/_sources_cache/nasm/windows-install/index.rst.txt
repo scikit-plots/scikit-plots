@@ -1,0 +1,16 @@
+****************************************
+Set up your NASM Environment on Windows
+****************************************
+
+The first lab will guide you to set up your computer so you can compile
+and execute assembly code!
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   1
+   2
+   3
+   4

@@ -1,0 +1,11 @@
+*******************
+Reference Guides
+*******************
+
+These pages contain reference guides or support docs to NASM.
+
+.. toctree::
+   :maxdepth: 2
+
+   templates
+   resources

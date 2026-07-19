@@ -18,6 +18,17 @@ Sorting Data in Spreadsheets
 
 ◀ :doc:`Previous <003-sorting-and-filtering-in-data-analysis>` · :doc:`Next <005-sorting-and-filtering-data-in-sql-using-order-by-and-where>` ▶ · :doc:`↑ Section <index>` · :doc:`↑ Hub <../index>`
 
+.. important::
+
+   **AI-generated content.** This page was written with the assistance of an
+   AI language model and is provided as a learning aid. Despite careful
+   review, it may still contain mistakes, omissions, or out-of-date
+   information. Whether you are new to the topic, a team lead, or a senior
+   practitioner, treat it as a starting point rather than an authoritative
+   reference: read it critically and independently verify anything you act on
+   (code, commands, figures, and factual claims) against official
+   documentation and primary sources before relying on it.
+
 
 Sorting, in practice
 ----------------------

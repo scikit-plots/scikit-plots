@@ -1,0 +1,19 @@
+.. _Windows 10 C Environment:
+
+********************************
+Windows 10: Setup C Environment
+********************************
+
+This lab will guide you to set up your computer so you can compile
+and execute C and ASM code on Windows. You will create a ``Hello World``
+application that writes text to the console windows and then you will
+read user data inputted into the console window.
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   1
+   2
+   3

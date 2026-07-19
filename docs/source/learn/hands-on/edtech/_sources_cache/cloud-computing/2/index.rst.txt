@@ -1,0 +1,15 @@
+.. _lab2:
+
+*****************************************
+Lab 2: Configure Nginx as a Reverse Proxy
+*****************************************
+
+.. toctree::
+   :caption: Table of Contents
+   :maxdepth: 3
+
+   overview
+   2.1
+   2.2
+   2.3
+   2.4

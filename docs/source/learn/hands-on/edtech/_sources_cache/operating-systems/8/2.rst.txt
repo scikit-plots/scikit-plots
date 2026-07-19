@@ -1,0 +1,66 @@
+8.2. Empty a File
+=================
+
+.. include:: /includes/prolog.inc
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+Sometimes we want empty the file contents instead of deleting the file
+and then recreating it. Opening a filehandle with flag ``O_TRUNC`` will clear
+all data from the file.
+
+.. note:: This lab builds on :ref:`Lab 5. Writing to a file <Writing to a file>`.
+
+
+You need three flags to empty or create the file using |open (code wiki)|.
+
+    #. ``O_WRONLY`` opens the file in write only mode.
+    #. ``O_TRUNC``  empties the file of any data.
+    #. ``O_CREAT``  creates the file if it does not exit. |br|
+       This flags requires that file permissions are send with the
+       the ``open`` command.
+
+Template Code
+-------------
+
+**Required Include Files**
+
+    .. code-block:: c
+
+        #include <fcntl.h>
+
+**Basic Usage**
+
+    .. code-block:: c
+
+        char *file_name = "test-empty.txt";
+        int flags = O_WRONLY | O_TRUNC | O_CREAT;
+        int file_permissions = 0644;
+
+        // open a file handle that creates or empties the file.
+        int empty_fd = open(file_name, flags, file_permissions);
+        close(empty_fd);
+
+Task: Empty a File
+-------------------------
+Create a file called ``lab8.2.c`` for this task.
+
+#. Create a function that empties an existing file or creates the file
+   if it does not exist.
+
+   - The function should accept the name or path of the file to empty.
+
+     - Hint: Use a pointer to a char array.
+   - The function should return a ``bool`` value.
+
+     - Return ``true`` if the file emptied successfully.
+     - Return ``false`` if an error occurred while emptying or creating
+       the file.
+
+#. Test the function by:
+
+   - Writing some data to the file
+   - Emptying the file
+   - Verifying that the file is empty.

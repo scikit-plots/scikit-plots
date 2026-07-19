@@ -1,0 +1,186 @@
+***************************************************
+Step 6: Configure Nextcloud using Docker Compose
+***************************************************
+
+.. contents:: Table of Contents
+
+.. |Nextcloud Docker| raw:: html
+
+   <a href="https://github.com/nextcloud/docker" target="_blank">Nextcloud docker-compose</a>
+
+.. |randomkeygen.com| raw:: html
+
+   <a href="https://randomkeygen.com" target="_blank">randomkeygen.com</a>
+
+
+Previously, we configured Nextcloud without any containers. This is bad news.
+**All** of our data will be deleted if we remove the container.
+Also, how do we back up our GBs worth of stored media files? There is no
+easy way to get this data out of the container.
+
+**Task**: Your task is to apply what you learned about docker-compose.
+
+.. Note:: Stop and remove the current Nextcloud container before continuing
+
+Initial Configuration
+======================
+Use the instructions from |Nextcloud Docker| git page.
+
+#. Choose a base version: Apache or FPM
+
+#. Choose strong keys from |randomkeygen.com| for
+
+   - MYSQL_ROOT_PASSWORD=
+   - MYSQL_PASSWORD=
+
+#. Use ports ``20850:80``
+#. Configure the volumes
+
+   a. Configure all volume data so that they reside in the project directory.
+      Use ``./``
+   #. You do not need to configure `named volumes`
+
+   .. code-block:: bash
+
+       root@vps298933:~/nextcloud-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                     NAMES
+       76cbf38e5975        nextcloud            "/entrypoint.sh apac…"   5 minutes ago       Up 5 minutes        0.0.0.0:20850->80/tcp     nextclouddocker_app_1
+       2906aaa944f5        mariadb              "docker-entrypoint.s…"   5 minutes ago       Up 5 minutes        3306/tcp                  nextclouddocker_db_1
+       c60b6e70e4a9        wordpress:latest     "docker-entrypoint.s…"   2 hours ago         Up 2 hours          0.0.0.0:20851->80/tcp     wordpressdocker_wordpress_1
+       386e4587b991        mariadb              "docker-entrypoint.s…"   2 hours ago         Up 2 hours          3306/tcp                  wordpressdocker_db_1
+       913ff74dd94c        redis                "docker-entrypoint.s…"   2 hours ago         Up 2 hours          6379/tcp                  wordpressdocker_redis_1
+       root@vps298933:~/nextcloud-docker#
+       root@vps298933:~/nextcloud-docker# ls -lh
+       total 12K
+       drwxr-xr-x  5      999 root 4.0K Mar 30 15:14 db
+       -rw-r--r--  1 root     root  657 Mar 30 15:13 docker-compose.yml
+       drwxr-xr-x 15 www-data root 4.0K Mar 30 14:55 nextcloud
+       root@vps298933:~/nextcloud-docker# ls -lh nextcloud/
+       total 148K
+       drwxr-xr-x 32 www-data root 4.0K Mar 30 14:54 3rdparty
+       drwxr-xr-x 38 www-data root 4.0K Mar 30 14:55 apps
+       -rw-r--r--  1 www-data root  12K Mar 30 14:54 AUTHORS
+       drwxr-xr-x  2 www-data root 4.0K Mar 30 14:59 config
+       -rw-r--r--  1 www-data root 3.6K Mar 30 14:54 console.php
+       -rw-r--r--  1 www-data root  34K Mar 30 14:54 COPYING
+       drwxr-xr-x 18 www-data root 4.0K Mar 30 14:55 core
+       -rw-r--r--  1 www-data root 4.9K Mar 30 14:54 cron.php
+       drwxr-xr-x  2 www-data root 4.0K Mar 30 14:55 custom_apps
+       drwxrwx---  5 www-data root 4.0K Mar 30 15:01 data
+       -rw-r--r--  1 www-data root  156 Mar 30 14:54 index.html
+
+#. Test the connection using ``curl --head http://localhost:20850``
+#. Verify that you can access the site using the web browser
+   (don't log in yet)
+
+Using the Nextcloud Web Configuration
+=========================================
+
+.. caution::
+    Nextcloud will break if you enable SSL. Use without SSL for now.
+
+
+#. Navigate to your Nextcloud instance: cloud.example.com
+#. Enter an admin **username** and **strong password**
+#. Click on **Storage & database**
+#. Select **MySQL/MariaDB**
+
+   .. image:: images/nextcloud1.png
+
+#. Enter the information from your ``docker-compose.yml`` file
+
+   - **Database user**: Value from ``MYSQL_USER``
+   - **Database password**: Value from ``MYSQL_PASSWORD``
+   - **Database name**: Value from ``MYSQL_DATABASE``
+   - **Database host**: The name of the database service in
+     ``docker-compose.yml``.
+
+     - The default value is ``db``
+
+#. Wait 2-3 minutes while your server configures Nextcloud
+
+   .. image:: images/nextcloud2.png
+
+   .. note:: Nginx might timeout waiting for the web service to start.
+       Refresh the page after a minute or two.
+
+
+Optional Nextcloud Configuration
+=================================
+
+Nextcloud has options to use Redis. You now know how to configure it!
+
+.. note:: A recent change to Nextcloud requires that you use a password
+    for redis. These changes are not specified on the Nextcloud docker page.
+    They are highlighted in yellow for your reference.
+
+#. You need to create a new Redis service in `docker-compose.yml`
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 3
+
+       redis:
+         image: redis:latest
+         command: redis-server --requirepass somePassword
+         restart: always
+
+#. Add the ``environment`` variables to the ``app`` section and their
+   values.
+
+   .. code-block:: bash
+       :linenos:
+       :emphasize-lines: 3
+
+       environment:
+         - REDIS_HOST=
+         - REDIS_HOST_PASSWORD=
+
+#. Verify the service is active using
+   ``redis-cli -a somePassword -h IPAddress MONITOR``
+
+   - Access Nextcloud while running the cli monitor command. You will
+     see the cached data in the terminal windows.
+   - See the previous page on
+     :ref:`how to access a Redis container without a public port
+     <access-redis-container>`
+
+   .. code-block:: bash
+
+       root@vps298933:~/nextcloud-docker# docker ps
+       CONTAINER ID        IMAGE                COMMAND                  CREATED             STATUS              PORTS                       NAMES
+       76cbf38e5975        nextcloud            "/entrypoint.sh apac…"   5 minutes ago       Up 5 minutes        0.0.0.0:20850->80/tcp       nextclouddocker_app_1
+       2906aaa944f5        mariadb              "docker-entrypoint.s…"   5 minutes ago       Up 5 minutes        3306/tcp                    nextclouddocker_db_1
+       8f5b05b6c627        redis                "docker-entrypoint.s…"   5 minutes ago       Up 5 minutes        6379/tcp                    nextclouddocker_redis_1
+       c60b6e70e4a9        wordpress:latest     "docker-entrypoint.s…"   2 hours ago         Up 2 hours          0.0.0.0:20851->80/tcp       wordpressdocker_wordpress_1
+       386e4587b991        mariadb              "docker-entrypoint.s…"   2 hours ago         Up 2 hours          3306/tcp                    wordpressdocker_db_1
+       913ff74dd94c        redis                "docker-entrypoint.s…"   2 hours ago         Up 2 hours          6379/tcp                    wordpressdocker_redis_1
+
+   .. code-block:: bash
+
+       root@vps298933:~/nextcloud-docker# redis-cli MONITOR
+       Could not connect to Redis at 127.0.0.1:6379: Connection refused
+       root@vps298933:~/nextcloud-docker# redis-cli -h 192.168.32.3 ping
+       PONG
+       root@vps298933:~/nextcloud-docker# redis-cli -h 192.168.32.3 monitor
+       (error) NOAUTH Authentication required.
+       ^C
+       root@vps298933:~/nextcloud-docker# redis-cli -h 192.168.32.3 -a 'secret'  monitor
+       OK
+       1605236869.679418 [0 192.168.32.4:60956] "GET" "PHPREDIS_SESSION:69d3544f291cd0a35fc0fa4ab882f603"
+       1605236870.226376 [0 192.168.32.4:60956] "SETEX" "PHPREDIS_SESSION:69d3544f291cd0a35fc0fa4ab882f603" "1440" "encrypted_session_data|s:964:\"876139951389ba...729d9|2\";"
+       1605236870.388935 [0 192.168.32.4:60966] "GET" "PHPREDIS_SESSION:69d3544f291cd0a35fc0fa4ab882f603"
+       1605236870.424470 [0 192.168.32.4:60966] "SETEX" "PHPREDIS_SESSION:69d3544f291cd0a35fc0fa4ab882f603" "1440" "encrypted_session_data|s:964:\"eb7e91b6a4349fd3...2d2b1164|2\";"
+       1605236870.447444 [0 192.168.32.4:60964] "GET" "9ece47f92230924d7cd50f9eb027646e/imagePath-81f894826c43a4eb083f0aee7745f179-settings-help.svg"
+       1605236870.447700 [0 192.168.32.4:60964] "EXISTS" "9ece47f92230924d7cd50f9eb027646e/imagePath-81f894826c43a4eb083f0aee7745f179-settings-help.svg"
+       1605236870.449152 [0 192.168.32.4:60964] "SET" "9ece47f92230924d7cd50f9eb027646e/imagePath-81f894826c43a4eb083f0aee7745f179-settings-help.svg" "\"\\/apps\\/settings\\/img\\/help.svg\""
+       1605236870.449596 [0 192.168.32.4:60964] "GET" "9ece47f92230924d7cd50f9eb027646e/imagePath-81f894826c43a4eb083f0aee7745f179-settings-apps.svg"
+       1605236870.449718 [0 192.168.32.4:60964] "EXISTS" "9ece47f92230924d7cd50f9eb027646e/imagePath-81f894826c43a4eb083f0aee7745f179-settings-apps.svg"
+       .
+       .
+       .
+
+**Congratulations**! You just installed Nextcloud using three
+containers with minimal help. You know how the knowledge and
+experience to install many applications that are available
+through Docker Compose.

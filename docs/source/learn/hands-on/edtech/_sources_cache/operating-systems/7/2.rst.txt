@@ -1,0 +1,68 @@
+7.2. Getting the Exit Code
+==========================
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+We don’t want to terminate a process forcefully most of the time. We want
+the process to exit gracefully. The exit code for a child process provides
+vital information about what the process is doing. It gives us a chance
+to wait for the process to exit instead of terminating it. This section
+explains how to use ``GetExitCodeProcess()`` to retrieve the exit code.
+
+|GetExitCodeProcess|
+    Retrieves the termination status of the specified process.
+
+    .. code-block:: c
+
+        BOOL GetExitCodeProcess(
+            HANDLE  process_handle, // A handle to the process.
+            DWORD exit_code         // A pointer to the exit code of the process.
+        );
+
+    .. note:: ``GetExitCodeProcess()`` requires additional flags in the process handle.
+
+        The handle must have the ``PROCESS_QUERY_INFORMATION`` or
+        ``PROCESS_QUERY_LIMITED_INFORMATION`` access right. For more information,
+        see |Process Security and Access Rights|.
+
+
+7.2.1. Terminate with an Exit Code
+----------------------------------
+
+Copy file ``lab7.1.c`` to ``lab7.2.c`` for this exercise.
+
+Typically, we use the return of ``return 0`` or ``return 1`` to exit our
+application to indicate if the process exited in a state of success or
+failure. ``TerminateProcess()`` sends the value of the exit code to the process
+in the second argument. The process terminates immediately using that code.
+
+.. code-block:: c
+
+    TerminateProcess(hProcess, uExitCode);
+
+#. Replace the ``0`` in the second arg with any valid unsigned ``int``,
+   such as 35.
+#. Print the PID and the expected exit code.
+
+**Expected Output**
+
+::
+
+    Sent exit code '35' to PID 22640
+
+7.2.2. Get the Exit Code
+------------------------
+
+#. Add the ``PROCESS_QUERY_INFORMATION`` flag to ``OpenProcess()``.
+#. Use ``GetExitCodeProcess()`` to get the exit code that the process
+   returned.
+#. Print the exit code from ``GetExitCodeProcess()``.
+
+**Expected Output**
+
+::
+
+    Sent exit code '35' to PID 22568.
+    PID 22568 returned exit code '35'.

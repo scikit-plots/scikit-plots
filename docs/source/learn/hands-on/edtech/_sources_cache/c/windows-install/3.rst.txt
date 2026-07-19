@@ -1,0 +1,18 @@
+*********************************************
+Step 3: Create a ``Hello World`` Application
+*********************************************
+
+.. include:: /includes/prolog.inc
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+**Objective**: Walk through the complete process of creating a
+``hello world`` application using C.
+
+.. important:: Please view the |Google Doc version of lab 1|
+
+.. |Google Doc version of lab 1| raw:: html
+
+   <a href="https://docs.google.com/document/d/1X7xz2f8p3f5YPdMbD2VUY-Ufv7ytu4P2_WyTaA7J_To/edit?usp=sharing" target="_blank">Google Doc version of lab 1</a>

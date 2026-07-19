@@ -1,0 +1,88 @@
+.. _Environment Setup:
+
+**************************************
+RST Workshop: Development Environment
+**************************************
+
+The development environment for this workshop consists of:
+
+    * `Visual Studio Code`_
+    * `reStructuredText Extension`_ for Visual Studio Code
+    * A Debian-based distribution running `Sphinx Server with LiveReload`_
+
+Environment Setup
+-----------------------------------------
+#. Install `Visual Studio Code`_.
+#. Install `reStructuredText Extension`_ for Visual Studio Code.
+#. Open a Linux shell and install Sphinx and the required extensions.
+
+   .. code-block:: bash
+
+      sudo apt-get update && sudo apt upgrade
+      sudo apt-get -y install python3-pip
+      pip3 install Sphinx
+      pip3 install sphinx-autobuild
+
+Create a Project
+----------------------
+
+#. Create a project directory
+#. Use ``sphinx-quickstart`` to create a new Sphinx projects
+
+   - Open a terminal in VSC (Terminal -> New Terminal)
+   - Open up a linux shell
+   - Execute: ``sphinx-quickstart``
+   - Follow the prompts
+
+Configure LiveReload
+----------------------
+
+#. Clone ``sphinx-server`` from https://github.com/dldl/sphinx-server.
+
+   .. note:: This project needs to be in ``/opt/sphinx-server``
+
+   .. code-block:: bash
+
+       cd /opt
+       sudo git clone https://github.com/dldl/sphinx-server.git
+
+#. Copy file ``server.py`` to your project root.
+
+   .. code-block:: bash
+
+       cd /mnt/c/Users/user/source/rst/my-project
+       cp /opt/sphinx-server/server.py .
+
+#. Start the mini-server that uses ``autobuild`` and ``livereload``.
+
+   .. code-block:: bash
+
+       python3 server.py
+
+   .. admonition:: python3 only
+
+       Using ``python`` will generate this error:
+
+       .. code-block:: bash
+
+           python server.py
+           Traceback (most recent call last):
+             File "server.py", line 7, in <module>
+               import http.server
+           ImportError: No module named http.server
+
+   .. tip:: Start ``python3 server.py`` using the built-in terminal in VSC!
+
+       1. ``Terminal -> New Terminal``
+       #. ``bash``
+       #. ``python3 server.py``
+
+
+#. Open your browser to ``http://localhost:8000/``.
+
+.. Section for URLs
+
+.. _Visual Studio Code: https://code.visualstudio.com/
+.. _reStructuredText Extension: https://docs.restructuredtext.net/
+.. _Sphinx Server with LiveReload: https://github.com/dldl/sphinx-server/
+.. _Docker and WSL 2: https://devblogs.microsoft.com/commandline/announcing-wsl-2/

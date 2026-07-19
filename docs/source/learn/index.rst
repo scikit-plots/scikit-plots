@@ -142,6 +142,17 @@ Learn
         :padding: 2
         :columns: 12 12 6 6
 
+        **hands-on materials**
+        ^^^
+        .. toctree::
+            :maxdepth: 2
+
+            Hands-On Materials <./hands-on/index.rst>
+
+    .. grid-item-card::
+        :padding: 2
+        :columns: 12 12 6 6
+
         **cheatsheets**
         ^^^
         .. toctree::

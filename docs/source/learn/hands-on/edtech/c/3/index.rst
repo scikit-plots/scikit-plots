@@ -1,0 +1,232 @@
+**********************
+Lab 3: Endianness
+**********************
+
+.. include:: ../../includes/prolog.inc
+
+.. include:: ../c-urls.rst
+
+.. contents:: Table of Contents
+
+Overview
+==========
+You will write a program to convert the contents of a byte stored in an
+array between |Big Endian and Little Endian|. |Endianness| defines the
+order of byte. You will work with a simulation of a byte.
+
+Big Endian Byte Order
+---------------------
+
+  Big endian byte order is **most significant** byte (the "big end") of
+  the data is placed at the byte with the lowest address. The rest of
+  the data is placed in order in the next three bytes in memory.
+
+  For example, little-endian byte order stores a hex value of 0x12345678
+  in memory as:
+
+  .. csv-table:: Big Endian Byte Order 0x12345678
+      :header: "0x100","0x101","0x102","0x103"
+
+      12,34,56,78
+
+Little Endian Byte Order
+--------------------------
+
+  Little endian byte order is the **least significant** byte
+  (the "little end") of the data is placed at the byte with the lowest
+  address. The rest of the data is placed in order in the next three
+  bytes in memory.
+
+  For example, little-endian byte order stores a hex value of 0x12345678
+  in memory as:
+
+  .. csv-table:: Little Endian Byte Order 0x12345678
+      :header: "0x100","0x101","0x102","0x103"
+
+      78,56,34,12
+
+Sources and additional information:
+
+  - |Big Endian and Little Endian|
+  - |Little and Big Endian Mystery|
+  - |Big-endian and Little-endian|
+  - |Understanding Big and Little Endian Byte Order|
+
+Arrays in C
+--------------
+An array in C is always passed by reference. You need three pieces of
+data when working with an array:
+
+  #. The pointer to the array
+  #. The type of data
+  #. The length of the array
+
+Here are some ways to create an array:
+
+.. code-block:: C
+
+    // Allocate memory, but don't initialize
+    int array[10];
+
+    // Initialize with zeros
+    int array[10] = {0}
+
+    // Create and populate with data
+    int array[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+    // Get the pointer to an array
+    int *p = array;
+
+Use these pages as a reference
+
+  - https://www.tutorialspoint.com/cprogramming/c_arrays.htm
+  - https://www.javatpoint.com/return-an-array-in-c
+
+Task 1: Create an Array
+==========================================
+Your first task is to create an array of the power table using
+**big-endian ordering** that represents a byte that is ordered
+from most significant to least significant.
+
+  .. csv-table:: Big Endian Byte Order for the power table
+      :header: "2 :sup:`7`","2 :sup:`6`","2 :sup:`5`","2 :sup:`4`","2 :sup:`3`","2 :sup:`2`","2 :sup:`1`","2 :sup:`0`"
+
+      128,64,32,16,8,4,2,1
+
+#. Open up |ide.judge0.com| or use VSC and GCC using a
+   template from :ref:`c-templates`.
+#. Create an ``int`` array of the power table. Start with
+   2 :sup:`0` to 2 :sup:`7`.
+
+   - Your program should work with an array of size 'n'.
+
+   .. hint::
+       - Use a ``define`` statement to set the array size at compile time.
+
+         .. code-block:: C
+
+             #define SIZE 8
+
+       - You can change it later to 16 to process an array from
+         2 :sup:`0` to 2 :sup:`15`.
+
+#. Print the contents to the screen
+
+.. code-block:: text
+    :caption: Expected Output
+
+    Big Endian Order:     128 63 32 16 8 4 2 1
+
+Task 2: Reverse the Array
+==========================================
+Your second task is to reverse the array to show the the power table in
+**little-endian ordering** that represents a byte in order from least
+significant to most significant.
+
+  .. csv-table:: Little Endian Byte Order for the power table
+      :header: "2 :sup:`0`","2 :sup:`1`","2 :sup:`2`","2 :sup:`3`","2 :sup:`4`","2 :sup:`5`","2 :sup:`6`","2 :sup:`7`"
+
+      1,2,4,8,16,32,64,128
+
+.. note::
+    Do not create a function for this yet. You will do that in a later step.
+
+#. Reverse the array.
+#. Print the array showing big-endian ordering.
+
+.. code-block:: text
+    :caption: Expected Output
+
+    Big Endian Order:     128 63 32 16 8 4 2 1
+    Little Endian Order:  1 2 4 8 16 32 64 128
+
+Task 3: Create Functions
+==========================================
+We don't like doing a lot of work in function ``main()``. Instead, we should
+create some functions to do the work.
+
+C does not contain an array length property like higher-level languages.
+You must calculate the size based on the memory allocation. See the
+answer to the question |How do I determine the size of my array in C?| in
+Stack Overflow.
+
+For this activity, you will use the value in the ``#define`` instead
+of trying to determine the array size.
+
+#. Create a function using this prototype that prints the contents
+   of an array.
+
+   .. code-block:: C
+
+       /*
+        * int array:  the pointer to the array
+        */
+       void print_array(int *);
+
+#. Create a function using this prototype that creates and returns an array.
+   Here is an example of how to |return an array from a function in C|.
+
+   .. code-block:: C
+
+       /*
+        * return value:   the pointer to the array
+        */
+       int *create_array();
+
+#. Create a function using this prototype that reverses the array
+
+   .. code-block:: C
+
+       /*
+        * int array:        the pointer to the big-endian array
+        * return value:     the pointer to the little-endian array
+        */
+       int *convert_to_little_endian(int *);
+
+Task 4: User Selected Order
+===============================
+Use the command line args to give the user an option to view
+the array in the little-endian or big-endian byte order.
+
+#. Add the command line args code from :ref:`c-templates`.
+#. Print this message if there are no args:
+
+   .. code-block:: text
+
+       Usage: endianness [value]
+           b    Big Endian Byte Order
+           l    Little Endian Byte Order
+
+#. Convert the arg to a ``char`` instead of doing a string comparison.
+   ``chars`` are ``integers``, which makes it easy to work with.
+   See an example of how to |convert a command line arg to a char|.
+
+   - ``*argv[]`` in ``main()`` is a 2D array (an array of strings).
+   - ``argv[1]`` is a char array or a string terminated with the ``\0``
+     (the null terminator).
+   - For example, executing ``endianness.exe l`` will contain an array
+     with two ``chars``: ``{ 'l' , '\0' }``
+   - You can get the ``'l'`` char by accessing the first element of the
+     arg.
+
+       .. code-block:: C
+
+           // argv[1]    --> { 'l' , '\0' }
+           // argv[1][0] --> 'l'
+           char order = argv[1][0];
+
+#. Display the array in big or little-endian order based on the user
+   selection.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/c/3/index.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.

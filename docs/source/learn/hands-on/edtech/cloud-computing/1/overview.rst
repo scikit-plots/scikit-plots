@@ -1,0 +1,82 @@
+*****************
+Lab 1: Overview
+*****************
+
+.. contents:: Table of Contents
+
+Cloud computing is a way of accessing computing power using the internet and
+virtualization technology. We will set up a VPS to host cloud-based
+applications. First of all, we need to choose a hosting provider. There are
+two general categories of providers, which are |cloud hosting and VPS hosting|.
+
+  1. Cloud hosting service providers offer comprehensive cloud-based services
+     to assist developers and companies. These providers might use a wide range
+     of distributed technologies to support the clients, such as multiple data
+     centers, provide automatic scaling, failover, load balancing and automatic
+     backup of data. Examples of providers are Amazon AWS, Microsoft Azure and
+     Google Cloud.
+
+  2. VPS hosting provides subscriptions to virtual private servers (VPSs).
+     The VPS vendors provide the physical infrastructure and allocate a certain
+     amount for you to use. For example, someone might subscribe to a VPS that
+     has 2GB of RAM, 20GB of SSD storage, and a single CPU core. The client
+     must then configure the VPS to suit their needs. They are responsible
+     for the security of the VPS and providing data backup.
+
+This course will use VPS hosting. We recommend getting a VPS from
+Time4VPS or OVH for learning about cloud computing. In general, VPS
+hosting for light use is cheaper than using a cloud hosting company if
+you don't need the extra services or extra computing power, such as
+automatic scaling. For example, Google Cloud costs around 15 USD per
+month, and Amazon AWS is approximately 20 USD for similar VPS
+specifications as |VPS VALUE from OVH| for 6 USD per month or
+|VPS Linux 2 from Time4VPS| for 4.99 EUR per month with the
+`Fast SSD storage` option. The benefit of cloud hosting (Amazon AWS,
+Microsoft Azure and Google Cloud), comes from the extra services they offer.
+
+.. |cloud hosting and VPS hosting| raw:: html
+
+   <a href="https://www.cloudways.com/blog/cloud-vs-vps-hosting/" target="_blank">cloud hosting and VPS hosting</a>
+
+.. |VPS VALUE from OVH| raw:: html
+
+   <a href="https://www.ovhcloud.com/en/vps/cheap-vps/" target="_blank">VPS VALUE from OVH</a>
+
+.. |VPS Linux 2 from Time4VPS| raw:: html
+
+   <a href="https://www.time4vps.com/linux-vps/" target="_blank">VPS Linux 2 from Time4VPS</a>
+
+
+Goals for Lab 1
+================
+The VPS hosting company provides us with a Linux distribution using the
+default configurations. We need to set it up to meet our needs and enable some
+essential security features. During this lab, you will:
+
+ #. Install an SSH client or terminal emulator to access the Linux shell
+ #. Set up your VPS using Ubuntu 18.04
+ #. Apply essential configurations, such as applying updates and enabling
+    the firewall.
+ #. Install Docker to run applications in containers.
+ #. Install Nginx to use as our web server and reverse proxy.
+ #. Configure Nginx to serve local PHP files.
+ #. Use HTTPS to secure your webpages by obtaining an SSL certificate through
+    Let's Encrypt.
+
+Optional configurations
+========================
+ #. Install a web admin panel called Webmin.
+ #. Add security to your VPS by changing the SSH port.
+
+.. admonition:: Source & license
+   :class: note
+
+   Reproduced **verbatim, without modification** from
+   `© 2022, BilimEdtech Labs <https://labs.bilimedtech.com/index.html>`__,
+   licensed under
+   `Creative Commons Attribution 4.0 International (CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`__.
+
+   Source page:
+   https://labs.bilimedtech.com/cloud-computing/1/overview.html
+
+   See :doc:`LICENSE <../../LICENSE_edtech>` for the full license text.
