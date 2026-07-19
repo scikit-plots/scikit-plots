@@ -191,8 +191,8 @@ def dashboard(roadmap: dict, actual: dict, gaps: list, diff: dict) -> str:
             n = rec.get("rst_total", 0)
             grand += n
             ex = rec.get("extra", {})
-            out.append(f"{title} ({n} pages, {ex.get('fragments',0)} frags, "
-                       f"{ex.get('images',0)} imgs)")
+            out.append(f"{title} ({n} pages, {ex.get('fragments', 0)} frags, "
+                       f"{ex.get('images', 0)} imgs)")
             continue
         total = rec.get("rst_total", 0)
         grand += total
