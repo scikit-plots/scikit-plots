@@ -224,7 +224,7 @@ repos:
 
   # 2. Ruff auto-fixes
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.21
     hooks:
       # - id: ruff  # Run the linter.
       # pre-commit run ruff-check --all-files --verbose
@@ -294,7 +294,7 @@ repos:
   #       args: ["--config", ".ruff.toml"]  # Point to your custom ruff.toml file
   # Code Quality: Linting and Formating Static Analysis
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.21
     hooks:
       # Formatter: ruff-format vs flake8 can be conflict make sure both compatipable
       # pre-commit run ruff-format --all-files --verbose
