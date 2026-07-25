@@ -1,5 +1,7 @@
 # scikitplot/cython/_loader.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,14 +65,31 @@ def import_extension(
         If the module cannot be loaded.
     """
     importlib.invalidate_caches()
-    sys.modules.pop(name, None)
 
     spec = importlib.util.spec_from_file_location(name, str(path))
     if spec is None or spec.loader is None:
+        # Do not disturb any existing sys.modules[name] on a spec failure.
         raise ImportError(f"Could not create module spec for '{name}' from {path}")
 
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[union-attr]
+
+    # Module-load transaction (CYTHON-LOAD-001): remember whatever is currently
+    # registered so a failed (re)load never destroys a previously-working
+    # module.  Per the import protocol, the new module is registered *before*
+    # exec_module (so self-referential imports during initialisation resolve),
+    # then rolled back to the prior state on any failure.
+    _sentinel = object()
+    prior = sys.modules.get(name, _sentinel)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+    except BaseException:
+        # Roll back: restore the prior entry, or remove ours if there was none.
+        if prior is _sentinel:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = prior  # type: ignore[assignment]
+        raise
 
     # Attach cache metadata for easy reuse after restart.
     try:
@@ -262,15 +281,90 @@ def import_extension_from_bytes(
     from hashlib import sha256  # noqa: PLC0415
 
     h = sha256(data).hexdigest()
-    out_dir = td / "scikitplot_cython_import" / h[:16]
-    out_dir.mkdir(parents=True, exist_ok=True)
+    parent = td / "scikitplot_cython_import"
+    # Create the shared parent, then the content-scoped entry with private
+    # (0700) permissions so other users cannot pre-create or tamper with the
+    # artifact directory (CYTHON-LOAD-002).
+    parent.mkdir(parents=True, exist_ok=True)
+    out_dir = parent / h[:16]
+    try:  # ruff:ignore[suppressible-exception]
+        out_dir.mkdir(mode=0o700, exist_ok=True)
+    except FileExistsError:
+        pass
     out_path = out_dir / artifact_filename
 
-    if out_path.exists():
-        existing = out_path.read_bytes()
-        if existing != data:
-            raise OSError(f"Artifact collision at {out_path}")
-    else:
-        out_path.write_bytes(data)
+    _stage_artifact_bytes_atomically(out_dir, out_path, data, expected_sha256=h)
 
     return import_extension(name=module_name, path=out_path, key=key, build_dir=out_dir)
+
+
+def _stage_artifact_bytes_atomically(
+    out_dir: Path, out_path: Path, data: bytes, *, expected_sha256: str
+) -> None:
+    """Atomically publish ``data`` at ``out_path`` without following symlinks.
+
+    Security properties (CYTHON-LOAD-002):
+
+    - If ``out_path`` already exists it must be a **regular file** (never a
+      symlink) whose content hash matches ``expected_sha256``; otherwise an
+      ``OSError`` is raised rather than importing an attacker-controlled or
+      corrupted artifact.
+    - New content is written to a unique temp file created with ``mkstemp``
+      (``O_CREAT | O_EXCL``, no symlink follow) inside ``out_dir`` and then
+      atomically ``os.replace``-d into place, so a concurrent importer never
+      observes a partially written extension.
+
+    Parameters
+    ----------
+    out_dir : pathlib.Path
+        Private (0700) content-scoped directory that will hold the artifact.
+    out_path : pathlib.Path
+        Final artifact path.
+    data : bytes
+        Artifact bytes to publish.
+    expected_sha256 : str
+        Hex digest the published bytes must have.
+
+    Raises
+    ------
+    OSError
+        If an existing path is a symlink, is not a regular file, or holds
+        different bytes (a genuine collision or tampering).
+    """
+    from hashlib import sha256  # noqa: PLC0415
+
+    # Fast path: a correct artifact is already published.  Use lstat so a
+    # symlink is detected instead of being transparently followed.
+    if out_path.exists() or out_path.is_symlink():
+        st = os.lstat(out_path)
+        import stat as _stat  # noqa: PLC0415
+
+        if not _stat.S_ISREG(st.st_mode):
+            raise OSError(f"refusing to load non-regular artifact path: {out_path}")
+        existing = out_path.read_bytes()
+        if sha256(existing).hexdigest() != expected_sha256:
+            raise OSError(f"Artifact collision at {out_path}")
+        return
+
+    # Write to a unique temp file (O_CREAT|O_EXCL, no follow) then atomic swap.
+    fd, tmp_name = tempfile.mkstemp(prefix=".artifact-", dir=str(out_dir))
+    tmp_path = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        # Atomic publish.  On POSIX os.replace overwrites silently; because the
+        # path is content-addressed, any concurrent writer publishes identical
+        # bytes, so last-writer-wins is safe.  We re-verify the final content
+        # as defense in depth against tampering during the window.
+        os.replace(tmp_path, out_path)
+        published = out_path.read_bytes()
+        if sha256(published).hexdigest() != expected_sha256:
+            raise OSError(f"Artifact content mismatch after publish at {out_path}")
+    finally:
+        if tmp_path.exists():
+            try:  # ruff:ignore[suppressible-exception]
+                tmp_path.unlink()
+            except FileNotFoundError:
+                pass

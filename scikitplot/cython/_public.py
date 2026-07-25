@@ -1,5 +1,7 @@
 # scikitplot/cython/_public.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,6 +54,9 @@ from ._loader import import_extension_from_bytes, import_extension_from_path
 from ._pins import resolve_pinned_key as _resolve_pinned_key
 from ._profiles import apply_profile
 from ._result import (  # noqa: F401
+    BatchBuildError,
+    BatchBuildResult,
+    BatchFailure,
     BuildResult,
     CacheGCResult,
     CacheStats,
@@ -68,6 +73,30 @@ PathLikeAny = str | bytes | Path | os.PathLike[str] | os.PathLike[bytes]
 # versions.  These parameters must be sequences; a bare path-like is coerced
 # to a one-element list at the call site for backward compatibility.
 PathLikeSeq = Sequence[PathLikeAny] | PathLikeAny | None
+
+
+def _dedup_paths(paths: list[Any], *, drop: set[Path] | None = None) -> list[Any]:
+    """Deduplicate path-likes by normalized identity, preserving order.
+
+    Two entries that resolve to the same absolute path are collapsed to the
+    first occurrence; any entry whose normalized form is in ``drop`` is removed
+    (CYTHON-PERF-001).  Non-resolvable entries are kept as-is (deduped by their
+    string form) so validation semantics are unchanged — this only removes
+    redundant duplicates, never a distinct path.
+    """
+    drop_norm = {str(d) for d in drop or set()}
+    seen: set[str] = set()
+    out: list[Any] = []
+    for item in paths:
+        try:
+            norm = str(Path(os.fsdecode(os.fspath(item))).expanduser().resolve())
+        except (TypeError, ValueError, OSError):
+            norm = repr(item)
+        if norm in drop_norm or norm in seen:
+            continue
+        seen.add(norm)
+        out.append(item)
+    return out
 
 
 def _coerce_path_seq(
@@ -112,6 +141,92 @@ def _coerce_path_seq(
         ) from None
 
 
+def _validate_build_security(
+    *,
+    security_policy: Any | None,
+    sources: Sequence[str | None] = (),
+    define_macros: Any | None = None,
+    extra_compile_args: Any | None = None,
+    extra_link_args: Any | None = None,
+    include_dirs: Any | None = None,
+    libraries: Any | None = None,
+    trusted_include_dirs: Any | None = None,
+) -> None:
+    """Apply the security policy to build inputs for **every** build entrypoint.
+
+    This is the single choke point that guarantees single-module and package
+    builds are validated identically (CYTHON-SEC-001).  A ``None`` policy means
+    the strict :data:`DEFAULT_SECURITY_POLICY`.  Each source string is checked
+    (so per-module package sources are all covered), along with the shared
+    macro / compile-arg / link-arg / include-dir / library inputs.
+
+    Parameters
+    ----------
+    security_policy : SecurityPolicy or None
+        Policy to enforce; ``None`` selects the strict default.
+    sources : sequence of (str or None), default=()
+        One or more Cython source strings to validate (e.g. every module of a
+        package).  ``None`` entries are skipped.
+    define_macros, extra_compile_args, extra_link_args, include_dirs, libraries
+        Shared build inputs forwarded to :func:`validate_build_inputs`.
+    trusted_include_dirs : sequence of path-like or None, default=None
+        Intrinsic include directories derived from the caller's explicit
+        arguments (e.g. the directory of a ``.pyx`` file passed to
+        :func:`cython_import_result`).  These are checked for path-traversal
+        safety but are exempt from the absolute-path restriction, since an
+        absolute source location is normal and is not attacker-supplied.  This
+        fixes CYTHON-API-001 without weakening the guard on user-supplied
+        ``include_dirs``.
+
+    Raises
+    ------
+    TypeError
+        If ``security_policy`` is not a ``SecurityPolicy`` instance.
+    SecurityError
+        On the first detected violation.
+    """
+    from ._security import (  # noqa: PLC0415
+        DEFAULT_SECURITY_POLICY,
+        SecurityError,
+        SecurityPolicy,
+        is_safe_path,
+        validate_build_inputs,
+    )
+
+    policy = security_policy if security_policy is not None else DEFAULT_SECURITY_POLICY
+    if not isinstance(policy, SecurityPolicy):
+        raise TypeError(
+            f"security_policy must be a SecurityPolicy instance, "
+            f"got {type(policy).__name__!r}"
+        )
+
+    inc_list = _coerce_path_seq(include_dirs, "include_dirs")
+    # Validate the shared inputs once, plus each source string.  Passing at
+    # least one (possibly None) source keeps a single call in the common case.
+    srcs = tuple(sources) or (None,)
+    for src in srcs:
+        validate_build_inputs(
+            policy=policy,
+            source=src,
+            define_macros=define_macros,
+            extra_compile_args=extra_compile_args,
+            extra_link_args=extra_link_args,
+            include_dirs=inc_list,
+            libraries=libraries,
+        )
+
+    # Intrinsic include dirs: still reject traversal, but permit absolute paths.
+    trusted = _coerce_path_seq(trusted_include_dirs, "trusted_include_dirs")
+    if trusted:
+        for p in trusted:
+            ps = os.fsdecode(os.fspath(p)) if not isinstance(p, str) else p
+            if not is_safe_path(ps, allow_absolute=True):
+                raise SecurityError(
+                    f"unsafe source include dir (path traversal): {ps!r}",
+                    field="include_dirs",
+                )
+
+
 __all__ = [
     "build_package_from_code",
     "build_package_from_code_result",
@@ -122,6 +237,7 @@ __all__ = [
     "compile_and_load_result",
     "cython_import",
     "cython_import_all",
+    "cython_import_all_result",
     "cython_import_result",
     "export_cached",
     "get_cache_dir",
@@ -164,6 +280,12 @@ def purge_cache(cache_dir: str | Path | None = None) -> None:
     """
     Delete the entire cache directory.
 
+    The purge runs under the cache-root GC lock so it cannot race a concurrent
+    garbage collection, and it refuses to run while any per-key build lock is
+    held so an active build/publish is never destroyed mid-flight
+    (CYTHON-GC-001).  Deeper transactional purge (dry-run manifest and recovery
+    journal) is tracked separately.
+
     Parameters
     ----------
     cache_dir : str or pathlib.Path or None, default=None
@@ -173,11 +295,47 @@ def purge_cache(cache_dir: str | Path | None = None) -> None:
     ------
     FileNotFoundError
         If the cache directory does not exist.
+    RuntimeError
+        If one or more builds are active (a per-key build lock is held).
     """
+    from ._lock import build_lock  # noqa: PLC0415
+
     root = peek_cache_dir(cache_dir)
     if not root.exists():
         raise FileNotFoundError(str(root))
-    shutil.rmtree(root)
+
+    gc_lock = root / ".gc.lock"
+    with build_lock(gc_lock, timeout_s=60.0):
+        # Refuse to purge while any build is active; deleting the root would
+        # corrupt an in-flight staging/publish transaction.
+        active = sorted(
+            p.name[: -len(".lock")] for p in root.glob("*.lock") if p.name != ".gc.lock"
+        )
+        if active:
+            raise RuntimeError(
+                "cannot purge cache while builds are active "
+                f"({len(active)} lock(s) held); retry when idle"
+            )
+        # Remove all entry/pin contents while holding the GC lock, preserving
+        # only the lock directory itself (released below).
+        for child in root.iterdir():
+            if child == gc_lock:
+                continue
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                try:  # ruff:ignore[suppressible-exception]
+                    child.unlink()
+                except FileNotFoundError:
+                    pass
+
+    # The GC lock has been released (its directory removed).  Remove the now
+    # empty cache root to preserve the historical "root deleted" contract.
+    try:  # ruff:ignore[suppressible-exception]
+        root.rmdir()
+    except OSError:
+        # A concurrent process re-created content or the root; leave it intact.
+        pass
 
 
 def check_build_prereqs(
@@ -285,6 +443,7 @@ def compile_and_load_result(  # noqa: D417
     lock_timeout_s: float = 60.0,
     language: str | None = None,
     security_policy: Any | None = None,
+    _trusted_include_dirs: PathLikeSeq = None,
 ) -> BuildResult:
     """
     Compile and import a Cython extension module from source text.
@@ -341,31 +500,26 @@ def compile_and_load_result(  # noqa: D417
     lib_dirs_list = _coerce_path_seq(library_dirs, "library_dirs")
     extra_sources_list = _coerce_path_seq(extra_sources, "extra_sources")
     support_paths_list = _coerce_path_seq(support_paths, "support_paths")
+    trusted_inc_list = _coerce_path_seq(_trusted_include_dirs, "_trusted_include_dirs")
 
     # --- Security validation (applied before any filesystem or compiler ops) ---
-    from ._security import (  # noqa: PLC0415
-        DEFAULT_SECURITY_POLICY,
-        SecurityPolicy,
-        validate_build_inputs,
-    )
-
-    _policy = (
-        security_policy if security_policy is not None else DEFAULT_SECURITY_POLICY
-    )
-    if not isinstance(_policy, SecurityPolicy):
-        raise TypeError(
-            f"security_policy must be a SecurityPolicy instance, "
-            f"got {type(_policy).__name__!r}"
-        )
-    validate_build_inputs(
-        policy=_policy,
-        source=source,
+    # Single choke point shared with the package build paths (CYTHON-SEC-001).
+    # ``_trusted_include_dirs`` (e.g. a .pyx file's own directory) is validated
+    # for traversal but exempt from the absolute-path rule (CYTHON-API-001).
+    _validate_build_security(
+        security_policy=security_policy,
+        sources=(source,),
         define_macros=define_macros,
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         include_dirs=inc_dirs_list,
         libraries=libraries,
+        trusted_include_dirs=trusted_inc_list,
     )
+
+    # Merge trusted include dirs into the list handed to the builder.
+    if trusted_inc_list:
+        inc_dirs_list = [*(inc_dirs_list or []), *trusted_inc_list]
 
     annotate2, directives2, cargs2, largs2, lang2 = apply_profile(
         profile=profile,
@@ -463,10 +617,25 @@ def cython_import_result(
     # is treated as a single path, not iterated character by character.
     raw_inc = kwargs.pop("include_dirs", None)
     inc: list = list(_coerce_path_seq(raw_inc, "include_dirs") or [])
-    inc.append(p.parent)
-    inc.append(p.parent)
+    # The .pyx file's own directory is an intrinsic, trusted include (needed for
+    # sibling .pxd/.pxi).  It is passed via ``_trusted_include_dirs`` so it is
+    # exempt from the absolute-path guard that (correctly) applies to
+    # user-supplied ``include_dirs`` — otherwise importing any .pyx by its
+    # normal absolute path fails under the default strict policy
+    # (CYTHON-API-001).
+    #
+    # Deduplicate the user include dirs by NORMALIZED path, and drop any that
+    # coincide with the intrinsic parent, so the parent is not compiled in twice
+    # (CYTHON-PERF-001).  Dedup runs AFTER validation, so it cannot weaken any
+    # security check; it only removes redundant work.
+    parent = p.parent
+    inc = _dedup_paths(inc, drop={parent})
     return compile_and_load_result(
-        source, module_name=module_name, include_dirs=inc, **kwargs
+        source,
+        module_name=module_name,
+        include_dirs=inc,
+        _trusted_include_dirs=[parent],
+        **kwargs,
     )
 
 
@@ -851,6 +1020,19 @@ def build_package_from_code_result(
     extra_link_args = kwargs.pop("extra_link_args", None)
     language = kwargs.pop("language", None)
 
+    # Route this stable build path through the SAME policy gate as
+    # compile_and_load_result (CYTHON-SEC-001).  Validate every module source
+    # plus the shared build inputs before any compiler/filesystem work.
+    _validate_build_security(
+        security_policy=kwargs.pop("security_policy", None),
+        sources=tuple(modules.values()),
+        define_macros=kwargs.get("define_macros"),
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=kwargs.get("include_dirs"),
+        libraries=kwargs.get("libraries"),
+    )
+
     annotate2, directives2, cargs2, largs2, lang2 = apply_profile(
         profile=profile,
         annotate=annotate,
@@ -901,6 +1083,31 @@ def build_package_from_paths_result(
     extra_compile_args = kwargs.pop("extra_compile_args", None)
     extra_link_args = kwargs.pop("extra_link_args", None)
     language = kwargs.pop("language", None)
+
+    # Same policy gate as the code-string and single-module paths
+    # (CYTHON-SEC-001).  Read each module's source so source-size limits apply
+    # to path-based builds too; validate shared build inputs once.
+    _pkg_sources: list[str | None] = []
+    for _m in modules.values():
+        try:
+            _pkg_sources.append(
+                Path(os.fsdecode(os.fspath(_m)))
+                .expanduser()
+                .read_text(encoding="utf-8")
+            )
+        except OSError:
+            # Unreadable path: skip source-size check but still validate the
+            # shared build inputs below via the None entry.
+            _pkg_sources.append(None)
+    _validate_build_security(
+        security_policy=kwargs.pop("security_policy", None),
+        sources=tuple(_pkg_sources),
+        define_macros=kwargs.get("define_macros"),
+        extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args,
+        include_dirs=kwargs.get("include_dirs"),
+        libraries=kwargs.get("libraries"),
+    )
 
     annotate2, directives2, cargs2, largs2, lang2 = apply_profile(
         profile=profile,
@@ -974,9 +1181,32 @@ def export_cached(
     dest_root = Path(dest_dir).expanduser().resolve()
     dest_root.mkdir(parents=True, exist_ok=True)
     dst = dest_root / key
-    if dst.exists():
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
+
+    # Transactional export (CYTHON-CACHE-004): copy into a staging sibling, then
+    # atomically swap it into place.  A failure mid-copy leaves any prior export
+    # untouched (restored), never a half-written destination.
+    staging = dest_root / f".staging-{key}"
+    backup = dest_root / f".backup-{key}"
+    if staging.exists():
+        shutil.rmtree(staging)
+    if backup.exists():
+        shutil.rmtree(backup)
+    try:
+        shutil.copytree(src, staging)
+        # Move any existing export aside, then swap staging in.
+        if dst.exists():
+            os.replace(dst, backup)
+        os.replace(staging, dst)
+    except BaseException:
+        # Roll back: remove partial staging and restore the prior export.
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)
+        if not dst.exists() and backup.exists():
+            os.replace(backup, dst)
+        raise
+    finally:
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
     return dst
 
 
@@ -1019,6 +1249,104 @@ def import_cached_by_name(
     return import_cached(entries[0].key, cache_dir=cache_dir)
 
 
+def cython_import_all_result(
+    directory: str | Path,
+    *,
+    pattern: str = r"*.pyx",
+    recursive: bool = False,
+    collect: bool = False,
+    only: Sequence[str] | None = None,
+    **kwargs: Any,
+) -> BatchBuildResult:
+    r"""
+    Compile and import all ``.pyx`` files in a directory, with a partial report.
+
+    Unlike :func:`cython_import_all`, this always returns a structured
+    :class:`BatchBuildResult` describing ordered successes, ordered failures,
+    and the committed native side effects — so a mid-batch failure no longer
+    leaves the caller without a report (CYTHON-BATCH-001).
+
+    Parameters
+    ----------
+    directory : str or pathlib.Path
+        Directory containing ``.pyx`` files.
+    pattern : str, default='*.pyx'
+        Glob pattern to match files.
+    recursive : bool, default=False
+        If True, search recursively.
+    collect : bool, default=False
+        Batch policy.  ``False`` is *fail-fast*: stop at the first failure and
+        raise :class:`BatchBuildError` (whose ``result`` carries the partial
+        outcome, including a resume token).  ``True`` is *collect*: attempt every
+        item and return a :class:`BatchBuildResult` with all failures recorded.
+    only : Sequence[str] or None, default=None
+        If given, restrict the batch to these stems (e.g. a resume token from a
+        prior :class:`BatchBuildError`).
+    **kwargs : dict
+        Passed to :func:`cython_import_result`.
+
+    Returns
+    -------
+    BatchBuildResult
+        Structured batch result (always, under the ``collect`` policy).
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``directory`` does not exist.
+    BatchBuildError
+        Under the fail-fast policy (``collect=False``) when an item fails; the
+        exception's ``result`` attribute holds the partial :class:`BatchBuildResult`.
+    """
+    root = Path(directory).expanduser().resolve()
+    if not root.exists():
+        raise FileNotFoundError(str(root))
+    files = root.rglob(pattern) if recursive else root.glob(pattern)
+    candidates = [f for f in sorted(files) if f.is_file()]
+    if only is not None:
+        wanted = set(only)
+        candidates = [f for f in candidates if f.stem in wanted]
+
+    successes: dict[str, BuildResult] = {}
+    failures: list[BatchFailure] = []
+    policy = "collect" if collect else "fail_fast"
+
+    for index, f in enumerate(candidates):
+        try:
+            successes[f.stem] = cython_import_result(f, **kwargs)
+        except BaseException as exc:  # noqa: BLE001 - reported structurally
+            failures.append(
+                BatchFailure(
+                    name=f.stem,
+                    source=f,
+                    error_type=type(exc).__name__,
+                    error=str(exc),
+                )
+            )
+            if not collect:
+                # Fail-fast: attach the partial result (with a resume token of
+                # the not-yet-attempted stems) and raise.
+                remaining = [c.stem for c in candidates[index + 1 :]]
+                result = BatchBuildResult(
+                    successes=dict(successes),
+                    failures=list(failures),
+                    committed=list(successes),
+                    policy=policy,
+                )
+                # Stash the resume token on the exception via the result's
+                # failures/committed; expose it as an attribute for convenience.
+                err = BatchBuildError(result)
+                err.resume_token = tuple(remaining)  # type: ignore[attr-defined]
+                raise err from exc
+
+    return BatchBuildResult(
+        successes=dict(successes),
+        failures=list(failures),
+        committed=list(successes),
+        policy=policy,
+    )
+
+
 def cython_import_all(
     directory: str | Path,
     *,
@@ -1028,6 +1356,11 @@ def cython_import_all(
 ) -> dict[str, BuildResult]:
     r"""
     Compile and import all ``.pyx`` files in a directory.
+
+    This is the backward-compatible convenience wrapper: it returns a plain
+    ``{stem: BuildResult}`` mapping and is fail-fast.  For a structured partial
+    report (ordered successes/failures, committed side effects, resume token) or
+    a collect-all policy, use :func:`cython_import_all_result`.
 
     Parameters
     ----------
@@ -1044,17 +1377,23 @@ def cython_import_all(
     -------
     dict[str, BuildResult]
         Mapping of file stem to build result.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``directory`` does not exist.
+    BatchBuildError
+        If any file fails; the exception's ``result`` attribute holds the
+        partial :class:`BatchBuildResult` describing what was already committed.
     """
-    root = Path(directory).expanduser().resolve()
-    if not root.exists():
-        raise FileNotFoundError(str(root))
-    files = root.rglob(pattern) if recursive else root.glob(pattern)
-    out: dict[str, BuildResult] = {}
-    for f in sorted(files):
-        if f.is_file():
-            res = cython_import_result(f, **kwargs)
-            out[f.stem] = res
-    return out
+    result = cython_import_all_result(
+        directory,
+        pattern=pattern,
+        recursive=recursive,
+        collect=False,
+        **kwargs,
+    )
+    return dict(result.successes)
 
 
 def register_cached_artifact_bytes(

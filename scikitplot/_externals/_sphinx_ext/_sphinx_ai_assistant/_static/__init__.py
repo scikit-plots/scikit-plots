@@ -58,7 +58,9 @@ import pathlib
 __all__ = [
     "_ICON_META",
     "_PROVIDER_META",
+    "_SVG_BOT_ASSISTANT",
     "_SVG_CHATGPT",
+    "_SVG_CHECK_ANSWER",
     "_SVG_CLAUDE",
     "_SVG_COPY",
     "_SVG_COPY_ANSWER",
@@ -72,6 +74,12 @@ __all__ = [
     "_SVG_OLLAMA",
     "_SVG_PRIVACY",
     "_SVG_SEARCH_AI",
+    "_SVG_SPARKLE",
+    "_SVG_SPARKLE_ALT",
+    "_SVG_SYNC_RETRY",
+    "_SVG_SYNC_RETRY_REVERSE",
+    "_SVG_THUMB_DOWN",
+    "_SVG_THUMB_UP",
     "export_svg2base64",
 ]
 
@@ -342,6 +350,162 @@ _SVG_INFO: str = (
     "PSI4IiB4Mj0iMTIuMDEiIHkyPSI4Ii8+PC9zdmc+"
 )
 
+# ── Phase C additions (icon-sync task: JS ICONS ↔ __init__.py ↔ *.svg) ──────
+# Each constant here is base64(open("<slug>.svg","rb").read()) using the
+# `export_svg2base64()` helper's exact convention: currentColor swapped for
+# the concrete #24292f used by every other on-disk icon (data-URIs render
+# via <img src="...">, which can't inherit CSS `color`/currentColor).
+# Mirrors ICONS.botAssistant / thumbUp / thumbDown / checkAns / syncRetry /
+# syncRetryReverse / sparkle / sparkleAlt in ai-assistant.js — see the
+# module docstring's "Adding a new icon" steps for the full workflow.
+
+# Copilot-style assistant/robot glyph (Octicon copilot, MIT-licensed path data)
+_SVG_BOT_ASSISTANT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTcuOTk4IDE1LjAzNWMtNC41"
+    "NjIgMC03Ljg3My0yLjkxNC03Ljk5OC0zLjc0OVY5LjMzOGMuMDg1LS42MjguNjc3LTEu"
+    "Njg2IDEuNTg4LTIuMDY1LjAxMy0uMDcuMDI0LS4xNDMuMDM2LS4yMTguMDI5LS4xODMu"
+    "MDYtLjM4NC4xMjYtLjYxMi0uMjAxLS41MDgtLjI1NC0xLjA4NC0uMjU0LTEuNjU2IDAt"
+    "Ljg3LjEyOC0xLjc2OS42OTMtMi40ODQuNTc5LS43MzMgMS40OTQtMS4xMjQgMi43MjQt"
+    "MS4yNjEgMS4yMDYtLjEzNCAyLjI2Mi4wMzQgMi45NDQuNzY1LjA1LjA1My4wOTYuMTA4"
+    "LjEzOS4xNjUuMDQ0LS4wNTcuMDk0LS4xMTIuMTQzLS4xNjUuNjgyLS43MzEgMS43Mzgt"
+    "Ljg5OSAyLjk0NC0uNzY1IDEuMjMuMTM3IDIuMTQ1LjUyOCAyLjcyNCAxLjI2MS41NjYu"
+    "NzE1LjY5MyAxLjYxNC42OTMgMi40ODQgMCAuNTcyLS4wNTMgMS4xNDgtLjI1NCAxLjY1"
+    "Ni4wNjYuMjI4LjA5OC40MjkuMTI2LjYxMi4wMTIuMDc2LjAyNC4xNDguMDM3LjIxOC45"
+    "MjQuMzg1IDEuNTIyIDEuNDcxIDEuNTkxIDIuMDk1djEuODcyYzAgLjc2Ni0zLjM1MSAz"
+    "Ljc5NS04LjAwMiAzLjc5NVptMC0xLjQ4NWMyLjI4IDAgNC41ODQtMS4xMSA1LjAwMi0x"
+    "LjQzM1Y3Ljg2MmwtLjAyMy0uMTE2Yy0uNDkuMjEtMS4wNzUuMjkxLTEuNzI3LjI5MS0x"
+    "LjE0NiAwLTIuMDU5LS4zMjctMi43MS0uOTkxQTMuMjIyIDMuMjIyIDAgMCAxIDggNi4z"
+    "MDNhMy4yNCAzLjI0IDAgMCAxLS41NDQuNzQzYy0uNjUuNjY0LTEuNTYzLjk5MS0yLjcx"
+    "Ljk5MS0uNjUyIDAtMS4yMzYtLjA4MS0xLjcyNy0uMjkxbC0uMDIzLjExNnY0LjI1NWMu"
+    "NDE5LjMyMyAyLjcyMiAxLjQzMyA1LjAwMiAxLjQzM1pNNi43NjIgMi44M2MtLjE5My0u"
+    "MjA2LS42MzctLjQxMy0xLjY4Mi0uMjk3LTEuMDE5LjExMy0xLjQ3OS40MDQtMS43MTMu"
+    "Ny0uMjQ3LjMxMi0uMzY5Ljc4OS0uMzY5IDEuNTU0IDAgLjc5My4xMjkgMS4xNzEuMzA4"
+    "IDEuMzcxLjE2Mi4xODEuNTE5LjM3OSAxLjQ0Mi4zNzkuODUzIDAgMS4zMzktLjIzNSAx"
+    "LjYzOC0uNTQuMzE1LS4zMjIuNTI3LS44MjcuNjE3LTEuNTUzLjExNy0uOTM1LS4wMzct"
+    "MS4zOTUtLjI0MS0xLjYxNFptNC4xNTUtLjI5N2MtMS4wNDQtLjExNi0xLjQ4OC4wOTEt"
+    "MS42ODEuMjk3LS4yMDQuMjE5LS4zNTkuNjc5LS4yNDIgMS42MTQuMDkxLjcyNi4zMDMg"
+    "MS4yMzEuNjE4IDEuNTUzLjI5OS4zMDUuNzg0LjU0IDEuNjM4LjU0LjkyMiAwIDEuMjgt"
+    "LjE5OCAxLjQ0Mi0uMzc5LjE3OS0uMi4zMDgtLjU3OC4zMDgtMS4zNzEgMC0uNzY1LS4x"
+    "MjMtMS4yNDItLjM3LTEuNTU0LS4yMzMtLjI5Ni0uNjkzLS41ODctMS43MTMtLjdaIi8+"
+    "PHBhdGggZD0iTTYuMjUgOS4wMzdhLjc1Ljc1IDAgMCAxIC43NS43NXYxLjUwMWEuNzUu"
+    "NzUgMCAwIDEtMS41IDBWOS43ODdhLjc1Ljc1IDAgMCAxIC43NS0uNzVabTQuMjUuNzV2"
+    "MS41MDFhLjc1Ljc1IDAgMCAxLTEuNSAwVjkuNzg3YS43NS43NSAwIDAgMSAxLjUgMFoi"
+    "Lz48L3N2Zz4="
+)
+
+# GitHub Octicon thumbsup / thumbsdown (MIT-licensed path data)
+_SVG_THUMB_UP: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTguMzQ3LjYzMUEuNzUuNzUg"
+    "MCAwIDEgOS4xMjMuMjZsLjIzOC4wNGEzLjI1IDMuMjUgMCAwIDEgMi41OTEgNC4wOThM"
+    "MTEuNDk0IDZoLjY2NWEzLjI1IDMuMjUgMCAwIDEgMy4xMTggNC4xNjdsLTEuMTM1IDMu"
+    "ODU5QTIuNzUxIDIuNzUxIDAgMCAxIDExLjUwMyAxNkg2LjU4NmEzLjc1IDMuNzUgMCAw"
+    "IDEtMi4xODQtLjcwMkExLjc1IDEuNzUgMCAwIDEgMyAxNkgxLjc1QTEuNzUgMS43NSAw"
+    "IDAgMSAwIDE0LjI1di02LjVDMCA2Ljc4NC43ODQgNiAxLjc1IDZoMy40MTdhLjI1LjI1"
+    "IDAgMCAwIC4yMTctLjEyN1pNNC43NSAxMy42NDlsLjM5Ni4zM2MuNDA0LjMzNy45MTQu"
+    "NTIxIDEuNDQuNTIxaDQuOTE3YTEuMjUgMS4yNSAwIDAgMCAxLjItLjg5N2wxLjEzNS0z"
+    "Ljg1OUExLjc1IDEuNzUgMCAwIDAgMTIuMTU5IDcuNUgxMC41YS43NS43NSAwIDAgMS0u"
+    "NzIxLS45NTZsLjczMS0yLjU1OGExLjc1IDEuNzUgMCAwIDAtMS4xMjctMi4xNEw2LjY5"
+    "IDYuNjExYTEuNzUgMS43NSAwIDAgMS0xLjUyMy44ODlINC43NVpNMy4yNSA3LjVoLTEu"
+    "NWEuMjUuMjUgMCAwIDAtLjI1LjI1djYuNWMwIC4xMzguMTEyLjI1LjI1LjI1SDNhLjI1"
+    "LjI1IDAgMCAwIC4yNS0uMjVaIi8+PC9zdmc+"
+)
+_SVG_THUMB_DOWN: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTcuNjUzIDE1LjM2OWEuNzUu"
+    "NzUgMCAwIDEtLjc3Ni4zNzFsLS4yMzgtLjA0YTMuMjUgMy4yNSAwIDAgMS0yLjU5MS00"
+    "LjA5OUw0LjUwNiAxMGgtLjY2NUEzLjI1IDMuMjUgMCAwIDEgLjcyMyA1LjgzM2wxLjEz"
+    "NS0zLjg1OUEyLjc1IDIuNzUgMCAwIDEgNC40ODIgMEg5LjQzYy43OC4wMDMgMS41Mzgu"
+    "MjUgMi4xNjguNzAyQTEuNzUyIDEuNzUyIDAgMCAxIDEyLjk4OSAwaDEuMjcyQTEuNzUg"
+    "MS43NSAwIDAgMSAxNiAxLjc1djYuNUExLjc1IDEuNzUgMCAwIDEgMTQuMjUgMTBoLTMu"
+    "NDE3YS4yNS4yNSAwIDAgMC0uMjE3LjEyN1pNMTEuMjUgMi4zNTFsLS4zOTYtLjMzYTIu"
+    "MjQ4IDIuMjQ4IDAgMCAwLTEuNDQtLjUyMUg0LjQ5NmExLjI1IDEuMjUgMCAwIDAtMS4x"
+    "OTkuODk3TDIuMTYyIDYuMjU2QTEuNzUgMS43NSAwIDAgMCAzLjg0MSA4LjVINS41YS43"
+    "NS43NSAwIDAgMSAuNzIxLjk1NmwtLjczMSAyLjU1OGExLjc1IDEuNzUgMCAwIDAgMS4x"
+    "MjcgMi4xNEw5LjMxIDkuMzg5YTEuNzUgMS43NSAwIDAgMSAxLjUyMy0uODg5aC40MTda"
+    "bTEuNSA2LjE0OWgxLjVhLjI1LjI1IDAgMCAwIC4yNS0uMjV2LTYuNWEuMjUuMjUgMCAw"
+    "IDAtLjI1LS4yNUgxM2EuMjUuMjUgMCAwIDAtLjI1LjI1WiIvPjwvc3ZnPg=="
+)
+
+# Checkmark — swapped in for copy-answer for ~1.6s after a confirmed copy
+_SVG_CHECK_ANSWER: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMjQyOTJmIiBzdHJva2Utd2lkdGg9"
+    "IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+"
+    "PHBvbHlsaW5lIHBvaW50cz0iMjAgNiA5IDE3IDQgMTIiLz48L3N2Zz4="
+)
+
+# Two-arrow sync glyph (Octicon sync) — retry action
+_SVG_SYNC_RETRY: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTEuNzA1IDguMDA1YS43NS43"
+    "NSAwIDAgMSAuODM0LjY1NiA1LjUgNS41IDAgMCAwIDkuNTkyIDIuOTdsLTEuMjA0LTEu"
+    "MjA0YS4yNS4yNSAwIDAgMSAuMTc3LS40MjdoMy42NDZhLjI1LjI1IDAgMCAxIC4yNS4y"
+    "NXYzLjY0NmEuMjUuMjUgMCAwIDEtLjQyNy4xNzdsLTEuMzgtMS4zOEE3LjAwMiA3LjAw"
+    "MiAwIDAgMSAxLjA1IDguODRhLjc1Ljc1IDAgMCAxIC42NTYtLjgzNFpNOCAyLjVhNS40"
+    "ODcgNS40ODcgMCAwIDAtNC4xMzEgMS44NjlsMS4yMDQgMS4yMDRBLjI1LjI1IDAgMCAx"
+    "IDQuODk2IDZIMS4yNUEuMjUuMjUgMCAwIDEgMSA1Ljc1VjIuMTA0YS4yNS4yNSAwIDAg"
+    "MSAuNDI3LS4xNzdsMS4zOCAxLjM4QTcuMDAyIDcuMDAyIDAgMCAxIDE0Ljk1IDcuMTZh"
+    "Ljc1Ljc1IDAgMCAxLTEuNDkuMTc4QTUuNSA1LjUgMCAwIDAgOCAyLjVaIi8+PC9zdmc+"
+)
+# Mirrored variant (redo / alternate-direction) — not wired to any control yet
+_SVG_SYNC_RETRY_REVERSE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTYs"
+    "MCkgc2NhbGUoLTEsMSkiPjxwYXRoIGQ9Ik0xLjcwNSA4LjAwNWEuNzUuNzUgMCAwIDEg"
+    "LjgzNC42NTYgNS41IDUuNSAwIDAgMCA5LjU5MiAyLjk3bC0xLjIwNC0xLjIwNGEuMjUu"
+    "MjUgMCAwIDEgLjE3Ny0uNDI3aDMuNjQ2YS4yNS4yNSAwIDAgMSAuMjUuMjV2My42NDZh"
+    "LjI1LjI1IDAgMCAxLS40MjcuMTc3bC0xLjM4LTEuMzhBNy4wMDIgNy4wMDIgMCAwIDEg"
+    "MS4wNSA4Ljg0YS43NS43NSAwIDAgMSAuNjU2LS44MzRaTTggMi41YTUuNDg3IDUuNDg3"
+    "IDAgMCAwLTQuMTMxIDEuODY5bDEuMjA0IDEuMjA0QS4yNS4yNSAwIDAgMSA0Ljg5NiA2"
+    "SDEuMjVBLjI1LjI1IDAgMCAxIDEgNS43NVYyLjEwNGEuMjUuMjUgMCAwIDEgLjQyNy0u"
+    "MTc3bDEuMzggMS4zOEE3LjAwMiA3LjAwMiAwIDAgMSAxNC45NSA3LjE2YS43NS43NSAw"
+    "IDAgMS0xLjQ5LjE3OEE1LjUgNS41IDAgMCAwIDggMi41WiIvPjwvZz48L3N2Zz4="
+)
+
+# Octicon sparkle — four-pointed star with concave sides
+_SVG_SPARKLE: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAxNiAxNiIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTcuMTk4LjU3Yy4yNzUtLjc1"
+    "MiAxLjM0LS43NTIgMS42MTUgMGwuODQ5IDIuMzE3YTUuODE5IDUuODE5IDAgMCAwIDMu"
+    "NDYyIDMuNDYzbDIuMzE3Ljg0OGMuNzUzLjI3NS43NTMgMS4zNCAwIDEuNjE1bC0yLjMx"
+    "Ny44NDlhNS44MTUgNS44MTUgMCAwIDAtMy40NjIgMy40NjJsLS44NDkgMi4zMTdjLS4y"
+    "NzUuNzUzLTEuMzQuNzUzLTEuNjE1IDBsLS44NDgtMi4zMTdhNS44MTkgNS44MTkgMCAw"
+    "IDAtMy40NjMtMy40NjJMLjU3IDguODEzYy0uNzUyLS4yNzUtLjc1Mi0xLjM0IDAtMS42"
+    "MTVsMi4zMTctLjg0OEE1LjgyMyA1LjgyMyAwIDAgMCA2LjM1IDIuODg3TDcuMTk4LjU3"
+    "Wm0uNTYyIDIuODMzQTcuMzIzIDcuMzIzIDAgMCAxIDMuNDAzIDcuNzZsLS42NzMuMjQ2"
+    "LjY3My4yNDZhNy4zMjQgNy4zMjQgMCAwIDEgNC4zNTcgNC4zNTZsLjI0Ni42NzMuMjQ2"
+    "LS42NzNhNy4zMjIgNy4zMjIgMCAwIDEgNC4zNTYtNC4zNTZsLjY3My0uMjQ2LS42NzMt"
+    "LjI0NmE3LjMyNCA3LjMyNCAwIDAgMS00LjM1Ni00LjM1N2wtLjI0Ni0uNjczLS4yNDYu"
+    "NjczWiIvPjwvc3ZnPg=="
+)
+# Two-tier "AI sparkle" — one large 4-point star, one small offset star
+_SVG_SPARKLE_ALT: str = (
+    "data:image/svg+xml;base64,"
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAg"
+    "MCAyMCAyMCIgZmlsbD0iIzI0MjkyZiI+PHBhdGggZD0iTTkgMS41Yy4xOCAwIC4zNC4x"
+    "Mi4zOS4yOWwuODIgMi43MmE0LjcgNC43IDAgMCAwIDMuMTUgMy4xNWwyLjcyLjgyYS40"
+    "LjQgMCAwIDEgMCAuNzdsLTIuNzIuODJhNC43IDQuNyAwIDAgMC0zLjE1IDMuMTVsLS44"
+    "MiAyLjcyYS40LjQgMCAwIDEtLjc3IDBsLS44Mi0yLjcyYTQuNyA0LjcgMCAwIDAtMy4x"
+    "NS0zLjE1bC0yLjcyLS44MmEuNC40IDAgMCAxIDAtLjc3bDIuNzItLjgyQTQuNyA0Ljcg"
+    "MCAwIDAgNy42IDQuNTFsLjgyLTIuNzJBLjQuNCAwIDAgMSA5IDEuNVoiLz48cGF0aCBk"
+    "PSJNMTUuNSAxYy4xNiAwIC4zLjEuMzQuMjZsLjMyLjk5Yy4xNS40Ny41Mi44NC45OS45"
+    "OWwuOTkuMzJhLjM2LjM2IDAgMCAxIDAgLjY4bC0uOTkuMzJhMS41NiAxLjU2IDAgMCAw"
+    "LS45OS45OWwtLjMyLjk5YS4zNi4zNiAwIDAgMS0uNjggMGwtLjMyLS45OWExLjU2IDEu"
+    "NTYgMCAwIDAtLjk5LS45OWwtLjk5LS4zMmEuMzYuMzYgMCAwIDEgMC0uNjhsLjk5LS4z"
+    "MmMuNDctLjE1Ljg0LS41Mi45OS0uOTlsLjMyLS45OUEuMzYuMzYgMCAwIDEgMTUuNSAx"
+    "WiIvPjwvc3ZnPg=="
+)
+
+
 # ---------------------------------------------------------------------------
 # Provider icon + description registry
 # ---------------------------------------------------------------------------
@@ -393,4 +557,23 @@ _ICON_META: dict[str, dict[str, str]] = {
     "share": {"icon": _SVG_SHARE, "desc": "Share this page"},
     "menu": {"icon": _SVG_MENU, "desc": "Open menu"},
     "info": {"icon": _SVG_INFO, "desc": "Model information"},
+    # ── Phase C additions — mirrors ai-assistant.js ICONS.{key} ────────
+    "bot-assistant": {"icon": _SVG_BOT_ASSISTANT, "desc": "AI assistant"},
+    "thumb-up": {"icon": _SVG_THUMB_UP, "desc": "Helpful"},
+    "thumb-down": {"icon": _SVG_THUMB_DOWN, "desc": "Not helpful"},
+    "check-answer": {"icon": _SVG_CHECK_ANSWER, "desc": "Copied!"},
+    "retry": {"icon": _SVG_SYNC_RETRY, "desc": "Retry — re-send the same question"},
+    # Not wired to any control yet — see ICONS.syncRetryReverse in JS.
+    "retry-reverse": {"icon": _SVG_SYNC_RETRY_REVERSE, "desc": "Redo (reverse retry)"},
+    "sparkle": {"icon": _SVG_SPARKLE, "desc": "AI sparkle"},
+    "sparkle-alt": {"icon": _SVG_SPARKLE_ALT, "desc": "AI sparkle (alternate)"},
+    # Deliberately reuse the existing "terms" / "privacy" constants above
+    # instead of introducing new path data — see ai-assistant.js
+    # ICONS.termsOfService / ICONS.privacyResponsibility for the rationale
+    # (consolidated to one design per concept across JS/Python/disk-file).
+    "terms-of-service": {"icon": _SVG_TERMS, "desc": "Terms of Service"},
+    "privacy-responsibility": {
+        "icon": _SVG_PRIVACY,
+        "desc": "Privacy & Responsibility",
+    },
 }

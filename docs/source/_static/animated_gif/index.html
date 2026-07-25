@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Assistant Welcome</title>
+
+<style>
+:root{
+    --primary:#4f46e5;
+    --primary-light:#eef2ff;
+    --border:#dbe5ff;
+    --text:#1f2937;
+    --muted:#6b7280;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    font-family:Inter,Segoe UI,Roboto,sans-serif;
+    background:
+        radial-gradient(circle at top,#edf5ff 0,#f8fbff 40%,#ffffff 100%);
+}
+
+/* Welcome Card */
+
+.ai-assistant-panel-welcome{
+    width:min(760px,92vw);
+    display:flex;
+    align-items:center;
+    gap:24px;
+
+    padding:24px;
+
+    background:#fff;
+
+    border:1px solid var(--border);
+
+    border-radius:22px;
+
+    box-shadow:
+        0 12px 32px rgba(79,70,229,.08),
+        0 4px 12px rgba(0,0,0,.05);
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+.ai-assistant-panel-welcome::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+        radial-gradient(circle at left,#eef5ff,transparent 60%);
+    pointer-events:none;
+}
+
+.ai-assistant-mascot{
+    position:relative;
+    width:110px;
+    flex:none;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.ai-assistant-mascot img{
+    width:82px;
+    height:82px;
+}
+
+.sparkle{
+    position:absolute;
+    font-size:18px;
+    animation:float 2.5s ease-in-out infinite;
+}
+
+.s1{
+    top:8px;
+    left:8px;
+}
+
+.s2{
+    top:14px;
+    right:10px;
+    animation-delay:.5s;
+}
+
+.s3{
+    bottom:6px;
+    right:0;
+    animation-delay:1s;
+}
+
+@keyframes float{
+    0%,100%{
+        transform:translateY(0) scale(1);
+    }
+    50%{
+        transform:translateY(-8px) scale(1.2);
+    }
+}
+
+.ai-assistant-content{
+    flex:1;
+}
+
+.ai-assistant-title{
+    margin:0;
+    font-size:2rem;
+    font-weight:700;
+    color:var(--text);
+}
+
+.ai-assistant-title strong{
+    color:var(--primary);
+}
+
+.ai-assistant-desc{
+    margin:12px 0 18px;
+    font-size:1.05rem;
+    color:var(--muted);
+    line-height:1.6;
+}
+
+.ai-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.ai-actions button{
+    border:none;
+    cursor:pointer;
+
+    padding:10px 18px;
+
+    border-radius:999px;
+
+    background:var(--primary-light);
+
+    color:var(--primary);
+
+    font-size:.95rem;
+
+    transition:.25s;
+}
+
+.ai-actions button:hover{
+    transform:translateY(-2px);
+    background:var(--primary);
+    color:#fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="ai-assistant-panel-welcome">
+
+    <div class="ai-assistant-mascot">
+
+        <span class="sparkle s1">✨</span>
+        <span class="sparkle s2">⭐</span>
+        <span class="sparkle s3">💙</span>
+
+        <img src="dancer_anim.gif" alt="Assistant">
+
+    </div>
+
+    <div class="ai-assistant-content">
+
+        <h1 class="ai-assistant-title">
+            👋 Hi! I'm <strong>✨ AI Assistant</strong>
+        </h1>
+
+        <p class="ai-assistant-desc">
+            Ask me anything about this documentation.
+            I can explain concepts, summarize sections,
+            find examples, troubleshoot errors, and help
+            you navigate the docs faster.
+        </p>
+
+        <div class="ai-actions">
+            <button>📘 Explain concepts</button>
+            <button>🔎 Find information</button>
+            <button>💻 Show examples</button>
+            <button>💡 Troubleshoot</button>
+        </div>
+
+    </div>
+
+</div>
+
+🕺&ensp;🕺&ensp;🕺&emsp;🕺&ensp;🕺&ensp;🕺&emsp;🕺&ensp;🕺&emsp;🕺&emsp;🕺&ensp;🕺&emsp;🕺&ensp;🕺&ensp;🕺&emsp;🕺&ensp;🕺&ensp;🕺
+
+
+</body>
+</html>

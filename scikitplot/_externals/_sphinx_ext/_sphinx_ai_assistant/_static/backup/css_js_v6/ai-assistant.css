@@ -16,6 +16,7 @@
  *
  * z-index: 1030; .bd-header
  * z-index: 1080; #pst-back-to-top
+ * z-index: 1081; .ai-assistant-panel
  */
 
 .ai-assistant-container {
@@ -361,7 +362,7 @@
 /* ─── Panel root ────────────────────────────────────────────────────────── */
 
 .ai-assistant-panel {
-    z-index: 1021;
+    z-index: 1081;
     /* resize: both; overflow: auto; */
     /* overflow:visible is the CSS default but stated explicitly so a cloud
      * theme rule (e.g. .bd-main .ai-assistant-panel { overflow:hidden }) cannot
@@ -483,13 +484,16 @@
 }
 
 .ai-assistant-panel-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 18px;
     height: 18px;
     flex-shrink: 0;
 }
-
-[data-bs-theme="dark"] .ai-assistant-panel-logo:not(.ai-brand-icon) {
-    filter: brightness(1.6);
+.ai-assistant-panel-logo svg {
+    width: 100%;
+    height: 100%;
 }
 
 /* ─── Header icon buttons (minimize / maximize / close) ─────────────────── */
@@ -587,6 +591,19 @@
 }
 
 .ai-assistant-panel-welcome p { margin: 0.25rem 0; }
+
+/* Inline bot icon at the start of the "Ask me anything…" line — replaces
+ * the old 🤖 emoji glyph with an actual SVG so it inherits the muted
+ * welcome-text colour instead of rendering with its own fixed emoji tone. */
+.ai-assistant-panel-welcome-bot-icon {
+    display: inline-flex;
+    vertical-align: -2px;
+}
+.ai-assistant-panel-welcome-bot-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
 
 /* ─── Quick suggestion chips ─────────────────────────────────────────────── */
 /*
@@ -721,6 +738,10 @@
 .ai-assistant-panel-footer {
     display: flex;
     align-items: stretch;
+    /* Row-flex with wrap: .ai-assistant-panel-input-group fills the first
+       line; .ai-assistant-panel-footer-note (2nd child, width:100%) has no
+       room left on that line and wraps onto its own row underneath it. */
+    flex-wrap: wrap;
     padding: 0.625rem 0.75rem;
     border-top: 1px solid var(
         --pst-color-border,
@@ -862,6 +883,23 @@
 @keyframes ai-mic-pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.45; }
+}
+
+/* Static AI disclaimer, last child of the footer — sits under the input
+ * group (see flex-wrap on .ai-assistant-panel-footer above). Typography
+ * matches .ai-assistant-panel-privacy-link: same low-emphasis "small
+ * print" register, not a new type step. */
+.ai-assistant-panel-footer-note {
+    width: 100%;
+    margin: 0.35rem 0 0;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+
+[data-bs-theme="dark"] .ai-assistant-panel-footer-note {
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #9aa0a6));
 }
 
 /* ─── "Speak with assistant" banner (optional, above input) ─────────────── */
@@ -1322,6 +1360,65 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 }
 [data-bs-theme="dark"] .ai-assistant-panel-bubble-action:hover {
     background: rgba(255, 255, 255, 0.06);
+}
+
+/* Brief "Copied!" confirmation state on the per-answer copy button — see
+ * _flashCopyBtnCopied() in ai-assistant.js. Reuses the same green already
+ * used for positive feedback sentiment elsewhere, so "success" reads the
+ * same way across the panel. Purely a color/background swap (icon + label
+ * text are already swapped in the DOM by JS), so no layout/size changes. */
+.ai-assistant-panel-bubble-action--copied {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.12);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble-action--copied {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.14);
+}
+
+/* ── Copy button: icon-only by default, keys/label reveal on hover ───────
+ * Mirrors the kbd-hint pattern: collapsed for EVERY device (mobile
+ * included), not just non-hover ones. Touch devices have no hover gesture
+ * to expand this, so they stay icon-only permanently — see the
+ * long-press → showNotification('Copy') fallback wired in ai-assistant.js
+ * for how they still learn what the button does, same convention as the
+ * kbd-hint and the trigger-pill tap-vs-long-press pattern.
+ *
+ * The `--copied` confirmation state forces the expanded label unconditionally
+ * (outside the hover media query) — a user who isn't hovering, or is on a
+ * device that can't hover at all, still needs to see "Copied" after a
+ * successful copy, not just a color change on an icon they've already
+ * looked away from.
+ */
+.ai-assistant-panel-bubble-action--copy {
+    gap: 0;
+    transition: background-color 0.15s ease, color 0.15s ease, gap 0.2s ease;
+}
+.ai-assistant-panel-bubble-action--copy span {
+    display: inline-block;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.2s ease, opacity 0.15s ease;
+}
+.ai-assistant-panel-bubble-action--copy.ai-assistant-panel-bubble-action--copied {
+    gap: 0.3rem;
+}
+.ai-assistant-panel-bubble-action--copy.ai-assistant-panel-bubble-action--copied span {
+    max-width: 60px;   /* comfortably fits both "Copy" and "Copied" */
+    opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+    .ai-assistant-panel-bubble-action--copy:hover,
+    .ai-assistant-panel-bubble-action--copy:focus-visible {
+        gap: 0.3rem;
+    }
+    .ai-assistant-panel-bubble-action--copy:hover span,
+    .ai-assistant-panel-bubble-action--copy:focus-visible span {
+        max-width: 60px;
+        opacity: 1;
+    }
 }
 
 /* ─── Action-row expandable "… More" menu ─────────────────────────────────────
@@ -1888,6 +1985,34 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     color: inherit;
 }
 
+/* ── Icon-only by default, keys reveal on hover ──────────────────────────
+ * Collapsed for every device (mobile included) — a permanently-visible
+ * "icon + Alt+Shift+A" row costs too much width on small screens, and
+ * touch devices have no hover gesture to expand it anyway (see the
+ * long-press → showNotification fallback wired in ai-assistant.js instead).
+ * `max-width` (not `width`) is the animatable property here since the
+ * rendered chord width is unknown ahead of time — see the Copy-button
+ * hover-expand pattern this mirrors.
+ */
+.ai-assistant-panel-kbd-hint-keys {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.03rem;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.2s ease, opacity 0.15s ease, margin-left 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+    .ai-assistant-panel-kbd-hint:hover .ai-assistant-panel-kbd-hint-keys,
+    .ai-assistant-panel-kbd-hint:focus-visible .ai-assistant-panel-kbd-hint-keys {
+        max-width: 160px;   /* comfortably fits a 3-key chord like Alt+Shift+A */
+        opacity: 1;
+        margin-left: 0.2rem;
+    }
+}
+
 /* Dark-mode: lighten the muted tone so the icon and kbd labels stay clearly
    legible against the dark panel surface.  The kbd chip gets a translucent
    white background (unchanged from before). */
@@ -2211,16 +2336,23 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     white-space: nowrap;
 }
 
-/* Share / Terms buttons inherit .ai-assistant-panel-privacy-link spacing. */
+/* Privacy / Share / Terms buttons — icon + label layout. Privacy is
+ * included directly (rather than via its own modifier class) since it's
+ * the only consumer of the bare .ai-assistant-panel-privacy-link class;
+ * every other button pairs it with a modifier that already had this. */
+.ai-assistant-panel-privacy-link,
 .ai-assistant-panel-share-link,
 .ai-assistant-panel-terms-link {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
 }
-.ai-assistant-panel-share-link svg {
+.ai-assistant-panel-privacy-link svg,
+.ai-assistant-panel-share-link svg,
+.ai-assistant-panel-terms-link svg {
     width: 0.9rem;
     height: 0.9rem;
+    flex-shrink: 0;
 }
 
 /* ─── Progressive right-cluster overflow — per-item smooth collapse ──────────
@@ -3192,6 +3324,21 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     font-size: 0.82em;
 }
 
+/* Wrapper injected by _enhanceCodeBlocks() around each .ai-md-pre — carries
+ * the positioning context and margin that used to live on .ai-md-pre
+ * itself (see the rule above, still present for markup that hasn't been
+ * enhanced yet, e.g. a brief flash before JS runs). Kept OUTSIDE .ai-md-pre
+ * deliberately: .ai-md-pre has overflow-x:auto for long code lines, and a
+ * button positioned relative to it would scroll away with the code instead
+ * of staying pinned to the corner. */
+.ai-md-pre-wrap {
+    position: relative;
+    margin: 0.55rem 0;
+}
+.ai-md-pre-wrap .ai-md-pre {
+    margin: 0;   /* spacing now owned by the wrapper, not the scroll box */
+}
+
 [data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-pre {
     background: rgba(255,255,255,0.06);
     border-color: rgba(255,255,255,0.12);
@@ -3221,6 +3368,179 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     color: rgba(255,255,255,0.35);
 }
 
+/* ── Per-code-block "Copy code" button ──────────────────────────────────
+ * Floats in the top-right corner of each fenced code block — `.ai-md-pre`
+ * already has `position: relative` above, so this needs no wrapper element.
+ * Uses the exact same copy/copied icon pair and confirmation color as the
+ * bubble-level Copy button (ICONS.copyAns / ICONS.checkAns and the
+ * .ai-assistant-panel-bubble-action--copied rule) so "copy succeeded" reads
+ * identically everywhere it appears in the panel.
+ *
+ * Visibility differs from the bubble-level Copy button on purpose: that one
+ * is icon-only-until-hover because it sits in a row of *other* always-
+ * visible actions and text would be redundant most of the time. This
+ * button is the ONLY control inside a code block, so hiding it entirely
+ * until hover (rather than just collapsing a label) would mean touch users
+ * — who have no hover — could never discover it at all. Hence the split
+ * below: fades in on hover for devices that have one, stays fully visible
+ * by default everywhere else (including touch).
+ */
+.ai-md-code-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    touch-action: manipulation;
+}
+.ai-md-code-download-btn {
+    /* Same visual treatment as the copy button — one shared look for both
+     * toolbar actions, only the icon differs. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    touch-action: manipulation;
+}
+.ai-md-code-copy-btn svg,
+.ai-md-code-download-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+}
+.ai-md-code-copy-btn:hover,
+.ai-md-code-download-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--pst-color-text-base, var(--color-foreground-primary, #24292f));
+}
+[data-bs-theme="dark"] .ai-md-code-copy-btn,
+[data-bs-theme="dark"] .ai-md-code-download-btn {
+    background: rgba(255, 255, 255, 0.08);
+}
+[data-bs-theme="dark"] .ai-md-code-copy-btn:hover,
+[data-bs-theme="dark"] .ai-md-code-download-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+.ai-md-code-copy-btn:focus,
+.ai-md-code-download-btn:focus         { outline: none; }
+.ai-md-code-copy-btn:focus-visible,
+.ai-md-code-download-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
+/* Toolbar — groups Copy + Download as one visual unit, positioned once
+ * instead of positioning each button individually. Lives in .ai-md-pre-wrap
+ * (see docstring on _enhanceCodeBlocks for why, not inside .ai-md-pre). */
+.ai-md-code-toolbar {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+}
+
+/* "Block X of Y" step marker — only present when a bubble has more than
+ * one code block (multi-file answers).
+ *
+ * Normal document flow, NOT position:absolute. It was originally absolute-
+ * positioned top-left, which overlapped .ai-md-code-lang (the language
+ * badge rendered inside <pre> itself, also top-left) — two independent
+ * elements both claiming the same corner. _enhanceCodeBlocks() already
+ * inserts this as .ai-md-pre-wrap's *first* child, before <pre> — letting
+ * it sit in normal flow means it naturally pushes <pre> down instead,
+ * with no collision possible regardless of whether a language badge is
+ * present. */
+.ai-md-code-step {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+    margin: 0 0 0.25rem 0.15rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    /* Hover-capable devices: dim the toolbar until the code block itself is
+     * hovered or a button inside it gets keyboard focus, so a page full of
+     * answers doesn't show a dozen little icon pairs at once. The step
+     * marker stays visible regardless — it's informational, not an action,
+     * so hiding it would remove context rather than declutter. */
+    .ai-md-code-toolbar {
+        opacity: 0;
+    }
+    .ai-md-pre-wrap:hover .ai-md-code-toolbar,
+    .ai-md-code-toolbar:focus-within {
+        opacity: 0.85;
+    }
+}
+
+/* ── "Block X of Y" already covers multi-code-block sequencing above.
+   Collapsible answer sections (details/summary around H2/H3-delimited
+   content) reuse the browser's native <details> element — no extra CSS
+   needed for the collapse mechanics themselves, only for the header row
+   the summary renders as. */
+.ai-assistant-panel-bubble--assistant details.ai-md-section {
+    margin: 0.5rem 0;
+}
+.ai-assistant-panel-bubble--assistant summary.ai-md-section-summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    user-select: none;
+    /* Bold + slightly larger than body text so a collapsible section reads
+     * as a heading-like, obviously-clickable control at a glance — not
+     * plain body-weight text that happens to have a chevron next to it. */
+    font-weight: 700;
+    font-size: 1.02em;
+    padding: 0.2rem 0.3rem;
+    margin: 0 -0.3rem;   /* offset the padding so text still aligns visually */
+    border-radius: 6px;
+    transition: background-color 0.12s ease;
+}
+.ai-assistant-panel-bubble--assistant summary.ai-md-section-summary:hover {
+    background: rgba(0, 0, 0, 0.045);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant summary.ai-md-section-summary:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+.ai-assistant-panel-bubble--assistant summary.ai-md-section-summary:focus         { outline: none; }
+.ai-assistant-panel-bubble--assistant summary.ai-md-section-summary:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+.ai-assistant-panel-bubble--assistant summary.ai-md-section-summary::-webkit-details-marker {
+    display: none;   /* replaced by the chevron span below, all browsers */
+}
+.ai-md-section-chevron {
+    display: inline-flex;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+.ai-md-section-chevron svg { width: 0.8rem; height: 0.8rem; }
+details.ai-md-section[open] > summary .ai-md-section-chevron {
+    transform: rotate(90deg);
+}
+
 /* Inline code */
 .ai-assistant-panel-bubble--assistant .ai-md-inline-code {
     background: rgba(0,0,0,0.07);
@@ -3236,6 +3556,169 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
     border-color: rgba(255,255,255,0.14);
 }
 
+/* ── LaTeX math spans ──────────────────────────────────────────────────
+ * See _typesetMath() in ai-assistant.js — actual rendering is delegated
+ * to the host page's own MathJax instance (Sphinx sites almost always
+ * already load one). These rules are the fallback appearance for when
+ * MathJax hasn't run yet, or isn't present on this particular page: a
+ * subtly-set-off, monospace treatment so raw \(...\) / \[...\] reads as
+ * "this is math notation" rather than looking like a rendering error.
+ * Once MathJax processes a span, it replaces/annotates the span's own
+ * content with its generated markup — these rules don't fight that. */
+.ai-assistant-panel-bubble--assistant .ai-md-math {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 0.92em;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-math--inline {
+    background: rgba(37, 99, 235, 0.07);
+    border-radius: 0.25em;
+    padding: 0.05em 0.3em;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-math--display {
+    display: block;
+    text-align: center;
+    background: rgba(37, 99, 235, 0.06);
+    border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin: 0.5rem 0;
+    overflow-x: auto;   /* long equations scroll instead of clipping/wrapping oddly */
+    white-space: pre;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-math--inline,
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-math--display {
+    background: rgba(96, 165, 250, 0.1);
+}
+
+/* ── Artifact download cards ──────────────────────────────────────────────
+ * Claude-inspired: one compact card per code block, appended after all of
+ * a bubble's content — see _appendArtifactCards() in ai-assistant.js.
+ * The whole card is a <button> (matches the reference: a full-card click
+ * target, not just a small Download label at the end of it). */
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-card {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
+    border-radius: 0.6rem;
+    background: var(--pst-color-surface, var(--color-background-primary, #fff));
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-card:hover {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-artifact-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-card:focus         { outline: none; }
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-card:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.4rem;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-icon svg {
+    width: 1rem;
+    height: 1rem;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-name {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-type {
+    font-size: 0.7rem;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-label {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.08);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-artifact-icon {
+    background: rgba(96, 165, 250, 0.12);
+    color: #93c5fd;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-artifact-download-label {
+    background: rgba(96, 165, 250, 0.14);
+    color: #93c5fd;
+}
+
+/* "Download all" — deliberately styled differently from the per-file
+ * cards above it (centered, outline-style) rather than looking like one
+ * more file row, since it's a summary action over all of them, not
+ * another artifact of its own. */
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    align-self: center;
+    margin-top: 0.15rem;
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    border-radius: 999px;
+    background: none;
+    color: var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn:hover {
+    background: rgba(37, 99, 235, 0.08);
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn {
+    border-color: #93c5fd;
+    color: #93c5fd;
+}
+[data-bs-theme="dark"] .ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn:hover {
+    background: rgba(96, 165, 250, 0.1);
+}
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn:focus         { outline: none; }
+.ai-assistant-panel-bubble--assistant .ai-md-artifact-download-all-btn:focus-visible {
+    outline: 2px solid var(--pst-color-primary, var(--color-brand-primary, #2980b9));
+    outline-offset: 1px;
+}
+
 /* Headers inside assistant bubbles */
 .ai-assistant-panel-bubble--assistant .ai-md-h {
     font-weight: 700;
@@ -3245,6 +3728,12 @@ body.ai-assistant-resizing-y .ai-assistant-panel-resizer-top { opacity: 1; }
 .ai-assistant-panel-bubble--assistant h1.ai-md-h { font-size: 1.05em; }
 .ai-assistant-panel-bubble--assistant h2.ai-md-h { font-size: 0.97em; }
 .ai-assistant-panel-bubble--assistant h3.ai-md-h { font-size: 0.92em; }
+.ai-assistant-panel-bubble--assistant h4.ai-md-h { font-size: 0.88em; }
+.ai-assistant-panel-bubble--assistant h5.ai-md-h { font-size: 0.85em; }
+.ai-assistant-panel-bubble--assistant h6.ai-md-h {
+    font-size: 0.85em;
+    color: var(--pst-color-text-muted, var(--color-foreground-muted, #6a737d));
+}
 
 /* Lists */
 .ai-assistant-panel-bubble--assistant .ai-md-ul,
@@ -11167,6 +11656,26 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 .ai-assistant-panel-ep-ext-dataset-token-row {
     margin: 0.2rem 0 0;
 }
+
+/* Custom dataset repo override form — P0 in _buildDatasetSection's
+ * resolution chain. datasetCustomClearBtn intentionally reuses
+ * .ai-assistant-panel-ep-ext-dataset-refresh-btn's low-emphasis style
+ * ("Reset to default" reads as secondary next to Save). */
+.ai-assistant-panel-ep-ext-dataset-custom {
+    margin: 0.5rem 0 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--pst-color-border, var(--color-foreground-border, #d0d4d8));
+}
+.ai-assistant-panel-ep-ext-dataset-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+}
+.ai-assistant-panel-ep-ext-dataset-custom-row .ai-assistant-panel-ep-input {
+    flex: 1;
+    min-width: 0;
+}
 .ai-assistant-panel-ep-ext-dataset-refresh-btn {
     display: inline-flex;
     align-items: center;
@@ -11267,6 +11776,25 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
 [data-bs-theme="dark"] .ai-assistant-fbk-quick-btn:hover {
     background-color: rgba(255, 255, 255, 0.08);
 }
+/* SVG icon (replaces the old emoji glyph) — explicit size since, unlike an
+ * emoji character, an <svg> has no intrinsic font-driven dimensions. Sized
+ * to match the emoji's prior visual footprint at 0.88rem font-size. */
+.ai-fbk-quick-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.ai-fbk-quick-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+/* Emoji fallback (cfg.panelEmojiIcons = true) — plain glyph, no forced
+ * flex sizing needed; font-size is inherited from the button (0.88rem). */
+.ai-fbk-quick-icon--emoji {
+    display: inline;
+    line-height: 1;
+}
 /* Pressed states — sentiment colours */
 .ai-assistant-fbk-quick-btn[data-sentiment="positive"][aria-pressed="true"] {
     color: #16a34a;
@@ -11362,7 +11890,25 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
     display: flex;
     flex-direction: column;
     gap: 0;
-    min-width: 230px;
+    /* Responsive range instead of one flat min-width. Absolutely-positioned
+     * with only `right` set (no `left`), so this already shrink-to-fits its
+     * content between the two bounds — no explicit `width` needed:
+     *   • min-width: 190px  — floor so the two toggle rows never feel
+     *                         cramped, even now that the anchor (the
+     *                         collapsed icon-only Copy button) is narrower
+     *                         than it used to be.
+     *   • max-width: min(230px, 100vw - 2rem) — ceiling that keeps the
+     *                         "🔮 Coming soon: Flag · Correct · Bookmark"
+     *                         row readable on normal screens, but yields to
+     *                         `calc(100vw - 2rem)` on a narrow phone
+     *                         viewport so `right: 0` can never push this
+     *                         past the left edge of the screen — the
+     *                         actual "small screen" risk, not just this
+     *                         popup looking slightly too wide next to a
+     *                         smaller anchor.
+     */
+    min-width: 190px;
+    max-width: min(230px, calc(100vw - 2rem));
     padding: 0.35rem;
     background: var(--pst-color-surface, var(--color-background-primary, #fff));
     border: 1px solid var(--pst-color-border, var(--color-foreground-border, #e1e4e5));
@@ -12284,8 +12830,9 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
  *
  * §G  Parameter fill bar
  *       .ai-assistant-panel-model-bar
+ *       .ai-assistant-panel-model-bar--s / --m / --l        (track tint + edge)
  *       .ai-assistant-panel-model-bar-fill
- *       .ai-assistant-panel-model-bar-fill--s / --m / --l
+ *       .ai-assistant-panel-model-bar-fill--s / --m / --l   (solid fill)
  *
  * §H  "Coming soon" inline badge
  *       .ai-assistant-panel-model-soon
@@ -12593,57 +13140,129 @@ a.ai-assistant-panel-ep-card-detail-url:focus-visible {
    §G  Parameter fill bar
    ═══════════════════════════════════════════════════════════════════════════
 
-   A 3 px tall horizontal bar at the bottom of the card body.  The fill
-   element's inline width property (set to a percentage by JS) represents
-   the model's relative parameter count within the group.
+   A pill-shaped horizontal bar at the bottom of the card body, styled after
+   Claude.ai's own progress-bar component (rounded-full track + rounded-full
+   fill, tokenized colour, eased width transition). The fill element's inline
+   width property (set to a percentage by JS) represents the model's relative
+   parameter count within the group.
 
-   Colour variants match the size chips for visual consistency:
+   Colour variants match the size chips for visual consistency and are
+   defined once as CSS custom properties immediately below, so track/fill/
+   chip can all read from the same source of truth:
      --s  green   (same as sz--s)
      --m  amber   (same as sz--m)
      --l  blue    (same as sz--l)
 
-   The 0.4 s ease transition on width gives a satisfying animate-in when the
-   card first becomes visible (no JS required beyond setting the width).
+   Root-cause fix for the old "rounded fill = left-side gap" bug:
+   ─────────────────────────────────────────────────────────────
+   Previously the fill had NO border-radius, because rounding it produced a
+   visible notch at the left edge on very short (near-0 %) bars. The actual
+   cause wasn't "rounding the fill" — it was rounding a fill that was
+   *narrower than its own radius*, so the curve had nowhere to close and the
+   track colour showed through the gap. Claude's own bar avoids this with a
+   `min-inline-size` guard that keeps the fill at least as wide as its pill
+   radius, so the corner always has room to fully round. We apply the same
+   fix here (`min-width` + `min-inline-size` for logical-property support)
+   instead of avoiding rounding altogether — this restores real pill edges
+   at every fill percentage, including the 3 % floor case.
+
+   The 0.4 s ease-out transition on width gives a satisfying animate-in when
+   the card first becomes visible (no JS required beyond setting the width).
    ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --ai-model-bar-track-rgb:        0, 0, 0;
+    --ai-model-bar-track-opacity:    0.08;
+    --ai-model-bar-fill-fallback-rgb: 100, 100, 100;
+    --ai-model-bar-fill-s-rgb: 22, 163, 74;    /* #16a34a */
+    --ai-model-bar-fill-m-rgb: 217, 119, 6;    /* #d97706 */
+    --ai-model-bar-fill-l-rgb: 37, 99, 235;    /* #2563eb */
+    /* Track tint/edge — same tier RGB as the fill, just diluted (light tone
+       for the unfilled track) or intensified (dark-tone edge outline). */
+    --ai-model-bar-track-tint-opacity: 0.14;
+    --ai-model-bar-track-edge-opacity: 0.55;
+}
+
+[data-bs-theme="dark"] {
+    --ai-model-bar-track-rgb:     255, 255, 255;
+    --ai-model-bar-track-opacity: 0.13;
+    --ai-model-bar-fill-s-rgb: 74, 222, 128;   /* #4ade80 */
+    --ai-model-bar-fill-m-rgb: 251, 191, 36;   /* #fbbf24 */
+    --ai-model-bar-fill-l-rgb: 96, 165, 250;   /* #60a5fa */
+    /* Dark-mode fill colours are already lighter/brighter, so both the tint
+       and the edge are toned down slightly to avoid glare against the dark
+       card background. */
+    --ai-model-bar-track-tint-opacity: 0.16;
+    --ai-model-bar-track-edge-opacity: 0.40;
+}
 
 .ai-assistant-panel-model-bar {
     display: block;               /* never inherit a non-block display */
     width: 100%;                  /* explicit — some flex contexts need this */
-    height: 5px;                  /* was 3 px — 3 px can sub-pixel disappear on HiDPI */
-    border-radius: 3px;
-    /* Explicit rgba — do NOT use --pst-color-on-background here.
+    height: 5px;                  /* 3 px can sub-pixel disappear on HiDPI */
+    border-radius: 9999px;        /* pill track, matches Claude's rounded-full */
+    /* Neutral fallback — only shows if a tier modifier class (below) isn't
+       present. Token-driven — do NOT use --pst-color-on-background here.
        In PyData Sphinx Theme light mode that variable resolves to #ffffff
-       (the card surface colour), making the track white-on-white → invisible.
-       rgba(0,0,0,0.08) is reliably visible on any white/light background. */
-    background: rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-    margin-top: 5px;              /* was 2 px — more breathing room below description */
+       (the card surface colour), making the track white-on-white → invisible. */
+    background: rgba(
+        var(--ai-model-bar-track-rgb),
+        var(--ai-model-bar-track-opacity)
+    );
+    /* Inset outline instead of a real `border`: draws a crisp edge that
+       follows the pill radius exactly, without eating into the 5 px height
+       or shifting layout (a solid border would need extra box-sizing
+       accounting at this thickness). */
+    box-shadow: inset 0 0 0 1px rgba(var(--ai-model-bar-track-rgb), 0.12);
+    overflow: hidden;              /* safety net if fill ever exceeds 100 % */
+    margin-top: 5px;               /* breathing room below description */
     box-sizing: border-box;
-}
-
-[data-bs-theme="dark"] .ai-assistant-panel-model-bar {
-    background: rgba(255, 255, 255, 0.13);
 }
 
 .ai-assistant-panel-model-bar-fill {
     display: block;               /* explicit — never transparent through inheritance */
     height: 100%;
-    /* No border-radius here — the parent overflow:hidden already clips the
-       corners cleanly; a radius on the fill creates an unwanted left-side gap. */
-    transition: width 0.4s ease;
+    border-radius: 9999px;        /* pill fill — see root-cause note above */
+    /* Guards the pill radius from ever exceeding the fill's own width, which
+       is what produced the old left-edge notch on near-empty bars. Logical
+       property first, physical fallback for older engines. */
+    min-inline-size: 8px;
+    min-width: 8px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     /* Safety-net fallback: renders a visible mid-grey bar even when the
        --s / --m / --l variant class is absent (e.g. size not yet mapped). */
-    background: rgba(100, 100, 100, 0.45);
+    background: rgba(var(--ai-model-bar-fill-fallback-rgb), 0.45);
 }
 
-/* Fill colours — match size chip palette */
-.ai-assistant-panel-model-bar-fill--s { background: #16a34a; }
-.ai-assistant-panel-model-bar-fill--m { background: #d97706; }
-.ai-assistant-panel-model-bar-fill--l { background: #2563eb; }
+/* Fill colours — read from the shared tier tokens declared above */
+.ai-assistant-panel-model-bar-fill--s { background: rgb(var(--ai-model-bar-fill-s-rgb)); }
+.ai-assistant-panel-model-bar-fill--m { background: rgb(var(--ai-model-bar-fill-m-rgb)); }
+.ai-assistant-panel-model-bar-fill--l { background: rgb(var(--ai-model-bar-fill-l-rgb)); }
 
-[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--s { background: #4ade80; }
-[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--m { background: #fbbf24; }
-[data-bs-theme="dark"] .ai-assistant-panel-model-bar-fill--l { background: #60a5fa; }
+/* ── Track tier colouring — light tone body + dark tone edge ─────────────
+   The JS applies the SAME --s/--m/--l modifier to the track (.ai-assistant-
+   panel-model-bar) as it does to the fill, so the whole bar reads as one
+   colour family instead of a coloured fill sitting on a neutral grey track:
+     • background  → light tint  of the tier colour, covers the full 0–100 %
+                      track (the fill then sits on top of it at its solid,
+                      dark tone, from the earlier --s/--m/--l fill rules)
+     • box-shadow  → dark tone  edge outline in the same tier colour, so the
+                      whole pill reads as "belonging" to that tier at a glance
+   ────────────────────────────────────────────────────────────────────── */
+.ai-assistant-panel-model-bar--s {
+    background: rgba(var(--ai-model-bar-fill-s-rgb), var(--ai-model-bar-track-tint-opacity));
+    box-shadow: inset 0 0 0 1px rgba(var(--ai-model-bar-fill-s-rgb), var(--ai-model-bar-track-edge-opacity));
+}
+
+.ai-assistant-panel-model-bar--m {
+    background: rgba(var(--ai-model-bar-fill-m-rgb), var(--ai-model-bar-track-tint-opacity));
+    box-shadow: inset 0 0 0 1px rgba(var(--ai-model-bar-fill-m-rgb), var(--ai-model-bar-track-edge-opacity));
+}
+
+.ai-assistant-panel-model-bar--l {
+    background: rgba(var(--ai-model-bar-fill-l-rgb), var(--ai-model-bar-track-tint-opacity));
+    box-shadow: inset 0 0 0 1px rgba(var(--ai-model-bar-fill-l-rgb), var(--ai-model-bar-track-edge-opacity));
+}
 
 
 /* ═══════════════════════════════════════════════════════════════════════════

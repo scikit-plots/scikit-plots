@@ -1,5 +1,7 @@
 # scikitplot/cython/_gc.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,12 +41,26 @@ def _utc_iso_from_epoch(ts: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts))
 
 
-def _dir_size_bytes(root: Path) -> int:
+def _dir_size_bytes(root: Path, *, max_files: int | None = None) -> int:
+    """Sum file sizes under ``root``, optionally with a traversal budget.
+
+    Parameters
+    ----------
+    root : pathlib.Path
+        Directory to measure.
+    max_files : int or None, default=None
+        If given, stop after visiting this many files (a bounded-traversal
+        budget for very large trees, CYTHON-PERF-001).  ``None`` scans fully.
+    """
     total = 0
+    visited = 0
     for p in root.rglob("*"):
         try:
             if p.is_file():
                 total += p.stat().st_size
+                visited += 1
+                if max_files is not None and visited >= max_files:
+                    break
         except FileNotFoundError:
             # Concurrent delete; ignore in best-effort stats.
             pass
@@ -185,78 +201,93 @@ def gc_cache(  # noqa: PLR0912
             freed_bytes=0,
         )
 
-    pins = list_pins(root)
-    pinned_keys = set(pins.values())
-
     gc_lock = root / ".gc.lock"
     deleted: list[str] = []
     skipped_pinned: list[str] = []
     skipped_missing: list[str] = []
+    skipped_active: list[str] = []
     freed = 0
 
-    # Collect entries with mtime and size.
-    entries: list[tuple[str, Path, float, int]] = []
-    for d in iter_all_entry_dirs(root):
-        key = d.name
-        if not is_valid_key(key):
-            continue
-        entries.append((key, d, _dir_mtime_epoch(d), _dir_size_bytes(d)))
-
-    # Newest-first ordering for keep rule.
-    entries_sorted_newest = sorted(entries, key=lambda t: (-t[2], t[0]))
-    keep_set: set[str] = set()
-    if keep_n_newest is not None:
-        keep_set = {k for (k, _, _, _) in entries_sorted_newest[:keep_n_newest]}
-
-    # Age threshold
-    age_cutoff_epoch: float | None = None
-    if max_age_days is not None:
-        age_cutoff_epoch = time.time() - (max_age_days * 86400.0)
-
-    # Start candidate set: entries not pinned and not forced-keep
-    candidates: list[tuple[str, Path, float, int]] = []
-    for k, d, mt, sz in entries:
-        if k in pinned_keys:
-            skipped_pinned.append(k)
-            continue
-        if k in keep_set:
-            continue
-        if age_cutoff_epoch is not None and mt >= age_cutoff_epoch:
-            # not old enough to delete by age
-            continue
-        candidates.append((k, d, mt, sz))
-
-    # If max_bytes is set, we may need to delete more even if not old-by-age.
-    if max_bytes is not None:
-        total = sum(sz for (_, _, _, sz) in entries)
-        if total > max_bytes:
-            # Expand candidate pool with non-pinned, non-keep entries ordered oldest-first
-            candidate_keys: set[str] = {c[0] for c in candidates}
-            pool = [
-                e for e in entries if e[0] not in pinned_keys and e[0] not in keep_set
-            ]
-            pool_oldest = sorted(pool, key=lambda t: (t[2], t[0]))  # oldest first
-            # delete until under threshold
-            need = total - max_bytes
-            acc = 0
-            extra: list[tuple[str, Path, float, int]] = []
-            for e in pool_oldest:
-                if e[0] in candidate_keys:
-                    continue
-                extra.append(e)
-                acc += e[3]
-                if acc >= need:
-                    break
-            candidates.extend(extra)
-
-    # Deterministic deletion order: oldest-first
-    candidates_sorted = sorted(
-        {c[0]: c for c in candidates}.values(), key=lambda t: (t[2], t[0])
-    )
-
+    # The entire select→revalidate→delete sequence runs under the GC lock so
+    # the snapshot cannot drift before deletion (CYTHON-GC-001).  Pins are read
+    # inside the lock, and each entry is re-checked against a *fresh* pin read
+    # and its per-key build lock immediately before removal so a build or pin
+    # that begins during GC is never deleted.
     with build_lock(gc_lock, timeout_s=lock_timeout_s):
+        pins = list_pins(root)
+        pinned_keys = set(pins.values())
+
+        # Collect entries with mtime and size.
+        entries: list[tuple[str, Path, float, int]] = []
+        for d in iter_all_entry_dirs(root):
+            key = d.name
+            if not is_valid_key(key):
+                continue
+            entries.append((key, d, _dir_mtime_epoch(d), _dir_size_bytes(d)))
+
+        # Newest-first ordering for keep rule.
+        entries_sorted_newest = sorted(entries, key=lambda t: (-t[2], t[0]))
+        keep_set: set[str] = set()
+        if keep_n_newest is not None:
+            keep_set = {k for (k, _, _, _) in entries_sorted_newest[:keep_n_newest]}
+
+        # Age threshold
+        age_cutoff_epoch: float | None = None
+        if max_age_days is not None:
+            age_cutoff_epoch = time.time() - (max_age_days * 86400.0)
+
+        # Start candidate set: entries not pinned and not forced-keep
+        candidates: list[tuple[str, Path, float, int]] = []
+        for k, d, mt, sz in entries:
+            if k in pinned_keys:
+                skipped_pinned.append(k)
+                continue
+            if k in keep_set:
+                continue
+            if age_cutoff_epoch is not None and mt >= age_cutoff_epoch:
+                # not old enough to delete by age
+                continue
+            candidates.append((k, d, mt, sz))
+
+        # If max_bytes is set, we may need to delete more even if not old-by-age.
+        if max_bytes is not None:
+            total = sum(sz for (_, _, _, sz) in entries)
+            if total > max_bytes:
+                candidate_keys: set[str] = {c[0] for c in candidates}
+                pool = [
+                    e
+                    for e in entries
+                    if e[0] not in pinned_keys and e[0] not in keep_set
+                ]
+                pool_oldest = sorted(pool, key=lambda t: (t[2], t[0]))  # oldest first
+                need = total - max_bytes
+                acc = 0
+                extra: list[tuple[str, Path, float, int]] = []
+                for e in pool_oldest:
+                    if e[0] in candidate_keys:
+                        continue
+                    extra.append(e)
+                    acc += e[3]
+                    if acc >= need:
+                        break
+                candidates.extend(extra)
+
+        # Deterministic deletion order: oldest-first
+        candidates_sorted = sorted(
+            {c[0]: c for c in candidates}.values(), key=lambda t: (t[2], t[0])
+        )
+
+        # Re-read pins immediately before deletion so an alias pinned during
+        # candidate selection is still honoured.
+        fresh_pinned_keys = set(list_pins(root).values())
         for key, d, _, sz in candidates_sorted:
-            if key in pinned_keys:
+            if key in fresh_pinned_keys:
+                skipped_pinned.append(key)
+                continue
+            # An existing per-key build lock means a build is active (or was
+            # interrupted); never delete an entry that is being built/published.
+            if (root / f"{key}.lock").exists():
+                skipped_active.append(key)
                 continue
             if not d.exists():
                 skipped_missing.append(key)
@@ -265,7 +296,7 @@ def gc_cache(  # noqa: PLR0912
                 deleted.append(key)
                 freed += sz
                 continue
-            # safety: only delete direct children of cache root with valid key names
+            # safety: only delete direct children of cache root with valid keys
             if d.parent != root or not is_valid_key(key):
                 continue
             try:
@@ -274,10 +305,12 @@ def gc_cache(  # noqa: PLR0912
                 freed += sz
             except FileNotFoundError:
                 skipped_missing.append(key)
+
     return CacheGCResult(
         cache_root=root,
         deleted_keys=tuple(deleted),
         skipped_pinned_keys=tuple(sorted(set(skipped_pinned))),
         skipped_missing_keys=tuple(sorted(set(skipped_missing))),
+        skipped_active_keys=tuple(sorted(set(skipped_active))),
         freed_bytes=freed,
     )

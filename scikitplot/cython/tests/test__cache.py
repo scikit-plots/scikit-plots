@@ -1,7 +1,10 @@
 # scikitplot/cython/tests/test__cache.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
+
 """
 Tests for :mod:`~scikitplot.cython._cache`.
 
@@ -211,10 +214,17 @@ class TestWriteReadMeta:
     """Tests for :func:`~scikitplot.cython._cache.write_meta` and ``read_meta``."""
 
     def test_roundtrip(self, tmp_path: Path) -> None:
+        from .._cache import CACHE_SCHEMA_VERSION  # noqa: PLC0415
+
         meta = {"kind": "module", "key": "a" * 64, "value": 42}
         write_meta(tmp_path, meta)
         result = read_meta(tmp_path)
-        assert result == meta
+        # All original fields round-trip; write_meta additionally stamps the
+        # cache schema version (CYTHON-SCH-001).
+        assert result is not None
+        for k, v in meta.items():
+            assert result[k] == v
+        assert result["meta_schema_version"] == CACHE_SCHEMA_VERSION
 
     def test_atomic_no_tmp_file_after_write(self, tmp_path: Path) -> None:
         write_meta(tmp_path, {"x": 1})
@@ -336,15 +346,47 @@ class TestGuessModuleNameExtensions:
 
 
 class TestGuessArtifactAbsPath:
-    """``_artifact_from_meta_or_guess`` with absolute artifact path in meta."""
+    """``_artifact_from_meta_or_guess`` must contain the artifact to build_dir.
 
-    def test_absolute_path_in_meta(self, tmp_path: Path) -> None:
-        so = tmp_path / f"mymod{EXTENSION_SUFFIXES[0]}"
-        so.write_bytes(b"ELF")
-        # meta stores absolute path
-        meta = {"artifact": str(so)}
-        result = _artifact_from_meta_or_guess(tmp_path / "somedir", meta)
-        assert result == so
+    CYTHON-CACHE-002: an absolute (or otherwise escaping) ``artifact`` value in
+    ``meta.json`` must NOT be honoured, so a tampered meta cannot redirect the
+    loader to a file outside the cache entry.
+    """
+
+    def test_absolute_path_in_meta_is_rejected(self, tmp_path: Path) -> None:
+        # An external artifact referenced by absolute path in meta.
+        external = tmp_path / f"external{EXTENSION_SUFFIXES[0]}"
+        external.write_bytes(b"ELF")
+        build_dir = tmp_path / "entry"
+        build_dir.mkdir()
+        meta = {"artifact": str(external)}  # absolute → must be ignored
+        # No contained artifact exists, so selection returns None (not external).
+        result = _artifact_from_meta_or_guess(build_dir, meta)
+        assert result is None
+
+    def test_absolute_path_in_meta_falls_back_to_contained(
+        self, tmp_path: Path
+    ) -> None:
+        external = tmp_path / f"external{EXTENSION_SUFFIXES[0]}"
+        external.write_bytes(b"ELF")
+        build_dir = tmp_path / "entry"
+        build_dir.mkdir()
+        # A legitimate contained artifact exists; it must be chosen over the
+        # external absolute path in meta.
+        inside = build_dir / f"mymod{EXTENSION_SUFFIXES[0]}"
+        inside.write_bytes(b"ELF")
+        meta = {"artifact": str(external)}
+        result = _artifact_from_meta_or_guess(build_dir, meta)
+        assert result == inside
+
+    def test_traversal_in_meta_is_rejected(self, tmp_path: Path) -> None:
+        external = tmp_path / f"evil{EXTENSION_SUFFIXES[0]}"
+        external.write_bytes(b"ELF")
+        build_dir = tmp_path / "entry"
+        build_dir.mkdir()
+        meta = {"artifact": f"../evil{EXTENSION_SUFFIXES[0]}"}  # traversal
+        result = _artifact_from_meta_or_guess(build_dir, meta)
+        assert result is None
 
 
 class TestIterCacheEntries:

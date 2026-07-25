@@ -1,5 +1,7 @@
 # scikitplot/cython/_builder.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,21 +25,97 @@ All compilation is opt-in via the public API.
 
 from __future__ import annotations
 
+import keyword
 import os  # noqa: F401
+import platform
 import shutil
 import sys
+import tempfile
+import threading
 import webbrowser
 from dataclasses import asdict  # noqa: F401
+from hashlib import sha256
 from importlib.machinery import EXTENSION_SUFFIXES
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Mapping, Sequence, TypeAlias
 
+
+def _tool_versions() -> dict[str, str]:
+    """Return relevant tool versions for build diagnostics (CYTHON-OBS-001)."""
+    versions: dict[str, str] = {"python": platform.python_version()}
+    try:
+        import Cython  # noqa: PLC0415
+
+        versions["cython"] = getattr(Cython, "__version__", "unknown")
+    except Exception:  # noqa: BLE001
+        versions["cython"] = "unknown"
+    return versions
+
+
+def _validate_identifier_segment(segment: str, *, what: str, full: str) -> None:
+    """Validate a single dotted-name segment as a safe Python identifier.
+
+    Each segment must be a non-empty ASCII identifier that is not a Python
+    keyword or soft keyword.  This prevents malformed names from producing
+    invalid import names or unsafe build paths (CYTHON-PKG-001) — e.g. a
+    ``package_name`` containing ``..``/separators/absolute components used in
+    ``package_name.replace(".", os.sep)``.
+
+    Parameters
+    ----------
+    segment : str
+        A single dot-separated component.
+    what : str
+        Human label for error messages ('package name' / 'module name').
+    full : str
+        The full dotted name, for error messages.
+
+    Raises
+    ------
+    ValueError
+        If the segment is empty, not an identifier, non-ASCII, or a (soft) keyword.
+    """
+    if not segment:
+        raise ValueError(
+            f"Invalid {what} {full!r}: empty component (check for leading, "
+            f"trailing, or doubled '.')"
+        )
+    if not segment.isascii() or not segment.isidentifier():
+        raise ValueError(
+            f"Invalid {what} {full!r}: component {segment!r} is not a valid "
+            f"ASCII Python identifier"
+        )
+    if keyword.iskeyword(segment) or keyword.issoftkeyword(segment):
+        raise ValueError(
+            f"Invalid {what} {full!r}: component {segment!r} is a Python keyword"
+        )
+
+
+def _validate_dotted_name(name: str, *, what: str) -> None:
+    """Validate a dotted package name segment-by-segment (CYTHON-PKG-001)."""
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"{what} must be a non-empty string, got {name!r}")
+    for segment in name.split("."):
+        _validate_identifier_segment(segment, what=what, full=name)
+
+
+def _validate_module_short_name(name: str) -> None:
+    """Validate a module short name (single segment, no dots) (CYTHON-PKG-001)."""
+    if not isinstance(name, str) or not name:
+        raise ValueError(f"Invalid module short name: {name!r}")
+    if "." in name:
+        raise ValueError(f"Invalid module short name {name!r}: must not contain '.'")
+    _validate_identifier_segment(name, what="module name", full=name)
+
+
 # Canonical path-like type accepted by public/internal APIs.
 PathLike: TypeAlias = os.PathLike[str] | os.PathLike[bytes] | str | bytes
 PathLikeSeq: TypeAlias = Sequence[PathLike]
 
+from ._budget import BoundedBuffer, BuildDiagnostic, run_with_deadline
 from ._cache import (
+    is_meta_schema_compatible,
     make_cache_key,
     read_meta,
     resolve_cache_dir,
@@ -77,6 +155,9 @@ _ALLOWED_EXTRA_SOURCE_SUFFIXES = {
 # an Extension instance or 2-tuple`` on the *second* (and every subsequent)
 # compilation call.
 _SETUPTOOLS_CACHE: tuple[Any, Any] | None = None
+# Guards the lazy initialisation of ``_SETUPTOOLS_CACHE`` so that concurrent
+# first-time compilations cannot race the env-var setup + import (CYTHON-CON-002).
+_SETUPTOOLS_LOCK = threading.Lock()
 
 __all__ = [
     "DEFAULT_COMPILER_DIRECTIVES",
@@ -383,6 +464,7 @@ def build_extension_module_result(  # noqa: PLR0912
     include_cwd: bool = True,
     lock_timeout_s: float = 60.0,
     language: str | None = None,
+    build_timeout_s: float | None = None,
 ) -> BuildResult:
     """
     Compile and import an extension module, with deterministic caching.
@@ -440,6 +522,8 @@ def build_extension_module_result(  # noqa: PLR0912
     language : {{'c', 'c++'}} or None, default=None
         Optional explicit language for the extension. If None, the build uses the
         default compiler behavior.
+    build_timeout_s : float | None, default=None
+        None
 
     Returns
     -------
@@ -568,31 +652,27 @@ def build_extension_module_result(  # noqa: PLR0912
 
     build_dir = cache_root / key
     lock_dir = build_dir.with_suffix(".lock")
-    build_dir.mkdir(parents=True, exist_ok=True)
+    # Only the cache root is created before the lock.  The final entry
+    # ``build_dir`` and all authoritative inputs are written inside a private
+    # staging directory under the lock and atomically published — never
+    # written directly into the final entry (CYTHON-CACHE-001).
+    cache_root.mkdir(parents=True, exist_ok=True)
 
-    # Ensure support files exist in build dir *before* compilation
-    pyx_path = build_dir / f"{name}.pyx"
-    if code is not None:
-        pyx_path.write_text(code, encoding="utf-8")
-        _write_support_files(build_dir, support_files, reserved={pyx_path.name})
-    else:
-        srcp = Path(source_path).expanduser().resolve()
-        pyx_path.write_bytes(srcp.read_bytes())
-        _copy_support_paths(build_dir, support_paths, reserved={pyx_path.name})
-
-    # Copy extra sources into build dir and compile from that location
-    extra_source_paths = _copy_extra_sources(
-        build_dir, extra_sources_norm, reserved={pyx_path.name}
-    )
-
-    # Add build_dir to include dirs to support local includes/includes of copied files
-    if build_dir not in inc_dirs_norm:
-        inc_dirs_norm = [build_dir, *inc_dirs_norm]
+    pyx_name = f"{name}.pyx"
 
     used_cache = False
 
     with build_lock(lock_dir, timeout_s=float(lock_timeout_s)):
         ext_path = _find_built_extension(build_dir, name)
+
+        # An existing entry written by an incompatible meta schema version must
+        # not be trusted for reuse — rebuild it instead (CYTHON-SCH-001).
+        if ext_path is not None and not force_rebuild:
+            _existing_meta = read_meta(build_dir)
+            if _existing_meta is not None and not is_meta_schema_compatible(
+                _existing_meta
+            ):
+                ext_path = None
 
         if use_cache and (not force_rebuild) and (ext_path is not None):
             used_cache = True
@@ -604,7 +684,7 @@ def build_extension_module_result(  # noqa: PLR0912
                 fingerprint=dict(fp),
                 source_sha256=src_hash,
                 directives=directives,
-                include_dirs=[p.as_posix() for p in inc_dirs_norm],
+                include_dirs=[p.as_posix() for p in [build_dir, *inc_dirs_norm]],
                 support_files=support_file_digests,
                 support_paths=support_path_digests,
                 extra_sources=extra_source_digests,
@@ -632,47 +712,98 @@ def build_extension_module_result(  # noqa: PLR0912
                 meta=meta,
             )
 
-        # Clean old *build artifacts* for this key and module name.
-        # Never delete the authoritative source file ``{name}.pyx``.
-        _clean_build_artifacts(build_dir=build_dir, name=name, keep={pyx_path.name})
-
-        ext_path = _compile(
-            name=name,
-            pyx_path=pyx_path,
-            build_dir=build_dir,
-            include_dirs=inc_dirs_norm,
-            library_dirs=lib_dirs_norm,
-            libraries=list(libraries or []),
-            define_macros=list(define_macros or []),
-            extra_compile_args=list(extra_compile_args or []),
-            extra_link_args=list(extra_link_args or []),
-            directives=directives,
-            cythonize=cythonize,
-            annotate=annotate,
-            verbose=verbose,
-            extra_sources=extra_source_paths,
-            language=language,
+        # --- Transactional build: stage in a private sibling, then publish ---
+        # Nothing authoritative is written into ``build_dir`` until the staged
+        # build is complete and validated, at which point the whole directory
+        # is atomically renamed into place.  An interrupted build therefore
+        # leaves only a discardable staging directory, never a partial final
+        # entry, and concurrent same-key callers are serialized by the lock.
+        staging_dir = Path(
+            tempfile.mkdtemp(prefix=f".staging-{key[:16]}-", dir=cache_root)
         )
+        try:
+            stage_pyx = staging_dir / pyx_name
+            if code is not None:
+                stage_pyx.write_text(code, encoding="utf-8")
+                _write_support_files(staging_dir, support_files, reserved={pyx_name})
+            else:
+                srcp = Path(source_path).expanduser().resolve()
+                stage_pyx.write_bytes(srcp.read_bytes())
+                _copy_support_paths(staging_dir, support_paths, reserved={pyx_name})
+            stage_extra_sources = _copy_extra_sources(
+                staging_dir, extra_sources_norm, reserved={pyx_name}
+            )
 
-        _ensure_meta(
-            build_dir=build_dir,
-            key=key,
-            module_name=name,
-            artifact_path=ext_path,
-            fingerprint=dict(fp),
-            source_sha256=src_hash,
-            directives=directives,
-            include_dirs=[p.as_posix() for p in inc_dirs_norm],
-            support_files=support_file_digests,
-            support_paths=support_path_digests,
-            extra_sources=extra_source_digests,
-            language=language,
-            profile=profile,
-            annotate=annotate,
-            view_annotate=view_annotate,
-            extra_compile_args=list(extra_compile_args or []),
-            extra_link_args=list(extra_link_args or []),
-        )
+            # Local includes must resolve against the staging dir during
+            # compilation (the final entry does not exist yet).
+            stage_inc_dirs = [staging_dir, *inc_dirs_norm]
+
+            # Enforce the optional build deadline around the whole compile step
+            # (CYTHON-RES-001).  With build_timeout_s=None this runs inline.
+            stage_ext = run_with_deadline(
+                lambda: _compile(
+                    name=name,
+                    pyx_path=stage_pyx,
+                    build_dir=staging_dir,
+                    include_dirs=stage_inc_dirs,
+                    library_dirs=lib_dirs_norm,
+                    libraries=list(libraries or []),
+                    define_macros=list(define_macros or []),
+                    extra_compile_args=list(extra_compile_args or []),
+                    extra_link_args=list(extra_link_args or []),
+                    directives=directives,
+                    cythonize=cythonize,
+                    annotate=annotate,
+                    verbose=verbose,
+                    extra_sources=stage_extra_sources,
+                    language=language,
+                ),
+                timeout_s=build_timeout_s,
+                what=f"compile[{name}]",
+            )
+
+            # Validate the staged output before publishing.
+            if stage_ext is None or not stage_ext.is_file():
+                raise RuntimeError(
+                    f"staged build produced no importable artifact for {name!r}"
+                )
+
+            _ensure_meta(
+                build_dir=staging_dir,
+                key=key,
+                module_name=name,
+                artifact_path=stage_ext,
+                fingerprint=dict(fp),
+                source_sha256=src_hash,
+                directives=directives,
+                include_dirs=[p.as_posix() for p in [build_dir, *inc_dirs_norm]],
+                support_files=support_file_digests,
+                support_paths=support_path_digests,
+                extra_sources=extra_source_digests,
+                language=language,
+                profile=profile,
+                annotate=annotate,
+                view_annotate=view_annotate,
+                extra_compile_args=list(extra_compile_args or []),
+                extra_link_args=list(extra_link_args or []),
+            )
+
+            # Atomic publish: replace any prior (possibly partial) final entry
+            # with the fully built staging directory.  We hold the exclusive
+            # per-key lock, so no other process can publish this key
+            # concurrently.
+            _publish_atomically(staging_dir, build_dir)
+            staging_dir = None  # ownership transferred; skip cleanup
+        finally:
+            if staging_dir is not None:
+                shutil.rmtree(staging_dir, ignore_errors=True)
+
+        # Locate the artifact in the now-published final entry and import it.
+        ext_path = _find_built_extension(build_dir, name)
+        if ext_path is None:
+            raise RuntimeError(
+                f"published entry is missing an importable artifact for {name!r}"
+            )
 
         if view_annotate:
             html = _find_annotation(build_dir, name)
@@ -755,6 +886,11 @@ def _ensure_meta(
             "module_name": module_name,
             "artifact": artifact_path.name,
             "artifact_filename": artifact_path.name,  # backward compatibility
+            "artifact_sha256": (
+                sha256(artifact_path.read_bytes()).hexdigest()
+                if artifact_path.exists() and artifact_path.is_file()
+                else None
+            ),
             "created_utc": meta.get("created_utc") or _utc_now_iso(),
             "fingerprint": dict(fingerprint),
             "source_sha256": source_sha256,
@@ -986,7 +1122,7 @@ def _import_setuptools() -> tuple[Any, Any]:
     >>> Extension2 is Extension
     True
     """
-    global _SETUPTOOLS_CACHE  # noqa: PLW0603
+    global _SETUPTOOLS_CACHE  # noqa: PLW0603  # ruff:ignore[global-variable-not-assigned]
 
     # ------------------------------------------------------------------
     # Fast path: return the cached (Extension, Distribution) pair.
@@ -995,9 +1131,24 @@ def _import_setuptools() -> tuple[Any, Any]:
     # isinstance() correctness in build_ext.check_extensions_list.
     # See the developer note in the docstring above for the full
     # explanation of the DistutilsSetupError failure mode this prevents.
+    #
+    # Thread-safety (CYTHON-CON-002): the fast path is a lock-free read of a
+    # single reference (atomic in CPython).  On a miss we take the lock and
+    # re-check, so concurrent first-time callers initialise exactly once and
+    # never race the env-var setup + import below.
     # ------------------------------------------------------------------
     if _SETUPTOOLS_CACHE is not None:
         return _SETUPTOOLS_CACHE
+
+    with _SETUPTOOLS_LOCK:
+        if _SETUPTOOLS_CACHE is not None:
+            return _SETUPTOOLS_CACHE
+        return _init_setuptools_cache()
+
+
+def _init_setuptools_cache() -> tuple[Any, Any]:
+    """Initialise and cache ``(Extension, Distribution)`` (caller holds lock)."""
+    global _SETUPTOOLS_CACHE  # noqa: PLW0603
 
     # ------------------------------------------------------------------
     # Step 1 — Choose the correct distutils backend (first call only).
@@ -1119,13 +1270,12 @@ def _compile(  # noqa: PLR0912
 
     try:
         import contextlib  # noqa: PLC0415
-        import io  # noqa: PLC0415
         import sys  # noqa: PLC0415
 
         class _Tee:
             """Write-through stream for capturing while still displaying output."""
 
-            def __init__(self, primary: Any, secondary: io.StringIO) -> None:
+            def __init__(self, primary: Any, secondary: Any) -> None:
                 self._primary = primary
                 self._secondary = secondary
 
@@ -1161,7 +1311,10 @@ def _compile(  # noqa: PLR0912
                 # callers fall back gracefully rather than receiving AttributeError.
                 return self._primary.fileno()
 
-        buf = io.StringIO()
+        # Capture compiler/Cython output in a BOUNDED buffer so a pathological
+        # build cannot accumulate unbounded log memory (CYTHON-OBS-001 / R15).
+        # BoundedBuffer retains the tail, which is what matters for diagnosis.
+        buf = BoundedBuffer(max_bytes=1024 * 1024)
         out_stream: Any
         err_stream: Any
         if verbose > 0:
@@ -1190,22 +1343,36 @@ def _compile(  # noqa: PLR0912
                 )
     except Exception as e:
         tail = ""
+        log_tail = ""
         try:
             txt = buf.getvalue()
             # Trim to a reasonable tail to avoid huge exception messages.
             lines = txt.splitlines()
             tail_lines = lines[-60:] if len(lines) > 60 else lines  # noqa: PLR2004
             if tail_lines:
-                tail = "\n" + "\n".join(tail_lines)
+                log_tail = "\n".join(tail_lines)
+                tail = "\n" + log_tail
         except Exception:  # noqa: BLE001
             tail = ""
 
-        raise RuntimeError(
+        err = RuntimeError(
             f"Cythonize failed for module '{name}'.\n"
             f"Source: {pyx_path}\n"
             "Hint: rerun with verbose=1 to see full compiler/Cython output."
             f"{tail}"
-        ) from e
+        )
+        # Attach a typed diagnostic so callers can branch on structured fields
+        # rather than parsing the message (CYTHON-OBS-001).
+        err.diagnostic = BuildDiagnostic(  # type: ignore[attr-defined]
+            phase="cythonize",
+            module=name,
+            status=None,
+            command=(str(pyx_path),),
+            tool_versions=_tool_versions(),
+            log_tail=log_tail,
+            log_path=None,
+        )
+        raise err from e
 
     dist = Distribution()
     dist.ext_modules = ext_modules
@@ -1284,17 +1451,38 @@ def _compile(  # noqa: PLR0912
     try:
         dist.run_command("build_ext")
     except SystemExit as e:
-        raise RuntimeError(
+        err = RuntimeError(
             f"Compilation failed for module '{name}': build_ext exited with code {e.code!r}.\n"
             "Build prerequisites: a working C/C++ compiler toolchain and Python "
             "development headers (e.g., python3-dev on Debian/Ubuntu)."
-        ) from e
+        )
+        _status = e.code if isinstance(e.code, int) else None
+        err.diagnostic = BuildDiagnostic(  # type: ignore[attr-defined]
+            phase="build_ext",
+            module=name,
+            status=_status,
+            command=("build_ext",),
+            tool_versions=_tool_versions(),
+            log_tail=buf.getvalue()[-4096:] if hasattr(buf, "getvalue") else "",
+            log_path=None,
+        )
+        raise err from e
     except Exception as e:
-        raise RuntimeError(
+        err = RuntimeError(
             f"Compilation failed for module '{name}': {e}\n"
             "Build prerequisites: a working C/C++ compiler toolchain and Python "
             "development headers (e.g., python3-dev on Debian/Ubuntu)."
-        ) from e
+        )
+        err.diagnostic = BuildDiagnostic(  # type: ignore[attr-defined]
+            phase="build_ext",
+            module=name,
+            status=None,
+            command=("build_ext",),
+            tool_versions=_tool_versions(),
+            log_tail=buf.getvalue()[-4096:] if hasattr(buf, "getvalue") else "",
+            log_path=None,
+        )
+        raise err from e
 
     ext_path = _find_built_extension(build_dir, name)
     if ext_path is None:
@@ -1320,6 +1508,43 @@ def _find_built_extension(build_dir: Path, name: str) -> Path | None:
             if p.is_file():
                 return p
     return None
+
+
+def _publish_atomically(staging_dir: Path, final_dir: Path) -> None:
+    """Atomically publish a completed staging directory as ``final_dir``.
+
+    The caller must hold the exclusive per-key build lock, so no other process
+    can publish the same key concurrently.  When ``final_dir`` already exists
+    (e.g. a partial entry left by an older in-place build, or a prior build
+    being replaced), it is moved aside to a unique sibling and deleted only
+    after the new entry is in place, keeping the not-present window minimal.
+
+    Parameters
+    ----------
+    staging_dir : pathlib.Path
+        Fully built, validated private staging directory.
+    final_dir : pathlib.Path
+        Destination cache entry path (``cache_root/key``).
+    """
+    final_dir.parent.mkdir(parents=True, exist_ok=True)
+    trash: Path | None = None
+    if final_dir.exists():
+        trash = final_dir.with_name(f".replaced-{final_dir.name}-{os.getpid()}")
+        # Clear any leftover trash from a previous interrupted publish.
+        if trash.exists():
+            shutil.rmtree(trash, ignore_errors=True)
+        os.replace(final_dir, trash)
+    try:
+        os.replace(staging_dir, final_dir)
+    except OSError:
+        # Publish failed: restore the previous entry if we moved one aside.
+        if trash is not None and not final_dir.exists():
+            os.replace(trash, final_dir)
+            trash = None
+        raise
+    finally:
+        if trash is not None:
+            shutil.rmtree(trash, ignore_errors=True)
 
 
 def _find_annotation(build_dir: Path, name: str) -> Path | None:
@@ -1399,10 +1624,11 @@ def build_extension_package_from_code_result(  # noqa: D417, PLR0912
     if not modules:
         raise ValueError("modules must be a non-empty mapping")
 
-    # Strict validate module names from dict
+    # Segment-by-segment validation of the dotted package name and each module
+    # short name (CYTHON-PKG-001) — done before any path is built from them.
+    _validate_dotted_name(package_name, what="package name")
     for mn in modules:
-        if not isinstance(mn, str) or (not mn) or ("." in mn):
-            raise ValueError(f"Invalid module short name: {mn!r}")
+        _validate_module_short_name(mn)
 
     cache_root = resolve_cache_dir(cache_dir)
 

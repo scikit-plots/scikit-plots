@@ -224,23 +224,87 @@
     var _EXPORT_LINK_MODE_KEY = 'ai-assistant-export-link-mode';
 
     /**
+     * User-settable dataset repo override — the runtime, no-recompile
+     * counterpart to conf.py's ``panelDatasetRepo``.
+     *
+     * Set from the "Dataset Endpoint" section in Extended Settings (mirrors
+     * the endpoint-profile system: the built-in auto-discovery / conf.py
+     * behaviour keeps working unchanged, this just adds a live, user-owned
+     * override on top, same as a custom endpoint profile sits alongside the
+     * built-in DMR/CF/HF ones). Highest priority in _buildDatasetSection's
+     * resolution chain — see there for P0/P1/P2 order.
+     *
+     * Stored as a plain "owner/repo" string (validated via
+     * _isValidHfRepoId before ever being saved) — never a full URL, so
+     * there's no SSRF surface here the way there is for endpoint profiles.
+     *
+     * @type {string}
+     */
+    var _CUSTOM_DATASET_REPO_KEY = 'ai-assistant-custom-dataset-repo';
+
+    /** "owner/repo" — HF's own id format. Deliberately conservative (no
+     *  leading/trailing dots or hyphens, no consecutive slashes) since this
+     *  string gets embedded directly into a huggingface.co URL. */
+    var _HF_REPO_ID_RE = /^[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?\/[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?$/;
+
+    function _isValidHfRepoId(s) {
+        return typeof s === 'string' && _HF_REPO_ID_RE.test(s.trim());
+    }
+
+    /** @returns {string} The saved custom repo id, or '' if unset/unavailable. */
+    function _getCustomDatasetRepo() {
+        try {
+            return localStorage.getItem(_CUSTOM_DATASET_REPO_KEY) || '';
+        } catch (_) {
+            return '';
+        }
+    }
+
+    /**
+     * @param {string} repoId  Must already be validated by the caller
+     *   (_isValidHfRepoId) — this function trusts its input.
+     * @returns {boolean} Whether the write succeeded.
+     */
+    function _setCustomDatasetRepo(repoId) {
+        try {
+            localStorage.setItem(_CUSTOM_DATASET_REPO_KEY, repoId);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function _clearCustomDatasetRepo() {
+        try {
+            localStorage.removeItem(_CUSTOM_DATASET_REPO_KEY);
+        } catch (_) {}
+    }
+
+    /**
      * Whether export share-link mode is active.
      *
-     * ``false`` (default) → clicking an export format downloads the file.
-     * ``true``            → clicking opens the "Share conversation" sheet,
-     *                       which generates a blob URL the user can copy/open.
+     * ``true`` (default) → clicking an export format opens the "Share
+     *                       conversation" sheet, which generates a blob URL
+     *                       the user can copy/open.
+     * ``false``           → clicking an export format downloads the file.
      *
      * Persisted in localStorage so the preference survives page reloads.
      * Falls back gracefully when storage is unavailable (private mode,
      * storage quota exceeded, cross-origin iframe, etc.).
      *
+     * Default resolution:
+     *   - No stored value yet (`null`)   → `true`  (link mode open by default)
+     *   - Stored value is `'true'`       → `true`
+     *   - Stored value is anything else  → `false` (explicit prior opt-out)
+     *
      * @type {boolean}
      */
     var _exportLinkMode = (function () {
         try {
-            return localStorage.getItem(_EXPORT_LINK_MODE_KEY) === 'true';
+            var _stored = localStorage.getItem(_EXPORT_LINK_MODE_KEY);
+            return _stored === null ? true : _stored === 'true';
         } catch (_) {
-            return false;
+            return true;
         }
     }());
 
@@ -574,7 +638,12 @@
         // Mirror of new-chat-compose.svg / _SVG_NEW_CHAT_COMPOSE in _static/__init__.py.
         newChatCompose: '<svg viewBox="0 0 16 16" fill="none"><path fill="currentColor" d="M13.75 10c0-2.389-.983-4.131-1.696-5.08-.19.437-.74 1.33-2.054 1.33-.765 0-1.3-.334-1.643-.712-.306-.338-.455-.706-.513-.902l-.01-.037c-.097-.36-.176-.738-.253-1.079-.079-.35-.159-.676-.262-.98-.108-.318-.24-.6-.412-.844-.865 1.82-2.002 3.05-2.899 4.151C2.98 7.111 2.25 8.22 2.25 10c0 1.545.923 2.955 2.374 3.831-.074-.277-.115-.565-.123-.855l-.001-.104c0-.957.522-1.784 1.107-2.472.58-.685 1.352-1.371 1.952-1.968l.024-.022c.245-.22.622-.213.858.022.613.61 1.372 1.31 1.956 2.012.575.691 1.103 1.52 1.103 2.428l-.001.104c-.008.29-.049.578-.123.855 1.45-.876 2.374-2.286 2.374-3.831M15 10c0 2.817-2.241 5.046-5.036 5.756l-.133.032c-.297.07-.601-.085-.72-.366-.118-.28-.016-.607.242-.77l.053-.035c.528-.362.824-.967.843-1.674l.001-.07c0-.443-.271-.977-.814-1.63-.416-.5-.92-.99-1.438-1.494-.52.5-1.019.965-1.438 1.46-.533.627-.81 1.164-.81 1.663l.001.071c.02.73.335 1.353.896 1.71.258.163.36.488.241.77-.114.272-.403.425-.691.371l-.028-.006C3.313 15.116 1 12.862 1 10c0-2.22.957-3.611 2.039-4.941C4.119 3.73 5.305 2.473 6.104.4l.014-.033c.073-.16.21-.284.38-.338.181-.057.378-.03.536.076l.074.05c.756.533 1.148 1.26 1.394 1.983.126.37.218.75.299 1.107.083.368.152.703.24 1.03l.008.026c.025.074.096.245.235.398.142.157.356.301.716.301.34 0 .537-.111.66-.222.137-.123.216-.277.26-.385l.012-.036c.03-.094.063-.263.101-.478.018-.1.04-.221.063-.312.009-.035.03-.123.075-.208.013-.026.082-.165.242-.263.097-.06.24-.109.408-.088.142.017.248.078.319.135l.028.023.049.046C12.6 3.575 15 5.996 15 10"/></svg>',
         exportTxt:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        // Pencil — Edit & resend a previous question.
+        editAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
         copyAns:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        // Checkmark — swapped in for copyAns for ~1.6s after a successful
+        // copy, same viewBox/stroke-width so the swap doesn't jump in size.
+        checkAns: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
         privacy:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
         // ── Listen / Text-to-Speech ───────────────────────────────────────────
         // Speaker-wave icon used for TTS "Listen" button in the action row.
@@ -625,7 +694,168 @@
         // ── Endpoint registry icon — server/network node ─────────────────────
         // Three-tier stack: represents layered proxy backends (DMR / CF / HF).
         endpoint:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+        // ── Octicon-derived additions (GitHub Octicons, MIT-licensed path data) ──
+        // Same trimming convention as `github` above: drop data-component /
+        // class / width / height / inline style — sizing and color come from
+        // the wrapping element + currentColor so these behave like every
+        // other icon in this registry.
+        // Copilot-style assistant/robot glyph — for future branding use
+        // wherever a "this is the AI" visual cue is useful (welcome message,
+        // empty states, etc.).
+        botAssistant: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.998 15.035c-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.201-.508-.254-1.084-.254-1.656 0-.87.128-1.769.693-2.484.579-.733 1.494-1.124 2.724-1.261 1.206-.134 2.262.034 2.944.765.05.053.096.108.139.165.044-.057.094-.112.143-.165.682-.731 1.738-.899 2.944-.765 1.23.137 2.145.528 2.724 1.261.566.715.693 1.614.693 2.484 0 .572-.053 1.148-.254 1.656.066.228.098.429.126.612.012.076.024.148.037.218.924.385 1.522 1.471 1.591 2.095v1.872c0 .766-3.351 3.795-8.002 3.795Zm0-1.485c2.28 0 4.584-1.11 5.002-1.433V7.862l-.023-.116c-.49.21-1.075.291-1.727.291-1.146 0-2.059-.327-2.71-.991A3.222 3.222 0 0 1 8 6.303a3.24 3.24 0 0 1-.544.743c-.65.664-1.563.991-2.71.991-.652 0-1.236-.081-1.727-.291l-.023.116v4.255c.419.323 2.722 1.433 5.002 1.433ZM6.762 2.83c-.193-.206-.637-.413-1.682-.297-1.019.113-1.479.404-1.713.7-.247.312-.369.789-.369 1.554 0 .793.129 1.171.308 1.371.162.181.519.379 1.442.379.853 0 1.339-.235 1.638-.54.315-.322.527-.827.617-1.553.117-.935-.037-1.395-.241-1.614Zm4.155-.297c-1.044-.116-1.488.091-1.681.297-.204.219-.359.679-.242 1.614.091.726.303 1.231.618 1.553.299.305.784.54 1.638.54.922 0 1.28-.198 1.442-.379.179-.2.308-.578.308-1.371 0-.765-.123-1.242-.37-1.554-.233-.296-.693-.587-1.713-.7Z"/><path d="M6.25 9.037a.75.75 0 0 1 .75.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 .75-.75Zm4.25.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 1.5 0Z"/></svg>',
+        // Filled thumbs-up / thumbs-down — used by the quick-rate pill so the
+        // idle/hover/pressed colours (currently only working on the score
+        // chip) also apply to the glyph itself, which a plain emoji glyph
+        // can never pick up (emoji ignore `color`).
+        thumbUp:   '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.347.631A.75.75 0 0 1 9.123.26l.238.04a3.25 3.25 0 0 1 2.591 4.098L11.494 6h.665a3.25 3.25 0 0 1 3.118 4.167l-1.135 3.859A2.751 2.751 0 0 1 11.503 16H6.586a3.75 3.75 0 0 1-2.184-.702A1.75 1.75 0 0 1 3 16H1.75A1.75 1.75 0 0 1 0 14.25v-6.5C0 6.784.784 6 1.75 6h3.417a.25.25 0 0 0 .217-.127ZM4.75 13.649l.396.33c.404.337.914.521 1.44.521h4.917a1.25 1.25 0 0 0 1.2-.897l1.135-3.859A1.75 1.75 0 0 0 12.159 7.5H10.5a.75.75 0 0 1-.721-.956l.731-2.558a1.75 1.75 0 0 0-1.127-2.14L6.69 6.611a1.75 1.75 0 0 1-1.523.889H4.75ZM3.25 7.5h-1.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25H3a.25.25 0 0 0 .25-.25Z"/></svg>',
+        thumbDown: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.653 15.369a.75.75 0 0 1-.776.371l-.238-.04a3.25 3.25 0 0 1-2.591-4.099L4.506 10h-.665A3.25 3.25 0 0 1 .723 5.833l1.135-3.859A2.75 2.75 0 0 1 4.482 0H9.43c.78.003 1.538.25 2.168.702A1.752 1.752 0 0 1 12.989 0h1.272A1.75 1.75 0 0 1 16 1.75v6.5A1.75 1.75 0 0 1 14.25 10h-3.417a.25.25 0 0 0-.217.127ZM11.25 2.351l-.396-.33a2.248 2.248 0 0 0-1.44-.521H4.496a1.25 1.25 0 0 0-1.199.897L2.162 6.256A1.75 1.75 0 0 0 3.841 8.5H5.5a.75.75 0 0 1 .721.956l-.731 2.558a1.75 1.75 0 0 0 1.127 2.14L9.31 9.389a1.75 1.75 0 0 1 1.523-.889h.417Zm1.5 6.149h1.5a.25.25 0 0 0 .25-.25v-6.5a.25.25 0 0 0-.25-.25H13a.25.25 0 0 0-.25.25Z"/></svg>',
+        // Two-arrow "sync" glyph — replaces the old single-arrow retry icon
+        // below with a cleaner, more recognizable Octicon (the old path
+        // visually reads a lot like the ⟲ glyph mentioned in review).
+        syncRetry: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></svg>',
+        // Mirrored variant (⟳ rather than ⟲) — same glyph flipped horizontally
+        // via a transform, so it stays a single source of truth instead of a
+        // second hand-drawn path. Not wired to any control yet; kept available
+        // for a future "redo" / alternate-direction action (e.g. a reversible
+        // retry, or distinguishing "regenerate" from "undo regenerate").
+        syncRetryReverse: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><g transform="translate(16,0) scale(-1,1)"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></g></svg>',
+        // ── Suggestion for future use ──────────────────────────────────────
+        // "AI sparkle" glyph — common convention for "this was AI-generated /
+        // AI-enhanced" badges. Not wired to any control; here as a ready-made
+        // option if a future feature (e.g. an "AI suggested" tag on quick
+        // questions, or a highlight on the send button) needs one.
+        // "Sparkle" — Octicon, four-pointed star with concave sides (the
+        // GitHub Copilot/AI-suggestion glyph family). Not wired to any
+        // control yet — see ICONS.sparkleAlt below for how it differs from
+        // the two-sparkle variant.
+        sparkle: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.198.57c.275-.752 1.34-.752 1.615 0l.849 2.317a5.819 5.819 0 0 0 3.462 3.463l2.317.848c.753.275.753 1.34 0 1.615l-2.317.849a5.815 5.815 0 0 0-3.462 3.462l-.849 2.317c-.275.753-1.34.753-1.615 0l-.848-2.317a5.819 5.819 0 0 0-3.463-3.462L.57 8.813c-.752-.275-.752-1.34 0-1.615l2.317-.848A5.823 5.823 0 0 0 6.35 2.887L7.198.57Zm.562 2.833A7.323 7.323 0 0 1 3.403 7.76l-.673.246.673.246a7.324 7.324 0 0 1 4.357 4.356l.246.673.246-.673a7.322 7.322 0 0 1 4.356-4.356l.673-.246-.673-.246a7.324 7.324 0 0 1-4.356-4.357l-.246-.673-.246.673Z"/></svg>',
+        // Paintbrush + AI sparkle — not wired to any control yet; kept
+        // available for a future "customize/style" or "AI-assisted
+        // formatting" affordance.
+        brushSparkle: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M14.8777 7.28311L15.226 8.3539C15.3343 8.67945 15.5171 8.97527 15.7599 9.21784C16.0026 9.46042 16.2987 9.64308 16.6245 9.7513L17.6961 10.0993L17.7175 10.1047C17.8001 10.1338 17.8716 10.1878 17.9222 10.2592C17.9728 10.3307 18 10.416 18 10.5035C18 10.5911 17.9728 10.6764 17.9222 10.7479C17.8716 10.8193 17.8001 10.8733 17.7175 10.9024L16.6459 11.2504C16.3201 11.3586 16.024 11.5413 15.7813 11.7839C15.5385 12.0265 15.3557 12.3223 15.2474 12.6478L14.8991 13.7186C14.87 13.8011 14.816 13.8726 14.7445 13.9232C14.673 13.9737 14.5876 14.0009 14.5 14.0009C14.4124 14.0009 14.327 13.9737 14.2555 13.9232C14.2484 13.9182 14.2415 13.913 14.2348 13.9076C14.1736 13.8584 14.1271 13.793 14.1008 13.7186L13.7525 12.6478C13.7338 12.591 13.7128 12.5351 13.6896 12.4802C13.5796 12.2196 13.4202 11.982 13.2196 11.7808C13.1815 11.7426 13.142 11.7058 13.1014 11.6706C12.883 11.4815 12.6292 11.3367 12.3541 11.2451L11.2824 10.8971C11.1998 10.8679 11.1283 10.8139 11.0777 10.7425C11.0271 10.6711 11 10.5857 11 10.4982C11 10.4107 11.0271 10.3253 11.0777 10.2539C11.1283 10.1824 11.1998 10.1284 11.2824 10.0993L12.3541 9.7513C12.6759 9.64026 12.9676 9.45634 13.2065 9.21392C13.4454 8.97151 13.6249 8.67716 13.7311 8.3539L14.0794 7.28311C14.1085 7.20057 14.1625 7.12911 14.234 7.07855C14.3055 7.028 14.391 7.00085 14.4785 7.00085C14.5661 7.00085 14.6515 7.028 14.723 7.07855C14.7945 7.12911 14.8486 7.20057 14.8777 7.28311ZM19.7829 15.214L19.0175 14.9655C18.7847 14.8882 18.5733 14.7577 18.3999 14.5844C18.2265 14.4112 18.0959 14.1999 18.0186 13.9673L17.7698 13.2025C17.749 13.1435 17.7104 13.0925 17.6593 13.0564C17.6082 13.0203 17.5472 13.0009 17.4847 13.0009C17.4221 13.0009 17.3611 13.0203 17.31 13.0564C17.2589 13.0925 17.2203 13.1435 17.1995 13.2025L16.9508 13.9673C16.875 14.1982 16.7467 14.4085 16.5761 14.5816C16.4055 14.7548 16.1971 14.8862 15.9672 14.9655L15.2017 15.214C15.1427 15.2348 15.0916 15.2734 15.0555 15.3244C15.0194 15.3755 15 15.4364 15 15.499C15 15.5615 15.0194 15.6224 15.0555 15.6735C15.0916 15.7245 15.1427 15.7631 15.2017 15.7839L15.9672 16.0324C16.2003 16.1101 16.412 16.2412 16.5855 16.4151C16.7589 16.5891 16.8892 16.8012 16.9661 17.0344L17.2148 17.7993C17.2357 17.8582 17.2743 17.9093 17.3253 17.9454C17.3764 17.9815 17.4374 18.0009 17.5 18.0009C17.5625 18.0009 17.6235 17.9815 17.6746 17.9454C17.7257 17.9093 17.7643 17.8582 17.7851 17.7993L18.0339 17.0344C18.1112 16.8019 18.2418 16.5906 18.4152 16.4173C18.5886 16.244 18.8001 16.1136 19.0328 16.0363L19.7982 15.7877C19.8572 15.7669 19.9083 15.7283 19.9444 15.6773C19.9806 15.6263 20 15.5653 20 15.5028C20 15.4403 19.9806 15.3793 19.9444 15.3283C19.9083 15.2772 19.8572 15.2387 19.7982 15.2179L19.7829 15.214ZM4.99997 2.5C4.99997 2.22386 5.22383 2 5.49997 2H14.5C14.7761 2 15 2.22386 15 2.5V6.09979C14.8348 6.03477 14.658 6.00085 14.4785 6.00085C14.3145 6.00085 14.1527 6.02919 14 6.08371V3H13V5.50219C13 5.77834 12.7761 6.00219 12.5 6.00219C12.2238 6.00219 12 5.77834 12 5.50219V3H11V4.5C11 4.77614 10.7761 5 10.5 5C10.2238 5 9.99997 4.77614 9.99997 4.5V3H5.99997V9.00436H11.4165L10.9617 9.15205L10.95 9.15619C10.6724 9.25405 10.4318 9.4356 10.2616 9.67594C10.1894 9.77798 10.1313 9.88847 10.0884 10.0044H5.99999V11.0043C5.99999 11.5566 6.4477 12.0043 6.99999 12.0043H8.50408C8.78023 12.0043 9.00408 12.2282 9.00408 12.5043V16.0017C9.00408 16.554 9.4518 17.0017 10.0041 17.0017C10.5564 17.0017 11.0041 16.5539 11.0041 16.0017V12.5043C11.0041 12.2429 11.2047 12.0284 11.4603 12.0062L12.041 12.1948C12.1904 12.245 12.3282 12.3239 12.4468 12.4266C12.469 12.4458 12.4906 12.466 12.5115 12.4869C12.6211 12.5969 12.7082 12.7267 12.7684 12.8691C12.7808 12.8987 12.7921 12.9287 12.8022 12.9592L12.8027 12.9608L12.8169 13.0043H12.0041V16.0017C12.0041 17.1062 11.1087 18.0017 10.0041 18.0017C8.89951 18.0017 8.00408 17.1062 8.00408 16.0017V13.0043H6.99999C5.89542 13.0043 4.99999 12.1089 4.99999 11.0043L4.99997 2.5Z"/></svg>',
+        // Two-tier "AI sparkle" — one large 4-point star, one small offset
+        // star top-right. Hand-drafted (sprite ID unresolved, see chat);
+        // not wired anywhere yet.
+        sparkleAlt: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9 1.5c.18 0 .34.12.39.29l.82 2.72a4.7 4.7 0 0 0 3.15 3.15l2.72.82a.4.4 0 0 1 0 .77l-2.72.82a4.7 4.7 0 0 0-3.15 3.15l-.82 2.72a.4.4 0 0 1-.77 0l-.82-2.72a4.7 4.7 0 0 0-3.15-3.15l-2.72-.82a.4.4 0 0 1 0-.77l2.72-.82A4.7 4.7 0 0 0 7.6 4.51l.82-2.72A.4.4 0 0 1 9 1.5Z"/><path d="M15.5 1c.16 0 .3.1.34.26l.32.99c.15.47.52.84.99.99l.99.32a.36.36 0 0 1 0 .68l-.99.32a1.56 1.56 0 0 0-.99.99l-.32.99a.36.36 0 0 1-.68 0l-.32-.99a1.56 1.56 0 0 0-.99-.99l-.99-.32a.36.36 0 0 1 0-.68l.99-.32c.47-.15.84-.52.99-.99l.32-.99A.36.36 0 0 1 15.5 1Z"/></svg>',
+        // Reuses the exact same path as the Python-side _SVG_TERMS constant
+        // (__init__.py) — consolidated to one design instead of a second,
+        // slightly-different document glyph, so JS/Python/disk-file stay
+        // pixel-identical. See _ICON_META["terms-of-service"] for the
+        // Python-side mirror.
+        termsOfService: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>',
+        // Reuses the exact same shield path as the Python-side _SVG_PRIVACY
+        // constant (and the on-disk privacy.svg) — same consolidation
+        // rationale as termsOfService above. No added checkmark: keeping it
+        // pixel-identical to the existing "Privacy Policy" icon everywhere
+        // it's used was judged more valuable than a one-off variant: ask if
+        // you want a visually distinct mark for "& Responsibility" instead.
+        privacyResponsibility: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     };
+
+    // Remembers whether the hosted dancer GIF has ever failed to load, so a
+    // dead/blocked external asset is only attempted once per page load — every
+    // later render skips straight to the emoji fallback instead of re-issuing
+    // (and re-failing) the same request.
+    var _dancerGifBroken = false;
+
+    /**
+     * Split n into a left-center-right symmetric grouping, capped at maxGroup
+     * per cluster, e.g. _symmetricGroups(11, 3) -> [3, 2, 1, 2, 3].
+     * @param {number} n - Total item count. Must be a positive integer.
+     * @param {number} [maxGroup=Infinity] - Max cluster size on each side.
+     * @returns {number[]} Cluster sizes, symmetric around the center.
+     */
+    function _symmetricGroups(n, maxGroup = Infinity) {
+        if (!Number.isInteger(n) || n <= 0) {
+            throw new TypeError("'n' must be a positive integer.");
+        }
+        if (maxGroup !== Infinity && (!Number.isInteger(maxGroup) || maxGroup <= 0)) {
+            throw new TypeError("'maxGroup' must be a positive integer or Infinity.");
+        }
+        const center = (n % 2) ? 1 : 2;  // (n & 1) ? 1 : 2;
+        let side = (n - center) / 2;
+        const left = [];
+        while (side > 0) {
+            const size = Math.min(side, maxGroup);
+            left.push(size);
+            side -= size;
+        }
+        // return [...left, center, ...left.slice().reverse()];
+        return left.concat(center, left.slice().reverse());
+    }
+
+    /**
+     * Create one decorative dancer node. Prefers the animated GIF; falls back
+     * to a plain 🕺 glyph (no network request) once that asset is known to be
+     * broken, and repairs any already-inserted broken-image icon on failure.
+     * @returns {HTMLImageElement|Text} An `<img>`, or a text node once the GIF is known-broken.
+     */
+    function _createDancer() {
+        if (_dancerGifBroken) {
+            return document.createTextNode('🕺');
+        }
+        const img = document.createElement('img');
+        // const version = window.location.pathname.split("/")[1]; // "dev" or "stable"
+        // const root = window.location.pathname.match(/^\/[^/]+/)[0];
+        // if the script itself is inside _static, even better because
+        // DOCUMENTATION_OPTIONS.URL_ROOT points back to the documentation root.:
+        // img.src = new URL("animated_gif/dancer_anim.gif", import.meta.url).href;
+        // img.src = new URL("_static/animated_gif/dancer_anim.gif", document.baseURI).href;
+        const urlRoot = window.DOCUMENTATION_OPTIONS?.URL_ROOT ?? "/dev/";
+        img.src = `${urlRoot}_static/animated_gif/dancer_anim.gif`;
+        img.className = 'ai-assistant-panel-dancer-gif';
+        img.height = 11;
+        img.alt = '';
+        img.setAttribute('aria-hidden', 'true');
+        img.onerror = function () {
+            _dancerGifBroken = true;
+            if (img.parentNode) {
+                img.parentNode.replaceChild(document.createTextNode('🕺'), img);
+            }
+        };
+        return img;
+    }
+
+    /**
+     * Append a symmetric row of dancers to `parent`
+     * (e.g. 🕺🕺🕺 🕺🕺 🕺 🕺🕺 🕺🕺🕺). Falls back to a flat run of `n` dancers
+     * if the grouping itself is misconfigured, so a bad n/maxGroup never
+     * leaves the welcome message half-rendered.
+     *
+     * Note: multi line syntax: '' + ''; or ``; or [''].join('\n');
+     * const _img =
+     *     '<img src="https://homepages.uc.edu/~hansonmm/FUN/dancer_anim.gif"' +
+     *     ' class="ai-assistant-panel-dancer-gif"' +
+     *     ' height="11"' +
+     *     ' alt="" aria-hidden="true">';
+     * var _html = Array(11).fill(_img).join('&ensp;');
+     *
+     * @param {HTMLElement} parent - Node to append dancers/spacers to.
+     * @param {number} n - Total dancer count.
+     * @param {{maxGroup?: number, intra?: string, inter?: string}} [opts]
+     */
+    function _appendPattern(parent, n, opts) {
+        opts = opts || {};
+        const maxGroup = opts.maxGroup ?? Infinity;
+        const intra = opts.intra ?? '\u2002'; // en space
+        const inter = opts.inter ?? '\u2003'; // em space
+
+        let groups;
+        try {
+            groups = _symmetricGroups(n, maxGroup);
+        } catch (err) {
+            console.error('_appendPattern(): invalid n/maxGroup, using a flat run —', err);
+            groups = [Number.isInteger(n) && n > 0 ? n : 1];
+        }
+
+        groups.forEach(function (group, gi) {
+            for (let i = 0; i < group; i++) {
+                parent.appendChild(_createDancer());
+                if (i < group - 1) parent.appendChild(document.createTextNode(intra));
+            }
+            if (gi < groups.length - 1) parent.appendChild(document.createTextNode(inter));
+        });
+    }
 
     // ── Provider accent colours (mirrors _PROVIDER_COLORS in __init__.py) ──────
     //
@@ -1061,13 +1291,47 @@
             return '\x00CB' + idx + '\x00';   // null-byte placeholder (safe)
         });
 
+        // ── 1.5 Extract LaTeX math → placeholders ──────────────────────────
+        // \(...\) inline math and \[...\] display math (MathJax's default
+        // delimiters — the same ones Sphinx's sphinx.ext.mathjax expects).
+        // Extracted immediately after fenced code for the same reason: math
+        // content often contains backslashes, underscores, and braces that
+        // the list/bold/italic regexes below could otherwise misinterpret.
+        // Actual rendering is delegated to the host page's own MathJax
+        // instance after the bubble is in the DOM — see _typesetMath().
+        // This step only protects the delimiters and gives a clean,
+        // monospace-styled fallback if MathJax isn't loaded on this page.
+        var mathSpans = [];
+        result = result.replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)/g, function (m) {
+            var idx = mathSpans.length;
+            mathSpans.push(m);
+            return '\x00MJ' + idx + '\x00';
+        });
+
         // ── 2. Escape all remaining text (prevents HTML injection) ────────
         result = _escapeHtml(result);
 
         // ── 3. Inline code (after escaping so & < > inside are safe) ─────
-        result = result.replace(/`([^`]+)`/g, '<code class="ai-md-inline-code">$1</code>');
+        // [^`\n]+ (not [^`]+) — deliberately excludes newlines from the
+        // match. A single stray/unmatched backtick anywhere in a long
+        // answer (the model does occasionally emit one) would otherwise
+        // pair with the *next* backtick that appears, however many
+        // paragraphs, headings, or list items later — silently swallowing
+        // all of that content into one giant <code> span. Real markdown
+        // parsers don't let inline code spans cross line boundaries for
+        // exactly this reason; this keeps the blast radius of a malformed
+        // backtick to the one line it's actually on.
+        result = result.replace(/`([^`\n]+)`/g, '<code class="ai-md-inline-code">$1</code>');
 
         // ── 4. Headers ────────────────────────────────────────────────────
+        // Tried longest-prefix-first (#### before ###, etc.) — not strictly
+        // required since e.g. /^### / can never match a line starting with
+        // 4+ hashes (the char right after the captured ### must be a space,
+        // but it's a 4th #), but ordering this way is the standard safe
+        // pattern for hash-count heading parsers regardless.
+        result = result.replace(/^###### (.+)$/gm, '<h6 class="ai-md-h">$1</h6>');
+        result = result.replace(/^##### (.+)$/gm,  '<h5 class="ai-md-h">$1</h5>');
+        result = result.replace(/^#### (.+)$/gm,   '<h4 class="ai-md-h">$1</h4>');
         result = result.replace(/^### (.+)$/gm, '<h3 class="ai-md-h">$1</h3>');
         result = result.replace(/^## (.+)$/gm,  '<h2 class="ai-md-h">$1</h2>');
         result = result.replace(/^# (.+)$/gm,   '<h1 class="ai-md-h">$1</h1>');
@@ -1141,8 +1405,12 @@
         result = paras.map(function (p) {
             p = p.trim();
             if (!p) return '';
-            // Already a block element — don't wrap in <p>
-            if (/^<(?:ul|ol|h[1-3]|hr|pre)/i.test(p)) return p;
+            // Already a block element — don't wrap in <p>. h[1-6] (not
+            // h[1-3]) — H4-H6 support was added to the header regexes
+            // above; without also widening this check, an <h4> would get
+            // wrongly nested inside a <p> (invalid HTML: block element
+            // inside an inline-content container).
+            if (/^<(?:ul|ol|h[1-6]|hr|pre)/i.test(p)) return p;
             // Placeholder line — restore below
             if (/^\x00CB/.test(p)) return p;
             return '<p class="ai-md-p">' + p.replace(/\n/g, '<br>') + '</p>';
@@ -1162,10 +1430,180 @@
                 '<code>' + _escapeHtml(cb.code) + '</code></pre>';
         });
 
+        // ── 11. Restore LaTeX math ──────────────────────────────────────────
+        // The delimiters (\(...\) / \[...\]) are kept literal inside the
+        // span — MathJax's tex2jax preprocessor scans DOM text content for
+        // exactly this syntax and replaces it in place. Escaped here (was
+        // extracted before step 2's escaping) for the same XSS-safety
+        // reason fenced code blocks are escaped on restore above.
+        result = result.replace(/\x00MJ(\d+)\x00/g, function (_, idx) {
+            var m = mathSpans[+idx];
+            var isDisplay = m.charAt(1) === '[';
+            return '<span class="ai-md-math ' +
+                (isDisplay ? 'ai-md-math--display' : 'ai-md-math--inline') +
+                '">' + _escapeHtml(m) + '</span>';
+        });
+
         return result;
     }
 
-    // ── Initialisation ────────────────────────────────────────────────────────
+    /**
+     * Delegate LaTeX math rendering to the host page's own MathJax
+     * instance, if present — this panel is embedded in Sphinx docs pages,
+     * which almost always already load MathJax via ``sphinx.ext.mathjax``
+     * whenever any page on the site uses math notation. Reusing that
+     * instance means zero extra network requests and it respects the
+     * site's own math macros/config, instead of bundling a second,
+     * separate math renderer that would fight the page's for consistency.
+     *
+     * No-ops gracefully if MathJax isn't loaded on this particular page
+     * (not every doc page necessarily triggers Sphinx to include it): the
+     * \(...\) / \[...\] text stays visible, styled as math via
+     * .ai-md-math (see CSS), rather than throwing or silently vanishing.
+     *
+     * Deliberately NOT called on every streaming chunk — only once, after
+     * a stream finishes (or immediately for the non-streamed render path).
+     * Re-typesetting partial/incomplete LaTeX mid-stream (e.g. a \[ with
+     * no matching \] yet) on every delta would be wasteful and could
+     * throw on the incomplete syntax; same reasoning as
+     * _makeSectionsCollapsible being post-completion-only.
+     *
+     * @param {HTMLElement} root  Bubble element to typeset (not the whole panel).
+     */
+    function _typesetMath(root) {
+        if (!root) { return; }
+        if (!/\\[[(]/.test(root.textContent || '')) { return; }   // no math present — skip the call entirely
+        try {
+            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                window.MathJax.typesetPromise([root]).catch(function (err) {
+                    _log('warn', 'AI Assistant: MathJax typeset failed:', err);
+                });
+            } else if (window.MathJax && window.MathJax.Hub &&
+                    typeof window.MathJax.Hub.Queue === 'function') {
+                // MathJax v2 API — some older Sphinx theme setups still ship it.
+                window.MathJax.Hub.Queue(['Typeset', window.MathJax.Hub, root]);
+            }
+        } catch (err) {
+            _log('warn', 'AI Assistant: MathJax typeset threw:', err);
+        }
+    }
+
+    /**
+     * Append Claude-artifact-style downloadable file cards after all of a
+     * bubble's content — one card per code block, not one per answer: an
+     * answer can mix unrelated languages (Python setup + a bash install
+     * command), so a single bundled download wouldn't make sense without
+     * adding a ZIP dependency this panel doesn't otherwise need.
+     *
+     * Deliberately reuses the exact same download mechanism as the inline
+     * per-block toolbar button (`_downloadBlob` + `_LANG_EXT`) rather than
+     * a second implementation — the card is a more prominent, end-of-
+     * answer *presentation* of the same action, not a different feature.
+     *
+     * Idempotent (guarded by `.ai-md-artifact-list` presence) and, like
+     * `_makeSectionsCollapsible`/`_typesetMath`, only ever called once
+     * after a stream finishes — not per chunk, so cards don't
+     * flicker/duplicate while an answer is still streaming in.
+     *
+     * When there's more than one code block, a "Download all" button is
+     * appended inside the same list, bundling every snippet into one
+     * .zip via _buildZipBlob (see its own doc comment for the format
+     * details and why it's vendored inline rather than a CDN library).
+     *
+     * @param {HTMLElement} root  Bubble element to scan (not the whole panel).
+     */
+    function _appendArtifactCards(root) {
+        if (!root) { return; }
+        if (root.querySelector('.ai-md-artifact-list')) { return; }   // already done
+        var wraps = root.querySelectorAll('.ai-md-pre-wrap');
+        if (!wraps.length) { return; }
+
+        var list = document.createElement('div');
+        list.className = 'ai-md-artifact-list';
+
+        // Collected alongside each card so "Download all" (below) can
+        // trigger the exact same per-file downloads in sequence, rather
+        // than a second, separate code path.
+        var files = [];
+
+        wraps.forEach(function (wrap, i) {
+            var pre = wrap.querySelector('pre.ai-md-pre');
+            var codeEl = pre && pre.querySelector('code');
+            if (!codeEl) { return; }
+
+            var lang = (pre.getAttribute('data-lang') || '').toLowerCase();
+            var ext = _LANG_EXT[lang] || 'txt';
+            var typeLabel = lang ? (lang.charAt(0).toUpperCase() + lang.slice(1)) : 'Text';
+            var filename = 'snippet-' + (i + 1) + '.' + ext;
+
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'ai-md-artifact-card';
+            card.setAttribute('aria-label', 'Download ' + filename);
+            card.title = 'Download ' + filename;
+
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'ai-md-artifact-icon';
+            iconWrap.setAttribute('aria-hidden', 'true');
+            iconWrap.innerHTML = ICONS.termsOfService;   // document glyph, reused — ICONS constant, safe.
+            card.appendChild(iconWrap);
+
+            var info = document.createElement('span');
+            info.className = 'ai-md-artifact-info';
+            var nameEl = document.createElement('span');
+            nameEl.className = 'ai-md-artifact-name';
+            nameEl.textContent = filename;
+            var typeEl = document.createElement('span');
+            typeEl.className = 'ai-md-artifact-type';
+            typeEl.textContent = typeLabel;
+            info.appendChild(nameEl);
+            info.appendChild(typeEl);
+            card.appendChild(info);
+
+            var dlLabel = document.createElement('span');
+            dlLabel.className = 'ai-md-artifact-download-label';
+            dlLabel.textContent = 'Download';
+            card.appendChild(dlLabel);
+
+            (function (codeElRef, fname) {
+                card.addEventListener('click', function () {
+                    _downloadBlob(codeElRef.textContent, 'text/plain', fname);
+                });
+            }(codeEl, filename));
+            files.push({ filename: filename, content: codeEl.textContent });
+
+            list.appendChild(card);
+        });
+
+        // "Download all" — only worth showing once there's more than one
+        // file; a single-artifact answer already has its one card above.
+        //
+        // Bundles into one real .zip via _buildZipBlob (vendored inline —
+        // see its own doc comment for why not a CDN library). One
+        // download, one file, matching what a user actually expects from
+        // "download all" — not N separate browser download prompts.
+        if (files.length > 1) {
+            var allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.className = 'ai-md-artifact-download-all-btn';
+            allBtn.setAttribute('aria-label', 'Download all ' + files.length + ' files as a zip');
+            allBtn.innerHTML = ICONS.exportTxt;   // ICONS constant — safe.
+            var allLbl = document.createElement('span');
+            allLbl.textContent = 'Download all';
+            allBtn.appendChild(allLbl);
+            allBtn.addEventListener('click', function () {
+                var zipBlob = _buildZipBlob(files.map(function (f) {
+                    return { name: f.filename, content: f.content };
+                }));
+                _downloadBlob(zipBlob, 'application/zip', 'snippets-' + _isoFileStamp() + '.zip');
+            });
+            list.appendChild(allBtn);
+        }
+
+        if (list.children.length) {
+            root.appendChild(list);
+        }
+    }
 
     // ── Turndown 7.1.2: vendored inline ──────────────────────────────────────
     //
@@ -1967,18 +2405,19 @@
 
     // ── Clipboard ─────────────────────────────────────────────────────────────
 
-    function copyToClipboard(text, showInlineConfirmation) {
+    function copyToClipboard(text, showInlineConfirmation, onSuccess) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text)
                 .then(function () {
                     showInlineConfirmation ? showInlineSuccessState() : showNotification('Markdown copied to clipboard!');
+                    if (typeof onSuccess === 'function') { onSuccess(); }
                 })
                 .catch(function (err) {
                     _log('error', 'AI Assistant: Clipboard API failed:', err);
-                    fallbackCopy(text, showInlineConfirmation);
+                    fallbackCopy(text, showInlineConfirmation, onSuccess);
                 });
         } else {
-            fallbackCopy(text, showInlineConfirmation);
+            fallbackCopy(text, showInlineConfirmation, onSuccess);
         }
     }
 
@@ -2000,7 +2439,7 @@
         }, 2000);
     }
 
-    function fallbackCopy(text, showInlineConfirmation) {
+    function fallbackCopy(text, showInlineConfirmation, onSuccess) {
         var textarea = document.createElement('textarea');
         textarea.value = text;
         textarea.style.position = 'fixed';
@@ -2010,6 +2449,7 @@
         try {
             document.execCommand('copy');
             showInlineConfirmation ? showInlineSuccessState() : showNotification('Markdown copied to clipboard!');
+            if (typeof onSuccess === 'function') { onSuccess(); }
         } catch (err) {
             _log('error', 'AI Assistant: Fallback copy failed:', err);
             showNotification('Failed to copy to clipboard.', true);
@@ -4916,12 +5356,18 @@ opts.jsonPayload + '\n' +
 '.badge--positive{background:var(--rate-pos-bg);color:var(--rate-pos-tx)}\n' +
 '.badge--negative{background:var(--rate-neg-bg);color:var(--rate-neg-tx)}\n' +
 '.badge--rating{background:var(--rate-neu-bg);color:var(--rate-neu-tx)}\n' +
-'h1,h2,h3,h4{margin:.85rem 0 .4rem;font-weight:600;line-height:1.3}\n' +
-'h1{font-size:1.25rem}h2{font-size:1.1rem}h3{font-size:1rem}\n' +
+'h1,h2,h3,h4,h5,h6{margin:.85rem 0 .4rem;font-weight:600;line-height:1.3}\n' +
+'h1{font-size:1.25rem}h2{font-size:1.1rem}h3{font-size:1rem}h4{font-size:.92rem}h5,h6{font-size:.85rem;color:var(--tx2)}\n' +
 'p{margin:.4rem 0}\n' +
 'ul,ol{margin:.4rem 0 .4rem 1.4rem;padding:0}\n' +
 'li{margin:.15rem 0}\n' +
-'pre.ai-md-codeblock{background:var(--code-bg);color:var(--code-tx);border-radius:var(--rs);padding:.75rem 1rem;overflow-x:auto;margin:.6rem 0;font-size:.8125rem;font-family:ui-monospace,"SF Mono","Fira Code","Cascadia Code",Consolas,monospace;border:1px solid var(--border)}\n' +
+'pre.ai-md-pre{background:var(--code-bg);color:var(--code-tx);border-radius:var(--rs);padding:.75rem 1rem;overflow-x:auto;margin:.6rem 0;font-size:.8125rem;font-family:ui-monospace,"SF Mono","Fira Code","Cascadia Code",Consolas,monospace;border:1px solid var(--border)}\n' +
+// .ai-md-code-lang MUST be display:block — the source HTML (from _mdToHtml)
+// emits <span class="ai-md-code-lang">python</span><code>from ...</code>
+// with no separator between them, relying entirely on this rule to push
+// the language label onto its own line. Without it, the label visually
+// glues onto the first line of code (e.g. "pythonfrom scikitplot...").
+'.ai-md-code-lang{display:block;font-size:.7em;letter-spacing:.04em;text-transform:uppercase;color:var(--tx3);margin-bottom:.4rem;font-weight:600}\n' +
 'code{font-family:ui-monospace,"SF Mono","Fira Code",Consolas,monospace;font-size:.875em;background:var(--code-bg);padding:.1em .35em;border-radius:.25rem}\n' +
 'pre code{background:none;padding:0;font-size:inherit}\n' +
 'table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.875rem}\n' +
@@ -5023,6 +5469,128 @@ opts.jsonPayload + '\n' +
                 try { URL.revokeObjectURL(url); } catch (_) {}
             }, 1500);
         }
+    }
+
+    /**
+     * Standard CRC-32 (IEEE 802.3 / zlib polynomial), table-based.
+     * Only real dependency of _buildZipBlob below.
+     */
+    function _crc32(bytes) {
+        if (!_crc32._table) {
+            var t = new Uint32Array(256);
+            for (var n = 0; n < 256; n++) {
+                var c = n;
+                for (var k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                t[n] = c >>> 0;
+            }
+            _crc32._table = t;
+        }
+        var crc = 0xFFFFFFFF;
+        for (var i = 0; i < bytes.length; i++) {
+            crc = _crc32._table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+        }
+        return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    /**
+     * Build a minimal, valid ZIP archive (STORE method — no compression)
+     * from a list of ``{name, content}`` text files, returned as a Blob
+     * ready for ``_downloadBlob()``.
+     *
+     * Vendored inline rather than pulling in a zip library from a CDN —
+     * same reasoning as the vendored Turndown copy elsewhere in this file
+     * (see its own comment): an external CDN dependency can silently fail
+     * this one feature on any device/network where that CDN happens to be
+     * blocked (ad-blockers, corporate firewalls, iOS content blockers,
+     * offline docs), and there's no good way to detect that failure from
+     * inside a click handler.
+     *
+     * STORE-only (no DEFLATE) is a deliberate scope limit, not an
+     * oversight: these are small code snippets, not large assets, so the
+     * size cost of skipping compression is negligible, while a correct
+     * DEFLATE implementation is a meaningfully bigger and riskier thing to
+     * hand-roll than a CRC32 + fixed-format ZIP writer. The output is a
+     * fully valid .zip either way — every mainstream unzip tool (Windows
+     * Explorer, macOS Archive Utility, 7-Zip, unzip(1)) opens STORE
+     * entries the same as compressed ones.
+     *
+     * @param {Array<{name: string, content: string}>} files
+     * @returns {Blob}
+     */
+    function _buildZipBlob(files) {
+        var encoder = new TextEncoder();
+        var localParts = [];
+        var centralParts = [];
+        var offset = 0;
+        // Fixed DOS date/time (1980-01-01, 00:00) — these are freshly
+        // generated snippets, not files with a meaningful mtime to
+        // preserve, and every extractor accepts this as a valid value.
+        var DOS_TIME = 0, DOS_DATE = 0x21;
+
+        files.forEach(function (f) {
+            var nameBytes = encoder.encode(f.name);
+            var dataBytes = encoder.encode(f.content);
+            var crc = _crc32(dataBytes);
+            var size = dataBytes.length;
+
+            var lh = new Uint8Array(30 + nameBytes.length);
+            var ldv = new DataView(lh.buffer);
+            ldv.setUint32(0, 0x04034b50, true);   // local file header signature
+            ldv.setUint16(4, 20, true);           // version needed to extract
+            ldv.setUint16(6, 0, true);            // general purpose bit flag
+            ldv.setUint16(8, 0, true);            // compression method (0 = store)
+            ldv.setUint16(10, DOS_TIME, true);
+            ldv.setUint16(12, DOS_DATE, true);
+            ldv.setUint32(14, crc, true);
+            ldv.setUint32(18, size, true);        // compressed size
+            ldv.setUint32(22, size, true);        // uncompressed size
+            ldv.setUint16(26, nameBytes.length, true);
+            ldv.setUint16(28, 0, true);           // extra field length
+            lh.set(nameBytes, 30);
+            localParts.push(lh, dataBytes);
+
+            var ch = new Uint8Array(46 + nameBytes.length);
+            var cdv = new DataView(ch.buffer);
+            cdv.setUint32(0, 0x02014b50, true);   // central file header signature
+            cdv.setUint16(4, 20, true);           // version made by
+            cdv.setUint16(6, 20, true);           // version needed to extract
+            cdv.setUint16(8, 0, true);            // general purpose bit flag
+            cdv.setUint16(10, 0, true);           // compression method
+            cdv.setUint16(12, DOS_TIME, true);
+            cdv.setUint16(14, DOS_DATE, true);
+            cdv.setUint32(16, crc, true);
+            cdv.setUint32(20, size, true);
+            cdv.setUint32(24, size, true);
+            cdv.setUint16(28, nameBytes.length, true);
+            cdv.setUint16(30, 0, true);           // extra field length
+            cdv.setUint16(32, 0, true);           // file comment length
+            cdv.setUint16(34, 0, true);           // disk number start
+            cdv.setUint16(36, 0, true);           // internal file attributes
+            cdv.setUint32(38, 0, true);           // external file attributes
+            cdv.setUint32(42, offset, true);      // relative offset of local header
+            ch.set(nameBytes, 46);
+            centralParts.push(ch);
+
+            offset += lh.length + dataBytes.length;
+        });
+
+        var centralSize = centralParts.reduce(function (sum, p) { return sum + p.length; }, 0);
+        var centralOffset = offset;
+
+        var end = new Uint8Array(22);
+        var edv = new DataView(end.buffer);
+        edv.setUint32(0, 0x06054b50, true);       // end of central directory signature
+        edv.setUint16(4, 0, true);                // disk number
+        edv.setUint16(6, 0, true);                // disk with start of central directory
+        edv.setUint16(8, files.length, true);     // entries on this disk
+        edv.setUint16(10, files.length, true);    // total entries
+        edv.setUint32(12, centralSize, true);
+        edv.setUint32(16, centralOffset, true);
+        edv.setUint16(20, 0, true);                // comment length
+
+        return new Blob(localParts.concat(centralParts, [end]), { type: 'application/zip' });
     }
 
     /**
@@ -5288,10 +5856,279 @@ opts.jsonPayload + '\n' +
      * text content so the copy is clean and reusable outside the panel.
      * @param {string} text  The exact bubble text (from `_transcript`).
      * @param {HTMLElement} [bubbleEl]  Optional bubble element for data-raw.
+     * @param {function} [onSuccess]  Called only after a confirmed copy
+     *   (Clipboard API resolved, or execCommand succeeded) — never on failure.
      */
-    function copyAnswer(text, bubbleEl) {
+    function copyAnswer(text, bubbleEl, onSuccess) {
         var raw = (bubbleEl && bubbleEl.getAttribute('data-raw')) || text;
-        copyToClipboard(raw, false);
+        copyToClipboard(raw, false, onSuccess);
+    }
+
+    /**
+     * Briefly swap a per-answer "Copy" button into a "Copied!" confirmation
+     * state — checkmark icon + updated aria-label/title/visible label — then
+     * auto-reverts to the original copy icon/text after ~1.6s.
+     *
+     * Shared by both per-answer copy buttons (streamed + non-streamed render
+     * paths) so their confirmation behaviour can never drift out of sync with
+     * each other — see the export-link-toggle sync fix for why that matters
+     * in this codebase.
+     *
+     * Notes
+     * -----
+     * Developer: Only called from copyAnswer's onSuccess callback, i.e. only
+     *   after a *confirmed* clipboard write — never optimistically on click.
+     * Developer: Guards against overlapping timers so rapid re-clicks don't
+     *   revert early or leave a stale "Copied!" label.
+     *
+     * @param {HTMLElement} btn  The button returned by the copy-button builders.
+     */
+    function _flashCopyBtnCopied(btn) {
+        if (!btn) { return; }
+        if (btn._copiedRevertTimer) {
+            clearTimeout(btn._copiedRevertTimer);
+            btn._copiedRevertTimer = null;
+        }
+        // Stash the original label/title once — a rapid re-click must not
+        // overwrite them with "Copied!" as the new "original" value.
+        if (!btn.hasAttribute('data-copy-orig-label')) {
+            btn.setAttribute('data-copy-orig-label', btn.getAttribute('aria-label') || 'Copy this answer');
+            btn.setAttribute('data-copy-orig-title', btn.title || 'Copy this answer');
+        }
+        var svgEl   = btn.querySelector('svg');
+        var lblSpan = btn.querySelector('span');
+        var origLblText = lblSpan ? (btn.getAttribute('data-copy-orig-lbl') || lblSpan.textContent) : null;
+        if (lblSpan && !btn.hasAttribute('data-copy-orig-lbl')) {
+            btn.setAttribute('data-copy-orig-lbl', lblSpan.textContent);
+        }
+
+        btn.classList.add('ai-assistant-panel-bubble-action--copied');
+        btn.setAttribute('aria-label', 'Copied!');
+        btn.title = 'Copied!';
+        if (svgEl) { svgEl.outerHTML = ICONS.checkAns; }
+        if (lblSpan) { lblSpan.textContent = 'Copied'; }
+
+        btn._copiedRevertTimer = setTimeout(function () {
+            btn.classList.remove('ai-assistant-panel-bubble-action--copied');
+            btn.setAttribute('aria-label', btn.getAttribute('data-copy-orig-label'));
+            btn.title = btn.getAttribute('data-copy-orig-title');
+            var svgEl2   = btn.querySelector('svg');
+            var lblSpan2 = btn.querySelector('span');
+            if (svgEl2) { svgEl2.outerHTML = ICONS.copyAns; }
+            if (lblSpan2) { lblSpan2.textContent = origLblText; }
+            btn._copiedRevertTimer = null;
+        }, 1600);
+    }
+
+    /**
+     * Add a small "Copy code" + "Download" button to every fenced code
+     * block (`<pre class="ai-md-pre">`) inside `root` that doesn't already
+     * have them — lets a single snippet be copied/saved on its own instead
+     * of only the whole answer via the bubble-level Copy button. When a
+     * bubble has more than one code block, each also gets a "Block X of Y"
+     * step marker so multi-file answers read as a numbered sequence.
+     *
+     * Idempotent by design: guarded by the `.ai-md-pre-wrap` wrapper's
+     * presence, so it's safe (and necessary) to call this again after every
+     * re-render — streaming answers reset `bubble.innerHTML` on every
+     * chunk, which would otherwise wipe out anything injected on the
+     * previous chunk (and re-wrapping an already-wrapped `<pre>` would nest
+     * wrappers indefinitely without this guard). The step-marker TEXT is
+     * the one thing re-computed on every call even for already-wrapped
+     * blocks — during streaming, block 2 may not exist yet when block 1
+     * first gets wrapped, so "Block 1 of 1" would go stale the moment
+     * block 2 appears; re-deriving the total each call keeps it correct.
+     *
+     * Developer: the buttons are appended to a *wrapper* div around `<pre>`,
+     * not to `<pre>` itself. `<pre>` has `overflow-x: auto` for long code
+     * lines — a button appended directly inside it would scroll away
+     * horizontally with the code instead of staying pinned to the visible
+     * corner. The wrapper sits outside that scroll area and carries the
+     * `margin`/`position: relative` that used to live on `<pre>` itself
+     * (see the matching CSS change), so visual spacing is unchanged.
+     *
+     * Reuses `_flashCopyBtnCopied` for the "Copied!" confirmation exactly
+     * like the bubble-level Copy buttons do — it already no-ops safely on
+     * buttons with no label `<span>` (icon-only, as these are), so no
+     * changes were needed there for this to work. Reuses `_downloadBlob`
+     * (the same helper the export-format buttons use) for the download
+     * button, so iOS/legacy-browser handling isn't duplicated.
+     *
+     * Developer: uses `codeEl.textContent`, not `pre.textContent` — this
+     * matters once a per-block header/toolbar exists (e.g. the language
+     * badge), since `pre.textContent` would copy/download that label text too.
+     *
+     * @param {HTMLElement} root  Bubble element to scan (not the whole panel).
+     */
+    // Language → file extension, for the per-block download button.
+    // Falls back to .txt for anything not listed rather than guessing.
+    var _LANG_EXT = {
+        python: 'py', py: 'py', javascript: 'js', js: 'js', typescript: 'ts',
+        ts: 'ts', jsx: 'jsx', tsx: 'tsx', json: 'json', yaml: 'yaml',
+        yml: 'yaml', html: 'html', css: 'css', scss: 'scss', bash: 'sh',
+        sh: 'sh', shell: 'sh', zsh: 'sh', sql: 'sql', c: 'c', cpp: 'cpp',
+        'c++': 'cpp', java: 'java', go: 'go', rust: 'rs', rs: 'rs',
+        ruby: 'rb', rb: 'rb', php: 'php', xml: 'xml', markdown: 'md',
+        md: 'md', toml: 'toml', ini: 'ini', dockerfile: 'Dockerfile',
+        r: 'r', kotlin: 'kt', swift: 'swift'
+    };
+
+    function _enhanceCodeBlocks(root) {
+        if (!root) { return; }
+        var blocks = root.querySelectorAll('pre.ai-md-pre');
+        var total = blocks.length;
+        for (var i = 0; i < blocks.length; i++) {
+            var pre = blocks[i];
+            var parent = pre.parentNode;
+            var alreadyWrapped = !!(parent && parent.classList &&
+                parent.classList.contains('ai-md-pre-wrap'));
+            var wrap;
+
+            if (alreadyWrapped) {
+                wrap = parent;
+            } else {
+                var codeEl = pre.querySelector('code');
+                if (!codeEl) { continue; }
+
+                wrap = document.createElement('div');
+                wrap.className = 'ai-md-pre-wrap';
+                parent.insertBefore(wrap, pre);
+                wrap.appendChild(pre);
+
+                var toolbar = document.createElement('div');
+                toolbar.className = 'ai-md-code-toolbar';
+
+                var copyBtnEl = document.createElement('button');
+                copyBtnEl.type = 'button';
+                copyBtnEl.className = 'ai-md-code-copy-btn';
+                copyBtnEl.setAttribute('aria-label', 'Copy code');
+                copyBtnEl.title = 'Copy code';
+                copyBtnEl.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
+                (function (codeElRef, btnRef) {
+                    copyBtnEl.addEventListener('click', function () {
+                        copyToClipboard(codeElRef.textContent, false, function () {
+                            _flashCopyBtnCopied(btnRef);
+                        });
+                    });
+                }(codeEl, copyBtnEl));
+                toolbar.appendChild(copyBtnEl);
+
+                var dlBtn = document.createElement('button');
+                dlBtn.type = 'button';
+                dlBtn.className = 'ai-md-code-download-btn';
+                dlBtn.setAttribute('aria-label', 'Download code');
+                dlBtn.title = 'Download code';
+                dlBtn.innerHTML = ICONS.exportTxt;   // ICONS constant — safe.
+                (function (codeElRef, preRef) {
+                    dlBtn.addEventListener('click', function () {
+                        var lang = (preRef.getAttribute('data-lang') || '').toLowerCase();
+                        var ext  = _LANG_EXT[lang] || 'txt';
+                        var stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                        _downloadBlob(codeElRef.textContent, 'text/plain',
+                            'snippet-' + stamp + '.' + ext);
+                    });
+                }(codeEl, pre));
+                toolbar.appendChild(dlBtn);
+
+                wrap.appendChild(toolbar);
+            }
+
+            // Step marker — only shown once a bubble has more than one code
+            // block, and re-derived every call so the count self-corrects
+            // as more blocks stream in (see docstring).
+            //
+            // Inserted as a SIBLING immediately before `wrap`, not as a
+            // child inside it. .ai-md-code-toolbar is position:absolute
+            // relative to .ai-md-pre-wrap (its nearest positioned
+            // ancestor) — if the step marker lived inside wrap as a normal-
+            // flow block, it would push <pre> down without moving the
+            // toolbar's positioning context, leaving the copy/download
+            // icons floating above the code instead of aligned with it.
+            // Keeping wrap's only children as <pre> + the toolbar means
+            // wrap's top edge always equals <pre>'s top edge, regardless
+            // of whether a step marker exists above it.
+            var prevSib = wrap.previousElementSibling;
+            var stepEl = (prevSib && prevSib.classList &&
+                prevSib.classList.contains('ai-md-code-step')) ? prevSib : null;
+            if (total > 1) {
+                if (!stepEl) {
+                    stepEl = document.createElement('span');
+                    stepEl.className = 'ai-md-code-step';
+                    wrap.parentNode.insertBefore(stepEl, wrap);
+                }
+                stepEl.textContent = 'Block ' + (i + 1) + ' of ' + total;
+            } else if (stepEl) {
+                stepEl.remove();   // dropped from 2+ blocks back to 1 (edited/regenerated)
+            }
+        }
+    }
+
+    /**
+     * Turn a long answer's H1/H2/H3-delimited sections into native
+     * `<details>`/`<summary>` blocks so a long, multi-part answer can be
+     * collapsed section-by-section instead of only scrolled through.
+     *
+     * Deliberately NOT called during streaming chunks — only once, after a
+     * stream finishes (or immediately for the non-streamed render path).
+     * Restructuring the DOM around headings while content is still actively
+     * changing risks a `<details>` snapping shut mid-stream if a user had
+     * opened/closed one, or headings appearing mid-word before the rest of
+     * a streamed line arrives. Applying it once, after the answer is
+     * final, avoids that whole class of streaming-related bugs.
+     *
+     * Guarded two ways:
+     *   - Skips entirely if `root` already contains a `.ai-md-section`
+     *     (idempotent — safe to call more than once on the same bubble).
+     *   - Skips entirely if there are fewer than 2 top-level headings —
+     *     wrapping a single section in a collapse toggle adds a control
+     *     with no organizational benefit.
+     *
+     * Sections default to `open` (expanded) — a user who just asked a
+     * question should see the full answer immediately; collapsing is an
+     * option they reach for on a long answer, not a surprise default that
+     * hides content they haven't read yet.
+     *
+     * @param {HTMLElement} root  Bubble element to restructure (assistant only).
+     */
+    function _makeSectionsCollapsible(root) {
+        if (!root) { return; }
+        if (root.querySelector('details.ai-md-section')) { return; }   // already done
+        var headings = root.querySelectorAll(
+            ':scope > h1.ai-md-h, :scope > h2.ai-md-h, :scope > h3.ai-md-h'
+        );
+        if (headings.length < 2) { return; }   // nothing worth collapsing
+
+        headings.forEach(function (h) {
+            var details = document.createElement('details');
+            details.className = 'ai-md-section';
+            details.open = true;
+
+            var summary = document.createElement('summary');
+            summary.className = 'ai-md-section-summary';
+            var chevron = document.createElement('span');
+            chevron.className = 'ai-md-section-chevron';
+            chevron.setAttribute('aria-hidden', 'true');
+            chevron.innerHTML = ICONS.chevronDown;   // ICONS constant — safe.
+            summary.appendChild(chevron);
+            var titleSpan = document.createElement('span');
+            titleSpan.textContent = h.textContent;
+            summary.appendChild(titleSpan);
+            details.appendChild(summary);
+
+            // Move every sibling up to (not including) the next top-level
+            // heading into this <details> — the heading's own text now
+            // lives in <summary>, so the original heading node is dropped.
+            var next = h.nextSibling;
+            h.parentNode.insertBefore(details, h);
+            while (next && !(next.nodeType === 1 &&
+                    /^H[1-3]$/.test(next.tagName) &&
+                    next.classList && next.classList.contains('ai-md-h'))) {
+                var toMove = next;
+                next = next.nextSibling;
+                details.appendChild(toMove);
+            }
+            h.remove();
+        });
     }
 
     /**
@@ -5749,7 +6586,9 @@ opts.jsonPayload + '\n' +
                 retryMenuBtn.setAttribute('role', 'menuitem');
                 retryMenuBtn.setAttribute('aria-label', 'Retry this answer');
                 retryMenuBtn.title = 'Retry — re-send the same question';
-                retryMenuBtn.innerHTML = ICONS.retry;
+                // Swapped from ICONS.retry (single-arrow feather glyph) to the
+                // clearer two-arrow sync Octicon — see ICONS.syncRetry above.
+                retryMenuBtn.innerHTML = ICONS.syncRetry;
                 var retryMenuLbl = document.createElement('span');
                 retryMenuLbl.textContent = 'Retry';
                 retryMenuBtn.appendChild(retryMenuLbl);
@@ -5843,6 +6682,9 @@ opts.jsonPayload + '\n' +
     function _renderWelcome(body) {
         var cfg     = _cfg();
         var title   = cfg.panelTitle || 'AI Assistant';
+        // if (!title.startsWith('\u2728')) {
+        //     title = '\u2728 ' + title;  // ✨ \u2728
+        // }
         var quickQs = Array.isArray(cfg.panelQuickQuestions)
             ? cfg.panelQuickQuestions.slice(0, 5) : [];
 
@@ -5851,13 +6693,32 @@ opts.jsonPayload + '\n' +
         var p1 = document.createElement('p');
         var strong = document.createElement('strong');
         strong.textContent = title;
-        p1.appendChild(document.createTextNode('Hi! I\u2019m '));
+        // 👋︎ 👋 \u1F44B
+        // '\u{1F44B}'     // ES6+ \u only supports four hexadecimal digits.
+        // '\uD83D\uDC4B'  // UTF-16 surrogate pair
+        p1.appendChild(document.createTextNode('👋 Hi! I\u2019m '));
         p1.appendChild(strong);
         p1.appendChild(document.createTextNode('.'));
         var p2 = document.createElement('p');
-        p2.textContent = 'Ask me anything about this documentation page.';
+        // Default: SVG bot icon (inherits the muted welcome-text colour).
+        // Opt-out: cfg.panelEmojiIcons = true keeps the literal 🤖 emoji —
+        // same flag used by the quick-rate thumbs icons, so both surfaces
+        // switch together.
+        if (cfg.panelEmojiIcons === true) {
+            p2.textContent = '🤖 Ask me anything about this documentation page.';
+        } else {
+            var botIconSpan = document.createElement('span');
+            botIconSpan.className = 'ai-assistant-panel-welcome-bot-icon';
+            botIconSpan.setAttribute('aria-hidden', 'true');
+            botIconSpan.innerHTML = ICONS.botAssistant;
+            p2.appendChild(botIconSpan);
+            p2.appendChild(document.createTextNode(' Ask me anything about this documentation page.'));
+        }
+        var p3 = document.createElement('p');
+        _appendPattern(p3, 11, { maxGroup: 3 }); // add glyphs 🕺🕺🕺 🕺🕺 🕺 🕺🕺 🕺🕺🕺
         welcome.appendChild(p1);
         welcome.appendChild(p2);
+        welcome.appendChild(p3);
         body.appendChild(welcome);
 
         if (quickQs.length > 0) {
@@ -6331,8 +7192,8 @@ opts.jsonPayload + '\n' +
         quick.className = 'ai-assistant-fbk-quick';
 
         var _quickOpts = [
-            { emoji: '\uD83D\uDC4E', sentiment: 'negative', value: -1, title: 'Not helpful', slug: 'not_helpful' },
-            { emoji: '\uD83D\uDC4D', sentiment: 'positive', value: 1,  title: 'Helpful',     slug: 'helpful'     },
+            { emoji: '\uD83D\uDC4E', icon: 'thumbDown', sentiment: 'negative', value: -1, title: 'Not helpful', slug: 'not_helpful' },
+            { emoji: '\uD83D\uDC4D', icon: 'thumbUp',   sentiment: 'positive', value: 1,  title: 'Helpful',     slug: 'helpful'     },
         ];
 
         _quickOpts.forEach(function (opt) {
@@ -6346,11 +7207,23 @@ opts.jsonPayload + '\n' +
             btn.setAttribute('aria-label', _btnLabel);
             btn.title = _btnLabel;
 
-            // Emoji + score chip — same structure as .ai-assistant-panel-feedback-btn
+            // Icon + score chip — same structure as .ai-assistant-panel-feedback-btn
             // so .ai-fbk-score CSS rules apply without duplication.
+            // Default: SVG (fill="currentColor") instead of a plain emoji glyph,
+            // since emoji ignore the `color` CSS property and never picked up
+            // the idle/hover/pressed sentiment colours below.
+            // Opt-out: set cfg.panelEmojiIcons = true to keep the literal
+            // 👍/👎 emoji glyph instead (e.g. for sites that prefer native
+            // platform emoji rendering over inline SVG).
             var emojiSpan = document.createElement('span');
+            emojiSpan.className = 'ai-fbk-quick-icon';
             emojiSpan.setAttribute('aria-hidden', 'true');
-            emojiSpan.textContent = opt.emoji;
+            if (cfg.panelEmojiIcons === true) {
+                emojiSpan.classList.add('ai-fbk-quick-icon--emoji');
+                emojiSpan.textContent = opt.emoji;
+            } else {
+                emojiSpan.innerHTML = ICONS[opt.icon];
+            }
             btn.appendChild(emojiSpan);
 
             // Score label hidden until aria-pressed="true" (revealed via CSS).
@@ -8378,13 +9251,25 @@ opts.jsonPayload + '\n' +
             'server-side share link when a Share endpoint is configured) ' +
             'instead of downloading a file.',
             _exportLinkMode,
-            null
+            'ai-assistant-ext-share-link-toggle'
         );
         shareLinkToggle.pill.setAttribute('aria-label', 'Share-link mode');
+        // Single source of truth is `_exportLinkMode`; this pill only ever
+        // requests a change (_setExportLinkMode). It never mutates its own
+        // aria-checked directly — that would create a second write path and
+        // is exactly what let this pill drift out of sync with the export
+        // dropdown pill and the share-sheet accordion pill. Actual visual
+        // sync happens below via the shared _exportStateListeners channel,
+        // the same mechanism the accordion pill already uses (§12710).
         shareLinkToggle.pill.addEventListener('click', function () {
             _setExportLinkMode(!_exportLinkMode);
+        });
+        // Stay in sync with the export dropdown + share-sheet accordion:
+        // any call to _setExportLinkMode from either of those also updates
+        // this pill's aria-checked/title, closing the one-way sync gap.
+        _exportStateListeners.push(function (state) {
             shareLinkToggle.pill.setAttribute(
-                'aria-checked', _exportLinkMode ? 'true' : 'false');
+                'aria-checked', state.linkMode ? 'true' : 'false');
         });
         shareSub.appendChild(shareLinkToggle.row);
         shareSub.appendChild(_buildExtFutureRow('\u23F1\uFE0F', 'Share TTL (days)'));
@@ -8635,11 +9520,13 @@ opts.jsonPayload + '\n' +
 
             var badge = document.createElement('span');
             badge.className = 'ai-assistant-panel-ep-ext-info-badge ' +
-                (state === 'configured'
+                (state === 'configured' || state === 'custom'
                     ? 'ai-assistant-panel-ep-ext-info-badge--ok'
                     : 'ai-assistant-panel-ep-ext-dataset-badge--discovered');
-            badge.textContent = (state === 'configured')
-                ? 'Configured' : 'Auto-discovered';
+            badge.textContent =
+                state === 'custom'     ? 'Custom (yours)' :
+                state === 'configured' ? 'Configured'      :
+                                          'Auto-discovered';
             statusRow.appendChild(badge);
 
             var repoLabel = document.createElement('span');
@@ -8680,23 +9567,30 @@ opts.jsonPayload + '\n' +
 
         /** Orchestrate discovery / config, then render links + token posture. */
         function _buildDatasetSection(statusRow, linksWrap, tokenRow) {
-            var _cfg = _cfg();
+            var cfg = _cfg();
 
-            // P1: explicit panel config wins — no network call.
-            var explicitRepo = (_cfg.panelDatasetRepo || '').trim();
+            // P0: user's own runtime override wins over everything — the
+            // no-recompile counterpart to conf.py's panelDatasetRepo. Set
+            // from the form below; see _CUSTOM_DATASET_REPO_KEY.
+            var customRepo = _getCustomDatasetRepo();
+            // P1: explicit panel config (conf.py) — no network call needed.
+            var explicitRepo = (cfg.panelDatasetRepo || '').trim();
+
+            var effectiveRepo   = customRepo || explicitRepo;
+            var effectiveSource = customRepo ? 'custom' : (explicitRepo ? 'configured' : null);
 
             var trainingUrl = (_epSafe && typeof _epSafe.resolve === 'function')
                 ? (_epSafe.resolve('training') || '') : '';
             var proxyBase = _proxyBaseFromTrainingUrl(trainingUrl);
 
-            if (explicitRepo && !proxyBase) {
-                // Config only, nothing to discover.
-                _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
+            if (effectiveRepo && !proxyBase) {
+                // Config/override only, nothing to discover.
+                _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
                 if (tokenRow) { tokenRow.textContent = ''; }
                 return;
             }
 
-            if (!explicitRepo && !proxyBase) {
+            if (!effectiveRepo && !proxyBase) {
                 _renderDatasetLinks(statusRow, linksWrap, null, 'not-configured');
                 if (tokenRow) { tokenRow.textContent = ''; }
                 return;
@@ -8712,9 +9606,9 @@ opts.jsonPayload + '\n' +
             statusRow.appendChild(spinner); statusRow.appendChild(loadTxt);
 
             _fetchProxyDatasetInfo(proxyBase, function (info) {
-                // P1 still wins for the link target; discovery adds token posture.
-                if (explicitRepo) {
-                    _renderDatasetLinks(statusRow, linksWrap, explicitRepo, 'configured');
+                // P0/P1 still win for the link target; discovery adds token posture.
+                if (effectiveRepo) {
+                    _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
                 } else if (!info.repoId) {
                     _renderDatasetLinks(statusRow, linksWrap, null, 'discovery-failed');
                 } else {
@@ -8730,12 +9624,62 @@ opts.jsonPayload + '\n' +
         datasetIntro.className = 'ai-assistant-panel-ep-hint';
         datasetIntro.textContent =
             'HuggingFace dataset where feedback and training contributions are ' +
-            'stored. Discovered automatically from the proxy when a training URL ' +
-            'is configured, or set explicitly via panelDatasetRepo in conf.py. ' +
+            'stored. Set your own below to use it right away — no rebuild needed. ' +
+            'Otherwise it\u2019s discovered automatically from the proxy when a ' +
+            'training URL is configured, or set via panelDatasetRepo in conf.py. ' +
             'The HF token posture below is reported by the server (no secret is ' +
             'ever exposed); when nothing is reachable, the Space repository ' +
             'secret continues to drive persistence.';
         datasetSub.appendChild(datasetIntro);
+
+        // ── Custom override form (P0 — no recompile needed) ────────────────
+        // The runtime, user-owned counterpart to conf.py's panelDatasetRepo —
+        // same idea as a custom endpoint profile: the built-in behaviour
+        // above keeps working untouched, this just lets a user layer their
+        // own choice on top, persisted locally, editable any time.
+        var datasetCustomWrap = document.createElement('div');
+        datasetCustomWrap.className = 'ai-assistant-panel-ep-ext-dataset-custom';
+
+        var datasetCustomLbl = document.createElement('label');
+        datasetCustomLbl.className = 'ai-assistant-panel-ep-url-label';
+        datasetCustomLbl.textContent = 'Custom dataset repo (owner/repo)';
+        datasetCustomLbl.htmlFor = 'ai-assistant-ext-dataset-custom-input';
+        datasetCustomWrap.appendChild(datasetCustomLbl);
+
+        var datasetCustomRow = document.createElement('div');
+        datasetCustomRow.className = 'ai-assistant-panel-ep-ext-dataset-custom-row';
+
+        var datasetCustomInp = document.createElement('input');
+        datasetCustomInp.type  = 'text';
+        datasetCustomInp.id    = 'ai-assistant-ext-dataset-custom-input';
+        datasetCustomInp.className = 'ai-assistant-panel-ep-input';
+        datasetCustomInp.placeholder = 'e.g. your-username/your-dataset';
+        datasetCustomInp.autocomplete = 'off';
+        datasetCustomInp.spellcheck = false;
+        datasetCustomInp.value = _getCustomDatasetRepo();
+        datasetCustomRow.appendChild(datasetCustomInp);
+
+        var datasetCustomSaveBtn = document.createElement('button');
+        datasetCustomSaveBtn.type = 'button';
+        datasetCustomSaveBtn.className = 'ai-assistant-panel-ep-add-btn';
+        datasetCustomSaveBtn.textContent = 'Save';
+        datasetCustomRow.appendChild(datasetCustomSaveBtn);
+
+        var datasetCustomClearBtn = document.createElement('button');
+        datasetCustomClearBtn.type = 'button';
+        datasetCustomClearBtn.className = 'ai-assistant-panel-ep-ext-dataset-refresh-btn';
+        datasetCustomClearBtn.textContent = 'Reset to default';
+        datasetCustomRow.appendChild(datasetCustomClearBtn);
+
+        datasetCustomWrap.appendChild(datasetCustomRow);
+
+        var datasetCustomErr = document.createElement('p');
+        datasetCustomErr.className = 'ai-assistant-panel-ep-status ai-assistant-panel-ep-status--error';
+        datasetCustomErr.style.display = 'none';
+        datasetCustomWrap.appendChild(datasetCustomErr);
+
+        datasetSub.appendChild(datasetCustomWrap);
+
 
         var datasetStatusRow = document.createElement('div');
         datasetStatusRow.className = 'ai-assistant-panel-ep-ext-dataset-status';
@@ -8758,6 +9702,43 @@ opts.jsonPayload + '\n' +
             _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
         });
         datasetSub.appendChild(datasetRefreshBtn);
+
+        // ── Custom override form wiring ─────────────────────────────────────
+        function _showDatasetCustomErr(msg) {
+            datasetCustomErr.textContent = msg;
+            datasetCustomErr.style.display = '';
+        }
+        function _hideDatasetCustomErr() {
+            datasetCustomErr.style.display = 'none';
+        }
+        datasetCustomInp.addEventListener('input', _hideDatasetCustomErr);
+
+        datasetCustomSaveBtn.addEventListener('click', function () {
+            var val = datasetCustomInp.value.trim();
+            if (!val) {
+                _showDatasetCustomErr('Enter a repo id first, or use "Reset to default".');
+                return;
+            }
+            if (!_isValidHfRepoId(val)) {
+                _showDatasetCustomErr(
+                    'Not a valid HuggingFace repo id — expected the form "owner/repo".');
+                return;
+            }
+            if (!_setCustomDatasetRepo(val)) {
+                _showDatasetCustomErr(
+                    'Could not save — local storage is unavailable (private browsing?).');
+                return;
+            }
+            _hideDatasetCustomErr();
+            _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+        });
+
+        datasetCustomClearBtn.addEventListener('click', function () {
+            _clearCustomDatasetRepo();
+            datasetCustomInp.value = '';
+            _hideDatasetCustomErr();
+            _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
+        });
 
         _buildDatasetSection(datasetStatusRow, datasetLinksWrap, datasetTokenRow);
 
@@ -10801,7 +11782,11 @@ opts.jsonPayload + '\n' +
             if (fillPct !== null) {
                 var szMod2 = effectiveSize ? _szVariant(effectiveSize) : '--m';
                 var barWrap = document.createElement('div');
-                barWrap.className = 'ai-assistant-panel-model-bar';
+                // Track gets the same tier modifier as the fill (--s/--m/--l) so
+                // its light-tint background and dark-tone edge stay in lockstep
+                // with the fill colour — see §G in ai-assistant.css.
+                barWrap.className = 'ai-assistant-panel-model-bar' +
+                    (szMod2 ? ' ai-assistant-panel-model-bar' + szMod2 : '');
                 barWrap.setAttribute('aria-hidden', 'true');
                 // Hover tooltip for quick dev inspection (e.g. '70B — 92 % of scale').
                 if (effectiveSize) {
@@ -14547,12 +15532,19 @@ opts.jsonPayload + '\n' +
         var headerTitle = document.createElement('div');
         headerTitle.className = 'ai-assistant-panel-header-title';
 
-        // Logo — try image file first; inline SVG as fallback attribute
-        var logo = document.createElement('img');
-        logo.src = getStaticPath() + '/ai-panel.svg';
+        // Logo — inline SVG (not <img src="...svg">) so it themes the same
+        // way every other icon-btn in this header does: fill="currentColor"
+        // inherits .ai-assistant-panel-header-title's `color`, which already
+        // resolves correctly per light/dark theme via --pst-color-text-base.
+        // An <img>-loaded SVG can't do this (it's a separate document, so
+        // currentColor inside it never sees the host page's color) — the
+        // old dark-mode `filter: brightness(1.6)` hack existed only to
+        // compensate for that; it's removed below since it's no longer
+        // needed and would double up on an already-correct color.
+        var logo = document.createElement('span');
+        logo.innerHTML = ICONS.sparkleAlt;
         logo.className = 'ai-assistant-panel-logo';
         logo.setAttribute('aria-hidden', 'true');
-        logo.alt = '';
 
         var titleSpan = document.createElement('span');
         titleSpan.textContent = title;
@@ -14580,7 +15572,7 @@ opts.jsonPayload + '\n' +
         var closeBtn    = _createIconBtn('close',    'Close ' + _escapeHtml(title), ICONS.close);
 
         // R3: clear conversation without page refresh ("Start a new chat").
-        var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChat);
+        var newChatBtn = _createIconBtn('new-chat', 'Start a new chat', ICONS.newChatCompose);
         newChatBtn.title = 'Start a new chat';
         newChatBtn.addEventListener('pointerdown', function () { _hapticFeedback([8]); });
         newChatBtn.addEventListener('click', clearConversation);
@@ -14669,15 +15661,24 @@ opts.jsonPayload + '\n' +
             hIcon.setAttribute('aria-hidden', 'true');
             hIcon.innerHTML = ICONS.keyboard;        // ICONS constant — safe.
             hint.appendChild(hIcon);
-            // Render each chord token as its own <kbd>.
+            // Chord tokens live in their own wrapper (not appended straight to
+            // `hint`) so CSS can collapse/expand them as a single unit — see
+            // .ai-assistant-panel-kbd-hint-keys. Icon-only by default on every
+            // device; hover-capable devices (mouse/trackpad) reveal this on
+            // :hover/:focus-visible. Touch devices never get a hover event, so
+            // they stay icon-only permanently — see the long-press fallback
+            // below for how they still learn the shortcut.
+            var keysWrap = document.createElement('span');
+            keysWrap.className = 'ai-assistant-panel-kbd-hint-keys';
             kbdLabel.split('+').forEach(function (tok, i, arr) {
                 var k = document.createElement('kbd');
                 k.textContent = tok.trim();
-                hint.appendChild(k);
+                keysWrap.appendChild(k);
                 if (i < arr.length - 1) {
-                    hint.appendChild(document.createTextNode('+'));
+                    keysWrap.appendChild(document.createTextNode('+'));
                 }
             });
+            hint.appendChild(keysWrap);
             // Left-click: minimize panel.
             hint.addEventListener('click', function () { _hapticFeedback([8]); minimizeAIPanel(); });
             // Right-click: fully close panel.
@@ -14695,6 +15696,20 @@ opts.jsonPayload + '\n' +
                     minimizeAIPanel();
                 }
             });
+            // Touch devices have no hover gesture to reveal the collapsed
+            // .ai-assistant-panel-kbd-hint-keys, and permanently showing the
+            // full "icon + Alt+Shift+A" row would eat into already-limited
+            // small-screen width. Long-press surfaces the same shortcut text
+            // via the existing toast/notification channel instead — mirrors
+            // the trigger-pill's tap-vs-long-press convention documented on
+            // _attachLongPress. onShortTap is null because the `click`
+            // listener above already owns the short-tap action (minimize);
+            // passing a second handler here would double-fire it.
+            if (_isTouchDevice()) {
+                _attachLongPress(hint, null, function () {
+                    showNotification('Shortcut: ' + kbdLabel.split('+').join(' + '));
+                }, { hapticTap: null });
+            }
             leftCluster.appendChild(hint);
         }
 
@@ -14713,9 +15728,19 @@ opts.jsonPayload + '\n' +
         var privacyLink = document.createElement('button');
         privacyLink.className = 'ai-assistant-panel-privacy-link';
         privacyLink.type = 'button';
-        privacyLink.textContent =
+        // Icon + label — same structure as shareLink/modelLink below, and
+        // the same ICONS.privacy glyph already used in the hamburger menu
+        // (addItem(ICONS.privacy, 'Privacy & Responsibility', …)) so the
+        // icon reads identically wherever this action appears.
+        var privacyIc = document.createElement('span');
+        privacyIc.setAttribute('aria-hidden', 'true');
+        privacyIc.innerHTML = ICONS.privacy;
+        privacyLink.appendChild(privacyIc);
+        var privacyLbl = document.createElement('span');
+        privacyLbl.textContent =
             (_cfg().panelPrivacyLinkText) ||
             'Privacy & Responsibility';
+        privacyLink.appendChild(privacyLbl);
 
         // Terms-of-Service link — sibling of Privacy, same CSS class so the
         // theme styling cascades automatically.
@@ -14724,8 +15749,16 @@ opts.jsonPayload + '\n' +
             termsLink = document.createElement('button');
             termsLink.className = 'ai-assistant-panel-privacy-link ai-assistant-panel-terms-link';
             termsLink.type = 'button';
-            termsLink.textContent =
+            // Icon + label — same ICONS.terms glyph already used in the
+            // hamburger menu, kept consistent across both entry points.
+            var termsIc = document.createElement('span');
+            termsIc.setAttribute('aria-hidden', 'true');
+            termsIc.innerHTML = ICONS.terms;
+            termsLink.appendChild(termsIc);
+            var termsLbl = document.createElement('span');
+            termsLbl.textContent =
                 (cfgRef.panelTermsLinkText) || 'Terms of Service';
+            termsLink.appendChild(termsLbl);
             termsLink.setAttribute('aria-label', 'Open Terms of Service');
         }
 
@@ -15228,6 +16261,20 @@ opts.jsonPayload + '\n' +
         footerActions.appendChild(footerActionsRight);
         inputGroup.appendChild(footerActions);
         footer.appendChild(inputGroup);
+
+        // ── Footer note: AI disclaimer ───────────────────────────────────────
+        // Sits under the input group, at the very bottom of the footer/panel.
+        // Static, non-interactive text — plain textContent is enough and keeps
+        // us inside the file's HTML policy (textContent/setAttribute only,
+        // never innerHTML; see the Security note in the file header).
+        // role="note" flags it to assistive tech as ancillary/parenthetic
+        // content rather than part of the conversation itself.
+        var footerNote = document.createElement('div');
+        footerNote.className = 'ai-assistant-panel-footer-note';
+        footerNote.setAttribute('role', 'note');
+        footerNote.textContent =
+            '\u2728 The chatbot is an AI and can make mistakes. Please double-check cited sources.';
+        footer.appendChild(footerNote);
 
         // ── Assemble panel ────────────────────────────────────────────────────
         panel.appendChild(header);
@@ -19684,6 +20731,10 @@ opts.jsonPayload + '\n' +
             // emits known-safe tags.  bubble is NOT user-controlled.
             bubble.innerHTML = _mdToHtml(text);
             bubble.setAttribute('data-raw', text);  // preserve for copy/export
+            _enhanceCodeBlocks(bubble);
+            _makeSectionsCollapsible(bubble);
+            _typesetMath(bubble);
+            _appendArtifactCards(bubble);
         } else {
             // User / error bubbles: plain text only (XSS-safe by design).
             bubble.textContent = text;
@@ -19691,14 +20742,13 @@ opts.jsonPayload + '\n' +
 
         body.appendChild(bubble);
 
-        // User bubble: minimal action row — timestamp only.
+        // User bubble: action row — timestamp + Retry + Edit & resend + Copy.
         //
-        // Mirrors the assistant action row layout but contains only the <time>
-        // element; no Copy / Share / Retry affordances are needed for outgoing
-        // messages.  The `--user` modifier pins the row to the trailing (right)
-        // edge via `align-self: flex-end` so it stays visually attached to the
-        // user bubble above it, matching the messaging-app convention (iMessage,
-        // WhatsApp, Telegram) where send-time sits under the bubble on its side.
+        // Mirrors the assistant action row layout. The `--user` modifier pins
+        // the row to the trailing (right) edge via `align-self: flex-end` so
+        // it stays visually attached to the user bubble above it, matching
+        // the messaging-app convention (iMessage, WhatsApp, Telegram) where
+        // send-time sits under the bubble on its side.
         //
         // Guard: skip the row entirely when `ts` is absent or non-finite (old
         // persisted transcript entries that pre-date timestamp recording) so no
@@ -19707,6 +20757,86 @@ opts.jsonPayload + '\n' +
             var userActs = document.createElement('div');
             userActs.className = 'ai-assistant-panel-bubble-actions ai-assistant-panel-bubble-actions--user';
             userActs.appendChild(_buildBubbleTimeEl(ts));
+
+            // Retry — immediate resend of this exact question, no editing.
+            // Reuses the exact same 3-line resend mechanism as the
+            // assistant-bubble Retry menu item (_buildBubbleMore) so both
+            // "retry" actions in this panel behave identically.
+            var userRetryBtn = document.createElement('button');
+            userRetryBtn.type = 'button';
+            userRetryBtn.className = 'ai-assistant-panel-bubble-action ai-assistant-panel-bubble-action--retry';
+            userRetryBtn.setAttribute('aria-label', 'Retry — resend this question as-is');
+            userRetryBtn.title = 'Retry — resend this question as-is';
+            userRetryBtn.innerHTML = ICONS.syncRetry;   // ICONS constant — safe.
+            (function (questionText) {
+                userRetryBtn.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (!input) { return; }
+                    input.value = questionText;
+                    _updateSendBtnState();
+                    handleAIPanelSubmit();
+                });
+            }(text));
+            userActs.appendChild(userRetryBtn);
+
+            // Edit & resend — prefills the input with this exact question so
+            // the user can tweak it before sending, rather than an immediate
+            // silent resend (which would just be "resend", not "edit").
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'ai-assistant-panel-bubble-action ai-assistant-panel-bubble-action--edit';
+            editBtn.setAttribute('aria-label', 'Edit and resend this question');
+            editBtn.title = 'Edit and resend this question';
+            editBtn.innerHTML = ICONS.editAns;   // ICONS constant — safe.
+            (function (questionText) {
+                editBtn.addEventListener('click', function () {
+                    var input = document.getElementById('ai-assistant-panel-input');
+                    if (!input) { return; }
+                    input.value = questionText;
+                    input.focus();
+                    // Cursor at end, not a full selection — matches native
+                    // <textarea> click-to-edit behaviour, doesn't require the
+                    // user to first deselect before typing.
+                    if (typeof input.setSelectionRange === 'function') {
+                        input.setSelectionRange(input.value.length, input.value.length);
+                    }
+                    _updateSendBtnState();
+                    if (typeof input.scrollIntoView === 'function') {
+                        input.scrollIntoView({ block: 'nearest' });
+                    }
+                });
+            }(text));
+            userActs.appendChild(editBtn);
+
+            // Copy — copies the question text. Same icon-only/hover-expand/
+            // "Copied!" flash/long-press-on-touch behaviour as the answer's
+            // Copy button (see .ai-assistant-panel-bubble-action--copy CSS
+            // and _flashCopyBtnCopied) — one consistent copy pattern
+            // everywhere it appears in the panel, not a second one-off.
+            var userCopyBtn = document.createElement('button');
+            userCopyBtn.type = 'button';
+            userCopyBtn.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
+            userCopyBtn.setAttribute('aria-label', 'Copy this question');
+            userCopyBtn.title = 'Copy this question';
+            userCopyBtn.innerHTML = ICONS.copyAns;   // ICONS constant — safe.
+            var userCopyLbl = document.createElement('span');
+            userCopyLbl.textContent = 'Copy';
+            userCopyBtn.appendChild(userCopyLbl);
+            (function (questionText, btn) {
+                userCopyBtn.addEventListener('click', function () {
+                    copyToClipboard(questionText, false, function () {
+                        _flashCopyBtnCopied(btn);
+                    });
+                });
+                if (_isTouchDevice()) {
+                    _attachLongPress(btn, null, function () {
+                        showNotification('Copy');
+                    }, { hapticTap: null });
+                }
+            }(text, userCopyBtn));
+            userActs.appendChild(userCopyBtn);
+
             body.appendChild(userActs);
         }
 
@@ -19732,7 +20862,8 @@ opts.jsonPayload + '\n' +
 
             // Copy button
             var copyBtn = document.createElement('button');
-            copyBtn.className = 'ai-assistant-panel-bubble-action';
+            copyBtn.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
             copyBtn.type = 'button';
             copyBtn.setAttribute('aria-label', 'Copy this answer');
             copyBtn.title = 'Copy this answer';
@@ -19740,7 +20871,21 @@ opts.jsonPayload + '\n' +
             var copyLbl = document.createElement('span');
             copyLbl.textContent = 'Copy';
             copyBtn.appendChild(copyLbl);
-            copyBtn.addEventListener('click', function () { copyAnswer(text, bubble); });
+            copyBtn.addEventListener('click', function () {
+                copyAnswer(text, bubble, function () { _flashCopyBtnCopied(copyBtn); });
+            });
+            // Touch devices have no hover gesture to reveal the collapsed
+            // "Copy" label (see CSS), so a long-press surfaces it via the
+            // same toast/notification channel used elsewhere — mirrors the
+            // kbd-hint's tap-vs-long-press convention. onShortTap is null
+            // because the `click` listener above already owns the short-tap
+            // action (perform the copy); this only adds an informational
+            // long-press, it never performs the copy itself.
+            if (_isTouchDevice()) {
+                _attachLongPress(copyBtn, null, function () {
+                    showNotification('Copy');
+                }, { hapticTap: null });
+            }
             actions.appendChild(copyBtn);
 
             // Hoist answerIndex before the quick-rate block so its closure captures
@@ -19853,7 +20998,7 @@ opts.jsonPayload + '\n' +
         // Each transcript entry carries the model that generated it — enables
         // per-model analytics in JSON exports and DataFrame groupby operations.
         var modelInfo = (role === 'assistant')
-            ? _getActiveModel_cfg()
+            ? _getActiveModel(_cfg())
             : null;
 
         _recordMessage(role, text, modelInfo);   // v2: includes modelInfo
@@ -20059,16 +21204,33 @@ opts.jsonPayload + '\n' +
 
         // FIX Issue 7: configurable system prompt via cfg.panelSystemPrompt.
         // Use {context} as the template variable for the page markdown block.
+        //
+        // The "panel capabilities" paragraph exists because the model was
+        // otherwise only ever told to answer from page content — asked
+        // "can I download a code snippet?", it correctly (from its POV)
+        // said the docs don't cover that, since nothing told it the panel
+        // itself has a download button. Kept short on purpose: this text
+        // is sent on every request, so it's a fixed feature list, not a
+        // running description of the whole UI.
+        var panelCapabilities =
+            'This chat panel (not the page itself) has some built-in tools: ' +
+            'every code block gets its own Copy and Download buttons, each ' +
+            'answer has a Copy button, long answers auto-collapse into ' +
+            'sections, and LaTeX (\\(...\\) / \\[...\\]) renders as math. If ' +
+            'asked about downloading, copying, or reading a long answer, ' +
+            'mention these rather than saying it isn\'t possible.';
         var defaultSystemPrompt = pageMarkdown
             ? 'You are a helpful documentation assistant. Answer questions ' +
-              'about the following documentation page.\n\n---\n' +
+              'about the following documentation page.\n\n' +
+              panelCapabilities + '\n\n---\n' +
               pageMarkdown.slice(0, contextLimit) + '\n---'
-            : 'You are a helpful documentation assistant.';
+            : 'You are a helpful documentation assistant.\n\n' + panelCapabilities;
         var systemPrompt = (typeof cfg.panelSystemPrompt === 'string' &&
                             cfg.panelSystemPrompt)
             ? cfg.panelSystemPrompt.replace('{context}',
                 pageMarkdown.slice(0, contextLimit))
             : defaultSystemPrompt;
+
 
         // ── 4. Build request body ─────────────────────────────────────────
         // Anthropic uses a distinct body shape (system at top level).
@@ -20322,6 +21484,7 @@ opts.jsonPayload + '\n' +
                                 accumulated += delta.content;
                                 streamBubble.innerHTML = _mdToHtml(accumulated);
                                 streamBubble.setAttribute('data-raw', accumulated);
+                                _enhanceCodeBlocks(streamBubble);
                                 if (panelBody) panelBody.scrollTop = panelBody.scrollHeight;
                             }
                         } catch (_pe) {}
@@ -20334,9 +21497,20 @@ opts.jsonPayload + '\n' +
         }
 
         streamBubble.classList.remove('ai-assistant-panel-bubble--streaming');
+        // Collapsible sections applied ONCE here, post-completion — not on
+        // every chunk during the loop above. See _makeSectionsCollapsible's
+        // docstring for why restructuring around headings mid-stream is
+        // deliberately avoided (open/closed state churn, headings arriving
+        // mid-word, etc.). _enhanceCodeBlocks already runs per-chunk above;
+        // one more pass here is a no-op for it (idempotent) but the code
+        // step-marker counts get one final correctness pass regardless.
+        _enhanceCodeBlocks(streamBubble);
+        _makeSectionsCollapsible(streamBubble);
+        _typesetMath(streamBubble);
+        _appendArtifactCards(streamBubble);
         // v2: capture model info before _recordMessage so it is stored in
         // the transcript entry for export and share-payload attribution.
-        var _streamModelInfo = _getActiveModel_cfg();
+        var _streamModelInfo = _getActiveModel(_cfg());
         _recordMessage('assistant', accumulated || '(no response)', _streamModelInfo);
         // Read the timestamp just stored — same single-threaded guarantee as
         // _appendPanelMessage: the last _transcript entry is this streamed reply.
@@ -20373,7 +21547,8 @@ opts.jsonPayload + '\n' +
 
             // Copy button
             var cb2 = document.createElement('button');
-            cb2.className = 'ai-assistant-panel-bubble-action';
+            cb2.className = 'ai-assistant-panel-bubble-action ' +
+                'ai-assistant-panel-bubble-action--copy';
             cb2.type = 'button';
             cb2.setAttribute('aria-label', 'Copy this answer');
             cb2.title = 'Copy this answer';
@@ -20381,8 +21556,17 @@ opts.jsonPayload + '\n' +
             var cl2 = document.createElement('span'); cl2.textContent = 'Copy';
             cb2.appendChild(cl2);
             (function (ft, bEl) {
-                cb2.addEventListener('click', function () { copyAnswer(ft, bEl); });
+                cb2.addEventListener('click', function () {
+                    copyAnswer(ft, bEl, function () { _flashCopyBtnCopied(cb2); });
+                });
             }(accumulated, streamBubble));
+            // Same long-press → "Copy" toast fallback as the non-streamed
+            // copy button above, so behaviour can't drift between the two.
+            if (_isTouchDevice()) {
+                _attachLongPress(cb2, null, function () {
+                    showNotification('Copy');
+                }, { hapticTap: null });
+            }
             acts.appendChild(cb2);
 
             // ── Quick-rate 👍 👎 (always visible — mobile-first, see CSS D4-c) ──

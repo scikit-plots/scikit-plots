@@ -1,5 +1,7 @@
 # scikitplot/cython/_custom_compiler.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,6 +62,9 @@ from __future__ import annotations
 
 import os
 import re
+import sys
+import threading
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (  # noqa: F401
     Any,
@@ -77,6 +82,10 @@ __all__ = [  # noqa: RUF022
     "register_compiler",
     "get_compiler",
     "list_compilers",
+    # Versioned capability descriptor
+    "CompilerCapabilities",
+    "compiler_capabilities",
+    "COMPILER_SPEC_VERSION",
     # Prereq validators
     "pure_python_prereqs",
     "cython_cpp_prereqs",
@@ -212,19 +221,108 @@ class CustomCompilerProtocol(Protocol):
 
 
 # ---------------------------------------------------------------------------
+# Versioned capability descriptor (CYTHON-COMP-001)
+# ---------------------------------------------------------------------------
+
+#: Schema version of :class:`CompilerCapabilities`.  Bump when the descriptor's
+#: fields change so consumers can reason about compatibility.
+COMPILER_SPEC_VERSION = 1
+
+
+@dataclass(frozen=True)
+class CompilerCapabilities:
+    """Versioned, declarative description of a custom compiler's capabilities.
+
+    A registered compiler may expose one of these (via a ``capabilities``
+    attribute or a ``capabilities()`` method) so consumers can reason about what
+    it supports — languages, platforms/ABI, and feature flags — *without*
+    invoking it (CYTHON-COMP-001).  Bare callables that declare nothing get a
+    conservative default from :func:`compiler_capabilities`.
+
+    Parameters
+    ----------
+    name : str
+        The compiler's registered name.
+    spec_version : int, default=COMPILER_SPEC_VERSION
+        Schema version of this descriptor.
+    version : str or None, default=None
+        The compiler plugin's own version string, if any.
+    supported_languages : frozenset of str, default=frozenset({"c"})
+        Source languages the compiler can build (e.g. ``"c"``, ``"c++"``,
+        ``"cython"``).
+    platforms : frozenset of str or None, default=None
+        ``sys.platform`` values the compiler supports; ``None`` means "any".
+    requires_cpp : bool, default=False
+        Whether the compiler requires a C++ toolchain.
+    deterministic : bool, default=True
+        Whether repeated builds of identical inputs yield identical artifacts.
+    features : Mapping[str, Any], default empty
+        Free-form capability flags for forward-compatible extension.
+
+    See Also
+    --------
+    compiler_capabilities : Read the capabilities of any registered compiler.
+    """
+
+    name: str
+    spec_version: int = COMPILER_SPEC_VERSION
+    version: str | None = None
+    supported_languages: frozenset[str] = frozenset({"c"})
+    platforms: frozenset[str] | None = None
+    requires_cpp: bool = False
+    deterministic: bool = True
+    features: Mapping[str, Any] = field(default_factory=dict)
+
+    def supports_platform(self, platform: str | None = None) -> bool:
+        """Return whether ``platform`` (default: current) is supported."""
+        plat = platform if platform is not None else sys.platform
+        return self.platforms is None or plat in self.platforms
+
+    def supports_language(self, language: str) -> bool:
+        """Return whether ``language`` is in :attr:`supported_languages`."""
+        return language in self.supported_languages
+
+
+def compiler_capabilities(compiler: Any) -> CompilerCapabilities:
+    """Return the :class:`CompilerCapabilities` a compiler declares.
+
+    A compiler may declare capabilities via a ``capabilities`` attribute (a
+    :class:`CompilerCapabilities` instance) or a ``capabilities()`` method.  A
+    compiler that declares nothing (e.g. a legacy bare callable) gets a
+    conservative default: C-only, any platform, non-C++ (CYTHON-COMP-001).
+
+    Parameters
+    ----------
+    compiler : CustomCompilerProtocol
+        Any registered compiler callable.
+
+    Returns
+    -------
+    CompilerCapabilities
+        The declared capabilities, or a conservative default.
+    """
+    cap = getattr(compiler, "capabilities", None)
+    if callable(cap):
+        cap = cap()
+    if isinstance(cap, CompilerCapabilities):
+        return cap
+    return CompilerCapabilities(name=getattr(compiler, "name", "unknown"))
+
+
+# ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 
 class CompilerRegistry:
-    """
-    Thread-unsafe module-level registry of custom compiler callables.
+    """Thread-safe module-level registry of custom compiler callables.
 
     Notes
     -----
-    The registry is intentionally simple (dict-backed) and **not**
-    thread-safe.  Register compilers at module-import time or in a
-    single-threaded setup phase, not concurrently.
+    All operations on the backing dict are guarded by an internal
+    :class:`threading.RLock`, so concurrent ``register`` / ``get`` /
+    ``list`` / ``unregister`` calls are safe (CYTHON-CON-002).  The lock is
+    re-entrant so a method may call another without deadlocking.
 
     Use the module-level helpers :func:`register_compiler`,
     :func:`get_compiler`, and :func:`list_compilers` instead of
@@ -233,6 +331,7 @@ class CompilerRegistry:
 
     def __init__(self) -> None:
         self._compilers: dict[str, CustomCompilerProtocol] = {}
+        self._lock = threading.RLock()
 
     def register(
         self,
@@ -266,12 +365,13 @@ class CompilerRegistry:
             )
         name = compiler.name
         _validate_compiler_name(name)
-        if name in self._compilers and not overwrite:
-            raise ValueError(
-                f"compiler {name!r} is already registered.  "
-                f"Pass overwrite=True to replace."
-            )
-        self._compilers[name] = compiler
+        with self._lock:
+            if name in self._compilers and not overwrite:
+                raise ValueError(
+                    f"compiler {name!r} is already registered.  "
+                    f"Pass overwrite=True to replace."
+                )
+            self._compilers[name] = compiler
 
     def get(self, name: str) -> CustomCompilerProtocol:
         """
@@ -292,12 +392,13 @@ class CompilerRegistry:
         KeyError
             If no compiler with that name is registered.
         """
-        if name not in self._compilers:
-            available = sorted(self._compilers)
-            raise KeyError(
-                f"No compiler registered as {name!r}.  Available: {available!r}"
-            )
-        return self._compilers[name]
+        with self._lock:
+            if name not in self._compilers:
+                available = sorted(self._compilers)
+                raise KeyError(
+                    f"No compiler registered as {name!r}.  Available: {available!r}"
+                )
+            return self._compilers[name]
 
     def list(self) -> list[str]:
         """
@@ -308,7 +409,8 @@ class CompilerRegistry:
         list[str]
             Sorted compiler names.
         """
-        return sorted(self._compilers)
+        with self._lock:
+            return sorted(self._compilers)
 
     def unregister(self, name: str) -> bool:
         """
@@ -325,10 +427,11 @@ class CompilerRegistry:
             ``True`` if the compiler was found and removed, ``False``
             if it was not registered.
         """
-        if name in self._compilers:
-            del self._compilers[name]
-            return True
-        return False
+        with self._lock:
+            if name in self._compilers:
+                del self._compilers[name]
+                return True
+            return False
 
 
 # Module-level singleton registry.
@@ -896,6 +999,16 @@ class PybindCompiler:
 
     name: str = "custom_pybind11"
 
+    @property
+    def capabilities(self) -> CompilerCapabilities:
+        """Declared capabilities: C++/pybind11, requires a C++ toolchain."""
+        return CompilerCapabilities(
+            name=self.name,
+            supported_languages=frozenset({"c++"}),
+            requires_cpp=True,
+            features={"pybind11": True},
+        )
+
     def __call__(
         self,
         source: str,
@@ -1045,6 +1158,16 @@ class CApiCompiler:
     """
 
     name: str = "custom_c_api"
+
+    @property
+    def capabilities(self) -> CompilerCapabilities:
+        """Declared capabilities: C (Python C-API extensions)."""
+        return CompilerCapabilities(
+            name=self.name,
+            supported_languages=frozenset({"c"}),
+            requires_cpp=False,
+            features={"c_api": True},
+        )
 
     def __call__(
         self,

@@ -1,5 +1,7 @@
 # scikitplot/cython/_profiles.py
 #
+# Flake8: noqa: D213
+#
 # Authors: The scikit-plots developers
 # SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,10 +62,18 @@ from typing import Any, Mapping, NamedTuple, Sequence
 
 __all__ = [
     "AppliedProfile",
+    "PlatformCapabilities",
     "ProfileDefaults",
+    "ResolvedToolchain",
+    "RuntimeCapabilities",
+    "UnsupportedRuntimeError",
     "apply_profile",
+    "check_runtime_supported",
     "is_windows",
+    "platform_capabilities",
     "resolve_profile",
+    "resolved_toolchain",
+    "runtime_capabilities",
 ]
 
 
@@ -199,6 +209,87 @@ def is_windows() -> bool:
     return os.name == "nt" or sys.platform.startswith("win")
 
 
+class PlatformCapabilities(NamedTuple):
+    """Declarative contract describing what the current platform supports.
+
+    Runtime Cython compilation requires an out-of-process C/C++ compiler.  In a
+    browser/WASM runtime (Emscripten — e.g. Pyodide / JupyterLite / xeus) there
+    is no subprocess compiler, so on-the-fly compilation is unavailable and only
+    **prebuilt** ``emscripten-wasm32`` extensions can be imported.  Exposing
+    this as an explicit contract lets callers branch deterministically instead
+    of discovering the limitation through an opaque build failure
+    (CYTHON-WASM-001).
+
+    Parameters
+    ----------
+    platform : str
+        The value of :data:`sys.platform`.
+    is_browser_wasm : bool
+        ``True`` on an Emscripten/WASM runtime (browser).
+    can_compile_at_runtime : bool
+        ``True`` when an out-of-process compiler toolchain can be invoked.
+        Always ``False`` on browser/WASM.
+    prebuilt_only : bool
+        ``True`` when only prebuilt extensions may be imported (no runtime
+        build).  The complement of :attr:`can_compile_at_runtime`.
+    wasm_package_suffix : str or None
+        The platform tag for prebuilt browser packages (``"emscripten-wasm32"``)
+        on a browser runtime, else ``None``.
+
+    See Also
+    --------
+    platform_capabilities : Construct the contract for the current process.
+
+    Examples
+    --------
+    >>> caps = platform_capabilities()
+    >>> if not caps.can_compile_at_runtime:
+    ...     ...  # import a prebuilt artifact instead of compiling
+    """
+
+    platform: str
+    is_browser_wasm: bool
+    can_compile_at_runtime: bool
+    prebuilt_only: bool
+    wasm_package_suffix: str | None
+
+
+def platform_capabilities() -> PlatformCapabilities:
+    """Return the :class:`PlatformCapabilities` contract for this process.
+
+    Browser/WASM is detected via :data:`sys.platform` (``"emscripten"`` or a
+    ``"wasm"`` prefix) and the presence of the Emscripten build sysconfig
+    platform.  Detection never executes a subprocess.
+
+    Returns
+    -------
+    PlatformCapabilities
+        The capability contract for the current runtime.
+
+    See Also
+    --------
+    PlatformCapabilities : The returned contract type.
+    """
+    plat = sys.platform
+    is_wasm = plat == "emscripten" or plat.startswith("wasm")
+    # Pyodide/xeus set sys.platform == "emscripten"; guard with sysconfig too.
+    if not is_wasm:
+        try:
+            import sysconfig  # noqa: PLC0415
+
+            host = (sysconfig.get_platform() or "").lower()
+            is_wasm = "emscripten" in host or "wasm" in host
+        except Exception:  # noqa: BLE001
+            pass
+    return PlatformCapabilities(
+        platform=plat,
+        is_browser_wasm=is_wasm,
+        can_compile_at_runtime=not is_wasm,
+        prebuilt_only=is_wasm,
+        wasm_package_suffix="emscripten-wasm32" if is_wasm else None,
+    )
+
+
 def _is_msvc() -> bool:
     """
     Return ``True`` if MSVC (``cl.exe``) is the active C/C++ compiler.
@@ -228,6 +319,212 @@ def _is_msvc() -> bool:
     if not (os.name == "nt" or sys.platform.startswith("win")):
         return False
     return shutil.which("cl") is not None
+
+
+class ResolvedToolchain(NamedTuple):
+    """The compiler the build backend *actually* selects (CYTHON-PORT-001).
+
+    Host/toolchain detection based on ``PATH`` (e.g. "is ``cl`` present?") is a
+    guess, not the effective contract: setuptools/distutils decides the real
+    compiler.  This queries that decision so cache entries can be keyed from the
+    resolved plan rather than a heuristic.
+
+    Parameters
+    ----------
+    compiler_type : str
+        The distutils compiler type actually selected (``"unix"``, ``"msvc"``,
+        ``"mingw32"``, ...), or ``"unknown"`` if it could not be determined.
+    cc : str
+        The resolved C compiler executable (argv[0] of the compile command), or
+        ``""`` if unavailable.
+    cxx : str
+        The resolved C++ compiler executable, or ``""`` if unavailable.
+    linker : str
+        The resolved shared linker executable, or ``""`` if unavailable.
+
+    See Also
+    --------
+    resolved_toolchain : Construct the contract for the current backend.
+
+    Notes
+    -----
+    This inspects the backend's configured commands; it does **not** invoke the
+    compiler, so it has no side effects.  It degrades gracefully to
+    ``ResolvedToolchain("unknown", "", "", "")`` if the backend cannot be
+    interrogated.
+    """
+
+    compiler_type: str
+    cc: str
+    cxx: str
+    linker: str
+
+
+def _first_token(value: Any) -> str:
+    """Return argv[0] of a distutils command list/string, else ``""``."""
+    if not value:
+        return ""
+    if isinstance(value, (list, tuple)):
+        return str(value[0]) if value else ""
+    # A plain string command: take the first whitespace-separated token.
+    return str(value).split()[0] if str(value).strip() else ""
+
+
+def resolved_toolchain() -> ResolvedToolchain:
+    """Return the compiler the build backend actually selects (CYTHON-PORT-001).
+
+    Returns
+    -------
+    ResolvedToolchain
+        The resolved compiler type and executables.  Never raises: on any
+        failure it returns ``ResolvedToolchain("unknown", "", "", "")``.
+
+    Notes
+    -----
+    Reads the configured commands from a fresh, customised distutils compiler;
+    no subprocess is spawned.  On Windows this reports ``"msvc"`` and the real
+    ``cl``/``link`` rather than whatever happens to be on ``PATH``.
+    """
+    try:
+        from setuptools._distutils.ccompiler import (  # ruff:ignore[import-outside-top-level]
+            new_compiler,
+        )
+        from setuptools._distutils.sysconfig import (  # ruff:ignore[import-outside-top-level]
+            customize_compiler,
+        )
+
+        comp = new_compiler()
+        ctype = getattr(comp, "compiler_type", "unknown") or "unknown"
+        try:  # ruff:ignore[suppressible-exception]
+            customize_compiler(comp)
+        except Exception:  # noqa: BLE001 - customization is best-effort
+            pass
+        # Unix-like compilers expose command lists; MSVC exposes attributes only
+        # after initialize(), which we avoid (it can spawn vcvars).  Fall back to
+        # the type alone when executables aren't statically available.
+        cc = _first_token(
+            getattr(comp, "compiler_so", None) or getattr(comp, "cc", None)
+        )
+        cxx = _first_token(
+            getattr(comp, "compiler_cxx", None) or getattr(comp, "cxx", None)
+        )
+        linker = _first_token(getattr(comp, "linker_so", None))
+        return ResolvedToolchain(compiler_type=ctype, cc=cc, cxx=cxx, linker=linker)
+    except Exception:  # noqa: BLE001 - never let detection break a build
+        return ResolvedToolchain("unknown", "", "", "")
+
+
+class UnsupportedRuntimeError(RuntimeError):
+    """Raised when a runtime lifecycle operation is not supported (CYTHON-ABI-001)."""
+
+
+class RuntimeCapabilities(NamedTuple):
+    """Declared contract for native-extension runtime lifecycle (CYTHON-ABI-001).
+
+    Native extensions cannot generally be unloaded safely, and behavior under a
+    free-threaded (GIL-disabled) interpreter, a non-main subinterpreter, or
+    after ``fork`` is not universally guaranteed.  Rather than let these
+    manifest as opaque crashes or silent state loss, this contract declares them
+    explicitly so callers (and :func:`check_runtime_supported`) can branch and
+    fail fast with a clear message.
+
+    Parameters
+    ----------
+    gil_enabled : bool
+        Whether the GIL is currently enabled.  ``False`` on a free-threaded
+        (``Py_GIL_DISABLED``) build — where thread-safety of arbitrary
+        extensions is not guaranteed.
+    free_threaded_build : bool
+        Whether CPython was built free-threaded (``Py_GIL_DISABLED``).
+    in_main_interpreter : bool
+        Whether the current interpreter is the main one.  Extensions without
+        per-interpreter GIL support must not run in a subinterpreter.
+    supports_unload : bool
+        Whether a loaded extension can be safely unloaded/replaced.  Always
+        ``False``: CPython cannot generally unload native modules.
+    supports_fork_after_load : bool
+        Whether ``fork`` after loading an extension is supported (POSIX only;
+        the child must not rely on threads created pre-fork).
+    platform : str
+        The value of :data:`sys.platform`.
+
+    See Also
+    --------
+    runtime_capabilities : Construct the contract for the current process.
+    check_runtime_supported : Fail fast on an unsupported configuration.
+    """
+
+    gil_enabled: bool
+    free_threaded_build: bool
+    in_main_interpreter: bool
+    supports_unload: bool
+    supports_fork_after_load: bool
+    platform: str
+
+
+def runtime_capabilities() -> RuntimeCapabilities:
+    """Return the :class:`RuntimeCapabilities` contract for this process."""
+    import sysconfig  # noqa: PLC0415
+
+    free_threaded = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+    gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)()
+    # Best-effort main-interpreter check: interpreter id 0 is the main one on
+    # CPython; absence of the API implies the (single) main interpreter.
+    try:
+        import _interpreters  # pyright: ignore[reportMissingImports] # noqa: PLC0415
+
+        in_main = _interpreters.get_current() == _interpreters.get_main()
+    except Exception:  # noqa: BLE001 - no subinterpreter API => main interpreter
+        in_main = True
+    return RuntimeCapabilities(
+        gil_enabled=bool(gil_enabled),
+        free_threaded_build=free_threaded,
+        in_main_interpreter=bool(in_main),
+        supports_unload=False,  # CPython cannot generally unload native modules
+        supports_fork_after_load=hasattr(os, "fork"),
+        platform=sys.platform,
+    )
+
+
+def check_runtime_supported(
+    *,
+    allow_free_threaded: bool = False,
+    allow_subinterpreter: bool = False,
+) -> None:
+    """Fail fast on an unsupported runtime configuration (CYTHON-ABI-001).
+
+    Safe default: raise :class:`UnsupportedRuntimeError` on a free-threaded
+    interpreter or in a non-main subinterpreter, because arbitrary compiled
+    extensions do not universally support those.  Callers who have verified
+    their extensions can opt in via the ``allow_*`` flags.
+
+    Parameters
+    ----------
+    allow_free_threaded : bool, default=False
+        Permit running under a free-threaded (GIL-disabled) interpreter.
+    allow_subinterpreter : bool, default=False
+        Permit running in a non-main subinterpreter.
+
+    Raises
+    ------
+    UnsupportedRuntimeError
+        If the current runtime is unsupported and not explicitly allowed.
+    """
+    caps = runtime_capabilities()
+    if caps.free_threaded_build and not allow_free_threaded:
+        raise UnsupportedRuntimeError(
+            "runtime compilation/import on a free-threaded (GIL-disabled) "
+            "CPython is not supported by default because arbitrary compiled "
+            "extensions may not be thread-safe; pass allow_free_threaded=True "
+            "if your extensions are verified free-thread-safe."
+        )
+    if not caps.in_main_interpreter and not allow_subinterpreter:
+        raise UnsupportedRuntimeError(
+            "runtime compilation/import in a non-main subinterpreter is not "
+            "supported by default because extensions without per-interpreter "
+            "GIL support cannot run there; pass allow_subinterpreter=True if "
+            "your extensions declare multi-interpreter support."
+        )
 
 
 def resolve_profile(profile: str | None) -> ProfileDefaults:

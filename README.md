@@ -1302,6 +1302,60 @@ Quick “ready-to-copy” mini legend
 
 ✅ Success | 💡 Tip | 🧠 Hint | ℹ️ Info | ⚠️ Caution | 🚨 Urgent | ❌ Error | 🔒 Security
 
+# =============================================================================
+# Common UI Emojis (Unicode Reference)
+# =============================================================================
+
+👋︎ 👋 \u1F44B
+
+# ✨ Sparkles                  U+2728    \u2728
+
+# 🌞 Sun with Face             U+1F31E   \U0001F31E
+# 🌅 Sunrise                   U+1F305   \U0001F305
+# 🌄 Sunrise Over Mountains    U+1F304   \U0001F304
+# ☀️ Sun                        U+2600    \u2600
+
+# 🌙 Crescent Moon             U+1F319   \U0001F319
+# 🌑 New Moon                  U+1F311   \U0001F311
+# 🌒 Waxing Crescent Moon      U+1F312   \U0001F312
+# 🌓 First Quarter Moon        U+1F313   \U0001F313
+# 🌔 Waxing Gibbous Moon       U+1F314   \U0001F314
+# 🌕 Full Moon                 U+1F315   \U0001F315
+# 🌖 Waning Gibbous Moon       U+1F316   \U0001F316
+# 🌗 Last Quarter Moon         U+1F317   \U0001F317
+# 🌘 Waning Crescent Moon      U+1F318   \U0001F318
+# 🌚 New Moon Face             U+1F31A   \U0001F31A
+# 🌛 First Quarter Moon Face   U+1F31B   \U0001F31B
+# 🌜 Last Quarter Moon Face    U+1F31C   \U0001F31C
+
+# ⭐ Star                      U+2B50    \u2B50
+# 🌟 Glowing Star              U+1F31F   \U0001F31F
+# 💫 Dizzy                     U+1F4AB   \U0001F4AB
+# 🔥 Fire                      U+1F525   \U0001F525
+# ⚡ High Voltage              U+26A1    \u26A1
+# 🚀 Rocket                    U+1F680   \U0001F680
+# 🤖 Robot                     U+1F916   \U0001F916
+# 🧠 Brain                     U+1F9E0   \U0001F9E0
+# 💡 Light Bulb                U+1F4A1   \U0001F4A1
+# 📚 Books                     U+1F4DA   \U0001F4DA
+# 📖 Open Book                 U+1F4D6   \U0001F4D6
+# 📝 Memo                      U+1F4DD   \U0001F4DD
+# 🔍 Magnifying Glass          U+1F50D   \U0001F50D
+# 🛠️ Hammer and Wrench         U+1F6E0   \U0001F6E0
+# ⚙️ Gear                      U+2699    \u2699
+# 🧪 Test Tube                 U+1F9EA   \U0001F9EA
+# 📊 Bar Chart                 U+1F4CA   \U0001F4CA
+# 📈 Chart Increasing          U+1F4C8   \U0001F4C8
+# 📉 Chart Decreasing          U+1F4C9   \U0001F4C9
+# 🎯 Bullseye                  U+1F3AF   \U0001F3AF
+# ✅ Check Mark                U+2705    \u2705
+# ❌ Cross Mark                U+274C    \u274C
+# ⚠️ Warning                   U+26A0    \u26A0
+# ℹ️ Information               U+2139    \u2139
+# 🏆 Trophy                    U+1F3C6   \U0001F3C6
+# 🎉 Party Popper              U+1F389   \U0001F389
+# ❤️ Red Heart                 U+2764    \u2764
+# 👍 Thumbs Up                 U+1F44D   \U0001F44D
 
  -->
 
