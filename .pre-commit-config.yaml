@@ -29,7 +29,7 @@ repos:
 
   # Optional: Spell Checking
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       # pre-commit run codespell --all-files --verbose
       - id: codespell
