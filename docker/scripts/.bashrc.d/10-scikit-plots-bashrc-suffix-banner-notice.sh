@@ -122,6 +122,7 @@ echo -e "\e[m"
 echo -e "\n\033[1;33m📢  First Run Notice:\033[0m
 📝  See Also: cat docker/scripts/bash-first-run-notice.txt
 📝  See Also: cat ~/.bash-first-run-notice.txt
+⚠️   Run the 'bash' command, If the environment could not be activated.
 "
 ## Location of the notice file and marker
 ## echo "Welcome to the container! Here's how to get started..." > ~/.bash-first-run-notice.txt

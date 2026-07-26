@@ -10,7 +10,8 @@ paths-ignore:
   - '**/vendor/**'
   - '**/*yanked/**'
   # Historical backup snapshots of the widget assets — not shipped, not maintained.
-  - '**/_sphinx_ai_assistant/_static/backup/**'
+  - '**/_sphinx_ai_assistant/_static/_backup/**'
+  - 'scikitplot/cexternals/_annoy/_backup/**'
 
 # NOTE: Turndown is vendored INLINE in ai-assistant.js and its 6 inherent alerts
 # (unreachable-statement, ASI, use-before-declaration, useless-assignment) are
