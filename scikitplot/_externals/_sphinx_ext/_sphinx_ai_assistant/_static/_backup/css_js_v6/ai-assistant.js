@@ -247,25 +247,70 @@
      *  string gets embedded directly into a huggingface.co URL. */
     var _HF_REPO_ID_RE = /^[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?\/[A-Za-z0-9]([A-Za-z0-9_.-]{0,94}[A-Za-z0-9])?$/;
 
-    function _isValidHfRepoId(s) {
-        return typeof s === 'string' && _HF_REPO_ID_RE.test(s.trim());
+    /**
+     * Single source of truth for "is this a well-formed HF repo id, and
+     * what's its canonical trimmed form" — every place that reads a repo
+     * id from *anywhere* (localStorage, conf.py, proxy discovery response)
+     * must pass through this before it's used, not just the save path.
+     *
+     * This exists because the original code only validated on save
+     * (_isValidHfRepoId at the form's Save button) — localStorage itself,
+     * ``cfg.panelDatasetRepo``, and the proxy-discovered ``info.repoId``
+     * were all trusted unconditionally at read time. A value could reach
+     * that point unvalidated via an older release's storage format, a
+     * same-origin script, devtools, a malformed conf.py, or unexpected
+     * proxy JSON — none of those are this component's own save path.
+     *
+     * Not an XSS fix (the render path already only ever used textContent
+     * and a scheme-checked href, see _buildDatasetLinkCard) — this closes
+     * the separate robustness gap: an invalid value reaching this point
+     * previously produced a broken/misleading huggingface.co link instead
+     * of being rejected at the boundary it actually entered from.
+     *
+     * @param {*} value
+     * @returns {string} Canonical trimmed repo id, or '' if invalid/absent.
+     */
+    function _normalizeHfRepoId(value) {
+        if (typeof value !== 'string') { return ''; }
+        var repoId = value.trim();
+        return _HF_REPO_ID_RE.test(repoId) ? repoId : '';
     }
 
-    /** @returns {string} The saved custom repo id, or '' if unset/unavailable. */
+    function _isValidHfRepoId(s) {
+        return _normalizeHfRepoId(s) !== '';
+    }
+
+    /**
+     * @returns {string} The saved custom repo id, or '' if unset,
+     *   unavailable, or the stored value fails validation.
+     */
     function _getCustomDatasetRepo() {
         try {
-            return localStorage.getItem(_CUSTOM_DATASET_REPO_KEY) || '';
+            var stored = localStorage.getItem(_CUSTOM_DATASET_REPO_KEY);
+            var repoId = _normalizeHfRepoId(stored);
+            // Storage held something, but it's not a valid repo id (stale
+            // format from an older release, tampered same-origin, etc.) —
+            // clear it rather than silently keep re-serving a broken value
+            // on every future read.
+            if (stored && !repoId) {
+                try { localStorage.removeItem(_CUSTOM_DATASET_REPO_KEY); } catch (_) {}
+            }
+            return repoId;
         } catch (_) {
             return '';
         }
     }
 
     /**
-     * @param {string} repoId  Must already be validated by the caller
-     *   (_isValidHfRepoId) — this function trusts its input.
+     * @param {string} value  Re-validated here via _normalizeHfRepoId even
+     *   though the UI's Save button already calls _isValidHfRepoId first —
+     *   this function no longer just trusts its caller, so it stays safe
+     *   even if a future call site skips that check.
      * @returns {boolean} Whether the write succeeded.
      */
-    function _setCustomDatasetRepo(repoId) {
+    function _setCustomDatasetRepo(value) {
+        var repoId = _normalizeHfRepoId(value);
+        if (!repoId) { return false; }
         try {
             localStorage.setItem(_CUSTOM_DATASET_REPO_KEY, repoId);
             return true;
@@ -9373,8 +9418,6 @@ opts.jsonPayload + '\n' +
         // namespace. No secret value is ever read or rendered — only booleans
         // and the public repo id, exactly as the proxy already publishes them.
 
-        var _HF_DATASET_BASE = 'https://huggingface.co/datasets/';
-
         /**
          * Strip the /v1/contribute suffix from a training endpoint URL to get
          * the proxy root.
@@ -9395,15 +9438,11 @@ opts.jsonPayload + '\n' +
             return url.replace(/\/v1\/contribute\/?$/i, '').replace(/\/+$/, '');
         }
 
-        /** Build the three canonical HuggingFace dataset URLs from a repo id. */
-        function _buildHfDatasetUrls(repoId) {
-            var base = _HF_DATASET_BASE + repoId;
-            return {
-                base:          base,
-                feedback:      base + '/tree/main/feedback',
-                contributions: base + '/tree/main/contributions'
-            };
-        }
+        // href for every dataset link below only ever receives this trusted
+        // compile-time constant — repoId-derived data can only ever affect
+        // `pathname`, never origin/protocol. See _buildDatasetLinkCard.
+        var _HF_DATASET_ORIGIN = 'https://huggingface.co';
+        var _HF_DATASET_PATH_PREFIX = '/datasets/';
 
         /**
          * Fetch the proxy root endpoint and extract dataset + token metadata.
@@ -9477,14 +9516,50 @@ opts.jsonPayload + '\n' +
         }
 
         /** Render one dataset link card (anchor). Uses textContent only (XSS-safe). */
-        function _buildDatasetLinkCard(icon, label, url) {
+        /**
+         * Render one dataset link card (anchor).
+         *
+         * `href` is assigned in two steps rather than one pre-built string:
+         * first the trusted, compile-time-constant origin, then `pathname`
+         * built from `repoId`'s two segments — individually normalized
+         * (_normalizeHfRepoId) and percent-encoded (encodeURIComponent)
+         * before being placed in the path. repoId-derived data can
+         * therefore only ever influence `pathname`; it can never replace
+         * the scheme or host, so `href` can never become a
+         * `javascript:`/`data:` URL regardless of what repoId contains.
+         *
+         * This also happens to be a more CodeQL-legible pattern than the
+         * previous "pre-build a full URL string, then gate the assignment
+         * behind a custom _isSafeHref() boolean" — static analysis can
+         * verify the structural guarantee here directly (origin is a
+         * literal, tainted data only reaches `pathname`) rather than
+         * having to trust a project-specific helper it doesn't model.
+         *
+         * @param {string} icon    Decorative emoji, rendered via textContent.
+         * @param {string} label   Visible label, rendered via textContent.
+         * @param {string} repoId  "owner/repo" — re-validated here regardless
+         *   of whether the caller already validated it upstream.
+         * @param {string} suffix  Path suffix, e.g. '/tree/main/feedback'.
+         *   Must start with '/' or be empty — always a literal at call
+         *   sites here, never derived from repoId.
+         */
+        function _buildDatasetLinkCard(icon, label, repoId, suffix) {
             var a = document.createElement('a');
             a.className = 'ai-assistant-panel-ep-ext-dataset-card';
-            // Defense in depth: link only if the scheme is safe; otherwise the
-            // card renders as inert text (no javascript:/data: href).
-            if (_isSafeHref(url)) {
-                a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+
+            var normalized = _normalizeHfRepoId(repoId);
+            if (normalized) {
+                var parts = normalized.split('/');
+                var owner = encodeURIComponent(parts[0]);
+                var repo  = encodeURIComponent(parts[1]);
+                a.href = _HF_DATASET_ORIGIN;   // trusted constant only
+                a.pathname = _HF_DATASET_PATH_PREFIX + owner + '/' + repo + (suffix || '');
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
             }
+            // No href at all when repoId fails validation — same inert-
+            // text fallback the old _isSafeHref gate produced, just
+            // reached from a stronger structural guarantee now.
             a.setAttribute('aria-label', label + ' \u2014 opens in a new tab');
 
             var iconEl = document.createElement('span');
@@ -9499,7 +9574,7 @@ opts.jsonPayload + '\n' +
             lbl.textContent = label;
             var urlEl = document.createElement('span');
             urlEl.className = 'ai-assistant-panel-ep-ext-dataset-card-url';
-            urlEl.textContent = url;
+            urlEl.textContent = normalized ? a.href : '';
             textWrap.appendChild(lbl); textWrap.appendChild(urlEl);
 
             var extIcon = document.createElement('span');
@@ -9547,13 +9622,12 @@ opts.jsonPayload + '\n' +
             repoLabel.textContent = repoId;
             statusRow.appendChild(repoLabel);
 
-            var urls = _buildHfDatasetUrls(repoId);
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83D\uDDC3', 'Dataset root',     urls.base));
+                '\uD83D\uDDC3', 'Dataset root',     repoId, ''));
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83D\uDC4D', 'Feedback records', urls.feedback));
+                '\uD83D\uDC4D', 'Feedback records', repoId, '/tree/main/feedback'));
             linksWrap.appendChild(_buildDatasetLinkCard(
-                '\uD83E\uDD1D', 'Contributions',    urls.contributions));
+                '\uD83E\uDD1D', 'Contributions',    repoId, '/tree/main/contributions'));
         }
 
         /** Render the read-only HF-token posture row (read/write/fine-grained). */
@@ -9587,7 +9661,12 @@ opts.jsonPayload + '\n' +
             // from the form below; see _CUSTOM_DATASET_REPO_KEY.
             var customRepo = _getCustomDatasetRepo();
             // P1: explicit panel config (conf.py) — no network call needed.
-            var explicitRepo = (cfg.panelDatasetRepo || '').trim();
+            // Normalized (not just trimmed) — see _normalizeHfRepoId's
+            // docstring for why conf.py needs this same boundary check as
+            // the other two sources, even though it's the site owner's own
+            // config: a malformed value there previously reached the
+            // render path unvalidated.
+            var explicitRepo = _normalizeHfRepoId(cfg.panelDatasetRepo);
 
             var effectiveRepo   = customRepo || explicitRepo;
             var effectiveSource = customRepo ? 'custom' : (explicitRepo ? 'configured' : null);
@@ -9620,12 +9699,16 @@ opts.jsonPayload + '\n' +
 
             _fetchProxyDatasetInfo(proxyBase, function (info) {
                 // P0/P1 still win for the link target; discovery adds token posture.
+                // Same normalization as the other two sources — an
+                // unexpected/malformed proxy response shouldn't produce a
+                // broken huggingface.co link.
+                var discoveredRepo = _normalizeHfRepoId(info.repoId);
                 if (effectiveRepo) {
                     _renderDatasetLinks(statusRow, linksWrap, effectiveRepo, effectiveSource);
-                } else if (!info.repoId) {
+                } else if (!discoveredRepo) {
                     _renderDatasetLinks(statusRow, linksWrap, null, 'discovery-failed');
                 } else {
-                    _renderDatasetLinks(statusRow, linksWrap, info.repoId, 'discovered');
+                    _renderDatasetLinks(statusRow, linksWrap, discoveredRepo, 'discovered');
                 }
                 if (tokenRow && !info.error) { _renderTokenRow(tokenRow, info); }
             });
